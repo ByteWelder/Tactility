@@ -75,7 +75,7 @@ nb_platform_t _Nonnull* nb_platform_create(nb_platform_config_t _Nonnull* config
         platform->touch = NULL;
     }
 
-    ESP_ERROR_CHECK(prv_lvgl_init(platform));
+    NB_ASSERT(prv_lvgl_init(platform) == ESP_OK, "failed to init lvgl");
 
     return platform;
 }

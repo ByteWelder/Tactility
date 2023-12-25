@@ -12,7 +12,7 @@ void app_main(void) {
         .display_driver = &board_2432s024_create_display_driver,
         .touch_driver = &board_2432s024_create_touch_driver,
         .apps = {
-            &hello_world_app_config
+            &hello_world_app
         }
     };
 

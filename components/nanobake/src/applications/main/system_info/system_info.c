@@ -23,14 +23,11 @@ static void prv_on_create(nb_platform_t _Nonnull* platform, lv_obj_t _Nonnull* l
     lvgl_port_unlock();
 }
 
-nb_app_config_t system_info_app_config() {
-    nb_app_config_t config = {
-        .id = "systeminfo",
-        .name = "System Info",
-        .type = SYSTEM,
-        .on_create = &prv_on_create,
-        .on_update = NULL,
-        .on_destroy = NULL
-    };
-    return config;
-}
+nb_app_t system_info_app = {
+    .id = "systeminfo",
+    .name = "System Info",
+    .type = SYSTEM,
+    .on_create = &prv_on_create,
+    .on_update = NULL,
+    .on_destroy = NULL
+};

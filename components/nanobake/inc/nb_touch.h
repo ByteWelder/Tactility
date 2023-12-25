@@ -8,8 +8,7 @@ typedef struct nb_touch_driver nb_touch_driver_t;
 
 struct nb_touch_driver {
     char name[32];
-    esp_err_t (*init_io)(esp_lcd_panel_io_handle_t* io_handle);
-    esp_err_t (*create_touch)(esp_lcd_panel_io_handle_t io_handle, esp_lcd_touch_handle_t* touch_handle);
+    bool (*create_touch)(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 };
 
 typedef struct nb_touch nb_touch_t;

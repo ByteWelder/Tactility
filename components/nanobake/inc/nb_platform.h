@@ -10,8 +10,6 @@
 typedef nb_touch_driver_t (*create_touch_driver)();
 typedef nb_display_driver_t (*create_display_driver)();
 
-typedef nb_app_config_t (*create_app)();
-
 typedef struct nb_platform_config nb_platform_config_t;
 struct nb_platform_config {
     // Required driver for display
@@ -19,7 +17,7 @@ struct nb_platform_config {
     // Optional driver for touch input
     create_touch_driver _Nullable touch_driver;
     // List of user applications
-    create_app apps[];
+    nb_app_t* apps[];
 };
 
 typedef struct nb_lvgl nb_lvgl_t;

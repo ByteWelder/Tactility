@@ -3,6 +3,6 @@
 
 #include "nb_app.h"
 
-nb_app_config_t hello_world_app_config();
+extern nb_app_t hello_world_app;
 
 #endif //NANOBAKE_HELLO_WORLD_H

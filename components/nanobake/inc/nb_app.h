@@ -21,13 +21,13 @@ enum nb_app_type {
     USER
 };
 
-typedef struct nb_app_config nb_app_config_t;
+typedef struct nb_app nb_app_t;
 
 typedef void (*nb_app_callback_on_create) (nb_platform_t* platform, lv_obj_t* lv_parent);
 typedef void (*nb_app_callback_update) (nb_platform_t* platform, lv_obj_t* lv_parent);
 typedef void (*nb_app_callback_on_destroy) (nb_platform_t* platform);
 
-struct nb_app_config {
+struct nb_app {
     char id[NB_APP_ID_LENGTH];
     char name[NB_APP_NAME_LENGTH];
     nb_app_type_t type;
@@ -38,12 +38,12 @@ struct nb_app_config {
     uint32_t update_task_priority;
 };
 
-typedef struct nb_app nb_app_t;
+typedef struct nb_app_instance nb_app_instance_t;
 
-struct nb_app {
-    nb_app_config_t config;
+struct nb_app_instance {
+    nb_app_t config;
 };
 
-esp_err_t nb_app_config_validate(nb_app_config_t* _Nonnull app);
+esp_err_t nb_app_validate(nb_app_t* _Nonnull app);
 
 #endif //NANOBAKE_NB_APP_H

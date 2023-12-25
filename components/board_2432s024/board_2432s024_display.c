@@ -10,7 +10,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
-static const char* TAG = "ili9341";
+static const char* TAG = "2432s024_ili9341";
 
 static SemaphoreHandle_t refresh_finish = NULL;
 
@@ -32,8 +32,8 @@ IRAM_ATTR static bool prv_on_color_trans_done(esp_lcd_panel_io_handle_t io_handl
     return (need_yield == pdTRUE);
 }
 
-static esp_err_t prv_create_display(nb_display_t* display) {
-    ESP_LOGI(TAG, "init started");
+static bool prv_create_display(nb_display_t* display) {
+    ESP_LOGI(TAG, "creating display");
 
     gpio_config_t io_conf = {
         .pin_bit_mask = BIT64(PIN_BACKLIGHT),
@@ -50,11 +50,10 @@ static esp_err_t prv_create_display(nb_display_t* display) {
         HORIZONTAL_RESOLUTION * DRAW_BUFFER_HEIGHT * (BITS_PER_PIXEL / 8)
     );
 
-    ESP_RETURN_ON_ERROR(
-        spi_bus_initialize(SELECTED_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO),
-        TAG,
-        "spi bus init failed"
-    );
+    if (spi_bus_initialize(SELECTED_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
+        ESP_LOGD(TAG, "spi bus init failed");
+        return false;
+    }
 
     const esp_lcd_panel_io_spi_config_t panel_io_config = ILI9341_PANEL_IO_SPI_CONFIG(
         PIN_CS,
@@ -63,11 +62,10 @@ static esp_err_t prv_create_display(nb_display_t* display) {
         NULL
     );
 
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SELECTED_SPI_HOST, &panel_io_config, &display->io_handle),
-        TAG,
-        "failed to create panel"
-    );
+    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SELECTED_SPI_HOST, &panel_io_config, &display->io_handle) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to create panel");
+        return false;
+    }
 
     ESP_LOGI(TAG, "install driver");
     const esp_lcd_panel_dev_config_t panel_config = {
@@ -75,43 +73,43 @@ static esp_err_t prv_create_display(nb_display_t* display) {
         .rgb_endian = LCD_RGB_ENDIAN_RGB,
         .bits_per_pixel = BITS_PER_PIXEL,
     };
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_new_panel_ili9341(display->io_handle, &panel_config, &display->display_handle),
-        TAG,
-        "failed to create ili9341"
-    );
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_panel_reset(display->display_handle),
-        TAG,
-        "failed to reset panel"
-    );
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_panel_init(display->display_handle),
-        TAG,
-        "failed to init panel"
-    );
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_panel_mirror(display->display_handle, true, false),
-        TAG,
-        "failed to set panel to mirror"
-    );
-    ESP_RETURN_ON_ERROR(
-        esp_lcd_panel_disp_on_off(display->display_handle, true),
-        TAG,
-        "failed to turn display on"
-    );
-    ESP_RETURN_ON_ERROR(
-        gpio_set_level(PIN_BACKLIGHT, 1),
-        TAG,
-        "failed to turn backlight on"
-    );
+    if (esp_lcd_new_panel_ili9341(display->io_handle, &panel_config, &display->display_handle) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to create ili9341");
+        return false;
+    }
+
+
+    if (esp_lcd_panel_reset(display->display_handle) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to reset panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_init(display->display_handle) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to init panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_mirror(display->display_handle, true, false) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to set panel to mirror");
+        return false;
+    }
+
+    if (esp_lcd_panel_disp_on_off(display->display_handle, true) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to turn display on");
+        return false;
+    }
+
+    if (gpio_set_level(PIN_BACKLIGHT, 1) != ESP_OK) {
+        ESP_LOGD(TAG, "failed to turn backlight on");
+        return false;
+    }
 
     display->horizontal_resolution = HORIZONTAL_RESOLUTION;
     display->vertical_resolution = VERTICAL_RESOLUTION;
     display->draw_buffer_height = DRAW_BUFFER_HEIGHT;
     display->bits_per_pixel = BITS_PER_PIXEL;
 
-    return ESP_OK;
+    return true;
 }
 
 nb_display_driver_t board_2432s024_create_display_driver() {

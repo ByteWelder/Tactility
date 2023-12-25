@@ -3,6 +3,6 @@
 
 #include "nb_app.h"
 
-nb_app_config_t system_info_app_config();
+extern nb_app_t system_info_app;
 
 #endif // NANOBAKE_SYSTEM_INFO_H

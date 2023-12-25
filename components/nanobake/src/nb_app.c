@@ -4,7 +4,7 @@
 
 static const char* TAG = "nb_app";
 
-esp_err_t nb_app_config_validate(nb_app_config_t* _Nonnull app) {
+esp_err_t nb_app_validate(nb_app_t* _Nonnull app) {
     ESP_RETURN_ON_FALSE(
         strlen(app->id) < NB_APP_ID_LENGTH,
         ESP_FAIL,

@@ -18,7 +18,7 @@ typedef struct nb_display_driver nb_display_driver_t;
 
 struct nb_display_driver {
     char name[32];
-    esp_err_t (*create_display)(nb_display_t* display);
+    bool (*create_display)(nb_display_t* display);
 };
 
 /**
