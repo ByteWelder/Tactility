@@ -1,8 +1,8 @@
 #include <esp_err.h>
 #include <esp_log.h>
-#include <esp_check.h>
 
 #include <nanobake.h>
+
 // Nanobake board support with drivers:
 #include <board_2432s024_touch.h>
 #include <board_2432s024_display.h>

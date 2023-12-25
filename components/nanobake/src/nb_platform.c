@@ -8,7 +8,7 @@
 
 static const char* TAG = "nb_platform";
 
-static esp_err_t prv_nb_lvgl_init(
+static esp_err_t prv_lvgl_init(
     nb_platform_t* platform
 ) {
     const lvgl_port_cfg_t lvgl_cfg = {
@@ -71,7 +71,7 @@ esp_err_t nb_platform_create(nb_platform_config_t config, nb_platform_t* platfor
     );
 
     ESP_RETURN_ON_ERROR(
-        prv_nb_lvgl_init(platform),
+        prv_lvgl_init(platform),
         nbi_tag,
         "lvgl init failed"
     );

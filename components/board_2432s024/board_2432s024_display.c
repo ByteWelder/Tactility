@@ -26,13 +26,13 @@ static SemaphoreHandle_t refresh_finish = NULL;
 #define BITS_PER_PIXEL 16
 #define DRAW_BUFFER_HEIGHT 80
 
-IRAM_ATTR static bool test_notify_refresh_ready(esp_lcd_panel_io_handle_t io_handle, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
+IRAM_ATTR static bool prv_on_color_trans_done(esp_lcd_panel_io_handle_t io_handle, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
     BaseType_t need_yield = pdFALSE;
     xSemaphoreGiveFromISR(refresh_finish, &need_yield);
     return (need_yield == pdTRUE);
 }
 
-static esp_err_t ili9341_create_display(nb_display_t* display) {
+static esp_err_t prv_create_display(nb_display_t* display) {
     ESP_LOGI(TAG, "init started");
 
     gpio_config_t io_conf = {
@@ -59,7 +59,7 @@ static esp_err_t ili9341_create_display(nb_display_t* display) {
     const esp_lcd_panel_io_spi_config_t panel_io_config = ILI9341_PANEL_IO_SPI_CONFIG(
         PIN_CS,
         PIN_DC,
-        test_notify_refresh_ready,
+        prv_on_color_trans_done,
         NULL
     );
 
@@ -117,7 +117,7 @@ static esp_err_t ili9341_create_display(nb_display_t* display) {
 nb_display_driver_t board_2432s024_create_display_driver() {
     nb_display_driver_t driver = {
         .name = "ili9341_2432s024",
-        .create_display = &ili9341_create_display
+        .create_display = &prv_create_display
     };
     return driver;
 }

@@ -9,7 +9,7 @@
 
 const char* TAG = "cst816";
 
-static esp_err_t cst816_init_io(esp_lcd_panel_io_handle_t* io_handle) {
+static esp_err_t prv_init_io(esp_lcd_panel_io_handle_t* io_handle) {
     // Init I2C
     const i2c_config_t i2c_conf = {
         .mode = I2C_MODE_MASTER,
@@ -29,7 +29,7 @@ static esp_err_t cst816_init_io(esp_lcd_panel_io_handle_t* io_handle) {
     return ESP_OK;
 }
 
-static esp_err_t cst816_create_touch(esp_lcd_panel_io_handle_t io_handle, esp_lcd_touch_handle_t* touch_handle) {
+static esp_err_t prv_create_touch(esp_lcd_panel_io_handle_t io_handle, esp_lcd_touch_handle_t* touch_handle) {
     // Configure touch
     esp_lcd_touch_config_t config = {
         .x_max = 240,
@@ -55,8 +55,8 @@ static esp_err_t cst816_create_touch(esp_lcd_panel_io_handle_t io_handle, esp_lc
 nb_touch_driver_t board_2432s024_create_touch_driver() {
     nb_touch_driver_t driver = {
         .name = "cst816s_2432s024",
-        .init_io = cst816_init_io,
-        .create_touch = &cst816_create_touch
+        .init_io = prv_init_io,
+        .create_touch = &prv_create_touch
     };
     return driver;
 }
