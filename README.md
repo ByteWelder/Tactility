@@ -24,7 +24,7 @@ In practice, there are pre-configured drivers available for these boards:
 
 Until there is proper documentation, here are some pointers:
 - [Sample application](./main/main.c)
-- [NanoBake](./components/nanobake/)
+- [NanoBake](./components/nanobake/inc)
 
 ## License
 
