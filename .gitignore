@@ -1,0 +1,16 @@
+.idea/
+.DS_Store
+
+build/
+cmake-build-debug/
+cmake-build-release/
+CMakeCache.txt
+*.cmake
+*.cbp
+
+sdkconfig
+sdkconfig.*
+
+managed_components/
+dependencies.lock
+
