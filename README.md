@@ -20,6 +20,12 @@ In theory, all hardware from the [Board Support Packages](https://github.com/esp
 In practice, there are pre-configured drivers available for these boards:
 - Yellow Board / 2432S024
 
+# Guide
+
+Until there is proper documentation, here are some pointers:
+- [Sample application](./main/main.c)
+- [NanoBake](./components/nanobake/)
+
 ## License
 
 [GNU General Public License Version 3](LICENSE.md)
