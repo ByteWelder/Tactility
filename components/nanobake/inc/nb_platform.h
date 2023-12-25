@@ -3,28 +3,42 @@
 
 #include "nb_display.h"
 #include "nb_touch.h"
+#include "nb_app.h"
 #include <esp_err.h>
 #include <lvgl.h>
 
+typedef nb_touch_driver_t (*create_touch_driver)();
+typedef nb_display_driver_t (*create_display_driver)();
+
+typedef nb_app_config_t (*create_app)();
+
 typedef struct nb_platform_config nb_platform_config_t;
 struct nb_platform_config {
-    nb_display_driver_t display_driver;
-    nb_touch_driver_t touch_driver;
+    // Required driver for display
+    create_display_driver _Nonnull display_driver;
+    // Optional driver for touch input
+    create_touch_driver _Nullable touch_driver;
+    // List of user applications
+    create_app apps[];
 };
 
 typedef struct nb_lvgl nb_lvgl_t;
 struct nb_lvgl {
-    lv_disp_t* disp;
-    lv_indev_t* touch_indev;
+    lv_disp_t* _Nonnull disp;
+    lv_indev_t* _Nullable touch_indev;
 };
 
 typedef struct nb_platform nb_platform_t;
 struct nb_platform {
-    nb_display_t display;
-    nb_touch_t touch;
-    nb_lvgl_t lvgl;
+    nb_display_t* _Nonnull display;
+    nb_touch_t* _Nullable touch;
+    nb_lvgl_t* _Nonnull lvgl;
 };
 
-esp_err_t nb_platform_create(nb_platform_config_t config, nb_platform_t* platform);
+/**
+ * @param[in] config
+ * @return a newly allocated platform instance (caller takes ownership)
+ */
+nb_platform_t _Nonnull* nb_platform_create(nb_platform_config_t _Nonnull* config);
 
 #endif // NANOBAKE_NB_PLATFORM_H

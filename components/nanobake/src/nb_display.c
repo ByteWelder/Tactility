@@ -1,9 +1,8 @@
 #include "nb_display.h"
-#include "nb_internal.h"
-#include <esp_check.h>
-#include <esp_log.h>
+#include "nb_assert.h"
 
-esp_err_t nb_display_create(nb_display_driver_t driver, nb_display_t* display) {
-    ESP_RETURN_ON_ERROR(driver.create_display(display), nbi_tag, "failed to create driver");
-    return ESP_OK;
+nb_display_t _Nonnull* nb_display_create(nb_display_driver_t _Nonnull* driver) {
+    nb_display_t _Nonnull* display = malloc(sizeof(nb_display_t));
+    NB_ASSERT(driver->create_display(display) == ESP_OK, "failed to create display");
+    return display;
 }

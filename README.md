@@ -2,8 +2,8 @@
 
 NanoBake is a front-end application platform.
 
-The main goals are to deliver multiple front-end applications on a single ESP32 devices,
-and to simplify hardware support.
+The main goals are to install and run multiple front-end applications on a single ESP32 device,
+and to simplify hardware support for such apps.
 
 **Status: pre-alpha**
 
@@ -23,7 +23,7 @@ In practice, there are pre-configured drivers available for these boards:
 # Guide
 
 Until there is proper documentation, here are some pointers:
-- [Sample application](./main/main.c)
+- [Sample application](main/src/main.c)
 - [NanoBake](./components/nanobake/inc)
 
 ## License
