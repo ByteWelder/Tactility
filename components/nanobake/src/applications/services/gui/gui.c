@@ -11,7 +11,7 @@ static int32_t prv_gui_main(void* param) {
 const nb_app_t gui_app = {
     .id = "gui",
     .name = "GUI",
-    .type = STARTUP,
+    .type = SERVICE,
     .entry_point = &prv_gui_main,
     .stack_size = 2048,
     .priority = 10

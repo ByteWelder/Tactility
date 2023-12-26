@@ -16,8 +16,7 @@ typedef enum nb_app_type nb_app_type_t;
 enum nb_app_type {
     SERVICE,
     SYSTEM,
-    USER,
-    STARTUP
+    USER
 };
 
 typedef struct nb_app nb_app_t;

@@ -10,7 +10,7 @@ static int32_t prv_loader_main(void* param) {
 const nb_app_t loader_app = {
     .id = "loader",
     .name = "Loader",
-    .type = STARTUP,
+    .type = SERVICE,
     .entry_point = &prv_loader_main,
     .stack_size = 2048,
     .priority = 10

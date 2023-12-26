@@ -17,9 +17,7 @@ static int32_t system_info_entry_point(void* param) {
         const char* name = furi_thread_get_name(thread_id);
         bool is_suspended = furi_thread_is_suspended(thread_id);
         const char* status = is_suspended ? "suspended" : "active";
-        bool is_service = furi_thread_mark_is_service(thread_id);
-        const char* type = is_service ? "service" : "app";
-        printf(" - [%s, %s] %s (%s)\n", type, status, name, appid);
+        printf(" - [%s] %s (%s)\n", status, name, appid);
     }
 
     printf("Heap memory available: %d / %d\n",
