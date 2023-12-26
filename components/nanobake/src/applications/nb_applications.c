@@ -22,7 +22,7 @@ const nb_app_t* const FLIPPER_SYSTEM_APPS[] = {
 
 const size_t FLIPPER_SYSTEM_APPS_COUNT = sizeof(FLIPPER_SYSTEM_APPS) / sizeof(nb_app_t*);
 
-const FlipperInternalOnStartHook FLIPPER_ON_SYSTEM_START[] = {
+const nb_on_system_start_ FLIPPER_ON_SYSTEM_START[] = {
 };
 
-const size_t FLIPPER_ON_SYSTEM_START_COUNT = sizeof(FLIPPER_ON_SYSTEM_START) / sizeof(FlipperInternalOnStartHook);
+const size_t FLIPPER_ON_SYSTEM_START_COUNT = sizeof(FLIPPER_ON_SYSTEM_START) / sizeof(nb_on_system_start_);

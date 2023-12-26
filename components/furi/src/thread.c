@@ -81,7 +81,7 @@ static void furi_thread_body(void* context) {
     furi_assert(thread->state == FuriThreadStateStarting);
     furi_thread_set_state(thread, FuriThreadStateRunning);
 
-    TaskHandle_t task_handle = xTaskGetCurrentTaskHandle();
+//    TaskHandle_t task_handle = xTaskGetCurrentTaskHandle();
 //    if(thread->heap_trace_enabled == true) {
 //        memmgr_heap_enable_thread_trace((FuriThreadId)task_handle);
 //    }

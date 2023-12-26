@@ -37,7 +37,7 @@ FURI_NORETURN void __furi_halt_implementation();
 /** Crash system with message. */
 #define __furi_crash(message)                                 \
     do {                                                      \
-        ESP_LOGE("crash", "%s\n\tat %s:%d", (message) ? (message) : "", __FILE__, __LINE__); \
+        ESP_LOGE("crash", "%s\n\tat %s:%d", ((message) ? ((const char*)message) : ""), __FILE__, __LINE__); \
         __furi_crash_implementation();                        \
     } while(0)
 
@@ -50,7 +50,7 @@ FURI_NORETURN void __furi_halt_implementation();
 /** Halt system with message. */
 #define __furi_halt(message)                                  \
     do {                                                      \
-            ESP_LOGE("halt", "%s\n\tat %s:%d", (message) ? (message) : "", __FILE__, __LINE__); \
+            ESP_LOGE("halt", "%s\n\tat %s:%d", ((message) ? ((const char*)message) : ""), __FILE__, __LINE__); \
         __furi_halt_implementation();                         \
     } while(0)
 

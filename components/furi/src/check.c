@@ -146,7 +146,6 @@ FURI_NORETURN void __furi_crash_implementation() {
     // Check if debug enabled by DAP
     // https://developer.arm.com/documentation/ddi0403/d/Debug-Architecture/ARMv7-M-Debug/Debug-register-support-in-the-SCS/Debug-Halting-Control-and-Status-Register--DHCSR?lang=en
 //    bool debug = CoreDebug->DHCSR & CoreDebug_DHCSR_C_DEBUGEN_Msk;
-    bool debug = true;
 #ifdef FURI_NDEBUG
     if(debug) {
 #endif

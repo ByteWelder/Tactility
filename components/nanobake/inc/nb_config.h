@@ -18,7 +18,8 @@ struct nb_config {
     // Optional driver for touch input
     const create_touch_driver _Nullable touch_driver;
     // List of user applications
-    const nb_app_t* apps[];
+    const size_t apps_count;
+    const nb_app_t* const apps[];
 };
 
 #ifdef __cplusplus

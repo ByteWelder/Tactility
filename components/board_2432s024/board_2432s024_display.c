@@ -108,14 +108,15 @@ static bool prv_create_display(nb_display_t* display) {
     display->vertical_resolution = VERTICAL_RESOLUTION;
     display->draw_buffer_height = DRAW_BUFFER_HEIGHT;
     display->bits_per_pixel = BITS_PER_PIXEL;
+    display->mirror_x = true;
+    display->mirror_y = false;
 
     return true;
 }
 
 nb_display_driver_t board_2432s024_create_display_driver() {
-    nb_display_driver_t driver = {
+    return (nb_display_driver_t) {
         .name = "ili9341_2432s024",
         .create_display = &prv_create_display
     };
-    return driver;
 }

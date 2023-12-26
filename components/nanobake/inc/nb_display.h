@@ -15,6 +15,8 @@ struct nb_display {
     uint16_t bits_per_pixel;
     esp_lcd_panel_io_handle_t _Nonnull io_handle;
     esp_lcd_panel_handle_t _Nonnull display_handle;
+    bool mirror_x;
+    bool mirror_y;
 };
 
 typedef struct nb_display_driver nb_display_driver_t;
