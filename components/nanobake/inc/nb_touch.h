@@ -1,8 +1,11 @@
-#ifndef NANOBAKE_NB_TOUCH_H
-#define NANOBAKE_NB_TOUCH_H
+#pragma once
 
 #include "esp_lcd_touch.h"
 #include <esp_lcd_panel_io.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct nb_touch_driver nb_touch_driver_t;
 
@@ -22,6 +25,8 @@ struct nb_touch {
  * @param[in] driver
  * @return a newly allocated instance
  */
-nb_touch_t _Nonnull* nb_touch_create(nb_touch_driver_t _Nonnull* driver);
+nb_touch_t _Nonnull* nb_touch_alloc(nb_touch_driver_t _Nonnull* driver);
 
-#endif // NANOBAKE_NB_TOUCH_H
+#ifdef __cplusplus
+}
+#endif

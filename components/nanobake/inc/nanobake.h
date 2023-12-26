@@ -1,11 +1,19 @@
-#ifndef NANOBAKE_H
-#define NANOBAKE_H
+#pragma once
 
-#include "nb_platform.h"
+#include "nb_hardware.h"
 #include "nb_app.h"
 
-extern void nanobake_run(nb_platform_config_t _Nonnull * config);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-//extern nb_app_config_t[32] nanobake_apps(nb_app_config_t app_configs, ...);
+extern void nanobake_start(nb_config_t _Nonnull * config);
 
-#endif //NANOBAKE_H
+typedef void* FuriThreadId;
+
+extern FuriThreadId nanobake_get_app_thread_id(size_t index);
+extern size_t nanobake_get_app_thread_count();
+
+#ifdef __cplusplus
+}
+#endif

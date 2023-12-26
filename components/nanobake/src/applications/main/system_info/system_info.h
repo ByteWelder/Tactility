@@ -1,8 +1,13 @@
-#ifndef NANOBAKE_SYSTEM_INFO_H
-#define NANOBAKE_SYSTEM_INFO_H
+#pragma once
 
 #include "nb_app.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern nb_app_t system_info_app;
 
-#endif // NANOBAKE_SYSTEM_INFO_H
+#ifdef __cplusplus
+}
+#endif

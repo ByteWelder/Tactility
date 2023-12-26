@@ -1,33 +1,40 @@
 #include "system_info.h"
+#include "nanobake.h"
+#include <core_defines.h>
+#include <thread.h>
 
-#include <esp_lvgl_port.h>
-#include <nb_platform.h>
+static int32_t system_info_entry_point(void* param) {
+    UNUSED(param);
 
-static void prv_on_create(nb_platform_t _Nonnull* platform, lv_obj_t _Nonnull* lv_parent) {
-    lvgl_port_lock(0);
+    // Wait for all apps to start
+    vTaskDelay(1000  / portTICK_PERIOD_MS);
 
-    lv_obj_t* cpu_label = lv_label_create(lv_parent);
-    lv_label_set_recolor(cpu_label, true);
-    lv_obj_set_width(cpu_label, (lv_coord_t)platform->display->horizontal_resolution);
-    lv_obj_set_style_text_align(cpu_label, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text(cpu_label, "CPU usage: ?");
-    lv_obj_align(cpu_label, LV_ALIGN_TOP_LEFT, 0, 0);
+    size_t system_service_count = nanobake_get_app_thread_count();
+    printf("Running apps:\n");
+    for (int i = 0; i < system_service_count; ++i) {
+        FuriThreadId thread_id = nanobake_get_app_thread_id(i);
+        const char* appid = furi_thread_get_appid(thread_id);
+        const char* name = furi_thread_get_name(thread_id);
+        bool is_suspended = furi_thread_is_suspended(thread_id);
+        const char* status = is_suspended ? "suspended" : "active";
+        bool is_service = furi_thread_mark_is_service(thread_id);
+        const char* type = is_service ? "service" : "app";
+        printf(" - [%s, %s] %s (%s)\n", type, status, name, appid);
+    }
 
-    lv_obj_t* mem_free_label = lv_label_create(lv_parent);
-    lv_label_set_recolor(mem_free_label, true);
-    lv_obj_set_width(mem_free_label, (lv_coord_t)platform->display->horizontal_resolution);
-    lv_obj_set_style_text_align(mem_free_label, LV_TEXT_ALIGN_LEFT, 0);
-    lv_label_set_text(mem_free_label, "Memory: ?");
-    lv_obj_align(mem_free_label, LV_ALIGN_TOP_LEFT, 0, 15);
+    printf("Heap memory available: %d / %d\n",
+        heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
+        heap_caps_get_total_size(MALLOC_CAP_DEFAULT)
+    );
 
-    lvgl_port_unlock();
+    return 0;
 }
 
 nb_app_t system_info_app = {
     .id = "systeminfo",
     .name = "System Info",
     .type = SYSTEM,
-    .on_create = &prv_on_create,
-    .on_update = NULL,
-    .on_destroy = NULL
+    .entry_point = &system_info_entry_point,
+    .stack_size = 2048,
+    .priority = 10
 };

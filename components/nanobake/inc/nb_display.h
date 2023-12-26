@@ -1,7 +1,10 @@
-#ifndef NANOBAKE_NB_DISPLAY_H
-#define NANOBAKE_NB_DISPLAY_H
+#pragma once
 
 #include <esp_lcd_panel_io.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef struct nb_display nb_display_t;
 
@@ -25,6 +28,8 @@ struct nb_display_driver {
  * @param[in] driver
  * @return allocated display object
  */
-nb_display_t _Nonnull* nb_display_create(nb_display_driver_t _Nonnull* driver);
+nb_display_t _Nonnull* nb_display_alloc(nb_display_driver_t _Nonnull* driver);
 
-#endif // NANOBAKE_NB_DISPLAY_H
+#ifdef __cplusplus
+}
+#endif
