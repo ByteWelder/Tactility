@@ -3,12 +3,12 @@
 #include "nb_lvgl_i.h"
 #include "nb_app_i.h"
 #include "applications/nb_applications.h"
-#include <esp_log.h>
-#include <m-list.h>
+#include "esp_log.h"
+#include "m-list.h"
 // Furi
-#include <thread.h>
-#include <kernel.h>
-#include <record.h>
+#include "thread.h"
+#include "kernel.h"
+#include "record.h"
 
 M_LIST_DEF(thread_ids, FuriThreadId);
 

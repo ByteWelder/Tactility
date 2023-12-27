@@ -1,11 +1,11 @@
 #include "hello_world.h"
-#include <core_defines.h>
-#include <record.h>
-#include <nb_lvgl.h>
-#include <nb_hardware.h>
-#include <applications/services/gui/gui.h>
-#include <esp_lvgl_port.h>
-#include <esp_log.h>
+#include "core_defines.h"
+#include "record.h"
+#include "nb_lvgl.h"
+#include "nb_hardware.h"
+#include "applications/services/gui/gui.h"
+#include "esp_lvgl_port.h"
+#include "esp_log.h"
 
 static const char* TAG = "app_helloworld";
 
@@ -15,7 +15,7 @@ static void prv_on_button_click(lv_event_t _Nonnull* event) {
     struct NbGui* gui = furi_record_open(RECORD_GUI);
 
     // Free this screen
-    ScreenId screen_id = (ScreenId)event->user_data;
+    NbScreenId screen_id = (NbScreenId)event->user_data;
     gui_screen_free(gui, screen_id);
 
     // Close Gui record
@@ -23,7 +23,7 @@ static void prv_on_button_click(lv_event_t _Nonnull* event) {
     gui = NULL;
 }
 
-static void prv_hello_world_lvgl(lv_obj_t* parent, ScreenId screen_id) {
+static void prv_hello_world_lvgl(lv_obj_t* parent, NbScreenId screen_id) {
     lvgl_port_lock(0);
 
     lv_obj_t* label = lv_label_create(parent);

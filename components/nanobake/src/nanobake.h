@@ -11,7 +11,7 @@ extern "C" {
 // Forward declarations
 typedef void* FuriThreadId;
 
-__attribute__((unused)) extern void nanobake_start(NbConfig _Nonnull * config);
+__attribute__((unused)) extern void nanobake_start(NbConfig _Nonnull* config);
 
 extern FuriThreadId nanobake_get_app_thread_id(size_t index);
 extern size_t nanobake_get_app_thread_count();

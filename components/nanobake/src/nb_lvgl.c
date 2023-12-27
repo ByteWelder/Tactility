@@ -1,6 +1,6 @@
 #include "nb_lvgl_i.h"
-#include <esp_lvgl_port.h>
-#include <check.h>
+#include "esp_lvgl_port.h"
+#include "check.h"
 
 static const char* TAG = "nb_lvgl";
 

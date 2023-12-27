@@ -1,9 +1,9 @@
 #include "board_2432s024_touch.h"
 
-#include <esp_lcd_touch_cst816s.h>
-#include <esp_log.h>
-#include <esp_err.h>
-#include <driver/i2c.h>
+#include "esp_lcd_touch_cst816s.h"
+#include "esp_log.h"
+#include "esp_err.h"
+#include "driver/i2c.h"
 
 #define CST816_I2C_PORT (0)
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esp_lcd_touch.h"
-#include <esp_lcd_panel_io.h>
+#include "esp_lcd_panel_io.h"
 
 #ifdef __cplusplus
 extern "C" {

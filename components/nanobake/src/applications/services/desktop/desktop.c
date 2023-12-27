@@ -1,6 +1,6 @@
 #include "desktop.h"
 #include "nb_hardware.h"
-#include <core_defines.h>
+#include "core_defines.h"
 
 static int32_t prv_desktop_main(void* param) {
     UNUSED(param);

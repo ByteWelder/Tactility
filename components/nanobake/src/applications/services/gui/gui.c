@@ -1,19 +1,19 @@
 #include "gui_i.h"
 #include "core_defines.h"
-#include <record.h>
-#include <check.h>
+#include "record.h"
+#include "check.h"
 
-static ScreenId screen_counter = 0;
+static NbScreenId screen_counter = 0;
 
 NbGuiHandle gui_alloc() {
     struct NbGui* gui = malloc(sizeof(struct NbGui));
-    screen_dict_init(gui->screens);
+    ScreenDict_init(gui->screens);
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     return gui;
 }
 
 void gui_free(NbGuiHandle gui) {
-    screen_dict_clear(gui->screens);
+    ScreenDict_clear(gui->screens);
     furi_mutex_free(gui->mutex);
     free(gui);
 }
@@ -28,15 +28,15 @@ void gui_unlock(NbGuiHandle gui) {
     furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
 }
 
-ScreenId gui_screen_create(NbGuiHandle gui, InitScreen callback) {
-    ScreenId id = screen_counter++;
+NbScreenId gui_screen_create(NbGuiHandle gui, InitScreen callback) {
+    NbScreenId id = screen_counter++;
     NbScreen screen = {
         .id = id,
         .parent = NULL,
         .callback = callback
     };
 
-    screen_dict_set_at(gui->screens, id, screen);
+    ScreenDict_set_at(gui->screens, id, screen);
 
     // TODO: notify desktop of change
     // TODO: have desktop update views
@@ -49,26 +49,26 @@ ScreenId gui_screen_create(NbGuiHandle gui, InitScreen callback) {
     return id;
 }
 
-lv_obj_t* gui_screen_get_parent(NbGuiHandle gui, ScreenId id) {
-    NbScreen* screen = screen_dict_get(gui->screens, id);
+lv_obj_t* gui_screen_get_parent(NbGuiHandle gui, NbScreenId id) {
+    NbScreen* screen = ScreenDict_get(gui->screens, id);
     furi_check(screen != NULL);
     return screen->parent;
 }
 
-void gui_screen_set_parent(NbGuiHandle gui, ScreenId id, lv_obj_t* parent) {
-    NbScreen* screen = screen_dict_get(gui->screens, id);
+void gui_screen_set_parent(NbGuiHandle gui, NbScreenId id, lv_obj_t* parent) {
+    NbScreen* screen = ScreenDict_get(gui->screens, id);
     furi_check(screen != NULL);
     screen->parent = parent;
 }
 
-void gui_screen_free(NbGuiHandle gui, ScreenId id) {
-    NbScreen* screen = screen_dict_get(gui->screens, id);
+void gui_screen_free(NbGuiHandle gui, NbScreenId id) {
+    NbScreen* screen = ScreenDict_get(gui->screens, id);
     furi_check(screen != NULL);
 
     // TODO: notify? use callback? (done from desktop service)
     lv_obj_clean(screen->parent);
 
-    screen_dict_erase(gui->screens, id);
+    ScreenDict_erase(gui->screens, id);
 }
 
 static int32_t prv_gui_main(void* param) {

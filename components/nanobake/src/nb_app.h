@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdio.h>
-#include <esp_err.h>
-#include <lvgl.h>
+#include "esp_err.h"
+#include "lvgl.h"
 
 #ifdef __cplusplus
 extern "C" {

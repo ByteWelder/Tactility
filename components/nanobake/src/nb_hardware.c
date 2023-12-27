@@ -1,7 +1,7 @@
 #include "nb_hardware_i.h"
-#include <esp_check.h>
-#include <esp_err.h>
-#include <check.h>
+#include "esp_check.h"
+#include "esp_err.h"
+#include "check.h"
 
 static const char* TAG = "nb_hardware";
 
