@@ -58,7 +58,7 @@ static void prv_start_app(const nb_app_t _Nonnull* app) {
     thread_ids_push_back(prv_thread_ids, thread_id);
 }
 
-extern void nanobake_start(nb_config_t _Nonnull* config) {
+__attribute__((unused)) extern void nanobake_start(nb_config_t _Nonnull* config) {
     prv_furi_init();
 
     nb_hardware_t hardware = nb_hardware_create(config);

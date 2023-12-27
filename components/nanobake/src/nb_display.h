@@ -17,6 +17,7 @@ struct nb_display {
     esp_lcd_panel_handle_t _Nonnull display_handle;
     bool mirror_x;
     bool mirror_y;
+    bool swap_xy;
 };
 
 typedef struct nb_display_driver nb_display_driver_t;

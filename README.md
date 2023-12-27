@@ -7,6 +7,11 @@ Nanobake provides:
 - UI capabilities (via LVGL)
 - An application platform that can run apps and services
 
+Requirements:
+- ESP32 (any?)
+- [esp-idf 5.1.x](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html)
+- a display (connected via SPI or I2C)
+
 **Status: pre-alpha**
 
 ## Technologies
@@ -20,10 +25,10 @@ UI is created with [lvgl](https://github.com/lvgl/lvgl) via [esp_lvgl_port](http
 
 ### Devices
 
-In theory, all hardware from the [Board Support Packages](https://github.com/espressif/esp-bsp/) project is supported.
-
-In practice, there are pre-configured drivers available for these boards:
+See below for the supported hardware.
+Predefined configurations are available for:
 - Yellow Board / 2432S024
+- (more will follow)
 
 ### Drivers
 

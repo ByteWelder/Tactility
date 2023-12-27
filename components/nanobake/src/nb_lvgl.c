@@ -28,7 +28,7 @@ nb_lvgl_t nb_lvgl_init(nb_hardware_t _Nonnull* hardware) {
         .vres = display->vertical_resolution,
         .monochrome = false,
         .rotation = {
-            .swap_xy = false,
+            .swap_xy = display->swap_xy,
             .mirror_x = display->mirror_x,
             .mirror_y = display->mirror_y,
         },

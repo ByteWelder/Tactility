@@ -1,4 +1,3 @@
-// File originated from Flipper Zero / Furi
 #pragma once
 #include <m-core.h>
 

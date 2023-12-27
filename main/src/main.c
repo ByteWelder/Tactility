@@ -7,7 +7,7 @@
 // Apps
 #include "hello_world/hello_world.h"
 
-void app_main(void) {
+__attribute__((unused)) void app_main(void) {
     static nb_config_t config = {
         .display_driver = &board_2432s024_create_display_driver,
         .touch_driver = &board_2432s024_create_touch_driver,

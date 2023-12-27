@@ -9,7 +9,7 @@ CMakeCache.txt
 *.cbp
 
 sdkconfig
-sdkconfig.*
+sdkconfig.old
 
 managed_components/
 dependencies.lock
