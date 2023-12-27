@@ -23,6 +23,9 @@ UI is created with [lvgl](https://github.com/lvgl/lvgl) via [esp_lvgl_port](http
 
 ## Supported Hardware
 
+**NOTE**: `sdkconfig.defaults` currently contains `CONFIG_LV_COLOR_16_SWAP=y`. 
+You might have to remove this setting if you're not using the Yellow Board described below.
+
 ### Devices
 
 See below for the supported hardware.

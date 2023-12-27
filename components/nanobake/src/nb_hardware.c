@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "check.h"
 
-#define TAG "nb_hardware"
+#define TAG "hardware"
 
 NbHardware nb_hardware_create(NbConfig _Nonnull* config) {
 

@@ -70,6 +70,6 @@ const NbApp hello_world_app = {
     .name = "Hello World",
     .type = USER,
     .entry_point = &prv_hello_world_main,
-    .stack_size = 2048,
-    .priority = 10
+    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
+    .priority = NB_TASK_PRIORITY_DEFAULT
 };

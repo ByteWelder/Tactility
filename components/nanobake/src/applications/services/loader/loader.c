@@ -12,6 +12,6 @@ const NbApp loader_app = {
     .name = "Loader",
     .type = SERVICE,
     .entry_point = &prv_loader_main,
-    .stack_size = 2048,
-    .priority = 10
+    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
+    .priority = NB_TASK_PRIORITY_DEFAULT
 };

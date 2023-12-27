@@ -33,6 +33,6 @@ NbApp system_info_app = {
     .name = "System Info",
     .type = SYSTEM,
     .entry_point = &system_info_entry_point,
-    .stack_size = 2048,
-    .priority = 10
+    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
+    .priority = NB_TASK_PRIORITY_DEFAULT
 };

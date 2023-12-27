@@ -3,7 +3,7 @@
 #include "record.h"
 #include "check.h"
 
-#define TAG "Gui"
+#define TAG "gui"
 
 // Forward declarations from gui_draw.c
 bool gui_redraw_fs(NbGui* gui);
@@ -233,6 +233,6 @@ const NbApp gui_app = {
     .name = "GUI",
     .type = SERVICE,
     .entry_point = &prv_gui_main,
-    .stack_size = 2048,
-    .priority = 10
+    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
+    .priority = NB_TASK_PRIORITY_DEFAULT
 };

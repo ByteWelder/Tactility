@@ -2,7 +2,7 @@
 #include "esp_lvgl_port.h"
 #include "check.h"
 
-#define TAG "nb_lvgl"
+#define TAG "lvgl"
 
 NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {

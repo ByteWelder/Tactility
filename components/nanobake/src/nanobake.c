@@ -53,6 +53,7 @@ static void prv_start_app(const NbApp _Nonnull* app) {
     }
 
     furi_thread_set_appid(thread, app->id);
+    furi_thread_set_priority(thread, app->priority);
     furi_thread_start(thread);
 
     FuriThreadId thread_id = furi_thread_get_id(thread);

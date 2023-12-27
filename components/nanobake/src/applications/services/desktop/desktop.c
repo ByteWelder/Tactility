@@ -2,6 +2,7 @@
 #include "nb_hardware.h"
 #include "core_defines.h"
 
+#include "esp_log.h"
 static int32_t prv_desktop_main(void* param) {
     UNUSED(param);
     printf("desktop app init\n");
@@ -13,6 +14,6 @@ const NbApp desktop_app = {
     .name = "Desktop",
     .type = SERVICE,
     .entry_point = &prv_desktop_main,
-    .stack_size = 2048,
-    .priority = 10
+    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
+    .priority = NB_TASK_PRIORITY_DEFAULT
 };
