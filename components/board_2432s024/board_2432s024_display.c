@@ -9,7 +9,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-static const char* TAG = "2432s024_ili9341";
+#define TAG "2432s024_ili9341"
 
 static SemaphoreHandle_t refresh_finish = NULL;
 

@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "check.h"
 
-static const char* TAG = "nb_hardware";
+#define TAG "nb_hardware"
 
 NbHardware nb_hardware_create(NbConfig _Nonnull* config) {
 

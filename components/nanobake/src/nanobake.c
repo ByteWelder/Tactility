@@ -12,7 +12,8 @@
 
 M_LIST_DEF(thread_ids, FuriThreadId);
 
-static const char* TAG = "nanobake";
+#define TAG "nanobake"
+
 thread_ids_t prv_thread_ids;
 
 static void prv_furi_init() {

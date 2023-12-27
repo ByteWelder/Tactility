@@ -9,21 +9,24 @@
 
 static const char* TAG = "app_helloworld";
 
+ViewPort* view_port = NULL;
+
 static void prv_on_button_click(lv_event_t _Nonnull* event) {
     ESP_LOGI(TAG, "button clicked");
-    // Open Gui record
-    struct NbGui* gui = furi_record_open(RECORD_GUI);
 
-    // Free this screen
-    NbScreenId screen_id = (NbScreenId)event->user_data;
-    gui_screen_free(gui, screen_id);
+    // TODO: make macro for record 'transactions'
+    NbGui* gui = furi_record_open(RECORD_GUI);
+    gui_remove_view_port(gui, view_port);
+
+    view_port_free(view_port);
+    view_port = NULL;
 
     // Close Gui record
     furi_record_close(RECORD_GUI);
     gui = NULL;
 }
 
-static void prv_hello_world_lvgl(lv_obj_t* parent, NbScreenId screen_id) {
+static void prv_hello_world_lvgl(lv_obj_t* parent, void* context) {
     lvgl_port_lock(0);
 
     lv_obj_t* label = lv_label_create(parent);
@@ -37,21 +40,23 @@ static void prv_hello_world_lvgl(lv_obj_t* parent, NbScreenId screen_id) {
     label = lv_label_create(btn);
     lv_label_set_text_static(label, "Exit");
     lv_obj_align(btn, LV_ALIGN_CENTER, 0, 30);
-    lv_obj_add_event_cb(btn, prv_on_button_click, LV_EVENT_CLICKED, (void*)screen_id);
+    lv_obj_add_event_cb(btn, prv_on_button_click, LV_EVENT_CLICKED, NULL);
 
     lvgl_port_unlock();
-
-    // TODO: on app exit, call gui_screen_destroy()
 }
 
 static int32_t prv_hello_world_main(void* param) {
     UNUSED(param);
 
-    // Open Gui record
-    NbGuiHandle gui = furi_record_open(RECORD_GUI);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
 
-    // Register an lvgl screen
-    gui_screen_create(gui, &prv_hello_world_lvgl);
+    // Configure view port
+    view_port = view_port_alloc();
+    view_port_draw_callback_set(view_port, &prv_hello_world_lvgl, view_port);
+
+    // Register view port in GUI
+    NbGui* gui = furi_record_open(RECORD_GUI);
+    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
 
     // Close Gui record
     furi_record_close(RECORD_GUI);

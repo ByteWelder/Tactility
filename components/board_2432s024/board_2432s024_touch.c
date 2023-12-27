@@ -7,7 +7,7 @@
 
 #define CST816_I2C_PORT (0)
 
-const char* TAG = "2432s024_cst816";
+#define TAG "2432s024_cst816"
 
 static bool prv_create_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
     ESP_LOGI(TAG, "creating touch");
