@@ -48,8 +48,6 @@ static void prv_hello_world_lvgl(lv_obj_t* parent, void* context) {
 static int32_t prv_hello_world_main(void* param) {
     UNUSED(param);
 
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-
     // Configure view port
     view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, &prv_hello_world_lvgl, view_port);
