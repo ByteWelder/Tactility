@@ -14,16 +14,11 @@ ViewPort* view_port = NULL;
 static void prv_on_button_click(lv_event_t _Nonnull* event) {
     ESP_LOGI(TAG, "button clicked");
 
-    // TODO: make macro for record 'transactions'
-    NbGui* gui = furi_record_open(RECORD_GUI);
-    gui_remove_view_port(gui, view_port);
-
-    view_port_free(view_port);
-    view_port = NULL;
-
-    // Close Gui record
-    furi_record_close(RECORD_GUI);
-    gui = NULL;
+    FURI_RECORD_TRANSACTION(RECORD_GUI, gui, {
+        gui_remove_view_port(gui, view_port);
+        view_port_free(view_port);
+        view_port = NULL;
+    });
 }
 
 static void prv_hello_world_lvgl(lv_obj_t* parent, void* context) {
@@ -52,13 +47,9 @@ static int32_t prv_hello_world_main(void* param) {
     view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, &prv_hello_world_lvgl, view_port);
 
-    // Register view port in GUI
-    NbGui* gui = furi_record_open(RECORD_GUI);
-    gui_add_view_port(gui, view_port, GuiLayerFullscreen);
-
-    // Close Gui record
-    furi_record_close(RECORD_GUI);
-    gui = NULL;
+    FURI_RECORD_TRANSACTION(RECORD_GUI, gui, {
+        gui_add_view_port(gui, view_port, GuiLayerFullscreen);
+    })
 
     return 0;
 }
