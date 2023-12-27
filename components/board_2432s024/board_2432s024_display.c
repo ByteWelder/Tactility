@@ -32,7 +32,7 @@ IRAM_ATTR static bool prv_on_color_trans_done(esp_lcd_panel_io_handle_t io_handl
     return (need_yield == pdTRUE);
 }
 
-static bool prv_create_display(nb_display_t* display) {
+static bool prv_create_display(NbDisplay* display) {
     ESP_LOGI(TAG, "creating display");
 
     gpio_config_t io_conf = {
@@ -122,8 +122,8 @@ static bool prv_create_display(nb_display_t* display) {
     return true;
 }
 
-nb_display_driver_t board_2432s024_create_display_driver() {
-    return (nb_display_driver_t) {
+NbDisplayDriver board_2432s024_create_display_driver() {
+    return (NbDisplayDriver) {
         .name = "ili9341_2432s024",
         .create_display = &prv_create_display
     };

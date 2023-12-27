@@ -1,7 +1,7 @@
 #include "nanobake.h"
-#include "nb_hardwarei.h"
-#include "nb_lvgli.h"
-#include "nb_appi.h"
+#include "nb_hardware_i.h"
+#include "nb_lvgl_i.h"
+#include "nb_app_i.h"
 #include "applications/nb_applications.h"
 #include <esp_log.h>
 #include <m-list.h>
@@ -34,7 +34,7 @@ size_t nanobake_get_app_thread_count() {
     return thread_ids_size(prv_thread_ids);
 }
 
-static void prv_start_app(const nb_app_t _Nonnull* app) {
+static void prv_start_app(const NbApp _Nonnull* app) {
     ESP_LOGI(TAG, "Starting %s app \"%s\"",
          nb_app_type_to_string(app->type),
          app->name
@@ -58,11 +58,11 @@ static void prv_start_app(const nb_app_t _Nonnull* app) {
     thread_ids_push_back(prv_thread_ids, thread_id);
 }
 
-__attribute__((unused)) extern void nanobake_start(nb_config_t _Nonnull* config) {
+__attribute__((unused)) extern void nanobake_start(NbConfig _Nonnull* config) {
     prv_furi_init();
 
-    nb_hardware_t hardware = nb_hardware_create(config);
-    /*nb_lvgl_t lvgl =*/ nb_lvgl_init(&hardware);
+    NbHardware hardware = nb_hardware_create(config);
+    /*NbLvgl lvgl =*/ nb_lvgl_init(&hardware);
 
     thread_ids_init(prv_thread_ids);
 

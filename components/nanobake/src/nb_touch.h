@@ -7,25 +7,23 @@
 extern "C" {
 #endif
 
-typedef struct nb_touch_driver nb_touch_driver_t;
+typedef bool (*CreateTouch)(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
-struct nb_touch_driver {
+typedef struct {
     char name[32];
-    bool (*create_touch)(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
-};
+    CreateTouch create_touch;
+} NbTouchDriver;
 
-typedef struct nb_touch nb_touch_t;
-
-struct nb_touch {
+typedef struct {
     esp_lcd_panel_io_handle_t _Nonnull io_handle;
     esp_lcd_touch_handle_t _Nonnull touch_handle;
-};
+} NbTouch;
 
 /**
  * @param[in] driver
  * @return a newly allocated instance
  */
-nb_touch_t _Nonnull* nb_touch_alloc(nb_touch_driver_t _Nonnull* driver);
+NbTouch _Nonnull* nb_touch_alloc(NbTouchDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

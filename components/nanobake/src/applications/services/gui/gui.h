@@ -8,18 +8,18 @@ extern "C" {
 
 #define RECORD_GUI "gui"
 
-typedef uint16_t screen_id_t;
+typedef uint16_t ScreenId;
 
-typedef struct Gui Gui;
-typedef void (*on_init_lvgl)(lv_obj_t*, screen_id_t);
+typedef struct NbGui* NbGuiHandle;
+typedef void (*InitScreen)(lv_obj_t*, ScreenId);
 
-screen_id_t gui_screen_create(Gui* gui, on_init_lvgl callback);
-void gui_screen_free(Gui* gui, screen_id_t id);
+ScreenId gui_screen_create(NbGuiHandle _Nonnull gui, InitScreen callback);
+void gui_screen_free(NbGuiHandle _Nonnull gui, ScreenId id);
 // TODO make internal
-void gui_screen_set_parent(Gui* gui, screen_id_t id, lv_obj_t* parent);
-lv_obj_t* gui_screen_get_parent(Gui* gui, screen_id_t id);
+void gui_screen_set_parent(NbGuiHandle _Nonnull gui, ScreenId id, lv_obj_t* parent);
+lv_obj_t* gui_screen_get_parent(NbGuiHandle _Nonnull gui, ScreenId id);
 
-extern const nb_app_t gui_app;
+extern const NbApp gui_app;
 
 #ifdef __cplusplus
 }

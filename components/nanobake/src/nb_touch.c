@@ -1,8 +1,8 @@
 #include "nb_touch.h"
 #include "check.h"
 
-nb_touch_t _Nonnull* nb_touch_alloc(nb_touch_driver_t _Nonnull* driver) {
-    nb_touch_t _Nonnull* touch = malloc(sizeof(nb_touch_t));
+NbTouch _Nonnull* nb_touch_alloc(NbTouchDriver _Nonnull* driver) {
+    NbTouch _Nonnull* touch = malloc(sizeof(NbTouch));
     bool success = driver->create_touch(
         &(touch->io_handle),
         &(touch->touch_handle)

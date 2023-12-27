@@ -8,7 +8,7 @@ static int32_t prv_desktop_main(void* param) {
     return 0;
 }
 
-const nb_app_t desktop_app = {
+const NbApp desktop_app = {
     .id = "desktop",
     .name = "Desktop",
     .type = SERVICE,

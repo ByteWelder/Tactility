@@ -12,10 +12,10 @@ static const char* TAG = "app_helloworld";
 static void prv_on_button_click(lv_event_t _Nonnull* event) {
     ESP_LOGI(TAG, "button clicked");
     // Open Gui record
-    Gui* gui = furi_record_open(RECORD_GUI);
+    struct NbGui* gui = furi_record_open(RECORD_GUI);
 
     // Free this screen
-    screen_id_t screen_id = (screen_id_t)event->user_data;
+    ScreenId screen_id = (ScreenId)event->user_data;
     gui_screen_free(gui, screen_id);
 
     // Close Gui record
@@ -23,7 +23,7 @@ static void prv_on_button_click(lv_event_t _Nonnull* event) {
     gui = NULL;
 }
 
-static void prv_hello_world_lvgl(lv_obj_t* parent, screen_id_t screen_id) {
+static void prv_hello_world_lvgl(lv_obj_t* parent, ScreenId screen_id) {
     lvgl_port_lock(0);
 
     lv_obj_t* label = lv_label_create(parent);
@@ -48,7 +48,7 @@ static int32_t prv_hello_world_main(void* param) {
     UNUSED(param);
 
     // Open Gui record
-    Gui* gui = furi_record_open(RECORD_GUI);
+    NbGuiHandle gui = furi_record_open(RECORD_GUI);
 
     // Register an lvgl screen
     gui_screen_create(gui, &prv_hello_world_lvgl);
@@ -60,7 +60,7 @@ static int32_t prv_hello_world_main(void* param) {
     return 0;
 }
 
-const nb_app_t hello_world_app = {
+const NbApp hello_world_app = {
     .id = "helloworld",
     .name = "Hello World",
     .type = USER,

@@ -64,8 +64,8 @@ static bool prv_create_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch
     return true;
 }
 
-nb_touch_driver_t board_2432s024_create_touch_driver() {
-    return (nb_touch_driver_t) {
+NbTouchDriver board_2432s024_create_touch_driver() {
+    return (NbTouchDriver) {
         .name = "cst816s_2432s024",
         .create_touch = &prv_create_touch
     };

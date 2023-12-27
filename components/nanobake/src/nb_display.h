@@ -6,9 +6,7 @@
 extern "C" {
 #endif
 
-typedef struct nb_display nb_display_t;
-
-struct nb_display {
+typedef struct {
     uint16_t horizontal_resolution;
     uint16_t vertical_resolution;
     uint16_t draw_buffer_height;
@@ -18,20 +16,20 @@ struct nb_display {
     bool mirror_x;
     bool mirror_y;
     bool swap_xy;
-};
+} NbDisplay;
 
-typedef struct nb_display_driver nb_display_driver_t;
+typedef bool(*CreateDisplay)(NbDisplay* display);
 
-struct nb_display_driver {
+typedef struct {
     char name[32];
-    bool (*create_display)(nb_display_t* display);
-};
+    CreateDisplay create_display;
+} NbDisplayDriver;
 
 /**
  * @param[in] driver
  * @return allocated display object
  */
-nb_display_t _Nonnull* nb_display_alloc(nb_display_driver_t _Nonnull* driver);
+NbDisplay _Nonnull* nb_display_alloc(NbDisplayDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

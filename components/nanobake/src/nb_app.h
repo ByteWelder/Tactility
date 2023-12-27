@@ -11,26 +11,22 @@ extern "C" {
 #define NB_APP_ID_LENGTH 32
 #define NB_APP_NAME_LENGTH 32
 
-typedef enum nb_app_type nb_app_type_t;
-
-enum nb_app_type {
+typedef enum {
     SERVICE,
     SYSTEM,
     USER
-};
+} NbAppType;
 
-typedef struct nb_app nb_app_t;
+typedef int32_t (*NbAppEntryPoint) (void _Nonnull* parameter);
 
-typedef int32_t (*nb_app_entry_point) (void _Nonnull* parameter);
-
-struct nb_app {
+typedef struct {
     const char id[NB_APP_ID_LENGTH];
     const char name[NB_APP_NAME_LENGTH];
-    const nb_app_type_t type;
-    const nb_app_entry_point _Nullable entry_point;
+    const NbAppType type;
+    const NbAppEntryPoint _Nullable entry_point;
     const size_t stack_size;
     const uint32_t priority;
-};
+} NbApp;
 
 #ifdef __cplusplus
 }

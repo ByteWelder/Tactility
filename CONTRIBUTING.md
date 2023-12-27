@@ -4,5 +4,5 @@ During the pre-alpha stage, contributions will not yet be considered.
 
 # Code Style
 
-See [github.com/MaJerle/c-code-style](https://github.com/MaJerle/c-code-style).
+See [this document](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/CODING_STYLE.md).
 

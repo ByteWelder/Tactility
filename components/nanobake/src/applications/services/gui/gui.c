@@ -1,55 +1,36 @@
-#include "gui.h"
+#include "gui_i.h"
 #include "core_defines.h"
 #include <record.h>
-#include <mutex.h>
 #include <check.h>
-#include <m-dict.h>
-#include <m-core.h>
 
-typedef struct screen screen_t;
-struct screen {
-    screen_id_t id;
-    lv_obj_t* parent;
-    on_init_lvgl _Nonnull callback;
-};
+static ScreenId screen_counter = 0;
 
-static screen_id_t screen_counter = 0;
-
-DICT_DEF2(screen_dict, screen_id_t, M_BASIC_OPLIST, screen_t, M_POD_OPLIST)
-
-typedef struct Gui Gui;
-struct Gui {
-    // TODO: use mutex
-    FuriMutex* mutex;
-    screen_dict_t screens;
-};
-
-Gui* gui_alloc() {
-    Gui* gui = malloc(sizeof(Gui));
+NbGuiHandle gui_alloc() {
+    struct NbGui* gui = malloc(sizeof(struct NbGui));
     screen_dict_init(gui->screens);
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     return gui;
 }
 
-void gui_free(Gui* gui) {
+void gui_free(NbGuiHandle gui) {
     screen_dict_clear(gui->screens);
     furi_mutex_free(gui->mutex);
     free(gui);
 }
 
-void gui_lock(Gui* gui) {
+void gui_lock(NbGuiHandle gui) {
     furi_assert(gui);
     furi_check(furi_mutex_acquire(gui->mutex, FuriWaitForever) == FuriStatusOk);
 }
 
-void gui_unlock(Gui* gui) {
+void gui_unlock(NbGuiHandle gui) {
     furi_assert(gui);
     furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
 }
 
-screen_id_t gui_screen_create(Gui* gui, on_init_lvgl callback) {
-    screen_id_t id = screen_counter++;
-    screen_t screen = {
+ScreenId gui_screen_create(NbGuiHandle gui, InitScreen callback) {
+    ScreenId id = screen_counter++;
+    NbScreen screen = {
         .id = id,
         .parent = NULL,
         .callback = callback
@@ -68,20 +49,20 @@ screen_id_t gui_screen_create(Gui* gui, on_init_lvgl callback) {
     return id;
 }
 
-lv_obj_t* gui_screen_get_parent(Gui* gui, screen_id_t id) {
-    screen_t* screen = screen_dict_get(gui->screens, id);
+lv_obj_t* gui_screen_get_parent(NbGuiHandle gui, ScreenId id) {
+    NbScreen* screen = screen_dict_get(gui->screens, id);
     furi_check(screen != NULL);
     return screen->parent;
 }
 
-void gui_screen_set_parent(Gui* gui, screen_id_t id, lv_obj_t* parent) {
-    screen_t* screen = screen_dict_get(gui->screens, id);
+void gui_screen_set_parent(NbGuiHandle gui, ScreenId id, lv_obj_t* parent) {
+    NbScreen* screen = screen_dict_get(gui->screens, id);
     furi_check(screen != NULL);
     screen->parent = parent;
 }
 
-void gui_screen_free(Gui* gui, screen_id_t id) {
-    screen_t* screen = screen_dict_get(gui->screens, id);
+void gui_screen_free(NbGuiHandle gui, ScreenId id) {
+    NbScreen* screen = screen_dict_get(gui->screens, id);
     furi_check(screen != NULL);
 
     // TODO: notify? use callback? (done from desktop service)
@@ -93,13 +74,13 @@ void gui_screen_free(Gui* gui, screen_id_t id) {
 static int32_t prv_gui_main(void* param) {
     UNUSED(param);
 
-    Gui* gui = gui_alloc();
+    struct NbGui* gui = gui_alloc();
     furi_record_create(RECORD_GUI, gui);
     printf("gui app init\n");
     return 0;
 }
 
-const nb_app_t gui_app = {
+const NbApp gui_app = {
     .id = "gui",
     .name = "GUI",
     .type = SERVICE,

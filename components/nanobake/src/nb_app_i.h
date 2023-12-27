@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern const char* nb_app_type_to_string(nb_app_type_t type);
+extern const char* nb_app_type_to_string(NbAppType type);
 
 #ifdef __cplusplus
 }

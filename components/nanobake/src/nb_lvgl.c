@@ -1,11 +1,10 @@
-#include "nb_lvgli.h"
-#include "nb_hardwarei.h"
+#include "nb_lvgl_i.h"
 #include <esp_lvgl_port.h>
 #include <check.h>
 
 static const char* TAG = "nb_lvgl";
 
-nb_lvgl_t nb_lvgl_init(nb_hardware_t _Nonnull* hardware) {
+NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,
         .task_stack = 4096,
@@ -15,7 +14,7 @@ nb_lvgl_t nb_lvgl_init(nb_hardware_t _Nonnull* hardware) {
     };
 
     furi_check(lvgl_port_init(&lvgl_cfg) == ESP_OK, "lvgl port init failed");
-    nb_display_t _Nonnull* display = hardware->display;
+    NbDisplay _Nonnull* display = hardware->display;
 
     // Add display
     ESP_LOGD(TAG, "lvgl add display");
@@ -50,7 +49,7 @@ nb_lvgl_t nb_lvgl_init(nb_hardware_t _Nonnull* hardware) {
         furi_check(touch_indev != NULL, "failed to add touch to lvgl");
     }
 
-    return (nb_lvgl_t) {
+    return (NbLvgl) {
         .disp = disp,
         .touch_indev = touch_indev
     };

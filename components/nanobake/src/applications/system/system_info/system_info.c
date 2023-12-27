@@ -28,7 +28,7 @@ static int32_t system_info_entry_point(void* param) {
     return 0;
 }
 
-nb_app_t system_info_app = {
+NbApp system_info_app = {
     .id = "systeminfo",
     .name = "System Info",
     .type = SYSTEM,

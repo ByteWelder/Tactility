@@ -7,11 +7,10 @@
 extern "C" {
 #endif
 
-typedef struct nb_hardware nb_hardware_t;
-struct nb_hardware {
-    nb_display_t* _Nonnull display;
-    nb_touch_t* _Nullable touch;
-};
+typedef struct {
+    NbDisplay* _Nonnull display;
+    NbTouch* _Nullable touch;
+} NbHardware;
 
 #ifdef __cplusplus
 }
