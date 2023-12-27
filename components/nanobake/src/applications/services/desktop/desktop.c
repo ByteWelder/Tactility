@@ -2,7 +2,6 @@
 #include "nb_hardware.h"
 #include "core_defines.h"
 
-#include "esp_log.h"
 static int32_t prv_desktop_main(void* param) {
     UNUSED(param);
     printf("desktop app init\n");
