@@ -1,8 +1,13 @@
-#ifndef NANOBAKE_BOARD_2432S024_DISPLAY_H
-#define NANOBAKE_BOARD_2432S024_DISPLAY_H
+#pragma once
 
 #include "nb_display.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern NbDisplayDriver board_2432s024_create_display_driver();
 
-#endif //NANOBAKE_BOARD_2432S024_DISPLAY_H
+#ifdef __cplusplus
+}
+#endif

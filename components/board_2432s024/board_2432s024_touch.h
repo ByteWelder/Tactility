@@ -1,8 +1,13 @@
-#ifndef NANOBAKE_BOARD_2432S024_TOUCH_H
-#define NANOBAKE_BOARD_2432S024_TOUCH_H
+#pragma once
 
 #include "nb_touch.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 NbTouchDriver board_2432s024_create_touch_driver();
 
-#endif // NANOBAKE_BOARD_2432S024_TOUCH_H
+#ifdef __cplusplus
+}
+#endif

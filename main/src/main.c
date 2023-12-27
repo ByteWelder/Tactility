@@ -1,8 +1,7 @@
 #include "nanobake.h"
 
 // Hardware
-#include "board_2432s024_touch.h"
-#include "board_2432s024_display.h"
+#include "board_2432s024.h"
 
 // Apps
 #include "hello_world/hello_world.h"
