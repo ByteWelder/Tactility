@@ -58,7 +58,7 @@ Predefined configurations are available for:
 ## Guide
 
 Until there is proper documentation, here are some pointers:
-- [Sample application](main/src/main.c)
+- Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
 - [NanoBake](./components/nanobake/inc)
 - [Furi](./components/furi/src)
 
