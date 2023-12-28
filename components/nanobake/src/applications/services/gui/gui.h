@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-extern const NbApp gui_app;
+extern const App gui_app;
 
 /** Canvas Orientation */
 typedef enum {
@@ -42,7 +42,7 @@ typedef void (*GuiCanvasCommitCallback)(
 
 #define RECORD_GUI "gui"
 
-typedef struct NbGui NbGui;
+typedef struct Gui Gui;
 
 /** Add view_port to view_port tree
  *
@@ -52,7 +52,7 @@ typedef struct NbGui NbGui;
  * @param      view_port  ViewPort instance
  * @param[in]  layer      GuiLayer where to place view_port
  */
-void gui_add_view_port(NbGui* gui, ViewPort* view_port, GuiLayer layer);
+void gui_add_view_port(Gui* gui, ViewPort* view_port, GuiLayer layer);
 
 /** Remove view_port from rendering tree
  *
@@ -61,7 +61,7 @@ void gui_add_view_port(NbGui* gui, ViewPort* view_port, GuiLayer layer);
  * @param      gui        Gui instance
  * @param      view_port  ViewPort instance
  */
-void gui_remove_view_port(NbGui* gui, ViewPort* view_port);
+void gui_remove_view_port(Gui* gui, ViewPort* view_port);
 
 /** Send ViewPort to the front
  *
@@ -70,7 +70,7 @@ void gui_remove_view_port(NbGui* gui, ViewPort* view_port);
  * @param      gui        Gui instance
  * @param      view_port  ViewPort instance
  */
-void gui_view_port_send_to_front(NbGui* gui, ViewPort* view_port);
+void gui_view_port_send_to_front(Gui* gui, ViewPort* view_port);
 
 /** Send ViewPort to the back
  *
@@ -79,7 +79,7 @@ void gui_view_port_send_to_front(NbGui* gui, ViewPort* view_port);
  * @param      gui        Gui instance
  * @param      view_port  ViewPort instance
  */
-void gui_view_port_send_to_back(NbGui* gui, ViewPort* view_port);
+void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port);
 
 /** Set lockdown mode
  *
@@ -89,7 +89,7 @@ void gui_view_port_send_to_back(NbGui* gui, ViewPort* view_port);
  * @param      gui       Gui instance
  * @param      lockdown  bool, true if enabled
  */
-void gui_set_lockdown(NbGui* gui, bool lockdown);
+void gui_set_lockdown(Gui* gui, bool lockdown);
 
 #ifdef __cplusplus
 }

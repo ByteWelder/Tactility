@@ -35,7 +35,7 @@ size_t nanobake_get_app_thread_count() {
     return thread_ids_size(prv_thread_ids);
 }
 
-static void prv_start_app(const NbApp _Nonnull* app) {
+static void prv_start_app(const App _Nonnull* app) {
     ESP_LOGI(TAG, "Starting %s app \"%s\"", nb_app_type_to_string(app->type), app->name);
 
     FuriThread* thread = furi_thread_alloc_ex(
@@ -57,10 +57,10 @@ static void prv_start_app(const NbApp _Nonnull* app) {
     thread_ids_push_back(prv_thread_ids, thread_id);
 }
 
-__attribute__((unused)) extern void nanobake_start(NbConfig _Nonnull* config) {
+__attribute__((unused)) extern void nanobake_start(Config _Nonnull* config) {
     prv_furi_init();
 
-    NbHardware hardware = nb_hardware_create(config);
+    Devices hardware = nb_hardware_create(config);
     /*NbLvgl lvgl =*/nb_lvgl_init(&hardware);
 
     thread_ids_init(prv_thread_ids);

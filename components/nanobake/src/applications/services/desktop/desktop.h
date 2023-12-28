@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern const NbApp desktop_app;
+extern const App desktop_app;
 
 #ifdef __cplusplus
 }

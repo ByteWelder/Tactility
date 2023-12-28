@@ -6,8 +6,8 @@
 #define TAG "gui"
 
 // Forward declarations from gui_draw.c
-bool gui_redraw_fs(NbGui* gui);
-void gui_redraw(NbGui* gui);
+bool gui_redraw_fs(Gui* gui);
+void gui_redraw(Gui* gui);
 
 ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     // Iterating backward
@@ -23,7 +23,7 @@ ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     return NULL;
 }
 
-size_t gui_active_view_port_count(NbGui* gui, GuiLayer layer) {
+size_t gui_active_view_port_count(Gui* gui, GuiLayer layer) {
     furi_assert(gui);
     furi_check(layer < GuiLayerMAX);
     size_t ret = 0;
@@ -43,23 +43,23 @@ size_t gui_active_view_port_count(NbGui* gui, GuiLayer layer) {
     return ret;
 }
 
-void gui_update(NbGui* gui) {
+void gui_update(Gui* gui) {
     ESP_LOGI(TAG, "gui_update");
     furi_assert(gui);
     furi_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void gui_lock(NbGui* gui) {
+void gui_lock(Gui* gui) {
     furi_assert(gui);
     furi_check(furi_mutex_acquire(gui->mutex, FuriWaitForever) == FuriStatusOk);
 }
 
-void gui_unlock(NbGui* gui) {
+void gui_unlock(Gui* gui) {
     furi_assert(gui);
     furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
 }
 
-void gui_add_view_port(NbGui* gui, ViewPort* view_port, GuiLayer layer) {
+void gui_add_view_port(Gui* gui, ViewPort* view_port, GuiLayer layer) {
     furi_assert(gui);
     furi_assert(view_port);
     furi_check(layer < GuiLayerMAX);
@@ -83,7 +83,7 @@ void gui_add_view_port(NbGui* gui, ViewPort* view_port, GuiLayer layer) {
     gui_update(gui);
 }
 
-void gui_remove_view_port(NbGui* gui, ViewPort* view_port) {
+void gui_remove_view_port(Gui* gui, ViewPort* view_port) {
     furi_assert(gui);
     furi_assert(view_port);
 
@@ -111,7 +111,7 @@ void gui_remove_view_port(NbGui* gui, ViewPort* view_port) {
     gui_update(gui);
 }
 
-void gui_view_port_send_to_front(NbGui* gui, ViewPort* view_port) {
+void gui_view_port_send_to_front(Gui* gui, ViewPort* view_port) {
     furi_assert(gui);
     furi_assert(view_port);
 
@@ -140,7 +140,7 @@ void gui_view_port_send_to_front(NbGui* gui, ViewPort* view_port) {
     gui_update(gui);
 }
 
-void gui_view_port_send_to_back(NbGui* gui, ViewPort* view_port) {
+void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port) {
     furi_assert(gui);
     furi_assert(view_port);
 
@@ -169,7 +169,7 @@ void gui_view_port_send_to_back(NbGui* gui, ViewPort* view_port) {
     gui_update(gui);
 }
 
-void gui_set_lockdown(NbGui* gui, bool lockdown) {
+void gui_set_lockdown(Gui* gui, bool lockdown) {
     furi_assert(gui);
 
     gui_lock(gui);
@@ -180,8 +180,8 @@ void gui_set_lockdown(NbGui* gui, bool lockdown) {
     gui_update(gui);
 }
 
-NbGui* gui_alloc() {
-    NbGui* gui = malloc(sizeof(NbGui));
+Gui* gui_alloc() {
+    Gui* gui = malloc(sizeof(Gui));
     gui->thread_id = furi_thread_get_current_id();
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     gui->lvgl_parent = lv_scr_act();
@@ -204,7 +204,7 @@ NbGui* gui_alloc() {
 
 __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
     UNUSED(parameter);
-    NbGui* gui = gui_alloc();
+    Gui* gui = gui_alloc();
 
     furi_record_create(RECORD_GUI, gui);
 
@@ -231,7 +231,7 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
     }
 }
 
-const NbApp gui_app = {
+const App gui_app = {
     .id = "gui",
     .name = "GUI",
     .type = SERVICE,

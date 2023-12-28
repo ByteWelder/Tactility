@@ -2,4 +2,4 @@
 
 #include "nb_app.h"
 
-extern const NbApp hello_world_app;
+extern const App hello_world_app;

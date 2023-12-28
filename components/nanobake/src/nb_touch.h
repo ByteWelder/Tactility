@@ -12,18 +12,18 @@ typedef bool (*CreateTouch)(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_
 typedef struct {
     char name[32];
     CreateTouch create_touch;
-} NbTouchDriver;
+} TouchDriver;
 
 typedef struct {
     esp_lcd_panel_io_handle_t _Nonnull io_handle;
     esp_lcd_touch_handle_t _Nonnull touch_handle;
-} NbTouch;
+} TouchDevice;
 
 /**
  * @param[in] driver
  * @return a newly allocated instance
  */
-NbTouch _Nonnull* nb_touch_alloc(NbTouchDriver _Nonnull* driver);
+TouchDevice _Nonnull* nb_touch_alloc(TouchDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

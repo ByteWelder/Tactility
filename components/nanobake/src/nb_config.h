@@ -8,8 +8,8 @@
 extern "C" {
 #endif
 
-typedef NbTouchDriver (*CreateTouchDriver)();
-typedef NbDisplayDriver (*CreateDisplayDriver)();
+typedef TouchDriver (*CreateTouchDriver)();
+typedef DisplayDriver (*CreateDisplayDriver)();
 
 typedef struct {
     // Required driver for display
@@ -18,8 +18,8 @@ typedef struct {
     const CreateTouchDriver _Nullable touch_driver;
     // List of user applications
     const size_t apps_count;
-    const NbApp* const apps[];
-} NbConfig;
+    const App* const apps[];
+} Config;
 
 #ifdef __cplusplus
 }

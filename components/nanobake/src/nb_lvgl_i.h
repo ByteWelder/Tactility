@@ -1,13 +1,13 @@
 #pragma once
 
-#include "nb_hardware.h"
+#include "devices.h"
 #include "nb_lvgl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware);
+extern Lvgl nb_lvgl_init(Devices _Nonnull* hardware);
 
 
 #ifdef __cplusplus

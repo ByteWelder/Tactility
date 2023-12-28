@@ -8,9 +8,9 @@ extern "C" {
 #endif
 
 typedef struct {
-    NbDisplay* _Nonnull display;
-    NbTouch* _Nullable touch;
-} NbHardware;
+    DisplayDevice* _Nonnull display;
+    TouchDevice* _Nullable touch;
+} Devices;
 
 #ifdef __cplusplus
 }

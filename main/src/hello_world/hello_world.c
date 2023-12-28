@@ -55,7 +55,7 @@ static int32_t app_main(void* param) {
     return 0;
 }
 
-const NbApp hello_world_app = {
+const App hello_world_app = {
     .id = "helloworld",
     .name = "Hello World",
     .type = USER,

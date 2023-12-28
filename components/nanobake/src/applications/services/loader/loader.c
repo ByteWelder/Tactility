@@ -7,7 +7,7 @@ static int32_t prv_loader_main(void* param) {
     return 0;
 }
 
-const NbApp loader_app = {
+const App loader_app = {
     .id = "loader",
     .name = "Loader",
     .type = SERVICE,

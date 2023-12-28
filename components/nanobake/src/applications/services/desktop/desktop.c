@@ -1,6 +1,6 @@
 #include "desktop.h"
 #include "core_defines.h"
-#include "nb_hardware.h"
+#include "devices.h"
 
 static int32_t prv_desktop_main(void* param) {
     UNUSED(param);
@@ -8,7 +8,7 @@ static int32_t prv_desktop_main(void* param) {
     return 0;
 }
 
-const NbApp desktop_app = {
+const App desktop_app = {
     .id = "desktop",
     .name = "Desktop",
     .type = SERVICE,

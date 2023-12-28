@@ -44,7 +44,7 @@ typedef struct {
 } CanvasCallbackPair;
 
 /** Gui structure */
-struct NbGui {
+struct Gui {
     // Thread and lock
     FuriThreadId thread_id;
     FuriMutex* mutex;
@@ -75,7 +75,7 @@ ViewPort* gui_view_port_find_enabled(ViewPortArray_t array);
  *
  * @param      gui   Gui instance
  */
-void gui_update(NbGui* gui);
+void gui_update(Gui* gui);
 
 ///** Input event callback
 // *
@@ -91,16 +91,16 @@ void gui_update(NbGui* gui);
  * @param      gui        The Gui instance
  * @param[in]  layer      GuiLayer that we want to get count of view ports
  */
-size_t gui_active_view_port_count(NbGui* gui, GuiLayer layer);
+size_t gui_active_view_port_count(Gui* gui, GuiLayer layer);
 
 /** Lock GUI
  *
  * @param      gui   The Gui instance
  */
-void gui_lock(NbGui* gui);
+void gui_lock(Gui* gui);
 
 /** Unlock GUI
  *
  * @param      gui   The Gui instance
  */
-void gui_unlock(NbGui* gui);
+void gui_unlock(Gui* gui);

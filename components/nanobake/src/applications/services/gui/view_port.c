@@ -68,7 +68,7 @@ void view_port_update(ViewPort* view_port) {
     furi_mutex_release(view_port->mutex);
 }
 
-void view_port_gui_set(ViewPort* view_port, NbGui* gui) {
+void view_port_gui_set(ViewPort* view_port, Gui* gui) {
     furi_assert(view_port);
     furi_check(furi_mutex_acquire(view_port->mutex, FuriWaitForever) == FuriStatusOk);
     view_port->gui = gui;

@@ -5,7 +5,7 @@
 #include "view_port.h"
 
 struct ViewPort {
-    NbGui* gui;
+    Gui* gui;
     FuriMutex* mutex;
     bool is_enabled;
 
@@ -25,7 +25,7 @@ struct ViewPort {
  * @param      view_port  ViewPort instance
  * @param      gui        gui instance pointer
  */
-void view_port_gui_set(ViewPort* view_port, NbGui* gui);
+void view_port_gui_set(ViewPort* view_port, Gui* gui);
 
 /** Process draw call. Calls draw callback.
  *

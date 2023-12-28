@@ -1,9 +1,9 @@
 #include "nb_display.h"
 #include "check.h"
 
-NbDisplay _Nonnull* nb_display_alloc(NbDisplayDriver _Nonnull* driver) {
-    NbDisplay _Nonnull* display = malloc(sizeof(NbDisplay));
-    memset(display, 0, sizeof(NbDisplay));
+DisplayDevice _Nonnull* nb_display_alloc(DisplayDriver _Nonnull* driver) {
+    DisplayDevice _Nonnull* display = malloc(sizeof(DisplayDevice));
+    memset(display, 0, sizeof(DisplayDevice));
     furi_check(driver->create_display(display), "failed to create display");
     furi_check(display->io_handle != NULL);
     furi_check(display->display_handle != NULL);

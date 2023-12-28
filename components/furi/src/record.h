@@ -19,8 +19,8 @@ extern "C" {
  * @param code the code to execute: consider putting it between {}
  */
 #define FURI_RECORD_TRANSACTION(record_name, variable_name, code)      \
-    {                                                                  \
-        NbGui*(variable_name) = (NbGui*)furi_record_open(record_name); \
+    {                                                              \
+        Gui*(variable_name) = (Gui*)furi_record_open(record_name); \
         code;                                                          \
         furi_record_close(record_name);                                \
     }

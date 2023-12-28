@@ -1,13 +1,13 @@
 #pragma once
 
+#include "devices.h"
 #include "nb_config.h"
-#include "nb_hardware.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern NbHardware nb_hardware_create(NbConfig _Nonnull* config);
+extern Devices nb_hardware_create(Config _Nonnull* config);
 
 #ifdef __cplusplus
 }

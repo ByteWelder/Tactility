@@ -1,7 +1,7 @@
 #include "check.h"
 #include "gui_i.h"
 
-static void gui_redraw_status_bar(NbGui* gui, bool need_attention) {
+static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
     /*
     ViewPortArray_it_t it;
     uint8_t left_used = 0;
@@ -149,7 +149,7 @@ static void gui_redraw_status_bar(NbGui* gui, bool need_attention) {
     */
 }
 
-static bool gui_redraw_window(NbGui* gui) {
+static bool gui_redraw_window(Gui* gui) {
     /*
     canvas_frame_set(gui->lvgl_parent, GUI_WINDOW_X, GUI_WINDOW_Y, GUI_WINDOW_WIDTH, GUI_WINDOW_HEIGHT);
     ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerWindow]);
@@ -161,7 +161,7 @@ static bool gui_redraw_window(NbGui* gui) {
     return false;
 }
 
-static bool gui_redraw_desktop(NbGui* gui) {
+static bool gui_redraw_desktop(Gui* gui) {
     /*
     canvas_frame_set(gui->lvgl_parent, 0, 0, GUI_DISPLAY_WIDTH, GUI_DISPLAY_HEIGHT);
     ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerDesktop]);
@@ -174,7 +174,7 @@ static bool gui_redraw_desktop(NbGui* gui) {
     return false;
 }
 
-bool gui_redraw_fs(NbGui* gui) {
+bool gui_redraw_fs(Gui* gui) {
     ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]);
     if (view_port) {
         view_port_draw(view_port, gui->lvgl_parent);
@@ -184,7 +184,7 @@ bool gui_redraw_fs(NbGui* gui) {
     }
 }
 
-void gui_redraw(NbGui* gui) {
+void gui_redraw(Gui* gui) {
     furi_assert(gui);
     gui_lock(gui);
 

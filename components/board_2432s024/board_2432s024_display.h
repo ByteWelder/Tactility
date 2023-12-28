@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern NbDisplayDriver board_2432s024_create_display_driver();
+extern DisplayDriver board_2432s024_create_display_driver();
 
 #ifdef __cplusplus
 }

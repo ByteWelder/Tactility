@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern NbApp system_info_app;
+extern App system_info_app;
 
 #ifdef __cplusplus
 }

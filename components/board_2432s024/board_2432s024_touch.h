@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern NbTouchDriver board_2432s024_create_touch_driver();
+extern TouchDriver board_2432s024_create_touch_driver();
 
 #ifdef __cplusplus
 }

@@ -4,7 +4,7 @@
 
 #define TAG "lvgl"
 
-NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware) {
+Lvgl nb_lvgl_init(Devices _Nonnull* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,
         .task_stack = 4096,
@@ -14,7 +14,7 @@ NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware) {
     };
 
     furi_check(lvgl_port_init(&lvgl_cfg) == ESP_OK, "lvgl port init failed");
-    NbDisplay _Nonnull* display = hardware->display;
+    DisplayDevice _Nonnull* display = hardware->display;
 
     // Add display
     ESP_LOGD(TAG, "lvgl add display");
@@ -49,7 +49,7 @@ NbLvgl nb_lvgl_init(NbHardware _Nonnull* hardware) {
         furi_check(touch_indev != NULL, "failed to add touch to lvgl");
     }
 
-    return (NbLvgl) {
+    return (Lvgl) {
         .disp = disp,
         .touch_indev = touch_indev
     };

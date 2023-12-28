@@ -15,26 +15,26 @@ typedef enum {
     SERVICE,
     SYSTEM,
     USER
-} NbAppType;
+} AppType;
 
 typedef enum {
     NB_TASK_PRIORITY_DEFAULT = 10
-} NbTaskPriority;
+} AppPriority;
 
 typedef enum {
     NB_TASK_STACK_SIZE_DEFAULT = 2048
-} NbStackSize;
+} AppStackSize;
 
-typedef int32_t (*NbAppEntryPoint)(void _Nonnull* parameter);
+typedef int32_t (*AppEntryPoint)(void _Nonnull* parameter);
 
 typedef struct {
     const char id[NB_APP_ID_LENGTH];
     const char name[NB_APP_NAME_LENGTH];
-    const NbAppType type;
-    const NbAppEntryPoint _Nullable entry_point;
-    const NbStackSize stack_size;
-    const NbTaskPriority priority;
-} NbApp;
+    const AppType type;
+    const AppEntryPoint _Nullable entry_point;
+    const AppStackSize stack_size;
+    const AppPriority priority;
+} App;
 
 #ifdef __cplusplus
 }
