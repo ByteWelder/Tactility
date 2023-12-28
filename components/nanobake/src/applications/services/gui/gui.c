@@ -228,6 +228,7 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
         }
     }
 }
+
 const NbApp gui_app = {
     .id = "gui",
     .name = "GUI",

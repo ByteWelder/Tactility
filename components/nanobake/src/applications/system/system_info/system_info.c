@@ -7,7 +7,7 @@ static int32_t system_info_entry_point(void* param) {
     UNUSED(param);
 
     // Wait for all apps to start
-    vTaskDelay(1000  / portTICK_PERIOD_MS);
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     size_t system_service_count = nanobake_get_app_thread_count();
     printf("Running apps:\n");
@@ -20,7 +20,8 @@ static int32_t system_info_entry_point(void* param) {
         printf(" - [%s] %s (%s)\n", status, name, appid);
     }
 
-    printf("Heap memory available: %d / %d\n",
+    printf(
+        "Heap memory available: %d / %d\n",
         heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
         heap_caps_get_total_size(MALLOC_CAP_DEFAULT)
     );
