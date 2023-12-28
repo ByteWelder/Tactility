@@ -1,10 +1,10 @@
 #include "record.h"
 #include "check.h"
-#include "mutex.h"
 #include "event_flag.h"
+#include "mutex.h"
 
-#include <m-dict.h>
 #include "m_cstr_dup.h"
+#include <m-dict.h>
 
 #define FURI_RECORD_FLAG_READY (0x1)
 
@@ -46,7 +46,7 @@ void furi_record_init() {
 static FuriRecordData* furi_record_data_get_or_create(const char* name) {
     furi_assert(furi_record);
     FuriRecordData* record_data = furi_record_get(name);
-    if(!record_data) {
+    if (!record_data) {
         FuriRecordData new_record;
         new_record.flags = furi_event_flag_alloc();
         new_record.data = NULL;
@@ -101,7 +101,7 @@ bool furi_record_destroy(const char* name) {
 
     FuriRecordData* record_data = furi_record_get(name);
     furi_assert(record_data);
-    if(record_data->holders_count == 0) {
+    if (record_data->holders_count == 0) {
         furi_record_erase(name, record_data);
         ret = true;
     }
@@ -127,7 +127,9 @@ void* furi_record_open(const char* name) {
             record_data->flags,
             FURI_RECORD_FLAG_READY,
             FuriFlagWaitAny | FuriFlagNoClear,
-            FuriWaitForever) == FURI_RECORD_FLAG_READY);
+            FuriWaitForever
+        ) == FURI_RECORD_FLAG_READY
+    );
 
     return record_data->data;
 }

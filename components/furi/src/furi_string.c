@@ -189,7 +189,7 @@ void furi_string_replace_at(FuriString* v, size_t pos, size_t len, const char st
 }
 
 size_t
-    furi_string_replace(FuriString* string, FuriString* needle, FuriString* replace, size_t start) {
+furi_string_replace(FuriString* string, FuriString* needle, FuriString* replace, size_t start) {
     return string_replace(string->string, needle->string, replace->string, start);
 }
 
@@ -266,32 +266,32 @@ void furi_string_utf8_push(FuriString* str, FuriStringUnicodeValue u) {
 }
 
 static m_str1ng_utf8_state_e furi_state_to_state(FuriStringUTF8State state) {
-    switch(state) {
-    case FuriStringUTF8StateStarting:
-        return M_STR1NG_UTF8_STARTING;
-    case FuriStringUTF8StateDecoding1:
-        return M_STR1NG_UTF8_DECODING_1;
-    case FuriStringUTF8StateDecoding2:
-        return M_STR1NG_UTF8_DECODING_2;
-    case FuriStringUTF8StateDecoding3:
-        return M_STR1NG_UTF8_DECODING_3;
-    default:
-        return M_STR1NG_UTF8_ERROR;
+    switch (state) {
+        case FuriStringUTF8StateStarting:
+            return M_STR1NG_UTF8_STARTING;
+        case FuriStringUTF8StateDecoding1:
+            return M_STR1NG_UTF8_DECODING_1;
+        case FuriStringUTF8StateDecoding2:
+            return M_STR1NG_UTF8_DECODING_2;
+        case FuriStringUTF8StateDecoding3:
+            return M_STR1NG_UTF8_DECODING_3;
+        default:
+            return M_STR1NG_UTF8_ERROR;
     }
 }
 
 static FuriStringUTF8State state_to_furi_state(m_str1ng_utf8_state_e state) {
-    switch(state) {
-    case M_STR1NG_UTF8_STARTING:
-        return FuriStringUTF8StateStarting;
-    case M_STR1NG_UTF8_DECODING_1:
-        return FuriStringUTF8StateDecoding1;
-    case M_STR1NG_UTF8_DECODING_2:
-        return FuriStringUTF8StateDecoding2;
-    case M_STR1NG_UTF8_DECODING_3:
-        return FuriStringUTF8StateDecoding3;
-    default:
-        return FuriStringUTF8StateError;
+    switch (state) {
+        case M_STR1NG_UTF8_STARTING:
+            return FuriStringUTF8StateStarting;
+        case M_STR1NG_UTF8_DECODING_1:
+            return FuriStringUTF8StateDecoding1;
+        case M_STR1NG_UTF8_DECODING_2:
+            return FuriStringUTF8StateDecoding2;
+        case M_STR1NG_UTF8_DECODING_3:
+            return FuriStringUTF8StateDecoding3;
+        default:
+            return FuriStringUTF8StateError;
     }
 }
 

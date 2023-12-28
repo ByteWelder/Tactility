@@ -4,11 +4,11 @@
  */
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stddef.h>
-#include <stdarg.h>
 #include <m-core.h>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -402,7 +402,7 @@ void furi_string_replace_at(FuriString* string, size_t pos, size_t len, const ch
  * @return size_t 
  */
 size_t
-    furi_string_replace(FuriString* string, FuriString* needle, FuriString* replace, size_t start);
+furi_string_replace(FuriString* string, FuriString* needle, FuriString* replace, size_t start);
 
 /**
  * @brief Replace a C string 'needle' to C string 'replace' in a string from 'start' position.
@@ -418,7 +418,8 @@ size_t furi_string_replace_str(
     FuriString* string,
     const char needle[],
     const char replace[],
-    size_t start);
+    size_t start
+);
 
 /**
  * @brief Replace all occurrences of 'needle' string into 'replace' string.
@@ -429,7 +430,8 @@ size_t furi_string_replace_str(
 void furi_string_replace_all(
     FuriString* string,
     const FuriString* needle,
-    const FuriString* replace);
+    const FuriString* replace
+);
 
 /**
  * @brief Replace all occurrences of 'needle' C string into 'replace' C string.
@@ -569,25 +571,25 @@ void furi_string_utf8_decode(char c, FuriStringUTF8State* state, FuriStringUnico
  * @brief Select for 1 argument 
  */
 #define FURI_STRING_SELECT1(func1, func2, a) \
-    _Generic((a), char* : func2, const char* : func2, FuriString* : func1, const FuriString* : func1)(a)
+    _Generic((a), char*: func2, const char*: func2, FuriString*: func1, const FuriString*: func1)(a)
 
 /**
  * @brief Select for 2 arguments
  */
 #define FURI_STRING_SELECT2(func1, func2, a, b) \
-    _Generic((b), char* : func2, const char* : func2, FuriString* : func1, const FuriString* : func1)(a, b)
+    _Generic((b), char*: func2, const char*: func2, FuriString*: func1, const FuriString*: func1)(a, b)
 
 /**
  * @brief Select for 3 arguments
  */
 #define FURI_STRING_SELECT3(func1, func2, a, b, c) \
-    _Generic((b), char* : func2, const char* : func2, FuriString* : func1, const FuriString* : func1)(a, b, c)
+    _Generic((b), char*: func2, const char*: func2, FuriString*: func1, const FuriString*: func1)(a, b, c)
 
 /**
  * @brief Select for 4 arguments
  */
 #define FURI_STRING_SELECT4(func1, func2, a, b, c, d) \
-    _Generic((b), char* : func2, const char* : func2, FuriString* : func1, const FuriString* : func1)(a, b, c, d)
+    _Generic((b), char*: func2, const char*: func2, FuriString*: func1, const FuriString*: func1)(a, b, c, d)
 
 /**
  * @brief Allocate new FuriString and set it content to string (or C string).
@@ -633,12 +635,13 @@ void furi_string_utf8_decode(char c, FuriStringUTF8State* state, FuriStringUnico
  * @brief Search for a string (or C string) in a string
  * (string, [c]string[, start=0])
  */
-#define furi_string_search(...) \
-    M_APPLY(                    \
-        FURI_STRING_SELECT3,    \
-        furi_string_search,     \
-        furi_string_search_str, \
-        M_DEFAULT_ARGS(3, (0), __VA_ARGS__))
+#define furi_string_search(...)             \
+    M_APPLY(                                \
+        FURI_STRING_SELECT3,                \
+        furi_string_search,                 \
+        furi_string_search_str,             \
+        M_DEFAULT_ARGS(3, (0), __VA_ARGS__) \
+    )
 /**
  * @brief Search for a C string in a string
  * (string, cstring[, start=0])
@@ -687,12 +690,13 @@ void furi_string_utf8_decode(char c, FuriStringUTF8State* state, FuriStringUnico
  * @brief Replace a string to another string (or C string to another C string) in a string.
  * (string, [c]string, [c]string[, start=0])
  */
-#define furi_string_replace(...) \
-    M_APPLY(                     \
-        FURI_STRING_SELECT4,     \
-        furi_string_replace,     \
-        furi_string_replace_str, \
-        M_DEFAULT_ARGS(4, (0), __VA_ARGS__))
+#define furi_string_replace(...)            \
+    M_APPLY(                                \
+        FURI_STRING_SELECT4,                \
+        furi_string_replace,                \
+        furi_string_replace_str,            \
+        M_DEFAULT_ARGS(4, (0), __VA_ARGS__) \
+    )
 
 /**
  * @brief Replace a C string to another C string in a string.

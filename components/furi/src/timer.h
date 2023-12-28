@@ -9,7 +9,7 @@ extern "C" {
 typedef void (*FuriTimerCallback)(void* context);
 
 typedef enum {
-    FuriTimerTypeOnce = 0, ///< One-shot timer.
+    FuriTimerTypeOnce = 0,    ///< One-shot timer.
     FuriTimerTypePeriodic = 1 ///< Repeating timer.
 } FuriTimerType;
 
@@ -91,7 +91,7 @@ typedef void (*FuriTimerPendigCallback)(void* context, uint32_t arg);
 void furi_timer_pending_callback(FuriTimerPendigCallback callback, void* context, uint32_t arg);
 
 typedef enum {
-    FuriTimerThreadPriorityNormal, /**< Lower then other threads */
+    FuriTimerThreadPriorityNormal,   /**< Lower then other threads */
     FuriTimerThreadPriorityElevated, /**< Same as other threads */
 } FuriTimerThreadPriority;
 

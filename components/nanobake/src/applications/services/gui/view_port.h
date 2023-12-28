@@ -64,4 +64,3 @@ void view_port_update(ViewPort* view_port);
 #ifdef __cplusplus
 }
 #endif
-

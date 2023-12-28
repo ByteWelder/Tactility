@@ -12,8 +12,10 @@
  * interrupt that will read from the buffer (the reader).
  */
 #pragma once
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include "base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -72,7 +74,8 @@ size_t furi_stream_buffer_send(
     FuriStreamBuffer* stream_buffer,
     const void* data,
     size_t length,
-    uint32_t timeout);
+    uint32_t timeout
+);
 
 /**
  * @brief Receives bytes from a stream buffer.
@@ -93,7 +96,8 @@ size_t furi_stream_buffer_receive(
     FuriStreamBuffer* stream_buffer,
     void* data,
     size_t length,
-    uint32_t timeout);
+    uint32_t timeout
+);
 
 /**
  * @brief Queries a stream buffer to see how much data it contains, which is equal to

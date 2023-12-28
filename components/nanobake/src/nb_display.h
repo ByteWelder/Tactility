@@ -18,7 +18,7 @@ typedef struct {
     bool swap_xy;
 } NbDisplay;
 
-typedef bool(*CreateDisplay)(NbDisplay* display);
+typedef bool (*CreateDisplay)(NbDisplay* display);
 
 typedef struct {
     char name[32];

@@ -1,7 +1,7 @@
-#include "nb_hardware_i.h"
+#include "check.h"
 #include "esp_check.h"
 #include "esp_err.h"
-#include "check.h"
+#include "nb_hardware_i.h"
 
 #define TAG "hardware"
 

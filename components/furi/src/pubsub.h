@@ -42,7 +42,7 @@ void furi_pubsub_free(FuriPubSub* pubsub);
  * @return     pointer to FuriPubSubSubscription instance
  */
 FuriPubSubSubscription*
-    furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context);
+furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context);
 
 /** Unsubscribe from FuriPubSub
  * 

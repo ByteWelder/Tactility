@@ -1,8 +1,8 @@
 #pragma once
 
-#include <stdio.h>
 #include "esp_err.h"
 #include "lvgl.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,7 +25,7 @@ typedef enum {
     NB_TASK_STACK_SIZE_DEFAULT = 2048
 } NbStackSize;
 
-typedef int32_t (*NbAppEntryPoint) (void _Nonnull* parameter);
+typedef int32_t (*NbAppEntryPoint)(void _Nonnull* parameter);
 
 typedef struct {
     const char id[NB_APP_ID_LENGTH];

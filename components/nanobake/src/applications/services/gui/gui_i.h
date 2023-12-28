@@ -2,15 +2,15 @@
 
 #include "gui.h"
 
-#include <m-array.h>
 #include <m-algo.h>
+#include <m-array.h>
 #include <stdio.h>
 
+#include "message_queue.h"
+#include "mutex.h"
+#include "pubsub.h"
 #include "view_port.h"
 #include "view_port_i.h"
-#include "message_queue.h"
-#include "pubsub.h"
-#include "mutex.h"
 
 #define GUI_DISPLAY_WIDTH 128
 #define GUI_DISPLAY_HEIGHT 64
@@ -55,12 +55,12 @@ struct NbGui {
     lv_obj_t* lvgl_parent;
 
     // Input
-/*
+    /*
     FuriMessageQueue* input_queue;
     FuriPubSub* input_events;
     uint8_t ongoing_input;
     ViewPort* ongoing_input_view_port;
-*/
+    */
 };
 
 /** Find enabled ViewPort in ViewPortArray

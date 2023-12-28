@@ -40,7 +40,7 @@ void furi_pubsub_free(FuriPubSub* pubsub) {
 }
 
 FuriPubSubSubscription*
-    furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context) {
+furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context) {
     furi_check(furi_mutex_acquire(pubsub->mutex, FuriWaitForever) == FuriStatusOk);
     // put uninitialized item to the list
     FuriPubSubSubscription* item = FuriPubSubSubscriptionList_push_raw(pubsub->items);
@@ -63,12 +63,12 @@ void furi_pubsub_unsubscribe(FuriPubSub* pubsub, FuriPubSubSubscription* pubsub_
 
     // iterate over items
     FuriPubSubSubscriptionList_it_t it;
-    for(FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
-        FuriPubSubSubscriptionList_next(it)) {
+    for (FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
+         FuriPubSubSubscriptionList_next(it)) {
         const FuriPubSubSubscription* item = FuriPubSubSubscriptionList_cref(it);
 
         // if the iterator is equal to our element
-        if(item == pubsub_subscription) {
+        if (item == pubsub_subscription) {
             FuriPubSubSubscriptionList_remove(pubsub->items, it);
             result = true;
             break;
@@ -84,8 +84,8 @@ void furi_pubsub_publish(FuriPubSub* pubsub, void* message) {
 
     // iterate over subscribers
     FuriPubSubSubscriptionList_it_t it;
-    for(FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
-        FuriPubSubSubscriptionList_next(it)) {
+    for (FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
+         FuriPubSubSubscriptionList_next(it)) {
         const FuriPubSubSubscription* item = FuriPubSubSubscriptionList_cref(it);
         item->callback(message, item->callback_context);
     }

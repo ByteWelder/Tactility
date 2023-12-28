@@ -1,14 +1,14 @@
 #include "nanobake.h"
-#include "nb_hardware_i.h"
-#include "nb_lvgl_i.h"
-#include "nb_app_i.h"
 #include "applications/nb_applications.h"
 #include "esp_log.h"
 #include "m-list.h"
+#include "nb_app_i.h"
+#include "nb_hardware_i.h"
+#include "nb_lvgl_i.h"
 // Furi
-#include "thread.h"
 #include "kernel.h"
 #include "record.h"
+#include "thread.h"
 
 M_LIST_DEF(thread_ids, FuriThreadId);
 
@@ -36,10 +36,7 @@ size_t nanobake_get_app_thread_count() {
 }
 
 static void prv_start_app(const NbApp _Nonnull* app) {
-    ESP_LOGI(TAG, "Starting %s app \"%s\"",
-         nb_app_type_to_string(app->type),
-         app->name
-    );
+    ESP_LOGI(TAG, "Starting %s app \"%s\"", nb_app_type_to_string(app->type), app->name);
 
     FuriThread* thread = furi_thread_alloc_ex(
         app->name,
@@ -64,7 +61,7 @@ __attribute__((unused)) extern void nanobake_start(NbConfig _Nonnull* config) {
     prv_furi_init();
 
     NbHardware hardware = nb_hardware_create(config);
-    /*NbLvgl lvgl =*/ nb_lvgl_init(&hardware);
+    /*NbLvgl lvgl =*/nb_lvgl_init(&hardware);
 
     thread_ids_init(prv_thread_ids);
 

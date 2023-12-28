@@ -8,8 +8,8 @@
 #include "base.h"
 #include "common_defines.h"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,12 +24,12 @@ typedef enum {
 
 /** FuriThreadPriority */
 typedef enum {
-    FuriThreadPriorityNone = 0, /**< Uninitialized, choose system default */
-    FuriThreadPriorityIdle = 1, /**< Idle priority */
-    FuriThreadPriorityLowest = 14, /**< Lowest */
-    FuriThreadPriorityLow = 15, /**< Low */
-    FuriThreadPriorityNormal = 16, /**< Normal */
-    FuriThreadPriorityHigh = 17, /**< High */
+    FuriThreadPriorityNone = 0,     /**< Uninitialized, choose system default */
+    FuriThreadPriorityIdle = 1,     /**< Idle priority */
+    FuriThreadPriorityLowest = 14,  /**< Lowest */
+    FuriThreadPriorityLow = 15,     /**< Low */
+    FuriThreadPriorityNormal = 16,  /**< Normal */
+    FuriThreadPriorityHigh = 17,    /**< High */
     FuriThreadPriorityHighest = 18, /**< Highest */
     FuriThreadPriorityIsr =
         (FURI_CONFIG_THREAD_MAX_PRIORITIES - 1), /**< Deferred ISR (highest possible) */
@@ -76,7 +76,8 @@ FuriThread* furi_thread_alloc_ex(
     const char* name,
     uint32_t stack_size,
     FuriThreadCallback callback,
-    void* context);
+    void* context
+);
 
 /** Release FuriThread
  *

@@ -63,7 +63,8 @@ uint32_t furi_event_flag_wait(
     FuriEventFlag* instance,
     uint32_t flags,
     uint32_t options,
-    uint32_t timeout);
+    uint32_t timeout
+);
 
 #ifdef __cplusplus
 }

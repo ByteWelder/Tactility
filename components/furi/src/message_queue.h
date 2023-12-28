@@ -37,7 +37,7 @@ void furi_message_queue_free(FuriMessageQueue* instance);
  * @return     The furi status.
  */
 FuriStatus
-    furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t timeout);
+furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t timeout);
 
 /** Get message from queue
  *

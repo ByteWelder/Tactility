@@ -19,7 +19,7 @@ static void TimerCallback(TimerHandle_t hTimer) {
     /* Remove dynamic allocation flag */
     callb = (TimerCallback_t*)((uint32_t)callb & ~1U);
 
-    if(callb != NULL) {
+    if (callb != NULL) {
         callb->func(callb->context);
     }
 }
@@ -40,7 +40,7 @@ FuriTimer* furi_timer_alloc(FuriTimerCallback func, FuriTimerType type, void* co
     callb->func = func;
     callb->context = context;
 
-    if(type == FuriTimerTypeOnce) {
+    if (type == FuriTimerTypeOnce) {
         reload = pdFALSE;
     } else {
         reload = pdTRUE;
@@ -68,9 +68,9 @@ void furi_timer_free(FuriTimer* instance) {
 
     furi_check(xTimerDelete(hTimer, portMAX_DELAY) == pdPASS);
 
-    while(furi_timer_is_running(instance)) furi_delay_tick(2);
+    while (furi_timer_is_running(instance)) furi_delay_tick(2);
 
-    if((uint32_t)callb & 1U) {
+    if ((uint32_t)callb & 1U) {
         /* Callback memory was allocated from dynamic pool, clear flag */
         callb = (TimerCallback_t*)((uint32_t)callb & ~1U);
 
@@ -87,7 +87,7 @@ FuriStatus furi_timer_start(FuriTimer* instance, uint32_t ticks) {
     TimerHandle_t hTimer = (TimerHandle_t)instance;
     FuriStatus stat;
 
-    if(xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS) {
+    if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS) {
         stat = FuriStatusOk;
     } else {
         stat = FuriStatusErrorResource;
@@ -105,8 +105,8 @@ FuriStatus furi_timer_restart(FuriTimer* instance, uint32_t ticks) {
     TimerHandle_t hTimer = (TimerHandle_t)instance;
     FuriStatus stat;
 
-    if(xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS &&
-       xTimerReset(hTimer, portMAX_DELAY) == pdPASS) {
+    if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS &&
+        xTimerReset(hTimer, portMAX_DELAY) == pdPASS) {
         stat = FuriStatusOk;
     } else {
         stat = FuriStatusErrorResource;
@@ -148,7 +148,7 @@ uint32_t furi_timer_get_expire_time(FuriTimer* instance) {
 
 void furi_timer_pending_callback(FuriTimerPendigCallback callback, void* context, uint32_t arg) {
     BaseType_t ret = pdFAIL;
-    if(furi_kernel_is_irq_or_masked()) {
+    if (furi_kernel_is_irq_or_masked()) {
         ret = xTimerPendFunctionCallFromISR(callback, context, arg, NULL);
     } else {
         ret = xTimerPendFunctionCall(callback, context, arg, FuriWaitForever);
@@ -162,9 +162,9 @@ void furi_timer_set_thread_priority(FuriTimerThreadPriority priority) {
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     furi_check(task_handle); // Don't call this method before timer task start
 
-    if(priority == FuriTimerThreadPriorityNormal) {
+    if (priority == FuriTimerThreadPriorityNormal) {
         vTaskPrioritySet(task_handle, configTIMER_TASK_PRIORITY);
-    } else if(priority == FuriTimerThreadPriorityElevated) {
+    } else if (priority == FuriTimerThreadPriorityElevated) {
         vTaskPrioritySet(task_handle, configMAX_PRIORITIES - 1);
     } else {
         furi_crash();

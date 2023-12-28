@@ -1,8 +1,8 @@
 #pragma once
 
+#include "nb_app.h"
 #include "nb_display.h"
 #include "nb_touch.h"
-#include "nb_app.h"
 
 #ifdef __cplusplus
 extern "C" {

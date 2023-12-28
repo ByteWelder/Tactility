@@ -1,6 +1,6 @@
 #include "system_info.h"
-#include "nanobake.h"
 #include "core_defines.h"
+#include "nanobake.h"
 #include "thread.h"
 
 static int32_t system_info_entry_point(void* param) {

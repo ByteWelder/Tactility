@@ -1,7 +1,7 @@
 #pragma once
 
-#include "nb_hardware.h"
 #include "nb_config.h"
+#include "nb_hardware.h"
 
 #ifdef __cplusplus
 extern "C" {

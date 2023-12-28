@@ -2,17 +2,11 @@
 #include "common_defines.h"
 #include "furi_string.h"
 
-#include <stdbool.h>
 #include <esp_log.h>
 #include <memory.h>
+#include <stdbool.h>
 
 #define TAG "FuriHalConsole"
-
-#ifdef HEAP_PRINT_DEBUG
-#define CONSOLE_BAUDRATE 1843200
-#else
-#define CONSOLE_BAUDRATE 230400
-#endif
 
 typedef struct {
     bool alive;
@@ -27,21 +21,14 @@ FuriHalConsole furi_hal_console = {
 };
 
 void furi_hal_console_init() {
-//    furi_hal_uart_init(FuriHalUartIdUSART1, CONSOLE_BAUDRATE);
     furi_hal_console.alive = true;
 }
 
 void furi_hal_console_enable() {
-//    furi_hal_uart_set_irq_cb(FuriHalUartIdUSART1, NULL, NULL);
-//    while(!LL_USART_IsActiveFlag_TC(USART1))
-//        ;
-//    furi_hal_uart_set_br(FuriHalUartIdUSART1, CONSOLE_BAUDRATE);
     furi_hal_console.alive = true;
 }
 
 void furi_hal_console_disable() {
-//    while(!LL_USART_IsActiveFlag_TC(USART1))
-//        ;
     furi_hal_console.alive = false;
 }
 
@@ -53,12 +40,10 @@ void furi_hal_console_set_tx_callback(FuriHalConsoleTxCallback callback, void* c
 }
 
 void furi_hal_console_tx(const uint8_t* buffer, size_t buffer_size) {
-    if(!furi_hal_console.alive) return;
+    if (!furi_hal_console.alive) return;
 
     FURI_CRITICAL_ENTER();
-    // Transmit data
-
-    if(furi_hal_console.tx_callback) {
+    if (furi_hal_console.tx_callback) {
         furi_hal_console.tx_callback(buffer, buffer_size, furi_hal_console.tx_callback_context);
     }
 
@@ -67,15 +52,11 @@ void furi_hal_console_tx(const uint8_t* buffer, size_t buffer_size) {
     safe_buffer[buffer_size] = 0;
 
     ESP_LOGI(TAG, "%s", safe_buffer);
-//    furi_hal_uart_tx(FuriHalUartIdUSART1, (uint8_t*)buffer, buffer_size);
-////     Wait for TC flag to be raised for last char
-//    while(!LL_USART_IsActiveFlag_TC(USART1))
-//        ;
     FURI_CRITICAL_EXIT();
 }
 
 void furi_hal_console_tx_with_new_line(const uint8_t* buffer, size_t buffer_size) {
-    if(!furi_hal_console.alive) return;
+    if (!furi_hal_console.alive) return;
 
     FURI_CRITICAL_ENTER();
 
@@ -84,13 +65,6 @@ void furi_hal_console_tx_with_new_line(const uint8_t* buffer, size_t buffer_size
     safe_buffer[buffer_size] = 0;
     ESP_LOGI(TAG, "%s", safe_buffer);
 
-    // Transmit data
-//    furi_hal_uart_tx(FuriHalUartIdUSART1, (uint8_t*)buffer, buffer_size);
-    // Transmit new line symbols
-//    furi_hal_uart_tx(FuriHalUartIdUSART1, (uint8_t*)"\r\n", 2);
-    // Wait for TC flag to be raised for last char
-//    while(!LL_USART_IsActiveFlag_TC(USART1))
-//        ;
     FURI_CRITICAL_EXIT();
 }
 

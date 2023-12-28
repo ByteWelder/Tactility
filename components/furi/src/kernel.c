@@ -11,16 +11,16 @@ bool furi_kernel_is_irq_or_masked() {
     bool irq = false;
     BaseType_t state;
 
-    if(FURI_IS_IRQ_MODE()) {
+    if (FURI_IS_IRQ_MODE()) {
         /* Called from interrupt context */
         irq = true;
     } else {
         /* Get FreeRTOS scheduler state */
         state = xTaskGetSchedulerState();
 
-        if(state != taskSCHEDULER_NOT_STARTED) {
+        if (state != taskSCHEDULER_NOT_STARTED) {
             /* Scheduler was started */
-            if(FURI_IS_IRQ_MASKED()) {
+            if (FURI_IS_IRQ_MASKED()) {
                 /* Interrupts are masked */
                 irq = true;
             }
@@ -40,20 +40,20 @@ int32_t furi_kernel_lock() {
 
     int32_t lock;
 
-    switch(xTaskGetSchedulerState()) {
-    case taskSCHEDULER_SUSPENDED:
-        lock = 1;
-        break;
+    switch (xTaskGetSchedulerState()) {
+        case taskSCHEDULER_SUSPENDED:
+            lock = 1;
+            break;
 
-    case taskSCHEDULER_RUNNING:
-        vTaskSuspendAll();
-        lock = 0;
-        break;
+        case taskSCHEDULER_RUNNING:
+            vTaskSuspendAll();
+            lock = 0;
+            break;
 
-    case taskSCHEDULER_NOT_STARTED:
-    default:
-        lock = (int32_t)FuriStatusError;
-        break;
+        case taskSCHEDULER_NOT_STARTED:
+        default:
+            lock = (int32_t)FuriStatusError;
+            break;
     }
 
     /* Return previous lock state */
@@ -65,25 +65,25 @@ int32_t furi_kernel_unlock() {
 
     int32_t lock;
 
-    switch(xTaskGetSchedulerState()) {
-    case taskSCHEDULER_SUSPENDED:
-        lock = 1;
+    switch (xTaskGetSchedulerState()) {
+        case taskSCHEDULER_SUSPENDED:
+            lock = 1;
 
-        if(xTaskResumeAll() != pdTRUE) {
-            if(xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED) {
-                lock = (int32_t)FuriStatusError;
+            if (xTaskResumeAll() != pdTRUE) {
+                if (xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED) {
+                    lock = (int32_t)FuriStatusError;
+                }
             }
-        }
-        break;
+            break;
 
-    case taskSCHEDULER_RUNNING:
-        lock = 0;
-        break;
+        case taskSCHEDULER_RUNNING:
+            lock = 0;
+            break;
 
-    case taskSCHEDULER_NOT_STARTED:
-    default:
-        lock = (int32_t)FuriStatusError;
-        break;
+        case taskSCHEDULER_NOT_STARTED:
+        default:
+            lock = (int32_t)FuriStatusError;
+            break;
     }
 
     /* Return previous lock state */
@@ -93,28 +93,28 @@ int32_t furi_kernel_unlock() {
 int32_t furi_kernel_restore_lock(int32_t lock) {
     furi_assert(!furi_kernel_is_irq_or_masked());
 
-    switch(xTaskGetSchedulerState()) {
-    case taskSCHEDULER_SUSPENDED:
-    case taskSCHEDULER_RUNNING:
-        if(lock == 1) {
-            vTaskSuspendAll();
-        } else {
-            if(lock != 0) {
-                lock = (int32_t)FuriStatusError;
+    switch (xTaskGetSchedulerState()) {
+        case taskSCHEDULER_SUSPENDED:
+        case taskSCHEDULER_RUNNING:
+            if (lock == 1) {
+                vTaskSuspendAll();
             } else {
-                if(xTaskResumeAll() != pdTRUE) {
-                    if(xTaskGetSchedulerState() != taskSCHEDULER_RUNNING) {
-                        lock = (int32_t)FuriStatusError;
+                if (lock != 0) {
+                    lock = (int32_t)FuriStatusError;
+                } else {
+                    if (xTaskResumeAll() != pdTRUE) {
+                        if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING) {
+                            lock = (int32_t)FuriStatusError;
+                        }
                     }
                 }
             }
-        }
-        break;
+            break;
 
-    case taskSCHEDULER_NOT_STARTED:
-    default:
-        lock = (int32_t)FuriStatusError;
-        break;
+        case taskSCHEDULER_NOT_STARTED:
+        default:
+            lock = (int32_t)FuriStatusError;
+            break;
     }
 
     /* Return new lock state */
@@ -128,7 +128,7 @@ uint32_t furi_kernel_get_tick_frequency() {
 
 void furi_delay_tick(uint32_t ticks) {
     furi_assert(!furi_kernel_is_irq_or_masked());
-    if(ticks == 0U) {
+    if (ticks == 0U) {
         taskYIELD();
     } else {
         vTaskDelay(ticks);
@@ -148,8 +148,8 @@ FuriStatus furi_delay_until_tick(uint32_t tick) {
     delay = (TickType_t)tick - tcnt;
 
     /* Check if target tick has not expired */
-    if((delay != 0U) && (0 == (delay >> (8 * sizeof(TickType_t) - 1)))) {
-        if(xTaskDelayUntil(&tcnt, delay) == pdFALSE) {
+    if ((delay != 0U) && (0 == (delay >> (8 * sizeof(TickType_t) - 1)))) {
+        if (xTaskDelayUntil(&tcnt, delay) == pdFALSE) {
             /* Did not delay */
             stat = FuriStatusError;
         }
@@ -165,7 +165,7 @@ FuriStatus furi_delay_until_tick(uint32_t tick) {
 uint32_t furi_get_tick() {
     TickType_t ticks;
 
-    if(furi_kernel_is_irq_or_masked() != 0U) {
+    if (furi_kernel_is_irq_or_masked() != 0U) {
         ticks = xTaskGetTickCountFromISR();
     } else {
         ticks = xTaskGetTickCount();
@@ -183,8 +183,8 @@ uint32_t furi_ms_to_ticks(uint32_t milliseconds) {
 }
 
 void furi_delay_ms(uint32_t milliseconds) {
-    if(!FURI_IS_ISR() && xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
-        if(milliseconds > 0 && milliseconds < portMAX_DELAY - 1) {
+    if (!FURI_IS_ISR() && xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
+        if (milliseconds > 0 && milliseconds < portMAX_DELAY - 1) {
             milliseconds += 1;
         }
 #if configTICK_RATE_HZ_RAW == 1000
@@ -192,7 +192,7 @@ void furi_delay_ms(uint32_t milliseconds) {
 #else
         furi_delay_tick(furi_ms_to_ticks(milliseconds));
 #endif
-    } else if(milliseconds > 0) {
+    } else if (milliseconds > 0) {
         furi_delay_us(milliseconds * 1000);
     }
 }

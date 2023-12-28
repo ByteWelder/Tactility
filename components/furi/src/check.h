@@ -13,8 +13,8 @@
  */
 #pragma once
 
-#include <m-core.h>
 #include <esp_log.h>
+#include <m-core.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,11 +35,11 @@ FURI_NORETURN void __furi_crash_implementation();
 FURI_NORETURN void __furi_halt_implementation();
 
 /** Crash system with message. */
-#define __furi_crash(message)                                 \
-    do {                                                      \
+#define __furi_crash(message)                                                                               \
+    do {                                                                                                    \
         ESP_LOGE("crash", "%s\n\tat %s:%d", ((message) ? ((const char*)message) : ""), __FILE__, __LINE__); \
-        __furi_crash_implementation();                        \
-    } while(0)
+        __furi_crash_implementation();                                                                      \
+    } while (0)
 
 /** Crash system
  *
@@ -48,11 +48,11 @@ FURI_NORETURN void __furi_halt_implementation();
 #define furi_crash(...) M_APPLY(__furi_crash, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
 /** Halt system with message. */
-#define __furi_halt(message)                                  \
-    do {                                                      \
-            ESP_LOGE("halt", "%s\n\tat %s:%d", ((message) ? ((const char*)message) : ""), __FILE__, __LINE__); \
-        __furi_halt_implementation();                         \
-    } while(0)
+#define __furi_halt(message)                                                                               \
+    do {                                                                                                   \
+        ESP_LOGE("halt", "%s\n\tat %s:%d", ((message) ? ((const char*)message) : ""), __FILE__, __LINE__); \
+        __furi_halt_implementation();                                                                      \
+    } while (0)
 
 /** Halt system
  *
@@ -61,13 +61,13 @@ FURI_NORETURN void __furi_halt_implementation();
 #define furi_halt(...) M_APPLY(__furi_halt, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
 /** Check condition and crash if check failed */
-#define __furi_check(__e, __m) \
-    do {                       \
-        if(!(__e)) {           \
+#define __furi_check(__e, __m)             \
+    do {                                   \
+        if (!(__e)) {                      \
             ESP_LOGE("check", "%s", #__e); \
-            __furi_crash(__m); \
-        }                      \
-    } while(0)
+            __furi_crash(__m);             \
+        }                                  \
+    } while (0)
 
 /** Check condition and crash if failed
  *
@@ -79,19 +79,19 @@ FURI_NORETURN void __furi_halt_implementation();
 
 /** Only in debug build: Assert condition and crash if assert failed  */
 #ifdef FURI_DEBUG
-#define __furi_assert(__e, __m) \
-    do {                        \
-        if(!(__e)) {            \
+#define __furi_assert(__e, __m)             \
+    do {                                    \
+        if (!(__e)) {                       \
             ESP_LOGE("assert", "%s", #__e); \
-            __furi_crash(__m);  \
-        }                       \
-    } while(0)
+            __furi_crash(__m);              \
+        }                                   \
+    } while (0)
 #else
 #define __furi_assert(__e, __m) \
     do {                        \
         ((void)(__e));          \
         ((void)(__m));          \
-    } while(0)
+    } while (0)
 #endif
 
 /** Assert condition and crash if failed

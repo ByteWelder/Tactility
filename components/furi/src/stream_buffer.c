@@ -1,6 +1,6 @@
+#include "stream_buffer.h"
 #include "base.h"
 #include "check.h"
-#include "stream_buffer.h"
 #include "common_defines.h"
 
 #include <freertos/FreeRTOS.h>
@@ -29,10 +29,11 @@ size_t furi_stream_buffer_send(
     FuriStreamBuffer* stream_buffer,
     const void* data,
     size_t length,
-    uint32_t timeout) {
+    uint32_t timeout
+) {
     size_t ret;
 
-    if(FURI_IS_IRQ_MODE()) {
+    if (FURI_IS_IRQ_MODE()) {
         BaseType_t yield;
         ret = xStreamBufferSendFromISR(stream_buffer, data, length, &yield);
         portYIELD_FROM_ISR(yield);
@@ -47,10 +48,11 @@ size_t furi_stream_buffer_receive(
     FuriStreamBuffer* stream_buffer,
     void* data,
     size_t length,
-    uint32_t timeout) {
+    uint32_t timeout
+) {
     size_t ret;
 
-    if(FURI_IS_IRQ_MODE()) {
+    if (FURI_IS_IRQ_MODE()) {
         BaseType_t yield;
         ret = xStreamBufferReceiveFromISR(stream_buffer, data, length, &yield);
         portYIELD_FROM_ISR(yield);
@@ -78,7 +80,7 @@ bool furi_stream_buffer_is_empty(FuriStreamBuffer* stream_buffer) {
 };
 
 FuriStatus furi_stream_buffer_reset(FuriStreamBuffer* stream_buffer) {
-    if(xStreamBufferReset(stream_buffer) == pdPASS) {
+    if (xStreamBufferReset(stream_buffer) == pdPASS) {
         return FuriStatusOk;
     } else {
         return FuriStatusError;

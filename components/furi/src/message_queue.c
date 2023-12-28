@@ -1,6 +1,6 @@
-#include "kernel.h"
 #include "message_queue.h"
 #include "check.h"
+#include "kernel.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -22,31 +22,31 @@ void furi_message_queue_free(FuriMessageQueue* instance) {
 }
 
 FuriStatus
-    furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t timeout) {
+furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t timeout) {
     QueueHandle_t hQueue = (QueueHandle_t)instance;
     FuriStatus stat;
     BaseType_t yield;
 
     stat = FuriStatusOk;
 
-    if(furi_kernel_is_irq_or_masked() != 0U) {
-        if((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
+    if (furi_kernel_is_irq_or_masked() != 0U) {
+        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
             stat = FuriStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
-            if(xQueueSendToBackFromISR(hQueue, msg_ptr, &yield) != pdTRUE) {
+            if (xQueueSendToBackFromISR(hQueue, msg_ptr, &yield) != pdTRUE) {
                 stat = FuriStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if((hQueue == NULL) || (msg_ptr == NULL)) {
+        if ((hQueue == NULL) || (msg_ptr == NULL)) {
             stat = FuriStatusErrorParameter;
         } else {
-            if(xQueueSendToBack(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
-                if(timeout != 0U) {
+            if (xQueueSendToBack(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
+                if (timeout != 0U) {
                     stat = FuriStatusErrorTimeout;
                 } else {
                     stat = FuriStatusErrorResource;
@@ -66,24 +66,24 @@ FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uin
 
     stat = FuriStatusOk;
 
-    if(furi_kernel_is_irq_or_masked() != 0U) {
-        if((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
+    if (furi_kernel_is_irq_or_masked() != 0U) {
+        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
             stat = FuriStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
-            if(xQueueReceiveFromISR(hQueue, msg_ptr, &yield) != pdPASS) {
+            if (xQueueReceiveFromISR(hQueue, msg_ptr, &yield) != pdPASS) {
                 stat = FuriStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if((hQueue == NULL) || (msg_ptr == NULL)) {
+        if ((hQueue == NULL) || (msg_ptr == NULL)) {
             stat = FuriStatusErrorParameter;
         } else {
-            if(xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
-                if(timeout != 0U) {
+            if (xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
+                if (timeout != 0U) {
                     stat = FuriStatusErrorTimeout;
                 } else {
                     stat = FuriStatusErrorResource;
@@ -100,7 +100,7 @@ uint32_t furi_message_queue_get_capacity(FuriMessageQueue* instance) {
     StaticQueue_t* mq = (StaticQueue_t*)instance;
     uint32_t capacity;
 
-    if(mq == NULL) {
+    if (mq == NULL) {
         capacity = 0U;
     } else {
         /* capacity = pxQueue->uxLength */
@@ -115,7 +115,7 @@ uint32_t furi_message_queue_get_message_size(FuriMessageQueue* instance) {
     StaticQueue_t* mq = (StaticQueue_t*)instance;
     uint32_t size;
 
-    if(mq == NULL) {
+    if (mq == NULL) {
         size = 0U;
     } else {
         /* size = pxQueue->uxItemSize */
@@ -130,9 +130,9 @@ uint32_t furi_message_queue_get_count(FuriMessageQueue* instance) {
     QueueHandle_t hQueue = (QueueHandle_t)instance;
     UBaseType_t count;
 
-    if(hQueue == NULL) {
+    if (hQueue == NULL) {
         count = 0U;
-    } else if(furi_kernel_is_irq_or_masked() != 0U) {
+    } else if (furi_kernel_is_irq_or_masked() != 0U) {
         count = uxQueueMessagesWaitingFromISR(hQueue);
     } else {
         count = uxQueueMessagesWaiting(hQueue);
@@ -147,9 +147,9 @@ uint32_t furi_message_queue_get_space(FuriMessageQueue* instance) {
     uint32_t space;
     uint32_t isrm;
 
-    if(mq == NULL) {
+    if (mq == NULL) {
         space = 0U;
-    } else if(furi_kernel_is_irq_or_masked() != 0U) {
+    } else if (furi_kernel_is_irq_or_masked() != 0U) {
         isrm = taskENTER_CRITICAL_FROM_ISR();
 
         /* space = pxQueue->uxLength - pxQueue->uxMessagesWaiting; */
@@ -168,9 +168,9 @@ FuriStatus furi_message_queue_reset(FuriMessageQueue* instance) {
     QueueHandle_t hQueue = (QueueHandle_t)instance;
     FuriStatus stat;
 
-    if(furi_kernel_is_irq_or_masked() != 0U) {
+    if (furi_kernel_is_irq_or_masked() != 0U) {
         stat = FuriStatusErrorISR;
-    } else if(hQueue == NULL) {
+    } else if (hQueue == NULL) {
         stat = FuriStatusErrorParameter;
     } else {
         stat = FuriStatusOk;

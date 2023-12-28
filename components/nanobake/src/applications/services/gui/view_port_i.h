@@ -1,8 +1,8 @@
 #pragma once
 
 #include "gui_i.h"
-#include "view_port.h"
 #include "mutex.h"
+#include "view_port.h"
 
 struct ViewPort {
     NbGui* gui;
@@ -12,8 +12,10 @@ struct ViewPort {
     ViewPortDrawCallback draw_callback;
     void* draw_callback_context;
 
-//    ViewPortInputCallback input_callback;
-//    void* input_callback_context;
+    /*
+    ViewPortInputCallback input_callback;
+    void* input_callback_context;
+    */
 };
 
 /** Set GUI reference.
@@ -35,10 +37,10 @@ void view_port_gui_set(ViewPort* view_port, NbGui* gui);
 void view_port_draw(ViewPort* view_port, lv_obj_t* parent);
 
 /** Process input. Calls input callback.
-// *
-// * To be used by GUI, called on input dispatch.
-// *
-// * @param      view_port  ViewPort instance
-// * @param      event      pointer to input event
-// */
+ *
+ * To be used by GUI, called on input dispatch.
+ *
+ * @param      view_port  ViewPort instance
+ * @param      event      pointer to input event
+ */
 //void view_port_input(ViewPort* view_port, InputEvent* event);

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include <stdbool.h>
 #include "core_defines.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,11 +18,11 @@ extern "C" {
  * @param variable_name the name of the variable that is used in the `code`
  * @param code the code to execute: consider putting it between {}
  */
-#define FURI_RECORD_TRANSACTION(record_name, variable_name, code)       \
-    {                                                                   \
-        NbGui* (variable_name) = (NbGui*)furi_record_open(record_name); \
-        code                                                            \
-        furi_record_close(record_name);                                 \
+#define FURI_RECORD_TRANSACTION(record_name, variable_name, code)      \
+    {                                                                  \
+        NbGui*(variable_name) = (NbGui*)furi_record_open(record_name); \
+        code;                                                          \
+        furi_record_close(record_name);                                \
     }
 
 /** Initialize record storage For internal use only.

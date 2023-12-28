@@ -1,7 +1,7 @@
-#include "gui_i.h"
-#include "core_defines.h"
-#include "record.h"
 #include "check.h"
+#include "core_defines.h"
+#include "gui_i.h"
+#include "record.h"
 
 #define TAG "gui"
 
@@ -13,9 +13,9 @@ ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     // Iterating backward
     ViewPortArray_it_t it;
     ViewPortArray_it_last(it, array);
-    while(!ViewPortArray_end_p(it)) {
+    while (!ViewPortArray_end_p(it)) {
         ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
+        if (view_port_is_enabled(view_port)) {
             return view_port;
         }
         ViewPortArray_previous(it);
@@ -31,9 +31,9 @@ size_t gui_active_view_port_count(NbGui* gui, GuiLayer layer) {
     gui_lock(gui);
     ViewPortArray_it_t it;
     ViewPortArray_it_last(it, gui->layers[layer]);
-    while(!ViewPortArray_end_p(it)) {
+    while (!ViewPortArray_end_p(it)) {
         ViewPort* view_port = *ViewPortArray_ref(it);
-        if(view_port_is_enabled(view_port)) {
+        if (view_port_is_enabled(view_port)) {
             ret++;
         }
         ViewPortArray_previous(it);
@@ -67,9 +67,9 @@ void gui_add_view_port(NbGui* gui, ViewPort* view_port, GuiLayer layer) {
     gui_lock(gui);
     // Verify that view port is not yet added
     ViewPortArray_it_t it;
-    for(size_t i = 0; i < GuiLayerMAX; i++) {
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_it(it, gui->layers[i]);
-        while(!ViewPortArray_end_p(it)) {
+        while (!ViewPortArray_end_p(it)) {
             furi_assert(*ViewPortArray_ref(it) != view_port);
             ViewPortArray_next(it);
         }
@@ -90,19 +90,21 @@ void gui_remove_view_port(NbGui* gui, ViewPort* view_port) {
     gui_lock(gui);
     view_port_gui_set(view_port, NULL);
     ViewPortArray_it_t it;
-    for(size_t i = 0; i < GuiLayerMAX; i++) {
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_it(it, gui->layers[i]);
-        while(!ViewPortArray_end_p(it)) {
-            if(*ViewPortArray_ref(it) == view_port) {
+        while (!ViewPortArray_end_p(it)) {
+            if (*ViewPortArray_ref(it) == view_port) {
                 ViewPortArray_remove(gui->layers[i], it);
             } else {
                 ViewPortArray_next(it);
             }
         }
     }
-//    if(gui->ongoing_input_view_port == view_port) {
-//        gui->ongoing_input_view_port = NULL;
-//    }
+    /*
+    if(gui->ongoing_input_view_port == view_port) {
+        gui->ongoing_input_view_port = NULL;
+    }
+    */
     gui_unlock(gui);
 
     // Request redraw
@@ -117,10 +119,10 @@ void gui_view_port_send_to_front(NbGui* gui, ViewPort* view_port) {
     // Remove
     GuiLayer layer = GuiLayerMAX;
     ViewPortArray_it_t it;
-    for(size_t i = 0; i < GuiLayerMAX; i++) {
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_it(it, gui->layers[i]);
-        while(!ViewPortArray_end_p(it)) {
-            if(*ViewPortArray_ref(it) == view_port) {
+        while (!ViewPortArray_end_p(it)) {
+            if (*ViewPortArray_ref(it) == view_port) {
                 ViewPortArray_remove(gui->layers[i], it);
                 furi_assert(layer == GuiLayerMAX);
                 layer = i;
@@ -146,10 +148,10 @@ void gui_view_port_send_to_back(NbGui* gui, ViewPort* view_port) {
     // Remove
     GuiLayer layer = GuiLayerMAX;
     ViewPortArray_it_t it;
-    for(size_t i = 0; i < GuiLayerMAX; i++) {
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_it(it, gui->layers[i]);
-        while(!ViewPortArray_end_p(it)) {
-            if(*ViewPortArray_ref(it) == view_port) {
+        while (!ViewPortArray_end_p(it)) {
+            if (*ViewPortArray_ref(it) == view_port) {
                 ViewPortArray_remove(gui->layers[i], it);
                 furi_assert(layer == GuiLayerMAX);
                 layer = i;
@@ -185,18 +187,18 @@ NbGui* gui_alloc() {
     gui->lvgl_parent = lv_scr_act();
     gui->lockdown = false;
     furi_check(gui->mutex);
-    for(size_t i = 0; i < GuiLayerMAX; i++) {
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_init(gui->layers[i]);
     }
 
-/*
+    /*
     // Input
     gui->input_queue = furi_message_queue_alloc(8, sizeof(InputEvent));
     gui->input_events = furi_record_open(RECORD_INPUT_EVENTS);
 
     furi_check(gui->input_events);
     furi_pubsub_subscribe(gui->input_events, gui_input_events_callback, gui);
-*/
+    */
     return gui;
 }
 
@@ -213,13 +215,13 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
             FuriWaitForever
         );
         // Process and dispatch input
-        if (flags & GUI_THREAD_FLAG_INPUT) {
-//            // Process till queue become empty
-//            InputEvent input_event;
-//            while(furi_message_queue_get(gui->input_queue, &input_event, 0) == FuriStatusOk) {
-//                gui_input(gui, &input_event);
-//            }
-        }
+        /*if (flags & GUI_THREAD_FLAG_INPUT) {
+            // Process till queue become empty
+            InputEvent input_event;
+            while(furi_message_queue_get(gui->input_queue, &input_event, 0) == FuriStatusOk) {
+                gui_input(gui, &input_event);
+            }
+        }*/
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
             // Clear flags that arrived on input step

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "view_port.h"
 #include "lvgl.h"
 #include "nb_app.h"
+#include "view_port.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,7 +24,7 @@ typedef enum {
 
     GuiLayerWindow, /**< Window layer, status bar is shown */
 
-    GuiLayerStatusBarLeft, /**< Status bar left-side layer, auto-layout */
+    GuiLayerStatusBarLeft,  /**< Status bar left-side layer, auto-layout */
     GuiLayerStatusBarRight, /**< Status bar right-side layer, auto-layout */
 
     GuiLayerFullscreen, /**< Fullscreen layer, no status bar */
@@ -37,7 +37,8 @@ typedef void (*GuiCanvasCommitCallback)(
     uint8_t* data,
     size_t size,
     CanvasOrientation orientation,
-    void* context);
+    void* context
+);
 
 #define RECORD_GUI "gui"
 

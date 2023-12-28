@@ -10,10 +10,10 @@ FuriSemaphore* furi_semaphore_alloc(uint32_t max_count, uint32_t initial_count) 
     furi_assert((max_count > 0U) && (initial_count <= max_count));
 
     SemaphoreHandle_t hSemaphore = NULL;
-    if(max_count == 1U) {
+    if (max_count == 1U) {
         hSemaphore = xSemaphoreCreateBinary();
-        if((hSemaphore != NULL) && (initial_count != 0U)) {
-            if(xSemaphoreGive(hSemaphore) != pdPASS) {
+        if ((hSemaphore != NULL) && (initial_count != 0U)) {
+            if (xSemaphoreGive(hSemaphore) != pdPASS) {
                 vSemaphoreDelete(hSemaphore);
                 hSemaphore = NULL;
             }
@@ -46,21 +46,21 @@ FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout) {
 
     stat = FuriStatusOk;
 
-    if(FURI_IS_IRQ_MODE()) {
-        if(timeout != 0U) {
+    if (FURI_IS_IRQ_MODE()) {
+        if (timeout != 0U) {
             stat = FuriStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
-            if(xSemaphoreTakeFromISR(hSemaphore, &yield) != pdPASS) {
+            if (xSemaphoreTakeFromISR(hSemaphore, &yield) != pdPASS) {
                 stat = FuriStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if(xSemaphoreTake(hSemaphore, (TickType_t)timeout) != pdPASS) {
-            if(timeout != 0U) {
+        if (xSemaphoreTake(hSemaphore, (TickType_t)timeout) != pdPASS) {
+            if (timeout != 0U) {
                 stat = FuriStatusErrorTimeout;
             } else {
                 stat = FuriStatusErrorResource;
@@ -81,16 +81,16 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
 
     stat = FuriStatusOk;
 
-    if(FURI_IS_IRQ_MODE()) {
+    if (FURI_IS_IRQ_MODE()) {
         yield = pdFALSE;
 
-        if(xSemaphoreGiveFromISR(hSemaphore, &yield) != pdTRUE) {
+        if (xSemaphoreGiveFromISR(hSemaphore, &yield) != pdTRUE) {
             stat = FuriStatusErrorResource;
         } else {
             portYIELD_FROM_ISR(yield);
         }
     } else {
-        if(xSemaphoreGive(hSemaphore) != pdPASS) {
+        if (xSemaphoreGive(hSemaphore) != pdPASS) {
             stat = FuriStatusErrorResource;
         }
     }
