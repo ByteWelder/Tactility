@@ -1,6 +1,6 @@
 ## Overview
 
-NanoBake is a front-end application platform for ESP32. It provides an application framework that is based code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
+NanoBake is a front-end application platform for ESP32. It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
 
 Nanobake provides:
 - A hardware abstraction layer
