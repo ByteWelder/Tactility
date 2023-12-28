@@ -1,8 +1,9 @@
 #pragma once
 
+#include "app.h"
 #include "devices.h"
-#include "nb_app.h"
-#include "nb_config.h"
+#include "core_defines.h"
+#include "base.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,11 +11,23 @@ extern "C" {
 
 // Forward declarations
 typedef void* FuriThreadId;
+typedef TouchDriver (*CreateTouchDriver)();
+typedef DisplayDriver (*CreateDisplayDriver)();
+
+typedef struct {
+    // Required driver for display
+    const CreateDisplayDriver _Nonnull display_driver;
+    // Optional driver for touch input
+    const CreateTouchDriver _Nullable touch_driver;
+    // List of user applications
+    const size_t apps_count;
+    const App* const apps[];
+} Config;
 
 __attribute__((unused)) extern void nanobake_start(Config _Nonnull* config);
 
-extern FuriThreadId nanobake_get_app_thread_id(size_t index);
-extern size_t nanobake_get_app_thread_count();
+FuriThreadId nanobake_get_app_thread_id(size_t index);
+size_t nanobake_get_app_thread_count();
 
 #ifdef __cplusplus
 }

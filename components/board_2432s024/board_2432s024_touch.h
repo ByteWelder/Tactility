@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nb_touch.h"
+#include "touch.h"
 
 #ifdef __cplusplus
 extern "C" {

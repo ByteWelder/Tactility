@@ -1,10 +1,10 @@
 #include "nanobake.h"
-#include "applications/nb_applications.h"
+#include "app_i.h"
+#include "applications/applications_i.h"
+#include "devices_i.h"
 #include "esp_log.h"
+#include "graphics_i.h"
 #include "m-list.h"
-#include "nb_app_i.h"
-#include "nb_hardware_i.h"
-#include "nb_lvgl_i.h"
 // Furi
 #include "kernel.h"
 #include "record.h"
@@ -60,21 +60,21 @@ static void prv_start_app(const App _Nonnull* app) {
 __attribute__((unused)) extern void nanobake_start(Config _Nonnull* config) {
     prv_furi_init();
 
-    Devices hardware = nb_hardware_create(config);
-    /*NbLvgl lvgl =*/nb_lvgl_init(&hardware);
+    Devices hardware = nb_devices_create(config);
+    /*NbLvgl lvgl =*/nb_graphics_init(&hardware);
 
     thread_ids_init(prv_thread_ids);
 
     ESP_LOGI(TAG, "Starting apps");
 
     // Services
-    for (size_t i = 0; i < FLIPPER_SERVICES_COUNT; i++) {
-        prv_start_app(FLIPPER_SERVICES[i]);
+    for (size_t i = 0; i < NANOBAKE_SERVICES_COUNT; i++) {
+        prv_start_app(NANOBAKE_SERVICES[i]);
     }
 
     // System
-    for (size_t i = 0; i < FLIPPER_SYSTEM_APPS_COUNT; i++) {
-        prv_start_app(FLIPPER_SYSTEM_APPS[i]);
+    for (size_t i = 0; i < NANOBAKE_SYSTEM_APPS_COUNT; i++) {
+        prv_start_app(NANOBAKE_SYSTEM_APPS[i]);
     }
 
     // User

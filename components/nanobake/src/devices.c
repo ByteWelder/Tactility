@@ -1,12 +1,11 @@
 #include "check.h"
+#include "devices_i.h"
 #include "esp_check.h"
 #include "esp_err.h"
-#include "nb_hardware_i.h"
 
 #define TAG "hardware"
 
-Devices nb_hardware_create(Config _Nonnull* config) {
-
+Devices nb_devices_create(Config _Nonnull* config) {
     furi_check(config->display_driver != NULL, "no display driver configured");
     DisplayDriver display_driver = config->display_driver();
     ESP_LOGI(TAG, "display with driver %s", display_driver.name);

@@ -1,12 +1,12 @@
 #pragma once
 
-#include "nb_app.h"
+#include "nanobake.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const char* nb_app_type_to_string(AppType type);
+Devices nb_devices_create(Config _Nonnull* config);
 
 #ifdef __cplusplus
 }

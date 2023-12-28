@@ -1,5 +1,5 @@
-#include "nb_touch.h"
 #include "check.h"
+#include "touch.h"
 
 TouchDevice _Nonnull* nb_touch_alloc(TouchDriver _Nonnull* driver) {
     TouchDevice _Nonnull* touch = malloc(sizeof(TouchDevice));

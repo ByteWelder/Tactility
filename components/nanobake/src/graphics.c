@@ -1,10 +1,10 @@
 #include "check.h"
 #include "esp_lvgl_port.h"
-#include "nb_lvgl_i.h"
+#include "graphics_i.h"
 
 #define TAG "lvgl"
 
-Lvgl nb_lvgl_init(Devices _Nonnull* hardware) {
+Lvgl nb_graphics_init(Devices _Nonnull* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,
         .task_stack = 4096,

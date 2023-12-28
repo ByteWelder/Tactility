@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-extern const App loader_app;
+const char* nb_app_type_to_string(AppType type);
 
 #ifdef __cplusplus
 }

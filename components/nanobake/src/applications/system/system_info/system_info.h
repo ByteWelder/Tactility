@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nb_app.h"
+#include "app.h"
 
 #ifdef __cplusplus
 extern "C" {

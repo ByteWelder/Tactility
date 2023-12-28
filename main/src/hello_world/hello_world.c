@@ -1,9 +1,9 @@
 #include "hello_world.h"
-#include "record.h"
-#include "nb_lvgl.h"
 #include "applications/services/gui/gui.h"
-#include "esp_lvgl_port.h"
 #include "esp_log.h"
+#include "esp_lvgl_port.h"
+#include "graphics.h"
+#include "record.h"
 
 static const char* TAG = "app_helloworld";
 

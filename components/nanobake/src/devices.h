@@ -1,7 +1,7 @@
 #pragma once
 
-#include "nb_display.h"
-#include "nb_touch.h"
+#include "display.h"
+#include "touch.h"
 
 #ifdef __cplusplus
 extern "C" {

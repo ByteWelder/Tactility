@@ -1,5 +1,5 @@
-#include "nb_display.h"
 #include "check.h"
+#include "display.h"
 
 DisplayDevice _Nonnull* nb_display_alloc(DisplayDriver _Nonnull* driver) {
     DisplayDevice _Nonnull* display = malloc(sizeof(DisplayDevice));

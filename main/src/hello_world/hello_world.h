@@ -1,5 +1,5 @@
 #pragma once
 
-#include "nb_app.h"
+#include "app.h"
 
 extern const App hello_world_app;

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "app.h"
 #include "lvgl.h"
-#include "nb_app.h"
 #include "view_port.h"
 
 #ifdef __cplusplus
