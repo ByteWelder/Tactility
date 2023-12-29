@@ -2,9 +2,8 @@
 #include "check.h"
 #include "event_flag.h"
 #include "mutex.h"
-
+#include "m-dict.h"
 #include "m_cstr_dup.h"
-#include <m-dict.h>
 
 #define FURI_RECORD_FLAG_READY (0x1)
 

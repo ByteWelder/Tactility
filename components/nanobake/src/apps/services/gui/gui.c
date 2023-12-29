@@ -1,5 +1,5 @@
 #include "check.h"
-#include "core_defines.h"
+#include "furi_extra_defines.h"
 #include "gui_i.h"
 #include "record.h"
 
@@ -231,11 +231,11 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
     }
 }
 
-const App gui_app = {
+const AppManifest gui_app = {
     .id = "gui",
     .name = "GUI",
-    .type = SERVICE,
+    .icon = NULL,
+    .type = AppTypeService,
     .entry_point = &prv_gui_main,
-    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
-    .priority = NB_TASK_PRIORITY_DEFAULT
+    .stack_size = AppStackSizeNormal
 };

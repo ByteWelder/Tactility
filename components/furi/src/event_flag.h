@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "base.h"
+#include "furi_core_types.h"
 
 #ifdef __cplusplus
 extern "C" {

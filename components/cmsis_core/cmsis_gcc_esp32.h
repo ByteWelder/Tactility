@@ -1214,7 +1214,7 @@ __STATIC_FORCEINLINE uint32_t __get_PRIMASK(void)
 {
   uint32_t result;
 
-  result = 1U; // TODO esp
+  result = 0U; // TODO esp
 //  __ASM volatile ("MRS %0, primask" : "=r" (result) );
   return(result);
 }

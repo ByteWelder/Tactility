@@ -1,5 +1,5 @@
 #include "check.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
 
 #include "furi_hal_console.h"
 #include <freertos/FreeRTOS.h>

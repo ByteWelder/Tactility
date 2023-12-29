@@ -1,4 +1,5 @@
-#include "common_defines.h"
+#include "critical.h"
+#include "furi_core_defines.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

@@ -1,6 +1,5 @@
 #include "desktop.h"
-#include "core_defines.h"
-#include "devices.h"
+#include "furi_extra_defines.h"
 
 static int32_t prv_desktop_main(void* param) {
     UNUSED(param);
@@ -8,11 +7,11 @@ static int32_t prv_desktop_main(void* param) {
     return 0;
 }
 
-const App desktop_app = {
+const AppManifest desktop_app = {
     .id = "desktop",
     .name = "Desktop",
-    .type = SERVICE,
+    .icon = NULL,
+    .type = AppTypeService,
     .entry_point = &prv_desktop_main,
-    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
-    .priority = NB_TASK_PRIORITY_DEFAULT
+    .stack_size = AppStackSizeNormal
 };

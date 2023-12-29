@@ -1,22 +1,13 @@
 #pragma once
 
-#include "app.h"
-#include "lvgl.h"
+#include "app_manifest.h"
 #include "view_port.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const App gui_app;
-
-/** Canvas Orientation */
-typedef enum {
-    CanvasOrientationHorizontal,
-    CanvasOrientationHorizontalFlip,
-    CanvasOrientationVertical,
-    CanvasOrientationVerticalFlip,
-} CanvasOrientation;
+extern const AppManifest gui_app;
 
 /** Gui layers */
 typedef enum {
@@ -36,7 +27,6 @@ typedef enum {
 typedef void (*GuiCanvasCommitCallback)(
     uint8_t* data,
     size_t size,
-    CanvasOrientation orientation,
     void* context
 );
 

@@ -1,6 +1,6 @@
 #include "semaphore.h"
 #include "check.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>

@@ -1,5 +1,5 @@
 #pragma once
 
-#include "app.h"
+#include "app_manifest.h"
 
-extern const App hello_world_app;
+extern const AppManifest hello_world_app;

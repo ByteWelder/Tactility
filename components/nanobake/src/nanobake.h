@@ -1,9 +1,8 @@
 #pragma once
 
-#include "app.h"
+#include "app_manifest.h"
 #include "devices.h"
-#include "core_defines.h"
-#include "base.h"
+#include "furi_extra_defines.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,7 +20,7 @@ typedef struct {
     const CreateTouchDriver _Nullable touch_driver;
     // List of user applications
     const size_t apps_count;
-    const App* const apps[];
+    const AppManifest* const apps[];
 } Config;
 
 __attribute__((unused)) extern void nanobake_start(Config _Nonnull* config);

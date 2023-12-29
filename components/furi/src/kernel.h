@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "base.h"
+#include "furi_core_types.h"
 
 #define configTICK_RATE_HZ_RAW 1000
 

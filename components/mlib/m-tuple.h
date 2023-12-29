@@ -363,8 +363,8 @@ namespace m_lib {
   function_name(name_t v                                                      \
                 M_EMPLACE_LIST_TYPE_VAR(a, exp_emplace_type) )                \
   {                                                                           \
-    M_CALL_CLEAR(oplist, v->name);                                            \
-    M_EMPLACE_CALL_FUNC(a, init_func, oplist, v->name, exp_emplace_type);     \
+    M_CALL_CLEAR(oplist, v->id);                                            \
+    M_EMPLACE_CALL_FUNC(a, init_func, oplist, v->id, exp_emplace_type);     \
   }
 
 

@@ -1,7 +1,7 @@
 #include "stream_buffer.h"
-#include "base.h"
 #include "check.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
+#include "furi_core_types.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/stream_buffer.h>
