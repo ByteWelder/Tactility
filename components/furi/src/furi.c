@@ -8,7 +8,7 @@
 static bool scheduler_was_running = false;
 
 void furi_init() {
-    furi_assert(!furi_kernel_is_irq_or_masked());
+    furi_assert(!furi_kernel_is_irq());
 
     if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
         vTaskSuspendAll();

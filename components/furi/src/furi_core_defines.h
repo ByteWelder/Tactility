@@ -1,5 +1,6 @@
 #pragma once
 
+#include "freertos/portmacro.h"
 #include "furi_extra_defines.h"
 #include <stdbool.h>
 
@@ -21,16 +22,13 @@ extern "C" {
 #define FURI_PACKED __attribute__((packed))
 #endif
 
-#ifndef FURI_IS_IRQ_MASKED
-#define FURI_IS_IRQ_MASKED() (__get_PRIMASK() != 0U)
-#endif
-
+// Used by portENABLE_INTERRUPTS and portDISABLE_INTERRUPTS?
 #ifndef FURI_IS_IRQ_MODE
-#define FURI_IS_IRQ_MODE() (__get_IPSR() != 0U)
+#define FURI_IS_IRQ_MODE() (xPortInIsrContext() == pdTRUE)
 #endif
 
 #ifndef FURI_IS_ISR
-#define FURI_IS_ISR() (FURI_IS_IRQ_MODE() || FURI_IS_IRQ_MASKED())
+#define FURI_IS_ISR() (FURI_IS_IRQ_MODE())
 #endif
 
 #ifndef FURI_CHECK_RETURN

@@ -27,7 +27,7 @@ extern "C" {
  * 
  * @return     true if CPU is in IRQ or kernel running and IRQ is masked
  */
-bool furi_kernel_is_irq_or_masked();
+bool furi_kernel_is_irq();
 
 /** Check if kernel is running
  *

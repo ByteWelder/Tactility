@@ -1,22 +1,16 @@
 #include "hello_world.h"
+#include "furi.h"
 #include "apps/services/gui/gui.h"
-#include "esp_log.h"
 #include "esp_lvgl_port.h"
-#include "graphics.h"
-#include "record.h"
 
 static const char* TAG = "app_helloworld";
 
 ViewPort* view_port = NULL;
+FuriSemaphore* quit_lock = NULL;
 
 static void on_button_click(lv_event_t _Nonnull* event) {
     ESP_LOGI(TAG, "button clicked");
-
-    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-        gui_remove_view_port(gui, view_port);
-        view_port_free(view_port);
-        view_port = NULL;
-    });
+    furi_semaphore_give(quit_lock);
 }
 
 // Main entry point for LVGL widget creation
@@ -51,6 +45,20 @@ static int32_t app_main(void* param) {
     FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
         gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     })
+
+    // Wait for the button click to release the mutex (lock)
+    quit_lock = furi_semaphore_alloc(1, 0);
+    while (!furi_semaphore_take(quit_lock, UINT32_MAX)) {
+        // Do nothing
+    }
+    furi_semaphore_free(quit_lock);
+    quit_lock = NULL;
+
+    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+        gui_remove_view_port(gui, view_port);
+        view_port_free(view_port);
+        view_port = NULL;
+    });
 
     return 0;
 }

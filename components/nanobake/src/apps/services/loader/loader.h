@@ -8,7 +8,6 @@ extern "C" {
 #endif
 
 #define RECORD_LOADER "loader"
-#define LOADER_APPLICATIONS_NAME "loader"
 
 typedef struct Loader Loader;
 

@@ -5,9 +5,6 @@
 #include "message_queue.h"
 #include "pubsub.h"
 #include "thread.h"
-//#include "loader_applications.h"
-//#include "loader_menu.h"
-//#include <flipper_application/flipper_application.h>
 
 typedef struct {
     char* args;
@@ -18,17 +15,12 @@ typedef struct {
 struct Loader {
     FuriPubSub* pubsub;
     FuriMessageQueue* queue;
-//    LoaderMenu* loader_menu;
-//    LoaderApplications* loader_applications;
     LoaderAppData app_data;
 };
 
 typedef enum {
     LoaderMessageTypeStartByName,
     LoaderMessageTypeAppClosed,
-    LoaderMessageTypeShowMenu,
-    LoaderMessageTypeMenuClosed,
-    LoaderMessageTypeApplicationsClosed,
     LoaderMessageTypeLock,
     LoaderMessageTypeUnlock,
     LoaderMessageTypeIsLocked,

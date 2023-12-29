@@ -98,5 +98,5 @@ FuriThread* furi_app_alloc_thread(App _Nonnull* app, const char* args) {
     FuriThreadPriority priority = get_thread_priority(app->manifest->type);
     furi_thread_set_priority(thread, priority);
 
-    return furi_thread_get_id(thread);
+    return thread;
 }
