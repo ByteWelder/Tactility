@@ -52,12 +52,13 @@
 #elif defined (__ti__)
   #include "cmsis_tiarmclang.h"
 
+#elif defined (ESP_PLATFORM)
+  #include "cmsis_esp.h"
 /*
  * GNU Compiler
  */
 #elif defined ( __GNUC__ )
-  #include "cmsis_gcc_esp32.h"
-//  #include "cmsis_gcc.h"
+  #include "cmsis_gcc.h"
 
 
 /*

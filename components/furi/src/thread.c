@@ -1,6 +1,6 @@
 #include "thread.h"
 #include "check.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
 #include "furi_string.h"
 #include "kernel.h"
 

@@ -1,5 +1,6 @@
 #include "check.h"
-#include "core_defines.h"
+#include "esp_lvgl_port.h"
+#include "furi_extra_defines.h"
 #include "gui_i.h"
 #include "record.h"
 
@@ -184,7 +185,11 @@ Gui* gui_alloc() {
     Gui* gui = malloc(sizeof(Gui));
     gui->thread_id = furi_thread_get_current_id();
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+    furi_check(lvgl_port_lock(100));
     gui->lvgl_parent = lv_scr_act();
+    lvgl_port_unlock();
+
     gui->lockdown = false;
     furi_check(gui->mutex);
     for (size_t i = 0; i < GuiLayerMAX; i++) {
@@ -231,11 +236,11 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
     }
 }
 
-const App gui_app = {
+const AppManifest gui_app = {
     .id = "gui",
     .name = "GUI",
-    .type = SERVICE,
+    .icon = NULL,
+    .type = AppTypeService,
     .entry_point = &prv_gui_main,
-    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
-    .priority = NB_TASK_PRIORITY_DEFAULT
+    .stack_size = AppStackSizeNormal
 };

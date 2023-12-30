@@ -31,7 +31,7 @@ IRAM_ATTR static bool prv_on_color_trans_done(esp_lcd_panel_io_handle_t io_handl
     return (need_yield == pdTRUE);
 }
 
-static bool prv_create_display(DisplayDevice* display) {
+static bool prv_create_display_device(DisplayDevice* display) {
     ESP_LOGI(TAG, "creating display");
 
     gpio_config_t io_conf = {
@@ -117,6 +117,7 @@ static bool prv_create_display(DisplayDevice* display) {
     display->vertical_resolution = LCD_VERTICAL_RESOLUTION;
     display->draw_buffer_height = LCD_DRAW_BUFFER_HEIGHT;
     display->bits_per_pixel = LCD_BITS_PER_PIXEL;
+    display->monochrome = false;
 
     return true;
 }
@@ -124,6 +125,6 @@ static bool prv_create_display(DisplayDevice* display) {
 DisplayDriver board_2432s024_create_display_driver() {
     return (DisplayDriver) {
         .name = "ili9341_2432s024",
-        .create_display = &prv_create_display
+        .create_display_device = &prv_create_display_device
     };
 }

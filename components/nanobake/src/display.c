@@ -1,10 +1,10 @@
 #include "check.h"
 #include "display.h"
 
-DisplayDevice _Nonnull* nb_display_alloc(DisplayDriver _Nonnull* driver) {
+DisplayDevice _Nonnull* nb_display_device_alloc(DisplayDriver _Nonnull* driver) {
     DisplayDevice _Nonnull* display = malloc(sizeof(DisplayDevice));
     memset(display, 0, sizeof(DisplayDevice));
-    furi_check(driver->create_display(display), "failed to create display");
+    furi_check(driver->create_display_device(display), "failed to create display");
     furi_check(display->io_handle != NULL);
     furi_check(display->display_handle != NULL);
     furi_check(display->horizontal_resolution != 0);

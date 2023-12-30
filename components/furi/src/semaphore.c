@@ -1,6 +1,6 @@
 #include "semaphore.h"
 #include "check.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
@@ -99,18 +99,41 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
     return (stat);
 }
 
-//uint32_t furi_semaphore_get_count(FuriSemaphore* instance) {
-//    furi_assert(instance);
-//
-//    SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
-//    uint32_t count;
-//
-//    if(FURI_IS_IRQ_MODE()) {
+uint32_t furi_semaphore_get_count(FuriSemaphore* instance) {
+    furi_assert(instance);
+
+    SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
+    uint32_t count;
+
+    if(FURI_IS_IRQ_MODE()) {
+        furi_crash("not implemented");
 //        count = (uint32_t)uxSemaphoreGetCountFromISR(hSemaphore);
-//    } else {
-//        count = (uint32_t)uxSemaphoreGetCount(hSemaphore);
-//    }
-//
-//    /* Return number of tokens */
-//    return (count);
-//}
+    } else {
+        count = (uint32_t)uxSemaphoreGetCount(hSemaphore);
+    }
+
+    /* Return number of tokens */
+    return (count);
+}
+
+bool furi_semaphore_take(FuriSemaphore* instance, TickType_t timeout) {
+    furi_assert(instance);
+    SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
+
+    if(FURI_IS_IRQ_MODE()) {
+        furi_crash("not implemented");
+    } else {
+        return xSemaphoreTake(hSemaphore, timeout) == pdTRUE;
+    }
+}
+
+bool furi_semaphore_give(FuriSemaphore* instance) {
+    furi_assert(instance);
+    SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
+
+    if(FURI_IS_IRQ_MODE()) {
+        furi_crash("not implemented");
+    } else {
+        return xSemaphoreGive(hSemaphore);
+    }
+}

@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "base.h"
-#include "common_defines.h"
+#include "furi_core_defines.h"
+#include "furi_core_types.h"
 
 #include <stddef.h>
 #include <stdint.h>

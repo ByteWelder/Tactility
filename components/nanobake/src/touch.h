@@ -11,7 +11,7 @@ typedef bool (*CreateTouch)(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_
 
 typedef struct {
     char name[32];
-    CreateTouch create_touch;
+    CreateTouch create_touch_device;
 } TouchDriver;
 
 typedef struct {

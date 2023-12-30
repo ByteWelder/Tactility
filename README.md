@@ -30,7 +30,7 @@ You might have to remove this setting if you're not using the Yellow Board descr
 
 See below for the supported hardware.
 Predefined configurations are available for:
-- Yellow Board / 2432S024
+- Yellow Board / 2432S024 (capacitive touch variant)
 - (more will follow)
 
 ### Drivers

@@ -16,20 +16,21 @@ typedef struct {
     bool mirror_x;
     bool mirror_y;
     bool swap_xy;
+    bool monochrome;
 } DisplayDevice;
 
 typedef bool (*CreateDisplay)(DisplayDevice* display);
 
 typedef struct {
     char name[32];
-    CreateDisplay create_display;
+    CreateDisplay create_display_device;
 } DisplayDriver;
 
 /**
  * @param[in] driver
  * @return allocated display object
  */
-DisplayDevice _Nonnull* nb_display_alloc(DisplayDriver _Nonnull* driver);
+DisplayDevice _Nonnull* nb_display_device_alloc(DisplayDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

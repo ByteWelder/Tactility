@@ -1,86 +1,61 @@
 #include "nanobake.h"
 #include "app_i.h"
-#include "applications/applications_i.h"
+#include "app_manifest_registry.h"
 #include "devices_i.h"
-#include "esp_log.h"
+#include "furi.h"
 #include "graphics_i.h"
-#include "m-list.h"
-// Furi
-#include "kernel.h"
-#include "record.h"
-#include "thread.h"
-
-M_LIST_DEF(thread_ids, FuriThreadId);
 
 #define TAG "nanobake"
 
-thread_ids_t prv_thread_ids;
+// System services
+extern const AppManifest desktop_app;
+extern const AppManifest gui_app;
+extern const AppManifest loader_app;
 
-static void prv_furi_init() {
-    // TODO: can we remove the suspend-resume logic?
-    if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
-        vTaskSuspendAll();
-    }
+// System apps
+extern const AppManifest system_info_app;
 
-    furi_record_init();
-
-    xTaskResumeAll();
-}
-
-FuriThreadId nanobake_get_app_thread_id(size_t index) {
-    return *thread_ids_get(prv_thread_ids, index);
-}
-
-size_t nanobake_get_app_thread_count() {
-    return thread_ids_size(prv_thread_ids);
-}
-
-static void prv_start_app(const App _Nonnull* app) {
-    ESP_LOGI(TAG, "Starting %s app \"%s\"", nb_app_type_to_string(app->type), app->name);
-
+void start_service(const AppManifest* _Nonnull manifest) {
+    // TODO: keep track of running services
+    FURI_LOG_I(TAG, "Starting service %s", manifest->name);
     FuriThread* thread = furi_thread_alloc_ex(
-        app->name,
-        app->stack_size,
-        app->entry_point,
+        manifest->name,
+        manifest->stack_size,
+        manifest->entry_point,
         NULL
     );
-
-    if (app->type == SERVICE) {
-        furi_thread_mark_as_service(thread);
-    }
-
-    furi_thread_set_appid(thread, app->id);
-    furi_thread_set_priority(thread, app->priority);
+    furi_thread_mark_as_service(thread);
+    furi_thread_set_appid(thread, manifest->id);
     furi_thread_start(thread);
-
-    FuriThreadId thread_id = furi_thread_get_id(thread);
-    thread_ids_push_back(prv_thread_ids, thread_id);
 }
 
-__attribute__((unused)) extern void nanobake_start(Config _Nonnull* config) {
-    prv_furi_init();
+static void register_apps(Config* _Nonnull config) {
+    FURI_LOG_I(TAG, "Registering core apps");
+    app_manifest_registry_add(&desktop_app);
+    app_manifest_registry_add(&gui_app);
+    app_manifest_registry_add(&loader_app);
+    app_manifest_registry_add(&system_info_app);
+
+    FURI_LOG_I(TAG, "Registering user apps");
+    for (size_t i = 0; i < config->apps_count; i++) {
+        app_manifest_registry_add(config->apps[i]);
+    }
+}
+
+static void start_services() {
+    FURI_LOG_I(TAG, "Starting services");
+    app_manifest_registry_for_each_of_type(AppTypeService, start_service);
+    FURI_LOG_I(TAG, "Startup complete");
+}
+
+__attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
+    furi_init();
 
     Devices hardware = nb_devices_create(config);
     /*NbLvgl lvgl =*/nb_graphics_init(&hardware);
 
-    thread_ids_init(prv_thread_ids);
+    register_apps(config);
 
-    ESP_LOGI(TAG, "Starting apps");
-
-    // Services
-    for (size_t i = 0; i < NANOBAKE_SERVICES_COUNT; i++) {
-        prv_start_app(NANOBAKE_SERVICES[i]);
-    }
-
-    // System
-    for (size_t i = 0; i < NANOBAKE_SYSTEM_APPS_COUNT; i++) {
-        prv_start_app(NANOBAKE_SYSTEM_APPS[i]);
-    }
-
-    // User
-    for (size_t i = 0; i < config->apps_count; i++) {
-        prv_start_app(config->apps[i]);
-    }
-
-    ESP_LOGI(TAG, "Startup complete");
+    start_services();
+    // TODO: option to await starting services?
 }

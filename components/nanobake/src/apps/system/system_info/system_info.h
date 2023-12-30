@@ -1,12 +1,12 @@
 #pragma once
 
-#include "app.h"
+#include "app_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-const char* nb_app_type_to_string(AppType type);
+extern AppManifest system_info_app;
 
 #ifdef __cplusplus
 }

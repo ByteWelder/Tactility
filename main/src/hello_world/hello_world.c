@@ -1,22 +1,16 @@
 #include "hello_world.h"
-#include "applications/services/gui/gui.h"
-#include "esp_log.h"
+#include "furi.h"
+#include "apps/services/gui/gui.h"
 #include "esp_lvgl_port.h"
-#include "graphics.h"
-#include "record.h"
 
-static const char* TAG = "app_helloworld";
+static const char* TAG = "app_hello_world";
 
 ViewPort* view_port = NULL;
+FuriSemaphore* quit_lock = NULL;
 
 static void on_button_click(lv_event_t _Nonnull* event) {
     ESP_LOGI(TAG, "button clicked");
-
-    FURI_RECORD_TRANSACTION(RECORD_GUI, gui, {
-        gui_remove_view_port(gui, view_port);
-        view_port_free(view_port);
-        view_port = NULL;
-    });
+    furi_semaphore_give(quit_lock);
 }
 
 // Main entry point for LVGL widget creation
@@ -48,18 +42,32 @@ static int32_t app_main(void* param) {
     view_port_draw_callback_set(view_port, &app_lvgl, view_port);
 
     // The transaction automatically calls furi_record_open() and furi_record_close()
-    FURI_RECORD_TRANSACTION(RECORD_GUI, gui, {
+    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
         gui_add_view_port(gui, view_port, GuiLayerFullscreen);
     })
+
+    // Wait for the button click to release the mutex (lock)
+    quit_lock = furi_semaphore_alloc(1, 0);
+    while (!furi_semaphore_take(quit_lock, UINT32_MAX)) {
+        // Do nothing
+    }
+    furi_semaphore_free(quit_lock);
+    quit_lock = NULL;
+
+    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+        gui_remove_view_port(gui, view_port);
+        view_port_free(view_port);
+        view_port = NULL;
+    });
 
     return 0;
 }
 
-const App hello_world_app = {
+const AppManifest hello_world_app = {
     .id = "helloworld",
     .name = "Hello World",
-    .type = USER,
+    .icon = NULL,
+    .type = AppTypeUser,
     .entry_point = &app_main,
-    .stack_size = NB_TASK_STACK_SIZE_DEFAULT,
-    .priority = NB_TASK_PRIORITY_DEFAULT
+    .stack_size = AppStackSizeNormal,
 };

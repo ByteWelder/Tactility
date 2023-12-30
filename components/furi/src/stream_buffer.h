@@ -12,10 +12,10 @@
  * interrupt that will read from the buffer (the reader).
  */
 #pragma once
+#include "furi_core_types.h"
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdbool.h>
-#include "base.h"
 
 #ifdef __cplusplus
 extern "C" {

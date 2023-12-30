@@ -1,5 +1,5 @@
 /**************************************************************************//**
- * @file     cmsis_gcc.h
+ * @file     cmsis_esp.h
  * @brief    CMSIS compiler GCC header file
  * @version  V5.4.2
  * @date     17. December 2022
@@ -24,6 +24,8 @@
 
 #ifndef __CMSIS_GCC_H
 #define __CMSIS_GCC_H
+
+#include "freertos/portmacro.h"
 
 /* ignore some GCC warnings */
 #pragma GCC diagnostic push
@@ -949,25 +951,19 @@ __STATIC_FORCEINLINE uint32_t __STLEX(uint32_t value, volatile uint32_t *ptr)
 
 /**
   \brief   Enable IRQ Interrupts
-  \details Enables IRQ interrupts by clearing special-purpose register PRIMASK.
-           Can only be executed in Privileged modes.
  */
 __STATIC_FORCEINLINE void __enable_irq(void)
 {
-    // TODO esp
-//  __ASM volatile ("cpsie i" : : : "memory");
+    portENABLE_INTERRUPTS();
 }
 
 
 /**
   \brief   Disable IRQ Interrupts
-  \details Disables IRQ interrupts by setting special-purpose register PRIMASK.
-           Can only be executed in Privileged modes.
  */
 __STATIC_FORCEINLINE void __disable_irq(void)
 {
-    // TODO esp
-//  __ASM volatile ("cpsid i" : : : "memory");
+    portDISABLE_INTERRUPTS();
 }
 
 
@@ -1034,11 +1030,8 @@ __STATIC_FORCEINLINE void __TZ_set_CONTROL_NS(uint32_t control)
  */
 __STATIC_FORCEINLINE uint32_t __get_IPSR(void)
 {
-  uint32_t result;
-
-  result = 0; // TODO esp
-//  __ASM volatile ("MRS %0, ipsr" : "=r" (result) );
-  return(result);
+  // TODO esp
+  return 0;
 }
 
 
@@ -1050,7 +1043,6 @@ __STATIC_FORCEINLINE uint32_t __get_IPSR(void)
 __STATIC_FORCEINLINE uint32_t __get_APSR(void)
 {
   uint32_t result;
-
   __ASM volatile ("MRS %0, apsr" : "=r" (result) );
   return(result);
 }
@@ -1212,11 +1204,8 @@ __STATIC_FORCEINLINE void __TZ_set_SP_NS(uint32_t topOfStack)
  */
 __STATIC_FORCEINLINE uint32_t __get_PRIMASK(void)
 {
-  uint32_t result;
-
-  result = 1U; // TODO esp
-//  __ASM volatile ("MRS %0, primask" : "=r" (result) );
-  return(result);
+    // Not supported by ESP
+    return 0U;
 }
 
 

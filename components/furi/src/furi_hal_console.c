@@ -1,10 +1,8 @@
 #include "furi_hal_console.h"
-#include "common_defines.h"
+#include "furi_core.h"
 #include "furi_string.h"
 
-#include <esp_log.h>
-#include <memory.h>
-#include <stdbool.h>
+#include "esp_log.h" // TODO remove
 
 #define TAG "FuriHalConsole"
 

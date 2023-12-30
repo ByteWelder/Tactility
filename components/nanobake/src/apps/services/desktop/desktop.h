@@ -1,12 +1,12 @@
 #pragma once
 
-#include "app.h"
+#include "app_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const App loader_app;
+extern const AppManifest desktop_app;
 
 #ifdef __cplusplus
 }

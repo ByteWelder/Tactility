@@ -2,6 +2,7 @@
 #include "gui.h"
 #include "gui_i.h"
 #include "view_port_i.h"
+#include "esp_lvgl_port.h"
 
 #define TAG "viewport"
 
@@ -88,7 +89,10 @@ void view_port_draw(ViewPort* view_port, lv_obj_t* parent) {
     furi_check(view_port->gui);
 
     if (view_port->draw_callback) {
+        furi_check(lvgl_port_lock(100));
         lv_obj_clean(parent);
+        lvgl_port_unlock();
+
         view_port->draw_callback(parent, view_port->draw_callback_context);
     }
 
