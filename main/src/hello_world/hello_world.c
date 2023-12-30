@@ -3,7 +3,7 @@
 #include "apps/services/gui/gui.h"
 #include "esp_lvgl_port.h"
 
-static const char* TAG = "app_helloworld";
+static const char* TAG = "app_hello_world";
 
 ViewPort* view_port = NULL;
 FuriSemaphore* quit_lock = NULL;

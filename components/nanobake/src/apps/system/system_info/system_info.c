@@ -1,13 +1,9 @@
 #include "system_info.h"
 #include "furi_extra_defines.h"
-#include "nanobake.h"
 #include "thread.h"
 
 static int32_t system_info_entry_point(void* param) {
     UNUSED(param);
-
-    // Wait for all apps to start
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     printf(
         "Heap memory available: %d / %d\n",

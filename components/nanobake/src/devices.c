@@ -9,7 +9,7 @@ Devices nb_devices_create(Config _Nonnull* config) {
     furi_check(config->display_driver != NULL, "no display driver configured");
     DisplayDriver display_driver = config->display_driver();
     ESP_LOGI(TAG, "display with driver %s", display_driver.name);
-    DisplayDevice* display = nb_display_alloc(&display_driver);
+    DisplayDevice* display = nb_display_device_alloc(&display_driver);
 
     TouchDevice* touch = NULL;
     if (config->touch_driver != NULL) {

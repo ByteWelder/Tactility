@@ -25,7 +25,7 @@ Lvgl nb_graphics_init(Devices _Nonnull* hardware) {
         .double_buffer = 0,
         .hres = display->horizontal_resolution,
         .vres = display->vertical_resolution,
-        .monochrome = false,
+        .monochrome = display->monochrome,
         .rotation = {
             .swap_xy = display->swap_xy,
             .mirror_x = display->mirror_x,
@@ -37,6 +37,8 @@ Lvgl nb_graphics_init(Devices _Nonnull* hardware) {
     };
 
     lv_disp_t _Nonnull* disp = lvgl_port_add_disp(&disp_cfg);
+    furi_check(disp != NULL, "failed to add display");
+
     lv_indev_t _Nullable* touch_indev = NULL;
 
     // Add touch
