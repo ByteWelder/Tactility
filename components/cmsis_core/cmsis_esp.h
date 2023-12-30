@@ -25,6 +25,8 @@
 #ifndef __CMSIS_GCC_H
 #define __CMSIS_GCC_H
 
+#include "freertos/portmacro.h"
+
 /* ignore some GCC warnings */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-conversion"
@@ -949,25 +951,19 @@ __STATIC_FORCEINLINE uint32_t __STLEX(uint32_t value, volatile uint32_t *ptr)
 
 /**
   \brief   Enable IRQ Interrupts
-  \details Enables IRQ interrupts by clearing special-purpose register PRIMASK.
-           Can only be executed in Privileged modes.
  */
 __STATIC_FORCEINLINE void __enable_irq(void)
 {
-    // TODO esp
-//  __ASM volatile ("cpsie i" : : : "memory");
+    portENABLE_INTERRUPTS();
 }
 
 
 /**
   \brief   Disable IRQ Interrupts
-  \details Disables IRQ interrupts by setting special-purpose register PRIMASK.
-           Can only be executed in Privileged modes.
  */
 __STATIC_FORCEINLINE void __disable_irq(void)
 {
-    // TODO esp
-//  __ASM volatile ("cpsid i" : : : "memory");
+    portDISABLE_INTERRUPTS();
 }
 
 
