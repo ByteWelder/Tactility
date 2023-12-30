@@ -53,7 +53,7 @@
   #include "cmsis_tiarmclang.h"
 
 #elif defined (ESP_PLATFORM)
-  #include "cmsis_gcc_esp32.h"
+  #include "cmsis_esp.h"
 /*
  * GNU Compiler
  */
