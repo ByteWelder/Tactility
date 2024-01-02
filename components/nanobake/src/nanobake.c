@@ -4,6 +4,7 @@
 #include "devices_i.h"
 #include "furi.h"
 #include "graphics_i.h"
+#include "partitions.h"
 
 #define TAG "nanobake"
 
@@ -18,15 +19,7 @@ extern const AppManifest system_info_app;
 void start_service(const AppManifest* _Nonnull manifest) {
     // TODO: keep track of running services
     FURI_LOG_I(TAG, "Starting service %s", manifest->name);
-    FuriThread* thread = furi_thread_alloc_ex(
-        manifest->name,
-        manifest->stack_size,
-        manifest->entry_point,
-        NULL
-    );
-    furi_thread_mark_as_service(thread);
-    furi_thread_set_appid(thread, manifest->id);
-    furi_thread_start(thread);
+    manifest->on_start(NULL);
 }
 
 static void register_apps(Config* _Nonnull config) {
@@ -50,6 +43,8 @@ static void start_services() {
 
 __attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
     furi_init();
+
+    nb_partitions_init();
 
     Devices hardware = nb_devices_create(config);
     /*NbLvgl lvgl =*/nb_graphics_init(&hardware);

@@ -2,13 +2,15 @@
 #include "esp_lvgl_port.h"
 #include "furi_extra_defines.h"
 #include "gui_i.h"
+#include "log.h"
 #include "record.h"
 
 #define TAG "gui"
 
 // Forward declarations from gui_draw.c
-bool gui_redraw_fs(Gui* gui);
-void gui_redraw(Gui* gui);
+bool gui_redraw_fs(Gui*);
+void gui_redraw(Gui*);
+static int32_t gui_main(void*);
 
 ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     // Iterating backward
@@ -17,6 +19,7 @@ ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
     while (!ViewPortArray_end_p(it)) {
         ViewPort* view_port = *ViewPortArray_ref(it);
         if (view_port_is_enabled(view_port)) {
+            ViewPort* view_port = *ViewPortArray_ref(it);
             return view_port;
         }
         ViewPortArray_previous(it);
@@ -45,9 +48,10 @@ size_t gui_active_view_port_count(Gui* gui, GuiLayer layer) {
 }
 
 void gui_update(Gui* gui) {
-    ESP_LOGI(TAG, "gui_update");
     furi_assert(gui);
-    furi_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_DRAW);
+
+    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
+    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
 void gui_lock(Gui* gui) {
@@ -170,28 +174,20 @@ void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port) {
     gui_update(gui);
 }
 
-void gui_set_lockdown(Gui* gui, bool lockdown) {
-    furi_assert(gui);
-
-    gui_lock(gui);
-    gui->lockdown = lockdown;
-    gui_unlock(gui);
-
-    // Request redraw
-    gui_update(gui);
-}
-
 Gui* gui_alloc() {
     Gui* gui = malloc(sizeof(Gui));
-    gui->thread_id = furi_thread_get_current_id();
+    gui->thread = furi_thread_alloc_ex(
+        "gui",
+        2048,
+        &gui_main,
+        NULL
+    );
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     furi_check(lvgl_port_lock(100));
     gui->lvgl_parent = lv_scr_act();
     lvgl_port_unlock();
 
-    gui->lockdown = false;
-    furi_check(gui->mutex);
     for (size_t i = 0; i < GuiLayerMAX; i++) {
         ViewPortArray_init(gui->layers[i]);
     }
@@ -207,11 +203,22 @@ Gui* gui_alloc() {
     return gui;
 }
 
-__attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
-    UNUSED(parameter);
-    Gui* gui = gui_alloc();
+void gui_free(Gui* gui) {
+    furi_thread_free(gui->thread);
 
-    furi_record_create(RECORD_GUI, gui);
+    if (gui->mutex) {
+        furi_mutex_free(gui->mutex);
+    }
+
+    for (size_t i = 0; i < GuiLayerMAX; i++) {
+        ViewPortArray_clear(gui->layers[i]);
+    }
+
+    free(gui);
+}
+
+static int32_t gui_main(void* parameter) {
+    UNUSED(parameter);
 
     while (1) {
         uint32_t flags = furi_thread_flags_wait(
@@ -229,11 +236,45 @@ __attribute((__noreturn__)) int32_t prv_gui_main(void* parameter) {
         }*/
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
-            // Clear flags that arrived on input step
+            FURI_LOG_D(TAG, "redraw requested");
             furi_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
-            gui_redraw(gui);
+            FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+                gui_redraw(gui);
+            })
+        }
+
+        if (flags & GUI_THREAD_FLAG_EXIT) {
+            furi_thread_flags_clear(GUI_THREAD_FLAG_EXIT);
+            break;
         }
     }
+
+    return 0;
+}
+
+static void gui_start(void* parameter) {
+    UNUSED(parameter);
+
+    Gui* gui = gui_alloc();
+    furi_record_create(RECORD_GUI, gui);
+    furi_thread_set_priority(gui->thread, FuriThreadPriorityHigh);
+    furi_thread_start(gui->thread);
+}
+
+static void gui_stop() {
+    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+        gui_lock(gui);
+
+        FuriThreadId thread_id = furi_thread_get_id(gui->thread);
+        furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+        furi_thread_join(gui->thread);
+
+        gui_unlock(gui);
+
+        gui_free(gui);
+    })
+
+    furi_record_destroy(RECORD_GUI);
 }
 
 const AppManifest gui_app = {
@@ -241,6 +282,8 @@ const AppManifest gui_app = {
     .name = "GUI",
     .icon = NULL,
     .type = AppTypeService,
-    .entry_point = &prv_gui_main,
+    .on_start = &gui_start,
+    .on_stop = &gui_stop,
+    .on_show = NULL,
     .stack_size = AppStackSizeNormal
 };

@@ -22,8 +22,9 @@ __attribute__((unused)) void app_main(void) {
 
     FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
         FuriString* error_message = furi_string_alloc();
-        if (loader_start(loader, hello_world_app.id, NULL, error_message) != LoaderStatusOk) {
+        if (loader_start_app(loader, hello_world_app.id, NULL, error_message) != LoaderStatusOk) {
             FURI_LOG_E(hello_world_app.id, "%s\r\n", furi_string_get_cstr(error_message));
         }
+        furi_string_free(error_message);
     });
 }

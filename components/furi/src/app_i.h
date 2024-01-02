@@ -8,7 +8,6 @@ extern "C" {
 #endif
 
 typedef struct {
-    FuriThread* thread;
     const AppManifest* manifest;
     void* ep_thread_args;
 } App;

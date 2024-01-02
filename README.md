@@ -46,6 +46,7 @@ Predefined configurations are available for:
 - SSD1963
 - ST7262E43
 - ST7789
+- ST7796 
  
 **Touch** (see [Espressif Registry](https://components.espressif.com/components?q=esp_lcd_touch)):
 - CST8xx

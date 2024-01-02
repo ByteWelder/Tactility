@@ -34,7 +34,8 @@
 
 #define GUI_THREAD_FLAG_DRAW (1 << 0)
 #define GUI_THREAD_FLAG_INPUT (1 << 1)
-#define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT)
+#define GUI_THREAD_FLAG_EXIT (1 << 2)
+#define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT)
 
 ARRAY_DEF(ViewPortArray, ViewPort*, M_PTR_OPLIST);
 
@@ -46,11 +47,10 @@ typedef struct {
 /** Gui structure */
 struct Gui {
     // Thread and lock
-    FuriThreadId thread_id;
+    FuriThread* thread;
     FuriMutex* mutex;
 
     // Layers and Canvas
-    bool lockdown;
     ViewPortArray_t layers[GuiLayerMAX];
     lv_obj_t* lvgl_parent;
 
