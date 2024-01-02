@@ -2,8 +2,8 @@
 #include "check.h"
 #include "kernel.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 FuriMessageQueue* furi_message_queue_alloc(uint32_t msg_count, uint32_t msg_size) {
     furi_assert((furi_kernel_is_irq() == 0U) && (msg_count > 0U) && (msg_size > 0U));

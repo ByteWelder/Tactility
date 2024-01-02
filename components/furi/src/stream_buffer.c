@@ -3,8 +3,8 @@
 #include "furi_core_defines.h"
 #include "furi_core_types.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/stream_buffer.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/stream_buffer.h"
 
 FuriStreamBuffer* furi_stream_buffer_alloc(size_t size, size_t trigger_level) {
     furi_assert(size != 0);

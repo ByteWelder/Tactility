@@ -3,22 +3,6 @@
 #include "thread.h"
 #include "lvgl.h"
 
-static void system_info_main(void* param) {
-    UNUSED(param);
-
-    printf(
-        "Heap memory available: %d / %d\n",
-        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-        heap_caps_get_total_size(MALLOC_CAP_INTERNAL)
-    );
-
-    printf(
-        "SPI memory available: %d / %d\n",
-        heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
-        heap_caps_get_total_size(MALLOC_CAP_SPIRAM)
-    );
-}
-
 static void app_show(lv_obj_t* parent, void* context) {
     UNUSED(context);
 

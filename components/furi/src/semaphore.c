@@ -2,8 +2,8 @@
 #include "check.h"
 #include "furi_core_defines.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 FuriSemaphore* furi_semaphore_alloc(uint32_t max_count, uint32_t initial_count) {
     furi_assert(!FURI_IS_IRQ_MODE());

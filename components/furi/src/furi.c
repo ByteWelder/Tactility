@@ -2,8 +2,8 @@
 #include "app_manifest_registry.h"
 #include <string.h>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/queue.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 
 void furi_init() {
     furi_assert(!furi_kernel_is_irq());

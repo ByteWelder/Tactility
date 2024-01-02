@@ -3,8 +3,8 @@
 #include "furi_core_defines.h"
 #include "furi_core_types.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <rom/ets_sys.h>
 
 bool furi_kernel_is_irq() {

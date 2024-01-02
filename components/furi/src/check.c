@@ -2,8 +2,8 @@
 #include "furi_core_defines.h"
 
 #include "furi_hal_console.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <stdlib.h>
 
 static void __furi_put_uint32_as_text(uint32_t data) {

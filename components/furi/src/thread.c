@@ -8,8 +8,8 @@
 
 #include <furi_hal_console.h>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #define TAG "FuriThread"
 

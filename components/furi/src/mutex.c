@@ -2,8 +2,8 @@
 #include "check.h"
 #include "furi_core_defines.h"
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 FuriMutex* furi_mutex_alloc(FuriMutexType type) {
     furi_assert(!FURI_IS_IRQ_MODE());
