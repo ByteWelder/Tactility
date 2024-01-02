@@ -1,6 +1,7 @@
 #include "check.h"
 #include "esp_lvgl_port.h"
 #include "graphics_i.h"
+#include "lvgl.h"
 
 #define TAG "lvgl"
 

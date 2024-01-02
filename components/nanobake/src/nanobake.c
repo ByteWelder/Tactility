@@ -1,5 +1,4 @@
 #include "nanobake.h"
-#include "app_i.h"
 #include "app_manifest_registry.h"
 #include "devices_i.h"
 #include "furi.h"
@@ -52,5 +51,4 @@ __attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
     register_apps(config);
 
     start_services();
-    // TODO: option to await starting services?
 }

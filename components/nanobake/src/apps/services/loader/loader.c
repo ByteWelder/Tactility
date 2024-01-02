@@ -136,9 +136,18 @@ static void loader_start_app_with_manifest(
         loader->app_data.view_port = view_port;
         view_port_draw_callback_set(view_port, manifest->on_show, NULL);
 
-        FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-            gui_add_view_port(gui, view_port, GuiLayerFullscreen); // TODO: layer type
-        })
+        switch (manifest->type) {
+            case AppTypeService:
+                furi_crash("service apps cannot have an on_show implementation");
+            case AppTypeSystem:
+            case AppTypeUser:
+                FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+                    gui_add_view_port(gui, view_port, GuiLayerWindow);
+                })
+                break;
+            default:
+                furi_crash("viewport not implemented for app type");
+        }
     } else {
         loader->app_data.view_port = NULL;
     }

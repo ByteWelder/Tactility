@@ -4,6 +4,8 @@
 #include "apps/services/loader/loader.h"
 
 static void on_button_click(lv_event_t _Nonnull* event) {
+    UNUSED(event);
+
     FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
         loader_start_app_nonblocking(loader, "systeminfo", NULL);
     })

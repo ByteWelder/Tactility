@@ -43,7 +43,7 @@ esp_err_t nb_partitions_init() {
     esp_vfs_spiffs_conf_t assets_spiffs = {
         .base_path = MOUNT_POINT_ASSETS,
         .partition_label = NULL,
-        .max_files = 4,
+        .max_files = 100,
         .format_if_mount_failed = false
     };
 
@@ -54,7 +54,7 @@ esp_err_t nb_partitions_init() {
     esp_vfs_spiffs_conf_t config_spiffs = {
         .base_path = MOUNT_POINT_CONFIG,
         .partition_label = "config",
-        .max_files = 2,
+        .max_files = 100,
         .format_if_mount_failed = false
     };
 

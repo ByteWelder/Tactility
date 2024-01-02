@@ -89,10 +89,8 @@ void view_port_draw(ViewPort* view_port, lv_obj_t* parent) {
     furi_check(view_port->gui);
 
     if (view_port->draw_callback) {
-        furi_check(lvgl_port_lock(100)); // TODO: fail safely
         lv_obj_clean(parent);
         view_port->draw_callback(parent, view_port->draw_callback_context);
-        lvgl_port_unlock();
     }
 
     furi_mutex_release(view_port->mutex);

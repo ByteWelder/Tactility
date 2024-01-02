@@ -1,6 +1,7 @@
 #include "check.h"
 #include "gui_i.h"
 #include "esp_lvgl_port.h"
+#include "apps/services/gui/widgets/widgets.h"
 
 static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
     /*
@@ -151,15 +152,29 @@ static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
 }
 
 static bool gui_redraw_window(Gui* gui) {
-    /*
-    canvas_frame_set(gui->lvgl_parent, GUI_WINDOW_X, GUI_WINDOW_Y, GUI_WINDOW_WIDTH, GUI_WINDOW_HEIGHT);
     ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerWindow]);
-    if(view_port) {
-        view_port_draw(view_port, gui->lvgl_parent);
+    if (view_port) {
+        lv_obj_set_style_bg_blacken(gui->lvgl_parent);
+
+        lv_obj_t* vertical_container = lv_obj_create(gui->lvgl_parent);
+        lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_no_padding(vertical_container);
+        lv_obj_set_style_bg_blacken(vertical_container);
+
+        top_bar(vertical_container);
+
+        lv_obj_t* window_parent = lv_obj_create(vertical_container);
+        lv_obj_set_width(window_parent, LV_PCT(100));
+        lv_obj_set_flex_grow(window_parent, 1);
+        lv_obj_set_style_no_padding(vertical_container);
+        lv_obj_set_style_bg_blacken(vertical_container);
+
+        view_port_draw(view_port, window_parent);
         return true;
+    } else {
+        return false;
     }
-    */
-    return false;
 }
 
 static bool gui_redraw_desktop(Gui* gui) {
@@ -191,7 +206,6 @@ void gui_redraw(Gui* gui) {
 
     furi_check(lvgl_port_lock(100));
     lv_obj_clean(gui->lvgl_parent);
-    lvgl_port_unlock();
 
     gui_redraw_desktop(gui);
     if (!gui_redraw_fs(gui)) {
@@ -200,6 +214,8 @@ void gui_redraw(Gui* gui) {
         }
         gui_redraw_status_bar(gui, false);
     }
+
+    lvgl_port_unlock();
 
     gui_unlock(gui);
 }
