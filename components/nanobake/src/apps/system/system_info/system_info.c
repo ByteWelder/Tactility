@@ -1,17 +1,50 @@
 #include "system_info.h"
 #include "furi_extra_defines.h"
 #include "thread.h"
+#include "lvgl.h"
 
-static int32_t system_info_entry_point(void* param) {
+static void system_info_main(void* param) {
     UNUSED(param);
 
     printf(
         "Heap memory available: %d / %d\n",
-        heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
-        heap_caps_get_total_size(MALLOC_CAP_DEFAULT)
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+        heap_caps_get_total_size(MALLOC_CAP_INTERNAL)
     );
 
-    return 0;
+    printf(
+        "SPI memory available: %d / %d\n",
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+        heap_caps_get_total_size(MALLOC_CAP_SPIRAM)
+    );
+}
+
+static void app_show(lv_obj_t* parent, void* context) {
+    UNUSED(context);
+
+    lv_obj_t* heap_info = lv_label_create(parent);
+    lv_label_set_recolor(heap_info, true);
+    lv_obj_set_width(heap_info, 200);
+    lv_obj_set_style_text_align(heap_info, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text_fmt(
+        heap_info,
+        "Heap available:\n%d / %d",
+        heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+        heap_caps_get_total_size(MALLOC_CAP_INTERNAL)
+    );
+    lv_obj_align(heap_info, LV_ALIGN_CENTER, 0, -20);
+
+    lv_obj_t* spi_info = lv_label_create(parent);
+    lv_label_set_recolor(spi_info, true);
+    lv_obj_set_width(spi_info, 200);
+    lv_obj_set_style_text_align(spi_info, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text_fmt(
+        spi_info,
+        "SPI available\n%d / %d",
+        heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+        heap_caps_get_total_size(MALLOC_CAP_SPIRAM)
+    );
+    lv_obj_align(spi_info, LV_ALIGN_CENTER, 0, 20);
 }
 
 AppManifest system_info_app = {
@@ -19,6 +52,8 @@ AppManifest system_info_app = {
     .name = "System Info",
     .icon = NULL,
     .type = AppTypeSystem,
-    .entry_point = &system_info_entry_point,
+    .on_start = NULL,
+    .on_stop = NULL,
+    .on_show = app_show,
     .stack_size = AppStackSizeNormal
 };

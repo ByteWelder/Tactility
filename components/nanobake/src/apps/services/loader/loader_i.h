@@ -5,14 +5,16 @@
 #include "message_queue.h"
 #include "pubsub.h"
 #include "thread.h"
+#include "apps/services/gui/view_port.h"
 
 typedef struct {
     char* args;
-    FuriThread* thread;
     App* app;
+    ViewPort* view_port;
 } LoaderAppData;
 
 struct Loader {
+    FuriThread* thread;
     FuriPubSub* pubsub;
     FuriMessageQueue* queue;
     LoaderAppData app_data;
@@ -20,10 +22,8 @@ struct Loader {
 
 typedef enum {
     LoaderMessageTypeStartByName,
-    LoaderMessageTypeAppClosed,
-    LoaderMessageTypeLock,
-    LoaderMessageTypeUnlock,
-    LoaderMessageTypeIsLocked,
+    LoaderMessageTypeAppStop,
+    LoaderMessageTypeExit,
 } LoaderMessageType;
 
 typedef struct {
@@ -41,6 +41,8 @@ typedef struct {
 } LoaderMessageBoolResult;
 
 typedef struct {
+    // This lock blocks anyone from starting an app as long
+    // as an app is already running via loader_start()
     FuriApiLock api_lock;
     LoaderMessageType type;
 

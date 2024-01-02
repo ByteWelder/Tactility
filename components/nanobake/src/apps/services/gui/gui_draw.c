@@ -1,5 +1,6 @@
 #include "check.h"
 #include "gui_i.h"
+#include "esp_lvgl_port.h"
 
 static void gui_redraw_status_bar(Gui* gui, bool need_attention) {
     /*
@@ -188,24 +189,16 @@ void gui_redraw(Gui* gui) {
     furi_assert(gui);
     gui_lock(gui);
 
+    furi_check(lvgl_port_lock(100));
     lv_obj_clean(gui->lvgl_parent);
+    lvgl_port_unlock();
 
-    if (gui->lockdown) {
-        ESP_LOGI("gui", "gui_redraw with lockdown");
-        gui_redraw_desktop(gui);
-        bool need_attention =
-            (gui_view_port_find_enabled(gui->layers[GuiLayerWindow]) != 0 ||
-             gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]) != 0);
-        gui_redraw_status_bar(gui, need_attention);
-    } else {
-        gui_redraw_desktop(gui);
-        ESP_LOGI("gui", "gui_redraw");
-        if (!gui_redraw_fs(gui)) {
-            if (!gui_redraw_window(gui)) {
-                gui_redraw_desktop(gui);
-            }
-            gui_redraw_status_bar(gui, false);
+    gui_redraw_desktop(gui);
+    if (!gui_redraw_fs(gui)) {
+        if (!gui_redraw_window(gui)) {
+            gui_redraw_desktop(gui);
         }
+        gui_redraw_status_bar(gui, false);
     }
 
     gui_unlock(gui);

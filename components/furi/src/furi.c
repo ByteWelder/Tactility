@@ -5,14 +5,11 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-static bool scheduler_was_running = false;
-
 void furi_init() {
     furi_assert(!furi_kernel_is_irq());
 
     if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
         vTaskSuspendAll();
-        scheduler_was_running = true;
     }
 
     furi_record_init();

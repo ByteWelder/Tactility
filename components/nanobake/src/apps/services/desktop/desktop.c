@@ -1,10 +1,9 @@
 #include "desktop.h"
 #include "furi_extra_defines.h"
 
-static int32_t prv_desktop_main(void* param) {
+static void desktop_start(void* param) {
     UNUSED(param);
     printf("desktop app init\n");
-    return 0;
 }
 
 const AppManifest desktop_app = {
@@ -12,6 +11,8 @@ const AppManifest desktop_app = {
     .name = "Desktop",
     .icon = NULL,
     .type = AppTypeService,
-    .entry_point = &prv_desktop_main,
+    .on_start = &desktop_start,
+    .on_stop = NULL,
+    .on_show = NULL,
     .stack_size = AppStackSizeNormal
 };

@@ -28,14 +28,24 @@ typedef struct {
 } LoaderEvent;
 
 /**
- * @brief Start application
- * @param[in] instance loader instance
+ * @brief Close any running app, then start new one. Blocking.
+ * @param[in] loader loader instance
  * @param[in] id application name or id
  * @param[in] args application arguments
  * @param[out] error_message detailed error message, can be NULL
  * @return LoaderStatus
  */
-LoaderStatus loader_start(Loader* instance, const char* id, const char* args, FuriString* error_message);
+LoaderStatus loader_start_app(Loader* loader, const char* id, const char* args, FuriString* error_message);
+
+/**
+ * @brief Close any running app, then start new one. Non-blocking.
+ * @param[in] loader loader instance
+ * @param[in] id application name or id
+ * @param[in] args application arguments
+ */
+void loader_start_app_nonblocking(Loader* loader, const char* id, const char* args);
+
+void loader_stop_app(Loader* loader);
 
 /**
  * @brief Start application with GUI error message
@@ -45,26 +55,6 @@ LoaderStatus loader_start(Loader* instance, const char* id, const char* args, Fu
  * @return LoaderStatus
  */
 //LoaderStatus loader_start_with_gui_error(Loader* loader, const char* name, const char* args);
-
-/**
- * @brief Lock application start
- * @param[in] instance loader instance
- * @return true on success
- */
-bool loader_lock(Loader* instance);
-
-/**
- * @brief Unlock application start
- * @param[in] instance loader instance
- */
-void loader_unlock(Loader* instance);
-
-/**
- * @brief Check if loader is locked
- * @param[in] instance loader instance
- * @return true if locked
- */
-bool loader_is_locked(Loader* instance);
 
 /**
  * @brief Show loader menu
