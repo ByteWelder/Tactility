@@ -12,11 +12,16 @@ typedef struct _lv_obj_t lv_obj_t;
 typedef enum {
     AppTypeService,
     AppTypeSystem,
+    AppTypeDesktop,
     AppTypeUser
 } AppType;
 
 typedef enum {
-    AppStackSizeNormal = 2048
+    AppStackSizeTiny = 512,
+    AppStackSizeSmall = 1024,
+    AppStackSizeNormal = 2048,
+    AppStackSizeLarge = 4096,
+    AppStackSizeHuge = 8192,
 } AppStackSize;
 
 typedef void (*AppOnStart)(void _Nonnull* parameter);

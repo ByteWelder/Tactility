@@ -51,6 +51,15 @@ void loader_stop_app(Loader* loader) {
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
+const AppManifest* _Nullable loader_get_current_app(Loader* loader) {
+    App* app = loader->app_data.app;
+    if (app != NULL) {
+        return app->manifest;
+    } else {
+        return NULL;
+    }
+}
+
 FuriPubSub* loader_get_pubsub(Loader* loader) {
     furi_assert(loader);
     // it's safe to return pubsub without locking
@@ -123,6 +132,10 @@ static void loader_start_app_with_manifest(
     const AppManifest* _Nonnull manifest,
     const char* args
 ) {
+    if (manifest->type != AppTypeUser && manifest->type != AppTypeSystem) {
+        furi_crash("app type not supported by loader");
+    }
+
     App* _Nonnull app = furi_app_alloc(manifest);
     loader->app_data.app = app;
     loader->app_data.args = (void*)args;
@@ -136,18 +149,9 @@ static void loader_start_app_with_manifest(
         loader->app_data.view_port = view_port;
         view_port_draw_callback_set(view_port, manifest->on_show, NULL);
 
-        switch (manifest->type) {
-            case AppTypeService:
-                furi_crash("service apps cannot have an on_show implementation");
-            case AppTypeSystem:
-            case AppTypeUser:
-                FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-                    gui_add_view_port(gui, view_port, GuiLayerWindow);
-                })
-                break;
-            default:
-                furi_crash("viewport not implemented for app type");
-        }
+        FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
+            gui_add_view_port(gui, view_port, GuiLayerWindow);
+        })
     } else {
         loader->app_data.view_port = NULL;
     }

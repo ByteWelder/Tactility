@@ -64,16 +64,16 @@ const AppManifest _Nullable* app_manifest_registry_find_by_id(const char* id) {
     return (manifest != NULL) ? *manifest : NULL;
 }
 
-void app_manifest_registry_for_each_of_type(AppType type, AppManifestCallback callback) {
+void app_manifest_registry_for_each_of_type(AppType type, void* _Nullable context, AppManifestCallback callback) {
     APP_REGISTRY_FOR_EACH(manifest, {
         if (manifest->type == type) {
-            callback(manifest);
+            callback(manifest, context);
         }
     });
 }
 
-void app_manifest_registry_for_each(AppManifestCallback callback) {
+void app_manifest_registry_for_each(AppManifestCallback callback, void* _Nullable context) {
     APP_REGISTRY_FOR_EACH(manifest, {
-        callback(manifest);
+        callback(manifest, context);
     });
 }

@@ -1,8 +1,9 @@
+#include "apps/services/gui/widgets/widgets.h"
 #include "check.h"
+#include "esp_lvgl_port.h"
 #include "gui.h"
 #include "gui_i.h"
 #include "view_port_i.h"
-#include "esp_lvgl_port.h"
 
 #define TAG "viewport"
 
@@ -90,6 +91,7 @@ void view_port_draw(ViewPort* view_port, lv_obj_t* parent) {
 
     if (view_port->draw_callback) {
         lv_obj_clean(parent);
+        lv_obj_set_style_no_padding(parent);
         view_port->draw_callback(parent, view_port->draw_callback_context);
     }
 

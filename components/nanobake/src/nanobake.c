@@ -8,23 +8,27 @@
 #define TAG "nanobake"
 
 // System services
-extern const AppManifest desktop_app;
 extern const AppManifest gui_app;
 extern const AppManifest loader_app;
+
+// Desktop
+extern const AppManifest desktop_app;
 
 // System apps
 extern const AppManifest system_info_app;
 
-void start_service(const AppManifest* _Nonnull manifest) {
-    // TODO: keep track of running services
+void start_service(const AppManifest* _Nonnull manifest, void* _Nullable context) {
+    UNUSED(context);
     FURI_LOG_I(TAG, "Starting service %s", manifest->name);
+    furi_check(manifest->on_start, "service must define on_start");
     manifest->on_start(NULL);
+    // TODO: keep track of running services
 }
 
 static void register_apps(Config* _Nonnull config) {
     FURI_LOG_I(TAG, "Registering core apps");
-    app_manifest_registry_add(&desktop_app);
     app_manifest_registry_add(&gui_app);
+    app_manifest_registry_add(&desktop_app);
     app_manifest_registry_add(&loader_app);
     app_manifest_registry_add(&system_info_app);
 
@@ -36,7 +40,13 @@ static void register_apps(Config* _Nonnull config) {
 
 static void start_services() {
     FURI_LOG_I(TAG, "Starting services");
-    app_manifest_registry_for_each_of_type(AppTypeService, start_service);
+    app_manifest_registry_for_each_of_type(AppTypeService, NULL, start_service);
+    FURI_LOG_I(TAG, "Startup complete");
+}
+
+static void start_desktop() {
+    FURI_LOG_I(TAG, "Starting desktop");
+    desktop_app.on_start(NULL);
     FURI_LOG_I(TAG, "Startup complete");
 }
 
@@ -51,4 +61,5 @@ __attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
     register_apps(config);
 
     start_services();
+    start_desktop();
 }

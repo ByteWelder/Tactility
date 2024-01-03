@@ -22,5 +22,5 @@ void top_bar(lv_obj_t* parent) {
     lv_obj_set_style_bg_blacken(wifi);
     lv_obj_set_style_img_recolor(wifi, lv_color_white(), 0);
     lv_obj_set_style_img_recolor_opa(wifi, 255, 0);
-    lv_img_set_src(wifi, "A:/assets/wifi-off.png");
+    lv_img_set_src(wifi, "A:/assets/ic_small_wifi_off.png");
 }

@@ -2,6 +2,7 @@
 #include "furi_core.h"
 #include "furi_string.h"
 #include "pubsub.h"
+#include "app_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +48,7 @@ void loader_start_app_nonblocking(Loader* loader, const char* id, const char* ar
 
 void loader_stop_app(Loader* loader);
 
+const AppManifest* _Nullable loader_get_current_app(Loader* loader);
 /**
  * @brief Start application with GUI error message
  * @param[in] instance loader instance
