@@ -26,9 +26,12 @@ void toolbar(lv_obj_t* parent, lv_coord_t offset_y, const AppManifest* manifest)
     lv_img_set_src(close_button_image, LV_SYMBOL_CLOSE);
     lv_obj_align(close_button_image, LV_ALIGN_CENTER, 0, 0);
 
+    // Need spacer to avoid button press glitch animation
+    spacer(toolbar, 2, 1);
+
     lv_obj_t* label_container = lv_obj_create(toolbar);
     lv_obj_set_style_no_padding(label_container);
-    lv_obj_set_height(label_container, LV_PCT(100));
+    lv_obj_set_height(label_container, LV_PCT(100)); // 2% less due to 4px translate (it's not great, but it works)
     lv_obj_set_flex_grow(label_container, 1);
 
     lv_obj_t* label = lv_label_create(label_container);
