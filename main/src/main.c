@@ -1,12 +1,12 @@
 #include "nanobake.h"
-#include "board_detect.h"
+#include "board_config.h"
 
 // Apps
 #include "hello_world/hello_world.h"
 
 __attribute__((unused)) void app_main(void) {
     static Config config = {
-        .hardware = HARDWARE_AUTO_DETECT,
+        .hardware = NB_BOARD_HARDWARE,
         .apps = {
             &hello_world_app
         },

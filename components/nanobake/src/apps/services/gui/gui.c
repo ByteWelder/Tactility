@@ -4,6 +4,7 @@
 #include "gui_i.h"
 #include "log.h"
 #include "record.h"
+#include "kernel.h"
 
 #define TAG "gui"
 
@@ -176,7 +177,12 @@ void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port) {
 
 Gui* gui_alloc() {
     Gui* gui = malloc(sizeof(Gui));
-    gui->thread = NULL;
+    gui->thread = furi_thread_alloc_ex(
+        "gui",
+        AppStackSizeNormal,
+        &gui_main,
+        NULL
+    );
 
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
@@ -216,11 +222,11 @@ void gui_free(Gui* gui) {
 static int32_t gui_main(void* p) {
     UNUSED(p);
 
-    Gui* gui = gui_alloc();
-    gui->thread = furi_thread_get_current();
-    furi_record_create(RECORD_GUI, gui);
+    Gui* gui = furi_record_open(RECORD_GUI);
+    furi_record_close(RECORD_GUI); // TODO: We own it so we can close it safely? Do we need a lock internally?
 
     while (1) {
+        FURI_LOG_I(TAG, "thread awaits flags");
         uint32_t flags = furi_thread_flags_wait(
             GUI_THREAD_FLAG_ALL,
             FuriFlagWaitAny,
@@ -253,16 +259,12 @@ static int32_t gui_main(void* p) {
 static void gui_start(void* parameter) {
     UNUSED(parameter);
 
-    FuriThread* thread = furi_thread_alloc_ex(
-        "gui",
-        AppStackSizeNormal,
-        &gui_main,
-        NULL
-    );
+    Gui* gui = gui_alloc();
+    furi_record_create(RECORD_GUI, gui);
 
-    furi_thread_mark_as_service(thread);
-    furi_thread_set_priority(thread, FuriThreadPriorityNormal);
-    furi_thread_start(thread);
+    furi_thread_mark_as_service(gui->thread);
+    furi_thread_set_priority(gui->thread, FuriThreadPriorityNormal);
+    furi_thread_start(gui->thread);
 }
 
 static void gui_stop() {

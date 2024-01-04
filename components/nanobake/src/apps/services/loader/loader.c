@@ -74,9 +74,15 @@ static Loader* loader_alloc() {
     Loader* loader = malloc(sizeof(Loader));
     loader->pubsub = furi_pubsub_alloc();
     loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
-    loader->thread = NULL;
+    loader->thread = furi_thread_alloc_ex(
+        "loader",
+        AppStackSizeNormal,
+        &loader_main,
+        NULL
+    );
     loader->app_data.args = NULL;
     loader->app_data.app = NULL;
+    loader->app_data.view_port = NULL;
     return loader;
 }
 
@@ -222,9 +228,8 @@ static void loader_do_stop_app(Loader* loader) {
 static int32_t loader_main(void* p) {
     UNUSED(p);
 
-    Loader* loader = loader_alloc();
-    loader->thread = furi_thread_get_current();
-    furi_record_create(RECORD_LOADER, loader);
+    Loader* loader = furi_record_open(RECORD_LOADER);
+    furi_record_close(RECORD_LOADER); // TODO: We own it so we can close it safely? Do we need a lock internally?
 
     LoaderMessage message;
     bool exit_requested = false;
@@ -261,15 +266,12 @@ static int32_t loader_main(void* p) {
 
 static void loader_start(void* parameter) {
     UNUSED(parameter);
-    FuriThread* thread = furi_thread_alloc_ex(
-        "loader",
-        AppStackSizeNormal,
-        &loader_main,
-        NULL
-    );
-    furi_thread_mark_as_service(thread);
-    furi_thread_set_priority(thread, FuriThreadPriorityNormal);
-    furi_thread_start(thread);
+    Loader* loader = loader_alloc();
+    furi_record_create(RECORD_LOADER, loader);
+
+    furi_thread_mark_as_service(loader->thread);
+    furi_thread_set_priority(loader->thread, FuriThreadPriorityNormal);
+    furi_thread_start(loader->thread);
 }
 
 static void loader_stop() {
