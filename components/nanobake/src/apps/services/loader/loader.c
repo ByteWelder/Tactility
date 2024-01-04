@@ -165,7 +165,7 @@ static LoaderStatus loader_do_start_by_id(
     const char* args,
     FuriString* _Nullable error_message
 ) {
-    FURI_LOG_I(TAG, "loader start by id %s", id);
+    FURI_LOG_I(TAG, "start by id %s", id);
 
     const AppManifest* manifest = app_manifest_registry_find_by_id(id);
     if (manifest == NULL) {
@@ -211,11 +211,17 @@ static void loader_do_stop_app(Loader* loader) {
     furi_app_free(loader->app_data.app);
     loader->app_data.app = NULL;
 
+#if defined(CONFIG_IDF_TARGET_ESP32)
+    // heap_caps_get_free_size() causes stackoverflow on T-Deck
+    // even with after increasing heap size from 2k to 4k
     FURI_LOG_I(
         TAG,
         "Application stopped. Free heap: %zu",
         heap_caps_get_free_size(MALLOC_CAP_INTERNAL)
     );
+#else
+    FURI_LOG_I(TAG, "Application stopped.");
+#endif
 
     LoaderEvent event;
     event.type = LoaderEventTypeApplicationStopped;
@@ -227,38 +233,35 @@ static void loader_do_stop_app(Loader* loader) {
 static int32_t loader_main(void* p) {
     UNUSED(p);
 
-    FuriMessageQueue* queue = NULL;
-    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-        queue = loader->queue;
-    })
-    furi_check(queue != NULL);
+    //    Loader* loader = furi_record_unsafe_get(RECORD_LOADER);
+
+//    Loader* loader = gloader;
+
+    Loader* loader = loader_alloc();
+    furi_record_create(RECORD_LOADER, loader);
 
     LoaderMessage message;
     bool exit_requested = false;
     while (!exit_requested) {
-        if (furi_message_queue_get(queue, &message, FuriWaitForever) == FuriStatusOk) {
+        if (furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
             FURI_LOG_I(TAG, "processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeStartByName:
-                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-                        if (loader->app_data.app) {
-                            loader_do_stop_app(loader);
-                        }
-                        message.status_value->value = loader_do_start_by_id(
-                            loader,
-                            message.start.id,
-                            message.start.args,
-                            message.start.error_message
-                        );
-                        if (message.api_lock) {
-                            api_lock_unlock(message.api_lock);
-                        }
-                    })
+                    if (loader->app_data.app) {
+                        loader_do_stop_app(loader);
+                    }
+                    message.status_value->value = loader_do_start_by_id(
+                        loader,
+                        message.start.id,
+                        message.start.args,
+                        message.start.error_message
+                    );
+                    if (message.api_lock) {
+                        api_lock_unlock(message.api_lock);
+                    }
                     break;
                 case LoaderMessageTypeAppStop:
-                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-                        loader_do_stop_app(loader);
-                    })
+                    loader_do_stop_app(loader);
                     break;
                 case LoaderMessageTypeExit:
                     exit_requested = true;
@@ -271,10 +274,22 @@ static int32_t loader_main(void* p) {
 }
 
 static void loader_start(void* p) {
-    Loader* loader = loader_alloc();
-    furi_record_create(RECORD_LOADER, loader);
-    furi_thread_set_priority(loader->thread, FuriThreadPriorityHigh);
-    furi_thread_start(loader->thread);
+    // TODO: create loader and gui objects from thread
+//    Loader* loader = loader_alloc();
+//    gloader = loader;
+//    furi_record_create(RECORD_LOADER, loader);
+//    furi_thread_mark_as_service(loader->thread);
+//    furi_thread_set_priority(loader->thread, FuriThreadPriorityNormal);
+//    furi_thread_start(loader->thread);
+    FuriThread* thread = furi_thread_alloc_ex(
+        "loader",
+        2048,
+        &loader_main,
+        NULL
+    );
+    furi_thread_mark_as_service(thread);
+    furi_thread_set_priority(thread, FuriThreadPriorityNormal);
+    furi_thread_start(thread);
 }
 
 static void loader_stop() {

@@ -10,14 +10,21 @@ extern "C" {
 
 // Forward declarations
 typedef void* FuriThreadId;
+typedef void (*Bootstrap)();
 typedef TouchDriver (*CreateTouchDriver)();
 typedef DisplayDriver (*CreateDisplayDriver)();
 
 typedef struct {
+    // Optional bootstrapping method
+    const Bootstrap _Nullable bootstrap;
     // Required driver for display
     const CreateDisplayDriver _Nonnull display_driver;
     // Optional driver for touch input
     const CreateTouchDriver _Nullable touch_driver;
+} HardwareConfig;
+
+typedef struct {
+    const HardwareConfig* hardware;
     // List of user applications
     const size_t apps_count;
     const AppManifest* const apps[];

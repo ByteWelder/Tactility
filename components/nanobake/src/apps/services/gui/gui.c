@@ -176,12 +176,8 @@ void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port) {
 
 Gui* gui_alloc() {
     Gui* gui = malloc(sizeof(Gui));
-    gui->thread = furi_thread_alloc_ex(
-        "gui",
-        2048,
-        &gui_main,
-        NULL
-    );
+    gui->thread = NULL;
+
     gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
 
     furi_check(lvgl_port_lock(100));
@@ -217,8 +213,12 @@ void gui_free(Gui* gui) {
     free(gui);
 }
 
-static int32_t gui_main(void* parameter) {
-    UNUSED(parameter);
+static int32_t gui_main(void* p) {
+    UNUSED(p);
+
+    Gui* gui = gui_alloc();
+    gui->thread = furi_thread_get_current();
+    furi_record_create(RECORD_GUI, gui);
 
     while (1) {
         uint32_t flags = furi_thread_flags_wait(
@@ -238,9 +238,7 @@ static int32_t gui_main(void* parameter) {
         if (flags & GUI_THREAD_FLAG_DRAW) {
             FURI_LOG_D(TAG, "redraw requested");
             furi_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
-            FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-                gui_redraw(gui);
-            })
+            gui_redraw(gui);
         }
 
         if (flags & GUI_THREAD_FLAG_EXIT) {
@@ -255,10 +253,16 @@ static int32_t gui_main(void* parameter) {
 static void gui_start(void* parameter) {
     UNUSED(parameter);
 
-    Gui* gui = gui_alloc();
-    furi_record_create(RECORD_GUI, gui);
-    furi_thread_set_priority(gui->thread, FuriThreadPriorityHigh);
-    furi_thread_start(gui->thread);
+    FuriThread* thread = furi_thread_alloc_ex(
+        "gui",
+        2048,
+        &gui_main,
+        NULL
+    );
+
+    furi_thread_mark_as_service(thread);
+    furi_thread_set_priority(thread, FuriThreadPriorityNormal);
+    furi_thread_start(thread);
 }
 
 static void gui_stop() {

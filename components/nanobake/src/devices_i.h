@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-Devices nb_devices_create(Config _Nonnull* config);
+Hardware nb_hardware_init(const HardwareConfig _Nonnull* config);
 
 #ifdef __cplusplus
 }

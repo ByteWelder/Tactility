@@ -1,5 +1,4 @@
 #include "hello_world.h"
-#include "furi.h"
 #include "apps/services/gui/gui.h"
 #include "apps/services/loader/loader.h"
 

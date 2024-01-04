@@ -55,7 +55,7 @@ __attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
 
     nb_partitions_init();
 
-    Devices hardware = nb_devices_create(config);
+    Hardware hardware = nb_hardware_init(config->hardware);
     /*NbLvgl lvgl =*/nb_graphics_init(&hardware);
 
     register_apps(config);

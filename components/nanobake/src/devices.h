@@ -10,7 +10,7 @@ extern "C" {
 typedef struct {
     DisplayDevice* _Nonnull display;
     TouchDevice* _Nullable touch;
-} Devices;
+} Hardware;
 
 #ifdef __cplusplus
 }

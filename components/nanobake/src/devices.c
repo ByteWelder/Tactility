@@ -5,7 +5,12 @@
 
 #define TAG "hardware"
 
-Devices nb_devices_create(Config _Nonnull* config) {
+Hardware nb_hardware_init(const HardwareConfig _Nonnull* config) {
+    if (config->bootstrap != NULL) {
+        ESP_LOGI(TAG, "Bootstrapping");
+        config->bootstrap();
+    }
+
     furi_check(config->display_driver != NULL, "no display driver configured");
     DisplayDriver display_driver = config->display_driver();
     ESP_LOGI(TAG, "display with driver %s", display_driver.name);
@@ -21,7 +26,7 @@ Devices nb_devices_create(Config _Nonnull* config) {
         touch = NULL;
     }
 
-    return (Devices) {
+    return (Hardware) {
         .display = display,
         .touch = touch
     };

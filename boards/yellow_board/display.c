@@ -1,5 +1,4 @@
-#include "board_2432s024_display.h"
-
+#include "nanobake.h"
 #include "esp_lcd_ili9341.h"
 #include "esp_log.h"
 #include "esp_err.h"

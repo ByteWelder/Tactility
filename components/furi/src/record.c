@@ -110,7 +110,13 @@ bool furi_record_destroy(const char* name) {
     return ret;
 }
 
+void* furi_record_unsafe_get(const char* name) {
+    FuriRecordData* record_data = furi_record_get(name);
+    return record_data->data;
+}
+
 void* furi_record_open(const char* name) {
+    ESP_LOGI("record", "open %s", name);
     furi_assert(furi_record);
 
     furi_record_lock();
@@ -134,6 +140,7 @@ void* furi_record_open(const char* name) {
 }
 
 void furi_record_close(const char* name) {
+    ESP_LOGI("record", "close %s", name);
     furi_assert(furi_record);
 
     furi_record_lock();

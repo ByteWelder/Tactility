@@ -1,12 +1,8 @@
-/**
- * @file kernel.h
- * Furi Kernel primitives
- */
 #pragma once
 
 #include "furi_core_types.h"
 
-#define configTICK_RATE_HZ_RAW 1000
+#define configTICK_RATE_HZ_RAW CONFIG_FREERTOS_HZ
 
 #ifdef __cplusplus
 extern "C" {

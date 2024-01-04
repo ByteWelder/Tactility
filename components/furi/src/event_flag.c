@@ -116,7 +116,11 @@ uint32_t furi_event_flag_wait(
     }
 
     rflags = xEventGroupWaitBits(
-        hEventGroup, (EventBits_t)flags, exit_clr, wait_all, (TickType_t)timeout
+        hEventGroup,
+        (EventBits_t)flags,
+        exit_clr,
+        wait_all,
+        (TickType_t)timeout
     );
 
     if (options & FuriFlagWaitAll) {

@@ -75,6 +75,9 @@ FURI_RETURNS_NONNULL void* furi_record_open(const char* name);
  */
 void furi_record_close(const char* name);
 
+
+void* furi_record_unsafe_get(const char* name);
+
 #ifdef __cplusplus
 }
 #endif
