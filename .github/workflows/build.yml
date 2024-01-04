@@ -8,13 +8,13 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: esp-idf build
+      - name: esp32 build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.1
           target: esp32
           path: './'
-      - name: esp-idf build
+      - name: esp32s3 build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.1
