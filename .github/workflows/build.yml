@@ -9,7 +9,7 @@ jobs:
         with:
           submodules: recursive
       - name: Board select
-        run: 'cp sdkconfig.board.yellow_board sdkconfig'
+        run: cp sdkconfig.board.yellow_board sdkconfig
       - name: esp32 build
         uses: espressif/esp-idf-ci-action@main
         with:
@@ -24,7 +24,7 @@ jobs:
         with:
           submodules: recursive
       - name: Board select
-        run: 'cp sdkconfig.board.lilygo_tdeck sdkconfig'
+        run: cp sdkconfig.board.lilygo_tdeck sdkconfig
       - name: esp32s3 build
         uses: espressif/esp-idf-ci-action@main
         with:
