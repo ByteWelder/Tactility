@@ -228,31 +228,37 @@ static void loader_do_stop_app(Loader* loader) {
 static int32_t loader_main(void* p) {
     UNUSED(p);
 
-    Loader* loader = furi_record_open(RECORD_LOADER);
-    furi_record_close(RECORD_LOADER); // TODO: We own it so we can close it safely? Do we need a lock internally?
+    FuriMessageQueue* queue = NULL;
+    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
+        queue = loader->queue;
+    })
 
     LoaderMessage message;
     bool exit_requested = false;
     while (!exit_requested) {
-        if (furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
+        if (furi_message_queue_get(queue, &message, FuriWaitForever) == FuriStatusOk) {
             FURI_LOG_I(TAG, "processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeStartByName:
-                    if (loader->app_data.app) {
-                        loader_do_stop_app(loader);
-                    }
-                    message.status_value->value = loader_do_start_by_id(
-                        loader,
-                        message.start.id,
-                        message.start.args,
-                        message.start.error_message
-                    );
-                    if (message.api_lock) {
-                        api_lock_unlock(message.api_lock);
-                    }
+                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
+                        if (loader->app_data.app) {
+                            loader_do_stop_app(loader);
+                        }
+                        message.status_value->value = loader_do_start_by_id(
+                            loader,
+                            message.start.id,
+                            message.start.args,
+                            message.start.error_message
+                        );
+                        if (message.api_lock) {
+                            api_lock_unlock(message.api_lock);
+                        }
+                    })
                     break;
                 case LoaderMessageTypeAppStop:
-                    loader_do_stop_app(loader);
+                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
+                        loader_do_stop_app(loader);
+                    })
                     break;
                 case LoaderMessageTypeExit:
                     exit_requested = true;
