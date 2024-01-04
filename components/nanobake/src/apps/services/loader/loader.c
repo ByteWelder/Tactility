@@ -74,12 +74,7 @@ static Loader* loader_alloc() {
     Loader* loader = malloc(sizeof(Loader));
     loader->pubsub = furi_pubsub_alloc();
     loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
-    loader->thread = furi_thread_alloc_ex(
-        "loader",
-        2048,
-        &loader_main,
-        NULL
-    );
+    loader->thread = NULL;
     loader->app_data.args = NULL;
     loader->app_data.app = NULL;
     return loader;
@@ -211,17 +206,11 @@ static void loader_do_stop_app(Loader* loader) {
     furi_app_free(loader->app_data.app);
     loader->app_data.app = NULL;
 
-#if defined(CONFIG_IDF_TARGET_ESP32)
-    // heap_caps_get_free_size() causes stackoverflow on T-Deck
-    // even with after increasing heap size from 2k to 4k
     FURI_LOG_I(
         TAG,
         "Application stopped. Free heap: %zu",
         heap_caps_get_free_size(MALLOC_CAP_INTERNAL)
     );
-#else
-    FURI_LOG_I(TAG, "Application stopped.");
-#endif
 
     LoaderEvent event;
     event.type = LoaderEventTypeApplicationStopped;
@@ -233,11 +222,8 @@ static void loader_do_stop_app(Loader* loader) {
 static int32_t loader_main(void* p) {
     UNUSED(p);
 
-    //    Loader* loader = furi_record_unsafe_get(RECORD_LOADER);
-
-//    Loader* loader = gloader;
-
     Loader* loader = loader_alloc();
+    loader->thread = furi_thread_get_current();
     furi_record_create(RECORD_LOADER, loader);
 
     LoaderMessage message;
@@ -273,17 +259,11 @@ static int32_t loader_main(void* p) {
     return 0;
 }
 
-static void loader_start(void* p) {
-    // TODO: create loader and gui objects from thread
-//    Loader* loader = loader_alloc();
-//    gloader = loader;
-//    furi_record_create(RECORD_LOADER, loader);
-//    furi_thread_mark_as_service(loader->thread);
-//    furi_thread_set_priority(loader->thread, FuriThreadPriorityNormal);
-//    furi_thread_start(loader->thread);
+static void loader_start(void* parameter) {
+    UNUSED(parameter);
     FuriThread* thread = furi_thread_alloc_ex(
         "loader",
-        2048,
+        AppStackSizeNormal,
         &loader_main,
         NULL
     );

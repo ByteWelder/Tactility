@@ -255,7 +255,7 @@ static void gui_start(void* parameter) {
 
     FuriThread* thread = furi_thread_alloc_ex(
         "gui",
-        2048,
+        AppStackSizeNormal,
         &gui_main,
         NULL
     );
