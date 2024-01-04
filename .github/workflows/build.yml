@@ -13,7 +13,7 @@ jobs:
       - name: esp32 build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.1
+          esp_idf_version: v5.1.2
           target: esp32
           path: './'
   Build-Lilygo-T-Deck:
@@ -28,6 +28,6 @@ jobs:
       - name: esp32s3 build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.1
+          esp_idf_version: v5.1.2
           target: esp32s3
           path: './'
