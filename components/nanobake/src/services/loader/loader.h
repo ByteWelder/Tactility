@@ -1,8 +1,9 @@
 #pragma once
+#include "app_manifest.h"
 #include "furi_core.h"
 #include "furi_string.h"
 #include "pubsub.h"
-#include "app_manifest.h"
+#include "service_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {

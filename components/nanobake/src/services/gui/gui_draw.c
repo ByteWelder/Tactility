@@ -1,10 +1,9 @@
 #include "check.h"
+#include "esp_lvgl_port.h"
 #include "gui_i.h"
 #include "log.h"
-#include "record.h"
-#include "esp_lvgl_port.h"
-#include "apps/services/gui/widgets/widgets.h"
-#include "apps/services/loader/loader.h"
+#include "services/gui/widgets/widgets.h"
+#include "services/loader/loader.h"
 
 #define TAG "gui"
 

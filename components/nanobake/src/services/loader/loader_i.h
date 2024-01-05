@@ -1,12 +1,13 @@
 #pragma once
+
 #include "api_lock.h"
 #include "app_manifest.h"
-#include "apps/services/gui/view_port.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "loader.h"
 #include "message_queue.h"
 #include "pubsub.h"
+#include "services/gui/view_port.h"
 #include "thread.h"
 
 typedef struct {

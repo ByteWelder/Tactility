@@ -10,7 +10,6 @@
 #include "message_queue.h"
 #include "mutex.h"
 #include "pubsub.h"
-#include "record.h"
 #include "semaphore.h"
 #include "stream_buffer.h"
 #include "string.h"

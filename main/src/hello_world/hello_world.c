@@ -1,6 +1,6 @@
 #include "hello_world.h"
-#include "apps/services/gui/gui.h"
-#include "apps/services/loader/loader.h"
+#include "services/gui/gui.h"
+#include "services/loader/loader.h"
 
 static void app_show(lv_obj_t* parent, void* context) {
     UNUSED(context);

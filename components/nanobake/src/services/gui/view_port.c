@@ -1,8 +1,7 @@
-#include "apps/services/gui/widgets/widgets.h"
 #include "check.h"
-#include "esp_lvgl_port.h"
 #include "gui.h"
 #include "gui_i.h"
+#include "services/gui/widgets/widgets.h"
 #include "view_port_i.h"
 
 #define TAG "viewport"

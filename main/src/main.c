@@ -8,9 +8,12 @@ __attribute__((unused)) void app_main(void) {
     static const Config config = {
         .hardware = NB_BOARD_HARDWARE,
         .apps = {
-            &hello_world_app
+            &hello_world_app,
+            NULL // NULL terminator - do not remove
         },
-        .apps_count = 1
+        .services = {
+            NULL // NULL terminator - do not remove
+        },
     };
 
     nanobake_start(&config);

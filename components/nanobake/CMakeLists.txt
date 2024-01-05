@@ -1,10 +1,10 @@
 idf_component_register(
     SRC_DIRS "src"
     "src/apps/system/system_info"
-    "src/apps/services/desktop"
-    "src/apps/services/loader"
-    "src/apps/services/gui"
-    "src/apps/services/gui/widgets"
+    "src/services/desktop"
+    "src/services/loader"
+    "src/services/gui"
+    "src/services/gui/widgets"
     INCLUDE_DIRS "src"
     REQUIRES esp_lvgl_port esp_lcd esp_lcd_touch driver mlib cmsis_core furi nvs_flash spiffs fatfs
 )
