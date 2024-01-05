@@ -79,11 +79,21 @@ static bool create_display_device(DisplayDevice* display) {
     const esp_lcd_panel_io_spi_config_t panel_io_config = {
         .cs_gpio_num = LCD_PIN_CS,
         .dc_gpio_num = LCD_PIN_DC,
+        .spi_mode = 0,
         .pclk_hz = LCD_SPI_FREQUENCY,
+        .trans_queue_depth = 10,
+        .on_color_trans_done = NULL,
+        .user_ctx = NULL,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
-        .spi_mode = 0,
-        .trans_queue_depth = 10,
+        .flags = {
+            .dc_low_on_data = 0,
+            .octal_mode = 0,
+            .quad_mode = 0,
+            .sio_mode = 1,
+            .lsb_first = 0,
+            .cs_high_active = 0,
+        }
     };
 
     if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST, &panel_io_config, &display->io_handle) != ESP_OK) {
@@ -95,7 +105,12 @@ static bool create_display_device(DisplayDevice* display) {
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
         .bits_per_pixel = LCD_BITS_PER_PIXEL,
+        .flags = {
+            .reset_active_high = 0
+        },
+        .vendor_config = NULL
     };
 
     if (esp_lcd_new_panel_st7789(display->io_handle, &panel_config, &display->display_handle) != ESP_OK) {

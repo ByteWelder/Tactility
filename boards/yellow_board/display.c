@@ -24,12 +24,6 @@ static SemaphoreHandle_t refresh_finish = NULL;
 #define LCD_BITS_PER_PIXEL 16
 #define LCD_DRAW_BUFFER_HEIGHT 80
 
-IRAM_ATTR static bool prv_on_color_trans_done(esp_lcd_panel_io_handle_t io_handle, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
-    BaseType_t need_yield = pdFALSE;
-    xSemaphoreGiveFromISR(refresh_finish, &need_yield);
-    return (need_yield == pdTRUE);
-}
-
 static bool create_display_device(DisplayDevice* display) {
     ESP_LOGI(TAG, "creating display");
 
@@ -57,7 +51,7 @@ static bool create_display_device(DisplayDevice* display) {
     const esp_lcd_panel_io_spi_config_t panel_io_config = ILI9341_PANEL_IO_SPI_CONFIG(
         LCD_PIN_CS,
         LCD_PIN_DC,
-        prv_on_color_trans_done,
+        NULL,
         NULL
     );
 
