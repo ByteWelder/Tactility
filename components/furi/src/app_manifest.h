@@ -63,11 +63,6 @@ typedef struct {
      * Non-blocking method to create the GUI
      */
     const AppOnShow _Nullable on_show;
-
-    /**
-     * Callstack size. If you get a stackoverflow, then consider increasing this value.
-     */
-    const AppStackSize stack_size;
 } AppManifest;
 
 #ifdef __cplusplus

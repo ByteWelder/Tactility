@@ -1,57 +1,28 @@
 #pragma once
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "gui.h"
-
-#include <m-algo.h>
-#include <m-array.h>
-#include <stdio.h>
-
 #include "message_queue.h"
 #include "mutex.h"
 #include "pubsub.h"
 #include "view_port.h"
 #include "view_port_i.h"
-
-#define GUI_DISPLAY_WIDTH 128
-#define GUI_DISPLAY_HEIGHT 64
-
-#define GUI_STATUS_BAR_X 0
-#define GUI_STATUS_BAR_Y 0
-#define GUI_STATUS_BAR_WIDTH GUI_DISPLAY_WIDTH
-/* 0-1 pixels for upper thin frame
- * 2-9 pixels for icons (battery, sd card, etc)
- * 10-12 pixels for lower bold line */
-#define GUI_STATUS_BAR_HEIGHT 13
-/* icon itself area (battery, sd card, etc) excluding frame.
- * painted 2 pixels below GUI_STATUS_BAR_X.
- */
-#define GUI_STATUS_BAR_WORKAREA_HEIGHT 8
-
-#define GUI_WINDOW_X 0
-#define GUI_WINDOW_Y GUI_STATUS_BAR_HEIGHT
-#define GUI_WINDOW_WIDTH GUI_DISPLAY_WIDTH
-#define GUI_WINDOW_HEIGHT (GUI_DISPLAY_HEIGHT - GUI_WINDOW_Y)
+#include <stdio.h>
 
 #define GUI_THREAD_FLAG_DRAW (1 << 0)
 #define GUI_THREAD_FLAG_INPUT (1 << 1)
 #define GUI_THREAD_FLAG_EXIT (1 << 2)
 #define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT)
 
-ARRAY_DEF(ViewPortArray, ViewPort*, M_PTR_OPLIST);
-
-typedef struct {
-    GuiCanvasCommitCallback callback;
-    void* context;
-} CanvasCallbackPair;
-
 /** Gui structure */
 struct Gui {
     // Thread and lock
     FuriThread* thread;
-    FuriMutex* mutex;
+    SemaphoreHandle_t mutex;
 
     // Layers and Canvas
-    ViewPortArray_t layers[GuiLayerMAX];
+    ViewPort* layers[GuiLayerMAX];
     lv_obj_t* lvgl_parent;
 
     // Input
@@ -63,19 +34,11 @@ struct Gui {
     */
 };
 
-/** Find enabled ViewPort in ViewPortArray
- *
- * @param[in]  array  The ViewPortArray instance
- *
- * @return     ViewPort instance or NULL
- */
-ViewPort* gui_view_port_find_enabled(ViewPortArray_t array);
-
 /** Update GUI, request redraw
  *
  * @param      gui   Gui instance
  */
-void gui_update(Gui* gui);
+void gui_request_draw();
 
 ///** Input event callback
 // *
@@ -86,21 +49,14 @@ void gui_update(Gui* gui);
 // */
 //void gui_input_events_callback(const void* value, void* ctx);
 
-/** Get count of view ports in layer
- *
- * @param      gui        The Gui instance
- * @param[in]  layer      GuiLayer that we want to get count of view ports
- */
-size_t gui_active_view_port_count(Gui* gui, GuiLayer layer);
-
 /** Lock GUI
  *
  * @param      gui   The Gui instance
  */
-void gui_lock(Gui* gui);
+void gui_lock();
 
 /** Unlock GUI
  *
  * @param      gui   The Gui instance
  */
-void gui_unlock(Gui* gui);
+void gui_unlock();

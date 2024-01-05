@@ -1,16 +1,33 @@
 name: Build
 on: [push]
 jobs:
-  build:
+  Build-Yellow-Board:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: esp-idf build
+      - name: Board select
+        run: cp sdkconfig.board.yellow_board sdkconfig
+      - name: esp32 build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.1
+          esp_idf_version: v5.1.2
           target: esp32
+          path: './'
+  Build-Lilygo-T-Deck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Board select
+        run: cp sdkconfig.board.lilygo_tdeck sdkconfig
+      - name: esp32s3 build
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: v5.1.2
+          target: esp32s3
           path: './'

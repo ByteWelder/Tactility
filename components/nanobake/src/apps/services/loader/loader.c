@@ -6,18 +6,55 @@
 #include <sys/cdefs.h>
 #include "esp_heap_caps.h"
 #include "apps/services/gui/gui.h"
+#include "freertos/semphr.h"
 
 #define TAG "Loader"
 
+// Forward declarations
 static int32_t loader_main(void* p);
-static LoaderStatus loader_do_start_by_id(
-    Loader* loader,
-    const char* id,
-    const char* args,
-    FuriString* error_message
-);
 
-LoaderStatus loader_start_app(Loader* loader, const char* id, const char* args, FuriString* error_message) {
+static Loader* loader = NULL;
+
+static Loader* loader_alloc() {
+    furi_check(loader == NULL);
+    loader = malloc(sizeof(Loader));
+    loader->pubsub = furi_pubsub_alloc();
+    loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
+    loader->thread = furi_thread_alloc_ex(
+        "loader",
+        AppStackSizeLarge, // Last known minimum was 2400 for starting Hello World app
+        &loader_main,
+        NULL
+    );
+    loader->app_data.args = NULL;
+    loader->app_data.app = NULL;
+    loader->app_data.view_port = NULL;
+    loader->mutex = xSemaphoreCreateRecursiveMutex();
+    return loader;
+}
+
+static void loader_free() {
+    furi_check(loader != NULL);
+    furi_thread_free(loader->thread);
+    furi_pubsub_free(loader->pubsub);
+    furi_message_queue_free(loader->queue);
+    furi_mutex_free(loader->mutex);
+    free(loader);
+}
+
+void loader_lock() {
+    furi_assert(loader);
+    furi_assert(loader->mutex);
+    furi_check(xSemaphoreTakeRecursive(loader->mutex, portMAX_DELAY) == pdPASS);
+}
+
+void loader_unlock() {
+    furi_assert(loader);
+    furi_assert(loader->mutex);
+    furi_check(xSemaphoreGiveRecursive(loader->mutex) == pdPASS);
+}
+
+LoaderStatus loader_start_app(const char* id, const char* args, FuriString* error_message) {
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
@@ -32,7 +69,7 @@ LoaderStatus loader_start_app(Loader* loader, const char* id, const char* args, 
     return result.value;
 }
 
-void loader_start_app_nonblocking(Loader* loader, const char* id, const char* args) {
+void loader_start_app_nonblocking(const char* id, const char* args) {
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
@@ -45,51 +82,27 @@ void loader_start_app_nonblocking(Loader* loader, const char* id, const char* ar
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
-void loader_stop_app(Loader* loader) {
+void loader_stop_app() {
     LoaderMessage message;
     message.type = LoaderMessageTypeAppStop;
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
-const AppManifest* _Nullable loader_get_current_app(Loader* loader) {
-    App* app = loader->app_data.app;
-    if (app != NULL) {
-        return app->manifest;
-    } else {
-        return NULL;
-    }
+const AppManifest* _Nullable loader_get_current_app() {
+    loader_lock();
+    const App* app = loader->app_data.app;
+    const AppManifest* manifest = app ? app->manifest : NULL;
+    loader_unlock();
+
+    return manifest;
 }
 
-FuriPubSub* loader_get_pubsub(Loader* loader) {
+FuriPubSub* loader_get_pubsub() {
     furi_assert(loader);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
     // also the loader instance cannot be obtained until the pubsub is created
     return loader->pubsub;
-}
-
-// implementation
-
-static Loader* loader_alloc() {
-    Loader* loader = malloc(sizeof(Loader));
-    loader->pubsub = furi_pubsub_alloc();
-    loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
-    loader->thread = furi_thread_alloc_ex(
-        "loader",
-        2048,
-        &loader_main,
-        NULL
-    );
-    loader->app_data.args = NULL;
-    loader->app_data.app = NULL;
-    return loader;
-}
-
-static void loader_free(Loader* loader) {
-    furi_pubsub_free(loader->pubsub);
-    furi_message_queue_free(loader->queue);
-    furi_thread_free(loader->thread);
-    free(loader);
 }
 
 static void loader_log_status_error(
@@ -128,15 +141,19 @@ static LoaderStatus loader_make_success_status(FuriString* error_message) {
 }
 
 static void loader_start_app_with_manifest(
-    Loader* loader,
     const AppManifest* _Nonnull manifest,
     const char* args
 ) {
+    FURI_LOG_I(TAG, "start with manifest %s", manifest->id);
+
     if (manifest->type != AppTypeUser && manifest->type != AppTypeSystem) {
-        furi_crash("app type not supported by loader");
+        furi_crash("App type not supported by loader");
     }
 
     App* _Nonnull app = furi_app_alloc(manifest);
+
+    loader_lock();
+
     loader->app_data.app = app;
     loader->app_data.args = (void*)args;
 
@@ -149,23 +166,20 @@ static void loader_start_app_with_manifest(
         loader->app_data.view_port = view_port;
         view_port_draw_callback_set(view_port, manifest->on_show, NULL);
 
-        FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-            gui_add_view_port(gui, view_port, GuiLayerWindow);
-        })
+        gui_add_view_port(view_port, GuiLayerWindow);
     } else {
         loader->app_data.view_port = NULL;
     }
+
+    loader_unlock();
 }
 
-// process messages
-
 static LoaderStatus loader_do_start_by_id(
-    Loader* loader,
     const char* id,
     const char* args,
     FuriString* _Nullable error_message
 ) {
-    FURI_LOG_I(TAG, "loader start by id %s", id);
+    FURI_LOG_I(TAG, "Start by id %s", id);
 
     const AppManifest* manifest = app_manifest_registry_find_by_id(id);
     if (manifest == NULL) {
@@ -177,11 +191,13 @@ static LoaderStatus loader_do_start_by_id(
         );
     }
 
-    loader_start_app_with_manifest(loader, manifest, args);
+    loader_start_app_with_manifest(manifest, args);
     return loader_make_success_status(error_message);
 }
 
-static void loader_do_stop_app(Loader* loader) {
+static void loader_do_stop_app() {
+    loader_lock();
+
     App* app = loader->app_data.app;
     if (app == NULL) {
         FURI_LOG_W(TAG, "Stop app: no app running");
@@ -192,9 +208,7 @@ static void loader_do_stop_app(Loader* loader) {
 
     ViewPort* view_port = loader->app_data.view_port;
     if (view_port) {
-        FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-            gui_remove_view_port(gui, view_port);
-        })
+        gui_remove_view_port(view_port);
         view_port_free(view_port);
         loader->app_data.view_port = NULL;
     }
@@ -211,6 +225,8 @@ static void loader_do_stop_app(Loader* loader) {
     furi_app_free(loader->app_data.app);
     loader->app_data.app = NULL;
 
+    loader_unlock();
+
     FURI_LOG_I(
         TAG,
         "Application stopped. Free heap: %zu",
@@ -222,43 +238,38 @@ static void loader_do_stop_app(Loader* loader) {
     furi_pubsub_publish(loader->pubsub, &event);
 }
 
-// app
+bool loader_is_app_running() {
+    loader_lock();
+    bool is_running = loader->app_data.app != NULL;
+    loader_unlock();
+    return is_running;
+}
 
 static int32_t loader_main(void* p) {
     UNUSED(p);
 
-    FuriMessageQueue* queue = NULL;
-    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-        queue = loader->queue;
-    })
-    furi_check(queue != NULL);
-
     LoaderMessage message;
     bool exit_requested = false;
     while (!exit_requested) {
-        if (furi_message_queue_get(queue, &message, FuriWaitForever) == FuriStatusOk) {
-            FURI_LOG_I(TAG, "processing message of type %d", message.type);
+        furi_check(loader != NULL);
+        if (furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
+            FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeStartByName:
-                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-                        if (loader->app_data.app) {
-                            loader_do_stop_app(loader);
-                        }
-                        message.status_value->value = loader_do_start_by_id(
-                            loader,
-                            message.start.id,
-                            message.start.args,
-                            message.start.error_message
-                        );
-                        if (message.api_lock) {
-                            api_lock_unlock(message.api_lock);
-                        }
-                    })
+                    if (loader_is_app_running()) {
+                        loader_do_stop_app();
+                    }
+                    message.status_value->value = loader_do_start_by_id(
+                        message.start.id,
+                        message.start.args,
+                        message.start.error_message
+                    );
+                    if (message.api_lock) {
+                        api_lock_unlock(message.api_lock);
+                    }
                     break;
                 case LoaderMessageTypeAppStop:
-                    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-                        loader_do_stop_app(loader);
-                    })
+                    loader_do_stop_app();
                     break;
                 case LoaderMessageTypeExit:
                     exit_requested = true;
@@ -270,30 +281,30 @@ static int32_t loader_main(void* p) {
     return 0;
 }
 
-static void loader_start(void* p) {
-    Loader* loader = loader_alloc();
-    furi_record_create(RECORD_LOADER, loader);
-    furi_thread_set_priority(loader->thread, FuriThreadPriorityHigh);
+// region AppManifest
+
+static void loader_start(void* parameter) {
+    UNUSED(parameter);
+    furi_check(loader == NULL);
+    loader = loader_alloc();
+
+    furi_thread_set_priority(loader->thread, FuriThreadPriorityNormal);
     furi_thread_start(loader->thread);
 }
 
 static void loader_stop() {
+    furi_check(loader != NULL);
     LoaderMessage message = {
         .api_lock = NULL,
         .type = LoaderMessageTypeExit
     };
 
-    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-        furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+    // Send stop signal to thread and wait for thread to finish
+    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+    furi_thread_join(loader->thread);
 
-        furi_thread_join(loader->thread);
-        furi_thread_free(loader->thread);
-        loader->thread = NULL;
-
-        loader_free(loader);
-    })
-
-    furi_record_destroy(RECORD_LOADER);
+    loader_free();
+    loader = NULL;
 }
 
 const AppManifest loader_app = {
@@ -303,6 +314,7 @@ const AppManifest loader_app = {
     .type = AppTypeService,
     .on_start = &loader_start,
     .on_stop = &loader_stop,
-    .on_show = NULL,
-    .stack_size = AppStackSizeNormal
+    .on_show = NULL
 };
+
+// endregion

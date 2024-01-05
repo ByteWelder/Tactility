@@ -1,5 +1,4 @@
 #include "hello_world.h"
-#include "furi.h"
 #include "apps/services/gui/gui.h"
 #include "apps/services/loader/loader.h"
 
@@ -21,6 +20,5 @@ const AppManifest hello_world_app = {
     .type = AppTypeUser,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = &app_show,
-    .stack_size = AppStackSizeNormal,
+    .on_show = &app_show
 };

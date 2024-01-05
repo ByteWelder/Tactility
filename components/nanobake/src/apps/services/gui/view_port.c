@@ -36,7 +36,7 @@ void view_port_enabled_set(ViewPort* view_port, bool enabled) {
     furi_check(furi_mutex_acquire(view_port->mutex, FuriWaitForever) == FuriStatusOk);
     if (view_port->is_enabled != enabled) {
         view_port->is_enabled = enabled;
-        if (view_port->gui) gui_update(view_port->gui);
+        if (view_port->gui) gui_request_draw();
     }
     furi_check(furi_mutex_release(view_port->mutex) == FuriStatusOk);
 }
@@ -66,7 +66,7 @@ void view_port_update(ViewPort* view_port) {
         ESP_LOGW(TAG, "ViewPort lockup: see %s:%d", __FILE__, __LINE__ - 3);
     }
 
-    if (view_port->gui && view_port->is_enabled) gui_update(view_port->gui);
+    if (view_port->gui && view_port->is_enabled) gui_request_draw();
     furi_mutex_release(view_port->mutex);
 }
 

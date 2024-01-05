@@ -1,6 +1,7 @@
 ## Overview
 
-NanoBake is a front-end application platform for ESP32. It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
+NanoBake is a front-end application platform for ESP32.
+It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
 
 Nanobake provides:
 - A hardware abstraction layer
@@ -16,10 +17,10 @@ Requirements:
 
 ## Technologies
 
+UI is created with [lvgl](https://github.com/lvgl/lvgl) via [esp_lvgl_port](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port).
+
 LCD and input drivers are based on [esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html)
 and [esp_lcd_touch](https://components.espressif.com/components/espressif/esp_lcd_touch).
-
-UI is created with [lvgl](https://github.com/lvgl/lvgl) via [esp_lvgl_port](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port).
 
 ## Supported Hardware
 
@@ -28,33 +29,15 @@ You might have to remove this setting if you're not using the Yellow Board descr
 
 ### Devices
 
-See below for the supported hardware.
 Predefined configurations are available for:
-- Yellow Board / 2432S024 (capacitive touch variant)
+- Yellow Board: 2.4" with capacitive touch (2432S024) (sources: AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
+- LilyGo T-Deck
 - (more will follow)
 
-### Drivers
+Other configurations can be supported, but they require you to set up the drivers yourself:
 
-**Displays** (see [esp-bsp](https://github.com/espressif/esp-bsp/blob/master/LCD.md) and [Espressif Registry](https://components.espressif.com/components?q=esp_lcd)):
-- GC9503
-- GC9A01
-- ILI9341
-- RA8875
-- RM68120
-- SH1107
-- SSD1306
-- SSD1963
-- ST7262E43
-- ST7789
-- ST7796 
- 
-**Touch** (see [Espressif Registry](https://components.espressif.com/components?q=esp_lcd_touch)):
-- CST8xx
-- FT5X06
-- GT1151
-- GT911
-- STMPE610
-- TT2100
+- Display drivers: [esp-bsp](https://github.com/espressif/esp-bsp/blob/master/LCD.md) and [Espressif Registry](https://components.espressif.com/components?q=esp_lcd).
+- Touch drivers: [Espressif Registry](https://components.espressif.com/components?q=esp_lcd_touch).
 
 ## Guide
 
@@ -62,6 +45,16 @@ Until there is proper documentation, here are some pointers:
 - Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
 - [NanoBake](./components/nanobake/inc)
 - [Furi](./components/furi/src)
+
+## Building Firmware
+
+First we have to select the correct device:
+
+1. If you use CLion, close it and delete the `cmake-build-debug` folder.
+2. If you have a `build` folder, then delete it or run `idf.py fullclean`
+3. Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`
+
+Now you can run `idf.py flash monitor`
 
 ## License
 

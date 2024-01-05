@@ -4,6 +4,9 @@
 #include "mutex.h"
 #include "m-dict.h"
 #include "m_cstr_dup.h"
+#include "log.h"
+
+#define TAG "record"
 
 #define FURI_RECORD_FLAG_READY (0x1)
 
@@ -37,7 +40,7 @@ static void furi_record_erase(const char* name, FuriRecordData* record_data) {
 
 void furi_record_init() {
     furi_record = malloc(sizeof(FuriRecord));
-    furi_record->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    furi_record->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     furi_check(furi_record->mutex);
     FuriRecordDataDict_init(furi_record->records);
 }
@@ -111,6 +114,7 @@ bool furi_record_destroy(const char* name) {
 }
 
 void* furi_record_open(const char* name) {
+    furi_assert(name);
     furi_assert(furi_record);
 
     furi_record_lock();
@@ -134,6 +138,7 @@ void* furi_record_open(const char* name) {
 }
 
 void furi_record_close(const char* name) {
+    furi_assert(name);
     furi_assert(furi_record);
 
     furi_record_lock();

@@ -1,0 +1,14 @@
+# Kconfig file for NanoBake example app
+menu "NanoBake App"
+    choice
+        prompt "Board"
+        default NB_BOARD_CUSTOM
+
+        config NB_BOARD_CUSTOM
+            bool "Custom"
+        config NB_BOARD_YELLOW_BOARD_24_CAP
+            bool "Yellow Board (2.4\" capacitive)"
+        config NB_BOARD_LILYGO_TDECK
+            bool "LilyGo T-Deck"
+    endchoice
+endmenu

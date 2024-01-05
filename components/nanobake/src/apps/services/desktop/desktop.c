@@ -1,7 +1,6 @@
 #include "desktop.h"
 #include "lvgl.h"
 #include "check.h"
-#include "record.h"
 #include "apps/services/loader/loader.h"
 #include "apps/services/gui/gui.h"
 #include "apps/services/gui/view_port.h"
@@ -11,9 +10,7 @@ static void on_open_app(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const AppManifest* manifest = lv_event_get_user_data(e);
-        FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-            loader_start_app_nonblocking(loader, manifest->id, NULL);
-        })
+        loader_start_app_nonblocking(manifest->id, NULL);
     }
 }
 
@@ -38,9 +35,7 @@ static void desktop_show(lv_obj_t* parent, void* context) {
 static void desktop_start() {
     ViewPort* view_port = view_port_alloc();
     view_port_draw_callback_set(view_port, &desktop_show, NULL);
-    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-        gui_add_view_port(gui, view_port, GuiLayerDesktop);
-    })
+    gui_add_view_port(view_port, GuiLayerDesktop);
 }
 
 static void desktop_stop() {
@@ -54,6 +49,5 @@ const AppManifest desktop_app = {
     .type = AppTypeDesktop,
     .on_start = &desktop_start,
     .on_stop = &desktop_stop,
-    .on_show = NULL,
-    .stack_size = AppStackSizeNormal
+    .on_show = NULL
 };

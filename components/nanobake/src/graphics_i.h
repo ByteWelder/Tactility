@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-Lvgl nb_graphics_init(Devices _Nonnull* hardware);
+Lvgl nb_graphics_init(Hardware _Nonnull* hardware);
 
 #ifdef __cplusplus
 }

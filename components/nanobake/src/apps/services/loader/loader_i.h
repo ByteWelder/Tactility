@@ -1,11 +1,13 @@
 #pragma once
 #include "api_lock.h"
 #include "app_manifest.h"
+#include "apps/services/gui/view_port.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "loader.h"
 #include "message_queue.h"
 #include "pubsub.h"
 #include "thread.h"
-#include "apps/services/gui/view_port.h"
 
 typedef struct {
     char* args;
@@ -18,6 +20,7 @@ struct Loader {
     FuriPubSub* pubsub;
     FuriMessageQueue* queue;
     LoaderAppData app_data;
+    SemaphoreHandle_t mutex;
 };
 
 typedef enum {

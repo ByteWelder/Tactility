@@ -4,192 +4,36 @@
 #include "gui_i.h"
 #include "log.h"
 #include "record.h"
+#include "kernel.h"
 
 #define TAG "gui"
 
-// Forward declarations from gui_draw.c
+// Forward declarations
 bool gui_redraw_fs(Gui*);
 void gui_redraw(Gui*);
 static int32_t gui_main(void*);
 
-ViewPort* gui_view_port_find_enabled(ViewPortArray_t array) {
-    // Iterating backward
-    ViewPortArray_it_t it;
-    ViewPortArray_it_last(it, array);
-    while (!ViewPortArray_end_p(it)) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if (view_port_is_enabled(view_port)) {
-            ViewPort* view_port = *ViewPortArray_ref(it);
-            return view_port;
-        }
-        ViewPortArray_previous(it);
-    }
-    return NULL;
-}
-
-size_t gui_active_view_port_count(Gui* gui, GuiLayer layer) {
-    furi_assert(gui);
-    furi_check(layer < GuiLayerMAX);
-    size_t ret = 0;
-
-    gui_lock(gui);
-    ViewPortArray_it_t it;
-    ViewPortArray_it_last(it, gui->layers[layer]);
-    while (!ViewPortArray_end_p(it)) {
-        ViewPort* view_port = *ViewPortArray_ref(it);
-        if (view_port_is_enabled(view_port)) {
-            ret++;
-        }
-        ViewPortArray_previous(it);
-    }
-    gui_unlock(gui);
-
-    return ret;
-}
-
-void gui_update(Gui* gui) {
-    furi_assert(gui);
-
-    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
-    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
-}
-
-void gui_lock(Gui* gui) {
-    furi_assert(gui);
-    furi_check(furi_mutex_acquire(gui->mutex, FuriWaitForever) == FuriStatusOk);
-}
-
-void gui_unlock(Gui* gui) {
-    furi_assert(gui);
-    furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
-}
-
-void gui_add_view_port(Gui* gui, ViewPort* view_port, GuiLayer layer) {
-    furi_assert(gui);
-    furi_assert(view_port);
-    furi_check(layer < GuiLayerMAX);
-
-    gui_lock(gui);
-    // Verify that view port is not yet added
-    ViewPortArray_it_t it;
-    for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_it(it, gui->layers[i]);
-        while (!ViewPortArray_end_p(it)) {
-            furi_assert(*ViewPortArray_ref(it) != view_port);
-            ViewPortArray_next(it);
-        }
-    }
-    // Add view port and link with gui
-    ViewPortArray_push_back(gui->layers[layer], view_port);
-    view_port_gui_set(view_port, gui);
-    gui_unlock(gui);
-
-    // Request redraw
-    gui_update(gui);
-}
-
-void gui_remove_view_port(Gui* gui, ViewPort* view_port) {
-    furi_assert(gui);
-    furi_assert(view_port);
-
-    gui_lock(gui);
-    view_port_gui_set(view_port, NULL);
-    ViewPortArray_it_t it;
-    for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_it(it, gui->layers[i]);
-        while (!ViewPortArray_end_p(it)) {
-            if (*ViewPortArray_ref(it) == view_port) {
-                ViewPortArray_remove(gui->layers[i], it);
-            } else {
-                ViewPortArray_next(it);
-            }
-        }
-    }
-    /*
-    if(gui->ongoing_input_view_port == view_port) {
-        gui->ongoing_input_view_port = NULL;
-    }
-    */
-    gui_unlock(gui);
-
-    // Request redraw
-    gui_update(gui);
-}
-
-void gui_view_port_send_to_front(Gui* gui, ViewPort* view_port) {
-    furi_assert(gui);
-    furi_assert(view_port);
-
-    gui_lock(gui);
-    // Remove
-    GuiLayer layer = GuiLayerMAX;
-    ViewPortArray_it_t it;
-    for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_it(it, gui->layers[i]);
-        while (!ViewPortArray_end_p(it)) {
-            if (*ViewPortArray_ref(it) == view_port) {
-                ViewPortArray_remove(gui->layers[i], it);
-                furi_assert(layer == GuiLayerMAX);
-                layer = i;
-            } else {
-                ViewPortArray_next(it);
-            }
-        }
-    }
-    furi_assert(layer != GuiLayerMAX);
-    // Return to the top
-    ViewPortArray_push_back(gui->layers[layer], view_port);
-    gui_unlock(gui);
-
-    // Request redraw
-    gui_update(gui);
-}
-
-void gui_view_port_send_to_back(Gui* gui, ViewPort* view_port) {
-    furi_assert(gui);
-    furi_assert(view_port);
-
-    gui_lock(gui);
-    // Remove
-    GuiLayer layer = GuiLayerMAX;
-    ViewPortArray_it_t it;
-    for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_it(it, gui->layers[i]);
-        while (!ViewPortArray_end_p(it)) {
-            if (*ViewPortArray_ref(it) == view_port) {
-                ViewPortArray_remove(gui->layers[i], it);
-                furi_assert(layer == GuiLayerMAX);
-                layer = i;
-            } else {
-                ViewPortArray_next(it);
-            }
-        }
-    }
-    furi_assert(layer != GuiLayerMAX);
-    // Return to the top
-    ViewPortArray_push_at(gui->layers[layer], 0, view_port);
-    gui_unlock(gui);
-
-    // Request redraw
-    gui_update(gui);
-}
+static Gui* gui = NULL;
 
 Gui* gui_alloc() {
-    Gui* gui = malloc(sizeof(Gui));
-    gui->thread = furi_thread_alloc_ex(
+    Gui* instance = malloc(sizeof(Gui));
+    memset(instance, 0, sizeof(Gui));
+    furi_check(instance != NULL);
+    instance->thread = furi_thread_alloc_ex(
         "gui",
-        2048,
+        AppStackSizeLarge, // Last known minimum was 2800 for launching desktop
         &gui_main,
         NULL
     );
-    gui->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+
+    instance->mutex = xSemaphoreCreateRecursiveMutex();
 
     furi_check(lvgl_port_lock(100));
-    gui->lvgl_parent = lv_scr_act();
+    instance->lvgl_parent = lv_scr_act();
     lvgl_port_unlock();
 
     for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_init(gui->layers[i]);
+        instance->layers[i] = NULL;
     }
 
     /*
@@ -200,25 +44,72 @@ Gui* gui_alloc() {
     furi_check(gui->input_events);
     furi_pubsub_subscribe(gui->input_events, gui_input_events_callback, gui);
     */
-    return gui;
+    return instance;
 }
 
-void gui_free(Gui* gui) {
-    furi_thread_free(gui->thread);
+void gui_free(Gui* instance) {
+    furi_assert(instance != NULL);
+    furi_thread_free(instance->thread);
+    furi_mutex_free(instance->mutex);
+    free(instance);
+}
 
-    if (gui->mutex) {
-        furi_mutex_free(gui->mutex);
-    }
+void gui_lock() {
+    furi_assert(gui);
+    furi_assert(gui->mutex);
+    furi_check(xSemaphoreTakeRecursive(gui->mutex, portMAX_DELAY) == pdPASS);
+}
 
+void gui_unlock() {
+    furi_assert(gui);
+    furi_assert(gui->mutex);
+    furi_check(xSemaphoreGiveRecursive(gui->mutex) == pdPASS);
+}
+
+void gui_request_draw() {
+    furi_assert(gui);
+
+    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
+    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
+}
+
+void gui_add_view_port(ViewPort* view_port, GuiLayer layer) {
+    furi_assert(gui);
+    furi_assert(view_port);
+    furi_check(layer < GuiLayerMAX);
+
+    gui_lock();
+    furi_check(gui->layers[layer] == NULL, "layer in use");
+    gui->layers[layer] = view_port;
+    view_port_gui_set(view_port, gui);
+    gui_unlock();
+
+    gui_request_draw();
+}
+
+void gui_remove_view_port(ViewPort* view_port) {
+    furi_assert(gui);
+    furi_assert(view_port);
+
+    gui_lock();
+
+    view_port_gui_set(view_port, NULL);
     for (size_t i = 0; i < GuiLayerMAX; i++) {
-        ViewPortArray_clear(gui->layers[i]);
+        if (gui->layers[i] == view_port) {
+            gui->layers[i] = NULL;
+            break;
+        }
     }
 
-    free(gui);
+    gui_unlock();
+
+    gui_request_draw();
 }
 
-static int32_t gui_main(void* parameter) {
-    UNUSED(parameter);
+static int32_t gui_main(void* p) {
+    UNUSED(p);
+    furi_check(gui);
+    Gui* local_gui = gui;
 
     while (1) {
         uint32_t flags = furi_thread_flags_wait(
@@ -236,11 +127,10 @@ static int32_t gui_main(void* parameter) {
         }*/
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
-            FURI_LOG_D(TAG, "redraw requested");
             furi_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
-            FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-                gui_redraw(gui);
-            })
+            gui_lock();
+            gui_redraw(local_gui);
+            gui_unlock();
         }
 
         if (flags & GUI_THREAD_FLAG_EXIT) {
@@ -252,29 +142,27 @@ static int32_t gui_main(void* parameter) {
     return 0;
 }
 
+// region AppManifest
+
 static void gui_start(void* parameter) {
     UNUSED(parameter);
 
-    Gui* gui = gui_alloc();
-    furi_record_create(RECORD_GUI, gui);
-    furi_thread_set_priority(gui->thread, FuriThreadPriorityHigh);
+    gui = gui_alloc();
+
+    furi_thread_set_priority(gui->thread, FuriThreadPriorityNormal);
     furi_thread_start(gui->thread);
 }
 
 static void gui_stop() {
-    FURI_RECORD_TRANSACTION(RECORD_GUI, Gui*, gui, {
-        gui_lock(gui);
+    gui_lock();
 
-        FuriThreadId thread_id = furi_thread_get_id(gui->thread);
-        furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
-        furi_thread_join(gui->thread);
+    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
+    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+    furi_thread_join(gui->thread);
 
-        gui_unlock(gui);
+    gui_unlock();
 
-        gui_free(gui);
-    })
-
-    furi_record_destroy(RECORD_GUI);
+    gui_free(gui);
 }
 
 const AppManifest gui_app = {
@@ -284,6 +172,7 @@ const AppManifest gui_app = {
     .type = AppTypeService,
     .on_start = &gui_start,
     .on_stop = &gui_stop,
-    .on_show = NULL,
-    .stack_size = AppStackSizeNormal
+    .on_show = NULL
 };
+
+// endregion
