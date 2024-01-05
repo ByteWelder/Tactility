@@ -1,7 +1,5 @@
 #pragma once
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include "gui.h"
 #include "message_queue.h"
 #include "mutex.h"
@@ -19,7 +17,7 @@
 struct Gui {
     // Thread and lock
     FuriThread* thread;
-    SemaphoreHandle_t mutex;
+    FuriMutex* mutex;
 
     // Layers and Canvas
     ViewPort* layers[GuiLayerMAX];
