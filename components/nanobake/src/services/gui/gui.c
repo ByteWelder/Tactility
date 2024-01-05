@@ -25,7 +25,7 @@ Gui* gui_alloc() {
         NULL
     );
 
-    instance->mutex = xSemaphoreCreateRecursiveMutex();
+    instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
 
     furi_check(lvgl_port_lock(100));
     instance->lvgl_parent = lv_scr_act();
@@ -56,13 +56,13 @@ void gui_free(Gui* instance) {
 void gui_lock() {
     furi_assert(gui);
     furi_assert(gui->mutex);
-    furi_check(xSemaphoreTakeRecursive(gui->mutex, portMAX_DELAY) == pdPASS);
+    furi_check(furi_mutex_acquire(gui->mutex, 1000 / portTICK_PERIOD_MS) == FuriStatusOk);
 }
 
 void gui_unlock() {
     furi_assert(gui);
     furi_assert(gui->mutex);
-    furi_check(xSemaphoreGiveRecursive(gui->mutex) == pdPASS);
+    furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
 }
 
 void gui_request_draw() {

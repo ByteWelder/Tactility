@@ -49,23 +49,6 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance);
  */
 uint32_t furi_semaphore_get_count(FuriSemaphore* instance);
 
-/** Wait for the semaphore to become available
- *
- * @param      instance  The pointer to FuriSemaphore instance
- * @param      timeout   The maximum amount of ticks to wait for the semaphore to become available
- *
- * @return     True if the semaphore became available. False on timeout.
- */
-bool furi_semaphore_take(FuriSemaphore* instance, TickType_t timeout);
-
-/** Wait for the semaphore to become available
- *
- * @param      instance  The pointer to FuriSemaphore instance
- *
- * @return     True if the semaphore became available. False on timeout.
- */
-bool furi_semaphore_give(FuriSemaphore* instance);
-
 #ifdef __cplusplus
 }
 #endif
