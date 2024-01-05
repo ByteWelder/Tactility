@@ -5,7 +5,7 @@
 #include "hello_world/hello_world.h"
 
 __attribute__((unused)) void app_main(void) {
-    static Config config = {
+    static const Config config = {
         .hardware = NB_BOARD_HARDWARE,
         .apps = {
             &hello_world_app
