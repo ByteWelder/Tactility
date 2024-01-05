@@ -4,9 +4,7 @@
 #include "apps/services/loader/loader.h"
 
 static void app_toolbar_close(lv_event_t* event) {
-    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-        loader_stop_app(loader);
-    })
+    loader_stop_app();
 }
 
 void toolbar(lv_obj_t* parent, lv_coord_t offset_y, const AppManifest* manifest) {

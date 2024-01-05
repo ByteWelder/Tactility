@@ -109,7 +109,7 @@ void furi_thread_set_appid(FuriThread* thread, const char* appid);
  * 
  * @param thread 
  */
-void furi_thread_mark_as_service(FuriThread* thread);
+void furi_thread_mark_as_static(FuriThread* thread);
 
 /** Set FuriThread stack size
  *

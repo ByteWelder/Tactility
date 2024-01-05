@@ -38,6 +38,5 @@ AppManifest system_info_app = {
     .type = AppTypeSystem,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = app_show,
-    .stack_size = AppStackSizeNormal
+    .on_show = app_show
 };

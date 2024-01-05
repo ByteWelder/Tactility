@@ -8,8 +8,6 @@
 extern "C" {
 #endif
 
-#define RECORD_LOADER "loader"
-
 typedef struct Loader Loader;
 
 typedef enum {
@@ -36,7 +34,7 @@ typedef struct {
  * @param[out] error_message detailed error message, can be NULL
  * @return LoaderStatus
  */
-LoaderStatus loader_start_app(Loader* loader, const char* id, const char* args, FuriString* error_message);
+LoaderStatus loader_start_app(const char* id, const char* args, FuriString* error_message);
 
 /**
  * @brief Close any running app, then start new one. Non-blocking.
@@ -44,11 +42,13 @@ LoaderStatus loader_start_app(Loader* loader, const char* id, const char* args, 
  * @param[in] id application name or id
  * @param[in] args application arguments
  */
-void loader_start_app_nonblocking(Loader* loader, const char* id, const char* args);
+void loader_start_app_nonblocking(const char* id, const char* args);
 
-void loader_stop_app(Loader* loader);
+void loader_stop_app();
 
-const AppManifest* _Nullable loader_get_current_app(Loader* loader);
+bool loader_is_app_running();
+
+const AppManifest* _Nullable loader_get_current_app();
 /**
  * @brief Start application with GUI error message
  * @param[in] instance loader instance
@@ -56,20 +56,20 @@ const AppManifest* _Nullable loader_get_current_app(Loader* loader);
  * @param[in] args application arguments
  * @return LoaderStatus
  */
-//LoaderStatus loader_start_with_gui_error(Loader* loader, const char* name, const char* args);
+//LoaderStatus loader_start_with_gui_error(const char* name, const char* args);
 
 /**
  * @brief Show loader menu
  * @param[in] instance loader instance
  */
-void loader_show_menu(Loader* instance);
+void loader_show_menu();
 
 /**
  * @brief Get loader pubsub
  * @param[in] instance loader instance
  * @return FuriPubSub*
  */
-FuriPubSub* loader_get_pubsub(Loader* instance);
+FuriPubSub* loader_get_pubsub();
 
 #ifdef __cplusplus
 }

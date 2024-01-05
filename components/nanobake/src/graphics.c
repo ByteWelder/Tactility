@@ -23,7 +23,7 @@ Lvgl nb_graphics_init(Hardware _Nonnull* hardware) {
         .io_handle = display->io_handle,
         .panel_handle = display->display_handle,
         .buffer_size = display->horizontal_resolution * display->draw_buffer_height * (display->bits_per_pixel / 8),
-        .double_buffer = 0,
+        .double_buffer = display->double_buffering,
         .hres = display->horizontal_resolution,
         .vres = display->vertical_resolution,
         .monochrome = display->monochrome,

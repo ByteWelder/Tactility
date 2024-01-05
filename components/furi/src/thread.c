@@ -51,7 +51,7 @@ struct FuriThread {
 
     // Keep all non-alignable byte types in one place,
     // this ensures that the size of this structure is minimal
-    bool is_service;
+    bool is_static;
     bool heap_trace_enabled;
 
     configSTACK_DEPTH_TYPE stack_size;
@@ -113,7 +113,7 @@ static void furi_thread_body(void* context) {
 
     furi_assert(thread->state == FuriThreadStateRunning);
 
-    if (thread->is_service) {
+    if (thread->is_static) {
         ESP_LOGI(
             TAG,
             "%s service thread TCB memory will not be reclaimed",
@@ -135,7 +135,7 @@ FuriThread* furi_thread_alloc() {
     // TODO: create default struct instead of using memset()
     memset(thread, 0, sizeof(FuriThread));
     thread->output.buffer = furi_string_alloc();
-    thread->is_service = false;
+    thread->is_static = false;
 
     FuriThread* parent = NULL;
     if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
@@ -207,8 +207,8 @@ void furi_thread_set_appid(FuriThread* thread, const char* appid) {
     thread->appid = appid ? strdup(appid) : NULL;
 }
 
-void furi_thread_mark_as_service(FuriThread* thread) {
-    thread->is_service = true;
+void furi_thread_mark_as_static(FuriThread* thread) {
+    thread->is_static = true;
 }
 
 bool furi_thread_mark_is_service(FuriThreadId thread_id) {
@@ -216,7 +216,7 @@ bool furi_thread_mark_is_service(FuriThreadId thread_id) {
     assert(!FURI_IS_IRQ_MODE() && (hTask != NULL));
     FuriThread* thread = (FuriThread*)pvTaskGetThreadLocalStoragePointer(hTask, 0);
     assert(thread != NULL);
-    return thread->is_service;
+    return thread->is_static;
 }
 
 void furi_thread_set_stack_size(FuriThread* thread, size_t stack_size) {
@@ -281,7 +281,7 @@ void furi_thread_start(FuriThread* thread) {
 
     uint32_t stack = thread->stack_size / sizeof(StackType_t);
     UBaseType_t priority = thread->priority ? thread->priority : FuriThreadPriorityNormal;
-    if (thread->is_service) {
+    if (thread->is_static) {
         thread->task_handle = xTaskCreateStatic(
             furi_thread_body,
             thread->name,

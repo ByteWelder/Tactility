@@ -13,6 +13,7 @@ typedef struct {
     uint16_t vertical_resolution;
     uint16_t draw_buffer_height;
     uint16_t bits_per_pixel;
+    bool double_buffering;
     bool mirror_x;
     bool mirror_y;
     bool swap_xy;

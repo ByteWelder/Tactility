@@ -20,6 +20,5 @@ const AppManifest hello_world_app = {
     .type = AppTypeUser,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = &app_show,
-    .stack_size = AppStackSizeNormal,
+    .on_show = &app_show
 };

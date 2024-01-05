@@ -39,12 +39,10 @@ static lv_obj_t* screen_with_top_bar_and_toolbar(lv_obj_t* parent) {
 
     top_bar(vertical_container);
 
-    FURI_RECORD_TRANSACTION(RECORD_LOADER, Loader*, loader, {
-        const AppManifest* manifest = loader_get_current_app(loader);
-        if (manifest != NULL) {
-            toolbar(vertical_container, TOP_BAR_HEIGHT, manifest);
-        }
-    })
+    const AppManifest* manifest = loader_get_current_app();
+    if (manifest != NULL) {
+        toolbar(vertical_container, TOP_BAR_HEIGHT, manifest);
+    }
 
     lv_obj_t* spacer = lv_obj_create(vertical_container);
     lv_obj_set_size(spacer, 2, 2);
@@ -60,7 +58,7 @@ static lv_obj_t* screen_with_top_bar_and_toolbar(lv_obj_t* parent) {
 }
 
 static bool gui_redraw_window(Gui* gui) {
-    ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerWindow]);
+    ViewPort* view_port = gui->layers[GuiLayerWindow];
     if (view_port) {
         lv_obj_t* container = screen_with_top_bar_and_toolbar(gui->lvgl_parent);
         view_port_draw(view_port, container);
@@ -71,7 +69,7 @@ static bool gui_redraw_window(Gui* gui) {
 }
 
 static bool gui_redraw_desktop(Gui* gui) {
-    ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerDesktop]);
+    ViewPort* view_port = gui->layers[GuiLayerDesktop];
     if (view_port) {
         lv_obj_t* container = screen_with_top_bar(gui->lvgl_parent);
         view_port_draw(view_port, container);
@@ -84,7 +82,7 @@ static bool gui_redraw_desktop(Gui* gui) {
 }
 
 bool gui_redraw_fs(Gui* gui) {
-    ViewPort* view_port = gui_view_port_find_enabled(gui->layers[GuiLayerFullscreen]);
+    ViewPort* view_port = gui->layers[GuiLayerFullscreen];
     if (view_port) {
         view_port_draw(view_port, gui->lvgl_parent);
         return true;
@@ -95,7 +93,6 @@ bool gui_redraw_fs(Gui* gui) {
 
 void gui_redraw(Gui* gui) {
     furi_assert(gui);
-    gui_lock(gui);
 
     furi_check(lvgl_port_lock(100));
     lv_obj_clean(gui->lvgl_parent);
@@ -107,6 +104,4 @@ void gui_redraw(Gui* gui) {
     }
 
     lvgl_port_unlock();
-
-    gui_unlock(gui);
 }

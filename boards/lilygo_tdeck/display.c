@@ -20,7 +20,7 @@
 #define LCD_HORIZONTAL_RESOLUTION 320
 #define LCD_VERTICAL_RESOLUTION 240
 #define LCD_BITS_PER_PIXEL 16
-#define LCD_DRAW_BUFFER_HEIGHT 80
+#define LCD_DRAW_BUFFER_HEIGHT (LCD_VERTICAL_RESOLUTION / 10)
 
 // Backlight PWM
 #define LCD_BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
@@ -153,6 +153,7 @@ static bool create_display_device(DisplayDevice* display) {
     display->draw_buffer_height = LCD_DRAW_BUFFER_HEIGHT;
     display->bits_per_pixel = LCD_BITS_PER_PIXEL;
     display->monochrome = false;
+    display->double_buffering = false;
 
     tdeck_backlight();
 
