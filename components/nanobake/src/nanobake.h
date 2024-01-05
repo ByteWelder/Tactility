@@ -30,7 +30,7 @@ typedef struct {
     const AppManifest* const apps[];
 } Config;
 
-__attribute__((unused)) extern void nanobake_start(Config _Nonnull* config);
+__attribute__((unused)) extern void nanobake_start(const Config _Nonnull* config);
 
 FuriThreadId nanobake_get_app_thread_id(size_t index);
 size_t nanobake_get_app_thread_count();

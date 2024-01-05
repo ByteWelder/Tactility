@@ -4,8 +4,10 @@
 #include "furi.h"
 #include "graphics_i.h"
 #include "partitions.h"
-
+#include "apps/services/gui/gui.h"
 #define TAG "nanobake"
+
+Gui* gui_alloc();
 
 // System services
 extern const AppManifest gui_app;
@@ -50,7 +52,7 @@ static void start_desktop() {
     FURI_LOG_I(TAG, "Startup complete");
 }
 
-__attribute__((unused)) extern void nanobake_start(Config* _Nonnull config) {
+__attribute__((unused)) extern void nanobake_start(const Config* _Nonnull config) {
     furi_init();
 
     nb_partitions_init();

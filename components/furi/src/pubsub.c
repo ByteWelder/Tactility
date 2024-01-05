@@ -13,13 +13,14 @@ LIST_DEF(FuriPubSubSubscriptionList, FuriPubSubSubscription, M_POD_OPLIST);
 
 struct FuriPubSub {
     FuriPubSubSubscriptionList_t items;
+    // TODO: replace recursive mutex with semaphore
     FuriMutex* mutex;
 };
 
 FuriPubSub* furi_pubsub_alloc() {
     FuriPubSub* pubsub = malloc(sizeof(FuriPubSub));
 
-    pubsub->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    pubsub->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     furi_assert(pubsub->mutex);
 
     FuriPubSubSubscriptionList_init(pubsub->items);

@@ -65,7 +65,7 @@ FURI_NORETURN void __furi_halt_implementation();
     do {                                   \
         if (!(__e)) {                      \
             ESP_LOGE("check", "%s", #__e); \
-            __furi_crash(__m);             \
+            __furi_crash(#__m);            \
         }                                  \
     } while (0)
 
@@ -83,7 +83,7 @@ FURI_NORETURN void __furi_halt_implementation();
     do {                                    \
         if (!(__e)) {                       \
             ESP_LOGE("assert", "%s", #__e); \
-            __furi_crash(__m);              \
+            __furi_crash(#__m);             \
         }                                   \
     } while (0)
 #else
