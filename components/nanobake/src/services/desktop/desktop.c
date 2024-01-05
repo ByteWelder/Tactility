@@ -1,10 +1,9 @@
-#include "desktop.h"
-#include "lvgl.h"
-#include "check.h"
-#include "apps/services/loader/loader.h"
-#include "apps/services/gui/gui.h"
-#include "apps/services/gui/view_port.h"
 #include "app_manifest_registry.h"
+#include "check.h"
+#include "lvgl.h"
+#include "services/gui/gui.h"
+#include "services/gui/view_port.h"
+#include "services/loader/loader.h"
 
 static void on_open_app(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
@@ -42,12 +41,8 @@ static void desktop_stop() {
     furi_crash("desktop_stop is not implemented");
 }
 
-const AppManifest desktop_app = {
+const ServiceManifest desktop_service = {
     .id = "desktop",
-    .name = "Desktop",
-    .icon = NULL,
-    .type = AppTypeDesktop,
     .on_start = &desktop_start,
-    .on_stop = &desktop_stop,
-    .on_show = NULL
+    .on_stop = &desktop_stop
 };

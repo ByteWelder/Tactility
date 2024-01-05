@@ -6,10 +6,6 @@
 
 #define TAG "app_registry"
 
-typedef struct {
-    const AppManifest* manifest;
-} AppEntry;
-
 DICT_DEF2(AppManifestDict, const char*, M_CSTR_DUP_OPLIST, const AppManifest*, M_PTR_OPLIST)
 
 #define APP_REGISTRY_FOR_EACH(manifest_var_name, code_to_execute)                                               \
@@ -17,7 +13,7 @@ DICT_DEF2(AppManifestDict, const char*, M_CSTR_DUP_OPLIST, const AppManifest*, M
         app_registry_lock();                                                                                    \
         AppManifestDict_it_t it;                                                                                \
         for (AppManifestDict_it(it, app_manifest_dict); !AppManifestDict_end_p(it); AppManifestDict_next(it)) { \
-            const AppManifest* (manifest_var_name) = AppManifestDict_cref(it)->value;                           \
+            const AppManifest*(manifest_var_name) = AppManifestDict_cref(it)->value;                            \
             code_to_execute;                                                                                    \
         }                                                                                                       \
         app_registry_unlock();                                                                                  \

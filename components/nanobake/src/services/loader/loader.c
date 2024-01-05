@@ -1,12 +1,13 @@
-#include "loader.h"
 #include "app_i.h"
 #include "app_manifest.h"
 #include "app_manifest_registry.h"
-#include "loader_i.h"
-#include <sys/cdefs.h>
 #include "esp_heap_caps.h"
-#include "apps/services/gui/gui.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "loader_i.h"
+#include "service_manifest.h"
+#include "services/gui/gui.h"
+#include <sys/cdefs.h>
 
 #define TAG "Loader"
 
@@ -22,7 +23,7 @@ static Loader* loader_alloc() {
     loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
     loader->thread = furi_thread_alloc_ex(
         "loader",
-        AppStackSizeLarge, // Last known minimum was 2400 for starting Hello World app
+        4096, // Last known minimum was 2400 for starting Hello World app
         &loader_main,
         NULL
     );
@@ -307,14 +308,10 @@ static void loader_stop() {
     loader = NULL;
 }
 
-const AppManifest loader_app = {
+const ServiceManifest loader_service = {
     .id = "loader",
-    .name = "Loader",
-    .icon = NULL,
-    .type = AppTypeService,
     .on_start = &loader_start,
-    .on_stop = &loader_stop,
-    .on_show = NULL
+    .on_stop = &loader_stop
 };
 
 // endregion

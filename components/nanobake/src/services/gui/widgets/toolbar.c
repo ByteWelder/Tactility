@@ -1,7 +1,6 @@
 #include "toolbar.h"
-#include "record.h"
-#include "apps/services/gui/widgets/widgets.h"
-#include "apps/services/loader/loader.h"
+#include "services/gui/widgets/widgets.h"
+#include "services/loader/loader.h"
 
 static void app_toolbar_close(lv_event_t* event) {
     loader_stop_app();
@@ -19,7 +18,7 @@ void toolbar(lv_obj_t* parent, lv_coord_t offset_y, const AppManifest* manifest)
     lv_obj_t* close_button = lv_btn_create(toolbar);
     lv_obj_set_size(close_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
     lv_obj_set_style_no_padding(close_button);
-    lv_obj_add_event_cb(close_button, &app_toolbar_close,LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(close_button, &app_toolbar_close, LV_EVENT_CLICKED, NULL);
     lv_obj_t* close_button_image = lv_img_create(close_button);
     lv_img_set_src(close_button_image, LV_SYMBOL_CLOSE);
     lv_obj_align(close_button_image, LV_ALIGN_CENTER, 0, 0);

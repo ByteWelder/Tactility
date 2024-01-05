@@ -1,18 +1,17 @@
 #include "furi.h"
 #include "app_manifest_registry.h"
-#include <string.h>
-
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#define TAG "furi"
+
 void furi_init() {
+    FURI_LOG_I(TAG, "init start");
     furi_assert(!furi_kernel_is_irq());
 
     if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
         vTaskSuspendAll();
     }
-
-    furi_record_init();
 
     xTaskResumeAll();
 
@@ -24,4 +23,5 @@ void furi_init() {
 #endif
 
     app_manifest_registry_init();
+    FURI_LOG_I(TAG, "init complete");
 }

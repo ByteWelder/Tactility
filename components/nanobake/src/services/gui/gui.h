@@ -1,20 +1,18 @@
 #pragma once
 
-#include "app_manifest.h"
+#include "service_manifest.h"
 #include "view_port.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern const AppManifest gui_app;
-
 /** Gui layers */
 typedef enum {
-    GuiLayerDesktop, /**< Desktop layer for internal use. Like fullscreen but with status bar */
-    GuiLayerWindow, /**< Window layer, status bar is shown */
+    GuiLayerDesktop,    /**< Desktop layer for internal use. Like fullscreen but with status bar */
+    GuiLayerWindow,     /**< Window layer, status bar is shown */
     GuiLayerFullscreen, /**< Fullscreen layer, no status bar */
-    GuiLayerMAX /**< Don't use or move, special value */
+    GuiLayerMAX         /**< Don't use or move, special value */
 } GuiLayer;
 
 typedef struct Gui Gui;

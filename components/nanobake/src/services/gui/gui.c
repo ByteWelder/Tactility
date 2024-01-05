@@ -3,7 +3,6 @@
 #include "furi_extra_defines.h"
 #include "gui_i.h"
 #include "log.h"
-#include "record.h"
 #include "kernel.h"
 
 #define TAG "gui"
@@ -21,7 +20,7 @@ Gui* gui_alloc() {
     furi_check(instance != NULL);
     instance->thread = furi_thread_alloc_ex(
         "gui",
-        AppStackSizeLarge, // Last known minimum was 2800 for launching desktop
+        4096, // Last known minimum was 2800 for launching desktop
         &gui_main,
         NULL
     );
@@ -165,14 +164,10 @@ static void gui_stop() {
     gui_free(gui);
 }
 
-const AppManifest gui_app = {
+const ServiceManifest gui_service = {
     .id = "gui",
-    .name = "GUI",
-    .icon = NULL,
-    .type = AppTypeService,
     .on_start = &gui_start,
-    .on_stop = &gui_stop,
-    .on_show = NULL
+    .on_stop = &gui_stop
 };
 
 // endregion

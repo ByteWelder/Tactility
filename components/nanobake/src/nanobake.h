@@ -3,10 +3,14 @@
 #include "app_manifest.h"
 #include "devices.h"
 #include "furi_extra_defines.h"
+#include "service_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define CONFIG_APPS_LIMIT 32
+#define CONFIG_SERVICES_LIMIT 32
 
 // Forward declarations
 typedef void* FuriThreadId;
@@ -26,8 +30,8 @@ typedef struct {
 typedef struct {
     const HardwareConfig* hardware;
     // List of user applications
-    const size_t apps_count;
-    const AppManifest* const apps[];
+    const AppManifest* const apps[CONFIG_APPS_LIMIT];
+    const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];
 } Config;
 
 __attribute__((unused)) extern void nanobake_start(const Config _Nonnull* config);
