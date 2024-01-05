@@ -10,10 +10,10 @@ Nanobake provides:
 
 Requirements:
 - ESP32 (any?)
-- [esp-idf 5.1.x](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html)
+- [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
 - a display (connected via SPI or I2C)
 
-**Status: pre-alpha**
+**Status: Alpha**
 
 ## Technologies
 
@@ -24,14 +24,11 @@ and [esp_lcd_touch](https://components.espressif.com/components/espressif/esp_lc
 
 ## Supported Hardware
 
-**NOTE**: `sdkconfig.defaults` currently contains `CONFIG_LV_COLOR_16_SWAP=y`. 
-You might have to remove this setting if you're not using the Yellow Board described below.
-
 ### Devices
 
 Predefined configurations are available for:
-- Yellow Board: 2.4" with capacitive touch (2432S024) (sources: AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
-- LilyGo T-Deck
+- Yellow Board: 2.4" with capacitive touch (2432S024) (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
+- LilyGo T-Deck (see [lilygo.cc](https://www.lilygo.cc/products/t-deck), [AliExpress](https://www.aliexpress.com/item/1005005692235592.html))
 - (more will follow)
 
 Other configurations can be supported, but they require you to set up the drivers yourself:
@@ -43,16 +40,16 @@ Other configurations can be supported, but they require you to set up the driver
 
 Until there is proper documentation, here are some pointers:
 - Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
-- [NanoBake](./components/nanobake/inc)
-- [Furi](./components/furi/src)
+- [NanoBake](./components/nanobake/): the main platform with default services and apps
+- [Furi](./components/furi/): the core platform code, based on Flipper Zero firmware
 
 ## Building Firmware
 
 First we have to select the correct device:
 
 1. If you use CLion, close it and delete the `cmake-build-debug` folder.
-2. If you have a `build` folder, then delete it or run `idf.py fullclean`
-3. Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`
+2. Run `idf.py fullclean` to remove any cache from previous builds (or delete `build` folder manually)
+3. Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
 
 Now you can run `idf.py flash monitor`
 
