@@ -6,6 +6,10 @@
 
 __attribute__((unused)) void app_main(void) {
     static const Config config = {
+        /**
+         * Auto-select a board based on the ./sdkconfig.board.* file
+         * that you copied to ./sdkconfig before you opened this project.
+         */
         .hardware = NB_BOARD_HARDWARE,
         .apps = {
             &hello_world_app
