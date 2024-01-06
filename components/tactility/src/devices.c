@@ -5,7 +5,7 @@
 
 #define TAG "hardware"
 
-Hardware nb_hardware_init(const HardwareConfig _Nonnull* config) {
+Hardware tt_hardware_init(const HardwareConfig _Nonnull* config) {
     if (config->bootstrap != NULL) {
         ESP_LOGI(TAG, "Bootstrapping");
         config->bootstrap();
@@ -14,13 +14,13 @@ Hardware nb_hardware_init(const HardwareConfig _Nonnull* config) {
     furi_check(config->display_driver != NULL, "no display driver configured");
     DisplayDriver display_driver = config->display_driver();
     ESP_LOGI(TAG, "display with driver %s", display_driver.name);
-    DisplayDevice* display = nb_display_device_alloc(&display_driver);
+    DisplayDevice* display = tt_display_device_alloc(&display_driver);
 
     TouchDevice* touch = NULL;
     if (config->touch_driver != NULL) {
         TouchDriver touch_driver = config->touch_driver();
         ESP_LOGI(TAG, "touch with driver %s", touch_driver.name);
-        touch = nb_touch_alloc(&touch_driver);
+        touch = tt_touch_alloc(&touch_driver);
     } else {
         ESP_LOGI(TAG, "no touch configured");
         touch = NULL;

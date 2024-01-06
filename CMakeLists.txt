@@ -16,4 +16,4 @@ if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
 endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(NanoBake)
+project(Tactility)

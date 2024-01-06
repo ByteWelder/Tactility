@@ -1,5 +1,4 @@
-# Yellow Board only runs on ESP32
-set(project_components nanobake)
+set(project_components tactility)
 
 if("${IDF_TARGET}" STREQUAL "esp32")
     list(APPEND project_components yellow_board)

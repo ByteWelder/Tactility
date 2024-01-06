@@ -34,10 +34,7 @@ typedef struct {
     const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];
 } Config;
 
-__attribute__((unused)) extern void nanobake_start(const Config _Nonnull* config);
-
-FuriThreadId nanobake_get_app_thread_id(size_t index);
-size_t nanobake_get_app_thread_count();
+__attribute__((unused)) extern void tactility_start(const Config _Nonnull* config);
 
 #ifdef __cplusplus
 }

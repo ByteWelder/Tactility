@@ -1,10 +1,10 @@
-#include "nanobake.h"
-#include "esp_log.h"
+#include "driver/ledc.h"
+#include "driver/spi_master.h"
 #include "esp_err.h"
 #include "esp_lcd_panel_ops.h"
-#include "driver/spi_master.h"
 #include "esp_lcd_panel_vendor.h"
-#include "driver/ledc.h"
+#include "esp_log.h"
+#include "tactility.h"
 
 #define TAG "lilygo_tdeck_display"
 

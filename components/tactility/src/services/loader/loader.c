@@ -59,7 +59,7 @@ LoaderStatus loader_start_app(const char* id, const char* args, FuriString* erro
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
-    message.type = LoaderMessageTypeStartByName;
+    message.type = LoaderMessageTypeAppStart;
     message.start.id = id;
     message.start.args = args;
     message.start.error_message = error_message;
@@ -74,7 +74,7 @@ void loader_start_app_nonblocking(const char* id, const char* args) {
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
-    message.type = LoaderMessageTypeStartByName;
+    message.type = LoaderMessageTypeAppStart;
     message.start.id = id;
     message.start.args = args;
     message.start.error_message = NULL;
@@ -173,6 +173,11 @@ static void loader_start_app_with_manifest(
     }
 
     loader_unlock();
+
+    LoaderEvent event = {
+        .type = LoaderEventTypeApplicationStarted
+    };
+    furi_pubsub_publish(loader->pubsub, &event);
 }
 
 static LoaderStatus loader_do_start_by_id(
@@ -234,8 +239,9 @@ static void loader_do_stop_app() {
         heap_caps_get_free_size(MALLOC_CAP_INTERNAL)
     );
 
-    LoaderEvent event;
-    event.type = LoaderEventTypeApplicationStopped;
+    LoaderEvent event = {
+        .type = LoaderEventTypeApplicationStopped
+    };
     furi_pubsub_publish(loader->pubsub, &event);
 }
 
@@ -256,7 +262,7 @@ static int32_t loader_main(void* p) {
         if (furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
             FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
-                case LoaderMessageTypeStartByName:
+                case LoaderMessageTypeAppStart:
                     if (loader_is_app_running()) {
                         loader_do_stop_app();
                     }
@@ -272,7 +278,7 @@ static int32_t loader_main(void* p) {
                 case LoaderMessageTypeAppStop:
                     loader_do_stop_app();
                     break;
-                case LoaderMessageTypeExit:
+                case LoaderMessageTypeServiceStop:
                     exit_requested = true;
                     break;
             }
@@ -297,7 +303,7 @@ static void loader_stop() {
     furi_check(loader != NULL);
     LoaderMessage message = {
         .api_lock = NULL,
-        .type = LoaderMessageTypeExit
+        .type = LoaderMessageTypeServiceStop
     };
 
     // Send stop signal to thread and wait for thread to finish

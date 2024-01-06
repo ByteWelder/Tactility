@@ -1,4 +1,4 @@
-#include "nanobake.h"
+#include "tactility.h"
 #include "board_config.h"
 
 // Apps
@@ -10,12 +10,12 @@ __attribute__((unused)) void app_main(void) {
          * Auto-select a board based on the ./sdkconfig.board.* file
          * that you copied to ./sdkconfig before you opened this project.
          */
-        .hardware = NB_BOARD_HARDWARE,
+        .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app
         },
         .services = { },
     };
 
-    nanobake_start(&config);
+    tactility_start(&config);
 }

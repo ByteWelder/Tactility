@@ -23,7 +23,7 @@ typedef struct {
  * @param[in] driver
  * @return a newly allocated instance
  */
-TouchDevice _Nonnull* nb_touch_alloc(TouchDriver _Nonnull* driver);
+TouchDevice _Nonnull* tt_touch_alloc(TouchDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

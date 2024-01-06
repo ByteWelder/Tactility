@@ -1,9 +1,9 @@
 ## Overview
 
-NanoBake is a front-end application platform for ESP32.
+Tactility is a front-end application platform for ESP32. It is mainly intended for touchscreen devices.
 It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
 
-Nanobake provides:
+Tactility provides:
 - A hardware abstraction layer
 - UI capabilities (via LVGL)
 - An application platform that can run apps and services
@@ -40,7 +40,7 @@ Other configurations can be supported, but they require you to set up the driver
 
 Until there is proper documentation, here are some pointers:
 - Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
-- [NanoBake](./components/nanobake/): the main platform with default services and apps
+- [Tactility](./components/tactility/): the main platform with default services and apps
 - [Furi](./components/furi/): the core platform code, based on Flipper Zero firmware
 
 ## Building Firmware
