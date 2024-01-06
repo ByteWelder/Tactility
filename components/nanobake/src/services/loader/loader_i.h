@@ -25,16 +25,16 @@ struct Loader {
 };
 
 typedef enum {
-    LoaderMessageTypeStartByName,
+    LoaderMessageTypeAppStart,
     LoaderMessageTypeAppStop,
-    LoaderMessageTypeExit,
+    LoaderMessageTypeServiceStop,
 } LoaderMessageType;
 
 typedef struct {
     const char* id;
     const char* args;
     FuriString* error_message;
-} LoaderMessageStartById;
+} LoaderMessageAppStart;
 
 typedef struct {
     LoaderStatus value;
@@ -51,7 +51,7 @@ typedef struct {
     LoaderMessageType type;
 
     union {
-        LoaderMessageStartById start;
+        LoaderMessageAppStart start;
     };
 
     union {
