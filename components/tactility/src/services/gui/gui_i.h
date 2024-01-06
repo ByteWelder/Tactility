@@ -33,8 +33,6 @@ struct Gui {
 };
 
 /** Update GUI, request redraw
- *
- * @param      gui   Gui instance
  */
 void gui_request_draw();
 
@@ -48,13 +46,9 @@ void gui_request_draw();
 //void gui_input_events_callback(const void* value, void* ctx);
 
 /** Lock GUI
- *
- * @param      gui   The Gui instance
  */
 void gui_lock();
 
 /** Unlock GUI
- *
- * @param      gui   The Gui instance
  */
 void gui_unlock();

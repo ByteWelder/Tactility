@@ -1,5 +1,6 @@
 #pragma once
 
+#include "context.h"
 #include "gui_i.h"
 #include "mutex.h"
 #include "view_port.h"
@@ -10,7 +11,7 @@ struct ViewPort {
     bool is_enabled;
 
     ViewPortDrawCallback draw_callback;
-    void* draw_callback_context;
+    Context* draw_callback_context;
 
     /*
     ViewPortInputCallback input_callback;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "context.h"
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -15,20 +16,20 @@ typedef enum {
     AppTypeUser
 } AppType;
 
-typedef void (*AppOnStart)(void _Nonnull* parameter);
-typedef void (*AppOnStop)();
-typedef void (*AppOnShow)(lv_obj_t* parent, void* context);
+typedef void (*AppOnStart)(Context* context);
+typedef void (*AppOnStop)(Context* context);
+typedef void (*AppOnShow)(Context* context, lv_obj_t* parent);
 
 typedef struct {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
-    const char* _Nonnull id;
+    const char* id;
 
     /**
      * The user-readable name of the app. Used in UI.
      */
-    const char* _Nonnull name;
+    const char* name;
 
     /**
      * Optional icon.

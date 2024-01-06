@@ -143,8 +143,8 @@ static int32_t gui_main(void* p) {
 
 // region AppManifest
 
-static void gui_start(void* parameter) {
-    UNUSED(parameter);
+static void gui_start(Context* context) {
+    UNUSED(context);
 
     gui = gui_alloc();
 
@@ -152,7 +152,9 @@ static void gui_start(void* parameter) {
     furi_thread_start(gui->thread);
 }
 
-static void gui_stop() {
+static void gui_stop(Context* context) {
+    UNUSED(context);
+
     gui_lock();
 
     FuriThreadId thread_id = furi_thread_get_id(gui->thread);

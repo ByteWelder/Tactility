@@ -1,7 +1,9 @@
 #include "furi.h"
+
 #include "app_manifest_registry.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "service_registry.h"
 
 #define TAG "furi"
 
@@ -22,6 +24,7 @@ void furi_init() {
     NVIC_SetPriority(SVCall_IRQn, 0U);
 #endif
 
+    service_registry_init();
     app_manifest_registry_init();
     FURI_LOG_I(TAG, "init complete");
 }
