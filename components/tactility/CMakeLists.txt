@@ -5,6 +5,7 @@ idf_component_register(
     "src/services/loader"
     "src/services/gui"
     "src/services/gui/widgets"
+    "src/services/wifi"
     INCLUDE_DIRS "src"
     REQUIRES esp_lvgl_port esp_lcd esp_lcd_touch driver mlib cmsis_core furi nvs_flash spiffs fatfs
 )

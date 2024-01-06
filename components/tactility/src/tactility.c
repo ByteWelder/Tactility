@@ -14,6 +14,7 @@ Gui* gui_alloc();
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
 extern const ServiceManifest desktop_service;
+extern const ServiceManifest wifi_service;
 
 // System apps
 extern const AppManifest system_info_app;
@@ -48,6 +49,7 @@ static void start_system_services() {
     start_service(&gui_service);
     start_service(&loader_service);
     start_service(&desktop_service);
+    start_service(&wifi_service);
     FURI_LOG_I(TAG, "System services started");
 }
 
