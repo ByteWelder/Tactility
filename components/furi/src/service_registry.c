@@ -100,7 +100,7 @@ bool service_registry_start(const char* service_id) {
     FURI_LOG_I(TAG, "starting %s", service_id);
     const ServiceManifest* manifest = service_registry_find_manifest_by_id(service_id);
     if (manifest == NULL) {
-        FURI_LOG_I(TAG, "manifest not found for %s", service_id);
+        FURI_LOG_E(TAG, "manifest not found for service %s", service_id);
         return false;
     }
 
@@ -119,7 +119,7 @@ bool service_registry_stop(const char* service_id) {
     FURI_LOG_I(TAG, "stopping %s", service_id);
     Service* service = service_registry_find_instance_by_id(service_id);
     if (service == NULL) {
-        FURI_LOG_I(TAG, "service not running: %s", service_id);
+        FURI_LOG_W(TAG, "service not running: %s", service_id);
         return false;
     }
 

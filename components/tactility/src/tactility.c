@@ -43,6 +43,7 @@ static void register_system_services() {
     service_registry_add(&gui_service);
     service_registry_add(&loader_service);
     service_registry_add(&desktop_service);
+    service_registry_add(&wifi_service);
 }
 
 static void start_system_services() {

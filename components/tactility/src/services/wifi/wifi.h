@@ -4,6 +4,23 @@
 extern "C" {
 #endif
 
+#include "pubsub.h"
+
+typedef enum {
+    WifiEventTypeScanStarted,
+    WifiEventTypeScanFinished
+} WifiEventType;
+
+typedef struct {
+    WifiEventType type;
+} WifiEvent;
+
+/**
+ * @brief Get wifi pubsub
+ * @return FuriPubSub*
+ */
+FuriPubSub* wifi_get_pubsub();
+
 #ifdef __cplusplus
 }
 #endif
