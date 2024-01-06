@@ -1,12 +1,12 @@
-#include "nanobake.h"
-#include "esp_lcd_ili9341.h"
-#include "esp_log.h"
-#include "esp_err.h"
-#include "esp_lcd_panel_ops.h"
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
+#include "esp_err.h"
+#include "esp_lcd_ili9341.h"
+#include "esp_lcd_panel_ops.h"
+#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "tactility.h"
 
 #define TAG "2432s024_ili9341"
 

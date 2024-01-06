@@ -1,12 +1,12 @@
-#include "nanobake.h"
 #include "app_manifest_registry.h"
 #include "devices_i.h"
 #include "furi.h"
 #include "graphics_i.h"
 #include "partitions.h"
 #include "services/gui/gui.h"
+#include "tactility.h"
 
-#define TAG "nanobake"
+#define TAG "tactility"
 
 Gui* gui_alloc();
 
@@ -68,7 +68,7 @@ static void start_user_services(const Config* _Nonnull config) {
     FURI_LOG_I(TAG, "User services started");
 }
 
-__attribute__((unused)) extern void nanobake_start(const Config* _Nonnull config) {
+__attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
     furi_init();
 
     nb_partitions_init();
