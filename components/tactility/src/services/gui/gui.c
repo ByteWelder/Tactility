@@ -24,7 +24,7 @@ Gui* gui_alloc() {
         &gui_main,
         NULL
     );
-
+    instance->active_layer = GuiLayerNone;
     instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
 
     furi_check(lvgl_port_lock(100));
@@ -127,9 +127,7 @@ static int32_t gui_main(void* p) {
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
             furi_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
-            gui_lock();
             gui_redraw(local_gui);
-            gui_unlock();
         }
 
         if (flags & GUI_THREAD_FLAG_EXIT) {

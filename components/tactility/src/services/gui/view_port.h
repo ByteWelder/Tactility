@@ -20,7 +20,8 @@ typedef enum {
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
-typedef void (*ViewPortDrawCallback)(Context* context, lv_obj_t* parent);
+typedef void (*ViewPortShowCallback)(Context* context, lv_obj_t* parent);
+typedef void (*ViewPortHideCallback)(Context* context);
 
 /** ViewPort allocator
  *
@@ -50,10 +51,16 @@ bool view_port_is_enabled(const ViewPort* view_port);
 /** ViewPort event callbacks
  *
  * @param      view_port  ViewPort instance
- * @param      callback   appropriate callback function
+ * @param      on_show    Called to create LVGL widgets
+ * @param      on_hide    Called before clearing the LVGL widget parent
  * @param      context    context to pass to callback
  */
-void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, Context* context);
+void view_port_draw_callback_set(
+    ViewPort* view_port,
+    ViewPortShowCallback on_show,
+    ViewPortHideCallback on_hide,
+    Context* context
+);
 /** Emit update signal to GUI system.
  *
  * Rendering will happen later after GUI system process signal.

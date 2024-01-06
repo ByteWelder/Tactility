@@ -21,6 +21,11 @@ typedef struct {
  */
 FuriPubSub* wifi_get_pubsub();
 
+/**
+ * @brief Request scanning update.
+ */
+void wifi_scan();
+
 #ifdef __cplusplus
 }
 #endif

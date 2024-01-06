@@ -23,6 +23,8 @@ struct Gui {
     ViewPort* layers[GuiLayerMAX];
     lv_obj_t* lvgl_parent;
 
+    GuiLayer active_layer;
+
     // Input
     /*
     FuriMessageQueue* input_queue;

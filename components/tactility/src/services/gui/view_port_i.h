@@ -10,8 +10,9 @@ struct ViewPort {
     FuriMutex* mutex;
     bool is_enabled;
 
-    ViewPortDrawCallback draw_callback;
-    Context* draw_callback_context;
+    ViewPortShowCallback on_show;
+    ViewPortHideCallback on_hide;
+    Context* context;
 
     /*
     ViewPortInputCallback input_callback;
@@ -36,6 +37,8 @@ void view_port_gui_set(ViewPort* view_port, Gui* gui);
  * @param      canvas     canvas to draw at
  */
 void view_port_draw(ViewPort* view_port, lv_obj_t* parent);
+
+void view_port_undraw(ViewPort* view_port);
 
 /** Process input. Calls input callback.
  *

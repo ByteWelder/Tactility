@@ -6,6 +6,8 @@
 #include "graphics_i.h"
 #include "partitions.h"
 #include "service_registry.h"
+#include "esp_wifi.h"
+#include "nvs_flash.h"
 
 #define TAG "tactility"
 
@@ -18,6 +20,8 @@ extern const ServiceManifest wifi_service;
 // System apps
 extern const AppManifest system_info_app;
 extern const AppManifest wifi_app;
+
+int32_t wifi_main(void* p);
 
 static void register_system_apps() {
     FURI_LOG_I(TAG, "Registering default apps");
@@ -69,7 +73,16 @@ static void register_and_start_user_services(const Config* _Nonnull config) {
 }
 
 __attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
+
     furi_init();
+
+    // Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 
     tt_partitions_init();
 
@@ -85,4 +98,10 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     // Start all services
     start_system_services();
     register_and_start_user_services(config);
+
+    // Network interface
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    wifi_main(NULL);
 }

@@ -9,10 +9,11 @@ extern "C" {
 
 /** Gui layers */
 typedef enum {
-    GuiLayerDesktop,    /**< Desktop layer for internal use. Like fullscreen but with status bar */
-    GuiLayerWindow,     /**< Window layer, status bar is shown */
-    GuiLayerFullscreen, /**< Fullscreen layer, no status bar */
-    GuiLayerMAX         /**< Don't use or move, special value */
+    GuiLayerNone = -1,
+    GuiLayerFullscreen = 0, /**< Fullscreen layer, no status bar */
+    GuiLayerWindow,         /**< Window layer, status bar is shown */
+    GuiLayerDesktop,        /**< Desktop layer for internal use. Like fullscreen but with status bar */
+    GuiLayerMAX             /**< Don't use or move, special value */
 } GuiLayer;
 
 typedef struct Gui Gui;

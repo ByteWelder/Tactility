@@ -2,6 +2,7 @@
 #include "furi_extra_defines.h"
 #include "thread.h"
 #include "lvgl.h"
+#include "esp_wifi.h"
 
 static void app_show(Context* context, lv_obj_t* parent) {
     UNUSED(context);

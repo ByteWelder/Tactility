@@ -163,6 +163,7 @@ static void loader_start_app_with_manifest(
         view_port_draw_callback_set(
             view_port,
             manifest->on_show,
+            manifest->on_hide,
             &loader->app_data.app->context
         );
         gui_add_view_port(view_port, GuiLayerWindow);
@@ -293,12 +294,12 @@ static void loader_start(Context* context) {
 static void loader_stop(Context* context) {
     UNUSED(context);
     furi_check(loader != NULL);
+
+    // Send stop signal to thread and wait for thread to finish
     LoaderMessage message = {
         .api_lock = NULL,
         .type = LoaderMessageTypeServiceStop
     };
-
-    // Send stop signal to thread and wait for thread to finish
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
     furi_thread_join(loader->thread);
 

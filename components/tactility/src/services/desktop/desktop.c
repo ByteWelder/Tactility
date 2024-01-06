@@ -33,7 +33,7 @@ static void desktop_show(Context* context, lv_obj_t* parent) {
 
 static void desktop_start() {
     ViewPort* view_port = view_port_alloc();
-    view_port_draw_callback_set(view_port, &desktop_show, NULL);
+    view_port_draw_callback_set(view_port, &desktop_show, NULL, NULL);
     gui_add_view_port(view_port, GuiLayerDesktop);
 }
 

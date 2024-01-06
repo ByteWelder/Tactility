@@ -20,6 +20,7 @@ struct Loader {
     FuriPubSub* pubsub;
     FuriMessageQueue* queue;
     LoaderAppData app_data;
+    // TODO: replace with FuriMutex
     SemaphoreHandle_t mutex;
 };
 
