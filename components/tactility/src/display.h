@@ -31,7 +31,7 @@ typedef struct {
  * @param[in] driver
  * @return allocated display object
  */
-DisplayDevice _Nonnull* nb_display_device_alloc(DisplayDriver _Nonnull* driver);
+DisplayDevice _Nonnull* tt_display_device_alloc(DisplayDriver _Nonnull* driver);
 
 #ifdef __cplusplus
 }

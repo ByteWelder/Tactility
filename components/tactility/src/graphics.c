@@ -5,7 +5,7 @@
 
 #define TAG "lvgl"
 
-Lvgl nb_graphics_init(Hardware _Nonnull* hardware) {
+Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,
         .task_stack = 4096,

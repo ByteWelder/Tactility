@@ -71,10 +71,10 @@ static void start_user_services(const Config* _Nonnull config) {
 __attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
     furi_init();
 
-    nb_partitions_init();
+    tt_partitions_init();
 
-    Hardware hardware = nb_hardware_init(config->hardware);
-    /*NbLvgl lvgl =*/nb_graphics_init(&hardware);
+    Hardware hardware = tt_hardware_init(config->hardware);
+    /*NbLvgl lvgl =*/tt_graphics_init(&hardware);
 
     // Register all apps
     register_system_apps();
