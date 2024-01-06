@@ -5,8 +5,19 @@ idf_component_register(
     "src/services/loader"
     "src/services/gui"
     "src/services/gui/widgets"
+
     INCLUDE_DIRS "src"
-    REQUIRES esp_lvgl_port esp_lcd esp_lcd_touch driver mlib cmsis_core furi nvs_flash spiffs fatfs
+
+    REQUIRES cmsis_core
+        esp_lcd
+        esp_lcd_touch
+        esp_lvgl_port
+        driver
+        fatfs
+        furi
+        mlib
+        nvs_flash
+        spiffs
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")

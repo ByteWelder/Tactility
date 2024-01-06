@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include "lvgl.h"
+#include "context.h"
 
 typedef struct ViewPort ViewPort;
 
@@ -19,7 +20,7 @@ typedef enum {
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
-typedef void (*ViewPortDrawCallback)(lv_obj_t* parent, void* context);
+typedef void (*ViewPortDrawCallback)(Context* context, lv_obj_t* parent);
 
 /** ViewPort allocator
  *
@@ -52,7 +53,7 @@ bool view_port_is_enabled(const ViewPort* view_port);
  * @param      callback   appropriate callback function
  * @param      context    context to pass to callback
  */
-void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, void* context);
+void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, Context* context);
 /** Emit update signal to GUI system.
  *
  * Rendering will happen later after GUI system process signal.

@@ -9,7 +9,7 @@ static void on_open_app(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const AppManifest* manifest = lv_event_get_user_data(e);
-        loader_start_app_nonblocking(manifest->id, NULL);
+        loader_start_app_nonblocking(manifest->id);
     }
 }
 
@@ -20,7 +20,7 @@ static void add_app_to_list(const AppManifest* manifest, void* _Nullable parent)
     lv_obj_add_event_cb(btn, &on_open_app, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void desktop_show(lv_obj_t* parent, void* context) {
+static void desktop_show(Context* context, lv_obj_t* parent) {
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));
     lv_obj_center(list);

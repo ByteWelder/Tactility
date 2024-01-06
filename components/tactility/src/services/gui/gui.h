@@ -21,7 +21,6 @@ typedef struct Gui Gui;
  *
  * @remark     thread safe
  *
- * @param      gui        Gui instance
  * @param      view_port  ViewPort instance
  * @param[in]  layer      GuiLayer where to place view_port
  */
@@ -31,7 +30,6 @@ void gui_add_view_port(ViewPort* view_port, GuiLayer layer);
  *
  * @remark     thread safe
  *
- * @param      gui        Gui instance
  * @param      view_port  ViewPort instance
  */
 void gui_remove_view_port(ViewPort* view_port);

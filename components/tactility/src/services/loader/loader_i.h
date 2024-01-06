@@ -11,7 +11,6 @@
 #include "thread.h"
 
 typedef struct {
-    char* args;
     App* app;
     ViewPort* view_port;
 } LoaderAppData;
@@ -32,7 +31,6 @@ typedef enum {
 
 typedef struct {
     const char* id;
-    const char* args;
     FuriString* error_message;
 } LoaderMessageAppStart;
 

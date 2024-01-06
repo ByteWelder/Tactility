@@ -27,7 +27,6 @@ static Loader* loader_alloc() {
         &loader_main,
         NULL
     );
-    loader->app_data.args = NULL;
     loader->app_data.app = NULL;
     loader->app_data.view_port = NULL;
     loader->mutex = xSemaphoreCreateRecursiveMutex();
@@ -55,13 +54,12 @@ void loader_unlock() {
     furi_check(xSemaphoreGiveRecursive(loader->mutex) == pdPASS);
 }
 
-LoaderStatus loader_start_app(const char* id, const char* args, FuriString* error_message) {
+LoaderStatus loader_start_app(const char* id, FuriString* error_message) {
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
     message.type = LoaderMessageTypeAppStart;
     message.start.id = id;
-    message.start.args = args;
     message.start.error_message = error_message;
     message.api_lock = api_lock_alloc_locked();
     message.status_value = &result;
@@ -70,13 +68,12 @@ LoaderStatus loader_start_app(const char* id, const char* args, FuriString* erro
     return result.value;
 }
 
-void loader_start_app_nonblocking(const char* id, const char* args) {
+void loader_start_app_nonblocking(const char* id) {
     LoaderMessage message;
     LoaderMessageLoaderStatusResult result;
 
     message.type = LoaderMessageTypeAppStart;
     message.start.id = id;
-    message.start.args = args;
     message.start.error_message = NULL;
     message.api_lock = NULL;
     message.status_value = &result;
@@ -142,8 +139,7 @@ static LoaderStatus loader_make_success_status(FuriString* error_message) {
 }
 
 static void loader_start_app_with_manifest(
-    const AppManifest* _Nonnull manifest,
-    const char* args
+    const AppManifest* _Nonnull manifest
 ) {
     FURI_LOG_I(TAG, "start with manifest %s", manifest->id);
 
@@ -156,17 +152,19 @@ static void loader_start_app_with_manifest(
     loader_lock();
 
     loader->app_data.app = app;
-    loader->app_data.args = (void*)args;
 
     if (manifest->on_start != NULL) {
-        manifest->on_start((void*)args);
+        manifest->on_start(&loader->app_data.app->context);
     }
 
     if (manifest->on_show != NULL) {
         ViewPort* view_port = view_port_alloc();
         loader->app_data.view_port = view_port;
-        view_port_draw_callback_set(view_port, manifest->on_show, NULL);
-
+        view_port_draw_callback_set(
+            view_port,
+            manifest->on_show,
+            &loader->app_data.app->context
+        );
         gui_add_view_port(view_port, GuiLayerWindow);
     } else {
         loader->app_data.view_port = NULL;
@@ -182,7 +180,6 @@ static void loader_start_app_with_manifest(
 
 static LoaderStatus loader_do_start_by_id(
     const char* id,
-    const char* args,
     FuriString* _Nullable error_message
 ) {
     FURI_LOG_I(TAG, "Start by id %s", id);
@@ -197,7 +194,7 @@ static LoaderStatus loader_do_start_by_id(
         );
     }
 
-    loader_start_app_with_manifest(manifest, args);
+    loader_start_app_with_manifest(manifest);
     return loader_make_success_status(error_message);
 }
 
@@ -220,12 +217,7 @@ static void loader_do_stop_app() {
     }
 
     if (app->manifest->on_stop) {
-        app->manifest->on_stop();
-    }
-
-    if (loader->app_data.args) {
-        free(loader->app_data.args);
-        loader->app_data.args = NULL;
+        app->manifest->on_stop(&app->context);
     }
 
     furi_app_free(loader->app_data.app);
@@ -268,7 +260,6 @@ static int32_t loader_main(void* p) {
                     }
                     message.status_value->value = loader_do_start_by_id(
                         message.start.id,
-                        message.start.args,
                         message.start.error_message
                     );
                     if (message.api_lock) {
@@ -290,8 +281,8 @@ static int32_t loader_main(void* p) {
 
 // region AppManifest
 
-static void loader_start(void* parameter) {
-    UNUSED(parameter);
+static void loader_start(Context* context) {
+    UNUSED(context);
     furi_check(loader == NULL);
     loader = loader_alloc();
 
@@ -299,7 +290,8 @@ static void loader_start(void* parameter) {
     furi_thread_start(loader->thread);
 }
 
-static void loader_stop() {
+static void loader_stop(Context* context) {
+    UNUSED(context);
     furi_check(loader != NULL);
     LoaderMessage message = {
         .api_lock = NULL,
