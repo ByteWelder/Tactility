@@ -1,9 +1,9 @@
-#include "system_info.h"
+#include "app_manifest.h"
 #include "furi_extra_defines.h"
 #include "thread.h"
 #include "lvgl.h"
 
-static void app_show(lv_obj_t* parent, void* context) {
+static void app_show(Context* context, lv_obj_t* parent) {
     UNUSED(context);
 
     lv_obj_t* heap_info = lv_label_create(parent);
@@ -38,5 +38,5 @@ AppManifest system_info_app = {
     .type = AppTypeSystem,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = app_show
+    .on_show = &app_show
 };

@@ -1,13 +1,14 @@
 #pragma once
 
 #include <stdio.h>
+#include "context.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void (*ServiceOnStart)(void _Nonnull* parameter);
-typedef void (*ServiceOnStop)();
+typedef void (*ServiceOnStart)(Context* context);
+typedef void (*ServiceOnStop)(Context* context);
 
 typedef struct {
     /**

@@ -48,7 +48,7 @@ bool view_port_is_enabled(const ViewPort* view_port) {
     return is_enabled;
 }
 
-void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, void* context) {
+void view_port_draw_callback_set(ViewPort* view_port, ViewPortDrawCallback callback, Context* context) {
     furi_assert(view_port);
     furi_check(furi_mutex_acquire(view_port->mutex, FuriWaitForever) == FuriStatusOk);
     view_port->draw_callback = callback;
@@ -91,7 +91,7 @@ void view_port_draw(ViewPort* view_port, lv_obj_t* parent) {
     if (view_port->draw_callback) {
         lv_obj_clean(parent);
         lv_obj_set_style_no_padding(parent);
-        view_port->draw_callback(parent, view_port->draw_callback_context);
+        view_port->draw_callback(view_port->draw_callback_context, parent);
     }
 
     furi_mutex_release(view_port->mutex);

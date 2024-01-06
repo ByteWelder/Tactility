@@ -1,14 +1,13 @@
+#include "tactility.h"
+
 #include "app_manifest_registry.h"
 #include "devices_i.h"
 #include "furi.h"
 #include "graphics_i.h"
 #include "partitions.h"
-#include "services/gui/gui.h"
-#include "tactility.h"
+#include "service_registry.h"
 
 #define TAG "tactility"
-
-Gui* gui_alloc();
 
 // System services
 extern const ServiceManifest gui_service;
@@ -17,13 +16,6 @@ extern const ServiceManifest desktop_service;
 
 // System apps
 extern const AppManifest system_info_app;
-
-void start_service(const ServiceManifest* _Nonnull manifest) {
-    FURI_LOG_I(TAG, "Starting service %s", manifest->id);
-    furi_check(manifest->on_start, "service must define on_start");
-    manifest->on_start(NULL);
-    // TODO: keep track of running services
-}
 
 static void register_system_apps() {
     FURI_LOG_I(TAG, "Registering default apps");
@@ -43,12 +35,18 @@ static void register_user_apps(const Config* _Nonnull config) {
     }
 }
 
+static void register_system_services() {
+    FURI_LOG_I(TAG, "Registering system services");
+    service_registry_add(&gui_service);
+    service_registry_add(&loader_service);
+    service_registry_add(&desktop_service);
+}
+
 static void start_system_services() {
     FURI_LOG_I(TAG, "Starting system services");
-    start_service(&gui_service);
-    start_service(&loader_service);
-    start_service(&desktop_service);
-    FURI_LOG_I(TAG, "System services started");
+    service_registry_start(gui_service.id);
+    service_registry_start(loader_service.id);
+    service_registry_start(desktop_service.id);
 }
 
 static void start_user_services(const Config* _Nonnull config) {
@@ -63,7 +61,6 @@ static void start_user_services(const Config* _Nonnull config) {
             break;
         }
     }
-    FURI_LOG_I(TAG, "User services started");
 }
 
 __attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
@@ -75,6 +72,7 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     /*NbLvgl lvgl =*/tt_graphics_init(&hardware);
 
     // Register all apps
+    register_system_services();
     register_system_apps();
     register_user_apps(config);
 

@@ -2,7 +2,7 @@
 #include "services/gui/gui.h"
 #include "services/loader/loader.h"
 
-static void app_show(lv_obj_t* parent, void* context) {
+static void app_show(Context* context, lv_obj_t* parent) {
     UNUSED(context);
 
     lv_obj_t* label = lv_label_create(parent);
