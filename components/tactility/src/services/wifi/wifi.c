@@ -10,13 +10,23 @@
 #include "service_manifest.h"
 
 #define TAG "wifi"
-
-#define SCAN_LIST_SIZE 16
+#define WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
 
 typedef struct {
+    /** @brief Locking mechanism for modifying the Wifi instance */
     FuriMutex* mutex;
+    /** @brief The public event bus */
     FuriPubSub* pubsub;
+    /** @brief The internal message queue */
     FuriMessageQueue* queue;
+    /** @brief The network interface when wifi is started */
+    esp_netif_t* _Nullable netif;
+    /** @brief Scanning results */
+    wifi_ap_record_t* _Nullable scan_list;
+    /** @brief The current item count in scan_list (-1 when scan_list is NULL) */
+    uint16_t scan_list_count; // holds -1 if scan_list is NULL
+    /** @brief Maximum amount of records to scan (value > 0) */
+    uint16_t scan_list_limit;
 } Wifi;
 
 typedef enum {
@@ -31,6 +41,9 @@ typedef struct {
 
 static Wifi* wifi_singleton = NULL;
 
+// Forward declarations
+static void wifi_scan_list_free_safely(Wifi* wifi);
+
 // region Alloc
 
 static Wifi* wifi_alloc() {
@@ -38,6 +51,10 @@ static Wifi* wifi_alloc() {
     instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     instance->pubsub = furi_pubsub_alloc();
     instance->queue = furi_message_queue_alloc(1, sizeof(WifiMessage));
+    instance->netif = NULL;
+    instance->scan_list = NULL;
+    instance->scan_list_count = -1;
+    instance->scan_list_limit = WIFI_SCAN_RECORD_LIMIT;
     return instance;
 }
 
@@ -57,23 +74,19 @@ FuriPubSub* wifi_get_pubsub() {
     return wifi_singleton->pubsub;
 }
 
-static void wifi_lock(Wifi* wifi) {
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
-}
-
-static void wifi_unlock(Wifi* wifi) {
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
-}
-
 void wifi_scan() {
     furi_assert(wifi_singleton);
     WifiMessage message = { .type = WifiMessageTypeScan };
     // No need to lock for queue
     furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+}
+
+void wifi_set_scan_records(uint16_t records) {
+    furi_assert(wifi_singleton);
+    if (records != wifi_singleton->scan_list_limit) {
+        wifi_scan_list_free_safely(wifi_singleton);
+        wifi_singleton->scan_list_limit = records;
+    }
 }
 
 void wifi_set_enabled(bool enabled) {
@@ -97,104 +110,152 @@ bool wifi_get_enabled() {
         case ESP_ERR_INVALID_ARG:
             return false;
         default:
-            furi_crash("unhandled error");
+            furi_crash("Unhandled error");
     }
 }
 
 // endregion Public functions
 
+static void wifi_lock(Wifi* wifi) {
+    furi_assert(wifi);
+    furi_assert(wifi->mutex);
+    furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
+}
+
+static void wifi_unlock(Wifi* wifi) {
+    furi_assert(wifi);
+    furi_assert(wifi->mutex);
+    furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
+}
+
+static void wifi_scan_list_alloc(Wifi* wifi) {
+    furi_check(wifi->scan_list == NULL);
+    wifi->scan_list = malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit);
+    wifi->scan_list_count = 0;
+}
+
+static void wifi_scan_list_alloc_safelty(Wifi* wifi) {
+    if (wifi->scan_list == NULL) {
+        wifi_scan_list_alloc(wifi);
+    }
+}
+
+static void wifi_scan_list_free(Wifi* wifi) {
+    furi_check(wifi->scan_list != NULL);
+    free(wifi->scan_list);
+    wifi->scan_list = NULL;
+    wifi->scan_list_count = -1;
+}
+
+static void wifi_scan_list_free_safely(Wifi* wifi) {
+    if (wifi->scan_list != NULL) {
+        wifi_scan_list_free(wifi);
+    }
+}
+
+static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
+    WifiEvent turning_on_event = { .type = type};
+    furi_pubsub_publish(wifi->pubsub, &turning_on_event);
+}
+
 static void wifi_enable(Wifi* wifi) {
     if (wifi_get_enabled()) {
-        FURI_LOG_W(TAG, "already enabled");
+        FURI_LOG_W(TAG, "Already enabled");
         return;
     }
 
-    WifiEvent turning_on_event = { .type = WifiEventTypeRadioStateOnPending};
-    furi_pubsub_publish(wifi->pubsub, &turning_on_event);
-    // TODO: send turn off event on failure(s)
+    if (wifi->netif != NULL) {
+        esp_netif_destroy(wifi->netif);
+    }
+    wifi->netif = esp_netif_create_default_wifi_sta();
 
-    FURI_LOG_I(TAG, "enabling");
+    FURI_LOG_I(TAG, "Enabling");
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOnPending);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     if (esp_wifi_init(&cfg) != ESP_OK) {
-        FURI_LOG_E(TAG, "wifi init failed");
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        FURI_LOG_E(TAG, "Wifi init failed");
         return;
     }
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        FURI_LOG_E(TAG, "wifi mode setting failed");
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        FURI_LOG_E(TAG, "Wifi mode setting failed");
         esp_wifi_deinit();
         return;
     }
     if (esp_wifi_start() != ESP_OK) {
-        FURI_LOG_E(TAG, "wifi start failed");
+        FURI_LOG_E(TAG, "Wifi start failed");
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         esp_wifi_set_mode(WIFI_MODE_NULL);
         esp_wifi_deinit();
     }
 
-    WifiEvent on_event = { .type = WifiEventTypeRadioStateOn };
-    furi_pubsub_publish(wifi->pubsub, &on_event);
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
 
-    FURI_LOG_I(TAG, "enabled");
+    FURI_LOG_I(TAG, "Enabled");
 }
 
 static void wifi_disable(Wifi* wifi) {
     if (!wifi_get_enabled()) {
-        FURI_LOG_W(TAG, "already disabled");
+        FURI_LOG_W(TAG, "Already disabled");
         return;
     }
 
-    WifiEvent turning_off_event = { .type = WifiEventTypeRadioStateOffPending};
-    furi_pubsub_publish(wifi->pubsub, &turning_off_event);
+    FURI_LOG_I(TAG, "Disabling");
 
-    FURI_LOG_I(TAG, "disabling");
+    // Free up scan list memory
+    wifi_scan_list_free_safely(wifi_singleton);
+
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
     if (esp_wifi_stop() != ESP_OK) {
-        FURI_LOG_E(TAG, "failed to stop radio");
+        FURI_LOG_E(TAG, "Failed to stop radio");
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
         return;
     }
 
     if (esp_wifi_set_mode(WIFI_MODE_NULL) != ESP_OK) {
-        FURI_LOG_E(TAG, "failed to unset mode");
-        return;
+        FURI_LOG_E(TAG, "Failed to unset mode");
     }
 
     if (esp_wifi_deinit() != ESP_OK) {
-        FURI_LOG_E(TAG, "failed to deinit");
-        return;
+        FURI_LOG_E(TAG, "Failed to deinit");
     }
 
-    FURI_LOG_I(TAG, "disabled");
+    furi_check(wifi->netif != NULL);
+    esp_netif_destroy(wifi->netif);
+    wifi->netif = NULL;
 
-    WifiEvent turned_off_event = { .type = WifiEventTypeRadioStateOff };
-    furi_pubsub_publish(wifi->pubsub, &turned_off_event);
+    FURI_LOG_I(TAG, "Disabled");
+
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
 }
 
 static void wifi_scan_internal(Wifi* wifi) {
     if (!wifi_get_enabled()) {
-        FURI_LOG_W(TAG, "Cannot scan: wifi not enabled");
+        FURI_LOG_W(TAG, "Scan unavailable: wifi not enabled");
         return;
     }
 
     FURI_LOG_I(TAG, "Starting scan");
+    wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
 
-    WifiEvent start_event = { .type = WifiEventTypeScanStarted };
-    furi_pubsub_publish(wifi->pubsub, &start_event);
-
-    uint16_t number = SCAN_LIST_SIZE;
-    wifi_ap_record_t ap_info[SCAN_LIST_SIZE];
-    uint16_t ap_count = 0;
-    memset(ap_info, 0, sizeof(ap_info));
+    // Create scan list if it does not exist
+    wifi_scan_list_alloc_safelty(wifi);
+    wifi->scan_list_count = 0;
+    // TODO: free the list after a certain amount of time (it's 84 bytes per record!)
 
     esp_wifi_scan_start(NULL, true);
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
-    ESP_LOGI(TAG, "Total APs scanned = %u", ap_count);
-    for (int i = 0; (i < SCAN_LIST_SIZE) && (i < ap_count); i++) {
-        ESP_LOGI(TAG, " - SSID %s (RSSI %d, channel %d)", ap_info[i].ssid, ap_info[i].rssi, ap_info[i].primary);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&wifi->scan_list_limit, wifi->scan_list));
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&wifi->scan_list_count));
+    FURI_LOG_I(TAG, "Scanned %u APs:", wifi->scan_list_count);
+    for (int i = 0; (i < wifi->scan_list_limit) && (i < wifi->scan_list_count); i++) {
+        wifi_ap_record_t* record = &wifi->scan_list[i];
+        FURI_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
     }
 
-    WifiEvent finished_event = { .type = WifiEventTypeScanFinished };
-    furi_pubsub_publish(wifi->pubsub, &finished_event);
+    wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
     FURI_LOG_I(TAG, "Finished scan");
 }
 
@@ -202,14 +263,10 @@ static void wifi_scan_internal(Wifi* wifi) {
 _Noreturn int32_t wifi_main(void* p) {
     UNUSED(p);
 
-    FURI_LOG_I(TAG, "wifi_main");
+    FURI_LOG_I(TAG, "Started main loop");
     furi_check(wifi_singleton != NULL);
     Wifi* wifi = wifi_singleton;
     FuriMessageQueue* queue = wifi->queue;
-
-    // TODO: create with "radio on" and destroy with "radio off"?
-    esp_netif_t* sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
 
     WifiMessage message;
     while (true) {
@@ -239,14 +296,17 @@ static void wifi_service_start(Context* context) {
 static void wifi_service_stop(Context* context) {
     UNUSED(context);
     furi_check(wifi_singleton != NULL);
-    // Send stop signal to thread and wait for thread to finish
 
     if (wifi_get_enabled()) {
-        // TODO: disable and wait for it to finish
+        wifi_set_enabled(false);
     }
 
     wifi_free(wifi_singleton);
     wifi_singleton = NULL;
+
+    // wifi_main() cannot be stopped yet as it runs in the main task.
+    // We could theoretically exit it, but then we wouldn't be able to restart the service.
+    furi_crash("not fully implemented");
 }
 
 const ServiceManifest wifi_service = {
