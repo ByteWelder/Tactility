@@ -26,21 +26,17 @@ void wifi_view_update(WifiView* view, WifiState* state) {
         lv_obj_add_flag(view->scanning_spinner, LV_OBJ_FLAG_HIDDEN);
     }
 
+    lv_obj_clear_state(view->enable_switch, LV_STATE_ANY);
     switch (state->radio_state) {
         case WIFI_RADIO_ON:
             lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED);
-            lv_obj_clear_state(view->enable_switch, LV_STATE_DISABLED);
             break;
         case WIFI_RADIO_ON_PENDING:
-            lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED);
-            lv_obj_add_state(view->enable_switch, LV_STATE_DISABLED);
+            lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
         case WIFI_RADIO_OFF:
-            lv_obj_clear_state(view->enable_switch, LV_STATE_CHECKED);
-            lv_obj_clear_state(view->enable_switch, LV_STATE_DISABLED);
             break;
         case WIFI_RADIO_OFF_PENDING:
-            lv_obj_clear_state(view->enable_switch, LV_STATE_CHECKED);
             lv_obj_add_state(view->enable_switch, LV_STATE_DISABLED);
             break;
     }

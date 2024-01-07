@@ -106,7 +106,6 @@ static void wifi_enable() {
     furi_pubsub_publish(wifi->pubsub, &turning_on_event);
     // TODO: send turn off event on failure(s)
 
-//    wifi_lock();
     FURI_LOG_I(TAG, "enabling");
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -129,7 +128,6 @@ static void wifi_enable() {
     furi_pubsub_publish(wifi->pubsub, &on_event);
 
     FURI_LOG_I(TAG, "enabled");
-//    wifi_unlock();
 }
 
 static void wifi_disable() {
@@ -141,7 +139,6 @@ static void wifi_disable() {
     WifiEvent turning_off_event = { .type = WifiEventTypeRadioStateOffPending};
     furi_pubsub_publish(wifi->pubsub, &turning_off_event);
 
-//    wifi_lock();
     FURI_LOG_I(TAG, "disabling");
 
     if (esp_wifi_stop() != ESP_OK) {
@@ -160,7 +157,6 @@ static void wifi_disable() {
     }
 
     FURI_LOG_I(TAG, "disabled");
-//    wifi_unlock();
 
     WifiEvent turned_off_event = { .type = WifiEventTypeRadioStateOff };
     furi_pubsub_publish(wifi->pubsub, &turned_off_event);
