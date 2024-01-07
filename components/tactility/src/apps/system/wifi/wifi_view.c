@@ -14,6 +14,8 @@ static void on_enable_switch_changed(lv_event_t* event) {
     }
 }
 
+// region Secondary updates
+
 void wifi_view_create(WifiView* view, lv_obj_t* parent) {
     // TODO: Standardize this into "window content" function?
     // TODO: It can then be dynamically determined based on screen res and size
@@ -55,6 +57,8 @@ void wifi_view_create(WifiView* view, lv_obj_t* parent) {
     lv_obj_set_flex_flow(view->networks_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(view->networks_list, LV_PCT(100));
     lv_obj_set_height(view->networks_list, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_top(view->networks_list, 8, 0);
+    lv_obj_set_style_pad_bottom(view->networks_list, 8, 0);
 }
 
 static void update_network_list(WifiView*view, WifiState* state) {
@@ -68,8 +72,25 @@ static void update_network_list(WifiView*view, WifiState* state) {
         wifi_get_scan_results(records, 16, &count);
         if (count > 0) {
             for (int i = 0; i < count; ++i) {
-                lv_obj_t* label = lv_label_create(view->networks_list);
-                lv_label_set_text(label, (const char*)records[i].ssid);
+                // TODO: move button creation to separate function
+                const char* ssid = (const char*)records[i].ssid;
+                int8_t rssi = records[i].rssi;
+                char* icon = LV_SYMBOL_WIFI;
+                // TODO implement locked/unlocked
+                if (rssi > -67) {
+                    icon = "A:/assets/network_wifi.png";
+                } else if (rssi > -70) {
+                    icon = "A:/assets/network_wifi_3_bar.png";
+                } else if (rssi > -80) {
+                    icon = "A:/assets/network_wifi_2_bar.png";
+                } else {
+                    icon = "A:/assets/network_wifi_1_bar.png";
+                }
+                lv_list_add_btn(
+                    view->networks_list,
+                    icon,
+                    ssid
+                );
             }
             lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
         } else if (state->scanning){
@@ -110,6 +131,10 @@ static void update_wifi_toggle(WifiView* view, WifiState* state) {
     }
 }
 
+// endregion Secondary updates
+
+// region Main
+
 void wifi_view_update(WifiView* view, WifiState* state) {
     update_wifi_toggle(view, state);
     update_scanning(view, state);
@@ -120,3 +145,5 @@ void wifi_view_clear(WifiView* view) {
     view->scanning_spinner = NULL;
     view->enable_switch = NULL;
 }
+
+// endregion Main

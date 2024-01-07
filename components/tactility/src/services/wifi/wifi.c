@@ -102,7 +102,9 @@ void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* resul
             memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
             records[i].rssi = wifi_singleton->scan_list[i].rssi;
         }
-        *result_count = i + 1;
+        // The index already overflowed right before the for-loop was terminated,
+        // so it effectively became the list count:
+        *result_count = i;
     }
 }
 
@@ -281,6 +283,8 @@ static void wifi_scan_internal(Wifi* wifi) {
         wifi_ap_record_t* record = &wifi->scan_list[i];
         FURI_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
     }
+
+    esp_wifi_scan_stop();
 
     wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
     FURI_LOG_I(TAG, "Finished scan");
