@@ -134,7 +134,7 @@ static void wifi_scan_list_alloc(Wifi* wifi) {
     wifi->scan_list_count = 0;
 }
 
-static void wifi_scan_list_alloc_safelty(Wifi* wifi) {
+static void wifi_scan_list_alloc_safely(Wifi* wifi) {
     if (wifi->scan_list == NULL) {
         wifi_scan_list_alloc(wifi);
     }
@@ -164,35 +164,47 @@ static void wifi_enable(Wifi* wifi) {
         return;
     }
 
+    FURI_LOG_I(TAG, "Enabling");
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOnPending);
+
     if (wifi->netif != NULL) {
         esp_netif_destroy(wifi->netif);
     }
     wifi->netif = esp_netif_create_default_wifi_sta();
 
-    FURI_LOG_I(TAG, "Enabling");
-    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOnPending);
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    if (esp_wifi_init(&cfg) != ESP_OK) {
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+    // Warning: this is the memory-intensive operation
+    // It uses over 117kB of RAM with default settings for S3 on IDF v5.1.2
+    wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
+    esp_err_t init_result = esp_wifi_init(&config);
+    if (init_result != ESP_OK) {
         FURI_LOG_E(TAG, "Wifi init failed");
+        if (init_result == ESP_ERR_NO_MEM) {
+            FURI_LOG_E(TAG, "Insufficient memory");
+        }
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
+
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         FURI_LOG_E(TAG, "Wifi mode setting failed");
         esp_wifi_deinit();
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
-    if (esp_wifi_start() != ESP_OK) {
+
+    esp_err_t start_result = esp_wifi_start();
+    if (start_result != ESP_OK) {
         FURI_LOG_E(TAG, "Wifi start failed");
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        if (start_result == ESP_ERR_NO_MEM) {
+            FURI_LOG_E(TAG, "Insufficient memory");
+        }
         esp_wifi_set_mode(WIFI_MODE_NULL);
         esp_wifi_deinit();
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        return;
     }
 
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
-
     FURI_LOG_I(TAG, "Enabled");
 }
 
@@ -203,11 +215,10 @@ static void wifi_disable(Wifi* wifi) {
     }
 
     FURI_LOG_I(TAG, "Disabling");
+    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
     // Free up scan list memory
     wifi_scan_list_free_safely(wifi_singleton);
-
-    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
     if (esp_wifi_stop() != ESP_OK) {
         FURI_LOG_E(TAG, "Failed to stop radio");
@@ -227,9 +238,8 @@ static void wifi_disable(Wifi* wifi) {
     esp_netif_destroy(wifi->netif);
     wifi->netif = NULL;
 
-    FURI_LOG_I(TAG, "Disabled");
-
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+    FURI_LOG_I(TAG, "Disabled");
 }
 
 static void wifi_scan_internal(Wifi* wifi) {
@@ -242,7 +252,7 @@ static void wifi_scan_internal(Wifi* wifi) {
     wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
 
     // Create scan list if it does not exist
-    wifi_scan_list_alloc_safelty(wifi);
+    wifi_scan_list_alloc_safely(wifi);
     wifi->scan_list_count = 0;
     // TODO: free the list after a certain amount of time (it's 84 bytes per record!)
 
