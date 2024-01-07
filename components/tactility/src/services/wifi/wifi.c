@@ -29,7 +29,9 @@ typedef struct {
     WifiMessageType type;
 } WifiMessage;
 
-Wifi* wifi = NULL;
+static Wifi* wifi_singleton = NULL;
+
+// region Alloc
 
 static Wifi* wifi_alloc() {
     Wifi* instance = malloc(sizeof(Wifi));
@@ -46,39 +48,43 @@ static void wifi_free(Wifi* instance) {
     free(instance);
 }
 
+// endregion Alloc
+
+// region Public functions
+
 FuriPubSub* wifi_get_pubsub() {
-    furi_assert(wifi);
-    return wifi->pubsub;
+    furi_assert(wifi_singleton);
+    return wifi_singleton->pubsub;
 }
 
-static void wifi_lock() {
+static void wifi_lock(Wifi* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
 }
 
-static void wifi_unlock() {
+static void wifi_unlock(Wifi* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
 }
 
 void wifi_scan() {
-    furi_assert(wifi);
+    furi_assert(wifi_singleton);
     WifiMessage message = { .type = WifiMessageTypeScan };
     // No need to lock for queue
-    furi_message_queue_put(wifi->queue, &message, 100 / portTICK_PERIOD_MS);
+    furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
 void wifi_set_enabled(bool enabled) {
     if (enabled) {
         WifiMessage message = { .type = WifiMessageTypeRadioOn };
         // No need to lock for queue
-        furi_message_queue_put(wifi->queue, &message, 100 / portTICK_PERIOD_MS);
+        furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     } else {
         WifiMessage message = { .type = WifiMessageTypeRadioOff };
         // No need to lock for queue
-        furi_message_queue_put(wifi->queue, &message, 100 / portTICK_PERIOD_MS);
+        furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     }
 }
 
@@ -88,7 +94,6 @@ bool wifi_get_enabled() {
         case ESP_OK:
             return mode == WIFI_MODE_STA;
         case ESP_ERR_WIFI_NOT_INIT:
-            return false;
         case ESP_ERR_INVALID_ARG:
             return false;
         default:
@@ -96,7 +101,9 @@ bool wifi_get_enabled() {
     }
 }
 
-static void wifi_enable() {
+// endregion Public functions
+
+static void wifi_enable(Wifi* wifi) {
     if (wifi_get_enabled()) {
         FURI_LOG_W(TAG, "already enabled");
         return;
@@ -130,7 +137,7 @@ static void wifi_enable() {
     FURI_LOG_I(TAG, "enabled");
 }
 
-static void wifi_disable() {
+static void wifi_disable(Wifi* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "already disabled");
         return;
@@ -162,7 +169,7 @@ static void wifi_disable() {
     furi_pubsub_publish(wifi->pubsub, &turned_off_event);
 }
 
-static void wifi_scan_internal() {
+static void wifi_scan_internal(Wifi* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Cannot scan: wifi not enabled");
         return;
@@ -196,7 +203,8 @@ _Noreturn int32_t wifi_main(void* p) {
     UNUSED(p);
 
     FURI_LOG_I(TAG, "wifi_main");
-    furi_check(wifi != NULL);
+    furi_check(wifi_singleton != NULL);
+    Wifi* wifi = wifi_singleton;
     FuriMessageQueue* queue = wifi->queue;
 
     // TODO: create with "radio on" and destroy with "radio off"?
@@ -209,40 +217,40 @@ _Noreturn int32_t wifi_main(void* p) {
             FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
-                    wifi_enable();
+                    wifi_enable(wifi);
                     break;
                 case WifiMessageTypeRadioOff:
-                    wifi_disable();
+                    wifi_disable(wifi);
                     break;
                 case WifiMessageTypeScan:
-                    wifi_scan_internal();
+                    wifi_scan_internal(wifi);
                     break;
             }
         }
     }
 }
 
-static void wifi_start(Context* context) {
+static void wifi_service_start(Context* context) {
     UNUSED(context);
-    furi_check(wifi == NULL);
-    wifi = wifi_alloc();
+    furi_check(wifi_singleton == NULL);
+    wifi_singleton = wifi_alloc();
 }
 
-static void wifi_stop(Context* context) {
+static void wifi_service_stop(Context* context) {
     UNUSED(context);
-    furi_check(wifi != NULL);
+    furi_check(wifi_singleton != NULL);
     // Send stop signal to thread and wait for thread to finish
 
     if (wifi_get_enabled()) {
         // TODO: disable and wait for it to finish
     }
 
-    wifi_free(wifi);
-    wifi = NULL;
+    wifi_free(wifi_singleton);
+    wifi_singleton = NULL;
 }
 
 const ServiceManifest wifi_service = {
     .id = "wifi",
-    .on_start = &wifi_start,
-    .on_stop = &wifi_stop
+    .on_start = &wifi_service_start,
+    .on_stop = &wifi_service_stop
 };
