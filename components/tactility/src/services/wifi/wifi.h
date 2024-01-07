@@ -21,6 +21,11 @@ typedef struct {
     WifiEventType type;
 } WifiEvent;
 
+typedef struct {
+    uint8_t ssid[33];
+    int8_t rssi;
+} WifiApRecord;
+
 /**
  * @brief Get wifi pubsub
  * @return FuriPubSub*
@@ -31,6 +36,12 @@ FuriPubSub* wifi_get_pubsub();
  * @brief Request scanning update.
  */
 void wifi_scan();
+
+/**
+ * @param records the allocated buffer to store the records in
+ * @param limit the maximum amount of records to store
+ */
+void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* count);
 
 /**
  * @brief Overrides the default scan result size of 16.

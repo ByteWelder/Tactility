@@ -50,8 +50,6 @@ static lv_obj_t* screen_with_top_bar_and_toolbar(lv_obj_t* parent) {
     lv_obj_t* child_container = lv_obj_create(vertical_container);
     lv_obj_set_width(child_container, LV_PCT(100));
     lv_obj_set_flex_grow(child_container, 1);
-    lv_obj_set_style_no_padding(vertical_container);
-    lv_obj_set_style_bg_blacken(vertical_container);
 
     return child_container;
 }

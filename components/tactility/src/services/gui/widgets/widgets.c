@@ -14,3 +14,8 @@ void lv_obj_set_style_no_padding(lv_obj_t* obj) {
     lv_obj_set_style_pad_all(obj, LV_STATE_DEFAULT, 0);
     lv_obj_set_style_pad_gap(obj, LV_STATE_DEFAULT, 0);
 }
+
+void lv_obj_set_style_min_padding(lv_obj_t* obj) {
+    lv_obj_set_style_pad_all(obj, 4, 0);
+    lv_obj_set_style_pad_gap(obj, 4, 0);
+}

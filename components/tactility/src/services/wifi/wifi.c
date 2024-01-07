@@ -24,7 +24,7 @@ typedef struct {
     /** @brief Scanning results */
     wifi_ap_record_t* _Nullable scan_list;
     /** @brief The current item count in scan_list (-1 when scan_list is NULL) */
-    uint16_t scan_list_count; // holds -1 if scan_list is NULL
+    uint16_t scan_list_count;
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
 } Wifi;
@@ -53,7 +53,7 @@ static Wifi* wifi_alloc() {
     instance->queue = furi_message_queue_alloc(1, sizeof(WifiMessage));
     instance->netif = NULL;
     instance->scan_list = NULL;
-    instance->scan_list_count = -1;
+    instance->scan_list_count = 0;
     instance->scan_list_limit = WIFI_SCAN_RECORD_LIMIT;
     return instance;
 }
@@ -86,6 +86,23 @@ void wifi_set_scan_records(uint16_t records) {
     if (records != wifi_singleton->scan_list_limit) {
         wifi_scan_list_free_safely(wifi_singleton);
         wifi_singleton->scan_list_limit = records;
+    }
+}
+
+void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* result_count) {
+    furi_check(wifi_singleton);
+    furi_check(result_count);
+
+    if (wifi_singleton->scan_list_count == 0) {
+        *result_count = 0;
+    } else {
+        uint8_t i = 0;
+        FURI_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
+        for (; i < wifi_singleton->scan_list_count && i < limit; ++i) {
+            memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
+            records[i].rssi = wifi_singleton->scan_list[i].rssi;
+        }
+        *result_count = i + 1;
     }
 }
 
@@ -144,7 +161,7 @@ static void wifi_scan_list_free(Wifi* wifi) {
     furi_check(wifi->scan_list != NULL);
     free(wifi->scan_list);
     wifi->scan_list = NULL;
-    wifi->scan_list_count = -1;
+    wifi->scan_list_count = 0;
 }
 
 static void wifi_scan_list_free_safely(Wifi* wifi) {
