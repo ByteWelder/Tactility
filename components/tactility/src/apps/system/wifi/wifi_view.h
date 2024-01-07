@@ -4,7 +4,8 @@
 #include "wifi_state.h"
 
 typedef struct {
-    lv_obj_t* spinner;
+    lv_obj_t* enable_switch;
+    lv_obj_t* scanning_spinner;
 } WifiView;
 
 void wifi_view_create(WifiView* view, lv_obj_t* parent);

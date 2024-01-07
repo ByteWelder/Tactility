@@ -1,4 +1,5 @@
 #include "tactility.h"
+#include <sys/cdefs.h>
 
 #include "app_manifest_registry.h"
 #include "devices_i.h"
@@ -21,7 +22,7 @@ extern const ServiceManifest wifi_service;
 extern const AppManifest system_info_app;
 extern const AppManifest wifi_app;
 
-int32_t wifi_main(void* p);
+_Noreturn int32_t wifi_main(void* p);
 
 static void register_system_apps() {
     FURI_LOG_I(TAG, "Registering default apps");
@@ -73,7 +74,6 @@ static void register_and_start_user_services(const Config* _Nonnull config) {
 }
 
 __attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
-
     furi_init();
 
     // Initialize NVS
@@ -103,5 +103,7 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    // Wifi must run in the main task, or otherwise it will crash the app
+    // TODO: What if we need more functionality on the main task?
     wifi_main(NULL);
 }
