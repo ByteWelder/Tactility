@@ -2,7 +2,6 @@
 #include <sys/cdefs.h>
 
 #include "check.h"
-#include "esp_wifi.h"
 #include "log.h"
 #include "message_queue.h"
 #include "mutex.h"
@@ -76,7 +75,7 @@ FuriPubSub* wifi_get_pubsub() {
 
 void wifi_scan() {
     furi_assert(wifi_singleton);
-    WifiMessage message = { .type = WifiMessageTypeScan };
+    WifiMessage message = {.type = WifiMessageTypeScan};
     // No need to lock for queue
     furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
@@ -89,18 +88,20 @@ void wifi_set_scan_records(uint16_t records) {
     }
 }
 
-void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* result_count) {
+void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
     furi_check(wifi_singleton);
     furi_check(result_count);
 
     if (wifi_singleton->scan_list_count == 0) {
         *result_count = 0;
     } else {
-        uint8_t i = 0;
+        uint16_t i = 0;
         FURI_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
-        for (; i < wifi_singleton->scan_list_count && i < limit; ++i) {
+        uint16_t last_index = MIN(wifi_singleton->scan_list_count, limit);
+        for (; i < last_index; ++i) {
             memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
             records[i].rssi = wifi_singleton->scan_list[i].rssi;
+            records[i].auth_mode = wifi_singleton->scan_list[i].authmode;
         }
         // The index already overflowed right before the for-loop was terminated,
         // so it effectively became the list count:
@@ -110,11 +111,11 @@ void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* resul
 
 void wifi_set_enabled(bool enabled) {
     if (enabled) {
-        WifiMessage message = { .type = WifiMessageTypeRadioOn };
+        WifiMessage message = {.type = WifiMessageTypeRadioOn};
         // No need to lock for queue
         furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     } else {
-        WifiMessage message = { .type = WifiMessageTypeRadioOff };
+        WifiMessage message = {.type = WifiMessageTypeRadioOff};
         // No need to lock for queue
         furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     }
@@ -173,7 +174,7 @@ static void wifi_scan_list_free_safely(Wifi* wifi) {
 }
 
 static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
-    WifiEvent turning_on_event = { .type = type};
+    WifiEvent turning_on_event = {.type = type};
     furi_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
@@ -273,13 +274,15 @@ static void wifi_scan_internal(Wifi* wifi) {
     // Create scan list if it does not exist
     wifi_scan_list_alloc_safely(wifi);
     wifi->scan_list_count = 0;
-    // TODO: free the list after a certain amount of time (it's 84 bytes per record!)
 
     esp_wifi_scan_start(NULL, true);
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&wifi->scan_list_limit, wifi->scan_list));
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&wifi->scan_list_count));
-    FURI_LOG_I(TAG, "Scanned %u APs:", wifi->scan_list_count);
-    for (int i = 0; (i < wifi->scan_list_limit) && (i < wifi->scan_list_count); i++) {
+    uint16_t record_count = wifi->scan_list_limit;
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
+//    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&wifi->scan_list_count));
+    uint16_t safe_record_count = MIN(wifi->scan_list_limit, record_count);
+    wifi->scan_list_count = safe_record_count;
+    FURI_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
+    for (uint16_t i = 0; i < safe_record_count; i++) {
         wifi_ap_record_t* record = &wifi->scan_list[i];
         FURI_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
     }
@@ -301,7 +304,7 @@ _Noreturn int32_t wifi_main(void* p) {
 
     WifiMessage message;
     while (true) {
-        if (furi_message_queue_get(queue, &message, FuriWaitForever) == FuriStatusOk) {
+        if (furi_message_queue_get(queue, &message, 1000 / portTICK_PERIOD_MS) == FuriStatusOk) {
             FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:

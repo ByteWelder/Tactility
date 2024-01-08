@@ -1,6 +1,6 @@
 #include "tactility.h"
-#include <sys/cdefs.h>
 
+#include <sys/cdefs.h>
 #include "app_manifest_registry.h"
 #include "devices_i.h"
 #include "furi.h"
@@ -9,6 +9,7 @@
 #include "service_registry.h"
 #include "esp_wifi.h"
 #include "nvs_flash.h"
+#include "services/loader/loader.h"
 
 #define TAG "tactility"
 
@@ -102,6 +103,10 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     // Network interface
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
+
+    if (config->auto_start_app_id != NULL) {
+        loader_start_app_nonblocking(config->auto_start_app_id);
+    }
 
     // Wifi must run in the main task, or otherwise it will crash the app
     // TODO: What if we need more functionality on the main task?

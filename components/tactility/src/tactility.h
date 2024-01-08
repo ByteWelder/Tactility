@@ -32,6 +32,7 @@ typedef struct {
     // List of user applications
     const AppManifest* const apps[CONFIG_APPS_LIMIT];
     const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];
+    const char* auto_start_app_id;
 } Config;
 
 __attribute__((unused)) extern void tactility_start(const Config _Nonnull* config);

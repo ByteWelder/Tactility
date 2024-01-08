@@ -4,16 +4,23 @@
 extern "C" {
 #endif
 
+#include "esp_wifi.h"
 #include "pubsub.h"
 #include <stdbool.h>
 #include <stdio.h>
 
 typedef enum {
+    /** Radio was turned on */
     WifiEventTypeRadioStateOn,
+    /** Radio is turning on. */
     WifiEventTypeRadioStateOnPending,
+    /** Radio is turned off */
     WifiEventTypeRadioStateOff,
+    /** Radio is turning off */
     WifiEventTypeRadioStateOffPending,
+    /** Started scanning for access points */
     WifiEventTypeScanStarted,
+    /** Finished scanning for access points */ // TODO: 1 second validity
     WifiEventTypeScanFinished
 } WifiEventType;
 
@@ -24,6 +31,7 @@ typedef struct {
 typedef struct {
     uint8_t ssid[33];
     int8_t rssi;
+    wifi_auth_mode_t auth_mode;
 } WifiApRecord;
 
 /**
@@ -38,10 +46,11 @@ FuriPubSub* wifi_get_pubsub();
 void wifi_scan();
 
 /**
+ * @brief Returns the access points from the last scan (if any). It only contains public APs.
  * @param records the allocated buffer to store the records in
  * @param limit the maximum amount of records to store
  */
-void wifi_get_scan_results(WifiApRecord records[], uint8_t limit, uint8_t* count);
+void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
 
 /**
  * @brief Overrides the default scan result size of 16.

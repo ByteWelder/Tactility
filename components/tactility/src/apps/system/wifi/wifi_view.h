@@ -4,6 +4,7 @@
 #include "wifi_state.h"
 
 typedef struct {
+    lv_obj_t* root;
     lv_obj_t* enable_switch;
     lv_obj_t* scanning_spinner;
     lv_obj_t* networks_label;

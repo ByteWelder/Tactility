@@ -44,11 +44,11 @@ furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t
  * @param      instance  pointer to FuriMessageQueue instance
  * @param      msg_ptr   The message pointer
  * @param      msg_prio  The message prioority
- * @param[in]  timeout   The timeout
+ * @param[in]  timeout_ticks   The timeout
  *
  * @return     The furi status.
  */
-FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uint32_t timeout);
+FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uint32_t timeout_ticks);
 
 /** Get queue capacity
  *

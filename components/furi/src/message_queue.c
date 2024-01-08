@@ -59,7 +59,7 @@ furi_message_queue_put(FuriMessageQueue* instance, const void* msg_ptr, uint32_t
     return (stat);
 }
 
-FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uint32_t timeout) {
+FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uint32_t timeout_ticks) {
     QueueHandle_t hQueue = (QueueHandle_t)instance;
     FuriStatus stat;
     BaseType_t yield;
@@ -67,7 +67,7 @@ FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uin
     stat = FuriStatusOk;
 
     if (furi_kernel_is_irq() != 0U) {
-        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
+        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout_ticks != 0U)) {
             stat = FuriStatusErrorParameter;
         } else {
             yield = pdFALSE;
@@ -82,8 +82,8 @@ FuriStatus furi_message_queue_get(FuriMessageQueue* instance, void* msg_ptr, uin
         if ((hQueue == NULL) || (msg_ptr == NULL)) {
             stat = FuriStatusErrorParameter;
         } else {
-            if (xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
-                if (timeout != 0U) {
+            if (xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
+                if (timeout_ticks != 0U) {
                     stat = FuriStatusErrorTimeout;
                 } else {
                     stat = FuriStatusErrorResource;
