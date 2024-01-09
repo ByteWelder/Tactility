@@ -49,6 +49,9 @@ static Wifi* wifi_alloc() {
     Wifi* instance = malloc(sizeof(Wifi));
     instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     instance->pubsub = furi_pubsub_alloc();
+    // TODO: Deal with messages that come in while an action is ongoing
+    // for example: when scanning and you turn off the radio, the scan should probably stop or turning off
+    // the radio should disable the on/off button in the app as it is pending.
     instance->queue = furi_message_queue_alloc(1, sizeof(WifiMessage));
     instance->netif = NULL;
     instance->scan_list = NULL;
