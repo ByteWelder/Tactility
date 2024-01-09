@@ -63,7 +63,7 @@ static bool create_display_device(DisplayDevice* display) {
     ESP_LOGI(TAG, "install driver");
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
-        .rgb_endian = LCD_RGB_ENDIAN_RGB,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
         .bits_per_pixel = LCD_BITS_PER_PIXEL,
     };
 
