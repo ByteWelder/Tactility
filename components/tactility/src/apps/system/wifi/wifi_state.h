@@ -13,12 +13,18 @@ typedef enum {
     WIFI_RADIO_OFF_PENDING,
 } WifiRadioState;
 
+typedef enum {
+    WIFI_SCREEN_MAIN,
+    WIFI_SCREEN_CONNECT
+} WifiActiveScreen;
+
 /**
  * View's state
  */
 typedef struct {
     bool scanning;
     WifiRadioState radio_state;
+    WifiActiveScreen active_screen;
 } WifiState;
 
 #ifdef __cplusplus

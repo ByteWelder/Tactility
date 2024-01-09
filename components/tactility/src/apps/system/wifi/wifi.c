@@ -15,6 +15,7 @@ static Wifi* wifi_alloc() {
     wifi->wifi_subscription = furi_pubsub_subscribe(wifi_pubsub, &wifi_event_callback, wifi);
     wifi->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     wifi->state = (WifiState) {
+        .active_screen = WIFI_SCREEN_MAIN,
         .scanning = false,
         .radio_state = wifi_get_enabled() ? WIFI_RADIO_ON : WIFI_RADIO_OFF
     };
@@ -85,11 +86,7 @@ static void app_show(Context* context, lv_obj_t* parent) {
 }
 
 static void app_hide(Context* context) {
-    Wifi* wifi = (Wifi*)context->data;
-
-    wifi_lock(wifi);
-    wifi_view_clear(&wifi->view);
-    wifi_unlock(wifi);
+    // Nothing to manually free/unsubscribe for views
 }
 
 static void app_start(Context* context) {

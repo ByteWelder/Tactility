@@ -4,6 +4,7 @@
 #include "services/wifi/wifi.h"
 #include "log.h"
 #include "wifi_state.h"
+#include "wifi_view.h"
 
 #define TAG "wifi_main_view"
 #define SPINNER_HEIGHT 40
@@ -120,8 +121,9 @@ static void update_wifi_toggle(WifiMainView* view, WifiState* state) {
 
 // region Main
 
-void wifi_main_view_create(WifiMainView* view, lv_obj_t* parent) {
-    view->root = parent;
+void wifi_main_view_create(WifiView* wifi_view, lv_obj_t* parent) {
+    WifiMainView* main_view = &wifi_view->main_view;
+    main_view->root = parent;
 
     // TODO: Standardize this into "window content" function?
     // TODO: It can then be dynamically determined based on screen res and size
@@ -142,39 +144,35 @@ void wifi_main_view_create(WifiMainView* view, lv_obj_t* parent) {
     lv_label_set_text(enable_label, "Wi-Fi");
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
-    view->enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, NULL);
-    lv_obj_set_align(view->enable_switch, LV_ALIGN_RIGHT_MID);
+    main_view->enable_switch = lv_switch_create(switch_container);
+    lv_obj_add_event_cb(main_view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, NULL);
+    lv_obj_set_align(main_view->enable_switch, LV_ALIGN_RIGHT_MID);
 
     // Networks
 
-    view->networks_label = lv_label_create(parent);
-    lv_label_set_text(view->networks_label, "Networks");
-    lv_obj_set_style_text_align(view->networks_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_pad_top(view->networks_label, 8, 0);
-    lv_obj_set_style_pad_bottom(view->networks_label, 8, 0);
-    lv_obj_set_style_pad_left(view->networks_label, 2, 0);
-    lv_obj_set_align(view->networks_label, LV_ALIGN_LEFT_MID);
+    main_view->networks_label = lv_label_create(parent);
+    lv_label_set_text(main_view->networks_label, "Networks");
+    lv_obj_set_style_text_align(main_view->networks_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_pad_top(main_view->networks_label, 8, 0);
+    lv_obj_set_style_pad_bottom(main_view->networks_label, 8, 0);
+    lv_obj_set_style_pad_left(main_view->networks_label, 2, 0);
+    lv_obj_set_align(main_view->networks_label, LV_ALIGN_LEFT_MID);
 
-    view->scanning_spinner = lv_spinner_create(parent, 1000, 60);
-    lv_obj_set_size(view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
-    lv_obj_set_style_pad_top(view->scanning_spinner, 4, 0);
-    lv_obj_set_style_pad_bottom(view->scanning_spinner, 4, 0);
+    main_view->scanning_spinner = lv_spinner_create(parent, 1000, 60);
+    lv_obj_set_size(main_view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
+    lv_obj_set_style_pad_top(main_view->scanning_spinner, 4, 0);
+    lv_obj_set_style_pad_bottom(main_view->scanning_spinner, 4, 0);
 
-    view->networks_list = lv_obj_create(parent);
-    lv_obj_set_flex_flow(view->networks_list, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(view->networks_list, LV_PCT(100));
-    lv_obj_set_height(view->networks_list, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_top(view->networks_list, 8, 0);
-    lv_obj_set_style_pad_bottom(view->networks_list, 8, 0);
+    main_view->networks_list = lv_obj_create(parent);
+    lv_obj_set_flex_flow(main_view->networks_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_width(main_view->networks_list, LV_PCT(100));
+    lv_obj_set_height(main_view->networks_list, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_top(main_view->networks_list, 8, 0);
+    lv_obj_set_style_pad_bottom(main_view->networks_list, 8, 0);
 }
 
-void wifi_main_view_update(WifiMainView* view, WifiState* state) {
-    update_wifi_toggle(view, state);
-    update_scanning(view, state);
-    update_network_list(view, state);
-}
-
-void wifi_main_view_clear(WifiMainView* view) {
-    // Nothing to unsubscribe from
+void wifi_main_view_update(WifiView* view, WifiState* state) {
+    update_wifi_toggle(&view->main_view, state);
+    update_scanning(&view->main_view, state);
+    update_network_list(&view->main_view, state);
 }
