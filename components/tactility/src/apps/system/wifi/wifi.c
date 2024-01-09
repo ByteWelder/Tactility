@@ -1,8 +1,8 @@
 #include "wifi.h"
 
 #include "app_manifest.h"
-#include "esp_lvgl_port.h"
 #include "furi_core.h"
+#include "wifi_main_view.h"
 #include "wifi_state_updating.h"
 
 // Forward declarations
@@ -18,7 +18,7 @@ static Wifi* wifi_alloc() {
         .scanning = false,
         .radio_state = wifi_get_enabled() ? WIFI_RADIO_ON : WIFI_RADIO_OFF
     };
-    wifi->view = (WifiView) {
+    wifi->view.main_view = (WifiMainView) {
         .scanning_spinner = NULL
     };
 

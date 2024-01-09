@@ -28,6 +28,7 @@ void toolbar(lv_obj_t* parent, lv_coord_t offset_y, const AppManifest* manifest)
 
     lv_obj_t* label_container = lv_obj_create(toolbar);
     lv_obj_set_style_no_padding(label_container);
+    lv_obj_set_style_border_width(label_container, 0, 0);
     lv_obj_set_height(label_container, LV_PCT(100)); // 2% less due to 4px translate (it's not great, but it works)
     lv_obj_set_flex_grow(label_container, 1);
 

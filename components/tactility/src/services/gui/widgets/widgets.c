@@ -7,7 +7,7 @@ void lv_obj_set_style_bg_blacken(lv_obj_t* obj) {
 
 void lv_obj_set_style_bg_invisible(lv_obj_t* obj) {
     lv_obj_set_style_bg_opa(obj, 0, 0);
-    lv_obj_set_style_border_opa(obj, 0, 0);
+    lv_obj_set_style_border_width(obj, 0, 0);
 }
 
 void lv_obj_set_style_no_padding(lv_obj_t* obj) {
