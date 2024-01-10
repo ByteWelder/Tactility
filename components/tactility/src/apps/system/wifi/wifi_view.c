@@ -39,7 +39,7 @@ void wifi_view_create(WifiView* view, WifiBindings* bindings, lv_obj_t* parent) 
     lv_obj_add_flag(connect_view_root, LV_OBJ_FLAG_HIDDEN);
     view->connect_view.root = connect_view_root;
 
-    wifi_connect_view_create(view, connect_view_root);
+    wifi_connect_view_create(view, bindings, connect_view_root);
 
 }
 

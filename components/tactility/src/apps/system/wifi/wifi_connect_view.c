@@ -7,8 +7,18 @@
 
 #define TAG "wifi_connect_view"
 
+static void on_cancel(lv_event_t* event) {
+    WifiBindings* bindings = (WifiBindings*)event->user_data;
+    bindings->on_hide_connect_dialog(bindings->on_hide_connect_dialog_context);
+}
+
+static void on_connect(lv_event_t* event) {
+    WifiBindings* bindings = (WifiBindings*)event->user_data;
+    bindings->on_connect_ssid("todo1", "todo2", bindings->on_connect_ssid_context);
+}
+
 // TODO: Standardize dialogs
-void wifi_connect_view_create(WifiView* wifi_view, lv_obj_t* parent) {
+void wifi_connect_view_create(WifiView* wifi_view, WifiBindings* bindings, lv_obj_t* parent) {
     // TODO: Standardize this into "window content" function?
     // TODO: It can then be dynamically determined based on screen res and size
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -44,15 +54,15 @@ void wifi_connect_view_create(WifiView* wifi_view, lv_obj_t* parent) {
     lv_obj_t* cancel_label = lv_label_create(connect_view->cancel_button);
     lv_label_set_text(cancel_label, "Cancel");
     lv_obj_center(cancel_label);
-//    lv_obj_add_event_cb(connect_view->cancel_button, &sth, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_event_cb(connect_view->cancel_button, &on_cancel, LV_EVENT_CLICKED, bindings);
 
     lv_obj_t* spacer_center = spacer(button_container, 4, 1);
 
     connect_view->connect_button = lv_btn_create(button_container);
-    lv_obj_t* ok_label = lv_label_create(connect_view->connect_button);
-    lv_label_set_text(ok_label, "Connect");
-    lv_obj_center(ok_label);
-    //    lv_obj_add_event_cb(connect_view->ok_button, &sth, LV_EVENT_CLICKED, NULL);
+    lv_obj_t* connect_label = lv_label_create(connect_view->connect_button);
+    lv_label_set_text(connect_label, "Connect");
+    lv_obj_center(connect_label);
+    lv_obj_add_event_cb(connect_view->connect_button, &on_connect, LV_EVENT_CLICKED, bindings);
 }
 
 void wifi_connect_view_update(WifiView* view, WifiState* state) {

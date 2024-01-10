@@ -8,11 +8,24 @@
 // Forward declarations
 static void wifi_event_callback(const void* message, void* context);
 
-static void on_wifi_connect(const char* ssid, void* wifi_void) {
+static void on_wifi_show_connect_dialog(const char* ssid, void* wifi_void) {
     Wifi* wifi = (Wifi*)wifi_void;
     memcpy(wifi->state.connect_ssid, ssid, 33);
     wifi->state.active_screen = WIFI_SCREEN_CONNECT;
     wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+}
+
+static void on_wifi_hide_connect_dialog(void* wifi_void) {
+    Wifi* wifi = (Wifi*)wifi_void;
+    wifi->state.active_screen = WIFI_SCREEN_MAIN;
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+}
+
+static void on_connect(const char* ssid, const char* password, void* wifi_void) {
+    Wifi* wifi = (Wifi*)wifi_void;
+    wifi->state.active_screen = WIFI_SCREEN_MAIN;
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+    FURI_LOG_I("YO", "real connection goes here to %s, %s", ssid, password);
 }
 
 static void on_wifi_toggled(bool enabled) {
@@ -34,9 +47,13 @@ static Wifi* wifi_alloc() {
         .scanning_spinner = NULL
     };
     wifi->bindings = (WifiBindings) {
-        .on_connect_ssid = &on_wifi_connect,
-        .on_connect_ssid_context = wifi,
         .on_wifi_toggled = &on_wifi_toggled,
+        .on_show_connect_dialog = &on_wifi_show_connect_dialog,
+        .on_show_connect_dialog_context = wifi,
+        .on_hide_connect_dialog = &on_wifi_hide_connect_dialog,
+        .on_hide_connect_dialog_context = wifi,
+        .on_connect_ssid = &on_connect,
+        .on_connect_ssid_context = wifi,
     };
 
     return wifi;

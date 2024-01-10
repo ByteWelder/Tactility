@@ -54,7 +54,7 @@ static void connect(lv_event_t* event) {
     const char* ssid = lv_label_get_text(label);
     FURI_LOG_I(TAG, "Clicked AP: %s", ssid);
     WifiBindings* bindings = (WifiBindings*)event->user_data;
-    bindings->on_connect_ssid(ssid, bindings->on_connect_ssid_context);
+    bindings->on_show_connect_dialog(ssid, bindings->on_show_connect_dialog_context);
 }
 
 static void create_network_button(WifiMainView* view, WifiBindings* bindings, WifiApRecord* record) {
