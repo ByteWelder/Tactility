@@ -14,7 +14,8 @@ static void on_enable_switch_changed(lv_event_t* event) {
     lv_obj_t* enable_switch = lv_event_get_target(event);
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        wifi_set_enabled(is_on);
+        WifiBindings* bindings = (WifiBindings*)event->user_data;
+        bindings->on_wifi_toggled(is_on);
     }
 }
 
@@ -52,9 +53,11 @@ static void connect(lv_event_t* event) {
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
     FURI_LOG_I(TAG, "Clicked AP: %s", ssid);
+    WifiBindings* bindings = (WifiBindings*)event->user_data;
+    bindings->on_connect_ssid(ssid, bindings->on_connect_ssid_context);
 }
 
-static void create_network_button(WifiMainView* view, WifiApRecord* record) {
+static void create_network_button(WifiMainView* view, WifiBindings* bindings, WifiApRecord* record) {
     const char* ssid = (const char*)record->ssid;
     const char* icon = get_network_icon(record->rssi, record->auth_mode);
     lv_obj_t* ap_button = lv_list_add_btn(
@@ -62,10 +65,10 @@ static void create_network_button(WifiMainView* view, WifiApRecord* record) {
         icon,
         ssid
     );
-    lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, view);
+    lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, bindings);
 }
 
-static void update_network_list(WifiMainView* view, WifiState* state) {
+static void update_network_list(WifiMainView* view, WifiState* state, WifiBindings* bindings) {
     lv_obj_clean(view->networks_list);
 
     if (state->radio_state == WIFI_RADIO_ON) {
@@ -76,7 +79,7 @@ static void update_network_list(WifiMainView* view, WifiState* state) {
         wifi_get_scan_results(records, 16, &count);
         if (count > 0) {
             for (int i = 0; i < count; ++i) {
-                create_network_button(view, &records[i]);
+                create_network_button(view, bindings, &records[i]);
             }
             lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
         } else if (state->scanning) {
@@ -121,7 +124,7 @@ static void update_wifi_toggle(WifiMainView* view, WifiState* state) {
 
 // region Main
 
-void wifi_main_view_create(WifiView* wifi_view, lv_obj_t* parent) {
+void wifi_main_view_create(WifiView* wifi_view, WifiBindings* bindings, lv_obj_t* parent) {
     WifiMainView* main_view = &wifi_view->main_view;
     main_view->root = parent;
 
@@ -145,7 +148,7 @@ void wifi_main_view_create(WifiView* wifi_view, lv_obj_t* parent) {
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
     main_view->enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(main_view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(main_view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
     lv_obj_set_align(main_view->enable_switch, LV_ALIGN_RIGHT_MID);
 
     // Networks
@@ -171,8 +174,8 @@ void wifi_main_view_create(WifiView* wifi_view, lv_obj_t* parent) {
     lv_obj_set_style_pad_bottom(main_view->networks_list, 8, 0);
 }
 
-void wifi_main_view_update(WifiView* view, WifiState* state) {
+void wifi_main_view_update(WifiView* view, WifiState* state, WifiBindings* bindings) {
     update_wifi_toggle(&view->main_view, state);
     update_scanning(&view->main_view, state);
-    update_network_list(&view->main_view, state);
+    update_network_list(&view->main_view, state, bindings);
 }

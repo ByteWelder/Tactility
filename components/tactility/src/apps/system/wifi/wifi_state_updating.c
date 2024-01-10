@@ -6,7 +6,7 @@ void wifi_state_set_scanning(Wifi* wifi, bool is_scanning) {
     wifi->state.scanning = is_scanning;
 
     lvgl_port_lock(100);
-    wifi_view_update(&wifi->view, &wifi->state);
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     lvgl_port_unlock();
 
     wifi_unlock(wifi);
@@ -17,7 +17,7 @@ void wifi_state_set_radio_state(Wifi* wifi, WifiRadioState state) {
     wifi->state.radio_state = state;
 
     lvgl_port_lock(100);
-    wifi_view_update(&wifi->view, &wifi->state);
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     lvgl_port_unlock();
 
     wifi_unlock(wifi);

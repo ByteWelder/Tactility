@@ -1,6 +1,7 @@
 #pragma once
 
 #include "lvgl.h"
+#include "wifi_bindings.h"
 #include "wifi_state.h"
 
 #ifdef __cplusplus
@@ -9,8 +10,9 @@ extern "C" {
 
 typedef struct {
     lv_obj_t* root;
-    lv_obj_t* textarea;
-    lv_obj_t* ok_button;
+    lv_obj_t* ssid_textarea;
+    lv_obj_t* password_textarea;
+    lv_obj_t* connect_button;
     lv_obj_t* cancel_button;
 } WifiConnectView;
 
@@ -28,8 +30,8 @@ typedef struct {
     WifiConnectView connect_view;
 } WifiView;
 
-void wifi_view_create(WifiView* view, lv_obj_t* parent);
-void wifi_view_update(WifiView* view, WifiState* state);
+void wifi_view_create(WifiView* view, WifiBindings* bindings, lv_obj_t* parent);
+void wifi_view_update(WifiView* view, WifiBindings* bindings, WifiState* state);
 
 #ifdef __cplusplus
 }

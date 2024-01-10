@@ -25,6 +25,7 @@ typedef struct {
     bool scanning;
     WifiRadioState radio_state;
     WifiActiveScreen active_screen;
+    uint8_t connect_ssid[33];
 } WifiState;
 
 #ifdef __cplusplus

@@ -17,7 +17,7 @@ void wifi_view_set_active(WifiView* view, WifiActiveScreen active) {
     }
 }
 
-void wifi_view_create(WifiView* view, lv_obj_t* parent) {
+void wifi_view_create(WifiView* view, WifiBindings* bindings, lv_obj_t* parent) {
     view->root = parent;
 
     lv_obj_set_style_no_padding(parent);
@@ -30,7 +30,7 @@ void wifi_view_create(WifiView* view, lv_obj_t* parent) {
     lv_obj_set_style_no_padding(main_view_root);
     view->main_view.root = main_view_root;
 
-    wifi_main_view_create(view, main_view_root);
+    wifi_main_view_create(view, bindings, main_view_root);
 
     // Connect View
 
@@ -43,10 +43,10 @@ void wifi_view_create(WifiView* view, lv_obj_t* parent) {
 
 }
 
-void wifi_view_update(WifiView* view, WifiState* state) {
+void wifi_view_update(WifiView* view, WifiBindings* bindings, WifiState* state) {
     wifi_view_set_active(view, state->active_screen);
     if (state->active_screen == WIFI_SCREEN_MAIN) {
-        wifi_main_view_update(view, state);
+        wifi_main_view_update(view, state, bindings);
     } else if (state->active_screen == WIFI_SCREEN_CONNECT){
         wifi_connect_view_update(view, state);
     }

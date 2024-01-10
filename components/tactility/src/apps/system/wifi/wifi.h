@@ -1,4 +1,5 @@
 #pragma once
+
 #include "mutex.h"
 #include "services/wifi/wifi.h"
 #include "wifi_view.h"
@@ -12,6 +13,7 @@ typedef struct {
     FuriMutex* mutex;
     WifiState state;
     WifiView view;
+    WifiBindings bindings;
 } Wifi;
 
 void wifi_lock(Wifi* wifi);

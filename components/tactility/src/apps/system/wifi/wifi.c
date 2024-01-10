@@ -8,6 +8,17 @@
 // Forward declarations
 static void wifi_event_callback(const void* message, void* context);
 
+static void on_wifi_connect(const char* ssid, void* wifi_void) {
+    Wifi* wifi = (Wifi*)wifi_void;
+    memcpy(wifi->state.connect_ssid, ssid, 33);
+    wifi->state.active_screen = WIFI_SCREEN_CONNECT;
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+}
+
+static void on_wifi_toggled(bool enabled) {
+    wifi_set_enabled(enabled);
+}
+
 static Wifi* wifi_alloc() {
     Wifi* wifi = malloc(sizeof(Wifi));
 
@@ -21,6 +32,11 @@ static Wifi* wifi_alloc() {
     };
     wifi->view.main_view = (WifiMainView) {
         .scanning_spinner = NULL
+    };
+    wifi->bindings = (WifiBindings) {
+        .on_connect_ssid = &on_wifi_connect,
+        .on_connect_ssid_context = wifi,
+        .on_wifi_toggled = &on_wifi_toggled,
     };
 
     return wifi;
@@ -76,8 +92,8 @@ static void app_show(Context* context, lv_obj_t* parent) {
     Wifi* wifi = (Wifi*)context->data;
 
     wifi_lock(wifi);
-    wifi_view_create(&wifi->view, parent);
-    wifi_view_update(&wifi->view, &wifi->state);
+    wifi_view_create(&wifi->view, &wifi->bindings, parent);
+    wifi_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_unlock(wifi);
 
     if (wifi_get_enabled()) {
