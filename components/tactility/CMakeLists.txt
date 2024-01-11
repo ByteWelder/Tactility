@@ -7,6 +7,7 @@ idf_component_register(
     "src/services/gui"
     "src/services/gui/widgets"
     "src/services/wifi"
+    "src/ui"
 
     INCLUDE_DIRS "src"
 

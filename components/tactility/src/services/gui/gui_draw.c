@@ -2,8 +2,10 @@
 #include "esp_lvgl_port.h"
 #include "gui_i.h"
 #include "log.h"
-#include "services/gui/widgets/widgets.h"
+#include "services/gui/widgets/statusbar.h"
+#include "services/gui/widgets/toolbar.h"
 #include "services/loader/loader.h"
+#include "ui/style.h"
 
 #define TAG "gui"
 
@@ -11,27 +13,27 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, AppFlags flags) {
     // TODO: Move statusbar into separate ViewPort?
     // TODO: Move toolbar into separate ViewPort?
 
-    lv_obj_set_style_bg_blacken(parent);
+    tt_lv_obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
     lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_no_padding(vertical_container);
-    lv_obj_set_style_bg_blacken(vertical_container);
+    tt_lv_obj_set_style_no_padding(vertical_container);
+    tt_lv_obj_set_style_bg_blacken(vertical_container);
 
     if (flags.show_statusbar) {
-        top_bar(vertical_container);
+        tt_lv_statusbar_create(vertical_container);
     }
 
     if (flags.show_toolbar) {
         // TODO: Make some kind of Toolbar struct to hold the title and back icon
         const AppManifest* manifest = loader_get_current_app();
         if (manifest != NULL) {
-            toolbar(vertical_container, TOP_BAR_HEIGHT, manifest);
+            tt_lv_toolbar_create(vertical_container, STATUSBAR_HEIGHT, manifest);
 
             lv_obj_t* spacer = lv_obj_create(vertical_container);
             lv_obj_set_size(spacer, 2, 2);
-            lv_obj_set_style_bg_blacken(spacer);
+            tt_lv_obj_set_style_bg_blacken(spacer);
         }
     }
 

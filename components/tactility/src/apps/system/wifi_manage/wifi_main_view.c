@@ -1,8 +1,8 @@
 #include "wifi_main_view.h"
 
-#include "services/gui/widgets/widgets.h"
-#include "services/wifi/wifi.h"
 #include "log.h"
+#include "services/wifi/wifi.h"
+#include "ui/style.h"
 #include "wifi_state.h"
 #include "wifi_view.h"
 
@@ -140,8 +140,8 @@ void wifi_main_view_create(WifiView* wifi_view, WifiBindings* bindings, lv_obj_t
     lv_obj_t* switch_container = lv_obj_create(parent);
     lv_obj_set_width(switch_container, LV_PCT(100));
     lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-    lv_obj_set_style_no_padding(switch_container);
-    lv_obj_set_style_bg_invisible(switch_container);
+    tt_lv_obj_set_style_no_padding(switch_container);
+    tt_lv_obj_set_style_bg_invisible(switch_container);
 
     lv_obj_t* enable_label = lv_label_create(switch_container);
     lv_label_set_text(enable_label, "Wi-Fi");

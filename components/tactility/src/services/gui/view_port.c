@@ -1,7 +1,7 @@
 #include "view_port.h"
 
 #include "check.h"
-#include "services/gui/widgets/widgets.h"
+#include "ui/style.h"
 #include "view_port_i.h"
 
 #define TAG "viewport"
@@ -27,7 +27,7 @@ void view_port_show(ViewPort* view_port, lv_obj_t* parent) {
     furi_assert(view_port);
     furi_assert(parent);
     if (view_port->on_show) {
-        lv_obj_set_style_no_padding(parent);
+        tt_lv_obj_set_style_no_padding(parent);
         view_port->on_show(view_port->context, parent);
     }
 }
