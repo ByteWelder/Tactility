@@ -3,16 +3,14 @@
 #include "gui_i.h"
 #include "log.h"
 #include "services/gui/widgets/statusbar.h"
-#include "services/gui/widgets/toolbar.h"
 #include "services/loader/loader.h"
+#include "ui/spacer.h"
 #include "ui/style.h"
+#include "ui/toolbar.h"
 
 #define TAG "gui"
 
 static lv_obj_t* create_app_views(lv_obj_t* parent, AppFlags flags) {
-    // TODO: Move statusbar into separate ViewPort?
-    // TODO: Move toolbar into separate ViewPort?
-
     tt_lv_obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
@@ -21,18 +19,25 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, AppFlags flags) {
     tt_lv_obj_set_style_no_padding(vertical_container);
     tt_lv_obj_set_style_bg_blacken(vertical_container);
 
+    // TODO: Move statusbar into separate ViewPort
     if (flags.show_statusbar) {
         tt_lv_statusbar_create(vertical_container);
     }
 
     if (flags.show_toolbar) {
-        // TODO: Make some kind of Toolbar struct to hold the title and back icon
         const AppManifest* manifest = loader_get_current_app();
         if (manifest != NULL) {
-            tt_lv_toolbar_create(vertical_container, STATUSBAR_HEIGHT, manifest);
+            // TODO: Keep toolbar on app level so app can update it
+            Toolbar toolbar = {
+                .nav_action = &loader_stop_app,
+                .nav_icon = LV_SYMBOL_CLOSE,
+                .title = manifest->name
+            };
+            lv_obj_t* toolbar_widget = tt_lv_toolbar_create(vertical_container, &toolbar);
+            lv_obj_set_pos(toolbar_widget, 0, STATUSBAR_HEIGHT);
 
-            lv_obj_t* spacer = lv_obj_create(vertical_container);
-            lv_obj_set_size(spacer, 2, 2);
+            // Black area between toolbar and content below
+            lv_obj_t* spacer = tt_lv_spacer_create(vertical_container, 1, 2);
             tt_lv_obj_set_style_bg_blacken(spacer);
         }
     }
