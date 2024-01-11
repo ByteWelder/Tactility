@@ -2,38 +2,17 @@
 
 #include "service_manifest.h"
 #include "view_port.h"
+#include "app_i.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/** Gui layers */
-typedef enum {
-    GuiLayerNone = -1,
-    GuiLayerFullscreen = 0, /**< Fullscreen layer, no status bar */
-    GuiLayerWindow,         /**< Window layer, status bar is shown */
-    GuiLayerDesktop,        /**< Desktop layer for internal use. Like fullscreen but with status bar */
-    GuiLayerMAX             /**< Don't use or move, special value */
-} GuiLayer;
-
 typedef struct Gui Gui;
 
-/** Add view_port to view_port tree
- *
- * @remark     thread safe
- *
- * @param      view_port  ViewPort instance
- * @param[in]  layer      GuiLayer where to place view_port
- */
-void gui_add_view_port(ViewPort* view_port, GuiLayer layer);
+void gui_show_app(Context* context, ViewPortShowCallback on_show, ViewPortHideCallback on_hide, AppFlags flags);
 
-/** Remove view_port from rendering tree
- *
- * @remark     thread safe
- *
- * @param      view_port  ViewPort instance
- */
-void gui_remove_view_port(ViewPort* view_port);
+void gui_hide_app();
 
 #ifdef __cplusplus
 }

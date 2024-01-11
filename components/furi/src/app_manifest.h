@@ -11,6 +11,7 @@ extern "C" {
 typedef struct _lv_obj_t lv_obj_t;
 
 typedef enum {
+    AppTypeDesktop,
     AppTypeSystem,
     AppTypeSettings,
     AppTypeUser

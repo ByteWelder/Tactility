@@ -16,10 +16,10 @@
 // System services
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
-extern const ServiceManifest desktop_service;
 extern const ServiceManifest wifi_service;
 
 // System apps
+extern const AppManifest desktop_app;
 extern const AppManifest system_info_app;
 extern const AppManifest wifi_app;
 
@@ -27,6 +27,7 @@ _Noreturn int32_t wifi_main(void* p);
 
 static void register_system_apps() {
     FURI_LOG_I(TAG, "Registering default apps");
+    app_manifest_registry_add(&desktop_app);
     app_manifest_registry_add(&system_info_app);
     app_manifest_registry_add(&wifi_app);
 }
@@ -48,7 +49,6 @@ static void register_system_services() {
     FURI_LOG_I(TAG, "Registering system services");
     service_registry_add(&gui_service);
     service_registry_add(&loader_service);
-    service_registry_add(&desktop_service);
     service_registry_add(&wifi_service);
 }
 
@@ -56,7 +56,6 @@ static void start_system_services() {
     FURI_LOG_I(TAG, "Starting system services");
     service_registry_start(gui_service.id);
     service_registry_start(loader_service.id);
-    service_registry_start(desktop_service.id);
     service_registry_start(wifi_service.id);
 }
 
@@ -104,8 +103,10 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
+    loader_start_app(desktop_app.id, true);
+
     if (config->auto_start_app_id != NULL) {
-        loader_start_app_nonblocking(config->auto_start_app_id);
+        loader_start_app(config->auto_start_app_id, false);
     }
 
     // Wifi must run in the main task, or otherwise it will crash the app

@@ -10,18 +10,16 @@
 #include "services/gui/view_port.h"
 #include "thread.h"
 
-typedef struct {
-    App* app;
-    ViewPort* view_port;
-} LoaderAppData;
+#define APP_STACK_SIZE 32
 
 struct Loader {
     FuriThread* thread;
     FuriPubSub* pubsub;
     FuriMessageQueue* queue;
-    LoaderAppData app_data;
     // TODO: replace with FuriMutex
     SemaphoreHandle_t mutex;
+    int8_t app_stack_index;
+    App app_stack[APP_STACK_SIZE];
 };
 
 typedef enum {
@@ -32,7 +30,6 @@ typedef enum {
 
 typedef struct {
     const char* id;
-    FuriString* error_message;
 } LoaderMessageAppStart;
 
 typedef struct {

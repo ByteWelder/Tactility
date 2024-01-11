@@ -27,9 +27,8 @@ static Loader* loader_alloc() {
         &loader_main,
         NULL
     );
-    loader->app_data.app = NULL;
-    loader->app_data.view_port = NULL;
     loader->mutex = xSemaphoreCreateRecursiveMutex();
+    loader->app_stack_index = -1;
     return loader;
 }
 
@@ -54,44 +53,38 @@ void loader_unlock() {
     furi_check(xSemaphoreGiveRecursive(loader->mutex) == pdPASS);
 }
 
-LoaderStatus loader_start_app(const char* id, FuriString* error_message) {
-    LoaderMessage message;
-    LoaderMessageLoaderStatusResult result;
+LoaderStatus loader_start_app(const char* id, bool blocking) {
+    LoaderMessageLoaderStatusResult result = {
+        .value = LoaderStatusOk
+    };
 
-    message.type = LoaderMessageTypeAppStart;
-    message.start.id = id;
-    message.start.error_message = error_message;
-    message.api_lock = api_lock_alloc_locked();
-    message.status_value = &result;
+    LoaderMessage message = {
+        .type = LoaderMessageTypeAppStart,
+        .start.id = id,
+        .status_value = &result,
+        .api_lock = blocking ? api_lock_alloc_locked() : NULL
+    };
+
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    api_lock_wait_unlock_and_free(message.api_lock);
+
+    if (blocking) {
+        api_lock_wait_unlock_and_free(message.api_lock);
+    }
+
     return result.value;
 }
 
-void loader_start_app_nonblocking(const char* id) {
-    LoaderMessage message;
-    LoaderMessageLoaderStatusResult result;
-
-    message.type = LoaderMessageTypeAppStart;
-    message.start.id = id;
-    message.start.error_message = NULL;
-    message.api_lock = NULL;
-    message.status_value = &result;
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-}
-
 void loader_stop_app() {
-    LoaderMessage message;
-    message.type = LoaderMessageTypeAppStop;
+    LoaderMessage message = {.type = LoaderMessageTypeAppStop};
     furi_message_queue_put(loader->queue, &message, FuriWaitForever);
 }
 
 const AppManifest* _Nullable loader_get_current_app() {
     loader_lock();
-    const App* app = loader->app_data.app;
-    const AppManifest* manifest = app ? app->manifest : NULL;
+    const AppManifest* manifest = (loader->app_stack_index >= 0)
+        ? loader->app_stack[loader->app_stack_index].manifest
+        : NULL;
     loader_unlock();
-
     return manifest;
 }
 
@@ -103,147 +96,171 @@ FuriPubSub* loader_get_pubsub() {
     return loader->pubsub;
 }
 
-static void loader_log_status_error(
-    LoaderStatus status,
-    FuriString* error_message,
-    const char* format,
-    va_list args
-) {
-    if (error_message) {
-        furi_string_vprintf(error_message, format, args);
-        FURI_LOG_E(TAG, "Status [%d]: %s", status, furi_string_get_cstr(error_message));
+static const char* app_state_to_string(AppState state) {
+    switch (state) {
+        case APP_STATE_INITIAL:
+            return "initial";
+        case APP_STATE_STARTED:
+            return "started";
+        case APP_STATE_SHOWING:
+            return "showing";
+        case APP_STATE_HIDING:
+            return "hiding";
+        case APP_STATE_STOPPED:
+            return "stopped";
+        default:
+            return "?";
+    }
+}
+
+static void app_set_default_flags(App* app) {
+    switch (app->manifest->type) {
+        case AppTypeDesktop:
+            app->flags.show_statusbar = true;
+            app->flags.show_toolbar = false;
+            break;
+        default:
+            app->flags.show_statusbar = true;
+            app->flags.show_toolbar = true;
+            break;
+    }
+}
+
+static void app_transition_to_state(App* app, AppState state) {
+    if (app->state == APP_STATE_STOPPED) {
+        FURI_LOG_I(TAG, "app \"%s\" state: %s", app->manifest->id, app_state_to_string(state));
     } else {
-        FURI_LOG_E(TAG, "Status [%d]", status);
+        FURI_LOG_I(
+            TAG,
+            "app \"%s\" state: %s -> %s",
+            app->manifest->id,
+            app_state_to_string(app->state),
+            app_state_to_string(state)
+        );
+    }
+
+    switch (state) {
+        case APP_STATE_INITIAL:
+            app->state = APP_STATE_INITIAL;
+            app->context = (Context) {
+                .data = NULL
+            };
+            app_set_default_flags(app);
+            // NO-OP
+            break;
+        case APP_STATE_STARTED:
+            if (app->manifest->on_start != NULL) {
+                app->manifest->on_start(&app->context);
+            }
+            app->state = APP_STATE_STARTED;
+            break;
+        case APP_STATE_SHOWING:
+            gui_show_app(
+                &app->context,
+                app->manifest->on_show,
+                app->manifest->on_hide,
+                app->flags
+            );
+            app->state = APP_STATE_SHOWING;
+            break;
+        case APP_STATE_HIDING:
+            gui_hide_app();
+            app->state = APP_STATE_HIDING;
+            break;
+        case APP_STATE_STOPPED:
+            if (app->manifest->on_stop) {
+                app->manifest->on_stop(&app->context);
+            }
+            app->state = APP_STATE_STOPPED;
+            app->context.data = NULL;
+            app->manifest = NULL;
+            FURI_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+            break;
     }
 }
 
-static LoaderStatus loader_make_status_error(
-    LoaderStatus status,
-    FuriString* _Nullable error_message,
-    const char* format,
-    ...
-) {
-    va_list args;
-    va_start(args, format);
-    loader_log_status_error(status, error_message, format, args);
-    va_end(args);
-    return status;
-}
-
-static LoaderStatus loader_make_success_status(FuriString* error_message) {
-    if (error_message) {
-        furi_string_set(error_message, "App started");
-    }
-
-    return LoaderStatusOk;
-}
-
-static void loader_start_app_with_manifest(
+LoaderStatus loader_do_start_app_with_manifest(
     const AppManifest* _Nonnull manifest
 ) {
     FURI_LOG_I(TAG, "start with manifest %s", manifest->id);
 
-    if (manifest->type != AppTypeUser && manifest->type != AppTypeSystem) {
-        furi_crash("App type not supported by loader");
-    }
-
-    App* _Nonnull app = furi_app_alloc(manifest);
-
     loader_lock();
 
-    loader->app_data.app = app;
-
-    if (manifest->on_start != NULL) {
-        manifest->on_start(&loader->app_data.app->context);
+    if (loader->app_stack_index >= (APP_STACK_SIZE - 1)) {
+        FURI_LOG_E(TAG, "failed to start app: stack limit of %d reached", APP_STACK_SIZE);
+        return LoaderStatusErrorInternal;
     }
 
-    if (manifest->on_show != NULL) {
-        ViewPort* view_port = view_port_alloc();
-        loader->app_data.view_port = view_port;
-        view_port_draw_callback_set(
-            view_port,
-            manifest->on_show,
-            manifest->on_hide,
-            &loader->app_data.app->context
-        );
-        gui_add_view_port(view_port, GuiLayerWindow);
-    } else {
-        loader->app_data.view_port = NULL;
+    int8_t previous_index = loader->app_stack_index;
+
+    loader->app_stack_index++;
+    App* app = &loader->app_stack[loader->app_stack_index];
+    app->manifest = manifest;
+    app_transition_to_state(app, APP_STATE_INITIAL);
+    app_transition_to_state(app, APP_STATE_STARTED);
+
+    // We might have to hide the previous app first
+    if (previous_index != -1) {
+        App* previous_app = &loader->app_stack[previous_index];
+        app_transition_to_state(previous_app, APP_STATE_HIDING);
     }
+
+    app_transition_to_state(app, APP_STATE_SHOWING);
 
     loader_unlock();
 
-    LoaderEvent event = {
-        .type = LoaderEventTypeApplicationStarted
-    };
+    LoaderEvent event = {.type = LoaderEventTypeApplicationStarted};
     furi_pubsub_publish(loader->pubsub, &event);
+
+    return LoaderStatusOk;
 }
 
 static LoaderStatus loader_do_start_by_id(
-    const char* id,
-    FuriString* _Nullable error_message
+    const char* id
 ) {
     FURI_LOG_I(TAG, "Start by id %s", id);
 
     const AppManifest* manifest = app_manifest_registry_find_by_id(id);
     if (manifest == NULL) {
-        return loader_make_status_error(
-            LoaderStatusErrorUnknownApp,
-            error_message,
-            "Application \"%s\" not found",
-            id
-        );
+        return LoaderStatusErrorUnknownApp;
+    } else {
+        return loader_do_start_app_with_manifest(manifest);
     }
-
-    loader_start_app_with_manifest(manifest);
-    return loader_make_success_status(error_message);
 }
+
 
 static void loader_do_stop_app() {
     loader_lock();
 
-    App* app = loader->app_data.app;
-    if (app == NULL) {
-        FURI_LOG_W(TAG, "Stop app: no app running");
+    if (loader->app_stack_index == -1) {
+        loader_unlock();
+        FURI_LOG_E(TAG, "Stop app: no app running");
         return;
     }
 
-    FURI_LOG_I(TAG, "Stopping %s", app->manifest->id);
-
-    ViewPort* view_port = loader->app_data.view_port;
-    if (view_port) {
-        gui_remove_view_port(view_port);
-        view_port_free(view_port);
-        loader->app_data.view_port = NULL;
+    if (loader->app_stack_index == 0) {
+        loader_unlock();
+        FURI_LOG_E(TAG, "Stop app: can't stop root app");
+        return;
     }
 
-    if (app->manifest->on_stop) {
-        app->manifest->on_stop(&app->context);
-    }
+    // Stop current app
+    App* app_to_stop = &loader->app_stack[loader->app_stack_index];
+    app_transition_to_state(app_to_stop, APP_STATE_HIDING);
+    app_transition_to_state(app_to_stop, APP_STATE_STOPPED);
 
-    furi_app_free(loader->app_data.app);
-    loader->app_data.app = NULL;
+    loader->app_stack_index--;
+
+    // Resume previous app
+    App* app_to_resume = &loader->app_stack[loader->app_stack_index];
+    app_transition_to_state(app_to_resume, APP_STATE_SHOWING);
 
     loader_unlock();
 
-    FURI_LOG_I(
-        TAG,
-        "Application stopped. Free heap: %zu",
-        heap_caps_get_free_size(MALLOC_CAP_INTERNAL)
-    );
-
-    LoaderEvent event = {
-        .type = LoaderEventTypeApplicationStopped
-    };
+    LoaderEvent event = {.type = LoaderEventTypeApplicationStopped};
     furi_pubsub_publish(loader->pubsub, &event);
 }
 
-bool loader_is_app_running() {
-    loader_lock();
-    bool is_running = loader->app_data.app != NULL;
-    loader_unlock();
-    return is_running;
-}
 
 static int32_t loader_main(void* p) {
     UNUSED(p);
@@ -256,13 +273,7 @@ static int32_t loader_main(void* p) {
             FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
-                    if (loader_is_app_running()) {
-                        loader_do_stop_app();
-                    }
-                    message.status_value->value = loader_do_start_by_id(
-                        message.start.id,
-                        message.start.error_message
-                    );
+                    message.status_value->value = loader_do_start_by_id(message.start.id);
                     if (message.api_lock) {
                         api_lock_unlock(message.api_lock);
                     }

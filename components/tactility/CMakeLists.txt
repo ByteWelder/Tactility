@@ -1,8 +1,8 @@
 idf_component_register(
     SRC_DIRS "src"
+    "src/apps/system/desktop"
     "src/apps/system/system_info"
-    "src/apps/system/wifi"
-    "src/services/desktop"
+    "src/apps/system/wifi_manage"
     "src/services/loader"
     "src/services/gui"
     "src/services/gui/widgets"
