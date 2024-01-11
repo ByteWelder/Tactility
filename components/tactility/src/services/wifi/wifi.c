@@ -26,7 +26,7 @@ typedef struct {
     uint16_t scan_list_count;
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
-} Wifi;
+} WifiConnect;
 
 typedef enum {
     WifiMessageTypeRadioOn,
@@ -38,15 +38,15 @@ typedef struct {
     WifiMessageType type;
 } WifiMessage;
 
-static Wifi* wifi_singleton = NULL;
+static WifiConnect* wifi_singleton = NULL;
 
 // Forward declarations
-static void wifi_scan_list_free_safely(Wifi* wifi);
+static void wifi_scan_list_free_safely(WifiConnect* wifi);
 
 // region Alloc
 
-static Wifi* wifi_alloc() {
-    Wifi* instance = malloc(sizeof(Wifi));
+static WifiConnect* wifi_alloc() {
+    WifiConnect* instance = malloc(sizeof(WifiConnect));
     instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     instance->pubsub = furi_pubsub_alloc();
     // TODO: Deal with messages that come in while an action is ongoing
@@ -60,7 +60,7 @@ static Wifi* wifi_alloc() {
     return instance;
 }
 
-static void wifi_free(Wifi* instance) {
+static void wifi_free(WifiConnect* instance) {
     furi_mutex_free(instance->mutex);
     furi_pubsub_free(instance->pubsub);
     furi_message_queue_free(instance->queue);
@@ -139,49 +139,49 @@ bool wifi_get_enabled() {
 
 // endregion Public functions
 
-static void wifi_lock(Wifi* wifi) {
+static void wifi_lock(WifiConnect* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
 }
 
-static void wifi_unlock(Wifi* wifi) {
+static void wifi_unlock(WifiConnect* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
 }
 
-static void wifi_scan_list_alloc(Wifi* wifi) {
+static void wifi_scan_list_alloc(WifiConnect* wifi) {
     furi_check(wifi->scan_list == NULL);
     wifi->scan_list = malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit);
     wifi->scan_list_count = 0;
 }
 
-static void wifi_scan_list_alloc_safely(Wifi* wifi) {
+static void wifi_scan_list_alloc_safely(WifiConnect* wifi) {
     if (wifi->scan_list == NULL) {
         wifi_scan_list_alloc(wifi);
     }
 }
 
-static void wifi_scan_list_free(Wifi* wifi) {
+static void wifi_scan_list_free(WifiConnect* wifi) {
     furi_check(wifi->scan_list != NULL);
     free(wifi->scan_list);
     wifi->scan_list = NULL;
     wifi->scan_list_count = 0;
 }
 
-static void wifi_scan_list_free_safely(Wifi* wifi) {
+static void wifi_scan_list_free_safely(WifiConnect* wifi) {
     if (wifi->scan_list != NULL) {
         wifi_scan_list_free(wifi);
     }
 }
 
-static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
+static void wifi_publish_event_simple(WifiConnect* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
     furi_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
-static void wifi_enable(Wifi* wifi) {
+static void wifi_enable(WifiConnect* wifi) {
     if (wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Already enabled");
         return;
@@ -231,7 +231,7 @@ static void wifi_enable(Wifi* wifi) {
     FURI_LOG_I(TAG, "Enabled");
 }
 
-static void wifi_disable(Wifi* wifi) {
+static void wifi_disable(WifiConnect* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Already disabled");
         return;
@@ -265,7 +265,7 @@ static void wifi_disable(Wifi* wifi) {
     FURI_LOG_I(TAG, "Disabled");
 }
 
-static void wifi_scan_internal(Wifi* wifi) {
+static void wifi_scan_internal(WifiConnect* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Scan unavailable: wifi not enabled");
         return;
@@ -302,7 +302,7 @@ _Noreturn int32_t wifi_main(void* p) {
 
     FURI_LOG_I(TAG, "Started main loop");
     furi_check(wifi_singleton != NULL);
-    Wifi* wifi = wifi_singleton;
+    WifiConnect* wifi = wifi_singleton;
     FuriMessageQueue* queue = wifi->queue;
 
     WifiMessage message;

@@ -21,7 +21,8 @@ extern const ServiceManifest wifi_service;
 // System apps
 extern const AppManifest desktop_app;
 extern const AppManifest system_info_app;
-extern const AppManifest wifi_app;
+extern const AppManifest wifi_connect_app;
+extern const AppManifest wifi_manage_app;
 
 _Noreturn int32_t wifi_main(void* p);
 
@@ -29,7 +30,8 @@ static void register_system_apps() {
     FURI_LOG_I(TAG, "Registering default apps");
     app_manifest_registry_add(&desktop_app);
     app_manifest_registry_add(&system_info_app);
-    app_manifest_registry_add(&wifi_app);
+    app_manifest_registry_add(&wifi_connect_app);
+    app_manifest_registry_add(&wifi_manage_app);
 }
 
 static void register_user_apps(const Config* _Nonnull config) {

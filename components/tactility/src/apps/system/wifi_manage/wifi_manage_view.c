@@ -1,10 +1,9 @@
-#include "wifi_main_view.h"
+#include "wifi_manage_view.h"
 
 #include "log.h"
 #include "services/wifi/wifi.h"
 #include "ui/style.h"
-#include "wifi_state.h"
-#include "wifi_view.h"
+#include "wifi_manage_state.h"
 
 #define TAG "wifi_main_view"
 #define SPINNER_HEIGHT 40
@@ -14,7 +13,7 @@ static void on_enable_switch_changed(lv_event_t* event) {
     lv_obj_t* enable_switch = lv_event_get_target(event);
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        WifiBindings* bindings = (WifiBindings*)event->user_data;
+        WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
         bindings->on_wifi_toggled(is_on);
     }
 }
@@ -53,11 +52,11 @@ static void connect(lv_event_t* event) {
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
     FURI_LOG_I(TAG, "Clicked AP: %s", ssid);
-    WifiBindings* bindings = (WifiBindings*)event->user_data;
-    bindings->on_show_connect_dialog(ssid, bindings->on_show_connect_dialog_context);
+    WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
+    bindings->on_connect_ssid(ssid, bindings->on_connect_ssid_context);
 }
 
-static void create_network_button(WifiMainView* view, WifiBindings* bindings, WifiApRecord* record) {
+static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, WifiApRecord* record) {
     const char* ssid = (const char*)record->ssid;
     const char* icon = get_network_icon(record->rssi, record->auth_mode);
     lv_obj_t* ap_button = lv_list_add_btn(
@@ -68,7 +67,7 @@ static void create_network_button(WifiMainView* view, WifiBindings* bindings, Wi
     lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, bindings);
 }
 
-static void update_network_list(WifiMainView* view, WifiState* state, WifiBindings* bindings) {
+static void update_network_list(WifiManageView* view, WifiManageState* state, WifiManageBindings* bindings) {
     lv_obj_clean(view->networks_list);
 
     if (state->radio_state == WIFI_RADIO_ON) {
@@ -95,7 +94,7 @@ static void update_network_list(WifiMainView* view, WifiState* state, WifiBindin
     }
 }
 
-void update_scanning(WifiMainView* view, WifiState* state) {
+void update_scanning(WifiManageView* view, WifiManageState* state) {
     if (state->radio_state == WIFI_RADIO_ON && state->scanning) {
         lv_obj_clear_flag(view->scanning_spinner, LV_OBJ_FLAG_HIDDEN);
     } else {
@@ -103,7 +102,7 @@ void update_scanning(WifiMainView* view, WifiState* state) {
     }
 }
 
-static void update_wifi_toggle(WifiMainView* view, WifiState* state) {
+static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
     lv_obj_clear_state(view->enable_switch, LV_STATE_ANY);
     switch (state->radio_state) {
         case WIFI_RADIO_ON:
@@ -124,9 +123,8 @@ static void update_wifi_toggle(WifiMainView* view, WifiState* state) {
 
 // region Main
 
-void wifi_main_view_create(WifiView* wifi_view, WifiBindings* bindings, lv_obj_t* parent) {
-    WifiMainView* main_view = &wifi_view->main_view;
-    main_view->root = parent;
+void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
+    view->root = parent;
 
     // TODO: Standardize this into "window content" function?
     // TODO: It can then be dynamically determined based on screen res and size
@@ -147,35 +145,35 @@ void wifi_main_view_create(WifiView* wifi_view, WifiBindings* bindings, lv_obj_t
     lv_label_set_text(enable_label, "Wi-Fi");
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
-    main_view->enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(main_view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
-    lv_obj_set_align(main_view->enable_switch, LV_ALIGN_RIGHT_MID);
+    view->enable_switch = lv_switch_create(switch_container);
+    lv_obj_add_event_cb(view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
+    lv_obj_set_align(view->enable_switch, LV_ALIGN_RIGHT_MID);
 
     // Networks
 
-    main_view->networks_label = lv_label_create(parent);
-    lv_label_set_text(main_view->networks_label, "Networks");
-    lv_obj_set_style_text_align(main_view->networks_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_pad_top(main_view->networks_label, 8, 0);
-    lv_obj_set_style_pad_bottom(main_view->networks_label, 8, 0);
-    lv_obj_set_style_pad_left(main_view->networks_label, 2, 0);
-    lv_obj_set_align(main_view->networks_label, LV_ALIGN_LEFT_MID);
+    view->networks_label = lv_label_create(parent);
+    lv_label_set_text(view->networks_label, "Networks");
+    lv_obj_set_style_text_align(view->networks_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_pad_top(view->networks_label, 8, 0);
+    lv_obj_set_style_pad_bottom(view->networks_label, 8, 0);
+    lv_obj_set_style_pad_left(view->networks_label, 2, 0);
+    lv_obj_set_align(view->networks_label, LV_ALIGN_LEFT_MID);
 
-    main_view->scanning_spinner = lv_spinner_create(parent, 1000, 60);
-    lv_obj_set_size(main_view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
-    lv_obj_set_style_pad_top(main_view->scanning_spinner, 4, 0);
-    lv_obj_set_style_pad_bottom(main_view->scanning_spinner, 4, 0);
+    view->scanning_spinner = lv_spinner_create(parent, 1000, 60);
+    lv_obj_set_size(view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
+    lv_obj_set_style_pad_top(view->scanning_spinner, 4, 0);
+    lv_obj_set_style_pad_bottom(view->scanning_spinner, 4, 0);
 
-    main_view->networks_list = lv_obj_create(parent);
-    lv_obj_set_flex_flow(main_view->networks_list, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(main_view->networks_list, LV_PCT(100));
-    lv_obj_set_height(main_view->networks_list, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_top(main_view->networks_list, 8, 0);
-    lv_obj_set_style_pad_bottom(main_view->networks_list, 8, 0);
+    view->networks_list = lv_obj_create(parent);
+    lv_obj_set_flex_flow(view->networks_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_width(view->networks_list, LV_PCT(100));
+    lv_obj_set_height(view->networks_list, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_top(view->networks_list, 8, 0);
+    lv_obj_set_style_pad_bottom(view->networks_list, 8, 0);
 }
 
-void wifi_main_view_update(WifiView* view, WifiState* state, WifiBindings* bindings) {
-    update_wifi_toggle(&view->main_view, state);
-    update_scanning(&view->main_view, state);
-    update_network_list(&view->main_view, state, bindings);
+void wifi_manage_view_update(WifiManageView* view, WifiManageBindings* bindings, WifiManageState* state) {
+    update_wifi_toggle(view, state);
+    update_scanning(view, state);
+    update_network_list(view, state, bindings);
 }

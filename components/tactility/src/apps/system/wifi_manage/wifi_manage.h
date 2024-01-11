@@ -2,7 +2,7 @@
 
 #include "mutex.h"
 #include "services/wifi/wifi.h"
-#include "wifi_view.h"
+#include "wifi_manage_view.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -11,14 +11,14 @@ extern "C" {
 typedef struct {
     FuriPubSubSubscription* wifi_subscription;
     FuriMutex* mutex;
-    WifiState state;
-    WifiView view;
-    WifiBindings bindings;
-} Wifi;
+    WifiManageState state;
+    WifiManageView view;
+    WifiManageBindings bindings;
+} WifiManage;
 
-void wifi_lock(Wifi* wifi);
+void wifi_manage_lock(WifiManage* wifi);
 
-void wifi_unlock(Wifi* wifi);
+void wifi_manage_unlock(WifiManage* wifi);
 
 #ifdef __cplusplus
 }
