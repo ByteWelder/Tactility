@@ -11,15 +11,15 @@
 DICT_DEF2(ServiceManifestDict, const char*, M_CSTR_DUP_OPLIST, const ServiceManifest*, M_PTR_OPLIST)
 DICT_DEF2(ServiceInstanceDict, const char*, M_CSTR_DUP_OPLIST, const Service*, M_PTR_OPLIST)
 
-#define APP_REGISTRY_FOR_EACH(manifest_var_name, code_to_execute)                                               \
-    {                                                                                                           \
-        service_registry_manifest_lock();                                                                                    \
-        ServiceManifestDict_it_t it;                                                                                \
+#define APP_REGISTRY_FOR_EACH(manifest_var_name, code_to_execute)                                                               \
+    {                                                                                                                           \
+        service_registry_manifest_lock();                                                                                       \
+        ServiceManifestDict_it_t it;                                                                                            \
         for (ServiceManifestDict_it(it, service_manifest_dict); !ServiceManifestDict_end_p(it); ServiceManifestDict_next(it)) { \
-            const ServiceManifest*(manifest_var_name) = ServiceManifestDict_cref(it)->value;                            \
-            code_to_execute;                                                                                    \
-        }                                                                                                       \
-        service_registry_manifest_unlock();                                                                                  \
+            const ServiceManifest*(manifest_var_name) = ServiceManifestDict_cref(it)->value;                                    \
+            code_to_execute;                                                                                                    \
+        }                                                                                                                       \
+        service_registry_manifest_unlock();                                                                                     \
     }
 
 ServiceManifestDict_t service_manifest_dict;
@@ -84,7 +84,7 @@ Service* _Nullable service_registry_find_instance_by_id(const char* id) {
     if (service_ptr == NULL) {
         return NULL;
     }
-    Service* service = (Service*) *service_ptr;
+    Service* service = (Service*)*service_ptr;
     service_registry_instance_unlock();
     return service;
 }
