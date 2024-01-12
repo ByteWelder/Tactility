@@ -7,6 +7,9 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service_manifest.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
+
 
 #define TAG "wifi"
 #define WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
@@ -26,16 +29,27 @@ typedef struct {
     uint16_t scan_list_count;
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
+    esp_event_handler_instance_t event_handler_any_id;
+    esp_event_handler_instance_t event_handler_got_ip;
 } WifiConnect;
 
 typedef enum {
     WifiMessageTypeRadioOn,
     WifiMessageTypeRadioOff,
-    WifiMessageTypeScan
+    WifiMessageTypeScan,
+    WifiMessageTypeConnect
 } WifiMessageType;
 
 typedef struct {
+    uint8_t ssid[33];
+    uint8_t password[33];
+} WifiConnectMessage;
+
+typedef struct {
     WifiMessageType type;
+    union {
+        WifiConnectMessage connect_message;
+    };
 } WifiMessage;
 
 static WifiConnect* wifi_singleton = NULL;
@@ -57,6 +71,8 @@ static WifiConnect* wifi_alloc() {
     instance->scan_list = NULL;
     instance->scan_list_count = 0;
     instance->scan_list_limit = WIFI_SCAN_RECORD_LIMIT;
+    instance->event_handler_any_id = NULL;
+    instance->event_handler_got_ip = NULL;
     return instance;
 }
 
@@ -80,6 +96,16 @@ void wifi_scan() {
     furi_assert(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeScan};
     // No need to lock for queue
+    furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+}
+
+void wifi_connect(const char* ssid, const char* _Nullable password) {
+    furi_assert(wifi_singleton);
+    WifiMessage message = {
+        .type = WifiMessageTypeConnect
+    };
+    strcpy(message.connect_message.ssid, ssid);
+    strcpy(message.connect_message.password, password);
     furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
@@ -181,6 +207,33 @@ static void wifi_publish_event_simple(WifiConnect* wifi, WifiEventType type) {
     furi_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
+#define WIFI_CONNECT_RETRY_COUNT 1
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_FAIL_BIT BIT1
+
+static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    static EventGroupHandle_t s_wifi_event_group;
+    static int s_retry_num = 0;
+
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < WIFI_CONNECT_RETRY_COUNT) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(TAG, "retry to connect to the AP");
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+        }
+        ESP_LOGI(TAG, "connect to the AP fail");
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
+        ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        s_retry_num = 0;
+        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+    }
+}
+
 static void wifi_enable(WifiConnect* wifi) {
     if (wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Already enabled");
@@ -207,6 +260,24 @@ static void wifi_enable(WifiConnect* wifi) {
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
+
+    // TODO: store in Wifi
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        WIFI_EVENT,
+        ESP_EVENT_ANY_ID,
+        &event_handler,
+        NULL,
+        &wifi->event_handler_any_id
+    ));
+
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(
+        IP_EVENT,
+        IP_EVENT_STA_GOT_IP,
+        &event_handler,
+        NULL,
+        &wifi->event_handler_got_ip
+    ));
 
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
         FURI_LOG_E(TAG, "Wifi mode setting failed");
@@ -253,6 +324,22 @@ static void wifi_disable(WifiConnect* wifi) {
         FURI_LOG_E(TAG, "Failed to unset mode");
     }
 
+    if (esp_event_handler_instance_unregister(
+        WIFI_EVENT,
+        ESP_EVENT_ANY_ID,
+        wifi->event_handler_any_id
+    ) != ESP_OK) {
+        FURI_LOG_E(TAG, "Failed to unregister id event handler");
+    }
+
+    if (esp_event_handler_instance_unregister(
+        IP_EVENT,
+        IP_EVENT_STA_GOT_IP,
+        wifi->event_handler_got_ip
+    ) != ESP_OK) {
+        FURI_LOG_E(TAG, "Failed to unregister ip event handler");
+    }
+
     if (esp_wifi_deinit() != ESP_OK) {
         FURI_LOG_E(TAG, "Failed to deinit");
     }
@@ -281,7 +368,7 @@ static void wifi_scan_internal(WifiConnect* wifi) {
     esp_wifi_scan_start(NULL, true);
     uint16_t record_count = wifi->scan_list_limit;
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
-//    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&wifi->scan_list_count));
+    //    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&wifi->scan_list_count));
     uint16_t safe_record_count = MIN(wifi->scan_list_limit, record_count);
     wifi->scan_list_count = safe_record_count;
     FURI_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
@@ -294,6 +381,9 @@ static void wifi_scan_internal(WifiConnect* wifi) {
 
     wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
     FURI_LOG_I(TAG, "Finished scan");
+}
+
+static void wifi_connect_internal(WifiConnect* wifi, WifiConnectMessage* connect_message) {
 }
 
 // ESP wifi APIs need to run from the main task, so we can't just spawn a thread
@@ -318,6 +408,9 @@ _Noreturn int32_t wifi_main(void* p) {
                     break;
                 case WifiMessageTypeScan:
                     wifi_scan_internal(wifi);
+                    break;
+                case WifiMessageTypeConnect:
+                    wifi_connect_internal(wifi, &message.connect_message);
                     break;
             }
         }

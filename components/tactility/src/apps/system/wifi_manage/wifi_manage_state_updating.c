@@ -4,21 +4,27 @@
 void wifi_manage_state_set_scanning(WifiManage* wifi, bool is_scanning) {
     wifi_manage_lock(wifi);
     wifi->state.scanning = is_scanning;
-
-    lvgl_port_lock(100);
-    wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
-    lvgl_port_unlock();
-
     wifi_manage_unlock(wifi);
+
+    wifi_manage_request_view_update(wifi);
 }
 
 void wifi_manage_state_set_radio_state(WifiManage* wifi, WifiRadioState state) {
     wifi_manage_lock(wifi);
     wifi->state.radio_state = state;
-
-    lvgl_port_lock(100);
-    wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
-    lvgl_port_unlock();
-
     wifi_manage_unlock(wifi);
+
+    wifi_manage_request_view_update(wifi);
+}
+
+void wifi_manage_state_update_scanned_records(WifiManage* wifi) {
+    wifi_manage_lock(wifi);
+    wifi_get_scan_results(
+        wifi->state.ap_records,
+        WIFI_SCAN_AP_RECORD_COUNT,
+        &wifi->state.ap_records_count
+    );
+    wifi_manage_unlock(wifi);
+
+    wifi_manage_request_view_update(wifi);
 }

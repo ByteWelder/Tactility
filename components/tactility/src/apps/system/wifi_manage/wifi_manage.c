@@ -5,12 +5,14 @@
 #include "wifi_manage_view.h"
 #include "wifi_manage_state_updating.h"
 #include "services/loader/loader.h"
+#include "esp_lvgl_port.h"
 
 // Forward declarations
 static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid, void* wifi_void) {
     WifiManage* wifi = (WifiManage*)wifi_void;
+    // TODO: lock
     wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     // TODO start with params
     loader_start_app("wifi_connect", false);
@@ -31,9 +33,7 @@ static WifiManage* wifi_manage_alloc() {
         .scanning = false,
         .radio_state = wifi_get_enabled() ? WIFI_RADIO_ON : WIFI_RADIO_OFF
     };
-    wifi->view = (WifiManageView) {
-        .scanning_spinner = NULL
-    };
+    wifi->view_enabled = false;
     wifi->bindings = (WifiManageBindings) {
         .on_wifi_toggled = &on_wifi_toggled,
         .on_connect_ssid = &on_connect,
@@ -63,6 +63,16 @@ void wifi_manage_unlock(WifiManage* wifi) {
     furi_mutex_release(wifi->mutex);
 }
 
+void wifi_manage_request_view_update(WifiManage* wifi) {
+    wifi_manage_lock(wifi);
+    if (wifi->view_enabled) {
+        lvgl_port_lock(100);
+        wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+        lvgl_port_unlock();
+    }
+    wifi_manage_unlock(wifi);
+}
+
 static void wifi_manage_event_callback(const void* message, void* context) {
     const WifiEvent* event = (const WifiEvent*)message;
     WifiManage* wifi = (WifiManage*)context;
@@ -72,6 +82,7 @@ static void wifi_manage_event_callback(const void* message, void* context) {
             break;
         case WifiEventTypeScanFinished:
             wifi_manage_state_set_scanning(wifi, false);
+            wifi_manage_state_update_scanned_records(wifi);
             break;
         case WifiEventTypeRadioStateOn:
             wifi_manage_state_set_radio_state(wifi, WIFI_RADIO_ON);
@@ -93,6 +104,7 @@ static void app_show(Context* context, lv_obj_t* parent) {
     WifiManage* wifi = (WifiManage*)context->data;
 
     wifi_manage_lock(wifi);
+    wifi->view_enabled = true;
     wifi_manage_view_create(&wifi->view, &wifi->bindings, parent);
     wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_manage_unlock(wifi);
@@ -103,7 +115,10 @@ static void app_show(Context* context, lv_obj_t* parent) {
 }
 
 static void app_hide(Context* context) {
-    // Nothing to manually free/unsubscribe for views
+    WifiManage* wifi = (WifiManage*)context->data;
+    wifi_manage_lock(wifi);
+    wifi->view_enabled = false;
+    wifi_manage_unlock(wifi);
 }
 
 static void app_start(Context* context) {

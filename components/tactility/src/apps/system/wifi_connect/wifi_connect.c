@@ -3,6 +3,7 @@
 #include "app_manifest.h"
 #include "furi_core.h"
 #include "wifi_connect_state_updating.h"
+#include "esp_lvgl_port.h"
 
 // Forward declarations
 static void wifi_connect_event_callback(const void* message, void* context);
@@ -26,6 +27,7 @@ static WifiConnect* wifi_connect_alloc() {
         .on_connect_ssid = &on_connect,
         .on_connect_ssid_context = wifi,
     };
+    wifi->view_enabled = false;
 
     return wifi;
 }
@@ -48,6 +50,16 @@ void wifi_connect_unlock(WifiConnect* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_mutex_release(wifi->mutex);
+}
+
+void wifi_connect_request_view_update(WifiConnect* wifi) {
+    wifi_connect_lock(wifi);
+    if (wifi->view_enabled) {
+        lvgl_port_lock(100);
+        wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+        lvgl_port_unlock();
+    }
+    wifi_connect_unlock(wifi);
 }
 
 static void wifi_connect_event_callback(const void* message, void* context) {
@@ -76,6 +88,7 @@ static void app_show(Context* context, lv_obj_t* parent) {
     WifiConnect* wifi = (WifiConnect*)context->data;
 
     wifi_connect_lock(wifi);
+    wifi->view_enabled = true;
     wifi_connect_view_create(&wifi->view, &wifi->bindings, parent);
     wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_connect_unlock(wifi);
@@ -86,7 +99,10 @@ static void app_show(Context* context, lv_obj_t* parent) {
 }
 
 static void app_hide(Context* context) {
-    // Nothing to manually free/unsubscribe for views
+    WifiConnect * wifi = (WifiConnect *)context->data;
+    wifi_connect_lock(wifi);
+    wifi->view_enabled = false;
+    wifi_connect_unlock(wifi);
 }
 
 static void app_start(Context* context) {

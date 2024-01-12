@@ -73,12 +73,9 @@ static void update_network_list(WifiManageView* view, WifiManageState* state, Wi
     if (state->radio_state == WIFI_RADIO_ON) {
         lv_obj_clear_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
 
-        WifiApRecord records[16];
-        uint16_t count = 0;
-        wifi_get_scan_results(records, 16, &count);
-        if (count > 0) {
-            for (int i = 0; i < count; ++i) {
-                create_network_button(view, bindings, &records[i]);
+        if (state->ap_records_count > 0) {
+            for (int i = 0; i < state->ap_records_count; ++i) {
+                create_network_button(view, bindings, &state->ap_records[i]);
             }
             lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
         } else if (state->scanning) {

@@ -41,7 +41,7 @@ typedef struct {
 FuriPubSub* wifi_get_pubsub();
 
 /**
- * @brief Request scanning update.
+ * @brief Request scanning update. Returns immediately. Results are through pubsub.
  */
 void wifi_scan();
 
@@ -63,6 +63,13 @@ void wifi_set_scan_records(uint16_t records);
  * @param enabled
  */
 void wifi_set_enabled(bool enabled);
+
+/**
+ * @brief Connect to a network. Returns immediately. Results are through pubsub.
+ * @param ssid
+ * @param password
+ */
+void wifi_connect(const char* ssid, const char* _Nullable password);
 
 /**
  * @return true if the wifi radio is fully operational in STA mode.

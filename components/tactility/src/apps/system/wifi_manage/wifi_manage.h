@@ -13,12 +13,15 @@ typedef struct {
     FuriMutex* mutex;
     WifiManageState state;
     WifiManageView view;
+    bool view_enabled;
     WifiManageBindings bindings;
 } WifiManage;
 
 void wifi_manage_lock(WifiManage* wifi);
 
 void wifi_manage_unlock(WifiManage* wifi);
+
+void wifi_manage_request_view_update(WifiManage* wifi);
 
 #ifdef __cplusplus
 }
