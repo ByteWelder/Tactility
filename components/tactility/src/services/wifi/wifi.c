@@ -184,6 +184,7 @@ void wifi_set_enabled(bool enabled) {
 // endregion Public functions
 
 static void wifi_lock(Wifi* wifi) {
+    furi_crash("this fails for now");
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
@@ -487,6 +488,46 @@ static void wifi_disconnect_internal(Wifi* wifi) {
     }
 }
 
+static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
+    esp_err_t stop_result = esp_wifi_stop();
+    if (stop_result != ESP_OK) {
+        FURI_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
+        return;
+    }
+
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = { 0 },
+            .password = { 0 },
+            .threshold.authmode = WIFI_AUTH_OPEN,
+            .sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED,
+            .sae_h2e_identifier = { 0 },
+        },
+    };
+
+    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    if (set_config_result != ESP_OK) {
+        // TODO: disable radio, because radio state is in limbo between off and on
+        wifi->radio_state = WIFI_RADIO_OFF;
+        FURI_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        return;
+    }
+
+    esp_err_t wifi_start_result = esp_wifi_start();
+    if (wifi_start_result != ESP_OK) {
+        // TODO: disable radio, because radio state is in limbo between off and on
+        wifi->radio_state = WIFI_RADIO_OFF;
+        FURI_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
+        return;
+    }
+
+    wifi->radio_state = WIFI_RADIO_ON;
+    wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
+    FURI_LOG_I(TAG, "Disconnected");
+}
+
 // ESP wifi APIs need to run from the main task, so we can't just spawn a thread
 _Noreturn int32_t wifi_main(void* p) {
     UNUSED(p);
@@ -514,7 +555,7 @@ _Noreturn int32_t wifi_main(void* p) {
                     wifi_connect_internal(wifi, &message.connect_message);
                     break;
                 case WifiMessageTypeDisconnect:
-                    wifi_disconnect_internal(wifi);
+                    wifi_disconnect_internal_but_keep_active(wifi);
                     break;
             }
         }
