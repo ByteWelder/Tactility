@@ -31,7 +31,7 @@ typedef struct {
     uint16_t scan_list_limit;
     esp_event_handler_instance_t event_handler_any_id;
     esp_event_handler_instance_t event_handler_got_ip;
-} WifiConnect;
+} Wifi;
 
 typedef enum {
     WifiMessageTypeRadioOn,
@@ -52,15 +52,15 @@ typedef struct {
     };
 } WifiMessage;
 
-static WifiConnect* wifi_singleton = NULL;
+static Wifi* wifi_singleton = NULL;
 
 // Forward declarations
-static void wifi_scan_list_free_safely(WifiConnect* wifi);
+static void wifi_scan_list_free_safely(Wifi* wifi);
 
 // region Alloc
 
-static WifiConnect* wifi_alloc() {
-    WifiConnect* instance = malloc(sizeof(WifiConnect));
+static Wifi* wifi_alloc() {
+    Wifi* instance = malloc(sizeof(Wifi));
     instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
     instance->pubsub = furi_pubsub_alloc();
     // TODO: Deal with messages that come in while an action is ongoing
@@ -76,7 +76,7 @@ static WifiConnect* wifi_alloc() {
     return instance;
 }
 
-static void wifi_free(WifiConnect* instance) {
+static void wifi_free(Wifi* instance) {
     furi_mutex_free(instance->mutex);
     furi_pubsub_free(instance->pubsub);
     furi_message_queue_free(instance->queue);
@@ -165,44 +165,44 @@ bool wifi_get_enabled() {
 
 // endregion Public functions
 
-static void wifi_lock(WifiConnect* wifi) {
+static void wifi_lock(Wifi* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
 }
 
-static void wifi_unlock(WifiConnect* wifi) {
+static void wifi_unlock(Wifi* wifi) {
     furi_assert(wifi);
     furi_assert(wifi->mutex);
     furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
 }
 
-static void wifi_scan_list_alloc(WifiConnect* wifi) {
+static void wifi_scan_list_alloc(Wifi* wifi) {
     furi_check(wifi->scan_list == NULL);
     wifi->scan_list = malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit);
     wifi->scan_list_count = 0;
 }
 
-static void wifi_scan_list_alloc_safely(WifiConnect* wifi) {
+static void wifi_scan_list_alloc_safely(Wifi* wifi) {
     if (wifi->scan_list == NULL) {
         wifi_scan_list_alloc(wifi);
     }
 }
 
-static void wifi_scan_list_free(WifiConnect* wifi) {
+static void wifi_scan_list_free(Wifi* wifi) {
     furi_check(wifi->scan_list != NULL);
     free(wifi->scan_list);
     wifi->scan_list = NULL;
     wifi->scan_list_count = 0;
 }
 
-static void wifi_scan_list_free_safely(WifiConnect* wifi) {
+static void wifi_scan_list_free_safely(Wifi* wifi) {
     if (wifi->scan_list != NULL) {
         wifi_scan_list_free(wifi);
     }
 }
 
-static void wifi_publish_event_simple(WifiConnect* wifi, WifiEventType type) {
+static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
     furi_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
@@ -234,7 +234,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
     }
 }
 
-static void wifi_enable(WifiConnect* wifi) {
+static void wifi_enable(Wifi* wifi) {
     if (wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Already enabled");
         return;
@@ -302,7 +302,7 @@ static void wifi_enable(WifiConnect* wifi) {
     FURI_LOG_I(TAG, "Enabled");
 }
 
-static void wifi_disable(WifiConnect* wifi) {
+static void wifi_disable(Wifi* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Already disabled");
         return;
@@ -352,7 +352,7 @@ static void wifi_disable(WifiConnect* wifi) {
     FURI_LOG_I(TAG, "Disabled");
 }
 
-static void wifi_scan_internal(WifiConnect* wifi) {
+static void wifi_scan_internal(Wifi* wifi) {
     if (!wifi_get_enabled()) {
         FURI_LOG_W(TAG, "Scan unavailable: wifi not enabled");
         return;
@@ -383,7 +383,7 @@ static void wifi_scan_internal(WifiConnect* wifi) {
     FURI_LOG_I(TAG, "Finished scan");
 }
 
-static void wifi_connect_internal(WifiConnect* wifi, WifiConnectMessage* connect_message) {
+static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
 }
 
 // ESP wifi APIs need to run from the main task, so we can't just spawn a thread
@@ -392,7 +392,7 @@ _Noreturn int32_t wifi_main(void* p) {
 
     FURI_LOG_I(TAG, "Started main loop");
     furi_check(wifi_singleton != NULL);
-    WifiConnect* wifi = wifi_singleton;
+    Wifi* wifi = wifi_singleton;
     FuriMessageQueue* queue = wifi->queue;
 
     WifiMessage message;
