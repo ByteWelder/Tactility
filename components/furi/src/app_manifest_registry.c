@@ -1,4 +1,5 @@
 #include "app_manifest_registry.h"
+
 #include "furi_core.h"
 #include "m-dict.h"
 #include "m_cstr_dup.h"
