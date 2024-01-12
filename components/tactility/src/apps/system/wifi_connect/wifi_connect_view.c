@@ -9,7 +9,7 @@
 
 static void on_connect(lv_event_t* event) {
     WifiConnectBindings* bindings = (WifiConnectBindings*)event->user_data;
-    bindings->on_connect_ssid("todo1", "todo2", bindings->on_connect_ssid_context);
+    bindings->on_connect_ssid("On The Fence", "butallowedtoenter", bindings->on_connect_ssid_context);
 }
 
 // TODO: Standardize dialogs

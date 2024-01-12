@@ -9,13 +9,6 @@ extern "C" {
 
 #define WIFI_SCAN_AP_RECORD_COUNT 16
 
-typedef enum {
-    WIFI_RADIO_ON,
-    WIFI_RADIO_ON_PENDING,
-    WIFI_RADIO_OFF,
-    WIFI_RADIO_OFF_PENDING,
-} WifiRadioState;
-
 /**
  * View's state
  */

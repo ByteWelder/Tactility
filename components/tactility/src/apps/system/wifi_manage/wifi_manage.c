@@ -10,13 +10,12 @@
 // Forward declarations
 static void wifi_manage_event_callback(const void* message, void* context);
 
-static void on_connect(const char* ssid, void* wifi_void) {
-    WifiManage* wifi = (WifiManage*)wifi_void;
-    // TODO: lock
-    wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
-    // TODO start with params
+static void on_connect(const char* ssid) {
     loader_start_app("wifi_connect", false);
-    FURI_LOG_I("YO", "real connection goes here to %s", ssid);
+}
+
+static void on_disconnect() {
+    wifi_disconnect();
 }
 
 static void on_wifi_toggled(bool enabled) {
@@ -30,14 +29,14 @@ static WifiManage* wifi_manage_alloc() {
     wifi->wifi_subscription = furi_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
     wifi->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     wifi->state = (WifiManageState) {
-        .scanning = false,
-        .radio_state = wifi_get_enabled() ? WIFI_RADIO_ON : WIFI_RADIO_OFF
+        .scanning = wifi_is_scanning(),
+        .radio_state = wifi_get_radio_state()
     };
     wifi->view_enabled = false;
     wifi->bindings = (WifiManageBindings) {
         .on_wifi_toggled = &on_wifi_toggled,
         .on_connect_ssid = &on_connect,
-        .on_connect_ssid_context = wifi,
+        .on_disconnect = &on_disconnect
     };
 
     return wifi;
@@ -76,6 +75,7 @@ void wifi_manage_request_view_update(WifiManage* wifi) {
 static void wifi_manage_event_callback(const void* message, void* context) {
     const WifiEvent* event = (const WifiEvent*)message;
     WifiManage* wifi = (WifiManage*)context;
+    wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
     switch (event->type) {
         case WifiEventTypeScanStarted:
             wifi_manage_state_set_scanning(wifi, true);
@@ -85,17 +85,11 @@ static void wifi_manage_event_callback(const void* message, void* context) {
             wifi_manage_state_update_scanned_records(wifi);
             break;
         case WifiEventTypeRadioStateOn:
-            wifi_manage_state_set_radio_state(wifi, WIFI_RADIO_ON);
-            wifi_scan();
+            if (!wifi_is_scanning()) {
+                wifi_scan();
+            }
             break;
-        case WifiEventTypeRadioStateOnPending:
-            wifi_manage_state_set_radio_state(wifi, WIFI_RADIO_ON_PENDING);
-            break;
-        case WifiEventTypeRadioStateOff:
-            wifi_manage_state_set_radio_state(wifi, WIFI_RADIO_OFF);
-            break;
-        case WifiEventTypeRadioStateOffPending:
-            wifi_manage_state_set_radio_state(wifi, WIFI_RADIO_OFF_PENDING);
+        default:
             break;
     }
 }
@@ -103,13 +97,20 @@ static void wifi_manage_event_callback(const void* message, void* context) {
 static void app_show(Context* context, lv_obj_t* parent) {
     WifiManage* wifi = (WifiManage*)context->data;
 
+    // State update (it has its own locking)
+    wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
+    wifi_manage_state_set_scanning(wifi, wifi_is_scanning());
+    wifi_manage_state_update_scanned_records(wifi);
+
+    // View update
     wifi_manage_lock(wifi);
     wifi->view_enabled = true;
     wifi_manage_view_create(&wifi->view, &wifi->bindings, parent);
     wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_manage_unlock(wifi);
 
-    if (wifi_get_enabled()) {
+    WifiRadioState radio_state = wifi_get_radio_state();
+    if (radio_state == WIFI_RADIO_ON && !wifi_is_scanning()) {
         wifi_scan();
     }
 }

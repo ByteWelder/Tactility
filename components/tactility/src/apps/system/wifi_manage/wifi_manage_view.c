@@ -18,6 +18,11 @@ static void on_enable_switch_changed(lv_event_t* event) {
     }
 }
 
+static void on_disconnect_pressed(lv_event_t* event) {
+    WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
+    bindings->on_disconnect();
+}
+
 // region Secondary updates
 
 static const char* get_network_icon(int8_t rssi, wifi_auth_mode_t auth_mode) {
@@ -53,7 +58,7 @@ static void connect(lv_event_t* event) {
     const char* ssid = lv_label_get_text(label);
     FURI_LOG_I(TAG, "Clicked AP: %s", ssid);
     WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
-    bindings->on_connect_ssid(ssid, bindings->on_connect_ssid_context);
+    bindings->on_connect_ssid(ssid);
 }
 
 static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, WifiApRecord* record) {
@@ -69,25 +74,32 @@ static void create_network_button(WifiManageView* view, WifiManageBindings* bind
 
 static void update_network_list(WifiManageView* view, WifiManageState* state, WifiManageBindings* bindings) {
     lv_obj_clean(view->networks_list);
-
-    if (state->radio_state == WIFI_RADIO_ON) {
-        lv_obj_clear_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
-
-        if (state->ap_records_count > 0) {
-            for (int i = 0; i < state->ap_records_count; ++i) {
-                create_network_button(view, bindings, &state->ap_records[i]);
+    switch (state->radio_state) {
+        case WIFI_RADIO_ON_PENDING:
+        case WIFI_RADIO_ON:
+        case WIFI_RADIO_CONNECTION_PENDING:
+        case WIFI_RADIO_CONNECTION_ACTIVE: {
+            lv_obj_clear_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
+            if (state->ap_records_count > 0) {
+                for (int i = 0; i < state->ap_records_count; ++i) {
+                    create_network_button(view, bindings, &state->ap_records[i]);
+                }
+                lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
+            } else if (state->scanning) {
+                lv_obj_add_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
+                lv_obj_t* label = lv_label_create(view->networks_list);
+                lv_label_set_text(label, "No networks found.");
             }
-            lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
-        } else if (state->scanning) {
-            lv_obj_add_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_t* label = lv_label_create(view->networks_list);
-            lv_label_set_text(label, "No networks found.");
+            break;
         }
-    } else {
-        lv_obj_add_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
+        case WIFI_RADIO_OFF_PENDING:
+        case WIFI_RADIO_OFF: {
+            lv_obj_add_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
+            break;
+        }
     }
 }
 
@@ -103,6 +115,8 @@ static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
     lv_obj_clear_state(view->enable_switch, LV_STATE_ANY);
     switch (state->radio_state) {
         case WIFI_RADIO_ON:
+        case WIFI_RADIO_CONNECTION_PENDING:
+        case WIFI_RADIO_CONNECTION_ACTIVE:
             lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED);
             break;
         case WIFI_RADIO_ON_PENDING:
@@ -112,6 +126,19 @@ static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
             break;
         case WIFI_RADIO_OFF_PENDING:
             lv_obj_add_state(view->enable_switch, LV_STATE_DISABLED);
+            break;
+    }
+}
+
+static void update_connected_ap(WifiManageView* view, WifiManageState* state, WifiManageBindings* bindings) {
+    switch (state->radio_state) {
+        case WIFI_RADIO_CONNECTION_PENDING:
+        case WIFI_RADIO_CONNECTION_ACTIVE:
+            lv_obj_clear_flag(view->connected_ap_container, LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(view->connected_ap_label, (const char*)state->connect_ssid);
+            break;
+        default:
+            lv_obj_add_flag(view->connected_ap_container, LV_OBJ_FLAG_HIDDEN);
             break;
     }
 }
@@ -146,6 +173,22 @@ void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings,
     lv_obj_add_event_cb(view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
     lv_obj_set_align(view->enable_switch, LV_ALIGN_RIGHT_MID);
 
+    view->connected_ap_container = lv_obj_create(parent);
+    lv_obj_set_width(view->connected_ap_container, LV_PCT(100));
+    lv_obj_set_height(view->connected_ap_container, LV_SIZE_CONTENT);
+    tt_lv_obj_set_style_no_padding(view->connected_ap_container);
+    tt_lv_obj_set_style_bg_invisible(view->connected_ap_container);
+
+    view->connected_ap_label = lv_label_create(view->connected_ap_container);
+    lv_label_set_text(view->connected_ap_label, "");
+    lv_obj_set_align(view->connected_ap_label, LV_ALIGN_LEFT_MID);
+
+    lv_obj_t* disconnect_button = lv_btn_create(view->connected_ap_container);
+    lv_obj_add_event_cb(disconnect_button, &on_disconnect_pressed, LV_EVENT_CLICKED, bindings);
+    lv_obj_t* disconnect_label = lv_label_create(disconnect_button);
+    lv_label_set_text(disconnect_label, "Disconnect");
+    lv_obj_center(disconnect_label);
+
     // Networks
 
     view->networks_label = lv_label_create(parent);
@@ -173,4 +216,5 @@ void wifi_manage_view_update(WifiManageView* view, WifiManageBindings* bindings,
     update_wifi_toggle(view, state);
     update_scanning(view, state);
     update_network_list(view, state, bindings);
+    update_connected_ap(view, state, bindings);
 }

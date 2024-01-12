@@ -21,8 +21,21 @@ typedef enum {
     /** Started scanning for access points */
     WifiEventTypeScanStarted,
     /** Finished scanning for access points */ // TODO: 1 second validity
-    WifiEventTypeScanFinished
+    WifiEventTypeScanFinished,
+    WifiEventTypeDisconnected,
+    WifiEventTypeConnectionPending,
+    WifiEventTypeConnectionSuccess,
+    WifiEventTypeConnectionFailed
 } WifiEventType;
+
+typedef enum {
+    WIFI_RADIO_ON_PENDING,
+    WIFI_RADIO_ON,
+    WIFI_RADIO_CONNECTION_PENDING,
+    WIFI_RADIO_CONNECTION_ACTIVE,
+    WIFI_RADIO_OFF_PENDING,
+    WIFI_RADIO_OFF
+} WifiRadioState;
 
 typedef struct {
     WifiEventType type;
@@ -40,10 +53,13 @@ typedef struct {
  */
 FuriPubSub* wifi_get_pubsub();
 
+WifiRadioState wifi_get_radio_state();
 /**
  * @brief Request scanning update. Returns immediately. Results are through pubsub.
  */
 void wifi_scan();
+
+bool wifi_is_scanning();
 
 /**
  * @brief Returns the access points from the last scan (if any). It only contains public APs.
@@ -65,16 +81,17 @@ void wifi_set_scan_records(uint16_t records);
 void wifi_set_enabled(bool enabled);
 
 /**
- * @brief Connect to a network. Returns immediately. Results are through pubsub.
+ * @brief Connect to a network. Disconnects any existing connection.
+ * Returns immediately but runs in the background. Results are through pubsub.
  * @param ssid
  * @param password
  */
 void wifi_connect(const char* ssid, const char* _Nullable password);
 
 /**
- * @return true if the wifi radio is fully operational in STA mode.
+ * @brief Disconnect from the access point. Doesn't have any effect when not connected.
  */
-bool wifi_get_enabled();
+void wifi_disconnect();
 
 #ifdef __cplusplus
 }

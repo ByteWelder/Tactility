@@ -1,17 +1,17 @@
 #include "wifi_connect.h"
 
 #include "app_manifest.h"
-#include "furi_core.h"
-#include "wifi_connect_state_updating.h"
 #include "esp_lvgl_port.h"
+#include "furi_core.h"
+#include "services/wifi/wifi.h"
+#include "wifi_connect_state_updating.h"
 
 // Forward declarations
 static void wifi_connect_event_callback(const void* message, void* context);
 
-static void on_connect(const char* ssid, const char* password, void* wifi_void) {
-    WifiConnect* wifi_connect = (WifiConnect*)wifi_void;
-    // TODO
-    FURI_LOG_I("YO", "real connection goes here to %s, %s", ssid, password);
+static void on_connect(const char* ssid, const char* password, void* parameter) {
+    UNUSED(parameter);
+    wifi_connect(ssid, password);
 }
 
 static WifiConnect* wifi_connect_alloc() {
@@ -21,7 +21,7 @@ static WifiConnect* wifi_connect_alloc() {
     wifi->wifi_subscription = furi_pubsub_subscribe(wifi_pubsub, &wifi_connect_event_callback, wifi);
     wifi->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     wifi->state = (WifiConnectState) {
-        .radio_state = wifi_get_enabled() ? WIFI_RADIO_ON : WIFI_RADIO_OFF
+        .radio_state = wifi_get_radio_state()
     };
     wifi->bindings = (WifiConnectBindings) {
         .on_connect_ssid = &on_connect,
@@ -65,19 +65,10 @@ void wifi_connect_request_view_update(WifiConnect* wifi) {
 static void wifi_connect_event_callback(const void* message, void* context) {
     const WifiEvent* event = (const WifiEvent*)message;
     WifiConnect* wifi = (WifiConnect*)context;
+    wifi_connect_state_set_radio_state(wifi, wifi_get_radio_state());
     switch (event->type) {
         case WifiEventTypeRadioStateOn:
-            wifi_connect_state_set_radio_state(wifi, WIFI_RADIO_ON);
             wifi_scan();
-            break;
-        case WifiEventTypeRadioStateOnPending:
-            wifi_connect_state_set_radio_state(wifi, WIFI_RADIO_ON_PENDING);
-            break;
-        case WifiEventTypeRadioStateOff:
-            wifi_connect_state_set_radio_state(wifi, WIFI_RADIO_OFF);
-            break;
-        case WifiEventTypeRadioStateOffPending:
-            wifi_connect_state_set_radio_state(wifi, WIFI_RADIO_OFF_PENDING);
             break;
         default:
             break;
@@ -92,14 +83,10 @@ static void app_show(Context* context, lv_obj_t* parent) {
     wifi_connect_view_create(&wifi->view, &wifi->bindings, parent);
     wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_connect_unlock(wifi);
-
-    if (wifi_get_enabled()) {
-        wifi_scan();
-    }
 }
 
 static void app_hide(Context* context) {
-    WifiConnect * wifi = (WifiConnect *)context->data;
+    WifiConnect* wifi = (WifiConnect*)context->data;
     wifi_connect_lock(wifi);
     wifi->view_enabled = false;
     wifi_connect_unlock(wifi);
