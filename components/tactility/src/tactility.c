@@ -105,10 +105,10 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    loader_start_app(desktop_app.id, true);
+    loader_start_app(desktop_app.id, true, NULL);
 
     if (config->auto_start_app_id != NULL) {
-        loader_start_app(config->auto_start_app_id, false);
+        loader_start_app(config->auto_start_app_id, false, NULL);
     }
 
     // Wifi must run in the main task, or otherwise it will crash the app

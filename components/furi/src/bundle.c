@@ -4,6 +4,8 @@
 #include "m_cstr_dup.h"
 #include "check.h"
 
+// region BundleEntry
+
 typedef enum {
     BUNDLE_ENTRY_TYPE_BOOL,
     BUNDLE_ENTRY_TYPE_INT,
@@ -60,7 +62,12 @@ void bundle_entry_free(BundleEntry* entry) {
     free(entry);
 }
 
+// endregion BundleEntry
+
+// region Bundle
+
 DICT_DEF2(BundleDict, const char*, M_CSTR_DUP_OPLIST, BundleEntry*, M_PTR_OPLIST)
+
 typedef struct {
     BundleDict_t dict;
 } BundleData;
@@ -69,6 +76,33 @@ Bundle bundle_alloc() {
     BundleData* bundle = malloc(sizeof(BundleData));
     BundleDict_init(bundle->dict);
     return bundle;
+}
+
+Bundle bundle_alloc_copy(Bundle source) {
+    BundleData* source_data = (BundleData*)source;
+    BundleData* target_data = bundle_alloc();
+
+    BundleDict_it_t it;
+    for (BundleDict_it(it, source_data->dict); !BundleDict_end_p(it); BundleDict_next(it)) {
+        const char* key = BundleDict_cref(it)->key;
+        BundleEntry* entry = BundleDict_cref(it)->value;
+        BundleEntry* entry_copy = bundle_entry_alloc_copy(entry);
+        BundleDict_set_at(target_data->dict, key, entry_copy);
+    }
+
+    return target_data;
+}
+
+void bundle_free(Bundle bundle) {
+    BundleData* data = (BundleData*)bundle;
+
+    BundleDict_it_t it;
+    for (BundleDict_it(it, data->dict); !BundleDict_end_p(it); BundleDict_next(it)) {
+        bundle_entry_free(BundleDict_cref(it)->value);
+    }
+
+    BundleDict_clear(data->dict);
+    free(data);
 }
 
 bool bundle_get_bool(Bundle bundle, const char* key) {
@@ -168,29 +202,4 @@ void bundle_put_string(Bundle bundle, const char* key, const char* value) {
     }
 }
 
-Bundle bundle_alloc_copy(Bundle source) {
-    BundleData* source_data = (BundleData*)source;
-    BundleData* target_data = bundle_alloc();
-
-    BundleDict_it_t it;
-    for (BundleDict_it(it, source_data->dict); !BundleDict_end_p(it); BundleDict_next(it)) {
-        const char* key = BundleDict_cref(it)->key;
-        BundleEntry* entry = BundleDict_cref(it)->value;
-        BundleEntry* entry_copy = bundle_entry_alloc_copy(entry);
-        BundleDict_set_at(target_data->dict, key, entry_copy);
-    }
-
-    return target_data;
-}
-
-void bundle_free(Bundle bundle) {
-    BundleData* data = (BundleData*)bundle;
-
-    BundleDict_it_t it;
-    for (BundleDict_it(it, data->dict); !BundleDict_end_p(it); BundleDict_next(it)) {
-        bundle_entry_free(BundleDict_cref(it)->value);
-    }
-
-    BundleDict_clear(data->dict);
-    free(data);
-}
+// endregion Bundle

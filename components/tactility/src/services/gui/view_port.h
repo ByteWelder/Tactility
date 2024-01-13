@@ -4,35 +4,36 @@
 extern "C" {
 #endif
 
+#include "app.h"
 #include "lvgl.h"
 #include "context.h"
 
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
-typedef void (*ViewPortShowCallback)(Context* context, lv_obj_t* parent);
-typedef void (*ViewPortHideCallback)(Context* context);
+typedef void (*ViewPortShowCallback)(App app, lv_obj_t* parent);
+typedef void (*ViewPortHideCallback)(App app);
 
 // TODO: Move internally, use handle publicly
 
 typedef struct {
-    Context* context;
+    App app;
     ViewPortShowCallback on_show;
-    ViewPortHideCallback on_hide;
+    ViewPortHideCallback _Nullable on_hide;
     bool app_toolbar;
 } ViewPort;
 
 /** ViewPort allocator
  *
  * always returns view_port or stops system if not enough memory.
- * @param context app Context
+ * @param app
  * @param on_show Called to create LVGL widgets
  * @param on_hide Called before clearing the LVGL widget parent
  *
  * @return     ViewPort instance
  */
 ViewPort* view_port_alloc(
-    Context* context,
+    App app,
     ViewPortShowCallback on_show,
     ViewPortHideCallback on_hide
 );

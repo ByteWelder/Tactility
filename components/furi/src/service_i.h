@@ -1,12 +1,16 @@
 #pragma once
 
-#include "service_manifest.h"
+#include "service.h"
+
 #include "context.h"
+#include "mutex.h"
+#include "service_manifest.h"
 
 typedef struct {
+    FuriMutex* mutex;
     const ServiceManifest* manifest;
-    Context context;
-} Service;
+    void* data;
+} ServiceData;
 
-Service* furi_service_alloc(const ServiceManifest* _Nonnull manifest);
-void furi_service_free(Service* _Nonnull service);
+Service service_alloc(const ServiceManifest* _Nonnull manifest);
+void service_free(Service _Nonnull service);

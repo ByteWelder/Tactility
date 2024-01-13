@@ -1,6 +1,6 @@
 #include "wifi_connect.h"
 
-#include "app_manifest.h"
+#include "app.h"
 #include "esp_lvgl_port.h"
 #include "furi_core.h"
 #include "services/wifi/wifi.h"
@@ -75,8 +75,8 @@ static void wifi_connect_event_callback(const void* message, void* context) {
     }
 }
 
-static void app_show(Context* context, lv_obj_t* parent) {
-    WifiConnect* wifi = (WifiConnect*)context->data;
+static void app_show(App app, lv_obj_t* parent) {
+    WifiConnect* wifi = (WifiConnect*)app_get_data(app);
 
     wifi_connect_lock(wifi);
     wifi->view_enabled = true;
@@ -85,23 +85,23 @@ static void app_show(Context* context, lv_obj_t* parent) {
     wifi_connect_unlock(wifi);
 }
 
-static void app_hide(Context* context) {
-    WifiConnect* wifi = (WifiConnect*)context->data;
+static void app_hide(App app) {
+    WifiConnect* wifi = (WifiConnect*)app_get_data(app);
     wifi_connect_lock(wifi);
     wifi->view_enabled = false;
     wifi_connect_unlock(wifi);
 }
 
-static void app_start(Context* context) {
+static void app_start(App app) {
     WifiConnect* wifi_connect = wifi_connect_alloc();
-    context->data = wifi_connect;
+    app_set_data(app, wifi_connect);
 }
 
-static void app_stop(Context* context) {
-    WifiConnect* wifi = context->data;
+static void app_stop(App app) {
+    WifiConnect* wifi = app_get_data(app);
     furi_assert(wifi != NULL);
     wifi_connect_free(wifi);
-    context->data = NULL;
+    app_set_data(app, NULL);
 }
 
 AppManifest wifi_connect_app = {

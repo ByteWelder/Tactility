@@ -7,7 +7,7 @@ static void on_app_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const AppManifest* manifest = lv_event_get_user_data(e);
-        loader_start_app(manifest->id, false);
+        loader_start_app(manifest->id, false, NULL);
     }
 }
 
@@ -18,8 +18,8 @@ static void create_app_widget(const AppManifest* manifest, void* _Nullable paren
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void desktop_show(Context* context, lv_obj_t* parent) {
-    UNUSED(context);
+static void desktop_show(App app, lv_obj_t* parent) {
+    UNUSED(app);
 
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));

@@ -24,7 +24,6 @@ struct Gui {
 
     // App-specific
     ViewPort* app_view_port;
-    AppFlags app_flags;
 };
 
 /** Update GUI, request redraw

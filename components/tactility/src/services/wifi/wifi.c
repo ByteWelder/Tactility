@@ -1,5 +1,4 @@
 #include "wifi.h"
-#include <sys/cdefs.h>
 
 #include "check.h"
 #include "freertos/FreeRTOS.h"
@@ -8,11 +7,11 @@
 #include "message_queue.h"
 #include "mutex.h"
 #include "pubsub.h"
-#include "service_manifest.h"
+#include "service.h"
+#include <sys/cdefs.h>
 
 #define TAG "wifi"
 #define WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
-#define WIFI_CONNECT_RETRY_COUNT 1
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
@@ -124,7 +123,7 @@ void wifi_connect(const char* ssid, const char* _Nullable password) {
     furi_assert(wifi_singleton);
     furi_check(strlen(ssid) <= 32);
     furi_check(password == NULL || strlen(password) <= 64);
-    WifiMessage message = { .type = WifiMessageTypeConnect };
+    WifiMessage message = {.type = WifiMessageTypeConnect};
     memcpy(message.connect_message.ssid, ssid, 32);
     if (password != NULL) {
         memcpy(message.connect_message.password, password, 32);
@@ -136,7 +135,7 @@ void wifi_connect(const char* ssid, const char* _Nullable password) {
 
 void wifi_disconnect() {
     furi_assert(wifi_singleton);
-    WifiMessage message = { .type = WifiMessageTypeDisconnect };
+    WifiMessage message = {.type = WifiMessageTypeDisconnect};
     furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
@@ -429,7 +428,7 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
              */
             .threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-            .sae_h2e_identifier = { 0 },
+            .sae_h2e_identifier = {0},
         },
     };
     memcpy(wifi_config.sta.ssid, connect_message->ssid, 32);
@@ -497,11 +496,11 @@ static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
 
     wifi_config_t wifi_config = {
         .sta = {
-            .ssid = { 0 },
-            .password = { 0 },
+            .ssid = {0},
+            .password = {0},
             .threshold.authmode = WIFI_AUTH_OPEN,
             .sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED,
-            .sae_h2e_identifier = { 0 },
+            .sae_h2e_identifier = {0},
         },
     };
 
@@ -562,14 +561,14 @@ _Noreturn int32_t wifi_main(void* p) {
     }
 }
 
-static void wifi_service_start(Context* context) {
-    UNUSED(context);
+static void wifi_service_start(Service service) {
+    UNUSED(service);
     furi_check(wifi_singleton == NULL);
     wifi_singleton = wifi_alloc();
 }
 
-static void wifi_service_stop(Context* context) {
-    UNUSED(context);
+static void wifi_service_stop(Service service) {
+    UNUSED(service);
     furi_check(wifi_singleton != NULL);
 
     WifiRadioState state = wifi_singleton->radio_state;

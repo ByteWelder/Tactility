@@ -1,35 +1,32 @@
 #pragma once
 
+#include "app.h"
+
 #include "app_manifest.h"
 #include "context.h"
+#include "mutex.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef enum {
-    APP_STATE_INITIAL, // App is being activated in loader
-    APP_STATE_STARTED, // App is in memory
-    APP_STATE_SHOWING, // App view is created
-    APP_STATE_HIDING,  // App view is destroyed
-    APP_STATE_STOPPED  // App is not in memory
-} AppState;
-
-typedef union {
-    struct {
-        bool show_statusbar : 1;
-        bool show_toolbar : 1;
-    };
-    unsigned char flags;
-} AppFlags;
-
 typedef struct {
+    FuriMutex* mutex;
+    const AppManifest* manifest;
     AppState state;
     AppFlags flags;
-    const AppManifest* manifest;
-    Context context;
-} App;
+    /** @brief Optional arguments
+     * When these are stored in the app struct, the struct takes ownership.
+     */
+    Bundle* _Nullable bundle;
+    /** @brief @brief Contextual data related to the running app's instance
+     * The app can attach its data to this.
+     * The lifecycle is determined by the on_start and on_stop methods in the AppManifest.
+     * These manifest methods can optionally allocate/free data that is attached here.
+     */
+    void* _Nullable data;
+} AppData;
 
 #ifdef __cplusplus
 }

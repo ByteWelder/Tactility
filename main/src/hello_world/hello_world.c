@@ -2,8 +2,8 @@
 #include "services/gui/gui.h"
 #include "services/loader/loader.h"
 
-static void app_show(Context* context, lv_obj_t* parent) {
-    UNUSED(context);
+static void app_show(App app, lv_obj_t* parent) {
+    UNUSED(app);
 
     lv_obj_t* label = lv_label_create(parent);
     lv_label_set_recolor(label, true);

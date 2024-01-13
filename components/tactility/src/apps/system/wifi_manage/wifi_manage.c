@@ -1,17 +1,17 @@
 #include "wifi_manage.h"
 
-#include "app_manifest.h"
-#include "furi_core.h"
-#include "wifi_manage_view.h"
-#include "wifi_manage_state_updating.h"
-#include "services/loader/loader.h"
+#include "app.h"
 #include "esp_lvgl_port.h"
+#include "furi_core.h"
+#include "services/loader/loader.h"
+#include "wifi_manage_state_updating.h"
+#include "wifi_manage_view.h"
 
 // Forward declarations
 static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid) {
-    loader_start_app("wifi_connect", false);
+    loader_start_app("wifi_connect", false, NULL);
 }
 
 static void on_disconnect() {
@@ -94,8 +94,8 @@ static void wifi_manage_event_callback(const void* message, void* context) {
     }
 }
 
-static void app_show(Context* context, lv_obj_t* parent) {
-    WifiManage* wifi = (WifiManage*)context->data;
+static void app_show(App app, lv_obj_t* parent) {
+    WifiManage* wifi = (WifiManage*)app_get_data(app);
 
     // State update (it has its own locking)
     wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
@@ -115,23 +115,23 @@ static void app_show(Context* context, lv_obj_t* parent) {
     }
 }
 
-static void app_hide(Context* context) {
-    WifiManage* wifi = (WifiManage*)context->data;
+static void app_hide(App app) {
+    WifiManage* wifi = (WifiManage*)app_get_data(app);
     wifi_manage_lock(wifi);
     wifi->view_enabled = false;
     wifi_manage_unlock(wifi);
 }
 
-static void app_start(Context* context) {
+static void app_start(App app) {
     WifiManage* wifi = wifi_manage_alloc();
-    context->data = wifi;
+    app_set_data(app, wifi);
 }
 
-static void app_stop(Context* context) {
-    WifiManage* wifi = context->data;
+static void app_stop(App app) {
+    WifiManage* wifi = (WifiManage*)app_get_data(app);
     furi_assert(wifi != NULL);
     wifi_manage_free(wifi);
-    context->data = NULL;
+    app_set_data(app, NULL);
 }
 
 AppManifest wifi_manage_app = {

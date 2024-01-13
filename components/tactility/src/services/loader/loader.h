@@ -1,5 +1,7 @@
 #pragma once
+
 #include "app_manifest.h"
+#include "bundle.h"
 #include "furi_core.h"
 #include "furi_string.h"
 #include "pubsub.h"
@@ -33,11 +35,11 @@ typedef struct {
  * @param[in] blocking application arguments
  * @return LoaderStatus
  */
-LoaderStatus loader_start_app(const char* id, bool blocking);
+LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle);
 
 void loader_stop_app();
 
-const AppManifest* _Nullable loader_get_current_app();
+App _Nullable loader_get_current_app();
 
 /**
  * @brief Get loader pubsub

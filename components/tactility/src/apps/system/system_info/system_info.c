@@ -4,8 +4,8 @@
 #include "lvgl.h"
 #include "esp_wifi.h"
 
-static void app_show(Context* context, lv_obj_t* parent) {
-    UNUSED(context);
+static void app_show(App app, lv_obj_t* parent) {
+    UNUSED(app);
 
     lv_obj_t* heap_info = lv_label_create(parent);
     lv_label_set_recolor(heap_info, true);

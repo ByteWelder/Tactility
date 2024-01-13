@@ -58,11 +58,10 @@ void gui_request_draw() {
     furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void gui_show_app(Context* context, ViewPortShowCallback on_show, ViewPortHideCallback on_hide, AppFlags flags) {
+void gui_show_app(App app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
     gui_lock();
     furi_check(gui->app_view_port == NULL);
-    gui->app_view_port = view_port_alloc(context, on_show, on_hide);
-    gui->app_flags = flags;
+    gui->app_view_port = view_port_alloc(app, on_show, on_hide);
     gui_unlock();
     gui_request_draw();
 }
@@ -105,8 +104,8 @@ static int32_t gui_main(void* p) {
 
 // region AppManifest
 
-static void gui_start(Context* context) {
-    UNUSED(context);
+static void gui_start(Service service) {
+    UNUSED(service);
 
     gui = gui_alloc();
 
@@ -114,8 +113,8 @@ static void gui_start(Context* context) {
     furi_thread_start(gui->thread);
 }
 
-static void gui_stop(Context* context) {
-    UNUSED(context);
+static void gui_stop(Service service) {
+    UNUSED(service);
 
     gui_lock();
 

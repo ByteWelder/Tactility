@@ -10,7 +10,7 @@
 
 #define TAG "gui"
 
-static lv_obj_t* create_app_views(lv_obj_t* parent, AppFlags flags) {
+static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
     tt_lv_obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
@@ -20,14 +20,15 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, AppFlags flags) {
     tt_lv_obj_set_style_bg_blacken(vertical_container);
 
     // TODO: Move statusbar into separate ViewPort
+    AppFlags flags = app_get_flags(app);
     if (flags.show_statusbar) {
         tt_lv_statusbar_create(vertical_container);
     }
 
     if (flags.show_toolbar) {
-        const AppManifest* manifest = loader_get_current_app();
+        const AppManifest* manifest = app_get_manifest(app);
         if (manifest != NULL) {
-            // TODO: Keep toolbar on app level so app can update it
+            // TODO: Keep toolbar on app level so app can update it (app_set_toolbar() etc?)
             Toolbar toolbar = {
                 .nav_action = &loader_stop_app,
                 .nav_icon = LV_SYMBOL_CLOSE,
@@ -61,7 +62,8 @@ void gui_redraw(Gui* gui) {
     if (gui->app_view_port != NULL) {
         ViewPort* view_port = gui->app_view_port;
         furi_assert(view_port);
-        lv_obj_t* container = create_app_views(gui->lvgl_parent, gui->app_flags);
+        App app = gui->app_view_port->app;
+        lv_obj_t* container = create_app_views(gui->lvgl_parent, app);
         view_port_show(view_port, container);
     } else {
         FURI_LOG_W(TAG, "nothing to draw");

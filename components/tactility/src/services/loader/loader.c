@@ -14,46 +14,47 @@
 // Forward declarations
 static int32_t loader_main(void* p);
 
-static Loader* loader = NULL;
+static Loader* loader_singleton = NULL;
 
 static Loader* loader_alloc() {
-    furi_check(loader == NULL);
-    loader = malloc(sizeof(Loader));
-    loader->pubsub = furi_pubsub_alloc();
-    loader->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
-    loader->thread = furi_thread_alloc_ex(
+    furi_check(loader_singleton == NULL);
+    loader_singleton = malloc(sizeof(Loader));
+    loader_singleton->pubsub = furi_pubsub_alloc();
+    loader_singleton->queue = furi_message_queue_alloc(1, sizeof(LoaderMessage));
+    loader_singleton->thread = furi_thread_alloc_ex(
         "loader",
         4096, // Last known minimum was 2400 for starting Hello World app
         &loader_main,
         NULL
     );
-    loader->mutex = xSemaphoreCreateRecursiveMutex();
-    loader->app_stack_index = -1;
-    return loader;
+    loader_singleton->mutex = xSemaphoreCreateRecursiveMutex();
+    loader_singleton->app_stack_index = -1;
+    memset(loader_singleton->app_stack, 0, sizeof(App) * APP_STACK_SIZE);
+    return loader_singleton;
 }
 
 static void loader_free() {
-    furi_check(loader != NULL);
-    furi_thread_free(loader->thread);
-    furi_pubsub_free(loader->pubsub);
-    furi_message_queue_free(loader->queue);
-    furi_mutex_free(loader->mutex);
-    free(loader);
+    furi_check(loader_singleton != NULL);
+    furi_thread_free(loader_singleton->thread);
+    furi_pubsub_free(loader_singleton->pubsub);
+    furi_message_queue_free(loader_singleton->queue);
+    furi_mutex_free(loader_singleton->mutex);
+    free(loader_singleton);
 }
 
 void loader_lock() {
-    furi_assert(loader);
-    furi_assert(loader->mutex);
-    furi_check(xSemaphoreTakeRecursive(loader->mutex, portMAX_DELAY) == pdPASS);
+    furi_assert(loader_singleton);
+    furi_assert(loader_singleton->mutex);
+    furi_check(xSemaphoreTakeRecursive(loader_singleton->mutex, portMAX_DELAY) == pdPASS);
 }
 
 void loader_unlock() {
-    furi_assert(loader);
-    furi_assert(loader->mutex);
-    furi_check(xSemaphoreGiveRecursive(loader->mutex) == pdPASS);
+    furi_assert(loader_singleton);
+    furi_assert(loader_singleton->mutex);
+    furi_check(xSemaphoreGiveRecursive(loader_singleton->mutex) == pdPASS);
 }
 
-LoaderStatus loader_start_app(const char* id, bool blocking) {
+LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle) {
     LoaderMessageLoaderStatusResult result = {
         .value = LoaderStatusOk
     };
@@ -65,7 +66,7 @@ LoaderStatus loader_start_app(const char* id, bool blocking) {
         .api_lock = blocking ? api_lock_alloc_locked() : NULL
     };
 
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+    furi_message_queue_put(loader_singleton->queue, &message, FuriWaitForever);
 
     if (blocking) {
         api_lock_wait_unlock_and_free(message.api_lock);
@@ -76,24 +77,24 @@ LoaderStatus loader_start_app(const char* id, bool blocking) {
 
 void loader_stop_app() {
     LoaderMessage message = {.type = LoaderMessageTypeAppStop};
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
+    furi_message_queue_put(loader_singleton->queue, &message, FuriWaitForever);
 }
 
-const AppManifest* _Nullable loader_get_current_app() {
+App _Nullable loader_get_current_app() {
     loader_lock();
-    const AppManifest* manifest = (loader->app_stack_index >= 0)
-        ? loader->app_stack[loader->app_stack_index].manifest
+    App app = (loader_singleton->app_stack_index >= 0)
+        ? loader_singleton->app_stack[loader_singleton->app_stack_index]
         : NULL;
     loader_unlock();
-    return manifest;
+    return app;
 }
 
 FuriPubSub* loader_get_pubsub() {
-    furi_assert(loader);
+    furi_assert(loader_singleton);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
     // also the loader instance cannot be obtained until the pubsub is created
-    return loader->pubsub;
+    return loader_singleton->pubsub;
 }
 
 static const char* app_state_to_string(AppState state) {
@@ -113,95 +114,75 @@ static const char* app_state_to_string(AppState state) {
     }
 }
 
-static void app_set_default_flags(App* app) {
-    switch (app->manifest->type) {
-        case AppTypeDesktop:
-            app->flags.show_statusbar = true;
-            app->flags.show_toolbar = false;
-            break;
-        default:
-            app->flags.show_statusbar = true;
-            app->flags.show_toolbar = true;
-            break;
-    }
-}
+static void app_transition_to_state(App app, AppState state) {
+    const AppManifest* manifest = app_get_manifest(app);
+    const AppState old_state = app_get_state(app);
 
-static void app_transition_to_state(App* app, AppState state) {
-    if (app->state == APP_STATE_STOPPED) {
-        FURI_LOG_I(TAG, "app \"%s\" state: %s", app->manifest->id, app_state_to_string(state));
-    } else {
-        FURI_LOG_I(
-            TAG,
-            "app \"%s\" state: %s -> %s",
-            app->manifest->id,
-            app_state_to_string(app->state),
-            app_state_to_string(state)
-        );
-    }
+    FURI_LOG_I(
+        TAG,
+        "app \"%s\" state: %s -> %s",
+        manifest->id,
+        app_state_to_string(old_state),
+        app_state_to_string(state)
+    );
 
     switch (state) {
         case APP_STATE_INITIAL:
-            app->state = APP_STATE_INITIAL;
-            app->context = (Context) {
-                .data = NULL
-            };
-            app_set_default_flags(app);
-            // NO-OP
+            app_set_state(app, APP_STATE_INITIAL);
             break;
         case APP_STATE_STARTED:
-            if (app->manifest->on_start != NULL) {
-                app->manifest->on_start(&app->context);
+            if (manifest->on_start != NULL) {
+                manifest->on_start(app);
             }
-            app->state = APP_STATE_STARTED;
+            app_set_state(app, APP_STATE_STARTED);
             break;
         case APP_STATE_SHOWING:
             gui_show_app(
-                &app->context,
-                app->manifest->on_show,
-                app->manifest->on_hide,
-                app->flags
+                app,
+                manifest->on_show,
+                manifest->on_hide
             );
-            app->state = APP_STATE_SHOWING;
+            app_set_state(app, APP_STATE_SHOWING);
             break;
         case APP_STATE_HIDING:
             gui_hide_app();
-            app->state = APP_STATE_HIDING;
+            app_set_state(app, APP_STATE_HIDING);
             break;
         case APP_STATE_STOPPED:
-            if (app->manifest->on_stop) {
-                app->manifest->on_stop(&app->context);
+            if (manifest->on_stop) {
+                manifest->on_stop(app);
             }
-            app->state = APP_STATE_STOPPED;
-            app->context.data = NULL;
-            app->manifest = NULL;
-            FURI_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+            app_set_data(app, NULL);
+            app_set_state(app, APP_STATE_STOPPED);
             break;
     }
 }
 
 LoaderStatus loader_do_start_app_with_manifest(
-    const AppManifest* _Nonnull manifest
+    const AppManifest* _Nonnull manifest,
+    Bundle* _Nullable bundle
 ) {
     FURI_LOG_I(TAG, "start with manifest %s", manifest->id);
 
     loader_lock();
 
-    if (loader->app_stack_index >= (APP_STACK_SIZE - 1)) {
+    if (loader_singleton->app_stack_index >= (APP_STACK_SIZE - 1)) {
         FURI_LOG_E(TAG, "failed to start app: stack limit of %d reached", APP_STACK_SIZE);
         return LoaderStatusErrorInternal;
     }
 
-    int8_t previous_index = loader->app_stack_index;
+    int8_t previous_index = loader_singleton->app_stack_index;
+    loader_singleton->app_stack_index++;
 
-    loader->app_stack_index++;
-    App* app = &loader->app_stack[loader->app_stack_index];
-    app->manifest = manifest;
+    App app = app_alloc(manifest, bundle);
+    furi_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] == NULL);
+    loader_singleton->app_stack[loader_singleton->app_stack_index] = app;
     app_transition_to_state(app, APP_STATE_INITIAL);
     app_transition_to_state(app, APP_STATE_STARTED);
 
     // We might have to hide the previous app first
     if (previous_index != -1) {
-        App* previous_app = &loader->app_stack[previous_index];
+        App previous_app = loader_singleton->app_stack[previous_index];
         app_transition_to_state(previous_app, APP_STATE_HIDING);
     }
 
@@ -210,13 +191,14 @@ LoaderStatus loader_do_start_app_with_manifest(
     loader_unlock();
 
     LoaderEvent event = {.type = LoaderEventTypeApplicationStarted};
-    furi_pubsub_publish(loader->pubsub, &event);
+    furi_pubsub_publish(loader_singleton->pubsub, &event);
 
     return LoaderStatusOk;
 }
 
 static LoaderStatus loader_do_start_by_id(
-    const char* id
+    const char* id,
+    Bundle* _Nullable bundle
 ) {
     FURI_LOG_I(TAG, "Start by id %s", id);
 
@@ -224,7 +206,7 @@ static LoaderStatus loader_do_start_by_id(
     if (manifest == NULL) {
         return LoaderStatusErrorUnknownApp;
     } else {
-        return loader_do_start_app_with_manifest(manifest);
+        return loader_do_start_app_with_manifest(manifest, bundle);
     }
 }
 
@@ -232,33 +214,40 @@ static LoaderStatus loader_do_start_by_id(
 static void loader_do_stop_app() {
     loader_lock();
 
-    if (loader->app_stack_index == -1) {
+    int8_t current_app_index = loader_singleton->app_stack_index;
+
+    if (current_app_index == -1) {
         loader_unlock();
         FURI_LOG_E(TAG, "Stop app: no app running");
         return;
     }
 
-    if (loader->app_stack_index == 0) {
+    if (current_app_index == 0) {
         loader_unlock();
         FURI_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }
 
     // Stop current app
-    App* app_to_stop = &loader->app_stack[loader->app_stack_index];
+    App app_to_stop = loader_singleton->app_stack[current_app_index];
     app_transition_to_state(app_to_stop, APP_STATE_HIDING);
     app_transition_to_state(app_to_stop, APP_STATE_STOPPED);
 
-    loader->app_stack_index--;
+    app_free(app_to_stop);
+    loader_singleton->app_stack[current_app_index] = NULL;
+    loader_singleton->app_stack_index--;
+
+    FURI_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 
     // Resume previous app
-    App* app_to_resume = &loader->app_stack[loader->app_stack_index];
+    furi_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] != NULL);
+    App app_to_resume = loader_singleton->app_stack[loader_singleton->app_stack_index];
     app_transition_to_state(app_to_resume, APP_STATE_SHOWING);
 
     loader_unlock();
 
     LoaderEvent event = {.type = LoaderEventTypeApplicationStopped};
-    furi_pubsub_publish(loader->pubsub, &event);
+    furi_pubsub_publish(loader_singleton->pubsub, &event);
 }
 
 
@@ -268,12 +257,13 @@ static int32_t loader_main(void* p) {
     LoaderMessage message;
     bool exit_requested = false;
     while (!exit_requested) {
-        furi_check(loader != NULL);
-        if (furi_message_queue_get(loader->queue, &message, FuriWaitForever) == FuriStatusOk) {
+        furi_check(loader_singleton != NULL);
+        if (furi_message_queue_get(loader_singleton->queue, &message, FuriWaitForever) == FuriStatusOk) {
             FURI_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
-                    message.status_value->value = loader_do_start_by_id(message.start.id);
+                    // TODO: add bundle
+                    message.status_value->value = loader_do_start_by_id(message.start.id, NULL);
                     if (message.api_lock) {
                         api_lock_unlock(message.api_lock);
                     }
@@ -293,29 +283,29 @@ static int32_t loader_main(void* p) {
 
 // region AppManifest
 
-static void loader_start(Context* context) {
-    UNUSED(context);
-    furi_check(loader == NULL);
-    loader = loader_alloc();
+static void loader_start(Service service) {
+    UNUSED(service);
+    furi_check(loader_singleton == NULL);
+    loader_singleton = loader_alloc();
 
-    furi_thread_set_priority(loader->thread, FuriThreadPriorityNormal);
-    furi_thread_start(loader->thread);
+    furi_thread_set_priority(loader_singleton->thread, FuriThreadPriorityNormal);
+    furi_thread_start(loader_singleton->thread);
 }
 
-static void loader_stop(Context* context) {
-    UNUSED(context);
-    furi_check(loader != NULL);
+static void loader_stop(Service service) {
+    UNUSED(service);
+    furi_check(loader_singleton != NULL);
 
     // Send stop signal to thread and wait for thread to finish
     LoaderMessage message = {
         .api_lock = NULL,
         .type = LoaderMessageTypeServiceStop
     };
-    furi_message_queue_put(loader->queue, &message, FuriWaitForever);
-    furi_thread_join(loader->thread);
+    furi_message_queue_put(loader_singleton->queue, &message, FuriWaitForever);
+    furi_thread_join(loader_singleton->thread);
 
     loader_free();
-    loader = NULL;
+    loader_singleton = NULL;
 }
 
 const ServiceManifest loader_service = {

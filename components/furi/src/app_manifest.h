@@ -1,6 +1,5 @@
 #pragma once
 
-#include "context.h"
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -9,6 +8,7 @@ extern "C" {
 
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
+typedef void* App;
 
 typedef enum {
     AppTypeDesktop,
@@ -17,10 +17,10 @@ typedef enum {
     AppTypeUser
 } AppType;
 
-typedef void (*AppOnStart)(Context* context);
-typedef void (*AppOnStop)(Context* context);
-typedef void (*AppOnShow)(Context* context, lv_obj_t* parent);
-typedef void (*AppOnHide)(Context* context);
+typedef void (*AppOnStart)(App app);
+typedef void (*AppOnStop)(App app);
+typedef void (*AppOnShow)(App app, lv_obj_t* parent);
+typedef void (*AppOnHide)(App app);
 
 typedef struct {
     /**
