@@ -2,6 +2,8 @@
 
 #include "mutex.h"
 #include "services/wifi/wifi.h"
+#include "wifi_connect_bindings.h"
+#include "wifi_connect_state.h"
 #include "wifi_connect_view.h"
 
 #ifdef __cplusplus
@@ -21,7 +23,7 @@ void wifi_connect_lock(WifiConnect* wifi);
 
 void wifi_connect_unlock(WifiConnect* wifi);
 
-void wifi_connect_request_view_update(WifiConnect * wifi);
+void wifi_connect_request_view_update(WifiConnect* wifi);
 
 #ifdef __cplusplus
 }

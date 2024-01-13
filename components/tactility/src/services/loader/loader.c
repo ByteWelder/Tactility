@@ -62,6 +62,7 @@ LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable b
     LoaderMessage message = {
         .type = LoaderMessageTypeAppStart,
         .start.id = id,
+        .start.bundle = bundle,
         .status_value = &result,
         .api_lock = blocking ? api_lock_alloc_locked() : NULL
     };
@@ -263,7 +264,10 @@ static int32_t loader_main(void* p) {
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
                     // TODO: add bundle
-                    message.status_value->value = loader_do_start_by_id(message.start.id, NULL);
+                    message.status_value->value = loader_do_start_by_id(
+                        message.start.id,
+                        message.start.bundle
+                    );
                     if (message.api_lock) {
                         api_lock_unlock(message.api_lock);
                     }

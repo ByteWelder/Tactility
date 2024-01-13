@@ -30,6 +30,7 @@ typedef enum {
 
 typedef struct {
     const char* id;
+    Bundle* _Nullable bundle;
 } LoaderMessageAppStart;
 
 typedef struct {

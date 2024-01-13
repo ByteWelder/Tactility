@@ -16,7 +16,7 @@ typedef struct {
     lv_obj_t* cancel_button;
 } WifiConnectView;
 
-void wifi_connect_view_create(WifiConnectView* view, WifiConnectBindings* bindings, lv_obj_t* parent);
+void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent);
 void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state);
 
 #ifdef __cplusplus

@@ -6,14 +6,14 @@ static AppFlags app_get_flags_default(AppType type);
 
 // region Alloc/free
 
-App app_alloc(const AppManifest* manifest, Bundle* _Nullable bundle) {
+App app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
     AppData* data = malloc(sizeof(AppData));
     *data = (AppData) {
         .mutex = furi_mutex_alloc(FuriMutexTypeRecursive),
         .state = APP_STATE_INITIAL,
         .flags = app_get_flags_default(manifest->type),
         .manifest = manifest,
-        .bundle = bundle,
+        .parameters = parameters,
         .data = NULL
     };
     return (App*)data;
@@ -21,6 +21,9 @@ App app_alloc(const AppManifest* manifest, Bundle* _Nullable bundle) {
 
 void app_free(App app) {
     AppData* data = (AppData*)app;
+    if (data->parameters) {
+        bundle_free(data->parameters);
+    }
     furi_mutex_free(data->mutex);
     free(data);
 }
@@ -114,10 +117,10 @@ void app_set_data(App app, void* value) {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-Bundle* _Nullable app_get_bundle(App app) {
+Bundle* _Nullable app_get_parameters(App app) {
     AppData* data = (AppData*)app;
     app_lock(data);
-    Bundle* bundle = data->bundle;
+    Bundle* bundle = data->parameters;
     app_unlock(data);
     return bundle;
 }

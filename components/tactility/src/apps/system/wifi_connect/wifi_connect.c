@@ -80,7 +80,7 @@ static void app_show(App app, lv_obj_t* parent) {
 
     wifi_connect_lock(wifi);
     wifi->view_enabled = true;
-    wifi_connect_view_create(&wifi->view, &wifi->bindings, parent);
+    wifi_connect_view_create(app, wifi, parent);
     wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_connect_unlock(wifi);
 }
@@ -93,7 +93,7 @@ static void app_hide(App app) {
 }
 
 static void app_start(App app) {
-    WifiConnect* wifi_connect = wifi_connect_alloc();
+    WifiConnect* wifi_connect = wifi_connect_alloc(app);
     app_set_data(app, wifi_connect);
 }
 

@@ -1,6 +1,7 @@
 #include "wifi_manage.h"
 
 #include "app.h"
+#include "apps/system/wifi_connect/wifi_connect_bundle.h"
 #include "esp_lvgl_port.h"
 #include "furi_core.h"
 #include "services/loader/loader.h"
@@ -11,7 +12,10 @@
 static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid) {
-    loader_start_app("wifi_connect", false, NULL);
+    Bundle bundle = bundle_alloc();
+    bundle_put_string(bundle, WIFI_CONNECT_PARAM_SSID, ssid);
+    bundle_put_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, ""); // TODO: Implement from cache
+    loader_start_app("wifi_connect", false, bundle);
 }
 
 static void on_disconnect() {

@@ -27,10 +27,10 @@ typedef void* App;
 
 /** @brief Create an app
  * @param manifest
- * @param bundle optional bundle. memory ownership is transferred to App
+ * @param parameters optional bundle. memory ownership is transferred to App
  * @return
  */
-App app_alloc(const AppManifest* manifest, Bundle* _Nullable bundle);
+App app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters);
 void app_free(App app);
 
 void app_set_state(App app, AppState state);
@@ -44,7 +44,7 @@ void app_set_flags(App app, AppFlags flags);
 void* _Nullable app_get_data(App app);
 void app_set_data(App app, void* data);
 
-Bundle* _Nullable app_get_bundle(App app);
+Bundle* _Nullable app_get_parameters(App app);
 
 #ifdef __cplusplus
 }

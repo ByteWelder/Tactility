@@ -33,6 +33,7 @@ typedef struct {
  * @brief Close any running app, then start new one. Blocking.
  * @param[in] id application name or id
  * @param[in] blocking application arguments
+ * @param[in] bundle optional bundle. Ownership is transferred to Loader.
  * @return LoaderStatus
  */
 LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle);

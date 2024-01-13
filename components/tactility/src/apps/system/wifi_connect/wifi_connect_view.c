@@ -3,17 +3,28 @@
 #include "lvgl.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
+#include "wifi_connect.h"
+#include "wifi_connect_bundle.h"
 #include "wifi_connect_state.h"
 
-#define TAG "wifi_connect_view"
-
 static void on_connect(lv_event_t* event) {
-    WifiConnectBindings* bindings = (WifiConnectBindings*)event->user_data;
-    bindings->on_connect_ssid("On The Fence", "butallowedtoenter", bindings->on_connect_ssid_context);
+    WifiConnect* wifi = (WifiConnect*)event->user_data;
+    WifiConnectView* view = &wifi->view;
+    const char* ssid = lv_textarea_get_text(view->ssid_textarea);
+    const char* password = lv_textarea_get_text(view->password_textarea);
+
+    WifiConnectBindings* bindings = &wifi->bindings;
+    bindings->on_connect_ssid(
+        ssid,
+        password,
+        bindings->on_connect_ssid_context
+    );
 }
 
 // TODO: Standardize dialogs
-void wifi_connect_view_create(WifiConnectView* view, WifiConnectBindings* bindings, lv_obj_t* parent) {
+void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
+    WifiConnect* wifi_connect = (WifiConnect*)wifi;
+    WifiConnectView* view = &wifi_connect->view;
     // TODO: Standardize this into "window content" function?
     // TODO: It can then be dynamically determined based on screen res and size
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -33,6 +44,8 @@ void wifi_connect_view_create(WifiConnectView* view, WifiConnectBindings* bindin
     lv_label_set_text(password_label, "Password:");
     view->password_textarea = lv_textarea_create(parent);
     lv_textarea_set_one_line(view->password_textarea, true);
+    lv_textarea_set_password_show_time(view->password_textarea, 0);
+    lv_textarea_set_password_mode(view->password_textarea, true);
 
     lv_obj_t* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
@@ -48,9 +61,25 @@ void wifi_connect_view_create(WifiConnectView* view, WifiConnectBindings* bindin
     lv_obj_t* connect_label = lv_label_create(view->connect_button);
     lv_label_set_text(connect_label, "Connect");
     lv_obj_center(connect_label);
-    lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, bindings);
+    lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, wifi);
+
+    // Init from app parameters
+    Bundle* _Nullable bundle = app_get_parameters(app);
+    if (bundle) {
+        char* ssid;
+        if (bundle_opt_string(bundle, WIFI_CONNECT_PARAM_SSID, &ssid)) {
+            lv_textarea_set_text(view->ssid_textarea, ssid);
+        }
+
+        char* password;
+        if (bundle_opt_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, &password)) {
+            lv_textarea_set_text(view->password_textarea, password);
+        }
+    }
 }
 
 void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state) {
-    lv_textarea_set_text(view->ssid_textarea, (const char*)state->connect_ssid);
+    UNUSED(view);
+    UNUSED(bindings);
+    UNUSED(state);
 }
