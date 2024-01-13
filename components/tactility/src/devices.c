@@ -11,7 +11,7 @@ Hardware tt_hardware_init(const HardwareConfig _Nonnull* config) {
         config->bootstrap();
     }
 
-    furi_check(config->display_driver != NULL, "no display driver configured");
+    tt_check(config->display_driver != NULL, "no display driver configured");
     DisplayDriver display_driver = config->display_driver();
     ESP_LOGI(TAG, "display with driver %s", display_driver.name);
     DisplayDevice* display = tt_display_device_alloc(&display_driver);

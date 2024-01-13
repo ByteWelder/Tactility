@@ -19,13 +19,13 @@ ViewPort* view_port_alloc(
 }
 
 void view_port_free(ViewPort* view_port) {
-    furi_assert(view_port);
+    tt_assert(view_port);
     free(view_port);
 }
 
 void view_port_show(ViewPort* view_port, lv_obj_t* parent) {
-    furi_assert(view_port);
-    furi_assert(parent);
+    tt_assert(view_port);
+    tt_assert(parent);
     if (view_port->on_show) {
         tt_lv_obj_set_style_no_padding(parent);
         view_port->on_show(view_port->app, parent);
@@ -33,7 +33,7 @@ void view_port_show(ViewPort* view_port, lv_obj_t* parent) {
 }
 
 void view_port_hide(ViewPort* view_port) {
-    furi_assert(view_port);
+    tt_assert(view_port);
     if (view_port->on_hide) {
         view_port->on_hide(view_port->app);
     }

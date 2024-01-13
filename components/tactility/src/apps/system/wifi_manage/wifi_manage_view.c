@@ -56,7 +56,7 @@ static void connect(lv_event_t* event) {
     // We get the SSID from the button label because it's safer than alloc'ing
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
-    FURI_LOG_I(TAG, "Clicked AP: %s", ssid);
+    TT_LOG_I(TAG, "Clicked AP: %s", ssid);
     WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
     bindings->on_connect_ssid(ssid);
 }

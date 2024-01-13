@@ -14,7 +14,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
         .timer_period_ms = 5
     };
 
-    furi_check(lvgl_port_init(&lvgl_cfg) == ESP_OK, "lvgl port init failed");
+    tt_check(lvgl_port_init(&lvgl_cfg) == ESP_OK, "lvgl port init failed");
     DisplayDevice _Nonnull* display = hardware->display;
 
     // Add display
@@ -38,7 +38,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
     };
 
     lv_disp_t _Nonnull* disp = lvgl_port_add_disp(&disp_cfg);
-    furi_check(disp != NULL, "failed to add display");
+    tt_check(disp != NULL, "failed to add display");
 
     lv_indev_t _Nullable* touch_indev = NULL;
 
@@ -49,7 +49,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
             .handle = hardware->touch->touch_handle,
         };
         touch_indev = lvgl_port_add_touch(&touch_cfg);
-        furi_check(touch_indev != NULL, "failed to add touch to lvgl");
+        tt_check(touch_indev != NULL, "failed to add touch to lvgl");
     }
 
     return (Lvgl) {

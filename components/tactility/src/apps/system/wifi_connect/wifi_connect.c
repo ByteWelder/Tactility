@@ -2,8 +2,8 @@
 
 #include "app.h"
 #include "esp_lvgl_port.h"
-#include "furi_core.h"
 #include "services/wifi/wifi.h"
+#include "tactility_core.h"
 #include "wifi_connect_state_updating.h"
 
 // Forward declarations
@@ -17,9 +17,9 @@ static void on_connect(const char* ssid, const char* password, void* parameter) 
 static WifiConnect* wifi_connect_alloc() {
     WifiConnect* wifi = malloc(sizeof(WifiConnect));
 
-    FuriPubSub* wifi_pubsub = wifi_get_pubsub();
-    wifi->wifi_subscription = furi_pubsub_subscribe(wifi_pubsub, &wifi_connect_event_callback, wifi);
-    wifi->mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+    PubSub* wifi_pubsub = wifi_get_pubsub();
+    wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_connect_event_callback, wifi);
+    wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiConnectState) {
         .radio_state = wifi_get_radio_state()
     };
@@ -33,23 +33,23 @@ static WifiConnect* wifi_connect_alloc() {
 }
 
 static void wifi_connect_free(WifiConnect* wifi) {
-    FuriPubSub* wifi_pubsub = wifi_get_pubsub();
-    furi_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
-    furi_mutex_free(wifi->mutex);
+    PubSub* wifi_pubsub = wifi_get_pubsub();
+    tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
+    tt_mutex_free(wifi->mutex);
 
     free(wifi);
 }
 
 void wifi_connect_lock(WifiConnect* wifi) {
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_mutex_acquire(wifi->mutex, FuriWaitForever);
+    tt_assert(wifi);
+    tt_assert(wifi->mutex);
+    tt_mutex_acquire(wifi->mutex, TtWaitForever);
 }
 
 void wifi_connect_unlock(WifiConnect* wifi) {
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_mutex_release(wifi->mutex);
+    tt_assert(wifi);
+    tt_assert(wifi->mutex);
+    tt_mutex_release(wifi->mutex);
 }
 
 void wifi_connect_request_view_update(WifiConnect* wifi) {
@@ -76,7 +76,7 @@ static void wifi_connect_event_callback(const void* message, void* context) {
 }
 
 static void app_show(App app, lv_obj_t* parent) {
-    WifiConnect* wifi = (WifiConnect*)app_get_data(app);
+    WifiConnect* wifi = (WifiConnect*)tt_app_get_data(app);
 
     wifi_connect_lock(wifi);
     wifi->view_enabled = true;
@@ -86,7 +86,7 @@ static void app_show(App app, lv_obj_t* parent) {
 }
 
 static void app_hide(App app) {
-    WifiConnect* wifi = (WifiConnect*)app_get_data(app);
+    WifiConnect* wifi = (WifiConnect*)tt_app_get_data(app);
     wifi_connect_lock(wifi);
     wifi->view_enabled = false;
     wifi_connect_unlock(wifi);
@@ -94,14 +94,14 @@ static void app_hide(App app) {
 
 static void app_start(App app) {
     WifiConnect* wifi_connect = wifi_connect_alloc(app);
-    app_set_data(app, wifi_connect);
+    tt_app_set_data(app, wifi_connect);
 }
 
 static void app_stop(App app) {
-    WifiConnect* wifi = app_get_data(app);
-    furi_assert(wifi != NULL);
+    WifiConnect* wifi = tt_app_get_data(app);
+    tt_assert(wifi != NULL);
     wifi_connect_free(wifi);
-    app_set_data(app, NULL);
+    tt_app_set_data(app, NULL);
 }
 
 AppManifest wifi_connect_app = {

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-add_definitions(-DFURI_DEBUG)
+add_definitions(-DTT_DEBUG)
 
 set(COMPONENTS main)
 set(EXTRA_COMPONENT_DIRS "boards" "components")

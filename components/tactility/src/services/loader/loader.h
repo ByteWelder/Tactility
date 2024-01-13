@@ -2,10 +2,10 @@
 
 #include "app_manifest.h"
 #include "bundle.h"
-#include "furi_core.h"
-#include "furi_string.h"
 #include "pubsub.h"
 #include "service_manifest.h"
+#include "tactility_core.h"
+#include "tt_string.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,9 +44,9 @@ App _Nullable loader_get_current_app();
 
 /**
  * @brief Get loader pubsub
- * @return FuriPubSub*
+ * @return PubSub*
  */
-FuriPubSub* loader_get_pubsub();
+PubSub* loader_get_pubsub();
 
 #ifdef __cplusplus
 }

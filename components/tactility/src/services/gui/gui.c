@@ -1,10 +1,10 @@
 #include "gui_i.h"
 
 #include "check.h"
+#include "core_extra_defines.h"
 #include "esp_lvgl_port.h"
-#include "furi_extra_defines.h"
-#include "log.h"
 #include "kernel.h"
+#include "log.h"
 
 #define TAG "gui"
 
@@ -17,16 +17,16 @@ static Gui* gui = NULL;
 Gui* gui_alloc() {
     Gui* instance = malloc(sizeof(Gui));
     memset(instance, 0, sizeof(Gui));
-    furi_check(instance != NULL);
-    instance->thread = furi_thread_alloc_ex(
+    tt_check(instance != NULL);
+    instance->thread = tt_thread_alloc_ex(
         "gui",
         4096, // Last known minimum was 2800 for launching desktop
         &gui_main,
         NULL
     );
-    instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
+    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
 
-    furi_check(lvgl_port_lock(100));
+    tt_check(lvgl_port_lock(100));
     instance->lvgl_parent = lv_scr_act();
     lvgl_port_unlock();
 
@@ -34,33 +34,33 @@ Gui* gui_alloc() {
 }
 
 void gui_free(Gui* instance) {
-    furi_assert(instance != NULL);
-    furi_thread_free(instance->thread);
-    furi_mutex_free(instance->mutex);
+    tt_assert(instance != NULL);
+    tt_thread_free(instance->thread);
+    tt_mutex_free(instance->mutex);
     free(instance);
 }
 
 void gui_lock() {
-    furi_assert(gui);
-    furi_assert(gui->mutex);
-    furi_check(furi_mutex_acquire(gui->mutex, 1000 / portTICK_PERIOD_MS) == FuriStatusOk);
+    tt_assert(gui);
+    tt_assert(gui->mutex);
+    tt_check(tt_mutex_acquire(gui->mutex, 1000 / portTICK_PERIOD_MS) == TtStatusOk);
 }
 
 void gui_unlock() {
-    furi_assert(gui);
-    furi_assert(gui->mutex);
-    furi_check(furi_mutex_release(gui->mutex) == FuriStatusOk);
+    tt_assert(gui);
+    tt_assert(gui->mutex);
+    tt_check(tt_mutex_release(gui->mutex) == TtStatusOk);
 }
 
 void gui_request_draw() {
-    furi_assert(gui);
-    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
-    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
+    tt_assert(gui);
+    ThreadId thread_id = tt_thread_get_id(gui->thread);
+    tt_thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
 void gui_show_app(App app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
     gui_lock();
-    furi_check(gui->app_view_port == NULL);
+    tt_check(gui->app_view_port == NULL);
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
     gui_unlock();
     gui_request_draw();
@@ -69,7 +69,7 @@ void gui_show_app(App app, ViewPortShowCallback on_show, ViewPortHideCallback on
 void gui_hide_app() {
     gui_lock();
     ViewPort* view_port = gui->app_view_port;
-    furi_check(view_port != NULL);
+    tt_check(view_port != NULL);
     view_port_hide(view_port);
     view_port_free(view_port);
     gui->app_view_port = NULL;
@@ -78,23 +78,23 @@ void gui_hide_app() {
 
 static int32_t gui_main(void* p) {
     UNUSED(p);
-    furi_check(gui);
+    tt_check(gui);
     Gui* local_gui = gui;
 
     while (1) {
-        uint32_t flags = furi_thread_flags_wait(
+        uint32_t flags = tt_thread_flags_wait(
             GUI_THREAD_FLAG_ALL,
-            FuriFlagWaitAny,
-            FuriWaitForever
+            TtFlagWaitAny,
+            TtWaitForever
         );
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
-            furi_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
+            tt_thread_flags_clear(GUI_THREAD_FLAG_DRAW);
             gui_redraw(local_gui);
         }
 
         if (flags & GUI_THREAD_FLAG_EXIT) {
-            furi_thread_flags_clear(GUI_THREAD_FLAG_EXIT);
+            tt_thread_flags_clear(GUI_THREAD_FLAG_EXIT);
             break;
         }
     }
@@ -109,8 +109,8 @@ static void gui_start(Service service) {
 
     gui = gui_alloc();
 
-    furi_thread_set_priority(gui->thread, FuriThreadPriorityNormal);
-    furi_thread_start(gui->thread);
+    tt_thread_set_priority(gui->thread, ThreadPriorityNormal);
+    tt_thread_start(gui->thread);
 }
 
 static void gui_stop(Service service) {
@@ -118,9 +118,9 @@ static void gui_stop(Service service) {
 
     gui_lock();
 
-    FuriThreadId thread_id = furi_thread_get_id(gui->thread);
-    furi_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
-    furi_thread_join(gui->thread);
+    ThreadId thread_id = tt_thread_get_id(gui->thread);
+    tt_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+    tt_thread_join(gui->thread);
 
     gui_unlock();
 

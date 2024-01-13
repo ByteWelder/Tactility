@@ -6,7 +6,6 @@ extern "C" {
 
 #include "app.h"
 #include "lvgl.h"
-#include "context.h"
 
 /** ViewPort Draw callback
  * @warning    called from GUI thread

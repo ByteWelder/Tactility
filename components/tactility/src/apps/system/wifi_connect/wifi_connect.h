@@ -11,8 +11,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    FuriPubSubSubscription* wifi_subscription;
-    FuriMutex* mutex;
+    PubSubSubscription* wifi_subscription;
+    Mutex* mutex;
     WifiConnectState state;
     WifiConnectView view;
     bool view_enabled;

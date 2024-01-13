@@ -1,8 +1,8 @@
 #include "app_manifest.h"
-#include "furi_extra_defines.h"
-#include "thread.h"
-#include "lvgl.h"
+#include "core_extra_defines.h"
 #include "esp_wifi.h"
+#include "lvgl.h"
+#include "thread.h"
 
 static void app_show(App app, lv_obj_t* parent) {
     UNUSED(app);

@@ -64,15 +64,15 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, wifi);
 
     // Init from app parameters
-    Bundle* _Nullable bundle = app_get_parameters(app);
+    Bundle* _Nullable bundle = tt_app_get_parameters(app);
     if (bundle) {
         char* ssid;
-        if (bundle_opt_string(bundle, WIFI_CONNECT_PARAM_SSID, &ssid)) {
+        if (tt_bundle_opt_string(bundle, WIFI_CONNECT_PARAM_SSID, &ssid)) {
             lv_textarea_set_text(view->ssid_textarea, ssid);
         }
 
         char* password;
-        if (bundle_opt_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, &password)) {
+        if (tt_bundle_opt_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, &password)) {
             lv_textarea_set_text(view->password_textarea, password);
         }
     }

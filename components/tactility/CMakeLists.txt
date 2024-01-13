@@ -19,7 +19,7 @@ idf_component_register(
         esp_wifi
         driver
         fatfs
-        furi
+        tactility-core
         mlib
         nvs_flash
         spiffs

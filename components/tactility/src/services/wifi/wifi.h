@@ -49,9 +49,9 @@ typedef struct {
 
 /**
  * @brief Get wifi pubsub
- * @return FuriPubSub*
+ * @return PubSub*
  */
-FuriPubSub* wifi_get_pubsub();
+PubSub* wifi_get_pubsub();
 
 WifiRadioState wifi_get_radio_state();
 /**

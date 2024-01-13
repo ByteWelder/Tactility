@@ -1,15 +1,15 @@
 #include "tactility.h"
 
-#include <sys/cdefs.h>
 #include "app_manifest_registry.h"
+#include "core.h"
 #include "devices_i.h"
-#include "furi.h"
+#include "esp_wifi.h"
 #include "graphics_i.h"
+#include "nvs_flash.h"
 #include "partitions.h"
 #include "service_registry.h"
-#include "esp_wifi.h"
-#include "nvs_flash.h"
 #include "services/loader/loader.h"
+#include <sys/cdefs.h>
 
 #define TAG "tactility"
 
@@ -27,19 +27,19 @@ extern const AppManifest wifi_manage_app;
 _Noreturn int32_t wifi_main(void* p);
 
 static void register_system_apps() {
-    FURI_LOG_I(TAG, "Registering default apps");
-    app_manifest_registry_add(&desktop_app);
-    app_manifest_registry_add(&system_info_app);
-    app_manifest_registry_add(&wifi_connect_app);
-    app_manifest_registry_add(&wifi_manage_app);
+    TT_LOG_I(TAG, "Registering default apps");
+    tt_app_manifest_registry_add(&desktop_app);
+    tt_app_manifest_registry_add(&system_info_app);
+    tt_app_manifest_registry_add(&wifi_connect_app);
+    tt_app_manifest_registry_add(&wifi_manage_app);
 }
 
 static void register_user_apps(const Config* _Nonnull config) {
-    FURI_LOG_I(TAG, "Registering user apps");
+    TT_LOG_I(TAG, "Registering user apps");
     for (size_t i = 0; i < CONFIG_APPS_LIMIT; i++) {
         const AppManifest* manifest = config->apps[i];
         if (manifest != NULL) {
-            app_manifest_registry_add(manifest);
+            tt_app_manifest_registry_add(manifest);
         } else {
             // reached end of list
             break;
@@ -48,26 +48,26 @@ static void register_user_apps(const Config* _Nonnull config) {
 }
 
 static void register_system_services() {
-    FURI_LOG_I(TAG, "Registering system services");
-    service_registry_add(&gui_service);
-    service_registry_add(&loader_service);
-    service_registry_add(&wifi_service);
+    TT_LOG_I(TAG, "Registering system services");
+    tt_service_registry_add(&gui_service);
+    tt_service_registry_add(&loader_service);
+    tt_service_registry_add(&wifi_service);
 }
 
 static void start_system_services() {
-    FURI_LOG_I(TAG, "Starting system services");
-    service_registry_start(gui_service.id);
-    service_registry_start(loader_service.id);
-    service_registry_start(wifi_service.id);
+    TT_LOG_I(TAG, "Starting system services");
+    tt_service_registry_start(gui_service.id);
+    tt_service_registry_start(loader_service.id);
+    tt_service_registry_start(wifi_service.id);
 }
 
 static void register_and_start_user_services(const Config* _Nonnull config) {
-    FURI_LOG_I(TAG, "Registering and starting user services");
+    TT_LOG_I(TAG, "Registering and starting user services");
     for (size_t i = 0; i < CONFIG_SERVICES_LIMIT; i++) {
         const ServiceManifest* manifest = config->services[i];
         if (manifest != NULL) {
-            service_registry_add(manifest);
-            service_registry_start(manifest->id);
+            tt_service_registry_add(manifest);
+            tt_service_registry_start(manifest->id);
         } else {
             // reached end of list
             break;
@@ -76,7 +76,7 @@ static void register_and_start_user_services(const Config* _Nonnull config) {
 }
 
 __attribute__((unused)) extern void tactility_start(const Config* _Nonnull config) {
-    furi_init();
+    tt_core_init();
 
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();

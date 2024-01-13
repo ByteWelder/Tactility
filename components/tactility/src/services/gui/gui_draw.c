@@ -20,13 +20,13 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
     tt_lv_obj_set_style_bg_blacken(vertical_container);
 
     // TODO: Move statusbar into separate ViewPort
-    AppFlags flags = app_get_flags(app);
+    AppFlags flags = tt_app_get_flags(app);
     if (flags.show_statusbar) {
         tt_lv_statusbar_create(vertical_container);
     }
 
     if (flags.show_toolbar) {
-        const AppManifest* manifest = app_get_manifest(app);
+        const AppManifest* manifest = tt_app_get_manifest(app);
         if (manifest != NULL) {
             // TODO: Keep toolbar on app level so app can update it (app_set_toolbar() etc?)
             Toolbar toolbar = {
@@ -51,22 +51,22 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
 }
 
 void gui_redraw(Gui* gui) {
-    furi_assert(gui);
+    tt_assert(gui);
 
     // Lock GUI and LVGL
     gui_lock();
-    furi_check(lvgl_port_lock(100));
+    tt_check(lvgl_port_lock(100));
 
     lv_obj_clean(gui->lvgl_parent);
 
     if (gui->app_view_port != NULL) {
         ViewPort* view_port = gui->app_view_port;
-        furi_assert(view_port);
+        tt_assert(view_port);
         App app = gui->app_view_port->app;
         lv_obj_t* container = create_app_views(gui->lvgl_parent, app);
         view_port_show(view_port, container);
     } else {
-        FURI_LOG_W(TAG, "nothing to draw");
+        TT_LOG_W(TAG, "nothing to draw");
     }
 
     // Unlock GUI and LVGL

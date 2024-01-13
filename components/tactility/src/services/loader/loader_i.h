@@ -13,10 +13,10 @@
 #define APP_STACK_SIZE 32
 
 struct Loader {
-    FuriThread* thread;
-    FuriPubSub* pubsub;
-    FuriMessageQueue* queue;
-    // TODO: replace with FuriMutex
+    Thread* thread;
+    PubSub* pubsub;
+    MessageQueue* queue;
+    // TODO: replace with Mutex
     SemaphoreHandle_t mutex;
     int8_t app_stack_index;
     App app_stack[APP_STACK_SIZE];
@@ -44,7 +44,7 @@ typedef struct {
 typedef struct {
     // This lock blocks anyone from starting an app as long
     // as an app is already running via loader_start()
-    FuriApiLock api_lock;
+    ApiLock api_lock;
     LoaderMessageType type;
 
     union {
