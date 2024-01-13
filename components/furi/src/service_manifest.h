@@ -7,8 +7,10 @@
 extern "C" {
 #endif
 
-typedef void (*ServiceOnStart)(Context* context);
-typedef void (*ServiceOnStop)(Context* context);
+typedef void* Service;
+
+typedef void (*ServiceOnStart)(Service service);
+typedef void (*ServiceOnStop)(Service service);
 
 typedef struct {
     /**

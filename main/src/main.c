@@ -15,6 +15,7 @@ __attribute__((unused)) void app_main(void) {
             &hello_world_app
         },
         .services = { },
+        .auto_start_app_id = NULL
     };
 
     tactility_start(&config);

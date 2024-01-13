@@ -20,30 +20,15 @@ struct Gui {
     FuriMutex* mutex;
 
     // Layers and Canvas
-    ViewPort* layers[GuiLayerMAX];
     lv_obj_t* lvgl_parent;
 
-    // Input
-    /*
-    FuriMessageQueue* input_queue;
-    FuriPubSub* input_events;
-    uint8_t ongoing_input;
-    ViewPort* ongoing_input_view_port;
-    */
+    // App-specific
+    ViewPort* app_view_port;
 };
 
 /** Update GUI, request redraw
  */
 void gui_request_draw();
-
-///** Input event callback
-// *
-// * Used to receive input from input service or to inject new input events
-// *
-// * @param[in]  value  The value pointer (InputEvent*)
-// * @param      ctx    The context (Gui instance)
-// */
-//void gui_input_events_callback(const void* value, void* ctx);
 
 /** Lock GUI
  */

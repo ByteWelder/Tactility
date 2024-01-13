@@ -27,7 +27,7 @@ and [esp_lcd_touch](https://components.espressif.com/components/espressif/esp_lc
 ### Devices
 
 Predefined configurations are available for:
-- Yellow Board: 2.4" with capacitive touch (2432S024) (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
+- Yellow Board: 2.4" with capacitive touch (2432S024C) (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
 - LilyGo T-Deck (see [lilygo.cc](https://www.lilygo.cc/products/t-deck), [AliExpress](https://www.aliexpress.com/item/1005005692235592.html))
 - (more will follow)
 

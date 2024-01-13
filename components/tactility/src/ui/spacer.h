@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-lv_obj_t* spacer(lv_obj_t* parent, lv_coord_t width, lv_coord_t height);
+lv_obj_t* tt_lv_spacer_create(lv_obj_t* parent, lv_coord_t width, lv_coord_t height);
 
 #ifdef __cplusplus
     }

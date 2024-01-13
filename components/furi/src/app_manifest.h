@@ -1,6 +1,5 @@
 #pragma once
 
-#include "context.h"
 #include <stdio.h>
 
 #ifdef __cplusplus
@@ -9,16 +8,19 @@ extern "C" {
 
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
+typedef void* App;
 
 typedef enum {
+    AppTypeDesktop,
     AppTypeSystem,
     AppTypeSettings,
     AppTypeUser
 } AppType;
 
-typedef void (*AppOnStart)(Context* context);
-typedef void (*AppOnStop)(Context* context);
-typedef void (*AppOnShow)(Context* context, lv_obj_t* parent);
+typedef void (*AppOnStart)(App app);
+typedef void (*AppOnStop)(App app);
+typedef void (*AppOnShow)(App app, lv_obj_t* parent);
+typedef void (*AppOnHide)(App app);
 
 typedef struct {
     /**
@@ -55,6 +57,11 @@ typedef struct {
      * Non-blocking method to create the GUI
      */
     const AppOnShow _Nullable on_show;
+
+    /**
+     * Non-blocking method, called before gui is destroyed
+     */
+    const AppOnHide _Nullable on_hide;
 } AppManifest;
 
 #ifdef __cplusplus

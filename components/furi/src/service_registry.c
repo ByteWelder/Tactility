@@ -9,17 +9,17 @@
 #define TAG "service_registry"
 
 DICT_DEF2(ServiceManifestDict, const char*, M_CSTR_DUP_OPLIST, const ServiceManifest*, M_PTR_OPLIST)
-DICT_DEF2(ServiceInstanceDict, const char*, M_CSTR_DUP_OPLIST, const Service*, M_PTR_OPLIST)
+DICT_DEF2(ServiceInstanceDict, const char*, M_CSTR_DUP_OPLIST, const ServiceData*, M_PTR_OPLIST)
 
-#define APP_REGISTRY_FOR_EACH(manifest_var_name, code_to_execute)                                               \
-    {                                                                                                           \
-        service_registry_manifest_lock();                                                                                    \
-        ServiceManifestDict_it_t it;                                                                                \
+#define APP_REGISTRY_FOR_EACH(manifest_var_name, code_to_execute)                                                               \
+    {                                                                                                                           \
+        service_registry_manifest_lock();                                                                                       \
+        ServiceManifestDict_it_t it;                                                                                            \
         for (ServiceManifestDict_it(it, service_manifest_dict); !ServiceManifestDict_end_p(it); ServiceManifestDict_next(it)) { \
-            const ServiceManifest*(manifest_var_name) = ServiceManifestDict_cref(it)->value;                            \
-            code_to_execute;                                                                                    \
-        }                                                                                                       \
-        service_registry_manifest_unlock();                                                                                  \
+            const ServiceManifest*(manifest_var_name) = ServiceManifestDict_cref(it)->value;                                    \
+            code_to_execute;                                                                                                    \
+        }                                                                                                                       \
+        service_registry_manifest_unlock();                                                                                     \
     }
 
 ServiceManifestDict_t service_manifest_dict;
@@ -78,13 +78,13 @@ const ServiceManifest* _Nullable service_registry_find_manifest_by_id(const char
     return (manifest != NULL) ? *manifest : NULL;
 }
 
-Service* _Nullable service_registry_find_instance_by_id(const char* id) {
+ServiceData* _Nullable service_registry_find_instance_by_id(const char* id) {
     service_registry_instance_lock();
-    const Service** _Nullable service_ptr = ServiceInstanceDict_get(service_instance_dict, id);
+    const ServiceData** _Nullable service_ptr = ServiceInstanceDict_get(service_instance_dict, id);
     if (service_ptr == NULL) {
         return NULL;
     }
-    Service* service = (Service*) *service_ptr;
+    ServiceData* service = (ServiceData*)*service_ptr;
     service_registry_instance_unlock();
     return service;
 }
@@ -100,12 +100,12 @@ bool service_registry_start(const char* service_id) {
     FURI_LOG_I(TAG, "starting %s", service_id);
     const ServiceManifest* manifest = service_registry_find_manifest_by_id(service_id);
     if (manifest == NULL) {
-        FURI_LOG_I(TAG, "manifest not found for %s", service_id);
+        FURI_LOG_E(TAG, "manifest not found for service %s", service_id);
         return false;
     }
 
-    Service* service = furi_service_alloc(manifest);
-    service->manifest->on_start(&service->context);
+    Service service = service_alloc(manifest);
+    manifest->on_start(service);
 
     service_registry_instance_lock();
     ServiceInstanceDict_set_at(service_instance_dict, manifest->id, service);
@@ -117,14 +117,14 @@ bool service_registry_start(const char* service_id) {
 
 bool service_registry_stop(const char* service_id) {
     FURI_LOG_I(TAG, "stopping %s", service_id);
-    Service* service = service_registry_find_instance_by_id(service_id);
+    ServiceData* service = service_registry_find_instance_by_id(service_id);
     if (service == NULL) {
-        FURI_LOG_I(TAG, "service not running: %s", service_id);
+        FURI_LOG_W(TAG, "service not running: %s", service_id);
         return false;
     }
 
-    service->manifest->on_stop(&service->context);
-    furi_service_free(service);
+    service->manifest->on_stop(service);
+    service_free(service);
 
     service_registry_instance_lock();
     ServiceInstanceDict_erase(service_instance_dict, service_id);
