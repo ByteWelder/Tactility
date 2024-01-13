@@ -265,7 +265,7 @@ void tt_string_utf8_push(TtString* str, TtStringUnicodeValue u) {
     string_push_u(str->string, u);
 }
 
-static m_str1ng_utf8_state_e furi_state_to_state(TtStringUTF8State state) {
+static m_str1ng_utf8_state_e tt_state_to_state(TtStringUTF8State state) {
     switch (state) {
         case TtStringUTF8StateStarting:
             return M_STR1NG_UTF8_STARTING;
@@ -280,7 +280,7 @@ static m_str1ng_utf8_state_e furi_state_to_state(TtStringUTF8State state) {
     }
 }
 
-static TtStringUTF8State state_to_furi_state(m_str1ng_utf8_state_e state) {
+static TtStringUTF8State state_to_tt_state(m_str1ng_utf8_state_e state) {
     switch (state) {
         case M_STR1NG_UTF8_STARTING:
             return TtStringUTF8StateStarting;
@@ -297,8 +297,8 @@ static TtStringUTF8State state_to_furi_state(m_str1ng_utf8_state_e state) {
 
 void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValue* unicode) {
     string_unicode_t m_u = *unicode;
-    m_str1ng_utf8_state_e m_state = furi_state_to_state(*state);
+    m_str1ng_utf8_state_e m_state = tt_state_to_state(*state);
     m_str1ng_utf8_decode(c, &m_state, &m_u);
-    *state = state_to_furi_state(m_state);
+    *state = state_to_tt_state(m_state);
     *unicode = m_u;
 }

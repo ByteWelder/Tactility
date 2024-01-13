@@ -37,7 +37,7 @@ void tt_mutex_free(Mutex* instance);
  * @param      instance  The pointer to Mutex instance
  * @param[in]  timeout   The timeout
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_mutex_acquire(Mutex* instance, uint32_t timeout);
 
@@ -45,7 +45,7 @@ TtStatus tt_mutex_acquire(Mutex* instance, uint32_t timeout);
  *
  * @param      instance  The pointer to Mutex instance
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_mutex_release(Mutex* instance);
 
@@ -53,7 +53,7 @@ TtStatus tt_mutex_release(Mutex* instance);
  *
  * @param      instance  The pointer to Mutex instance
  *
- * @return     The furi thread identifier.
+ * @return     The thread identifier.
  */
 ThreadId tt_mutex_get_owner(Mutex* instance);
 

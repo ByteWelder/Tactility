@@ -64,13 +64,13 @@ LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable b
         .start.id = id,
         .start.bundle = bundle,
         .status_value = &result,
-        .api_lock = blocking ? api_lock_alloc_locked() : NULL
+        .api_lock = blocking ? tt_api_lock_alloc_locked() : NULL
     };
 
     tt_message_queue_put(loader_singleton->queue, &message, TtWaitForever);
 
     if (blocking) {
-        api_lock_wait_unlock_and_free(message.api_lock);
+        tt_api_lock_wait_unlock_and_free(message.api_lock);
     }
 
     return result.value;
@@ -269,7 +269,7 @@ static int32_t loader_main(void* p) {
                         message.start.bundle
                     );
                     if (message.api_lock) {
-                        api_lock_unlock(message.api_lock);
+                        tt_api_lock_unlock(message.api_lock);
                     }
                     break;
                 case LoaderMessageTypeAppStop:

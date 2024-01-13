@@ -32,11 +32,11 @@ void tt_app_free(App app) {
 
 // region Internal
 
-static void app_lock(AppData* data) {
+static void tt_app_lock(AppData* data) {
     tt_mutex_acquire(data->mutex, MutexTypeRecursive);
 }
 
-static void app_unlock(AppData* data) {
+static void tt_app_unlock(AppData* data) {
     tt_mutex_release(data->mutex);
 }
 
@@ -62,16 +62,16 @@ static AppFlags tt_app_get_flags_default(AppType type) {
 
 void tt_app_set_state(App app, AppState state) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     data->state = state;
-    app_unlock(data);
+    tt_app_unlock(data);
 }
 
 AppState tt_app_get_state(App app) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     AppState state = data->state;
-    app_unlock(data);
+    tt_app_unlock(data);
     return state;
 }
 
@@ -83,32 +83,32 @@ const AppManifest* tt_app_get_manifest(App app) {
 
 AppFlags tt_app_get_flags(App app) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     AppFlags flags = data->flags;
-    app_unlock(data);
+    tt_app_unlock(data);
     return flags;
 }
 
 void tt_app_set_flags(App app, AppFlags flags) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     data->flags = flags;
-    app_unlock(data);
+    tt_app_unlock(data);
 }
 
 void* tt_app_get_data(App app) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     void* value = data->data;
-    app_unlock(data);
+    tt_app_unlock(data);
     return value;
 }
 
 void tt_app_set_data(App app, void* value) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     data->data = value;
-    app_unlock(data);
+    tt_app_unlock(data);
 }
 
 /** TODO: Make this thread-safe.
@@ -119,9 +119,9 @@ void tt_app_set_data(App app, void* value) {
  */
 Bundle* _Nullable tt_app_get_parameters(App app) {
     AppData* data = (AppData*)app;
-    app_lock(data);
+    tt_app_lock(data);
     Bundle* bundle = data->parameters;
-    app_unlock(data);
+    tt_app_unlock(data);
     return bundle;
 }
 

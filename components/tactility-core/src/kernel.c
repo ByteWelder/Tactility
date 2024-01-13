@@ -170,7 +170,7 @@ void tt_delay_ms(uint32_t milliseconds) {
 #if configTICK_RATE_HZ_RAW == 1000
         tt_delay_tick(milliseconds);
 #else
-        tt_delay_tick(furi_ms_to_ticks(milliseconds));
+        tt_delay_tick(tt_ms_to_ticks(milliseconds));
 #endif
     } else if (milliseconds > 0) {
         tt_delay_us(milliseconds * 1000);

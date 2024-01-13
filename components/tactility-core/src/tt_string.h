@@ -1,7 +1,3 @@
-/**
- * @file string.h
- * Furi string primitive
- */
 #pragma once
 
 #include <m-core.h>
@@ -20,7 +16,7 @@ extern "C" {
 #define TT_STRING_FAILURE ((size_t)-1)
 
 /**
- * @brief Furi string primitive.
+ * @brief Tactility string primitive.
  */
 typedef struct TtString TtString;
 
@@ -570,25 +566,25 @@ void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValu
 /**
  * @brief Select for 1 argument 
  */
-#define FURI_STRING_SELECT1(func1, func2, a) \
+#define TT_STRING_SELECT1(func1, func2, a) \
     _Generic((a), char*: func2, const char*: func2, TtString*: func1, const TtString*: func1)(a)
 
 /**
  * @brief Select for 2 arguments
  */
-#define FURI_STRING_SELECT2(func1, func2, a, b) \
+#define TT_STRING_SELECT2(func1, func2, a, b) \
     _Generic((b), char*: func2, const char*: func2, TtString*: func1, const TtString*: func1)(a, b)
 
 /**
  * @brief Select for 3 arguments
  */
-#define FURI_STRING_SELECT3(func1, func2, a, b, c) \
+#define TT_STRING_SELECT3(func1, func2, a, b, c) \
     _Generic((b), char*: func2, const char*: func2, TtString*: func1, const TtString*: func1)(a, b, c)
 
 /**
  * @brief Select for 4 arguments
  */
-#define FURI_STRING_SELECT4(func1, func2, a, b, c, d) \
+#define TT_STRING_SELECT4(func1, func2, a, b, c, d) \
     _Generic((b), char*: func2, const char*: func2, TtString*: func1, const TtString*: func1)(a, b, c, d)
 
 /**
@@ -596,40 +592,40 @@ void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValu
  * ([c]string)
  */
 #define tt_string_alloc_set(a) \
-    FURI_STRING_SELECT1(tt_string_alloc_set, tt_string_alloc_set_str, a)
+    TT_STRING_SELECT1(tt_string_alloc_set, tt_string_alloc_set_str, a)
 
 /**
  * @brief Set the string content to string (or C string).
  * (string, [c]string)
  */
-#define tt_string_set(a, b) FURI_STRING_SELECT2(tt_string_set, tt_string_set_str, a, b)
+#define tt_string_set(a, b) TT_STRING_SELECT2(tt_string_set, tt_string_set_str, a, b)
 
 /**
  * @brief Compare string with string (or C string) and return the sort order.
  * Note: doesn't work with UTF-8 strings.
  * (string, [c]string)
  */
-#define tt_string_cmp(a, b) FURI_STRING_SELECT2(tt_string_cmp, tt_string_cmp_str, a, b)
+#define tt_string_cmp(a, b) TT_STRING_SELECT2(tt_string_cmp, tt_string_cmp_str, a, b)
 
 /**
  * @brief Compare string with string (or C string) (case insensitive according to the current locale) and return the sort order.
  * Note: doesn't work with UTF-8 strings.
  * (string, [c]string)
  */
-#define tt_string_cmpi(a, b) FURI_STRING_SELECT2(tt_string_cmpi, tt_string_cmpi_str, a, b)
+#define tt_string_cmpi(a, b) TT_STRING_SELECT2(tt_string_cmpi, tt_string_cmpi_str, a, b)
 
 /**
  * @brief Test if the string is equal to the string (or C string).
  * (string, [c]string)
  */
-#define tt_string_equal(a, b) FURI_STRING_SELECT2(tt_string_equal, tt_string_equal_str, a, b)
+#define tt_string_equal(a, b) TT_STRING_SELECT2(tt_string_equal, tt_string_equal_str, a, b)
 
 /**
  * @brief Replace all occurrences of string into string (or C string to another C string) in a string.
  * (string, [c]string, [c]string)
  */
 #define tt_string_replace_all(a, b, c) \
-    FURI_STRING_SELECT3(tt_string_replace_all, tt_string_replace_all_str, a, b, c)
+    TT_STRING_SELECT3(tt_string_replace_all, tt_string_replace_all_str, a, b, c)
 
 /**
  * @brief Search for a string (or C string) in a string
@@ -637,7 +633,7 @@ void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValu
  */
 #define tt_string_search(...)             \
     M_APPLY(                                \
-        FURI_STRING_SELECT3,                \
+        TT_STRING_SELECT3,                \
         tt_string_search,                 \
         tt_string_search_str,             \
         M_DEFAULT_ARGS(3, (0), __VA_ARGS__) \
@@ -653,20 +649,20 @@ void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValu
  * (string, [c]string)
  */
 #define tt_string_start_with(a, b) \
-    FURI_STRING_SELECT2(tt_string_start_with, tt_string_start_with_str, a, b)
+    TT_STRING_SELECT2(tt_string_start_with, tt_string_start_with_str, a, b)
 
 /**
  * @brief Test if the string ends with the given string (or C string).
  * (string, [c]string)
  */
 #define tt_string_end_with(a, b) \
-    FURI_STRING_SELECT2(tt_string_end_with, tt_string_end_with_str, a, b)
+    TT_STRING_SELECT2(tt_string_end_with, tt_string_end_with_str, a, b)
 
 /**
  * @brief Append a string (or C string) to the string.
  * (string, [c]string)
  */
-#define tt_string_cat(a, b) FURI_STRING_SELECT2(tt_string_cat, tt_string_cat_str, a, b)
+#define tt_string_cat(a, b) TT_STRING_SELECT2(tt_string_cat, tt_string_cat_str, a, b)
 
 /**
  * @brief Trim a string from the given set of characters (default is " \n\r\t").
@@ -692,7 +688,7 @@ void tt_string_utf8_decode(char c, TtStringUTF8State* state, TtStringUnicodeValu
  */
 #define tt_string_replace(...)            \
     M_APPLY(                                \
-        FURI_STRING_SELECT4,                \
+        TT_STRING_SELECT4,                \
         tt_string_replace,                \
         tt_string_replace_str,            \
         M_DEFAULT_ARGS(4, (0), __VA_ARGS__) \

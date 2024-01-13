@@ -4,7 +4,7 @@
 
 #include "esp_log.h" // TODO remove
 
-#define TAG "FuriHalConsole"
+#define TAG "HalConsole"
 
 typedef struct {
     bool alive;

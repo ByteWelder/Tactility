@@ -12,7 +12,7 @@ extern "C" {
 
 typedef void MessageQueue;
 
-/** Allocate furi message queue
+/** Allocate message queue
  *
  * @param[in]  msg_count  The message count
  * @param[in]  msg_size   The message size
@@ -34,10 +34,9 @@ void tt_message_queue_free(MessageQueue* instance);
  * @param[in]  timeout   The timeout
  * @param[in]  msg_prio  The message prio
  *
- * @return     The furi status.
+ * @return     The status.
  */
-TtStatus
-tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint32_t timeout);
+TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint32_t timeout);
 
 /** Get message from queue
  *
@@ -46,7 +45,7 @@ tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint32_t timeo
  * @param      msg_prio  The message prioority
  * @param[in]  timeout_ticks   The timeout
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t timeout_ticks);
 
@@ -86,7 +85,7 @@ uint32_t tt_message_queue_get_space(MessageQueue* instance);
  *
  * @param      instance  pointer to MessageQueue instance
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_message_queue_reset(MessageQueue* instance);
 

@@ -86,28 +86,7 @@ static void tt_thread_body(void* context) {
     tt_assert(thread->state == ThreadStateStarting);
     tt_thread_set_state(thread, ThreadStateRunning);
 
-    /*
-    TaskHandle_t task_handle = xTaskGetCurrentTaskHandle();
-    if(thread->heap_trace_enabled == true) {
-        memmgr_heap_enable_thread_trace((ThreadId)task_handle);
-    }
-    */
-
     thread->ret = thread->callback(thread->context);
-
-    /*
-    if(thread->heap_trace_enabled == true) {
-        furi_delay_ms(33);
-        thread->heap_size = memmgr_heap_get_thread_memory((ThreadId)task_handle);
-        furi_log_print_format(
-            thread->heap_size ? FuriLogLevelError : FuriLogLevelInfo,
-            TAG,
-            "%s allocation balance: %zu",
-            thread->name ? thread->name : "Thread",
-            thread->heap_size);
-        memmgr_heap_disable_thread_trace((ThreadId)task_handle);
-    }
-    */
 
     tt_assert(thread->state == ThreadStateRunning);
 
@@ -150,10 +129,10 @@ Thread* tt_thread_alloc() {
         tt_thread_set_appid(thread, "driver");
     }
 
-    /*FuriHalRtcHeapTrackMode mode = tt_hal_rtc_get_heap_track_mode();
-    if(mode == FuriHalRtcHeapTrackModeAll) {
+    /*HalRtcHeapTrackMode mode = tt_hal_rtc_get_heap_track_mode();
+    if(mode == HalRtcHeapTrackModeAll) {
         thread->heap_trace_enabled = true;
-    } else if(mode == FuriHalRtcHeapTrackModeTree && tt_thread_get_current_id()) {
+    } else if(mode == HalRtcHeapTrackModeTree && tt_thread_get_current_id()) {
         if(parent) thread->heap_trace_enabled = parent->heap_trace_enabled;
     } else */
     {

@@ -3,10 +3,10 @@
 #include "app_manifest_registry.h"
 #include "service_registry.h"
 
-#define TAG "furi"
+#define TAG "tactility"
 
 void tt_core_init() {
-    TT_LOG_I(TAG, "init start");
+    TT_LOG_I(TAG, "core init start");
     tt_assert(!tt_kernel_is_irq());
 
 #if defined(__ARM_ARCH_7A__) && (__ARM_ARCH_7A__ == 0U)
@@ -18,5 +18,5 @@ void tt_core_init() {
 
     tt_service_registry_init();
     tt_app_manifest_registry_init();
-    TT_LOG_I(TAG, "init complete");
+    TT_LOG_I(TAG, "core init complete");
 }

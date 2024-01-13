@@ -79,7 +79,7 @@ void tt_delay_tick(uint32_t ticks);
  *
  * @param[in]  ticks  The tick until which kerel should delay task execution
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_delay_until_tick(uint32_t tick);
 

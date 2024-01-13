@@ -1,6 +1,6 @@
 /**
  * @file stream_buffer.h
- * Furi stream buffer primitive.
+ * Tactility stream buffer primitive.
  * 
  * Stream buffers are used to send a continuous stream of data from one task or
  * interrupt to another.  Their implementation is light weight, making them
@@ -54,7 +54,7 @@ void tt_stream_buffer_free(StreamBuffer* stream_buffer);
  * @return true if trigger level can be be updated (new trigger level was less than or equal to the stream buffer's length). 
  * @return false if trigger level can't be be updated (new trigger level was greater than the stream buffer's length).
  */
-bool furi_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level);
+bool tt_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level);
 
 /**
  * @brief Sends bytes to a stream buffer. The bytes are copied into the stream buffer.
@@ -66,7 +66,7 @@ bool furi_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_l
  * @param timeout The maximum amount of time the task should remain in the
  * Blocked state to wait for space to become available if the stream buffer is full. 
  * Will return immediately if timeout is zero. 
- * Setting timeout to FuriWaitForever will cause the task to wait indefinitely.
+ * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
  * Ignored if called from ISR.
  * @return The number of bytes actually written to the stream buffer. 
  */
@@ -88,7 +88,7 @@ size_t tt_stream_buffer_send(
  * @param timeout The maximum amount of time the task should remain in the
  * Blocked state to wait for data to become available if the stream buffer is empty. 
  * Will return immediately if timeout is zero. 
- * Setting timeout to FuriWaitForever will cause the task to wait indefinitely.
+ * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
  * Ignored if called from ISR.
  * @return The number of bytes read from the stream buffer, if any. 
  */

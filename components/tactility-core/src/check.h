@@ -1,7 +1,7 @@
 /**
  * @file check.h
  * 
- * Furi crash and assert functions.
+ * Tactility crash and assert functions.
  * 
  * The main problem with crashing is that you can't do anything without disturbing registers,
  * and if you disturb registers, you won't be able to see the correct register values in the debugger.
@@ -18,13 +18,13 @@
 
 #ifdef __cplusplus
 extern "C" {
-#define FURI_NORETURN [[noreturn]]
+#define TT_NORETURN [[noreturn]]
 #else
 #include <stdnoreturn.h>
 #define TT_NORETURN noreturn
 #endif
 
-// Flags instead of pointers will save ~4 bytes on furi_assert and furi_check calls.
+// Flags instead of pointers will save ~4 bytes on tt_assert and tt_check calls.
 #define __TT_ASSERT_MESSAGE_FLAG (0x01)
 #define __TT_CHECK_MESSAGE_FLAG (0x02)
 
@@ -58,7 +58,7 @@ TT_NORETURN void __tt_halt_implementation();
  *
  * @param      optional  message (const char*)
  */
-#define furi_halt(...) M_APPLY(__tt_halt, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
+#define tt_halt(...) M_APPLY(__tt_halt, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
 /** Check condition and crash if check failed */
 #define __tt_check(__e, __m)             \

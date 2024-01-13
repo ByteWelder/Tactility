@@ -1,8 +1,3 @@
-/**
- * @file thread.h
- * Furi: Furi Thread API
- */
-
 #pragma once
 
 #include "core_defines.h"
@@ -238,7 +233,7 @@ ThreadId tt_thread_get_current_id();
 
 /** Get Thread instance for current thread
  * 
- * @return pointer to Thread or NULL if this thread doesn't belongs to Furi
+ * @return pointer to Thread or NULL if this thread doesn't belongs to Tactility
  */
 Thread* tt_thread_get_current();
 

@@ -1,7 +1,3 @@
-/**
- * @file event_flag.h
- * Furi Event Flag
- */
 #pragma once
 
 #include "core_types.h"

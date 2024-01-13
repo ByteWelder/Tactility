@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <tt_config.h>
+#include <tactility_core_config.h>
 
 #ifdef __cplusplus
 extern "C" {

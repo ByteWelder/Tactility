@@ -39,7 +39,7 @@ void tt_timer_free(Timer* instance);
  * @param      instance  The pointer to Timer instance
  * @param[in]  ticks     The interval in ticks
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_timer_start(Timer* instance, uint32_t ticks);
 
@@ -51,7 +51,7 @@ TtStatus tt_timer_start(Timer* instance, uint32_t ticks);
  * @param      instance  The pointer to Timer instance
  * @param[in]  ticks     The interval in ticks
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_timer_restart(Timer* instance, uint32_t ticks);
 
@@ -62,7 +62,7 @@ TtStatus tt_timer_restart(Timer* instance, uint32_t ticks);
  *
  * @param      instance  The pointer to Timer instance
  *
- * @return     The furi status.
+ * @return     The status.
  */
 TtStatus tt_timer_stop(Timer* instance);
 

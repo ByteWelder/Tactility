@@ -40,8 +40,8 @@ Other configurations can be supported, but they require you to set up the driver
 
 Until there is proper documentation, here are some pointers:
 - Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
-- [Tactility](./components/tactility/): the main platform with default services and apps
-- [Furi](./components/furi/): the core platform code, based on Flipper Zero firmware
+- [Tactility](./components/tactility): The main platform with default services and apps.
+- [Tactility Core](./components/tactility-core): The core platform code.
 
 ## Building Firmware
 

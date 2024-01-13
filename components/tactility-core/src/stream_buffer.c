@@ -20,7 +20,7 @@ void tt_stream_buffer_free(StreamBuffer* stream_buffer) {
     vStreamBufferDelete(stream_buffer);
 };
 
-bool furi_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level) {
+bool tt_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level) {
     tt_assert(stream_buffer);
     return xStreamBufferSetTriggerLevel(stream_buffer, trigger_level) == pdTRUE;
 };
