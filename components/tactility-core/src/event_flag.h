@@ -4,63 +4,63 @@
  */
 #pragma once
 
-#include "furi_core_types.h"
+#include "core_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void FuriEventFlag;
+typedef void EventFlag;
 
-/** Allocate FuriEventFlag
+/** Allocate EventFlag
  *
- * @return     pointer to FuriEventFlag
+ * @return     pointer to EventFlag
  */
-FuriEventFlag* furi_event_flag_alloc();
+EventFlag* tt_event_flag_alloc();
 
-/** Deallocate FuriEventFlag
+/** Deallocate EventFlag
  *
- * @param      instance  pointer to FuriEventFlag
+ * @param      instance  pointer to EventFlag
  */
-void furi_event_flag_free(FuriEventFlag* instance);
+void tt_event_flag_free(EventFlag* instance);
 
 /** Set flags
  *
- * @param      instance  pointer to FuriEventFlag
+ * @param      instance  pointer to EventFlag
  * @param[in]  flags     The flags
  *
- * @return     Resulting flags or error (FuriStatus)
+ * @return     Resulting flags or error (TtStatus)
  */
-uint32_t furi_event_flag_set(FuriEventFlag* instance, uint32_t flags);
+uint32_t tt_event_flag_set(EventFlag* instance, uint32_t flags);
 
 /** Clear flags
  *
- * @param      instance  pointer to FuriEventFlag
+ * @param      instance  pointer to EventFlag
  * @param[in]  flags     The flags
  *
- * @return     Resulting flags or error (FuriStatus)
+ * @return     Resulting flags or error (TtStatus)
  */
-uint32_t furi_event_flag_clear(FuriEventFlag* instance, uint32_t flags);
+uint32_t tt_event_flag_clear(EventFlag* instance, uint32_t flags);
 
 /** Get flags
  *
- * @param      instance  pointer to FuriEventFlag
+ * @param      instance  pointer to EventFlag
  *
  * @return     Resulting flags
  */
-uint32_t furi_event_flag_get(FuriEventFlag* instance);
+uint32_t tt_event_flag_get(EventFlag* instance);
 
 /** Wait flags
  *
- * @param      instance  pointer to FuriEventFlag
+ * @param      instance  pointer to EventFlag
  * @param[in]  flags     The flags
  * @param[in]  options   The option flags
  * @param[in]  timeout   The timeout
  *
- * @return     Resulting flags or error (FuriStatus)
+ * @return     Resulting flags or error (TtStatus)
  */
-uint32_t furi_event_flag_wait(
-    FuriEventFlag* instance,
+uint32_t tt_event_flag_wait(
+    EventFlag* instance,
     uint32_t flags,
     uint32_t options,
     uint32_t timeout

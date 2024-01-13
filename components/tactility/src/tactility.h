@@ -1,9 +1,7 @@
 #pragma once
 
-#include "app_manifest.h"
 #include "devices.h"
-#include "furi_extra_defines.h"
-#include "service_manifest.h"
+#include "tactility_core.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -13,7 +11,7 @@ extern "C" {
 #define CONFIG_SERVICES_LIMIT 32
 
 // Forward declarations
-typedef void* FuriThreadId;
+typedef void* ThreadId;
 typedef void (*Bootstrap)();
 typedef TouchDriver (*CreateTouchDriver)();
 typedef DisplayDriver (*CreateDisplayDriver)();

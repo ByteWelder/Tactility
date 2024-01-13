@@ -3,10 +3,12 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "app.h"
 #include "check.h"
+#include "core_defines.h"
+#include "core_extra_defines.h"
+#include "core_types.h"
 #include "critical.h"
 #include "event_flag.h"
-#include "furi_core_defines.h"
-#include "furi_core_types.h"
-#include "furi_extra_defines.h"
 #include "log.h"
+#include "service.h"

@@ -1,13 +1,13 @@
 #pragma once
 
-#include "furi_core_types.h"
+#include "core_types.h"
 #include "thread.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void FuriSemaphore;
+typedef void Semaphore;
 
 /** Allocate semaphore
  *
@@ -16,13 +16,13 @@ typedef void FuriSemaphore;
  *
  * @return     pointer to FuriSemaphore instance
  */
-FuriSemaphore* furi_semaphore_alloc(uint32_t max_count, uint32_t initial_count);
+Semaphore* tt_semaphore_alloc(uint32_t max_count, uint32_t initial_count);
 
 /** Free semaphore
  *
  * @param      instance  The pointer to FuriSemaphore instance
  */
-void furi_semaphore_free(FuriSemaphore* instance);
+void tt_semaphore_free(Semaphore* instance);
 
 /** Acquire semaphore
  *
@@ -31,7 +31,7 @@ void furi_semaphore_free(FuriSemaphore* instance);
  *
  * @return     The furi status.
  */
-FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout);
+TtStatus tt_semaphore_acquire(Semaphore* instance, uint32_t timeout);
 
 /** Release semaphore
  *
@@ -39,7 +39,7 @@ FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout);
  *
  * @return     The furi status.
  */
-FuriStatus furi_semaphore_release(FuriSemaphore* instance);
+TtStatus tt_semaphore_release(Semaphore* instance);
 
 /** Get semaphore count
  *
@@ -47,7 +47,7 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance);
  *
  * @return     Semaphore count
  */
-uint32_t furi_semaphore_get_count(FuriSemaphore* instance);
+uint32_t tt_semaphore_get_count(Semaphore* instance);
 
 #ifdef __cplusplus
 }

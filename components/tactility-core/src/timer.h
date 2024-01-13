@@ -1,19 +1,19 @@
 #pragma once
 
-#include "furi_core_types.h"
+#include "core_types.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void (*FuriTimerCallback)(void* context);
+typedef void (*TimerCallback)(void* context);
 
 typedef enum {
-    FuriTimerTypeOnce = 0,    ///< One-shot timer.
-    FuriTimerTypePeriodic = 1 ///< Repeating timer.
-} FuriTimerType;
+    TimerTypeOnce = 0,    ///< One-shot timer.
+    TimerTypePeriodic = 1 ///< Repeating timer.
+} TimerType;
 
-typedef void FuriTimer;
+typedef void Timer;
 
 /** Allocate timer
  *
@@ -21,50 +21,50 @@ typedef void FuriTimer;
  * @param[in]  type     The timer type
  * @param      context  The callback context
  *
- * @return     The pointer to FuriTimer instance
+ * @return     The pointer to Timer instance
  */
-FuriTimer* furi_timer_alloc(FuriTimerCallback func, FuriTimerType type, void* context);
+Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context);
 
 /** Free timer
  *
- * @param      instance  The pointer to FuriTimer instance
+ * @param      instance  The pointer to Timer instance
  */
-void furi_timer_free(FuriTimer* instance);
+void tt_timer_free(Timer* instance);
 
 /** Start timer
  *
  * @warning    This is asynchronous call, real operation will happen as soon as
  *             timer service process this request.
  *
- * @param      instance  The pointer to FuriTimer instance
+ * @param      instance  The pointer to Timer instance
  * @param[in]  ticks     The interval in ticks
  *
  * @return     The furi status.
  */
-FuriStatus furi_timer_start(FuriTimer* instance, uint32_t ticks);
+TtStatus tt_timer_start(Timer* instance, uint32_t ticks);
 
 /** Restart timer with previous timeout value
  *
  * @warning    This is asynchronous call, real operation will happen as soon as
  *             timer service process this request.
  *
- * @param      instance  The pointer to FuriTimer instance
+ * @param      instance  The pointer to Timer instance
  * @param[in]  ticks     The interval in ticks
  *
  * @return     The furi status.
  */
-FuriStatus furi_timer_restart(FuriTimer* instance, uint32_t ticks);
+TtStatus tt_timer_restart(Timer* instance, uint32_t ticks);
 
 /** Stop timer
  *
  * @warning    This is asynchronous call, real operation will happen as soon as
  *             timer service process this request.
  *
- * @param      instance  The pointer to FuriTimer instance
+ * @param      instance  The pointer to Timer instance
  *
  * @return     The furi status.
  */
-FuriStatus furi_timer_stop(FuriTimer* instance);
+TtStatus tt_timer_stop(Timer* instance);
 
 /** Is timer running
  *
@@ -72,11 +72,11 @@ FuriStatus furi_timer_stop(FuriTimer* instance);
  *             commands are still in the queue. Please read FreeRTOS timer
  *             documentation first.
  *
- * @param      instance  The pointer to FuriTimer instance
+ * @param      instance  The pointer to Timer instance
  *
  * @return     0: not running, 1: running
  */
-uint32_t furi_timer_is_running(FuriTimer* instance);
+uint32_t tt_timer_is_running(Timer* instance);
 
 /** Get timer expire time
  *
@@ -84,22 +84,22 @@ uint32_t furi_timer_is_running(FuriTimer* instance);
  *
  * @return     expire tick
  */
-uint32_t furi_timer_get_expire_time(FuriTimer* instance);
+uint32_t tt_timer_get_expire_time(Timer* instance);
 
-typedef void (*FuriTimerPendigCallback)(void* context, uint32_t arg);
+typedef void (*TimerPendigCallback)(void* context, uint32_t arg);
 
-void furi_timer_pending_callback(FuriTimerPendigCallback callback, void* context, uint32_t arg);
+void tt_timer_pending_callback(TimerPendigCallback callback, void* context, uint32_t arg);
 
 typedef enum {
-    FuriTimerThreadPriorityNormal,   /**< Lower then other threads */
-    FuriTimerThreadPriorityElevated, /**< Same as other threads */
-} FuriTimerThreadPriority;
+    TimerThreadPriorityNormal,   /**< Lower then other threads */
+    TimerThreadPriorityElevated, /**< Same as other threads */
+} TimerThreadPriority;
 
 /** Set Timer thread priority
  *
  * @param[in]  priority  The priority
  */
-void furi_timer_set_thread_priority(FuriTimerThreadPriority priority);
+void tt_timer_set_thread_priority(TimerThreadPriority priority);
 
 #ifdef __cplusplus
 }

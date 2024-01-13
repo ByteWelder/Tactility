@@ -1,16 +1,16 @@
 #include "critical.h"
-#include "furi_core_defines.h"
+#include "core_defines.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 static portMUX_TYPE critical_mutex;
 
-__FuriCriticalInfo __furi_critical_enter(void) {
-    __FuriCriticalInfo info;
+__TtCriticalInfo __tt_critical_enter(void) {
+    __TtCriticalInfo info;
 
     info.isrm = 0;
-    info.from_isr = FURI_IS_ISR();
+    info.from_isr = TT_IS_ISR();
     info.kernel_running = (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
 
     if (info.from_isr) {
@@ -24,7 +24,7 @@ __FuriCriticalInfo __furi_critical_enter(void) {
     return info;
 }
 
-void __furi_critical_exit(__FuriCriticalInfo info) {
+void __tt_critical_exit(__TtCriticalInfo info) {
     if (info.from_isr) {
         taskEXIT_CRITICAL_FROM_ISR(info.isrm);
     } else if (info.kernel_running) {

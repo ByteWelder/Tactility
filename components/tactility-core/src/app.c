@@ -2,16 +2,16 @@
 
 #include <stdio.h>
 
-static AppFlags app_get_flags_default(AppType type);
+static AppFlags tt_app_get_flags_default(AppType type);
 
 // region Alloc/free
 
-App app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
+App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
     AppData* data = malloc(sizeof(AppData));
     *data = (AppData) {
-        .mutex = furi_mutex_alloc(FuriMutexTypeRecursive),
+        .mutex = tt_mutex_alloc(MutexTypeRecursive),
         .state = APP_STATE_INITIAL,
-        .flags = app_get_flags_default(manifest->type),
+        .flags = tt_app_get_flags_default(manifest->type),
         .manifest = manifest,
         .parameters = parameters,
         .data = NULL
@@ -19,12 +19,12 @@ App app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
     return (App*)data;
 }
 
-void app_free(App app) {
+void tt_app_free(App app) {
     AppData* data = (AppData*)app;
     if (data->parameters) {
-        bundle_free(data->parameters);
+        tt_bundle_free(data->parameters);
     }
-    furi_mutex_free(data->mutex);
+    tt_mutex_free(data->mutex);
     free(data);
 }
 
@@ -33,14 +33,14 @@ void app_free(App app) {
 // region Internal
 
 static void app_lock(AppData* data) {
-    furi_mutex_acquire(data->mutex, FuriMutexTypeRecursive);
+    tt_mutex_acquire(data->mutex, MutexTypeRecursive);
 }
 
 static void app_unlock(AppData* data) {
-    furi_mutex_release(data->mutex);
+    tt_mutex_release(data->mutex);
 }
 
-static AppFlags app_get_flags_default(AppType type) {
+static AppFlags tt_app_get_flags_default(AppType type) {
     static const AppFlags DEFAULT_DESKTOP_FLAGS = {
         .show_toolbar = false,
         .show_statusbar = true
@@ -60,14 +60,14 @@ static AppFlags app_get_flags_default(AppType type) {
 
 // region Public getters & setters
 
-void app_set_state(App app, AppState state) {
+void tt_app_set_state(App app, AppState state) {
     AppData* data = (AppData*)app;
     app_lock(data);
     data->state = state;
     app_unlock(data);
 }
 
-AppState app_get_state(App app) {
+AppState tt_app_get_state(App app) {
     AppData* data = (AppData*)app;
     app_lock(data);
     AppState state = data->state;
@@ -75,13 +75,13 @@ AppState app_get_state(App app) {
     return state;
 }
 
-const AppManifest* app_get_manifest(App app) {
+const AppManifest* tt_app_get_manifest(App app) {
     AppData* data = (AppData*)app;
     // No need to lock const data;
     return data->manifest;
 }
 
-AppFlags app_get_flags(App app) {
+AppFlags tt_app_get_flags(App app) {
     AppData* data = (AppData*)app;
     app_lock(data);
     AppFlags flags = data->flags;
@@ -89,14 +89,14 @@ AppFlags app_get_flags(App app) {
     return flags;
 }
 
-void app_set_flags(App app, AppFlags flags) {
+void tt_app_set_flags(App app, AppFlags flags) {
     AppData* data = (AppData*)app;
     app_lock(data);
     data->flags = flags;
     app_unlock(data);
 }
 
-void* app_get_data(App app) {
+void* tt_app_get_data(App app) {
     AppData* data = (AppData*)app;
     app_lock(data);
     void* value = data->data;
@@ -104,7 +104,7 @@ void* app_get_data(App app) {
     return value;
 }
 
-void app_set_data(App app, void* value) {
+void tt_app_set_data(App app, void* value) {
     AppData* data = (AppData*)app;
     app_lock(data);
     data->data = value;
@@ -117,7 +117,7 @@ void app_set_data(App app, void* value) {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-Bundle* _Nullable app_get_parameters(App app) {
+Bundle* _Nullable tt_app_get_parameters(App app) {
     AppData* data = (AppData*)app;
     app_lock(data);
     Bundle* bundle = data->parameters;

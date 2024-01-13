@@ -1,6 +1,6 @@
 /**
  * @file pubsub.h
- * FuriPubSub
+ * PubSub
  */
 #pragma once
 
@@ -8,60 +8,60 @@
 extern "C" {
 #endif
 
-/** FuriPubSub Callback type */
-typedef void (*FuriPubSubCallback)(const void* message, void* context);
+/** PubSub Callback type */
+typedef void (*PubSubCallback)(const void* message, void* context);
 
-/** FuriPubSub type */
-typedef struct FuriPubSub FuriPubSub;
+/** PubSub type */
+typedef struct PubSub PubSub;
 
-/** FuriPubSubSubscription type */
-typedef struct FuriPubSubSubscription FuriPubSubSubscription;
+/** PubSubSubscription type */
+typedef struct PubSubSubscription PubSubSubscription;
 
-/** Allocate FuriPubSub
+/** Allocate PubSub
  *
  * Reentrable, Not threadsafe, one owner
  *
- * @return     pointer to FuriPubSub instance
+ * @return     pointer to PubSub instance
  */
-FuriPubSub* furi_pubsub_alloc();
+PubSub* tt_pubsub_alloc();
 
-/** Free FuriPubSub
+/** Free PubSub
  * 
- * @param      pubsub  FuriPubSub instance
+ * @param      pubsub  PubSub instance
  */
-void furi_pubsub_free(FuriPubSub* pubsub);
+void tt_pubsub_free(PubSub* pubsub);
 
-/** Subscribe to FuriPubSub
+/** Subscribe to PubSub
  * 
  * Threadsafe, Reentrable
  * 
- * @param      pubsub            pointer to FuriPubSub instance
+ * @param      pubsub            pointer to PubSub instance
  * @param[in]  callback          The callback
  * @param      callback_context  The callback context
  *
- * @return     pointer to FuriPubSubSubscription instance
+ * @return     pointer to PubSubSubscription instance
  */
-FuriPubSubSubscription*
-furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context);
+PubSubSubscription*
+tt_pubsub_subscribe(PubSub* pubsub, PubSubCallback callback, void* callback_context);
 
-/** Unsubscribe from FuriPubSub
+/** Unsubscribe from PubSub
  * 
  * No use of `pubsub_subscription` allowed after call of this method
  * Threadsafe, Reentrable.
  *
- * @param      pubsub               pointer to FuriPubSub instance
- * @param      pubsub_subscription  pointer to FuriPubSubSubscription instance
+ * @param      pubsub               pointer to PubSub instance
+ * @param      pubsub_subscription  pointer to PubSubSubscription instance
  */
-void furi_pubsub_unsubscribe(FuriPubSub* pubsub, FuriPubSubSubscription* pubsub_subscription);
+void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscription);
 
-/** Publish message to FuriPubSub
+/** Publish message to PubSub
  *
  * Threadsafe, Reentrable.
  * 
- * @param      pubsub   pointer to FuriPubSub instance
+ * @param      pubsub   pointer to PubSub instance
  * @param      message  message pointer to publish
  */
-void furi_pubsub_publish(FuriPubSub* pubsub, void* message);
+void tt_pubsub_publish(PubSub* pubsub, void* message);
 
 #ifdef __cplusplus
 }

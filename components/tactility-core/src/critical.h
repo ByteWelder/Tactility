@@ -3,20 +3,20 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#ifndef FURI_CRITICAL_ENTER
-#define FURI_CRITICAL_ENTER() __FuriCriticalInfo __furi_critical_info = __furi_critical_enter();
+#ifndef TT_CRITICAL_ENTER
+#define TT_CRITICAL_ENTER() __TtCriticalInfo __tt_critical_info = __tt_critical_enter();
 #endif
 
-#ifndef FURI_CRITICAL_EXIT
-#define FURI_CRITICAL_EXIT() __furi_critical_exit(__furi_critical_info);
+#ifndef TT_CRITICAL_EXIT
+#define TT_CRITICAL_EXIT() __tt_critical_exit(__tt_critical_info);
 #endif
 
 typedef struct {
     uint32_t isrm;
     bool from_isr;
     bool kernel_running;
-} __FuriCriticalInfo;
+} __TtCriticalInfo;
 
-__FuriCriticalInfo __furi_critical_enter(void);
+__TtCriticalInfo __tt_critical_enter(void);
 
-void __furi_critical_exit(__FuriCriticalInfo info);
+void __tt_critical_exit(__TtCriticalInfo info);

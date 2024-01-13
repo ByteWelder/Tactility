@@ -1,9 +1,9 @@
 #include "app_manifest_registry.h"
 
-#include "furi_core.h"
 #include "m-dict.h"
 #include "m_cstr_dup.h"
 #include "mutex.h"
+#include "tactility_core.h"
 
 #define TAG "app_registry"
 
@@ -21,47 +21,47 @@ DICT_DEF2(AppManifestDict, const char*, M_CSTR_DUP_OPLIST, const AppManifest*, M
     }
 
 AppManifestDict_t app_manifest_dict;
-FuriMutex* mutex = NULL;
+Mutex* mutex = NULL;
 
-void app_manifest_registry_init() {
-    furi_assert(mutex == NULL);
-    mutex = furi_mutex_alloc(FuriMutexTypeNormal);
+void tt_app_manifest_registry_init() {
+    tt_assert(mutex == NULL);
+    mutex = tt_mutex_alloc(MutexTypeNormal);
     AppManifestDict_init(app_manifest_dict);
 }
 
 void app_registry_lock() {
-    furi_assert(mutex != NULL);
-    furi_mutex_acquire(mutex, FuriWaitForever);
+    tt_assert(mutex != NULL);
+    tt_mutex_acquire(mutex, TtWaitForever);
 }
 
 void app_registry_unlock() {
-    furi_assert(mutex != NULL);
-    furi_mutex_release(mutex);
+    tt_assert(mutex != NULL);
+    tt_mutex_release(mutex);
 }
 
-void app_manifest_registry_add(const AppManifest _Nonnull* manifest) {
-    FURI_LOG_I(TAG, "adding %s", manifest->id);
+void tt_app_manifest_registry_add(const AppManifest _Nonnull* manifest) {
+    TT_LOG_I(TAG, "adding %s", manifest->id);
 
     app_registry_lock();
     AppManifestDict_set_at(app_manifest_dict, manifest->id, manifest);
     app_registry_unlock();
 }
 
-void app_manifest_registry_remove(const AppManifest _Nonnull* manifest) {
-    FURI_LOG_I(TAG, "removing %s", manifest->id);
+void tt_app_manifest_registry_remove(const AppManifest _Nonnull* manifest) {
+    TT_LOG_I(TAG, "removing %s", manifest->id);
     app_registry_lock();
     AppManifestDict_erase(app_manifest_dict, manifest->id);
     app_registry_unlock();
 }
 
-const AppManifest _Nullable* app_manifest_registry_find_by_id(const char* id) {
+const AppManifest _Nullable* tt_app_manifest_registry_find_by_id(const char* id) {
     app_registry_lock();
     const AppManifest _Nullable** manifest = AppManifestDict_get(app_manifest_dict, id);
     app_registry_unlock();
     return (manifest != NULL) ? *manifest : NULL;
 }
 
-void app_manifest_registry_for_each_of_type(AppType type, void* _Nullable context, AppManifestCallback callback) {
+void tt_app_manifest_registry_for_each_of_type(AppType type, void* _Nullable context, AppManifestCallback callback) {
     APP_REGISTRY_FOR_EACH(manifest, {
         if (manifest->type == type) {
             callback(manifest, context);
@@ -69,7 +69,7 @@ void app_manifest_registry_for_each_of_type(AppType type, void* _Nullable contex
     });
 }
 
-void app_manifest_registry_for_each(AppManifestCallback callback, void* _Nullable context) {
+void tt_app_manifest_registry_for_each(AppManifestCallback callback, void* _Nullable context) {
     APP_REGISTRY_FOR_EACH(manifest, {
         callback(manifest, context);
     });

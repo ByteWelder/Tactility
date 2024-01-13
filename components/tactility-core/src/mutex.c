@@ -1,45 +1,45 @@
 #include "mutex.h"
 #include "check.h"
-#include "furi_core_defines.h"
+#include "core_defines.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "log.h"
 
-FuriMutex* furi_mutex_alloc(FuriMutexType type) {
-    furi_assert(!FURI_IS_IRQ_MODE());
+Mutex* tt_mutex_alloc(MutexType type) {
+    tt_assert(!TT_IS_IRQ_MODE());
 
     SemaphoreHandle_t hMutex = NULL;
 
-    if (type == FuriMutexTypeNormal) {
+    if (type == MutexTypeNormal) {
         hMutex = xSemaphoreCreateMutex();
-    } else if (type == FuriMutexTypeRecursive) {
+    } else if (type == MutexTypeRecursive) {
         hMutex = xSemaphoreCreateRecursiveMutex();
     } else {
-        furi_crash("Programming error");
+        tt_crash("Programming error");
     }
 
-    furi_check(hMutex != NULL);
+    tt_check(hMutex != NULL);
 
-    if (type == FuriMutexTypeRecursive) {
+    if (type == MutexTypeRecursive) {
         /* Set LSB as 'recursive mutex flag' */
         hMutex = (SemaphoreHandle_t)((uint32_t)hMutex | 1U);
     }
 
     /* Return mutex ID */
-    return ((FuriMutex*)hMutex);
+    return ((Mutex*)hMutex);
 }
 
-void furi_mutex_free(FuriMutex* instance) {
-    furi_assert(!FURI_IS_IRQ_MODE());
-    furi_assert(instance);
+void tt_mutex_free(Mutex* instance) {
+    tt_assert(!TT_IS_IRQ_MODE());
+    tt_assert(instance);
 
     vSemaphoreDelete((SemaphoreHandle_t)((uint32_t)instance & ~1U));
 }
 
-FuriStatus furi_mutex_acquire(FuriMutex* instance, uint32_t timeout) {
+TtStatus tt_mutex_acquire(Mutex* instance, uint32_t timeout) {
     SemaphoreHandle_t hMutex;
-    FuriStatus stat;
+    TtStatus stat;
     uint32_t rmtx;
 
     hMutex = (SemaphoreHandle_t)((uint32_t)instance & ~1U);
@@ -47,27 +47,27 @@ FuriStatus furi_mutex_acquire(FuriMutex* instance, uint32_t timeout) {
     /* Extract recursive mutex flag */
     rmtx = (uint32_t)instance & 1U;
 
-    stat = FuriStatusOk;
+    stat = TtStatusOk;
 
-    if (FURI_IS_IRQ_MODE()) {
-        stat = FuriStatusErrorISR;
+    if (TT_IS_IRQ_MODE()) {
+        stat = TtStatusErrorISR;
     } else if (hMutex == NULL) {
-        stat = FuriStatusErrorParameter;
+        stat = TtStatusErrorParameter;
     } else {
         if (rmtx != 0U) {
             if (xSemaphoreTakeRecursive(hMutex, timeout) != pdPASS) {
                 if (timeout != 0U) {
-                    stat = FuriStatusErrorTimeout;
+                    stat = TtStatusErrorTimeout;
                 } else {
-                    stat = FuriStatusErrorResource;
+                    stat = TtStatusErrorResource;
                 }
             }
         } else {
             if (xSemaphoreTake(hMutex, timeout) != pdPASS) {
                 if (timeout != 0U) {
-                    stat = FuriStatusErrorTimeout;
+                    stat = TtStatusErrorTimeout;
                 } else {
-                    stat = FuriStatusErrorResource;
+                    stat = TtStatusErrorResource;
                 }
             }
         }
@@ -77,9 +77,9 @@ FuriStatus furi_mutex_acquire(FuriMutex* instance, uint32_t timeout) {
     return (stat);
 }
 
-FuriStatus furi_mutex_release(FuriMutex* instance) {
+TtStatus tt_mutex_release(Mutex* instance) {
     SemaphoreHandle_t hMutex;
-    FuriStatus stat;
+    TtStatus stat;
     uint32_t rmtx;
 
     hMutex = (SemaphoreHandle_t)((uint32_t)instance & ~1U);
@@ -87,20 +87,20 @@ FuriStatus furi_mutex_release(FuriMutex* instance) {
     /* Extract recursive mutex flag */
     rmtx = (uint32_t)instance & 1U;
 
-    stat = FuriStatusOk;
+    stat = TtStatusOk;
 
-    if (FURI_IS_IRQ_MODE()) {
-        stat = FuriStatusErrorISR;
+    if (TT_IS_IRQ_MODE()) {
+        stat = TtStatusErrorISR;
     } else if (hMutex == NULL) {
-        stat = FuriStatusErrorParameter;
+        stat = TtStatusErrorParameter;
     } else {
         if (rmtx != 0U) {
             if (xSemaphoreGiveRecursive(hMutex) != pdPASS) {
-                stat = FuriStatusErrorResource;
+                stat = TtStatusErrorResource;
             }
         } else {
             if (xSemaphoreGive(hMutex) != pdPASS) {
-                stat = FuriStatusErrorResource;
+                stat = TtStatusErrorResource;
             }
         }
     }
@@ -109,16 +109,16 @@ FuriStatus furi_mutex_release(FuriMutex* instance) {
     return (stat);
 }
 
-FuriThreadId furi_mutex_get_owner(FuriMutex* instance) {
+ThreadId tt_mutex_get_owner(Mutex* instance) {
     SemaphoreHandle_t hMutex;
-    FuriThreadId owner;
+    ThreadId owner;
 
     hMutex = (SemaphoreHandle_t)((uint32_t)instance & ~1U);
 
-    if ((FURI_IS_IRQ_MODE()) || (hMutex == NULL)) {
+    if ((TT_IS_IRQ_MODE()) || (hMutex == NULL)) {
         owner = 0;
     } else {
-        owner = (FuriThreadId)xSemaphoreGetMutexHolder(hMutex);
+        owner = (ThreadId)xSemaphoreGetMutexHolder(hMutex);
     }
 
     /* Return owner thread ID */

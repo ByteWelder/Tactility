@@ -4,8 +4,6 @@
 extern "C" {
 #endif
 
-#define FURI_RETURNS_NONNULL __attribute__((returns_nonnull))
-
 #ifndef MAX
 #define MAX(a, b)               \
     ({                          \
@@ -45,8 +43,8 @@ extern "C" {
 #define COUNT_OF(x) (sizeof(x) / sizeof(x[0]))
 #endif
 
-#ifndef FURI_SWAP
-#define FURI_SWAP(x, y)     \
+#ifndef TT_SWAP
+#define TT_SWAP(x, y)     \
     do {                    \
         typeof(x) SWAP = x; \
         x = y;              \
@@ -89,27 +87,27 @@ extern "C" {
      (((x) & 0xFF000000) >> 24))
 #endif
 
-#ifndef FURI_BIT
-#define FURI_BIT(x, n) (((x) >> (n)) & 1)
+#ifndef TT_BIT
+#define TT_BIT(x, n) (((x) >> (n)) & 1)
 #endif
 
-#ifndef FURI_BIT_SET
-#define FURI_BIT_SET(x, n)      \
+#ifndef TT_BIT_SET
+#define TT_BIT_SET(x, n)      \
     ({                          \
         __typeof__(x) _x = (1); \
         (x) |= (_x << (n));     \
     })
 #endif
 
-#ifndef FURI_BIT_CLEAR
-#define FURI_BIT_CLEAR(x, n)    \
+#ifndef TT_BIT_CLEAR
+#define TT_BIT_CLEAR(x, n)    \
     ({                          \
         __typeof__(x) _x = (1); \
         (x) &= ~(_x << (n));    \
     })
 #endif
 
-#define FURI_SW_MEMBARRIER() asm volatile("" : : : "memory")
+#define TT_SW_MEMBARRIER() asm volatile("" : : : "memory")
 
 #ifdef __cplusplus
 }

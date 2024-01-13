@@ -3,7 +3,6 @@
 #include "app.h"
 
 #include "app_manifest.h"
-#include "context.h"
 #include "mutex.h"
 #include <stdbool.h>
 
@@ -12,7 +11,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    FuriMutex* mutex;
+    Mutex* mutex;
     const AppManifest* manifest;
     AppState state;
     AppFlags flags;

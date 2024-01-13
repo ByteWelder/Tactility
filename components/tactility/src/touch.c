@@ -7,6 +7,6 @@ TouchDevice _Nonnull* tt_touch_alloc(TouchDriver _Nonnull* driver) {
         &(touch->io_handle),
         &(touch->touch_handle)
     );
-    furi_check(success, "touch driver failed");
+    tt_check(success, "touch driver failed");
     return touch;
 }

@@ -12,7 +12,7 @@ static void on_app_pressed(lv_event_t* e) {
 }
 
 static void create_app_widget(const AppManifest* manifest, void* _Nullable parent) {
-    furi_check(parent);
+    tt_check(parent);
     lv_obj_t* list = (lv_obj_t*)parent;
     lv_obj_t* btn = lv_list_add_btn(list, LV_SYMBOL_FILE, manifest->name);
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
@@ -26,9 +26,9 @@ static void desktop_show(App app, lv_obj_t* parent) {
     lv_obj_center(list);
 
     lv_list_add_text(list, "System");
-    app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
+    tt_app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
     lv_list_add_text(list, "User");
-    app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
+    tt_app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
 }
 
 const AppManifest desktop_app = {

@@ -2,9 +2,8 @@
 
 #include <stdlib.h>
 
-#include "furi_core.h"
+#include "tactility_core.h"
 
-#include "furi_string.h"
 #include "event_flag.h"
 #include "kernel.h"
 #include "message_queue.h"
@@ -15,12 +14,13 @@
 #include "string.h"
 #include "thread.h"
 #include "timer.h"
+#include "tt_string.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void furi_init();
+void tt_core_init();
 
 #ifdef __cplusplus
 }

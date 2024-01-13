@@ -1,10 +1,10 @@
 /**
  * @file mutex.h
- * FuriMutex
+ * Mutex
  */
 #pragma once
 
-#include "furi_core_types.h"
+#include "core_types.h"
 #include "thread.h"
 
 #ifdef __cplusplus
@@ -12,50 +12,50 @@ extern "C" {
 #endif
 
 typedef enum {
-    FuriMutexTypeNormal,
-    FuriMutexTypeRecursive,
-} FuriMutexType;
+    MutexTypeNormal,
+    MutexTypeRecursive,
+} MutexType;
 
-typedef void FuriMutex;
+typedef void Mutex;
 
-/** Allocate FuriMutex
+/** Allocate Mutex
  *
  * @param[in]  type  The mutex type
  *
- * @return     pointer to FuriMutex instance
+ * @return     pointer to Mutex instance
  */
-FuriMutex* furi_mutex_alloc(FuriMutexType type);
+Mutex* tt_mutex_alloc(MutexType type);
 
-/** Free FuriMutex
+/** Free Mutex
  *
- * @param      instance  The pointer to FuriMutex instance
+ * @param      instance  The pointer to Mutex instance
  */
-void furi_mutex_free(FuriMutex* instance);
+void tt_mutex_free(Mutex* instance);
 
 /** Acquire mutex
  *
- * @param      instance  The pointer to FuriMutex instance
+ * @param      instance  The pointer to Mutex instance
  * @param[in]  timeout   The timeout
  *
  * @return     The furi status.
  */
-FuriStatus furi_mutex_acquire(FuriMutex* instance, uint32_t timeout);
+TtStatus tt_mutex_acquire(Mutex* instance, uint32_t timeout);
 
 /** Release mutex
  *
- * @param      instance  The pointer to FuriMutex instance
+ * @param      instance  The pointer to Mutex instance
  *
  * @return     The furi status.
  */
-FuriStatus furi_mutex_release(FuriMutex* instance);
+TtStatus tt_mutex_release(Mutex* instance);
 
 /** Get mutex owner thread id
  *
- * @param      instance  The pointer to FuriMutex instance
+ * @param      instance  The pointer to Mutex instance
  *
  * @return     The furi thread identifier.
  */
-FuriThreadId furi_mutex_get_owner(FuriMutex* instance);
+ThreadId tt_mutex_get_owner(Mutex* instance);
 
 #ifdef __cplusplus
 }

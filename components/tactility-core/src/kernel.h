@@ -1,6 +1,6 @@
 #pragma once
 
-#include "furi_core_types.h"
+#include "core_types.h"
 
 #define configTICK_RATE_HZ_RAW CONFIG_FREERTOS_HZ
 
@@ -23,13 +23,13 @@ extern "C" {
  * 
  * @return     true if CPU is in IRQ or kernel running and IRQ is masked
  */
-bool furi_kernel_is_irq();
+bool tt_kernel_is_irq();
 
 /** Check if kernel is running
  *
  * @return     true if running, false otherwise
  */
-bool furi_kernel_is_running();
+bool tt_kernel_is_running();
 
 /** Lock kernel, pause process scheduling
  *
@@ -37,7 +37,7 @@ bool furi_kernel_is_running();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t furi_kernel_lock();
+int32_t tt_kernel_lock();
 
 /** Unlock kernel, resume process scheduling
  *
@@ -45,7 +45,7 @@ int32_t furi_kernel_lock();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t furi_kernel_unlock();
+int32_t tt_kernel_unlock();
 
 /** Restore kernel lock state
  *
@@ -55,13 +55,13 @@ int32_t furi_kernel_unlock();
  *
  * @return     new lock state or error
  */
-int32_t furi_kernel_restore_lock(int32_t lock);
+int32_t tt_kernel_restore_lock(int32_t lock);
 
 /** Get kernel systick frequency
  *
  * @return     systick counts per second
  */
-uint32_t furi_kernel_get_tick_frequency();
+uint32_t tt_kernel_get_tick_frequency();
 
 /** Delay execution
  *
@@ -71,7 +71,7 @@ uint32_t furi_kernel_get_tick_frequency();
  *
  * @param[in]  ticks  The ticks count to pause
  */
-void furi_delay_tick(uint32_t ticks);
+void tt_delay_tick(uint32_t ticks);
 
 /** Delay until tick
  *
@@ -81,7 +81,7 @@ void furi_delay_tick(uint32_t ticks);
  *
  * @return     The furi status.
  */
-FuriStatus furi_delay_until_tick(uint32_t tick);
+TtStatus tt_delay_until_tick(uint32_t tick);
 
 /** Get current tick counter
  *
@@ -89,27 +89,27 @@ FuriStatus furi_delay_until_tick(uint32_t tick);
  *
  * @return     Current ticks in milliseconds
  */
-uint32_t furi_get_tick(void);
+uint32_t tt_get_tick(void);
 
 /** Convert milliseconds to ticks
  *
  * @param[in]   milliseconds    time in milliseconds
  * @return      time in ticks
  */
-uint32_t furi_ms_to_ticks(uint32_t milliseconds);
+uint32_t tt_ms_to_ticks(uint32_t milliseconds);
 
 /** Delay in milliseconds
  * 
  * This method uses kernel ticks on the inside, which causes delay to be aliased to scheduler timer intervals.
  * Real wait time will be between X+ milliseconds.
  * Special value: 0, will cause task yield.
- * Also if used when kernel is not running will fall back to `furi_delay_us`.
+ * Also if used when kernel is not running will fall back to `tt_delay_us`.
  * 
  * @warning    Cannot be used from ISR
  *
  * @param[in]  milliseconds  milliseconds to wait
  */
-void furi_delay_ms(uint32_t milliseconds);
+void tt_delay_ms(uint32_t milliseconds);
 
 /** Delay in microseconds
  *
@@ -117,7 +117,7 @@ void furi_delay_ms(uint32_t milliseconds);
  *
  * @param[in]  microseconds  microseconds to wait
  */
-void furi_delay_us(uint32_t microseconds);
+void tt_delay_us(uint32_t microseconds);
 
 #ifdef __cplusplus
 }

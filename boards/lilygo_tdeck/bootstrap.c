@@ -22,5 +22,5 @@ void lilygo_tdeck_bootstrap() {
     tdeck_power_on();
     // Give keyboard's ESP time to boot
     // It uses I2C and seems to interfere with the touch driver
-    furi_delay_ms(500);
+    tt_delay_ms(500);
 }

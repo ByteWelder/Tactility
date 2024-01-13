@@ -4,91 +4,90 @@
 
 #include <m-list.h>
 
-struct FuriPubSubSubscription {
-    FuriPubSubCallback callback;
+struct PubSubSubscription {
+    PubSubCallback callback;
     void* callback_context;
 };
 
-LIST_DEF(FuriPubSubSubscriptionList, FuriPubSubSubscription, M_POD_OPLIST);
+LIST_DEF(PubSubSubscriptionList, PubSubSubscription, M_POD_OPLIST);
 
-struct FuriPubSub {
-    FuriPubSubSubscriptionList_t items;
-    FuriMutex* mutex;
+struct PubSub {
+    PubSubSubscriptionList_t items;
+    Mutex* mutex;
 };
 
-FuriPubSub* furi_pubsub_alloc() {
-    FuriPubSub* pubsub = malloc(sizeof(FuriPubSub));
+PubSub* tt_pubsub_alloc() {
+    PubSub* pubsub = malloc(sizeof(PubSub));
 
-    pubsub->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
-    furi_assert(pubsub->mutex);
+    pubsub->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    tt_assert(pubsub->mutex);
 
-    FuriPubSubSubscriptionList_init(pubsub->items);
+    PubSubSubscriptionList_init(pubsub->items);
 
     return pubsub;
 }
 
-void furi_pubsub_free(FuriPubSub* pubsub) {
-    furi_assert(pubsub);
+void tt_pubsub_free(PubSub* pubsub) {
+    tt_assert(pubsub);
 
-    furi_check(FuriPubSubSubscriptionList_size(pubsub->items) == 0);
+    tt_check(PubSubSubscriptionList_size(pubsub->items) == 0);
 
-    FuriPubSubSubscriptionList_clear(pubsub->items);
+    PubSubSubscriptionList_clear(pubsub->items);
 
-    furi_mutex_free(pubsub->mutex);
+    tt_mutex_free(pubsub->mutex);
 
     free(pubsub);
 }
 
-FuriPubSubSubscription*
-furi_pubsub_subscribe(FuriPubSub* pubsub, FuriPubSubCallback callback, void* callback_context) {
-    furi_check(furi_mutex_acquire(pubsub->mutex, FuriWaitForever) == FuriStatusOk);
+PubSubSubscription* tt_pubsub_subscribe(PubSub* pubsub, PubSubCallback callback, void* callback_context) {
+    tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
     // put uninitialized item to the list
-    FuriPubSubSubscription* item = FuriPubSubSubscriptionList_push_raw(pubsub->items);
+    PubSubSubscription* item = PubSubSubscriptionList_push_raw(pubsub->items);
 
     // initialize item
     item->callback = callback;
     item->callback_context = callback_context;
 
-    furi_check(furi_mutex_release(pubsub->mutex) == FuriStatusOk);
+    tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);
 
     return item;
 }
 
-void furi_pubsub_unsubscribe(FuriPubSub* pubsub, FuriPubSubSubscription* pubsub_subscription) {
-    furi_assert(pubsub);
-    furi_assert(pubsub_subscription);
+void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscription) {
+    tt_assert(pubsub);
+    tt_assert(pubsub_subscription);
 
-    furi_check(furi_mutex_acquire(pubsub->mutex, FuriWaitForever) == FuriStatusOk);
+    tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
     bool result = false;
 
     // iterate over items
-    FuriPubSubSubscriptionList_it_t it;
-    for (FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
-         FuriPubSubSubscriptionList_next(it)) {
-        const FuriPubSubSubscription* item = FuriPubSubSubscriptionList_cref(it);
+    PubSubSubscriptionList_it_t it;
+    for (PubSubSubscriptionList_it(it, pubsub->items); !PubSubSubscriptionList_end_p(it);
+         PubSubSubscriptionList_next(it)) {
+        const PubSubSubscription* item = PubSubSubscriptionList_cref(it);
 
         // if the iterator is equal to our element
         if (item == pubsub_subscription) {
-            FuriPubSubSubscriptionList_remove(pubsub->items, it);
+            PubSubSubscriptionList_remove(pubsub->items, it);
             result = true;
             break;
         }
     }
 
-    furi_check(furi_mutex_release(pubsub->mutex) == FuriStatusOk);
-    furi_check(result);
+    tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);
+    tt_check(result);
 }
 
-void furi_pubsub_publish(FuriPubSub* pubsub, void* message) {
-    furi_check(furi_mutex_acquire(pubsub->mutex, FuriWaitForever) == FuriStatusOk);
+void tt_pubsub_publish(PubSub* pubsub, void* message) {
+    tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
 
     // iterate over subscribers
-    FuriPubSubSubscriptionList_it_t it;
-    for (FuriPubSubSubscriptionList_it(it, pubsub->items); !FuriPubSubSubscriptionList_end_p(it);
-         FuriPubSubSubscriptionList_next(it)) {
-        const FuriPubSubSubscription* item = FuriPubSubSubscriptionList_cref(it);
+    PubSubSubscriptionList_it_t it;
+    for (PubSubSubscriptionList_it(it, pubsub->items); !PubSubSubscriptionList_end_p(it);
+         PubSubSubscriptionList_next(it)) {
+        const PubSubSubscription* item = PubSubSubscriptionList_cref(it);
         item->callback(message, item->callback_context);
     }
 
-    furi_check(furi_mutex_release(pubsub->mutex) == FuriStatusOk);
+    tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);
 }

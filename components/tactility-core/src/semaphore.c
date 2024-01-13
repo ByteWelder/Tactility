@@ -1,13 +1,13 @@
 #include "semaphore.h"
 #include "check.h"
-#include "furi_core_defines.h"
+#include "core_defines.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
-FuriSemaphore* furi_semaphore_alloc(uint32_t max_count, uint32_t initial_count) {
-    furi_assert(!FURI_IS_IRQ_MODE());
-    furi_assert((max_count > 0U) && (initial_count <= max_count));
+Semaphore* tt_semaphore_alloc(uint32_t max_count, uint32_t initial_count) {
+    tt_assert(!TT_IS_IRQ_MODE());
+    tt_assert((max_count > 0U) && (initial_count <= max_count));
 
     SemaphoreHandle_t hSemaphore = NULL;
     if (max_count == 1U) {
@@ -22,37 +22,37 @@ FuriSemaphore* furi_semaphore_alloc(uint32_t max_count, uint32_t initial_count) 
         hSemaphore = xSemaphoreCreateCounting(max_count, initial_count);
     }
 
-    furi_check(hSemaphore);
+    tt_check(hSemaphore);
 
-    return (FuriSemaphore*)hSemaphore;
+    return (Semaphore*)hSemaphore;
 }
 
-void furi_semaphore_free(FuriSemaphore* instance) {
-    furi_assert(instance);
-    furi_assert(!FURI_IS_IRQ_MODE());
+void tt_semaphore_free(Semaphore* instance) {
+    tt_assert(instance);
+    tt_assert(!TT_IS_IRQ_MODE());
 
     SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
 
     vSemaphoreDelete(hSemaphore);
 }
 
-FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout) {
-    furi_assert(instance);
+TtStatus tt_semaphore_acquire(Semaphore* instance, uint32_t timeout) {
+    tt_assert(instance);
 
     SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
-    FuriStatus status;
+    TtStatus status;
     BaseType_t yield;
 
-    status = FuriStatusOk;
+    status = TtStatusOk;
 
-    if (FURI_IS_IRQ_MODE()) {
+    if (TT_IS_IRQ_MODE()) {
         if (timeout != 0U) {
-            status = FuriStatusErrorParameter;
+            status = TtStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
             if (xSemaphoreTakeFromISR(hSemaphore, &yield) != pdPASS) {
-                status = FuriStatusErrorResource;
+                status = TtStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
@@ -60,9 +60,9 @@ FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout) {
     } else {
         if (xSemaphoreTake(hSemaphore, (TickType_t)timeout) != pdPASS) {
             if (timeout != 0U) {
-                status = FuriStatusErrorTimeout;
+                status = TtStatusErrorTimeout;
             } else {
-                status = FuriStatusErrorResource;
+                status = TtStatusErrorResource;
             }
         }
     }
@@ -70,26 +70,26 @@ FuriStatus furi_semaphore_acquire(FuriSemaphore* instance, uint32_t timeout) {
     return status;
 }
 
-FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
-    furi_assert(instance);
+TtStatus tt_semaphore_release(Semaphore* instance) {
+    tt_assert(instance);
 
     SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
-    FuriStatus stat;
+    TtStatus stat;
     BaseType_t yield;
 
-    stat = FuriStatusOk;
+    stat = TtStatusOk;
 
-    if (FURI_IS_IRQ_MODE()) {
+    if (TT_IS_IRQ_MODE()) {
         yield = pdFALSE;
 
         if (xSemaphoreGiveFromISR(hSemaphore, &yield) != pdTRUE) {
-            stat = FuriStatusErrorResource;
+            stat = TtStatusErrorResource;
         } else {
             portYIELD_FROM_ISR(yield);
         }
     } else {
         if (xSemaphoreGive(hSemaphore) != pdPASS) {
-            stat = FuriStatusErrorResource;
+            stat = TtStatusErrorResource;
         }
     }
 
@@ -97,13 +97,13 @@ FuriStatus furi_semaphore_release(FuriSemaphore* instance) {
     return (stat);
 }
 
-uint32_t furi_semaphore_get_count(FuriSemaphore* instance) {
-    furi_assert(instance);
+uint32_t tt_semaphore_get_count(Semaphore* instance) {
+    tt_assert(instance);
 
     SemaphoreHandle_t hSemaphore = (SemaphoreHandle_t)instance;
     uint32_t count;
 
-    if (FURI_IS_IRQ_MODE()) {
+    if (TT_IS_IRQ_MODE()) {
         // TODO: uxSemaphoreGetCountFromISR is not supported on esp-idf 5.1.2 - perhaps later on?
 #ifdef uxSemaphoreGetCountFromISR
         count = (uint32_t)uxSemaphoreGetCountFromISR(hSemaphore);

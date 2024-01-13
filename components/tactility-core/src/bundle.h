@@ -13,21 +13,21 @@ extern "C" {
 
 typedef void* Bundle;
 
-Bundle bundle_alloc();
-Bundle bundle_alloc_copy(Bundle source);
-void bundle_free(Bundle bundle);
+Bundle tt_bundle_alloc();
+Bundle tt_bundle_alloc_copy(Bundle source);
+void tt_bundle_free(Bundle bundle);
 
-bool bundle_get_bool(Bundle bundle, const char* key);
-int bundle_get_int(Bundle bundle, const char* key);
-const char* bundle_get_string(Bundle bundle, const char* key);
+bool tt_bundle_get_bool(Bundle bundle, const char* key);
+int tt_bundle_get_int(Bundle bundle, const char* key);
+const char* tt_bundle_get_string(Bundle bundle, const char* key);
 
-bool bundle_opt_bool(Bundle bundle, const char* key, bool* out);
-bool bundle_opt_int(Bundle bundle, const char* key, int* out);
-bool bundle_opt_string(Bundle bundle, const char* key, char** out);
+bool tt_bundle_opt_bool(Bundle bundle, const char* key, bool* out);
+bool tt_bundle_opt_int(Bundle bundle, const char* key, int* out);
+bool tt_bundle_opt_string(Bundle bundle, const char* key, char** out);
 
-void bundle_put_bool(Bundle bundle, const char* key, bool value);
-void bundle_put_int(Bundle bundle, const char* key, int value);
-void bundle_put_string(Bundle bundle, const char* key, const char* value);
+void tt_bundle_put_bool(Bundle bundle, const char* key, bool value);
+void tt_bundle_put_int(Bundle bundle, const char* key, int value);
+void tt_bundle_put_string(Bundle bundle, const char* key, const char* value);
 
 #ifdef __cplusplus
 }

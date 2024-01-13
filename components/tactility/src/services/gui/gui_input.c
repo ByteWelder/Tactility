@@ -2,18 +2,18 @@
 
 /*
 void gui_input_events_callback(const void* value, void* ctx) {
-    furi_assert(value);
-    furi_assert(ctx);
+    tt_assert(value);
+    tt_assert(ctx);
 
     Gui* gui = ctx;
 
-    furi_message_queue_put(gui->input_queue, value, FuriWaitForever);
-    furi_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_INPUT);
+    tt_message_queue_put(gui->input_queue, value, FuriWaitForever);
+    tt_thread_flags_set(gui->thread_id, GUI_THREAD_FLAG_INPUT);
 }
 
 static void gui_input(Gui* gui, InputEvent* input_event) {
-    furi_assert(gui);
-    furi_assert(input_event);
+    tt_assert(gui);
+    tt_assert(input_event);
 
     // Check input complementarity
     uint8_t key_bit = (1 << input_event->key);
@@ -22,7 +22,7 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
     } else if(input_event->type == InputTypePress) {
         gui->ongoing_input |= key_bit;
     } else if(!(gui->ongoing_input & key_bit)) {
-        FURI_LOG_D(
+        TT_LOG_D(
             TAG,
             "non-complementary input, discarding key: %s type: %s, sequence: %p",
             input_get_key_name(input_event->key),
@@ -55,7 +55,7 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
         if(view_port && view_port == gui->ongoing_input_view_port) {
             view_port_input(view_port, input_event);
         } else if(gui->ongoing_input_view_port && input_event->type == InputTypeRelease) {
-            FURI_LOG_D(
+            TT_LOG_D(
                 TAG,
                 "ViewPort changed while key press %p -> %p. Sending key: %s, type: %s, sequence: %p to previous view port",
                 gui->ongoing_input_view_port,
@@ -65,7 +65,7 @@ static void gui_input(Gui* gui, InputEvent* input_event) {
                 (void*)input_event->sequence);
             view_port_input(gui->ongoing_input_view_port, input_event);
         } else {
-            FURI_LOG_D(
+            TT_LOG_D(
                 TAG,
                 "ViewPort changed while key press %p -> %p. Discarding key: %s, type: %s, sequence: %p",
                 gui->ongoing_input_view_port,

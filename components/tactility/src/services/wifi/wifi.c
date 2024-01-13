@@ -17,11 +17,11 @@
 
 typedef struct {
     /** @brief Locking mechanism for modifying the Wifi instance */
-    FuriMutex* mutex;
+    Mutex* mutex;
     /** @brief The public event bus */
-    FuriPubSub* pubsub;
+    PubSub* pubsub;
     /** @brief The internal message queue */
-    FuriMessageQueue* queue;
+    MessageQueue* queue;
     /** @brief The network interface when wifi is started */
     esp_netif_t* _Nullable netif;
     /** @brief Scanning results */
@@ -69,12 +69,12 @@ static void wifi_unlock(Wifi* wifi);
 
 static Wifi* wifi_alloc() {
     Wifi* instance = malloc(sizeof(Wifi));
-    instance->mutex = furi_mutex_alloc(FuriMutexTypeRecursive);
-    instance->pubsub = furi_pubsub_alloc();
+    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    instance->pubsub = tt_pubsub_alloc();
     // TODO: Deal with messages that come in while an action is ongoing
     // for example: when scanning and you turn off the radio, the scan should probably stop or turning off
     // the radio should disable the on/off button in the app as it is pending.
-    instance->queue = furi_message_queue_alloc(1, sizeof(WifiMessage));
+    instance->queue = tt_message_queue_alloc(1, sizeof(WifiMessage));
     instance->netif = NULL;
     instance->scan_active = false;
     instance->scan_list = NULL;
@@ -88,9 +88,9 @@ static Wifi* wifi_alloc() {
 }
 
 static void wifi_free(Wifi* instance) {
-    furi_mutex_free(instance->mutex);
-    furi_pubsub_free(instance->pubsub);
-    furi_message_queue_free(instance->queue);
+    tt_mutex_free(instance->mutex);
+    tt_pubsub_free(instance->pubsub);
+    tt_message_queue_free(instance->queue);
     free(instance);
 }
 
@@ -98,8 +98,8 @@ static void wifi_free(Wifi* instance) {
 
 // region Public functions
 
-FuriPubSub* wifi_get_pubsub() {
-    furi_assert(wifi_singleton);
+PubSub* wifi_get_pubsub() {
+    tt_assert(wifi_singleton);
     return wifi_singleton->pubsub;
 }
 
@@ -108,21 +108,21 @@ WifiRadioState wifi_get_radio_state() {
 }
 
 void wifi_scan() {
-    furi_assert(wifi_singleton);
+    tt_assert(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeScan};
     // No need to lock for queue
-    furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
 bool wifi_is_scanning() {
-    furi_assert(wifi_singleton);
+    tt_assert(wifi_singleton);
     return wifi_singleton->scan_active;
 }
 
 void wifi_connect(const char* ssid, const char* _Nullable password) {
-    furi_assert(wifi_singleton);
-    furi_check(strlen(ssid) <= 32);
-    furi_check(password == NULL || strlen(password) <= 64);
+    tt_assert(wifi_singleton);
+    tt_check(strlen(ssid) <= 32);
+    tt_check(password == NULL || strlen(password) <= 64);
     WifiMessage message = {.type = WifiMessageTypeConnect};
     memcpy(message.connect_message.ssid, ssid, 32);
     if (password != NULL) {
@@ -130,17 +130,17 @@ void wifi_connect(const char* ssid, const char* _Nullable password) {
     } else {
         message.connect_message.password[0] = 0;
     }
-    furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
 void wifi_disconnect() {
-    furi_assert(wifi_singleton);
+    tt_assert(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
-    furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
 }
 
 void wifi_set_scan_records(uint16_t records) {
-    furi_assert(wifi_singleton);
+    tt_assert(wifi_singleton);
     if (records != wifi_singleton->scan_list_limit) {
         wifi_scan_list_free_safely(wifi_singleton);
         wifi_singleton->scan_list_limit = records;
@@ -148,14 +148,14 @@ void wifi_set_scan_records(uint16_t records) {
 }
 
 void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
-    furi_check(wifi_singleton);
-    furi_check(result_count);
+    tt_check(wifi_singleton);
+    tt_check(result_count);
 
     if (wifi_singleton->scan_list_count == 0) {
         *result_count = 0;
     } else {
         uint16_t i = 0;
-        FURI_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
+        TT_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
         uint16_t last_index = MIN(wifi_singleton->scan_list_count, limit);
         for (; i < last_index; ++i) {
             memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
@@ -172,31 +172,31 @@ void wifi_set_enabled(bool enabled) {
     if (enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOn};
         // No need to lock for queue
-        furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+        tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     } else {
         WifiMessage message = {.type = WifiMessageTypeRadioOff};
         // No need to lock for queue
-        furi_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+        tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     }
 }
 
 // endregion Public functions
 
 static void wifi_lock(Wifi* wifi) {
-    furi_crash("this fails for now");
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
+    tt_crash("this fails for now");
+    tt_assert(wifi);
+    tt_assert(wifi->mutex);
+    tt_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
 }
 
 static void wifi_unlock(Wifi* wifi) {
-    furi_assert(wifi);
-    furi_assert(wifi->mutex);
-    furi_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
+    tt_assert(wifi);
+    tt_assert(wifi->mutex);
+    tt_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
 }
 
 static void wifi_scan_list_alloc(Wifi* wifi) {
-    furi_check(wifi->scan_list == NULL);
+    tt_check(wifi->scan_list == NULL);
     wifi->scan_list = malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit);
     wifi->scan_list_count = 0;
 }
@@ -208,7 +208,7 @@ static void wifi_scan_list_alloc_safely(Wifi* wifi) {
 }
 
 static void wifi_scan_list_free(Wifi* wifi) {
-    furi_check(wifi->scan_list != NULL);
+    tt_check(wifi->scan_list != NULL);
     free(wifi->scan_list);
     wifi->scan_list = NULL;
     wifi->scan_list_count = 0;
@@ -222,7 +222,7 @@ static void wifi_scan_list_free_safely(Wifi* wifi) {
 
 static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
-    furi_pubsub_publish(wifi->pubsub, &turning_on_event);
+    tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
@@ -247,11 +247,11 @@ static void wifi_enable(Wifi* wifi) {
         state == WIFI_RADIO_ON_PENDING ||
         state == WIFI_RADIO_OFF_PENDING
     ) {
-        FURI_LOG_W(TAG, "Can't enable from current state");
+        TT_LOG_W(TAG, "Can't enable from current state");
         return;
     }
 
-    FURI_LOG_I(TAG, "Enabling");
+    TT_LOG_I(TAG, "Enabling");
     wifi->radio_state = WIFI_RADIO_ON_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOnPending);
 
@@ -265,9 +265,9 @@ static void wifi_enable(Wifi* wifi) {
     wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
     esp_err_t init_result = esp_wifi_init(&config);
     if (init_result != ESP_OK) {
-        FURI_LOG_E(TAG, "Wifi init failed");
+        TT_LOG_E(TAG, "Wifi init failed");
         if (init_result == ESP_ERR_NO_MEM) {
-            FURI_LOG_E(TAG, "Insufficient memory");
+            TT_LOG_E(TAG, "Insufficient memory");
         }
         wifi->radio_state = WIFI_RADIO_OFF;
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
@@ -295,7 +295,7 @@ static void wifi_enable(Wifi* wifi) {
     ));
 
     if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        FURI_LOG_E(TAG, "Wifi mode setting failed");
+        TT_LOG_E(TAG, "Wifi mode setting failed");
         wifi->radio_state = WIFI_RADIO_OFF;
         esp_wifi_deinit();
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
@@ -304,9 +304,9 @@ static void wifi_enable(Wifi* wifi) {
 
     esp_err_t start_result = esp_wifi_start();
     if (start_result != ESP_OK) {
-        FURI_LOG_E(TAG, "Wifi start failed");
+        TT_LOG_E(TAG, "Wifi start failed");
         if (start_result == ESP_ERR_NO_MEM) {
-            FURI_LOG_E(TAG, "Insufficient memory");
+            TT_LOG_E(TAG, "Insufficient memory");
         }
         wifi->radio_state = WIFI_RADIO_OFF;
         esp_wifi_set_mode(WIFI_MODE_NULL);
@@ -317,7 +317,7 @@ static void wifi_enable(Wifi* wifi) {
 
     wifi->radio_state = WIFI_RADIO_ON;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
-    FURI_LOG_I(TAG, "Enabled");
+    TT_LOG_I(TAG, "Enabled");
 }
 
 static void wifi_disable(Wifi* wifi) {
@@ -327,11 +327,11 @@ static void wifi_disable(Wifi* wifi) {
         state == WIFI_RADIO_OFF_PENDING ||
         state == WIFI_RADIO_ON_PENDING
     ) {
-        FURI_LOG_W(TAG, "Can't disable from current state");
+        TT_LOG_W(TAG, "Can't disable from current state");
         return;
     }
 
-    FURI_LOG_I(TAG, "Disabling");
+    TT_LOG_I(TAG, "Disabling");
     wifi->radio_state = WIFI_RADIO_OFF_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
@@ -339,14 +339,14 @@ static void wifi_disable(Wifi* wifi) {
     wifi_scan_list_free_safely(wifi_singleton);
 
     if (esp_wifi_stop() != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to stop radio");
+        TT_LOG_E(TAG, "Failed to stop radio");
         wifi->radio_state = WIFI_RADIO_ON;
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
         return;
     }
 
     if (esp_wifi_set_mode(WIFI_MODE_NULL) != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to unset mode");
+        TT_LOG_E(TAG, "Failed to unset mode");
     }
 
     if (esp_event_handler_instance_unregister(
@@ -354,7 +354,7 @@ static void wifi_disable(Wifi* wifi) {
             ESP_EVENT_ANY_ID,
             wifi->event_handler_any_id
         ) != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to unregister id event handler");
+        TT_LOG_E(TAG, "Failed to unregister id event handler");
     }
 
     if (esp_event_handler_instance_unregister(
@@ -362,30 +362,30 @@ static void wifi_disable(Wifi* wifi) {
             IP_EVENT_STA_GOT_IP,
             wifi->event_handler_got_ip
         ) != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to unregister ip event handler");
+        TT_LOG_E(TAG, "Failed to unregister ip event handler");
     }
 
     if (esp_wifi_deinit() != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to deinit");
+        TT_LOG_E(TAG, "Failed to deinit");
     }
 
-    furi_check(wifi->netif != NULL);
+    tt_check(wifi->netif != NULL);
     esp_netif_destroy(wifi->netif);
     wifi->netif = NULL;
 
     wifi->radio_state = WIFI_RADIO_OFF;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
-    FURI_LOG_I(TAG, "Disabled");
+    TT_LOG_I(TAG, "Disabled");
 }
 
 static void wifi_scan_internal(Wifi* wifi) {
     WifiRadioState state = wifi->radio_state;
     if (state != WIFI_RADIO_ON && state != WIFI_RADIO_CONNECTION_ACTIVE) {
-        FURI_LOG_W(TAG, "Scan unavailable: wifi not enabled");
+        TT_LOG_W(TAG, "Scan unavailable: wifi not enabled");
         return;
     }
 
-    FURI_LOG_I(TAG, "Starting scan");
+    TT_LOG_I(TAG, "Starting scan");
     wifi->scan_active = true;
     wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
 
@@ -398,17 +398,17 @@ static void wifi_scan_internal(Wifi* wifi) {
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
     uint16_t safe_record_count = MIN(wifi->scan_list_limit, record_count);
     wifi->scan_list_count = safe_record_count;
-    FURI_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
+    TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
     for (uint16_t i = 0; i < safe_record_count; i++) {
         wifi_ap_record_t* record = &wifi->scan_list[i];
-        FURI_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+        TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
     }
 
     esp_wifi_scan_stop();
 
     wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
     wifi->scan_active = false;
-    FURI_LOG_I(TAG, "Finished scan");
+    TT_LOG_I(TAG, "Finished scan");
 }
 
 static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
@@ -437,7 +437,7 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (set_config_result != ESP_OK) {
         wifi->radio_state = WIFI_RADIO_ON;
-        FURI_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         return;
     }
@@ -445,7 +445,7 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     esp_err_t wifi_start_result = esp_wifi_start();
     if (wifi_start_result != ESP_OK) {
         wifi->radio_state = WIFI_RADIO_ON;
-        FURI_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         return;
     }
@@ -479,18 +479,18 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
 static void wifi_disconnect_internal(Wifi* wifi) {
     esp_err_t stop_result = esp_wifi_stop();
     if (stop_result != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
+        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
     } else {
         wifi->radio_state = WIFI_RADIO_ON;
         wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
-        FURI_LOG_I(TAG, "Disconnected");
+        TT_LOG_I(TAG, "Disconnected");
     }
 }
 
 static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
     esp_err_t stop_result = esp_wifi_stop();
     if (stop_result != ESP_OK) {
-        FURI_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
+        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
         return;
     }
 
@@ -508,7 +508,7 @@ static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
     if (set_config_result != ESP_OK) {
         // TODO: disable radio, because radio state is in limbo between off and on
         wifi->radio_state = WIFI_RADIO_OFF;
-        FURI_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
@@ -517,29 +517,29 @@ static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
     if (wifi_start_result != ESP_OK) {
         // TODO: disable radio, because radio state is in limbo between off and on
         wifi->radio_state = WIFI_RADIO_OFF;
-        FURI_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
         wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
 
     wifi->radio_state = WIFI_RADIO_ON;
     wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
-    FURI_LOG_I(TAG, "Disconnected");
+    TT_LOG_I(TAG, "Disconnected");
 }
 
 // ESP wifi APIs need to run from the main task, so we can't just spawn a thread
 _Noreturn int32_t wifi_main(void* p) {
     UNUSED(p);
 
-    FURI_LOG_I(TAG, "Started main loop");
-    furi_check(wifi_singleton != NULL);
+    TT_LOG_I(TAG, "Started main loop");
+    tt_check(wifi_singleton != NULL);
     Wifi* wifi = wifi_singleton;
-    FuriMessageQueue* queue = wifi->queue;
+    MessageQueue* queue = wifi->queue;
 
     WifiMessage message;
     while (true) {
-        if (furi_message_queue_get(queue, &message, 1000 / portTICK_PERIOD_MS) == FuriStatusOk) {
-            FURI_LOG_I(TAG, "Processing message of type %d", message.type);
+        if (tt_message_queue_get(queue, &message, 1000 / portTICK_PERIOD_MS) == TtStatusOk) {
+            TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
                     wifi_enable(wifi);
@@ -563,13 +563,13 @@ _Noreturn int32_t wifi_main(void* p) {
 
 static void wifi_service_start(Service service) {
     UNUSED(service);
-    furi_check(wifi_singleton == NULL);
+    tt_check(wifi_singleton == NULL);
     wifi_singleton = wifi_alloc();
 }
 
 static void wifi_service_stop(Service service) {
     UNUSED(service);
-    furi_check(wifi_singleton != NULL);
+    tt_check(wifi_singleton != NULL);
 
     WifiRadioState state = wifi_singleton->radio_state;
     if (state != WIFI_RADIO_OFF) {
@@ -581,7 +581,7 @@ static void wifi_service_stop(Service service) {
 
     // wifi_main() cannot be stopped yet as it runs in the main task.
     // We could theoretically exit it, but then we wouldn't be able to restart the service.
-    furi_crash("not fully implemented");
+    tt_crash("not fully implemented");
 }
 
 const ServiceManifest wifi_service = {

@@ -12,7 +12,7 @@
  * interrupt that will read from the buffer (the reader).
  */
 #pragma once
-#include "furi_core_types.h"
+#include "core_types.h"
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-typedef void FuriStreamBuffer;
+typedef void StreamBuffer;
 
 /**
  * @brief Allocate stream buffer instance.
@@ -34,14 +34,14 @@ typedef void FuriStreamBuffer;
  * before a task that is blocked on the stream buffer to wait for data is moved out of the blocked state.
  * @return The stream buffer instance.
  */
-FuriStreamBuffer* furi_stream_buffer_alloc(size_t size, size_t trigger_level);
+StreamBuffer* tt_stream_buffer_alloc(size_t size, size_t trigger_level);
 
 /**
  * @brief Free stream buffer instance
  * 
  * @param stream_buffer The stream buffer instance.
  */
-void furi_stream_buffer_free(FuriStreamBuffer* stream_buffer);
+void tt_stream_buffer_free(StreamBuffer* stream_buffer);
 
 /**
  * @brief Set trigger level for stream buffer.
@@ -54,7 +54,7 @@ void furi_stream_buffer_free(FuriStreamBuffer* stream_buffer);
  * @return true if trigger level can be be updated (new trigger level was less than or equal to the stream buffer's length). 
  * @return false if trigger level can't be be updated (new trigger level was greater than the stream buffer's length).
  */
-bool furi_stream_set_trigger_level(FuriStreamBuffer* stream_buffer, size_t trigger_level);
+bool furi_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level);
 
 /**
  * @brief Sends bytes to a stream buffer. The bytes are copied into the stream buffer.
@@ -70,8 +70,8 @@ bool furi_stream_set_trigger_level(FuriStreamBuffer* stream_buffer, size_t trigg
  * Ignored if called from ISR.
  * @return The number of bytes actually written to the stream buffer. 
  */
-size_t furi_stream_buffer_send(
-    FuriStreamBuffer* stream_buffer,
+size_t tt_stream_buffer_send(
+    StreamBuffer* stream_buffer,
     const void* data,
     size_t length,
     uint32_t timeout
@@ -92,8 +92,8 @@ size_t furi_stream_buffer_send(
  * Ignored if called from ISR.
  * @return The number of bytes read from the stream buffer, if any. 
  */
-size_t furi_stream_buffer_receive(
-    FuriStreamBuffer* stream_buffer,
+size_t tt_stream_buffer_receive(
+    StreamBuffer* stream_buffer,
     void* data,
     size_t length,
     uint32_t timeout
@@ -108,7 +108,7 @@ size_t furi_stream_buffer_receive(
  * @return The number of bytes that can be read from the stream buffer before
  * the stream buffer would be empty.
  */
-size_t furi_stream_buffer_bytes_available(FuriStreamBuffer* stream_buffer);
+size_t tt_stream_buffer_bytes_available(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see how much free space it contains, which is
@@ -119,7 +119,7 @@ size_t furi_stream_buffer_bytes_available(FuriStreamBuffer* stream_buffer);
  * @return The number of bytes that can be written to the stream buffer before
  * the stream buffer would be full. 
  */
-size_t furi_stream_buffer_spaces_available(FuriStreamBuffer* stream_buffer);
+size_t tt_stream_buffer_spaces_available(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see if it is full.
@@ -128,7 +128,7 @@ size_t furi_stream_buffer_spaces_available(FuriStreamBuffer* stream_buffer);
  * @return true if the stream buffer is full.
  * @return false if the stream buffer is not full.
  */
-bool furi_stream_buffer_is_full(FuriStreamBuffer* stream_buffer);
+bool tt_stream_buffer_is_full(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see if it is empty.
@@ -137,7 +137,7 @@ bool furi_stream_buffer_is_full(FuriStreamBuffer* stream_buffer);
  * @return true if the stream buffer is empty.
  * @return false if the stream buffer is not empty.
  */
-bool furi_stream_buffer_is_empty(FuriStreamBuffer* stream_buffer);
+bool tt_stream_buffer_is_empty(StreamBuffer* stream_buffer);
 
 /**
  * @brief Resets a stream buffer to its initial, empty, state. Any data that was 
@@ -145,11 +145,11 @@ bool furi_stream_buffer_is_empty(FuriStreamBuffer* stream_buffer);
  * are no tasks blocked waiting to either send to or receive from the stream buffer.
  * 
  * @param stream_buffer The stream buffer instance.
- * @return FuriStatusOk if the stream buffer is reset. 
- * @return FuriStatusError if there was a task blocked waiting to send to or read 
+ * @return TtStatusOk if the stream buffer is reset.
+ * @return TtStatusError if there was a task blocked waiting to send to or read
  * from the stream buffer then the stream buffer is not reset.
  */
-FuriStatus furi_stream_buffer_reset(FuriStreamBuffer* stream_buffer);
+TtStatus tt_stream_buffer_reset(StreamBuffer* stream_buffer);
 
 #ifdef __cplusplus
 }
