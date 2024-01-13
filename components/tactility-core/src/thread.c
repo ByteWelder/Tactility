@@ -4,8 +4,8 @@
 #include "core_defines.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "hal_console.h"
 #include "kernel.h"
+#include "log.h"
 #include "tt_string.h"
 #include <esp_log.h>
 
@@ -564,7 +564,7 @@ static size_t __tt_thread_stdout_write(Thread* thread, const char* data, size_t 
     if (thread->output.write_callback != NULL) {
         thread->output.write_callback(data, size);
     } else {
-        tt_hal_console_tx((const uint8_t*)data, size);
+        TT_LOG_I(thread->name, "%s", data);
     }
     return size;
 }
@@ -577,49 +577,6 @@ static int32_t __tt_thread_stdout_flush(Thread* thread) {
         tt_string_reset(buffer);
     }
     return 0;
-}
-
-void tt_thread_set_stdout_callback(ThreadStdoutWriteCallback callback) {
-    Thread* thread = tt_thread_get_current();
-    tt_assert(thread);
-    __tt_thread_stdout_flush(thread);
-    thread->output.write_callback = callback;
-}
-
-ThreadStdoutWriteCallback tt_thread_get_stdout_callback() {
-    Thread* thread = tt_thread_get_current();
-    tt_assert(thread);
-    return thread->output.write_callback;
-}
-
-size_t tt_thread_stdout_write(const char* data, size_t size) {
-    Thread* thread = tt_thread_get_current();
-    tt_assert(thread);
-    if (size == 0 || data == NULL) {
-        return __tt_thread_stdout_flush(thread);
-    } else {
-        if (data[size - 1] == '\n') {
-            // if the last character is a newline, we can flush buffer and write data as is, wo buffers
-            __tt_thread_stdout_flush(thread);
-            __tt_thread_stdout_write(thread, data, size);
-        } else {
-            // string_cat doesn't work here because we need to write the exact size data
-            for (size_t i = 0; i < size; i++) {
-                tt_string_push_back(thread->output.buffer, data[i]);
-                if (data[i] == '\n') {
-                    __tt_thread_stdout_flush(thread);
-                }
-            }
-        }
-    }
-
-    return size;
-}
-
-int32_t tt_thread_stdout_flush() {
-    Thread* thread = tt_thread_get_current();
-    tt_assert(thread);
-    return __tt_thread_stdout_flush(thread);
 }
 
 void tt_thread_suspend(ThreadId thread_id) {
