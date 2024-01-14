@@ -2,7 +2,7 @@
 
 #include <stdbool.h>
 
-typedef void (*OnConnectSsid)(const char* ssid, const char* password, void* context);
+typedef void (*OnConnectSsid)(const char* ssid, const char password[64], void* context);
 
 typedef struct {
     OnConnectSsid on_connect_ssid;

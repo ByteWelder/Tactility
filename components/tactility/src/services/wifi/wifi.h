@@ -86,7 +86,7 @@ void wifi_set_enabled(bool enabled);
  * @param ssid
  * @param password
  */
-void wifi_connect(const char* ssid, const char* _Nullable password);
+void wifi_connect(const char* ssid, const char _Nullable password[64]);
 
 /**
  * @brief Disconnect from the access point. Doesn't have any effect when not connected.

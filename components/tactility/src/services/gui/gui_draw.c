@@ -55,21 +55,24 @@ void gui_redraw(Gui* gui) {
 
     // Lock GUI and LVGL
     gui_lock();
-    tt_check(lvgl_port_lock(100));
 
-    lv_obj_clean(gui->lvgl_parent);
+    if (lvgl_port_lock(1000)) {
+        lv_obj_clean(gui->lvgl_parent);
 
-    if (gui->app_view_port != NULL) {
         ViewPort* view_port = gui->app_view_port;
-        tt_assert(view_port);
-        App app = gui->app_view_port->app;
-        lv_obj_t* container = create_app_views(gui->lvgl_parent, app);
-        view_port_show(view_port, container);
+        if (view_port!= NULL) {
+            App app = view_port->app;
+            lv_obj_t* container = create_app_views(gui->lvgl_parent, app);
+            view_port_show(view_port, container);
+        } else {
+            TT_LOG_W(TAG, "nothing to draw");
+        }
+
+        // Unlock GUI and LVGL
+        lvgl_port_unlock();
     } else {
-        TT_LOG_W(TAG, "nothing to draw");
+        TT_LOG_E(TAG, "failed to lock lvgl");
     }
 
-    // Unlock GUI and LVGL
-    lvgl_port_unlock();
     gui_unlock();
 }

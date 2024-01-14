@@ -3,6 +3,7 @@
 
 struct TtString {
     string_t string;
+    // TODO store optional hash for quick string comparison
 };
 
 #undef tt_string_alloc_set

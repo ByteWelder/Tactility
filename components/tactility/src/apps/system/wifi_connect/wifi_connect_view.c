@@ -1,11 +1,29 @@
 #include "wifi_connect_view.h"
 
+#include "log.h"
 #include "lvgl.h"
+#include "services/wifi/wifi_credentials.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 #include "wifi_connect.h"
 #include "wifi_connect_bundle.h"
 #include "wifi_connect_state.h"
+
+#define TAG "wifi_connect"
+
+static void show_keyboard(lv_event_t* event) {
+    WifiConnectView* view = (WifiConnectView*)event->user_data;
+    lv_obj_clear_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
+    lv_keyboard_set_textarea(view->keyboard, event->current_target);
+    // TODO: This doesn't work yet as most content is not scrollable
+    lv_obj_scroll_to_view(event->current_target, LV_ANIM_OFF);
+}
+
+static void hide_keyboard(lv_event_t* event) {
+    WifiConnectView* view = (WifiConnectView*)event->user_data;
+    lv_obj_add_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
+    lv_keyboard_set_textarea(view->keyboard, event->current_target);
+}
 
 static void on_connect(lv_event_t* event) {
     WifiConnect* wifi = (WifiConnect*)event->user_data;
@@ -13,12 +31,24 @@ static void on_connect(lv_event_t* event) {
     const char* ssid = lv_textarea_get_text(view->ssid_textarea);
     const char* password = lv_textarea_get_text(view->password_textarea);
 
+    if (strlen(password) > 63) {
+        // TODO: UI feedback
+        TT_LOG_E(TAG, "Password too long");
+        return;
+    }
+    char password_buffer[64];
+    strcpy(password_buffer, password);
+
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(
         ssid,
-        password,
+        password_buffer,
         bindings->on_connect_ssid_context
     );
+
+    if (lv_obj_get_state(view->remember_switch) == LV_STATE_CHECKED) {
+        tt_wifi_credentials_set(ssid, password_buffer);
+    }
 }
 
 // TODO: Standardize dialogs
@@ -47,6 +77,8 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_textarea_set_password_show_time(view->password_textarea, 0);
     lv_textarea_set_password_mode(view->password_textarea, true);
 
+    tt_lv_spacer_create(parent, 1, 2);
+
     lv_obj_t* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
     lv_obj_set_height(button_container, LV_SIZE_CONTENT);
@@ -54,14 +86,32 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_set_style_border_width(button_container, 0, 0);
     lv_obj_set_flex_flow(button_container, LV_FLEX_FLOW_ROW);
 
-    lv_obj_t* spacer_left = tt_lv_spacer_create(button_container, 1, 1);
-    lv_obj_set_flex_grow(spacer_left, 1);
+    view->remember_switch = lv_switch_create(button_container);
+    lv_obj_add_state(view->remember_switch, LV_STATE_CHECKED);
+
+    tt_lv_spacer_create(button_container, 2, 1);
+
+    lv_obj_t* remember_label = lv_label_create(button_container);
+    lv_label_set_text(remember_label, "Remember");
+
+    lv_obj_t* spacer_center = tt_lv_spacer_create(button_container, 1, 1);
+    lv_obj_set_flex_grow(spacer_center, 1);
 
     view->connect_button = lv_btn_create(button_container);
     lv_obj_t* connect_label = lv_label_create(view->connect_button);
     lv_label_set_text(connect_label, "Connect");
     lv_obj_center(connect_label);
     lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, wifi);
+
+    view->keyboard = lv_keyboard_create(lv_scr_act());
+    lv_obj_add_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
+
+    lv_obj_add_event_cb(view->ssid_textarea, show_keyboard, LV_EVENT_FOCUSED, view);
+    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, view);
+    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_READY, view);
+    lv_obj_add_event_cb(view->password_textarea, show_keyboard, LV_EVENT_FOCUSED, view);
+    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, view);
+    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_READY, view);
 
     // Init from app parameters
     Bundle* _Nullable bundle = tt_app_get_parameters(app);
@@ -76,6 +126,11 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
             lv_textarea_set_text(view->password_textarea, password);
         }
     }
+}
+
+void wifi_connect_view_destroy(WifiConnectView* view) {
+    lv_obj_del(view->keyboard);
+    view->keyboard = NULL;
 }
 
 void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state) {

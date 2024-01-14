@@ -83,14 +83,6 @@ void tt_delay_tick(uint32_t ticks);
  */
 TtStatus tt_delay_until_tick(uint32_t tick);
 
-/** Get current tick counter
- *
- * System uptime, may overflow.
- *
- * @return     Current ticks in milliseconds
- */
-uint32_t tt_get_tick(void);
-
 /** Convert milliseconds to ticks
  *
  * @param[in]   milliseconds    time in milliseconds

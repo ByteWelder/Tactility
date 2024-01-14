@@ -7,15 +7,25 @@
 #include "tactility_core.h"
 #include "wifi_manage_state_updating.h"
 #include "wifi_manage_view.h"
+#include "services/wifi/wifi_credentials.h"
+
+#define TAG "wifi_manage"
 
 // Forward declarations
 static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid) {
-    Bundle bundle = tt_bundle_alloc();
-    tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_SSID, ssid);
-    tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, ""); // TODO: Implement from cache
-    loader_start_app("wifi_connect", false, bundle);
+    char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
+    if (tt_wifi_credentials_get(ssid, password)) {
+        TT_LOG_I(TAG, "Connecting with known credentials");
+        wifi_connect(ssid, password);
+    } else {
+        TT_LOG_I(TAG, "Starting connection dialog");
+        Bundle bundle = tt_bundle_alloc();
+        tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_SSID, ssid);
+        tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, "");
+        loader_start_app("wifi_connect", false, bundle);
+    }
 }
 
 static void on_disconnect() {
@@ -69,9 +79,12 @@ void wifi_manage_unlock(WifiManage* wifi) {
 void wifi_manage_request_view_update(WifiManage* wifi) {
     wifi_manage_lock(wifi);
     if (wifi->view_enabled) {
-        lvgl_port_lock(100);
-        wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
-        lvgl_port_unlock();
+        if (lvgl_port_lock(1000)) {
+            wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+            lvgl_port_unlock();
+        } else {
+            TT_LOG_E(TAG, "failed to lock lvgl");
+        }
     }
     wifi_manage_unlock(wifi);
 }

@@ -70,7 +70,13 @@ void gui_hide_app() {
     gui_lock();
     ViewPort* view_port = gui->app_view_port;
     tt_check(view_port != NULL);
+
+    // We must lock the LVGL port, because the viewport hide callbacks
+    // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
+    tt_check(lvgl_port_lock(1000));
     view_port_hide(view_port);
+    lvgl_port_unlock();
+
     view_port_free(view_port);
     gui->app_view_port = NULL;
     gui_unlock();

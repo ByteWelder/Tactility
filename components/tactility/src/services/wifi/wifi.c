@@ -119,14 +119,13 @@ bool wifi_is_scanning() {
     return wifi_singleton->scan_active;
 }
 
-void wifi_connect(const char* ssid, const char* _Nullable password) {
+void wifi_connect(const char* ssid, const char _Nullable password[64]) {
     tt_assert(wifi_singleton);
     tt_check(strlen(ssid) <= 32);
-    tt_check(password == NULL || strlen(password) <= 64);
     WifiMessage message = {.type = WifiMessageTypeConnect};
     memcpy(message.connect_message.ssid, ssid, 32);
     if (password != NULL) {
-        memcpy(message.connect_message.password, password, 32);
+        memcpy(message.connect_message.password, password, 64);
     } else {
         message.connect_message.password[0] = 0;
     }
@@ -227,15 +226,17 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     UNUSED(arg);
-
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        esp_wifi_connect();
+        ESP_LOGI(TAG, "event_handler: sta start");
+        if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
+            esp_wifi_connect();
+        }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
-        ESP_LOGI(TAG, "disconnected");
+        ESP_LOGI(TAG, "event_handler: disconnected");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
-        ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        ESP_LOGI(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(wifi_singleton->event_group, WIFI_CONNECTED_BIT);
     }
 }
