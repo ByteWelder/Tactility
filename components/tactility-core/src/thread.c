@@ -5,8 +5,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "kernel.h"
-#include "log.h"
-#include "tt_string.h"
 #include <esp_log.h>
 
 #define TAG "Thread"
@@ -19,13 +17,6 @@
 
 #define THREAD_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_TASK_NOTIFY) - 1U))
 #define EVENT_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_EVENT_GROUPS) - 1U))
-
-typedef struct ThreadStdout ThreadStdout;
-
-struct ThreadStdout {
-    ThreadStdoutWriteCallback write_callback;
-    TtString* buffer;
-};
 
 struct Thread {
     ThreadState state;
@@ -43,20 +34,13 @@ struct Thread {
     ThreadPriority priority;
 
     TaskHandle_t task_handle;
-    size_t heap_size;
-
-    ThreadStdout output;
 
     // Keep all non-alignable byte types in one place,
     // this ensures that the size of this structure is minimal
     bool is_static;
-    bool heap_trace_enabled;
 
     configSTACK_DEPTH_TYPE stack_size;
 };
-
-static size_t __tt_thread_stdout_write(Thread* thread, const char* data, size_t size);
-static int32_t __tt_thread_stdout_flush(Thread* thread);
 
 /** Catch threads that are trying to exit wrong way */
 __attribute__((__noreturn__)) void tt_thread_catch() { //-V1082
@@ -98,9 +82,6 @@ static void tt_thread_body(void* context) {
         );
     }
 
-    // flush stdout
-    __tt_thread_stdout_flush(thread);
-
     tt_thread_set_state(thread, ThreadStateStopped);
 
     vTaskDelete(NULL);
@@ -111,7 +92,6 @@ Thread* tt_thread_alloc() {
     Thread* thread = malloc(sizeof(Thread));
     // TODO: create default struct instead of using memset()
     memset(thread, 0, sizeof(Thread));
-    thread->output.buffer = tt_string_alloc();
     thread->is_static = false;
 
     Thread* parent = NULL;
@@ -127,16 +107,6 @@ Thread* tt_thread_alloc() {
     } else {
         // if scheduler is not started, we are starting driver thread
         tt_thread_set_appid(thread, "driver");
-    }
-
-    /*HalRtcHeapTrackMode mode = tt_hal_rtc_get_heap_track_mode();
-    if(mode == HalRtcHeapTrackModeAll) {
-        thread->heap_trace_enabled = true;
-    } else if(mode == HalRtcHeapTrackModeTree && tt_thread_get_current_id()) {
-        if(parent) thread->heap_trace_enabled = parent->heap_trace_enabled;
-    } else */
-    {
-        thread->heap_trace_enabled = false;
     }
 
     return thread;
@@ -165,7 +135,6 @@ void tt_thread_free(Thread* thread) {
 
     if (thread->name) free(thread->name);
     if (thread->appid) free(thread->appid);
-    tt_string_free(thread->output.buffer);
 
     free(thread);
 }
@@ -307,24 +276,6 @@ bool tt_thread_join(Thread* thread) {
 ThreadId tt_thread_get_id(Thread* thread) {
     tt_assert(thread);
     return thread->task_handle;
-}
-
-void tt_thread_enable_heap_trace(Thread* thread) {
-    tt_assert(thread);
-    tt_assert(thread->state == ThreadStateStopped);
-    thread->heap_trace_enabled = true;
-}
-
-void tt_thread_disable_heap_trace(Thread* thread) {
-    tt_assert(thread);
-    tt_assert(thread->state == ThreadStateStopped);
-    thread->heap_trace_enabled = false;
-}
-
-size_t tt_thread_get_heap_size(Thread* thread) {
-    tt_assert(thread);
-    tt_assert(thread->heap_trace_enabled == true);
-    return thread->heap_size;
 }
 
 int32_t tt_thread_get_return_code(Thread* thread) {
@@ -558,25 +509,6 @@ uint32_t tt_thread_get_stack_space(ThreadId thread_id) {
     }
 
     return (sz);
-}
-
-static size_t __tt_thread_stdout_write(Thread* thread, const char* data, size_t size) {
-    if (thread->output.write_callback != NULL) {
-        thread->output.write_callback(data, size);
-    } else {
-        TT_LOG_I(thread->name, "%s", data);
-    }
-    return size;
-}
-
-static int32_t __tt_thread_stdout_flush(Thread* thread) {
-    TtString* buffer = thread->output.buffer;
-    size_t size = tt_string_size(buffer);
-    if (size > 0) {
-        __tt_thread_stdout_write(thread, tt_string_get_cstr(buffer), size);
-        tt_string_reset(buffer);
-    }
-    return 0;
 }
 
 void tt_thread_suspend(ThreadId thread_id) {
