@@ -14,7 +14,6 @@
 #include "string.h"
 #include "thread.h"
 #include "timer.h"
-#include "tt_string.h"
 
 #ifdef __cplusplus
 extern "C" {

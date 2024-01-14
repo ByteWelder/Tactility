@@ -5,7 +5,6 @@
 #include "pubsub.h"
 #include "service_manifest.h"
 #include "tactility_core.h"
-#include "tt_string.h"
 
 #ifdef __cplusplus
 extern "C" {
