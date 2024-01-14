@@ -25,6 +25,13 @@ extern "C" {
 #endif
 
 /**
+ * @brief Fills the IV with zeros and then copies up to 16 characters of the string into the IV.
+ * @param input input text
+ * @param iv output IV
+ */
+void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]);
+
+/**
  * @brief Encrypt data.
  *
  * Important: Use flash encryption to increase security.

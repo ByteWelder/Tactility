@@ -5,6 +5,7 @@
 #include "hash.h"
 #include "check.h"
 #include "mutex.h"
+#include "secure.h"
 
 #define TAG "wifi_credentials"
 #define TT_NVS_NAMESPACE "tt_wifi_cred" // limited by NVS_KEY_NAME_MAX_SIZE
@@ -155,8 +156,24 @@ bool tt_wifi_credentials_get(const char* ssid, char password[TT_WIFI_CREDENTIALS
         return false;
     }
 
+    char password_encrypted[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
     size_t length = TT_WIFI_CREDENTIALS_PASSWORD_LIMIT;
-    result = nvs_get_blob(handle, ssid, password, &length);
+    result = nvs_get_blob(handle, ssid, password_encrypted, &length);
+
+    uint8_t iv[16];
+    tt_secure_get_iv_from_string(ssid, iv);
+    int decrypt_result = tt_secure_decrypt(
+        iv,
+        (uint8_t*)password_encrypted,
+        (uint8_t*)password,
+        TT_WIFI_CREDENTIALS_PASSWORD_LIMIT
+    );
+
+    if (decrypt_result != 0) {
+        result = ESP_FAIL;
+        TT_LOG_E(TAG, "Failed to decrypt credentials for \"%s\": %d", ssid, decrypt_result);
+    }
+
     if (result != ESP_OK && result != ESP_ERR_NVS_NOT_FOUND) {
         TT_LOG_E(TAG, "Failed to get credentials for \"%s\": %s", ssid, esp_err_to_name(result));
     }
@@ -173,7 +190,22 @@ bool tt_wifi_credentials_set(const char* ssid, char password[TT_WIFI_CREDENTIALS
         return false;
     }
 
-    result = nvs_set_blob(handle, ssid, password, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
+    char password_encrypted[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
+    uint8_t iv[16];
+    tt_secure_get_iv_from_string(ssid, iv);
+    int encrypt_result = tt_secure_encrypt(
+        iv,
+        (uint8_t*)password,
+        (uint8_t*)password_encrypted,
+        TT_WIFI_CREDENTIALS_PASSWORD_LIMIT
+    );
+
+    if (encrypt_result != 0) {
+        result = ESP_FAIL;
+        TT_LOG_E(TAG, "Failed to encrypt credentials for \"%s\": %d", ssid, encrypt_result);
+    }
+
+    result = nvs_set_blob(handle, ssid, password_encrypted, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to get credentials for \"%s\": %s", ssid, esp_err_to_name(result));
     }

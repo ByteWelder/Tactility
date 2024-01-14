@@ -108,6 +108,20 @@ static void get_key(uint8_t key[32]) {
     xor_key(hardware_key, nvs_key, key, 32);
 }
 
+void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]) {
+    memset((void*)iv, 0, 16);
+    char c = *input++;
+    int index = 0;
+    printf("IV: ");
+    while (c) {
+        printf(" %0X:%02d", c, index);
+        iv[index] = c;
+        index++;
+        c = *input++;
+    }
+    printf("\n");
+}
+
 int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
     tt_check(length % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
