@@ -174,35 +174,37 @@ void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings,
     lv_obj_set_align(view->enable_switch, LV_ALIGN_RIGHT_MID);
 
     view->connected_ap_container = lv_obj_create(parent);
-    lv_obj_set_width(view->connected_ap_container, LV_PCT(100));
-    lv_obj_set_height(view->connected_ap_container, LV_SIZE_CONTENT);
+    lv_obj_set_size(view->connected_ap_container, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(view->connected_ap_container, SPINNER_HEIGHT, 0);
     tt_lv_obj_set_style_no_padding(view->connected_ap_container);
-    tt_lv_obj_set_style_bg_invisible(view->connected_ap_container);
+    lv_obj_set_style_border_width(view->connected_ap_container, 0, 0);
 
     view->connected_ap_label = lv_label_create(view->connected_ap_container);
-    lv_label_set_text(view->connected_ap_label, "");
-    lv_obj_set_align(view->connected_ap_label, LV_ALIGN_LEFT_MID);
+    lv_obj_align(view->connected_ap_label, LV_ALIGN_LEFT_MID, 0, 0);
 
     lv_obj_t* disconnect_button = lv_btn_create(view->connected_ap_container);
     lv_obj_add_event_cb(disconnect_button, &on_disconnect_pressed, LV_EVENT_CLICKED, bindings);
     lv_obj_t* disconnect_label = lv_label_create(disconnect_button);
     lv_label_set_text(disconnect_label, "Disconnect");
-    lv_obj_center(disconnect_label);
+    lv_obj_align(disconnect_button, LV_ALIGN_RIGHT_MID, 0, 0);
 
     // Networks
 
-    view->networks_label = lv_label_create(parent);
-    lv_label_set_text(view->networks_label, "Networks");
-    lv_obj_set_style_text_align(view->networks_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_pad_top(view->networks_label, 8, 0);
-    lv_obj_set_style_pad_bottom(view->networks_label, 8, 0);
-    lv_obj_set_style_pad_left(view->networks_label, 2, 0);
-    lv_obj_set_align(view->networks_label, LV_ALIGN_LEFT_MID);
+    lv_obj_t* networks_header = lv_obj_create(parent);
+    lv_obj_set_size(networks_header, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_min_height(networks_header, SPINNER_HEIGHT, 0);
+    tt_lv_obj_set_style_no_padding(networks_header);
+    lv_obj_set_style_border_width(networks_header, 0, 0);
 
-    view->scanning_spinner = lv_spinner_create(parent, 1000, 60);
+    view->networks_label = lv_label_create(networks_header);
+    lv_label_set_text(view->networks_label, "Networks");
+    lv_obj_align(view->networks_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+    view->scanning_spinner = lv_spinner_create(networks_header, 1000, 60);
     lv_obj_set_size(view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
     lv_obj_set_style_pad_top(view->scanning_spinner, 4, 0);
     lv_obj_set_style_pad_bottom(view->scanning_spinner, 4, 0);
+    lv_obj_align_to(view->scanning_spinner, view->networks_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
 
     view->networks_list = lv_obj_create(parent);
     lv_obj_set_flex_flow(view->networks_list, LV_FLEX_FLOW_COLUMN);

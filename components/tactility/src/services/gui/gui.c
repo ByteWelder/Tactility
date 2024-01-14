@@ -25,6 +25,7 @@ Gui* gui_alloc() {
         NULL
     );
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    instance->keyboard = NULL;
 
     tt_check(lvgl_port_lock(100));
     instance->lvgl_parent = lv_scr_act();
@@ -64,6 +65,35 @@ void gui_show_app(App app, ViewPortShowCallback on_show, ViewPortHideCallback on
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
     gui_unlock();
     gui_request_draw();
+}
+
+void gui_keyboard_show(lv_obj_t* textarea) {
+    if (gui->keyboard) {
+        gui_lock();
+
+        lv_obj_clear_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
+        lv_keyboard_set_textarea(gui->keyboard, textarea);
+
+        if (gui->toolbar) {
+            lv_obj_add_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        gui_unlock();
+    }
+}
+
+void gui_keyboard_hide() {
+    if (gui->keyboard) {
+        gui_lock();
+
+        lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
+
+        if (gui->toolbar) {
+            lv_obj_clear_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        gui_unlock();
+    }
 }
 
 void gui_hide_app() {

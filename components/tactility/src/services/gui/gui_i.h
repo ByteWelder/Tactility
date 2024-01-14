@@ -24,6 +24,9 @@ struct Gui {
 
     // App-specific
     ViewPort* app_view_port;
+
+    lv_obj_t* _Nullable toolbar;
+    lv_obj_t* _Nullable keyboard;
 };
 
 /** Update GUI, request redraw

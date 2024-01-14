@@ -2,6 +2,7 @@
 
 #include "log.h"
 #include "lvgl.h"
+#include "services/gui/gui.h"
 #include "services/wifi/wifi_credentials.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
@@ -12,17 +13,13 @@
 #define TAG "wifi_connect"
 
 static void show_keyboard(lv_event_t* event) {
-    WifiConnectView* view = (WifiConnectView*)event->user_data;
-    lv_obj_clear_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
-    lv_keyboard_set_textarea(view->keyboard, event->current_target);
-    // TODO: This doesn't work yet as most content is not scrollable
-    lv_obj_scroll_to_view(event->current_target, LV_ANIM_OFF);
+    gui_keyboard_show(event->current_target);
+    lv_obj_scroll_to_view(event->current_target, LV_ANIM_ON);
 }
 
 static void hide_keyboard(lv_event_t* event) {
-    WifiConnectView* view = (WifiConnectView*)event->user_data;
-    lv_obj_add_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
-    lv_keyboard_set_textarea(view->keyboard, event->current_target);
+    UNUSED(event);
+    gui_keyboard_hide();
 }
 
 static void on_connect(lv_event_t* event) {
@@ -51,6 +48,31 @@ static void on_connect(lv_event_t* event) {
     }
 }
 
+void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
+    WifiConnectView* view = &wifi->view;
+
+    lv_obj_t* button_container = lv_obj_create(parent);
+    lv_obj_set_width(button_container, LV_PCT(100));
+    lv_obj_set_height(button_container, LV_SIZE_CONTENT);
+    tt_lv_obj_set_style_no_padding(button_container);
+    lv_obj_set_style_border_width(button_container, 0, 0);
+
+    view->remember_switch = lv_switch_create(button_container);
+    lv_obj_add_state(view->remember_switch, LV_STATE_CHECKED);
+    lv_obj_align(view->remember_switch, LV_ALIGN_LEFT_MID, 0, 0);
+
+    lv_obj_t* remember_label = lv_label_create(button_container);
+    lv_label_set_text(remember_label, "Remember");
+    lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align_to(remember_label, view->remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
+
+    view->connect_button = lv_btn_create(button_container);
+    lv_obj_t* connect_label = lv_label_create(view->connect_button);
+    lv_label_set_text(connect_label, "Connect");
+    lv_obj_align(view->connect_button, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, wifi);
+}
+
 // TODO: Standardize dialogs
 void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     WifiConnect* wifi_connect = (WifiConnect*)wifi;
@@ -70,48 +92,24 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     view->ssid_textarea = lv_textarea_create(parent);
     lv_textarea_set_one_line(view->ssid_textarea, true);
 
+    tt_lv_spacer_create(parent, 1, 8);
+
     lv_obj_t* password_label = lv_label_create(parent);
     lv_label_set_text(password_label, "Password:");
     view->password_textarea = lv_textarea_create(parent);
     lv_textarea_set_one_line(view->password_textarea, true);
-    lv_textarea_set_password_show_time(view->password_textarea, 0);
     lv_textarea_set_password_mode(view->password_textarea, true);
 
-    tt_lv_spacer_create(parent, 1, 2);
+    tt_lv_spacer_create(parent, 1, 8);
 
-    lv_obj_t* button_container = lv_obj_create(parent);
-    lv_obj_set_width(button_container, LV_PCT(100));
-    lv_obj_set_height(button_container, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(button_container);
-    lv_obj_set_style_border_width(button_container, 0, 0);
-    lv_obj_set_flex_flow(button_container, LV_FLEX_FLOW_ROW);
+    wifi_connect_view_create_bottom_buttons(wifi, parent);
 
-    view->remember_switch = lv_switch_create(button_container);
-    lv_obj_add_state(view->remember_switch, LV_STATE_CHECKED);
-
-    tt_lv_spacer_create(button_container, 2, 1);
-
-    lv_obj_t* remember_label = lv_label_create(button_container);
-    lv_label_set_text(remember_label, "Remember");
-
-    lv_obj_t* spacer_center = tt_lv_spacer_create(button_container, 1, 1);
-    lv_obj_set_flex_grow(spacer_center, 1);
-
-    view->connect_button = lv_btn_create(button_container);
-    lv_obj_t* connect_label = lv_label_create(view->connect_button);
-    lv_label_set_text(connect_label, "Connect");
-    lv_obj_center(connect_label);
-    lv_obj_add_event_cb(view->connect_button, &on_connect, LV_EVENT_CLICKED, wifi);
-
-    view->keyboard = lv_keyboard_create(lv_scr_act());
-    lv_obj_add_flag(view->keyboard, LV_OBJ_FLAG_HIDDEN);
-
-    lv_obj_add_event_cb(view->ssid_textarea, show_keyboard, LV_EVENT_FOCUSED, view);
-    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, view);
-    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_READY, view);
-    lv_obj_add_event_cb(view->password_textarea, show_keyboard, LV_EVENT_FOCUSED, view);
-    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, view);
-    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_READY, view);
+    lv_obj_add_event_cb(view->ssid_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
+    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
+    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_READY, NULL);
+    lv_obj_add_event_cb(view->password_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
+    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
+    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_READY, NULL);
 
     // Init from app parameters
     Bundle* _Nullable bundle = tt_app_get_parameters(app);
@@ -129,8 +127,6 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
 }
 
 void wifi_connect_view_destroy(WifiConnectView* view) {
-    lv_obj_del(view->keyboard);
-    view->keyboard = NULL;
 }
 
 void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state) {

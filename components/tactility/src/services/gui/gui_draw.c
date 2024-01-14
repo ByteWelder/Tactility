@@ -10,7 +10,7 @@
 
 #define TAG "gui"
 
-static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
+static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, App app) {
     tt_lv_obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
@@ -25,6 +25,7 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
         tt_lv_statusbar_create(vertical_container);
     }
 
+    gui->toolbar = NULL;
     if (flags.show_toolbar) {
         const AppManifest* manifest = tt_app_get_manifest(app);
         if (manifest != NULL) {
@@ -40,12 +41,16 @@ static lv_obj_t* create_app_views(lv_obj_t* parent, App app) {
             // Black area between toolbar and content below
             lv_obj_t* spacer = tt_lv_spacer_create(vertical_container, 1, 2);
             tt_lv_obj_set_style_bg_blacken(spacer);
+            gui->toolbar = toolbar_widget;
         }
     }
 
     lv_obj_t* child_container = lv_obj_create(vertical_container);
     lv_obj_set_width(child_container, LV_PCT(100));
     lv_obj_set_flex_grow(child_container, 1);
+
+    gui->keyboard = lv_keyboard_create(vertical_container);
+    lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
 
     return child_container;
 }
@@ -60,9 +65,9 @@ void gui_redraw(Gui* gui) {
         lv_obj_clean(gui->lvgl_parent);
 
         ViewPort* view_port = gui->app_view_port;
-        if (view_port!= NULL) {
+        if (view_port != NULL) {
             App app = view_port->app;
-            lv_obj_t* container = create_app_views(gui->lvgl_parent, app);
+            lv_obj_t* container = create_app_views(gui, gui->lvgl_parent, app);
             view_port_show(view_port, container);
         } else {
             TT_LOG_W(TAG, "nothing to draw");

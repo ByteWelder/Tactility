@@ -15,7 +15,6 @@ typedef struct {
     lv_obj_t* connect_button;
     lv_obj_t* cancel_button;
     lv_obj_t* remember_switch;
-    lv_obj_t* keyboard;
 } WifiConnectView;
 
 void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent);
