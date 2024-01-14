@@ -21,22 +21,22 @@ DICT_DEF2(AppManifestDict, const char*, M_CSTR_DUP_OPLIST, const AppManifest*, M
     }
 
 AppManifestDict_t app_manifest_dict;
-Mutex* mutex = NULL;
+Mutex* hash_mutex = NULL;
 
 void tt_app_manifest_registry_init() {
-    tt_assert(mutex == NULL);
-    mutex = tt_mutex_alloc(MutexTypeNormal);
+    tt_assert(hash_mutex == NULL);
+    hash_mutex = tt_mutex_alloc(MutexTypeNormal);
     AppManifestDict_init(app_manifest_dict);
 }
 
 void app_registry_lock() {
-    tt_assert(mutex != NULL);
-    tt_mutex_acquire(mutex, TtWaitForever);
+    tt_assert(hash_mutex != NULL);
+    tt_mutex_acquire(hash_mutex, TtWaitForever);
 }
 
 void app_registry_unlock() {
-    tt_assert(mutex != NULL);
-    tt_mutex_release(mutex);
+    tt_assert(hash_mutex != NULL);
+    tt_mutex_release(hash_mutex);
 }
 
 void tt_app_manifest_registry_add(const AppManifest _Nonnull* manifest) {

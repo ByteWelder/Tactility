@@ -6,6 +6,8 @@
 #include "tactility_core.h"
 #include "wifi_connect_state_updating.h"
 
+#define TAG "wifi_connect"
+
 // Forward declarations
 static void wifi_connect_event_callback(const void* message, void* context);
 
@@ -55,9 +57,12 @@ void wifi_connect_unlock(WifiConnect* wifi) {
 void wifi_connect_request_view_update(WifiConnect* wifi) {
     wifi_connect_lock(wifi);
     if (wifi->view_enabled) {
-        lvgl_port_lock(100);
-        wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
-        lvgl_port_unlock();
+        if (lvgl_port_lock(1000)) {
+            wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
+            lvgl_port_unlock();
+        } else {
+            TT_LOG_E(TAG, "failed to lock lvgl");
+        }
     }
     wifi_connect_unlock(wifi);
 }
@@ -87,6 +92,8 @@ static void app_show(App app, lv_obj_t* parent) {
 
 static void app_hide(App app) {
     WifiConnect* wifi = (WifiConnect*)tt_app_get_data(app);
+    // No need to lock view, as this is called from within Gui's LVGL context
+    wifi_connect_view_destroy(&wifi->view);
     wifi_connect_lock(wifi);
     wifi->view_enabled = false;
     wifi_connect_unlock(wifi);

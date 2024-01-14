@@ -9,6 +9,7 @@
 #include "partitions.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
+#include "services/wifi/wifi_credentials.h"
 #include <sys/cdefs.h>
 
 #define TAG "tactility"
@@ -81,12 +82,15 @@ __attribute__((unused)) extern void tactility_start(const Config* _Nonnull confi
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        TT_LOG_I(TAG, "nvs erasing");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+    TT_LOG_I(TAG, "nvs initialized");
 
     tt_partitions_init();
+    tt_wifi_credentials_init();
 
     Hardware hardware = tt_hardware_init(config->hardware);
     /*NbLvgl lvgl =*/tt_graphics_init(&hardware);
