@@ -18,7 +18,7 @@ __TtCriticalInfo __tt_critical_enter(void) {
     } else if (info.kernel_running) {
         taskENTER_CRITICAL(&critical_mutex);
     } else {
-        __disable_irq();
+        portDISABLE_INTERRUPTS();
     }
 
     return info;
@@ -30,6 +30,6 @@ void __tt_critical_exit(__TtCriticalInfo info) {
     } else if (info.kernel_running) {
         taskEXIT_CRITICAL(&critical_mutex);
     } else {
-        __enable_irq();
+        portENABLE_INTERRUPTS();
     }
 }

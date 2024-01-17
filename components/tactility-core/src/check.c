@@ -19,14 +19,10 @@ static void tt_print_memory_info() {
 }
 
 static void tt_print_task_info() {
-    if (TT_IS_IRQ_MODE()) {
-        TT_LOG_E(TAG, "Task: ISR %lu", __get_IPSR());
-    } else {
-        const char* name = pcTaskGetName(NULL);
-        const char* safe_name = name ? name : "main";
-        TT_LOG_E(TAG, "Task: %s", safe_name);
-        TT_LOG_E(TAG, "Stack watermark: %u", uxTaskGetStackHighWaterMark(NULL) * 4);
-    }
+    const char* name = pcTaskGetName(NULL);
+    const char* safe_name = name ? name : "main";
+    TT_LOG_E(TAG, "Task: %s", safe_name);
+    TT_LOG_E(TAG, "Stack watermark: %u", uxTaskGetStackHighWaterMark(NULL) * 4);
 }
 
 TT_NORETURN void tt_crash_implementation() {

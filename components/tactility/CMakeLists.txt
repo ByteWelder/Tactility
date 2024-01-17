@@ -12,7 +12,7 @@ idf_component_register(
 
     INCLUDE_DIRS "src"
 
-    REQUIRES cmsis_core
+    REQUIRES
         esp_lcd
         esp_lcd_touch
         esp_lvgl_port
