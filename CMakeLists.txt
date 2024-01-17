@@ -17,3 +17,5 @@ endif()
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(Tactility)
+
+add_subdirectory(libs/mlib)

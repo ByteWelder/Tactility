@@ -20,7 +20,6 @@ idf_component_register(
         driver
         fatfs
         tactility-core
-        mlib
         nvs_flash
         spiffs
 )
@@ -30,3 +29,4 @@ spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
 
 set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/config")
 spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
+

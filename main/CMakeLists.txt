@@ -14,3 +14,4 @@ idf_component_register(
         "src/hello_world"
     REQUIRES ${project_components}
 )
+
