@@ -78,6 +78,7 @@ static void wifi_connect_event_callback(const void* message, void* context) {
         default:
             break;
     }
+    wifi_connect_request_view_update(wifi);
 }
 
 static void app_show(App app, lv_obj_t* parent) {
