@@ -135,7 +135,7 @@ static int tt_aes256_crypt_cbc(
     const uint8_t key[32],
     int mode,
     size_t length,
-    const unsigned char iv[16],
+    unsigned char iv[16],
     const unsigned char* input,
     unsigned char* output
 ) {
@@ -152,7 +152,7 @@ static int tt_aes256_crypt_cbc(
     } else {
         mbedtls_aes_setkey_dec(&master, key, 256);
     }
-    int result = mbedtls_aes_crypt_ecb(&master, mode, input, output);
+    int result = mbedtls_aes_crypt_cbc(&master, mode, length, iv, input, output);
     mbedtls_aes_free(&master);
     return result;
 }
@@ -162,6 +162,7 @@ int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t key[32];
     get_key(key);
 
+    // TODO: Is this still needed after switching to regular AES functions?
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
@@ -173,6 +174,7 @@ int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t key[32];
     get_key(key);
 
+    // TODO: Is this still needed after switching to regular AES functions?
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
