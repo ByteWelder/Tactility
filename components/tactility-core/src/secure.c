@@ -1,16 +1,20 @@
 #include "secure.h"
 
-#include "aes/esp_aes.h"
 #include "check.h"
-#include "esp_mac.h"
-#include "esp_cpu.h"
 #include "log.h"
+#include "mbedtls/aes.h"
 #include "nvs_flash.h"
 #include <string.h>
+
+#ifdef ESP_PLATFORM
+#include "esp_cpu.h"
+#include "esp_mac.h"
+#endif
 
 #define TAG "secure"
 #define TT_NVS_NAMESPACE "tt_secure"
 
+#ifdef ESP_PLATFORM
 /**
  * Get a key based on hardware parameters.
  * @param[out] key the output key
@@ -28,7 +32,9 @@ static void get_hardware_key(uint8_t key[32]) {
         key[i] = mac[i % mac_length];
     }
 }
+#endif
 
+#ifdef ESP_PLATFORM
 /**
  * The key is built up as follows:
  * - Fetch 32 bytes from NVS storage and store as key data
@@ -76,6 +82,7 @@ static void get_nvs_key(uint8_t key[32]) {
 
     nvs_close(handle);
 }
+#endif
 
 /**
  * Performs XOR on 2 memory regions and stores it in a third
@@ -103,23 +110,51 @@ static void get_key(uint8_t key[32]) {
     uint8_t hardware_key[32];
     uint8_t nvs_key[32];
 
+#ifdef ESP_PLATFORM
     get_hardware_key(hardware_key);
     get_nvs_key(nvs_key);
     xor_key(hardware_key, nvs_key, key, 32);
+#else
+    TT_LOG_W(TAG, "Using unsafe key for debugging purposes.");
+    memset(key, 0, 32);
+#endif
 }
 
 void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]) {
     memset((void*)iv, 0, 16);
     char c = *input++;
     int index = 0;
-    printf("IV: ");
     while (c) {
-        printf(" %0X:%02d", c, index);
         iv[index] = c;
         index++;
         c = *input++;
     }
-    printf("\n");
+}
+
+static int tt_aes256_crypt_cbc(
+    const uint8_t key[32],
+    int mode,
+    size_t length,
+    const unsigned char iv[16],
+    const unsigned char* input,
+    unsigned char* output
+) {
+    tt_check(key && iv && input && output);
+
+    if ((length % AES_BLOCK_BYTES) || (length == 0)) {
+        return ERR_ESP_AES_INVALID_INPUT_LENGTH;
+    }
+
+    mbedtls_aes_context master;
+    mbedtls_aes_init(&master);
+    if (mode == MBEDTLS_AES_ENCRYPT) {
+        mbedtls_aes_setkey_enc(&master, key, 256);
+    } else {
+        mbedtls_aes_setkey_dec(&master, key, 256);
+    }
+    int result = mbedtls_aes_crypt_ecb(&master, mode, input, output);
+    mbedtls_aes_free(&master);
+    return result;
 }
 
 int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
@@ -130,12 +165,7 @@ int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    esp_aes_context ctx;
-    esp_aes_init(&ctx);
-    esp_aes_setkey(&ctx, key, 256);
-    int result = esp_aes_crypt_cbc(&ctx, ESP_AES_ENCRYPT, length, iv_copy, in_data, out_data);
-    esp_aes_free(&ctx);
-    return result;
+    return tt_aes256_crypt_cbc(key, MBEDTLS_AES_ENCRYPT, length, iv_copy, in_data, out_data);
 }
 
 int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
@@ -146,10 +176,5 @@ int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    esp_aes_context ctx;
-    esp_aes_init(&ctx);
-    esp_aes_setkey(&ctx, key, 256);
-    int result = esp_aes_crypt_cbc(&ctx, ESP_AES_DECRYPT, length, iv_copy, in_data, out_data);
-    esp_aes_free(&ctx);
-    return result;
+    return tt_aes256_crypt_cbc(key, MBEDTLS_AES_DECRYPT, length, iv_copy, in_data, out_data);
 }
