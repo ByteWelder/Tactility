@@ -205,9 +205,11 @@ bool tt_wifi_credentials_set(const char* ssid, char password[TT_WIFI_CREDENTIALS
         TT_LOG_E(TAG, "Failed to encrypt credentials for \"%s\": %d", ssid, encrypt_result);
     }
 
-    result = nvs_set_blob(handle, ssid, password_encrypted, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
-    if (result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to get credentials for \"%s\": %s", ssid, esp_err_to_name(result));
+    if (result == ESP_OK) {
+        result = nvs_set_blob(handle, ssid, password_encrypted, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
+        if (result != ESP_OK) {
+            TT_LOG_E(TAG, "Failed to get credentials for \"%s\": %s", ssid, esp_err_to_name(result));
+        }
     }
 
     tt_wifi_credentials_nvs_close(handle);
