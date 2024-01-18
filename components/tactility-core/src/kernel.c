@@ -5,7 +5,12 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <rom/ets_sys.h>
+
+#ifdef ESP_PLATFORM
+#include "rom/ets_sys.h"
+#else
+#include <unistd.h>
+#endif
 
 bool tt_kernel_is_irq() {
     return TT_IS_IRQ_MODE();
@@ -178,5 +183,9 @@ void tt_delay_ms(uint32_t milliseconds) {
 }
 
 void tt_delay_us(uint32_t microseconds) {
+#ifdef ESP_PLATFORM
     ets_delay_us(microseconds);
+#else
+    usleep(microseconds);
+#endif
 }

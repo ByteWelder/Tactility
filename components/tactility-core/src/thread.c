@@ -5,7 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "kernel.h"
-#include <esp_log.h>
+#include "log.h"
 
 #define TAG "Thread"
 
@@ -75,7 +75,7 @@ static void tt_thread_body(void* context) {
     tt_assert(thread->state == ThreadStateRunning);
 
     if (thread->is_static) {
-        ESP_LOGI(
+        TT_LOG_I(
             TAG,
             "%s service thread TCB memory will not be reclaimed",
             thread->name ? thread->name : "<unnamed service>"

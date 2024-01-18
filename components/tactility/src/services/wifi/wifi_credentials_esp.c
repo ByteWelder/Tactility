@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #include "wifi_credentials.h"
 
 #include "nvs_flash.h"
@@ -235,3 +237,4 @@ bool tt_wifi_credentials_remove(const char* ssid) {
 
 // end region Wi-Fi Credentials - public
 
+#endif

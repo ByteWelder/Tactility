@@ -13,7 +13,7 @@
  */
 #pragma once
 
-#include <esp_log.h>
+#include "log.h"
 #include <m-core.h>
 
 #ifdef __cplusplus
@@ -30,7 +30,7 @@ TT_NORETURN void tt_crash_implementation();
 /** Crash system with message. */
 #define __tt_crash(message)                                                                    \
     do {                                                                                       \
-        ESP_LOGE("crash", "%s\n\tat %s:%d", ((message) ? (message) : ""), __FILE__, __LINE__); \
+        TT_LOG_E("crash", "%s\n\tat %s:%d", ((message) ? (message) : ""), __FILE__, __LINE__); \
         tt_crash_implementation();                                                             \
     } while (0)
 
@@ -50,7 +50,7 @@ TT_NORETURN void tt_crash_implementation();
 #define __tt_check(__e, __m)               \
     do {                                   \
         if (!(__e)) {                      \
-            ESP_LOGE("check", "%s", #__e); \
+            TT_LOG_E("check", "%s", #__e); \
             if (__m) {                     \
                 __tt_crash(#__m);          \
             } else {                       \
@@ -72,7 +72,7 @@ TT_NORETURN void tt_crash_implementation();
 #define __tt_assert(__e, __m)               \
     do {                                    \
         if (!(__e)) {                       \
-            ESP_LOGE("assert", "%s", #__e); \
+            TT_LOG_E("assert", "%s", #__e); \
             if (__m) {                      \
                 __tt_crash(#__m);           \
             } else {                        \

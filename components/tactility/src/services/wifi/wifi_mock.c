@@ -1,3 +1,5 @@
+#ifndef ESP_PLATFORM
+
 #include "wifi.h"
 
 #include "check.h"
@@ -22,8 +24,6 @@ typedef struct {
     PubSub* pubsub;
     /** @brief The internal message queue */
     MessageQueue* queue;
-    /** @brief The network interface when wifi is started */
-    esp_netif_t* _Nullable netif;
     /** @brief Scanning results */
     wifi_ap_record_t* _Nullable scan_list;
     /** @brief The current item count in scan_list (-1 when scan_list is NULL) */
@@ -31,8 +31,6 @@ typedef struct {
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
     bool scan_active;
-    esp_event_handler_instance_t event_handler_any_id;
-    esp_event_handler_instance_t event_handler_got_ip;
     EventGroupHandle_t event_group;
     WifiRadioState radio_state;
 } Wifi;
@@ -75,13 +73,10 @@ static Wifi* wifi_alloc() {
     // for example: when scanning and you turn off the radio, the scan should probably stop or turning off
     // the radio should disable the on/off button in the app as it is pending.
     instance->queue = tt_message_queue_alloc(1, sizeof(WifiMessage));
-    instance->netif = NULL;
     instance->scan_active = false;
     instance->scan_list = NULL;
     instance->scan_list_count = 0;
     instance->scan_list_limit = WIFI_SCAN_RECORD_LIMIT;
-    instance->event_handler_any_id = NULL;
-    instance->event_handler_got_ip = NULL;
     instance->event_group = xEventGroupCreate();
     instance->radio_state = WIFI_RADIO_OFF;
     return instance;
@@ -224,23 +219,6 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
-static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-    UNUSED(arg);
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        ESP_LOGI(TAG, "event_handler: sta start");
-        if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
-            esp_wifi_connect();
-        }
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
-        ESP_LOGI(TAG, "event_handler: disconnected");
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
-        ESP_LOGI(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
-        xEventGroupSetBits(wifi_singleton->event_group, WIFI_CONNECTED_BIT);
-    }
-}
-
 static void wifi_enable(Wifi* wifi) {
     WifiRadioState state = wifi->radio_state;
     if (
@@ -249,70 +227,6 @@ static void wifi_enable(Wifi* wifi) {
         state == WIFI_RADIO_OFF_PENDING
     ) {
         TT_LOG_W(TAG, "Can't enable from current state");
-        return;
-    }
-
-    TT_LOG_I(TAG, "Enabling");
-    wifi->radio_state = WIFI_RADIO_ON_PENDING;
-    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOnPending);
-
-    if (wifi->netif != NULL) {
-        esp_netif_destroy(wifi->netif);
-    }
-    wifi->netif = esp_netif_create_default_wifi_sta();
-
-    // Warning: this is the memory-intensive operation
-    // It uses over 117kB of RAM with default settings for S3 on IDF v5.1.2
-    wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
-    esp_err_t init_result = esp_wifi_init(&config);
-    if (init_result != ESP_OK) {
-        TT_LOG_E(TAG, "Wifi init failed");
-        if (init_result == ESP_ERR_NO_MEM) {
-            TT_LOG_E(TAG, "Insufficient memory");
-        }
-        wifi->radio_state = WIFI_RADIO_OFF;
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
-        return;
-    }
-
-    esp_wifi_set_storage(WIFI_STORAGE_RAM);
-
-    // TODO: don't crash on check failure
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        WIFI_EVENT,
-        ESP_EVENT_ANY_ID,
-        &event_handler,
-        NULL,
-        &wifi->event_handler_any_id
-    ));
-
-    // TODO: don't crash on check failure
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(
-        IP_EVENT,
-        IP_EVENT_STA_GOT_IP,
-        &event_handler,
-        NULL,
-        &wifi->event_handler_got_ip
-    ));
-
-    if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-        TT_LOG_E(TAG, "Wifi mode setting failed");
-        wifi->radio_state = WIFI_RADIO_OFF;
-        esp_wifi_deinit();
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
-        return;
-    }
-
-    esp_err_t start_result = esp_wifi_start();
-    if (start_result != ESP_OK) {
-        TT_LOG_E(TAG, "Wifi start failed");
-        if (start_result == ESP_ERR_NO_MEM) {
-            TT_LOG_E(TAG, "Insufficient memory");
-        }
-        wifi->radio_state = WIFI_RADIO_OFF;
-        esp_wifi_set_mode(WIFI_MODE_NULL);
-        esp_wifi_deinit();
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
         return;
     }
 
@@ -332,48 +246,6 @@ static void wifi_disable(Wifi* wifi) {
         return;
     }
 
-    TT_LOG_I(TAG, "Disabling");
-    wifi->radio_state = WIFI_RADIO_OFF_PENDING;
-    wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
-
-    // Free up scan list memory
-    wifi_scan_list_free_safely(wifi_singleton);
-
-    if (esp_wifi_stop() != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to stop radio");
-        wifi->radio_state = WIFI_RADIO_ON;
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOn);
-        return;
-    }
-
-    if (esp_wifi_set_mode(WIFI_MODE_NULL) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unset mode");
-    }
-
-    if (esp_event_handler_instance_unregister(
-            WIFI_EVENT,
-            ESP_EVENT_ANY_ID,
-            wifi->event_handler_any_id
-        ) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unregister id event handler");
-    }
-
-    if (esp_event_handler_instance_unregister(
-            IP_EVENT,
-            IP_EVENT_STA_GOT_IP,
-            wifi->event_handler_got_ip
-        ) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unregister ip event handler");
-    }
-
-    if (esp_wifi_deinit() != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to deinit");
-    }
-
-    tt_check(wifi->netif != NULL);
-    esp_netif_destroy(wifi->netif);
-    wifi->netif = NULL;
-
     wifi->radio_state = WIFI_RADIO_OFF;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
     TT_LOG_I(TAG, "Disabled");
@@ -390,22 +262,7 @@ static void wifi_scan_internal(Wifi* wifi) {
     wifi->scan_active = true;
     wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
 
-    // Create scan list if it does not exist
-    wifi_scan_list_alloc_safely(wifi);
-    wifi->scan_list_count = 0;
-
-    esp_wifi_scan_start(NULL, true);
-    uint16_t record_count = wifi->scan_list_limit;
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
-    uint16_t safe_record_count = MIN(wifi->scan_list_limit, record_count);
-    wifi->scan_list_count = safe_record_count;
-    TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
-    for (uint16_t i = 0; i < safe_record_count; i++) {
-        wifi_ap_record_t* record = &wifi->scan_list[i];
-        TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
-    }
-
-    esp_wifi_scan_stop();
+    // TODO: fake entries
 
     wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
     wifi->scan_active = false;
@@ -413,116 +270,26 @@ static void wifi_scan_internal(Wifi* wifi) {
 }
 
 static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
-    // TODO: only when connected!
     wifi_disconnect_internal(wifi);
 
     wifi->radio_state = WIFI_RADIO_CONNECTION_PENDING;
-
     wifi_publish_event_simple(wifi, WifiEventTypeConnectionPending);
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
-            .threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK,
-            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-            .sae_h2e_identifier = {0},
-        },
-    };
-    memcpy(wifi_config.sta.ssid, connect_message->ssid, 32);
-    memcpy(wifi_config.sta.password, connect_message->password, 64);
+    // TODO: Sleep?
 
-    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    if (set_config_result != ESP_OK) {
-        wifi->radio_state = WIFI_RADIO_ON;
-        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
-        wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
-        return;
-    }
+    wifi->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
+    wifi_publish_event_simple(wifi, WifiEventTypeConnectionSuccess);
 
-    esp_err_t wifi_start_result = esp_wifi_start();
-    if (wifi_start_result != ESP_OK) {
-        wifi->radio_state = WIFI_RADIO_ON;
-        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
-        wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
-        return;
-    }
-
-    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
-     * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
-     * The bits are set by wifi_event_handler() */
-    EventBits_t bits = xEventGroupWaitBits(
-        wifi->event_group,
-        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-        pdFALSE,
-        pdFALSE,
-        portMAX_DELAY
-    );
-
-    if (bits & WIFI_CONNECTED_BIT) {
-        wifi->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
-        wifi_publish_event_simple(wifi, WifiEventTypeConnectionSuccess);
-        ESP_LOGI(TAG, "Connected to %s", connect_message->ssid);
-    } else if (bits & WIFI_FAIL_BIT) {
-        wifi->radio_state = WIFI_RADIO_ON;
-        wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
-        ESP_LOGI(TAG, "Failed to connect to %s", connect_message->ssid);
-    } else {
-        wifi->radio_state = WIFI_RADIO_ON;
-        wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
-        ESP_LOGE(TAG, "UNEXPECTED EVENT");
-    }
+    TT_LOG_I(TAG, "Connected to %s", connect_message->ssid);
 }
 
 static void wifi_disconnect_internal(Wifi* wifi) {
-    esp_err_t stop_result = esp_wifi_stop();
-    if (stop_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
-    } else {
-        wifi->radio_state = WIFI_RADIO_ON;
-        wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
-        TT_LOG_I(TAG, "Disconnected");
-    }
+    wifi->radio_state = WIFI_RADIO_ON;
+    wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
+    TT_LOG_I(TAG, "Disconnected");
 }
 
 static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
-    esp_err_t stop_result = esp_wifi_stop();
-    if (stop_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
-        return;
-    }
-
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = {0},
-            .password = {0},
-            .threshold.authmode = WIFI_AUTH_OPEN,
-            .sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED,
-            .sae_h2e_identifier = {0},
-        },
-    };
-
-    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
-    if (set_config_result != ESP_OK) {
-        // TODO: disable radio, because radio state is in limbo between off and on
-        wifi->radio_state = WIFI_RADIO_OFF;
-        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
-        return;
-    }
-
-    esp_err_t wifi_start_result = esp_wifi_start();
-    if (wifi_start_result != ESP_OK) {
-        // TODO: disable radio, because radio state is in limbo between off and on
-        wifi->radio_state = WIFI_RADIO_OFF;
-        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
-        wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
-        return;
-    }
-
     wifi->radio_state = WIFI_RADIO_ON;
     wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
     TT_LOG_I(TAG, "Disconnected");
@@ -590,3 +357,5 @@ const ServiceManifest wifi_service = {
     .on_start = &wifi_service_start,
     .on_stop = &wifi_service_stop
 };
+
+#endif
