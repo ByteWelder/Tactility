@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-if (IDF_TARGET)
+if (DEFINED ENV{ESP_IDF_VERSION})
+    message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
+    include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+
+    add_definitions(-DESP_TARGET)
     set(COMPONENTS main tactility tactility-data)
     set(EXTRA_COMPONENT_DIRS "boards" "components")
-    add_definitions(-DESP_TARGET)
-    
+
     # Yellow Board only runs on ESP32
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "yellow_board_2432s024")
@@ -17,6 +19,8 @@ if (IDF_TARGET)
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "lilygo_tdeck")
     endif()
+else()
+    message("Building for sim target")
 endif()
 
 project(tactility-root)

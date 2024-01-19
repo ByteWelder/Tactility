@@ -16,7 +16,7 @@ target_include_directories(tactility-core
     INTERFACE src/
 )
 
-if (ESP_PLATFORM)
+if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility-core
         PUBLIC mlib
