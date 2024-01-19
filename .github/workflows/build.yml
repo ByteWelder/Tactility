@@ -31,16 +31,4 @@ jobs:
           esp_idf_version: v5.1.2
           target: esp32s3
           path: './'
-  Build-PC:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: Configure Project
-        uses: threeal/cmake-action@v1.3.0
-      - name: Prepare Project
-        runs: cmake -S ./ -B build
-      - name: Build Project
-        runs: cmake --build build
+
