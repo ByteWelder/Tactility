@@ -3,5 +3,4 @@ dependencies:
   espressif/esp_lcd_touch_cst816s: "^1.0.3"
   espressif/esp_lcd_touch_gt911: "^1.0.0"
   espressif/esp_lcd_touch: "1.1.1"
-  esp_lvgl_port: '1.4.0'
   idf: '>=5.1.2'

@@ -5,6 +5,7 @@
 
 #include "app.h"
 #include "check.h"
+#include "core.h"
 #include "core_defines.h"
 #include "core_extra_defines.h"
 #include "core_types.h"

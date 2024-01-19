@@ -4,7 +4,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_log.h"
-#include "tactility.h"
+#include "tactility-esp.h"
 
 #define TAG "lilygo_tdeck_display"
 

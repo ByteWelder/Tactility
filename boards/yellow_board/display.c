@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#include "tactility.h"
+#include "tactility-esp.h"
 
 #define TAG "2432s024_ili9341"
 
