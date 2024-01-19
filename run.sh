@@ -3,7 +3,7 @@ if [[ -v ESP_IDF_VERSION ]]; then
   idf.py flash monitor $@
 else
   cmake -S ./ -B build-sim
-  make -C build-sim all
+  cmake --build build-sim
   build-sim/app-sim/app-sim
 fi
 
