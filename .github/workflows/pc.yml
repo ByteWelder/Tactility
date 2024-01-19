@@ -1,5 +1,6 @@
 name: Build
 on: [push]
+jobs:
   Build-PC:
     runs-on: ubuntu-latest
     steps:
