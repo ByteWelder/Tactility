@@ -38,10 +38,17 @@ Other configurations can be supported, but they require you to set up the driver
 
 ## Guide
 
+Building can be done either for the ESP-IDF target or for PC:
+
+`./build.sh` - build the ESP-IDF or the PC version of Tactility (*)
+`./run.sh` - Does `flash` and `monitor` for ESP-IDF and simply builds and starts it for PC
+
+The build scripts will detect if ESP-IDF is available. They will know if you ran `${IDF_PATH}/export.sh`.
+
 Until there is proper documentation, here are some pointers:
 - Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
 - [Tactility](./components/tactility): The main platform with default services and apps.
-- [Tactility Core](./components/tactility-core): The core platform code.
+- [Tactility Core](./libs/tactility-core): The core platform code.
 
 ## Building Firmware
 
