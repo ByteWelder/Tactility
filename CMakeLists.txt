@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
 
+#if (IDF_TARGET)
 set(COMPONENTS main)
 set(EXTRA_COMPONENT_DIRS "boards" "components")
 
@@ -19,3 +20,12 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(Tactility)
 
 add_subdirectory(libs/mlib)
+add_subdirectory(libs/tactility-core)
+
+#else()
+#project(Tactility)
+#add_executable(Tactility main/src/main.c main/src/hello_world/hello_world.c)
+#add_subdirectory(libs/mlib)
+#add_subdirectory(libs/mbedtls)
+#endif()
+

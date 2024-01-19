@@ -4,10 +4,13 @@
 extern "C" {
 #endif
 
-#include "esp_wifi.h"
 #include "pubsub.h"
 #include <stdbool.h>
 #include <stdio.h>
+
+#ifdef ESP_PLATFORM
+#include "esp_wifi.h"
+#endif
 
 typedef enum {
     /** Radio was turned on */

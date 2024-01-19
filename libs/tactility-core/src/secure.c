@@ -3,12 +3,12 @@
 #include "check.h"
 #include "log.h"
 #include "mbedtls/aes.h"
-#include "nvs_flash.h"
 #include <string.h>
 
 #ifdef ESP_PLATFORM
 #include "esp_cpu.h"
 #include "esp_mac.h"
+#include "nvs_flash.h"
 #endif
 
 #define TAG "secure"

@@ -14,7 +14,7 @@
 #pragma once
 
 #include "log.h"
-#include <m-core.h>
+#include "m-core.h"
 
 #ifdef __cplusplus
 extern "C" {

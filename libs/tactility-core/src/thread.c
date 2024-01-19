@@ -443,34 +443,6 @@ uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout
     return (rflags);
 }
 
-uint32_t tt_thread_enumerate(ThreadId* thread_array, uint32_t array_items) {
-    uint32_t i, count;
-    TaskStatus_t* task;
-
-    if (TT_IS_IRQ_MODE() || (thread_array == NULL) || (array_items == 0U)) {
-        count = 0U;
-    } else {
-        vTaskSuspendAll();
-
-        count = uxTaskGetNumberOfTasks();
-        task = pvPortMalloc(count * sizeof(TaskStatus_t));
-
-        if (task != NULL) {
-            count = uxTaskGetSystemState(task, count, NULL);
-
-            for (i = 0U; (i < count) && (i < array_items); i++) {
-                thread_array[i] = (ThreadId)task[i].xHandle;
-            }
-            count = i;
-        }
-        (void)xTaskResumeAll();
-
-        vPortFree(task);
-    }
-
-    return (count);
-}
-
 const char* tt_thread_get_name(ThreadId thread_id) {
     TaskHandle_t hTask = (TaskHandle_t)thread_id;
     const char* name;

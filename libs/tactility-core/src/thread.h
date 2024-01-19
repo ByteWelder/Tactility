@@ -249,15 +249,6 @@ uint32_t tt_thread_flags_get(void);
 uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout);
 
 /**
- * @brief Enumerate threads
- * 
- * @param thread_array array of ThreadId, where thread ids will be stored
- * @param array_items array size
- * @return uint32_t threads count
- */
-uint32_t tt_thread_enumerate(ThreadId* thread_array, uint32_t array_items);
-
-/**
  * @brief Get thread name
  * 
  * @param thread_id 
