@@ -4,11 +4,12 @@ add_definitions(-DTT_DEBUG)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
+
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
     add_definitions(-DESP_TARGET)
-    set(COMPONENTS main tactility tactility-data)
-    set(EXTRA_COMPONENT_DIRS "boards" "components")
+    set(COMPONENTS app-esp tactility tactility-data)
+    set(EXTRA_COMPONENT_DIRS "boards" "components" "app-esp")
 
     # Yellow Board only runs on ESP32
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
@@ -31,5 +32,5 @@ add_subdirectory(tactility-core)
 if (NOT IDF_TARGET)
     add_subdirectory(libs/freertos-kernel)
     add_subdirectory(libs/mbedtls)
-    add_subdirectory(main_sim)
+    add_subdirectory(app-sim)
 endif()
