@@ -8,7 +8,7 @@ if (ESP_PLATFORM)
 
     add_definitions(-DESP_TARGET)
     set(COMPONENTS app-esp)
-    set(EXTRA_COMPONENT_DIRS "boards" "tactility-esp" "app-esp" "components")
+    set(EXTRA_COMPONENT_DIRS "boards" "tactility-esp" "app-esp" "libs/esp_lvgl_port")
 
     # Yellow Board only runs on ESP32
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
