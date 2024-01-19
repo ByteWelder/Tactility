@@ -11,6 +11,6 @@ jobs:
       - name: Configure Project
         uses: threeal/cmake-action@v1.3.0
       - name: Prepare Project
-        run: cmake -S ./ -B build
+        run: cmake -S ./ -B build-sim
       - name: Build Project
-        run: cmake --build build
+        run: cmake --build build-sim
