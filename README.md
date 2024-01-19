@@ -38,20 +38,28 @@ Other configurations can be supported, but they require you to set up the driver
 
 ## Guide
 
+### Build environment setup
+
+Ensure you have [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) installed, then select the correct device:
+
+Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
+
+### Building firmware
+
+You can run `idf.py flash monitor`, but there are some helpers available too:
+
+`./build.sh` - build the ESP-IDF or the PC version of Tactility (*)
+`./build.sh -p /dev/ttyACM0` - optional: you can pass on extra parameters for esp-idf builds
+`./run.sh` - Does `flash` and `monitor` for ESP-IDF and simply builds and starts it for PC
+
+The build scripts will detect if ESP-IDF is available. They will adapter if you ran `${IDF_PATH}/export.sh`.
+
+### Development
+
 Until there is proper documentation, here are some pointers:
-- Sample application: [bootstrap](main/src/main.c) and [app](main/src/hello_world/hello_world.c)
+- Sample application: [bootstrap](app-esp/src/main.c) and [app](app-esp/src/hello_world/hello_world.c)
 - [Tactility](./components/tactility): The main platform with default services and apps.
-- [Tactility Core](./components/tactility-core): The core platform code.
-
-## Building Firmware
-
-First we have to select the correct device:
-
-1. If you use CLion, close it and delete the `cmake-build-debug` folder.
-2. Run `idf.py fullclean` to remove any cache from previous builds (or delete `build` folder manually)
-3. Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
-
-Now you can run `idf.py flash monitor`
+- [Tactility Core](./tactility-core): The core platform code.
 
 ## License
 

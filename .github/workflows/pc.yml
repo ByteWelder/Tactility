@@ -1,0 +1,16 @@
+name: Build
+on: [push]
+jobs:
+  Build-PC:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Configure Project
+        uses: threeal/cmake-action@v1.3.0
+      - name: Prepare Project
+        run: cmake -S ./ -B build
+      - name: Build Project
+        run: cmake --build build

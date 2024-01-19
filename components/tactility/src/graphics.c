@@ -18,7 +18,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
     DisplayDevice _Nonnull* display = hardware->display;
 
     // Add display
-    ESP_LOGD(TAG, "lvgl add display");
+    TT_LOG_I(TAG, "lvgl add display");
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = display->io_handle,
         .panel_handle = display->display_handle,
