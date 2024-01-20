@@ -8,7 +8,13 @@ if (ESP_PLATFORM)
 
     add_definitions(-DESP_TARGET)
     set(COMPONENTS app-esp)
-    set(EXTRA_COMPONENT_DIRS "boards" "tactility-esp" "app-esp" "libs/esp_lvgl_port")
+    set(EXTRA_COMPONENT_DIRS
+        "boards"
+        "tactility-esp"
+        "app-esp"
+        "libs/esp_lvgl_port"
+        "libs/lvgl"
+    )
 
     # Yellow Board only runs on ESP32
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
@@ -26,11 +32,11 @@ endif()
 project(tactility-root)
 
 add_subdirectory(libs/mlib)
-add_subdirectory(libs/lvgl)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 
 if (NOT ESP_PLATFORM)
+    add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
     add_subdirectory(libs/freertos-kernel)
     add_subdirectory(libs/mbedtls)
     add_subdirectory(app-sim)

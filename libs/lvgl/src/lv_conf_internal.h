@@ -10,7 +10,42 @@
 
 #include <stdint.h>
 
-#include "lv_conf_custom.h"
+/* Handle special Kconfig options */
+#ifndef LV_KCONFIG_IGNORE
+    #include "lv_conf_kconfig.h"
+    #ifdef CONFIG_LV_CONF_SKIP
+        #define LV_CONF_SKIP
+    #endif
+#endif
+
+/*If "lv_conf.h" is available from here try to use it later.*/
+#ifdef __has_include
+    #if __has_include("lv_conf.h")
+        #ifndef LV_CONF_INCLUDE_SIMPLE
+            #define LV_CONF_INCLUDE_SIMPLE
+        #endif
+    #endif
+#endif
+
+/*If lv_conf.h is not skipped include it*/
+#ifndef LV_CONF_SKIP
+    #ifdef LV_CONF_PATH                           /*If there is a path defined for lv_conf.h use it*/
+        #define __LV_TO_STR_AUX(x) #x
+        #define __LV_TO_STR(x) __LV_TO_STR_AUX(x)
+        #include __LV_TO_STR(LV_CONF_PATH)
+        #undef __LV_TO_STR_AUX
+        #undef __LV_TO_STR
+    #elif defined(LV_CONF_INCLUDE_SIMPLE)         /*Or simply include lv_conf.h is enabled*/
+        #include "lv_conf.h"
+    #else
+        #include "../../lv_conf.h"                /*Else assume lv_conf.h is next to the lvgl folder*/
+    #endif
+    #if !defined(LV_CONF_H) && !defined(LV_CONF_SUPPRESS_DEFINE_CHECK)
+        /* #include will sometimes silently fail when __has_include is used */
+        /* https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80753 */
+        #pragma message("Possible failure to include lv_conf.h, please read the comment in this file if you get errors")
+    #endif
+#endif
 
 #ifdef CONFIG_LV_COLOR_DEPTH
     #define _LV_KCONFIG_PRESENT

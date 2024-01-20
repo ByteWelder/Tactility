@@ -20,7 +20,7 @@ if (ESP_PLATFORM)
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility
         PUBLIC tactility-core
-        PUBLIC lvgl # libs/
+        PUBLIC idf::lvgl # libs/
         PUBLIC idf::driver
         PUBLIC idf::spiffs
     )

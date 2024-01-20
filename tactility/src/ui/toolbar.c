@@ -41,7 +41,7 @@ lv_obj_t* tt_lv_toolbar_create(lv_obj_t* parent, const Toolbar* toolbar) {
 
     lv_obj_t* title_label = lv_label_create(label_container);
     lv_label_set_text(title_label, toolbar->title);
-    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_14, 0); // TODO replace with size 18
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_18, 0); // TODO replace with size 18
     lv_obj_set_size(title_label, LV_PCT(100), TOOLBAR_FONT_HEIGHT);
     lv_obj_set_pos(title_label, 0, (TOOLBAR_HEIGHT - TOOLBAR_FONT_HEIGHT - 10) / 2);
     lv_obj_set_style_text_align(title_label, LV_TEXT_ALIGN_CENTER, 0);

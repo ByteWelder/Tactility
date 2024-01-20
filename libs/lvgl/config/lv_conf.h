@@ -12,7 +12,6 @@
  */
 
 /* clang-format off */
-#if 0 /*Set it to "1" to enable content*/
 
 #ifndef LV_CONF_H
 #define LV_CONF_H
@@ -780,5 +779,3 @@
 /*--END OF LV_CONF_H--*/
 
 #endif /*LV_CONF_H*/
-
-#endif /*End of "Content enable"*/
