@@ -18,16 +18,16 @@ void vAssertCalled(TT_UNUSED unsigned long line, TT_UNUSED const char* const fil
 }
 
 int main() {
-    //    static const Config config = {
-    //        .hardware = NULL,
-    //        .apps = {
-    //            &hello_world_app
-    //        },
-    //        .services = { },
-    //        .auto_start_app_id = NULL
-    //    };
-    //
-    //    tactility_start(&config);
+//    static const Config config = {
+//        .hardware = NULL,
+//        .apps = {
+//            &hello_world_app
+//        },
+//        .services = { },
+//        .auto_start_app_id = NULL
+//    };
+//
+//    tactility_start(&config);
     TT_LOG_I("app", "Hello, world!");
     return 0;
 }
