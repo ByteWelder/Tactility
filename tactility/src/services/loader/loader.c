@@ -1,13 +1,19 @@
 #include "app_i.h"
 #include "app_manifest.h"
 #include "app_manifest_registry.h"
-#include "esp_heap_caps.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include "loader_i.h"
 #include "service_manifest.h"
 #include "services/gui/gui.h"
 #include <sys/cdefs.h>
+
+#ifdef ESP_PLATFORM
+#include "esp_heap_caps.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#else
+#include "FreeRTOS.h"
+#include "semphr.h"
+#endif
 
 #define TAG "Loader"
 
@@ -241,7 +247,9 @@ static void loader_do_stop_app() {
     loader_singleton->app_stack[current_app_index] = NULL;
     loader_singleton->app_stack_index--;
 
+#ifdef ESP_PLATFORM
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+#endif
 
     // Resume previous app
     tt_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] != NULL);

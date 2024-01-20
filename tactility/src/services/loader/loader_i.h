@@ -2,13 +2,19 @@
 
 #include "api_lock.h"
 #include "app_manifest.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include "loader.h"
 #include "message_queue.h"
 #include "pubsub.h"
 #include "services/gui/view_port.h"
 #include "thread.h"
+
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#else
+#include "FreeRTOS.h"
+#include "semphr.h"
+#endif
 
 #define APP_STACK_SIZE 32
 

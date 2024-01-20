@@ -31,7 +31,6 @@ add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 
 if (NOT ESP_PLATFORM)
-    add_subdirectory(libs/lvgl)
     add_subdirectory(libs/freertos-kernel)
     add_subdirectory(libs/mbedtls)
     add_subdirectory(app-sim)

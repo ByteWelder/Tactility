@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <stdint.h>
 
 struct Icon {
    const uint8_t width;

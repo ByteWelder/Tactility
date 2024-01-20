@@ -30,7 +30,7 @@ else()
     target_link_libraries(tactility
         PUBLIC tactility-core
         PUBLIC lvgl
-        PUBLIC freertos
+        PUBLIC freertos-kernel
     )
 endif()
 

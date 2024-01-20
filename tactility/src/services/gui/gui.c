@@ -6,7 +6,11 @@
 #include "kernel.h"
 #include "log.h"
 
+#ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
+#else
+#include "FreeRTOS.h"
+#endif
 
 #define TAG "gui"
 
