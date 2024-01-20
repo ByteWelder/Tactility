@@ -3,8 +3,7 @@
 
 build/
 build-sim/
-cmake-build-debug/
-cmake-build-release/
+cmake-build-*/
 CMakeCache.txt
 *.cbp
 
