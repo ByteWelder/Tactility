@@ -11,5 +11,5 @@ typedef struct {
     void* data;
 } ServiceData;
 
-ServiceData* tt_service_alloc(const ServiceManifest* _Nonnull manifest);
-void tt_service_free(ServiceData* _Nonnull service);
+ServiceData* tt_service_alloc(const ServiceManifest* manifest);
+void tt_service_free(ServiceData* service);

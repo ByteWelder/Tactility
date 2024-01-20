@@ -4,7 +4,7 @@
 
 // region Alloc/free
 
-ServiceData* tt_service_alloc(const ServiceManifest* _Nonnull manifest) {
+ServiceData* tt_service_alloc(const ServiceManifest* manifest) {
     ServiceData* data = malloc(sizeof(ServiceData));
     *data = (ServiceData) {
         .manifest = manifest,

@@ -1,32 +1,30 @@
-#include "FreeRTOS.h"
-#include "log.h"
-#include "portmacro.h"
+#include "hello_world/hello_world.h"
+#include "lvgl_hal.h"
 #include "tactility.h"
+#include "ui/lvgl_sync.h"
+
+#include "FreeRTOS.h"
 #include "task.h"
 
-void vAssertCalled(TT_UNUSED unsigned long line, TT_UNUSED const char* const file) {
-    static portBASE_TYPE xPrinted = pdFALSE;
-    volatile uint32_t set_to_nonzero_in_debugger_to_continue = 0;
+#define TAG "main"
 
-    taskENTER_CRITICAL();
-    {
-        // Step out by attaching a debugger and setting set_to_nonzero_in_debugger_to_continue
-        while (set_to_nonzero_in_debugger_to_continue == 0) { /* NO-OP */
-        }
-    }
-    taskEXIT_CRITICAL();
-}
+void lvgl_task(TT_UNUSED void* parameter);
 
-int main() {
-//    static const Config config = {
-//        .apps = {
-//            &hello_world_app
-//        },
-//        .services = { },
-//        .auto_start_app_id = NULL
-//    };
-//
-//    tactility_start(&config);
+_Noreturn void app_main(TT_UNUSED void* parameters) {
+    static const Config config = {
+        .apps = {
+            &hello_world_app
+        },
+        .services = {},
+        .auto_start_app_id = NULL
+    };
+
     TT_LOG_I("app", "Hello, world!");
-    return 0;
+
+    tt_lvgl_sync_set(&lvgl_lock, &lvgl_unlock);
+//    tt_init(&config);
+
+    while (true) {
+        vTaskDelay(1000);
+    }
 }

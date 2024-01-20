@@ -57,7 +57,7 @@ void service_registry_manifest_unlock() {
     tt_assert(manifest_mutex != NULL);
     tt_mutex_release(manifest_mutex);
 }
-void tt_service_registry_add(const ServiceManifest _Nonnull* manifest) {
+void tt_service_registry_add(const ServiceManifest* manifest) {
     TT_LOG_I(TAG, "adding %s", manifest->id);
 
     service_registry_manifest_lock();
@@ -65,7 +65,7 @@ void tt_service_registry_add(const ServiceManifest _Nonnull* manifest) {
     service_registry_manifest_unlock();
 }
 
-void tt_service_registry_remove(const ServiceManifest _Nonnull* manifest) {
+void tt_service_registry_remove(const ServiceManifest* manifest) {
     TT_LOG_I(TAG, "removing %s", manifest->id);
     service_registry_manifest_lock();
     ServiceManifestDict_erase(service_manifest_dict, manifest->id);

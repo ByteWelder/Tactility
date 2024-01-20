@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hardare.h"
+#include "hardware.h"
 #include "tactility.h"
 
 #ifdef __cplusplus
@@ -16,7 +16,7 @@ typedef struct {
     // Optional bootstrapping method (e.g. to turn peripherals on)
     const Bootstrap _Nullable bootstrap;
     // Required driver for display
-    const CreateDisplayDriver _Nonnull display_driver;
+    const CreateDisplayDriver display_driver;
     // Optional driver for touch input
     const CreateTouchDriver _Nullable touch_driver;
 } HardwareConfig;

@@ -39,7 +39,7 @@ void app_registry_unlock() {
     tt_mutex_release(hash_mutex);
 }
 
-void tt_app_manifest_registry_add(const AppManifest _Nonnull* manifest) {
+void tt_app_manifest_registry_add(const AppManifest* manifest) {
     TT_LOG_I(TAG, "adding %s", manifest->id);
 
     app_registry_lock();
@@ -47,7 +47,7 @@ void tt_app_manifest_registry_add(const AppManifest _Nonnull* manifest) {
     app_registry_unlock();
 }
 
-void tt_app_manifest_registry_remove(const AppManifest _Nonnull* manifest) {
+void tt_app_manifest_registry_remove(const AppManifest* manifest) {
     TT_LOG_I(TAG, "removing %s", manifest->id);
     app_registry_lock();
     AppManifestDict_erase(app_manifest_dict, manifest->id);

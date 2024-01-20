@@ -15,15 +15,15 @@ typedef struct {
 } TouchDriver;
 
 typedef struct {
-    esp_lcd_panel_io_handle_t _Nonnull io_handle;
-    esp_lcd_touch_handle_t _Nonnull touch_handle;
+    esp_lcd_panel_io_handle_t io_handle;
+    esp_lcd_touch_handle_t touch_handle;
 } TouchDevice;
 
 /**
  * @param[in] driver
  * @return a newly allocated instance
  */
-TouchDevice _Nonnull* tt_touch_alloc(TouchDriver _Nonnull* driver);
+TouchDevice* tt_touch_alloc(TouchDriver* driver);
 
 #ifdef __cplusplus
 }

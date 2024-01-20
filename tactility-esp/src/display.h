@@ -7,8 +7,8 @@ extern "C" {
 #endif
 
 typedef struct {
-    esp_lcd_panel_io_handle_t _Nonnull io_handle;
-    esp_lcd_panel_handle_t _Nonnull display_handle;
+    esp_lcd_panel_io_handle_t io_handle;
+    esp_lcd_panel_handle_t display_handle;
     uint16_t horizontal_resolution;
     uint16_t vertical_resolution;
     uint16_t draw_buffer_height;
@@ -31,7 +31,7 @@ typedef struct {
  * @param[in] driver
  * @return allocated display object
  */
-DisplayDevice _Nonnull* tt_display_device_alloc(DisplayDriver _Nonnull* driver);
+DisplayDevice* tt_display_device_alloc(DisplayDriver* driver);
 
 #ifdef __cplusplus
 }

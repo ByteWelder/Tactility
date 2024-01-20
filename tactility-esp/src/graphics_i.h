@@ -1,13 +1,13 @@
 #pragma once
 
 #include "graphics.h"
-#include "hardare.h"
+#include "hardware.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-Lvgl tt_graphics_init(Hardware _Nonnull* hardware);
+Lvgl tt_graphics_init(Hardware* hardware);
 
 #ifdef __cplusplus
 }

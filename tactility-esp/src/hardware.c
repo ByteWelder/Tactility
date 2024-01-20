@@ -4,7 +4,7 @@
 
 #define TAG "hardware"
 
-Hardware tt_hardware_init(const HardwareConfig _Nonnull* config) {
+Hardware tt_hardware_init(const HardwareConfig* config) {
     if (config->bootstrap != NULL) {
         TT_LOG_I(TAG, "Bootstrapping");
         config->bootstrap();
