@@ -6,7 +6,6 @@ build-sim/
 cmake-build-debug/
 cmake-build-release/
 CMakeCache.txt
-*.cmake
 *.cbp
 
 sdkconfig
