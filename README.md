@@ -56,10 +56,17 @@ The build scripts will detect if ESP-IDF is available. They will adapter if you 
 
 ### Development
 
+Directories explained:
+
+- `app-esp`: The ESP32 application example
+- `app-sim`: The PC/simulator application example
+- `boards`: Contains ESP modules with drivers
+- `tactility`: The main application platform code ([src/](./tactility/src))
+- `tactility-esp`: ESP-specific application code (e.g. wifi app and service)
+- `tactility-core`: Core functionality regarding threads, stdlib, etc. ([src/](./tactility-core/src))
+- `libs`: Contains a mix of regular libraries and ESP modules
+
 Until there is proper documentation, here are some pointers:
-- Sample application: [bootstrap](app-esp/src/main.c) and [app](app-esp/src/hello_world/hello_world.c)
-- [Tactility](./components/tactility): The main platform with default services and apps.
-- [Tactility Core](./tactility-core): The core platform code.
 
 ## License
 
