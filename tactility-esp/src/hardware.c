@@ -1,5 +1,5 @@
 #include "check.h"
-#include "devices_i.h"
+#include "hardware_i.h"
 #include "touch.h"
 
 #define TAG "hardware"

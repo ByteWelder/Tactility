@@ -19,7 +19,6 @@ void vAssertCalled(TT_UNUSED unsigned long line, TT_UNUSED const char* const fil
 
 int main() {
 //    static const Config config = {
-//        .hardware = NULL,
 //        .apps = {
 //            &hello_world_app
 //        },

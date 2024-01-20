@@ -7,12 +7,17 @@
 extern "C" {
 #endif
 
-TT_UNUSED void tt_init(
-    const AppManifest* const* apps,
-    size_t apps_count,
-    const ServiceManifest* const* services,
-    size_t services_count
-);
+#define CONFIG_APPS_LIMIT 32
+#define CONFIG_SERVICES_LIMIT 32
+
+typedef struct {
+    // List of user applications
+    const AppManifest* const apps[CONFIG_APPS_LIMIT];
+    const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];
+    const char* auto_start_app_id;
+} Config;
+
+TT_UNUSED void tt_init(const Config* config);
 
 #ifdef __cplusplus
 }

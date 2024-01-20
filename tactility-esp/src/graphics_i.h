@@ -1,7 +1,7 @@
 #pragma once
 
-#include "devices.h"
 #include "graphics.h"
+#include "hardare.h"
 
 #ifdef __cplusplus
 extern "C" {

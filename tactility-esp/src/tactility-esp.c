@@ -1,16 +1,15 @@
 #include "tactility.h"
 
+#include "esp_event.h"
+#include "esp_lvgl_port.h"
+#include "esp_netif.h"
 #include "graphics_i.h"
-#include "devices_i.h" // TODO: Rename to hardware*.*
+#include "hardware_i.h" // TODO: Rename to hardware*.*
 #include "nvs_flash.h"
 #include "partitions.h"
-#include "esp_lvgl_port.h"
-#include "ui/lvgl_sync.h"
-#include "services/wifi/wifi_credentials.h"
 #include "services/loader/loader.h"
-#include <sys/cdefs.h>
-#include "esp_netif.h"
-#include "esp_event.h"
+#include "services/wifi/wifi_credentials.h"
+#include "ui/lvgl_sync.h"
 
 #define TAG "tactility"
 
@@ -22,7 +21,7 @@ static void lvgl_unlock_impl() {
     lvgl_port_unlock();
 }
 
-void tt_esp_init(const Config* _Nonnull config) {
+void tt_esp_init(const HardwareConfig* hardware_config) {
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -36,14 +35,13 @@ void tt_esp_init(const Config* _Nonnull config) {
     // Network interface
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    
-    tt_partitions_init();
-    
-    tt_wifi_credentials_init();
-    
-    tt_lvgl_sync_set(&lvgl_lock_impl, &lvgl_unlock_impl);
-    
-    Hardware hardware = tt_hardware_init(config->hardware);
-    /*NbLvgl lvgl =*/tt_graphics_init(&hardware);
-}
 
+    tt_partitions_init();
+
+    tt_wifi_credentials_init();
+
+    tt_lvgl_sync_set(&lvgl_lock_impl, &lvgl_unlock_impl);
+
+    Hardware hardware = tt_hardware_init(hardware_config);
+    /*Lvgl lvgl =*/tt_graphics_init(&hardware);
+}
