@@ -1,3 +1,5 @@
+# Based on: https://github.com/jonathanmichel/FreeRTOS-CMake/blob/master/CMakeLists.txt
+
 cmake_minimum_required(VERSION 3.5)
 project(freertos-kernel C)
 

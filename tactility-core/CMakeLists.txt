@@ -11,26 +11,24 @@ target_sources(tactility-core
     PRIVATE ${SOURCES}
     PUBLIC ${HEADERS}
 )
-target_include_directories(tactility-core
+target_include_directories(tactility-core SYSTEM
     PRIVATE src/
     INTERFACE src/
 )
 
-if (DEFINED ENV{ESP_IDF_VERSION})
+if (ESP_PLATFORM)
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility-core
         PUBLIC mlib
-        PUBLIC idf::freertos
-        PRIVATE idf::mbedtls
-        PRIVATE idf::nvs_flash
-        PRIVATE idf::esp_hw_support
+        PUBLIC idf::mbedtls
+        PRIVATE idf::nvs_flash # ESP-IDF // for secure.c
     )
 else()
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
     target_link_libraries(tactility-core
-    	PRIVATE mlib
-    	PRIVATE mbedtls
-    	PRIVATE freertos-kernel
+    	PUBLIC mlib
+    	PUBLIC mbedtls
+    	PUBLIC freertos-kernel
     )
 endif()

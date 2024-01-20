@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tactility.h"
+#include "tactility-esp.h"
 
 #ifdef __cplusplus
 extern "C" {
