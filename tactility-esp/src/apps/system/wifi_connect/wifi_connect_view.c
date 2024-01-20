@@ -17,8 +17,7 @@ static void show_keyboard(lv_event_t* event) {
     lv_obj_scroll_to_view(event->current_target, LV_ANIM_ON);
 }
 
-static void hide_keyboard(lv_event_t* event) {
-    UNUSED(event);
+static void hide_keyboard(TT_UNUSED lv_event_t* event) {
     gui_keyboard_hide();
 }
 
@@ -126,11 +125,14 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     }
 }
 
-void wifi_connect_view_destroy(WifiConnectView* view) {
+void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
+    // NO-OP
 }
 
-void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state) {
-    UNUSED(view);
-    UNUSED(bindings);
-    UNUSED(state);
+void wifi_connect_view_update(
+    TT_UNUSED WifiConnectView* view,
+    TT_UNUSED WifiConnectBindings* bindings,
+    TT_UNUSED WifiConnectState* state
+) {
+    // NO-OP
 }

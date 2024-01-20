@@ -1,3 +1,6 @@
+/** @file:m_cstr_dup.h
+ * @brief Helpers for mlib
+ */
 #pragma once
 #include <m-core.h>
 

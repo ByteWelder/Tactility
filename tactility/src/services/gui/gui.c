@@ -118,8 +118,7 @@ void gui_hide_app() {
     gui_unlock();
 }
 
-static int32_t gui_main(void* p) {
-    UNUSED(p);
+static int32_t gui_main(TT_UNUSED void* p) {
     tt_check(gui);
     Gui* local_gui = gui;
 
@@ -146,18 +145,14 @@ static int32_t gui_main(void* p) {
 
 // region AppManifest
 
-static void gui_start(Service service) {
-    UNUSED(service);
-
+static void gui_start(TT_UNUSED Service service) {
     gui = gui_alloc();
 
     tt_thread_set_priority(gui->thread, ThreadPriorityNormal);
     tt_thread_start(gui->thread);
 }
 
-static void gui_stop(Service service) {
-    UNUSED(service);
-
+static void gui_stop(TT_UNUSED Service service) {
     gui_lock();
 
     ThreadId thread_id = tt_thread_get_id(gui->thread);

@@ -2,9 +2,7 @@
 #include "services/gui/gui.h"
 #include "services/loader/loader.h"
 
-static void app_show(App app, lv_obj_t* parent) {
-    UNUSED(app);
-
+static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_t* label = lv_label_create(parent);
     lv_label_set_recolor(label, true);
     lv_obj_set_width(label, 200);
