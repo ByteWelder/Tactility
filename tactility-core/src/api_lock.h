@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core.h"
+#include "event_flag.h"
 
 typedef EventFlag* ApiLock;
 

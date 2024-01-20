@@ -4,6 +4,7 @@
 #include "m_cstr_dup.h"
 #include "mutex.h"
 #include "service_i.h"
+#include "service_manifest.h"
 #include "tactility_core.h"
 
 #define TAG "service_registry"

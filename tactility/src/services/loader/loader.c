@@ -263,9 +263,7 @@ static void loader_do_stop_app() {
 }
 
 
-static int32_t loader_main(void* p) {
-    UNUSED(p);
-
+static int32_t loader_main(TT_UNUSED void* parameter) {
     LoaderMessage message;
     bool exit_requested = false;
     while (!exit_requested) {
@@ -298,8 +296,7 @@ static int32_t loader_main(void* p) {
 
 // region AppManifest
 
-static void loader_start(Service service) {
-    UNUSED(service);
+static void loader_start(TT_UNUSED Service service) {
     tt_check(loader_singleton == NULL);
     loader_singleton = loader_alloc();
 
@@ -307,8 +304,7 @@ static void loader_start(Service service) {
     tt_thread_start(loader_singleton->thread);
 }
 
-static void loader_stop(Service service) {
-    UNUSED(service);
+static void loader_stop(TT_UNUSED Service service) {
     tt_check(loader_singleton != NULL);
 
     // Send stop signal to thread and wait for thread to finish

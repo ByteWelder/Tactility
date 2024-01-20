@@ -11,7 +11,7 @@ extern const ServiceManifest wifi_service;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
-__attribute__((unused)) void app_main(void) {
+TT_UNUSED void app_main(void) {
     static const Config config = {
         /**
          * Auto-select a board based on the ./sdkconfig.board.* file
@@ -29,7 +29,6 @@ __attribute__((unused)) void app_main(void) {
         .auto_start_app_id = NULL
     };
 
-    tt_core_init();
     tt_esp_init(&config);
     tt_init(&config.apps, CONFIG_APPS_LIMIT, &config.services, CONFIG_SERVICES_LIMIT);
 

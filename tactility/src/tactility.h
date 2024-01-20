@@ -1,13 +1,14 @@
 #pragma once
 
-#include "tactility_core.h"
+#include "app_manifest.h"
+#include "service_manifest.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-__attribute__((unused)) void tt_init(
-    const AppManifest* const* _Nonnull apps,
+TT_UNUSED void tt_init(
+    const AppManifest* const* apps,
     size_t apps_count,
     const ServiceManifest* const* services,
     size_t services_count

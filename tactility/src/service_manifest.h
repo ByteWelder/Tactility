@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include "tactility_core.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,7 +15,7 @@ typedef struct {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
-    const char* _Nonnull id;
+    const char* id;
 
     /**
      * Non-blocking method to call when service is started.

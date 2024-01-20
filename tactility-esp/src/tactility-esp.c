@@ -1,6 +1,5 @@
 #include "tactility.h"
 
-#include "core.h"
 #include "graphics_i.h"
 #include "devices_i.h" // TODO: Rename to hardware*.*
 #include "nvs_flash.h"

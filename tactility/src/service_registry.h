@@ -1,6 +1,7 @@
 #pragma once
 
 #include "service_manifest.h"
+#include "tactility_core.h"
 
 #ifdef __cplusplus
 extern "C" {

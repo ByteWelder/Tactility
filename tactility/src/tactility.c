@@ -1,7 +1,6 @@
 #include "tactility.h"
 
 #include "app_manifest_registry.h"
-#include "core.h"
 #include "service_registry.h"
 
 #define TAG "tactility"
@@ -65,12 +64,15 @@ static void register_and_start_user_services(
     }
 }
 
-__attribute__((unused)) void tt_init(
+TT_UNUSED void tt_init(
     const AppManifest* const* _Nonnull apps,
     size_t apps_count,
     const ServiceManifest* const* services,
     size_t services_count
 ) {
+    tt_service_registry_init();
+    tt_app_manifest_registry_init();
+
     TT_LOG_I(TAG, "tt_init started");
     // Register all apps
     register_system_services();
@@ -83,4 +85,3 @@ __attribute__((unused)) void tt_init(
     register_and_start_user_services(services, services_count);
     TT_LOG_I(TAG, "tt_init complete");
 }
-

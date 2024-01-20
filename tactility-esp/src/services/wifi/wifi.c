@@ -155,7 +155,7 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
     } else {
         uint16_t i = 0;
         TT_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
-        uint16_t last_index = MIN(wifi_singleton->scan_list_count, limit);
+        uint16_t last_index = TT_MIN(wifi_singleton->scan_list_count, limit);
         for (; i < last_index; ++i) {
             memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
             records[i].rssi = wifi_singleton->scan_list[i].rssi;
@@ -224,8 +224,7 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
-static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-    UNUSED(arg);
+static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         TT_LOG_I(TAG, "event_handler: sta start");
         if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
@@ -397,7 +396,7 @@ static void wifi_scan_internal(Wifi* wifi) {
     esp_wifi_scan_start(NULL, true);
     uint16_t record_count = wifi->scan_list_limit;
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
-    uint16_t safe_record_count = MIN(wifi->scan_list_limit, record_count);
+    uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
     wifi->scan_list_count = safe_record_count;
     TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
     for (uint16_t i = 0; i < safe_record_count; i++) {
@@ -529,9 +528,7 @@ static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {
 }
 
 // ESP wifi APIs need to run from the main task, so we can't just spawn a thread
-_Noreturn int32_t wifi_main(void* p) {
-    UNUSED(p);
-
+_Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "Started main loop");
     tt_check(wifi_singleton != NULL);
     Wifi* wifi = wifi_singleton;
@@ -562,14 +559,12 @@ _Noreturn int32_t wifi_main(void* p) {
     }
 }
 
-static void wifi_service_start(Service service) {
-    UNUSED(service);
+static void wifi_service_start(TT_UNUSED Service service) {
     tt_check(wifi_singleton == NULL);
     wifi_singleton = wifi_alloc();
 }
 
-static void wifi_service_stop(Service service) {
-    UNUSED(service);
+static void wifi_service_stop(TT_UNUSED Service service) {
     tt_check(wifi_singleton != NULL);
 
     WifiRadioState state = wifi_singleton->radio_state;

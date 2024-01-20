@@ -1,114 +1,62 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifndef MAX
-#define MAX(a, b)               \
+#define TT_MAX(a, b)            \
     ({                          \
         __typeof__(a) _a = (a); \
         __typeof__(b) _b = (b); \
         _a > _b ? _a : _b;      \
     })
-#endif
 
-#ifndef MIN
-#define MIN(a, b)               \
+#define TT_MIN(a, b)            \
     ({                          \
         __typeof__(a) _a = (a); \
         __typeof__(b) _b = (b); \
         _a < _b ? _a : _b;      \
     })
-#endif
 
-#ifndef ABS
-#define ABS(a) ({ (a) < 0 ? -(a) : (a); })
-#endif
+#define TT_ABS(a) ({ (a) < 0 ? -(a) : (a); })
 
-#ifndef ROUND_UP_TO
-#define ROUND_UP_TO(a, b)       \
+#define TT_ROUND_UP_TO(a, b)    \
     ({                          \
         __typeof__(a) _a = (a); \
         __typeof__(b) _b = (b); \
         _a / _b + !!(_a % _b);  \
     })
-#endif
 
-#ifndef CLAMP
-#define CLAMP(x, upper, lower) (MIN(upper, MAX(x, lower)))
-#endif
+#define TT_CLAMP(x, upper, lower) (TT_MIN(upper, TT_MAX(x, lower)))
 
-#ifndef COUNT_OF
-#define COUNT_OF(x) (sizeof(x) / sizeof(x[0]))
-#endif
+#define TT_COUNT_OF(x) (sizeof(x) / sizeof(x[0]))
 
-#ifndef TT_SWAP
-#define TT_SWAP(x, y)     \
+#define TT_SWAP(x, y)       \
     do {                    \
         typeof(x) SWAP = x; \
         x = y;              \
         y = SWAP;           \
     } while (0)
-#endif
 
-#ifndef PLACE_IN_SECTION
-#define PLACE_IN_SECTION(x) __attribute__((section(x)))
-#endif
+#define TT_STRINGIFY(x) #x
 
-#ifndef ALIGN
-#define ALIGN(n) __attribute__((aligned(n)))
-#endif
+#define TT_TOSTRING(x) TT_STRINGIFY(x)
 
-#ifndef __weak
-#define __weak __attribute__((weak))
-#endif
+#define TT_CONCATENATE(a, b) CONCATENATE_(a, b)
+#define TT_CONCATENATE_(a, b) a##b
 
-#ifndef UNUSED
-#define UNUSED(X) (void)(X)
-#endif
-
-#ifndef STRINGIFY
-#define STRINGIFY(x) #x
-#endif
-
-#ifndef TOSTRING
-#define TOSTRING(x) STRINGIFY(x)
-#endif
-
-#ifndef CONCATENATE
-#define CONCATENATE(a, b) CONCATENATE_(a, b)
-#define CONCATENATE_(a, b) a##b
-#endif
-
-#ifndef REVERSE_BYTES_U32
-#define REVERSE_BYTES_U32(x)                                                              \
+#define TT_REVERSE_BYTES_U32(x)                                                           \
     ((((x) & 0x000000FF) << 24) | (((x) & 0x0000FF00) << 8) | (((x) & 0x00FF0000) >> 8) | \
      (((x) & 0xFF000000) >> 24))
-#endif
 
-#ifndef TT_BIT
 #define TT_BIT(x, n) (((x) >> (n)) & 1)
-#endif
 
-#ifndef TT_BIT_SET
-#define TT_BIT_SET(x, n)      \
+#define TT_BIT_SET(x, n)        \
     ({                          \
         __typeof__(x) _x = (1); \
         (x) |= (_x << (n));     \
     })
-#endif
 
-#ifndef TT_BIT_CLEAR
-#define TT_BIT_CLEAR(x, n)    \
+#define TT_BIT_CLEAR(x, n)      \
     ({                          \
         __typeof__(x) _x = (1); \
         (x) &= ~(_x << (n));    \
     })
-#endif
 
 #define TT_SW_MEMBARRIER() asm volatile("" : : : "memory")
-
-#ifdef __cplusplus
-}
-#endif

@@ -12,8 +12,7 @@
 // Forward declarations
 static void wifi_connect_event_callback(const void* message, void* context);
 
-static void on_connect(const char* ssid, const char* password, void* parameter) {
-    UNUSED(parameter);
+static void on_connect(const char* ssid, const char* password, TT_UNUSED void* parameter) {
     wifi_connect(ssid, password);
 }
 
