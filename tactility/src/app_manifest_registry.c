@@ -21,7 +21,7 @@ DICT_DEF2(AppManifestDict, const char*, M_CSTR_DUP_OPLIST, const AppManifest*, M
     }
 
 AppManifestDict_t app_manifest_dict;
-Mutex* hash_mutex = NULL;
+Mutex hash_mutex = NULL;
 
 void tt_app_manifest_registry_init() {
     tt_assert(hash_mutex == NULL);

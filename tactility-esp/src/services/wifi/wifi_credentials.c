@@ -11,33 +11,38 @@
 #define TT_NVS_NAMESPACE "tt_wifi_cred" // limited by NVS_KEY_NAME_MAX_SIZE
 #define TT_NVS_PARTITION "nvs"
 
-static void tt_wifi_credentials_mutex_lock();
-static void tt_wifi_credentials_mutex_unlock();
+static void hash_reset_all();
 
 // region Hash
 
-static Mutex* hash_mutex = NULL;
-static int8_t ssid_hash_index = -1;
-static uint32_t ssid_hashes[TT_WIFI_CREDENTIALS_LIMIT] = { 0 };
+static Mutex hash_mutex = NULL;
+static int8_t hash_index = -1;
+static uint32_t hashes[TT_WIFI_CREDENTIALS_LIMIT] = { 0 };
+
+static void hash_init() {
+    tt_assert(hash_mutex == NULL);
+    hash_mutex = tt_mutex_alloc(MutexTypeNormal);
+    hash_reset_all();
+}
+
+static void tt_hash_mutex_lock() {
+    tt_assert(tt_mutex_acquire(hash_mutex, 100) == TtStatusOk);
+}
+
+static void tt_hash_mutex_unlock() {
+    tt_assert(tt_mutex_release(hash_mutex) == TtStatusOk);
+}
 
 static int hash_find_value(uint32_t hash) {
-    tt_wifi_credentials_mutex_lock();
-    for (int i = 0; i < ssid_hash_index; ++i) {
-        if (ssid_hashes[i] == hash) {
+    tt_hash_mutex_lock();
+    for (int i = 0; i < hash_index; ++i) {
+        if (hashes[i] == hash) {
+            tt_hash_mutex_unlock();
             return i;
         }
     }
-    tt_wifi_credentials_mutex_unlock();
+    tt_hash_mutex_unlock();
     return -1;
-}
-
-static int hash_find_string(const char* ssid) {
-    uint32_t hash = tt_hash_string_djb2(ssid);
-    return hash_find_value(hash);
-}
-
-static bool hash_contains_string(const char* ssid) {
-    return hash_find_string(ssid) != -1;
 }
 
 static bool hash_contains_value(uint32_t value) {
@@ -47,29 +52,21 @@ static bool hash_contains_value(uint32_t value) {
 static void hash_add(const char* ssid) {
     uint32_t hash = tt_hash_string_djb2(ssid);
     if (!hash_contains_value(hash)) {
-        tt_wifi_credentials_mutex_lock();
-        tt_check((ssid_hash_index + 1) < TT_WIFI_CREDENTIALS_LIMIT, "exceeding wifi credentials list size");
-        ssid_hash_index++;
-        ssid_hashes[ssid_hash_index] = hash;
-        tt_wifi_credentials_mutex_unlock();
+        tt_hash_mutex_lock();
+        tt_check((hash_index + 1) < TT_WIFI_CREDENTIALS_LIMIT, "exceeding wifi credentials list size");
+        hash_index++;
+        hashes[hash_index] = hash;
+        tt_hash_mutex_unlock();
     }
 }
 
 static void hash_reset_all() {
-    ssid_hash_index = -1;
+    hash_index = -1;
 }
 
 // endregion Hash
 
 // region Wi-Fi Credentials - static
-
-static void tt_wifi_credentials_mutex_lock() {
-    tt_mutex_acquire(hash_mutex, TtWaitForever);
-}
-
-static void tt_wifi_credentials_mutex_unlock() {
-    tt_mutex_release(hash_mutex);
-}
 
 static esp_err_t tt_wifi_credentials_nvs_open(nvs_handle_t* handle, nvs_open_mode_t mode) {
     return nvs_open(TT_NVS_NAMESPACE, NVS_READWRITE, handle);
@@ -122,11 +119,8 @@ bool tt_wifi_credentials_contains(const char* ssid) {
 }
 
 void tt_wifi_credentials_init() {
-    hash_reset_all();
-
-    if (hash_mutex == NULL) {
-        hash_mutex = tt_mutex_alloc(MutexTypeRecursive);
-    }
+    TT_LOG_I(TAG, "init started");
+    hash_init();
 
     nvs_handle_t handle;
     esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READWRITE);
@@ -146,6 +140,7 @@ void tt_wifi_credentials_init() {
     nvs_release_iterator(iterator);
 
     tt_wifi_credentials_nvs_close(handle);
+    TT_LOG_I(TAG, "init finished");
 }
 
 bool tt_wifi_credentials_get(const char* ssid, char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT]) {

@@ -17,7 +17,7 @@
 
 typedef struct {
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex* mutex;
+    Mutex mutex;
     /** @brief The public event bus */
     PubSub* pubsub;
     /** @brief The internal message queue */

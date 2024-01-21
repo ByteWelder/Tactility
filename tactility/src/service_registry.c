@@ -25,8 +25,8 @@ DICT_DEF2(ServiceInstanceDict, const char*, M_CSTR_DUP_OPLIST, const ServiceData
 
 static ServiceManifestDict_t service_manifest_dict;
 static ServiceInstanceDict_t service_instance_dict;
-static Mutex* manifest_mutex = NULL;
-static Mutex* instance_mutex = NULL;
+static Mutex manifest_mutex = NULL;
+static Mutex instance_mutex = NULL;
 
 void tt_service_registry_init() {
     tt_assert(manifest_mutex == NULL);

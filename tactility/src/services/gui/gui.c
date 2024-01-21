@@ -30,7 +30,7 @@ Gui* gui_alloc() {
         &gui_main,
         NULL
     );
-    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    instance->mutex = tt_mutex_alloc(MutexTypeNormal);
     instance->keyboard = NULL;
 
     tt_check(tt_lvgl_lock(100));

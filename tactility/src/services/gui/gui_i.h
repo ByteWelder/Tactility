@@ -17,7 +17,7 @@
 struct Gui {
     // Thread and lock
     Thread* thread;
-    Mutex* mutex;
+    Mutex mutex;
 
     // Layers and Canvas
     lv_obj_t* lvgl_parent;

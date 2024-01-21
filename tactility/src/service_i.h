@@ -6,7 +6,7 @@
 #include "service_manifest.h"
 
 typedef struct {
-    Mutex* mutex;
+    Mutex mutex;
     const ServiceManifest* manifest;
     void* data;
 } ServiceData;

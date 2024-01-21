@@ -21,11 +21,11 @@ typedef enum {
 typedef enum {
     ThreadPriorityNone = 0,     /**< Uninitialized, choose system default */
     ThreadPriorityIdle = 1,     /**< Idle priority */
-    ThreadPriorityLowest = 14,  /**< Lowest */
-    ThreadPriorityLow = 15,     /**< Low */
-    ThreadPriorityNormal = 16,  /**< Normal */
-    ThreadPriorityHigh = 17,    /**< High */
-    ThreadPriorityHighest = 18, /**< Highest */
+    ThreadPriorityLowest = 2,  /**< Lowest */
+    ThreadPriorityLow = 3,     /**< Low */
+    ThreadPriorityNormal = 4,  /**< Normal */
+    ThreadPriorityHigh = 5,    /**< High */
+    ThreadPriorityHighest = 6, /**< Highest */
     ThreadPriorityIsr =
         (TT_CONFIG_THREAD_MAX_PRIORITIES - 1), /**< Deferred ISR (highest possible) */
 } ThreadPriority;

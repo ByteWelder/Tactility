@@ -8,7 +8,7 @@ ServiceData* tt_service_alloc(const ServiceManifest* manifest) {
     ServiceData* data = malloc(sizeof(ServiceData));
     *data = (ServiceData) {
         .manifest = manifest,
-        .mutex = tt_mutex_alloc(MutexTypeRecursive),
+        .mutex = tt_mutex_alloc(MutexTypeNormal),
         .data = NULL
     };
     return data;
@@ -25,7 +25,7 @@ void tt_service_free(ServiceData* data) {
 // region Internal
 
 static void tt_service_lock(ServiceData * data) {
-    tt_mutex_acquire(data->mutex, MutexTypeRecursive);
+    tt_mutex_acquire(data->mutex, TtWaitForever);
 }
 
 static void tt_service_unlock(ServiceData* data) {
