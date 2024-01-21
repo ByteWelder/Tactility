@@ -57,7 +57,7 @@ if (NOT ESP_PLATFORM)
 
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-    find_package(SDL2 REQUIRED SDL2)
+    find_package(SDL2 REQUIRED CONFIG)
 
     add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
     add_compile_definitions($<$<BOOL:${LV_USE_LIBPNG}>:LV_USE_LIBPNG=1>)
