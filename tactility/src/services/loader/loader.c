@@ -272,7 +272,6 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
-                    // TODO: add bundle
                     message.status_value->value = loader_do_start_by_id(
                         message.start.id,
                         message.start.bundle
