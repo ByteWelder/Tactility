@@ -1,3 +1,10 @@
+/**
+ * This configuration follows the ESP32 config closely.
+ * Some parameters are explicitly marked as important,
+ * but most parameters should match.
+ *
+ * See $IDF_PATH/components/freertos/esp_additions/include/freertos/FreeRTOSConfig.h
+ */
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
@@ -6,7 +13,7 @@
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      60000000
 #define configSYSTICK_CLOCK_HZ                  1000000
-#define configTICK_RATE_HZ                      1000
+#define configTICK_RATE_HZ                      1000 // Must be the same as ESP32!
 #define configMAX_PRIORITIES                    10
 #define configMINIMAL_STACK_SIZE                128
 #define configMAX_TASK_NAME_LEN                 16
@@ -14,7 +21,7 @@
 #define configTICK_TYPE_WIDTH_IN_BITS           TICK_TYPE_WIDTH_16_BITS
 #define configIDLE_SHOULD_YIELD                 1
 #define configUSE_TASK_NOTIFICATIONS            1
-#define configTASK_NOTIFICATION_ARRAY_ENTRIES   2
+#define configTASK_NOTIFICATION_ARRAY_ENTRIES   2 // Must be the same as ESP32!
 #define configUSE_MUTEXES                       1
 #define configUSE_RECURSIVE_MUTEXES             1
 #define configUSE_COUNTING_SEMAPHORES           1
@@ -89,6 +96,7 @@
 #define secureconfigMAX_SECURE_CONTEXTS         5
 
 /* Optional functions - most linkers will remove unused functions anyway. */
+/* Ensure these are closely match ESP32: you can activate more features, but not less. */
 #define INCLUDE_vTaskPrioritySet                1
 #define INCLUDE_uxTaskPriorityGet               1
 #define INCLUDE_vTaskDelete                     1
