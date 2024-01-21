@@ -1,13 +1,13 @@
 #pragma once
 
-#include <stdint.h>
 #include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void lvgl_hal_init();
+bool lvgl_is_ready();
+void lvgl_interrupt();
 
 #ifdef __cplusplus
 }

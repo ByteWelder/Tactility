@@ -345,7 +345,7 @@ static void window_create(monitor_t * m)
     flag |= SDL_WINDOW_FULLSCREEN;
 #endif
 
-    m->window = SDL_CreateWindow("TFT Simulator",
+    m->window = SDL_CreateWindow(SDL_WINDOW_NAME,
                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               SDL_HOR_RES * SDL_ZOOM, SDL_VER_RES * SDL_ZOOM, flag);       /*last param. SDL_WINDOW_BORDERLESS to hide borders*/
 

@@ -8,9 +8,7 @@
 
 #define TAG "main"
 
-void lvgl_task(TT_UNUSED void* parameter);
-
-_Noreturn void app_main(TT_UNUSED void* parameters) {
+_Noreturn void app_main() {
     static const Config config = {
         .apps = {
             &hello_world_app
@@ -21,8 +19,7 @@ _Noreturn void app_main(TT_UNUSED void* parameters) {
 
     TT_LOG_I("app", "Hello, world!");
 
-    tt_lvgl_sync_set(&lvgl_lock, &lvgl_unlock);
-//    tt_init(&config);
+    tt_init(&config);
 
     while (true) {
         vTaskDelay(1000);

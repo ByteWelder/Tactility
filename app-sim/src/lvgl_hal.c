@@ -2,21 +2,9 @@
 
 #include "lvgl.h"
 #include "tactility_core.h"
-#include "thread.h"
 #include <sdl/sdl.h>
-#include <stdbool.h>
-
-#include "FreeRTOS.h"
-#include "semphr.h"
 
 #define TAG "lvgl_hal"
-
-extern const lv_img_dsc_t mouse_cursor_icon;
-static void lvgl_task_deinit();
-
-static QueueHandle_t lvgl_mutex = NULL;
-static uint32_t task_max_sleep_ms = 100;
-static bool task_running = true;
 
 #define BUFFER_SIZE (SDL_HOR_RES * SDL_VER_RES * 3)
 
@@ -76,70 +64,12 @@ static lv_disp_t* hal_init() {
     lv_indev_t* enc_indev = lv_indev_drv_register(&indev_drv_3);
     lv_indev_set_group(enc_indev, g);
 
-    /*Set a cursor for the mouse*/
-    LV_IMG_DECLARE(mouse_cursor_icon);                  /*Declare the image file.*/
-    lv_obj_t* cursor_obj = lv_img_create(lv_scr_act()); /*Create an image object for the cursor */
-    lv_img_set_src(cursor_obj, &mouse_cursor_icon);     /*Set the image source*/
-    lv_indev_set_cursor(mouse_indev, cursor_obj);       /*Connect the image  object to the driver*/
     return disp;
 }
 
-static void lvgl_init() {
+void lvgl_hal_init() {
     TT_LOG_I(TAG, "init: started");
     lv_init();
     hal_init();
-    tt_check(lvgl_mutex == NULL);
-    TT_LOG_D(TAG, "init: creating mutex");
-    lvgl_mutex = xSemaphoreCreateRecursiveMutex();
-    //    TT_LOG_D(TAG, "init: starting task");
-    //    xTaskCreate(lvgl_task, "lvgl_task", 9192, NULL, 3, NULL);
     TT_LOG_I(TAG, "init: complete");
-}
-
-void lvgl_task(TT_UNUSED void* arg) {
-    lvgl_init();
-
-    uint32_t task_delay_ms = task_max_sleep_ms;
-
-    task_running = true;
-    while (task_running) {
-        if (lvgl_lock(0)) {
-            task_delay_ms = lv_timer_handler();
-            lvgl_unlock();
-        }
-        if ((task_delay_ms > task_max_sleep_ms) || (1 == task_delay_ms)) {
-            task_delay_ms = task_max_sleep_ms;
-        } else if (task_delay_ms < 1) {
-            task_delay_ms = 1;
-        }
-        vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
-    }
-
-    lvgl_task_deinit();
-
-    /* Close task */
-    vTaskDelete(NULL);
-}
-
-static void lvgl_task_deinit() {
-    if (lvgl_mutex) {
-        vSemaphoreDelete(lvgl_mutex);
-    }
-#if LV_ENABLE_GC || !LV_MEM_CUSTOM
-    lv_deinit();
-#endif
-}
-
-void lvgl_interrupt() {
-    tt_check(lvgl_lock(TtWaitForever));
-    task_running = false;
-    lvgl_unlock();
-}
-
-bool lvgl_lock(int timeout_ticks) {
-    return xSemaphoreTakeRecursive(lvgl_mutex, timeout_ticks) == pdTRUE;
-}
-
-void lvgl_unlock() {
-    xSemaphoreGiveRecursive(lvgl_mutex);
 }
