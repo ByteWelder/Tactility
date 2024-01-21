@@ -10,7 +10,7 @@ extern "C" {
 
 typedef struct {
     PubSubSubscription* wifi_subscription;
-    Mutex* mutex;
+    Mutex mutex;
     WifiManageState state;
     WifiManageView view;
     bool view_enabled;

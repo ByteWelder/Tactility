@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    lv_disp_t* _Nonnull disp;
+    lv_disp_t* disp;
     lv_indev_t* _Nullable touch_indev;
 } Lvgl;
 

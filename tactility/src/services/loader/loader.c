@@ -169,7 +169,7 @@ static void app_transition_to_state(App app, AppState state) {
 }
 
 LoaderStatus loader_do_start_app_with_manifest(
-    const AppManifest* _Nonnull manifest,
+    const AppManifest* manifest,
     Bundle* _Nullable bundle
 ) {
     TT_LOG_I(TAG, "start with manifest %s", manifest->id);

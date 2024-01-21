@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    DisplayDevice* _Nonnull display;
+    DisplayDevice* display;
     TouchDevice* _Nullable touch;
 } Hardware;
 

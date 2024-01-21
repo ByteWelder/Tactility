@@ -5,7 +5,7 @@
 
 #define TAG "lvgl"
 
-Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
+Lvgl tt_graphics_init(Hardware* hardware) {
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = 4,
         .task_stack = 8096,
@@ -15,7 +15,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
     };
 
     tt_check(lvgl_port_init(&lvgl_cfg) == ESP_OK, "lvgl port init failed");
-    DisplayDevice _Nonnull* display = hardware->display;
+    DisplayDevice* display = hardware->display;
 
     // Add display
     TT_LOG_I(TAG, "lvgl add display");
@@ -37,7 +37,7 @@ Lvgl tt_graphics_init(Hardware _Nonnull* hardware) {
         }
     };
 
-    lv_disp_t _Nonnull* disp = lvgl_port_add_disp(&disp_cfg);
+    lv_disp_t* disp = lvgl_port_add_disp(&disp_cfg);
     tt_check(disp != NULL, "failed to add display");
 
     lv_indev_t _Nullable* touch_indev = NULL;

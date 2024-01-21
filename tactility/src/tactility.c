@@ -74,7 +74,6 @@ TT_UNUSED void tt_init(const Config* config) {
     start_system_services();
     register_and_start_user_services(config->services);
 
-
     TT_LOG_I(TAG, "tt_init starting desktop app");
     loader_start_app(desktop_app.id, true, NULL);
 

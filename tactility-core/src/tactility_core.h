@@ -9,4 +9,5 @@
 #include "core_types.h"
 #include "critical.h"
 #include "event_flag.h"
+#include "kernel.h"
 #include "log.h"

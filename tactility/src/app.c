@@ -10,7 +10,7 @@ static AppFlags tt_app_get_flags_default(AppType type);
 App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
     AppData* data = malloc(sizeof(AppData));
     *data = (AppData) {
-        .mutex = tt_mutex_alloc(MutexTypeRecursive),
+        .mutex = tt_mutex_alloc(MutexTypeNormal),
         .state = APP_STATE_INITIAL,
         .flags = tt_app_get_flags_default(manifest->type),
         .manifest = manifest,
@@ -34,7 +34,7 @@ void tt_app_free(App app) {
 // region Internal
 
 static void tt_app_lock(AppData* data) {
-    tt_mutex_acquire(data->mutex, MutexTypeRecursive);
+    tt_mutex_acquire(data->mutex, TtWaitForever);
 }
 
 static void tt_app_unlock(AppData* data) {

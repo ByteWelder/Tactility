@@ -19,7 +19,7 @@ struct PubSub {
 PubSub* tt_pubsub_alloc() {
     PubSub* pubsub = malloc(sizeof(PubSub));
 
-    pubsub->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    pubsub->mutex = tt_mutex_alloc(MutexTypeNormal);
     tt_assert(pubsub->mutex);
 
     PubSubSubscriptionList_init(pubsub->items);

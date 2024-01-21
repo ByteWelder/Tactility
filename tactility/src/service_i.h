@@ -6,10 +6,10 @@
 #include "service_manifest.h"
 
 typedef struct {
-    Mutex* mutex;
+    Mutex mutex;
     const ServiceManifest* manifest;
     void* data;
 } ServiceData;
 
-ServiceData* tt_service_alloc(const ServiceManifest* _Nonnull manifest);
-void tt_service_free(ServiceData* _Nonnull service);
+ServiceData* tt_service_alloc(const ServiceManifest* manifest);
+void tt_service_free(ServiceData* service);

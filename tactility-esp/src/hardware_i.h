@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-Hardware tt_hardware_init(const HardwareConfig _Nonnull* config);
+Hardware tt_hardware_init(const HardwareConfig* config);
 
 #ifdef __cplusplus
 }

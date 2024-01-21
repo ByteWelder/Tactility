@@ -14,6 +14,5 @@ elseif(MICROPY_DIR)
   include(${CMAKE_CURRENT_LIST_DIR}/env_support/cmake/micropython.cmake)
 else()
   include(${CMAKE_CURRENT_LIST_DIR}/env_support/cmake/custom.cmake)
-  include(${CMAKE_CURRENT_LIST_DIR}/env_support/cmake/custom_simple_config.cmake)
 endif()
 
