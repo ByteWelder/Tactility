@@ -4,7 +4,7 @@
 #include "esp_lvgl_port.h"
 #include "esp_netif.h"
 #include "graphics_i.h"
-#include "hardware_i.h" // TODO: Rename to hardware*.*
+#include "hardware_i.h"
 #include "nvs_flash.h"
 #include "partitions.h"
 #include "services/loader/loader.h"
