@@ -37,12 +37,23 @@ add_subdirectory(tactility-core)
 
 if (NOT ESP_PLATFORM)
     add_subdirectory(libs/freertos-kernel)
+    target_include_directories(freertos-kernel
+        PUBLIC app-sim/src # for FreeRTOSConfig.h
+    )
+
     add_subdirectory(libs/mbedtls)
     add_subdirectory(app-sim)
 
-    # region LVGL
+    # region SDL & LVGL
+
+    find_package(SDL2 REQUIRED CONFIG)
 
     add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
+    target_include_directories(lvgl
+        PUBLIC ${SDL2_INCLUDE_DIRS}
+        PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
+    )
+
     add_subdirectory(libs/lv_drivers)
 
     option(LV_USE_DRAW_SDL "Use SDL draw unit" OFF)
@@ -57,17 +68,10 @@ if (NOT ESP_PLATFORM)
 
     set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
-    find_package(SDL2 REQUIRED CONFIG)
-
     add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
     add_compile_definitions($<$<BOOL:${LV_USE_LIBPNG}>:LV_USE_LIBPNG=1>)
     add_compile_definitions($<$<BOOL:${LV_USE_LIBJPEG_TURBO}>:LV_USE_LIBJPEG_TURBO=1>)
     add_compile_definitions($<$<BOOL:${LV_USE_FFMPEG}>:LV_USE_FFMPEG=1>)
-
-    target_include_directories(lvgl
-        PUBLIC ${SDL2_INCLUDE_DIRS}
-        PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
-    )
 
     if (LV_USE_DRAW_SDL)
         set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
@@ -104,5 +108,5 @@ if (NOT ESP_PLATFORM)
         target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
     endif(LV_USE_FREETYPE)
 
-    #endregion
+    # endregion SDL & LVGL
 endif()
