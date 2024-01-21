@@ -19,4 +19,6 @@ jobs:
       - name: Prepare Project
         run: cmake -S ./ -B build
       - name: Build Project
+        env:
+          USE_SDL_WITH_NAMESPACE: true
         run: cmake --build build

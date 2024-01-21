@@ -7,11 +7,11 @@ target_link_libraries(app-sim
     PRIVATE tactility-core
     PRIVATE lvgl
     PRIVATE lv_drivers
-    PRIVATE SDL2
 )
 
-target_link_libraries(app-sim ${SDL2_LIBRARY})
-include_directories(${SDL2_INCLUDE_DIR})
+find_package(SDL2 REQUIRED CONFIG)
+target_link_libraries(app-sim PRIVATE ${SDL2_LIBRARIES})
+include_directories(${SDL2_INCLUDE_DIRS})
 
 add_definitions(-D_Nullable=)
 add_definitions(-D_Nonnull=)
