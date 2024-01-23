@@ -9,6 +9,9 @@
 #elif defined(CONFIG_TT_BOARD_YELLOW_BOARD_24_CAP)
 #include "yellow_board.h"
 #define TT_BOARD_HARDWARE &yellow_board_24inch_cap
+#elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH)
+#include "waveshare_s3_touch.h"
+#define TT_BOARD_HARDWARE &waveshare_s3_touch
 #else
 #define TT_BOARD_HARDWARE NULL
 #error Replace TT_BOARD_HARDWARE in main.c with your own. Or copy one of the ./sdkconfig.board.* files into ./sdkconfig.

@@ -4,7 +4,7 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_log.h"
-#include "tactility-esp.h"
+#include "esp_lvgl_port.h"
 
 #define TAG "lilygo_tdeck_display"
 
@@ -57,7 +57,7 @@ static void tdeck_backlight() {
     ESP_ERROR_CHECK(ledc_set_duty(LCD_BACKLIGHT_LEDC_MODE, LCD_BACKLIGHT_LEDC_CHANNEL, LCD_BACKLIGHT_LEDC_DUTY));
 }
 
-static bool create_display_device(DisplayDevice* display) {
+lv_disp_t* lilygo_tdeck_init_display() {
     ESP_LOGI(TAG, "creating display");
 
     int draw_buffer_size = LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8);
@@ -96,7 +96,8 @@ static bool create_display_device(DisplayDevice* display) {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST, &panel_io_config, &display->io_handle) != ESP_OK) {
+    esp_lcd_panel_io_handle_t io_handle;
+    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST, &panel_io_config, &io_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to create panel IO");
         return false;
     }
@@ -113,56 +114,61 @@ static bool create_display_device(DisplayDevice* display) {
         .vendor_config = NULL
     };
 
-    if (esp_lcd_new_panel_st7789(display->io_handle, &panel_config, &display->display_handle) != ESP_OK) {
+    esp_lcd_panel_handle_t panel_handle;
+    if (esp_lcd_new_panel_st7789(io_handle, &panel_config, &panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to create panel");
         return false;
     }
 
-    if (esp_lcd_panel_reset(display->display_handle) != ESP_OK) {
+    if (esp_lcd_panel_reset(panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to reset panel");
         return false;
     }
 
-    if (esp_lcd_panel_init(display->display_handle) != ESP_OK) {
+    if (esp_lcd_panel_init(panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_invert_color(display->display_handle, true) != ESP_OK) {
+    if (esp_lcd_panel_invert_color(panel_handle, true) != ESP_OK) {
         ESP_LOGD(TAG, "failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_swap_xy(display->display_handle, true) != ESP_OK) {
+    if (esp_lcd_panel_swap_xy(panel_handle, true) != ESP_OK) {
         ESP_LOGD(TAG, "failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_mirror(display->display_handle, true, false) != ESP_OK) {
+    if (esp_lcd_panel_mirror(panel_handle, true, false) != ESP_OK) {
         ESP_LOGD(TAG, "failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_disp_on_off(display->display_handle, true) != ESP_OK) {
+    if (esp_lcd_panel_disp_on_off(panel_handle, true) != ESP_OK) {
         ESP_LOGD(TAG, "failed to turn display on");
         return false;
     }
 
-    display->horizontal_resolution = LCD_HORIZONTAL_RESOLUTION;
-    display->vertical_resolution = LCD_VERTICAL_RESOLUTION;
-    display->draw_buffer_height = LCD_DRAW_BUFFER_HEIGHT;
-    display->bits_per_pixel = LCD_BITS_PER_PIXEL;
-    display->monochrome = false;
-    display->double_buffering = false;
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = io_handle,
+        .panel_handle = panel_handle,
+        .buffer_size = LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8),
+        .double_buffer = false,
+        .hres = LCD_HORIZONTAL_RESOLUTION,
+        .vres = LCD_VERTICAL_RESOLUTION,
+        .monochrome = false,
+        .rotation = {
+            .swap_xy = true, // TODO: check if code above is still needed
+            .mirror_x = true,
+            .mirror_y = false,
+        },
+        .flags = {
+            .buff_dma = true,
+        }
+    };
 
     tdeck_backlight();
 
-    return true;
-}
-
-DisplayDriver lilygo_tdeck_display_driver() {
-    return (DisplayDriver) {
-        .name = "lilygo_tdeck_display",
-        .create_display_device = &create_display_device
-    };
+    return lvgl_port_add_disp(&disp_cfg);
 }

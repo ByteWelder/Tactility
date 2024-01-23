@@ -1,9 +1,12 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 #include "kernel.h"
+#include "esp_lvgl_port.h"
 
 #define TAG "lilygo_tdeck_bootstrap"
 #define TDECK_PERI_POWERON GPIO_NUM_10
+
+lv_disp_t* lilygo_tdeck_init_display();
 
 static void tdeck_power_on() {
     ESP_LOGI(TAG, "power on");

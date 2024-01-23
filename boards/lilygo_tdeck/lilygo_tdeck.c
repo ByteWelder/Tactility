@@ -1,7 +1,10 @@
 #include "lilygo_tdeck.h"
+#include <stdbool.h>
+
+bool lilygo_tdeck_bootstrap();
+bool lilygo_init_lvgl();
 
 const HardwareConfig lilygo_tdeck = {
     .bootstrap = &lilygo_tdeck_bootstrap,
-    .display_driver = &lilygo_tdeck_display_driver,
-    .touch_driver = &lilygo_tdeck_touch_driver
+    .init_lvgl = &lilygo_init_lvgl
 };

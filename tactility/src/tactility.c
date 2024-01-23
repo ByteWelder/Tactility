@@ -1,6 +1,7 @@
 #include "tactility.h"
 
 #include "app_manifest_registry.h"
+#include "hardware_i.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
 
@@ -60,10 +61,13 @@ static void register_and_start_user_services(const ServiceManifest* const servic
 }
 
 TT_UNUSED void tt_init(const Config* config) {
+    TT_LOG_I(TAG, "tt_init started");
+
     tt_service_registry_init();
     tt_app_manifest_registry_init();
 
-    TT_LOG_I(TAG, "tt_init started");
+    tt_hardware_init(config->hardware);
+
     // Register all apps
     register_system_services();
     register_system_apps();

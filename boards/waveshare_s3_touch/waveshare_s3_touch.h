@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 // Capacitive touch version of the 2.4" yellow board
-extern const HardwareConfig yellow_board_24inch_cap;
+extern const HardwareConfig waveshare_s3_touch;
 
 #ifdef __cplusplus
 }

@@ -4,9 +4,12 @@
 #include "esp_lcd_ili9341.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
+#include "esp_lvgl_port.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
-#include "tactility-esp.h"
+#include "hal/lv_hal_disp.h"
+#include "tactility_esp.h"
+#include <esp_lcd_panel_io.h>
 
 #define TAG "2432s024_ili9341"
 
@@ -24,7 +27,7 @@ static SemaphoreHandle_t refresh_finish = NULL;
 #define LCD_BITS_PER_PIXEL 16
 #define LCD_DRAW_BUFFER_HEIGHT (LCD_VERTICAL_RESOLUTION / 10)
 
-static bool create_display_device(DisplayDevice* display) {
+lv_disp_t* yellow_board_init_display() {
     ESP_LOGI(TAG, "creating display");
 
     gpio_config_t io_conf = {
@@ -55,7 +58,8 @@ static bool create_display_device(DisplayDevice* display) {
         NULL
     );
 
-    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST, &panel_io_config, &display->io_handle) != ESP_OK) {
+    esp_lcd_panel_io_handle_t io_handle;
+    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)LCD_SPI_HOST, &panel_io_config, &io_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to create panel");
         return false;
     }
@@ -67,36 +71,28 @@ static bool create_display_device(DisplayDevice* display) {
         .bits_per_pixel = LCD_BITS_PER_PIXEL,
     };
 
-    if (esp_lcd_new_panel_ili9341(display->io_handle, &panel_config, &display->display_handle) != ESP_OK) {
+    esp_lcd_panel_handle_t panel_handle;
+    if (esp_lcd_new_panel_ili9341(io_handle, &panel_config, &panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to create ili9341");
         return false;
     }
 
-
-    if (esp_lcd_panel_reset(display->display_handle) != ESP_OK) {
+    if (esp_lcd_panel_reset(panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to reset panel");
         return false;
     }
 
-    if (esp_lcd_panel_init(display->display_handle) != ESP_OK) {
+    if (esp_lcd_panel_init(panel_handle) != ESP_OK) {
         ESP_LOGD(TAG, "failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_mirror(display->display_handle, true, false) != ESP_OK) {
+    if (esp_lcd_panel_mirror(panel_handle, true, false) != ESP_OK) {
         ESP_LOGD(TAG, "failed to set panel to mirror");
-        display->mirror_x = true;
-        display->mirror_y = false;
         return false;
     }
 
-    if (esp_lcd_panel_swap_xy(display->display_handle, false) != ESP_OK) {
-        ESP_LOGD(TAG, "failed to set panel xy swap");
-        display->swap_xy = false;
-        return false;
-    }
-
-    if (esp_lcd_panel_disp_on_off(display->display_handle, true) != ESP_OK) {
+    if (esp_lcd_panel_disp_on_off(panel_handle, true) != ESP_OK) {
         ESP_LOGD(TAG, "failed to turn display on");
         return false;
     }
@@ -106,19 +102,23 @@ static bool create_display_device(DisplayDevice* display) {
         return false;
     }
 
-    display->horizontal_resolution = LCD_HORIZONTAL_RESOLUTION;
-    display->vertical_resolution = LCD_VERTICAL_RESOLUTION;
-    display->draw_buffer_height = LCD_DRAW_BUFFER_HEIGHT;
-    display->bits_per_pixel = LCD_BITS_PER_PIXEL;
-    display->monochrome = false;
-    display->double_buffering = true;
-
-    return true;
-}
-
-DisplayDriver board_2432s024_create_display_driver() {
-    return (DisplayDriver) {
-        .name = "ili9341_2432s024",
-        .create_display_device = &create_display_device
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = io_handle,
+        .panel_handle = panel_handle,
+        .buffer_size = LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8),
+        .double_buffer = false,
+        .hres = LCD_HORIZONTAL_RESOLUTION,
+        .vres = LCD_VERTICAL_RESOLUTION,
+        .monochrome = false,
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = true,
+            .mirror_y = false,
+        },
+        .flags = {
+            .buff_dma = true,
+        }
     };
+
+    return lvgl_port_add_disp(&disp_cfg);
 }
