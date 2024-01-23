@@ -8,14 +8,6 @@
 lv_disp_t* yellow_board_init_display();
 bool yellow_board_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
-static bool lvgl_lock_impl(int timeout_ticks) {
-    return lvgl_port_lock(timeout_ticks);
-}
-
-static void lvgl_unlock_impl() {
-    lvgl_port_unlock();
-}
-
 bool yellow_board_init_lvgl() {
     static lv_disp_t* display = NULL;
     static esp_lcd_panel_io_handle_t touch_io_handle;
@@ -59,7 +51,7 @@ bool yellow_board_init_lvgl() {
     }
 
     // Set syncing functions
-    tt_lvgl_sync_set(&lvgl_lock_impl, &lvgl_unlock_impl);
+    tt_lvgl_sync_set(&lvgl_port_lock, &lvgl_port_unlock);
 
     return true;
 }
