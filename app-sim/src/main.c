@@ -8,8 +8,11 @@
 
 #define TAG "main"
 
+extern HardwareConfig sim_hardware;
+
 _Noreturn void app_main() {
     static const Config config = {
+        .hardware = &sim_hardware,
         .apps = {
             &hello_world_app
         },

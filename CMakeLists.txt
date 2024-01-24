@@ -38,7 +38,7 @@ add_subdirectory(libs/mlib)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 
-if (NOT $ENV{ESP_IDF_VERSION})
+if (NOT DEFINED $ENV{ESP_IDF_VERSION})
     add_subdirectory(libs/freertos-kernel)
     target_include_directories(freertos-kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h
