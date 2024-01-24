@@ -2,7 +2,6 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_cst816s.h"
 #include "esp_log.h"
-#include "tactility_esp.h"
 
 #define TOUCH_I2C_PORT 0
 

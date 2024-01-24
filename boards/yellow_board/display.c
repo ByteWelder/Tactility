@@ -5,15 +5,10 @@
 #include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #include "hal/lv_hal_disp.h"
-#include "tactility_esp.h"
 #include <esp_lcd_panel_io.h>
 
 #define TAG "2432s024_ili9341"
-
-static SemaphoreHandle_t refresh_finish = NULL;
 
 #define LCD_SPI_HOST SPI2_HOST
 #define LCD_PIN_SCLK GPIO_NUM_14
