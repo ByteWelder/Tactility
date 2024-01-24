@@ -14,29 +14,33 @@ Tactility features:
 - PC app support to speed up development for ESP32 apps
 
 Requirements:
-- ESP32 (any?) with a display (connected via SPI or I2C)
+- ESP32 (any?) with a display that has touch capability
 - [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
 
 ## Technologies
 
-UI is created with [lvgl](https://github.com/lvgl/lvgl) via [esp_lvgl_port](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port).
+UI is created with [lvgl](https://github.com/lvgl/lvgl).
+Any LVGL-capable device is supported.
 
-LCD and input drivers are based on [esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html)
+In general, [esp_lvgl_port](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port)
+is the preferred solution if it supports your hardware:
+Those LCD and input drivers are based on [esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html)
 and [esp_lcd_touch](https://components.espressif.com/components/espressif/esp_lcd_touch).
+They are generally available via the Espressif Registry: [here](https://components.espressif.com/components?q=esp_lcd)
+and [here](https://components.espressif.com/components?q=esp_lcd_touch)
 
 ## Supported Hardware
 
 ### Devices
 
 Predefined configurations are available for:
+
 - Yellow Board: 2.4" with capacitive touch (2432S024C) (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
 - LilyGo T-Deck (see [lilygo.cc](https://www.lilygo.cc/products/t-deck), [AliExpress](https://www.aliexpress.com/item/1005005692235592.html))
+- Waveshare S3 Touch LCD 4.3
 - (more will follow)
 
-Other configurations can be supported, but they require you to set up the drivers yourself:
-
-- Display drivers: [esp-bsp](https://github.com/espressif/esp-bsp/blob/master/LCD.md) and [Espressif Registry](https://components.espressif.com/components?q=esp_lcd).
-- Touch drivers: [Espressif Registry](https://components.espressif.com/components?q=esp_lcd_touch).
+Other configurations can be supported, but they require you to set up the drivers yourself.
 
 ## Guide
 
