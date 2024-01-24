@@ -1,10 +1,9 @@
-#include "waveshare_s3_touch_defines.h"
+#include "display_defines_i.h"
 
 #include "driver/i2c.h"
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_log.h"
-#include "hal/lv_hal.h"
 #include "lv_api_map.h"
 
 #define TAG "waveshare_s3_touch_i2c"
@@ -39,8 +38,8 @@ static esp_lcd_touch_handle_t touch_init_internal() {
     /* Touch IO handle */
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)WAVESHARE_TOUCH_I2C_PORT, &tp_io_config, &tp_io_handle));
     esp_lcd_touch_config_t tp_cfg = {
-        .x_max = WAVESHARE_LCD_V_RES,
-        .y_max = WAVESHARE_LCD_H_RES,
+        .x_max = WAVESHARE_LCD_VER_RES,
+        .y_max = WAVESHARE_LCD_HOR_RES,
         .rst_gpio_num = -1,
         .int_gpio_num = -1,
         .flags = {
@@ -77,7 +76,7 @@ static void touch_callback(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     }
 }
 
-void touch_init(lv_disp_t* display) {
+void ws3t_touch_init(lv_disp_t* display) {
     esp_lcd_touch_handle_t touch_handle = touch_init_internal();
 
     ESP_LOGI(TAG, "Register display indev to LVGL");

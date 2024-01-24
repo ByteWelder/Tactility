@@ -1,12 +1,12 @@
-#include "waveshare_s3_touch_defines.h"
+#include "display_defines_i.h"
 
 #include "esp_err.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
+#include "lvgl_i.h"
 #include "lvgl.h"
-#include "ui/lvgl_sync.h"
 #include <esp_lcd_panel_rgb.h>
 #include <esp_timer.h>
 #include <sys/cdefs.h>
@@ -42,7 +42,7 @@ SemaphoreHandle_t lvgl_mux = NULL;
 #define WAVESHARE_PIN_NUM_DATA15 40 // R7
 #define WAVESHARE_PIN_NUM_DISP_EN (-1)
 
-#define WAVESHARE_BUFFER_HEIGHT (WAVESHARE_LCD_V_RES / 3) // How many rows of pixels to buffer - 1/3rd is about 1MB
+#define WAVESHARE_BUFFER_HEIGHT (WAVESHARE_LCD_VER_RES / 3) // How many rows of pixels to buffer - 1/3rd is about 1MB
 #define WAVESHARE_LVGL_TICK_PERIOD_MS 2 // TODO: Setting it to 5 causes a crash - why?
 
 #define WAVESHARE_USE_DOUBLE_FB true // Performance boost at the cost of about extra PSRAM(SPIRAM)
@@ -56,15 +56,13 @@ SemaphoreHandle_t lvgl_mux = NULL;
 static bool lvgl_is_running = false;
 #define LVGL_MAX_SLEEP 500
 
-void touch_init(lv_disp_t* display);
-
-static bool display_lock(uint32_t timeout_ms) {
+bool ws3t_display_lock(uint32_t timeout_ms) {
     assert(lvgl_mux && "lvgl_port_init must be called first");
     const TickType_t timeout_ticks = (timeout_ms == 0) ? TtWaitForever : pdMS_TO_TICKS(timeout_ms);
     return xSemaphoreTakeRecursive(lvgl_mux, timeout_ticks) == pdTRUE;
 }
 
-static void display_unlock(void) {
+void ws3t_display_unlock(void) {
     assert(lvgl_mux && "lvgl_port_init must be called first");
     xSemaphoreGiveRecursive(lvgl_mux);
 }
@@ -76,9 +74,9 @@ static int32_t display_task(TT_UNUSED void* parameter) {
     ESP_LOGI(TAG, "Starting LVGL task");
     lvgl_is_running = true;
     while (lvgl_is_running) {
-        if (display_lock(0)) {
+        if (ws3t_display_lock(0)) {
             task_delay_ms = lv_timer_handler();
-            display_unlock();
+            ws3t_display_unlock();
         }
         if ((task_delay_ms > LVGL_MAX_SLEEP) || (1 == task_delay_ms)) {
             task_delay_ms = LVGL_MAX_SLEEP;
@@ -88,7 +86,6 @@ static int32_t display_task(TT_UNUSED void* parameter) {
         vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
     }
 
-    /* Close task */
     vTaskDelete(NULL);
     return 0;
 }
@@ -125,7 +122,7 @@ static void display_flush_callback(lv_disp_drv_t* drv, const lv_area_t* area, lv
     lv_disp_flush_ready(drv);
 }
 
-bool waveshare_s3_touch_create_display() {
+lv_disp_t* ws3t_display_create() {
     static lv_disp_drv_t display_driver;
     static lv_disp_draw_buf_t display_buffer;
 
@@ -138,7 +135,6 @@ bool waveshare_s3_touch_create_display() {
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
     assert(lvgl_mux);
 
-    // Timer task
     Thread* thread = tt_thread_alloc_ex("display_task", 8192, &display_task, NULL);
     tt_thread_set_priority(thread, ThreadPriorityHigh);
     tt_thread_start(thread);
@@ -149,8 +145,8 @@ bool waveshare_s3_touch_create_display() {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .timings = {
             .pclk_hz = WAVESHARE_LCD_PIXEL_CLOCK_HZ,
-            .h_res = WAVESHARE_LCD_H_RES,
-            .v_res = WAVESHARE_LCD_V_RES,
+            .h_res = WAVESHARE_LCD_HOR_RES,
+            .v_res = WAVESHARE_LCD_VER_RES,
             // The following parameters should refer to LCD spec
             .hsync_back_porch = 10,
             .hsync_front_porch = 20,
@@ -222,10 +218,10 @@ bool waveshare_s3_touch_create_display() {
     void *buf2 = NULL;
 #if WAVESHARE_USE_DOUBLE_FB
     ESP_LOGI(TAG, "Use frame buffers as LVGL draw buffers");
-    buf1 = heap_caps_malloc(WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    buf2 = heap_caps_malloc(WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    buf1 = heap_caps_malloc(WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    buf2 = heap_caps_malloc(WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
     // initialize LVGL draw buffers
-    lv_disp_draw_buf_init(&display_buffer, buf1, buf2, WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT);
+    lv_disp_draw_buf_init(&display_buffer, buf1, buf2, WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT);
 #else
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
     buf1 = heap_caps_malloc(WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
@@ -235,8 +231,8 @@ bool waveshare_s3_touch_create_display() {
 
     ESP_LOGI(TAG, "Register display driver to LVGL");
     lv_disp_drv_init(&display_driver);
-    display_driver.hor_res = WAVESHARE_LCD_H_RES;
-    display_driver.ver_res = WAVESHARE_LCD_V_RES;
+    display_driver.hor_res = WAVESHARE_LCD_HOR_RES;
+    display_driver.ver_res = WAVESHARE_LCD_VER_RES;
     display_driver.flush_cb = display_flush_callback;
     display_driver.draw_buf = &display_buffer;
     display_driver.user_data = panel_handle;
@@ -247,16 +243,13 @@ bool waveshare_s3_touch_create_display() {
     display_driver.screen_transp = false;
 
 #if WAVESHARE_USE_DOUBLE_FB
-    display_driver.full_refresh = true; // the full_refresh mode can maintain the synchronization between the two frame buffers
+    display_driver.full_refresh = true; // Maintains the synchronization between the two frame buffers
 #else
     display_driver.full_refresh = false;
 #endif
 
-    lv_disp_t* disp = lv_disp_drv_register(&display_driver);
+    lv_disp_t* display = lv_disp_drv_register(&display_driver);
 
-    touch_init(disp);
-
-    // Tick task
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &lvgl_tick_task,
         .name = "lvgl_tick"
@@ -265,15 +258,10 @@ bool waveshare_s3_touch_create_display() {
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, WAVESHARE_LVGL_TICK_PERIOD_MS * 1000));
 
-    return true;
+    return display;
 }
 
-bool waveshare_s3_touch_init_lvgl() {
-    tt_lvgl_sync_set(&display_lock, &display_unlock);
-    return waveshare_s3_touch_create_display();
-}
-
-void waveshare_s3_touch_deinit_lvgl() {
+void ws3t_display_destroy() {
     // TODO: de-init display, its buffer and touch, stop display tasks, stop timer
     // TODO: see esp_lvlg_port.c for more info
     if (lvgl_mux) {
