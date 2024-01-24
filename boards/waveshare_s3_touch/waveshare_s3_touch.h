@@ -6,7 +6,7 @@
 extern "C" {
 #endif
 
-// Capacitive touch version of the 2.4" yellow board
+// Waveshare S3 Touch LCD 4.3
 extern const HardwareConfig waveshare_s3_touch;
 
 #ifdef __cplusplus
