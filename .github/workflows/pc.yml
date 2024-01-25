@@ -8,14 +8,12 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Setup SDL2 frameworks
-        uses: BrettDong/setup-sdl2-frameworks@main
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
         with:
-          sdl2: latest
-          sdl2-ttf: none
-          sdl2-image: none
-          sdl2-mixer: none
-          sdl2-net: none
+          install-linux-dependencies: true
+          version: 2-latest
+          version-sdl-image: 2-latest
       - name: Configure Project
         uses: threeal/cmake-action@v1.3.0
       - name: Prepare Project
