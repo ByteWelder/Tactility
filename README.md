@@ -35,9 +35,9 @@ and [here](https://components.espressif.com/components?q=esp_lcd_touch)
 
 Predefined configurations are available for:
 
-- Yellow Board: 2.4" with capacitive touch (2432S024C) (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
 - LilyGo T-Deck (see [lilygo.cc](https://www.lilygo.cc/products/t-deck), [AliExpress](https://www.aliexpress.com/item/1005005692235592.html))
-- Waveshare S3 Touch LCD 4.3
+- Waveshare S3 Touch LCD 4.3 ([docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3))
+- Yellow Board 2432S024C: a 2.4" display with capacitive touch (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
 - (more will follow)
 
 Other configurations can be supported, but they require you to set up the drivers yourself.
