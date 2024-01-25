@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
 
-if ($ENV{ESP_IDF_VERSION})
-    set(ESP_PLATFORM true)
-endif()
-
-if (ESP_PLATFORM)
+if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
@@ -42,7 +38,7 @@ add_subdirectory(libs/mlib)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 
-if (NOT ESP_PLATFORM)
+if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(libs/freertos-kernel)
     target_include_directories(freertos-kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h
