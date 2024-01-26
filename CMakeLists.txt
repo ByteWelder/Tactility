@@ -2,11 +2,13 @@ cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
 
-if (ESP_PLATFORM)
+if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
     add_definitions(-DESP_TARGET)
+    add_compile_definitions(ESP_TARGET)
+
     set(COMPONENTS app-esp)
     set(EXTRA_COMPONENT_DIRS
         "boards"
@@ -24,6 +26,7 @@ if (ESP_PLATFORM)
     # T-Deck is an S3 platform
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "lilygo_tdeck")
+        set(EXCLUDE_COMPONENTS "waveshare_s3_touch")
     endif()
 else()
     message("Building for sim target")
@@ -35,7 +38,7 @@ add_subdirectory(libs/mlib)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 
-if (NOT ESP_PLATFORM)
+if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(libs/freertos-kernel)
     target_include_directories(freertos-kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h

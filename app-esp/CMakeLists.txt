@@ -9,6 +9,7 @@ endif()
 # T-Deck is an S3 platform
 if("${IDF_TARGET}" STREQUAL "esp32s3")
     list(APPEND BOARD_COMPONENTS lilygo_tdeck)
+    list(APPEND BOARD_COMPONENTS waveshare_s3_touch)
 endif()
 
 idf_component_register(

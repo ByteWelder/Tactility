@@ -8,7 +8,7 @@ void tt_lvgl_sync_set(LvglLock lock, LvglUnlock unlock) {
     unlock_singleton = unlock;
 }
 
-bool tt_lvgl_lock(int timeout_ticks) {
+bool tt_lvgl_lock(uint32_t timeout_ticks) {
     if (lock_singleton) {
         return lock_singleton(timeout_ticks);
     } else {

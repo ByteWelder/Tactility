@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -16,7 +17,7 @@ target_include_directories(tactility-core SYSTEM
     INTERFACE src/
 )
 
-if (ESP_PLATFORM)
+if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility-core
         PUBLIC mlib

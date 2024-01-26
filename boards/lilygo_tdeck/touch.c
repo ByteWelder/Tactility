@@ -1,5 +1,3 @@
-#include "tactility-esp.h"
-
 #include "esp_lcd_touch_gt911.h"
 #include "esp_log.h"
 #include "esp_err.h"
@@ -9,7 +7,7 @@
 
 #define TAG "lilygo_tdeck_touch"
 
-static bool create_touch_device(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
+bool lilygo_tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
     ESP_LOGI(TAG, "creating touch");
 
     const i2c_config_t i2c_conf = {
@@ -64,11 +62,4 @@ static bool create_touch_device(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_to
     }
 
     return true;
-}
-
-TouchDriver lilygo_tdeck_touch_driver() {
-    return (TouchDriver) {
-        .name = "lilygo_tdeck_touch",
-        .create_touch_device = &create_touch_device
-    };
 }

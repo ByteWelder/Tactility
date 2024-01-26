@@ -1,5 +1,5 @@
 #include "board_config.h"
-#include "tactility-esp.h"
+#include "tactility_esp.h"
 
 // Apps
 #include "hello_world/hello_world.h"
@@ -12,6 +12,11 @@ extern const AppManifest wifi_manage_app;
 
 TT_UNUSED void app_main(void) {
     static const Config config = {
+        /**
+         * Auto-select a board based on the ./sdkconfig.board.* file
+         * that you copied to ./sdkconfig before you opened this project.
+         */
+        .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
             &wifi_connect_app,
@@ -23,11 +28,7 @@ TT_UNUSED void app_main(void) {
         .auto_start_app_id = NULL
     };
 
-    /**
-     * Auto-select a board based on the ./sdkconfig.board.* file
-     * that you copied to ./sdkconfig before you opened this project.
-     */
-    tt_esp_init(TT_BOARD_HARDWARE);
+    tt_esp_init();
 
     tt_init(&config);
 

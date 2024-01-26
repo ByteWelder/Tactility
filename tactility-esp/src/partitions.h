@@ -6,4 +6,3 @@
 #define MOUNT_POINT_CONFIG "/config"
 
 esp_err_t tt_partitions_init();
-

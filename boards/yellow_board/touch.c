@@ -2,13 +2,12 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_cst816s.h"
 #include "esp_log.h"
-#include "tactility-esp.h"
 
 #define TOUCH_I2C_PORT 0
 
 #define TAG "2432s024_cst816"
 
-static bool create_touch_device(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
+bool yellow_board_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
     ESP_LOGI(TAG, "creating touch");
 
     const i2c_config_t i2c_conf = {
@@ -63,11 +62,4 @@ static bool create_touch_device(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_to
     }
 
     return true;
-}
-
-TouchDriver board_2432s024_create_touch_driver() {
-    return (TouchDriver) {
-        .name = "cst816s_2432s024",
-        .create_touch_device = &create_touch_device
-    };
 }

@@ -16,15 +16,30 @@ jobs:
           esp_idf_version: v5.1.2
           target: esp32
           path: './'
-  Build-Lilygo-T-Deck:
+  build-lilygo-t-deck:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: checkout repo
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Board select
+      - name: board select
         run: cp sdkconfig.board.lilygo_tdeck sdkconfig
+      - name: esp32s3 build
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: v5.1.2
+          target: esp32s3
+          path: './'
+  build-waveshare-s3-touch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: board select
+        run: cp sdkconfig.board.waveshare_s3_touch sdkconfig
       - name: esp32s3 build
         uses: espressif/esp-idf-ci-action@main
         with:

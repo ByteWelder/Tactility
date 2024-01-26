@@ -1,6 +1,7 @@
 #pragma once
 
 #include "app_manifest.h"
+#include "hardware_config.h"
 #include "service_manifest.h"
 
 #ifdef __cplusplus
@@ -11,6 +12,7 @@ extern "C" {
 #define CONFIG_SERVICES_LIMIT 32
 
 typedef struct {
+    const HardwareConfig* hardware;
     // List of user applications
     const AppManifest* const apps[CONFIG_APPS_LIMIT];
     const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];

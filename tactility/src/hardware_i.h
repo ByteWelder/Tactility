@@ -1,12 +1,12 @@
 #pragma once
 
-#include "tactility-esp.h"
+#include "hardware_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-Hardware tt_hardware_init(const HardwareConfig* config);
+void tt_hardware_init(const HardwareConfig* config);
 
 #ifdef __cplusplus
 }

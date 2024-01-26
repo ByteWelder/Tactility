@@ -1,7 +1,6 @@
 #include "wifi_connect.h"
 
 #include "app.h"
-#include "esp_lvgl_port.h"
 #include "services/wifi/wifi.h"
 #include "tactility_core.h"
 #include "ui/lvgl_sync.h"

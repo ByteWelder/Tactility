@@ -8,7 +8,7 @@ idf_component_register(
         "src/apps/system/wifi_manage"
         "src/services/wifi"
     INCLUDE_DIRS "src/"
-    REQUIRES esp_wifi esp_lvgl_port nvs_flash esp_lcd esp_lcd_touch spiffs
+    REQUIRES esp_wifi nvs_flash spiffs
 )
 
 set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")

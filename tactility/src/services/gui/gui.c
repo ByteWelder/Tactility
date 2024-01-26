@@ -33,7 +33,7 @@ Gui* gui_alloc() {
     instance->mutex = tt_mutex_alloc(MutexTypeNormal);
     instance->keyboard = NULL;
 
-    tt_check(tt_lvgl_lock(100));
+    tt_check(tt_lvgl_lock(1000 / portTICK_PERIOD_MS));
     instance->lvgl_parent = lv_scr_act();
     tt_lvgl_unlock();
 

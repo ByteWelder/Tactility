@@ -1,7 +1,8 @@
 #include "yellow_board.h"
 
+bool yellow_board_init_lvgl();
+
 const HardwareConfig yellow_board_24inch_cap = {
     .bootstrap = NULL,
-    .display_driver = &board_2432s024_create_display_driver,
-    .touch_driver = &board_2432s024_create_touch_driver
+    .init_lvgl = &yellow_board_init_lvgl
 };
