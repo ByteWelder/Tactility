@@ -34,6 +34,13 @@ void gui_hide_app();
 void gui_keyboard_show(lv_obj_t* textarea);
 
 /**
+ * Attach automatic hide/show parameters for the keyboard.
+ * Also registers the textarea to the default lv_group_t for hardware keyboards.
+ * @param textarea
+ */
+void gui_keyboard_add_textarea(lv_obj_t* textarea);
+
+/**
  * Hide the on-screen keyboard.
  * Has no effect when the keyboard is not visible.
  */

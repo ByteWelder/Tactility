@@ -27,6 +27,7 @@ struct Gui {
 
     lv_obj_t* _Nullable toolbar;
     lv_obj_t* _Nullable keyboard;
+    lv_group_t* keyboard_group;
 };
 
 /** Update GUI, request redraw

@@ -84,7 +84,7 @@ TT_UNUSED void tt_init(const Config* config) {
     tt_hardware_init(config->hardware);
 
     // Note: the order of starting apps and services is critical!
-    // System services are registered first so they can be used by the apps
+    // System services are registered first so the apps below can use them
     register_and_start_system_services();
     // Then we register system apps. They are not used/started yet.
     register_system_apps();

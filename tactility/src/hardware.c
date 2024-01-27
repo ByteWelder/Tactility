@@ -1,5 +1,7 @@
-#include "check.h"
 #include "hardware_i.h"
+
+#include "check.h"
+#include "lvgl.h"
 
 #define TAG "hardware"
 
