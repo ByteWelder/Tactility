@@ -7,24 +7,29 @@
 
 #define TAG "tactility"
 
+// region System services
+
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
 
-// System apps
+static const ServiceManifest* const system_services[] = {
+    &gui_service,
+    &loader_service // depends on gui service
+};
+
+// endregion
+
+// region System apps
+
 extern const AppManifest desktop_app;
 extern const AppManifest system_info_app;
 
-// System apps
 static const AppManifest* const system_apps[] = {
     &desktop_app,
     &system_info_app
 };
 
-// System services - started in the order specified below
-static const ServiceManifest* const system_services[] = {
-    &gui_service,
-    &loader_service // depends on gui service
-};
+// endregion
 
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
