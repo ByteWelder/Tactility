@@ -313,6 +313,7 @@ static void loader_stop(TT_UNUSED Service service) {
     };
     tt_message_queue_put(loader_singleton->queue, &message, TtWaitForever);
     tt_thread_join(loader_singleton->thread);
+    tt_thread_free(loader_singleton->thread);
 
     loader_free();
     loader_singleton = NULL;

@@ -1,10 +1,8 @@
 #include "gui_i.h"
 
-#include "check.h"
-#include "core_extra_defines.h"
+#include "tactility.h"
 #include "ui/lvgl_sync.h"
-#include "kernel.h"
-#include "log.h"
+#include "ui/lvgl_keypad.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -30,7 +28,7 @@ Gui* gui_alloc() {
         &gui_main,
         NULL
     );
-    instance->mutex = tt_mutex_alloc(MutexTypeNormal);
+    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
     instance->keyboard = NULL;
 
     tt_check(tt_lvgl_lock(1000 / portTICK_PERIOD_MS));
@@ -102,6 +100,10 @@ void gui_keyboard_hide() {
     }
 }
 
+bool gui_keyboard_is_enabled() {
+    return !tt_lvgl_keypad_is_available() || TT_CONFIG_FORCE_ONSCREEN_KEYBOARD;
+}
+
 void gui_hide_app() {
     gui_lock();
     ViewPort* view_port = gui->app_view_port;
@@ -158,6 +160,7 @@ static void gui_stop(TT_UNUSED Service service) {
     ThreadId thread_id = tt_thread_get_id(gui->thread);
     tt_thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
     tt_thread_join(gui->thread);
+    tt_thread_free(gui->thread);
 
     gui_unlock();
 

@@ -21,9 +21,9 @@ static void register_system_apps() {
     tt_app_manifest_registry_add(&system_info_app);
 }
 
-static void register_user_apps(const AppManifest* const apps[CONFIG_APPS_LIMIT]) {
+static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMIT]) {
     TT_LOG_I(TAG, "Registering user apps");
-    for (size_t i = 0; i < CONFIG_APPS_LIMIT; i++) {
+    for (size_t i = 0; i < TT_CONFIG_APPS_LIMIT; i++) {
         const AppManifest* manifest = apps[i];
         if (manifest != NULL) {
             tt_app_manifest_registry_add(manifest);
@@ -46,9 +46,9 @@ static void start_system_services() {
     tt_service_registry_start(loader_service.id);
 }
 
-static void register_and_start_user_services(const ServiceManifest* const services[CONFIG_SERVICES_LIMIT]) {
+static void register_and_start_user_services(const ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
     TT_LOG_I(TAG, "Registering and starting user services");
-    for (size_t i = 0; i < CONFIG_SERVICES_LIMIT; i++) {
+    for (size_t i = 0; i < TT_CONFIG_SERVICES_LIMIT; i++) {
         const ServiceManifest* manifest = services[i];
         if (manifest != NULL) {
             tt_service_registry_add(manifest);

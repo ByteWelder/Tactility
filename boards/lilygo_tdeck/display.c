@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
 
-#define TAG "lilygo_tdeck_display"
+#define TAG "tdeck_display"
 
 #define LCD_SPI_HOST SPI2_HOST
 #define LCD_PIN_SCLK GPIO_NUM_40
@@ -21,6 +21,7 @@
 #define LCD_VERTICAL_RESOLUTION 240
 #define LCD_BITS_PER_PIXEL 16
 #define LCD_DRAW_BUFFER_HEIGHT (LCD_VERTICAL_RESOLUTION / 10)
+#define LCD_SPI_TRANSFER_HEIGHT (LCD_VERTICAL_RESOLUTION / 10)
 
 // Backlight PWM
 #define LCD_BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
@@ -60,7 +61,7 @@ static void tdeck_backlight() {
 lv_disp_t* lilygo_tdeck_init_display() {
     ESP_LOGI(TAG, "creating display");
 
-    int draw_buffer_size = LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8);
+    int max_transfer_size = LCD_HORIZONTAL_RESOLUTION * LCD_SPI_TRANSFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8);
 
     spi_bus_config_t bus_config = {
         .sclk_io_num = LCD_PIN_SCLK,
@@ -68,7 +69,7 @@ lv_disp_t* lilygo_tdeck_init_display() {
         .miso_io_num = LCD_PIN_MISO,
         .quadwp_io_num = -1, // Quad SPI LCD driver is not yet supported
         .quadhd_io_num = -1, // Quad SPI LCD driver is not yet supported
-        .max_transfer_sz = draw_buffer_size,
+        .max_transfer_sz = max_transfer_size,
     };
 
     if (spi_bus_initialize(LCD_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
@@ -154,17 +155,18 @@ lv_disp_t* lilygo_tdeck_init_display() {
         .io_handle = io_handle,
         .panel_handle = panel_handle,
         .buffer_size = LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8),
-        .double_buffer = false,
+        .double_buffer = true, // Disable to free up SPIRAM
         .hres = LCD_HORIZONTAL_RESOLUTION,
         .vres = LCD_VERTICAL_RESOLUTION,
         .monochrome = false,
         .rotation = {
-            .swap_xy = true, // TODO: check if code above is still needed
+            .swap_xy = true,
             .mirror_x = true,
             .mirror_y = false,
         },
         .flags = {
-            .buff_dma = true,
+            .buff_dma = false,
+            .buff_spiram = true,
         }
     };
 
