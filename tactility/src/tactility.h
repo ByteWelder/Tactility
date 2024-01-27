@@ -9,14 +9,11 @@
 extern "C" {
 #endif
 
-#define CONFIG_APPS_LIMIT 32
-#define CONFIG_SERVICES_LIMIT 32
-
 typedef struct {
     const HardwareConfig* hardware;
     // List of user applications
-    const AppManifest* const apps[CONFIG_APPS_LIMIT];
-    const ServiceManifest* const services[CONFIG_SERVICES_LIMIT];
+    const AppManifest* const apps[TT_CONFIG_APPS_LIMIT];
+    const ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT];
     const char* auto_start_app_id;
 } Config;
 

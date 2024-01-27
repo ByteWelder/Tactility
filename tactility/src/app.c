@@ -1,6 +1,5 @@
 #include "app_i.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 
 static AppFlags tt_app_get_flags_default(AppType type);
