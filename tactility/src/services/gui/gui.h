@@ -34,26 +34,26 @@ void gui_hide_app();
 void gui_keyboard_show(lv_obj_t* textarea);
 
 /**
- * Attach automatic hide/show parameters for the keyboard.
- * Also registers the textarea to the default lv_group_t for hardware keyboards.
- * @param textarea
- */
-void gui_keyboard_add_textarea(lv_obj_t* textarea);
-
-/**
  * Hide the on-screen keyboard.
  * Has no effect when the keyboard is not visible.
  */
 void gui_keyboard_hide();
 
 /**
- * This function is to facilitate hardware keyboards like the one on Lilygo T-Deck.
- * The software keyboard is only shown when both of these conditions are true:
+ * The on-screen keyboard is only shown when both of these conditions are true:
  *  - there is no hardware keyboard
  *  - TT_CONFIG_FORCE_ONSCREEN_KEYBOARD is set to true in tactility_config.h
- * @return if we should show a keyboard for text input inside our apps
+ * @return if we should show a on-screen keyboard for text input inside our apps
  */
 bool gui_keyboard_is_enabled();
+
+/**
+ * Glue code for the on-screen keyboard and the hardware keyboard:
+ *  - Attach automatic hide/show parameters for the on-screen keyboard.
+ *  - Registers the textarea to the default lv_group_t for hardware keyboards.
+ * @param textarea
+ */
+void gui_keyboard_add_textarea(lv_obj_t* textarea);
 
 #ifdef __cplusplus
 }
