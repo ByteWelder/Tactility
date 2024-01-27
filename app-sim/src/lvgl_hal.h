@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-void lvgl_hal_init();
+lv_disp_t* lvgl_hal_init();
 
 #ifdef __cplusplus
 }

@@ -1,16 +1,28 @@
-/**
- * Placeholder hardware config.
- * The real one happens during FreeRTOS startup. See freertos.c and lvgl_*.c
- */
-#include <stdbool.h>
 #include "hardware_config.h"
+#include "lvgl_task.h"
+#include <src/core/lv_obj.h>
+#include <stdbool.h>
 
+#define TAG "hardware"
 
-// TODO: See if we can move the init from FreeRTOS to app_main()?
-static bool init_lvgl() { return true; }
+static bool lvgl_init() {
+    lv_init();
+    lvgl_task_start();
+    return true;
+}
+
+TT_UNUSED static void lvgl_deinit() {
+    lvgl_task_interrupt();
+    while (lvgl_task_is_running()) {
+        tt_delay_ms(10);
+    }
+
+#if LV_ENABLE_GC || !LV_MEM_CUSTOM
+    lv_deinit();
+#endif
+}
 
 HardwareConfig sim_hardware = {
     .bootstrap = NULL,
-    .init_lvgl = &init_lvgl,
+    .init_lvgl = &lvgl_init,
 };
-

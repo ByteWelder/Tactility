@@ -6,8 +6,9 @@
 extern "C" {
 #endif
 
-bool lvgl_is_ready();
-void lvgl_interrupt();
+void lvgl_task_start();
+bool lvgl_task_is_running();
+void lvgl_task_interrupt();
 
 #ifdef __cplusplus
 }

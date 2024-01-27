@@ -299,7 +299,7 @@ static void loader_start(TT_UNUSED Service service) {
     tt_check(loader_singleton == NULL);
     loader_singleton = loader_alloc();
 
-    tt_thread_set_priority(loader_singleton->thread, ThreadPriorityNormal);
+    tt_thread_set_priority(loader_singleton->thread, THREAD_PRIORITY_SERVICE);
     tt_thread_start(loader_singleton->thread);
 }
 

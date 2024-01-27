@@ -150,7 +150,7 @@ static int32_t gui_main(TT_UNUSED void* p) {
 static void gui_start(TT_UNUSED Service service) {
     gui = gui_alloc();
 
-    tt_thread_set_priority(gui->thread, ThreadPriorityNormal);
+    tt_thread_set_priority(gui->thread, THREAD_PRIORITY_SERVICE);
     tt_thread_start(gui->thread);
 }
 

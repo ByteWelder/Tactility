@@ -24,6 +24,9 @@
 #define THREAD_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_TASK_NOTIFY) - 1U))
 #define EVENT_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_EVENT_GROUPS) - 1U))
 
+static_assert(ThreadPriorityHighest <= TT_CONFIG_THREAD_MAX_PRIORITIES, "highest thread priority is higher than max priority");
+static_assert(TT_CONFIG_THREAD_MAX_PRIORITIES <= configMAX_PRIORITIES, "highest tactility priority is higher than max FreeRTOS priority");
+
 struct Thread {
     ThreadState state;
     int32_t ret;
@@ -193,7 +196,7 @@ void tt_thread_set_context(Thread* thread, void* context) {
 void tt_thread_set_priority(Thread* thread, ThreadPriority priority) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
-    tt_assert(priority >= ThreadPriorityIdle && priority <= ThreadPriorityIsr);
+    tt_assert(priority >= 0 && priority <= TT_CONFIG_THREAD_MAX_PRIORITIES);
     thread->priority = priority;
 }
 

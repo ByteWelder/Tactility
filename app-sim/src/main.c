@@ -17,7 +17,5 @@ void app_main() {
         .auto_start_app_id = NULL
     };
 
-    TT_LOG_I("app", "Hello, world!");
-
     tt_init(&config);
 }
