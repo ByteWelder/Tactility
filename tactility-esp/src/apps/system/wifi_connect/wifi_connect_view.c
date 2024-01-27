@@ -4,6 +4,7 @@
 #include "lvgl.h"
 #include "services/gui/gui.h"
 #include "services/wifi/wifi_credentials.h"
+#include "ui/lvgl_keypad.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 #include "wifi_connect.h"
@@ -103,12 +104,14 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
 
     wifi_connect_view_create_bottom_buttons(wifi, parent);
 
-    lv_obj_add_event_cb(view->ssid_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
-    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
-    lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_READY, NULL);
-    lv_obj_add_event_cb(view->password_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
-    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
-    lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_READY, NULL);
+    if (gui_keyboard_is_enabled()) {
+        lv_obj_add_event_cb(view->ssid_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
+        lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
+        lv_obj_add_event_cb(view->ssid_textarea, hide_keyboard, LV_EVENT_READY, NULL);
+        lv_obj_add_event_cb(view->password_textarea, show_keyboard, LV_EVENT_FOCUSED, NULL);
+        lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_DEFOCUSED, NULL);
+        lv_obj_add_event_cb(view->password_textarea, hide_keyboard, LV_EVENT_READY, NULL);
+    }
 
     // Init from app parameters
     Bundle* _Nullable bundle = tt_app_get_parameters(app);
@@ -123,10 +126,18 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
             lv_textarea_set_text(view->password_textarea, password);
         }
     }
+
+    // Hardware keyboard("keypad") requires a group
+    view->group = lv_group_create();
+    lv_group_add_obj(view->group, view->ssid_textarea);
+    lv_group_add_obj(view->group, view->password_textarea);
+    tt_lvgl_keypad_activate(view->group);
 }
 
 void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
-    // NO-OP
+    // Cleanup keypad group
+    tt_lvgl_keypad_deactivate();
+    lv_group_del(view->group);
 }
 
 void wifi_connect_view_update(

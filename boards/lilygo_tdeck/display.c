@@ -6,7 +6,7 @@
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
 
-#define TAG "lilygo_tdeck_display"
+#define TAG "tdeck_display"
 
 #define LCD_SPI_HOST SPI2_HOST
 #define LCD_PIN_SCLK GPIO_NUM_40

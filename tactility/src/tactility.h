@@ -3,6 +3,7 @@
 #include "app_manifest.h"
 #include "hardware_config.h"
 #include "service_manifest.h"
+#include "tactility_config.h"
 
 #ifdef __cplusplus
 extern "C" {

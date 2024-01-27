@@ -1,9 +1,10 @@
 #include "esp_lvgl_port.h"
+#include "keyboard.h"
 #include "log.h"
 #include "ui/lvgl_sync.h"
 #include <thread.h>
 
-#define TAG "lilygo_tdeck_lvgl"
+#define TAG "tdeck_lvgl"
 
 lv_disp_t* lilygo_tdeck_init_display();
 bool lilygo_tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
@@ -33,7 +34,6 @@ bool lilygo_init_lvgl() {
         return false;
     }
 
-
     // Add touch
     if (!lilygo_tdeck_init_touch(&touch_io_handle, &touch_handle)) {
         return false;
@@ -52,6 +52,8 @@ bool lilygo_init_lvgl() {
 
     // Set syncing functions
     tt_lvgl_sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+
+    keyboard_alloc(display);
 
     return true;
 }
