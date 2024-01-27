@@ -1,9 +1,7 @@
 #include "hello_world/hello_world.h"
-#include "lvgl_hal.h"
 #include "tactility.h"
 
 #include "FreeRTOS.h"
-#include "task.h"
 
 #define TAG "main"
 
