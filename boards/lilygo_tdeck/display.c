@@ -160,7 +160,7 @@ lv_disp_t* lilygo_tdeck_init_display() {
         .vres = LCD_VERTICAL_RESOLUTION,
         .monochrome = false,
         .rotation = {
-            .swap_xy = true, // TODO: check if code above is still needed
+            .swap_xy = true,
             .mirror_x = true,
             .mirror_y = false,
         },
