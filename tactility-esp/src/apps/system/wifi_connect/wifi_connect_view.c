@@ -4,7 +4,6 @@
 #include "lvgl.h"
 #include "services/gui/gui.h"
 #include "services/wifi/wifi_credentials.h"
-#include "ui/lvgl_keypad.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 #include "wifi_connect.h"
@@ -114,7 +113,7 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
 }
 
 void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
-    tt_lvgl_keypad_deactivate();
+    // NO-OP
 }
 
 void wifi_connect_view_update(
