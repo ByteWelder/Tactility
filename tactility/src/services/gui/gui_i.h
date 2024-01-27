@@ -27,16 +27,14 @@ struct Gui {
 
     lv_obj_t* _Nullable toolbar;
     lv_obj_t* _Nullable keyboard;
+    lv_group_t* keyboard_group;
 };
 
-/** Update GUI, request redraw
- */
+/** Update GUI, request redraw */
 void gui_request_draw();
 
-/** Lock GUI
- */
+/** Lock GUI */
 void gui_lock();
 
-/** Unlock GUI
- */
+/** Unlock GUI */
 void gui_unlock();

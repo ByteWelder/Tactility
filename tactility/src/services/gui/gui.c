@@ -16,7 +16,7 @@
 void gui_redraw(Gui*);
 static int32_t gui_main(void*);
 
-static Gui* gui = NULL;
+Gui* gui = NULL;
 
 Gui* gui_alloc() {
     Gui* instance = malloc(sizeof(Gui));
@@ -32,6 +32,7 @@ Gui* gui_alloc() {
     instance->keyboard = NULL;
 
     tt_check(tt_lvgl_lock(1000 / portTICK_PERIOD_MS));
+    instance->keyboard_group = lv_group_create();
     instance->lvgl_parent = lv_scr_act();
     tt_lvgl_unlock();
 
@@ -42,6 +43,11 @@ void gui_free(Gui* instance) {
     tt_assert(instance != NULL);
     tt_thread_free(instance->thread);
     tt_mutex_free(instance->mutex);
+
+    tt_check(tt_lvgl_lock(1000 / portTICK_PERIOD_MS));
+    lv_group_del(instance->keyboard_group);
+    tt_lvgl_unlock();
+
     free(instance);
 }
 
@@ -69,39 +75,6 @@ void gui_show_app(App app, ViewPortShowCallback on_show, ViewPortHideCallback on
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
     gui_unlock();
     gui_request_draw();
-}
-
-void gui_keyboard_show(lv_obj_t* textarea) {
-    if (gui->keyboard) {
-        gui_lock();
-
-        lv_obj_clear_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
-        lv_keyboard_set_textarea(gui->keyboard, textarea);
-
-        if (gui->toolbar) {
-            lv_obj_add_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        gui_unlock();
-    }
-}
-
-void gui_keyboard_hide() {
-    if (gui->keyboard) {
-        gui_lock();
-
-        lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
-
-        if (gui->toolbar) {
-            lv_obj_clear_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
-        }
-
-        gui_unlock();
-    }
-}
-
-bool gui_keyboard_is_enabled() {
-    return !tt_lvgl_keypad_is_available() || TT_CONFIG_FORCE_ONSCREEN_KEYBOARD;
 }
 
 void gui_hide_app() {

@@ -49,8 +49,12 @@ static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, App app) {
     lv_obj_set_width(child_container, LV_PCT(100));
     lv_obj_set_flex_grow(child_container, 1);
 
-    gui->keyboard = lv_keyboard_create(vertical_container);
-    lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
+    if (gui_keyboard_is_enabled()) {
+        gui->keyboard = lv_keyboard_create(vertical_container);
+        lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        gui->keyboard = NULL;
+    }
 
     return child_container;
 }
