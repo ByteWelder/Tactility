@@ -101,7 +101,7 @@ void gui_keyboard_hide() {
 }
 
 bool gui_keyboard_is_enabled() {
-    return !tt_lvgl_keypad_is_available() || FORCE_ONSCREEN_KEYBOARD;
+    return !tt_lvgl_keypad_is_available() || TT_CONFIG_FORCE_ONSCREEN_KEYBOARD;
 }
 
 void gui_hide_app() {

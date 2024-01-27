@@ -36,7 +36,16 @@ void keyboard_wait_for_response() {
     TT_LOG_I(TAG, "awake");
 }
 
-static void keyboard_read_callback(struct _lv_indev_drv_t* indev_drv, lv_indev_data_t* data) {
+/**
+ * The callback simulates press and release events, because the T-Deck
+ * keyboard only publishes press events on I2C.
+ * LVGL currently works without those extra release events, but they
+ * are implemented for correctness and future compatibility.
+ *
+ * @param indev_drv
+ * @param data
+ */
+static void keyboard_read_callback(TT_UNUSED struct _lv_indev_drv_t* indev_drv, lv_indev_data_t* data) {
     static uint8_t last_buffer = 0x00;
     uint8_t read_buffer = 0x00;
 

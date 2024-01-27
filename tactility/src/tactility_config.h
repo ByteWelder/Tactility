@@ -1,3 +1,3 @@
 #pragma once
 
-#define FORCE_ONSCREEN_KEYBOARD false
+#define TT_CONFIG_FORCE_ONSCREEN_KEYBOARD false

@@ -26,8 +26,10 @@ Like `some_feature_i.h`
 
 Names are snake-case.
 
-Public functions are prefixed with `tt_` for `tactility-core` and `tactility` projects.
+The `tt_` prefix is used for public functions that are part of `tactility/` or `tactility-core/`
 Internal/static functions don't have prefix requirements, but prefixes are allowed.
+
+The prefix is **not** used for drivers, services and apps.
 
 Public functions have the feature name after `tt_`.
 
@@ -36,7 +38,7 @@ If a feature has setters or getters, it's added after the feature name part.
 Example:
 
 ```c
-void tt_feature_get_name() {
+void tt_counter_get_limit() {
     // ...
 }
 ```
