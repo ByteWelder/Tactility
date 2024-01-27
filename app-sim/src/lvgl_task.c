@@ -1,5 +1,6 @@
 #include "lvgl_task.h"
 
+#include "lvgl.h"
 #include "lvgl_hal.h"
 #include "tactility_core.h"
 #include "thread.h"
@@ -41,7 +42,7 @@ static bool task_is_running() {
     return result;
 }
 
-static bool lvgl_lock(int timeout_ticks) {
+static bool lvgl_lock(uint32_t timeout_ticks) {
     assert(lvgl_mutex != NULL);
     return xSemaphoreTakeRecursive(lvgl_mutex, timeout_ticks) == pdTRUE;
 }

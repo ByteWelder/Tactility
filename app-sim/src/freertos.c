@@ -7,7 +7,7 @@
 
 #define mainQUEUE_RECEIVE_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
 
-_Noreturn void app_main();
+void app_main();
 
 bool lvgl_is_ready();
 void lvgl_task(void*);
@@ -19,11 +19,14 @@ void app_main_task(TT_UNUSED void* parameter) {
     }
 
     app_main();
+    TT_LOG_I(TAG, "returned from app_main()");
+
+    vTaskDelete(NULL);
 }
 
 int main() {
     // Create the main app loop, like ESP-IDF
-    xTaskCreate(
+    BaseType_t task_result = xTaskCreate(
         lvgl_task,
         "lvgl",
         8192,
@@ -32,7 +35,9 @@ int main() {
         NULL
     );
 
-    xTaskCreate(
+    tt_assert(task_result == pdTRUE);
+
+    task_result = xTaskCreate(
         app_main_task,
         "app_main",
         8192,
@@ -40,6 +45,8 @@ int main() {
         mainQUEUE_RECEIVE_TASK_PRIORITY + 1,
         NULL
     );
+
+    tt_assert(task_result == pdTRUE);
 
     // Blocks forever
     vTaskStartScheduler();
