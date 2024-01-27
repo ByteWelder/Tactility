@@ -1,21 +1,22 @@
 #include "config.h"
-#include "driver/i2c.h"
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
-#include "esp_log.h"
+#include "esp_lcd_panel_io_interface.h"
+#include "log.h"
+#include <kernel.h>
 
 #define TAG "tdeck_touch"
 
-bool lilygo_tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
-    ESP_LOGI(TAG, "creating touch");
+bool tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
+    TT_LOG_I(TAG, "creating touch");
 
     const esp_lcd_panel_io_i2c_config_t touch_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
     if (esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)TDECK_I2C_BUS_HANDLE, &touch_io_config, io_handle) != ESP_OK) {
-        ESP_LOGE(TAG, "touch io i2c creation failed");
+        TT_LOG_E(TAG, "touch io i2c creation failed");
         return false;
     }
 
-    ESP_LOGI(TAG, "create_touch");
+    TT_LOG_I(TAG, "create_touch");
     esp_lcd_touch_config_t config = {
         .x_max = 240,
         .y_max = 320,
@@ -36,7 +37,7 @@ bool lilygo_tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch
     };
 
     if (esp_lcd_touch_new_i2c_gt911(*io_handle, &config, touch_handle) != ESP_OK) {
-        ESP_LOGE(TAG, "gt911 driver creation failed");
+        TT_LOG_E(TAG, "gt911 driver creation failed");
         return false;
     }
 

@@ -6,13 +6,16 @@
 
 #define TAG "tdeck_lvgl"
 
-lv_disp_t* lilygo_tdeck_init_display();
-bool lilygo_tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
+lv_disp_t* tdeck_init_display();
+void tdeck_enable_backlight();
+bool tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
-bool lilygo_init_lvgl() {
+bool tdeck_init_lvgl() {
     static lv_disp_t* display = NULL;
     static esp_lcd_panel_io_handle_t touch_io_handle;
     static esp_lcd_touch_handle_t touch_handle;
+
+    // Init LVGL Port library
 
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = ThreadPriorityHigh,
@@ -28,14 +31,16 @@ bool lilygo_init_lvgl() {
     }
 
     // Add display
-    display = lilygo_tdeck_init_display();
+
+    display = tdeck_init_display();
     if (display == NULL) {
         TT_LOG_E(TAG, "failed to add display");
         return false;
     }
 
     // Add touch
-    if (!lilygo_tdeck_init_touch(&touch_io_handle, &touch_handle)) {
+
+    if (!tdeck_init_touch(&touch_io_handle, &touch_handle)) {
         return false;
     }
 
@@ -54,6 +59,8 @@ bool lilygo_init_lvgl() {
     tt_lvgl_sync_set(&lvgl_port_lock, &lvgl_port_unlock);
 
     keyboard_alloc(display);
+
+    tdeck_enable_backlight();
 
     return true;
 }

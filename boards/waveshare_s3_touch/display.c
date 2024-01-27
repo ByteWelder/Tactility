@@ -136,7 +136,7 @@ lv_disp_t* ws3t_display_create() {
     assert(lvgl_mux);
 
     Thread* thread = tt_thread_alloc_ex("display_task", 8192, &display_task, NULL);
-    tt_thread_set_priority(thread, ThreadPriorityHigh);
+    tt_thread_set_priority(thread, ThreadPriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
     tt_thread_start(thread);
 
     ESP_LOGI(TAG, "Install RGB LCD panel driver");

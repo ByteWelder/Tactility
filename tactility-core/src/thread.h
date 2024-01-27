@@ -19,16 +19,20 @@ typedef enum {
 
 /** ThreadPriority */
 typedef enum {
-    ThreadPriorityNone = 0,     /**< Uninitialized, choose system default */
-    ThreadPriorityIdle = 1,     /**< Idle priority */
-    ThreadPriorityLowest = 2,  /**< Lowest */
-    ThreadPriorityLow = 3,     /**< Low */
-    ThreadPriorityNormal = 4,  /**< Normal */
-    ThreadPriorityHigh = 5,    /**< High */
-    ThreadPriorityHighest = 6, /**< Highest */
-    ThreadPriorityIsr =
-        (TT_CONFIG_THREAD_MAX_PRIORITIES - 1), /**< Deferred ISR (highest possible) */
+    ThreadPriorityNone = 0, /**< Uninitialized, choose system default */
+    ThreadPriorityIdle = 1,
+    ThreadPriorityLowest = 2,
+    ThreadPriorityLow = 3,
+    ThreadPriorityNormal = 4,
+    ThreadPriorityHigh = 5,
+    ThreadPriorityHigher = 6,
+    ThreadPriorityHighest = 7
 } ThreadPriority;
+
+#define THREAD_PRIORITY_APP ThreadPriorityNormal
+#define THREAD_PRIORITY_SERVICE ThreadPriorityHigh
+#define THREAD_PRIORITY_RENDER ThreadPriorityHigher
+#define THREAD_PRIORITY_ISR (TT_CONFIG_THREAD_MAX_PRIORITIES - 1)
 
 /** Thread anonymous structure */
 typedef struct Thread Thread;

@@ -5,7 +5,7 @@
 
 #define TAG "tdeck_bootstrap"
 
-lv_disp_t* lilygo_tdeck_init_display();
+lv_disp_t* tdeck_init_display();
 
 static bool tdeck_power_on() {
     ESP_LOGI(TAG, "power on");
@@ -42,14 +42,22 @@ static bool init_i2c() {
         && i2c_driver_install(TDECK_I2C_BUS_HANDLE, i2c_conf.mode, 0, 0, 0) == ESP_OK;
 }
 
-bool lilygo_tdeck_bootstrap() {
+bool tdeck_bootstrap() {
     if (!tdeck_power_on()) {
         TT_LOG_E(TAG, "failed to power on device");
     }
 
-    // Give keyboard's ESP time to boot
-    // It uses I2C and seems to interfere with the touch driver
-    tt_delay_ms(500);
+    /**
+     * Without this delay, the touch driver randomly fails when the device is USB-powered:
+     *  > lcd_panel.io.i2c: panel_io_i2c_rx_buffer(135): i2c transaction failed
+     *  > GT911: touch_gt911_read_cfg(352): GT911 read error!
+     * This might not be a problem with a lipo, but I haven't been able to test that.
+     * I tried to solve it just like I did with the keyboard:
+     * By reading from I2C until it succeeds and to then init the driver.
+     * It doesn't work, because it never recovers from the error.
+     */
+    TT_LOG_I(TAG, "waiting after power-on");
+    tt_delay_ms(2000);
 
     if (!init_i2c()) {
         TT_LOG_E(TAG, "failed to init I2C");
