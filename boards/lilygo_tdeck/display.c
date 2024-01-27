@@ -32,7 +32,7 @@
 #define LCD_BACKLIGHT_LEDC_DUTY (191)
 #define LCD_BACKLIGHT_LEDC_FREQUENCY (1000)
 
-static void tdeck_backlight() {
+void tdeck_enable_backlight() {
     ESP_LOGI(TAG, "enable backlight");
 
     ledc_timer_config_t ledc_timer = {
@@ -58,7 +58,7 @@ static void tdeck_backlight() {
     ESP_ERROR_CHECK(ledc_set_duty(LCD_BACKLIGHT_LEDC_MODE, LCD_BACKLIGHT_LEDC_CHANNEL, LCD_BACKLIGHT_LEDC_DUTY));
 }
 
-lv_disp_t* lilygo_tdeck_init_display() {
+lv_disp_t* tdeck_init_display() {
     ESP_LOGI(TAG, "creating display");
 
     int max_transfer_size = LCD_HORIZONTAL_RESOLUTION * LCD_SPI_TRANSFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8);
@@ -170,7 +170,7 @@ lv_disp_t* lilygo_tdeck_init_display() {
         }
     };
 
-    tdeck_backlight();
+    lv_disp_t* display = lvgl_port_add_disp(&disp_cfg);
 
-    return lvgl_port_add_disp(&disp_cfg);
+    return display;
 }
