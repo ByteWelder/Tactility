@@ -37,9 +37,14 @@ Predefined configurations are available for:
 
 | Device                                   | Screen&Touch | SD card | Other    |
 |------------------------------------------|--------------|---------|----------|
-| [LilyGo T-Deck][tdeck]                   |✅            |✅       | Keyboard | 
-| [Waveshare S3 Touch][waveshare_s3_touch] |✅            |❌       |          |
-| Yellow Board 2432S024C (\*)              |✅            |❌       |          |
+| [LilyGo T-Deck][tdeck]                   | ✅            | ✅       | Keyboard | 
+| [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |          |
+| Yellow Board 2432S024C (\*)              | ✅            | ⏳       |          |
+
+Meanings:
+- ✅: Capable and implemented
+- ⏳: Capable but not yet implemented
+- ❌: Not capable
 
 More boards will follow. SD card support will be implemented for more boards in the future.
 
