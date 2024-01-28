@@ -29,6 +29,10 @@
 #define TDECK_LCD_DRAW_BUFFER_HEIGHT (TDECK_LCD_VERTICAL_RESOLUTION / 10)
 #define TDECK_LCD_SPI_TRANSFER_HEIGHT (TDECK_LCD_VERTICAL_RESOLUTION / 10)
 
+// LVGL
+// The minimum task stack seems to be about 3500, but that crashes the wifi app in some scenarios
+#define TDECK_LVGL_TASK_STACK_DEPTH 4000
+
 // Dipslay backlight (PWM)
 #define TDECK_LCD_BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
 #define TDECK_LCD_BACKLIGHT_LEDC_MODE LEDC_LOW_SPEED_MODE
