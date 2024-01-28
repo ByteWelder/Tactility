@@ -1,24 +1,24 @@
-#name: Build
-#on: [push]
-#jobs:
-#  Build-PC:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Checkout repo
-#        uses: actions/checkout@v2
-#        with:
-#          submodules: recursive
-#      - uses: libsdl-org/setup-sdl@main
-#        id: sdl
-#        with:
-#          install-linux-dependencies: true
-#          version: 2-latest
-#          version-sdl-image: 2-latest
-#      - name: Configure Project
-#        uses: threeal/cmake-action@v1.3.0
-#      - name: Prepare Project
-#        run: cmake -S ./ -B build
-#      - name: Build Project
-#        env:
-#          USE_SDL_WITH_NAMESPACE: true
-#        run: cmake --build build
+name: Build
+on: [push]
+jobs:
+  Build-PC:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
+        with:
+          install-linux-dependencies: true
+          version: 2-latest
+          version-sdl-image: 2-latest
+      - name: Configure Project
+        uses: threeal/cmake-action@v1.3.0
+      - name: Prepare Project
+        run: cmake -S ./ -B build
+      - name: Build Project
+        env:
+          USE_SDL_WITH_NAMESPACE: true
+        run: cmake --build build
