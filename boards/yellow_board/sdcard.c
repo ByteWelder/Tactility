@@ -61,7 +61,7 @@ static void* sdcard_mount(const char* mount_point) {
         .format_if_mount_failed = TDECK_SDCARD_FORMAT_ON_MOUNT_FAILED,
         .max_files = TDECK_SDCARD_MAX_OPEN_FILES,
         .allocation_unit_size = TDECK_SDCARD_ALLOC_UNIT_SIZE,
-        .disk_status_check_enable = TDECK_SDCARD_STATUS_CHECK_ENABLED
+        .disk_status_check_enable = TDECK_SDCARD_STATUS_CHECK_ENALBED
     };
 
     sdmmc_card_t* card;
@@ -125,7 +125,7 @@ static void sdcard_unmount(void* context) {
     free(data);
 }
 
-const SdCard tdeck_sdcard = {
+SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_AT_BOOT
