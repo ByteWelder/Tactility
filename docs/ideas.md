@@ -1,5 +1,4 @@
 # TODOs
-- Make `desktop` app listen to changes in `app_manifest_registry`
 - Update `view_port` to use `ViewPort` as handle externally and `ViewPortData` internally
 - Replace FreeRTOS semaphore from `Loader` with internal `Mutex`
 - Create unit tests for `tactility-core` and `tactility` (PC-only for now)
@@ -7,6 +6,7 @@
 - Thread is broken: `tt_thread_join()` always hangs because `tt_thread_cleanup_tcb_event()`
 is not automatically called. This is normally done by a hook in `FreeRTOSConfig.h`
 but that seems to not work with ESP32. I should investigate task cleanup hooks further.
+- Set DPI in sdkconfig for Waveshare display
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.

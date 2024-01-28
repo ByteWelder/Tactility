@@ -6,7 +6,6 @@
 #include <driver/i2c.h>
 
 #define TAG "tdeck_keyboard"
-#define KEYBOARD_SLAVE_ADDRESS 0x55
 
 typedef struct {
     lv_indev_drv_t* driver;
@@ -15,8 +14,8 @@ typedef struct {
 
 static inline esp_err_t keyboard_i2c_read(uint8_t* output) {
     return i2c_master_read_from_device(
-        TDECK_I2C_BUS_HANDLE,
-        KEYBOARD_SLAVE_ADDRESS,
+        TDECK_KEYBOARD_I2C_BUS_HANDLE,
+        TDECK_KEYBOARD_SLAVE_ADDRESS,
         output,
         1,
         configTICK_RATE_HZ / 10
@@ -24,7 +23,7 @@ static inline esp_err_t keyboard_i2c_read(uint8_t* output) {
 }
 
 void keyboard_wait_for_response() {
-    TT_LOG_I(TAG, "wake await...");
+    TT_LOG_I(TAG, "Waiting for keyboard response...");
     bool awake = false;
     uint8_t read_buffer = 0x00;
     do {
@@ -33,7 +32,7 @@ void keyboard_wait_for_response() {
             tt_delay_ms(100);
         }
     } while (!awake);
-    TT_LOG_I(TAG, "awake");
+    TT_LOG_I(TAG, "Keyboard responded");
 }
 
 /**
@@ -55,11 +54,11 @@ static void keyboard_read_callback(TT_UNUSED struct _lv_indev_drv_t* indev_drv, 
 
     if (keyboard_i2c_read(&read_buffer) == ESP_OK) {
         if (read_buffer == 0 && read_buffer != last_buffer) {
-            TT_LOG_I(TAG, "released %d", last_buffer);
+            TT_LOG_I(TAG, "Released %d", last_buffer);
             data->key = last_buffer;
             data->state = LV_INDEV_STATE_RELEASED;
         } else if (read_buffer != 0) {
-            TT_LOG_I(TAG, "pressed %d", read_buffer);
+            TT_LOG_I(TAG, "Pressed %d", read_buffer);
             data->key = read_buffer;
             data->state = LV_INDEV_STATE_PRESSED;
         }

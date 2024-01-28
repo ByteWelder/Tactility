@@ -33,14 +33,26 @@ and [here](https://components.espressif.com/components?q=esp_lcd_touch)
 
 ### Devices
 
+Most hardware configurations should work, but it might require you to set up the drivers yourself.
+
 Predefined configurations are available for:
 
-- LilyGo T-Deck (see [lilygo.cc](https://www.lilygo.cc/products/t-deck), [AliExpress](https://www.aliexpress.com/item/1005005692235592.html))
-- Waveshare S3 Touch LCD 4.3 ([docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3))
-- Yellow Board 2432S024C: a 2.4" display with capacitive touch (see AliExpress [1](https://www.aliexpress.com/item/1005005902429049.html), [2](https://www.aliexpress.com/item/1005005865107357.html))
-- (more will follow)
+| Device                                   | Screen&Touch | SD card | Other    |
+|------------------------------------------|--------------|---------|----------|
+| [LilyGo T-Deck][tdeck]                   | ✅            | ✅       | Keyboard | 
+| [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |          |
+| Yellow Board 2432S024C (\*)              | ✅            | ⏳       |          |
 
-Other configurations can be supported, but they require you to set up the drivers yourself.
+- ✅: Capable and implemented
+- ⏳: Capable but not yet implemented
+- ❌: Not capable
+
+(*) Note: Only the capacitive version is supported. See AliExpress [here][2432s024c_1] and [here][2432s024c_2].
+
+[tdeck]: https://www.lilygo.cc/products/t-deck
+[waveshare_s3_touch]: https://www.aliexpress.com/item/1005005692235592.html
+[2432s024c_1]: https://www.aliexpress.com/item/1005005902429049.html
+[2432s024c_2]: https://www.aliexpress.com/item/1005005865107357.html
 
 ## Guide
 

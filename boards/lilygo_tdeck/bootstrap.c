@@ -1,14 +1,14 @@
 #include "config.h"
-#include "keyboard.h"
 #include "kernel.h"
+#include "keyboard.h"
 #include "log.h"
+#include <driver/spi_common.h>
 
 #define TAG "tdeck_bootstrap"
 
-lv_disp_t* tdeck_init_display();
+lv_disp_t* tdeck_display_init();
 
 static bool tdeck_power_on() {
-    ESP_LOGI(TAG, "power on");
     gpio_config_t device_power_signal_config = {
         .pin_bit_mask = BIT64(TDECK_POWERON_GPIO),
         .mode = GPIO_MODE_OUTPUT,
@@ -42,9 +42,27 @@ static bool init_i2c() {
         && i2c_driver_install(TDECK_I2C_BUS_HANDLE, i2c_conf.mode, 0, 0, 0) == ESP_OK;
 }
 
+static bool init_spi() {
+    spi_bus_config_t bus_config = {
+        .sclk_io_num = TDECK_SPI_PIN_SCLK,
+        .mosi_io_num = TDECK_SPI_PIN_MOSI,
+        .miso_io_num = TDECK_SPI_PIN_MISO,
+        .quadwp_io_num = -1, // Quad SPI LCD driver is not yet supported
+        .quadhd_io_num = -1, // Quad SPI LCD driver is not yet supported
+        .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+    };
+
+    if (spi_bus_initialize(TDECK_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 bool tdeck_bootstrap() {
+    ESP_LOGI(TAG, "Power on");
     if (!tdeck_power_on()) {
-        TT_LOG_E(TAG, "failed to power on device");
+        TT_LOG_E(TAG, "Power on failed");
     }
 
     /**
@@ -56,11 +74,19 @@ bool tdeck_bootstrap() {
      * By reading from I2C until it succeeds and to then init the driver.
      * It doesn't work, because it never recovers from the error.
      */
-    TT_LOG_I(TAG, "waiting after power-on");
-    tt_delay_ms(2000);
+    TT_LOG_I(TAG, "Waiting after power-on");
+    tt_delay_ms(TDECK_POWERON_DELAY);
 
+    TT_LOG_I(TAG, "Init I2C");
     if (!init_i2c()) {
-        TT_LOG_E(TAG, "failed to init I2C");
+        TT_LOG_E(TAG, "Init I2C failed");
+        return false;
+    }
+
+    TT_LOG_I(TAG, "Init SPI");
+    if (!init_spi()) {
+        TT_LOG_E(TAG, "Init SPI failed");
+        return false;
     }
 
     keyboard_wait_for_response();
