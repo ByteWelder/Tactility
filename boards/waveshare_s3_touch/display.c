@@ -1,60 +1,32 @@
-#include "display_defines_i.h"
+#include "config.h"
+
+#include "lvgl.h"
+#include "lvgl_i.h"
+#include "tactility_core.h"
+#include "thread.h"
 
 #include "esp_err.h"
 #include "esp_lcd_panel_ops.h"
-#include "esp_log.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#include "lvgl_i.h"
-#include "lvgl.h"
 #include <esp_lcd_panel_rgb.h>
 #include <esp_timer.h>
 #include <sys/cdefs.h>
-#include <thread.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 
 #define TAG "waveshare_s3_touch_display"
 
 SemaphoreHandle_t sem_vsync_end = NULL;
 SemaphoreHandle_t sem_gui_ready = NULL;
-
 SemaphoreHandle_t lvgl_mux = NULL;
 
-#define WAVESHARE_LCD_PIXEL_CLOCK_HZ (12 * 1000 * 1000) // NOTE: original was 14MHz, but we had to slow it down with PSRAM frame buffer
-#define WAVESHARE_PIN_NUM_HSYNC 46
-#define WAVESHARE_PIN_NUM_VSYNC 3
-#define WAVESHARE_PIN_NUM_DE 5
-#define WAVESHARE_PIN_NUM_PCLK 7
-#define WAVESHARE_PIN_NUM_DATA0 14  // B3
-#define WAVESHARE_PIN_NUM_DATA1 38  // B4
-#define WAVESHARE_PIN_NUM_DATA2 18  // B5
-#define WAVESHARE_PIN_NUM_DATA3 17  // B6
-#define WAVESHARE_PIN_NUM_DATA4 10  // B7
-#define WAVESHARE_PIN_NUM_DATA5 39  // G2
-#define WAVESHARE_PIN_NUM_DATA6 0   // G3
-#define WAVESHARE_PIN_NUM_DATA7 45  // G4
-#define WAVESHARE_PIN_NUM_DATA8 48  // G5
-#define WAVESHARE_PIN_NUM_DATA9 47  // G6
-#define WAVESHARE_PIN_NUM_DATA10 21 // G7
-#define WAVESHARE_PIN_NUM_DATA11 1  // R3
-#define WAVESHARE_PIN_NUM_DATA12 2  // R4
-#define WAVESHARE_PIN_NUM_DATA13 42 // R5
-#define WAVESHARE_PIN_NUM_DATA14 41 // R6
-#define WAVESHARE_PIN_NUM_DATA15 40 // R7
-#define WAVESHARE_PIN_NUM_DISP_EN (-1)
-
-#define WAVESHARE_BUFFER_HEIGHT (WAVESHARE_LCD_VER_RES / 3) // How many rows of pixels to buffer - 1/3rd is about 1MB
-#define WAVESHARE_LVGL_TICK_PERIOD_MS 2 // TODO: Setting it to 5 causes a crash - why?
-
-#define WAVESHARE_USE_DOUBLE_FB true // Performance boost at the cost of about extra PSRAM(SPIRAM)
-
-#if WAVESHARE_USE_DOUBLE_FB
-#define WAVESHARE_LCD_NUM_FB             2
+#if WAVESHARE_LCD_USE_DOUBLE_FB
+#define WAVESHARE_LCD_NUM_FB 2
 #else
-#define WAVESHARE_LCD_NUM_FB             1
-#endif // WAVESHARE_USE_DOUBLE_FB
+#define WAVESHARE_LCD_NUM_FB 1
+#endif
 
 static bool lvgl_is_running = false;
-#define LVGL_MAX_SLEEP 500
 
 bool ws3t_display_lock(uint32_t timeout_ms) {
     assert(lvgl_mux && "lvgl_port_init must be called first");
@@ -123,23 +95,22 @@ static void display_flush_callback(lv_disp_drv_t* drv, const lv_area_t* area, lv
 }
 
 lv_disp_t* ws3t_display_create() {
+    TT_LOG_I(TAG, "display init");
     static lv_disp_drv_t display_driver;
     static lv_disp_draw_buf_t display_buffer;
 
-    ESP_LOGI(TAG, "Create semaphores");
     sem_vsync_end = xSemaphoreCreateBinary();
-    assert(sem_vsync_end);
+    tt_assert(sem_vsync_end);
     sem_gui_ready = xSemaphoreCreateBinary();
-    assert(sem_gui_ready);
+    tt_assert(sem_gui_ready);
 
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
-    assert(lvgl_mux);
+    tt_assert(lvgl_mux);
 
     Thread* thread = tt_thread_alloc_ex("display_task", 8192, &display_task, NULL);
     tt_thread_set_priority(thread, ThreadPriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
     tt_thread_start(thread);
 
-    ESP_LOGI(TAG, "Install RGB LCD panel driver");
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_rgb_panel_config_t panel_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
@@ -161,75 +132,57 @@ lv_disp_t* ws3t_display_create() {
         .bounce_buffer_size_px = 0,
         .sram_trans_align = 0,
         .psram_trans_align = 64,
-        .hsync_gpio_num = WAVESHARE_PIN_NUM_HSYNC,
-        .vsync_gpio_num = WAVESHARE_PIN_NUM_VSYNC,
-        .de_gpio_num = WAVESHARE_PIN_NUM_DE,
-        .pclk_gpio_num = WAVESHARE_PIN_NUM_PCLK,
-        .disp_gpio_num = WAVESHARE_PIN_NUM_DISP_EN,
-        .data_gpio_nums = {
-            WAVESHARE_PIN_NUM_DATA0,
-            WAVESHARE_PIN_NUM_DATA1,
-            WAVESHARE_PIN_NUM_DATA2,
-            WAVESHARE_PIN_NUM_DATA3,
-            WAVESHARE_PIN_NUM_DATA4,
-            WAVESHARE_PIN_NUM_DATA5,
-            WAVESHARE_PIN_NUM_DATA6,
-            WAVESHARE_PIN_NUM_DATA7,
-            WAVESHARE_PIN_NUM_DATA8,
-            WAVESHARE_PIN_NUM_DATA9,
-            WAVESHARE_PIN_NUM_DATA10,
-            WAVESHARE_PIN_NUM_DATA11,
-            WAVESHARE_PIN_NUM_DATA12,
-            WAVESHARE_PIN_NUM_DATA13,
-            WAVESHARE_PIN_NUM_DATA14,
-            WAVESHARE_PIN_NUM_DATA15
-        },
-        .flags = {
-            .disp_active_low = false,
-            .refresh_on_demand = false,
-            .fb_in_psram = true,
-#if WAVESHARE_USE_DOUBLE_FB
-                  .double_fb = true,
-#else
-            .double_fb = false,
-#endif
-            .no_fb = false,
-            .bb_invalidate_cache = false
-        }
+        .hsync_gpio_num = WAVESHARE_LCD_PIN_NUM_HSYNC,
+        .vsync_gpio_num = WAVESHARE_LCD_PIN_NUM_VSYNC,
+        .de_gpio_num = WAVESHARE_LCD_PIN_NUM_DE,
+        .pclk_gpio_num = WAVESHARE_LCD_PIN_NUM_PCLK,
+        .disp_gpio_num = WAVESHARE_LCD_PIN_NUM_DISP_EN,
+        .data_gpio_nums = {WAVESHARE_LCD_PIN_NUM_DATA0, WAVESHARE_LCD_PIN_NUM_DATA1, WAVESHARE_LCD_PIN_NUM_DATA2, WAVESHARE_LCD_PIN_NUM_DATA3, WAVESHARE_LCD_PIN_NUM_DATA4, WAVESHARE_LCD_PIN_NUM_DATA5, WAVESHARE_LCD_PIN_NUM_DATA6, WAVESHARE_LCD_PIN_NUM_DATA7, WAVESHARE_LCD_PIN_NUM_DATA8, WAVESHARE_LCD_PIN_NUM_DATA9, WAVESHARE_LCD_PIN_NUM_DATA10, WAVESHARE_LCD_PIN_NUM_DATA11, WAVESHARE_LCD_PIN_NUM_DATA12, WAVESHARE_LCD_PIN_NUM_DATA13, WAVESHARE_LCD_PIN_NUM_DATA14, WAVESHARE_LCD_PIN_NUM_DATA15},
+        .flags = {.disp_active_low = false, .refresh_on_demand = false, .fb_in_psram = true, .double_fb = WAVESHARE_LCD_USE_DOUBLE_FB, .no_fb = false, .bb_invalidate_cache = false}
     };
-    ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_config, &panel_handle));
 
-    ESP_LOGI(TAG, "Register event callbacks");
+    if (esp_lcd_new_rgb_panel(&panel_config, &panel_handle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create RGB panel");
+        return NULL;
+    }
+
     esp_lcd_rgb_panel_event_callbacks_t cbs = {
         .on_vsync = on_vsync_event,
         .on_bounce_empty = NULL,
         .on_bounce_frame_finish = NULL
     };
-    ESP_ERROR_CHECK(esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, &display_driver));
+    if (esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, &display_driver) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to register callbacks");
+        return NULL;
+    }
 
-    ESP_LOGI(TAG, "Initialize LCD panel");
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
-    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
+    if (esp_lcd_panel_reset(panel_handle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to reset panel");
+        return NULL;
+    }
 
-    ESP_LOGI(TAG, "Initialize LVGL library");
+    if (esp_lcd_panel_init(panel_handle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to init panel");
+        return NULL;
+    }
+
     lv_init();
 
-    void *buf1 = NULL;
-    void *buf2 = NULL;
-#if WAVESHARE_USE_DOUBLE_FB
-    ESP_LOGI(TAG, "Use frame buffers as LVGL draw buffers");
-    buf1 = heap_caps_malloc(WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    buf2 = heap_caps_malloc(WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    NULL;
+#if WAVESHARE_LCD_USE_DOUBLE_FB
+    void* buffer1 = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    void* buffer2 = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    tt_assert(buffer1);
+    tt_assert(buffer2);
     // initialize LVGL draw buffers
-    lv_disp_draw_buf_init(&display_buffer, buf1, buf2, WAVESHARE_LCD_HOR_RES * WAVESHARE_BUFFER_HEIGHT);
+    lv_disp_draw_buf_init(&display_buffer, buffer1, buffer2, WAVESHARE_LCD_HOR_RES * WAVESHARE_LCD_BUFFER_HEIGHT);
 #else
     ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
-    buf1 = heap_caps_malloc(WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    assert(buf1);
-    lv_disp_draw_buf_init(&display_buffer, buf1, buf2, WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT);
+    void* buffer = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    tt_assert(buffer);
+    lv_disp_draw_buf_init(&display_buffer, buffer, NULL, WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT);
 #endif // WAVESHARE_USE_DOUBLE_FB
 
-    ESP_LOGI(TAG, "Register display driver to LVGL");
     lv_disp_drv_init(&display_driver);
     display_driver.hor_res = WAVESHARE_LCD_HOR_RES;
     display_driver.ver_res = WAVESHARE_LCD_VER_RES;
@@ -241,12 +194,7 @@ lv_disp_t* ws3t_display_create() {
     display_driver.sw_rotate = false;
     display_driver.rotated = 0;
     display_driver.screen_transp = false;
-
-#if WAVESHARE_USE_DOUBLE_FB
-    display_driver.full_refresh = true; // Maintains the synchronization between the two frame buffers
-#else
-    display_driver.full_refresh = false;
-#endif
+    display_driver.full_refresh = WAVESHARE_LCD_USE_DOUBLE_FB; // Maintains the synchronization between the two frame buffers
 
     lv_disp_t* display = lv_disp_drv_register(&display_driver);
 
