@@ -8,7 +8,7 @@
 Mutex* mutex = NULL;
 
 typedef struct {
-    const Sdcard* sdcard;
+    const SdCard* sdcard;
     void* context;
 } MountData;
 
@@ -32,7 +32,7 @@ static void sdcard_unlock() {
     tt_mutex_release(mutex);
 }
 
-bool tt_sdcard_mount(const Sdcard* sdcard) {
+bool tt_sdcard_mount(const SdCard* sdcard) {
     TT_LOG_I(TAG, "Mounting");
 
     if (data.sdcard != NULL) {

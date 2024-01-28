@@ -20,9 +20,9 @@ typedef struct {
     SdcardMount mount;
     SdcardUnmount unmount;
     SdcardMountBehaviour mount_behaviour;
-} Sdcard;
+} SdCard;
 
-bool tt_sdcard_mount(const Sdcard* sdcard);
+bool tt_sdcard_mount(const SdCard* sdcard);
 bool tt_sdcard_is_mounted();
 bool tt_sdcard_unmount();
 

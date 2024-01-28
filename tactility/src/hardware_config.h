@@ -10,5 +10,5 @@ typedef struct {
     // Optional bootstrapping method (e.g. to turn peripherals on)
     const Bootstrap _Nullable bootstrap;
     const InitLvgl init_lvgl;
-    const Sdcard* _Nullable sdcard;
+    const SdCard* _Nullable sdcard;
 } HardwareConfig;

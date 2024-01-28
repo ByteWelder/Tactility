@@ -125,7 +125,7 @@ static void sdcard_unmount(void* context) {
     free(data);
 }
 
-Sdcard tdeck_sdcard = {
+SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_AT_BOOT
