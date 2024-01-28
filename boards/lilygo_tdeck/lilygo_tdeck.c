@@ -4,7 +4,10 @@
 bool tdeck_bootstrap();
 bool tdeck_init_lvgl();
 
+extern Sdcard tdeck_sdcard;
+
 const HardwareConfig lilygo_tdeck = {
     .bootstrap = &tdeck_bootstrap,
-    .init_lvgl = &tdeck_init_lvgl
+    .init_lvgl = &tdeck_init_lvgl,
+    .sdcard = &tdeck_sdcard
 };

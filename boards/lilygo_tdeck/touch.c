@@ -8,15 +8,12 @@
 #define TAG "tdeck_touch"
 
 bool tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle) {
-    TT_LOG_I(TAG, "creating touch");
-
     const esp_lcd_panel_io_i2c_config_t touch_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
     if (esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)TDECK_I2C_BUS_HANDLE, &touch_io_config, io_handle) != ESP_OK) {
         TT_LOG_E(TAG, "touch io i2c creation failed");
         return false;
     }
 
-    TT_LOG_I(TAG, "create_touch");
     esp_lcd_touch_config_t config = {
         .x_max = 240,
         .y_max = 320,

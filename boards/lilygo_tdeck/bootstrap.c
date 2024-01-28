@@ -1,14 +1,21 @@
 #include "config.h"
-#include "keyboard.h"
 #include "kernel.h"
+#include "keyboard.h"
 #include "log.h"
+#include <driver/spi_common.h>
 
 #define TAG "tdeck_bootstrap"
 
-lv_disp_t* tdeck_init_display();
+#define TDECK_SPI_HOST SPI2_HOST
+#define TDECK_SPI_PIN_SCLK GPIO_NUM_40
+#define TDECK_SPI_PIN_MOSI GPIO_NUM_41
+#define TDECK_SPI_PIN_MISO GPIO_NUM_38
+#define TDECK_SPI_TRANSFER_SIZE_LIMIT (LCD_HORIZONTAL_RESOLUTION * LCD_SPI_TRANSFER_HEIGHT * (LCD_BITS_PER_PIXEL / 8))
+
+lv_disp_t* tdeck_display_init();
+lv_disp_t* tdeck_sdcard_attach();
 
 static bool tdeck_power_on() {
-    ESP_LOGI(TAG, "power on");
     gpio_config_t device_power_signal_config = {
         .pin_bit_mask = BIT64(TDECK_POWERON_GPIO),
         .mode = GPIO_MODE_OUTPUT,
@@ -42,9 +49,27 @@ static bool init_i2c() {
         && i2c_driver_install(TDECK_I2C_BUS_HANDLE, i2c_conf.mode, 0, 0, 0) == ESP_OK;
 }
 
+static bool init_spi() {
+    spi_bus_config_t bus_config = {
+        .sclk_io_num = TDECK_SPI_PIN_SCLK,
+        .mosi_io_num = TDECK_SPI_PIN_MOSI,
+        .miso_io_num = TDECK_SPI_PIN_MISO,
+        .quadwp_io_num = -1, // Quad SPI LCD driver is not yet supported
+        .quadhd_io_num = -1, // Quad SPI LCD driver is not yet supported
+        .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+    };
+
+    if (spi_bus_initialize(TDECK_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 bool tdeck_bootstrap() {
+    ESP_LOGI(TAG, "power on");
     if (!tdeck_power_on()) {
-        TT_LOG_E(TAG, "failed to power on device");
+        TT_LOG_E(TAG, "power on failed");
     }
 
     /**
@@ -59,8 +84,16 @@ bool tdeck_bootstrap() {
     TT_LOG_I(TAG, "waiting after power-on");
     tt_delay_ms(2000);
 
+    TT_LOG_I(TAG, "init I2C");
     if (!init_i2c()) {
-        TT_LOG_E(TAG, "failed to init I2C");
+        TT_LOG_E(TAG, "init I2C failed");
+        return false;
+    }
+
+    TT_LOG_I(TAG, "init SPI");
+    if (!init_spi()) {
+        TT_LOG_E(TAG, "init SPI failed");
+        return false;
     }
 
     keyboard_wait_for_response();
