@@ -41,7 +41,6 @@ Predefined configurations are available for:
 | [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |          |
 | Yellow Board 2432S024C (\*)              | ✅            | ⏳       |          |
 
-Meanings:
 - ✅: Capable and implemented
 - ⏳: Capable but not yet implemented
 - ❌: Not capable
