@@ -6,7 +6,16 @@
 // Main bus, used by GT911 touch hardware and keyboard
 #define TDECK_I2C_BUS_HANDLE (0)
 
+// SPI
+#define TDECK_SPI_HOST SPI2_HOST
+#define TDECK_SPI_PIN_SCLK GPIO_NUM_40
+#define TDECK_SPI_PIN_MOSI GPIO_NUM_41
+#define TDECK_SPI_PIN_MISO GPIO_NUM_38
+#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8))
+
+// Power on
 #define TDECK_POWERON_GPIO GPIO_NUM_10
+#define TDECK_POWERON_DELAY 2000 // milliseconds - see bootstrap.c for explanation
 
 // Display
 #define TDECK_LCD_SPI_HOST SPI2_HOST

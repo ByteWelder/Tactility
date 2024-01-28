@@ -6,14 +6,7 @@
 
 #define TAG "tdeck_bootstrap"
 
-#define TDECK_SPI_HOST SPI2_HOST
-#define TDECK_SPI_PIN_SCLK GPIO_NUM_40
-#define TDECK_SPI_PIN_MOSI GPIO_NUM_41
-#define TDECK_SPI_PIN_MISO GPIO_NUM_38
-#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8))
-
 lv_disp_t* tdeck_display_init();
-lv_disp_t* tdeck_sdcard_attach();
 
 static bool tdeck_power_on() {
     gpio_config_t device_power_signal_config = {
@@ -67,9 +60,9 @@ static bool init_spi() {
 }
 
 bool tdeck_bootstrap() {
-    ESP_LOGI(TAG, "power on");
+    ESP_LOGI(TAG, "Power on");
     if (!tdeck_power_on()) {
-        TT_LOG_E(TAG, "power on failed");
+        TT_LOG_E(TAG, "Power on failed");
     }
 
     /**
@@ -81,18 +74,18 @@ bool tdeck_bootstrap() {
      * By reading from I2C until it succeeds and to then init the driver.
      * It doesn't work, because it never recovers from the error.
      */
-    TT_LOG_I(TAG, "waiting after power-on");
-    tt_delay_ms(2000);
+    TT_LOG_I(TAG, "Waiting after power-on");
+    tt_delay_ms(TDECK_POWERON_DELAY);
 
-    TT_LOG_I(TAG, "init I2C");
+    TT_LOG_I(TAG, "Init I2C");
     if (!init_i2c()) {
-        TT_LOG_E(TAG, "init I2C failed");
+        TT_LOG_E(TAG, "Init I2C failed");
         return false;
     }
 
-    TT_LOG_I(TAG, "init SPI");
+    TT_LOG_I(TAG, "Init SPI");
     if (!init_spi()) {
-        TT_LOG_E(TAG, "init SPI failed");
+        TT_LOG_E(TAG, "Init SPI failed");
         return false;
     }
 
