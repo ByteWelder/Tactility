@@ -41,7 +41,7 @@ Predefined configurations are available for:
 |------------------------------------------|--------------|---------|----------|
 | [LilyGo T-Deck][tdeck]                   | ✅            | ✅       | Keyboard | 
 | [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |          |
-| Yellow Board 2432S024C (\*)              | ✅            | ⏳       |          |
+| Yellow Board 2432S024C (\*)              | ✅            | ✅       |          |
 
 - ✅: Capable and implemented
 - ⏳: Capable but not yet implemented

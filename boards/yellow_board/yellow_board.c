@@ -1,8 +1,12 @@
 #include "yellow_board.h"
 
-bool yellow_board_init_lvgl();
+bool twodotfour_lvgl_init();
+bool twodotfour_bootstrap();
+
+extern const SdCard twodotfour_sdcard;
 
 const HardwareConfig yellow_board_24inch_cap = {
-    .bootstrap = NULL,
-    .init_lvgl = &yellow_board_init_lvgl
+    .bootstrap = &twodotfour_bootstrap,
+    .init_lvgl = &twodotfour_lvgl_init,
+    .sdcard = &twodotfour_sdcard
 };
