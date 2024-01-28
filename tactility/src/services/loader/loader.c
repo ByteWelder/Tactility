@@ -15,7 +15,7 @@
 #include "semphr.h"
 #endif
 
-#define TAG "Loader"
+#define TAG "loader"
 
 // Forward declarations
 static int32_t loader_main(void* p);

@@ -3,12 +3,12 @@
 #include "ui/lvgl_sync.h"
 #include <thread.h>
 
-#define TAG "yellow_board_lvgl"
+#define TAG "twodotfour_lvgl"
 
-lv_disp_t* yellow_board_init_display();
-bool yellow_board_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
+lv_disp_t* twodotfour_display_init();
+bool twodotfour_touch_init(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
-bool yellow_board_init_lvgl() {
+bool twodotfour_lvgl_init() {
     static lv_disp_t* display = NULL;
     static esp_lcd_panel_io_handle_t touch_io_handle;
     static esp_lcd_touch_handle_t touch_handle;
@@ -27,15 +27,14 @@ bool yellow_board_init_lvgl() {
     }
 
     // Add display
-    display = yellow_board_init_display();
+    display = twodotfour_display_init();
     if (display == NULL) {
         TT_LOG_E(TAG, "failed to add display");
         return false;
     }
 
-
     // Add touch
-    if (!yellow_board_init_touch(&touch_io_handle, &touch_handle)) {
+    if (!twodotfour_touch_init(&touch_io_handle, &touch_handle)) {
         return false;
     }
 

@@ -54,7 +54,7 @@ void gui_free(Gui* instance) {
 void gui_lock() {
     tt_assert(gui);
     tt_assert(gui->mutex);
-    tt_check(tt_mutex_acquire(gui->mutex, 1000 / portTICK_PERIOD_MS) == TtStatusOk);
+    tt_check(tt_mutex_acquire(gui->mutex, configTICK_RATE_HZ) == TtStatusOk);
 }
 
 void gui_unlock() {
@@ -84,7 +84,7 @@ void gui_hide_app() {
 
     // We must lock the LVGL port, because the viewport hide callbacks
     // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
-    tt_check(tt_lvgl_lock(1000));
+    tt_check(tt_lvgl_lock(configTICK_RATE_HZ));
     view_port_hide(view_port);
     tt_lvgl_unlock();
 

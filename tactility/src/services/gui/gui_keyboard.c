@@ -23,15 +23,12 @@ void gui_keyboard_show(lv_obj_t* textarea) {
     gui_lock();
 
     if (gui->keyboard) {
-        gui_lock();
-
         lv_obj_clear_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
         lv_keyboard_set_textarea(gui->keyboard, textarea);
 
         if (gui->toolbar) {
             lv_obj_add_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
         }
-
     }
 
     gui_unlock();
