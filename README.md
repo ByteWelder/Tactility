@@ -33,6 +33,8 @@ and [here](https://components.espressif.com/components?q=esp_lcd_touch)
 
 ### Devices
 
+Most hardware configurations should work, but it might require you to set up the drivers yourself.
+
 Predefined configurations are available for:
 
 | Device                                   | Screen&Touch | SD card | Other    |
@@ -45,16 +47,12 @@ Predefined configurations are available for:
 - ⏳: Capable but not yet implemented
 - ❌: Not capable
 
-More boards will follow. SD card support will be implemented for more boards in the future.
-
 (*) Note: Only the capacitive version is supported. See AliExpress [here][2432s024c_1] and [here][2432s024c_2].
 
 [tdeck]: https://www.lilygo.cc/products/t-deck
 [waveshare_s3_touch]: https://www.aliexpress.com/item/1005005692235592.html
 [2432s024c_1]: https://www.aliexpress.com/item/1005005902429049.html
 [2432s024c_2]: https://www.aliexpress.com/item/1005005865107357.html
-
-Other configurations can be supported, but they require you to set up the drivers yourself.
 
 ## Guide
 
