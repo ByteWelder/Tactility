@@ -1,11 +1,10 @@
 #include "hardware_i.h"
 
-#include "check.h"
-#include "lvgl.h"
-
 #define TAG "hardware"
 
-#define SDCARD_MOUNT_POINT "/sdcard"
+typedef struct {
+    bool initialized;
+} Hardware;
 
 void tt_hardware_init(const HardwareConfig* config) {
     if (config->bootstrap != NULL) {
@@ -15,8 +14,7 @@ void tt_hardware_init(const HardwareConfig* config) {
 
     if (config->sdcard != NULL) {
         TT_LOG_I(TAG, "Mounting sdcard");
-        void* sdcard_context = config->sdcard->mount(SDCARD_MOUNT_POINT);
-        config->sdcard->unmount(sdcard_context);
+        tt_sdcard_mount(config->sdcard);
     }
 
     tt_check(config->init_lvgl, "lvlg init not set");

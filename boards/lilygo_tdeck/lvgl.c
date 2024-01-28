@@ -25,7 +25,7 @@ bool tdeck_init_lvgl() {
         .timer_period_ms = 5
     };
 
-    TT_LOG_I(TAG, "lvgl port init");
+    TT_LOG_D(TAG, "lvgl port init");
     if (lvgl_port_init(&lvgl_cfg) != ESP_OK) {
         TT_LOG_E(TAG, "lvgl port init failed");
         return false;
@@ -33,7 +33,7 @@ bool tdeck_init_lvgl() {
 
     // Add display
 
-    TT_LOG_I(TAG, "creating display");
+    TT_LOG_D(TAG, "creating display");
     display = tdeck_display_init();
     if (display == NULL) {
         TT_LOG_E(TAG, "creating display failed");
@@ -42,7 +42,7 @@ bool tdeck_init_lvgl() {
 
     // Add touch
 
-    TT_LOG_I(TAG, "creating touch");
+    TT_LOG_D(TAG, "creating touch");
     if (!tdeck_init_touch(&touch_io_handle, &touch_handle)) {
         TT_LOG_E(TAG, "creating touch failed");
         return false;
@@ -53,7 +53,7 @@ bool tdeck_init_lvgl() {
         .handle = touch_handle,
     };
 
-    TT_LOG_I(TAG, "adding touch");
+    TT_LOG_D(TAG, "adding touch");
     lv_indev_t _Nullable* touch_indev = lvgl_port_add_touch(&touch_cfg);
     if (touch_indev == NULL) {
         TT_LOG_E(TAG, "failed to add touch to lvgl");
@@ -65,7 +65,7 @@ bool tdeck_init_lvgl() {
 
     keyboard_alloc(display);
 
-    TT_LOG_I(TAG, "enabling backlight");
+    TT_LOG_D(TAG, "enabling backlight");
     tdeck_enable_backlight();
 
     return true;

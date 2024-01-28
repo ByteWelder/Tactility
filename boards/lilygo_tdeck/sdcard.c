@@ -1,21 +1,17 @@
 #include "sdcard.h"
 #include "check.h"
 #include "log.h"
+#include "config.h"
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 
 #define TAG "tdeck_sdcard"
-#define SDCARD_SPI_HOST SPI2_HOST
-
-#define BOARD_CS_PIN GPIO_NUM_39
-#define RADIO_CS_PIN GPIO_NUM_9
-#define BOARD_TFT_CS_PIN GPIO_NUM_12
 
 typedef struct {
     const char* mount_point;
     sdmmc_card_t* card;
-} SdcardData;
+} MountData;
 
 /**
  * Before we can initialize the sdcard's SPI communications, we have to set all
@@ -24,9 +20,11 @@ typedef struct {
  * See https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
  * @return success result
  */
-static bool sdcard_set_pins_high() {
+static bool sdcard_init() {
+    TT_LOG_D(TAG, "init");
+
     gpio_config_t config = {
-        .pin_bit_mask = BIT64(BOARD_CS_PIN) | BIT64(RADIO_CS_PIN) | BIT64(BOARD_TFT_CS_PIN),
+        .pin_bit_mask = BIT64(TDECK_SDCARD_PIN_CS) | BIT64(TDECK_RADIO_PIN_CS) | BIT64(TDECK_LCD_PIN_CS),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -38,65 +36,59 @@ static bool sdcard_set_pins_high() {
         return false;
     }
 
-    if (gpio_set_level(BOARD_CS_PIN, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "failed to set board cs high");
+    if (gpio_set_level(TDECK_SDCARD_PIN_CS, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set board CS pin high");
         return false;
     }
 
-    if (gpio_set_level(RADIO_CS_PIN, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "failed to set radio cs high");
+    if (gpio_set_level(TDECK_RADIO_PIN_CS, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set radio CS pin high");
         return false;
     }
 
-    if (gpio_set_level(BOARD_TFT_CS_PIN, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "failed to set tft cs high");
+    if (gpio_set_level(TDECK_LCD_PIN_CS, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set TFT CS pin high");
         return false;
     }
 
     return true;
 }
 
-static void* sdcard_init(const char* mount_point) {
-    if (!sdcard_set_pins_high()) {
-        return NULL;
-    }
+static void* sdcard_mount(const char* mount_point) {
+    TT_LOG_I(TAG, "Mounting %s", mount_point);
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = false,
-        .max_files = 4,
-        .allocation_unit_size = 16 * 1024
+        .format_if_mount_failed = TDECK_SDCARD_FORMAT_ON_MOUNT_FAILED,
+        .max_files = TDECK_SDCARD_MAX_OPEN_FILES,
+        .allocation_unit_size = TDECK_SDCARD_ALLOC_UNIT_SIZE,
+        .disk_status_check_enable = TDECK_SDCARD_STATUS_CHECK_ENALBED
     };
 
     sdmmc_card_t* card;
 
-    // This initializes the slot without card detect (CD) and write protect (WP) signals.
-    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
+    // Init without card detect (CD) and write protect (WD)
     sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
-    slot_config.gpio_cs = GPIO_NUM_39;
-    slot_config.host_id = SDCARD_SPI_HOST;
+    slot_config.gpio_cs = TDECK_SDCARD_PIN_CS;
+    slot_config.host_id = TDECK_SDCARD_SPI_HOST;
 
-    // By default, SD card frequency is initialized to SDMMC_FREQ_DEFAULT (20MHz)
-    // For setting a specific frequency, use host.max_freq_khz (range 400kHz - 20MHz for SDSPI)
-    // Example: for fixed frequency of 10MHz, use host.max_freq_khz = 10000;
     sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-    host.max_freq_khz = 800000U; // from T-Deck repo's UnitTest.ino project
+    // The following value is from T-Deck repo's UnitTest.ino project:
+    // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
+    // Observation: Using this automatically sets the bus to 20MHz
+    host.max_freq_khz = TDECK_SDCARD_SPI_FREQUENCY;
     esp_err_t ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
-            ESP_LOGE(TAG, "Failed to mount filesystem. "
-                          "If you want the card to be formatted, set the CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
+            TT_LOG_E(TAG, "Mounting failed. Ensure the card is formatted with FAT.");
         } else {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                          "Make sure SD card lines have pull-up resistors in place.",
-                     esp_err_to_name(ret));
+            TT_LOG_E(TAG, "Mounting failed (%s)", esp_err_to_name(ret));
         }
         return NULL;
     }
-    ESP_LOGI(TAG, "Filesystem mounted");
 
-    SdcardData* data = malloc(sizeof(SdcardData));
-    *data = (SdcardData) {
+    MountData* data = malloc(sizeof(MountData));
+    *data = (MountData) {
         .card = card,
         .mount_point = mount_point
     };
@@ -104,12 +96,15 @@ static void* sdcard_init(const char* mount_point) {
     return data;
 }
 
-static void* sdcard_mount(const char* mount_point) {
-    TT_LOG_I(TAG, "sdcard init");
+static void* sdcard_init_and_mount(const char* mount_point) {
+    if (!sdcard_init()) {
+        TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
+        return NULL;
+    }
 
-    SdcardData* data = sdcard_init(mount_point);
+    MountData* data = sdcard_mount(mount_point);
     if (data == NULL) {
-        TT_LOG_E(TAG, "sdcard init failed");
+        TT_LOG_E(TAG, "Mount failed for %s", mount_point);
         return NULL;
     }
 
@@ -119,17 +114,19 @@ static void* sdcard_mount(const char* mount_point) {
 }
 
 static void sdcard_unmount(void* context) {
-    SdcardData* data = (SdcardData *)context;
+    MountData* data = (MountData*)context;
+    TT_LOG_I(TAG, "Unmounting %s", data->mount_point);
+
     tt_assert(data != NULL);
     if (esp_vfs_fat_sdcard_unmount(data->mount_point, data->card) != ESP_OK) {
-        TT_LOG_E(TAG, "failed to unmount %s", data->mount_point);
+        TT_LOG_E(TAG, "Unmount failed for %s", data->mount_point);
     }
 
     free(data);
 }
 
 Sdcard tdeck_sdcard = {
-    .mount = &sdcard_mount,
+    .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_AT_BOOT
 };
