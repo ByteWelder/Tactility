@@ -1,5 +1,3 @@
-#include "display.h"
-
 #include "app.h"
 #include "lvgl.h"
 #include "tactility.h"
@@ -17,7 +15,6 @@ static void slider_event_cb(lv_event_t* e) {
 }
 
 static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
-
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     tt_lv_obj_set_style_auto_padding(parent);
 

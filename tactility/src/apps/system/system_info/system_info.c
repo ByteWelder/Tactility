@@ -1,7 +1,5 @@
-#include "app_manifest.h"
-#include "core_extra_defines.h"
+#include "app.h"
 #include "lvgl.h"
-#include "thread.h"
 
 static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_t* heap_info = lv_label_create(parent);
