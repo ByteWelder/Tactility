@@ -17,7 +17,17 @@ typedef struct {
     const char* auto_start_app_id;
 } Config;
 
+/**
+ * Attempts to initialize Tactility and all configured hardware.
+ * @param config
+ */
 TT_UNUSED void tt_init(const Config* config);
+
+/**
+ * While technically nullable, this instance is always set if tt_init() succeeds.
+ * @return the Configuration instance that was passed on to tt_init() if init is successful
+ */
+const Config* _Nullable tt_get_config();
 
 #ifdef __cplusplus
 }

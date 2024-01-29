@@ -1,14 +1,13 @@
 #include "config.h"
+#include "display_i.h"
 #include "esp_lvgl_port.h"
 #include "keyboard.h"
 #include "log.h"
 #include "ui/lvgl_sync.h"
-#include <thread.h>
+#include "thread.h"
 
 #define TAG "tdeck_lvgl"
 
-lv_disp_t* tdeck_display_init();
-void tdeck_enable_backlight();
 bool tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
 bool tdeck_init_lvgl() {
@@ -16,11 +15,9 @@ bool tdeck_init_lvgl() {
     static esp_lcd_panel_io_handle_t touch_io_handle;
     static esp_lcd_touch_handle_t touch_handle;
 
-    // Init LVGL Port library
-
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = THREAD_PRIORITY_RENDER,
-        .task_stack = TDECK_LVGL_TASK_STACK_DEPTH ,
+        .task_stack = TDECK_LVGL_TASK_STACK_DEPTH,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,
         .timer_period_ms = 5
@@ -66,8 +63,9 @@ bool tdeck_init_lvgl() {
 
     keyboard_alloc(display);
 
-    TT_LOG_D(TAG, "enabling backlight");
-    tdeck_enable_backlight();
+    TT_LOG_D(TAG, "Enabling backlight");
+    tdeck_backlight_init();
+    tdeck_backlight_set(180);
 
     return true;
 }

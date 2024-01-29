@@ -7,6 +7,8 @@
 
 #define TAG "tactility"
 
+static const Config* config_instance = NULL;
+
 // region System services
 
 extern const ServiceManifest gui_service;
@@ -22,10 +24,12 @@ static const ServiceManifest* const system_services[] = {
 // region System apps
 
 extern const AppManifest desktop_app;
+extern const AppManifest display_app;
 extern const AppManifest system_info_app;
 
 static const AppManifest* const system_apps[] = {
     &desktop_app,
+    &display_app,
     &system_info_app
 };
 
@@ -103,4 +107,10 @@ TT_UNUSED void tt_init(const Config* config) {
     }
 
     TT_LOG_I(TAG, "tt_init complete");
+
+    config_instance = config;
+}
+
+const Config* _Nullable tt_get_config() {
+    return config_instance;
 }

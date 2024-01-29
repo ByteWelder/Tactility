@@ -50,7 +50,7 @@ Predefined configurations are available for:
 (*) Note: Only the capacitive version is supported. See AliExpress [here][2432s024c_1] and [here][2432s024c_2].
 
 [tdeck]: https://www.lilygo.cc/products/t-deck
-[waveshare_s3_touch]: https://www.aliexpress.com/item/1005005692235592.html
+[waveshare_s3_touch]: https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3
 [2432s024c_1]: https://www.aliexpress.com/item/1005005902429049.html
 [2432s024c_2]: https://www.aliexpress.com/item/1005005865107357.html
 

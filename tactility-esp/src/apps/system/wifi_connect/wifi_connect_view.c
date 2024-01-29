@@ -67,13 +67,9 @@ void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent
 void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     WifiConnect* wifi_connect = (WifiConnect*)wifi;
     WifiConnectView* view = &wifi_connect->view;
-    // TODO: Standardize this into "window content" function?
-    // TODO: It can then be dynamically determined based on screen res and size
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_top(parent, 8, 0);
-    lv_obj_set_style_pad_bottom(parent, 8, 0);
-    lv_obj_set_style_pad_left(parent, 16, 0);
-    lv_obj_set_style_pad_right(parent, 16, 0);
+    tt_lv_obj_set_style_auto_padding(parent);
 
     view->root = parent;
 

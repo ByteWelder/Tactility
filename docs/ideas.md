@@ -7,6 +7,9 @@
 is not automatically called. This is normally done by a hook in `FreeRTOSConfig.h`
 but that seems to not work with ESP32. I should investigate task cleanup hooks further.
 - Set DPI in sdkconfig for Waveshare display
+- Try to drive Yellow Board backlight with PWM to reduce backlight strength
+- Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
+- Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
