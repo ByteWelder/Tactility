@@ -1,12 +1,10 @@
 #include "config.h"
-#include "kernel.h"
+#include "display_i.h"
+#include "driver/spi_common.h"
 #include "keyboard.h"
-#include "log.h"
-#include <driver/spi_common.h>
+#include "tactility_core.h"
 
 #define TAG "tdeck_bootstrap"
-
-lv_disp_t* tdeck_display_init();
 
 static bool tdeck_power_on() {
     gpio_config_t device_power_signal_config = {
@@ -38,8 +36,7 @@ static bool init_i2c() {
         .master.clk_speed = 400000
     };
 
-    return i2c_param_config(TDECK_I2C_BUS_HANDLE, &i2c_conf) == ESP_OK
-        && i2c_driver_install(TDECK_I2C_BUS_HANDLE, i2c_conf.mode, 0, 0, 0) == ESP_OK;
+    return i2c_param_config(TDECK_I2C_BUS_HANDLE, &i2c_conf) == ESP_OK && i2c_driver_install(TDECK_I2C_BUS_HANDLE, i2c_conf.mode, 0, 0, 0) == ESP_OK;
 }
 
 static bool init_spi() {
@@ -86,6 +83,13 @@ bool tdeck_bootstrap() {
     TT_LOG_I(TAG, "Init SPI");
     if (!init_spi()) {
         TT_LOG_E(TAG, "Init SPI failed");
+        return false;
+    }
+
+    // Don't turn the backlight on yet - Tactility init will take care of it
+    TT_LOG_I(TAG, "Init backlight");
+    if (!tdeck_backlight_init()) {
+        TT_LOG_E(TAG, "Init backlight failed");
         return false;
     }
 

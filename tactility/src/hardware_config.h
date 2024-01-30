@@ -7,9 +7,10 @@ typedef bool (*Bootstrap)();
 typedef bool (*InitLvgl)();
 typedef bool (*InitLvgl)();
 
-typedef void (*SetBacklight)(uint8_t);
+typedef void (*SetBacklightDuty)(uint8_t);
 typedef struct {
-    SetBacklight set_backlight;
+    /** Set backlight duty */
+    SetBacklightDuty set_backlight_duty;
 } Display;
 
 typedef struct {

@@ -8,7 +8,7 @@
 
 typedef enum {
     BUNDLE_ENTRY_TYPE_BOOL,
-    BUNDLE_ENTRY_TYPE_INT,
+    BUNDLE_ENTRY_TYPE_INT32,
     BUNDLE_ENTRY_TYPE_STRING,
 } BundleEntryType;
 
@@ -16,7 +16,7 @@ typedef struct {
     BundleEntryType type;
     union {
         bool bool_value;
-        int int_value;
+        int32_t int32_value;
         char* string_ptr;
     };
 } BundleEntry;
@@ -28,10 +28,10 @@ BundleEntry* bundle_entry_alloc_bool(bool value) {
     return entry;
 }
 
-BundleEntry* bundle_entry_alloc_int(int value) {
+BundleEntry* bundle_entry_alloc_int32(int32_t value) {
     BundleEntry* entry = malloc(sizeof(BundleEntry));
-    entry->type = BUNDLE_ENTRY_TYPE_INT;
-    entry->int_value = value;
+    entry->type = BUNDLE_ENTRY_TYPE_INT32;
+    entry->int32_value = value;
     return entry;
 }
 
@@ -50,7 +50,7 @@ BundleEntry* bundle_entry_alloc_copy(BundleEntry* source) {
         entry->string_ptr = malloc(strlen(source->string_ptr) + 1);
         strcpy(entry->string_ptr, source->string_ptr);
     } else {
-        entry->int_value = source->int_value;
+        entry->int32_value = source->int32_value;
     }
     return entry;
 }
@@ -112,11 +112,11 @@ bool tt_bundle_get_bool(Bundle bundle, const char* key) {
     return (*entry)->bool_value;
 }
 
-int tt_bundle_get_int(Bundle bundle, const char* key) {
+int32_t tt_bundle_get_int32(Bundle bundle, const char* key) {
     BundleData* data = (BundleData*)bundle;
     BundleEntry** entry = BundleDict_get(data->dict, key);
     tt_check(entry != NULL);
-    return (*entry)->int_value;
+    return (*entry)->int32_value;
 }
 
 const char* tt_bundle_get_string(Bundle bundle, const char* key) {
@@ -126,23 +126,51 @@ const char* tt_bundle_get_string(Bundle bundle, const char* key) {
     return (*entry)->string_ptr;
 }
 
-bool tt_bundle_opt_bool(Bundle bundle, const char* key, bool* out) {
+bool tt_bundle_has_bool(Bundle bundle, const char* key) {
     BundleData* data = (BundleData*)bundle;
     BundleEntry** entry = BundleDict_get(data->dict, key);
-    if (entry != NULL) {
-        *out = (*entry)->bool_value;
-        return true;
+    return (entry != NULL) && ((*entry)->type == BUNDLE_ENTRY_TYPE_BOOL);
+}
+
+bool tt_bundle_has_int32(Bundle bundle, const char* key) {
+    BundleData* data = (BundleData*)bundle;
+    BundleEntry** entry = BundleDict_get(data->dict, key);
+    return (entry != NULL) && ((*entry)->type == BUNDLE_ENTRY_TYPE_INT32);
+}
+
+bool tt_bundle_has_string(Bundle bundle, const char* key) {
+    BundleData* data = (BundleData*)bundle;
+    BundleEntry** entry = BundleDict_get(data->dict, key);
+    return (entry != NULL) && ((*entry)->type == BUNDLE_ENTRY_TYPE_STRING);
+}
+
+bool tt_bundle_opt_bool(Bundle bundle, const char* key, bool* out) {
+    BundleData* data = (BundleData*)bundle;
+    BundleEntry** entry_ptr = BundleDict_get(data->dict, key);
+    if (entry_ptr != NULL) {
+        BundleEntry* entry = *entry_ptr;
+        if (entry->type == BUNDLE_ENTRY_TYPE_BOOL) {
+            *out = entry->bool_value;
+            return true;
+        } else {
+            return false;
+        }
     } else {
         return false;
     }
 }
 
-bool tt_bundle_opt_int(Bundle bundle, const char* key, int* out) {
+bool tt_bundle_opt_int32(Bundle bundle, const char* key, int32_t* out) {
     BundleData* data = (BundleData*)bundle;
-    BundleEntry** entry = BundleDict_get(data->dict, key);
-    if (entry != NULL) {
-        *out = (*entry)->int_value;
-        return true;
+    BundleEntry** entry_ptr = BundleDict_get(data->dict, key);
+    if (entry_ptr != NULL) {
+        BundleEntry* entry = *entry_ptr;
+        if (entry->type == BUNDLE_ENTRY_TYPE_INT32) {
+            *out = entry->int32_value;
+            return true;
+        } else {
+            return false;
+        }
     } else {
         return false;
     }
@@ -150,10 +178,15 @@ bool tt_bundle_opt_int(Bundle bundle, const char* key, int* out) {
 
 bool tt_bundle_opt_string(Bundle bundle, const char* key, char** out) {
     BundleData* data = (BundleData*)bundle;
-    BundleEntry** entry = BundleDict_get(data->dict, key);
-    if (entry != NULL) {
-        *out = (*entry)->string_ptr;
-        return true;
+    BundleEntry** entry_ptr = BundleDict_get(data->dict, key);
+    if (entry_ptr != NULL) {
+        BundleEntry* entry = *entry_ptr;
+        if (entry->type == BUNDLE_ENTRY_TYPE_STRING) {
+            *out = entry->string_ptr;
+            return true;
+        } else {
+            return false;
+        }
     } else {
         return false;
     }
@@ -172,15 +205,15 @@ void tt_bundle_put_bool(Bundle bundle, const char* key, bool value) {
     }
 }
 
-void tt_bundle_put_int(Bundle bundle, const char* key, int value) {
+void tt_bundle_put_int32(Bundle bundle, const char* key, int32_t value) {
     BundleData* data = (BundleData*)bundle;
     BundleEntry** entry_handle = BundleDict_get(data->dict, key);
     if (entry_handle != NULL) {
         BundleEntry* entry = *entry_handle;
-        tt_assert(entry->type == BUNDLE_ENTRY_TYPE_INT);
-        entry->int_value = value;
+        tt_assert(entry->type == BUNDLE_ENTRY_TYPE_INT32);
+        entry->int32_value = value;
     } else {
-        BundleEntry* entry = bundle_entry_alloc_int(value);
+        BundleEntry* entry = bundle_entry_alloc_int32(value);
         BundleDict_set_at(data->dict, key, entry);
     }
 }

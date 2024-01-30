@@ -122,8 +122,5 @@ lv_disp_t* twodotfour_display_init() {
 
     lv_disp_t* display = lvgl_port_add_disp(&disp_cfg);
 
-    twodotfour_backlight_init();
-    twodotfour_backlight_set(200);
-
     return display;
 }

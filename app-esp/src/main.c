@@ -6,6 +6,7 @@
 
 extern void wifi_main(void*);
 
+extern const AppManifest display_app;
 extern const ServiceManifest wifi_service;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
@@ -19,6 +20,7 @@ TT_UNUSED void app_main(void) {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
+            &display_app,
             &wifi_connect_app,
             &wifi_manage_app
         },

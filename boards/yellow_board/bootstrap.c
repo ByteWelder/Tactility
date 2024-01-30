@@ -83,5 +83,12 @@ bool twodotfour_bootstrap() {
         return false;
     }
 
+    // Don't turn the backlight on yet - Tactility init will take care of it
+    TT_LOG_I(TAG, "Init backlight");
+    if (!twodotfour_backlight_init()) {
+        TT_LOG_E(TAG, "Init backlight failed");
+        return false;
+    }
+
     return true;
 }

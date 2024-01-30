@@ -63,9 +63,5 @@ bool tdeck_init_lvgl() {
 
     keyboard_alloc(display);
 
-    TT_LOG_D(TAG, "Enabling backlight");
-    tdeck_backlight_init();
-    tdeck_backlight_set(180);
-
     return true;
 }
