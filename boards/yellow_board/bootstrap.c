@@ -1,5 +1,6 @@
 #include "config.h"
 #include "kernel.h"
+#include "display_i.h"
 #include "log.h"
 #include <driver/spi_common.h>
 
