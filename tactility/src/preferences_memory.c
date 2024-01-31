@@ -14,6 +14,14 @@ static Bundle* get_preferences_bundle() {
     return preferences_bundle;
 }
 
+/**
+ * Creates a string that is effectively "namespace:key" so we can create a single map (bundle)
+ * to store all the key/value pairs.
+ *
+ * @param[in] namespace
+ * @param[in] key
+ * @param[out] out
+ */
 static void get_bundle_key(const char* namespace, const char* key, char* out) {
     strcpy(out, namespace);
     size_t namespace_len = strlen(namespace);
