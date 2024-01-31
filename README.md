@@ -7,33 +7,53 @@ It provides an application framework that is based on code from the [Flipper Zer
 
 ![Tactility shown on a Lilygo T-Deck device and on PC](docs/pics/tactility-showcase.jpg)
 
-Tactility features:
-- A hardware abstraction layer
-- UI capabilities (via LVGL)
-- An application platform that can run apps and services
-- PC app support to speed up development for ESP32 apps
+Noteworthy features:
+- Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.
+- An application platform that can run apps and services.
+- Basic applications to boost productivity, such as a Wi-Fi connectivity app.
+- Run Tactility apps on PC to speed up development.
 
 Requirements:
 - ESP32 (any?) with a display that has touch capability
 - [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
 
-## Technologies
+## Making apps is easy!
 
-UI is created with [lvgl](https://github.com/lvgl/lvgl).
-Any LVGL-capable device is supported.
+Apps are described in "manifest". The manifest provides some basic information on
+the app name and icon, but also tells Tactility what needs to happen when the app runs.
 
-In general, [esp_lvgl_port](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port)
-is the preferred solution if it supports your hardware:
-Those LCD and input drivers are based on [esp_lcd](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/lcd.html)
-and [esp_lcd_touch](https://components.espressif.com/components/espressif/esp_lcd_touch).
-They are generally available via the Espressif Registry: [here](https://components.espressif.com/components?q=esp_lcd)
-and [here](https://components.espressif.com/components?q=esp_lcd_touch)
+UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widgets](https://docs.lvgl.io/8.3/widgets/index.html)!
+Creating a touch-capable UI is [easy](https://docs.lvgl.io/8.3/get-started/quick-overview.html) and doesn't require your own render loop!
+
+```c
+static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
+    lv_obj_t* label = lv_label_create(parent);
+    lv_label_set_text(label, "Hello, world!");
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    // Widgets are auto-removed from the parent when the app is closed
+}
+
+const AppManifest hello_world_app = {
+    .id = "helloworld",
+    .name = "Hello World",
+    .icon = NULL,
+    .type = AppTypeUser,
+    .on_start = NULL,
+    .on_stop = NULL,
+    .on_show = &app_show,
+    .on_hide = NULL
+};
+```
+
+This shows as follows:
+
+![hello world app](docs/pics/hello-world.png)
 
 ## Supported Hardware
 
-### Devices
-
-Most hardware configurations should work, but it might require you to set up the drivers yourself.
+Any ESP32 device with a touch screen should be able to run Tactility,
+because LVGL is set up in a platform-agnostic manner.
+Implementing drivers can take some effort, so Tactility provides support for several devices.
 
 Predefined configurations are available for:
 
@@ -73,6 +93,8 @@ You can run `idf.py flash monitor`, but there are some helpers available too:
 The build scripts will detect if ESP-IDF is available. They will adapter if you ran `${IDF_PATH}/export.sh`.
 
 ### Development
+
+Take a look at the [App Lifecycle](docs/app-lifecycle.md).
 
 Directories explained:
 
