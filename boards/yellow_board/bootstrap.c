@@ -1,7 +1,6 @@
 #include "config.h"
-#include "kernel.h"
+#include "tactility_core.h"
 #include "display_i.h"
-#include "log.h"
 #include <driver/spi_common.h>
 
 #define TAG "twodotfour_bootstrap"
