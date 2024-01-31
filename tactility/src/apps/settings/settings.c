@@ -18,24 +18,21 @@ static void create_app_widget(const AppManifest* manifest, void* _Nullable paren
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void desktop_show(TT_UNUSED App app, TT_UNUSED lv_obj_t* parent) {
+static void on_show(TT_UNUSED App app, TT_UNUSED lv_obj_t* parent) {
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));
     lv_obj_center(list);
 
-    lv_list_add_text(list, "System");
-    tt_app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
-    lv_list_add_text(list, "User");
-    tt_app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
+    tt_app_manifest_registry_for_each_of_type(AppTypeSettings, list, create_app_widget);
 }
 
-const AppManifest desktop_app = {
-    .id = "desktop",
-    .name = "Desktop",
+const AppManifest settings_app = {
+    .id = "settings",
+    .name = "Settings",
     .icon = NULL,
-    .type = AppTypeDesktop,
+    .type = AppTypeSystem,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = &desktop_show,
+    .on_show = &on_show,
     .on_hide = NULL
 };

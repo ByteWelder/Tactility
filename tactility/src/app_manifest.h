@@ -11,9 +11,13 @@ typedef struct _lv_obj_t lv_obj_t;
 typedef void* App;
 
 typedef enum {
+    /** A desktop app sits at the root of the app stack managed by the Loader service */
     AppTypeDesktop,
+    /** Standard apps, provided by the system. */
     AppTypeSystem,
+    /** The apps that are launched/shown by the Settings app. The Settings app itself is of type AppTypeSystem. */
     AppTypeSettings,
+    /** User-provided apps. */
     AppTypeUser
 } AppType;
 
