@@ -1,28 +1,56 @@
 #include "config.h"
-#include "log.h"
+#include "tactility_core.h"
+
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 #include "esp_err.h"
 #include "esp_lcd_ili9341.h"
+#include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
 #include "hal/lv_hal_disp.h"
-#include <esp_lcd_panel_io.h>
 
 #define TAG "twodotfour_ili9341"
 
-static void twodotfour_backlight_on() {
-    gpio_config_t io_conf = {
-        .pin_bit_mask = BIT64(TWODOTFOUR_LCD_PIN_BACKLIGHT),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
+// Dipslay backlight (PWM)
+#define TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER LEDC_TIMER_0
+#define TWODOTFOUR_LCD_BACKLIGHT_LEDC_MODE LEDC_LOW_SPEED_MODE
+#define TWODOTFOUR_LCD_BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_0
+#define TWODOTFOUR_LCD_BACKLIGHT_LEDC_DUTY_RES LEDC_TIMER_8_BIT
+#define TWODOTFOUR_LCD_BACKLIGHT_LEDC_FREQUENCY (1000)
+
+bool twodotfour_backlight_init() {
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode = TWODOTFOUR_LCD_BACKLIGHT_LEDC_MODE,
+        .timer_num = TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER,
+        .duty_resolution = TWODOTFOUR_LCD_BACKLIGHT_LEDC_DUTY_RES,
+        .freq_hz = TWODOTFOUR_LCD_BACKLIGHT_LEDC_FREQUENCY,
+        .clk_cfg = LEDC_AUTO_CLK
     };
 
-    gpio_config(&io_conf);
+    if (ledc_timer_config(&ledc_timer) != ESP_OK) {
+        TT_LOG_E(TAG, "Backlight led timer config failed");
+        return false;
+    }
 
-    if (gpio_set_level(TWODOTFOUR_LCD_PIN_BACKLIGHT, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to turn backlight on");
+    return true;
+}
+
+void twodotfour_backlight_set(uint8_t duty) {
+    ledc_channel_config_t ledc_channel = {
+        .speed_mode = TWODOTFOUR_LCD_BACKLIGHT_LEDC_MODE,
+        .channel = TWODOTFOUR_LCD_BACKLIGHT_LEDC_CHANNEL,
+        .timer_sel = TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER,
+        .intr_type = LEDC_INTR_DISABLE,
+        .gpio_num = TWODOTFOUR_LCD_PIN_BACKLIGHT,
+        .duty = duty,
+        .hpoint = 0
+    };
+
+    // Setting the config in the timer init and then calling ledc_set_duty() doesn't work when
+    // the app is running. For an unknown reason we have to call this config method every time:
+    if (ledc_channel_config(&ledc_channel) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to configure display backlight");
     }
 }
 
@@ -93,8 +121,6 @@ lv_disp_t* twodotfour_display_init() {
     };
 
     lv_disp_t* display = lvgl_port_add_disp(&disp_cfg);
-
-    twodotfour_backlight_on();
 
     return display;
 }

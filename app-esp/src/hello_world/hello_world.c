@@ -1,6 +1,5 @@
 #include "hello_world.h"
-#include "services/gui/gui.h"
-#include "services/loader/loader.h"
+#include "lvgl.h"
 
 static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_t* label = lv_label_create(parent);

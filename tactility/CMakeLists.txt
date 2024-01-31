@@ -23,6 +23,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         PUBLIC idf::lvgl # libs/
         PUBLIC idf::driver
         PUBLIC idf::spiffs
+        PUBLIC idf::nvs_flash
     )
 else()
     add_definitions(-D_Nullable=)

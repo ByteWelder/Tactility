@@ -2,11 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 set(BOARD_COMPONENTS esp_wifi)
 
+file(GLOB_RECURSE SOURCE_FILES src/*.c)
+
 idf_component_register(
-    SRC_DIRS "src"
-        "src/apps/system/wifi_connect"
-        "src/apps/system/wifi_manage"
-        "src/services/wifi"
+    SRCS ${SOURCE_FILES}
     INCLUDE_DIRS "src/"
     REQUIRES esp_wifi nvs_flash spiffs
 )

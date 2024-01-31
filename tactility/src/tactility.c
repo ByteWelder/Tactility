@@ -2,12 +2,15 @@
 
 #include "app_manifest_registry.h"
 #include "hardware_i.h"
+#include "preferences.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
 
 #define TAG "tactility"
 
-// region System services
+static const Config* config_instance = NULL;
+
+// region Default services
 
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
@@ -19,13 +22,15 @@ static const ServiceManifest* const system_services[] = {
 
 // endregion
 
-// region System apps
+// region Default apps
 
 extern const AppManifest desktop_app;
+extern const AppManifest display_app;
 extern const AppManifest system_info_app;
 
 static const AppManifest* const system_apps[] = {
     &desktop_app,
+    &display_app,
     &system_info_app
 };
 
@@ -83,6 +88,16 @@ TT_UNUSED void tt_init(const Config* config) {
 
     tt_hardware_init(config->hardware);
 
+    SetBacklightDuty set_backlight_duty = config->hardware->display.set_backlight_duty;
+    if (set_backlight_duty != NULL) {
+        int32_t backlight_duty = 200;
+        if (!tt_preferences()->opt_int32("display", "backlight_duty", &backlight_duty)) {
+            tt_preferences()->put_int32("display", "backlight_duty", backlight_duty);
+        }
+        int32_t safe_backlight_duty = TT_MIN(backlight_duty, 255);
+        set_backlight_duty((uint8_t)safe_backlight_duty);
+    }
+
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can use them
     register_and_start_system_services();
@@ -103,4 +118,10 @@ TT_UNUSED void tt_init(const Config* config) {
     }
 
     TT_LOG_I(TAG, "tt_init complete");
+
+    config_instance = config;
+}
+
+const Config* _Nullable tt_get_config() {
+    return config_instance;
 }

@@ -150,13 +150,8 @@ static void update_connected_ap(WifiManageView* view, WifiManageState* state, Wi
 void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
     view->root = parent;
 
-    // TODO: Standardize this into "window content" function?
-    // TODO: It can then be dynamically determined based on screen res and size
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_top(parent, 8, 0);
-    lv_obj_set_style_pad_bottom(parent, 8, 0);
-    lv_obj_set_style_pad_left(parent, 16, 0);
-    lv_obj_set_style_pad_right(parent, 16, 0);
+    tt_lv_obj_set_style_auto_padding(parent);
 
     // Top row: enable/disable
     lv_obj_t* switch_container = lv_obj_create(parent);

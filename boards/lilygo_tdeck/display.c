@@ -9,7 +9,7 @@
 
 #define TAG "tdeck_display"
 
-void tdeck_enable_backlight() {
+bool tdeck_backlight_init() {
     ledc_timer_config_t ledc_timer = {
         .speed_mode = TDECK_LCD_BACKLIGHT_LEDC_MODE,
         .timer_num = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
@@ -17,20 +17,31 @@ void tdeck_enable_backlight() {
         .freq_hz = TDECK_LCD_BACKLIGHT_LEDC_FREQUENCY,
         .clk_cfg = LEDC_AUTO_CLK
     };
-    ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
+    if (ledc_timer_config(&ledc_timer) != ESP_OK) {
+        TT_LOG_E(TAG, "Backlight led timer config failed");
+        return false;
+    }
+
+    return true;
+}
+
+void tdeck_backlight_set(uint8_t duty) {
     ledc_channel_config_t ledc_channel = {
         .speed_mode = TDECK_LCD_BACKLIGHT_LEDC_MODE,
         .channel = TDECK_LCD_BACKLIGHT_LEDC_CHANNEL,
         .timer_sel = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
         .intr_type = LEDC_INTR_DISABLE,
-        .gpio_num = TDECK_LCD_BACKLIGHT_LEDC_OUTPUT_IO,
-        .duty = 0, // Set duty to 0%
+        .gpio_num = TDECK_LCD_PIN_BACKLIGHT,
+        .duty = duty,
         .hpoint = 0
     };
-    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
-    ESP_ERROR_CHECK(ledc_set_duty(TDECK_LCD_BACKLIGHT_LEDC_MODE, TDECK_LCD_BACKLIGHT_LEDC_CHANNEL, TDECK_LCD_BACKLIGHT_LEDC_DUTY));
+    // Setting the config in the timer init and then calling ledc_set_duty() doesn't work when
+    // the app is running. For an unknown reason we have to call this config method every time:
+    if (ledc_channel_config(&ledc_channel) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to configure display backlight");
+    }
 }
 
 lv_disp_t* tdeck_display_init() {

@@ -25,6 +25,8 @@ static void desktop_show(TT_UNUSED App app, TT_UNUSED lv_obj_t* parent) {
 
     lv_list_add_text(list, "System");
     tt_app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
+    lv_list_add_text(list, "Settings");
+    tt_app_manifest_registry_for_each_of_type(AppTypeSettings, list, create_app_widget);
     lv_list_add_text(list, "User");
     tt_app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
 }

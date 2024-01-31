@@ -1,6 +1,6 @@
 #include "config.h"
-#include "kernel.h"
-#include "log.h"
+#include "tactility_core.h"
+#include "display_i.h"
 #include <driver/spi_common.h>
 
 #define TAG "twodotfour_bootstrap"
@@ -80,6 +80,13 @@ bool twodotfour_bootstrap() {
     TT_LOG_I(TAG, "Init SPI3");
     if (!init_spi3()) {
         TT_LOG_E(TAG, "Init SPI3 failed");
+        return false;
+    }
+
+    // Don't turn the backlight on yet - Tactility init will take care of it
+    TT_LOG_I(TAG, "Init backlight");
+    if (!twodotfour_backlight_init()) {
+        TT_LOG_E(TAG, "Init backlight failed");
         return false;
     }
 
