@@ -26,11 +26,13 @@ static const ServiceManifest* const system_services[] = {
 
 extern const AppManifest desktop_app;
 extern const AppManifest display_app;
+extern const AppManifest settings_app;
 extern const AppManifest system_info_app;
 
 static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
+    &settings_app,
     &system_info_app
 };
 
