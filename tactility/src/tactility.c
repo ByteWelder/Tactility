@@ -10,7 +10,7 @@
 
 static const Config* config_instance = NULL;
 
-// region System services
+// region Default services
 
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
@@ -22,13 +22,15 @@ static const ServiceManifest* const system_services[] = {
 
 // endregion
 
-// region System apps
+// region Default apps
 
 extern const AppManifest desktop_app;
+extern const AppManifest display_app;
 extern const AppManifest system_info_app;
 
 static const AppManifest* const system_apps[] = {
     &desktop_app,
+    &display_app,
     &system_info_app
 };
 
