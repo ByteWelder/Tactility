@@ -17,6 +17,34 @@ Requirements:
 - ESP32 (any?) with a display that has touch capability
 - [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
 
+## Making apps is easy!
+
+Making a touch-capable app is pretty easy!
+
+```c
+static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
+    lv_obj_t* label = lv_label_create(parent);
+    lv_label_set_text(label, "Hello, world!");
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    // Widgets are auto-removed from the parent when the app is closed
+}
+
+const AppManifest hello_world_app = {
+    .id = "helloworld",
+    .name = "Hello World",
+    .icon = NULL,
+    .type = AppTypeUser,
+    .on_start = NULL,
+    .on_stop = NULL,
+    .on_show = &app_show,
+    .on_hide = NULL
+};
+```
+
+This shows as:
+
+![hello world app](docs/pics/hello-world.png)
+
 ## Technologies
 
 UI is created with [lvgl](https://github.com/lvgl/lvgl).
