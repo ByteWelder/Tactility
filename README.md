@@ -14,13 +14,14 @@ Noteworthy features:
 - Run Tactility apps on PC to speed up development.
 
 Requirements:
-- ESP32 (any?) with a display that has touch capability
+- ESP32 (any?) with a touchscreen
 - [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
 
 ## Making apps is easy!
 
-Apps are described in "manifest". The manifest provides some basic information on
-the app name and icon, but also tells Tactility what needs to happen when the app runs.
+The app manifest provides basic information like the application name.
+It also describes the [app lifecycle](docs/app-lifecycle.md):
+It tells Tactility which functions need to be called when the app is started/shown/etc.
 
 UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widgets](https://docs.lvgl.io/8.3/widgets/index.html)!
 Creating a touch-capable UI is [easy](https://docs.lvgl.io/8.3/get-started/quick-overview.html) and doesn't require your own render loop!
@@ -34,24 +35,22 @@ static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
 }
 
 const AppManifest hello_world_app = {
-    .id = "helloworld",
-    .name = "Hello World",
+    .id = "helloworld",    // Used to identify and start an app
+    .name = "Hello World", // Shown on the desktop and app's toolbar
     .icon = NULL,
     .type = AppTypeUser,
     .on_start = NULL,
     .on_stop = NULL,
-    .on_show = &app_show,
+    .on_show = &app_show,  // A minimal setup sets the on_show() function
     .on_hide = NULL
 };
 ```
-
-This shows as follows:
 
 ![hello world app](docs/pics/hello-world.png)
 
 ## Supported Hardware
 
-Any ESP32 device with a touch screen should be able to run Tactility,
+Any ESP32 device with a touchscreen should be able to run Tactility,
 because LVGL is set up in a platform-agnostic manner.
 Implementing drivers can take some effort, so Tactility provides support for several devices.
 
