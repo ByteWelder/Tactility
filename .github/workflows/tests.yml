@@ -12,7 +12,11 @@ jobs:
         uses: threeal/cmake-action@v1.3.0
       - name: Prepare Project
         run: cmake -S ./ -B build
+        with:
+          SKIP_SDL: true
       - name: Build Tests
         run: cmake --build build --target build-tests
+        with:
+          SKIP_SDL: true
       - name: Run Tests
         run: build/tests/tactility-core/tactility-core-tests --exit

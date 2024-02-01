@@ -51,7 +51,11 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
 
     # region SDL & LVGL
 
-    find_package(SDL2 REQUIRED CONFIG)
+    # TODO: This is a temporary skipping option for running unit tests
+    # TODO: Remove when github action for SDL is working again
+    if (NOT DEFINED ENV{SKIP_SDL})
+        find_package(SDL2 REQUIRED CONFIG)
+    endif()
 
     add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
     target_include_directories(lvgl
