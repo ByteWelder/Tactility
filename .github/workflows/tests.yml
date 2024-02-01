@@ -3,6 +3,8 @@ on: [push]
 jobs:
   Build-PC:
     runs-on: ubuntu-latest
+    env:
+      SKIP_SDL: true
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -12,11 +14,7 @@ jobs:
         uses: threeal/cmake-action@v1.3.0
       - name: Prepare Project
         run: cmake -S ./ -B build
-        env:
-          SKIP_SDL: true
       - name: Build Tests
         run: cmake --build build --target build-tests
-        env:
-          SKIP_SDL: true
       - name: Run Tests
         run: build/tests/tactility-core/tactility-core-tests --exit
