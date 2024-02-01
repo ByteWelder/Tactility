@@ -254,13 +254,13 @@ void tt_thread_start(Thread* thread) {
 #else
         TT_LOG_E(TAG, "static tasks are not supported by current FreeRTOS config/platform - creating regular one");
         BaseType_t ret = xTaskCreate(
-            tt_thread_body, thread->name, stack, thread, priority, &thread->task_handle
+            tt_thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
         );
         tt_check(ret == pdPASS);
 #endif
     } else {
         BaseType_t ret = xTaskCreate(
-            tt_thread_body, thread->name, stack, thread, priority, &thread->task_handle
+            tt_thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
         );
         tt_check(ret == pdPASS);
     }
