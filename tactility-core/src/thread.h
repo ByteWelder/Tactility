@@ -197,26 +197,6 @@ bool tt_thread_join(Thread* thread);
  */
 ThreadId tt_thread_get_id(Thread* thread);
 
-/** Enable heap tracing
- *
- * @param      thread  Thread instance
- */
-void tt_thread_enable_heap_trace(Thread* thread);
-
-/** Disable heap tracing
- *
- * @param      thread  Thread instance
- */
-void tt_thread_disable_heap_trace(Thread* thread);
-
-/** Get thread heap size
- *
- * @param      thread  Thread instance
- *
- * @return     size in bytes
- */
-size_t tt_thread_get_heap_size(Thread* thread);
-
 /** Get thread return code
  *
  * @param      thread  Thread instance
@@ -275,33 +255,6 @@ const char* tt_thread_get_appid(ThreadId thread_id);
  * @return uint32_t 
  */
 uint32_t tt_thread_get_stack_space(ThreadId thread_id);
-
-/** Get STDOUT callback for thead
- *
- * @return STDOUT callback
- */
-ThreadStdoutWriteCallback tt_thread_get_stdout_callback();
-
-/** Set STDOUT callback for thread
- *
- * @param      callback  callback or NULL to clear
- */
-void tt_thread_set_stdout_callback(ThreadStdoutWriteCallback callback);
-
-/** Write data to buffered STDOUT
- * 
- * @param data input data
- * @param size input data size
- * 
- * @return size_t written data size
- */
-size_t tt_thread_stdout_write(const char* data, size_t size);
-
-/** Flush data to STDOUT
- * 
- * @return int32_t error code
- */
-int32_t tt_thread_stdout_flush();
 
 /** Suspend thread
  * 
