@@ -72,7 +72,7 @@ static void tt_thread_body(void* context) {
     tt_assert(context);
     Thread* thread = context;
 
-    // store thread instance to thread local storage
+    // Store thread instance to thread local storage
     tt_assert(pvTaskGetThreadLocalStoragePointer(NULL, 0) == NULL);
     vTaskSetThreadLocalStoragePointer(NULL, 0, thread);
 
@@ -80,18 +80,22 @@ static void tt_thread_body(void* context) {
     tt_thread_set_state(thread, ThreadStateRunning);
 
     thread->ret = thread->callback(thread->context);
+    TT_LOG_I(TAG, "thread returned: %s", thread->name ?: "[no name]");
 
     tt_assert(thread->state == ThreadStateRunning);
 
     if (thread->is_static) {
         TT_LOG_I(
             TAG,
-            "%s service thread TCB memory will not be reclaimed",
+            "%s static task memory will not be reclaimed",
             thread->name ? thread->name : "<unnamed service>"
         );
     }
 
     tt_thread_set_state(thread, ThreadStateStopped);
+
+    vTaskSetThreadLocalStoragePointer(NULL, 0, NULL);
+    thread->task_handle = NULL;
 
     vTaskDelete(NULL);
     tt_thread_catch();
@@ -114,7 +118,7 @@ Thread* tt_thread_alloc() {
             tt_thread_set_appid(thread, "unknown");
         }
     } else {
-        // if scheduler is not started, we are starting driver thread
+        // If scheduler is not started, we are starting driver thread
         tt_thread_set_appid(thread, "driver");
     }
 
@@ -261,17 +265,7 @@ void tt_thread_start(Thread* thread) {
         tt_check(ret == pdPASS);
     }
 
-    tt_check(thread->task_handle);
-}
-
-void tt_thread_cleanup_tcb_event(TaskHandle_t task) {
-    Thread* thread = pvTaskGetThreadLocalStoragePointer(task, 0);
-    if (thread) {
-        // clear thread local storage
-        vTaskSetThreadLocalStoragePointer(task, 0, NULL);
-        tt_assert(thread->task_handle == task);
-        thread->task_handle = NULL;
-    }
+    tt_check(thread->state == ThreadStateStopped || thread->task_handle);
 }
 
 bool tt_thread_join(Thread* thread) {
