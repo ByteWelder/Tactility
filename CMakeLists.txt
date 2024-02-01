@@ -47,6 +47,8 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(libs/mbedtls)
     add_subdirectory(app-sim)
 
+    add_subdirectory(tests)
+
     # region SDL & LVGL
 
     find_package(SDL2 REQUIRED CONFIG)
