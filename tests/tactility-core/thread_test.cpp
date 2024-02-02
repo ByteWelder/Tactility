@@ -1,40 +1,39 @@
 #include "doctest.h"
+#include "tactility_core.h"
 #include "thread.h"
 
-#include "FreeRTOS.h"
-#include "task.h"
-
-static int interruptable_thread(TT_UNUSED void* parameter) {
+static int interruptable_thread(void* parameter) {
     bool* interrupted = (bool*)parameter;
     while (!*interrupted) {
-        vTaskDelay(5);
+        tt_delay_ms(5);
     }
     return 0;
 }
 
-static bool immedate_return_thread_called = false;
-static int immediate_return_thread(TT_UNUSED void* parameter) {
-    immedate_return_thread_called = true;
+static int immediate_return_thread(void* parameter) {
+    bool* has_called = (bool*)parameter;
+    *has_called = true;
     return 0;
 }
 
-static int thread_with_return_code(TT_UNUSED void* parameter) {
+static int thread_with_return_code(void* parameter) {
     int* code = (int*)parameter;
     return *code;
 }
 
 TEST_CASE("when a thread is started then its callback should be called") {
+    bool has_called = false;
     Thread* thread = tt_thread_alloc_ex(
         "immediate return task",
         4096,
         &immediate_return_thread,
-        NULL
+        &has_called
     );
-    CHECK(!immedate_return_thread_called);
+    CHECK(!has_called);
     tt_thread_start(thread);
     tt_thread_join(thread);
     tt_thread_free(thread);
-    CHECK(immedate_return_thread_called);
+    CHECK(has_called);
 }
 
 TEST_CASE("a thread can be started and stopped") {

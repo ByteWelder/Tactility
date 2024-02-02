@@ -16,13 +16,7 @@ typedef struct {
 } TimerCallback_t;
 
 static void timer_callback(TimerHandle_t hTimer) {
-    TimerCallback_t* callb;
-
-    /* Retrieve pointer to callback function and context */
-    callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
-
-    /* Remove dynamic allocation flag */
-    callb = (TimerCallback_t*)((uint32_t)callb & ~1U);
+    TimerCallback_t* callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
 
     if (callb != NULL) {
         callb->func(callb->context);
@@ -31,36 +25,26 @@ static void timer_callback(TimerHandle_t hTimer) {
 
 Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context) {
     tt_assert((tt_kernel_is_irq() == 0U) && (func != NULL));
-
-    TimerHandle_t hTimer;
-    TimerCallback_t* callb;
-    UBaseType_t reload;
-
-    hTimer = NULL;
-
-    /* Dynamic memory allocation is available: if memory for callback and */
-    /* its context is not provided, allocate it from dynamic memory pool */
-    callb = (TimerCallback_t*)malloc(sizeof(TimerCallback_t));
+    TimerCallback_t* callb = (TimerCallback_t*)malloc(sizeof(TimerCallback_t));
 
     callb->func = func;
     callb->context = context;
 
+    UBaseType_t reload;
     if (type == TimerTypeOnce) {
         reload = pdFALSE;
     } else {
         reload = pdTRUE;
     }
 
-    /* Store callback memory dynamic allocation flag */
-    callb = (TimerCallback_t*)((uint32_t)callb | 1U);
     // TimerCallback function is always provided as a callback and is used to call application
     // specified function with its context both stored in structure callb.
     // TODO: should we use pointer to function or function directly as-is?
-    hTimer = xTimerCreate(NULL, portMAX_DELAY, reload, callb, timer_callback);
+    TimerHandle_t hTimer = xTimerCreate(NULL, portMAX_DELAY, reload, callb, timer_callback);
     tt_check(hTimer);
 
     /* Return timer ID */
-    return ((Timer*)hTimer);
+    return (Timer*)hTimer;
 }
 
 void tt_timer_free(Timer* instance) {
@@ -68,21 +52,14 @@ void tt_timer_free(Timer* instance) {
     tt_assert(instance);
 
     TimerHandle_t hTimer = (TimerHandle_t)instance;
-    TimerCallback_t* callb;
-
-    callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
+    TimerCallback_t* callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
 
     tt_check(xTimerDelete(hTimer, portMAX_DELAY) == pdPASS);
 
     while (tt_timer_is_running(instance)) tt_delay_tick(2);
 
-    if ((uint32_t)callb & 1U) {
-        /* Callback memory was allocated from dynamic pool, clear flag */
-        callb = (TimerCallback_t*)((uint32_t)callb & ~1U);
-
-        /* Return allocated memory to dynamic pool */
-        free(callb);
-    }
+    /* Return allocated memory to dynamic pool */
+    free(callb);
 }
 
 TtStatus tt_timer_start(Timer* instance, uint32_t ticks) {
