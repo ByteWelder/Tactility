@@ -33,7 +33,7 @@ static Loader* loader_alloc() {
         &loader_main,
         NULL
     );
-    loader_singleton->mutex = xSemaphoreCreateRecursiveMutex();
+    loader_singleton->mutex = tt_mutex_alloc(MutexTypeRecursive);
     loader_singleton->app_stack_index = -1;
     memset(loader_singleton->app_stack, 0, sizeof(App) * APP_STACK_SIZE);
     return loader_singleton;
@@ -51,13 +51,13 @@ static void loader_free() {
 void loader_lock() {
     tt_assert(loader_singleton);
     tt_assert(loader_singleton->mutex);
-    tt_check(xSemaphoreTakeRecursive(loader_singleton->mutex, portMAX_DELAY) == pdPASS);
+    tt_check(tt_mutex_acquire(loader_singleton->mutex, TtWaitForever) == TtStatusOk);
 }
 
 void loader_unlock() {
     tt_assert(loader_singleton);
     tt_assert(loader_singleton->mutex);
-    tt_check(xSemaphoreGiveRecursive(loader_singleton->mutex) == pdPASS);
+    tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
 LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle) {

@@ -1,6 +1,5 @@
 # TODOs
 - Update `view_port` to use `ViewPort` as handle externally and `ViewPortData` internally
-- Replace FreeRTOS semaphore from `Loader` with internal `Mutex`
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Have a way to deinit LVGL drivers that are created from `HardwareConfig`
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
