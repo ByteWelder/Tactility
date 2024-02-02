@@ -2,7 +2,6 @@
 #include "tactility_core.h"
 #include "timer.h"
 
-
 void* timer_callback_context = NULL;
 static void timer_callback_with_context(void* context) {
     timer_callback_context = context;
