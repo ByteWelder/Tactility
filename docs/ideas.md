@@ -12,6 +12,7 @@
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - Display orientation support for Display app
 - If present, use LED to show boot status
+- 2 wire speaker support
 
 # App Improvement Ideas
 - Sort desktop apps by name.
