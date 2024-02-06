@@ -34,7 +34,7 @@ static void on_show(TT_UNUSED App app, lv_obj_t* parent) {
 const AppManifest settings_app = {
     .id = "settings",
     .name = "Settings",
-    .icon = NULL,
+    .icon = LV_SYMBOL_SETTINGS,
     .type = AppTypeSystem,
     .on_start = NULL,
     .on_stop = NULL,
