@@ -13,6 +13,9 @@
 - Display orientation support for Display app
 - If present, use LED to show boot status
 - 2 wire speaker support
+- tt_app_start() and similar functions as proxies for Loader app start/stop/etc.
+- tt_app_set_result() for apps that need to return data to other apps (e.g. file selection)
+- Make a statusbar service that apps can register icons to. Gui can observe its status changes?
 
 # App Improvement Ideas
 - Sort desktop apps by name.

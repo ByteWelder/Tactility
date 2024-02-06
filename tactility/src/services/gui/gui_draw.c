@@ -3,8 +3,6 @@
 #include "gui_i.h"
 #include "log.h"
 #include "services/gui/widgets/statusbar.h"
-#include "services/loader/loader.h"
-#include "ui/spacer.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 
@@ -23,26 +21,6 @@ static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, App app) {
     AppFlags flags = tt_app_get_flags(app);
     if (flags.show_statusbar) {
         tt_lv_statusbar_create(vertical_container);
-    }
-
-    gui->toolbar = NULL;
-    if (flags.show_toolbar) {
-        const AppManifest* manifest = tt_app_get_manifest(app);
-        if (manifest != NULL) {
-            // TODO: Keep toolbar on app level so app can update it (app_set_toolbar() etc?)
-            Toolbar toolbar = {
-                .nav_action = &loader_stop_app,
-                .nav_icon = LV_SYMBOL_CLOSE,
-                .title = manifest->name
-            };
-            lv_obj_t* toolbar_widget = tt_lv_toolbar_create(vertical_container, &toolbar);
-            lv_obj_set_pos(toolbar_widget, 0, STATUSBAR_HEIGHT);
-
-            // Black area between toolbar and content below
-            lv_obj_t* spacer = tt_lv_spacer_create(vertical_container, 1, 2);
-            tt_lv_obj_set_style_bg_blacken(spacer);
-            gui->toolbar = toolbar_widget;
-        }
     }
 
     lv_obj_t* child_container = lv_obj_create(vertical_container);

@@ -9,7 +9,6 @@ extern "C" {
 #endif
 
 typedef struct {
-    lv_obj_t* root;
     lv_obj_t* ssid_textarea;
     lv_obj_t* password_textarea;
     lv_obj_t* connect_button;

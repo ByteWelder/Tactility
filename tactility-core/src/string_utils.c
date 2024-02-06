@@ -14,6 +14,10 @@ bool tt_string_get_path_parent(const char* path, char* output) {
     int index = tt_string_find_last_index(path, strlen(path) - 1, '/');
     if (index == -1) {
         return false;
+    } else if (index == 0) {
+        output[0] = '/';
+        output[1] = 0x00;
+        return true;
     } else {
         memcpy(output, path, index);
         output[index] = 0x00;

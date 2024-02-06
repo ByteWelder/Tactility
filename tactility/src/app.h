@@ -18,7 +18,6 @@ typedef enum {
 typedef union {
     struct {
         bool show_statusbar : 1;
-        bool show_toolbar : 1;
     };
     unsigned char flags;
 } AppFlags;

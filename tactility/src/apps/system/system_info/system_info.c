@@ -1,8 +1,17 @@
 #include "app.h"
 #include "lvgl.h"
+#include "ui/toolbar.h"
 
-static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
-    lv_obj_t* heap_info = lv_label_create(parent);
+static void app_show(App app, lv_obj_t* parent) {
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+
+    tt_toolbar_create_for_app(parent, app);
+
+    lv_obj_t* wrapper = lv_obj_create(parent);
+    lv_obj_set_width(wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(wrapper, 1);
+
+    lv_obj_t* heap_info = lv_label_create(wrapper);
     lv_label_set_recolor(heap_info, true);
     lv_obj_set_width(heap_info, 200);
     lv_obj_set_style_text_align(heap_info, LV_TEXT_ALIGN_CENTER, 0);
@@ -18,7 +27,7 @@ static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
 #endif
     lv_obj_align(heap_info, LV_ALIGN_CENTER, 0, -20);
 
-    lv_obj_t* spi_info = lv_label_create(parent);
+    lv_obj_t* spi_info = lv_label_create(wrapper);
     lv_label_set_recolor(spi_info, true);
     lv_obj_set_width(spi_info, 200);
     lv_obj_set_style_text_align(spi_info, LV_TEXT_ALIGN_CENTER, 0);

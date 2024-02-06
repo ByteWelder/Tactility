@@ -6,6 +6,7 @@
 #include "services/wifi/wifi_credentials.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
+#include "ui/toolbar.h"
 #include "wifi_connect.h"
 #include "wifi_connect_bundle.h"
 #include "wifi_connect_state.h"
@@ -69,26 +70,29 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     WifiConnectView* view = &wifi_connect->view;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_lv_obj_set_style_auto_padding(parent);
+    tt_toolbar_create_for_app(parent, app);
 
-    view->root = parent;
+    lv_obj_t* wrapper = lv_obj_create(parent);
+    lv_obj_set_width(wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(wrapper, 1);
+    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    lv_obj_t* ssid_label = lv_label_create(parent);
+    lv_obj_t* ssid_label = lv_label_create(wrapper);
     lv_label_set_text(ssid_label, "Network:");
-    view->ssid_textarea = lv_textarea_create(parent);
+    view->ssid_textarea = lv_textarea_create(wrapper);
     lv_textarea_set_one_line(view->ssid_textarea, true);
 
-    tt_lv_spacer_create(parent, 1, 8);
+    tt_lv_spacer_create(wrapper, 1, 8);
 
-    lv_obj_t* password_label = lv_label_create(parent);
+    lv_obj_t* password_label = lv_label_create(wrapper);
     lv_label_set_text(password_label, "Password:");
-    view->password_textarea = lv_textarea_create(parent);
+    view->password_textarea = lv_textarea_create(wrapper);
     lv_textarea_set_one_line(view->password_textarea, true);
     lv_textarea_set_password_mode(view->password_textarea, true);
 
-    tt_lv_spacer_create(parent, 1, 8);
+    tt_lv_spacer_create(wrapper, 1, 8);
 
-    wifi_connect_view_create_bottom_buttons(wifi, parent);
+    wifi_connect_view_create_bottom_buttons(wifi, wrapper);
 
     gui_keyboard_add_textarea(view->ssid_textarea);
     gui_keyboard_add_textarea(view->password_textarea);

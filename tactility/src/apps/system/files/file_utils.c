@@ -30,6 +30,10 @@ int tt_scandir(
     ScandirSort _Nullable sort
 ) {
     DIR* dir = opendir(path);
+    if (dir == NULL) {
+        return -1;
+    }
+
     *output = malloc(sizeof(void*) * SCANDIR_LIMIT);
     struct dirent** dirent_array = *output;
     int dirent_buffer_index = 0;

@@ -4,6 +4,8 @@
 #include "check.h"
 #include "file_utils.h"
 #include "lvgl.h"
+#include "services/loader/loader.h"
+#include "ui/toolbar.h"
 #include <dirent.h>
 
 #define TAG "files_app"
@@ -36,6 +38,18 @@ static bool is_image_file(const char* filename) {
 
 static void update_views(FilesData* data);
 
+static void on_navigate_up_pressed(TT_UNUSED lv_event_t* event) {
+    FilesData* files_data = (FilesData*)event->user_data;
+    if (strcmp(files_data->current_path, "/") != 0) {
+        files_data_set_entries_navigate_up(files_data);
+    }
+    update_views(files_data);
+}
+
+static void on_exit_app_pressed(TT_UNUSED lv_event_t* event) {
+    loader_stop_app();
+}
+
 static void on_file_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
@@ -60,7 +74,6 @@ static void on_file_pressed(lv_event_t* e) {
                 TT_LOG_W(TAG, "file type %d is not supported", dir_entry->d_type);
                 break;
         }
-
     }
 }
 
@@ -73,11 +86,7 @@ static void create_file_widget(FilesData* files_data, lv_obj_t* parent, struct d
             symbol = LV_SYMBOL_DIRECTORY;
             break;
         case TT_DT_REG:
-            if (is_image_file(dir_entry->d_name)) {
-                symbol = LV_SYMBOL_IMAGE;
-            } else {
-                symbol = LV_SYMBOL_FILE;
-            }
+            symbol = is_image_file(dir_entry->d_name) ? LV_SYMBOL_IMAGE : LV_SYMBOL_FILE;
             break;
         case TT_DT_LNK:
             symbol = LV_SYMBOL_LOOP;
@@ -105,9 +114,15 @@ static void update_views(FilesData* data) {
 static void on_show(App app, lv_obj_t* parent) {
     FilesData* data = tt_app_get_data(app);
 
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+
+    lv_obj_t* toolbar = tt_toolbar_create(parent, "Files");
+    tt_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &on_exit_app_pressed, NULL);
+    tt_toolbar_add_action(toolbar, LV_SYMBOL_UP, "Navigate up", &on_navigate_up_pressed, data);
+
     data->list = lv_list_create(parent);
-    lv_obj_set_size(data->list, LV_PCT(100), LV_PCT(100));
-    lv_obj_center(data->list);
+    lv_obj_set_width(data->list, LV_PCT(100));
+    lv_obj_set_flex_grow(data->list, 1);
 
     update_views(data);
 }
