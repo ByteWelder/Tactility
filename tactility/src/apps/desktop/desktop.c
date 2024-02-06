@@ -14,7 +14,8 @@ static void on_app_pressed(lv_event_t* e) {
 static void create_app_widget(const AppManifest* manifest, void* parent) {
     tt_check(parent);
     lv_obj_t* list = (lv_obj_t*)parent;
-    lv_obj_t* btn = lv_list_add_btn(list, LV_SYMBOL_FILE, manifest->name);
+    const char* icon = manifest->icon ?: LV_SYMBOL_FILE;
+    lv_obj_t* btn = lv_list_add_btn(list, icon, manifest->name);
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
