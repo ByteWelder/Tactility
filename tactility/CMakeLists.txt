@@ -24,6 +24,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         PUBLIC idf::driver
         PUBLIC idf::spiffs
         PUBLIC idf::nvs_flash
+        PUBLIC idf::newlib # for scandir() and related
     )
 else()
     add_definitions(-D_Nullable=)

@@ -125,7 +125,7 @@ static void app_show(App app, lv_obj_t* parent) {
     wifi_manage_lock(wifi);
     wifi->view_enabled = true;
     strcpy((char*)wifi->state.connect_ssid, "Connected"); // TODO update with proper SSID
-    wifi_manage_view_create(&wifi->view, &wifi->bindings, parent);
+    wifi_manage_view_create(app, &wifi->view, &wifi->bindings, parent);
     wifi_manage_view_update(&wifi->view, &wifi->bindings, &wifi->state);
     wifi_manage_unlock(wifi);
 

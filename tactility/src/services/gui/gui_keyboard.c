@@ -25,10 +25,6 @@ void gui_keyboard_show(lv_obj_t* textarea) {
     if (gui->keyboard) {
         lv_obj_clear_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
         lv_keyboard_set_textarea(gui->keyboard, textarea);
-
-        if (gui->toolbar) {
-            lv_obj_add_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
-        }
     }
 
     gui_unlock();
@@ -39,9 +35,6 @@ void gui_keyboard_hide() {
 
     if (gui->keyboard) {
         lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
-        if (gui->toolbar) {
-            lv_obj_clear_flag(gui->toolbar, LV_OBJ_FLAG_HIDDEN);
-        }
     }
 
     gui_unlock();

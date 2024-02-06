@@ -4,6 +4,10 @@
 
 static AppFlags tt_app_get_flags_default(AppType type);
 
+static const AppFlags DEFAULT_FLAGS = {
+    .show_statusbar = true
+};
+
 // region Alloc/free
 
 App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
@@ -41,19 +45,7 @@ static void tt_app_unlock(AppData* data) {
 }
 
 static AppFlags tt_app_get_flags_default(AppType type) {
-    static const AppFlags DEFAULT_DESKTOP_FLAGS = {
-        .show_toolbar = false,
-        .show_statusbar = true
-    };
-
-    static const AppFlags DEFAULT_APP_FLAGS = {
-        .show_toolbar = true,
-        .show_statusbar = true
-    };
-
-    return type == AppTypeDesktop
-        ? DEFAULT_DESKTOP_FLAGS
-        : DEFAULT_APP_FLAGS;
+    return DEFAULT_FLAGS;
 }
 
 // endregion Internal

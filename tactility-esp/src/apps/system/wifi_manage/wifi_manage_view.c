@@ -3,6 +3,7 @@
 #include "log.h"
 #include "services/wifi/wifi.h"
 #include "ui/style.h"
+#include "ui/toolbar.h"
 #include "wifi_manage_state.h"
 
 #define TAG "wifi_main_view"
@@ -147,14 +148,19 @@ static void update_connected_ap(WifiManageView* view, WifiManageState* state, Wi
 
 // region Main
 
-void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
+void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
     view->root = parent;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_lv_obj_set_style_auto_padding(parent);
+    tt_toolbar_create_for_app(parent, app);
+
+    lv_obj_t* wrapper = lv_obj_create(parent);
+    lv_obj_set_width(wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(wrapper, 1);
+    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
     // Top row: enable/disable
-    lv_obj_t* switch_container = lv_obj_create(parent);
+    lv_obj_t* switch_container = lv_obj_create(wrapper);
     lv_obj_set_width(switch_container, LV_PCT(100));
     lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
     tt_lv_obj_set_style_no_padding(switch_container);
@@ -168,7 +174,7 @@ void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings,
     lv_obj_add_event_cb(view->enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
     lv_obj_set_align(view->enable_switch, LV_ALIGN_RIGHT_MID);
 
-    view->connected_ap_container = lv_obj_create(parent);
+    view->connected_ap_container = lv_obj_create(wrapper);
     lv_obj_set_size(view->connected_ap_container, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_min_height(view->connected_ap_container, SPINNER_HEIGHT, 0);
     tt_lv_obj_set_style_no_padding(view->connected_ap_container);
@@ -185,7 +191,7 @@ void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings,
 
     // Networks
 
-    lv_obj_t* networks_header = lv_obj_create(parent);
+    lv_obj_t* networks_header = lv_obj_create(wrapper);
     lv_obj_set_size(networks_header, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_min_height(networks_header, SPINNER_HEIGHT, 0);
     tt_lv_obj_set_style_no_padding(networks_header);
@@ -201,7 +207,7 @@ void wifi_manage_view_create(WifiManageView* view, WifiManageBindings* bindings,
     lv_obj_set_style_pad_bottom(view->scanning_spinner, 4, 0);
     lv_obj_align_to(view->scanning_spinner, view->networks_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
 
-    view->networks_list = lv_obj_create(parent);
+    view->networks_list = lv_obj_create(wrapper);
     lv_obj_set_flex_flow(view->networks_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(view->networks_list, LV_PCT(100));
     lv_obj_set_height(view->networks_list, LV_SIZE_CONTENT);
