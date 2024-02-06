@@ -7,12 +7,10 @@
 #include "lvgl.h"
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
-static void toolbar_event(const lv_obj_class_t* class_p, lv_event_t* e);
 
 static const lv_obj_class_t toolbar_class = {
     .constructor_cb = &toolbar_constructor,
     .destructor_cb = NULL,
-    .event_cb = &toolbar_event,
     .width_def = LV_PCT(100),
     .height_def = TOOLBAR_HEIGHT,
     .group_def = LV_OBJ_CLASS_GROUP_DEF_TRUE,
@@ -76,30 +74,11 @@ lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const char* title) {
     return obj;
 }
 
-
 lv_obj_t* tt_toolbar_create_for_app(lv_obj_t* parent, App app) {
     const AppManifest* manifest = tt_app_get_manifest(app);
     lv_obj_t* toolbar = tt_toolbar_create(parent, manifest->name);
     tt_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &stop_app, NULL);
     return toolbar;
-}
-
-static void toolbar_draw(lv_event_t* e) {
-}
-
-static void toolbar_event(const lv_obj_class_t* class_p, lv_event_t* e) {
-    LV_UNUSED(class_p);
-    // Call the ancestor's event handler
-    lv_res_t res = lv_obj_event_base(&toolbar_class, e);
-    if (res != LV_RES_OK) {
-        return;
-    }
-
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if (code == LV_EVENT_DRAW_MAIN) {
-        toolbar_draw(e);
-    }
 }
 
 void tt_toolbar_set_title(lv_obj_t* obj, const char* title) {
