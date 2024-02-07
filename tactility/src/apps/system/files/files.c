@@ -7,6 +7,7 @@
 #include "services/loader/loader.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
+#include <string_utils.h>
 
 #define TAG "files_app"
 
@@ -41,7 +42,11 @@ static void update_views(FilesData* data);
 static void on_navigate_up_pressed(TT_UNUSED lv_event_t* event) {
     FilesData* files_data = (FilesData*)event->user_data;
     if (strcmp(files_data->current_path, "/") != 0) {
-        files_data_set_entries_navigate_up(files_data);
+        TT_LOG_I(TAG, "Navigating upwards");
+        char new_absolute_path[MAX_PATH_LENGTH];
+        if (tt_string_get_path_parent(files_data->current_path, new_absolute_path)) {
+            files_data_set_entries_for_path(files_data, new_absolute_path);
+        }
     }
     update_views(files_data);
 }
@@ -57,11 +62,11 @@ static void on_file_pressed(lv_event_t* e) {
         FilesData* files_data = lv_obj_get_user_data(button);
 
         struct dirent* dir_entry = e->user_data;
-        TT_LOG_I(TAG, "clicked %s %d", dir_entry->d_name, dir_entry->d_type);
+        TT_LOG_I(TAG, "Pressed %s %d", dir_entry->d_name, dir_entry->d_type);
 
         switch (dir_entry->d_type) {
             case TT_DT_DIR:
-                files_data_set_entries_for_path(files_data, dir_entry->d_name);
+                files_data_set_entries_for_child_path(files_data, dir_entry->d_name);
                 update_views(files_data);
                 break;
             case TT_DT_LNK:
@@ -81,19 +86,14 @@ static void create_file_widget(FilesData* files_data, lv_obj_t* parent, struct d
     tt_check(parent);
     lv_obj_t* list = (lv_obj_t*)parent;
     const char* symbol;
-    switch (dir_entry->d_type) {
-        case TT_DT_DIR:
-            symbol = LV_SYMBOL_DIRECTORY;
-            break;
-        case TT_DT_REG:
-            symbol = is_image_file(dir_entry->d_name) ? LV_SYMBOL_IMAGE : LV_SYMBOL_FILE;
-            break;
-        case TT_DT_LNK:
-            symbol = LV_SYMBOL_LOOP;
-            break;
-        default:
-            symbol = LV_SYMBOL_SETTINGS;
-            break;
+    if (dir_entry->d_type == TT_DT_DIR) {
+        symbol = LV_SYMBOL_DIRECTORY;
+    } else if (is_image_file(dir_entry->d_name)) {
+        symbol = LV_SYMBOL_IMAGE;
+    } else if (dir_entry->d_type == TT_DT_LNK) {
+        symbol = LV_SYMBOL_LOOP;
+    } else {
+        symbol = LV_SYMBOL_SETTINGS;
     }
     lv_obj_t* button = lv_list_add_btn(list, symbol, dir_entry->d_name);
     lv_obj_set_user_data(button, files_data);
@@ -129,7 +129,7 @@ static void on_show(App app, lv_obj_t* parent) {
 
 static void on_start(App app) {
     FilesData* data = files_data_alloc();
-    files_data_set_entries_root(data);
+    files_data_set_entries_for_path(data, "/");
     tt_app_set_data(app, data);
 }
 
