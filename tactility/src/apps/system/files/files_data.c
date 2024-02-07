@@ -50,7 +50,7 @@ void files_data_free_entries(FilesData* data) {
     data->dir_entries_count = 0;
 }
 
-void files_data_set_entries(FilesData* data, struct dirent** entries, int count) {
+static void files_data_set_entries(FilesData* data, struct dirent** entries, int count) {
     if (data->dir_entries != NULL) {
         files_data_free_entries(data);
     }

@@ -1,10 +1,9 @@
 #include "check.h"
-#include "ui/lvgl_sync.h"
 #include "gui_i.h"
 #include "log.h"
-#include "services/gui/widgets/statusbar.h"
+#include "ui/lvgl_sync.h"
+#include "ui/statusbar.h"
 #include "ui/style.h"
-#include "ui/toolbar.h"
 
 #define TAG "gui"
 
@@ -20,7 +19,7 @@ static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, App app) {
     // TODO: Move statusbar into separate ViewPort
     AppFlags flags = tt_app_get_flags(app);
     if (flags.show_statusbar) {
-        tt_lv_statusbar_create(vertical_container);
+        tt_statusbar_create(vertical_container);
     }
 
     lv_obj_t* child_container = lv_obj_create(vertical_container);

@@ -11,15 +11,21 @@
 
 #define TAG "files_app"
 
-bool tt_string_ends_with(const char* base, const char* postfix) {
-    size_t postfix_len = strlen(postfix);
-    size_t base_len = strlen(base);
+/**
+ * Lower case check to see if the given file matches the provided file extension
+ * @param path the full path to the file
+ * @param extension the extension to look for, including the period symbol
+ * @return true on match
+ */
+static bool has_file_extension(const char* path, const char* extension) {
+    size_t postfix_len = strlen(extension);
+    size_t base_len = strlen(path);
     if (base_len < postfix_len) {
         return false;
     }
 
     for (int i = (int)postfix_len - 1; i >= 0; i--) {
-        if (tolower(base[base_len - postfix_len + i]) != postfix[i]) {
+        if (tolower(path[base_len - postfix_len + i]) != extension[i]) {
             return false;
         }
     }
@@ -28,11 +34,11 @@ bool tt_string_ends_with(const char* base, const char* postfix) {
 }
 
 static bool is_image_file(const char* filename) {
-    return tt_string_ends_with(filename, ".jpg") ||
-        tt_string_ends_with(filename, ".png") ||
-        tt_string_ends_with(filename, ".jpeg") ||
-        tt_string_ends_with(filename, ".svg") ||
-        tt_string_ends_with(filename, ".bmp");
+    return has_file_extension(filename, ".jpg") ||
+        has_file_extension(filename, ".png") ||
+        has_file_extension(filename, ".jpeg") ||
+        has_file_extension(filename, ".svg") ||
+        has_file_extension(filename, ".bmp");
 }
 
 // region Views
