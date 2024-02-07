@@ -77,9 +77,7 @@ static const lv_obj_class_t statusbar_class = {
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     TT_LOG_I(TAG, "event");
     Statusbar* statusbar = (Statusbar*)obj;
-    tt_lvgl_lock(TtWaitForever);
     lv_obj_invalidate(&statusbar->obj);
-    tt_lvgl_unlock();
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {

@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 #define STATUSBAR_ICON_LIMIT 8
-#define STATUSBAR_ICON_SIZE 18
+#define STATUSBAR_ICON_SIZE 20
 #define STATUSBAR_HEIGHT (STATUSBAR_ICON_SIZE + 4) // 4 extra pixels for border and outline
 
 lv_obj_t* tt_statusbar_create(lv_obj_t* parent);

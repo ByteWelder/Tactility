@@ -247,7 +247,7 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
             break;
         case WifiEventTypeConnectionSuccess:
             // TODO: update with actual bars
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi_3_bar.png");
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi.png");
             break;
         case WifiEventTypeConnectionFailed:
             tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
