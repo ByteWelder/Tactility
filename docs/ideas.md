@@ -6,6 +6,8 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
 - Fix for dark theme: the wifi icons should use the colour of the theme (they remain black when dark theme is set)
+- Update Wi-Fi status bar icon based on signal strength
+- Auto-detect sdcard removal (with a service?)
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.

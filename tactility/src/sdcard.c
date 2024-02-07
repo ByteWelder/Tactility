@@ -2,29 +2,32 @@
 
 #include "mutex.h"
 #include "tactility_core.h"
+#include "ui/statusbar.h"
 
 #define TAG "sdcard"
 
-Mutex* mutex = NULL;
+static Mutex* mutex = NULL;
+static int8_t statusbar_icon = -1;
 
 typedef struct {
     const SdCard* sdcard;
     void* context;
 } MountData;
 
-MountData data = {
+static MountData data = {
     .sdcard = NULL,
     .context = NULL
 };
 
-static void sdcard_ensure_mutex() {
+static void sdcard_ensure_initialized() {
     if (mutex == NULL) {
         mutex = tt_mutex_alloc(MutexTypeRecursive);
+        statusbar_icon = tt_statusbar_icon_add("A:/assets/sdcard_unmounted.png");
     }
 }
 
 static bool sdcard_lock(uint32_t timeout_ticks) {
-    sdcard_ensure_mutex();
+    sdcard_ensure_initialized();
     return tt_mutex_acquire(mutex, timeout_ticks) == TtStatusOk;
 }
 
@@ -47,7 +50,12 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
             .sdcard = sdcard
         };
         sdcard_unlock();
-        return data.context != NULL;
+        if (data.context != NULL) {
+            tt_statusbar_icon_set_image(statusbar_icon, "A:/assets/sdcard_mounted.png");
+            return true;
+        } else {
+            return false;
+        }
     } else {
         TT_LOG_E(TAG, "Failed to lock");
         return false;
@@ -70,6 +78,7 @@ bool tt_sdcard_unmount(uint32_t timeout_ticks) {
                 .sdcard = NULL
             };
             result = true;
+            tt_statusbar_icon_set_image(statusbar_icon, "A:/assets/sdcard_unmounted.png");
         } else {
             TT_LOG_E(TAG, "Can't unmount: nothing mounted");
         }

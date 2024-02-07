@@ -40,14 +40,13 @@ int tt_scandir(
 
     struct dirent* current_entry;
     while ((current_entry = readdir(dir)) != NULL) {
-        TT_LOG_D(TAG, "debug: %s %d", current_entry->d_name, current_entry->d_type);
         if (filter(current_entry) == 0) {
             dirent_array[dirent_buffer_index] = malloc(sizeof(struct dirent));
             memcpy(dirent_array[dirent_buffer_index], current_entry, sizeof(struct dirent));
 
             dirent_buffer_index++;
             if (dirent_buffer_index >= SCANDIR_LIMIT) {
-                TT_LOG_E(TAG, "directory has more than %d files", SCANDIR_LIMIT);
+                TT_LOG_E(TAG, "Directory has more than %d files", SCANDIR_LIMIT);
                 break;
             }
         }

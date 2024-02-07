@@ -8,6 +8,7 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
+#include "ui/statusbar.h"
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
@@ -30,6 +31,7 @@ typedef struct {
     uint16_t scan_list_count;
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
+    int8_t statusbar_icon_id;
     bool scan_active;
     esp_event_handler_instance_t event_handler_any_id;
     esp_event_handler_instance_t event_handler_got_ip;
@@ -84,10 +86,12 @@ static Wifi* wifi_alloc() {
     instance->event_handler_got_ip = NULL;
     instance->event_group = xEventGroupCreate();
     instance->radio_state = WIFI_RADIO_OFF;
+    instance->statusbar_icon_id = tt_statusbar_icon_add("A:/assets/ic_small_wifi_off.png");
     return instance;
 }
 
 static void wifi_free(Wifi* instance) {
+    tt_statusbar_icon_remove(instance->statusbar_icon_id);
     tt_mutex_free(instance->mutex);
     tt_pubsub_free(instance->pubsub);
     tt_message_queue_free(instance->queue);
@@ -221,6 +225,35 @@ static void wifi_scan_list_free_safely(Wifi* wifi) {
 
 static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
+    switch (type) {
+        case WifiEventTypeRadioStateOn:
+            break;
+        case WifiEventTypeRadioStateOnPending:
+            break;
+        case WifiEventTypeRadioStateOff:
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
+            break;
+        case WifiEventTypeRadioStateOffPending:
+            break;
+        case WifiEventTypeScanStarted:
+            break;
+        case WifiEventTypeScanFinished:
+            break;
+        case WifiEventTypeDisconnected:
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
+            break;
+        case WifiEventTypeConnectionPending:
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi_1_bar.png");
+            break;
+        case WifiEventTypeConnectionSuccess:
+            // TODO: update with actual bars
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi.png");
+            break;
+        case WifiEventTypeConnectionFailed:
+            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
+            break;
+    }
+
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 

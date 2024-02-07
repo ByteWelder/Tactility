@@ -19,10 +19,8 @@ extern "C" {
 FilesData* files_data_alloc();
 void files_data_free(FilesData* data);
 void files_data_free_entries(FilesData* data);
-void files_data_set_entries(FilesData* data, struct dirent** entries, int count);
-void files_data_set_entries_for_path(FilesData* data, const char* path);
-void files_data_set_entries_navigate_up(FilesData* data);
-void files_data_set_entries_root(FilesData* data);
+bool files_data_set_entries_for_child_path(FilesData* data, const char* child_path);
+bool files_data_set_entries_for_path(FilesData* data, const char* path);
 
 #ifdef __cplusplus
 }
