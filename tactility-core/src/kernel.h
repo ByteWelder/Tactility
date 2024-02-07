@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 
+typedef enum {
+    PLATFORM_ESP,
+    PLATFORM_PC
+} Platform;
+
 /** Check if CPU is in IRQ or kernel running and IRQ is masked
  * 
  * Originally this primitive was born as a workaround for FreeRTOS kernel primitives shenanigans with PRIMASK.
@@ -108,6 +113,8 @@ void tt_delay_ms(uint32_t milliseconds);
  * @param[in]  microseconds  microseconds to wait
  */
 void tt_delay_us(uint32_t microseconds);
+
+Platform tt_get_platform();
 
 #ifdef __cplusplus
 }
