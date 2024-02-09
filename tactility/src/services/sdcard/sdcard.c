@@ -32,7 +32,7 @@ static ServiceData* service_data_alloc() {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
         .thread = tt_thread_alloc_ex(
             "sdcard",
-            3072,
+            2400, // Minimum is ~2240 @ ESP-IDF 5.1.2
             &sdcard_task,
             data
         ),
@@ -59,7 +59,6 @@ static void service_data_unlock(ServiceData* data) {
 
 static int32_t sdcard_task(void* context) {
     ServiceData* data = (ServiceData*)context;
-    TT_LOG_I(TAG, "address2: %p", data);
 
     bool interrupted = false;
 
