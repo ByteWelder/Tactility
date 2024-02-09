@@ -1,4 +1,5 @@
 #include "hardware_i.h"
+#include "sdcard_i.h"
 
 #define TAG "hardware"
 
@@ -12,6 +13,7 @@ void tt_hardware_init(const HardwareConfig* config) {
         tt_check(config->bootstrap(), "bootstrap failed");
     }
 
+    tt_sdcard_init();
     if (config->sdcard != NULL) {
         TT_LOG_I(TAG, "Mounting sdcard");
         tt_sdcard_mount(config->sdcard);

@@ -6,8 +6,7 @@
 
 #define TAG "sdcard"
 
-static Mutex* mutex = NULL;
-static int8_t statusbar_icon = -1;
+static Mutex mutex = NULL;
 
 typedef struct {
     const SdCard* sdcard;
@@ -19,15 +18,13 @@ static MountData data = {
     .context = NULL
 };
 
-static void sdcard_ensure_initialized() {
+void tt_sdcard_init() {
     if (mutex == NULL) {
         mutex = tt_mutex_alloc(MutexTypeRecursive);
-        statusbar_icon = tt_statusbar_icon_add("A:/assets/sdcard_unmounted.png");
     }
 }
 
 static bool sdcard_lock(uint32_t timeout_ticks) {
-    sdcard_ensure_initialized();
     return tt_mutex_acquire(mutex, timeout_ticks) == TtStatusOk;
 }
 
@@ -51,7 +48,6 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
         };
         sdcard_unlock();
         if (data.context != NULL) {
-            tt_statusbar_icon_set_image(statusbar_icon, "A:/assets/sdcard_mounted.png");
             return true;
         } else {
             return false;
@@ -78,7 +74,6 @@ bool tt_sdcard_unmount(uint32_t timeout_ticks) {
                 .sdcard = NULL
             };
             result = true;
-            tt_statusbar_icon_set_image(statusbar_icon, "A:/assets/sdcard_unmounted.png");
         } else {
             TT_LOG_E(TAG, "Can't unmount: nothing mounted");
         }
