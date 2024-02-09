@@ -14,10 +14,12 @@ static const Config* config_instance = NULL;
 
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
+extern const ServiceManifest sdcard_service;
 
 static const ServiceManifest* const system_services[] = {
     &gui_service,
-    &loader_service // depends on gui service
+    &loader_service, // depends on gui service
+    &sdcard_service
 };
 
 // endregion
@@ -87,6 +89,9 @@ static void register_and_start_user_services(const ServiceManifest* const servic
 TT_UNUSED void tt_init(const Config* config) {
     TT_LOG_I(TAG, "tt_init started");
 
+    // Assign early so starting services can use it
+    config_instance = config;
+
     tt_service_registry_init();
     tt_app_manifest_registry_init();
 
@@ -122,8 +127,6 @@ TT_UNUSED void tt_init(const Config* config) {
     }
 
     TT_LOG_I(TAG, "tt_init complete");
-
-    config_instance = config;
 }
 
 const Config* _Nullable tt_get_config() {

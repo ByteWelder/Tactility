@@ -66,8 +66,14 @@ static void sdcard_unmount(void* context) {
     free(data);
 }
 
+static bool sdcard_is_mounted(void* context) {
+    MountData* data = (MountData*)context;
+    return (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
+}
+
 const SdCard twodotfour_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
+    .is_mounted = &sdcard_is_mounted,
     .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_ANYTIME
 };

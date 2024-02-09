@@ -14,6 +14,8 @@ typedef struct {
     Mutex mutex;
     const AppManifest* manifest;
     AppState state;
+    /** @brief Memory marker at start of app, to detect memory leaks */
+    size_t memory;
     AppFlags flags;
     /** @brief Optional parameters to start the app with
      * When these are stored in the app struct, the struct takes ownership.

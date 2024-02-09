@@ -18,7 +18,7 @@ typedef struct {
 } StatusbarIcon;
 
 typedef struct {
-    Mutex* mutex;
+    Mutex mutex;
     PubSub* pubsub;
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT];
 } StatusbarData;
@@ -166,13 +166,13 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     }
 }
 
-int8_t tt_statusbar_icon_add(const char* image) {
+int8_t tt_statusbar_icon_add(const char* _Nullable image) {
     statusbar_lock();
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
             statusbar_data.icons[i].claimed = true;
-            statusbar_data.icons[i].visible = true;
+            statusbar_data.icons[i].visible = (image != NULL);
             statusbar_data.icons[i].image = image;
             result = i;
             TT_LOG_I(TAG, "id %d: added", i);

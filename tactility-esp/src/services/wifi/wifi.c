@@ -1,5 +1,6 @@
 #include "wifi.h"
 
+#include "assets.h"
 #include "check.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -33,10 +34,12 @@ typedef struct {
     uint16_t scan_list_limit;
     int8_t statusbar_icon_id;
     bool scan_active;
+    bool secure_connection;
     esp_event_handler_instance_t event_handler_any_id;
     esp_event_handler_instance_t event_handler_got_ip;
     EventGroupHandle_t event_group;
     WifiRadioState radio_state;
+    const char* _Nullable last_statusbar_icon;
 } Wifi;
 
 typedef enum {
@@ -86,7 +89,9 @@ static Wifi* wifi_alloc() {
     instance->event_handler_got_ip = NULL;
     instance->event_group = xEventGroupCreate();
     instance->radio_state = WIFI_RADIO_OFF;
-    instance->statusbar_icon_id = tt_statusbar_icon_add("A:/assets/ic_small_wifi_off.png");
+    instance->statusbar_icon_id = tt_statusbar_icon_add(TT_ASSETS_ICON_WIFI_OFF);
+    instance->last_statusbar_icon = NULL;
+    instance->secure_connection = false;
     return instance;
 }
 
@@ -225,35 +230,6 @@ static void wifi_scan_list_free_safely(Wifi* wifi) {
 
 static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
-    switch (type) {
-        case WifiEventTypeRadioStateOn:
-            break;
-        case WifiEventTypeRadioStateOnPending:
-            break;
-        case WifiEventTypeRadioStateOff:
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
-            break;
-        case WifiEventTypeRadioStateOffPending:
-            break;
-        case WifiEventTypeScanStarted:
-            break;
-        case WifiEventTypeScanFinished:
-            break;
-        case WifiEventTypeDisconnected:
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
-            break;
-        case WifiEventTypeConnectionPending:
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi_1_bar.png");
-            break;
-        case WifiEventTypeConnectionSuccess:
-            // TODO: update with actual bars
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/network_wifi.png");
-            break;
-        case WifiEventTypeConnectionFailed:
-            tt_statusbar_icon_set_image(wifi->statusbar_icon_id, "A:/assets/ic_small_wifi_off.png");
-            break;
-    }
-
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
@@ -266,6 +242,8 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
         TT_LOG_I(TAG, "event_handler: disconnected");
+        wifi_singleton->radio_state = WIFI_RADIO_ON;
+        wifi_publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         TT_LOG_I(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -444,6 +422,47 @@ static void wifi_scan_internal(Wifi* wifi) {
     TT_LOG_I(TAG, "Finished scan");
 }
 
+const char* wifi_get_status_icon_for_rssi(int rssi, bool secured) {
+    if (rssi > -67) {
+        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_4;
+    } else if (rssi > -70) {
+        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_3;
+    } else if (rssi > -80) {
+        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_2_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_2;
+    } else {
+        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_1_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_1;
+    }
+}
+
+static const char* wifi_get_status_icon(WifiRadioState state, bool secure) {
+    static int rssi = 0;
+    switch (state) {
+        case WIFI_RADIO_ON_PENDING:
+        case WIFI_RADIO_ON:
+        case WIFI_RADIO_OFF_PENDING:
+        case WIFI_RADIO_OFF:
+            return TT_ASSETS_ICON_WIFI_OFF;
+        case WIFI_RADIO_CONNECTION_PENDING:
+            return TT_ASSETS_ICON_WIFI_FIND;
+        case WIFI_RADIO_CONNECTION_ACTIVE:
+            if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
+                return wifi_get_status_icon_for_rssi(rssi, secure);
+            } else {
+                return secure ? TT_ASSETS_ICON_WIFI_SIGNAL_0_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_0;
+            }
+        default:
+            tt_crash_implementation("not implemented");
+    }
+}
+
+static void wifi_update_statusbar(Wifi* wifi) {
+    const char* icon = wifi_get_status_icon(wifi->radio_state, wifi->secure_connection);
+    if (icon != wifi->last_statusbar_icon) {
+        tt_statusbar_icon_set_image(wifi->statusbar_icon_id, icon);
+        wifi->last_statusbar_icon = icon;
+    }
+}
+
 static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
     // TODO: only when connected!
     wifi_disconnect_internal(wifi);
@@ -466,6 +485,8 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     };
     memcpy(wifi_config.sta.ssid, connect_message->ssid, 32);
     memcpy(wifi_config.sta.password, connect_message->password, 64);
+
+    wifi->secure_connection = (wifi_config.sta.password[0] != 0x00);
 
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (set_config_result != ESP_OK) {
@@ -589,6 +610,8 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                     break;
             }
         }
+
+        wifi_update_statusbar(wifi);
     }
 }
 

@@ -275,7 +275,12 @@ void tt_thread_resume(ThreadId thread_id);
  */
 bool tt_thread_is_suspended(ThreadId thread_id);
 
-bool tt_thread_mark_is_service(ThreadId thread_id);
+/** Check if the thread was created with static memory
+ *
+ * @param thread_id  thread id
+ * @return true if thread memory is static
+ */
+bool tt_thread_mark_is_static(ThreadId thread_id);
 
 #ifdef __cplusplus
 }

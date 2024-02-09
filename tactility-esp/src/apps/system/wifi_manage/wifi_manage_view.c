@@ -26,30 +26,6 @@ static void on_disconnect_pressed(lv_event_t* event) {
 
 // region Secondary updates
 
-static const char* get_network_icon(int8_t rssi, wifi_auth_mode_t auth_mode) {
-    if (rssi > -67) {
-        if (auth_mode == WIFI_AUTH_OPEN)
-            return "A:/assets/network_wifi.png";
-        else
-            return "A:/assets/network_wifi_locked.png";
-    } else if (rssi > -70) {
-        if (auth_mode == WIFI_AUTH_OPEN)
-            return "A:/assets/network_wifi_3_bar.png";
-        else
-            return "A:/assets/network_wifi_3_bar_locked.png";
-    } else if (rssi > -80) {
-        if (auth_mode == WIFI_AUTH_OPEN)
-            return "A:/assets/network_wifi_2_bar.png";
-        else
-            return "A:/assets/network_wifi_2_bar_locked.png";
-    } else {
-        if (auth_mode == WIFI_AUTH_OPEN)
-            return "A:/assets/network_wifi_1_bar.png";
-        else
-            return "A:/assets/network_wifi_1_bar_locked.png";
-    }
-}
-
 static void connect(lv_event_t* event) {
     lv_obj_t* button = event->current_target;
     // Assumes that the second child of the button is a label ... risky
@@ -64,7 +40,7 @@ static void connect(lv_event_t* event) {
 
 static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, WifiApRecord* record) {
     const char* ssid = (const char*)record->ssid;
-    const char* icon = get_network_icon(record->rssi, record->auth_mode);
+    const char* icon = wifi_get_status_icon_for_rssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
     lv_obj_t* ap_button = lv_list_add_btn(
         view->networks_list,
         icon,

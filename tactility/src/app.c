@@ -1,6 +1,9 @@
 #include "app_i.h"
 
+#include "log.h"
 #include <stdlib.h>
+
+#define TAG "app"
 
 static AppFlags tt_app_get_flags_default(AppType type);
 
@@ -11,6 +14,11 @@ static const AppFlags DEFAULT_FLAGS = {
 // region Alloc/free
 
 App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
+#ifdef ESP_PLATFORM
+    size_t memory_before = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+#else
+    size_t memory_before = 0;
+#endif
     AppData* data = malloc(sizeof(AppData));
     *data = (AppData) {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
@@ -18,6 +26,7 @@ App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
         .flags = tt_app_get_flags_default(manifest->type),
         .manifest = manifest,
         .parameters = parameters,
+        .memory = memory_before,
         .data = NULL
     };
     return (App*)data;
@@ -25,11 +34,25 @@ App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
 
 void tt_app_free(App app) {
     AppData* data = (AppData*)app;
+
+    size_t memory_before = data->memory;
+
     if (data->parameters) {
         tt_bundle_free(data->parameters);
     }
     tt_mutex_free(data->mutex);
     free(data);
+
+#ifdef ESP_PLATFORM
+    size_t memory_after = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+#else
+    size_t memory_after = 0;
+#endif
+
+    if (memory_after < memory_before) {
+        TT_LOG_W(TAG, "Potential memory leak: gained %u bytes after closing app", memory_before - memory_after);
+        TT_LOG_W(TAG, "Note that WiFi service frees up memory asynchronously and that the leak can be caused by an app that was launched by this app.");
+    }
 }
 
 // endregion

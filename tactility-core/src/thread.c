@@ -80,7 +80,6 @@ static void tt_thread_body(void* context) {
     tt_thread_set_state(thread, ThreadStateRunning);
 
     thread->ret = thread->callback(thread->context);
-    TT_LOG_I(TAG, "thread returned: %s", thread->name ?: "[no name]");
 
     tt_assert(thread->state == ThreadStateRunning);
 
@@ -170,7 +169,7 @@ void tt_thread_mark_as_static(Thread* thread) {
     thread->is_static = true;
 }
 
-bool tt_thread_mark_is_service(ThreadId thread_id) {
+bool tt_thread_mark_is_static(ThreadId thread_id) {
     TaskHandle_t hTask = (TaskHandle_t)thread_id;
     assert(!TT_IS_IRQ_MODE() && (hTask != NULL));
     Thread* thread = (Thread*)pvTaskGetThreadLocalStoragePointer(hTask, 0);
