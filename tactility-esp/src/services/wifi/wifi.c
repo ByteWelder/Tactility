@@ -486,7 +486,7 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     memcpy(wifi_config.sta.ssid, connect_message->ssid, 32);
     memcpy(wifi_config.sta.password, connect_message->password, 64);
 
-    wifi->secure_connection= (wifi_config.sta.password[0] != 0x00);
+    wifi->secure_connection = (wifi_config.sta.password[0] != 0x00);
 
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (set_config_result != ESP_OK) {
