@@ -62,6 +62,9 @@ WifiRadioState wifi_get_radio_state();
  */
 void wifi_scan();
 
+/**
+ * @return true if wifi is actively scanning
+ */
 bool wifi_is_scanning();
 
 /**
@@ -96,7 +99,13 @@ void wifi_connect(const char* ssid, const char _Nullable password[64]);
  */
 void wifi_disconnect();
 
-const char* wifi_get_status_icon_for_rssi(int rssi, bool secure);
+/**
+ * Return the relevant icon asset from assets.h for the given inputs
+ * @param rssi the rssi value
+ * @param secured whether the access point is a secured one (as in: not an open one)
+ * @return
+ */
+const char* wifi_get_status_icon_for_rssi(int rssi, bool secured);
 
 #ifdef __cplusplus
 }
