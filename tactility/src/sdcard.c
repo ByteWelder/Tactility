@@ -57,9 +57,19 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
     }
 }
 
-bool tt_sdcard_is_mounted() {
-    // TODO: unmount if context but is_mounted() returns false
-    return (data.context != NULL) && (data.sdcard->is_mounted(data.context));
+SdcardState tt_sdcard_get_state() {
+    if (data.context == NULL) {
+        return SDCARD_STATE_UNMOUNTED;
+    } else {
+        // TODO: Side-effects are not great - consider refactoring this, so:
+        // Consider making tt_sdcard_get_status() that can return an error state
+        // The sdcard service can then auto-dismount
+        if (data.sdcard->is_mounted(data.context)) {
+            return SDCARD_STATE_MOUNTED;
+        } else {
+            return SDCARD_STATE_ERROR;
+        }
+    }
 }
 
 bool tt_sdcard_unmount(uint32_t timeout_ticks) {

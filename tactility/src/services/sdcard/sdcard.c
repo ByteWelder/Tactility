@@ -11,13 +11,6 @@
 
 static int32_t sdcard_task(TT_UNUSED void* context);
 
-typedef enum {
-    SDCARD_STATE_INITIAL,
-    SDCARD_STATE_MOUNTED,
-    SDCARD_STATE_UNMOUNTED,
-    SDCARD_STATE_ERROR,
-} SdcardState;
-
 typedef struct {
     Mutex mutex;
     Thread* thread;
@@ -32,11 +25,11 @@ static ServiceData* service_data_alloc() {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
         .thread = tt_thread_alloc_ex(
             "sdcard",
-            2400, // Minimum is ~2240 @ ESP-IDF 5.1.2
+            3000, // Minimum is ~2800 @ ESP-IDF 5.1.2 when ejecting sdcard
             &sdcard_task,
             data
         ),
-        .last_state = SDCARD_STATE_INITIAL,
+        .last_state = -1,
         .statusbar_icon_id = tt_statusbar_icon_add(NULL),
         .interrupted = false
     };
@@ -70,18 +63,18 @@ static int32_t sdcard_task(void* context) {
 
         interrupted = data->interrupted;
 
-        SdcardState new_state;
-        if (tt_sdcard_is_mounted()) {
-            new_state = SDCARD_STATE_MOUNTED;
-        } else {
-            new_state = SDCARD_STATE_UNMOUNTED;
+        SdcardState new_state = tt_sdcard_get_state();
+
+        if (new_state == SDCARD_STATE_ERROR) {
+            TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
+            tt_sdcard_unmount();
         }
 
         if (new_state != data->last_state) {
-            TT_LOG_I(TAG, "state change %d -> %d", data->last_state, new_state);
+            TT_LOG_I(TAG, "State change %d -> %d", data->last_state, new_state);
             if (new_state == SDCARD_STATE_MOUNTED) {
                 tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD);
-            } else if (new_state == SDCARD_STATE_UNMOUNTED) {
+            } else {
                 tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD_ALERT);
             }
             data->last_state = new_state;
