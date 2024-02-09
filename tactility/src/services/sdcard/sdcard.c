@@ -1,5 +1,6 @@
-#include "sdcard.h"
+#include <dirent.h>
 
+#include "assets.h"
 #include "mutex.h"
 #include "service.h"
 #include "tactility.h"
@@ -7,9 +8,6 @@
 #include "ui/statusbar.h"
 
 #define TAG "sdcard_service"
-
-#define TT_ASSETS_ICON_SDCARD "A:/assets/sdcard.png"
-#define TT_ASSETS_ICON_SDCARD_ALERT "A:/assets/sdcard_alert.png"
 
 static int32_t sdcard_task(TT_UNUSED void* context);
 
@@ -34,7 +32,7 @@ static ServiceData* service_data_alloc() {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
         .thread = tt_thread_alloc_ex(
             "sdcard",
-            2048,
+            3072,
             &sdcard_task,
             data
         ),
@@ -42,8 +40,6 @@ static ServiceData* service_data_alloc() {
         .statusbar_icon_id = tt_statusbar_icon_add(NULL),
         .interrupted = false
     };
-    TT_LOG_I(TAG, "test data on init: %d %d", data->last_state, data->statusbar_icon_id);
-    TT_LOG_I(TAG, "address1: %p", data);
     return data;
 }
 
@@ -67,9 +63,8 @@ static int32_t sdcard_task(void* context) {
 
     bool interrupted = false;
 
-    TT_LOG_I(TAG, "task started");
-    TT_LOG_I(TAG, "test data: %d %d", data->last_state, data->statusbar_icon_id);
-    tt_delay_ms(100);
+    // We set NULL as statusbar image by default, so it's hidden by default
+    tt_statusbar_icon_set_visibility(data->statusbar_icon_id, true);
 
     do {
         service_data_lock(data);
@@ -84,38 +79,30 @@ static int32_t sdcard_task(void* context) {
         }
 
         if (new_state != data->last_state) {
-            TT_LOG_I(TAG, "test2 %d", new_state);
-            TT_LOG_I(TAG, "test2 %d", data->statusbar_icon_id);
-            TT_LOG_I(TAG, "test2 %d", data->last_state);
-            tt_delay_ms(200);
-//            TT_LOG_I(TAG, "state change %d -> %d", new_state, data->last_state);
-//            if (new_state == SDCARD_STATE_MOUNTED) {
-//                TT_LOG_I(TAG, "test3");
-//                tt_delay_ms(100);
+            TT_LOG_I(TAG, "state change %d -> %d", data->last_state, new_state);
+            if (new_state == SDCARD_STATE_MOUNTED) {
                 tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD);
-//            } else if (new_state == SDCARD_STATE_UNMOUNTED) {
-//                TT_LOG_I(TAG, "test4");
-//                tt_delay_ms(100);
-//                tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD_ALERT);
-//            }
+            } else if (new_state == SDCARD_STATE_UNMOUNTED) {
+                tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD_ALERT);
+            }
             data->last_state = new_state;
         }
 
         service_data_unlock(data);
-        tt_delay_ms(1000);
+        tt_delay_ms(2000);
     } while (!interrupted);
 
     return 0;
 }
 
 static void on_start(Service service) {
-//    if (tt_get_config()->hardware->sdcard != NULL) {
+    if (tt_get_config()->hardware->sdcard != NULL) {
         ServiceData* data = service_data_alloc();
         tt_service_set_data(service, data);
         tt_thread_start(data->thread);
-//    } else {
-//        TT_LOG_I(TAG, "task not started due to config");
-//    }
+    } else {
+        TT_LOG_I(TAG, "task not started due to config");
+    }
 }
 
 static void on_stop(Service service) {

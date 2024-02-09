@@ -54,7 +54,7 @@ static bool sdcard_init() {
     return true;
 }
 
-static void* sdcard_mount(const char* mount_point) {
+static void* _Nullable sdcard_mount(const char* mount_point) {
     TT_LOG_I(TAG, "Mounting %s", mount_point);
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
@@ -63,8 +63,6 @@ static void* sdcard_mount(const char* mount_point) {
         .allocation_unit_size = TDECK_SDCARD_ALLOC_UNIT_SIZE,
         .disk_status_check_enable = TDECK_SDCARD_STATUS_CHECK_ENABLED
     };
-
-    sdmmc_card_t* card;
 
     // Init without card detect (CD) and write protect (WD)
     sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
@@ -76,6 +74,8 @@ static void* sdcard_mount(const char* mount_point) {
     // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
     // Observation: Using this automatically sets the bus to 20MHz
     host.max_freq_khz = TDECK_SDCARD_SPI_FREQUENCY;
+
+    sdmmc_card_t* card;
     esp_err_t ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
 
     if (ret != ESP_OK) {
@@ -101,7 +101,6 @@ static void* sdcard_init_and_mount(const char* mount_point) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
         return NULL;
     }
-
     MountData* data = sdcard_mount(mount_point);
     if (data == NULL) {
         TT_LOG_E(TAG, "Mount failed for %s", mount_point);
@@ -125,8 +124,14 @@ static void sdcard_unmount(void* context) {
     free(data);
 }
 
+static bool sdcard_is_mounted(void* context) {
+    MountData* data = (MountData*)context;
+    return (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
+}
+
 const SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
+    .is_mounted = &sdcard_is_mounted,
     .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_AT_BOOT
 };

@@ -96,6 +96,8 @@ void wifi_connect(const char* ssid, const char _Nullable password[64]);
  */
 void wifi_disconnect();
 
+const char* wifi_get_status_icon_for_rssi(int rssi, bool secure);
+
 #ifdef __cplusplus
 }
 #endif

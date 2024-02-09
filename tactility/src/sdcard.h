@@ -9,7 +9,8 @@ extern "C" {
 #endif
 
 typedef void* (*SdcardMount)(const char* mount_path);
-typedef void (*SdcardUnmount)(void*);
+typedef void (*SdcardUnmount)(void* context);
+typedef bool (*SdcardIsMounted)(void* context);
 
 typedef enum {
     SDCARD_MOUNT_BEHAVIOUR_AT_BOOT, /** Only mount at boot */
@@ -19,6 +20,7 @@ typedef enum {
 typedef struct {
     SdcardMount mount;
     SdcardUnmount unmount;
+    SdcardIsMounted is_mounted;
     SdcardMountBehaviour mount_behaviour;
 } SdCard;
 

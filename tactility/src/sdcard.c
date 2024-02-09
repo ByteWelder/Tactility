@@ -2,7 +2,6 @@
 
 #include "mutex.h"
 #include "tactility_core.h"
-#include "ui/statusbar.h"
 
 #define TAG "sdcard"
 
@@ -59,7 +58,8 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
 }
 
 bool tt_sdcard_is_mounted() {
-    return data.context != NULL;
+    // TODO: unmount if context but is_mounted() returns false
+    return (data.context != NULL) && (data.sdcard->is_mounted(data.context));
 }
 
 bool tt_sdcard_unmount(uint32_t timeout_ticks) {

@@ -275,7 +275,7 @@ void tt_thread_resume(ThreadId thread_id);
  */
 bool tt_thread_is_suspended(ThreadId thread_id);
 
-bool tt_thread_mark_is_service(ThreadId thread_id);
+bool tt_thread_mark_is_static(ThreadId thread_id);
 
 #ifdef __cplusplus
 }
