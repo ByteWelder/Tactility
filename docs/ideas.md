@@ -6,11 +6,11 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
 - T-Deck has random sdcard SPI crashes due to sharing bus with screen SPI: make it use the LVGL lock for sdcard operations?
+- Wi-Fi connect app should show info about connection result
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
 - Support for displays with different DPI. Consider the layer-based system like on Android.
-- Display orientation support for Display app
 - If present, use LED to show boot status
 - 2 wire speaker support
 - tt_app_start() and similar functions as proxies for Loader app start/stop/etc.
@@ -22,10 +22,11 @@
 - Light/dark mode selection in Display settings app.
 
 # App Ideas
-- Chip 8 emulator
-- Discord bot
-- BadUSB
-- IR transceiver app
+- File viewer (images, text... binary?)
 - GPIO status viewer
 - BlueTooth keyboard app
+- Chip 8 emulator
+- BadUSB
+- Discord bot
+- IR transceiver app
 - Investigate CSI https://stevenmhernandez.github.io/ESP32-CSI-Tool/
