@@ -133,5 +133,5 @@ const SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_AT_BOOT
+    .mount_behaviour = SdcardMountBehaviourAtBoot
 };

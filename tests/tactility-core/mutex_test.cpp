@@ -3,13 +3,13 @@
 #include "mutex.h"
 
 static int thread_with_mutex_parameter(void* parameter) {
-    Mutex mutex = (Mutex)parameter;
+    Mutex* mutex = (Mutex*)parameter;
     tt_mutex_acquire(mutex, TtWaitForever);
     return 0;
 }
 
 TEST_CASE("a mutex can block a thread") {
-    Mutex mutex = tt_mutex_alloc(MutexTypeNormal);
+    Mutex* mutex = tt_mutex_alloc(MutexTypeNormal);
     tt_mutex_acquire(mutex, TtWaitForever);
 
     Thread* thread = tt_thread_alloc_ex(

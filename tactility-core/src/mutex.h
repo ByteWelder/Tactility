@@ -16,7 +16,7 @@ typedef enum {
     MutexTypeRecursive,
 } MutexType;
 
-typedef void* Mutex;
+typedef void Mutex;
 
 /** Allocate Mutex
  *
@@ -24,13 +24,13 @@ typedef void* Mutex;
  *
  * @return     pointer to Mutex instance
  */
-Mutex tt_mutex_alloc(MutexType type);
+Mutex* tt_mutex_alloc(MutexType type);
 
 /** Free Mutex
  *
  * @param      mutex  The Mutex instance
  */
-void tt_mutex_free(Mutex mutex);
+void tt_mutex_free(Mutex* mutex);
 
 /** Acquire mutex
  *
@@ -39,7 +39,7 @@ void tt_mutex_free(Mutex mutex);
  *
  * @return     The status.
  */
-TtStatus tt_mutex_acquire(Mutex mutex, uint32_t timeout);
+TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout);
 
 /** Release mutex
  *
@@ -47,7 +47,7 @@ TtStatus tt_mutex_acquire(Mutex mutex, uint32_t timeout);
  *
  * @return     The status.
  */
-TtStatus tt_mutex_release(Mutex mutex);
+TtStatus tt_mutex_release(Mutex* mutex);
 
 /** Get mutex owner thread id
  *
@@ -55,7 +55,7 @@ TtStatus tt_mutex_release(Mutex mutex);
  *
  * @return     The thread identifier.
  */
-ThreadId tt_mutex_get_owner(Mutex mutex);
+ThreadId tt_mutex_get_owner(Mutex* mutex);
 
 #ifdef __cplusplus
 }

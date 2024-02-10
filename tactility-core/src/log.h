@@ -27,23 +27,23 @@ extern "C" {
 #else
 
 typedef enum {
-    LOG_LEVEL_ERROR,
-    LOG_LEVEL_WARNING,
-    LOG_LEVEL_INFO,
-    LOG_LEVEL_DEBUG,
-    LOG_LEVEL_TRACE
+    LogLevelError,
+    LogLevelWarning,
+    LogLevelInfo,
+    LogLevelDebug,
+    LogLevelTrace
 } LogLevel;
 
 void tt_log(LogLevel level, const char* tag, const char* format, ...);
 
 #define TT_LOG_E(tag, format, ...) \
-    tt_log(LOG_LEVEL_ERROR, tag, format, ##__VA_ARGS__)
+    tt_log(LogLevelError, tag, format, ##__VA_ARGS__)
 #define TT_LOG_W(tag, format, ...) \
-    tt_log(LOG_LEVEL_WARNING, tag, format, ##__VA_ARGS__)
+    tt_log(LogLevelWarning, tag, format, ##__VA_ARGS__)
 #define TT_LOG_I(tag, format, ...) \
-    tt_log(LOG_LEVEL_INFO, tag, format, ##__VA_ARGS__)
+    tt_log(LogLevelInfo, tag, format, ##__VA_ARGS__)
 #define TT_LOG_D(tag, format, ...) \
-    tt_log(LOG_LEVEL_DEBUG, tag, format, ##__VA_ARGS__)
+    tt_log(LogLevelDebug, tag, format, ##__VA_ARGS__)
 #define TT_LOG_T(tag, format, ...) \
     tt_log(LOG_LEVEL_TRACE, tag, format, ##__VA_ARGS__)
 

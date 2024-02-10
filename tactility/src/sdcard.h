@@ -13,14 +13,14 @@ typedef void (*SdcardUnmount)(void* context);
 typedef bool (*SdcardIsMounted)(void* context);
 
 typedef enum {
-    SDCARD_STATE_MOUNTED,
-    SDCARD_STATE_UNMOUNTED,
-    SDCARD_STATE_ERROR,
+    SdcardStateMounted,
+    SdcardStateUnmounted,
+    SdcardStateError,
 } SdcardState;
 
 typedef enum {
-    SDCARD_MOUNT_BEHAVIOUR_AT_BOOT, /** Only mount at boot */
-    SDCARD_MOUNT_BEHAVIOUR_ANYTIME /** Mount/dismount any time */
+    SdcardMountBehaviourAtBoot, /** Only mount at boot */
+    SdcardMountBehaviourAnytime /** Mount/dismount any time */
 } SdcardMountBehaviour;
 
 typedef struct {

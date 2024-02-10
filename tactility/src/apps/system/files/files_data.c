@@ -66,7 +66,7 @@ bool files_data_set_entries_for_path(FilesData* data, const char* path) {
      * ESP32 does not have a root directory, so we have to create it manually.
      * We'll add the NVS Flash partitions and the binding for the sdcard.
      */
-    if (tt_get_platform() == PLATFORM_ESP && strcmp(path, "/") == 0) {
+    if (tt_get_platform() == PlatformEsp && strcmp(path, "/") == 0) {
         int dir_entries_count = 3;
         struct dirent** dir_entries = malloc(sizeof(struct dirent*) * 3);
 

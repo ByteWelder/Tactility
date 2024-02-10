@@ -13,15 +13,15 @@
 
 static char tt_loglevel_to_prefix(LogLevel level) {
     switch (level) {
-        case LOG_LEVEL_ERROR:
+        case LogLevelError:
             return 'E';
-        case LOG_LEVEL_WARNING:
+        case LogLevelWarning:
             return 'W';
-        case LOG_LEVEL_INFO:
+        case LogLevelInfo:
             return 'I';
-        case LOG_LEVEL_DEBUG:
+        case LogLevelDebug:
             return 'D';
-        case LOG_LEVEL_TRACE:
+        case LogLevelTrace:
             return 'T';
         default:
             return '?';
@@ -30,15 +30,15 @@ static char tt_loglevel_to_prefix(LogLevel level) {
 
 static const char* tt_loglevel_to_colour(LogLevel level) {
     switch (level) {
-        case LOG_LEVEL_ERROR:
+        case LogLevelError:
             return "\033[1;31m";
-        case LOG_LEVEL_WARNING:
+        case LogLevelWarning:
             return "\033[33m";
-        case LOG_LEVEL_INFO:
+        case LogLevelInfo:
             return "\033[32m";
-        case LOG_LEVEL_DEBUG:
+        case LogLevelDebug:
             return "\033[1;37m";
-        case LOG_LEVEL_TRACE:
+        case LogLevelTrace:
             return "\033[37m";
         default:
             return "";

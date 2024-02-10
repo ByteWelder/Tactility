@@ -33,7 +33,7 @@ void tt_mutex_info(Mutex mutex, const char* label) {
 #define tt_mutex_info(mutex, text)
 #endif
 
-Mutex tt_mutex_alloc(MutexType type) {
+Mutex* tt_mutex_alloc(MutexType type) {
     tt_assert(!TT_IS_IRQ_MODE());
     MutexData* data = malloc(sizeof(MutexData));
 
@@ -52,10 +52,10 @@ Mutex tt_mutex_alloc(MutexType type) {
 
     tt_check(data->handle != NULL);
     tt_mutex_info(data, "alloc  ");
-    return (Mutex)data;
+    return (Mutex*)data;
 }
 
-void tt_mutex_free(Mutex mutex) {
+void tt_mutex_free(Mutex* mutex) {
     tt_assert(!TT_IS_IRQ_MODE());
     tt_assert(mutex);
 
@@ -66,7 +66,7 @@ void tt_mutex_free(Mutex mutex) {
     free(data);
 }
 
-TtStatus tt_mutex_acquire(Mutex mutex, uint32_t timeout) {
+TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
     tt_assert(mutex);
     tt_assert(!TT_IS_IRQ_MODE());
     MutexData* data = (MutexData*)mutex;
@@ -101,7 +101,7 @@ TtStatus tt_mutex_acquire(Mutex mutex, uint32_t timeout) {
     return status;
 }
 
-TtStatus tt_mutex_release(Mutex mutex) {
+TtStatus tt_mutex_release(Mutex* mutex) {
     tt_assert(mutex);
     assert(!TT_IS_IRQ_MODE());
     MutexData* data = (MutexData*)mutex;
@@ -129,7 +129,7 @@ TtStatus tt_mutex_release(Mutex mutex) {
     return status;
 }
 
-ThreadId tt_mutex_get_owner(Mutex mutex) {
+ThreadId tt_mutex_get_owner(Mutex* mutex) {
     tt_assert(mutex != NULL);
     tt_assert(!TT_IS_IRQ_MODE());
     MutexData* data = (MutexData*)mutex;

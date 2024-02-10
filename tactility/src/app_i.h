@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    Mutex mutex;
+    Mutex* mutex;
     const AppManifest* manifest;
     AppState state;
     /** @brief Memory marker at start of app, to detect memory leaks */

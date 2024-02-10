@@ -22,7 +22,7 @@ App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
     AppData* data = malloc(sizeof(AppData));
     *data = (AppData) {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .state = APP_STATE_INITIAL,
+        .state = AppStateInitial,
         .flags = tt_app_get_flags_default(manifest->type),
         .manifest = manifest,
         .parameters = parameters,

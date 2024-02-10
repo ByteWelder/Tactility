@@ -7,8 +7,8 @@ extern "C" {
 #endif
 
 typedef enum {
-    PLATFORM_ESP,
-    PLATFORM_PC
+    PlatformEsp,
+    PlatformPc
 } Platform;
 
 /** Check if CPU is in IRQ or kernel running and IRQ is masked

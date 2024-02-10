@@ -18,7 +18,7 @@ typedef struct {
 } StatusbarIcon;
 
 typedef struct {
-    Mutex mutex;
+    Mutex* mutex;
     PubSub* pubsub;
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT];
 } StatusbarData;

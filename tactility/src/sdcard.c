@@ -5,7 +5,7 @@
 
 #define TAG "sdcard"
 
-static Mutex mutex = NULL;
+static Mutex* mutex = NULL;
 
 typedef struct {
     const SdCard* sdcard;
@@ -59,16 +59,11 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
 
 SdcardState tt_sdcard_get_state() {
     if (data.context == NULL) {
-        return SDCARD_STATE_UNMOUNTED;
+        return SdcardStateUnmounted;
+    } else if (data.sdcard->is_mounted(data.context)) {
+        return SdcardStateMounted;
     } else {
-        // TODO: Side-effects are not great - consider refactoring this, so:
-        // Consider making tt_sdcard_get_status() that can return an error state
-        // The sdcard service can then auto-dismount
-        if (data.sdcard->is_mounted(data.context)) {
-            return SDCARD_STATE_MOUNTED;
-        } else {
-            return SDCARD_STATE_ERROR;
-        }
+        return SdcardStateError;
     }
 }
 
