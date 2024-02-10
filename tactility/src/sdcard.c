@@ -60,12 +60,10 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
 SdcardState tt_sdcard_get_state() {
     if (data.context == NULL) {
         return SdcardStateUnmounted;
+    } else if (data.sdcard->is_mounted(data.context)) {
+        return SdcardStateMounted;
     } else {
-        if (data.sdcard->is_mounted(data.context)) {
-            return SdcardStateMounted;
-        } else {
-            return SdcardStateError;
-        }
+        return SdcardStateError;
     }
 }
 
