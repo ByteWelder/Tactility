@@ -157,7 +157,7 @@ static void app_stop(App app) {
 AppManifest wifi_manage_app = {
     .id = "wifi_manage",
     .name = "Wi-Fi",
-    .icon = NULL,
+    .icon = LV_SYMBOL_WIFI,
     .type = AppTypeSettings,
     .on_start = &app_start,
     .on_stop = &app_stop,
