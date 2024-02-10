@@ -75,5 +75,5 @@ const SdCard twodotfour_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = SDCARD_MOUNT_BEHAVIOUR_ANYTIME
+    .mount_behaviour = SdcardMountBehaviourAnytime
 };
