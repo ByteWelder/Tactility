@@ -1,4 +1,5 @@
 #include "app.h"
+#include "assets.h"
 #include "lvgl.h"
 #include "ui/toolbar.h"
 
@@ -47,7 +48,7 @@ static void app_show(App app, lv_obj_t* parent) {
 AppManifest system_info_app = {
     .id = "systeminfo",
     .name = "System Info",
-    .icon = NULL,
+    .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
     .type = AppTypeSystem,
     .on_start = NULL,
     .on_stop = NULL,

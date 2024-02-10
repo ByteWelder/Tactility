@@ -1,4 +1,5 @@
 #include "app.h"
+#include "assets.h"
 #include "lvgl.h"
 #include "preferences.h"
 #include "tactility.h"
@@ -64,7 +65,7 @@ static void app_hide(App app) {
 const AppManifest display_app = {
     .id = "display",
     .name = "Display",
-    .icon = NULL,
+    .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
     .type = AppTypeSettings,
     .on_start = NULL,
     .on_stop = NULL,

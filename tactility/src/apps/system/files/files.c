@@ -1,13 +1,14 @@
 #include "files_data.h"
 
 #include "app.h"
+#include "assets.h"
 #include "check.h"
 #include "file_utils.h"
 #include "lvgl.h"
 #include "services/loader/loader.h"
+#include "string_utils.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
-#include <string_utils.h>
 
 #define TAG "files_app"
 
@@ -99,7 +100,7 @@ static void create_file_widget(FilesData* files_data, lv_obj_t* parent, struct d
     } else if (dir_entry->d_type == TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
     } else {
-        symbol = LV_SYMBOL_SETTINGS;
+        symbol = LV_SYMBOL_FILE;
     }
     lv_obj_t* button = lv_list_add_btn(list, symbol, dir_entry->d_name);
     lv_obj_set_user_data(button, files_data);
@@ -149,7 +150,7 @@ static void on_stop(App app) {
 const AppManifest files_app = {
     .id = "files",
     .name = "Files",
-    .icon = NULL,
+    .icon = TT_ASSETS_APP_ICON_FILES,
     .type = AppTypeSystem,
     .on_start = &on_start,
     .on_stop = &on_stop,

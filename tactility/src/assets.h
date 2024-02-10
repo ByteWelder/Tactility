@@ -3,9 +3,18 @@
 #define TT_ASSET_FOLDER "A:/assets/"
 #define TT_ASSET(file) TT_ASSET_FOLDER file
 
+// App icons
+#define TT_ASSETS_APP_ICON_FALLBACK TT_ASSET("app_icon_fallback.png")
+#define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")
+#define TT_ASSETS_APP_ICON_DISPLAY_SETTINGS TT_ASSET("app_icon_display_settings.png")
+#define TT_ASSETS_APP_ICON_SETTINGS TT_ASSET("app_icon_settings.png")
+#define TT_ASSETS_APP_ICON_SYSTEM_INFO TT_ASSET("app_icon_system_info.png")
+
+// SD card status
 #define TT_ASSETS_ICON_SDCARD TT_ASSET("sdcard.png")
 #define TT_ASSETS_ICON_SDCARD_ALERT TT_ASSET("sdcard_alert.png")
 
+// Wifi status
 #define TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE TT_ASSET("wifi_connection_issue.png")
 #define TT_ASSETS_ICON_WIFI_FIND TT_ASSET("wifi_find.png")
 #define TT_ASSETS_ICON_WIFI_OFF TT_ASSET("wifi_off.png")

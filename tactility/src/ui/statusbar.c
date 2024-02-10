@@ -116,7 +116,6 @@ lv_obj_t* tt_statusbar_create(lv_obj_t* parent) {
     lv_obj_set_width(obj, LV_PCT(100));
     lv_obj_set_height(obj, STATUSBAR_HEIGHT);
     tt_lv_obj_set_style_no_padding(obj);
-    tt_lv_obj_set_style_bg_blacken(obj);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
