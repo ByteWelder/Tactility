@@ -15,7 +15,7 @@ static void hash_reset_all();
 
 // region Hash
 
-static Mutex hash_mutex = NULL;
+static Mutex* hash_mutex = NULL;
 static int8_t hash_index = -1;
 static uint32_t hashes[TT_WIFI_CREDENTIALS_LIMIT] = { 0 };
 

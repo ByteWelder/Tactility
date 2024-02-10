@@ -22,7 +22,7 @@ struct Loader {
     Thread* thread;
     PubSub* pubsub;
     MessageQueue* queue;
-    Mutex mutex;
+    Mutex* mutex;
     int8_t app_stack_index;
     App app_stack[APP_STACK_SIZE];
 };

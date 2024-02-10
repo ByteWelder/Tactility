@@ -13,7 +13,7 @@ LIST_DEF(PubSubSubscriptionList, PubSubSubscription, M_POD_OPLIST);
 
 struct PubSub {
     PubSubSubscriptionList_t items;
-    Mutex mutex;
+    Mutex* mutex;
 };
 
 PubSub* tt_pubsub_alloc() {

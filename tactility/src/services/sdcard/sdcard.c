@@ -12,7 +12,7 @@
 static int32_t sdcard_task(TT_UNUSED void* context);
 
 typedef struct {
-    Mutex mutex;
+    Mutex* mutex;
     Thread* thread;
     SdcardState last_state;
     int8_t statusbar_icon_id;

@@ -5,7 +5,7 @@
 
 #define TAG "sdcard"
 
-static Mutex mutex = NULL;
+static Mutex* mutex = NULL;
 
 typedef struct {
     const SdCard* sdcard;
