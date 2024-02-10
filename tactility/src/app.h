@@ -8,11 +8,11 @@ extern "C" {
 #endif
 
 typedef enum {
-    APP_STATE_INITIAL, // App is being activated in loader
-    APP_STATE_STARTED, // App is in memory
-    APP_STATE_SHOWING, // App view is created
-    APP_STATE_HIDING,  // App view is destroyed
-    APP_STATE_STOPPED  // App is not in memory
+    AppStateInitial, // App is being activated in loader
+    AppStateStarted, // App is in memory
+    AppStateShowing, // App view is created
+    AppStateHiding,  // App view is destroyed
+    AppStateStopped  // App is not in memory
 } AppState;
 
 typedef union {

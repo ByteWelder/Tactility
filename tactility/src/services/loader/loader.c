@@ -109,15 +109,15 @@ PubSub* loader_get_pubsub() {
 
 static const char* app_state_to_string(AppState state) {
     switch (state) {
-        case APP_STATE_INITIAL:
+        case AppStateInitial:
             return "initial";
-        case APP_STATE_STARTED:
+        case AppStateStarted:
             return "started";
-        case APP_STATE_SHOWING:
+        case AppStateShowing:
             return "showing";
-        case APP_STATE_HIDING:
+        case AppStateHiding:
             return "hiding";
-        case APP_STATE_STOPPED:
+        case AppStateStopped:
             return "stopped";
         default:
             return "?";
@@ -137,33 +137,33 @@ static void app_transition_to_state(App app, AppState state) {
     );
 
     switch (state) {
-        case APP_STATE_INITIAL:
-            tt_app_set_state(app, APP_STATE_INITIAL);
+        case AppStateInitial:
+            tt_app_set_state(app, AppStateInitial);
             break;
-        case APP_STATE_STARTED:
+        case AppStateStarted:
             if (manifest->on_start != NULL) {
                 manifest->on_start(app);
             }
-            tt_app_set_state(app, APP_STATE_STARTED);
+            tt_app_set_state(app, AppStateStarted);
             break;
-        case APP_STATE_SHOWING:
+        case AppStateShowing:
             gui_show_app(
                 app,
                 manifest->on_show,
                 manifest->on_hide
             );
-            tt_app_set_state(app, APP_STATE_SHOWING);
+            tt_app_set_state(app, AppStateShowing);
             break;
-        case APP_STATE_HIDING:
+        case AppStateHiding:
             gui_hide_app();
-            tt_app_set_state(app, APP_STATE_HIDING);
+            tt_app_set_state(app, AppStateHiding);
             break;
-        case APP_STATE_STOPPED:
+        case AppStateStopped:
             if (manifest->on_stop) {
                 manifest->on_stop(app);
             }
             tt_app_set_data(app, NULL);
-            tt_app_set_state(app, APP_STATE_STOPPED);
+            tt_app_set_state(app, AppStateStopped);
             break;
     }
 }
@@ -187,16 +187,16 @@ LoaderStatus loader_do_start_app_with_manifest(
     App app = tt_app_alloc(manifest, bundle);
     tt_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] == NULL);
     loader_singleton->app_stack[loader_singleton->app_stack_index] = app;
-    app_transition_to_state(app, APP_STATE_INITIAL);
-    app_transition_to_state(app, APP_STATE_STARTED);
+    app_transition_to_state(app, AppStateInitial);
+    app_transition_to_state(app, AppStateStarted);
 
     // We might have to hide the previous app first
     if (previous_index != -1) {
         App previous_app = loader_singleton->app_stack[previous_index];
-        app_transition_to_state(previous_app, APP_STATE_HIDING);
+        app_transition_to_state(previous_app, AppStateHiding);
     }
 
-    app_transition_to_state(app, APP_STATE_SHOWING);
+    app_transition_to_state(app, AppStateShowing);
 
     loader_unlock();
 
@@ -240,8 +240,8 @@ static void loader_do_stop_app() {
 
     // Stop current app
     App app_to_stop = loader_singleton->app_stack[current_app_index];
-    app_transition_to_state(app_to_stop, APP_STATE_HIDING);
-    app_transition_to_state(app_to_stop, APP_STATE_STOPPED);
+    app_transition_to_state(app_to_stop, AppStateHiding);
+    app_transition_to_state(app_to_stop, AppStateStopped);
 
     tt_app_free(app_to_stop);
     loader_singleton->app_stack[current_app_index] = NULL;
@@ -254,7 +254,7 @@ static void loader_do_stop_app() {
     // Resume previous app
     tt_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] != NULL);
     App app_to_resume = loader_singleton->app_stack[loader_singleton->app_stack_index];
-    app_transition_to_state(app_to_resume, APP_STATE_SHOWING);
+    app_transition_to_state(app_to_resume, AppStateShowing);
 
     loader_unlock();
 

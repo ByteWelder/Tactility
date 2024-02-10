@@ -197,8 +197,8 @@ void tt_delay_us(uint32_t microseconds) {
 
 Platform tt_get_platform() {
 #ifdef ESP_PLATFORM
-    return PLATFORM_ESP;
+    return PlatformEsp;
 #else
-    return PLATFORM_PC;
+    return PlatformPc;
 #endif
 }

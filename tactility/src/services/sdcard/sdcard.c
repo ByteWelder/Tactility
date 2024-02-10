@@ -65,14 +65,14 @@ static int32_t sdcard_task(void* context) {
 
         SdcardState new_state = tt_sdcard_get_state();
 
-        if (new_state == SDCARD_STATE_ERROR) {
+        if (new_state == SdcardStateError) {
             TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
             tt_sdcard_unmount();
         }
 
         if (new_state != data->last_state) {
             TT_LOG_I(TAG, "State change %d -> %d", data->last_state, new_state);
-            if (new_state == SDCARD_STATE_MOUNTED) {
+            if (new_state == SdcardStateMounted) {
                 tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD);
             } else {
                 tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD_ALERT);
