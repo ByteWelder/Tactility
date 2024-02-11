@@ -19,7 +19,9 @@ extern const ServiceManifest sdcard_service;
 static const ServiceManifest* const system_services[] = {
     &gui_service,
     &loader_service, // depends on gui service
+#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     &screenshot_service,
+#endif
     &sdcard_service
 };
 
@@ -38,7 +40,9 @@ static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
+#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     &screenshot_app,
+#endif
     &settings_app,
     &system_info_app
 };
