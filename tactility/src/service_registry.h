@@ -21,6 +21,8 @@ void tt_service_registry_for_each_manifest(ServiceManifestCallback callback, voi
 bool tt_service_registry_start(const char* service_id);
 bool tt_service_registry_stop(const char* service_id);
 
+Service _Nullable tt_service_find(const char* service_id);
+
 #ifdef __cplusplus
 }
 #endif

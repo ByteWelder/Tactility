@@ -116,6 +116,14 @@ bool tt_service_registry_start(const char* service_id) {
     return true;
 }
 
+Service _Nullable tt_service_find(const char* service_id) {
+    service_registry_instance_lock();
+    const ServiceData** _Nullable service_ptr = ServiceInstanceDict_get(service_instance_dict, service_id);
+    const ServiceData* service = service_ptr ? *service_ptr : NULL;
+    service_registry_instance_unlock();
+    return (Service)service;
+}
+
 bool tt_service_registry_stop(const char* service_id) {
     TT_LOG_I(TAG, "stopping %s", service_id);
     ServiceData* service = service_registry_find_instance_by_id(service_id);
