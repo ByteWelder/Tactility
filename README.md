@@ -7,15 +7,15 @@ It provides an application framework that is based on code from the [Flipper Zer
 
 Tactility features a desktop that can launch apps:
 
-![screenshot](docs/pics/screenshot-desktop.png) ![screenshot](docs/pics/screenshot-files.png) ![screenshot](docs/pics/screenshot-systeminfo.png)
+![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of files app](docs/pics/screenshot-files.png) ![screenshot of system info app](docs/pics/screenshot-systeminfo.png)
 
 Through the Settings app you can connect to Wi-Fi or change the display settings:
 
-![screenshot](docs/pics/screenshot-settings.png) ![screenshot](docs/pics/screenshot-display.png) 
+![screenshot of settings app](docs/pics/screenshot-settings.png) ![screenshot of display settings app](docs/pics/screenshot-display.png) 
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
-![devices](docs/pics/tactility-devices.jpg)
+![photo of devices running Tactility](docs/pics/tactility-devices.jpg)
 
 Noteworthy features:
 - Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.

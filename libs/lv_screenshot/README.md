@@ -1,6 +1,6 @@
 ## lv_screenshot
 
-This library is adapted from the lv_100ask_screenshot library from [https://www.100ask.net](https://www.100ask.net)
+This library is adapted from the lv_100ask_screenshot library from 100ask on [GitHub](https://github.com/100askTeam/lv_lib_100ask).
 
 The original license is available [here](LICENSE-original).
 
