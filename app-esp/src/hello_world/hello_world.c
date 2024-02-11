@@ -2,7 +2,7 @@
 #include "lvgl.h"
 #include "ui/toolbar.h"
 
-static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
+static void app_show(App app, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 

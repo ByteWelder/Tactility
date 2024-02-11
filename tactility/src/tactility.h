@@ -21,7 +21,7 @@ typedef struct {
  * Attempts to initialize Tactility and all configured hardware.
  * @param config
  */
-TT_UNUSED void tt_init(const Config* config);
+void tt_init(const Config* config);
 
 /**
  * While technically nullable, this instance is always set if tt_init() succeeds.

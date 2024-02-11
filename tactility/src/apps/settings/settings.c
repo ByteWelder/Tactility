@@ -21,7 +21,7 @@ static void create_app_widget(const AppManifest* manifest, void* parent) {
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void on_show(TT_UNUSED App app, lv_obj_t* parent) {
+static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     tt_toolbar_create_for_app(parent, app);

@@ -20,7 +20,7 @@ static void create_app_widget(const AppManifest* manifest, void* parent) {
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void desktop_show(TT_UNUSED App app, TT_UNUSED lv_obj_t* parent) {
+static void desktop_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));
     lv_obj_center(list);

@@ -93,7 +93,7 @@ static void register_and_start_user_services(const ServiceManifest* const servic
     }
 }
 
-TT_UNUSED void tt_init(const Config* config) {
+void tt_init(const Config* config) {
     TT_LOG_I(TAG, "tt_init started");
 
     // Assign early so starting services can use it

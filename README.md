@@ -7,7 +7,9 @@ It provides an application framework that is based on code from the [Flipper Zer
 
 Tactility features a desktop that can launch apps:
 
-![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of files app](docs/pics/screenshot-files.png) ![screenshot of system info app](docs/pics/screenshot-systeminfo.png)
+![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of files app](docs/pics/screenshot-files.png)
+
+![screenshot of system info app](docs/pics/screenshot-systeminfo.png) ![hello world app screenshot](docs/pics/screenshot-helloworld.png)
 
 Through the Settings app you can connect to Wi-Fi or change the display settings:
 
@@ -37,7 +39,7 @@ UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widge
 Creating a touch-capable UI is [easy](https://docs.lvgl.io/8.3/get-started/quick-overview.html) and doesn't require your own render loop!
 
 ```c
-static void app_show(TT_UNUSED App app, lv_obj_t* parent) {
+static void app_show(App app, lv_obj_t* parent) {
     // Default toolbar with app name and close button
     lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);

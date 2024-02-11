@@ -9,7 +9,7 @@
 
 #define TAG "sdcard_service"
 
-static int32_t sdcard_task(TT_UNUSED void* context);
+static int32_t sdcard_task(void* context);
 
 typedef struct {
     Mutex* mutex;

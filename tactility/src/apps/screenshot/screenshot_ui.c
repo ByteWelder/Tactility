@@ -28,7 +28,7 @@ static void on_mode_set(lv_event_t* event) {
     update_mode(ui);
 }
 
-static void on_start_pressed(TT_UNUSED lv_event_t* event) {
+static void on_start_pressed(lv_event_t* event) {
     ScreenshotUi* ui = event->user_data;
 
     if (tt_screenshot_is_started()) {
