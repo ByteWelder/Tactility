@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-bool save_as_bmp_file(const uint8_t* image, uint32_t w, uint32_t h, uint32_t bpp, const char* filename);
+bool lve_screenshot_save_bmp_file(const uint8_t* image, uint32_t w, uint32_t h, uint32_t bpp, const char* filename);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 #include "lv_screenshot.h"
 
-#include "save_as_bmp.h"
-#include "save_as_png.h"
+#include "save_bmp.h"
+#include "save_png.h"
 
 static void data_pre_processing(lv_img_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv);
 
@@ -13,15 +13,15 @@ bool lv_screenshot_create(lv_obj_t* obj, lv_img_cf_t cf, lv_100ask_screenshot_sv
 
         if (screenshot_sv == LV_100ASK_SCREENSHOT_SV_PNG) {
             if (LV_COLOR_DEPTH == 16) {
-                save_as_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
+                lv_screenshot_save_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
             } else if (LV_COLOR_DEPTH == 32) {
-                save_as_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
+                lv_screenshot_save_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
             }
         } else if (screenshot_sv == LV_100ASK_SCREENSHOT_SV_BMP) {
             if (LV_COLOR_DEPTH == 16) {
-                save_as_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
+                lve_screenshot_save_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
             } else if (LV_COLOR_DEPTH == 32) {
-                save_as_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
+                lve_screenshot_save_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
             }
         }
 

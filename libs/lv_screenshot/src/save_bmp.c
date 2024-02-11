@@ -1,4 +1,4 @@
-#include "save_as_bmp.h"
+#include "save_bmp.h"
 
 typedef struct tagBITMAPFILEHEADER {
     uint16_t bfType;
@@ -29,7 +29,7 @@ typedef struct tagRGBQUAD {
     uint8_t rgbReserved;
 } __attribute__((packed)) RGBQUAD;
 
-bool save_as_bmp_file(const uint8_t* image, uint32_t w, uint32_t h, uint32_t bpp, const char* filename) {
+bool lve_screenshot_save_bmp_file(const uint8_t* image, uint32_t w, uint32_t h, uint32_t bpp, const char* filename) {
     BITMAPFILEHEADER tBmpFileHead;
     BITMAPINFOHEADER tBmpInfoHead;
 
