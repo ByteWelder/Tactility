@@ -13,11 +13,15 @@ static const Config* config_instance = NULL;
 
 extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
+extern const ServiceManifest screenshot_service;
 extern const ServiceManifest sdcard_service;
 
 static const ServiceManifest* const system_services[] = {
     &gui_service,
     &loader_service, // depends on gui service
+#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
+    &screenshot_service,
+#endif
     &sdcard_service
 };
 
@@ -28,6 +32,7 @@ static const ServiceManifest* const system_services[] = {
 extern const AppManifest desktop_app;
 extern const AppManifest display_app;
 extern const AppManifest files_app;
+extern const AppManifest screenshot_app;
 extern const AppManifest settings_app;
 extern const AppManifest system_info_app;
 
@@ -35,6 +40,9 @@ static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
+#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
+    &screenshot_app,
+#endif
     &settings_app,
     &system_info_app
 };

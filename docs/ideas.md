@@ -7,6 +7,8 @@
 - Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
 - T-Deck has random sdcard SPI crashes due to sharing bus with screen SPI: make it use the LVGL lock for sdcard operations?
 - Wi-Fi connect app should show info about connection result
+- Check service/app id on registration to see if it is a duplicate id
+- Fix screenshot app on ESP32: it currently blocks when allocating memory
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
