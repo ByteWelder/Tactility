@@ -48,7 +48,13 @@ static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, siz
 
     lv_obj_t* bar = lv_bar_create(container);
     lv_obj_set_flex_grow(bar, 1);
-    lv_bar_set_range(bar, 0, (int32_t)total);
+
+    if (total > 0) {
+        lv_bar_set_range(bar, 0, (int32_t)total);
+    } else {
+        lv_bar_set_range(bar, 0, 1);
+    }
+
     lv_bar_set_value(bar, (int32_t)used, 0);
 
     lv_obj_t* bottom_label = lv_label_create(parent);
