@@ -25,7 +25,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         PUBLIC idf::spiffs
         PUBLIC idf::nvs_flash
         PUBLIC idf::newlib # for scandir() and related
-        PUBLIC lv_100ask_screenshot
+        PUBLIC lv_screenshot
     )
 else()
     add_definitions(-D_Nullable=)
@@ -34,7 +34,7 @@ else()
         PUBLIC tactility-core
         PUBLIC lvgl
         PUBLIC freertos-kernel
-        PUBLIC lv_100ask_screenshot
+        PUBLIC lv_screenshot
     )
 endif()
 

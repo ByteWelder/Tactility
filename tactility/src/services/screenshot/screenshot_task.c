@@ -1,11 +1,12 @@
 #include "screenshot_task.h"
-#include <lv_100ask_screenshot.h>
+#include "lv_screenshot.h"
 
 #include "app.h"
 #include "mutex.h"
 #include "services/loader/loader.h"
 #include "tactility_core.h"
 #include "thread.h"
+#include "ui/lvgl_sync.h"
 
 #define TAG "screenshot_task"
 
@@ -60,7 +61,7 @@ static bool is_interrupted(ScreenshotTaskData* data) {
     return interrupted;
 }
 
-static int screenshot_task(void* context) {
+static int32_t screenshot_task(void* context) {
     ScreenshotTaskData* data = (ScreenshotTaskData*)context;
 
     bool interrupted = false;
@@ -83,11 +84,13 @@ static int screenshot_task(void* context) {
             screenshots_taken++;
             char filename[SCREENSHOT_PATH_LIMIT + 32];
             sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
-            if (lv_100ask_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
+            tt_lvgl_lock(TtWaitForever);
+            if (lv_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                 TT_LOG_I(TAG, "Screenshot saved to %s", filename);
             } else {
                 TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
             }
+            tt_lvgl_unlock();
 
             if (data->work.amount > 0 && screenshots_taken >= data->work.amount) {
                 break; // Interrupted loop
@@ -102,11 +105,13 @@ static int screenshot_task(void* context) {
 
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
                     sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest->id);
-                    if (lv_100ask_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
+                    tt_lvgl_lock(TtWaitForever);
+                    if (lv_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                         TT_LOG_I(TAG, "Screenshot saved to %s", filename);
                     } else {
                         TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
                     }
+                    tt_lvgl_unlock();
                 }
             }
             tt_delay_ms(250);

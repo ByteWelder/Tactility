@@ -35,7 +35,7 @@ endif()
 project(tactility-root)
 
 add_subdirectory(libs/mlib)
-add_subdirectory(libs/lv_100ask_screenshot)
+add_subdirectory(libs/lv_screenshot)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
 

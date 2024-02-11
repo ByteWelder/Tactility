@@ -7,24 +7,24 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 file(GLOB SOURCES "*.c")
 file(GLOB HEADERS "*.h")
 
-add_library(lv_100ask_screenshot STATIC)
+add_library(lv_screenshot STATIC)
 
-target_sources(lv_100ask_screenshot
+target_sources(lv_screenshot
     PRIVATE ${SOURCES}
-    PUBLIC ${HEADERS}
+    PUBLIC lv_screenshot.h
 )
 
-target_include_directories(lv_100ask_screenshot SYSTEM
+target_include_directories(lv_screenshot SYSTEM
     PRIVATE .
     INTERFACE .
 )
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    target_link_libraries(lv_100ask_screenshot
+    target_link_libraries(lv_screenshot
         PUBLIC idf::lvgl
     )
 else()
-    target_link_libraries(lv_100ask_screenshot
+    target_link_libraries(lv_screenshot
         PUBLIC lvgl
     )
 endif()
