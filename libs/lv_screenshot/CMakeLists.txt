@@ -4,19 +4,19 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB SOURCES "*.c")
-file(GLOB HEADERS "*.h")
+file(GLOB SOURCES "src/*.c")
+file(GLOB HEADERS "src/*.h")
 
 add_library(lv_screenshot STATIC)
 
 target_sources(lv_screenshot
     PRIVATE ${SOURCES}
-    PUBLIC lv_screenshot.h
+    PUBLIC ${HEADERS}
 )
 
-target_include_directories(lv_screenshot SYSTEM
-    PRIVATE .
-    INTERFACE .
+target_include_directories(lv_screenshot
+    PRIVATE private
+    PUBLIC src
 )
 
 if (DEFINED ENV{ESP_IDF_VERSION})
