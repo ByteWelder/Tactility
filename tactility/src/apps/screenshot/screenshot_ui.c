@@ -106,10 +106,10 @@ static void create_path_ui(ScreenshotUi* ui, lv_obj_t* parent) {
         if (tt_sdcard_get_state() == SdcardStateMounted) {
             lv_textarea_set_text(path_textarea, "A:/sdcard");
         } else {
-            lv_textarea_set_text(path_textarea, "NO SD CARD!");
+            lv_textarea_set_text(path_textarea, "Error: no SD card");
         }
     } else { // PC
-        lv_textarea_set_text(path_textarea, "A:/assets");
+        lv_textarea_set_text(path_textarea, "A:");
     }
 }
 
