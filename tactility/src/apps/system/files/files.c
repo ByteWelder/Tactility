@@ -46,7 +46,7 @@ static bool is_image_file(const char* filename) {
 
 static void update_views(FilesData* data);
 
-static void on_navigate_up_pressed(TT_UNUSED lv_event_t* event) {
+static void on_navigate_up_pressed(lv_event_t* event) {
     FilesData* files_data = (FilesData*)event->user_data;
     if (strcmp(files_data->current_path, "/") != 0) {
         TT_LOG_I(TAG, "Navigating upwards");

@@ -19,7 +19,7 @@ static uint32_t task_max_sleep_ms = 10;
 static QueueHandle_t task_mutex = NULL;
 static bool task_running = false;
 
-static void lvgl_task(TT_UNUSED void* arg);
+static void lvgl_task(void* arg);
 
 static bool task_lock(int timeout_ticks) {
     assert(task_mutex != NULL);

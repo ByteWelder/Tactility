@@ -10,7 +10,7 @@ extern const ServiceManifest wifi_service;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
-TT_UNUSED void app_main(void) {
+void app_main(void) {
     static const Config config = {
         /**
          * Auto-select a board based on the ./sdkconfig.board.* file
