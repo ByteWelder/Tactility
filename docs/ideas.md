@@ -8,6 +8,7 @@
 - T-Deck has random sdcard SPI crashes due to sharing bus with screen SPI: make it use the LVGL lock for sdcard operations?
 - Wi-Fi connect app should show info about connection result
 - Check service/app id on registration to see if it is a duplicate id
+- Fix screenshot app on ESP32: it currently blocks when allocating memory
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
