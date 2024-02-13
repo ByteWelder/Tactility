@@ -7,6 +7,7 @@
 extern void wifi_main(void*);
 
 extern const ServiceManifest wifi_service;
+extern const AppManifest gpio_app;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
@@ -18,6 +19,7 @@ void app_main(void) {
          */
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
+            &gpio_app,
             &hello_world_app,
             &wifi_connect_app,
             &wifi_manage_app
