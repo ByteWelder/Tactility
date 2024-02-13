@@ -139,7 +139,6 @@ static void app_show(App app, lv_obj_t* parent) {
         if (column == 0) {
             lv_obj_t* prefix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(prefix, "%02d", i);
-            lv_obj_set_width(prefix, x_spacing);
         }
 
         // Add a new GPIO status indicator
@@ -155,7 +154,6 @@ static void app_show(App app, lv_obj_t* parent) {
             lv_obj_t* postfix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(postfix, "%02d", i);
             lv_obj_set_pos(postfix, (lv_coord_t)((column+1) * x_spacing), 0);
-            lv_obj_set_width(postfix, x_spacing);
 
             // Add a new row wrapper underneath the last one
             lv_obj_t* new_row_wrapper = create_gpio_row_wrapper(wrapper);
