@@ -33,6 +33,7 @@ static ServiceData* service_data_alloc() {
         .statusbar_icon_id = tt_statusbar_icon_add(NULL),
         .interrupted = false
     };
+    tt_thread_set_priority(data->thread, ThreadPriorityLow);
     return data;
 }
 
