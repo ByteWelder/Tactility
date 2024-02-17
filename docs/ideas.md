@@ -9,6 +9,9 @@
 - Wi-Fi connect app should show info about connection result
 - Check service/app id on registration to see if it is a duplicate id
 - Fix screenshot app on ESP32: it currently blocks when allocating memory
+- Localisation of texts
+- Portrait support for GPIO app
+- App lifecycle docs mention on_create/on_destroy but app lifecycle is on_start/on_stop
  
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
@@ -17,7 +20,7 @@
 - 2 wire speaker support
 - tt_app_start() and similar functions as proxies for Loader app start/stop/etc.
 - tt_app_set_result() for apps that need to return data to other apps (e.g. file selection)
-- Make a statusbar service that apps can register icons to. Gui can observe its status changes?
+- Introduce co-routines for calling wifi/lvgl/etc functionality.
 
 # App Improvement Ideas
 - Sort desktop apps by name.
