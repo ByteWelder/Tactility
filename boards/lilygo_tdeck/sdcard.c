@@ -5,6 +5,7 @@
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
+#include "ui/lvgl_sync.h"
 
 #define TAG "tdeck_sdcard"
 
@@ -126,7 +127,18 @@ static void sdcard_unmount(void* context) {
 
 static bool sdcard_is_mounted(void* context) {
     MountData* data = (MountData*)context;
-    return (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
+    /**
+     * The SD card and the screen are on the same SPI bus.
+     * Writing and reading to the bus from 2 devices at the same time causes crashes.
+     * This work-around ensures that this check is only happening when LVGL isn't rendering.
+     */
+    if (tt_lvgl_lock(100)) {
+        bool result = (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
+        tt_lvgl_unlock();
+        return result;
+    } else {
+        return false;
+    }
 }
 
 const SdCard tdeck_sdcard = {
