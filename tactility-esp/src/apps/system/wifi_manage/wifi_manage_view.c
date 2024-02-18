@@ -177,7 +177,8 @@ void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* 
     lv_label_set_text(view->networks_label, "Networks");
     lv_obj_align(view->networks_label, LV_ALIGN_LEFT_MID, 0, 0);
 
-    view->scanning_spinner = lv_spinner_create(networks_header, 1000, 60);
+    view->scanning_spinner = lv_spinner_create(networks_header);
+    lv_spinner_set_anim_params(view->scanning_spinner, 1000, 60);
     lv_obj_set_size(view->scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
     lv_obj_set_style_pad_top(view->scanning_spinner, 4, 0);
     lv_obj_set_style_pad_bottom(view->scanning_spinner, 4, 0);

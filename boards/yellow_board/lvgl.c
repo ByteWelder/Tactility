@@ -5,11 +5,11 @@
 
 #define TAG "twodotfour_lvgl"
 
-lv_disp_t* twodotfour_display_init();
+lv_display_t* twodotfour_display_init();
 bool twodotfour_touch_init(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle_t* touch_handle);
 
 bool twodotfour_lvgl_init() {
-    static lv_disp_t* display = NULL;
+    static lv_display_t* display = NULL;
     static esp_lcd_panel_io_handle_t touch_io_handle;
     static esp_lcd_touch_handle_t touch_handle;
 

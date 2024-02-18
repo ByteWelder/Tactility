@@ -19,7 +19,7 @@ static void init_display_settings(const HardwareConfig* config) {
 
     int32_t rotation;
     if (tt_preferences()->opt_int32("display", "rotation", &rotation)) {
-        if (rotation != LV_DISP_ROT_NONE) {
+        if (rotation != LV_DISPLAY_ROTATION_0) {
             lv_disp_set_rotation(lv_disp_get_default(), rotation);
         }
     }

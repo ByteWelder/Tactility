@@ -17,7 +17,7 @@ static void create_app_widget(const AppManifest* manifest, void* parent) {
     tt_check(parent);
     lv_obj_t* list = (lv_obj_t*)parent;
     const char* icon = manifest->icon ?: TT_ASSETS_APP_ICON_FALLBACK;
-    lv_obj_t* btn = lv_list_add_btn(list, icon, manifest->name);
+    lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name);
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 

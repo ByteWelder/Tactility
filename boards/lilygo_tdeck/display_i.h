@@ -1,13 +1,13 @@
 #pragma once
 
-#include "hal/lv_hal_disp.h"
+#include "lvgl.h"
 #include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-lv_disp_t* tdeck_display_init();
+lv_display_t* tdeck_display_init();
 
 bool tdeck_backlight_init();
 

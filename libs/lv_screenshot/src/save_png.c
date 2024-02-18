@@ -1,5 +1,5 @@
 #include "save_png.h"
-#include "src/extra/libs/png/lodepng.h"
+#include "src/libs/lodepng/lodepng.h"
 
 bool lv_screenshot_save_png_file(const uint8_t* image, uint32_t w, uint32_t h, uint32_t bpp, const char* filename) {
     if (bpp == 32) {

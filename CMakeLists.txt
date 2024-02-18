@@ -65,8 +65,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
         )
 
-        add_subdirectory(libs/lv_drivers)
-
         option(LV_USE_DRAW_SDL "Use SDL draw unit" OFF)
         option(LV_USE_LIBPNG "Use libpng to decode PNG" OFF)
         option(LV_USE_LIBJPEG_TURBO "Use libjpeg turbo to decode JPEG" OFF)

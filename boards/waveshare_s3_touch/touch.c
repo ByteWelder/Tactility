@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_log.h"
-#include "lv_api_map.h"
+#include "lvgl.h"
 
 #define TAG "waveshare_s3_touch_i2c"
 
@@ -33,16 +33,17 @@ static esp_lcd_touch_handle_t touch_init_internal() {
     return tp;
 }
 
-static void touch_callback(lv_indev_drv_t* drv, lv_indev_data_t* data) {
+static void touch_callback(lv_indev_t* indev, lv_indev_data_t* data) {
     uint16_t touchpad_x[1] = {0};
     uint16_t touchpad_y[1] = {0};
     uint8_t touchpad_cnt = 0;
 
     /* Read touch controller data */
-    esp_lcd_touch_read_data(drv->user_data);
+    esp_lcd_touch_handle_t touch_handle = lv_indev_get_user_data(indev);
+    esp_lcd_touch_read_data(touch_handle);
 
     /* Get coordinates */
-    bool touchpad_pressed = esp_lcd_touch_get_coordinates(drv->user_data, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
+    bool touchpad_pressed = esp_lcd_touch_get_coordinates(touch_handle, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
 
     if (touchpad_pressed && touchpad_cnt > 0) {
         data->point.x = touchpad_x[0];
@@ -53,15 +54,15 @@ static void touch_callback(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     }
 }
 
-void ws3t_touch_init(lv_disp_t* display) {
+void ws3t_touch_init(lv_display_t* display) {
     esp_lcd_touch_handle_t touch_handle = touch_init_internal();
 
     ESP_LOGI(TAG, "Register display indev to LVGL");
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.disp = display;
-    indev_drv.read_cb = &touch_callback;
-    indev_drv.user_data = touch_handle;
-    lv_indev_drv_register(&indev_drv); // TODO: store result for deinit purposes
+
+    static lv_indev_t* device = NULL;
+    device = lv_indev_create();
+    lv_indev_set_type(device, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(device, &touch_callback);
+    lv_indev_set_display(device, display);
+    lv_indev_set_user_data(device, touch_handle);
 }

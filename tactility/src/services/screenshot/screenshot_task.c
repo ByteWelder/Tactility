@@ -85,7 +85,7 @@ static int32_t screenshot_task(void* context) {
             char filename[SCREENSHOT_PATH_LIMIT + 32];
             sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
             tt_lvgl_lock(TtWaitForever);
-            if (lv_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
+            if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                 TT_LOG_I(TAG, "Screenshot saved to %s", filename);
             } else {
                 TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
@@ -106,7 +106,7 @@ static int32_t screenshot_task(void* context) {
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
                     sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest->id);
                     tt_lvgl_lock(TtWaitForever);
-                    if (lv_screenshot_create(lv_scr_act(), LV_IMG_CF_TRUE_COLOR, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
+                    if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                         TT_LOG_I(TAG, "Screenshot saved to %s", filename);
                     } else {
                         TT_LOG_E(TAG, "Screenshot not saved to %s", filename);

@@ -127,7 +127,7 @@ static void app_show(App app, lv_obj_t* parent) {
 
     uint8_t column = 0;
     uint8_t column_limit = 10;
-    lv_coord_t x_spacing = 20;
+    int32_t x_spacing = 20;
 
     lv_obj_t* row_wrapper = create_gpio_row_wrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
@@ -143,7 +143,7 @@ static void app_show(App app, lv_obj_t* parent) {
 
         // Add a new GPIO status indicator
         lv_obj_t* status_label = lv_label_create(row_wrapper);
-        lv_obj_set_pos(status_label, (lv_coord_t)((column+1) * x_spacing), 0);
+        lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing), 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
         gpio->lv_pins[i] = status_label;
 
@@ -153,7 +153,7 @@ static void app_show(App app, lv_obj_t* parent) {
             // Add the GPIO number after the last item on a row
             lv_obj_t* postfix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(postfix, "%02d", i);
-            lv_obj_set_pos(postfix, (lv_coord_t)((column+1) * x_spacing), 0);
+            lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing), 0);
 
             // Add a new row wrapper underneath the last one
             lv_obj_t* new_row_wrapper = create_gpio_row_wrapper(wrapper);

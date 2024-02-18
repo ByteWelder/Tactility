@@ -44,7 +44,7 @@ void tdeck_backlight_set(uint8_t duty) {
     }
 }
 
-lv_disp_t* tdeck_display_init() {
+lv_display_t* tdeck_display_init() {
     const esp_lcd_panel_io_spi_config_t panel_io_config = {
         .cs_gpio_num = TDECK_LCD_PIN_CS,
         .dc_gpio_num = TDECK_LCD_PIN_DC,
@@ -134,10 +134,12 @@ lv_disp_t* tdeck_display_init() {
         .flags = {
             .buff_dma = false,
             .buff_spiram = true,
+            .sw_rotate = false,
+            .swap_bytes = true
         }
     };
 
-    lv_disp_t* display = lvgl_port_add_disp(&disp_cfg);
+    lv_display_t* display = lvgl_port_add_disp(&disp_cfg);
 
     return display;
 }

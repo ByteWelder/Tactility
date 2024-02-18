@@ -1,6 +1,6 @@
 #include "hardware_config.h"
 #include "lvgl_task.h"
-#include <src/core/lv_obj.h>
+#include "src/lv_init.h"
 #include <stdbool.h>
 
 #define TAG "hardware"

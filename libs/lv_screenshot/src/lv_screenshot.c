@@ -3,10 +3,10 @@
 #include "save_bmp.h"
 #include "save_png.h"
 
-static void data_pre_processing(lv_img_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv);
+static void data_pre_processing(lv_image_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv);
 
-bool lv_screenshot_create(lv_obj_t* obj, lv_img_cf_t cf, lv_100ask_screenshot_sv_t screenshot_sv, const char* filename) {
-    lv_img_dsc_t* snapshot = lv_snapshot_take(obj, cf);
+bool lv_screenshot_create(lv_obj_t* obj, lv_color_format_t cf, lv_100ask_screenshot_sv_t screenshot_sv, const char* filename) {
+    lv_image_dsc_t* snapshot = lv_snapshot_take(obj, cf);
 
     if (snapshot) {
         data_pre_processing(snapshot, LV_COLOR_DEPTH, screenshot_sv);
@@ -32,7 +32,7 @@ bool lv_screenshot_create(lv_obj_t* obj, lv_img_cf_t cf, lv_100ask_screenshot_sv
     return false;
 }
 
-static void data_pre_processing(lv_img_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv) {
+static void data_pre_processing(lv_image_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv) {
     if (bpp == 16) {
         uint16_t rgb565_data = 0;
         uint32_t count = 0;

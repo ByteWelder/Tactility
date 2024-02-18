@@ -33,22 +33,22 @@ static void slider_event_cb(lv_event_t* event) {
 
 static int orientation_setting_to_display_orientation(int setting) {
     if (setting == ORIENTATION_LANDSCAPE_FLIPPED) {
-        return LV_DISP_ROT_180;
+        return LV_DISPLAY_ROTATION_180;
     } else if (setting == ORIENTATION_PORTRAIT_LEFT) {
-        return LV_DISP_ROT_270;
+        return LV_DISPLAY_ROTATION_270;
     } else if (setting == ORIENTATION_PORTRAIT_RIGHT) {
-        return LV_DISP_ROT_90;
+        return LV_DISPLAY_ROTATION_90;
     } else {
-        return LV_DISP_ROT_NONE;
+        return LV_DISPLAY_ROTATION_0;
     }
 }
 
 static int display_orientation_to_orientation_setting(int orientation) {
-    if (orientation == LV_DISP_ROT_90) {
+    if (orientation == LV_DISPLAY_ROTATION_90) {
         return ORIENTATION_PORTRAIT_RIGHT;
-    } else if (orientation == LV_DISP_ROT_180) {
+    } else if (orientation == LV_DISPLAY_ROTATION_180) {
         return ORIENTATION_LANDSCAPE_FLIPPED;
-    } else if (orientation == LV_DISP_ROT_270) {
+    } else if (orientation == LV_DISPLAY_ROTATION_270) {
         return ORIENTATION_PORTRAIT_LEFT;
     } else {
         return ORIENTATION_LANDSCAPE;
@@ -60,8 +60,8 @@ static void on_orientation_set(lv_event_t* event) {
     int selected = lv_dropdown_get_selected(dropdown);
     TT_LOG_I(TAG, "Selected %d", selected);
     int rotation = orientation_setting_to_display_orientation(selected);
-    if (lv_disp_get_rotation(lv_disp_get_default()) != rotation) {
-        lv_disp_set_rotation(lv_disp_get_default(), rotation);
+    if (lv_display_get_rotation(lv_display_get_default()) != rotation) {
+        lv_display_set_rotation(lv_display_get_default(), rotation);
         tt_preferences()->put_int32("display", "rotation", rotation);
     }
 }
@@ -109,7 +109,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_align(orientation_dropdown, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(orientation_dropdown, on_orientation_set, LV_EVENT_VALUE_CHANGED, NULL);
     int orientation_selected = display_orientation_to_orientation_setting(
-        lv_disp_get_rotation(lv_disp_get_default())
+        lv_display_get_rotation(lv_display_get_default())
     );
     lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
 }
