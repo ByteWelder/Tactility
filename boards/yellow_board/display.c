@@ -8,7 +8,6 @@
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
-#include "hal/lv_hal_disp.h"
 
 #define TAG "twodotfour_ili9341"
 
@@ -117,10 +116,13 @@ lv_disp_t* twodotfour_display_init() {
         },
         .flags = {
             .buff_dma = true,
+            .buff_spiram = false,
+            .sw_rotate = false,
+            .swap_bytes = true
         }
     };
 
-    lv_disp_t* display = lvgl_port_add_disp(&disp_cfg);
+    lv_display_t* display = lvgl_port_add_disp(&disp_cfg);
 
     return display;
 }

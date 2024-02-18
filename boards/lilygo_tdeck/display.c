@@ -134,6 +134,8 @@ lv_disp_t* tdeck_display_init() {
         .flags = {
             .buff_dma = false,
             .buff_spiram = true,
+            .sw_rotate = false,
+            .swap_bytes = true
         }
     };
 

@@ -1,6 +1,6 @@
 #include "keyboard.h"
 #include "config.h"
-#include "hal/lv_hal.h"
+#include "lvgl.h"
 #include "tactility_core.h"
 #include "ui/lvgl_keypad.h"
 #include <driver/i2c.h>
@@ -8,7 +8,6 @@
 #define TAG "tdeck_keyboard"
 
 typedef struct {
-    lv_indev_drv_t* driver;
     lv_indev_t* device;
 } KeyboardData;
 
@@ -44,7 +43,7 @@ void keyboard_wait_for_response() {
  * @param indev_drv
  * @param data
  */
-static void keyboard_read_callback(TT_UNUSED struct _lv_indev_drv_t* indev_drv, lv_indev_data_t* data) {
+static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t* data) {
     static uint8_t last_buffer = 0x00;
     uint8_t read_buffer = 0x00;
 
@@ -70,16 +69,10 @@ static void keyboard_read_callback(TT_UNUSED struct _lv_indev_drv_t* indev_drv, 
 Keyboard keyboard_alloc(_Nullable lv_disp_t* display) {
     KeyboardData* data = malloc(sizeof(KeyboardData));
 
-    data->driver = malloc(sizeof(lv_indev_drv_t));
-    memset(data->driver, 0, sizeof(lv_indev_drv_t));
-    lv_indev_drv_init(data->driver);
-
-    data->driver->type = LV_INDEV_TYPE_KEYPAD;
-    data->driver->read_cb = &keyboard_read_callback;
-    data->driver->disp = display;
-
-    data->device = lv_indev_drv_register(data->driver);
-    tt_check(data->device != NULL);
+    data->device = lv_indev_create();
+    lv_indev_set_type(data->device, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(data->device, &keyboard_read_callback);
+    lv_indev_set_display(data->device, display);
 
     tt_lvgl_keypad_set_indev(data->device);
 
@@ -89,6 +82,5 @@ Keyboard keyboard_alloc(_Nullable lv_disp_t* display) {
 void keyboard_free(Keyboard keyboard) {
     KeyboardData* data = (KeyboardData*)keyboard;
     lv_indev_delete(data->device);
-    free(data->driver);
     free(data);
 }

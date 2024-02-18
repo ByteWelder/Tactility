@@ -1,12 +1,12 @@
 #pragma once
 
-#include "hal/lv_hal.h"
+#include "lvgl.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void ws3t_touch_init(lv_disp_t* display);
+void ws3t_touch_init(lv_display_t* display);
 
 #ifdef __cplusplus
 }

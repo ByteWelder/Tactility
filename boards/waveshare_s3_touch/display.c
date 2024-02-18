@@ -81,8 +81,8 @@ static void lvgl_tick_task(TT_UNUSED void* arg) {
     lv_tick_inc(WAVESHARE_LVGL_TICK_PERIOD_MS);
 }
 
-static void display_flush_callback(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* color_map) {
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)drv->user_data;
+static void display_flush_callback(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
     int offsety1 = area->y1;
@@ -90,14 +90,12 @@ static void display_flush_callback(lv_disp_drv_t* drv, const lv_area_t* area, lv
     xSemaphoreGive(sem_gui_ready);
     xSemaphoreTake(sem_vsync_end, portMAX_DELAY);
     // pass the draw buffer to the driver
-    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
-    lv_disp_flush_ready(drv);
+    esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, px_map);
+    lv_disp_flush_ready(disp);
 }
 
 lv_disp_t* ws3t_display_create() {
     TT_LOG_I(TAG, "display init");
-    static lv_disp_drv_t display_driver;
-    static lv_disp_draw_buf_t display_buffer;
 
     sem_vsync_end = xSemaphoreCreateBinary();
     tt_assert(sem_vsync_end);
@@ -151,7 +149,7 @@ lv_disp_t* ws3t_display_create() {
         .on_bounce_empty = NULL,
         .on_bounce_frame_finish = NULL
     };
-    if (esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, &display_driver) != ESP_OK) {
+    if (esp_lcd_rgb_panel_register_event_callbacks(panel_handle, &cbs, NULL) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to register callbacks");
         return NULL;
     }
@@ -170,33 +168,25 @@ lv_disp_t* ws3t_display_create() {
 
     NULL;
 #if WAVESHARE_LCD_USE_DOUBLE_FB
-    void* buffer1 = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    void* buffer2 = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    // initialize LVGL draw buffers
+    lv_draw_buf_t* buffer1 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES, LV_COLOR_FORMAT_RGB565, 0);
+    lv_draw_buf_t* buffer2 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES, LV_COLOR_FORMAT_RGB565, 0);
     tt_assert(buffer1);
     tt_assert(buffer2);
-    // initialize LVGL draw buffers
-    lv_disp_draw_buf_init(&display_buffer, buffer1, buffer2, WAVESHARE_LCD_HOR_RES * WAVESHARE_LCD_BUFFER_HEIGHT);
 #else
-    ESP_LOGI(TAG, "Allocate separate LVGL draw buffers from PSRAM");
-    void* buffer = heap_caps_malloc(WAVESHARE_LCD_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    tt_assert(buffer);
-    lv_disp_draw_buf_init(&display_buffer, buffer, NULL, WAVESHARE_LCD_H_RES * WAVESHARE_BUFFER_HEIGHT);
+    lv_draw_buf_t* buffer1 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES, LV_COLOR_FORMAT_RGB565, 0);
+    lv_draw_buf_t* buffer2 = NULL;
+    tt_assert(buffer1);
 #endif // WAVESHARE_USE_DOUBLE_FB
 
-    lv_disp_drv_init(&display_driver);
-    display_driver.hor_res = WAVESHARE_LCD_HOR_RES;
-    display_driver.ver_res = WAVESHARE_LCD_VER_RES;
-    display_driver.flush_cb = display_flush_callback;
-    display_driver.draw_buf = &display_buffer;
-    display_driver.user_data = panel_handle;
-    display_driver.antialiasing = false;
-    display_driver.direct_mode = false;
-    display_driver.sw_rotate = false;
-    display_driver.rotated = 0;
-    display_driver.screen_transp = false;
-    display_driver.full_refresh = WAVESHARE_LCD_USE_DOUBLE_FB; // Maintains the synchronization between the two frame buffers
+    lv_display_t* display = lv_display_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES);
+    lv_display_set_draw_buffers(display, buffer1, buffer2);
+    lv_display_set_flush_cb(display, &display_flush_callback);
+    lv_display_set_user_data(display, panel_handle);
+    lv_display_set_antialiasing(display, false);
+    lv_display_set_render_mode(display, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    lv_disp_t* display = lv_disp_drv_register(&display_driver);
+//    lv_disp_t* display = lv_disp_drv_register(&display_driver);
 
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &lvgl_tick_task,
