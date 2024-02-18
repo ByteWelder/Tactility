@@ -29,7 +29,6 @@
 #define WAVESHARE_LCD_PIN_NUM_DATA15 40 // R7
 #define WAVESHARE_LCD_PIN_NUM_DISP_EN (-1)
 #define WAVESHARE_LCD_BUFFER_HEIGHT (WAVESHARE_LCD_VER_RES / 3) // How many rows of pixels to buffer - 1/3rd is about 1MB
-#define WAVESHARE_LCD_BUFFER_SIZE (WAVESHARE_LCD_HOR_RES * WAVESHARE_LCD_BUFFER_HEIGHT * sizeof(lv_color_t))
 
 #define WAVESHARE_LCD_USE_DOUBLE_FB true // Performance boost at the cost of about extra PSRAM(SPIRAM)
 

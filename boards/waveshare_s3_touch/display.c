@@ -169,8 +169,8 @@ lv_disp_t* ws3t_display_create() {
     NULL;
 #if WAVESHARE_LCD_USE_DOUBLE_FB
     // initialize LVGL draw buffers
-    lv_draw_buf_t* buffer1 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES, LV_COLOR_FORMAT_RGB565, 0);
-    lv_draw_buf_t* buffer2 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_VER_RES, LV_COLOR_FORMAT_RGB565, 0);
+    lv_draw_buf_t* buffer1 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_BUFFER_HEIGHT, LV_COLOR_FORMAT_RGB565, 0);
+    lv_draw_buf_t* buffer2 = lv_draw_buf_create(WAVESHARE_LCD_HOR_RES, WAVESHARE_LCD_BUFFER_HEIGHT, LV_COLOR_FORMAT_RGB565, 0);
     tt_assert(buffer1);
     tt_assert(buffer2);
 #else
