@@ -186,8 +186,6 @@ lv_disp_t* ws3t_display_create() {
     lv_display_set_antialiasing(display, false);
     lv_display_set_render_mode(display, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-//    lv_disp_t* display = lv_disp_drv_register(&display_driver);
-
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &lvgl_tick_task,
         .name = "lvgl_tick"

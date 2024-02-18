@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
 #include "esp_log.h"
-#include "lv_api_map.h"
+#include "lvgl.h"
 
 #define TAG "waveshare_s3_touch_i2c"
 
@@ -54,7 +54,7 @@ static void touch_callback(lv_indev_t* indev, lv_indev_data_t* data) {
     }
 }
 
-void ws3t_touch_init(lv_disp_t* display) {
+void ws3t_touch_init(lv_display_t* display) {
     esp_lcd_touch_handle_t touch_handle = touch_init_internal();
 
     ESP_LOGI(TAG, "Register display indev to LVGL");

@@ -16,9 +16,9 @@ static void update_mode(ScreenshotUi* ui) {
         lv_label_set_text(label, "Start");
     }
 
-    int selected = lv_dropdown_get_selected(ui->mode_dropdown);
+    uint32_t selected = lv_dropdown_get_selected(ui->mode_dropdown);
     if (selected == 0) { // Timer
-        lv_obj_clear_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
     }
@@ -36,7 +36,7 @@ static void on_start_pressed(lv_event_t* event) {
         TT_LOG_I(TAG, "Stop screenshot");
         tt_screenshot_stop();
     } else {
-        int selected = lv_dropdown_get_selected(ui->mode_dropdown);
+        uint32_t selected = lv_dropdown_get_selected(ui->mode_dropdown);
         const char* path = lv_textarea_get_text(ui->path_textarea);
         if (selected == 0) {
             TT_LOG_I(TAG, "Start timed screenshots");
@@ -76,7 +76,7 @@ static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
         lv_dropdown_set_selected(mode_dropdown, 1);
     }
 
-    lv_obj_t* button = lv_btn_create(mode_wrapper);
+    lv_obj_t* button = lv_button_create(mode_wrapper);
     lv_obj_align(button, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_t* button_label = lv_label_create(button);
     lv_obj_align(button_label, LV_ALIGN_CENTER, 0, 0);

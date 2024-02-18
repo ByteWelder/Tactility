@@ -102,7 +102,7 @@ static void create_file_widget(FilesData* files_data, lv_obj_t* parent, struct d
     } else {
         symbol = LV_SYMBOL_FILE;
     }
-    lv_obj_t* button = lv_list_add_btn(list, symbol, dir_entry->d_name);
+    lv_obj_t* button = lv_list_add_button(list, symbol, dir_entry->d_name);
     lv_obj_set_user_data(button, files_data);
     lv_obj_add_event_cb(button, &on_file_pressed, LV_EVENT_CLICKED, (void*)dir_entry);
 }

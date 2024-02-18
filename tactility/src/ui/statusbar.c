@@ -89,7 +89,7 @@ static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     LV_UNUSED(class_p);
     LV_TRACE_OBJ_CREATE("begin");
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     LV_TRACE_OBJ_CREATE("finished");
     Statusbar* statusbar = (Statusbar*)obj;
     statusbar_ensure_initialized();
@@ -103,10 +103,10 @@ static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
     if (icon->image != NULL && icon->visible && icon->claimed) {
-        lv_obj_set_style_img_recolor(image, lv_color_white(), 0);
-        lv_obj_set_style_img_recolor_opa(image, 255, 0);
-        lv_img_set_src(image, icon->image);
-        lv_obj_clear_flag(image, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_set_style_image_recolor(image, lv_color_white(), 0);
+        lv_obj_set_style_image_recolor_opa(image, 255, 0);
+        lv_image_set_src(image, icon->image);
+        lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
     }
@@ -130,7 +130,7 @@ lv_obj_t* tt_statusbar_create(lv_obj_t* parent) {
 
     statusbar_lock();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
-        lv_obj_t* image = lv_img_create(obj);
+        lv_obj_t* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
         tt_lv_obj_set_style_no_padding(image);
         tt_lv_obj_set_style_bg_blacken(image);
@@ -153,8 +153,8 @@ static void update_main(Statusbar* statusbar) {
 
 static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t* event) {
     // Call the ancestor's event handler
-    lv_res_t res = lv_obj_event_base(&statusbar_class, event);
-    if (res != LV_RES_OK) {
+    lv_result_t result = lv_obj_event_base(&statusbar_class, event);
+    if (result != LV_RES_OK) {
         return;
     }
 
