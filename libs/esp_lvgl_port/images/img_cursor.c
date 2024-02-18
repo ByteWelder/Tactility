@@ -122,7 +122,7 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_IMG_CURSO
 };
 
 const lv_img_dsc_t img_cursor = {
-    .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
+    .header.cf = LV_COLOR_FORMAT_ARGB8888,
     .header.always_zero = 0,
     .header.reserved = 0,
     .header.w = 20,

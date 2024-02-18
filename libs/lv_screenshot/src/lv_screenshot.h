@@ -14,7 +14,7 @@ typedef enum {
     LV_100ASK_SCREENSHOT_SV_LAST
 } lv_100ask_screenshot_sv_t;
 
-bool lv_screenshot_create(lv_obj_t* obj, lv_img_cf_t cf, lv_100ask_screenshot_sv_t screenshot_sv, const char* filename);
+bool lv_screenshot_create(lv_obj_t* obj, lv_color_format_t cf, lv_100ask_screenshot_sv_t screenshot_sv, const char* filename);
 
 #ifdef __cplusplus
 } /*extern "C"*/

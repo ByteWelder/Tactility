@@ -6,7 +6,6 @@ target_link_libraries(app-sim
     PRIVATE tactility
     PRIVATE tactility-core
     PRIVATE lvgl
-    PRIVATE lv_drivers
 )
 
 find_package(SDL2 REQUIRED CONFIG)

@@ -35,7 +35,7 @@ typedef struct {
 } Statusbar;
 
 static void statusbar_init() {
-    statusbar_data.mutex = tt_mutex_alloc(MutexTypeNormal);
+    statusbar_data.mutex = tt_mutex_alloc(MutexTypeRecursive);
     statusbar_data.pubsub = tt_pubsub_alloc();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; i++) {
         statusbar_data.icons[i].image = NULL;
@@ -63,6 +63,8 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_event(const lv_obj_class_t* class_p, lv_event_t* event);
 
+static void update_main(Statusbar* statusbar);
+
 static const lv_obj_class_t statusbar_class = {
     .constructor_cb = &statusbar_constructor,
     .destructor_cb = &statusbar_destructor,
@@ -77,7 +79,11 @@ static const lv_obj_class_t statusbar_class = {
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     TT_LOG_I(TAG, "event");
     Statusbar* statusbar = (Statusbar*)obj;
-    lv_obj_invalidate(&statusbar->obj);
+    if (tt_lvgl_lock(tt_ms_to_ticks(100))) {
+        update_main(statusbar);
+        lv_obj_invalidate(&statusbar->obj);
+        tt_lvgl_unlock();
+    }
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -137,10 +143,7 @@ lv_obj_t* tt_statusbar_create(lv_obj_t* parent) {
     return obj;
 }
 
-static void draw_main(lv_event_t* event) {
-    lv_obj_t* obj = lv_event_get_target(event);
-    Statusbar* statusbar = (Statusbar*)obj;
-
+static void update_main(Statusbar* statusbar) {
     statusbar_lock();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
@@ -161,7 +164,6 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     if (code == LV_EVENT_VALUE_CHANGED) {
         lv_obj_invalidate(obj);
     } else if (code == LV_EVENT_DRAW_MAIN) {
-        draw_main(event);
     }
 }
 

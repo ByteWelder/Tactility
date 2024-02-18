@@ -1,6 +1,7 @@
 #include "screenshot_ui.h"
 
 #include "sdcard.h"
+#include "services/gui/gui.h"
 #include "services/screenshot/screenshot.h"
 #include "tactility_core.h"
 #include "ui/toolbar.h"
@@ -164,6 +165,9 @@ void create_screenshot_ui(App app, ScreenshotUi* ui, lv_obj_t* parent) {
     create_mode_setting_ui(ui, wrapper);
     create_path_ui(ui, wrapper);
     create_timer_settings_ui(ui, wrapper);
+
+    gui_keyboard_add_textarea(ui->delay_textarea);
+    gui_keyboard_add_textarea(ui->path_textarea);
 
     update_mode(ui);
 }

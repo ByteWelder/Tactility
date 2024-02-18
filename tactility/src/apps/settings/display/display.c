@@ -33,22 +33,22 @@ static void slider_event_cb(lv_event_t* event) {
 
 static int orientation_setting_to_display_orientation(int setting) {
     if (setting == ORIENTATION_LANDSCAPE_FLIPPED) {
-        return LV_DISP_ROT_180;
+        return LV_DISPLAY_ROTATION_180;
     } else if (setting == ORIENTATION_PORTRAIT_LEFT) {
-        return LV_DISP_ROT_270;
+        return LV_DISPLAY_ROTATION_270;
     } else if (setting == ORIENTATION_PORTRAIT_RIGHT) {
-        return LV_DISP_ROT_90;
+        return LV_DISPLAY_ROTATION_90;
     } else {
-        return LV_DISP_ROT_NONE;
+        return LV_DISPLAY_ROTATION_0;
     }
 }
 
 static int display_orientation_to_orientation_setting(int orientation) {
-    if (orientation == LV_DISP_ROT_90) {
+    if (orientation == LV_DISPLAY_ROTATION_90) {
         return ORIENTATION_PORTRAIT_RIGHT;
-    } else if (orientation == LV_DISP_ROT_180) {
+    } else if (orientation == LV_DISPLAY_ROTATION_180) {
         return ORIENTATION_LANDSCAPE_FLIPPED;
-    } else if (orientation == LV_DISP_ROT_270) {
+    } else if (orientation == LV_DISPLAY_ROTATION_270) {
         return ORIENTATION_PORTRAIT_LEFT;
     } else {
         return ORIENTATION_LANDSCAPE;
