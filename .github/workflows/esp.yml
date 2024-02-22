@@ -10,7 +10,7 @@ jobs:
           submodules: recursive
       - name: Board select
         run: cp sdkconfig.board.yellow_board sdkconfig
-      - name: esp32 build
+      - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.1.2
@@ -25,7 +25,7 @@ jobs:
           submodules: recursive
       - name: board select
         run: cp sdkconfig.board.lilygo_tdeck sdkconfig
-      - name: esp32s3 build
+      - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.1.2
@@ -40,9 +40,24 @@ jobs:
           submodules: recursive
       - name: board select
         run: cp sdkconfig.board.waveshare_s3_touch sdkconfig
-      - name: esp32s3 build
+      - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.1.2
           target: esp32s3
+          path: './'
+  build-m5stack-core2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: board select
+        run: cp sdkconfig.board.m5stack_core2 sdkconfig
+      - name: build
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: v5.1.2
+          target: esp32
           path: './'

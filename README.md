@@ -78,6 +78,7 @@ Predefined configurations are available for:
 | [LilyGo T-Deck][tdeck]                   | ✅            | ✅       | Keyboard | 
 | [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |          |
 | Yellow Board 2432S024C (\*)              | ✅            | ✅       |          |
+| [M5Stack Core2][m5stack]                 | ✅            | ✅       |          |
 
 - ✅: Capable and implemented
 - ⏳: Capable but not yet implemented
@@ -89,8 +90,17 @@ Predefined configurations are available for:
 [waveshare_s3_touch]: https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3
 [2432s024c_1]: https://www.aliexpress.com/item/1005005902429049.html
 [2432s024c_2]: https://www.aliexpress.com/item/1005005865107357.html
+[m5stack]: https://m5stack.com/
 
 ## Guide
+
+### Cloning from git
+
+Ensure you clone the repository including the submodules! For example:
+
+```bash
+git clone --recurse-submodules -j8 https://github.com/ByteWelder/Tactility.git
+```
 
 ### Build environment setup
 

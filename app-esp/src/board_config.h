@@ -9,6 +9,9 @@
 #elif defined(CONFIG_TT_BOARD_YELLOW_BOARD_24_CAP)
 #include "yellow_board.h"
 #define TT_BOARD_HARDWARE &yellow_board_24inch_cap
+#elif defined(CONFIG_TT_BOARD_M5STACK_CORE2)
+#include "m5stack_core2.h"
+#define TT_BOARD_HARDWARE &m5stack_core2
 #elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH)
 #include "waveshare_s3_touch.h"
 #define TT_BOARD_HARDWARE &waveshare_s3_touch
