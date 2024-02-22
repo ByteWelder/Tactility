@@ -3,13 +3,18 @@ cmake_minimum_required(VERSION 3.16)
 set(BOARD_COMPONENTS tactility-esp)
 
 if("${IDF_TARGET}" STREQUAL "esp32")
-    list(APPEND BOARD_COMPONENTS yellow_board)
+    list(APPEND BOARD_COMPONENTS
+        yellow_board
+        m5stack_core2
+    )
 endif()
 
 # T-Deck is an S3 platform
 if("${IDF_TARGET}" STREQUAL "esp32s3")
-    list(APPEND BOARD_COMPONENTS lilygo_tdeck)
-    list(APPEND BOARD_COMPONENTS waveshare_s3_touch)
+    list(APPEND BOARD_COMPONENTS
+        lilygo_tdeck
+        waveshare_s3_touch
+    )
 endif()
 
 idf_component_register(

@@ -1,0 +1,6 @@
+[submodule "libs/M5GFX"]
+	path = libs/M5GFX
+	url = https://github.com/m5stack/M5GFX.git
+[submodule "libs/M5Unified"]
+	path = libs/M5Unified
+	url = https://github.com/m5stack/M5Unified.git

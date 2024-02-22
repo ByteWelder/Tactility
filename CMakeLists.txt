@@ -9,6 +9,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_TARGET)
     add_compile_definitions(ESP_TARGET)
 
+    add_definitions(-DARDUINO_M5STACK_CORE2)
+    add_compile_definitions(ARDUINO_M5STACK_CORE2)
+
     set(COMPONENTS app-esp)
     set(EXTRA_COMPONENT_DIRS
         "boards"
@@ -16,14 +19,17 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "app-esp"
         "libs/esp_lvgl_port"
         "libs/lvgl"
+        "libs/M5Unified"
+        "libs/M5GFX"
     )
 
-    # Yellow Board only runs on ESP32
+    # ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "yellow_board_2432s024")
+        set(EXCLUDE_COMPONENTS "m5stack_core2")
     endif()
 
-    # T-Deck is an S3 platform
+    # ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "lilygo_tdeck")
         set(EXCLUDE_COMPONENTS "waveshare_s3_touch")
@@ -34,10 +40,11 @@ endif()
 
 project(tactility-root)
 
-add_subdirectory(libs/mlib)
-add_subdirectory(libs/lv_screenshot)
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
+
+add_subdirectory(libs/mlib)
+add_subdirectory(libs/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(libs/freertos-kernel)
