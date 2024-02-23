@@ -58,7 +58,7 @@ static bool init_spi2() {
         .data7_io_num = GPIO_NUM_NC,
         .max_transfer_sz = CORE2_SPI2_TRANSACTION_LIMIT,
         .flags = 0,
-        .isr_cpu_id = INTR_CPU_ID_AUTO,
+        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
         .intr_flags = 0
     };
 
