@@ -47,6 +47,8 @@ add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
+    set(FREERTOS_CONFIG_FILE_DIRECTORY "${PROJECT_SOURCE_DIR}/app-sim/src" CACHE STRING "")
+    set(FREERTOS_PORT GCC_IA32_FLAT CACHE STRING "")
     add_subdirectory(libs/freertos-kernel)
     target_include_directories(freertos-kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h
@@ -60,17 +62,16 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(tests)
 
     # region SDL & LVGL
+    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/app-sim/src/lv_conf.h)
+    add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
+    target_include_directories(lvgl
+        PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
+    )
 
     # TODO: This is a temporary skipping option for running unit tests
     # TODO: Remove when github action for SDL is working again
     if (NOT DEFINED ENV{SKIP_SDL})
         find_package(SDL2 REQUIRED CONFIG)
-
-        add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
-        target_include_directories(lvgl
-            PUBLIC ${SDL2_INCLUDE_DIRS}
-            PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
-        )
 
         option(LV_USE_DRAW_SDL "Use SDL draw unit" OFF)
         option(LV_USE_LIBPNG "Use libpng to decode PNG" OFF)

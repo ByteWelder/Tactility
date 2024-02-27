@@ -27,7 +27,7 @@ Noteworthy features:
 
 Requirements:
 - ESP32 (any?) with a touchscreen
-- [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) or a newer v5.1.x
+- [esp-idf 5.2](https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32/get-started/index.html) or a newer v5.2.x
 
 ## Making apps is easy!
 
@@ -104,7 +104,7 @@ git clone --recurse-submodules -j8 https://github.com/ByteWelder/Tactility.git
 
 ### Build environment setup
 
-Ensure you have [esp-idf 5.1.2](https://docs.espressif.com/projects/esp-idf/en/v5.1.2/esp32/get-started/index.html) installed, then select the correct device:
+Ensure you have [esp-idf 5.2](https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32/get-started/index.html) installed, then select the correct device:
 
 Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
 
