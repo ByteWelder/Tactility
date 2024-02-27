@@ -49,8 +49,8 @@ add_subdirectory(libs/lv_screenshot)
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     set(FREERTOS_CONFIG_FILE_DIRECTORY "${PROJECT_SOURCE_DIR}/app-sim/src" CACHE STRING "")
     set(FREERTOS_PORT GCC_IA32_FLAT CACHE STRING "")
-    add_subdirectory(libs/freertos-kernel)
-    target_include_directories(freertos-kernel
+    add_subdirectory(libs/FreeRTOS-Kernel)
+    target_include_directories(freertos_kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h
     )
 

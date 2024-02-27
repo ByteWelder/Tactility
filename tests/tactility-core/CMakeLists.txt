@@ -17,5 +17,5 @@ add_test(NAME tactility-core-tests
 
 target_link_libraries(tactility-core-tests
     PUBLIC tactility-core
-        freertos-kernel
+        freertos_kernel
 )
