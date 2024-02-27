@@ -6,3 +6,7 @@
 	path = libs/M5Unified
 	url = https://github.com/m5stack/M5Unified.git
 	branch = V10.5.1
+[submodule "libs/FreeRTOS-Kernel"]
+	path = libs/FreeRTOS-Kernel
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
+	branch = V10.5.1
