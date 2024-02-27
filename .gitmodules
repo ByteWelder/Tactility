@@ -1,7 +1,7 @@
 [submodule "libs/M5GFX"]
 	path = libs/M5GFX
 	url = https://github.com/KenVanHoeylandt/M5GFX.git
-	branch = idf5.2
+	branch = develop
 [submodule "libs/M5Unified"]
 	path = libs/M5Unified
 	url = https://github.com/m5stack/M5Unified.git
