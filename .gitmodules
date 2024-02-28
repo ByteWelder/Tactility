@@ -10,3 +10,7 @@
 	path = libs/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
 	branch = V10.5.1
+[submodule "libs/mbedtls"]
+	path = libs/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
+	branch = v3.5.2
