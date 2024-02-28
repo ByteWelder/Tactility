@@ -13,3 +13,6 @@
 [submodule "libs/mbedtls"]
 	path = libs/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
+[submodule "libs/lvgl"]
+	path = libs/lvgl
+	url = https://github.com/lvgl/lvgl.git
