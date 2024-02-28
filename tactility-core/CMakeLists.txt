@@ -30,6 +30,6 @@ else()
     target_link_libraries(tactility-core
     	PUBLIC mlib
     	PUBLIC mbedtls
-    	PUBLIC freertos-kernel
+    	PUBLIC freertos_kernel
     )
 endif()

@@ -1,18 +1,8 @@
-/**
- * This configuration follows the ESP32 config closely.
- * Some parameters are explicitly marked as important,
- * but most parameters should match.
- *
- * See $IDF_PATH/components/freertos/esp_additions/include/freertos/FreeRTOSConfig.h
- */
-#ifndef FREERTOS_CONFIG_H
-#define FREERTOS_CONFIG_H
+#pragma once
 
 #define configUSE_PREEMPTION                    1
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
 #define configUSE_TICKLESS_IDLE                 0
-#define configCPU_CLOCK_HZ                      60000000
-#define configSYSTICK_CLOCK_HZ                  1000000
 #define configTICK_RATE_HZ                      1000 // Must be the same as ESP32!
 #define configMAX_PRIORITIES                    10
 #define configMINIMAL_STACK_SIZE                128
@@ -43,8 +33,8 @@
 #define configSUPPORT_STATIC_ALLOCATION             0
 #define configSUPPORT_DYNAMIC_ALLOCATION            1
 #define configKERNEL_PROVIDED_STATIC_MEMORY         1
-#define configTOTAL_HEAP_SIZE                       10240
-#define configAPPLICATION_ALLOCATED_HEAP            1
+#define configTOTAL_HEAP_SIZE                       (1024 * 1024)
+#define configAPPLICATION_ALLOCATED_HEAP            0
 #define configSTACK_ALLOCATION_FROM_SEPARATE_HEAP   0 // TODO: Compare with ESP defaults
 #define configENABLE_HEAP_PROTECTOR                 1
 
@@ -116,8 +106,3 @@
 #define INCLUDE_xTaskGetHandle                  1
 #define INCLUDE_xTaskResumeFromISR              1
 #define INCLUDE_xQueueGetMutexHolder            1
-
-/* A header file that defines trace macro can be included here. */
-
-#endif /* FREERTOS_CONFIG_H */
-
