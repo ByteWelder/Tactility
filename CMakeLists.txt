@@ -47,21 +47,32 @@ add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
-    set(FREERTOS_CONFIG_FILE_DIRECTORY "${PROJECT_SOURCE_DIR}/app-sim/src" CACHE STRING "")
-    set(FREERTOS_PORT GCC_IA32_FLAT CACHE STRING "")
+    set(CMAKE_C_STANDARD 99) # C99 # lvgl officially support C99 and above
+    set(CMAKE_CXX_STANDARD 17) # C17
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_C_COMPILER_TARGET}")
+
+    # FreeRTOS
+    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/app-sim/src CACHE STRING "")
+    set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
     add_subdirectory(libs/FreeRTOS-Kernel)
+    target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC app-sim/src # for FreeRTOSConfig.h
     )
 
+    # EmbedTLS
     add_subdirectory(libs/mbedtls)
+
+    # Sim app
     if (NOT DEFINED ENV{SKIP_SDL})
         add_subdirectory(app-sim)
     endif()
 
+    # Tests
     add_subdirectory(tests)
 
-    # region SDL & LVGL
+    # SDL & LVGL
     set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/app-sim/src/lv_conf.h)
     add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
     target_include_directories(lvgl
@@ -78,12 +89,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         option(LV_USE_LIBJPEG_TURBO "Use libjpeg turbo to decode JPEG" OFF)
         option(LV_USE_FFMPEG "Use libffmpeg to display video using lv_ffmpeg" OFF)
         option(LV_USE_FREETYPE "Use freetype lib" OFF)
-
-        set(CMAKE_C_STANDARD 99) # C99 # lvgl officially support C99 and above
-        set(CMAKE_CXX_STANDARD 17) # C17
-        set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-        set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
         add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
         add_compile_definitions($<$<BOOL:${LV_USE_LIBPNG}>:LV_USE_LIBPNG=1>)
@@ -124,7 +129,5 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             target_link_libraries(app-sim ${FREETYPE_LIBRARIES})
             target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
         endif(LV_USE_FREETYPE)
-
-        # endregion SDL & LVGL
     endif()
 endif()
