@@ -13,4 +13,3 @@
 [submodule "libs/mbedtls"]
 	path = libs/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
-	branch = v3.5.2
