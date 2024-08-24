@@ -1,6 +1,9 @@
 /**
  * @file message_queue.h
- * MessageQueue
+ *
+ * MessageQueue is a wrapper for FreeRTOS xQueue functionality.
+ * There is no additional thread-safety on top of the xQueue functionality,
+ * so make sure you create a lock if needed.
  */
 #pragma once
 
