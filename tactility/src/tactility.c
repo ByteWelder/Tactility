@@ -72,7 +72,7 @@ static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMI
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
-    int app_count = sizeof(system_services) / sizeof(ServiceManifest *);
+    int app_count = sizeof(system_services) / sizeof(ServiceManifest*);
     for (int i = 0; i < app_count; ++i) {
         tt_service_registry_add(system_services[i]);
         tt_check(tt_service_registry_start(system_services[i]->id));
