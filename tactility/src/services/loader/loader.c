@@ -17,6 +17,10 @@
 
 #define TAG "loader"
 
+typedef struct {
+    LoaderEventType type;
+} LoaderEventInternal;
+
 // Forward declarations
 static int32_t loader_main(void* p);
 
@@ -25,7 +29,8 @@ static Loader* loader_singleton = NULL;
 static Loader* loader_alloc() {
     tt_check(loader_singleton == NULL);
     loader_singleton = malloc(sizeof(Loader));
-    loader_singleton->pubsub = tt_pubsub_alloc();
+    loader_singleton->pubsub_internal = tt_pubsub_alloc();
+    loader_singleton->pubsub_external = tt_pubsub_alloc();
     loader_singleton->queue = tt_message_queue_alloc(1, sizeof(LoaderMessage));
     loader_singleton->thread = tt_thread_alloc_ex(
         "loader",
@@ -42,7 +47,8 @@ static Loader* loader_alloc() {
 static void loader_free() {
     tt_check(loader_singleton != NULL);
     tt_thread_free(loader_singleton->thread);
-    tt_pubsub_free(loader_singleton->pubsub);
+    tt_pubsub_free(loader_singleton->pubsub_internal);
+    tt_pubsub_free(loader_singleton->pubsub_external);
     tt_message_queue_free(loader_singleton->queue);
     tt_mutex_free(loader_singleton->mutex);
     free(loader_singleton);
@@ -104,7 +110,7 @@ PubSub* loader_get_pubsub() {
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
     // also the loader instance cannot be obtained until the pubsub is created
-    return loader_singleton->pubsub;
+    return loader_singleton->pubsub_external;
 }
 
 static const char* app_state_to_string(AppState state) {
@@ -147,15 +153,23 @@ static void app_transition_to_state(App app, AppState state) {
             tt_app_set_state(app, AppStateStarted);
             break;
         case AppStateShowing:
-            gui_show_app(
-                app,
-                manifest->on_show,
-                manifest->on_hide
-            );
+            LoaderEvent event_showing = {
+                .type = LoaderEventTypeApplicationShowing,
+                .app_showing = {
+                    .app = app
+                }
+            };
+            tt_pubsub_publish(loader_singleton->pubsub_external, &event_showing);
             tt_app_set_state(app, AppStateShowing);
             break;
         case AppStateHiding:
-            gui_hide_app();
+            LoaderEvent event_hiding = {
+                .type = LoaderEventTypeApplicationHiding,
+                .app_hiding = {
+                    .app = app
+                }
+            };
+            tt_pubsub_publish(loader_singleton->pubsub_external, &event_hiding);
             tt_app_set_state(app, AppStateHiding);
             break;
         case AppStateStopped:
@@ -200,8 +214,16 @@ LoaderStatus loader_do_start_app_with_manifest(
 
     loader_unlock();
 
-    LoaderEvent event = {.type = LoaderEventTypeApplicationStarted};
-    tt_pubsub_publish(loader_singleton->pubsub, &event);
+    LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStarted};
+    tt_pubsub_publish(loader_singleton->pubsub_internal, &event_internal);
+
+    LoaderEvent event_external = {
+        .type = LoaderEventTypeApplicationStarted,
+        .app_started = {
+            .app = app
+        }
+    };
+    tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
 
     return LoaderStatusOk;
 }
@@ -240,6 +262,7 @@ static void loader_do_stop_app() {
 
     // Stop current app
     App app_to_stop = loader_singleton->app_stack[current_app_index];
+    AppManifest* manifest = tt_app_get_manifest(app_to_stop);
     app_transition_to_state(app_to_stop, AppStateHiding);
     app_transition_to_state(app_to_stop, AppStateStopped);
 
@@ -258,8 +281,16 @@ static void loader_do_stop_app() {
 
     loader_unlock();
 
-    LoaderEvent event = {.type = LoaderEventTypeApplicationStopped};
-    tt_pubsub_publish(loader_singleton->pubsub, &event);
+    LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStopped};
+    tt_pubsub_publish(loader_singleton->pubsub_internal, &event_internal);
+
+    LoaderEvent event_external = {
+        .type = LoaderEventTypeApplicationStopped,
+        .app_stopped = {
+            .manifest = manifest
+        }
+    };
+    tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
 }
 
 

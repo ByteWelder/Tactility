@@ -18,6 +18,7 @@ struct Gui {
     // Thread and lock
     Thread* thread;
     Mutex* mutex;
+    PubSubSubscription* loader_pubsub_subscription;
 
     // Layers and Canvas
     lv_obj_t* lvgl_parent;

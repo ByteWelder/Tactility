@@ -21,15 +21,39 @@ typedef enum {
 
 typedef enum {
     LoaderEventTypeApplicationStarted,
+    LoaderEventTypeApplicationShowing,
+    LoaderEventTypeApplicationHiding,
     LoaderEventTypeApplicationStopped
 } LoaderEventType;
 
 typedef struct {
+    App* app;
+} LoaderEventAppStarted;
+
+typedef struct {
+    App* app;
+} LoaderEventAppShowing;
+
+typedef struct {
+    App* app;
+} LoaderEventAppHiding;
+
+typedef struct {
+    AppManifest* manifest;
+} LoaderEventAppStopped;
+
+typedef struct {
     LoaderEventType type;
+    union {
+        LoaderEventAppStarted app_started;
+        LoaderEventAppShowing app_showing;
+        LoaderEventAppHiding app_hiding;
+        LoaderEventAppStopped app_stopped;
+    };
 } LoaderEvent;
 
 /**
- * @brief Close any running app, then start new one. Blocking.
+ * @brief Start an app
  * @param[in] id application name or id
  * @param[in] blocking application arguments
  * @param[in] bundle optional bundle. Ownership is transferred to Loader.
@@ -37,13 +61,15 @@ typedef struct {
  */
 LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle);
 
+/**
+ * @brief Stop the currently showing app. Show the previous app if any app was still running.
+ */
 void loader_stop_app();
 
 App _Nullable loader_get_current_app();
 
 /**
- * @brief Get loader pubsub
- * @return PubSub*
+ * @brief PubSub for LoaderEvent
  */
 PubSub* loader_get_pubsub();
 
