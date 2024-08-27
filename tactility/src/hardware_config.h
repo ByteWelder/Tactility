@@ -5,7 +5,6 @@
 
 typedef bool (*Bootstrap)();
 typedef bool (*InitLvgl)();
-typedef bool (*InitLvgl)();
 
 typedef void (*SetBacklightDuty)(uint8_t);
 typedef struct {
