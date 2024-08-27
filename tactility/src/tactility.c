@@ -17,8 +17,8 @@ extern const ServiceManifest screenshot_service;
 extern const ServiceManifest sdcard_service;
 
 static const ServiceManifest* const system_services[] = {
-    &gui_service,
-    &loader_service, // depends on gui service
+    &loader_service,
+    &gui_service, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     &screenshot_service,
 #endif

@@ -7,10 +7,12 @@ file(GLOB_RECURSE SOURCES "src/*.c")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 add_library(tactility OBJECT)
+
 target_sources(tactility
     PRIVATE ${SOURCES}
     PUBLIC ${HEADERS}
 )
+
 target_include_directories(tactility
     PRIVATE src/
     INTERFACE src/
@@ -20,6 +22,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility
         PUBLIC tactility-core
+        PUBLIC tactility-service
         PUBLIC idf::lvgl # libs/
         PUBLIC idf::driver
         PUBLIC idf::spiffs
@@ -32,6 +35,7 @@ else()
     add_definitions(-D_Nonnull=)
     target_link_libraries(tactility
         PUBLIC tactility-core
+        PUBLIC tactility-service
         PUBLIC lvgl
         PUBLIC freertos_kernel
         PUBLIC lv_screenshot

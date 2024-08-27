@@ -42,6 +42,7 @@ project(tactility-root)
 
 add_subdirectory(tactility)
 add_subdirectory(tactility-core)
+add_subdirectory(tactility-service)
 
 add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)

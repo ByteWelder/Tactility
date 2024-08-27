@@ -8,6 +8,7 @@ file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "src/*.h")
 
 add_library(tactility-core OBJECT)
+
 target_sources(tactility-core
     PRIVATE ${SOURCES}
     PUBLIC ${HEADERS}
