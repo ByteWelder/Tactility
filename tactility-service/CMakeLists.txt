@@ -14,16 +14,18 @@ target_sources(tactility-service
     PUBLIC ${HEADERS}
 )
 
-target_include_directories(tactility-service SYSTEM
+target_include_directories(tactility-service
     PRIVATE src/
     INTERFACE src/
 )
 
 target_link_libraries(tactility-service
-    PRIVATE tactility-core
+    PUBLIC tactility-core
 )
 
-if (NOT DEFINED ENV{ESP_IDF_VERSION})
+if (DEFINED ENV{ESP_IDF_VERSION})
+    add_definitions(-DESP_PLATFORM)
+else()
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
 endif()

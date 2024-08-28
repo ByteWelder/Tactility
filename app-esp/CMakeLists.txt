@@ -23,6 +23,4 @@ idf_component_register(
     REQUIRES ${BOARD_COMPONENTS}
 )
 
-# TODO Remove?
 target_link_libraries(${COMPONENT_LIB} ${IDF_TARGET_NAME} tactility)
-

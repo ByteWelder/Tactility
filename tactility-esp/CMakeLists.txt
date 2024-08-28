@@ -18,4 +18,5 @@ spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
 
 target_link_libraries(${COMPONENT_LIB} ${IDF_TARGET_NAME} tactility)
 target_link_libraries(${COMPONENT_LIB} ${IDF_TARGET_NAME} tactility-core)
+target_link_libraries(${COMPONENT_LIB} ${IDF_TARGET_NAME} tactility-service)
 

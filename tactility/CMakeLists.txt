@@ -7,7 +7,6 @@ file(GLOB_RECURSE SOURCES "src/*.c")
 file(GLOB_RECURSE HEADERS "src/*.h")
 
 add_library(tactility OBJECT)
-
 target_sources(tactility
     PRIVATE ${SOURCES}
     PUBLIC ${HEADERS}
