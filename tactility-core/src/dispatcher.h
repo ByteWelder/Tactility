@@ -1,5 +1,5 @@
 /**
-* @file message_queue.h
+* @file dispatcher.h
 *
 * Dispatcher is a thread-safe code execution queue.
 */
