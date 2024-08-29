@@ -1,7 +1,7 @@
 /**
 * @file message_queue.h
 *
-* Dispatcher is a thread-safe message queue implementation for callbacks.
+* Dispatcher is a thread-safe code execution queue.
 */
 #pragma once
 
@@ -15,21 +15,12 @@ extern "C" {
 
 typedef void (*Callback)(void* data);
 
-typedef struct {
-    Callback callback;
-    void* context;
-} DispatcherMessage;
-
-typedef struct {
-    MessageQueue* queue;
-    Mutex* mutex;
-    DispatcherMessage buffer; // Buffer for consuming a message
-} Dispatcher;
+typedef void Dispatcher;
 
 Dispatcher* tt_dispatcher_alloc(uint32_t message_count);
 void tt_dispatcher_free(Dispatcher* dispatcher);
-void tt_dispatcher_dispatch(Dispatcher* dispatcher, Callback callback, void* context);
-bool tt_dispatcher_consume(Dispatcher* dispatcher, uint32_t timeout_ticks);
+void tt_dispatcher_dispatch(Dispatcher* data, Callback callback, void* context);
+bool tt_dispatcher_consume(Dispatcher* data, uint32_t timeout_ticks);
 
 #ifdef __cplusplus
 }
