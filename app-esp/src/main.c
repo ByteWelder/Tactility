@@ -16,6 +16,7 @@ void app_main(void) {
         .apps = {
             &hello_world_app,
         },
+        .services = {},
         .auto_start_app_id = NULL
     };
 
