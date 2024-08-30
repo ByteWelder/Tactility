@@ -7,19 +7,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 file(GLOB SOURCES "src/*.c")
 file(GLOB HEADERS "src/*.h")
 
-add_library(tactility-service OBJECT)
+add_library(tactility-headless OBJECT)
 
-target_sources(tactility-service
+target_sources(tactility-headless
     PRIVATE ${SOURCES}
     PUBLIC ${HEADERS}
 )
 
-target_include_directories(tactility-service
+target_include_directories(tactility-headless
     PRIVATE src/
     INTERFACE src/
 )
 
-target_link_libraries(tactility-service
+target_link_libraries(tactility-headless
     PUBLIC tactility-core
 )
 

@@ -1,4 +1,6 @@
-#include "partitions.h"
+#ifdef ESP_TARGET
+
+#include "esp_partitions.h"
 #include "esp_spiffs.h"
 #include "log.h"
 #include "nvs_flash.h"
@@ -37,7 +39,7 @@ static esp_err_t spiffs_init(esp_vfs_spiffs_conf_t* conf) {
     return ESP_OK;
 }
 
-esp_err_t tt_partitions_init() {
+esp_err_t tt_esp_partitions_init() {
     ESP_ERROR_CHECK(nvs_flash_init_safely());
 
     esp_vfs_spiffs_conf_t assets_spiffs = {
@@ -64,3 +66,5 @@ esp_err_t tt_partitions_init() {
 
     return ESP_OK;
 }
+
+#endif // ESP_TARGET

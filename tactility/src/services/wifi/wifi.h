@@ -10,6 +10,26 @@ extern "C" {
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
+#else
+#include <stdint.h>
+// From esp_wifi_types.h in ESP-IDF 5.2
+typedef enum {
+    WIFI_AUTH_OPEN = 0,         /**< authenticate mode : open */
+    WIFI_AUTH_WEP,              /**< authenticate mode : WEP */
+    WIFI_AUTH_WPA_PSK,          /**< authenticate mode : WPA_PSK */
+    WIFI_AUTH_WPA2_PSK,         /**< authenticate mode : WPA2_PSK */
+    WIFI_AUTH_WPA_WPA2_PSK,     /**< authenticate mode : WPA_WPA2_PSK */
+    WIFI_AUTH_ENTERPRISE,       /**< authenticate mode : WiFi EAP security */
+    WIFI_AUTH_WPA2_ENTERPRISE = WIFI_AUTH_ENTERPRISE,  /**< authenticate mode : WiFi EAP security */
+    WIFI_AUTH_WPA3_PSK,         /**< authenticate mode : WPA3_PSK */
+    WIFI_AUTH_WPA2_WPA3_PSK,    /**< authenticate mode : WPA2_WPA3_PSK */
+    WIFI_AUTH_WAPI_PSK,         /**< authenticate mode : WAPI_PSK */
+    WIFI_AUTH_OWE,              /**< authenticate mode : OWE */
+    WIFI_AUTH_WPA3_ENT_192,     /**< authenticate mode : WPA3_ENT_SUITE_B_192_BIT */
+    WIFI_AUTH_WPA3_EXT_PSK,     /**< authenticate mode : WPA3_PSK_EXT_KEY */
+    WIFI_AUTH_WPA3_EXT_PSK_MIXED_MODE, /**< authenticate mode: WPA3_PSK + WPA3_PSK_EXT_KEY */
+    WIFI_AUTH_MAX
+} wifi_auth_mode_t;
 #endif
 
 typedef enum {

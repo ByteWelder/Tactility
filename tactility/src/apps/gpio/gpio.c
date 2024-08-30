@@ -1,3 +1,5 @@
+#ifdef ESP_TARGET
+
 #include "services/loader/loader.h"
 #include "ui/toolbar.h"
 #include "thread.h"
@@ -203,3 +205,5 @@ const AppManifest gpio_app = {
     .on_show = &app_show,
     .on_hide = &on_hide
 };
+
+#endif // ESP_TARGET

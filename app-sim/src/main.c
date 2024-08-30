@@ -21,8 +21,6 @@ void app_main() {
 
     tt_init(&config);
 
-    // Note: this is just to test the statusbar as Wi-Fi
-    // and sd card apps are not available for PC
+    // Mock icon for screenshots
     tt_statusbar_icon_add(TT_ASSETS_ICON_SDCARD_ALERT);
-    tt_statusbar_icon_add(TT_ASSETS_ICON_WIFI_OFF);
 }

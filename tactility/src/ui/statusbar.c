@@ -25,7 +25,7 @@ typedef struct {
 
 static StatusbarData statusbar_data = {
     .mutex = NULL,
-    .icons = {0}
+    .icons = {}
 };
 
 typedef struct {

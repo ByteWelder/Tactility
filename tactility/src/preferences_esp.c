@@ -4,6 +4,8 @@
 #include "nvs_flash.h"
 #include "tactility_core.h"
 
+#define TAG "preferences"
+
 static bool opt_bool(const char* namespace, const char* key, bool* out) {
     nvs_handle_t handle;
     if (nvs_open(namespace, NVS_READWRITE, &handle) != ESP_OK) {
@@ -60,16 +62,24 @@ static bool has_string(const char* namespace, const char* key) {
 static void put_bool(const char* namespace, const char* key, bool value) {
     nvs_handle_t handle;
     if (nvs_open(namespace, NVS_READWRITE, &handle) == ESP_OK) {
-        nvs_set_u8(handle, key, (uint8_t)value) == ESP_OK;
+        if (nvs_set_u8(handle, key, (uint8_t)value) != ESP_OK) {
+            TT_LOG_E(TAG, "failed to write %s:%s", namespace, key);
+        }
         nvs_close(handle);
+    } else {
+        TT_LOG_E(TAG, "failed to open namespace %s for writing", namespace);
     }
 }
 
 static void put_int32(const char* namespace, const char* key, int32_t value) {
     nvs_handle_t handle;
     if (nvs_open(namespace, NVS_READWRITE, &handle) == ESP_OK) {
-        nvs_set_i32(handle, key, value) == ESP_OK;
+        if (nvs_set_i32(handle, key, value) != ESP_OK) {
+            TT_LOG_E(TAG, "failed to write %s:%s", namespace, key);
+        }
         nvs_close(handle);
+    } else {
+        TT_LOG_E(TAG, "failed to open namespace %s for writing", namespace);
     }
 }
 
@@ -78,6 +88,8 @@ static void put_string(const char* namespace, const char* key, const char* text)
     if (nvs_open(namespace, NVS_READWRITE, &handle) == ESP_OK) {
         nvs_set_str(handle, key, text);
         nvs_close(handle);
+    } else {
+        TT_LOG_E(TAG, "failed to open namespace %s for writing", namespace);
     }
 }
 
