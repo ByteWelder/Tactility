@@ -14,8 +14,7 @@
 - App lifecycle docs mention on_create/on_destroy but app lifecycle is on_start/on_stop
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
-- Fix issue with SD card not mounting on Lilygo T-Deck
- 
+
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
 - Support for displays with different DPI. Consider the layer-based system like on Android.
