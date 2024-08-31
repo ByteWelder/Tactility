@@ -94,11 +94,9 @@ static ServiceData* service_data_alloc() {
         .sdcard_last_icon = NULL,
     };
 
-    update_wifi_icon(data);
     tt_statusbar_icon_set_visibility(data->wifi_icon_id, true);
-
-    update_sdcard_icon(data);
-    tt_statusbar_icon_set_visibility(data->sdcard_icon_id, true);
+    update_wifi_icon(data);
+    update_sdcard_icon(data); // also updates visibility
 
     return data;
 }
@@ -137,7 +135,7 @@ static void on_start(Service service) {
 
     tt_thread_set_callback(data->thread, service_main);
     tt_thread_set_current_priority(ThreadPriorityLow);
-    tt_thread_set_stack_size(data->thread, 4096);
+    tt_thread_set_stack_size(data->thread, 2048); // 2048 was the minimum when last tested
     tt_thread_set_context(data->thread, data);
     tt_thread_start(data->thread);
 }

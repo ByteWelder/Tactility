@@ -9,6 +9,6 @@ const HardwareConfig m5stack_core2 = {
     .display = {
         .set_backlight_duty = NULL
     },
-    .init_lvgl = &core2_lvgl_init,
+    .init_graphics = &core2_lvgl_init,
     .sdcard = &core2_sdcard
 };
