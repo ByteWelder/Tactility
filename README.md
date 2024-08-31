@@ -120,7 +120,7 @@ The build scripts will detect if ESP-IDF is available. They will adapter if you 
 
 ### Development
 
-Take a look at the [App Lifecycle](docs/app-lifecycle.md).
+Take a look at the [App Lifecycle](docs/app-lifecycle.md) or the [dependency diagram](docs/project-structure.puml) (this uses [PlantUML](https://plantuml.com)).
 
 Directories explained:
 
@@ -128,7 +128,7 @@ Directories explained:
 - `app-sim`: The PC/simulator application example
 - `boards`: Contains ESP modules with drivers
 - `tactility`: The main application platform code ([src/](./tactility/src))
-- `tactility-esp`: ESP-specific application code (e.g. wifi app and service)
+- `tactility-headless`: Service framework and default services.
 - `tactility-core`: Core functionality regarding threads, stdlib, etc. ([src/](./tactility-core/src))
 - `libs`: Contains a mix of regular libraries and ESP modules
 
