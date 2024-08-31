@@ -1,12 +1,11 @@
 #include "mutex.h"
 #include "service.h"
 #include "ui/statusbar.h"
-
-#define TAG "wifi_statusbar_service"
-
 #include "assets.h"
 #include "sdcard.h"
 #include "services/wifi/wifi.h"
+
+#define TAG "statusbar_service"
 
 typedef struct {
     Mutex* mutex;
@@ -17,6 +16,8 @@ typedef struct {
     int8_t sdcard_icon_id;
     const char* sdcard_last_icon;
 } ServiceData;
+
+// region wifi
 
 const char* wifi_get_status_icon_for_rssi(int rssi, bool secured) {
     if (rssi > 0) {
@@ -50,6 +51,20 @@ static const char* wifi_get_status_icon(WifiRadioState state, bool secure) {
     }
 }
 
+static void update_wifi_icon(ServiceData* data) {
+    WifiRadioState radio_state = wifi_get_radio_state();
+    bool is_secure = wifi_is_connection_secure();
+    const char* desired_icon = wifi_get_status_icon(radio_state, is_secure);
+    if (data->wifi_last_icon != desired_icon) {
+        tt_statusbar_icon_set_image(data->wifi_icon_id, desired_icon);
+        data->wifi_last_icon = desired_icon;
+    }
+}
+
+// endregion wifi
+
+// region sdcard
+
 static _Nullable const char* sdcard_get_status_icon(SdcardState state) {
     switch (state) {
         case SdcardStateMounted:
@@ -62,16 +77,6 @@ static _Nullable const char* sdcard_get_status_icon(SdcardState state) {
     }
 }
 
-static void update_wifi_icon(ServiceData* data) {
-    WifiRadioState radio_state = wifi_get_radio_state();
-    bool is_secure = wifi_is_connection_secure();
-    const char* desired_icon = wifi_get_status_icon(radio_state, is_secure);
-    if (data->wifi_last_icon != desired_icon) {
-        tt_statusbar_icon_set_image(data->wifi_icon_id, desired_icon);
-        data->wifi_last_icon = desired_icon;
-    }
-}
-
 static void update_sdcard_icon(ServiceData* data) {
     SdcardState state = tt_sdcard_get_state();
     const char* desired_icon = sdcard_get_status_icon(state);
@@ -81,6 +86,10 @@ static void update_sdcard_icon(ServiceData* data) {
         data->sdcard_last_icon = desired_icon;
     }
 }
+
+// endregion sdcard
+
+// region service
 
 static ServiceData* service_data_alloc() {
     ServiceData* data = malloc(sizeof(ServiceData));
@@ -135,7 +144,7 @@ static void on_start(Service service) {
 
     tt_thread_set_callback(data->thread, service_main);
     tt_thread_set_current_priority(ThreadPriorityLow);
-    tt_thread_set_stack_size(data->thread, 2048); // 2048 was the minimum when last tested
+    tt_thread_set_stack_size(data->thread, 3000);
     tt_thread_set_context(data->thread, data);
     tt_thread_start(data->thread);
 }
@@ -158,3 +167,5 @@ const ServiceManifest statusbar_updater_service = {
     .on_start = &on_start,
     .on_stop = &on_stop
 };
+
+// endregion service
