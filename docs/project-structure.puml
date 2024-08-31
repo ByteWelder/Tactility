@@ -9,9 +9,11 @@ note right of theadless : to build and use background services
 note right of tcore : defines, data types, logging, async, etc.
 
 package "Applications" {
-  [app-esp] as appesp
   [app-sim] as appsim
+  [app-esp] as appesp
 }
+
+note right of appesp : app-esp depends on the board \n projects for configuration
 
 [t] ..> [theadless]
 [theadless] ..> [tcore]

@@ -17,6 +17,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "boards"
         "app-esp"
         "tactility"
+        "tactility-headless"
         "libs/esp_lvgl_port"
         "libs/lvgl"
         "libs/M5Unified"
@@ -43,10 +44,10 @@ project(tactility-root)
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(tactility)
+    add_subdirectory(tactility-headless)
 endif()
 
 add_subdirectory(tactility-core)
-add_subdirectory(tactility-headless)
 
 add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)

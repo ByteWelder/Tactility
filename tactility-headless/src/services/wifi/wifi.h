@@ -120,12 +120,14 @@ void wifi_connect(const char* ssid, const char _Nullable password[64]);
 void wifi_disconnect();
 
 /**
- * Return the relevant icon asset from assets.h for the given inputs
- * @param rssi the rssi value
- * @param secured whether the access point is a secured one (as in: not an open one)
- * @return
+ * Return true if the connection isn't unencrypted.
  */
-const char* wifi_get_status_icon_for_rssi(int rssi, bool secured);
+bool wifi_is_connection_secure();
+
+/**
+ * Returns the RSSI value (negative number) or return 1 when not connected
+ */
+int wifi_get_rssi();
 
 #ifdef __cplusplus
 }

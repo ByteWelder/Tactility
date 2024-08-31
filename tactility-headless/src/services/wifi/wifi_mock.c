@@ -9,7 +9,6 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
-#include "ui/statusbar.h"
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
@@ -24,11 +23,9 @@ typedef struct {
     PubSub* pubsub;
     /** @brief The internal message queue */
     MessageQueue* queue;
-    int8_t statusbar_icon_id;
     bool scan_active;
     bool secure_connection;
     WifiRadioState radio_state;
-    const char* _Nullable last_statusbar_icon;
 } Wifi;
 
 
@@ -46,14 +43,11 @@ static Wifi* wifi_alloc() {
     instance->pubsub = tt_pubsub_alloc();
     instance->scan_active = false;
     instance->radio_state = WIFI_RADIO_OFF;
-    instance->statusbar_icon_id = tt_statusbar_icon_add(TT_ASSETS_ICON_WIFI_OFF);
-    instance->last_statusbar_icon = NULL;
     instance->secure_connection = false;
     return instance;
 }
 
 static void wifi_free(Wifi* instance) {
-    tt_statusbar_icon_remove(instance->statusbar_icon_id);
     tt_mutex_free(instance->mutex);
     tt_pubsub_free(instance->pubsub);
     tt_message_queue_free(instance->queue);
@@ -108,7 +102,22 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
 }
 
 void wifi_set_enabled(bool enabled) {
+    tt_assert(wifi_singleton != NULL);
+    if (enabled) {
+        wifi_singleton->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
+        wifi_singleton->secure_connection = true;
+    } else {
+        wifi_singleton->radio_state = WIFI_RADIO_OFF;
+    }
+}
+
+bool wifi_is_connection_secure() {
+    return wifi_singleton->secure_connection;
+}
+
+int wifi_get_rssi() {
     // TODO: implement
+    return -10;
 }
 
 // endregion Public functions

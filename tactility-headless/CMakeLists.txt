@@ -4,28 +4,45 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB SOURCES "src/*.c")
-file(GLOB HEADERS "src/*.h")
-
-add_library(tactility-headless OBJECT)
-
-target_sources(tactility-headless
-    PRIVATE ${SOURCES}
-    PUBLIC ${HEADERS}
-)
-
-target_include_directories(tactility-headless
-    PRIVATE src/
-    INTERFACE src/
-)
-
-target_link_libraries(tactility-headless
-    PUBLIC tactility-core
-)
-
 if (DEFINED ENV{ESP_IDF_VERSION})
+    file(GLOB_RECURSE SOURCE_FILES src/*.c)
+
+    idf_component_register(
+        SRCS ${SOURCE_FILES}
+        INCLUDE_DIRS "src/"
+        REQUIRES esp_wifi nvs_flash spiffs driver newlib
+    )
+
+    set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data/assets")
+    spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
+
+    set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data/config")
+    spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
+
+    target_link_libraries(${COMPONENT_LIB}
+        PUBLIC tactility-core
+    )
+
     add_definitions(-DESP_PLATFORM)
 else()
+    file(GLOB_RECURSE SOURCES "src/*.c")
+    file(GLOB_RECURSE HEADERS "src/*.h")
+
+    add_library(tactility-headless OBJECT)
+    target_sources(tactility-headless
+        PRIVATE ${SOURCES}
+        PUBLIC ${HEADERS}
+    )
+
+    target_include_directories(tactility-headless
+        PRIVATE src/
+        INTERFACE src/
+    )
+
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
+    target_link_libraries(tactility-headless
+        PUBLIC tactility-core
+        PUBLIC freertos_kernel
+    )
 endif()

@@ -2,9 +2,10 @@
 
 #include "app_manifest_registry.h"
 #include "esp_init.h"
-#include "hardware_i.h"
+#include "lvgl_init_i.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
+#include "tactility_headless.h"
 
 #define TAG "tactility"
 
@@ -17,6 +18,7 @@ extern const ServiceManifest loader_service;
 extern const ServiceManifest screenshot_service;
 extern const ServiceManifest sdcard_service;
 extern const ServiceManifest wifi_service;
+extern const ServiceManifest statusbar_updater_service;
 
 static const ServiceManifest* const system_services[] = {
     &loader_service,
@@ -25,7 +27,8 @@ static const ServiceManifest* const system_services[] = {
     &screenshot_service,
 #endif
     &sdcard_service,
-    &wifi_service
+    &wifi_service,
+    &statusbar_updater_service
 };
 
 // endregion
@@ -115,10 +118,11 @@ void tt_init(const Config* config) {
     // Assign early so starting services can use it
     config_instance = config;
 
-    tt_service_registry_init();
-    tt_app_manifest_registry_init();
+    tt_tactility_headless_init(config->hardware, config->services);
 
-    tt_hardware_init(config->hardware);
+    tt_lvgl_init(config->hardware);
+
+    tt_app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can use them

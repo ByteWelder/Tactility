@@ -9,18 +9,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "src/"
-        REQUIRES esp_wifi nvs_flash spiffs driver newlib lvgl
+        REQUIRES tactility-headless lvgl
     )
 
-    set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data/assets")
-    spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
-
-    set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data/config")
-    spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
-
     target_link_libraries(${COMPONENT_LIB}
-        PUBLIC tactility-core
-        PUBLIC tactility-headless
         PUBLIC lv_screenshot
     )
 
@@ -43,7 +35,6 @@ else()
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
     target_link_libraries(tactility
-        PUBLIC tactility-core
         PUBLIC tactility-headless
         PUBLIC lvgl
         PUBLIC freertos_kernel

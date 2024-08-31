@@ -1,11 +1,5 @@
 #include "hello_world/hello_world.h"
 #include "tactility.h"
-#include "assets.h"
-
-#include "FreeRTOS.h"
-#include "ui/statusbar.h"
-
-#define TAG "main"
 
 extern HardwareConfig sim_hardware;
 
@@ -20,7 +14,4 @@ void app_main() {
     };
 
     tt_init(&config);
-
-    // Mock icon for screenshots
-    tt_statusbar_icon_add(TT_ASSETS_ICON_SDCARD_ALERT);
 }
