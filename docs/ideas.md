@@ -14,7 +14,7 @@
 - App lifecycle docs mention on_create/on_destroy but app lifecycle is on_start/on_stop
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
- 
+
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
 - Support for displays with different DPI. Consider the layer-based system like on Android.
@@ -22,7 +22,7 @@
 - 2 wire speaker support
 - tt_app_start() and similar functions as proxies for Loader app start/stop/etc.
 - tt_app_set_result() for apps that need to return data to other apps (e.g. file selection)
-- Introduce co-routines for calling wifi/lvgl/etc functionality.
+- Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Improvement Ideas
 - Sort desktop apps by name.
@@ -30,7 +30,6 @@
 
 # App Ideas
 - File viewer (images, text... binary?)
-- GPIO status viewer
 - BlueTooth keyboard app
 - Chip 8 emulator
 - BadUSB

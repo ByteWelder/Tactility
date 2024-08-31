@@ -1,7 +1,6 @@
 #pragma once
 
-#include "hardware_config.h"
-#include "tactility.h"
+#ifdef ESP_TARGET
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,3 +11,5 @@ void tt_esp_init();
 #ifdef __cplusplus
 }
 #endif
+
+#endif // ESP_TARGET

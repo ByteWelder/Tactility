@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP_PLATFORM
+#ifdef ESP_TARGET
 #include "esp_log.h"
 #else
 #include <stdarg.h>
@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#ifdef ESP_PLATFORM
+#ifdef ESP_TARGET
 
 #define TT_LOG_E(tag, format, ...) \
     ESP_LOGE(tag, format, ##__VA_ARGS__)
@@ -47,7 +47,7 @@ void tt_log(LogLevel level, const char* tag, const char* format, ...);
 #define TT_LOG_T(tag, format, ...) \
     tt_log(LOG_LEVEL_TRACE, tag, format, ##__VA_ARGS__)
 
-#endif
+#endif // ESP_TARGET
 
 #ifdef __cplusplus
 }

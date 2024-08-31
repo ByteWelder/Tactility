@@ -11,6 +11,6 @@ const HardwareConfig yellow_board_24inch_cap = {
     .display = {
         .set_backlight_duty = &twodotfour_backlight_set
     },
-    .init_lvgl = &twodotfour_lvgl_init,
+    .init_graphics = &twodotfour_lvgl_init,
     .sdcard = &twodotfour_sdcard
 };

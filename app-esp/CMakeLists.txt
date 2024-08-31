@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(BOARD_COMPONENTS tactility-esp)
+set(BOARD_COMPONENTS tactility)
 
 if("${IDF_TARGET}" STREQUAL "esp32")
     list(APPEND BOARD_COMPONENTS
@@ -22,7 +22,3 @@ idf_component_register(
         "src/hello_world"
     REQUIRES ${BOARD_COMPONENTS}
 )
-
-# TODO Remove?
-target_link_libraries(${COMPONENT_LIB} ${IDF_TARGET_NAME} tactility)
-

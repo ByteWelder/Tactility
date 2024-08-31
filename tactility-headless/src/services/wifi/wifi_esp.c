@@ -1,3 +1,5 @@
+#ifdef ESP_TARGET
+
 #include "wifi.h"
 
 #include "assets.h"
@@ -9,7 +11,6 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
-#include "ui/statusbar.h"
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
@@ -32,14 +33,12 @@ typedef struct {
     uint16_t scan_list_count;
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit;
-    int8_t statusbar_icon_id;
     bool scan_active;
     bool secure_connection;
     esp_event_handler_instance_t event_handler_any_id;
     esp_event_handler_instance_t event_handler_got_ip;
     EventGroupHandle_t event_group;
     WifiRadioState radio_state;
-    const char* _Nullable last_statusbar_icon;
 } Wifi;
 
 typedef enum {
@@ -89,14 +88,11 @@ static Wifi* wifi_alloc() {
     instance->event_handler_got_ip = NULL;
     instance->event_group = xEventGroupCreate();
     instance->radio_state = WIFI_RADIO_OFF;
-    instance->statusbar_icon_id = tt_statusbar_icon_add(TT_ASSETS_ICON_WIFI_OFF);
-    instance->last_statusbar_icon = NULL;
     instance->secure_connection = false;
     return instance;
 }
 
 static void wifi_free(Wifi* instance) {
-    tt_statusbar_icon_remove(instance->statusbar_icon_id);
     tt_mutex_free(instance->mutex);
     tt_pubsub_free(instance->pubsub);
     tt_message_queue_free(instance->queue);
@@ -188,10 +184,24 @@ void wifi_set_enabled(bool enabled) {
     }
 }
 
+bool wifi_is_connection_secure() {
+    tt_check(wifi_singleton);
+    return wifi_singleton->secure_connection;
+}
+
+int wifi_get_rssi() {
+    static int rssi = 0;
+    if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
+        return rssi;
+    } else {
+        return 1;
+    }
+}
+
 // endregion Public functions
 
 static void wifi_lock(Wifi* wifi) {
-    tt_crash("this fails for now");
+    tt_crash("this fails for now"); // TODO: Fix
     tt_assert(wifi);
     tt_assert(wifi->mutex);
     tt_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
@@ -422,47 +432,6 @@ static void wifi_scan_internal(Wifi* wifi) {
     TT_LOG_I(TAG, "Finished scan");
 }
 
-const char* wifi_get_status_icon_for_rssi(int rssi, bool secured) {
-    if (rssi > -67) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_4;
-    } else if (rssi > -70) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_3;
-    } else if (rssi > -80) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_2_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_2;
-    } else {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_1_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_1;
-    }
-}
-
-static const char* wifi_get_status_icon(WifiRadioState state, bool secure) {
-    static int rssi = 0;
-    switch (state) {
-        case WIFI_RADIO_ON_PENDING:
-        case WIFI_RADIO_ON:
-        case WIFI_RADIO_OFF_PENDING:
-        case WIFI_RADIO_OFF:
-            return TT_ASSETS_ICON_WIFI_OFF;
-        case WIFI_RADIO_CONNECTION_PENDING:
-            return TT_ASSETS_ICON_WIFI_FIND;
-        case WIFI_RADIO_CONNECTION_ACTIVE:
-            if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
-                return wifi_get_status_icon_for_rssi(rssi, secure);
-            } else {
-                return secure ? TT_ASSETS_ICON_WIFI_SIGNAL_0_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_0;
-            }
-        default:
-            tt_crash_implementation("not implemented");
-    }
-}
-
-static void wifi_update_statusbar(Wifi* wifi) {
-    const char* icon = wifi_get_status_icon(wifi->radio_state, wifi->secure_connection);
-    if (icon != wifi->last_statusbar_icon) {
-        tt_statusbar_icon_set_image(wifi->statusbar_icon_id, icon);
-        wifi->last_statusbar_icon = icon;
-    }
-}
-
 static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
     // TODO: only when connected!
     wifi_disconnect_internal(wifi);
@@ -536,6 +505,7 @@ static void wifi_disconnect_internal(Wifi* wifi) {
         TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
     } else {
         wifi->radio_state = WIFI_RADIO_ON;
+        wifi->secure_connection = false;
         wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
         TT_LOG_I(TAG, "Disconnected");
     }
@@ -610,8 +580,6 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                     break;
             }
         }
-
-        wifi_update_statusbar(wifi);
     }
 }
 
@@ -642,3 +610,4 @@ const ServiceManifest wifi_service = {
     .on_stop = &wifi_service_stop
 };
 
+#endif // ESP_TARGET

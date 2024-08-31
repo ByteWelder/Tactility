@@ -4,8 +4,7 @@
 #include "sdcard.h"
 
 typedef bool (*Bootstrap)();
-typedef bool (*InitLvgl)();
-typedef bool (*InitLvgl)();
+typedef bool (*InitGraphics)();
 
 typedef void (*SetBacklightDuty)(uint8_t);
 typedef struct {
@@ -24,10 +23,11 @@ typedef struct {
      * Initializes LVGL with all relevant hardware.
      * This includes the display and optional pointer devices (such as touch) or a keyboard.
      */
-    const InitLvgl init_lvgl;
+    const InitGraphics init_graphics;
 
     /**
      * An interface for display features such as setting the backlight.
+     * This does nothing when a display isn't present.
      */
     const Display display;
 

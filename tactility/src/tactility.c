@@ -1,9 +1,11 @@
 #include "tactility.h"
 
 #include "app_manifest_registry.h"
-#include "hardware_i.h"
+#include "esp_init.h"
+#include "lvgl_init_i.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
+#include "tactility_headless.h"
 
 #define TAG "tactility"
 
@@ -15,14 +17,18 @@ extern const ServiceManifest gui_service;
 extern const ServiceManifest loader_service;
 extern const ServiceManifest screenshot_service;
 extern const ServiceManifest sdcard_service;
+extern const ServiceManifest wifi_service;
+extern const ServiceManifest statusbar_updater_service;
 
 static const ServiceManifest* const system_services[] = {
-    &gui_service,
-    &loader_service, // depends on gui service
+    &loader_service,
+    &gui_service, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     &screenshot_service,
 #endif
-    &sdcard_service
+    &sdcard_service,
+    &wifi_service,
+    &statusbar_updater_service
 };
 
 // endregion
@@ -32,19 +38,28 @@ static const ServiceManifest* const system_services[] = {
 extern const AppManifest desktop_app;
 extern const AppManifest display_app;
 extern const AppManifest files_app;
-extern const AppManifest screenshot_app;
 extern const AppManifest settings_app;
 extern const AppManifest system_info_app;
+extern const AppManifest wifi_connect_app;
+extern const AppManifest wifi_manage_app;
+
+#ifdef ESP_PLATFORM
+extern const AppManifest screenshot_app;
+extern const AppManifest gpio_app;
+#endif
 
 static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
-#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
+    &settings_app,
+    &system_info_app,
+    &wifi_connect_app,
+    &wifi_manage_app,
+#ifdef ESP_PLATFORM // Screenshots don't work yet on ESP32
+    &gpio_app,
     &screenshot_app,
 #endif
-    &settings_app,
-    &system_info_app
 };
 
 // endregion
@@ -96,13 +111,18 @@ static void register_and_start_user_services(const ServiceManifest* const servic
 void tt_init(const Config* config) {
     TT_LOG_I(TAG, "tt_init started");
 
+#ifdef ESP_PLATFORM
+    tt_esp_init();
+#endif
+
     // Assign early so starting services can use it
     config_instance = config;
 
-    tt_service_registry_init();
-    tt_app_manifest_registry_init();
+    tt_tactility_headless_init(config->hardware, config->services);
 
-    tt_hardware_init(config->hardware);
+    tt_lvgl_init(config->hardware);
+
+    tt_app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can use them

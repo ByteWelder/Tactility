@@ -20,7 +20,8 @@
 
 struct Loader {
     Thread* thread;
-    PubSub* pubsub;
+    PubSub* pubsub_internal;
+    PubSub* pubsub_external;
     MessageQueue* queue;
     Mutex* mutex;
     int8_t app_stack_index;

@@ -5,6 +5,7 @@ add_executable(app-sim ${SOURCES})
 target_link_libraries(app-sim
     PRIVATE tactility
     PRIVATE tactility-core
+    PRIVATE tactility-headless
     PRIVATE lvgl
 )
 

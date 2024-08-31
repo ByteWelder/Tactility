@@ -1,11 +1,9 @@
 #include <dirent.h>
 
-#include "assets.h"
 #include "mutex.h"
 #include "service.h"
-#include "tactility.h"
 #include "tactility_core.h"
-#include "ui/statusbar.h"
+#include "tactility_headless.h"
 
 #define TAG "sdcard_service"
 
@@ -15,7 +13,6 @@ typedef struct {
     Mutex* mutex;
     Thread* thread;
     SdcardState last_state;
-    int8_t statusbar_icon_id;
     bool interrupted;
 } ServiceData;
 
@@ -30,7 +27,6 @@ static ServiceData* service_data_alloc() {
             data
         ),
         .last_state = -1,
-        .statusbar_icon_id = tt_statusbar_icon_add(NULL),
         .interrupted = false
     };
     tt_thread_set_priority(data->thread, ThreadPriorityLow);
@@ -39,7 +35,6 @@ static ServiceData* service_data_alloc() {
 
 static void service_data_free(ServiceData* data) {
     tt_mutex_free(data->mutex);
-    tt_statusbar_icon_remove(data->statusbar_icon_id);
     tt_thread_free(data->thread);
 }
 
@@ -56,9 +51,6 @@ static int32_t sdcard_task(void* context) {
 
     bool interrupted = false;
 
-    // We set NULL as statusbar image by default, so it's hidden by default
-    tt_statusbar_icon_set_visibility(data->statusbar_icon_id, true);
-
     do {
         service_data_lock(data);
 
@@ -72,12 +64,6 @@ static int32_t sdcard_task(void* context) {
         }
 
         if (new_state != data->last_state) {
-            TT_LOG_I(TAG, "State change %d -> %d", data->last_state, new_state);
-            if (new_state == SdcardStateMounted) {
-                tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD);
-            } else {
-                tt_statusbar_icon_set_image(data->statusbar_icon_id, TT_ASSETS_ICON_SDCARD_ALERT);
-            }
             data->last_state = new_state;
         }
 
@@ -89,7 +75,7 @@ static int32_t sdcard_task(void* context) {
 }
 
 static void on_start(Service service) {
-    if (tt_get_config()->hardware->sdcard != NULL) {
+    if (tt_get_hardware_config()->sdcard != NULL) {
         ServiceData* data = service_data_alloc();
         tt_service_set_data(service, data);
         tt_thread_start(data->thread);

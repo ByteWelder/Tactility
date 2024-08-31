@@ -2,9 +2,20 @@
 
 #include "tactility_core.h"
 
+typedef struct {
+    Callback callback;
+    void* context;
+} DispatcherMessage;
+
+typedef struct {
+    MessageQueue* queue;
+    Mutex* mutex;
+    DispatcherMessage buffer; // Buffer for consuming a message
+} DispatcherData;
+
 Dispatcher* tt_dispatcher_alloc(uint32_t message_count) {
-    Dispatcher* dispatcher = malloc(sizeof(Dispatcher));
-    *dispatcher = (Dispatcher) {
+    DispatcherData* data = malloc(sizeof(DispatcherData));
+    *data = (DispatcherData) {
         .queue = tt_message_queue_alloc(message_count, sizeof(DispatcherMessage)),
         .mutex = tt_mutex_alloc(MutexTypeNormal),
         .buffer = {
@@ -12,37 +23,40 @@ Dispatcher* tt_dispatcher_alloc(uint32_t message_count) {
             .context = NULL
         }
     };
-    return dispatcher;
+    return data;
 }
 
 void tt_dispatcher_free(Dispatcher* dispatcher) {
-    tt_mutex_acquire(dispatcher->mutex, TtWaitForever);
-    tt_message_queue_reset(dispatcher->queue);
-    tt_message_queue_free(dispatcher->queue);
-    tt_mutex_release(dispatcher->mutex);
-    tt_mutex_free(dispatcher->mutex);
-    free(dispatcher);
+    DispatcherData* data = (DispatcherData*)dispatcher;
+    tt_mutex_acquire(data->mutex, TtWaitForever);
+    tt_message_queue_reset(data->queue);
+    tt_message_queue_free(data->queue);
+    tt_mutex_release(data->mutex);
+    tt_mutex_free(data->mutex);
+    free(data);
 }
 
 void tt_dispatcher_dispatch(Dispatcher* dispatcher, Callback callback, void* context) {
+    DispatcherData* data = (DispatcherData*)dispatcher;
     DispatcherMessage message = {
         .callback = callback,
         .context = context
     };
-    tt_mutex_acquire(dispatcher->mutex, TtWaitForever);
-    tt_message_queue_put(dispatcher->queue, &message, TtWaitForever);
-    tt_mutex_release(dispatcher->mutex);
+    tt_mutex_acquire(data->mutex, TtWaitForever);
+    tt_message_queue_put(data->queue, &message, TtWaitForever);
+    tt_mutex_release(data->mutex);
 }
 
 bool tt_dispatcher_consume(Dispatcher* dispatcher, uint32_t timeout_ticks) {
-    tt_mutex_acquire(dispatcher->mutex, TtWaitForever);
-    if (tt_message_queue_get(dispatcher->queue, &(dispatcher->buffer), timeout_ticks) == TtStatusOk) {
-        DispatcherMessage* message = &(dispatcher->buffer);
+    DispatcherData* data = (DispatcherData*)dispatcher;
+    tt_mutex_acquire(data->mutex, TtWaitForever);
+    if (tt_message_queue_get(data->queue, &(data->buffer), timeout_ticks) == TtStatusOk) {
+        DispatcherMessage* message = &(data->buffer);
         message->callback(message->context);
-        tt_mutex_release(dispatcher->mutex);
+        tt_mutex_release(data->mutex);
         return true;
     } else {
-        tt_mutex_release(dispatcher->mutex);
+        tt_mutex_release(data->mutex);
         return false;
     }
 }

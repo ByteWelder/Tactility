@@ -24,5 +24,5 @@ TT_UNUSED static void lvgl_deinit() {
 
 HardwareConfig sim_hardware = {
     .bootstrap = NULL,
-    .init_lvgl = &lvgl_init,
+    .init_graphics = &lvgl_init,
 };
