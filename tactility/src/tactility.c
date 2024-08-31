@@ -44,8 +44,9 @@ extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
 #ifdef ESP_PLATFORM
-extern const AppManifest screenshot_app;
 extern const AppManifest gpio_app;
+#else
+extern const AppManifest screenshot_app;
 #endif
 
 static const AppManifest* const system_apps[] = {
@@ -56,9 +57,10 @@ static const AppManifest* const system_apps[] = {
     &system_info_app,
     &wifi_connect_app,
     &wifi_manage_app,
-#ifdef ESP_PLATFORM // Screenshots don't work yet on ESP32
+#ifdef ESP_PLATFORM
     &gpio_app,
-    &screenshot_app,
+#else
+    &screenshot_app, // Screenshots don't work yet on ESP32
 #endif
 };
 
