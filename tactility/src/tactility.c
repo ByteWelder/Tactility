@@ -1,7 +1,6 @@
 #include "tactility.h"
 
 #include "app_manifest_registry.h"
-#include "esp_init.h"
 #include "lvgl_init_i.h"
 #include "service_registry.h"
 #include "services/loader/loader.h"
@@ -26,8 +25,6 @@ static const ServiceManifest* const system_services[] = {
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     &screenshot_service,
 #endif
-    &sdcard_service,
-    &wifi_service,
     &statusbar_updater_service
 };
 
@@ -109,25 +106,21 @@ static void register_and_start_user_services(const ServiceManifest* const servic
         }
     }
 }
-
 void tt_init(const Config* config) {
     TT_LOG_I(TAG, "tt_init started");
 
-#ifdef ESP_PLATFORM
-    tt_esp_init();
-#endif
 
     // Assign early so starting services can use it
     config_instance = config;
 
-    tt_tactility_headless_init(config->hardware, config->services);
+    tt_headless_init(config->hardware);
 
     tt_lvgl_init(config->hardware);
 
     tt_app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
-    // System services are registered first so the apps below can use them
+    // System services are registered first so the apps below can find them if needed
     register_and_start_system_services();
     // Then we register system apps. They are not used/started yet.
     register_system_apps();
