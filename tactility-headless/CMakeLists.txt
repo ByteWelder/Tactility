@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "src/"
-        REQUIRES esp_wifi nvs_flash spiffs driver newlib
+        REQUIRES esp_wifi nvs_flash spiffs
     )
 
     set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../data/assets")
