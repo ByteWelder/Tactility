@@ -9,7 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "src/"
-        REQUIRES tactility-headless lvgl
+        REQUIRES tactility-headless lvgl esp_driver_gpio
     )
 
     target_link_libraries(${COMPONENT_LIB}
