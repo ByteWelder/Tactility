@@ -4,10 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <string.h>
 #include "esp_log.h"
 #include "esp_err.h"
 #include "esp_check.h"
 #include "esp_lvgl_port.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
 
 #include "usb/hid_host.h"
 #include "usb/hid_usage_keyboard.h"
@@ -91,6 +95,7 @@ lv_indev_t *lvgl_port_add_usb_hid_mouse_input(const lvgl_port_hid_mouse_cfg_t *m
     /* Register a mouse input device */
     indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_mode(indev, LV_INDEV_MODE_EVENT);
     lv_indev_set_read_cb(indev, lvgl_port_usb_hid_read_mouse);
     lv_indev_set_disp(indev, mouse_cfg->disp);
     lv_indev_set_user_data(indev, hid_ctx);
@@ -124,6 +129,7 @@ lv_indev_t *lvgl_port_add_usb_hid_keyboard_input(const lvgl_port_hid_keyboard_cf
     /* Register a mouse input device */
     indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_mode(indev, LV_INDEV_MODE_EVENT);
     lv_indev_set_read_cb(indev, lvgl_port_usb_hid_read_kb);
     lv_indev_set_disp(indev, keyboard_cfg->disp);
     lv_indev_set_user_data(indev, hid_ctx);
@@ -325,6 +331,8 @@ static void lvgl_port_usb_hid_host_interface_callback(hid_host_device_handle_t h
                 }
             }
 
+            /* Wake LVGL task, if needed */
+            lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, hid_ctx->kb.indev);
         } else if (dev.proto == HID_PROTOCOL_MOUSE) {
             hid_mouse_input_report_boot_t *mouse = (hid_mouse_input_report_boot_t *)data;
             if (data_length < sizeof(hid_mouse_input_report_boot_t)) {
@@ -333,6 +341,9 @@ static void lvgl_port_usb_hid_host_interface_callback(hid_host_device_handle_t h
             hid_ctx->mouse.left_button = mouse->buttons.button1;
             hid_ctx->mouse.x += mouse->x_displacement;
             hid_ctx->mouse.y += mouse->y_displacement;
+
+            /* Wake LVGL task, if needed */
+            lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, hid_ctx->mouse.indev);
         }
         break;
     case HID_HOST_INTERFACE_EVENT_TRANSFER_ERROR:

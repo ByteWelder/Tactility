@@ -20,16 +20,6 @@ typedef struct {
     void* _Nullable callback_context;
 } ToolbarAction;
 
-typedef struct {
-    lv_obj_t obj;
-    lv_obj_t* title_label;
-    lv_obj_t* close_button;
-    lv_obj_t* close_button_image;
-    lv_obj_t* action_container;
-    ToolbarAction* action_array[TOOLBAR_ACTION_LIMIT];
-    uint8_t  action_count;
-} Toolbar;
-
 lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const char* title);
 lv_obj_t* tt_toolbar_create_for_app(lv_obj_t* parent, App app);
 void tt_toolbar_set_title(lv_obj_t* obj, const char* title);

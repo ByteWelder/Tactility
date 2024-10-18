@@ -1,4 +1,5 @@
 #include "save_bmp.h"
+#include <string.h> // for memset()
 
 typedef struct tagBITMAPFILEHEADER {
     uint16_t bfType;

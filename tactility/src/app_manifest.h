@@ -7,7 +7,7 @@ extern "C" {
 #endif
 
 // Forward declarations
-typedef struct _lv_obj_t lv_obj_t;
+typedef struct lv_obj_t lv_obj_t;
 typedef void* App;
 
 typedef enum {

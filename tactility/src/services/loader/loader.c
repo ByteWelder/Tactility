@@ -262,7 +262,7 @@ static void loader_do_stop_app() {
 
     // Stop current app
     App app_to_stop = loader_singleton->app_stack[current_app_index];
-    AppManifest* manifest = tt_app_get_manifest(app_to_stop);
+    const AppManifest* manifest = tt_app_get_manifest(app_to_stop);
     app_transition_to_state(app_to_stop, AppStateHiding);
     app_transition_to_state(app_to_stop, AppStateStopped);
 

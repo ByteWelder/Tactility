@@ -46,11 +46,7 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
             .sdcard = sdcard
         };
         sdcard_unlock();
-        if (data.context != NULL) {
-            return true;
-        } else {
-            return false;
-        }
+        return (data.context != NULL);
     } else {
         TT_LOG_E(TAG, "Failed to lock");
         return false;
