@@ -3,36 +3,39 @@
 #include "save_bmp.h"
 #include "save_png.h"
 
-static void data_pre_processing(lv_image_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv);
+static void data_pre_processing(lv_draw_buf_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv);
 
 bool lv_screenshot_create(lv_obj_t* obj, lv_color_format_t cf, lv_100ask_screenshot_sv_t screenshot_sv, const char* filename) {
-    lv_image_dsc_t* snapshot = lv_snapshot_take(obj, cf);
+    lv_draw_buf_t* snapshot = lv_snapshot_take(obj, cf);
+    int32_t width = lv_obj_get_width(obj);
+    int32_t height = lv_obj_get_height(obj);
 
     if (snapshot) {
         data_pre_processing(snapshot, LV_COLOR_DEPTH, screenshot_sv);
 
         if (screenshot_sv == LV_100ASK_SCREENSHOT_SV_PNG) {
             if (LV_COLOR_DEPTH == 16) {
-                lv_screenshot_save_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
+                lv_screenshot_save_png_file(snapshot->data, width, height, 24, filename);
             } else if (LV_COLOR_DEPTH == 32) {
-                lv_screenshot_save_png_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
+                lv_screenshot_save_png_file(snapshot->data, width, height, 32, filename);
             }
         } else if (screenshot_sv == LV_100ASK_SCREENSHOT_SV_BMP) {
             if (LV_COLOR_DEPTH == 16) {
-                lve_screenshot_save_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 24, filename);
+                lve_screenshot_save_bmp_file(snapshot->data, width, height, 24, filename);
             } else if (LV_COLOR_DEPTH == 32) {
-                lve_screenshot_save_bmp_file(snapshot->data, snapshot->header.w, snapshot->header.h, 32, filename);
+                lve_screenshot_save_bmp_file(snapshot->data, width, height, 32, filename);
             }
         }
 
-        lv_snapshot_free(snapshot);
         return true;
     }
+
+    lv_draw_buf_destroy(snapshot);
 
     return false;
 }
 
-static void data_pre_processing(lv_image_dsc_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv) {
+static void data_pre_processing(lv_draw_buf_t* snapshot, uint16_t bpp, lv_100ask_screenshot_sv_t screenshot_sv) {
     if (bpp == 16) {
         uint16_t rgb565_data = 0;
         uint32_t count = 0;
