@@ -14,7 +14,7 @@
 #define TAG "wifi_connect"
 
 static void on_connect(lv_event_t* event) {
-    WifiConnect* wifi = (WifiConnect*)lv_event_get_user_data(event);
+    WifiConnect* wifi = (WifiConnect*)event->user_data;
     WifiConnectView* view = &wifi->view;
     const char* ssid = lv_textarea_get_text(view->ssid_textarea);
     const char* password = lv_textarea_get_text(view->password_textarea);

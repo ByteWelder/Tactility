@@ -29,7 +29,6 @@ typedef struct {
 static void lvgl_port_encoder_read(lv_indev_t *indev_drv, lv_indev_data_t *data);
 static void lvgl_port_encoder_btn_down_handler(void *arg, void *arg2);
 static void lvgl_port_encoder_btn_up_handler(void *arg, void *arg2);
-static void lvgl_port_encoder_knob_handler(void *arg, void *arg2);
 
 /*******************************************************************************
 * Public API functions
@@ -53,9 +52,6 @@ lv_indev_t *lvgl_port_add_encoder(const lvgl_port_encoder_cfg_t *encoder_cfg)
     if (encoder_cfg->encoder_a_b != NULL) {
         encoder_ctx->knob_handle = iot_knob_create(encoder_cfg->encoder_a_b);
         ESP_GOTO_ON_FALSE(encoder_ctx->knob_handle, ESP_ERR_NO_MEM, err, TAG, "Not enough memory for knob create!");
-
-        ESP_ERROR_CHECK(iot_knob_register_cb(encoder_ctx->knob_handle, KNOB_LEFT, lvgl_port_encoder_knob_handler, encoder_ctx));
-        ESP_ERROR_CHECK(iot_knob_register_cb(encoder_ctx->knob_handle, KNOB_RIGHT, lvgl_port_encoder_knob_handler, encoder_ctx));
     }
 
     /* Encoder Enter */
@@ -73,14 +69,11 @@ lv_indev_t *lvgl_port_add_encoder(const lvgl_port_encoder_cfg_t *encoder_cfg)
     /* Register a encoder input device */
     indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
-    lv_indev_set_mode(indev, LV_INDEV_MODE_EVENT);
     lv_indev_set_read_cb(indev, lvgl_port_encoder_read);
     lv_indev_set_disp(indev, encoder_cfg->disp);
     lv_indev_set_user_data(indev, encoder_ctx);
     encoder_ctx->indev = indev;
     lvgl_port_unlock();
-
-    return indev;
 
 err:
     if (ret != ESP_OK) {
@@ -96,7 +89,7 @@ err:
             free(encoder_ctx);
         }
     }
-    return NULL;
+    return encoder_ctx->indev;
 }
 
 esp_err_t lvgl_port_remove_encoder(lv_indev_t *encoder)
@@ -157,9 +150,6 @@ static void lvgl_port_encoder_btn_down_handler(void *arg, void *arg2)
             ctx->btn_enter = true;
         }
     }
-
-    /* Wake LVGL task, if needed */
-    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, ctx->indev);
 }
 
 static void lvgl_port_encoder_btn_up_handler(void *arg, void *arg2)
@@ -172,14 +162,4 @@ static void lvgl_port_encoder_btn_up_handler(void *arg, void *arg2)
             ctx->btn_enter = false;
         }
     }
-
-    /* Wake LVGL task, if needed */
-    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, ctx->indev);
-}
-
-static void lvgl_port_encoder_knob_handler(void *arg, void *arg2)
-{
-    lvgl_port_encoder_ctx_t *ctx = (lvgl_port_encoder_ctx_t *) arg2;
-    /* Wake LVGL task, if needed */
-    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, ctx->indev);
 }

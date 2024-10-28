@@ -15,27 +15,27 @@ static void on_enable_switch_changed(lv_event_t* event) {
     lv_obj_t* enable_switch = lv_event_get_target(event);
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        WifiManageBindings* bindings = (WifiManageBindings*)lv_event_get_user_data(event);
+        WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
         bindings->on_wifi_toggled(is_on);
     }
 }
 
 static void on_disconnect_pressed(lv_event_t* event) {
-    WifiManageBindings* bindings = (WifiManageBindings*)lv_event_get_user_data(event);
+    WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
     bindings->on_disconnect();
 }
 
 // region Secondary updates
 
 static void connect(lv_event_t* event) {
-    lv_obj_t* button = lv_event_get_current_target_obj(event);
+    lv_obj_t* button = event->current_target;
     // Assumes that the second child of the button is a label ... risky
     lv_obj_t* label = lv_obj_get_child(button, 1);
     // We get the SSID from the button label because it's safer than alloc'ing
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
     TT_LOG_I(TAG, "Clicked AP: %s", ssid);
-    WifiManageBindings* bindings = (WifiManageBindings*)lv_event_get_user_data(event);
+    WifiManageBindings* bindings = (WifiManageBindings*)event->user_data;
     bindings->on_connect_ssid(ssid);
 }
 
