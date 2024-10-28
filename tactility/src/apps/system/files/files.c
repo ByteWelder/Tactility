@@ -47,7 +47,7 @@ static bool is_image_file(const char* filename) {
 static void update_views(FilesData* data);
 
 static void on_navigate_up_pressed(lv_event_t* event) {
-    FilesData* files_data = (FilesData*)lv_event_get_user_data(event);
+    FilesData* files_data = (FilesData*)event->user_data;
     if (strcmp(files_data->current_path, "/") != 0) {
         TT_LOG_I(TAG, "Navigating upwards");
         char new_absolute_path[MAX_PATH_LENGTH];
@@ -62,13 +62,13 @@ static void on_exit_app_pressed(TT_UNUSED lv_event_t* event) {
     loader_stop_app();
 }
 
-static void on_file_pressed(lv_event_t* event) {
-    lv_event_code_t code = lv_event_get_code(event);
+static void on_file_pressed(lv_event_t* e) {
+    lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
-        lv_obj_t* button = lv_event_get_current_target_obj(event);
+        lv_obj_t* button = e->current_target;
         FilesData* files_data = lv_obj_get_user_data(button);
 
-        struct dirent* dir_entry = lv_event_get_user_data(event);
+        struct dirent* dir_entry = e->user_data;
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry->d_name, dir_entry->d_type);
 
         switch (dir_entry->d_type) {

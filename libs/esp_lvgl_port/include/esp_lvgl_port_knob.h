@@ -15,9 +15,6 @@
 #include "lvgl.h"
 
 #if __has_include ("iot_knob.h")
-#if !__has_include("iot_button.h")
-#error LVLG Knob requires button component. Please add it with idf.py add-dependency espressif/button
-#endif
 #include "iot_knob.h"
 #include "iot_button.h"
 #define ESP_LVGL_PORT_KNOB_COMPONENT 1

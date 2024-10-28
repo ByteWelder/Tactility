@@ -88,7 +88,6 @@ lv_indev_t *lvgl_port_add_navigation_buttons(const lvgl_port_nav_btns_cfg_t *but
     /* Register a touchpad input device */
     indev = lv_indev_create();
     lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
-    lv_indev_set_mode(indev, LV_INDEV_MODE_EVENT);
     lv_indev_set_read_cb(indev, lvgl_port_navigation_buttons_read);
     lv_indev_set_disp(indev, buttons_cfg->disp);
     lv_indev_set_user_data(indev, buttons_ctx);
@@ -111,7 +110,7 @@ err:
         }
     }
 
-    return NULL;
+    return buttons_ctx->indev;
 }
 
 esp_err_t lvgl_port_remove_navigation_buttons(lv_indev_t *buttons)
@@ -181,9 +180,6 @@ static void lvgl_port_btn_down_handler(void *arg, void *arg2)
             ctx->btn_enter = true;
         }
     }
-
-    /* Wake LVGL task, if needed */
-    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, ctx->indev);
 }
 
 static void lvgl_port_btn_up_handler(void *arg, void *arg2)
@@ -204,7 +200,4 @@ static void lvgl_port_btn_up_handler(void *arg, void *arg2)
             ctx->btn_enter = false;
         }
     }
-
-    /* Wake LVGL task, if needed */
-    lvgl_port_task_wake(LVGL_PORT_EVENT_TOUCH, ctx->indev);
 }

@@ -1,34 +1,13 @@
-include($ENV{IDF_PATH}/tools/cmake/version.cmake) # $ENV{IDF_VERSION} was added after v4.3...
 
-if("${IDF_VERSION_MAJOR}.${IDF_VERSION_MINOR}" VERSION_LESS "4.4")
-    return()
-endif()
-
-# This component uses a CMake workaround, so we can compile esp_lvgl_port for both LVGL8.x and LVGL9.x
-# At the time of idf_component_register() we don't know which LVGL version is used, so we only register an INTERFACE component (with no sources)
-# Later, when we know the LVGL version, we create another CMake library called 'lvgl_port_lib' and link it to the 'esp_lvgl_port' INTERFACE component
-idf_component_register(
-        INCLUDE_DIRS "include"
-        PRIV_INCLUDE_DIRS "priv_include"
-        REQUIRES "esp_lcd")
-
-# Get LVGL version
-idf_build_get_property(build_components BUILD_COMPONENTS)
-if(lvgl IN_LIST build_components)
-    set(lvgl_name lvgl) # Local component
-    set(lvgl_ver $ENV{LVGL_VERSION}) # Get the version from env variable (set from LVGL v9.2)
-else()
-    set(lvgl_name lvgl__lvgl) # Managed component
-    idf_component_get_property(lvgl_ver ${lvgl_name} COMPONENT_VERSION) # Get the version from esp-idf build system
-endif()
-
-if("${lvgl_ver}" STREQUAL "")
-    message("Could not determine LVGL version, assuming v9.x")
-    set(lvgl_ver "9.0.0")
-endif()
-
-# Select folder by LVGL version
+#Get LVGL version
+#idf_component_get_property(lvgl_ver lvgl__lvgl COMPONENT_VERSION)
+#if(lvgl_ver EQUAL "")
+#    idf_component_get_property(lvgl_ver lvgl COMPONENT_VERSION)
+#endif()
+set(lvgl_ver "9.0.0")
 message(STATUS "LVGL version: ${lvgl_ver}")
+
+#Select folder by LVGL version
 if(lvgl_ver VERSION_LESS "9.0.0")
     message(VERBOSE "Compiling esp_lvgl_port for LVGL8")
     set(PORT_FOLDER "lvgl8")
@@ -37,8 +16,10 @@ else()
     set(PORT_FOLDER "lvgl9")
 endif()
 
-# Add LVGL port extensions
 set(PORT_PATH "src/${PORT_FOLDER}")
+
+idf_component_register(SRCS "${PORT_PATH}/esp_lvgl_port.c" "${PORT_PATH}/esp_lvgl_port_disp.c" INCLUDE_DIRS "include" REQUIRES "esp_lcd" "lvgl" PRIV_REQUIRES "esp_timer")
+
 set(ADD_SRCS "")
 set(ADD_LIBS "")
 
@@ -76,43 +57,9 @@ if("usb_host_hid" IN_LIST build_components)
     list(APPEND ADD_LIBS idf::usb_host_hid)
 endif()
 
-# Include SIMD assembly source code for rendering, only for (9.1.0 <= LVG_version < 9.2.0) and only for esp32 and esp32s3
-if((lvgl_ver VERSION_GREATER_EQUAL "9.1.0") AND (lvgl_ver VERSION_LESS "9.2.0"))
-    if(CONFIG_IDF_TARGET_ESP32 OR CONFIG_IDF_TARGET_ESP32S3)
-        message(VERBOSE "Compiling SIMD")
-        if(CONFIG_IDF_TARGET_ESP32S3)
-            file(GLOB_RECURSE ASM_SRCS ${PORT_PATH}/simd/*_esp32s3.S)    # Select only esp32s3 related files
-        else()
-            file(GLOB_RECURSE ASM_SRCS ${PORT_PATH}/simd/*_esp32.S)      # Select only esp32 related files
-        endif()
-        list(APPEND ADD_SRCS ${ASM_SRCS})
-
-        # Include component libraries, so lvgl component would see lvgl_port includes
-        idf_component_get_property(lvgl_lib ${lvgl_name} COMPONENT_LIB)
-        target_include_directories(${lvgl_lib} PRIVATE "include")
-
-        # Force link .S files
-        set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_color_blend_to_argb8888_esp")
-        set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_color_blend_to_rgb565_esp")
-    endif()
+if(ADD_SRCS)
+    target_sources(${COMPONENT_LIB} PRIVATE ${ADD_SRCS})
 endif()
-
-# Here we create the real lvgl_port_lib
-add_library(lvgl_port_lib STATIC
-    ${PORT_PATH}/esp_lvgl_port.c
-    ${PORT_PATH}/esp_lvgl_port_disp.c
-    ${ADD_SRCS}
-    )
-target_include_directories(lvgl_port_lib PUBLIC "include")
-target_include_directories(lvgl_port_lib PRIVATE "priv_include")
-target_link_libraries(lvgl_port_lib PUBLIC
-    idf::esp_lcd
-    idf::${lvgl_name}
-    )
-target_link_libraries(lvgl_port_lib PRIVATE
-    idf::esp_timer
-    ${ADD_LIBS}
-    )
-
-# Finally, link the lvgl_port_lib its esp-idf interface library
-target_link_libraries(${COMPONENT_LIB} INTERFACE lvgl_port_lib)
+if(ADD_LIBS)
+    target_link_libraries(${COMPONENT_LIB} PRIVATE ${ADD_LIBS})
+endif()

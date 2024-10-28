@@ -25,12 +25,12 @@ static void update_mode(ScreenshotUi* ui) {
 }
 
 static void on_mode_set(lv_event_t* event) {
-    ScreenshotUi* ui = (ScreenshotUi*)lv_event_get_user_data(event);
+    ScreenshotUi* ui = (ScreenshotUi*)event->user_data;
     update_mode(ui);
 }
 
 static void on_start_pressed(lv_event_t* event) {
-    ScreenshotUi* ui = lv_event_get_user_data(event);
+    ScreenshotUi* ui = event->user_data;
 
     if (tt_screenshot_is_started()) {
         TT_LOG_I(TAG, "Stop screenshot");
