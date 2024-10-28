@@ -1,10 +1,19 @@
+#define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 #include "toolbar.h"
 
 #include "services/loader/loader.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 
-#include "lvgl.h"
+typedef struct {
+    lv_obj_t obj;
+    lv_obj_t* title_label;
+    lv_obj_t* close_button;
+    lv_obj_t* close_button_image;
+    lv_obj_t* action_container;
+    ToolbarAction* action_array[TOOLBAR_ACTION_LIMIT];
+    uint8_t  action_count;
+} Toolbar;
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 

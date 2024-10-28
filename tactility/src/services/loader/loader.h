@@ -39,7 +39,7 @@ typedef struct {
 } LoaderEventAppHiding;
 
 typedef struct {
-    AppManifest* manifest;
+    const AppManifest* manifest;
 } LoaderEventAppStopped;
 
 typedef struct {

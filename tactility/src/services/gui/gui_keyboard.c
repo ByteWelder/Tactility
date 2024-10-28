@@ -7,8 +7,9 @@
 extern Gui* gui;
 
 static void show_keyboard(lv_event_t* event) {
-    gui_keyboard_show(event->current_target);
-    lv_obj_scroll_to_view(event->current_target, LV_ANIM_ON);
+    lv_obj_t* target = lv_event_get_current_target_obj(event);
+    gui_keyboard_show(target);
+    lv_obj_scroll_to_view(target, LV_ANIM_ON);
 }
 
 static void hide_keyboard(TT_UNUSED lv_event_t* event) {

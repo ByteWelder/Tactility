@@ -39,9 +39,10 @@ static void update_pin_widgets(Gpio* gpio) {
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
             int level = gpio->pin_states[j];
             lv_obj_t* label = gpio->lv_pins[j];
-            // user_data stores the state, so we can avoid unnecessary updates
-            if ((void*)level != label->user_data) {
-                label->user_data = (void*)level;
+            void* label_user_data = lv_obj_get_user_data(label);
+            // The user data stores the state, so we can avoid unnecessary updates
+            if ((void*)level != label_user_data) {
+                lv_obj_set_user_data(label, (void*)level);
                 if (level == 0) {
                     lv_obj_set_style_text_color(label, lv_color_black(), 0);
                 } else {
