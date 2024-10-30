@@ -13,5 +13,6 @@ const HardwareConfig lilygo_tdeck = {
         .set_backlight_duty = &tdeck_backlight_set
     },
     .init_graphics = &tdeck_init_lvgl,
-    .sdcard = &tdeck_sdcard
+    .sdcard = &tdeck_sdcard,
+    .power = NULL
 };

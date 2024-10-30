@@ -9,5 +9,7 @@ const HardwareConfig waveshare_s3_touch = {
     .display = {
         .set_backlight_duty = NULL // TODO: This requires implementing the CH422G IO expander
     },
-    .init_graphics = &ws3t_init_lvgl
+    .init_graphics = &ws3t_init_lvgl,
+    .sdcard = NULL,
+    .power = NULL
 };
