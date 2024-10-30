@@ -13,7 +13,7 @@ jobs:
       - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.3.1
+          esp_idf_version: v5.2.3
           target: esp32
           path: './'
   build-lilygo-t-deck:
@@ -28,7 +28,7 @@ jobs:
       - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.3.1
+          esp_idf_version: v5.2.3
           target: esp32s3
           path: './'
   build-waveshare-s3-touch:
@@ -43,7 +43,7 @@ jobs:
       - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.3.1
+          esp_idf_version: v5.2.3
           target: esp32s3
           path: './'
   build-m5stack-core2:
@@ -58,6 +58,6 @@ jobs:
       - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
-          esp_idf_version: v5.3.1
+          esp_idf_version: v5.2.3
           target: esp32
           path: './'
