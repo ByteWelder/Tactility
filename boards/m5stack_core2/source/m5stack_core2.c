@@ -3,7 +3,7 @@
 #include "lvgl_i.h"
 
 extern const SdCard core2_sdcard;
-extern Power core2_power;
+extern Power core2_power; // Making it const fails the build
 
 const HardwareConfig m5stack_core2 = {
     .bootstrap = &core2_bootstrap,
