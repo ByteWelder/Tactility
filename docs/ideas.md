@@ -14,6 +14,7 @@
 - App lifecycle docs mention on_create/on_destroy but app lifecycle is on_start/on_stop
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
+- Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
@@ -35,4 +36,5 @@
 - BadUSB
 - Discord bot
 - IR transceiver app
+- GPS app
 - Investigate CSI https://stevenmhernandez.github.io/ESP32-CSI-Tool/
