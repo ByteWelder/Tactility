@@ -111,8 +111,9 @@ static void app_show(App app, lv_obj_t* parent) {
         lv_label_set_text_fmt(power_charge_state, "Charging: %s", charge_state);
 
         uint8_t charge_level = config->hardware->power->get_charge_level();
+        uint16_t charge_level_scaled = (int16_t)charge_level * 100 / 255;
         lv_obj_t* power_charge_level = lv_label_create(power_info_wrapper);
-        lv_label_set_text_fmt(power_charge_level, "Charge level: %d%%", charge_level);
+        lv_label_set_text_fmt(power_charge_level, "Charge level: %d%%", charge_level_scaled);
 
         int32_t current = config->hardware->power->get_current();
         lv_obj_t* power_current = lv_label_create(power_info_wrapper);
