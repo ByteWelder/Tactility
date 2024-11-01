@@ -5,6 +5,8 @@
 
 #define TAG "hardware"
 
+extern const Power power;
+
 static bool lvgl_init() {
     lv_init();
     lvgl_task_start();
@@ -28,6 +30,6 @@ const HardwareConfig sim_hardware = {
     .display = {
         .set_backlight_duty = NULL,
     },
-    .power = NULL,
+    .power = &power,
     .sdcard = NULL
 };

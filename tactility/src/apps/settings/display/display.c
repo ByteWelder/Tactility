@@ -3,7 +3,6 @@
 #include "lvgl.h"
 #include "preferences.h"
 #include "tactility.h"
-#include "ui/spacer.h"
 #include "ui/toolbar.h"
 
 #define TAG "display"

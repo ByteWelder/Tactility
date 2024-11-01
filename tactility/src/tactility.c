@@ -35,6 +35,7 @@ static const ServiceManifest* const system_services[] = {
 extern const AppManifest desktop_app;
 extern const AppManifest display_app;
 extern const AppManifest files_app;
+extern const AppManifest power_app;
 extern const AppManifest settings_app;
 extern const AppManifest system_info_app;
 extern const AppManifest wifi_connect_app;
@@ -50,6 +51,7 @@ static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
+    &power_app,
     &settings_app,
     &system_info_app,
     &wifi_connect_app,

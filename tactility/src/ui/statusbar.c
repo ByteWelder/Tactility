@@ -9,6 +9,7 @@
 
 #include "lvgl.h"
 #include "lvgl_sync.h"
+#include "tactility.h"
 
 #define TAG "statusbar"
 
@@ -32,6 +33,7 @@ static StatusbarData statusbar_data = {
 typedef struct {
     lv_obj_t obj;
     lv_obj_t* icons[STATUSBAR_ICON_LIMIT];
+    lv_obj_t* battery_icon;
     PubSubSubscription* pubsub_subscription;
 } Statusbar;
 

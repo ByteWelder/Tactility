@@ -97,28 +97,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
 
-    const Config* config = tt_get_config();
-    if (config->hardware->power != NULL) {
-        // Build info
-        lv_obj_t* power_info_label = lv_label_create(wrapper);
-        lv_label_set_text(power_info_label, "Power");
-        lv_obj_t* power_info_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(power_info_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(power_info_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
-        lv_obj_t* power_charge_state = lv_label_create(power_info_wrapper);
-        const char* charge_state = config->hardware->power->is_charging() ? "yes" : "no";
-        lv_label_set_text_fmt(power_charge_state, "Charging: %s", charge_state);
-
-        uint8_t charge_level = config->hardware->power->get_charge_level();
-        uint16_t charge_level_scaled = (int16_t)charge_level * 100 / 255;
-        lv_obj_t* power_charge_level = lv_label_create(power_info_wrapper);
-        lv_label_set_text_fmt(power_charge_level, "Charge level: %d%%", charge_level_scaled);
-
-        int32_t current = config->hardware->power->get_current();
-        lv_obj_t* power_current = lv_label_create(power_info_wrapper);
-        lv_label_set_text_fmt(power_current, "Current: %ld mAh", current);
-    }
 }
 
 AppManifest system_info_app = {
