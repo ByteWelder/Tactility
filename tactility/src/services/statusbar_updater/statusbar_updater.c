@@ -1,9 +1,11 @@
-#include "mutex.h"
-#include "service.h"
-#include "ui/statusbar.h"
 #include "assets.h"
+#include "mutex.h"
+#include "power.h"
 #include "sdcard.h"
+#include "service.h"
 #include "services/wifi/wifi.h"
+#include "tactility.h"
+#include "ui/statusbar.h"
 
 #define TAG "statusbar_service"
 
@@ -15,6 +17,8 @@ typedef struct {
     const char* wifi_last_icon;
     int8_t sdcard_icon_id;
     const char* sdcard_last_icon;
+    int8_t power_icon_id;
+    const char* power_last_icon;
 } ServiceData;
 
 // region wifi
@@ -89,6 +93,39 @@ static void update_sdcard_icon(ServiceData* data) {
 
 // endregion sdcard
 
+// region power
+
+static _Nullable const char* power_get_status_icon() {
+    _Nullable const Power* power = tt_get_config()->hardware->power;
+    if (power != NULL) {
+        uint8_t charge = power->get_charge_level();
+        if (charge >= 230) {
+            return TT_ASSETS_ICON_POWER_100;
+        } else if (charge >= 161) {
+            return TT_ASSETS_ICON_POWER_080;
+        } else if (charge >= 127) {
+            return TT_ASSETS_ICON_POWER_060;
+        } else if (charge >= 76) {
+            return TT_ASSETS_ICON_POWER_040;
+        } else {
+            return TT_ASSETS_ICON_POWER_020;
+        }
+    } else {
+        return NULL;
+    }
+}
+
+static void update_power_icon(ServiceData* data) {
+    const char* desired_icon = power_get_status_icon();
+    if (data->power_last_icon != desired_icon) {
+        tt_statusbar_icon_set_image(data->power_icon_id, desired_icon);
+        tt_statusbar_icon_set_visibility(data->power_icon_id, desired_icon != NULL);
+        data->power_last_icon = desired_icon;
+    }
+}
+
+// endregion power
+
 // region service
 
 static ServiceData* service_data_alloc() {
@@ -101,11 +138,14 @@ static ServiceData* service_data_alloc() {
         .wifi_last_icon = NULL,
         .sdcard_icon_id = tt_statusbar_icon_add(NULL),
         .sdcard_last_icon = NULL,
+        .power_icon_id = tt_statusbar_icon_add(NULL),
+        .power_last_icon = NULL
     };
 
     tt_statusbar_icon_set_visibility(data->wifi_icon_id, true);
     update_wifi_icon(data);
     update_sdcard_icon(data); // also updates visibility
+    update_power_icon(data);
 
     return data;
 }
@@ -114,6 +154,8 @@ static void service_data_free(ServiceData* data) {
     tt_mutex_free(data->mutex);
     tt_thread_free(data->thread);
     tt_statusbar_icon_remove(data->wifi_icon_id);
+    tt_statusbar_icon_remove(data->sdcard_icon_id);
+    tt_statusbar_icon_remove(data->power_icon_id);
     free(data);
 }
 
@@ -132,6 +174,7 @@ int32_t service_main(TT_UNUSED void* parameter) {
     while (!data->service_interrupted) {
         update_wifi_icon(data);
         update_sdcard_icon(data);
+        update_power_icon(data);
         tt_delay_ms(1000);
     }
     return 0;

@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 static void read_touch(TT_UNUSED lv_indev_t* indev, lv_indev_data_t* data) {
-    static lgfx::touch_point_t point;
+    lgfx::touch_point_t point; // Making it static makes it unreliable
     bool touched = M5.Lcd.getTouch(&point) > 0;
     if (touched) {
         data->point.x = point.x;

@@ -2,6 +2,7 @@
 
 #include "tactility_core.h"
 #include "sdcard.h"
+#include "power.h"
 
 typedef bool (*Bootstrap)();
 typedef bool (*InitGraphics)();
@@ -35,4 +36,9 @@ typedef struct {
      * An optional SD card interface.
      */
     const SdCard* _Nullable sdcard;
+
+    /**
+     * An optional power interface for battery or other power delivery.
+     */
+    const Power* _Nullable power;
 } HardwareConfig;

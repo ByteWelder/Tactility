@@ -7,6 +7,7 @@
 #define TT_ASSETS_APP_ICON_FALLBACK TT_ASSET("app_icon_fallback.png")
 #define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")
 #define TT_ASSETS_APP_ICON_DISPLAY_SETTINGS TT_ASSET("app_icon_display_settings.png")
+#define TT_ASSETS_APP_ICON_POWER_SETTINGS TT_ASSET("app_icon_power_settings.png")
 #define TT_ASSETS_APP_ICON_SETTINGS TT_ASSET("app_icon_settings.png")
 #define TT_ASSETS_APP_ICON_SYSTEM_INFO TT_ASSET("app_icon_system_info.png")
 
@@ -29,3 +30,10 @@
 #define TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED TT_ASSET("wifi_signal_3_locked.png")
 #define TT_ASSETS_ICON_WIFI_SIGNAL_4 TT_ASSET("wifi_signal_4.png")
 #define TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED TT_ASSET("wifi_signal_4_locked.png")
+
+// Power status
+#define TT_ASSETS_ICON_POWER_020 TT_ASSET("power_020.png")
+#define TT_ASSETS_ICON_POWER_040 TT_ASSET("power_040.png")
+#define TT_ASSETS_ICON_POWER_060 TT_ASSET("power_060.png")
+#define TT_ASSETS_ICON_POWER_080 TT_ASSET("power_080.png")
+#define TT_ASSETS_ICON_POWER_100 TT_ASSET("power_100.png")

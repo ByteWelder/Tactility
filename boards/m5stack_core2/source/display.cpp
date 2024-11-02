@@ -32,7 +32,12 @@ lv_disp_t* core2_display_init() {
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
         .bits_per_pixel = CORE2_LCD_BITS_PER_PIXEL,
+        .flags = {
+            .reset_active_high = false
+        },
+        .vendor_config = nullptr
     };
 
     esp_lcd_panel_handle_t panel_handle;

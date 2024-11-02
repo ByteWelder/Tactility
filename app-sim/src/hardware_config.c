@@ -5,6 +5,8 @@
 
 #define TAG "hardware"
 
+extern const Power power;
+
 static bool lvgl_init() {
     lv_init();
     lvgl_task_start();
@@ -22,7 +24,12 @@ TT_UNUSED static void lvgl_deinit() {
 #endif
 }
 
-HardwareConfig sim_hardware = {
+const HardwareConfig sim_hardware = {
     .bootstrap = NULL,
     .init_graphics = &lvgl_init,
+    .display = {
+        .set_backlight_duty = NULL,
+    },
+    .power = &power,
+    .sdcard = NULL
 };

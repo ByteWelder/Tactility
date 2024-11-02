@@ -1,6 +1,7 @@
 #include "app.h"
 #include "assets.h"
 #include "lvgl.h"
+#include "tactility.h"
 #include "ui/toolbar.h"
 
 static size_t get_heap_free() {
@@ -95,6 +96,8 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_t* esp_idf_version = lv_label_create(build_info_wrapper);
     lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
+
+
 }
 
 AppManifest system_info_app = {

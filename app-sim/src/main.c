@@ -1,7 +1,7 @@
 #include "hello_world/hello_world.h"
 #include "tactility.h"
 
-extern HardwareConfig sim_hardware;
+extern const HardwareConfig sim_hardware;
 
 void app_main() {
     static const Config config = {
