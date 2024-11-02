@@ -13,9 +13,9 @@
 typedef struct {
     Timer* update_timer;
     const Power* power;
-    _Nullable lv_obj_t* charge_state;
-    _Nullable lv_obj_t* charge_level;
-    _Nullable lv_obj_t* current;
+    lv_obj_t* charge_state;
+    lv_obj_t* charge_level;
+    lv_obj_t* current;
 } AppData;
 
 static void app_update_ui(App app) {
@@ -42,8 +42,10 @@ static void on_power_enabled_change(lv_event_t* event) {
     lv_obj_t* enable_switch = lv_event_get_target(event);
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        AppData* data = lv_event_get_user_data(event);
+        App app = lv_event_get_user_data(event);
+        AppData* data = tt_app_get_data(app);
         data->power->set_charging_enabled(is_on);
+        app_update_ui(app);
     }
 }
 
@@ -56,50 +58,43 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_style_border_width(wrapper, 0, 0);
     lv_obj_set_flex_grow(wrapper, 1);
+    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
     AppData* data = tt_app_get_data(app);
-    if (data->power != NULL) {
-        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-        // Top row: enable/disable
-        lv_obj_t* switch_container = lv_obj_create(wrapper);
-        lv_obj_set_width(switch_container, LV_PCT(100));
-        lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-        tt_lv_obj_set_style_no_padding(switch_container);
-        tt_lv_obj_set_style_bg_invisible(switch_container);
+    // Top row: enable/disable
+    lv_obj_t* switch_container = lv_obj_create(wrapper);
+    lv_obj_set_width(switch_container, LV_PCT(100));
+    lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
+    tt_lv_obj_set_style_no_padding(switch_container);
+    tt_lv_obj_set_style_bg_invisible(switch_container);
 
-        lv_obj_t* enable_label = lv_label_create(switch_container);
-        lv_label_set_text(enable_label, "Charging enabled");
-        lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
+    lv_obj_t* enable_label = lv_label_create(switch_container);
+    lv_label_set_text(enable_label, "Charging enabled");
+    lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
-        lv_obj_t* enable_switch = lv_switch_create(switch_container);
-        lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, data);
-        lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
+    lv_obj_t* enable_switch = lv_switch_create(switch_container);
+    lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, app);
+    lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
-        data->charge_state = lv_label_create(wrapper);
-        data->charge_level = lv_label_create(wrapper);
-        data->current = lv_label_create(wrapper);
+    data->charge_state = lv_label_create(wrapper);
+    data->charge_level = lv_label_create(wrapper);
+    data->current = lv_label_create(wrapper);
 
-        app_update_ui(app);
-        tt_timer_start(data->update_timer, tt_ms_to_ticks(1000));
-    } else {
-        lv_obj_t* power_current = lv_label_create(wrapper);
-        lv_label_set_text_fmt(power_current, "Not supported or implemented.");
-        lv_obj_align(power_current, LV_ALIGN_CENTER, 0, 0);
-    }
+    app_update_ui(app);
+    tt_timer_start(data->update_timer, tt_ms_to_ticks(1000));
 }
 
 static void app_hide(TT_UNUSED App app) {
     AppData* data = tt_app_get_data(app);
-    if (tt_timer_is_running(data->update_timer)) {
-        tt_timer_stop(data->update_timer);
-    }
+    tt_timer_stop(data->update_timer);
 }
 
 static void app_start(App app) {
     AppData* data = malloc(sizeof(AppData));
     data->update_timer = tt_timer_alloc(&app_update_ui, TimerTypePeriodic, app);
     data->power = tt_get_config()->hardware->power;
+    assert(data->power != NULL); // The Power app only shows up on supported devices
     tt_app_set_data(app, data);
 }
 
