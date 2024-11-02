@@ -51,7 +51,6 @@ static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
-    &power_app,
     &settings_app,
     &system_info_app,
     &wifi_connect_app,
@@ -67,9 +66,14 @@ static const AppManifest* const system_apps[] = {
 
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
+
     int app_count = sizeof(system_apps) / sizeof(AppManifest*);
     for (int i = 0; i < app_count; ++i) {
         tt_app_manifest_registry_add(system_apps[i]);
+    }
+
+    if (tt_get_config()->hardware->power != NULL) {
+        tt_app_manifest_registry_add(&power_app);
     }
 }
 

@@ -98,11 +98,23 @@ static void update_sdcard_icon(ServiceData* data) {
 static _Nullable const char* power_get_status_icon() {
     _Nullable const Power* power = tt_get_config()->hardware->power;
     if (power != NULL) {
-        return TT_ASSETS_ICON_WIFI_FIND;
+        uint8_t charge = power->get_charge_level();
+        if (charge >= 230) {
+            return TT_ASSETS_ICON_POWER_100;
+        } else if (charge >= 161) {
+            return TT_ASSETS_ICON_POWER_080;
+        } else if (charge >= 127) {
+            return TT_ASSETS_ICON_POWER_060;
+        } else if (charge >= 76) {
+            return TT_ASSETS_ICON_POWER_040;
+        } else {
+            return TT_ASSETS_ICON_POWER_020;
+        }
     } else {
         return NULL;
     }
 }
+
 static void update_power_icon(ServiceData* data) {
     const char* desired_icon = power_get_status_icon();
     if (data->power_last_icon != desired_icon) {
