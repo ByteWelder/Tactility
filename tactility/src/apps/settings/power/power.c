@@ -13,6 +13,7 @@
 typedef struct {
     Timer* update_timer;
     const Power* power;
+    lv_obj_t* enable_switch;
     lv_obj_t* charge_state;
     lv_obj_t* charge_level;
     lv_obj_t* current;
@@ -21,12 +22,14 @@ typedef struct {
 static void app_update_ui(App app) {
     AppData* data = tt_app_get_data(app);
 
+    bool charging_enabled = data->power->is_charging_enabled();
     const char* charge_state = data->power->is_charging() ? "yes" : "no";
     uint8_t charge_level = data->power->get_charge_level();
     uint16_t charge_level_scaled = (int16_t)charge_level * 100 / 255;
     int32_t current = data->power->get_current();
 
     tt_lvgl_lock(tt_ms_to_ticks(1000));
+    lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled);
     lv_label_set_text_fmt(data->charge_state, "Charging: %s", charge_state);
     lv_label_set_text_fmt(data->charge_level, "Charge level: %d%%", charge_level_scaled);
 #ifdef ESP_PLATFORM
@@ -44,8 +47,10 @@ static void on_power_enabled_change(lv_event_t* event) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
         App app = lv_event_get_user_data(event);
         AppData* data = tt_app_get_data(app);
-        data->power->set_charging_enabled(is_on);
-        app_update_ui(app);
+        if (data->power->is_charging_enabled() != is_on) {
+            data->power->set_charging_enabled(is_on);
+            app_update_ui(app);
+        }
     }
 }
 
@@ -77,6 +82,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, app);
     lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
+    data->enable_switch = enable_switch;
     data->charge_state = lv_label_create(wrapper);
     data->charge_level = lv_label_create(wrapper);
     data->current = lv_label_create(wrapper);
