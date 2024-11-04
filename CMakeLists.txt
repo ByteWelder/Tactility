@@ -28,6 +28,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "yellow_board_2432s024")
         set(EXCLUDE_COMPONENTS "m5stack_core2")
+        set(EXCLUDE_COMPONENTS "m5stack_cores3")
     endif()
 
     # ESP32-S3 boards
