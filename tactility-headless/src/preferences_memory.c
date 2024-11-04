@@ -5,9 +5,9 @@
 #include <string.h>
 #include <tactility_core.h>
 
-static Bundle* preferences_bundle;
+static Bundle preferences_bundle;
 
-static Bundle* get_preferences_bundle() {
+static Bundle get_preferences_bundle() {
     if (preferences_bundle == NULL) {
         preferences_bundle = tt_bundle_alloc();
     }
