@@ -1,6 +1,7 @@
 #include "files_data.h"
 
 #include "app.h"
+#include "apps/system/image_viewer/image_viewer.h"
 #include "assets.h"
 #include "check.h"
 #include "file_utils.h"
@@ -62,6 +63,25 @@ static void on_exit_app_pressed(TT_UNUSED lv_event_t* event) {
     loader_stop_app();
 }
 
+static void view_file(const char* path, const char* filename) {
+    size_t path_len = strlen(path);
+    size_t filename_len = strlen(filename);
+    char* filepath = malloc(path_len + filename_len + 2);
+    sprintf(filepath, "%s/%s", path, filename);
+
+    TT_LOG_I(TAG, "Clicked %s", filepath);
+
+    if (is_image_file(filename)) {
+        Bundle bundle = tt_bundle_alloc();
+        tt_bundle_put_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT, filepath);
+        loader_start_app("image_viewer", false, bundle);
+    } else {
+        TT_LOG_W(TAG, "opening files of this type is not supported");
+    }
+
+    free(filepath);
+}
+
 static void on_file_pressed(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_CLICKED) {
@@ -80,10 +100,12 @@ static void on_file_pressed(lv_event_t* event) {
                 TT_LOG_W(TAG, "opening links is not supported");
                 break;
             case TT_DT_REG:
-                TT_LOG_W(TAG, "opening files is not supported");
+                view_file(files_data->current_path, dir_entry->d_name);
                 break;
             default:
-                TT_LOG_W(TAG, "file type %d is not supported", dir_entry->d_type);
+                // Assume it's a file
+                // TODO: Find a better way to identify a file
+                view_file(files_data->current_path, dir_entry->d_name);
                 break;
         }
     }

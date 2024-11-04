@@ -13,6 +13,8 @@ typedef void* App;
 typedef enum {
     /** A desktop app sits at the root of the app stack managed by the Loader service */
     AppTypeDesktop,
+    /** Apps that generally aren't started from the desktop (e.g. image viewer) */
+    AppTypeHidden,
     /** Standard apps, provided by the system. */
     AppTypeSystem,
     /** The apps that are launched/shown by the Settings app. The Settings app itself is of type AppTypeSystem. */
