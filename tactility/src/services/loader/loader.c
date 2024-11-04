@@ -66,7 +66,7 @@ void loader_unlock() {
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus loader_start_app(const char* id, bool blocking, Bundle* _Nullable bundle) {
+LoaderStatus loader_start_app(const char* id, bool blocking, Bundle _Nullable bundle) {
     tt_check(loader_singleton);
     LoaderMessageLoaderStatusResult result = {
         .value = LoaderStatusOk
@@ -184,7 +184,7 @@ static void app_transition_to_state(App app, AppState state) {
 
 LoaderStatus loader_do_start_app_with_manifest(
     const AppManifest* manifest,
-    Bundle* _Nullable bundle
+    Bundle _Nullable bundle
 ) {
     TT_LOG_I(TAG, "start with manifest %s", manifest->id);
 
@@ -230,7 +230,7 @@ LoaderStatus loader_do_start_app_with_manifest(
 
 static LoaderStatus loader_do_start_by_id(
     const char* id,
-    Bundle* _Nullable bundle
+    Bundle _Nullable bundle
 ) {
     TT_LOG_I(TAG, "Start by id %s", id);
 

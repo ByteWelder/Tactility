@@ -13,7 +13,7 @@ static const AppFlags DEFAULT_FLAGS = {
 
 // region Alloc/free
 
-App tt_app_alloc(const AppManifest* manifest, Bundle* _Nullable parameters) {
+App tt_app_alloc(const AppManifest* manifest, Bundle _Nullable parameters) {
 #ifdef ESP_PLATFORM
     size_t memory_before = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 #else
@@ -132,10 +132,10 @@ void tt_app_set_data(App app, void* value) {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-Bundle* _Nullable tt_app_get_parameters(App app) {
+Bundle _Nullable tt_app_get_parameters(App app) {
     AppData* data = (AppData*)app;
     tt_app_lock(data);
-    Bundle* bundle = data->parameters;
+    Bundle bundle = data->parameters;
     tt_app_unlock(data);
     return bundle;
 }
