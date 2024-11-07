@@ -27,6 +27,7 @@ _Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
     M5GFX& gfx = M5.Display;
 
     static lv_display_t* display = lv_display_create(gfx.width(), gfx.height());
+    LV_ASSERT_MALLOC(display)
     if (display == nullptr) {
         return nullptr;
     }
@@ -38,7 +39,9 @@ _Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
     const size_t buffer_size = gfx.width() * gfx.height() * bytes_per_pixel / 8;
     if (usePsram) {
         static auto* buffer1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_SPIRAM);
+        LV_ASSERT_MALLOC(buffer1)
         static auto* buffer2 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_SPIRAM);
+        LV_ASSERT_MALLOC(buffer2)
         lv_display_set_buffers(
             display,
             (void*)buffer1,
@@ -47,10 +50,11 @@ _Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
             LV_DISPLAY_RENDER_MODE_PARTIAL
         );
     } else {
-        static auto* buffer1 = (uint8_t*)malloc(buffer_size);
+        static auto* buffer = (uint8_t*)malloc(buffer_size);
+        LV_ASSERT_MALLOC(buffer)
         lv_display_set_buffers(
             display,
-            (void*)buffer1,
+            (void*)buffer,
             nullptr,
             buffer_size,
             LV_DISPLAY_RENDER_MODE_PARTIAL

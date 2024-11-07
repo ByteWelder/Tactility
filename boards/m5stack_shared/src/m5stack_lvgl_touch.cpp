@@ -22,7 +22,7 @@ static void touch_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t* da
 
 _Nullable lv_indev_t* m5stack_lvgl_touch() {
     static lv_indev_t* indev = lv_indev_create();
-    LV_ASSERT_MALLOC(indev);
+    LV_ASSERT_MALLOC(indev)
     if (indev == nullptr) {
         return nullptr;
     }
