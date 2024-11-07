@@ -71,7 +71,7 @@ static bool sdcard_is_mounted(void* context) {
     return (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
 }
 
-const SdCard m5stack_sdcard = {
+const SdCard m5stack_cores3_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
