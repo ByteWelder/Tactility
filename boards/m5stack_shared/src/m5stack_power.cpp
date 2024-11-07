@@ -33,7 +33,7 @@ static int32_t power_get_current() {
     return M5.Power.getBatteryCurrent();
 }
 
-Power core2_power = {
+Power m5stack_power = {
     .is_charging = &power_is_charging,
     .is_charging_enabled = &power_is_charging_enabled,
     .set_charging_enabled = &power_set_charging_enabled,

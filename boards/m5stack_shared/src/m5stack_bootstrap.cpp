@@ -1,5 +1,3 @@
-#include "bootstrap.h"
-
 #include "M5Unified.hpp"
 #include "log.h"
 
@@ -7,9 +5,9 @@
 extern "C" {
 #endif
 
-#define TAG "cores3_bootstrap"
+#define TAG "m5stack_bootstrap"
 
-bool cores3_bootstrap() {
+bool m5stack_bootstrap() {
     TT_LOG_I(TAG, "Initializing M5Unified");
     M5.begin();
     return true;
