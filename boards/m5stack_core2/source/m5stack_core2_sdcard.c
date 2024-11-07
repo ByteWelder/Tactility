@@ -6,7 +6,7 @@
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 
-#define TAG "core2_sdcard"
+#define TAG "m5stack_core2_sdcard"
 
 typedef struct {
     const char* mount_point;
@@ -71,7 +71,7 @@ static bool sdcard_is_mounted(void* context) {
     return (data != NULL) && (sdmmc_get_status(data->card) == ESP_OK);
 }
 
-const SdCard core2_sdcard = {
+const SdCard m5stack_core2_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
