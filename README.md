@@ -76,6 +76,7 @@ Predefined configurations are available for:
 | Device                                   | Screen&Touch | SD card | Power | Other    |
 |------------------------------------------|--------------|---------|-------|----------|
 | [M5Stack Core2][m5stack]                 | ✅            | ✅       | ✅ |          |
+| [M5Stack CoreS3][m5stack]                | ✅            | ✅       | ✅ |          |
 | [LilyGo T-Deck][tdeck]                   | ✅            | ✅       |   | Keyboard | 
 | [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |   |          |
 | Yellow Board 2432S024C (\*)              | ✅            | ✅       |   |          |

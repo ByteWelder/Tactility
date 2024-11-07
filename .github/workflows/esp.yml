@@ -61,3 +61,18 @@ jobs:
           esp_idf_version: v5.2.3
           target: esp32
           path: './'
+  build-m5stack-cores3:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: board select
+        run: cp sdkconfig.board.m5stack_cores3 sdkconfig
+      - name: build
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: v5.2.3
+          target: esp32s3
+          path: './'
