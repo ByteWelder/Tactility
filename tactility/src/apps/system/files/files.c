@@ -10,13 +10,14 @@
 #include "string_utils.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
+#include <unistd.h>
 
 #define TAG "files_app"
 
 /**
- * Lower case check to see if the given file matches the provided file extension
+ * Case-insensitive check to see if the given file matches the provided file extension.
  * @param path the full path to the file
- * @param extension the extension to look for, including the period symbol
+ * @param extension the extension to look for, including the period symbol, in lower case
  * @return true on match
  */
 static bool has_file_extension(const char* path, const char* extension) {
@@ -27,7 +28,7 @@ static bool has_file_extension(const char* path, const char* extension) {
     }
 
     for (int i = (int)postfix_len - 1; i >= 0; i--) {
-        if (tolower(path[base_len - postfix_len + i]) != extension[i]) {
+        if (tolower(path[base_len - postfix_len + i]) != tolower(extension[i])) {
             return false;
         }
     }
@@ -35,12 +36,9 @@ static bool has_file_extension(const char* path, const char* extension) {
     return true;
 }
 
-static bool is_image_file(const char* filename) {
-    return has_file_extension(filename, ".jpg") ||
-        has_file_extension(filename, ".png") ||
-        has_file_extension(filename, ".jpeg") ||
-        has_file_extension(filename, ".svg") ||
-        has_file_extension(filename, ".bmp");
+static bool is_supported_image_file(const char* filename) {
+    // Currently only the PNG library is built into Tactility
+    return has_file_extension(filename, ".png");
 }
 
 // region Views
@@ -69,11 +67,30 @@ static void view_file(const char* path, const char* filename) {
     char* filepath = malloc(path_len + filename_len + 2);
     sprintf(filepath, "%s/%s", path, filename);
 
+    // For PC we need to make the path relative to the current work directory,
+    // because that's how LVGL maps its 'drive letter' to the file system.
+    char* processed_filepath;
+    if (tt_get_platform() == PlatformPc) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) == NULL) {
+            TT_LOG_E(TAG, "Failed to get current working directory");
+            return;
+        }
+        if (!strstr(filepath, cwd)) {
+            TT_LOG_E(TAG, "Can only work with files in working directory %s", cwd);
+            return;
+        }
+        char* substr = filepath + strlen(cwd);
+        processed_filepath = substr;
+    } else {
+        processed_filepath = filepath;
+    }
+
     TT_LOG_I(TAG, "Clicked %s", filepath);
 
-    if (is_image_file(filename)) {
+    if (is_supported_image_file(filename)) {
         Bundle bundle = tt_bundle_alloc();
-        tt_bundle_put_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT, filepath);
+        tt_bundle_put_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         loader_start_app("image_viewer", false, bundle);
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
@@ -117,7 +134,7 @@ static void create_file_widget(FilesData* files_data, lv_obj_t* parent, struct d
     const char* symbol;
     if (dir_entry->d_type == TT_DT_DIR) {
         symbol = LV_SYMBOL_DIRECTORY;
-    } else if (is_image_file(dir_entry->d_name)) {
+    } else if (is_supported_image_file(dir_entry->d_name)) {
         symbol = LV_SYMBOL_IMAGE;
     } else if (dir_entry->d_type == TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
@@ -158,7 +175,19 @@ static void on_show(App app, lv_obj_t* parent) {
 
 static void on_start(App app) {
     FilesData* data = files_data_alloc();
-    files_data_set_entries_for_path(data, "/");
+    // PC platform is bound to current work directory because of the LVGL file system mapping
+    if (tt_get_platform() == PlatformPc) {
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            files_data_set_entries_for_path(data, cwd);
+        } else {
+            TT_LOG_E(TAG, "Failed to get current work directory files");
+            files_data_set_entries_for_path(data, "/");
+        }
+    } else {
+        files_data_set_entries_for_path(data, "/");
+    }
+
     tt_app_set_data(app, data);
 }
 
