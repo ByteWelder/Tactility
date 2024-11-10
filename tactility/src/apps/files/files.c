@@ -1,8 +1,8 @@
 #include "files_data.h"
 
 #include "app.h"
-#include "apps/system/image_viewer/image_viewer.h"
-#include "apps/system/text_viewer/text_viewer.h"
+#include "apps/image_viewer/image_viewer.h"
+#include "apps/text_viewer/text_viewer.h"
 #include "assets.h"
 #include "check.h"
 #include "file_utils.h"
