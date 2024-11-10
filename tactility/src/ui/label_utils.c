@@ -38,7 +38,7 @@ static char* str_alloc_from_file(const char* filepath) {
 
     char* text_buffer = malloc(content_length + 1);
     if (text_buffer == NULL) {
-        TT_LOG_E(TAG, "Insufficient memory. Failed to allocate %d bytes.", content_length);
+        TT_LOG_E(TAG, "Insufficient memory. Failed to allocate %ldl bytes.", content_length);
         return NULL;
     }
 
