@@ -3,21 +3,19 @@
 Tactility is a front-end application platform for ESP32. It is mainly intended for touchscreen devices.
 It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
 
+![photo of devices running Tactility](docs/pics/tactility-devices.webp)
+
 **Status: Alpha**
 
-Tactility features a desktop that can launch apps:
+Tactility features a desktop with a set of applications:
 
-![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of files app](docs/pics/screenshot-files.png)
+![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of settings app](docs/pics/screenshot-settings.png)
 
-![screenshot of system info app](docs/pics/screenshot-systeminfo.png) ![hello world app screenshot](docs/pics/screenshot-helloworld.png)
+![screenshot of system info app](docs/pics/screenshot-systeminfo.png) ![screenshot of files app](docs/pics/screenshot-files.png)
 
-Through the Settings app you can connect to Wi-Fi or change the display settings:
-
-![screenshot of settings app](docs/pics/screenshot-settings.png) ![screenshot of display settings app](docs/pics/screenshot-display.png) 
+![screenshot of GPIO app](docs/pics/screenshot-gpio.png)
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
-
-![photo of devices running Tactility](docs/pics/tactility-devices.jpg)
 
 Noteworthy features:
 - Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.

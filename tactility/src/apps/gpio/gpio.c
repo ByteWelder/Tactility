@@ -1,11 +1,9 @@
-#ifdef ESP_TARGET
-
 #include "services/loader/loader.h"
 #include "ui/toolbar.h"
 #include "thread.h"
 #include "mutex.h"
 
-#include "driver/gpio.h"
+#include "gpio_hal.h"
 #include "ui/lvgl_sync.h"
 
 typedef struct {
@@ -136,7 +134,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
 
     lock(gpio);
-    for (int i = GPIO_NUM_0; i < GPIO_NUM_MAX; ++i) {
+    for (int i = GPIO_NUM_MIN; i < GPIO_NUM_MAX; ++i) {
 
         // Add the GPIO number before the first item on a row
         if (column == 0) {
@@ -206,5 +204,3 @@ const AppManifest gpio_app = {
     .on_show = &app_show,
     .on_hide = &on_hide
 };
-
-#endif // ESP_TARGET

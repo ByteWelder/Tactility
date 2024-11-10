@@ -35,6 +35,7 @@ static const ServiceManifest* const system_services[] = {
 extern const AppManifest desktop_app;
 extern const AppManifest display_app;
 extern const AppManifest files_app;
+extern const AppManifest gpio_app;
 extern const AppManifest image_viewer_app;
 extern const AppManifest power_app;
 extern const AppManifest settings_app;
@@ -43,9 +44,7 @@ extern const AppManifest text_viewer_app;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
-#ifdef ESP_PLATFORM
-extern const AppManifest gpio_app;
-#else
+#ifndef ESP_PLATFORM
 extern const AppManifest screenshot_app;
 #endif
 
@@ -53,15 +52,14 @@ static const AppManifest* const system_apps[] = {
     &desktop_app,
     &display_app,
     &files_app,
+    &gpio_app,
     &image_viewer_app,
     &settings_app,
     &system_info_app,
     &text_viewer_app,
     &wifi_connect_app,
     &wifi_manage_app,
-#ifdef ESP_PLATFORM
-    &gpio_app,
-#else
+#ifndef ESP_PLATFORM
     &screenshot_app, // Screenshots don't work yet on ESP32
 #endif
 };
