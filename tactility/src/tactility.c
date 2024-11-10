@@ -39,6 +39,7 @@ extern const AppManifest image_viewer_app;
 extern const AppManifest power_app;
 extern const AppManifest settings_app;
 extern const AppManifest system_info_app;
+extern const AppManifest text_viewer_app;
 extern const AppManifest wifi_connect_app;
 extern const AppManifest wifi_manage_app;
 
@@ -55,6 +56,7 @@ static const AppManifest* const system_apps[] = {
     &image_viewer_app,
     &settings_app,
     &system_info_app,
+    &text_viewer_app,
     &wifi_connect_app,
     &wifi_manage_app,
 #ifdef ESP_PLATFORM
