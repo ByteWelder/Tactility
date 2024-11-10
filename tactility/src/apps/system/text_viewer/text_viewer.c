@@ -1,11 +1,11 @@
-#include "image_viewer.h"
+#include "text_viewer.h"
 #include "log.h"
 #include "lvgl.h"
+#include "ui/label_utils.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
-#include <tactility_core.h>
 
-#define TAG "image_viewer"
+#define TAG "text_viewer"
 
 static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -18,23 +18,19 @@ static void app_show(App app, lv_obj_t* parent) {
     tt_lv_obj_set_style_no_padding(wrapper);
     tt_lv_obj_set_style_bg_invisible(wrapper);
 
-    lv_obj_t* image = lv_img_create(wrapper);
-    lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_t* text = lv_label_create(wrapper);
+    lv_obj_align(text, LV_ALIGN_CENTER, 0, 0);
     Bundle bundle = tt_app_get_parameters(app);
-    if (tt_bundle_has_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT)) {
-        const char* file = tt_bundle_get_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT);
-        char* prefixed_path = malloc(strlen(file) + 3);
-        tt_assert(prefixed_path != NULL);
-        sprintf(prefixed_path, "A:%s", file);
-        TT_LOG_I(TAG, "Opening %s", prefixed_path);
-        lv_img_set_src(image, prefixed_path);
-        free(prefixed_path);
+    if (tt_bundle_has_string(bundle, TEXT_VIEWER_FILE_ARGUMENT)) {
+        const char* filepath = tt_bundle_get_string(bundle, TEXT_VIEWER_FILE_ARGUMENT);
+        TT_LOG_I(TAG, "Opening %s", filepath);
+        tt_lv_label_set_text_file(text, filepath);
     }
 }
 
-const AppManifest image_viewer_app = {
-    .id = "image_viewer",
-    .name = "Image Viewer",
+const AppManifest text_viewer_app = {
+    .id = "text_viewer",
+    .name = "Text Viewer",
     .icon = NULL,
     .type = AppTypeHidden,
     .on_start = NULL,

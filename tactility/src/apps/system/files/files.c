@@ -2,6 +2,7 @@
 
 #include "app.h"
 #include "apps/system/image_viewer/image_viewer.h"
+#include "apps/system/text_viewer/text_viewer.h"
 #include "assets.h"
 #include "check.h"
 #include "file_utils.h"
@@ -39,6 +40,17 @@ static bool has_file_extension(const char* path, const char* extension) {
 static bool is_supported_image_file(const char* filename) {
     // Currently only the PNG library is built into Tactility
     return has_file_extension(filename, ".png");
+}
+
+static bool is_supported_text_file(const char* filename) {
+    return has_file_extension(filename, ".txt") ||
+        has_file_extension(filename, ".ini") ||
+        has_file_extension(filename, ".json") ||
+        has_file_extension(filename, ".yaml") ||
+        has_file_extension(filename, ".yml") ||
+        has_file_extension(filename, ".lua") ||
+        has_file_extension(filename, ".js") ||
+        has_file_extension(filename, ".properties");
 }
 
 // region Views
@@ -92,6 +104,15 @@ static void view_file(const char* path, const char* filename) {
         Bundle bundle = tt_bundle_alloc();
         tt_bundle_put_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         loader_start_app("image_viewer", false, bundle);
+    } else if (is_supported_text_file(filename)) {
+        Bundle bundle = tt_bundle_alloc();
+        if (tt_get_platform() == PlatformEsp) {
+            tt_bundle_put_string(bundle, TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
+        } else {
+            // Remove forward slash, because we need a relative path
+            tt_bundle_put_string(bundle, TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
+        }
+        loader_start_app("text_viewer", false, bundle);
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
     }
