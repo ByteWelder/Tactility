@@ -13,6 +13,8 @@ Tactility features a desktop with a set of applications:
 
 ![screenshot of system info app](docs/pics/screenshot-systeminfo.png) ![screenshot of files app](docs/pics/screenshot-files.png)
 
+![screenshot of GPIO app](docs/pics/screenshot-gpio.png)
+
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
 Noteworthy features:
