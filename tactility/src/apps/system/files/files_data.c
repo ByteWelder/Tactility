@@ -5,22 +5,20 @@
 
 #define TAG "files_app"
 
-static bool get_child_path(char* base_path, const char* child_path, char* out_path, size_t out_size) {
+static bool get_child_path(char* base_path, const char* child_path, char* out_path, size_t max_chars) {
     size_t current_path_length = strlen(base_path);
     size_t added_path_length = strlen(child_path);
     size_t total_path_length = current_path_length + added_path_length + 1; // two paths with `/`
 
-    if (total_path_length >= out_size) {
+    if (total_path_length >= max_chars) {
         TT_LOG_E(TAG, "Path limit reached (%d chars)", MAX_PATH_LENGTH);
         return false;
     } else {
-        memcpy(out_path, base_path, current_path_length);
         // Postfix with "/" when the current path isn't "/"
         if (current_path_length != 1) {
-            out_path[current_path_length] = '/';
-            strcpy(&out_path[current_path_length + 1], child_path);
+            sprintf(out_path, "%s/%s", base_path, child_path);
         } else {
-            strcpy(&out_path[current_path_length], child_path);
+            sprintf(out_path, "/%s", child_path);
         }
         return true;
     }
@@ -101,7 +99,7 @@ bool files_data_set_entries_for_path(FilesData* data, const char* path) {
 }
 
 bool files_data_set_entries_for_child_path(FilesData* data, const char* child_path) {
-    char new_absolute_path[MAX_PATH_LENGTH];
+    char new_absolute_path[MAX_PATH_LENGTH + 1];
     if (get_child_path(data->current_path, child_path, new_absolute_path, MAX_PATH_LENGTH)) {
         TT_LOG_I(TAG, "Navigating from %s to %s", data->current_path, new_absolute_path);
         return files_data_set_entries_for_path(data, new_absolute_path);
