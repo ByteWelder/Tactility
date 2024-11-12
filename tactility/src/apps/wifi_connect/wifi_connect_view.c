@@ -3,7 +3,7 @@
 #include "log.h"
 #include "lvgl.h"
 #include "services/gui/gui.h"
-#include "services/wifi/wifi_credentials.h"
+#include "services/wifi/wifi_settings.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
@@ -47,7 +47,7 @@ static void on_connect(lv_event_t* event) {
     );
 
     if (lv_obj_get_state(view->remember_switch) == LV_STATE_CHECKED) {
-        if (!tt_wifi_credentials_save(&settings)) {
+        if (!tt_wifi_settings_save(&settings)) {
             TT_LOG_E(TAG, "Failed to store credentials");
         }
     }

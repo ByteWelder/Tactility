@@ -12,11 +12,6 @@ extern "C" {
 #define TT_WIFI_SSID_LIMIT 32 // 32 characters/octets, according to IEEE 802.11-2020 spec
 #define TT_WIFI_CREDENTIALS_PASSWORD_LIMIT 64 // 64 characters/octets, according to IEEE 802.11-2020 spec
 
-typedef struct {
-    char ssid[TT_WIFI_SSID_LIMIT + 1]; // Add extra character for null termination
-    char secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1]; // Add extra character for null termination
-    bool auto_connect;
-} WifiApSettings;
 
 #ifdef __cplusplus
 }

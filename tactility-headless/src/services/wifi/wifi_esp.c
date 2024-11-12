@@ -11,7 +11,7 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
-#include "wifi_credentials.h"
+#include "wifi_settings.h"
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
@@ -284,10 +284,10 @@ static void wifi_copy_scan_list(Wifi* wifi) {
 static void wifi_auto_connect(Wifi* wifi) {
     for (int i = 0; i < wifi->scan_list_count; ++i) {
         const char* ssid = (const char*)wifi->scan_list[i].ssid;
-        if (tt_wifi_credentials_contains(ssid)) {
+        if (tt_wifi_settings_contains(ssid)) {
             static_assert(sizeof(wifi->scan_list[i].ssid) == (TT_WIFI_SSID_LIMIT + 1), "SSID size mismatch");
             WifiApSettings ap_settings;
-            if (tt_wifi_credentials_load(ssid, &ap_settings)) {
+            if (tt_wifi_settings_load(ssid, &ap_settings)) {
                 if (ap_settings.auto_connect) {
                     wifi_connect(ssid, ap_settings.secret);
                 }

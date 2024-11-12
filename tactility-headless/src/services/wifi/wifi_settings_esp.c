@@ -1,7 +1,7 @@
 #ifdef ESP_TARGET
 
-#include "wifi_credentials.h"
 #include "wifi_globals.h"
+#include "wifi_settings.h"
 
 #include "nvs_flash.h"
 #include "log.h"
@@ -9,29 +9,10 @@
 #include "check.h"
 #include "secure.h"
 
-#define TAG "wifi_credentials"
-#define TT_NVS_NAMESPACE "tt_wifi_cred" // limited by NVS_KEY_NAME_MAX_SIZE
+#define TAG "wifi_settings"
+#define TT_NVS_NAMESPACE "wifi_settings" // limited by NVS_KEY_NAME_MAX_SIZE
 
 // region Wi-Fi Credentials - static
-
-static size_t tt_wifi_get_ssid_length(const char ssid[TT_WIFI_SSID_LIMIT]) {
-    for (int i = 0; i < TT_WIFI_SSID_LIMIT; ++i) {
-        if (ssid[i] == 0) {
-            return i;
-        }
-    }
-    return TT_WIFI_SSID_LIMIT;
-}
-
-static void tt_wifi_ssid_copy_safe(const char input[TT_WIFI_SSID_LIMIT], char output[TT_WIFI_SSID_LIMIT + 1]) {
-    for (int i = 0; i < TT_WIFI_SSID_LIMIT; ++i) {
-        output[i] = input[i];
-        if (output[i] == 0) {
-            break;
-        }
-    }
-    output[TT_WIFI_SSID_LIMIT] = 0;
-}
 
 static esp_err_t tt_wifi_credentials_nvs_open(nvs_handle_t* handle, nvs_open_mode_t mode) {
     return nvs_open(TT_NVS_NAMESPACE, NVS_READWRITE, handle);
@@ -45,7 +26,7 @@ static void tt_wifi_credentials_nvs_close(nvs_handle_t handle) {
 
 // region Wi-Fi Credentials - public
 
-bool tt_wifi_credentials_contains(const char* ssid) {
+bool tt_wifi_settings_contains(const char* ssid) {
     nvs_handle_t handle;
     esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READONLY);
     if (result != ESP_OK) {
@@ -59,11 +40,12 @@ bool tt_wifi_credentials_contains(const char* ssid) {
     return key_exists;
 }
 
-void tt_wifi_credentials_init() {
+void tt_wifi_settings_init() {
     TT_LOG_I(TAG, "init");
+    static_assert(strlen(TT_NVS_NAMESPACE) <= NVS_KEY_NAME_MAX_SIZE, "Namespace name too long");
 }
 
-bool tt_wifi_credentials_load(const char* ssid, WifiApSettings* settings) {
+bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
     nvs_handle_t handle;
     esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READONLY);
     if (result != ESP_OK) {
@@ -103,7 +85,7 @@ bool tt_wifi_credentials_load(const char* ssid, WifiApSettings* settings) {
     return result == ESP_OK;
 }
 
-bool tt_wifi_credentials_save(const WifiApSettings* settings) {
+bool tt_wifi_settings_save(const WifiApSettings* settings) {
     nvs_handle_t handle;
     esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READWRITE);
     if (result != ESP_OK) {
@@ -119,8 +101,7 @@ bool tt_wifi_credentials_save(const WifiApSettings* settings) {
     encrypted_settings.secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
 
     uint8_t iv[16];
-    size_t ssid_len = tt_wifi_get_ssid_length(settings->ssid);
-    tt_secure_get_iv_from_data(settings->ssid, ssid_len, iv);
+    tt_secure_get_iv_from_data(settings->ssid, strlen(settings->ssid), iv);
     int encrypt_result = tt_secure_encrypt(
         iv,
         (uint8_t*)settings->secret,
@@ -144,7 +125,7 @@ bool tt_wifi_credentials_save(const WifiApSettings* settings) {
     return result == ESP_OK;
 }
 
-bool tt_wifi_credentials_remove(const char* ssid) {
+bool tt_wifi_settings_remove(const char* ssid) {
     nvs_handle_t handle;
     esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READWRITE);
     if (result != ESP_OK) {

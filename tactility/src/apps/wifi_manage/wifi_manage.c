@@ -3,11 +3,11 @@
 #include "app.h"
 #include "apps/wifi_connect/wifi_connect_bundle.h"
 #include "services/loader/loader.h"
+#include "services/wifi/wifi_settings.h"
 #include "tactility_core.h"
 #include "ui/lvgl_sync.h"
 #include "wifi_manage_state_updating.h"
 #include "wifi_manage_view.h"
-#include "services/wifi/wifi_credentials.h"
 
 #define TAG "wifi_manage"
 
@@ -16,7 +16,7 @@ static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid) {
     WifiApSettings settings;
-    if (tt_wifi_credentials_load(ssid, &settings)) {
+    if (tt_wifi_settings_load(ssid, &settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
         wifi_connect(ssid, settings.secret);
     } else {
