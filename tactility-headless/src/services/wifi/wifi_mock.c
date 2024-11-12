@@ -34,6 +34,15 @@ static Wifi* wifi_singleton = NULL;
 static void wifi_lock(Wifi* wifi);
 static void wifi_unlock(Wifi* wifi);
 
+// region Static
+
+static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
+    WifiEvent turning_on_event = {.type = type};
+    tt_pubsub_publish(wifi->pubsub, &turning_on_event);
+}
+
+// endregion Static
+
 // region Alloc
 
 static Wifi* wifi_alloc() {
@@ -41,7 +50,7 @@ static Wifi* wifi_alloc() {
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
     instance->pubsub = tt_pubsub_alloc();
     instance->scan_active = false;
-    instance->radio_state = WIFI_RADIO_OFF;
+    instance->radio_state = WIFI_RADIO_ON;
     instance->secure_connection = false;
     return instance;
 }
@@ -84,7 +93,6 @@ void wifi_connect(const char* ssid, _Nullable const char* password) {
 
 void wifi_disconnect() {
     tt_assert(wifi_singleton);
-    // TODO: implement
 }
 
 void wifi_set_scan_records(uint16_t records) {
@@ -96,14 +104,32 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
     tt_check(wifi_singleton);
     tt_check(result_count);
 
-    // TODO: implement
-    *result_count = 0;
+    if (limit >= 5) {
+        strcpy((char*)records[0].ssid, "Home WiFi");
+        records[0].auth_mode = WIFI_AUTH_WPA2_PSK;
+        records[0].rssi = -30;
+        strcpy((char*)records[1].ssid, "Living Room");
+        records[1].auth_mode = WIFI_AUTH_WPA2_PSK;
+        records[1].rssi = -67;
+        strcpy((char*)records[2].ssid, "No place like 127.0.0.1");
+        records[2].auth_mode = WIFI_AUTH_WPA2_PSK;
+        records[2].rssi = -70;
+        strcpy((char*)records[3].ssid, "Public Wi-Fi");
+        records[3].auth_mode = WIFI_AUTH_WPA2_PSK;
+        records[3].rssi = -80;
+        strcpy((char*)records[4].ssid, "Bad Reception");
+        records[4].auth_mode = WIFI_AUTH_WPA2_PSK;
+        records[4].rssi = -90;
+        *result_count = 5;
+    } else {
+        *result_count = 0;
+    }
 }
 
 void wifi_set_enabled(bool enabled) {
     tt_assert(wifi_singleton != NULL);
     if (enabled) {
-        wifi_singleton->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
+        wifi_singleton->radio_state = WIFI_RADIO_ON;
         wifi_singleton->secure_connection = true;
     } else {
         wifi_singleton->radio_state = WIFI_RADIO_OFF;

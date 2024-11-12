@@ -4,7 +4,6 @@
 #include "lvgl.h"
 #include "services/gui/gui.h"
 #include "services/wifi/wifi_settings.h"
-#include "ui/spacer.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 #include "wifi_connect.h"
@@ -37,7 +36,6 @@ static void on_connect(lv_event_t* event) {
     strcpy((char*)settings.secret, password);
     strcpy((char*)settings.ssid, ssid);
     settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
-
 
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(
@@ -91,28 +89,64 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    lv_obj_t* ssid_label = lv_label_create(wrapper);
+    // SSID
+
+    lv_obj_t* ssid_wrapper = lv_obj_create(wrapper);
+    lv_obj_set_width(ssid_wrapper, LV_PCT(100));
+    lv_obj_set_height(ssid_wrapper, LV_SIZE_CONTENT);
+    tt_lv_obj_set_style_no_padding(ssid_wrapper);
+    lv_obj_set_style_border_width(ssid_wrapper, 0, 0);
+
+    lv_obj_t* ssid_label_wrapper = lv_obj_create(ssid_wrapper);
+    lv_obj_set_width(ssid_label_wrapper, LV_PCT(50));
+    lv_obj_set_height(ssid_label_wrapper, LV_SIZE_CONTENT);
+    lv_obj_align(ssid_label_wrapper, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_border_width(ssid_label_wrapper, 0, 0);
+    lv_obj_set_style_pad_left(ssid_label_wrapper, 0, 0);
+    lv_obj_set_style_pad_right(ssid_label_wrapper, 0, 0);
+
+    lv_obj_t* ssid_label = lv_label_create(ssid_label_wrapper);
     lv_label_set_text(ssid_label, "Network:");
-    view->ssid_textarea = lv_textarea_create(wrapper);
+
+    view->ssid_textarea = lv_textarea_create(ssid_wrapper);
     lv_textarea_set_one_line(view->ssid_textarea, true);
+    lv_obj_align(view->ssid_textarea, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_set_width(view->ssid_textarea, LV_PCT(50));
 
-    tt_lv_spacer_create(wrapper, 1, 8);
+    // Password
 
-    lv_obj_t* password_label = lv_label_create(wrapper);
+    lv_obj_t* password_wrapper = lv_obj_create(wrapper);
+    lv_obj_set_width(password_wrapper, LV_PCT(100));
+    lv_obj_set_height(password_wrapper, LV_SIZE_CONTENT);
+    tt_lv_obj_set_style_no_padding(password_wrapper);
+    lv_obj_set_style_border_width(password_wrapper, 0, 0);
+
+    lv_obj_t* password_label_wrapper = lv_obj_create(password_wrapper);
+    lv_obj_set_width(password_label_wrapper, LV_PCT(50));
+    lv_obj_set_height(password_label_wrapper, LV_SIZE_CONTENT);
+    lv_obj_align_to(password_label_wrapper, password_wrapper, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_style_border_width(password_label_wrapper, 0, 0);
+    lv_obj_set_style_pad_left(password_label_wrapper, 0, 0);
+    lv_obj_set_style_pad_right(password_label_wrapper, 0, 0);
+
+    lv_obj_t* password_label = lv_label_create(password_label_wrapper);
     lv_label_set_text(password_label, "Password:");
-    view->password_textarea = lv_textarea_create(wrapper);
+
+    view->password_textarea = lv_textarea_create(password_wrapper);
     lv_textarea_set_one_line(view->password_textarea, true);
     lv_textarea_set_password_mode(view->password_textarea, true);
+    lv_obj_align(view->password_textarea, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_set_width(view->password_textarea, LV_PCT(50));
 
-    tt_lv_spacer_create(wrapper, 1, 8);
-
+    // Bottom buttons
     wifi_connect_view_create_bottom_buttons(wifi, wrapper);
 
+    // Keyboard bindings
     gui_keyboard_add_textarea(view->ssid_textarea);
     gui_keyboard_add_textarea(view->password_textarea);
 
     // Init from app parameters
-    Bundle _Nullable bundle = tt_app_get_parameters(app);
+    _Nullable Bundle bundle = tt_app_get_parameters(app);
     if (bundle) {
         char* ssid;
         if (tt_bundle_opt_string(bundle, WIFI_CONNECT_PARAM_SSID, &ssid)) {

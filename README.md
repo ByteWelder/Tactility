@@ -7,13 +7,18 @@ It provides an application framework that is based on code from the [Flipper Zer
 
 **Status: Alpha**
 
-Tactility features a desktop with a set of applications:
+A modern desktop with built-in apps:
 
 ![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of settings app](docs/pics/screenshot-settings.png)
 
-![screenshot of system info app](docs/pics/screenshot-systeminfo.png) ![screenshot of files app](docs/pics/screenshot-files.png)
+Configure your Wi-Fi without having to hard-code credentials:
 
-![screenshot of GPIO app](docs/pics/screenshot-gpio.png)
+![screenshot of wifi management app](docs/pics/screenshot-wifi_manage.png) ![screenshot of wifi app to connect to wifi](docs/pics/screenshot-wifi_connect.png)
+
+And much more!
+
+![screenshot of GPIO app](docs/pics/screenshot-gpio.png) ![screenshot of files app](docs/pics/screenshot-files.png)
+
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
