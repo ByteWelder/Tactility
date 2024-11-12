@@ -109,6 +109,7 @@ PubSub* wifi_get_pubsub() {
 }
 
 WifiRadioState wifi_get_radio_state() {
+    tt_assert(wifi_singleton);
     wifi_lock(wifi_singleton);
     WifiRadioState state = wifi_singleton->radio_state;
     wifi_unlock(wifi_singleton);
@@ -188,6 +189,7 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
 }
 
 void wifi_set_enabled(bool enabled) {
+    tt_check(wifi_singleton);
     wifi_lock(wifi_singleton);
     if (enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOn};
@@ -286,7 +288,9 @@ static void wifi_auto_connect(Wifi* wifi) {
             static_assert(sizeof(wifi->scan_list[i].ssid) == (TT_WIFI_SSID_LIMIT + 1), "SSID size mismatch");
             WifiApSettings ap_settings;
             if (tt_wifi_credentials_load(ssid, &ap_settings)) {
-                wifi_connect(ssid, ap_settings.secret);
+                if (ap_settings.auto_connect) {
+                    wifi_connect(ssid, ap_settings.secret);
+                }
             } else {
                 TT_LOG_E(TAG, "Failed to load credentials for ssid %s", ssid);
             }
@@ -337,7 +341,7 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
         wifi_singleton->scan_active = false;
         TT_LOG_I(TAG, "Finished scan");
 
-        if (copied_list && TT_WIFI_AUTO_CONNECT) {
+        if (copied_list) {
             wifi_auto_connect(wifi_singleton);
         }
     }
@@ -436,6 +440,7 @@ static void wifi_disable(Wifi* wifi) {
     }
 
     TT_LOG_I(TAG, "Disabling");
+    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
     wifi->radio_state = WIFI_RADIO_OFF_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
@@ -526,8 +531,6 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     static_assert(sizeof(wifi_config.sta.ssid) == sizeof(connect_message->ssid), "SSID size mismatch");
     memcpy(wifi_config.sta.ssid, connect_message->ssid, sizeof(wifi_config.sta.ssid));
     memcpy(wifi_config.sta.password, connect_message->password, sizeof(wifi_config.sta.password));
-
-    TT_LOG_I(TAG, "TEST: %s:%s", wifi_config.sta.ssid, wifi_config.sta.password);
 
     wifi->secure_connection = (wifi_config.sta.password[0] != 0x00);
 
@@ -643,27 +646,36 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
+                    wifi_lock(wifi);
                     wifi_enable(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeRadioOff:
+                    wifi_lock(wifi);
                     wifi_disable(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeScan:
+                    wifi_lock(wifi);
                     wifi_scan_internal(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeConnect:
+                    wifi_lock(wifi);
                     wifi_connect_internal(wifi, &message.connect_message);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeDisconnect:
+                    wifi_lock(wifi);
                     wifi_disconnect_internal_but_keep_active(wifi);
+                    wifi_unlock(wifi);
                     break;
             }
         }
 
+        // Automatic scanning is done so we can automatically connect to access points
         wifi_lock(wifi);
-        bool should_start_scan = wifi->radio_state == WIFI_RADIO_ON &&
-            !wifi->scan_active
-            && TT_WIFI_AUTO_CONNECT;
+        bool should_start_scan = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
         wifi_unlock(wifi);
         if (should_start_scan) {
             wifi_scan_internal(wifi);

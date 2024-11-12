@@ -36,7 +36,8 @@ static void on_connect(lv_event_t* event) {
     WifiApSettings settings;
     strcpy((char*)settings.secret, password);
     strcpy((char*)settings.ssid, ssid);
-    settings.auto_connect = true;
+    settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
+
 
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(

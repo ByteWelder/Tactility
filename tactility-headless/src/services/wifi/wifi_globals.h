@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-#define TT_WIFI_AUTO_CONNECT true
+#define TT_WIFI_AUTO_CONNECT true // Default setting for new Wi-Fi entries
 #define TT_WIFI_AUTO_ENABLE true
 
 #define TT_WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
