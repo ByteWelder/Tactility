@@ -7,9 +7,15 @@
 extern "C" {
 #endif
 
+/**
+ * This struct is stored as-is into NVS flash.
+ *
+ * The SSID and secret are increased by 1 byte to facilitate string null termination.
+ * This makes it easier to use the char array as a string in various places.
+ */
 typedef struct {
-    char ssid[TT_WIFI_SSID_LIMIT + 1]; // Add extra character for null termination
-    char secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1]; // Add extra character for null termination
+    char ssid[TT_WIFI_SSID_LIMIT + 1];
+    char secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1];
     bool auto_connect;
 } WifiApSettings;
 
