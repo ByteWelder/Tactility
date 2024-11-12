@@ -26,7 +26,15 @@ extern "C" {
 #endif
 
 /**
- * @brief Fills the IV with zeros and then copies up to 16 characters of the string into the IV.
+ * @brief Fills the IV with zeros and then creates an IV based on the input data.
+ * @param data input data
+ * @param data_length input data length
+ * @param iv output IV
+ */
+void tt_secure_get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]);
+
+/**
+* @brief Fills the IV with zeros and then creates an IV based on the input data.
  * @param input input text
  * @param iv output IV
  */

@@ -3,7 +3,7 @@
 #ifdef ESP_TARGET
 
 #include "esp_partitions.h"
-#include "services/wifi/wifi_credentials.h"
+#include "services/wifi/wifi_settings.h"
 
 #include "esp_event.h"
 #include "esp_netif.h"
@@ -34,7 +34,7 @@ void tt_esp_init() {
 
     tt_esp_network_init();
 
-    tt_wifi_credentials_init();
+    tt_wifi_settings_init();
 }
 
 #endif

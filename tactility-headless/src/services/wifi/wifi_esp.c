@@ -11,10 +11,10 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
+#include "wifi_settings.h"
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
-#define WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
@@ -50,8 +50,8 @@ typedef enum {
 } WifiMessageType;
 
 typedef struct {
-    uint8_t ssid[32];
-    uint8_t password[64];
+    uint8_t ssid[TT_WIFI_SSID_LIMIT];
+    uint8_t password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
 } WifiConnectMessage;
 
 typedef struct {
@@ -83,7 +83,7 @@ static Wifi* wifi_alloc() {
     instance->scan_active = false;
     instance->scan_list = NULL;
     instance->scan_list_count = 0;
-    instance->scan_list_limit = WIFI_SCAN_RECORD_LIMIT;
+    instance->scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
     instance->event_handler_any_id = NULL;
     instance->event_handler_got_ip = NULL;
     instance->event_group = xEventGroupCreate();
@@ -109,52 +109,67 @@ PubSub* wifi_get_pubsub() {
 }
 
 WifiRadioState wifi_get_radio_state() {
-    return wifi_singleton->radio_state;
+    tt_assert(wifi_singleton);
+    wifi_lock(wifi_singleton);
+    WifiRadioState state = wifi_singleton->radio_state;
+    wifi_unlock(wifi_singleton);
+    return state;
 }
 
 void wifi_scan() {
     tt_assert(wifi_singleton);
+    wifi_lock(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeScan};
     // No need to lock for queue
     tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_unlock(wifi_singleton);
 }
 
 bool wifi_is_scanning() {
     tt_assert(wifi_singleton);
-    return wifi_singleton->scan_active;
+    wifi_lock(wifi_singleton);
+    bool is_scanning = wifi_singleton->scan_active;
+    wifi_unlock(wifi_singleton);
+    return is_scanning;
 }
 
-void wifi_connect(const char* ssid, const char _Nullable password[64]) {
+void wifi_connect(const char* ssid, _Nullable const char* password) {
     tt_assert(wifi_singleton);
-    tt_check(strlen(ssid) <= 32);
     WifiMessage message = {.type = WifiMessageTypeConnect};
-    memcpy(message.connect_message.ssid, ssid, 32);
+    wifi_lock(wifi_singleton);
+    memcpy(message.connect_message.ssid, ssid, TT_WIFI_SSID_LIMIT);
     if (password != NULL) {
-        memcpy(message.connect_message.password, password, 64);
+        memcpy(message.connect_message.password, password, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
     } else {
         message.connect_message.password[0] = 0;
     }
     tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_unlock(wifi_singleton);
 }
 
 void wifi_disconnect() {
     tt_assert(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
+    wifi_lock(wifi_singleton);
     tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_unlock(wifi_singleton);
 }
 
 void wifi_set_scan_records(uint16_t records) {
     tt_assert(wifi_singleton);
+    wifi_lock(wifi_singleton);
     if (records != wifi_singleton->scan_list_limit) {
         wifi_scan_list_free_safely(wifi_singleton);
         wifi_singleton->scan_list_limit = records;
     }
+    wifi_unlock(wifi_singleton);
 }
 
 void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
     tt_check(wifi_singleton);
     tt_check(result_count);
 
+    wifi_lock(wifi_singleton);
     if (wifi_singleton->scan_list_count == 0) {
         *result_count = 0;
     } else {
@@ -170,9 +185,12 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
         // so it effectively became the list count:
         *result_count = i;
     }
+    wifi_unlock(wifi_singleton);
 }
 
 void wifi_set_enabled(bool enabled) {
+    tt_check(wifi_singleton);
+    wifi_lock(wifi_singleton);
     if (enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOn};
         // No need to lock for queue
@@ -182,14 +200,19 @@ void wifi_set_enabled(bool enabled) {
         // No need to lock for queue
         tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     }
+    wifi_unlock(wifi_singleton);
 }
 
 bool wifi_is_connection_secure() {
     tt_check(wifi_singleton);
-    return wifi_singleton->secure_connection;
+    wifi_lock(wifi_singleton);
+    bool is_secure = wifi_singleton->secure_connection;
+    wifi_unlock(wifi_singleton);
+    return is_secure;
 }
 
 int wifi_get_rssi() {
+    tt_check(wifi_singleton);
     static int rssi = 0;
     if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
         return rssi;
@@ -201,16 +224,15 @@ int wifi_get_rssi() {
 // endregion Public functions
 
 static void wifi_lock(Wifi* wifi) {
-    tt_crash("this fails for now"); // TODO: Fix
     tt_assert(wifi);
     tt_assert(wifi->mutex);
-    tt_check(xSemaphoreTakeRecursive(wifi->mutex, portMAX_DELAY) == pdPASS);
+    tt_mutex_acquire(wifi->mutex, tt_ms_to_ticks(100));
 }
 
 static void wifi_unlock(Wifi* wifi) {
     tt_assert(wifi);
     tt_assert(wifi->mutex);
-    tt_check(xSemaphoreGiveRecursive(wifi->mutex) == pdPASS);
+    tt_mutex_release(wifi->mutex);
 }
 
 static void wifi_scan_list_alloc(Wifi* wifi) {
@@ -243,7 +265,42 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
+static void wifi_copy_scan_list(Wifi* wifi) {
+    // Create scan list if it does not exist
+    wifi_scan_list_alloc_safely(wifi);
+    wifi->scan_list_count = 0;
+    uint16_t record_count = wifi->scan_list_limit;
+
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
+    uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
+    wifi->scan_list_count = safe_record_count;
+    TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
+    for (uint16_t i = 0; i < safe_record_count; i++) {
+        wifi_ap_record_t* record = &wifi->scan_list[i];
+        TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+    }
+}
+
+static void wifi_auto_connect(Wifi* wifi) {
+    for (int i = 0; i < wifi->scan_list_count; ++i) {
+        const char* ssid = (const char*)wifi->scan_list[i].ssid;
+        if (tt_wifi_settings_contains(ssid)) {
+            static_assert(sizeof(wifi->scan_list[i].ssid) == (TT_WIFI_SSID_LIMIT + 1), "SSID size mismatch");
+            WifiApSettings ap_settings;
+            if (tt_wifi_settings_load(ssid, &ap_settings)) {
+                if (ap_settings.auto_connect) {
+                    wifi_connect(ssid, ap_settings.secret);
+                }
+            } else {
+                TT_LOG_E(TAG, "Failed to load credentials for ssid %s", ssid);
+            }
+            break;
+        }
+    }
+}
+
 static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+    wifi_lock(wifi_singleton);
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         TT_LOG_I(TAG, "event_handler: sta start");
         if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
@@ -258,7 +315,37 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
         ip_event_got_ip_t* event = (ip_event_got_ip_t*)event_data;
         TT_LOG_I(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         xEventGroupSetBits(wifi_singleton->event_group, WIFI_CONNECTED_BIT);
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
+        wifi_event_sta_scan_done_t* event = (wifi_event_sta_scan_done_t*)event_data;
+        TT_LOG_I(TAG, "event_handler: wifi scanning done (scan id %u)", event->scan_id);
+        bool copied_list;
+        if (
+            wifi_singleton->radio_state == WIFI_RADIO_ON ||
+            wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_ACTIVE ||
+            wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING
+        ) {
+            wifi_copy_scan_list(wifi_singleton);
+            copied_list = true;
+        } else {
+            copied_list = false;
+        }
+
+        if (
+            wifi_singleton->radio_state != WIFI_RADIO_OFF &&
+            wifi_singleton->radio_state != WIFI_RADIO_OFF_PENDING
+        ) {
+            esp_wifi_scan_stop();
+        }
+
+        wifi_publish_event_simple(wifi_singleton, WifiEventTypeScanFinished);
+        wifi_singleton->scan_active = false;
+        TT_LOG_I(TAG, "Finished scan");
+
+        if (copied_list) {
+            wifi_auto_connect(wifi_singleton);
+        }
     }
+    wifi_unlock(wifi_singleton);
 }
 
 static void wifi_enable(Wifi* wifi) {
@@ -353,6 +440,7 @@ static void wifi_disable(Wifi* wifi) {
     }
 
     TT_LOG_I(TAG, "Disabling");
+    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
     wifi->radio_state = WIFI_RADIO_OFF_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
@@ -401,35 +489,22 @@ static void wifi_disable(Wifi* wifi) {
 
 static void wifi_scan_internal(Wifi* wifi) {
     WifiRadioState state = wifi->radio_state;
-    if (state != WIFI_RADIO_ON && state != WIFI_RADIO_CONNECTION_ACTIVE) {
+    if (state != WIFI_RADIO_ON && state != WIFI_RADIO_CONNECTION_ACTIVE && state != WIFI_RADIO_CONNECTION_PENDING) {
         TT_LOG_W(TAG, "Scan unavailable: wifi not enabled");
         return;
     }
 
-    TT_LOG_I(TAG, "Starting scan");
-    wifi->scan_active = true;
-    wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
-
-    // Create scan list if it does not exist
-    wifi_scan_list_alloc_safely(wifi);
-    wifi->scan_list_count = 0;
-
-    esp_wifi_scan_start(NULL, true);
-    uint16_t record_count = wifi->scan_list_limit;
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
-    uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
-    wifi->scan_list_count = safe_record_count;
-    TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
-    for (uint16_t i = 0; i < safe_record_count; i++) {
-        wifi_ap_record_t* record = &wifi->scan_list[i];
-        TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+    if (!wifi->scan_active) {
+        if (esp_wifi_scan_start(NULL, false) == ESP_OK) {
+            TT_LOG_I(TAG, "Starting scan");
+            wifi->scan_active = true;
+            wifi_publish_event_simple(wifi, WifiEventTypeScanStarted);
+        } else {
+            TT_LOG_I(TAG, "Can't start scan");
+        }
+    } else {
+        TT_LOG_W(TAG, "Scan already pending");
     }
-
-    esp_wifi_scan_stop();
-
-    wifi_publish_event_simple(wifi, WifiEventTypeScanFinished);
-    wifi->scan_active = false;
-    TT_LOG_I(TAG, "Finished scan");
 }
 
 static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
@@ -452,8 +527,10 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
             .sae_h2e_identifier = {0},
         },
     };
-    memcpy(wifi_config.sta.ssid, connect_message->ssid, 32);
-    memcpy(wifi_config.sta.password, connect_message->password, 64);
+
+    static_assert(sizeof(wifi_config.sta.ssid) == sizeof(connect_message->ssid), "SSID size mismatch");
+    memcpy(wifi_config.sta.ssid, connect_message->ssid, sizeof(wifi_config.sta.ssid));
+    memcpy(wifi_config.sta.password, connect_message->password, sizeof(wifi_config.sta.password));
 
     wifi->secure_connection = (wifi_config.sta.password[0] != 0x00);
 
@@ -558,27 +635,50 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     Wifi* wifi = wifi_singleton;
     MessageQueue* queue = wifi->queue;
 
+    if (TT_WIFI_AUTO_ENABLE) {
+        wifi_enable(wifi);
+        wifi_scan_internal(wifi);
+    }
+
     WifiMessage message;
     while (true) {
-        if (tt_message_queue_get(queue, &message, 1000 / portTICK_PERIOD_MS) == TtStatusOk) {
+        if (tt_message_queue_get(queue, &message, 5000 / portTICK_PERIOD_MS) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
+                    wifi_lock(wifi);
                     wifi_enable(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeRadioOff:
+                    wifi_lock(wifi);
                     wifi_disable(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeScan:
+                    wifi_lock(wifi);
                     wifi_scan_internal(wifi);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeConnect:
+                    wifi_lock(wifi);
                     wifi_connect_internal(wifi, &message.connect_message);
+                    wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeDisconnect:
+                    wifi_lock(wifi);
                     wifi_disconnect_internal_but_keep_active(wifi);
+                    wifi_unlock(wifi);
                     break;
             }
+        }
+
+        // Automatic scanning is done so we can automatically connect to access points
+        wifi_lock(wifi);
+        bool should_start_scan = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
+        wifi_unlock(wifi);
+        if (should_start_scan) {
+            wifi_scan_internal(wifi);
         }
     }
 }

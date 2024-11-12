@@ -12,7 +12,6 @@
 #include <sys/cdefs.h>
 
 #define TAG "wifi"
-#define WIFI_SCAN_RECORD_LIMIT 16 // default, can be overridden
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
@@ -77,7 +76,7 @@ bool wifi_is_scanning() {
     return wifi_singleton->scan_active;
 }
 
-void wifi_connect(const char* ssid, const char _Nullable password[64]) {
+void wifi_connect(const char* ssid, _Nullable const char* password) {
     tt_assert(wifi_singleton);
     tt_check(strlen(ssid) <= 32);
     // TODO: implement

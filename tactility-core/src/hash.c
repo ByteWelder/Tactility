@@ -9,3 +9,16 @@ uint32_t tt_hash_string_djb2(const char* str) {
     }
     return hash;
 }
+
+uint32_t tt_hash_bytes_djb2(const void* data, size_t length) {
+    uint32_t hash = 5381;
+    uint8_t* data_bytes = (uint8_t*)data;
+    uint8_t c = *data_bytes++;
+    size_t index = 0;
+    while (index < length) {
+        hash = ((hash << 5) + hash) + (uint32_t)c; // hash * 33 + c
+        c = *data_bytes++;
+        index++;
+    }
+    return hash;
+}

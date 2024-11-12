@@ -7,6 +7,7 @@ extern "C" {
 #include "pubsub.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include "wifi_globals.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
@@ -65,7 +66,7 @@ typedef struct {
 } WifiEvent;
 
 typedef struct {
-    uint8_t ssid[33];
+    uint8_t ssid[TT_WIFI_SSID_LIMIT + 1];
     int8_t rssi;
     wifi_auth_mode_t auth_mode;
 } WifiApRecord;
@@ -112,7 +113,7 @@ void wifi_set_enabled(bool enabled);
  * @param ssid
  * @param password
  */
-void wifi_connect(const char* ssid, const char _Nullable password[64]);
+void wifi_connect(const char* ssid, _Nullable const char* password);
 
 /**
  * @brief Disconnect from the access point. Doesn't have any effect when not connected.
