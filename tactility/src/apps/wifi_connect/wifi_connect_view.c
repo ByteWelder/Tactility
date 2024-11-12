@@ -19,23 +19,36 @@ static void on_connect(lv_event_t* event) {
     const char* ssid = lv_textarea_get_text(view->ssid_textarea);
     const char* password = lv_textarea_get_text(view->password_textarea);
 
-    if (strlen(password) > 63) {
+    size_t password_len = strlen(password);
+    if (password_len > TT_WIFI_CREDENTIALS_PASSWORD_LIMIT) {
         // TODO: UI feedback
         TT_LOG_E(TAG, "Password too long");
         return;
     }
-    char password_buffer[64];
-    strcpy(password_buffer, password);
+
+    size_t ssid_len = strlen(ssid);
+    if (ssid_len > TT_WIFI_SSID_LIMIT) {
+        // TODO: UI feedback
+        TT_LOG_E(TAG, "SSID too long");
+        return;
+    }
+
+    WifiApSettings settings;
+    strcpy((char*)settings.secret, password);
+    strcpy((char*)settings.ssid, ssid);
+    settings.auto_connect = true;
 
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(
-        ssid,
-        password_buffer,
+        settings.ssid,
+        settings.secret,
         bindings->on_connect_ssid_context
     );
 
     if (lv_obj_get_state(view->remember_switch) == LV_STATE_CHECKED) {
-        tt_wifi_credentials_set(ssid, password_buffer);
+        if (!tt_wifi_credentials_save(&settings)) {
+            TT_LOG_E(TAG, "Failed to store credentials");
+        }
     }
 }
 

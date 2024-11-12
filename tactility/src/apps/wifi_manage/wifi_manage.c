@@ -15,10 +15,10 @@
 static void wifi_manage_event_callback(const void* message, void* context);
 
 static void on_connect(const char* ssid) {
-    char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
-    if (tt_wifi_credentials_get(ssid, password)) {
+    WifiApSettings settings;
+    if (tt_wifi_credentials_load(ssid, &settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
-        wifi_connect(ssid, password);
+        wifi_connect(ssid, settings.secret);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
         Bundle bundle = tt_bundle_alloc();
@@ -39,8 +39,7 @@ static void on_wifi_toggled(bool enabled) {
 static WifiManage* wifi_manage_alloc() {
     WifiManage* wifi = malloc(sizeof(WifiManage));
 
-    PubSub* wifi_pubsub = wifi_get_pubsub();
-    wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
+    wifi->wifi_subscription = NULL;
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiManageState) {
         .scanning = wifi_is_scanning(),
@@ -57,8 +56,6 @@ static WifiManage* wifi_manage_alloc() {
 }
 
 static void wifi_manage_free(WifiManage* wifi) {
-    PubSub* wifi_pubsub = wifi_get_pubsub();
-    tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
     tt_mutex_free(wifi->mutex);
 
     free(wifi);
@@ -116,6 +113,9 @@ static void wifi_manage_event_callback(const void* message, void* context) {
 static void app_show(App app, lv_obj_t* parent) {
     WifiManage* wifi = (WifiManage*)tt_app_get_data(app);
 
+    PubSub* wifi_pubsub = wifi_get_pubsub();
+    wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
+
     // State update (it has its own locking)
     wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
     wifi_manage_state_set_scanning(wifi, wifi_is_scanning());
@@ -130,7 +130,10 @@ static void app_show(App app, lv_obj_t* parent) {
     wifi_manage_unlock(wifi);
 
     WifiRadioState radio_state = wifi_get_radio_state();
-    if (radio_state == WIFI_RADIO_ON && !wifi_is_scanning()) {
+    bool can_scan = radio_state == WIFI_RADIO_ON ||
+        radio_state == WIFI_RADIO_CONNECTION_PENDING ||
+        radio_state == WIFI_RADIO_CONNECTION_ACTIVE;
+    if (can_scan && !wifi_is_scanning()) {
         wifi_scan();
     }
 }
@@ -138,6 +141,9 @@ static void app_show(App app, lv_obj_t* parent) {
 static void app_hide(App app) {
     WifiManage* wifi = (WifiManage*)tt_app_get_data(app);
     wifi_manage_lock(wifi);
+    PubSub* wifi_pubsub = wifi_get_pubsub();
+    tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
+    wifi->wifi_subscription = NULL;
     wifi->view_enabled = false;
     wifi_manage_unlock(wifi);
 }

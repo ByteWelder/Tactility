@@ -120,15 +120,17 @@ static void get_key(uint8_t key[32]) {
 #endif
 }
 
-void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]) {
+void tt_secure_get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]) {
     memset((void*)iv, 0, 16);
-    char c = *input++;
-    int index = 0;
-    while (c) {
-        iv[index] = c;
-        index++;
-        c = *input++;
+    uint8_t* data_bytes = (uint8_t*)data;
+    for (int i = 0; i < data_length; ++i) {
+        size_t safe_index = i % 16;
+        iv[safe_index] %= data_bytes[i];
     }
+}
+
+void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]) {
+    tt_secure_get_iv_from_data((const void*)input, strlen(input), iv);
 }
 
 static int tt_aes256_crypt_cbc(
