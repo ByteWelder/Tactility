@@ -1,8 +1,9 @@
 #pragma once
 
-#include <stdbool.h>
 #include "app.h"
 #include "services/wifi/wifi.h"
+#include "services/wifi/wifi_settings.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -12,7 +13,7 @@ extern "C" {
  * View's state
  */
 typedef struct {
-    WifiRadioState radio_state;
+    WifiApSettings settings;
     bool connection_error;
 } WifiConnectState;
 

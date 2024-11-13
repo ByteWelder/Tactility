@@ -14,6 +14,7 @@ typedef struct {
     lv_obj_t* connect_button;
     lv_obj_t* cancel_button;
     lv_obj_t* remember_switch;
+    lv_obj_t* connecting_spinner;
     lv_group_t* group;
 } WifiConnectView;
 

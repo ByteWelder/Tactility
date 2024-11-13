@@ -6,7 +6,8 @@
 extern "C" {
 #endif
 
-void wifi_connect_state_set_radio_state(WifiConnect* wifi, WifiRadioState state);
+void wifi_connect_state_set_radio_error(WifiConnect* wifi, bool error);
+void wifi_connect_state_set_ap_settings(WifiConnect* wifi, const WifiApSettings* settings);
 
 #ifdef __cplusplus
 }

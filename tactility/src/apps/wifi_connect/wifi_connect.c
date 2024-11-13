@@ -1,6 +1,7 @@
 #include "wifi_connect.h"
 
 #include "app.h"
+#include "services/loader/loader.h"
 #include "services/wifi/wifi.h"
 #include "tactility_core.h"
 #include "ui/lvgl_sync.h"
@@ -22,7 +23,12 @@ static WifiConnect* wifi_connect_alloc() {
     wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_connect_event_callback, wifi);
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiConnectState) {
-        .radio_state = wifi_get_radio_state()
+        .connection_error = false,
+        .settings = {
+            .auto_connect = false,
+            .ssid = { 0 },
+            .secret = { 0 }
+        }
     };
     wifi->bindings = (WifiConnectBindings) {
         .on_connect_ssid = &on_connect,
@@ -69,10 +75,13 @@ void wifi_connect_request_view_update(WifiConnect* wifi) {
 static void wifi_connect_event_callback(const void* message, void* context) {
     const WifiEvent* event = (const WifiEvent*)message;
     WifiConnect* wifi = (WifiConnect*)context;
-    wifi_connect_state_set_radio_state(wifi, wifi_get_radio_state());
     switch (event->type) {
-        case WifiEventTypeRadioStateOn:
-            wifi_scan();
+        case WifiEventTypeConnectionFailed:
+            wifi_connect_state_set_radio_error(wifi, true);
+            wifi_connect_request_view_update(wifi);
+            break;
+        case WifiEventTypeConnectionSuccess:
+            loader_stop_app();
             break;
         default:
             break;

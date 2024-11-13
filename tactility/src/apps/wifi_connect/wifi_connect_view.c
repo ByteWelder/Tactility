@@ -9,8 +9,11 @@
 #include "wifi_connect.h"
 #include "wifi_connect_bundle.h"
 #include "wifi_connect_state.h"
+#include "wifi_connect_state_updating.h"
 
 #define TAG "wifi_connect"
+
+static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading);
 
 static void on_connect(lv_event_t* event) {
     WifiConnect* wifi = (WifiConnect*)lv_event_get_user_data(event);
@@ -32,6 +35,9 @@ static void on_connect(lv_event_t* event) {
         return;
     }
 
+    wifi_connect_view_set_loading(view, true);
+    wifi_connect_state_set_radio_error(wifi, false);
+
     WifiApSettings settings;
     strcpy((char*)settings.secret, password);
     strcpy((char*)settings.ssid, ssid);
@@ -51,6 +57,23 @@ static void on_connect(lv_event_t* event) {
     }
 }
 
+static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading) {
+    if (loading) {
+        lv_obj_add_flag(view->connect_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_state(view->password_textarea, LV_STATE_DISABLED);
+        lv_obj_add_state(view->ssid_textarea, LV_STATE_DISABLED);
+        lv_obj_add_state(view->remember_switch, LV_STATE_DISABLED);
+    } else {
+        lv_obj_remove_flag(view->connect_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_state(view->password_textarea, LV_STATE_DISABLED);
+        lv_obj_remove_state(view->ssid_textarea, LV_STATE_DISABLED);
+        lv_obj_remove_state(view->remember_switch, LV_STATE_DISABLED);
+    }
+
+}
+
 void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
     WifiConnectView* view = &wifi->view;
 
@@ -68,6 +91,11 @@ void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent
     lv_label_set_text(remember_label, "Remember");
     lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align_to(remember_label, view->remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
+
+    view->connecting_spinner = lv_spinner_create(button_container);
+    lv_obj_set_size(view->connecting_spinner, 32, 32);
+    lv_obj_align(view->connecting_spinner, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
 
     view->connect_button = lv_btn_create(button_container);
     lv_obj_t* connect_label = lv_label_create(view->connect_button);
@@ -165,9 +193,11 @@ void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
 }
 
 void wifi_connect_view_update(
-    TT_UNUSED WifiConnectView* view,
+    WifiConnectView* view,
     TT_UNUSED WifiConnectBindings* bindings,
-    TT_UNUSED WifiConnectState* state
+    WifiConnectState* state
 ) {
-    // NO-OP
+    if (state->connection_error) {
+        wifi_connect_view_set_loading(view, false);
+    }
 }
