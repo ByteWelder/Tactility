@@ -440,7 +440,6 @@ static void wifi_disable(Wifi* wifi) {
     }
 
     TT_LOG_I(TAG, "Disabling");
-    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
     wifi->radio_state = WIFI_RADIO_OFF_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
@@ -574,6 +573,8 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         TT_LOG_E(TAG, "UNEXPECTED EVENT");
     }
+
+    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 }
 
 static void wifi_disconnect_internal(Wifi* wifi) {
