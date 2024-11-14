@@ -39,6 +39,8 @@ typedef struct {
     esp_event_handler_instance_t event_handler_got_ip;
     EventGroupHandle_t event_group;
     WifiRadioState radio_state;
+    WifiApSettings connection_target;
+    bool connection_target_remember; // Whether to store the connection_target on successful connection or not
 } Wifi;
 
 typedef enum {
@@ -50,8 +52,6 @@ typedef enum {
 } WifiMessageType;
 
 typedef struct {
-    uint8_t ssid[TT_WIFI_SSID_LIMIT];
-    uint8_t password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT];
 } WifiConnectMessage;
 
 typedef struct {
@@ -89,6 +89,12 @@ static Wifi* wifi_alloc() {
     instance->event_group = xEventGroupCreate();
     instance->radio_state = WIFI_RADIO_OFF;
     instance->secure_connection = false;
+    instance->connection_target = (WifiApSettings) {
+        .ssid = { 0 },
+        .password = { 0 },
+        .auto_connect = false
+    };
+    instance->connection_target_remember = false;
     return instance;
 }
 
@@ -133,24 +139,25 @@ bool wifi_is_scanning() {
     return is_scanning;
 }
 
-void wifi_connect(const char* ssid, _Nullable const char* password) {
+void wifi_connect(const WifiApSettings* ap, bool remember) {
     tt_assert(wifi_singleton);
-    WifiMessage message = {.type = WifiMessageTypeConnect};
     wifi_lock(wifi_singleton);
-    memcpy(message.connect_message.ssid, ssid, TT_WIFI_SSID_LIMIT);
-    if (password != NULL) {
-        memcpy(message.connect_message.password, password, TT_WIFI_CREDENTIALS_PASSWORD_LIMIT);
-    } else {
-        message.connect_message.password[0] = 0;
-    }
+    memcpy(&wifi_singleton->connection_target, ap, sizeof(WifiApSettings));
+    wifi_singleton->connection_target_remember = remember;
+    WifiMessage message = {.type = WifiMessageTypeConnect};
     tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     wifi_unlock(wifi_singleton);
 }
 
 void wifi_disconnect() {
     tt_assert(wifi_singleton);
-    WifiMessage message = {.type = WifiMessageTypeDisconnect};
     wifi_lock(wifi_singleton);
+    wifi_singleton->connection_target = (WifiApSettings) {
+        .ssid = { 0 },
+        .password = { 0 },
+        .auto_connect = false
+    };
+    WifiMessage message = {.type = WifiMessageTypeDisconnect};
     tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
     wifi_unlock(wifi_singleton);
 }
@@ -289,7 +296,7 @@ static void wifi_auto_connect(Wifi* wifi) {
             WifiApSettings ap_settings;
             if (tt_wifi_settings_load(ssid, &ap_settings)) {
                 if (ap_settings.auto_connect) {
-                    wifi_connect(ssid, ap_settings.secret);
+                    wifi_connect(&ap_settings, false);
                 }
             } else {
                 TT_LOG_E(TAG, "Failed to load credentials for ssid %s", ssid);
@@ -440,7 +447,6 @@ static void wifi_disable(Wifi* wifi) {
     }
 
     TT_LOG_I(TAG, "Disabling");
-    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
     wifi->radio_state = WIFI_RADIO_OFF_PENDING;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOffPending);
 
@@ -528,9 +534,9 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
         },
     };
 
-    static_assert(sizeof(wifi_config.sta.ssid) == sizeof(connect_message->ssid), "SSID size mismatch");
-    memcpy(wifi_config.sta.ssid, connect_message->ssid, sizeof(wifi_config.sta.ssid));
-    memcpy(wifi_config.sta.password, connect_message->password, sizeof(wifi_config.sta.password));
+    static_assert(sizeof(wifi_config.sta.ssid) == (sizeof(wifi_singleton->connection_target.ssid)-1), "SSID size mismatch");
+    memcpy(wifi_config.sta.ssid, wifi_singleton->connection_target.ssid, sizeof(wifi_config.sta.ssid));
+    memcpy(wifi_config.sta.password, wifi_singleton->connection_target.password, sizeof(wifi_config.sta.password));
 
     wifi->secure_connection = (wifi_config.sta.password[0] != 0x00);
 
@@ -564,16 +570,25 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
     if (bits & WIFI_CONNECTED_BIT) {
         wifi->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionSuccess);
-        TT_LOG_I(TAG, "Connected to %s", connect_message->ssid);
+        TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid);
+        if (wifi->connection_target_remember) {
+            if (!tt_wifi_settings_save(&wifi->connection_target)) {
+                TT_LOG_E(TAG, "Failed to store credentials");
+            } else {
+                TT_LOG_I(TAG, "Stored credentials");
+            }
+        }
     } else if (bits & WIFI_FAIL_BIT) {
         wifi->radio_state = WIFI_RADIO_ON;
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
-        TT_LOG_I(TAG, "Failed to connect to %s", connect_message->ssid);
+        TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid);
     } else {
         wifi->radio_state = WIFI_RADIO_ON;
         wifi_publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         TT_LOG_E(TAG, "UNEXPECTED EVENT");
     }
+
+    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 }
 
 static void wifi_disconnect_internal(Wifi* wifi) {

@@ -50,7 +50,7 @@ static Wifi* wifi_alloc() {
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
     instance->pubsub = tt_pubsub_alloc();
     instance->scan_active = false;
-    instance->radio_state = WIFI_RADIO_ON;
+    instance->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
     instance->secure_connection = false;
     return instance;
 }
@@ -85,9 +85,8 @@ bool wifi_is_scanning() {
     return wifi_singleton->scan_active;
 }
 
-void wifi_connect(const char* ssid, _Nullable const char* password) {
+void wifi_connect(const WifiApSettings* ap, bool remember) {
     tt_assert(wifi_singleton);
-    tt_check(strlen(ssid) <= 32);
     // TODO: implement
 }
 
@@ -141,8 +140,11 @@ bool wifi_is_connection_secure() {
 }
 
 int wifi_get_rssi() {
-    // TODO: implement
-    return -10;
+    if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
+        return -30;
+    } else {
+        return 0;
+    }
 }
 
 // endregion Public functions

@@ -15,7 +15,7 @@ extern "C" {
  */
 typedef struct {
     char ssid[TT_WIFI_SSID_LIMIT + 1];
-    char secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1];
+    char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1];
     bool auto_connect;
 } WifiApSettings;
 

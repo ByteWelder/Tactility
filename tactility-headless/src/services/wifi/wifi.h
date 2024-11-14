@@ -5,12 +5,14 @@ extern "C" {
 #endif
 
 #include "pubsub.h"
+#include "wifi_globals.h"
+#include "wifi_settings.h"
 #include <stdbool.h>
 #include <stdio.h>
-#include "wifi_globals.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
+#include "wifi_settings.h"
 #else
 #include <stdint.h>
 // From esp_wifi_types.h in ESP-IDF 5.2
@@ -110,10 +112,9 @@ void wifi_set_enabled(bool enabled);
 /**
  * @brief Connect to a network. Disconnects any existing connection.
  * Returns immediately but runs in the background. Results are through pubsub.
- * @param ssid
- * @param password
+ * @param ap
  */
-void wifi_connect(const char* ssid, _Nullable const char* password);
+void wifi_connect(const WifiApSettings* ap, bool remember);
 
 /**
  * @brief Disconnect from the access point. Doesn't have any effect when not connected.

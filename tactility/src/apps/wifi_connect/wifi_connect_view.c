@@ -9,46 +9,75 @@
 #include "wifi_connect.h"
 #include "wifi_connect_bundle.h"
 #include "wifi_connect_state.h"
+#include "wifi_connect_state_updating.h"
 
 #define TAG "wifi_connect"
+
+static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading);
+
+static void wifi_reset_errors(WifiConnectView* view) {
+    lv_obj_add_flag(view->password_error, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(view->ssid_error, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
+}
 
 static void on_connect(lv_event_t* event) {
     WifiConnect* wifi = (WifiConnect*)lv_event_get_user_data(event);
     WifiConnectView* view = &wifi->view;
+
+    wifi_connect_state_set_radio_error(wifi, false);
+    wifi_reset_errors(view);
+
     const char* ssid = lv_textarea_get_text(view->ssid_textarea);
-    const char* password = lv_textarea_get_text(view->password_textarea);
-
-    size_t password_len = strlen(password);
-    if (password_len > TT_WIFI_CREDENTIALS_PASSWORD_LIMIT) {
-        // TODO: UI feedback
-        TT_LOG_E(TAG, "Password too long");
-        return;
-    }
-
     size_t ssid_len = strlen(ssid);
     if (ssid_len > TT_WIFI_SSID_LIMIT) {
-        // TODO: UI feedback
         TT_LOG_E(TAG, "SSID too long");
+        lv_label_set_text(view->ssid_error, "SSID too long");
+        lv_obj_remove_flag(view->ssid_error, LV_OBJ_FLAG_HIDDEN);
         return;
     }
 
+    const char* password = lv_textarea_get_text(view->password_textarea);
+    size_t password_len = strlen(password);
+    if (password_len > TT_WIFI_CREDENTIALS_PASSWORD_LIMIT) {
+        TT_LOG_E(TAG, "Password too long");
+        lv_label_set_text(view->password_error, "Password too long");
+        lv_obj_remove_flag(view->password_error, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+
+    bool store = lv_obj_get_state(view->remember_switch) & LV_STATE_CHECKED;
+
+    wifi_connect_view_set_loading(view, true);
+
     WifiApSettings settings;
-    strcpy((char*)settings.secret, password);
+    strcpy((char*)settings.password, password);
     strcpy((char*)settings.ssid, ssid);
     settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
 
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(
-        settings.ssid,
-        settings.secret,
+        &settings,
+        store,
         bindings->on_connect_ssid_context
     );
+}
 
-    if (lv_obj_get_state(view->remember_switch) == LV_STATE_CHECKED) {
-        if (!tt_wifi_settings_save(&settings)) {
-            TT_LOG_E(TAG, "Failed to store credentials");
-        }
+static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading) {
+    if (loading) {
+        lv_obj_add_flag(view->connect_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_state(view->password_textarea, LV_STATE_DISABLED);
+        lv_obj_add_state(view->ssid_textarea, LV_STATE_DISABLED);
+        lv_obj_add_state(view->remember_switch, LV_STATE_DISABLED);
+    } else {
+        lv_obj_remove_flag(view->connect_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_state(view->password_textarea, LV_STATE_DISABLED);
+        lv_obj_remove_state(view->ssid_textarea, LV_STATE_DISABLED);
+        lv_obj_remove_state(view->remember_switch, LV_STATE_DISABLED);
     }
+
 }
 
 void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
@@ -68,6 +97,11 @@ void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent
     lv_label_set_text(remember_label, "Remember");
     lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align_to(remember_label, view->remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
+
+    view->connecting_spinner = lv_spinner_create(button_container);
+    lv_obj_set_size(view->connecting_spinner, 32, 32);
+    lv_obj_align(view->connecting_spinner, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
 
     view->connect_button = lv_btn_create(button_container);
     lv_obj_t* connect_label = lv_label_create(view->connect_button);
@@ -113,6 +147,10 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_align(view->ssid_textarea, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_width(view->ssid_textarea, LV_PCT(50));
 
+    view->ssid_error = lv_label_create(wrapper);
+    lv_obj_set_style_text_color(view->ssid_error, lv_color_make(255, 50, 50), 0);
+    lv_obj_add_flag(view->ssid_error, LV_OBJ_FLAG_HIDDEN);
+
     // Password
 
     lv_obj_t* password_wrapper = lv_obj_create(wrapper);
@@ -137,6 +175,15 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_textarea_set_password_mode(view->password_textarea, true);
     lv_obj_align(view->password_textarea, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_set_width(view->password_textarea, LV_PCT(50));
+
+    view->password_error = lv_label_create(wrapper);
+    lv_obj_set_style_text_color(view->password_error, lv_color_make(255, 50, 50), 0);
+    lv_obj_add_flag(view->password_error, LV_OBJ_FLAG_HIDDEN);
+
+    // Connection error
+    view->connection_error = lv_label_create(wrapper);
+    lv_obj_set_style_text_color(view->connection_error, lv_color_make(255, 50, 50), 0);
+    lv_obj_add_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
 
     // Bottom buttons
     wifi_connect_view_create_bottom_buttons(wifi, wrapper);
@@ -165,9 +212,14 @@ void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
 }
 
 void wifi_connect_view_update(
-    TT_UNUSED WifiConnectView* view,
+    WifiConnectView* view,
     TT_UNUSED WifiConnectBindings* bindings,
-    TT_UNUSED WifiConnectState* state
+    WifiConnectState* state
 ) {
-    // NO-OP
+    if (state->connection_error) {
+        wifi_connect_view_set_loading(view, false);
+        wifi_reset_errors(view);
+        lv_label_set_text(view->connection_error, "Connection failed");
+        lv_obj_remove_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
+    }
 }

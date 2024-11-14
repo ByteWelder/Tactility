@@ -15,6 +15,7 @@
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
+- Publish firmwares with upload tool
 
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
