@@ -46,27 +46,21 @@ static void on_connect(lv_event_t* event) {
         return;
     }
 
+    bool store = lv_obj_get_state(view->remember_switch) & LV_STATE_CHECKED;
+
     wifi_connect_view_set_loading(view, true);
 
     WifiApSettings settings;
-    strcpy((char*)settings.secret, password);
+    strcpy((char*)settings.password, password);
     strcpy((char*)settings.ssid, ssid);
     settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
 
     WifiConnectBindings* bindings = &wifi->bindings;
     bindings->on_connect_ssid(
-        settings.ssid,
-        settings.secret,
+        &settings,
+        store,
         bindings->on_connect_ssid_context
     );
-
-    if (lv_obj_get_state(view->remember_switch) & LV_STATE_CHECKED) {
-        if (!tt_wifi_settings_save(&settings)) {
-            TT_LOG_E(TAG, "Failed to store credentials");
-        } else {
-            TT_LOG_I(TAG, "Stored credentials");
-        }
-    }
 }
 
 static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading) {

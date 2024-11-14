@@ -11,3 +11,9 @@ void wifi_connect_state_set_ap_settings(WifiConnect* wifi, const WifiApSettings*
     memcpy(&(wifi->state.settings), settings, sizeof(WifiApSettings));
     wifi_connect_unlock(wifi);
 }
+
+void wifi_connect_state_set_connecting(WifiConnect* wifi, bool is_connecting) {
+    wifi_connect_lock(wifi);
+    wifi->state.is_connecting = is_connecting;
+    wifi_connect_unlock(wifi);
+}

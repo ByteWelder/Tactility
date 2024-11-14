@@ -61,12 +61,12 @@ bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
     tt_secure_get_iv_from_string(ssid, iv);
     int decrypt_result = tt_secure_decrypt(
         iv,
-        (uint8_t*)encrypted_settings.secret,
-        (uint8_t*)settings->secret,
+        (uint8_t*)encrypted_settings.password,
+        (uint8_t*)settings->password,
         TT_WIFI_CREDENTIALS_PASSWORD_LIMIT
     );
     // Manually ensure null termination, because encryption must be a multiple of 16 bytes
-    encrypted_settings.secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
+    encrypted_settings.password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
 
     if (decrypt_result != 0) {
         result = ESP_FAIL;
@@ -98,14 +98,14 @@ bool tt_wifi_settings_save(const WifiApSettings* settings) {
     };
     strcpy((char*)encrypted_settings.ssid, settings->ssid);
     // We only decrypt multiples of 16, so we have to ensure the last byte is set to 0
-    encrypted_settings.secret[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
+    encrypted_settings.password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
 
     uint8_t iv[16];
     tt_secure_get_iv_from_data(settings->ssid, strlen(settings->ssid), iv);
     int encrypt_result = tt_secure_encrypt(
         iv,
-        (uint8_t*)settings->secret,
-        (uint8_t*)encrypted_settings.secret,
+        (uint8_t*)settings->password,
+        (uint8_t*)encrypted_settings.password,
         TT_WIFI_CREDENTIALS_PASSWORD_LIMIT
     );
 

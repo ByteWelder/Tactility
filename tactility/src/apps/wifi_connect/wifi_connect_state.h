@@ -15,6 +15,7 @@ extern "C" {
 typedef struct {
     WifiApSettings settings;
     bool connection_error;
+    bool is_connecting;
 } WifiConnectState;
 
 #ifdef __cplusplus

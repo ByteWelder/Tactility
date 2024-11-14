@@ -18,7 +18,7 @@ static void on_connect(const char* ssid) {
     WifiApSettings settings;
     if (tt_wifi_settings_load(ssid, &settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
-        wifi_connect(ssid, settings.secret);
+        wifi_connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
         Bundle bundle = tt_bundle_alloc();

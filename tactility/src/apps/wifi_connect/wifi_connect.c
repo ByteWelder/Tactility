@@ -12,8 +12,11 @@
 // Forward declarations
 static void wifi_connect_event_callback(const void* message, void* context);
 
-static void on_connect(const char* ssid, const char* password, TT_UNUSED void* parameter) {
-    wifi_connect(ssid, password);
+static void on_connect(const WifiApSettings* ap_settings, bool remember, TT_UNUSED void* parameter) {
+    WifiConnect* wifi = (WifiConnect*)parameter;
+    wifi_connect_state_set_ap_settings(wifi, ap_settings);
+    wifi_connect_state_set_connecting(wifi, true);
+    wifi_connect(ap_settings, remember);
 }
 
 static WifiConnect* wifi_connect_alloc() {
@@ -27,7 +30,7 @@ static WifiConnect* wifi_connect_alloc() {
         .settings = {
             .auto_connect = false,
             .ssid = { 0 },
-            .secret = { 0 }
+            .password = { 0 }
         }
     };
     wifi->bindings = (WifiConnectBindings) {
@@ -66,7 +69,7 @@ void wifi_connect_request_view_update(WifiConnect* wifi) {
             wifi_connect_view_update(&wifi->view, &wifi->bindings, &wifi->state);
             tt_lvgl_unlock();
         } else {
-            TT_LOG_E(TAG, "failed to lock lvgl");
+            TT_LOG_E(TAG, "Failed to lock lvgl");
         }
     }
     wifi_connect_unlock(wifi);
@@ -77,11 +80,17 @@ static void wifi_connect_event_callback(const void* message, void* context) {
     WifiConnect* wifi = (WifiConnect*)context;
     switch (event->type) {
         case WifiEventTypeConnectionFailed:
-            wifi_connect_state_set_radio_error(wifi, true);
-            wifi_connect_request_view_update(wifi);
+            if (wifi->state.is_connecting) {
+                wifi_connect_state_set_connecting(wifi, false);
+                wifi_connect_state_set_radio_error(wifi, true);
+                wifi_connect_request_view_update(wifi);
+            }
             break;
         case WifiEventTypeConnectionSuccess:
-            loader_stop_app();
+            if (wifi->state.is_connecting) {
+                wifi_connect_state_set_connecting(wifi, false);
+                loader_stop_app();
+            }
             break;
         default:
             break;

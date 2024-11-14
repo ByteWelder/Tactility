@@ -85,9 +85,8 @@ bool wifi_is_scanning() {
     return wifi_singleton->scan_active;
 }
 
-void wifi_connect(const char* ssid, _Nullable const char* password) {
+void wifi_connect(const WifiApSettings* ap, bool remember) {
     tt_assert(wifi_singleton);
-    tt_check(strlen(ssid) <= 32);
     // TODO: implement
 }
 
