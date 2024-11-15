@@ -16,19 +16,13 @@
 #include "log.h"
 #include "m-core.h"
 
-#ifdef __cplusplus
-extern "C" {
 #define TT_NORETURN [[noreturn]]
-#else
-#include <stdnoreturn.h>
-#define TT_NORETURN noreturn
-#endif
 
 /** Crash system */
 TT_NORETURN void tt_crash_implementation();
 
 /** Crash system with message. */
-#define __tt_crash(message)                                                                    \
+#define tt_crash_internal(message)                                                                    \
     do {                                                                                       \
         TT_LOG_E("crash", "%s\n\tat %s:%d", ((message) ? (message) : ""), __FILE__, __LINE__); \
         tt_crash_implementation();                                                             \
@@ -38,7 +32,7 @@ TT_NORETURN void tt_crash_implementation();
  *
  * @param      optional  message (const char*)
  */
-#define tt_crash(...) M_APPLY(__tt_crash, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
+#define tt_crash(...) M_APPLY(tt_crash_internal, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
 /** Halt system
  *
@@ -47,14 +41,14 @@ TT_NORETURN void tt_crash_implementation();
 #define tt_halt(...) M_APPLY(__tt_halt, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
 /** Check condition and crash if check failed */
-#define __tt_check(__e, __m)               \
+#define tt_check_internal(__e, __m)        \
     do {                                   \
         if (!(__e)) {                      \
             TT_LOG_E("check", "%s", #__e); \
             if (__m) {                     \
-                __tt_crash(#__m);          \
+                tt_crash_internal(#__m);   \
             } else {                       \
-                __tt_crash("");            \
+                tt_crash_internal("");     \
             }                              \
         }                                  \
     } while (0)
@@ -64,12 +58,14 @@ TT_NORETURN void tt_crash_implementation();
  * @param      condition to check
  * @param      optional  message (const char*)
  */
-#define tt_check(...) \
-    M_APPLY(__tt_check, M_DEFAULT_ARGS(2, NULL, __VA_ARGS__))
+//#define tt_check(...) \
+//    M_APPLY(tt_check_internal, M_DEFAULT_ARGS(2, NULL, __VA_ARGS__))
+
+#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "check failed: %s", #x); }
 
 /** Only in debug build: Assert condition and crash if assert failed  */
 #ifdef TT_DEBUG
-#define __tt_assert(__e, __m)               \
+#define tt_assert_internal(__e, __m)               \
     do {                                    \
         if (!(__e)) {                       \
             TT_LOG_E("assert", "%s", #__e); \
@@ -95,9 +91,6 @@ TT_NORETURN void tt_crash_implementation();
  * @param      condition to check
  * @param      optional  message (const char*)
  */
-#define tt_assert(...) \
-    M_APPLY(__tt_assert, M_DEFAULT_ARGS(2, NULL, __VA_ARGS__))
-
-#ifdef __cplusplus
-}
-#endif
+//#define tt_assert(expression) \
+//    M_APPLY(tt_assert_internal, M_DEFAULT_ARGS(2, NULL, __VA_ARGS__))
+#define tt_assert(expression) assert(expression)

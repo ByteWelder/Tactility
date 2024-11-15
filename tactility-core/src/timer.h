@@ -2,10 +2,6 @@
 
 #include "core_types.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void (*TimerCallback)(void* context);
 
 typedef enum {
@@ -100,7 +96,3 @@ typedef enum {
  * @param[in]  priority  The priority
  */
 void tt_timer_set_thread_priority(TimerThreadPriority priority);
-
-#ifdef __cplusplus
-}
-#endif

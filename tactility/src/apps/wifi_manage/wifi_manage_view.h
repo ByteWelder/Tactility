@@ -5,10 +5,6 @@
 #include "wifi_manage_bindings.h"
 #include "wifi_manage_state.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     lv_obj_t* root;
     lv_obj_t* enable_switch;
@@ -21,7 +17,3 @@ typedef struct {
 
 void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent);
 void wifi_manage_view_update(WifiManageView* view, WifiManageBindings* bindings, WifiManageState* state);
-
-#ifdef __cplusplus
-}
-#endif

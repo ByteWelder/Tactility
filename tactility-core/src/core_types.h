@@ -1,12 +1,7 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdint>
 #include "tactility_core_config.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef enum {
     TtWaitForever = 0xFFFFFFFFU,
@@ -38,7 +33,3 @@ typedef enum {
         -6,                         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
     TtStatusReserved = 0x7FFFFFFF ///< Prevents enum down-size compiler optimization.
 } TtStatus;
-
-#ifdef __cplusplus
-}
-#endif

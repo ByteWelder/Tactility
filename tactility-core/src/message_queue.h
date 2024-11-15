@@ -9,10 +9,6 @@
 
 #include "core_types.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void MessageQueue;
 
 /** Allocate message queue
@@ -91,7 +87,3 @@ uint32_t tt_message_queue_get_space(MessageQueue* instance);
  * @return     The status.
  */
 TtStatus tt_message_queue_reset(MessageQueue* instance);
-
-#ifdef __cplusplus
-}
-#endif

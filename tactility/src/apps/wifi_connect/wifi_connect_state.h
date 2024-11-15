@@ -5,10 +5,6 @@
 #include "services/wifi/wifi_settings.h"
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * View's state
  */
@@ -17,7 +13,3 @@ typedef struct {
     bool connection_error;
     bool is_connecting;
 } WifiConnectState;
-
-#ifdef __cplusplus
-}
-#endif

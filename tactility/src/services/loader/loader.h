@@ -6,10 +6,6 @@
 #include "service_manifest.h"
 #include "tactility_core.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct Loader Loader;
 
 typedef enum {
@@ -72,7 +68,3 @@ App _Nullable loader_get_current_app();
  * @brief PubSub for LoaderEvent
  */
 PubSub* loader_get_pubsub();
-
-#ifdef __cplusplus
-}
-#endif

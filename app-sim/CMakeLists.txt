@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-file(GLOB_RECURSE SOURCES "src/*.c")
+file(GLOB_RECURSE SOURCES "src/*.c*")
 add_executable(app-sim ${SOURCES})
 target_link_libraries(app-sim
     PRIVATE tactility

@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdio.h>
+#include <cstdio>
 
 #include "check.h"
 #include "core_defines.h"

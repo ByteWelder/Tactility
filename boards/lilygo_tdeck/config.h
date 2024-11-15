@@ -4,7 +4,7 @@
 #include "driver/gpio.h"
 
 // Main bus, used by GT911 touch hardware and keyboard
-#define TDECK_I2C_BUS_HANDLE (0)
+#define TDECK_I2C_BUS_HANDLE I2C_NUM_0
 
 // SPI
 #define TDECK_SPI_HOST SPI2_HOST

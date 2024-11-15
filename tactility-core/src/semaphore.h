@@ -3,10 +3,6 @@
 #include "core_types.h"
 #include "thread.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void Semaphore;
 
 /** Allocate semaphore
@@ -48,7 +44,3 @@ TtStatus tt_semaphore_release(Semaphore* instance);
  * @return     Semaphore count
  */
 uint32_t tt_semaphore_get_count(Semaphore* instance);
-
-#ifdef __cplusplus
-}
-#endif

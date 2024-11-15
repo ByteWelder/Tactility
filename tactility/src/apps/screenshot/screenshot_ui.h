@@ -3,10 +3,6 @@
 #include "app.h"
 #include "lvgl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     lv_obj_t* mode_dropdown;
     lv_obj_t* path_textarea;
@@ -16,7 +12,3 @@ typedef struct {
 } ScreenshotUi;
 
 void create_screenshot_ui(App app, ScreenshotUi* ui, lv_obj_t* parent);
-
-#ifdef __cplusplus
-}
-#endif

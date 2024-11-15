@@ -18,12 +18,8 @@
  */
 #pragma once
 
-#include <stdio.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstdio>
+#include <cstdint>
 
 /**
  * @brief Fills the IV with zeros and then creates an IV based on the input data.
@@ -67,7 +63,3 @@ int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
  * @return the result of esp_aes_crypt_cbc() (MBEDTLS_ERR_*)
  */
 int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length);
-
-#ifdef __cplusplus
-}
-#endif

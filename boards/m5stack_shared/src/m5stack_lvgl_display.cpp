@@ -4,10 +4,6 @@
 #include "esp_err.h"
 #include "esp_lvgl_port.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static void flush_callback(lv_display_t* display, const lv_area_t* area, uint8_t* px_map) {
     M5GFX& gfx = *(M5GFX*)lv_display_get_driver_data(display);
 
@@ -63,7 +59,3 @@ _Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
 
     return display;
 }
-
-#ifdef __cplusplus
-}
-#endif

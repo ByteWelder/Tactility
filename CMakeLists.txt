@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
@@ -54,11 +58,6 @@ add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
-    set(CMAKE_C_STANDARD 99) # C99 # lvgl officially support C99 and above
-    set(CMAKE_CXX_STANDARD 17) # C17
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_C_COMPILER_TARGET}")
-
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/app-sim/src CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")

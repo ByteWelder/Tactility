@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -20,7 +16,3 @@ typedef struct {
     PowerGetBatteryCharge get_charge_level;
     PowerGetCurrent get_current;
 } Power;
-
-#ifdef __cplusplus
-}
-#endif

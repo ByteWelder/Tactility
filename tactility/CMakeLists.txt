@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
-set(CMAKE_CXX_STANDARD 11)
+
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    file(GLOB_RECURSE SOURCE_FILES src/*.c)
+    file(GLOB_RECURSE SOURCE_FILES src/*.c*)
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
@@ -18,8 +18,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     add_definitions(-DESP_PLATFORM)
 else()
-    file(GLOB_RECURSE SOURCES "src/*.c")
-    file(GLOB_RECURSE HEADERS "src/*.h")
+    file(GLOB_RECURSE SOURCES "src/*.c*")
+    file(GLOB_RECURSE HEADERS "src/*.h*")
 
     add_library(tactility OBJECT)
     target_sources(tactility

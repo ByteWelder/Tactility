@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "pubsub.h"
 #include "wifi_globals.h"
 #include "wifi_settings.h"
@@ -130,7 +126,3 @@ bool wifi_is_connection_secure();
  * Returns the RSSI value (negative number) or return 1 when not connected
  */
 int wifi_get_rssi();
-
-#ifdef __cplusplus
-}
-#endif

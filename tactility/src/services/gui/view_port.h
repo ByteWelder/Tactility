@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "app.h"
 #include "lvgl.h"
 
@@ -44,7 +40,3 @@ ViewPort* view_port_alloc(
  * @param      view_port  ViewPort instance
  */
 void view_port_free(ViewPort* view_port);
-
-#ifdef __cplusplus
-}
-#endif

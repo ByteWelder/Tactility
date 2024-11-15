@@ -41,7 +41,7 @@ It tells Tactility which functions need to be called when the app is started/sho
 UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widgets](https://docs.lvgl.io/8.3/widgets/index.html)!
 Creating a touch-capable UI is [easy](https://docs.lvgl.io/8.3/get-started/quick-overview.html) and doesn't require your own render loop!
 
-```c
+```C++
 static void app_show(App app, lv_obj_t* parent) {
     // Default toolbar with app name and close button
     lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
@@ -54,7 +54,7 @@ static void app_show(App app, lv_obj_t* parent) {
     // Widgets are auto-removed from the parent when the app is closed
 }
 
-const AppManifest hello_world_app = {
+extern const AppManifest hello_world_app = {
     .id = "helloworld",    // Used to identify and start an app
     .name = "Hello World", // Shown on the desktop and app's toolbar
     .icon = NULL,

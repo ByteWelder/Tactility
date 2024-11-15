@@ -5,10 +5,6 @@
 
 #include "lvgl.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * @return true if LVGL is configured with a keypad
  */
@@ -32,7 +28,3 @@ void tt_lvgl_keypad_activate(lv_group_t* group);
  * cleanup automatically removes itself from the group it belongs to.
  */
 void tt_lvgl_keypad_deactivate();
-
-#ifdef __cplusplus
-}
-#endif

@@ -35,4 +35,4 @@
 #define WAVESHARE_LVGL_TICK_PERIOD_MS 2 // TODO: Setting it to 5 causes a crash - why?
 #define LVGL_MAX_SLEEP 500
 
-#define WAVESHARE_TOUCH_I2C_PORT 0
+#define WAVESHARE_TOUCH_I2C_PORT I2C_NUM_0

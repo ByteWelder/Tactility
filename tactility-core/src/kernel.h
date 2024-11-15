@@ -2,10 +2,6 @@
 
 #include "core_types.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef enum {
     PlatformEsp,
     PlatformPc
@@ -115,7 +111,3 @@ void tt_delay_ms(uint32_t milliseconds);
 void tt_delay_us(uint32_t microseconds);
 
 Platform tt_get_platform();
-
-#ifdef __cplusplus
-}
-#endif

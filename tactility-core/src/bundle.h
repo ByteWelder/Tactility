@@ -4,13 +4,8 @@
  */
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstdint>
+#include <cstdio>
 
 typedef void* Bundle;
 
@@ -33,7 +28,3 @@ bool tt_bundle_opt_string(Bundle bundle, const char* key, char** out);
 void tt_bundle_put_bool(Bundle bundle, const char* key, bool value);
 void tt_bundle_put_int32(Bundle bundle, const char* key, int32_t value);
 void tt_bundle_put_string(Bundle bundle, const char* key, const char* value);
-
-#ifdef __cplusplus
-}
-#endif

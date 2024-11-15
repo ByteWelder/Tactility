@@ -2,10 +2,6 @@
 
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void ScreenshotTask;
 
 ScreenshotTask* screenshot_task_alloc();
@@ -30,7 +26,3 @@ void screenshot_task_start_apps(ScreenshotTask* task, const char* path);
  * @param task the screenshot task
  */
 void screenshot_task_stop(ScreenshotTask* task);
-
-#ifdef __cplusplus
-}
-#endif

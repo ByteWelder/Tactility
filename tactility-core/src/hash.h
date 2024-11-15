@@ -1,11 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstddef>
+#include <cstdint>
 
 /**
  * Implementation of DJB2 hashing algorithm.
@@ -20,7 +16,3 @@ uint32_t tt_hash_string_djb2(const char* str);
  * @return the hash
  */
 uint32_t tt_hash_bytes_djb2(const void* data, size_t length);
-
-#ifdef __cplusplus
-}
-#endif

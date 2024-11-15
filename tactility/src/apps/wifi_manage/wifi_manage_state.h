@@ -3,10 +3,6 @@
 #include <stdbool.h>
 #include "services/wifi/wifi.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define WIFI_SCAN_AP_RECORD_COUNT 16
 
 /**
@@ -19,7 +15,3 @@ typedef struct {
     WifiApRecord ap_records[WIFI_SCAN_AP_RECORD_COUNT];
     uint16_t ap_records_count;
 } WifiManageState;
-
-#ifdef __cplusplus
-}
-#endif

@@ -1,11 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdio.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstdio>
 
 /**
  * Find the last occurrence of a character.
@@ -23,7 +18,3 @@ int tt_string_find_last_index(const char* text, size_t from_index, char find);
  * @return true when successful
  */
 bool tt_string_get_path_parent(const char* path, char* output);
-
-#ifdef __cplusplus
-}
-#endif

@@ -5,10 +5,6 @@
 #include "view_port.h"
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct Gui Gui;
 
 /**
@@ -54,7 +50,3 @@ bool gui_keyboard_is_enabled();
  * @param textarea
  */
 void gui_keyboard_add_textarea(lv_obj_t* textarea);
-
-#ifdef __cplusplus
-}
-#endif

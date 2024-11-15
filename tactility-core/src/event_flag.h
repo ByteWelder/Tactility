@@ -2,10 +2,6 @@
 
 #include "core_types.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void EventFlag;
 
 /** Allocate EventFlag
@@ -61,7 +57,3 @@ uint32_t tt_event_flag_wait(
     uint32_t options,
     uint32_t timeout
 );
-
-#ifdef __cplusplus
-}
-#endif

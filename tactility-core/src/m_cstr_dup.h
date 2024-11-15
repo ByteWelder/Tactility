@@ -4,10 +4,6 @@
 #pragma once
 #include <m-core.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define M_INIT_DUP(a) ((a) = strdup(""))
 #define M_INIT_SET_DUP(a, b) ((a) = strdup(b))
 #define M_SET_DUP(a, b) (free((void*)a), (a) = strdup(b))
@@ -22,7 +18,3 @@ extern "C" {
      EQUAL(M_CSTR_EQUAL),      \
      CMP(strcmp),              \
      TYPE(const char*))
-
-#ifdef __cplusplus
-}
-#endif

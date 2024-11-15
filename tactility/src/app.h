@@ -3,10 +3,6 @@
 #include "app_manifest.h"
 #include "bundle.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef enum {
     AppStateInitial, // App is being activated in loader
     AppStateStarted, // App is in memory
@@ -44,7 +40,3 @@ void* _Nullable tt_app_get_data(App app);
 void tt_app_set_data(App app, void* data);
 
 Bundle _Nullable tt_app_get_parameters(App app);
-
-#ifdef __cplusplus
-}
-#endif

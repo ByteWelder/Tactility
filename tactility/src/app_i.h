@@ -6,10 +6,6 @@
 #include "mutex.h"
 #include <stdbool.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     Mutex* mutex;
     const AppManifest* manifest;
@@ -29,7 +25,3 @@ typedef struct {
      */
     void* _Nullable data;
 } AppData;
-
-#ifdef __cplusplus
-}
-#endif

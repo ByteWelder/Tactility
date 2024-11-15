@@ -1,11 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
 #include "wifi_globals.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /**
  * This struct is stored as-is into NVS flash.
@@ -28,7 +23,3 @@ bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings);
 bool tt_wifi_settings_save(const WifiApSettings* settings);
 
 bool tt_wifi_settings_remove(const char* ssid);
-
-#ifdef __cplusplus
-}
-#endif

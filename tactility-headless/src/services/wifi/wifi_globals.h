@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define TT_WIFI_AUTO_CONNECT true // Default setting for new Wi-Fi entries
 #define TT_WIFI_AUTO_ENABLE false
 
@@ -11,7 +7,3 @@ extern "C" {
 
 #define TT_WIFI_SSID_LIMIT 32 // 32 characters/octets, according to IEEE 802.11-2020 spec
 #define TT_WIFI_CREDENTIALS_PASSWORD_LIMIT 64 // 64 characters/octets, according to IEEE 802.11-2020 spec
-
-#ifdef __cplusplus
-}
-#endif

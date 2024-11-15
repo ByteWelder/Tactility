@@ -3,12 +3,8 @@
 #ifdef ESP_TARGET
 #include "esp_log.h"
 #else
-#include <stdarg.h>
-#include <stdio.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
+#include <cstdarg>
+#include <cstdio>
 #endif
 
 #ifdef ESP_TARGET
@@ -48,7 +44,3 @@ void tt_log(LogLevel level, const char* tag, const char* format, ...);
     tt_log(LOG_LEVEL_TRACE, tag, format, ##__VA_ARGS__)
 
 #endif // ESP_TARGET
-
-#ifdef __cplusplus
-}
-#endif

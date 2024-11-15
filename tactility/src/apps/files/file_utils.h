@@ -28,10 +28,6 @@ typedef int (*ScandirFilter)(const struct dirent*);
 
 typedef int (*ScandirSort)(const struct dirent**, const struct dirent**);
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * Alphabetic sorting function for tt_scandir()
  * @param left left-hand side part for comparison
@@ -62,7 +58,3 @@ int tt_scandir(
     ScandirFilter _Nullable filter,
     ScandirSort _Nullable sort
 );
-
-#ifdef __cplusplus
-}
-#endif

@@ -4,8 +4,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-file(GLOB SOURCES "src/*.c")
-file(GLOB HEADERS "src/*.h")
+file(GLOB SOURCES "src/*.c*")
+file(GLOB HEADERS "src/*.h*")
 
 add_library(lv_screenshot STATIC)
 

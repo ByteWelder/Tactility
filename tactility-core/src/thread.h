@@ -3,12 +3,8 @@
 #include "core_defines.h"
 #include "core_types.h"
 
-#include <stddef.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <cstddef>
+#include <cstdint>
 
 /** ThreadState */
 typedef enum {
@@ -228,7 +224,7 @@ uint32_t tt_thread_flags_set(ThreadId thread_id, uint32_t flags);
 
 uint32_t tt_thread_flags_clear(uint32_t flags);
 
-uint32_t tt_thread_flags_get(void);
+uint32_t tt_thread_flags_get();
 
 uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout);
 
@@ -281,7 +277,3 @@ bool tt_thread_is_suspended(ThreadId thread_id);
  * @return true if thread memory is static
  */
 bool tt_thread_mark_is_static(ThreadId thread_id);
-
-#ifdef __cplusplus
-}
-#endif

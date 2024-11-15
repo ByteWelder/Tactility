@@ -4,10 +4,6 @@
 
 #define TT_SDCARD_MOUNT_POINT "/sdcard"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void* (*SdcardMount)(const char* mount_path);
 typedef void (*SdcardUnmount)(void* context);
 typedef bool (*SdcardIsMounted)(void* context);
@@ -32,8 +28,4 @@ typedef struct {
 
 bool tt_sdcard_mount(const SdCard* sdcard);
 SdcardState tt_sdcard_get_state();
-bool tt_sdcard_unmount();
-
-#ifdef __cplusplus
-}
-#endif
+bool tt_sdcard_unmount(uint32_t timeout_ticks);

@@ -7,10 +7,6 @@
 #include "core_types.h"
 #include "thread.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive,
@@ -56,7 +52,3 @@ TtStatus tt_mutex_release(Mutex* mutex);
  * @return     The thread identifier.
  */
 ThreadId tt_mutex_get_owner(Mutex* mutex);
-
-#ifdef __cplusplus
-}
-#endif

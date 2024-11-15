@@ -1,10 +1,6 @@
 #include "power.h"
 #include "M5Unified.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
  * M5.Power by default doesn't have a check to see if charging is enabled.
  * However, it's always enabled by default after boot, so we cover that here:
@@ -33,14 +29,10 @@ static int32_t power_get_current() {
     return M5.Power.getBatteryCurrent();
 }
 
-Power m5stack_power = {
+extern const Power m5stack_power = {
     .is_charging = &power_is_charging,
     .is_charging_enabled = &power_is_charging_enabled,
     .set_charging_enabled = &power_set_charging_enabled,
     .get_charge_level = &power_get_charge_level,
     .get_current = &power_get_current
 };
-
-#ifdef __cplusplus
-}
-#endif

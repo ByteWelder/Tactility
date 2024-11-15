@@ -12,14 +12,10 @@
  * interrupt that will read from the buffer (the reader).
  */
 #pragma once
-#include "core_types.h"
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "core_types.h"
+#include <cstddef>
+#include <cstdint>
 
 typedef void StreamBuffer;
 
@@ -150,7 +146,3 @@ bool tt_stream_buffer_is_empty(StreamBuffer* stream_buffer);
  * from the stream buffer then the stream buffer is not reset.
  */
 TtStatus tt_stream_buffer_reset(StreamBuffer* stream_buffer);
-
-#ifdef __cplusplus
-}
-#endif

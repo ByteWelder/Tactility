@@ -4,10 +4,6 @@
 
 #define TAG "cores3_touch"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static void touch_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t* data) {
     lgfx::touch_point_t point; // Making it static makes it unreliable
     bool touched = M5.Lcd.getTouch(&point) > 0;
@@ -31,7 +27,3 @@ _Nullable lv_indev_t* m5stack_lvgl_touch() {
     lv_indev_set_read_cb(indev, touch_read_callback);
     return indev;
 }
-
-#ifdef __cplusplus
-}
-#endif

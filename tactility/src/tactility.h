@@ -5,10 +5,6 @@
 #include "service_manifest.h"
 #include "tactility_config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef struct {
     const HardwareConfig* hardware;
     // List of user applications
@@ -28,7 +24,3 @@ void tt_init(const Config* config);
  * @return the Configuration instance that was passed on to tt_init() if init is successful
  */
 const Config* _Nullable tt_get_config();
-
-#ifdef __cplusplus
-}
-#endif

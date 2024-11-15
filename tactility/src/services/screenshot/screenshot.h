@@ -3,10 +3,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef enum {
     ScreenshotModeNone,
     ScreenshotModeTimed,
@@ -30,7 +26,3 @@ void tt_screenshot_stop();
 ScreenshotMode tt_screenshot_get_mode();
 
 bool tt_screenshot_is_started();
-
-#ifdef __cplusplus
-}
-#endif

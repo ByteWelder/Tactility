@@ -2,10 +2,6 @@
 
 #include "core_defines.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
 typedef void* App;
@@ -69,7 +65,3 @@ typedef struct {
      */
     const AppOnHide _Nullable on_hide;
 } AppManifest;
-
-#ifdef __cplusplus
-}
-#endif

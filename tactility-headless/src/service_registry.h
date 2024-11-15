@@ -3,10 +3,6 @@
 #include "service_manifest.h"
 #include "tactility_core.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdbool.h>
 
 typedef void (*ServiceManifestCallback)(const ServiceManifest*, void* context);
@@ -22,7 +18,3 @@ bool tt_service_registry_start(const char* service_id);
 bool tt_service_registry_stop(const char* service_id);
 
 Service _Nullable tt_service_find(const char* service_id);
-
-#ifdef __cplusplus
-}
-#endif

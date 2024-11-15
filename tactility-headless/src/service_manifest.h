@@ -2,10 +2,6 @@
 
 #include "tactility_core.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef void* Service;
 
 typedef void (*ServiceOnStart)(Service service);
@@ -28,7 +24,3 @@ typedef struct {
     const ServiceOnStop _Nullable on_stop;
 
 } ServiceManifest;
-
-#ifdef __cplusplus
-}
-#endif
