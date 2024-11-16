@@ -1,56 +1,54 @@
 #include "pubsub.h"
 #include "check.h"
 #include "mutex.h"
+#include <cstdlib>
+#include <list>
 
-#include <m-list.h>
 
 struct PubSubSubscription {
+    uint64_t id;
     PubSubCallback callback;
     void* callback_context;
 };
 
-LIST_DEF(PubSubSubscriptionList, PubSubSubscription, M_POD_OPLIST);
+typedef std::list<PubSubSubscription> Subscriptions;
 
 struct PubSub {
-    PubSubSubscriptionList_t items;
+    uint64_t last_id = 0;
+    Subscriptions items;
     Mutex* mutex;
 };
 
 PubSub* tt_pubsub_alloc() {
-    auto* pubsub = static_cast<PubSub*>(malloc(sizeof(PubSub)));
+    auto* pubsub = new PubSub();
 
     pubsub->mutex = tt_mutex_alloc(MutexTypeNormal);
     tt_assert(pubsub->mutex);
-
-    PubSubSubscriptionList_init(pubsub->items);
 
     return pubsub;
 }
 
 void tt_pubsub_free(PubSub* pubsub) {
     tt_assert(pubsub);
-
-    tt_check(PubSubSubscriptionList_size(pubsub->items) == 0);
-
-    PubSubSubscriptionList_clear(pubsub->items);
-
+    tt_check(pubsub->items.empty());
     tt_mutex_free(pubsub->mutex);
-
-    free(pubsub);
+    delete pubsub;
 }
 
 PubSubSubscription* tt_pubsub_subscribe(PubSub* pubsub, PubSubCallback callback, void* callback_context) {
     tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
-    // put uninitialized item to the list
-    PubSubSubscription* item = PubSubSubscriptionList_push_raw(pubsub->items);
-
-    // initialize item
-    item->callback = callback;
-    item->callback_context = callback_context;
+    PubSubSubscription subscription = {
+        .id = (++pubsub->last_id),
+        .callback = callback,
+        .callback_context = callback_context
+    };
+    pubsub->items.push_back(
+        subscription
+    );
 
     tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);
 
-    return item;
+    return (PubSubSubscription*)pubsub->last_id;
 }
 
 void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscription) {
@@ -59,16 +57,10 @@ void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscripti
 
     tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
     bool result = false;
-
-    // iterate over items
-    PubSubSubscriptionList_it_t it;
-    for (PubSubSubscriptionList_it(it, pubsub->items); !PubSubSubscriptionList_end_p(it);
-         PubSubSubscriptionList_next(it)) {
-        const PubSubSubscription* item = PubSubSubscriptionList_cref(it);
-
-        // if the iterator is equal to our element
-        if (item == pubsub_subscription) {
-            PubSubSubscriptionList_remove(pubsub->items, it);
+    auto id = (uint64_t)pubsub_subscription;
+    for (auto it = pubsub->items.begin(); it != pubsub->items.end(); it++) {
+        if (it->id == id) {
+            pubsub->items.erase(it);
             result = true;
             break;
         }
@@ -81,12 +73,9 @@ void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscripti
 void tt_pubsub_publish(PubSub* pubsub, void* message) {
     tt_check(tt_mutex_acquire(pubsub->mutex, TtWaitForever) == TtStatusOk);
 
-    // iterate over subscribers
-    PubSubSubscriptionList_it_t it;
-    for (PubSubSubscriptionList_it(it, pubsub->items); !PubSubSubscriptionList_end_p(it);
-         PubSubSubscriptionList_next(it)) {
-        const PubSubSubscription* item = PubSubSubscriptionList_cref(it);
-        item->callback(message, item->callback_context);
+    // Iterate over subscribers
+    for (auto& it : pubsub->items) {
+        it.callback(message, it.callback_context);
     }
 
     tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);

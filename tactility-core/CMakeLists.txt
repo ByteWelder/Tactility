@@ -20,7 +20,6 @@ target_include_directories(tactility-core SYSTEM
 if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_PLATFORM)
     target_link_libraries(tactility-core
-        PUBLIC mlib
         PUBLIC idf::mbedtls
         PRIVATE idf::nvs_flash # ESP-IDF // for secure.c
     )
@@ -28,7 +27,6 @@ else()
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
     target_link_libraries(tactility-core
-    	PUBLIC mlib
     	PUBLIC mbedtls
     	PUBLIC freertos_kernel
     )

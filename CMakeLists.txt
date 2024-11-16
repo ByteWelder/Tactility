@@ -54,7 +54,6 @@ endif()
 
 add_subdirectory(tactility-core)
 
-add_subdirectory(libs/mlib)
 add_subdirectory(libs/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
