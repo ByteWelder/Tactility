@@ -16,6 +16,6 @@ typedef struct {
     bool kernel_running;
 } TtCriticalInfo;
 
-TtCriticalInfo tt_critical_enter(void);
+TtCriticalInfo tt_critical_enter();
 
 void tt_critical_exit(TtCriticalInfo info);

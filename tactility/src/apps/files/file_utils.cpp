@@ -1,5 +1,7 @@
 #include "file_utils.h"
 #include "tactility_core.h"
+#include <cstdlib>
+#include <cstring>
 
 #define TAG "file_utils"
 
@@ -30,7 +32,7 @@ int tt_scandir(
     ScandirSort _Nullable sort
 ) {
     DIR* dir = opendir(path);
-    if (dir == NULL) {
+    if (dir == nullptr) {
         return -1;
     }
 
@@ -39,7 +41,7 @@ int tt_scandir(
     int dirent_buffer_index = 0;
 
     struct dirent* current_entry;
-    while ((current_entry = readdir(dir)) != NULL) {
+    while ((current_entry = readdir(dir)) != nullptr) {
         if (filter(current_entry) == 0) {
             dirent_array[dirent_buffer_index] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
             memcpy(dirent_array[dirent_buffer_index], current_entry, sizeof(struct dirent));
@@ -54,7 +56,7 @@ int tt_scandir(
 
     if (dirent_buffer_index == 0) {
         free(*output);
-        *output = NULL;
+        *output = nullptr;
     } else {
         if (sort) {
             qsort(dirent_array, dirent_buffer_index, sizeof(struct dirent*), (__compar_fn_t)sort);

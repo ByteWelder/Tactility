@@ -3,7 +3,6 @@
 #include "check.h"
 #include "core_defines.h"
 
-
 #ifdef ESP_TARGET
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -23,7 +22,7 @@ EventFlag* tt_event_flag_alloc() {
     EventGroupHandle_t handle = xEventGroupCreate();
     tt_check(handle);
 
-    return ((EventFlag*)handle);
+    return static_cast<EventFlag*>(handle);
 }
 
 void tt_event_flag_free(EventFlag* instance) {
@@ -35,7 +34,7 @@ uint32_t tt_event_flag_set(EventFlag* instance, uint32_t flags) {
     tt_assert(instance);
     tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
-    EventGroupHandle_t hEventGroup = (EventGroupHandle_t)instance;
+    auto hEventGroup = static_cast<EventGroupHandle_t>(instance);
     uint32_t rflags;
     BaseType_t yield;
 
@@ -59,7 +58,7 @@ uint32_t tt_event_flag_clear(EventFlag* instance, uint32_t flags) {
     tt_assert(instance);
     tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
-    EventGroupHandle_t hEventGroup = (EventGroupHandle_t)instance;
+    auto hEventGroup = static_cast<EventGroupHandle_t>(instance);
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
@@ -84,7 +83,7 @@ uint32_t tt_event_flag_clear(EventFlag* instance, uint32_t flags) {
 uint32_t tt_event_flag_get(EventFlag* instance) {
     tt_assert(instance);
 
-    EventGroupHandle_t hEventGroup = (EventGroupHandle_t)instance;
+    auto hEventGroup = static_cast<EventGroupHandle_t>(instance);
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
@@ -107,7 +106,7 @@ uint32_t tt_event_flag_wait(
     tt_assert(instance);
     tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
-    EventGroupHandle_t hEventGroup = (EventGroupHandle_t)instance;
+    auto hEventGroup = static_cast<EventGroupHandle_t>(instance);
     BaseType_t wait_all;
     BaseType_t exit_clr;
     uint32_t rflags;

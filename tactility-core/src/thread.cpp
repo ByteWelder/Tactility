@@ -1,4 +1,6 @@
 #include "thread.h"
+#include <cstdlib>
+#include <cstring>
 
 #include "check.h"
 #include "core_defines.h"
@@ -365,7 +367,7 @@ uint32_t tt_thread_flags_clear(uint32_t flags) {
     return (rflags);
 }
 
-uint32_t tt_thread_flags_get(void) {
+uint32_t tt_thread_flags_get() {
     TaskHandle_t hTask;
     uint32_t rflags;
 

@@ -1,4 +1,5 @@
 #include "dispatcher.h"
+#include <cstdlib>
 
 #include "tactility_core.h"
 

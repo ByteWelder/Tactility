@@ -1,4 +1,5 @@
 #include "mutex.h"
+#include <cstdlib>
 
 #include "check.h"
 #include "core_defines.h"
@@ -123,7 +124,7 @@ TtStatus tt_mutex_release(Mutex* mutex) {
             }
             break;
         default:
-            tt_crash("mutex type unknown/corrupted %d");
+            tt_crash("mutex type unknown/corrupted");
     }
 
     return status;

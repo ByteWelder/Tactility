@@ -12,7 +12,7 @@ uint32_t tt_hash_string_djb2(const char* str) {
 
 uint32_t tt_hash_bytes_djb2(const void* data, size_t length) {
     uint32_t hash = 5381;
-    uint8_t* data_bytes = (uint8_t*)data;
+    auto* data_bytes = static_cast<const uint8_t*>(data);
     uint8_t c = *data_bytes++;
     size_t index = 0;
     while (index < length) {

@@ -27,7 +27,7 @@ static void tt_print_memory_info() {
 }
 
 static void tt_print_task_info() {
-    const char* name = pcTaskGetName(NULL);
+    const char* name = pcTaskGetName(nullptr);
     const char* safe_name = name ? name : "main";
     TT_LOG_E(TAG, "Task: %s", safe_name);
     TT_LOG_E(TAG, "Stack watermark: %u", uxTaskGetStackHighWaterMark(NULL) * 4);

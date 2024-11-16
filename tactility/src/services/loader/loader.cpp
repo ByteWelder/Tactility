@@ -4,7 +4,6 @@
 #include "loader_i.h"
 #include "service_manifest.h"
 #include "services/gui/gui.h"
-#include <sys/cdefs.h>
 
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
@@ -27,7 +26,7 @@ static int32_t loader_main(void* p);
 static Loader* loader_singleton = nullptr;
 
 static Loader* loader_alloc() {
-    tt_check(loader_singleton == nullptr);
+    assert(loader_singleton == nullptr);
     loader_singleton = static_cast<Loader*>(malloc(sizeof(Loader)));
     loader_singleton->pubsub_internal = tt_pubsub_alloc();
     loader_singleton->pubsub_external = tt_pubsub_alloc();
@@ -236,7 +235,7 @@ static LoaderStatus loader_do_start_by_id(
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const AppManifest* manifest = tt_app_manifest_registry_find_by_id(id.c_str());
+    const AppManifest* manifest = tt_app_manifest_registry_find_by_id(id);
     if (manifest == nullptr) {
         return LoaderStatusErrorUnknownApp;
     } else {

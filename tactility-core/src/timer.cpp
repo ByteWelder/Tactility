@@ -1,6 +1,7 @@
 #include "timer.h"
 #include "check.h"
 #include "kernel.h"
+#include <cstdlib>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -16,19 +17,19 @@ typedef struct {
 } TimerCallback_t;
 
 static void timer_callback(TimerHandle_t hTimer) {
-    TimerCallback_t* callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
+    auto* callback = static_cast<TimerCallback_t*>(pvTimerGetTimerID(hTimer));
 
-    if (callb != NULL) {
-        callb->func(callb->context);
+    if (callback != nullptr) {
+        callback->func(callback->context);
     }
 }
 
 Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context) {
-    tt_assert((tt_kernel_is_irq() == 0U) && (func != NULL));
-    TimerCallback_t* callb = (TimerCallback_t*)malloc(sizeof(TimerCallback_t));
+    tt_assert((tt_kernel_is_irq() == 0U) && (func != nullptr));
+    auto* callback = static_cast<TimerCallback_t*>(malloc(sizeof(TimerCallback_t)));
 
-    callb->func = func;
-    callb->context = context;
+    callback->func = func;
+    callback->context = context;
 
     UBaseType_t reload;
     if (type == TimerTypeOnce) {
@@ -40,8 +41,8 @@ Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context) {
     // TimerCallback function is always provided as a callback and is used to call application
     // specified function with its context both stored in structure callb.
     // TODO: should we use pointer to function or function directly as-is?
-    TimerHandle_t hTimer = xTimerCreate(NULL, portMAX_DELAY, reload, callb, timer_callback);
-    tt_check(hTimer);
+    TimerHandle_t hTimer = xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, callback, timer_callback);
+    tt_assert(hTimer);
 
     /* Return timer ID */
     return (Timer*)hTimer;
@@ -51,15 +52,15 @@ void tt_timer_free(Timer* instance) {
     tt_assert(!tt_kernel_is_irq());
     tt_assert(instance);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
-    TimerCallback_t* callb = (TimerCallback_t*)pvTimerGetTimerID(hTimer);
+    auto hTimer = static_cast<TimerHandle_t>(instance);
+    auto* callback = static_cast<TimerCallback_t*>(pvTimerGetTimerID(hTimer));
 
     tt_check(xTimerDelete(hTimer, portMAX_DELAY) == pdPASS);
 
     while (tt_timer_is_running(instance)) tt_delay_tick(2);
 
     /* Return allocated memory to dynamic pool */
-    free(callb);
+    free(callback);
 }
 
 TtStatus tt_timer_start(Timer* instance, uint32_t ticks) {
@@ -67,7 +68,7 @@ TtStatus tt_timer_start(Timer* instance, uint32_t ticks) {
     tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
+    auto hTimer = static_cast<TimerHandle_t>(instance);
     TtStatus stat;
 
     if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS) {
@@ -85,7 +86,7 @@ TtStatus tt_timer_restart(Timer* instance, uint32_t ticks) {
     tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
+    auto hTimer = static_cast<TimerHandle_t>(instance);
     TtStatus stat;
 
     if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS &&
@@ -103,7 +104,7 @@ TtStatus tt_timer_stop(Timer* instance) {
     tt_assert(!tt_kernel_is_irq());
     tt_assert(instance);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
+    auto hTimer = static_cast<TimerHandle_t>(instance);
 
     tt_check(xTimerStop(hTimer, portMAX_DELAY) == pdPASS);
 
@@ -114,7 +115,7 @@ uint32_t tt_timer_is_running(Timer* instance) {
     tt_assert(!tt_kernel_is_irq());
     tt_assert(instance);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
+    auto hTimer = static_cast<TimerHandle_t>(instance);
 
     /* Return 0: not running, 1: running */
     return (uint32_t)xTimerIsTimerActive(hTimer);
@@ -124,7 +125,7 @@ uint32_t tt_timer_get_expire_time(Timer* instance) {
     tt_assert(!tt_kernel_is_irq());
     tt_assert(instance);
 
-    TimerHandle_t hTimer = (TimerHandle_t)instance;
+    auto hTimer = static_cast<TimerHandle_t>(instance);
 
     return (uint32_t)xTimerGetExpiryTime(hTimer);
 }
@@ -136,20 +137,20 @@ void tt_timer_pending_callback(TimerPendigCallback callback, void* context, uint
     } else {
         ret = xTimerPendFunctionCall(callback, context, arg, TtWaitForever);
     }
-    tt_check(ret == pdPASS);
+    tt_assert(ret == pdPASS);
 }
 
 void tt_timer_set_thread_priority(TimerThreadPriority priority) {
     tt_assert(!tt_kernel_is_irq());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
-    tt_check(task_handle); // Don't call this method before timer task start
+    tt_assert(task_handle); // Don't call this method before timer task start
 
     if (priority == TimerThreadPriorityNormal) {
         vTaskPrioritySet(task_handle, configTIMER_TASK_PRIORITY);
     } else if (priority == TimerThreadPriorityElevated) {
         vTaskPrioritySet(task_handle, configMAX_PRIORITIES - 1);
     } else {
-        tt_crash();
+        tt_crash("Unsupported timer priority");
     }
 }

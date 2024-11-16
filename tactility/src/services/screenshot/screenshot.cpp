@@ -1,4 +1,5 @@
 #include "screenshot.h"
+#include <cstdlib>
 
 #include "mutex.h"
 #include "screenshot_task.h"

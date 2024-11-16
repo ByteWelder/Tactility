@@ -1,6 +1,7 @@
 #include "log.h"
 #include "service_i.h"
 #include "tactility_core.h"
+#include <cstdlib>
 
 // region Alloc/free
 

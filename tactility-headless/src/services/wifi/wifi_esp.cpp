@@ -12,6 +12,7 @@
 #include "pubsub.h"
 #include "service.h"
 #include "wifi_settings.h"
+#include <cstring>
 #include <sys/cdefs.h>
 
 #define TAG "wifi"

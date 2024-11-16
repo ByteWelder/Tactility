@@ -64,7 +64,7 @@ static void get_nvs_key(uint8_t key[32]) {
 
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to get key from NVS (%s)", esp_err_to_name(result));
-        tt_crash();
+        tt_crash("NVS error");
     }
 
     size_t length = 32;

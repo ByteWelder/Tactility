@@ -18,7 +18,7 @@ static portMUX_TYPE critical_mutex;
 #define TT_ENTER_CRITICAL() taskENTER_CRITICAL()
 #endif
 
-TtCriticalInfo tt_critical_enter(void) {
+TtCriticalInfo tt_critical_enter() {
     TtCriticalInfo info;
 
     info.isrm = 0;

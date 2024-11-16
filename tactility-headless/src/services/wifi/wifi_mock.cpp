@@ -9,6 +9,8 @@
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
+#include <cstdlib>
+#include <cstring>
 #include <sys/cdefs.h>
 
 #define TAG "wifi"

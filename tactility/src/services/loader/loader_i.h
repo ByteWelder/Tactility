@@ -61,11 +61,13 @@ public:
     // This lock blocks anyone from starting an app as long
     // as an app is already running via loader_start()
     // This lock's lifecycle is not owned by this class.
+    // TODO: Convert to smart pointer
     ApiLock api_lock;
     LoaderMessageType type;
 
     struct {
         union {
+            // TODO: Convert to smart pointer
             const LoaderMessageAppStart* start;
         };
     } payload;

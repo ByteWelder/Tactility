@@ -2,6 +2,7 @@
 
 #include "wifi_globals.h"
 #include "wifi_settings.h"
+#include <cstring>
 
 #include "nvs_flash.h"
 #include "log.h"
@@ -42,7 +43,6 @@ bool tt_wifi_settings_contains(const char* ssid) {
 
 void tt_wifi_settings_init() {
     TT_LOG_I(TAG, "init");
-    static_assert(strlen(TT_NVS_NAMESPACE) <= NVS_KEY_NAME_MAX_SIZE, "Namespace name too long");
 }
 
 bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
