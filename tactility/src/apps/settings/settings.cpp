@@ -9,7 +9,7 @@ static void on_app_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        loader_start_app(manifest->id, false, NULL);
+        loader_start_app(manifest->id, false, Bundle());
     }
 }
 

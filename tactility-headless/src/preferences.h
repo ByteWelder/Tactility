@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <string>
 
 class Preferences {
 private:
@@ -12,15 +13,15 @@ public:
         this->namespace_ = namespace_;
     }
 
-    bool hasBool(const char* key);
-    bool hasInt32(const char* key);
-    bool hasString(const char* key);
+    bool hasBool(const std::string& key);
+    bool hasInt32(const std::string& key);
+    bool hasString(const std::string& key);
 
-    bool optBool(const char* key, bool* out);
-    bool optInt32(const char* key, int32_t* out);
-    bool optString(const char* key, char* out, size_t* size);
+    bool optBool(const std::string& key, bool& out);
+    bool optInt32(const std::string& key, int32_t& out);
+    bool optString(const std::string& key, std::string& out);
 
-    void putBool(const char* key, bool value);
-    void putInt32(const char* key, int32_t value);
-    void putString(const char* key, const char* string);
+    void putBool(const std::string& key, bool value);
+    void putInt32(const std::string& key, int32_t value);
+    void putString(const std::string& key, const std::string& value);
 };

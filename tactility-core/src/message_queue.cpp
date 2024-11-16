@@ -27,14 +27,14 @@ void tt_message_queue_free(MessageQueue* instance) {
 }
 
 TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint32_t timeout) {
-    QueueHandle_t hQueue = (QueueHandle_t)instance;
+    auto hQueue = static_cast<QueueHandle_t>(instance);
     TtStatus stat;
     BaseType_t yield;
 
     stat = TtStatusOk;
 
     if (tt_kernel_is_irq() != 0U) {
-        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout != 0U)) {
+        if ((hQueue == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
             yield = pdFALSE;
@@ -46,7 +46,7 @@ TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint3
             }
         }
     } else {
-        if ((hQueue == NULL) || (msg_ptr == NULL)) {
+        if ((hQueue == nullptr) || (msg_ptr == nullptr)) {
             stat = TtStatusErrorParameter;
         } else {
             if (xQueueSendToBack(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
@@ -64,14 +64,14 @@ TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint3
 }
 
 TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t timeout_ticks) {
-    QueueHandle_t hQueue = (QueueHandle_t)instance;
+    auto hQueue = static_cast<QueueHandle_t>(instance);
     TtStatus stat;
     BaseType_t yield;
 
     stat = TtStatusOk;
 
     if (tt_kernel_is_irq() != 0U) {
-        if ((hQueue == NULL) || (msg_ptr == NULL) || (timeout_ticks != 0U)) {
+        if ((hQueue == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
             yield = pdFALSE;
@@ -83,7 +83,7 @@ TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t ti
             }
         }
     } else {
-        if ((hQueue == NULL) || (msg_ptr == NULL)) {
+        if ((hQueue == nullptr) || (msg_ptr == nullptr)) {
             stat = TtStatusErrorParameter;
         } else {
             if (xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
@@ -101,10 +101,10 @@ TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t ti
 }
 
 uint32_t tt_message_queue_get_capacity(MessageQueue* instance) {
-    StaticQueue_t* mq = (StaticQueue_t*)instance;
+    auto* mq = static_cast<StaticQueue_t*>(instance);
     uint32_t capacity;
 
-    if (mq == NULL) {
+    if (mq == nullptr) {
         capacity = 0U;
     } else {
         /* capacity = pxQueue->uxLength */
@@ -116,10 +116,10 @@ uint32_t tt_message_queue_get_capacity(MessageQueue* instance) {
 }
 
 uint32_t tt_message_queue_get_message_size(MessageQueue* instance) {
-    StaticQueue_t* mq = (StaticQueue_t*)instance;
+    auto* mq = static_cast<StaticQueue_t*>(instance);
     uint32_t size;
 
-    if (mq == NULL) {
+    if (mq == nullptr) {
         size = 0U;
     } else {
         /* size = pxQueue->uxItemSize */
@@ -131,10 +131,10 @@ uint32_t tt_message_queue_get_message_size(MessageQueue* instance) {
 }
 
 uint32_t tt_message_queue_get_count(MessageQueue* instance) {
-    QueueHandle_t hQueue = (QueueHandle_t)instance;
+    auto hQueue = static_cast<QueueHandle_t>(instance);
     UBaseType_t count;
 
-    if (hQueue == NULL) {
+    if (hQueue == nullptr) {
         count = 0U;
     } else if (tt_kernel_is_irq() != 0U) {
         count = uxQueueMessagesWaitingFromISR(hQueue);
@@ -147,11 +147,11 @@ uint32_t tt_message_queue_get_count(MessageQueue* instance) {
 }
 
 uint32_t tt_message_queue_get_space(MessageQueue* instance) {
-    StaticQueue_t* mq = (StaticQueue_t*)instance;
+    auto* mq = static_cast<StaticQueue_t*>(instance);
     uint32_t space;
     uint32_t isrm;
 
-    if (mq == NULL) {
+    if (mq == nullptr) {
         space = 0U;
     } else if (tt_kernel_is_irq() != 0U) {
         isrm = taskENTER_CRITICAL_FROM_ISR();
@@ -169,12 +169,12 @@ uint32_t tt_message_queue_get_space(MessageQueue* instance) {
 }
 
 TtStatus tt_message_queue_reset(MessageQueue* instance) {
-    QueueHandle_t hQueue = (QueueHandle_t)instance;
+    auto hQueue = static_cast<QueueHandle_t>(instance);
     TtStatus stat;
 
     if (tt_kernel_is_irq() != 0U) {
         stat = TtStatusErrorISR;
-    } else if (hQueue == NULL) {
+    } else if (hQueue == nullptr) {
         stat = TtStatusErrorParameter;
     } else {
         stat = TtStatusOk;

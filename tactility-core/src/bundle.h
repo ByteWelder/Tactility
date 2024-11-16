@@ -6,25 +6,54 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <string>
+#include <unordered_map>
 
-typedef void* Bundle;
+class Bundle {
 
-Bundle tt_bundle_alloc();
-Bundle tt_bundle_alloc_copy(Bundle source);
-void tt_bundle_free(Bundle bundle);
+private:
 
-bool tt_bundle_get_bool(Bundle bundle, const char* key);
-int32_t tt_bundle_get_int32(Bundle bundle, const char* key);
-const char* tt_bundle_get_string(Bundle bundle, const char* key);
+    typedef uint32_t Hash;
 
-bool tt_bundle_has_bool(Bundle bundle, const char* key);
-bool tt_bundle_has_int32(Bundle bundle, const char* key);
-bool tt_bundle_has_string(Bundle bundle, const char* key);
+    typedef enum {
+        TypeBool,
+        TypeInt32,
+        TypeString,
+    } Type;
 
-bool tt_bundle_opt_bool(Bundle bundle, const char* key, bool* out);
-bool tt_bundle_opt_int32(Bundle bundle, const char* key, int32_t* out);
-bool tt_bundle_opt_string(Bundle bundle, const char* key, char** out);
+    typedef struct {
+        const char* key;
+        Type type;
+        union {
+            bool value_bool;
+            int32_t value_int32;
+        };
+        std::string value_string;
+    } Value;
 
-void tt_bundle_put_bool(Bundle bundle, const char* key, bool value);
-void tt_bundle_put_int32(Bundle bundle, const char* key, int32_t value);
-void tt_bundle_put_string(Bundle bundle, const char* key, const char* value);
+    std::unordered_map<std::string, Value> entries;
+
+public:
+
+    Bundle() = default;
+
+    Bundle(const Bundle& bundle) {
+        this->entries = bundle.entries;
+    }
+
+    bool getBool(const std::string& key);
+    int32_t getInt32(const std::string& key);
+    std::string getString(const std::string& key);
+
+    bool hasBool(const std::string& key);
+    bool hasInt32(const std::string& key);
+    bool hasString(const std::string& key);
+
+    bool optBool(const std::string& key, bool& out);
+    bool optInt32(const std::string& key, int32_t& out);
+    bool optString(const std::string& key, std::string& out);
+
+    void putBool(const std::string& key, bool value);
+    void putInt32(const std::string& key, int32_t value);
+    void putString(const std::string& key, const std::string& value);
+};

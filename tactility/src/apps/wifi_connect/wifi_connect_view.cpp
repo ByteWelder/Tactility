@@ -193,17 +193,15 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     gui_keyboard_add_textarea(view->password_textarea);
 
     // Init from app parameters
-    _Nullable Bundle bundle = tt_app_get_parameters(app);
-    if (bundle) {
-        char* ssid;
-        if (tt_bundle_opt_string(bundle, WIFI_CONNECT_PARAM_SSID, &ssid)) {
-            lv_textarea_set_text(view->ssid_textarea, ssid);
-        }
+    Bundle& bundle = tt_app_get_parameters(app);
+    std::string ssid;
+    if (bundle.optString(WIFI_CONNECT_PARAM_SSID, ssid)) {
+        lv_textarea_set_text(view->ssid_textarea, ssid.c_str());
+    }
 
-        char* password;
-        if (tt_bundle_opt_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, &password)) {
-            lv_textarea_set_text(view->password_textarea, password);
-        }
+    std::string password;
+    if (bundle.optString(WIFI_CONNECT_PARAM_PASSWORD, password)) {
+        lv_textarea_set_text(view->password_textarea, password.c_str());
     }
 }
 

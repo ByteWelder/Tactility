@@ -13,35 +13,26 @@ static const AppFlags DEFAULT_FLAGS = {
 
 // region Alloc/free
 
-App tt_app_alloc(const AppManifest* manifest, Bundle _Nullable parameters) {
+App tt_app_alloc(const AppManifest* manifest, const Bundle& parameters) {
 #ifdef ESP_PLATFORM
     size_t memory_before = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 #else
     size_t memory_before = 0;
 #endif
-    AppData* data = static_cast<AppData*>(malloc(sizeof(AppData)));
-    *data = (AppData) {
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .manifest = manifest,
-        .state = AppStateInitial,
-        .memory = memory_before,
-        .flags = tt_app_get_flags_default(manifest->type),
-        .parameters = parameters,
-        .data = NULL
-    };
-    return (App*)data;
+    auto* data = new AppData();
+    data->mutex = tt_mutex_alloc(MutexTypeNormal);
+    data->manifest = manifest;
+    data->memory = memory_before;
+    data->flags = tt_app_get_flags_default(manifest->type);
+    data->parameters = Bundle(parameters);
+    return static_cast<App>(data);
 }
 
 void tt_app_free(App app) {
-    AppData* data = (AppData*)app;
-
+    auto* data = static_cast<AppData*>(app);
     size_t memory_before = data->memory;
-
-    if (data->parameters) {
-        tt_bundle_free(data->parameters);
-    }
     tt_mutex_free(data->mutex);
-    free(data);
+    delete data;
 
 #ifdef ESP_PLATFORM
     size_t memory_after = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
@@ -76,14 +67,14 @@ static AppFlags tt_app_get_flags_default(AppType type) {
 // region Public getters & setters
 
 void tt_app_set_state(App app, AppState state) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     data->state = state;
     tt_app_unlock(data);
 }
 
 AppState tt_app_get_state(App app) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     AppState state = data->state;
     tt_app_unlock(data);
@@ -91,13 +82,13 @@ AppState tt_app_get_state(App app) {
 }
 
 const AppManifest* tt_app_get_manifest(App app) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     // No need to lock const data;
     return data->manifest;
 }
 
 AppFlags tt_app_get_flags(App app) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     AppFlags flags = data->flags;
     tt_app_unlock(data);
@@ -105,14 +96,14 @@ AppFlags tt_app_get_flags(App app) {
 }
 
 void tt_app_set_flags(App app, AppFlags flags) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     data->flags = flags;
     tt_app_unlock(data);
 }
 
 void* tt_app_get_data(App app) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     void* value = data->data;
     tt_app_unlock(data);
@@ -120,7 +111,7 @@ void* tt_app_get_data(App app) {
 }
 
 void tt_app_set_data(App app, void* value) {
-    AppData* data = (AppData*)app;
+    auto* data = static_cast<AppData*>(app);
     tt_app_lock(data);
     data->data = value;
     tt_app_unlock(data);
@@ -132,12 +123,9 @@ void tt_app_set_data(App app, void* value) {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-Bundle _Nullable tt_app_get_parameters(App app) {
-    AppData* data = (AppData*)app;
-    tt_app_lock(data);
-    Bundle bundle = data->parameters;
-    tt_app_unlock(data);
-    return bundle;
+Bundle& tt_app_get_parameters(App app) {
+    auto* data = static_cast<AppData*>(app);
+    return data->parameters;
 }
 
 // endregion Public getters & setters

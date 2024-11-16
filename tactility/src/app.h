@@ -25,7 +25,7 @@ typedef void* App;
  * @param parameters optional bundle. memory ownership is transferred to App
  * @return
  */
-App tt_app_alloc(const AppManifest* manifest, Bundle _Nullable parameters);
+App tt_app_alloc(const AppManifest* manifest, const Bundle& parameters);
 void tt_app_free(App app);
 
 void tt_app_set_state(App app, AppState state);
@@ -39,4 +39,4 @@ void tt_app_set_flags(App app, AppFlags flags);
 void* _Nullable tt_app_get_data(App app);
 void tt_app_set_data(App app, void* data);
 
-Bundle _Nullable tt_app_get_parameters(App app);
+Bundle& tt_app_get_parameters(App app);

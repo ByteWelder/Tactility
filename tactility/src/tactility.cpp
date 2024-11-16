@@ -139,11 +139,11 @@ void tt_init(const Config* config) {
     register_user_apps(config->apps);
 
     TT_LOG_I(TAG, "tt_init starting desktop app");
-    loader_start_app(desktop_app.id, true, nullptr);
+    loader_start_app(desktop_app.id, true, Bundle());
 
     if (config->auto_start_app_id) {
         TT_LOG_I(TAG, "tt_init auto-starting %s", config->auto_start_app_id);
-        loader_start_app(config->auto_start_app_id, true, nullptr);
+        loader_start_app(config->auto_start_app_id, true, Bundle());
     }
 
     TT_LOG_I(TAG, "tt_init complete");

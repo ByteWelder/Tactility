@@ -3,7 +3,6 @@
 #include "lvgl.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
-#include <tactility_core.h>
 
 #define TAG "image_viewer"
 
@@ -20,15 +19,13 @@ static void app_show(App app, lv_obj_t* parent) {
 
     lv_obj_t* image = lv_img_create(wrapper);
     lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
-    Bundle bundle = tt_app_get_parameters(app);
-    if (tt_bundle_has_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT)) {
-        const char* file = tt_bundle_get_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT);
-        char* prefixed_path = static_cast<char*>(malloc(strlen(file) + 3));
-        tt_assert(prefixed_path != nullptr);
-        sprintf(prefixed_path, "A:%s", file);
-        TT_LOG_I(TAG, "Opening %s", prefixed_path);
-        lv_img_set_src(image, prefixed_path);
-        free(prefixed_path);
+
+    Bundle& bundle = tt_app_get_parameters(app);
+    std::string file_argument;
+    if (bundle.optString(IMAGE_VIEWER_FILE_ARGUMENT, file_argument)) {
+        std::string prefixed_path = "A:" + file_argument;
+        TT_LOG_I(TAG, "Opening %s", prefixed_path.c_str());
+        lv_img_set_src(image, prefixed_path.c_str());
     }
 }
 

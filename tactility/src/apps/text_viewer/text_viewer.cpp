@@ -18,13 +18,14 @@ static void app_show(App app, lv_obj_t* parent) {
     tt_lv_obj_set_style_no_padding(wrapper);
     tt_lv_obj_set_style_bg_invisible(wrapper);
 
-    lv_obj_t* text = lv_label_create(wrapper);
-    lv_obj_align(text, LV_ALIGN_CENTER, 0, 0);
-    Bundle bundle = tt_app_get_parameters(app);
-    if (tt_bundle_has_string(bundle, TEXT_VIEWER_FILE_ARGUMENT)) {
-        const char* filepath = tt_bundle_get_string(bundle, TEXT_VIEWER_FILE_ARGUMENT);
-        TT_LOG_I(TAG, "Opening %s", filepath);
-        tt_lv_label_set_text_file(text, filepath);
+    lv_obj_t* label = lv_label_create(wrapper);
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    Bundle& bundle = tt_app_get_parameters(app);
+    std::string file_argument;
+    if (bundle.optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
+        std::string prefixed_path = "A:" + file_argument;
+        TT_LOG_I(TAG, "Opening %s", prefixed_path.c_str());
+        tt_lv_label_set_text_file(label, prefixed_path.c_str());
     }
 }
 

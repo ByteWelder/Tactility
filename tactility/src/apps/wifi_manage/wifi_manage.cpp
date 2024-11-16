@@ -21,9 +21,9 @@ static void on_connect(const char* ssid) {
         wifi_connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
-        Bundle bundle = tt_bundle_alloc();
-        tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_SSID, ssid);
-        tt_bundle_put_string(bundle, WIFI_CONNECT_PARAM_PASSWORD, "");
+        Bundle bundle;
+        bundle.putString(WIFI_CONNECT_PARAM_SSID, ssid);
+        bundle.putString(WIFI_CONNECT_PARAM_PASSWORD, "");
         loader_start_app("wifi_connect", false, bundle);
     }
 }

@@ -101,16 +101,16 @@ static void view_file(const char* path, const char* filename) {
     TT_LOG_I(TAG, "Clicked %s", filepath);
 
     if (is_supported_image_file(filename)) {
-        Bundle bundle = tt_bundle_alloc();
-        tt_bundle_put_string(bundle, IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
+        Bundle bundle;
+        bundle.putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         loader_start_app("image_viewer", false, bundle);
     } else if (is_supported_text_file(filename)) {
-        Bundle bundle = tt_bundle_alloc();
+        Bundle bundle;
         if (tt_get_platform() == PlatformEsp) {
-            tt_bundle_put_string(bundle, TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
+            bundle.putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
-            tt_bundle_put_string(bundle, TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
+            bundle.putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
         }
         loader_start_app("text_viewer", false, bundle);
     } else {
