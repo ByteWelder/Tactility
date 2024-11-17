@@ -59,7 +59,7 @@ public:
      *
      * @return     capacity in object count
      */
-    uint32_t getCapacity();
+    uint32_t getCapacity() const;
 
     /** Get message size
      *
@@ -67,7 +67,7 @@ public:
      *
      * @return     Message size in bytes
      */
-    uint32_t getMessageSize();
+    uint32_t getMessageSize() const;
 
     /** Get message count in queue
      *
@@ -75,7 +75,7 @@ public:
      *
      * @return     Message count
      */
-    uint32_t getCount();
+    uint32_t getCount() const;
 
     /** Get queue available space
      *
@@ -83,7 +83,7 @@ public:
      *
      * @return     Message count
      */
-    uint32_t getSpace();
+    uint32_t getSpace() const;
 
     /** Reset queue
      *

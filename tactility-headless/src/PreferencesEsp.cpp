@@ -6,7 +6,7 @@
 
 #define TAG "preferences"
 
-bool Preferences::optBool(const std::string& key, bool& out) {
+bool Preferences::optBool(const std::string& key, bool& out) const {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) != ESP_OK) {
         return false;
@@ -21,7 +21,7 @@ bool Preferences::optBool(const std::string& key, bool& out) {
     }
 }
 
-bool Preferences::optInt32(const std::string& key, int32_t& out) {
+bool Preferences::optInt32(const std::string& key, int32_t& out) const {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) != ESP_OK) {
         return false;
@@ -32,7 +32,7 @@ bool Preferences::optInt32(const std::string& key, int32_t& out) {
     }
 }
 
-bool Preferences::optString(const std::string& key, std::string& out) {
+bool Preferences::optString(const std::string& key, std::string& out) const {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) != ESP_OK) {
         return false;
@@ -47,17 +47,17 @@ bool Preferences::optString(const std::string& key, std::string& out) {
     }
 }
 
-bool Preferences::hasBool(const std::string& key) {
+bool Preferences::hasBool(const std::string& key) const {
     bool temp;
     return optBool(key, temp);
 }
 
-bool Preferences::hasInt32(const std::string& key) {
+bool Preferences::hasInt32(const std::string& key) const {
     int32_t temp;
     return optInt32(key, temp);
 }
 
-bool Preferences::hasString(const std::string& key) {
+bool Preferences::hasString(const std::string& key) const {
     std::string temp;
     return optString(key, temp);
 }

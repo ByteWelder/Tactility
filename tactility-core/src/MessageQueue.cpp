@@ -85,7 +85,7 @@ TtStatus MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
     return (stat);
 }
 
-uint32_t MessageQueue::getCapacity() {
+uint32_t MessageQueue::getCapacity() const {
     auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t capacity;
 
@@ -100,7 +100,7 @@ uint32_t MessageQueue::getCapacity() {
     return (capacity);
 }
 
-uint32_t MessageQueue::getMessageSize() {
+uint32_t MessageQueue::getMessageSize() const {
     auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t size;
 
@@ -115,7 +115,7 @@ uint32_t MessageQueue::getMessageSize() {
     return (size);
 }
 
-uint32_t MessageQueue::getCount() {
+uint32_t MessageQueue::getCount() const {
     UBaseType_t count;
 
     if (queue_handle == nullptr) {
@@ -130,7 +130,7 @@ uint32_t MessageQueue::getCount() {
     return ((uint32_t)count);
 }
 
-uint32_t MessageQueue::getSpace() {
+uint32_t MessageQueue::getSpace() const {
     auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t space;
     uint32_t isrm;

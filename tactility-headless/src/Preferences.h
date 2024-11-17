@@ -13,13 +13,13 @@ public:
         this->namespace_ = namespace_;
     }
 
-    bool hasBool(const std::string& key);
-    bool hasInt32(const std::string& key);
-    bool hasString(const std::string& key);
+    bool hasBool(const std::string& key) const;
+    bool hasInt32(const std::string& key) const;
+    bool hasString(const std::string& key) const;
 
-    bool optBool(const std::string& key, bool& out);
-    bool optInt32(const std::string& key, int32_t& out);
-    bool optString(const std::string& key, std::string& out);
+    bool optBool(const std::string& key, bool& out) const;
+    bool optInt32(const std::string& key, int32_t& out) const;
+    bool optString(const std::string& key, std::string& out) const;
 
     void putBool(const std::string& key, bool value);
     void putInt32(const std::string& key, int32_t value);
