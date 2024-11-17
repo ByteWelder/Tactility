@@ -1,7 +1,6 @@
 #include "apps/settings/display/display_preferences.h"
 #include "lvgl.h"
 #include "lvgl_init_i.h"
-#include "preferences.h"
 
 void tt_lvgl_init(const HardwareConfig* config) {
     SetBacklightDuty set_backlight_duty = config->display.set_backlight_duty;

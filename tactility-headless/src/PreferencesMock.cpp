@@ -1,7 +1,7 @@
 #ifndef ESP_PLATFOM
 
-#include "bundle.h"
-#include "preferences.h"
+#include "Bundle.h"
+#include "Preferences.h"
 #include <tactility_core.h>
 
 static Bundle preferences;

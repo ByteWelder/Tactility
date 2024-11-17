@@ -1,4 +1,4 @@
-#include "bundle.h"
+#include "Bundle.h"
 
 bool Bundle::getBool(const std::string& key) {
     return this->entries[key].value_bool;

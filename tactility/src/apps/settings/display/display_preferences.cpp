@@ -1,4 +1,4 @@
-#include "preferences.h"
+#include "Preferences.h"
 #include "display_preferences.h"
 
 Preferences preferences("display");

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app_manifest.h"
-#include "bundle.h"
+#include "Bundle.h"
 #include "pubsub.h"
 #include "service_manifest.h"
 #include "tactility_core.h"

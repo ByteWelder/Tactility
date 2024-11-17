@@ -1,6 +1,5 @@
 #include "doctest.h"
-#include "bundle.h"
-#include <cstring>
+#include "Bundle.h"
 
 TEST_CASE("boolean can be stored and retrieved") {
     Bundle bundle;

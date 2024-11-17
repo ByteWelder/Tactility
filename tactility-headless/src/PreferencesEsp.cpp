@@ -1,7 +1,7 @@
 #ifdef ESP_PLATFORM
 
 #include "nvs_flash.h"
-#include "preferences.h"
+#include "Preferences.h"
 #include "tactility_core.h"
 
 #define TAG "preferences"

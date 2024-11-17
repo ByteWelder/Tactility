@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app_manifest.h"
-#include "bundle.h"
+#include "Bundle.h"
 
 typedef enum {
     AppStateInitial, // App is being activated in loader

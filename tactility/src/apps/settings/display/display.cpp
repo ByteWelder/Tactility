@@ -2,7 +2,6 @@
 #include "assets.h"
 #include "display_preferences.h"
 #include "lvgl.h"
-#include "preferences.h"
 #include "tactility.h"
 #include "ui/toolbar.h"
 
