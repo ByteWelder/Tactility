@@ -10,7 +10,7 @@ MessageQueue::MessageQueue(uint32_t msg_count, uint32_t msg_size) {
 
 MessageQueue::~MessageQueue() {
     tt_assert(tt_kernel_is_irq() == 0U);
-    vQueueDelete((QueueHandle_t)this);
+    vQueueDelete(queue_handle);
 }
 
 TtStatus MessageQueue::put(const void* msg_ptr, uint32_t timeout) {

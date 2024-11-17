@@ -1,5 +1,4 @@
 #include "Mutex.h"
-#include <cstdlib>
 
 #include "check.h"
 #include "core_defines.h"
@@ -42,7 +41,6 @@ Mutex::~Mutex() {
     tt_assert(!TT_IS_IRQ_MODE());
     vSemaphoreDelete(semaphore);
     semaphore = nullptr; // If the mutex is used after release, this might help debugging
-    type = static_cast<MutexType>(0xBAADF00D); // Set to an invalid value
 }
 
 TtStatus Mutex::acquire(uint32_t timeout) {
