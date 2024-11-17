@@ -25,7 +25,7 @@ TEST_CASE("string can be stored and retrieved") {
     Bundle bundle;
     bundle.putString("key", "test");
     CHECK(bundle.hasString("key"));
-    CHECK(bundle.getString("key") == "test");
+    CHECK_EQ(bundle.getString("key"), "test");
     std::string opt_result;
     CHECK(bundle.optString("key", opt_result));
     CHECK_EQ(opt_result, "test");
