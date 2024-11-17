@@ -3,50 +3,46 @@
 #include <cstring>
 
 TEST_CASE("boolean can be stored and retrieved") {
-    Bundle bundle = tt_bundle_alloc();
-    tt_bundle_put_bool(bundle, "key", true);
-    CHECK(tt_bundle_get_bool(bundle, "key"));
+    Bundle bundle;
+    bundle.putBool("key", true);
+    CHECK(bundle.hasBool("key"));
+    CHECK(bundle.getBool("key"));
     bool opt_result = false;
-    CHECK(tt_bundle_opt_bool(bundle, "key", &opt_result));
-    CHECK(tt_bundle_has_bool(bundle, "key"));
+    CHECK(bundle.optBool("key", opt_result));
     CHECK_EQ(opt_result, true);
-    tt_bundle_free(bundle);
 }
 
 TEST_CASE("int32 can be stored and retrieved") {
-    Bundle bundle = tt_bundle_alloc();
-    tt_bundle_put_int32(bundle, "key", 42);
-    CHECK(tt_bundle_get_int32(bundle, "key"));
-    int32_t opt_result = 0;
-    CHECK(tt_bundle_opt_int32(bundle, "key", &opt_result));
-    CHECK(tt_bundle_has_int32(bundle, "key"));
-    CHECK_EQ(opt_result, 42);
-    tt_bundle_free(bundle);
+    Bundle bundle;
+    bundle.putInt32("key", true);
+    CHECK(bundle.hasInt32("key"));
+    CHECK(bundle.getInt32("key"));
+    int32_t opt_result = false;
+    CHECK(bundle.optInt32("key", opt_result));
+    CHECK_EQ(opt_result, true);
 }
 
 TEST_CASE("string can be stored and retrieved") {
-    Bundle bundle = tt_bundle_alloc();
-    tt_bundle_put_string(bundle, "key", "value");
-    const char* value_from_bundle = tt_bundle_get_string(bundle, "key");
-    CHECK_EQ(strcmp(value_from_bundle, "value"), 0);
-    char* opt_result = NULL;
-    CHECK(tt_bundle_opt_string(bundle, "key", &opt_result));
-    CHECK(tt_bundle_has_string(bundle, "key"));
-    CHECK(opt_result != NULL);
-    tt_bundle_free(bundle);
+    Bundle bundle;
+    bundle.putString("key", "test");
+    CHECK(bundle.hasString("key"));
+    CHECK(bundle.getString("key") == "test");
+    std::string opt_result;
+    CHECK(bundle.optString("key", opt_result));
+    CHECK_EQ(opt_result, "test");
 }
 
-TEST_CASE("bundle copy holds all copied values when original is freed") {
-    Bundle original = tt_bundle_alloc();
-    tt_bundle_put_bool(original, "bool", true);
-    tt_bundle_put_int32(original, "int32", 123);
-    tt_bundle_put_string(original, "string", "text");
+TEST_CASE("bundle copy makes an actual copy") {
+    auto* original_ptr = new Bundle();
+    Bundle& original = *original_ptr;
+    original.putBool("bool", true);
+    original.putInt32("int32", 123);
+    original.putString("string", "text");
 
-    Bundle copy = tt_bundle_alloc_copy(original);
-    tt_bundle_free(original);
+    Bundle copy = original;
+    delete original_ptr;
 
-    CHECK(tt_bundle_get_bool(copy, "bool") == true);
-    CHECK_EQ(tt_bundle_get_int32(copy, "int32"),  123);
-    CHECK_EQ(strcmp(tt_bundle_get_string(copy, "string"), "text"), 0);
-    tt_bundle_free(copy);
+    CHECK_EQ(copy.getBool("bool"), true);
+    CHECK_EQ(copy.getInt32("int32"),  123);
+    CHECK_EQ(copy.getString("string"), "text");
 }

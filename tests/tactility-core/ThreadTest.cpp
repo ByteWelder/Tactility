@@ -23,7 +23,7 @@ static int thread_with_return_code(void* parameter) {
 
 TEST_CASE("when a thread is started then its callback should be called") {
     bool has_called = false;
-    Thread* thread = tt_thread_alloc_ex(
+    auto* thread = tt_thread_alloc_ex(
         "immediate return task",
         4096,
         &immediate_return_thread,
@@ -38,7 +38,7 @@ TEST_CASE("when a thread is started then its callback should be called") {
 
 TEST_CASE("a thread can be started and stopped") {
     bool interrupted = false;
-    Thread* thread = tt_thread_alloc_ex(
+    auto* thread = tt_thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
@@ -53,24 +53,24 @@ TEST_CASE("a thread can be started and stopped") {
 
 TEST_CASE("thread id should only be set at when thread is started") {
     bool interrupted = false;
-    Thread* thread = tt_thread_alloc_ex(
+    auto* thread = tt_thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
         &interrupted
     );
-    CHECK(tt_thread_get_id(thread) == NULL);
+    CHECK(tt_thread_get_id(thread) == nullptr);
     tt_thread_start(thread);
-    CHECK(tt_thread_get_id(thread) != NULL);
+    CHECK(tt_thread_get_id(thread) != nullptr);
     interrupted = true;
     tt_thread_join(thread);
-    CHECK(tt_thread_get_id(thread) == NULL);
+    CHECK(tt_thread_get_id(thread) == nullptr);
     tt_thread_free(thread);
 }
 
 TEST_CASE("thread state should be correct") {
     bool interrupted = false;
-    Thread* thread = tt_thread_alloc_ex(
+    auto* thread = tt_thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
@@ -88,7 +88,7 @@ TEST_CASE("thread state should be correct") {
 
 TEST_CASE("thread id should only be set at when thread is started") {
     int code = 123;
-    Thread* thread = tt_thread_alloc_ex(
+    auto* thread = tt_thread_alloc_ex(
         "return code",
         4096,
         &thread_with_return_code,

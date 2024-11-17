@@ -14,7 +14,7 @@ static void timer_callback_with_counter(void* context) {
 
 TEST_CASE("a timer passes the context correctly") {
     int foo = 1;
-    Timer* timer = tt_timer_alloc(&timer_callback_with_context, TimerTypeOnce, &foo);
+    auto* timer = tt_timer_alloc(&timer_callback_with_context, TimerTypeOnce, &foo);
     tt_timer_start(timer, 1);
     tt_delay_tick(10);
     tt_timer_stop(timer);
@@ -25,7 +25,7 @@ TEST_CASE("a timer passes the context correctly") {
 
 TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
     int counter = 0;
-    Timer* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
+    auto* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
     tt_timer_start(timer, 1);
     tt_delay_tick(10);
     tt_timer_stop(timer);
@@ -39,7 +39,7 @@ TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
 TEST_CASE("TimerTypePeriodic calls the callback periodically") {
     int counter = 0;
     int ticks_to_run = 10;
-    Timer* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
+    auto* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
     tt_timer_start(timer, 1);
     tt_delay_tick(ticks_to_run);
     tt_timer_stop(timer);
@@ -50,7 +50,7 @@ TEST_CASE("TimerTypePeriodic calls the callback periodically") {
 
 TEST_CASE("restarting TimerTypeOnce timers has no effect") {
     int counter = 0;
-    Timer* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypeOnce, &counter);
+    auto* timer = tt_timer_alloc(&timer_callback_with_counter, TimerTypeOnce, &counter);
     tt_timer_start(timer, 1);
     tt_delay_tick(10);
     tt_timer_stop(timer);
