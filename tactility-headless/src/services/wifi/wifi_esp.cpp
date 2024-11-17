@@ -19,31 +19,6 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
-typedef struct {
-    /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex* mutex;
-    /** @brief The public event bus */
-    PubSub* pubsub;
-    /** @brief The internal message queue */
-    MessageQueue* queue;
-    /** @brief The network interface when wifi is started */
-    esp_netif_t* _Nullable netif;
-    /** @brief Scanning results */
-    wifi_ap_record_t* _Nullable scan_list;
-    /** @brief The current item count in scan_list (-1 when scan_list is NULL) */
-    uint16_t scan_list_count;
-    /** @brief Maximum amount of records to scan (value > 0) */
-    uint16_t scan_list_limit;
-    bool scan_active;
-    bool secure_connection;
-    esp_event_handler_instance_t event_handler_any_id;
-    esp_event_handler_instance_t event_handler_got_ip;
-    EventGroupHandle_t event_group;
-    WifiRadioState radio_state;
-    WifiApSettings connection_target;
-    bool connection_target_remember; // Whether to store the connection_target on successful connection or not
-} Wifi;
-
 typedef enum {
     WifiMessageTypeRadioOn,
     WifiMessageTypeRadioOff,
@@ -62,7 +37,43 @@ typedef struct {
     };
 } WifiMessage;
 
-static Wifi* wifi_singleton = NULL;
+class Wifi {
+public:
+    Wifi();
+    ~Wifi();
+
+    /** @brief Locking mechanism for modifying the Wifi instance */
+    Mutex* mutex = nullptr;
+    /** @brief The public event bus */
+    PubSub* pubsub = nullptr;
+    /** @brief The internal message queue */
+    MessageQueue queue = MessageQueue(1, sizeof(WifiMessage));
+    // TODO: Deal with messages that come in while an action is ongoing
+    // for example: when scanning and you turn off the radio, the scan should probably stop or turning off
+    // the radio should disable the on/off button in the app as it is pending.
+    /** @brief The network interface when wifi is started */
+    esp_netif_t* _Nullable netif = nullptr;
+    /** @brief Scanning results */
+    wifi_ap_record_t* _Nullable scan_list = nullptr;
+    /** @brief The current item count in scan_list (-1 when scan_list is NULL) */
+    uint16_t scan_list_count = 0;
+    /** @brief Maximum amount of records to scan (value > 0) */
+    uint16_t scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
+    bool scan_active = false;
+    bool secure_connection = false;
+    esp_event_handler_instance_t event_handler_any_id = nullptr;
+    esp_event_handler_instance_t event_handler_got_ip = nullptr;
+    EventGroupHandle_t event_group;
+    WifiRadioState radio_state = WIFI_RADIO_OFF;
+    WifiApSettings connection_target = {
+        .ssid = { 0 },
+        .password = { 0 },
+        .auto_connect = false
+    };
+    bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
+};
+
+static Wifi* wifi_singleton = nullptr;
 
 // Forward declarations
 static void wifi_scan_list_free_safely(Wifi* wifi);
@@ -72,38 +83,15 @@ static void wifi_unlock(Wifi* wifi);
 
 // region Alloc
 
-static Wifi* wifi_alloc() {
-    auto* instance = static_cast<Wifi*>(malloc(sizeof(Wifi)));
-    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
-    instance->pubsub = tt_pubsub_alloc();
-    // TODO: Deal with messages that come in while an action is ongoing
-    // for example: when scanning and you turn off the radio, the scan should probably stop or turning off
-    // the radio should disable the on/off button in the app as it is pending.
-    instance->queue = tt_message_queue_alloc(1, sizeof(WifiMessage));
-    instance->netif = nullptr;
-    instance->scan_active = false;
-    instance->scan_list = nullptr;
-    instance->scan_list_count = 0;
-    instance->scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
-    instance->event_handler_any_id = nullptr;
-    instance->event_handler_got_ip = nullptr;
-    instance->event_group = xEventGroupCreate();
-    instance->radio_state = WIFI_RADIO_OFF;
-    instance->secure_connection = false;
-    instance->connection_target = (WifiApSettings) {
-        .ssid = { 0 },
-        .password = { 0 },
-        .auto_connect = false
-    };
-    instance->connection_target_remember = false;
-    return instance;
+Wifi::Wifi() {
+    mutex = tt_mutex_alloc(MutexTypeRecursive);
+    pubsub = tt_pubsub_alloc();
+    event_group = xEventGroupCreate();
 }
 
-static void wifi_free(Wifi* instance) {
-    tt_mutex_free(instance->mutex);
-    tt_pubsub_free(instance->pubsub);
-    tt_message_queue_free(instance->queue);
-    free(instance);
+Wifi::~Wifi() {
+    tt_mutex_free(mutex);
+    tt_pubsub_free(pubsub);
 }
 
 // endregion Alloc
@@ -128,7 +116,7 @@ void wifi_scan() {
     wifi_lock(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeScan};
     // No need to lock for queue
-    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     wifi_unlock(wifi_singleton);
 }
 
@@ -146,7 +134,7 @@ void wifi_connect(const WifiApSettings* ap, bool remember) {
     memcpy(&wifi_singleton->connection_target, ap, sizeof(WifiApSettings));
     wifi_singleton->connection_target_remember = remember;
     WifiMessage message = {.type = WifiMessageTypeConnect};
-    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     wifi_unlock(wifi_singleton);
 }
 
@@ -159,7 +147,7 @@ void wifi_disconnect() {
         .auto_connect = false
     };
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
-    tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+    wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     wifi_unlock(wifi_singleton);
 }
 
@@ -202,11 +190,11 @@ void wifi_set_enabled(bool enabled) {
     if (enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOn};
         // No need to lock for queue
-        tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+        wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     } else {
         WifiMessage message = {.type = WifiMessageTypeRadioOff};
         // No need to lock for queue
-        tt_message_queue_put(wifi_singleton->queue, &message, 100 / portTICK_PERIOD_MS);
+        wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     }
     wifi_unlock(wifi_singleton);
 }
@@ -657,7 +645,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "Started main loop");
     tt_assert(wifi_singleton != nullptr);
     Wifi* wifi = wifi_singleton;
-    MessageQueue* queue = wifi->queue;
+    MessageQueue& queue = wifi->queue;
 
     if (TT_WIFI_AUTO_ENABLE) {
         wifi_enable(wifi);
@@ -666,7 +654,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
     WifiMessage message;
     while (true) {
-        if (tt_message_queue_get(queue, &message, 10000 / portTICK_PERIOD_MS) == TtStatusOk) {
+        if (queue.get(&message, 10000 / portTICK_PERIOD_MS) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
@@ -709,7 +697,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
 static void wifi_service_start(TT_UNUSED Service service) {
     tt_assert(wifi_singleton == nullptr);
-    wifi_singleton = wifi_alloc();
+    wifi_singleton = new Wifi();
 }
 
 static void wifi_service_stop(TT_UNUSED Service service) {
@@ -720,7 +708,7 @@ static void wifi_service_stop(TT_UNUSED Service service) {
         wifi_disable(wifi_singleton);
     }
 
-    wifi_free(wifi_singleton);
+    delete wifi_singleton;
     wifi_singleton = nullptr;
 
     // wifi_main() cannot be stopped yet as it runs in the main task.
