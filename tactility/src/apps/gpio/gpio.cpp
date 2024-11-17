@@ -201,7 +201,6 @@ static void on_stop(App app) {
 extern const AppManifest gpio_app = {
     .id = "gpio",
     .name = "GPIO",
-    .icon = nullptr,
     .type = AppTypeSystem,
     .on_start = &on_start,
     .on_stop = &on_stop,

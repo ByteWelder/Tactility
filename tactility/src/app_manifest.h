@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "core_defines.h"
 
 // Forward declarations
@@ -24,44 +25,44 @@ typedef void (*AppOnStop)(App app);
 typedef void (*AppOnShow)(App app, lv_obj_t* parent);
 typedef void (*AppOnHide)(App app);
 
-typedef struct {
+typedef struct AppManifest {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
-    const char* id;
+    std::string id;
 
     /**
      * The user-readable name of the app. Used in UI.
      */
-    const char* name;
+    std::string name;
 
     /**
      * Optional icon.
      */
-    const char* _Nullable icon;
+    std::string icon = {};
 
     /**
      * App type affects launch behaviour.
      */
-    const AppType type;
+    const AppType type = AppTypeUser;
 
     /**
      * Non-blocking method to call when app is started.
      */
-    const AppOnStart _Nullable on_start;
+    const AppOnStart on_start = nullptr;
 
     /**
      * Non-blocking method to call when app is stopped.
      */
-    const AppOnStop _Nullable on_stop;
+    const AppOnStop _Nullable on_stop = nullptr;
 
     /**
      * Non-blocking method to create the GUI
      */
-    const AppOnShow _Nullable on_show;
+    const AppOnShow _Nullable on_show = nullptr;
 
     /**
      * Non-blocking method, called before gui is destroyed
      */
-    const AppOnHide _Nullable on_hide;
+    const AppOnHide _Nullable on_hide = nullptr;
 } AppManifest;

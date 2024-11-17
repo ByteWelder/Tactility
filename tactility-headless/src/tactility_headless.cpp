@@ -34,7 +34,6 @@ void tt_headless_init(const HardwareConfig* config) {
     tt_esp_init();
 #endif
     hardwareConfig = config;
-    tt_service_registry_init();
     tt_hardware_init(config);
     register_and_start_system_services();
 }

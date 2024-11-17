@@ -2,7 +2,6 @@
 
 #include "wifi.h"
 
-#include "assets.h"
 #include "check.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
@@ -473,7 +472,7 @@ static void wifi_disable(Wifi* wifi) {
         TT_LOG_E(TAG, "Failed to deinit");
     }
 
-    tt_check(wifi->netif != nullptr);
+    tt_assert(wifi->netif != nullptr);
     esp_netif_destroy(wifi->netif);
     wifi->netif = nullptr;
 
@@ -519,12 +518,40 @@ static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_messag
              */
             .ssid = {0},
             .password = {0},
+            .scan_method = WIFI_ALL_CHANNEL_SCAN,
+            .bssid_set = false,
+            .bssid = { 0 },
+            .channel = 0,
+            .listen_interval = 0,
+            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
             .threshold = {
                 .rssi = 0,
                 .authmode = WIFI_AUTH_WPA2_WPA3_PSK,
             },
+            .pmf_cfg = {
+                .capable = false,
+                .required = false
+            },
+            .rm_enabled = 0,
+            .btm_enabled = 0,
+            .mbo_enabled = 0,
+            .ft_enabled = 0,
+            .owe_enabled = 0,
+            .transition_disable = 0,
+            .reserved = 0,
             .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-            .sae_h2e_identifier = {0}
+            .sae_pk_mode = WPA3_SAE_PK_MODE_AUTOMATIC,
+            .failure_retry_cnt = 1,
+            .he_dcm_set = 0,
+            .he_dcm_max_constellation_tx = 0,
+            .he_dcm_max_constellation_rx = 0,
+            .he_mcs9_enabled = 0,
+            .he_su_beamformee_disabled = 0,
+            .he_trig_su_bmforming_feedback_disabled = 0,
+            .he_trig_mu_bmforming_partial_feedback_disabled = 0,
+            .he_trig_cqi_feedback_disabled = 0,
+            .he_reserved = 0,
+            .sae_h2e_identifier = {0},
         }
     };
 
@@ -697,6 +724,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
 static void wifi_service_start(TT_UNUSED Service service) {
     tt_assert(wifi_singleton == nullptr);
+    tt_service_set_data(service, wifi_singleton);
     wifi_singleton = new Wifi();
 }
 

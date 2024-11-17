@@ -16,8 +16,8 @@ static void on_app_pressed(lv_event_t* e) {
 static void create_app_widget(const AppManifest* manifest, void* parent) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
-    const char* icon = manifest->icon ?: TT_ASSETS_APP_ICON_FALLBACK;
-    lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name);
+    const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
+    lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 

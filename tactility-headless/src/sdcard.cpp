@@ -5,7 +5,7 @@
 
 #define TAG "sdcard"
 
-static Mutex* mutex = NULL;
+static Mutex mutex(MutexTypeRecursive);
 
 typedef struct {
     const SdCard* sdcard;
@@ -13,22 +13,16 @@ typedef struct {
 } MountData;
 
 static MountData data = {
-    .sdcard = NULL,
-    .context = NULL
+    .sdcard = nullptr,
+    .context = nullptr
 };
 
-void tt_sdcard_init() {
-    if (mutex == NULL) {
-        mutex = tt_mutex_alloc(MutexTypeRecursive);
-    }
-}
-
 static bool sdcard_lock(uint32_t timeout_ticks) {
-    return tt_mutex_acquire(mutex, timeout_ticks) == TtStatusOk;
+    return mutex.acquire(timeout_ticks) == TtStatusOk;
 }
 
 static void sdcard_unlock() {
-    tt_mutex_release(mutex);
+    mutex.release();
 }
 
 bool tt_sdcard_mount(const SdCard* sdcard) {

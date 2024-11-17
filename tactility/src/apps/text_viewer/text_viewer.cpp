@@ -32,10 +32,6 @@ static void app_show(App app, lv_obj_t* parent) {
 extern const AppManifest text_viewer_app = {
     .id = "text_viewer",
     .name = "Text Viewer",
-    .icon = NULL,
     .type = AppTypeHidden,
-    .on_start = NULL,
-    .on_stop = NULL,
     .on_show = &app_show,
-    .on_hide = NULL
 };

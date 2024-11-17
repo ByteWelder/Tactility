@@ -66,7 +66,7 @@ static int32_t screenshot_task(void* context) {
 
     bool interrupted = false;
     uint8_t screenshots_taken = 0;
-    const char* last_app_id = nullptr;
+    std::string last_app_id;
 
     while (!interrupted) {
         interrupted = is_interrupted(data);
@@ -104,7 +104,7 @@ static int32_t screenshot_task(void* context) {
                     last_app_id = manifest->id;
 
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
-                    sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest->id);
+                    sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest->id.c_str());
                     tt_lvgl_lock(TtWaitForever);
                     if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                         TT_LOG_I(TAG, "Screenshot saved to %s", filename);

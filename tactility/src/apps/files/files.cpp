@@ -227,5 +227,4 @@ extern const AppManifest files_app = {
     .on_start = &on_start,
     .on_stop = &on_stop,
     .on_show = &on_show,
-    .on_hide = nullptr
 };

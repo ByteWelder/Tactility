@@ -55,7 +55,7 @@ typedef struct {
  * @param[in] bundle optional bundle. Ownership is transferred to Loader.
  * @return LoaderStatus
  */
-LoaderStatus loader_start_app(const char* id, bool blocking, const Bundle& bundle);
+LoaderStatus loader_start_app(const std::string& id, bool blocking, const Bundle& bundle);
 
 /**
  * @brief Stop the currently showing app. Show the previous app if any app was still running.

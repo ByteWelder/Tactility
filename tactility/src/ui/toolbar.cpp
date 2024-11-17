@@ -39,7 +39,7 @@ static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     LV_TRACE_OBJ_CREATE("finished");
 }
 
-lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const char* title) {
+lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const std::string& title) {
     LV_LOG_INFO("begin");
     lv_obj_t* obj = lv_obj_class_create_obj(&toolbar_class, parent);
     lv_obj_class_init_obj(obj);
@@ -71,7 +71,7 @@ lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const char* title) {
     toolbar->title_label = lv_label_create(label_container);
     lv_obj_set_style_text_font(toolbar->title_label, &lv_font_montserrat_18, 0); // TODO replace with size 18
     lv_obj_set_height(toolbar->title_label, TOOLBAR_TITLE_FONT_HEIGHT);
-    lv_label_set_text(toolbar->title_label, title);
+    lv_label_set_text(toolbar->title_label, title.c_str());
     lv_obj_set_pos(toolbar->title_label, 0, title_offset_y);
     lv_obj_set_style_text_align(toolbar->title_label, LV_TEXT_ALIGN_LEFT, 0);
 
@@ -90,9 +90,9 @@ lv_obj_t* tt_toolbar_create_for_app(lv_obj_t* parent, App app) {
     return toolbar;
 }
 
-void tt_toolbar_set_title(lv_obj_t* obj, const char* title) {
+void tt_toolbar_set_title(lv_obj_t* obj, const std::string& title) {
     auto* toolbar = (Toolbar*)obj;
-    lv_label_set_text(toolbar->title_label, title);
+    lv_label_set_text(toolbar->title_label, title.c_str());
 }
 
 void tt_toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {

@@ -8,10 +8,8 @@
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
 #else
 #include "FreeRTOS.h"
-#include "semphr.h"
 #endif
 
 #define TAG "loader"
@@ -64,7 +62,7 @@ void loader_unlock() {
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus loader_start_app(const char* id, bool blocking, const Bundle& bundle) {
+LoaderStatus loader_start_app(const std::string& id, bool blocking, const Bundle& bundle) {
     tt_assert(loader_singleton);
     LoaderMessageLoaderStatusResult result = {
         .value = LoaderStatusOk
@@ -135,7 +133,7 @@ static void app_transition_to_state(App app, AppState state) {
     TT_LOG_I(
         TAG,
         "app \"%s\" state: %s -> %s",
-        manifest->id,
+        manifest->id.c_str(),
         app_state_to_string(old_state),
         app_state_to_string(state)
     );
@@ -186,7 +184,7 @@ LoaderStatus loader_do_start_app_with_manifest(
     const AppManifest* manifest,
     const Bundle& bundle
 ) {
-    TT_LOG_I(TAG, "start with manifest %s", manifest->id);
+    TT_LOG_I(TAG, "start with manifest %s", manifest->id.c_str());
 
     loader_lock();
 

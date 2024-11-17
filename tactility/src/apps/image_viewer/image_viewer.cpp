@@ -32,7 +32,6 @@ static void app_show(App app, lv_obj_t* parent) {
 extern const AppManifest image_viewer_app = {
     .id = "image_viewer",
     .name = "Image Viewer",
-    .icon = nullptr,
     .type = AppTypeHidden,
     .on_start = nullptr,
     .on_stop = nullptr,

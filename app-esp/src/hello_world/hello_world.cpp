@@ -14,10 +14,6 @@ static void app_show(App app, lv_obj_t* parent) {
 extern const AppManifest hello_world_app = {
     .id = "helloworld",
     .name = "Hello World",
-    .icon = NULL,
     .type = AppTypeUser,
-    .on_start = NULL,
-    .on_stop = NULL,
     .on_show = &app_show,
-    .on_hide = NULL
 };

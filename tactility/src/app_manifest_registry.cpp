@@ -26,7 +26,7 @@ void app_registry_unlock() {
 }
 
 void tt_app_manifest_registry_add(const AppManifest* manifest) {
-    TT_LOG_I(TAG, "adding %s", manifest->id);
+    TT_LOG_I(TAG, "adding %s", manifest->id.c_str());
 
     app_registry_lock();
     app_manifest_map[manifest->id] = manifest;
