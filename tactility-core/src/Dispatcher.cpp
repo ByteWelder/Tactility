@@ -1,4 +1,4 @@
-#include "dispatcher.h"
+#include "Dispatcher.h"
 
 Dispatcher::Dispatcher(size_t queueLimit) {
     queue = tt_message_queue_alloc(queueLimit, sizeof(DispatcherMessage));

@@ -1,6 +1,6 @@
 #include "doctest.h"
 #include "tactility_core.h"
-#include "dispatcher.h"
+#include "Dispatcher.h"
 
 void increment_callback(void* context) {
     auto* counter = (uint32_t*)context;
