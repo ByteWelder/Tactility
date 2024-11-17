@@ -5,19 +5,6 @@
 #include "core_defines.h"
 #include "log.h"
 
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#else
-#include "FreeRTOS.h"
-#include "semphr.h"
-#endif
-
-typedef struct {
-    SemaphoreHandle_t handle;
-    MutexType type;
-} MutexData;
-
 #define MUTEX_DEBUGGING false
 
 #if MUTEX_DEBUGGING
@@ -34,51 +21,40 @@ void tt_mutex_info(Mutex mutex, const char* label) {
 #define tt_mutex_info(mutex, text)
 #endif
 
-Mutex* tt_mutex_alloc(MutexType type) {
-    tt_assert(!TT_IS_IRQ_MODE());
-    auto data = static_cast<MutexData*>(malloc(sizeof(MutexData)));
-
-    data->type = type;
-
+Mutex::Mutex(MutexType type) : type(type) {
+    tt_mutex_info(data, "alloc");
     switch (type) {
         case MutexTypeNormal:
-            data->handle = xSemaphoreCreateMutex();
+            semaphore = xSemaphoreCreateMutex();
             break;
         case MutexTypeRecursive:
-            data->handle = xSemaphoreCreateRecursiveMutex();
+            semaphore = xSemaphoreCreateRecursiveMutex();
             break;
         default:
-            tt_crash("mutex type unknown/corrupted");
+            tt_crash("Mutex type unknown/corrupted");
     }
 
-    tt_check(data->handle != NULL);
-    tt_mutex_info(data, "alloc  ");
-    return (Mutex*)data;
+    tt_check(semaphore != nullptr);
+
 }
 
-void tt_mutex_free(Mutex* mutex) {
+Mutex::~Mutex() {
     tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert(mutex);
-
-    auto* data = static_cast<MutexData*>(mutex);
-    vSemaphoreDelete(data->handle);
-    data->handle = nullptr; // If the mutex is used after release, this might help debugging
-    data->type = static_cast<MutexType>(0xBAADF00D); // Set to an invalid value
-    free(data);
+    vSemaphoreDelete(semaphore);
+    semaphore = nullptr; // If the mutex is used after release, this might help debugging
+    type = static_cast<MutexType>(0xBAADF00D); // Set to an invalid value
 }
 
-TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
-    tt_assert(mutex);
+TtStatus Mutex::acquire(uint32_t timeout) {
     tt_assert(!TT_IS_IRQ_MODE());
-    auto* data = static_cast<MutexData*>(mutex);
-    tt_assert(data->handle);
+    tt_assert(semaphore);
     TtStatus status = TtStatusOk;
 
     tt_mutex_info(mutex, "acquire");
 
-    switch (data->type) {
+    switch (type) {
         case MutexTypeNormal:
-            if (xSemaphoreTake(data->handle, timeout) != pdPASS) {
+            if (xSemaphoreTake(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     status = TtStatusErrorTimeout;
                 } else {
@@ -87,7 +63,7 @@ TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
             }
             break;
         case MutexTypeRecursive:
-            if (xSemaphoreTakeRecursive(data->handle, timeout) != pdPASS) {
+            if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     status = TtStatusErrorTimeout;
                 } else {
@@ -102,24 +78,22 @@ TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
     return status;
 }
 
-TtStatus tt_mutex_release(Mutex* mutex) {
-    tt_assert(mutex);
+TtStatus Mutex::release() {
     assert(!TT_IS_IRQ_MODE());
-    auto* data = static_cast<MutexData*>(mutex);
-    tt_assert(data->handle);
+    tt_assert(semaphore);
     TtStatus status = TtStatusOk;
 
     tt_mutex_info(mutex, "release");
 
-    switch (data->type) {
+    switch (type) {
         case MutexTypeNormal: {
-            if (xSemaphoreGive(data->handle) != pdPASS) {
+            if (xSemaphoreGive(semaphore) != pdPASS) {
                 status = TtStatusErrorResource;
             }
             break;
         }
         case MutexTypeRecursive:
-            if (xSemaphoreGiveRecursive(data->handle) != pdPASS) {
+            if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
                 status = TtStatusErrorResource;
             }
             break;
@@ -130,10 +104,30 @@ TtStatus tt_mutex_release(Mutex* mutex) {
     return status;
 }
 
-ThreadId tt_mutex_get_owner(Mutex* mutex) {
-    tt_assert(mutex != NULL);
+ThreadId Mutex::getOwner() {
     tt_assert(!TT_IS_IRQ_MODE());
-    auto* data = static_cast<MutexData*>(mutex);
-    tt_assert(data->handle);
-    return (ThreadId)xSemaphoreGetMutexHolder(data->handle);
+    tt_assert(semaphore);
+    return (ThreadId)xSemaphoreGetMutexHolder(semaphore);
+}
+
+
+Mutex* tt_mutex_alloc(MutexType type) {
+    return new Mutex(type);
+}
+
+void tt_mutex_free(Mutex* mutex) {
+    delete mutex;
+}
+
+TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
+    return mutex-> acquire(timeout);
+}
+
+TtStatus tt_mutex_release(Mutex* mutex) {
+    return mutex->release();
+
+}
+
+ThreadId tt_mutex_get_owner(Mutex* mutex) {
+    return mutex->getOwner();
 }

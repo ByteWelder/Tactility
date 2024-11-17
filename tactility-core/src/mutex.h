@@ -7,12 +7,33 @@
 #include "core_types.h"
 #include "thread.h"
 
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+#else
+#include "FreeRTOS.h"
+#include "semphr.h"
+#endif
+
+
 typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive,
 } MutexType;
 
-typedef void Mutex;
+
+class Mutex {
+private:
+    SemaphoreHandle_t semaphore;
+    MutexType type;
+public:
+    Mutex(MutexType type);
+    ~Mutex();
+
+    TtStatus acquire(uint32_t timeout);
+    TtStatus release();
+    ThreadId getOwner();
+};
 
 /** Allocate Mutex
  *
