@@ -8,31 +8,28 @@ void increment_callback(void* context) {
 }
 
 TEST_CASE("dispatcher should not call callback if consume isn't called") {
-    auto* dispatcher = tt_dispatcher_alloc(10);
+    Dispatcher dispatcher;
 
     uint32_t counter = 0;
-    tt_dispatcher_dispatch(dispatcher, &increment_callback, &counter);
+    dispatcher.dispatch(&increment_callback, &counter);
     tt_delay_tick(10);
-    CHECK_EQ(counter, 0);
 
-    tt_dispatcher_free(dispatcher);
+    CHECK_EQ(counter, 0);
 }
 
 
 TEST_CASE("dispatcher should be able to dealloc when message is not consumed") {
-    auto* dispatcher = tt_dispatcher_alloc(10);
+    auto* dispatcher = new Dispatcher();
     uint32_t counter = 0;
-    tt_dispatcher_dispatch(dispatcher, increment_callback, &counter);
-    tt_dispatcher_free(dispatcher);
+    dispatcher->dispatch(increment_callback, &counter);
+    delete dispatcher;
 }
 
 TEST_CASE("dispatcher should call callback when consume is called") {
-    auto* dispatcher = tt_dispatcher_alloc(10);
+    Dispatcher dispatcher;
 
     uint32_t counter = 0;
-    tt_dispatcher_dispatch(dispatcher, increment_callback, &counter);
-    tt_dispatcher_consume(dispatcher, 100);
+    dispatcher.dispatch(increment_callback, &counter);
+    dispatcher.consume(100);
     CHECK_EQ(counter, 1);
-
-    tt_dispatcher_free(dispatcher);
 }

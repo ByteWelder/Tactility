@@ -10,9 +10,22 @@
 
 typedef void (*Callback)(void* data);
 
-typedef void Dispatcher;
+class Dispatcher {
+private:
+    typedef struct {
+        Callback callback;
+        void* context;
+    } DispatcherMessage;
 
-Dispatcher* tt_dispatcher_alloc(uint32_t message_count);
-void tt_dispatcher_free(Dispatcher* dispatcher);
-void tt_dispatcher_dispatch(Dispatcher* data, Callback callback, void* context);
-bool tt_dispatcher_consume(Dispatcher* data, uint32_t timeout_ticks);
+    MessageQueue* queue;
+    Mutex* mutex;
+    DispatcherMessage buffer{}; // Buffer for consuming a message
+
+public:
+
+    explicit Dispatcher(size_t queueLimit = 8);
+    ~Dispatcher();
+
+    void dispatch(Callback callback, void* context);
+    bool consume(uint32_t timeout_ticks);
+};
