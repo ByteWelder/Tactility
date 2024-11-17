@@ -1,7 +1,7 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 #include "statusbar.h"
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "pubsub.h"
 #include "tactility_core.h"
 #include "ui/spacer.h"
@@ -9,7 +9,6 @@
 
 #include "lvgl.h"
 #include "lvgl_sync.h"
-#include "tactility.h"
 
 #define TAG "statusbar"
 

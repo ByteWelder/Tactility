@@ -3,7 +3,7 @@
 #include "app.h"
 
 #include "app_manifest.h"
-#include "mutex.h"
+#include "Mutex.h"
 
 class AppData {
 public:

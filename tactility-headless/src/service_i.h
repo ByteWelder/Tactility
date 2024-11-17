@@ -2,7 +2,7 @@
 
 #include "service.h"
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "service_manifest.h"
 
 typedef struct {

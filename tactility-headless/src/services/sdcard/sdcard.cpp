@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <dirent.h>
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "service.h"
 #include "tactility_core.h"
 #include "tactility_headless.h"

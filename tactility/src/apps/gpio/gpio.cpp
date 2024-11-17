@@ -1,7 +1,7 @@
 #include "services/loader/loader.h"
 #include "ui/toolbar.h"
 #include "thread.h"
-#include "mutex.h"
+#include "Mutex.h"
 
 #include "gpio_hal.h"
 #include "ui/lvgl_sync.h"

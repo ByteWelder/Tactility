@@ -1,6 +1,6 @@
 #include "service_registry.h"
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "service_i.h"
 #include "service_manifest.h"
 #include "tactility_core.h"

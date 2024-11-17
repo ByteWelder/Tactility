@@ -1,6 +1,6 @@
 #include "sdcard.h"
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "tactility_core.h"
 
 #define TAG "sdcard"

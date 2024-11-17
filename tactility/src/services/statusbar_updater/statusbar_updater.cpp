@@ -1,5 +1,5 @@
 #include "assets.h"
-#include "mutex.h"
+#include "Mutex.h"
 #include "power.h"
 #include "sdcard.h"
 #include "service.h"

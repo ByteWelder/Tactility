@@ -2,7 +2,7 @@
 #include "lv_screenshot.h"
 
 #include "app.h"
-#include "mutex.h"
+#include "Mutex.h"
 #include "services/loader/loader.h"
 #include "tactility_core.h"
 #include "thread.h"

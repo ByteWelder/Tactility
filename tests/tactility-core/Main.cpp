@@ -27,7 +27,7 @@ void test_task(void* parameter) {
         vTaskEndScheduler();
     }
 
-    vTaskDelete(NULL);
+    vTaskDelete(nullptr);
 }
 
 int main(int argc, char** argv) {
@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
         8192,
         &data,
         1,
-        NULL
+        nullptr
     );
     assert(task_result == pdPASS);
 

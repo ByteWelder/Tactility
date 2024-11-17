@@ -6,7 +6,7 @@
 #pragma once
 
 #include "MessageQueue.h"
-#include "mutex.h"
+#include "Mutex.h"
 
 typedef void (*Callback)(void* data);
 
@@ -18,8 +18,8 @@ private:
     } DispatcherMessage;
 
     MessageQueue queue;
-    Mutex* mutex;
-    DispatcherMessage buffer{}; // Buffer for consuming a message
+    Mutex mutex;
+    DispatcherMessage buffer; // Buffer for consuming a message
 
 public:
 

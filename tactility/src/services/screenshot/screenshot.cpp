@@ -1,7 +1,7 @@
 #include "screenshot.h"
 #include <cstdlib>
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "screenshot_task.h"
 #include "service.h"
 #include "service_registry.h"

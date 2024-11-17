@@ -1,6 +1,6 @@
 #include "doctest.h"
 #include "tactility_core.h"
-#include "mutex.h"
+#include "Mutex.h"
 
 static int thread_with_mutex_parameter(void* parameter) {
     auto* mutex = (Mutex*)parameter;

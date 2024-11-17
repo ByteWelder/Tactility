@@ -15,12 +15,10 @@
 #include "semphr.h"
 #endif
 
-
 typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive,
 } MutexType;
-
 
 class Mutex {
 private:
@@ -41,12 +39,15 @@ public:
  *
  * @return     pointer to Mutex instance
  */
+
+[[deprecated("use class")]]
 Mutex* tt_mutex_alloc(MutexType type);
 
 /** Free Mutex
  *
  * @param      mutex  The Mutex instance
  */
+[[deprecated("use class")]]
 void tt_mutex_free(Mutex* mutex);
 
 /** Acquire mutex
@@ -56,6 +57,7 @@ void tt_mutex_free(Mutex* mutex);
  *
  * @return     The status.
  */
+[[deprecated("use class")]]
 TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout);
 
 /** Release mutex
@@ -64,6 +66,7 @@ TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout);
  *
  * @return     The status.
  */
+[[deprecated("use class")]]
 TtStatus tt_mutex_release(Mutex* mutex);
 
 /** Get mutex owner thread id
@@ -72,4 +75,5 @@ TtStatus tt_mutex_release(Mutex* mutex);
  *
  * @return     The thread identifier.
  */
+[[deprecated("use class")]]
 ThreadId tt_mutex_get_owner(Mutex* mutex);

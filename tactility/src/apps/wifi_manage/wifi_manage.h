@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mutex.h"
+#include "Mutex.h"
 #include "services/wifi/wifi.h"
 #include "wifi_manage_view.h"
 

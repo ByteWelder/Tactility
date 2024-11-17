@@ -17,7 +17,6 @@ TEST_CASE("dispatcher should not call callback if consume isn't called") {
     CHECK_EQ(counter, 0);
 }
 
-
 TEST_CASE("dispatcher should be able to dealloc when message is not consumed") {
     auto* dispatcher = new Dispatcher();
     uint32_t counter = 0;

@@ -6,7 +6,7 @@
 #include "check.h"
 #include "log.h"
 #include "MessageQueue.h"
-#include "mutex.h"
+#include "Mutex.h"
 #include "pubsub.h"
 #include "service.h"
 #include <cstdlib>

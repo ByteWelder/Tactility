@@ -2,7 +2,7 @@
 
 #include "gui.h"
 #include "MessageQueue.h"
-#include "mutex.h"
+#include "Mutex.h"
 #include "pubsub.h"
 #include "view_port.h"
 #include "view_port_i.h"
