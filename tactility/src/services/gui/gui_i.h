@@ -1,12 +1,12 @@
 #pragma once
 
 #include "gui.h"
-#include "message_queue.h"
+#include "MessageQueue.h"
 #include "mutex.h"
 #include "pubsub.h"
 #include "view_port.h"
 #include "view_port_i.h"
-#include <stdio.h>
+#include <cstdio>
 
 #define GUI_THREAD_FLAG_DRAW (1 << 0)
 #define GUI_THREAD_FLAG_INPUT (1 << 1)

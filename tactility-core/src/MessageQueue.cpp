@@ -1,55 +1,41 @@
-#include "message_queue.h"
+#include "MessageQueue.h"
 #include "check.h"
 #include "kernel.h"
 
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
-#else
-#include "FreeRTOS.h"
-#include "queue.h"
-#endif
-
-MessageQueue* tt_message_queue_alloc(uint32_t msg_count, uint32_t msg_size) {
+MessageQueue::MessageQueue(uint32_t msg_count, uint32_t msg_size) {
     tt_assert((tt_kernel_is_irq() == 0U) && (msg_count > 0U) && (msg_size > 0U));
-
-    QueueHandle_t handle = xQueueCreate(msg_count, msg_size);
-    tt_check(handle);
-
-    return ((MessageQueue*)handle);
+    queue_handle = xQueueCreate(msg_count, msg_size);
+    tt_check(queue_handle);
 }
 
-void tt_message_queue_free(MessageQueue* instance) {
+MessageQueue::~MessageQueue() {
     tt_assert(tt_kernel_is_irq() == 0U);
-    tt_assert(instance);
-
-    vQueueDelete((QueueHandle_t)instance);
+    vQueueDelete((QueueHandle_t)this);
 }
 
-TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint32_t timeout) {
-    auto hQueue = static_cast<QueueHandle_t>(instance);
+TtStatus MessageQueue::put(const void* msg_ptr, uint32_t timeout) {
     TtStatus stat;
     BaseType_t yield;
 
     stat = TtStatusOk;
 
     if (tt_kernel_is_irq() != 0U) {
-        if ((hQueue == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
+        if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
-            if (xQueueSendToBackFromISR(hQueue, msg_ptr, &yield) != pdTRUE) {
+            if (xQueueSendToBackFromISR(queue_handle, msg_ptr, &yield) != pdTRUE) {
                 stat = TtStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if ((hQueue == nullptr) || (msg_ptr == nullptr)) {
+        if ((queue_handle == nullptr) || (msg_ptr == nullptr)) {
             stat = TtStatusErrorParameter;
         } else {
-            if (xQueueSendToBack(hQueue, msg_ptr, (TickType_t)timeout) != pdPASS) {
+            if (xQueueSendToBack(queue_handle, msg_ptr, (TickType_t)timeout) != pdPASS) {
                 if (timeout != 0U) {
                     stat = TtStatusErrorTimeout;
                 } else {
@@ -63,30 +49,29 @@ TtStatus tt_message_queue_put(MessageQueue* instance, const void* msg_ptr, uint3
     return (stat);
 }
 
-TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t timeout_ticks) {
-    auto hQueue = static_cast<QueueHandle_t>(instance);
+TtStatus MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
     TtStatus stat;
     BaseType_t yield;
 
     stat = TtStatusOk;
 
     if (tt_kernel_is_irq() != 0U) {
-        if ((hQueue == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
+        if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
             yield = pdFALSE;
 
-            if (xQueueReceiveFromISR(hQueue, msg_ptr, &yield) != pdPASS) {
+            if (xQueueReceiveFromISR(queue_handle, msg_ptr, &yield) != pdPASS) {
                 stat = TtStatusErrorResource;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if ((hQueue == nullptr) || (msg_ptr == nullptr)) {
+        if ((queue_handle == nullptr) || (msg_ptr == nullptr)) {
             stat = TtStatusErrorParameter;
         } else {
-            if (xQueueReceive(hQueue, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
+            if (xQueueReceive(queue_handle, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
                 if (timeout_ticks != 0U) {
                     stat = TtStatusErrorTimeout;
                 } else {
@@ -100,8 +85,8 @@ TtStatus tt_message_queue_get(MessageQueue* instance, void* msg_ptr, uint32_t ti
     return (stat);
 }
 
-uint32_t tt_message_queue_get_capacity(MessageQueue* instance) {
-    auto* mq = static_cast<StaticQueue_t*>(instance);
+uint32_t MessageQueue::getCapacity() {
+    auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t capacity;
 
     if (mq == nullptr) {
@@ -115,8 +100,8 @@ uint32_t tt_message_queue_get_capacity(MessageQueue* instance) {
     return (capacity);
 }
 
-uint32_t tt_message_queue_get_message_size(MessageQueue* instance) {
-    auto* mq = static_cast<StaticQueue_t*>(instance);
+uint32_t MessageQueue::getMessageSize() {
+    auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t size;
 
     if (mq == nullptr) {
@@ -130,24 +115,23 @@ uint32_t tt_message_queue_get_message_size(MessageQueue* instance) {
     return (size);
 }
 
-uint32_t tt_message_queue_get_count(MessageQueue* instance) {
-    auto hQueue = static_cast<QueueHandle_t>(instance);
+uint32_t MessageQueue::getCount() {
     UBaseType_t count;
 
-    if (hQueue == nullptr) {
+    if (queue_handle == nullptr) {
         count = 0U;
     } else if (tt_kernel_is_irq() != 0U) {
-        count = uxQueueMessagesWaitingFromISR(hQueue);
+        count = uxQueueMessagesWaitingFromISR(queue_handle);
     } else {
-        count = uxQueueMessagesWaiting(hQueue);
+        count = uxQueueMessagesWaiting(queue_handle);
     }
 
     /* Return number of queued messages */
     return ((uint32_t)count);
 }
 
-uint32_t tt_message_queue_get_space(MessageQueue* instance) {
-    auto* mq = static_cast<StaticQueue_t*>(instance);
+uint32_t MessageQueue::getSpace() {
+    auto* mq = (StaticQueue_t*)(queue_handle);
     uint32_t space;
     uint32_t isrm;
 
@@ -168,17 +152,16 @@ uint32_t tt_message_queue_get_space(MessageQueue* instance) {
     return (space);
 }
 
-TtStatus tt_message_queue_reset(MessageQueue* instance) {
-    auto hQueue = static_cast<QueueHandle_t>(instance);
+TtStatus MessageQueue::reset() {
     TtStatus stat;
 
     if (tt_kernel_is_irq() != 0U) {
         stat = TtStatusErrorISR;
-    } else if (hQueue == nullptr) {
+    } else if (queue_handle == nullptr) {
         stat = TtStatusErrorParameter;
     } else {
         stat = TtStatusOk;
-        (void)xQueueReset(hQueue);
+        (void)xQueueReset(queue_handle);
     }
 
     /* Return execution status */

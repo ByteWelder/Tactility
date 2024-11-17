@@ -27,10 +27,9 @@ static Loader* loader_singleton = nullptr;
 
 static Loader* loader_alloc() {
     assert(loader_singleton == nullptr);
-    loader_singleton = static_cast<Loader*>(malloc(sizeof(Loader)));
+    loader_singleton = new Loader();
     loader_singleton->pubsub_internal = tt_pubsub_alloc();
     loader_singleton->pubsub_external = tt_pubsub_alloc();
-    loader_singleton->queue = tt_message_queue_alloc(1, sizeof(LoaderMessage));
     loader_singleton->thread = tt_thread_alloc_ex(
         "loader",
         4096, // Last known minimum was 2400 for starting Hello World app
@@ -48,9 +47,9 @@ static void loader_free() {
     tt_thread_free(loader_singleton->thread);
     tt_pubsub_free(loader_singleton->pubsub_internal);
     tt_pubsub_free(loader_singleton->pubsub_external);
-    tt_message_queue_free(loader_singleton->queue);
     tt_mutex_free(loader_singleton->mutex);
-    free(loader_singleton);
+    delete loader_singleton;
+    loader_singleton = nullptr;
 }
 
 void loader_lock() {
@@ -79,7 +78,7 @@ LoaderStatus loader_start_app(const char* id, bool blocking, const Bundle& bundl
         message.setLock(lock);
     }
 
-    tt_message_queue_put(loader_singleton->queue, &message, TtWaitForever);
+    loader_singleton->queue.put(&message, TtWaitForever);
 
     if (lock != nullptr) {
         tt_api_lock_wait_unlock_and_free(message.api_lock);
@@ -91,7 +90,7 @@ LoaderStatus loader_start_app(const char* id, bool blocking, const Bundle& bundl
 void loader_stop_app() {
     tt_check(loader_singleton);
     LoaderMessage message(LoaderMessageTypeAppStop);
-    tt_message_queue_put(loader_singleton->queue, &message, TtWaitForever);
+    loader_singleton->queue.put(&message, TtWaitForever);
 }
 
 App _Nullable loader_get_current_app() {
@@ -300,7 +299,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
     bool exit_requested = false;
     while (!exit_requested) {
         tt_assert(loader_singleton != nullptr);
-        if (tt_message_queue_get(loader_singleton->queue, &message, TtWaitForever) == TtStatusOk) {
+        if (loader_singleton->queue.get(&message, TtWaitForever) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
@@ -343,7 +342,7 @@ static void loader_stop(TT_UNUSED Service service) {
 
     // Send stop signal to thread and wait for thread to finish
     LoaderMessage message(LoaderMessageTypeServiceStop);
-    tt_message_queue_put(loader_singleton->queue, &message, TtWaitForever);
+    loader_singleton->queue.put(&message, TtWaitForever);
     tt_thread_join(loader_singleton->thread);
     tt_thread_free(loader_singleton->thread);
 

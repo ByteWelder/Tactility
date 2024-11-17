@@ -1,7 +1,8 @@
 #include "Dispatcher.h"
 
-Dispatcher::Dispatcher(size_t queueLimit) {
-    queue = tt_message_queue_alloc(queueLimit, sizeof(DispatcherMessage));
+Dispatcher::Dispatcher(size_t queueLimit) :
+    queue(queueLimit, sizeof(DispatcherMessage)) {
+
     mutex = tt_mutex_alloc(MutexTypeNormal);
     buffer = {
         .callback = nullptr,
@@ -10,9 +11,8 @@ Dispatcher::Dispatcher(size_t queueLimit) {
 }
 
 Dispatcher::~Dispatcher() {
+    queue.reset();
     tt_mutex_acquire(mutex, TtWaitForever);
-    tt_message_queue_reset(queue);
-    tt_message_queue_free(queue);
     tt_mutex_release(mutex);
     tt_mutex_free(mutex);
 }
@@ -23,13 +23,13 @@ void Dispatcher::dispatch(Callback callback, void* context) {
         .context = context
     };
     tt_mutex_acquire(mutex, TtWaitForever);
-    tt_message_queue_put(queue, &message, TtWaitForever);
+    queue.put(&message, TtWaitForever);
     tt_mutex_release(mutex);
 }
 
 bool Dispatcher::consume(uint32_t timeout_ticks) {
     tt_mutex_acquire(mutex, TtWaitForever);
-    if (tt_message_queue_get(queue, &(buffer), timeout_ticks) == TtStatusOk) {
+    if (queue.get(&buffer, timeout_ticks) == TtStatusOk) {
         DispatcherMessage* message = &(buffer);
         message->callback(message->context);
         tt_mutex_release(mutex);

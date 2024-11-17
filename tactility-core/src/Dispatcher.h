@@ -1,11 +1,11 @@
 /**
-* @file dispatcher.h
+* @file Dispatcher.h
 *
 * Dispatcher is a thread-safe code execution queue.
 */
 #pragma once
 
-#include "message_queue.h"
+#include "MessageQueue.h"
 #include "mutex.h"
 
 typedef void (*Callback)(void* data);
@@ -17,7 +17,7 @@ private:
         void* context;
     } DispatcherMessage;
 
-    MessageQueue* queue;
+    MessageQueue queue;
     Mutex* mutex;
     DispatcherMessage buffer{}; // Buffer for consuming a message
 

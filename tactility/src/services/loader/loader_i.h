@@ -3,7 +3,7 @@
 #include "api_lock.h"
 #include "app_manifest.h"
 #include "loader.h"
-#include "message_queue.h"
+#include "MessageQueue.h"
 #include "pubsub.h"
 #include "services/gui/view_port.h"
 #include "thread.h"
@@ -18,15 +18,6 @@
 
 #define APP_STACK_SIZE 32
 
-struct Loader {
-    Thread* thread;
-    PubSub* pubsub_internal;
-    PubSub* pubsub_external;
-    MessageQueue* queue;
-    Mutex* mutex;
-    int8_t app_stack_index;
-    App app_stack[APP_STACK_SIZE];
-};
 
 typedef enum {
     LoaderMessageTypeNone,
@@ -110,4 +101,14 @@ public:
             delete payload.start;
         }
     }
+};
+
+struct Loader {
+    Thread* thread;
+    PubSub* pubsub_internal;
+    PubSub* pubsub_external;
+    MessageQueue queue = MessageQueue(1, sizeof(LoaderMessage));
+    Mutex* mutex;
+    int8_t app_stack_index;
+    App app_stack[APP_STACK_SIZE];
 };

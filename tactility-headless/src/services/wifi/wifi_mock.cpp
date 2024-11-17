@@ -5,13 +5,12 @@
 #include "assets.h"
 #include "check.h"
 #include "log.h"
-#include "message_queue.h"
+#include "MessageQueue.h"
 #include "mutex.h"
 #include "pubsub.h"
 #include "service.h"
 #include <cstdlib>
 #include <cstring>
-#include <sys/cdefs.h>
 
 #define TAG "wifi"
 #define WIFI_CONNECTED_BIT BIT0
@@ -23,7 +22,7 @@ typedef struct {
     /** @brief The public event bus */
     PubSub* pubsub;
     /** @brief The internal message queue */
-    MessageQueue* queue;
+    MessageQueue queue;
     bool scan_active;
     bool secure_connection;
     WifiRadioState radio_state;
@@ -60,7 +59,6 @@ static Wifi* wifi_alloc() {
 static void wifi_free(Wifi* instance) {
     tt_mutex_free(instance->mutex);
     tt_pubsub_free(instance->pubsub);
-    tt_message_queue_free(instance->queue);
     free(instance);
 }
 
