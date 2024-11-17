@@ -98,13 +98,13 @@ static int32_t screenshot_task(void* context) {
         } else if (data->work.type == TASK_WORK_TYPE_APPS) {
             App _Nullable app = loader_get_current_app();
             if (app) {
-                const AppManifest* manifest = tt_app_get_manifest(app);
-                if (manifest->id != last_app_id) {
+                const AppManifest& manifest = tt_app_get_manifest(app);
+                if (manifest.id != last_app_id) {
                     tt_delay_ms(100);
-                    last_app_id = manifest->id;
+                    last_app_id = manifest.id;
 
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
-                    sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest->id.c_str());
+                    sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest.id.c_str());
                     tt_lvgl_lock(TtWaitForever);
                     if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
                         TT_LOG_I(TAG, "Screenshot saved to %s", filename);

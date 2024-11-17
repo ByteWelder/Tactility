@@ -1,120 +1,18 @@
 #include "app_i.h"
 
-#include "log.h"
-#include <stdlib.h>
-
 #define TAG "app"
 
-static AppFlags tt_app_get_flags_default(AppType type);
-
-static const AppFlags DEFAULT_FLAGS = {
-    .show_statusbar = true
-};
-
-// region Alloc/free
-
-App tt_app_alloc(const AppManifest* manifest, const Bundle& parameters) {
-#ifdef ESP_PLATFORM
-    size_t memory_before = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-#else
-    size_t memory_before = 0;
-#endif
-    auto* data = new AppData();
-    data->mutex = tt_mutex_alloc(MutexTypeNormal);
-    data->manifest = manifest;
-    data->memory = memory_before;
-    data->flags = tt_app_get_flags_default(manifest->type);
-    data->parameters = Bundle(parameters);
-    return static_cast<App>(data);
+void AppInstance::setState(AppState newState) {
+    mutex.acquire(TtWaitForever);
+    state = newState;
+    mutex.release();
 }
 
-void tt_app_free(App app) {
-    auto* data = static_cast<AppData*>(app);
-    size_t memory_before = data->memory;
-    tt_mutex_free(data->mutex);
-    delete data;
-
-#ifdef ESP_PLATFORM
-    size_t memory_after = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
-#else
-    size_t memory_after = 0;
-#endif
-
-    if (memory_after < memory_before) {
-        TT_LOG_W(TAG, "Potential memory leak: gained %u bytes after closing app", memory_before - memory_after);
-        TT_LOG_W(TAG, "Note that WiFi service frees up memory asynchronously and that the leak can be caused by an app that was launched by this app.");
-    }
-}
-
-// endregion
-
-// region Internal
-
-static void tt_app_lock(AppData* data) {
-    tt_mutex_acquire(data->mutex, TtWaitForever);
-}
-
-static void tt_app_unlock(AppData* data) {
-    tt_mutex_release(data->mutex);
-}
-
-static AppFlags tt_app_get_flags_default(AppType type) {
-    return DEFAULT_FLAGS;
-}
-
-// endregion Internal
-
-// region Public getters & setters
-
-void tt_app_set_state(App app, AppState state) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    data->state = state;
-    tt_app_unlock(data);
-}
-
-AppState tt_app_get_state(App app) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    AppState state = data->state;
-    tt_app_unlock(data);
-    return state;
-}
-
-const AppManifest* tt_app_get_manifest(App app) {
-    auto* data = static_cast<AppData*>(app);
-    // No need to lock const data;
-    return data->manifest;
-}
-
-AppFlags tt_app_get_flags(App app) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    AppFlags flags = data->flags;
-    tt_app_unlock(data);
-    return flags;
-}
-
-void tt_app_set_flags(App app, AppFlags flags) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    data->flags = flags;
-    tt_app_unlock(data);
-}
-
-void* tt_app_get_data(App app) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    void* value = data->data;
-    tt_app_unlock(data);
-    return value;
-}
-
-void tt_app_set_data(App app, void* value) {
-    auto* data = static_cast<AppData*>(app);
-    tt_app_lock(data);
-    data->data = value;
-    tt_app_unlock(data);
+AppState AppInstance::getState() {
+    mutex.acquire(TtWaitForever);
+    auto result = state;
+    mutex.release();
+    return result;
 }
 
 /** TODO: Make this thread-safe.
@@ -123,9 +21,78 @@ void tt_app_set_data(App app, void* value) {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-Bundle& tt_app_get_parameters(App app) {
-    auto* data = static_cast<AppData*>(app);
-    return data->parameters;
+const AppManifest& AppInstance::getManifest() {
+    return manifest;
 }
 
-// endregion Public getters & setters
+AppFlags AppInstance::getFlags() {
+    mutex.acquire(TtWaitForever);
+    auto result = flags;
+    mutex.release();
+    return result;
+}
+
+void AppInstance::setFlags(AppFlags newFlags) {
+    mutex.acquire(TtWaitForever);
+    flags = newFlags;
+    mutex.release();
+}
+
+_Nullable void* AppInstance::getData() {
+    mutex.acquire(TtWaitForever);
+    auto result = data;
+    mutex.release();
+    return result;
+}
+
+void AppInstance::setData(void* newData) {
+    mutex.acquire(TtWaitForever);
+    data = newData;
+    mutex.release();
+}
+
+const Bundle& AppInstance::getParameters() {
+    return parameters;
+}
+
+App tt_app_alloc(const AppManifest& manifest, const Bundle& parameters) {
+    auto* instance = new AppInstance(manifest, parameters);
+    return static_cast<App>(instance);
+}
+
+void tt_app_free(App app) {
+    auto* instance = static_cast<AppInstance*>(app);
+    delete instance;
+}
+
+void tt_app_set_state(App app, AppState state) {
+    static_cast<AppInstance*>(app)->setState(state);
+}
+
+AppState tt_app_get_state(App app) {
+    return static_cast<AppInstance*>(app)->getState();
+}
+
+const AppManifest& tt_app_get_manifest(App app) {
+    return static_cast<AppInstance*>(app)->getManifest();
+}
+
+AppFlags tt_app_get_flags(App app) {
+    return static_cast<AppInstance*>(app)->getFlags();
+}
+
+void tt_app_set_flags(App app, AppFlags flags) {
+    return static_cast<AppInstance*>(app)->setFlags(flags);
+}
+
+void* tt_app_get_data(App app) {
+    return static_cast<AppInstance*>(app)->getData();
+}
+
+void tt_app_set_data(App app, void* data) {
+    return static_cast<AppInstance*>(app)->setData(data);
+}
+
+const Bundle& tt_app_get_parameters(App app) {
+    return static_cast<AppInstance*>(app)->getParameters();
+}

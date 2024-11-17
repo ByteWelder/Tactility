@@ -24,8 +24,8 @@ void gui_loader_callback(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const LoaderEvent*>(message);
     if (event->type == LoaderEventTypeApplicationShowing) {
         App* app = event->app_showing.app;
-        const AppManifest* app_manifest = tt_app_get_manifest(app);
-        gui_show_app(app, app_manifest->on_show, app_manifest->on_hide);
+        const AppManifest& app_manifest = tt_app_get_manifest(app);
+        gui_show_app(app, app_manifest.on_show, app_manifest.on_hide);
     } else if (event->type == LoaderEventTypeApplicationHiding) {
         gui_hide_app();
     }

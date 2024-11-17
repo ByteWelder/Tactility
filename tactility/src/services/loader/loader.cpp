@@ -127,13 +127,13 @@ static const char* app_state_to_string(AppState state) {
 }
 
 static void app_transition_to_state(App app, AppState state) {
-    const AppManifest* manifest = tt_app_get_manifest(app);
+    const AppManifest& manifest = tt_app_get_manifest(app);
     const AppState old_state = tt_app_get_state(app);
 
     TT_LOG_I(
         TAG,
         "app \"%s\" state: %s -> %s",
-        manifest->id.c_str(),
+        manifest.id.c_str(),
         app_state_to_string(old_state),
         app_state_to_string(state)
     );
@@ -143,8 +143,8 @@ static void app_transition_to_state(App app, AppState state) {
             tt_app_set_state(app, AppStateInitial);
             break;
         case AppStateStarted:
-            if (manifest->on_start != nullptr) {
-                manifest->on_start(app);
+            if (manifest.on_start != nullptr) {
+                manifest.on_start(app);
             }
             tt_app_set_state(app, AppStateStarted);
             break;
@@ -171,8 +171,8 @@ static void app_transition_to_state(App app, AppState state) {
             break;
         }
         case AppStateStopped:
-            if (manifest->on_stop) {
-                manifest->on_stop(app);
+            if (manifest.on_stop) {
+                manifest.on_stop(app);
             }
             tt_app_set_data(app, nullptr);
             tt_app_set_state(app, AppStateStopped);
@@ -196,7 +196,7 @@ LoaderStatus loader_do_start_app_with_manifest(
     int8_t previous_index = loader_singleton->app_stack_index;
     loader_singleton->app_stack_index++;
 
-    App app = tt_app_alloc(manifest, bundle);
+    App app = tt_app_alloc(*manifest, bundle);
     tt_check(loader_singleton->app_stack[loader_singleton->app_stack_index] == nullptr);
     loader_singleton->app_stack[loader_singleton->app_stack_index] = app;
     app_transition_to_state(app, AppStateInitial);
@@ -260,7 +260,7 @@ static void loader_do_stop_app() {
 
     // Stop current app
     App app_to_stop = loader_singleton->app_stack[current_app_index];
-    const AppManifest* manifest = tt_app_get_manifest(app_to_stop);
+    const AppManifest& manifest = tt_app_get_manifest(app_to_stop);
     app_transition_to_state(app_to_stop, AppStateHiding);
     app_transition_to_state(app_to_stop, AppStateStopped);
 
@@ -285,7 +285,7 @@ static void loader_do_stop_app() {
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStopped,
         .app_stopped = {
-            .manifest = manifest
+            .manifest = &manifest
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);

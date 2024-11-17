@@ -20,7 +20,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_t* image = lv_img_create(wrapper);
     lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
 
-    Bundle& bundle = tt_app_get_parameters(app);
+    const Bundle& bundle = tt_app_get_parameters(app);
     std::string file_argument;
     if (bundle.optString(IMAGE_VIEWER_FILE_ARGUMENT, file_argument)) {
         std::string prefixed_path = "A:" + file_argument;
