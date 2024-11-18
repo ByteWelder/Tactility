@@ -28,9 +28,9 @@ public:
     Mutex(MutexType type);
     ~Mutex();
 
-    TtStatus acquire(uint32_t timeout);
-    TtStatus release();
-    ThreadId getOwner();
+    TtStatus acquire(uint32_t timeout) const;
+    TtStatus release() const;
+    ThreadId getOwner() const;
 };
 
 /** Allocate Mutex
