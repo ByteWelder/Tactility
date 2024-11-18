@@ -3,10 +3,10 @@
 #include "tactility_core.h"
 #include <string>
 
-typedef void* Service;
+class Service;
 
-typedef void (*ServiceOnStart)(Service service);
-typedef void (*ServiceOnStop)(Service service);
+typedef void (*ServiceOnStart)(Service& service);
+typedef void (*ServiceOnStop)(Service& service);
 
 typedef struct ServiceManifest {
     /**

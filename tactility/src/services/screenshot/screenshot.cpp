@@ -36,13 +36,13 @@ static void service_data_unlock(ServiceData* data) {
     tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
 }
 
-static void on_start(Service service) {
+static void on_start(Service& service) {
     ServiceData* data = service_data_alloc();
-    tt_service_set_data(service, data);
+    service.setData(data);
 }
 
-static void on_stop(Service service) {
-    auto* data = static_cast<ServiceData*>(tt_service_get_data(service));
+static void on_stop(Service& service) {
+    auto* data = static_cast<ServiceData*>(service.getData());
     if (data->task) {
         screenshot_task_free(data->task);
         data->task = nullptr;
@@ -58,13 +58,13 @@ extern const ServiceManifest screenshot_service = {
 };
 
 void tt_screenshot_start_apps(const char* path) {
-    Service _Nullable service = tt_service_find(screenshot_service.id);
+    _Nullable auto* service = tt_service_find(screenshot_service.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
         return;
     }
 
-    auto* data = static_cast<ServiceData*>(tt_service_get_data(service));
+    auto* data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task == nullptr) {
         data->task = screenshot_task_alloc();
@@ -77,13 +77,13 @@ void tt_screenshot_start_apps(const char* path) {
 }
 
 void tt_screenshot_start_timed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
-    Service _Nullable service = tt_service_find(screenshot_service.id);
+    _Nullable auto* service = tt_service_find(screenshot_service.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
         return;
     }
 
-    auto* data = static_cast<ServiceData*>(tt_service_get_data(service));
+    auto* data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task == nullptr) {
         data->task = screenshot_task_alloc();
@@ -96,13 +96,13 @@ void tt_screenshot_start_timed(const char* path, uint8_t delay_in_seconds, uint8
 }
 
 void tt_screenshot_stop() {
-    Service _Nullable service = tt_service_find(screenshot_service.id);
+    _Nullable Service* service = tt_service_find(screenshot_service.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
         return;
     }
 
-    auto data = static_cast<ServiceData*>(tt_service_get_data(service));
+    auto data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task != nullptr) {
         screenshot_task_stop(data->task);
@@ -116,12 +116,12 @@ void tt_screenshot_stop() {
 }
 
 ScreenshotMode tt_screenshot_get_mode() {
-    Service _Nullable service = tt_service_find(screenshot_service.id);
+    _Nullable auto* service = tt_service_find(screenshot_service.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
         return ScreenshotModeNone;
     } else {
-        auto* data = static_cast<ServiceData*>(tt_service_get_data(service));
+        auto* data = static_cast<ServiceData*>(service->getData());
         service_data_lock(data);
         ScreenshotMode mode = data->mode;
         service_data_unlock(data);

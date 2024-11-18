@@ -39,11 +39,14 @@ static void on_wifi_toggled(bool enabled) {
 static WifiManage* wifi_manage_alloc() {
     auto* wifi = static_cast<WifiManage*>(malloc(sizeof(WifiManage)));
 
-    wifi->wifi_subscription = NULL;
+    wifi->wifi_subscription = nullptr;
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiManageState) {
         .scanning = wifi_is_scanning(),
-        .radio_state = wifi_get_radio_state()
+        .radio_state = wifi_get_radio_state(),
+        .connect_ssid = { 0 },
+        .ap_records = { },
+        .ap_records_count = 0
     };
     wifi->view_enabled = false;
     wifi->bindings = (WifiManageBindings) {
@@ -87,8 +90,8 @@ void wifi_manage_request_view_update(WifiManage* wifi) {
 }
 
 static void wifi_manage_event_callback(const void* message, void* context) {
-    const WifiEvent* event = (const WifiEvent*)message;
-    WifiManage* wifi = (WifiManage*)context;
+    auto* event = (const WifiEvent*)message;
+    auto* wifi = (WifiManage*)context;
     wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
     switch (event->type) {
         case WifiEventTypeScanStarted:
@@ -111,7 +114,7 @@ static void wifi_manage_event_callback(const void* message, void* context) {
 }
 
 static void app_show(App app, lv_obj_t* parent) {
-    WifiManage* wifi = (WifiManage*)tt_app_get_data(app);
+    auto* wifi = (WifiManage*)tt_app_get_data(app);
 
     PubSub* wifi_pubsub = wifi_get_pubsub();
     wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
@@ -139,11 +142,11 @@ static void app_show(App app, lv_obj_t* parent) {
 }
 
 static void app_hide(App app) {
-    WifiManage* wifi = (WifiManage*)tt_app_get_data(app);
+    auto* wifi = (WifiManage*)tt_app_get_data(app);
     wifi_manage_lock(wifi);
     PubSub* wifi_pubsub = wifi_get_pubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
-    wifi->wifi_subscription = NULL;
+    wifi->wifi_subscription = nullptr;
     wifi->view_enabled = false;
     wifi_manage_unlock(wifi);
 }
@@ -154,10 +157,10 @@ static void app_start(App app) {
 }
 
 static void app_stop(App app) {
-    WifiManage* wifi = (WifiManage*)tt_app_get_data(app);
-    tt_assert(wifi != NULL);
+    auto* wifi = (WifiManage*)tt_app_get_data(app);
+    tt_assert(wifi != nullptr);
     wifi_manage_free(wifi);
-    tt_app_set_data(app, NULL);
+    tt_app_set_data(app, nullptr);
 }
 
 extern const AppManifest wifi_manage_app = {

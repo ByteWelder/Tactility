@@ -1,6 +1,5 @@
 #pragma once
 
-#include <stdbool.h>
 #include "services/wifi/wifi.h"
 
 #define WIFI_SCAN_AP_RECORD_COUNT 16

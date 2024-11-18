@@ -722,13 +722,13 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     }
 }
 
-static void wifi_service_start(TT_UNUSED Service service) {
+static void wifi_service_start(Service& service) {
     tt_assert(wifi_singleton == nullptr);
-    tt_service_set_data(service, wifi_singleton);
+    service.setData(wifi_singleton);
     wifi_singleton = new Wifi();
 }
 
-static void wifi_service_stop(TT_UNUSED Service service) {
+static void wifi_service_stop(Service& service) {
     tt_assert(wifi_singleton != nullptr);
 
     WifiRadioState state = wifi_singleton->radio_state;

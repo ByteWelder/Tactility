@@ -1,63 +1,19 @@
-#include "log.h"
-#include "service_i.h"
-#include "tactility_core.h"
-#include <cstdlib>
+#include "service.h"
+#include "service_manifest.h"
 
-// region Alloc/free
+Service::Service(const ServiceManifest& manifest) : manifest(manifest) {}
 
-ServiceData* tt_service_alloc(const ServiceManifest* manifest) {
-    auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
-    *data = (ServiceData) {
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .manifest = manifest,
-        .data = nullptr
-    };
-    return data;
+const ServiceManifest& Service::getManifest() const { return manifest; }
+
+void* Service::getData() const {
+    mutex.acquire(TtWaitForever);
+    void* data_copy = data;
+    mutex.release();
+    return data_copy;
 }
 
-void tt_service_free(ServiceData* data) {
-    tt_assert(data);
-    tt_mutex_free(data->mutex);
-    free(data);
+void Service::setData(void* newData) {
+    mutex.acquire(TtWaitForever);
+    data = newData;
+    mutex.release();
 }
-
-// endregion Alloc/free
-
-// region Internal
-
-static void tt_service_lock(ServiceData * data) {
-    tt_mutex_acquire(data->mutex, TtWaitForever);
-}
-
-static void tt_service_unlock(ServiceData* data) {
-    tt_mutex_release(data->mutex);
-}
-
-// endregion Internal
-
-// region Getters & Setters
-
-const ServiceManifest* tt_service_get_manifest(Service service) {
-    auto* data = (ServiceData*)service;
-    tt_service_lock(data);
-    const ServiceManifest* manifest = data->manifest;
-    tt_service_unlock(data);
-    return manifest;
-}
-
-void tt_service_set_data(Service service, void* value) {
-    auto* data = (ServiceData*)service;
-    tt_service_lock(data);
-    data->data = value;
-    tt_service_unlock(data);
-}
-
-void* _Nullable tt_service_get_data(Service service) {
-    auto* data = (ServiceData*)service;
-    tt_service_lock(data);
-    void* value = data->data;
-    tt_service_unlock(data);
-    return value;
-}
-
-// endregion Getters & Setters

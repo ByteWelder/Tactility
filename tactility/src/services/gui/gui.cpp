@@ -133,14 +133,14 @@ static int32_t gui_main(TT_UNUSED void* p) {
 
 // region AppManifest
 
-static void gui_start(TT_UNUSED Service service) {
+static void gui_start(TT_UNUSED Service& service) {
     gui = gui_alloc();
 
     tt_thread_set_priority(gui->thread, THREAD_PRIORITY_SERVICE);
     tt_thread_start(gui->thread);
 }
 
-static void gui_stop(TT_UNUSED Service service) {
+static void gui_stop(TT_UNUSED Service& service) {
     gui_lock();
 
     ThreadId thread_id = tt_thread_get_id(gui->thread);

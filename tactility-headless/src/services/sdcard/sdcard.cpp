@@ -74,18 +74,18 @@ static int32_t sdcard_task(void* context) {
     return 0;
 }
 
-static void on_start(Service service) {
+static void on_start(Service& service) {
     if (tt_get_hardware_config()->sdcard != nullptr) {
         ServiceData* data = service_data_alloc();
-        tt_service_set_data(service, data);
+        service.setData(data);
         tt_thread_start(data->thread);
     } else {
         TT_LOG_I(TAG, "task not started due to config");
     }
 }
 
-static void on_stop(Service service) {
-    auto* data = static_cast<ServiceData*>(tt_service_get_data(service));
+static void on_stop(Service& service) {
+    auto* data = static_cast<ServiceData*>(service.getData());
     if (data != nullptr) {
         service_data_lock(data);
         data->interrupted = true;

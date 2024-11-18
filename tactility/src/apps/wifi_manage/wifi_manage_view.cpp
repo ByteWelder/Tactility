@@ -101,9 +101,10 @@ static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
             lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
         case WIFI_RADIO_OFF:
+            lv_obj_remove_state(view->enable_switch, LV_STATE_CHECKED);
             break;
         case WIFI_RADIO_OFF_PENDING:
-            lv_obj_add_state(view->enable_switch, LV_STATE_DISABLED);
+            lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
     }
 }

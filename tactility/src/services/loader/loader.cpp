@@ -327,7 +327,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
 
 // region AppManifest
 
-static void loader_start(TT_UNUSED Service service) {
+static void loader_start(TT_UNUSED Service& service) {
     tt_check(loader_singleton == nullptr);
     loader_singleton = loader_alloc();
 
@@ -335,7 +335,7 @@ static void loader_start(TT_UNUSED Service service) {
     tt_thread_start(loader_singleton->thread);
 }
 
-static void loader_stop(TT_UNUSED Service service) {
+static void loader_stop(TT_UNUSED Service& service) {
     tt_check(loader_singleton != nullptr);
 
     // Send stop signal to thread and wait for thread to finish

@@ -1,10 +1,18 @@
 #pragma once
 
+#include "Mutex.h"
 #include "service_manifest.h"
 
-typedef void* Service;
+class Service {
+private:
+    Mutex mutex = Mutex(MutexTypeNormal);
+    const ServiceManifest& manifest;
+    void* data = nullptr;
 
-const ServiceManifest* tt_service_get_manifest(Service service);
+public:
+    Service(const ServiceManifest& manifest);
 
-void tt_service_set_data(Service service, void* value);
-void* _Nullable tt_service_get_data(Service service);
+    [[nodiscard]] const ServiceManifest& getManifest() const;
+    [[nodiscard]] void* getData() const;
+    void setData(void* newData);
+};

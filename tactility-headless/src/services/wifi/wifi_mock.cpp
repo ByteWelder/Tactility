@@ -29,7 +29,7 @@ typedef struct {
 } Wifi;
 
 
-static Wifi* wifi_singleton = NULL;
+static Wifi* wifi = NULL;
 
 // Forward declarations
 static void wifi_lock(Wifi* wifi);
@@ -67,40 +67,40 @@ static void wifi_free(Wifi* instance) {
 // region Public functions
 
 PubSub* wifi_get_pubsub() {
-    tt_assert(wifi_singleton);
-    return wifi_singleton->pubsub;
+    tt_assert(wifi);
+    return wifi->pubsub;
 }
 
 WifiRadioState wifi_get_radio_state() {
-    return wifi_singleton->radio_state;
+    return wifi->radio_state;
 }
 
 void wifi_scan() {
-    tt_assert(wifi_singleton);
-    wifi_singleton->scan_active = false; // TODO: enable and then later disable automatically
+    tt_assert(wifi);
+    wifi->scan_active = false; // TODO: enable and then later disable automatically
 }
 
 bool wifi_is_scanning() {
-    tt_assert(wifi_singleton);
-    return wifi_singleton->scan_active;
+    tt_assert(wifi);
+    return wifi->scan_active;
 }
 
 void wifi_connect(const WifiApSettings* ap, bool remember) {
-    tt_assert(wifi_singleton);
+    tt_assert(wifi);
     // TODO: implement
 }
 
 void wifi_disconnect() {
-    tt_assert(wifi_singleton);
+    tt_assert(wifi);
 }
 
 void wifi_set_scan_records(uint16_t records) {
-    tt_assert(wifi_singleton);
+    tt_assert(wifi);
     // TODO: implement
 }
 
 void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
-    tt_check(wifi_singleton);
+    tt_check(wifi);
     tt_check(result_count);
 
     if (limit >= 5) {
@@ -126,21 +126,21 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
 }
 
 void wifi_set_enabled(bool enabled) {
-    tt_assert(wifi_singleton != NULL);
+    tt_assert(wifi != NULL);
     if (enabled) {
-        wifi_singleton->radio_state = WIFI_RADIO_ON;
-        wifi_singleton->secure_connection = true;
+        wifi->radio_state = WIFI_RADIO_ON;
+        wifi->secure_connection = true;
     } else {
-        wifi_singleton->radio_state = WIFI_RADIO_OFF;
+        wifi->radio_state = WIFI_RADIO_OFF;
     }
 }
 
 bool wifi_is_connection_secure() {
-    return wifi_singleton->secure_connection;
+    return wifi->secure_connection;
 }
 
 int wifi_get_rssi() {
-    if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
+    if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
         return -30;
     } else {
         return 0;
@@ -163,16 +163,16 @@ static void wifi_unlock(Wifi* wifi) {
 }
 
 
-static void wifi_service_start(TT_UNUSED Service service) {
-    tt_check(wifi_singleton == NULL);
-    wifi_singleton = wifi_alloc();
+static void wifi_service_start(TT_UNUSED Service& service) {
+    tt_check(wifi == nullptr);
+    wifi = wifi_alloc();
 }
 
-static void wifi_service_stop(TT_UNUSED Service service) {
-    tt_check(wifi_singleton != NULL);
+static void wifi_service_stop(TT_UNUSED Service& service) {
+    tt_check(wifi != nullptr);
 
-    wifi_free(wifi_singleton);
-    wifi_singleton = NULL;
+    wifi_free(wifi);
+    wifi = nullptr;
 }
 
 extern const ServiceManifest wifi_service = {
