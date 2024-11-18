@@ -42,7 +42,7 @@ public:
     ~Wifi();
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex* mutex = nullptr;
+    Mutex mutex = Mutex(MutexTypeRecursive);
     /** @brief The public event bus */
     PubSub* pubsub = nullptr;
     /** @brief The internal message queue */
@@ -83,13 +83,11 @@ static void wifi_unlock(Wifi* wifi);
 // region Alloc
 
 Wifi::Wifi() {
-    mutex = tt_mutex_alloc(MutexTypeRecursive);
     pubsub = tt_pubsub_alloc();
     event_group = xEventGroupCreate();
 }
 
 Wifi::~Wifi() {
-    tt_mutex_free(mutex);
     tt_pubsub_free(pubsub);
 }
 
@@ -220,14 +218,12 @@ int wifi_get_rssi() {
 
 static void wifi_lock(Wifi* wifi) {
     tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_acquire(wifi->mutex, tt_ms_to_ticks(100));
+    wifi->mutex.acquire(tt_ms_to_ticks(100));
 }
 
 static void wifi_unlock(Wifi* wifi) {
     tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_release(wifi->mutex);
+    wifi->mutex.release();
 }
 
 static void wifi_scan_list_alloc(Wifi* wifi) {
@@ -284,6 +280,7 @@ static void wifi_auto_connect(Wifi* wifi) {
             WifiApSettings ap_settings;
             if (tt_wifi_settings_load(ssid, &ap_settings)) {
                 if (ap_settings.auto_connect) {
+                    TT_LOG_I(TAG, "Auto-connecting to %s", ap_settings.ssid);
                     wifi_connect(&ap_settings, false);
                 }
             } else {
@@ -336,7 +333,7 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
         wifi_singleton->scan_active = false;
         TT_LOG_I(TAG, "Finished scan");
 
-        if (copied_list) {
+        if (copied_list && wifi_singleton->radio_state == WIFI_RADIO_ON) {
             wifi_auto_connect(wifi_singleton);
         }
     }
@@ -501,9 +498,17 @@ static void wifi_scan_internal(Wifi* wifi) {
     }
 }
 
-static void wifi_connect_internal(Wifi* wifi, WifiConnectMessage* connect_message) {
+static void wifi_connect_internal(Wifi* wifi) {
     // TODO: only when connected!
-    wifi_disconnect_internal(wifi);
+
+    if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
+        wifi_disconnect_internal(wifi);
+    } else if (wifi->radio_state != WIFI_RADIO_ON) {
+        TT_LOG_E(TAG, "Cannot connect in current state %d", wifi->radio_state);
+        return;
+    }
+
+    TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid);
 
     wifi->radio_state = WIFI_RADIO_CONNECTION_PENDING;
 
@@ -701,7 +706,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                     break;
                 case WifiMessageTypeConnect:
                     wifi_lock(wifi);
-                    wifi_connect_internal(wifi, &message.connect_message);
+                    wifi_connect_internal(wifi);
                     wifi_unlock(wifi);
                     break;
                 case WifiMessageTypeDisconnect:
@@ -724,8 +729,8 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
 static void wifi_service_start(Service& service) {
     tt_assert(wifi_singleton == nullptr);
-    service.setData(wifi_singleton);
     wifi_singleton = new Wifi();
+    service.setData(wifi_singleton);
 }
 
 static void wifi_service_stop(Service& service) {
