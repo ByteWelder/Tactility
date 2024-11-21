@@ -2,19 +2,20 @@
 
 #include "wifi.h"
 
+#include "MessageQueue.h"
+#include "Mutex.h"
 #include "check.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "log.h"
-#include "MessageQueue.h"
-#include "Mutex.h"
 #include "pubsub.h"
 #include "service.h"
 #include "wifi_settings.h"
+#include <atomic>
 #include <cstring>
 #include <sys/cdefs.h>
 
-#define TAG "wifi"
+#define TAG "wifi_service"
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
@@ -41,6 +42,7 @@ public:
     Wifi();
     ~Wifi();
 
+    std::atomic<WifiRadioState> radio_state;
     /** @brief Locking mechanism for modifying the Wifi instance */
     Mutex mutex = Mutex(MutexTypeRecursive);
     /** @brief The public event bus */
@@ -63,7 +65,6 @@ public:
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
     EventGroupHandle_t event_group;
-    WifiRadioState radio_state = WIFI_RADIO_OFF;
     WifiApSettings connection_target = {
         .ssid = { 0 },
         .password = { 0 },
@@ -76,13 +77,13 @@ static Wifi* wifi_singleton = nullptr;
 
 // Forward declarations
 static void wifi_scan_list_free_safely(Wifi* wifi);
-static void wifi_disconnect_internal(Wifi* wifi);
+static void wifi_disconnect_internal_but_keep_active(Wifi* wifi);
 static void wifi_lock(Wifi* wifi);
 static void wifi_unlock(Wifi* wifi);
 
 // region Alloc
 
-Wifi::Wifi() {
+Wifi::Wifi() : radio_state(WIFI_RADIO_OFF) {
     pubsub = tt_pubsub_alloc();
     event_group = xEventGroupCreate();
 }
@@ -256,19 +257,24 @@ static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
-static void wifi_copy_scan_list(Wifi* wifi) {
-    // Create scan list if it does not exist
-    wifi_scan_list_alloc_safely(wifi);
-    wifi->scan_list_count = 0;
-    uint16_t record_count = wifi->scan_list_limit;
+static bool wifi_copy_scan_list(Wifi* wifi) {
+    if ((wifi->radio_state == WIFI_RADIO_ON || wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) && wifi->scan_active) {
+        // Create scan list if it does not exist
+        wifi_scan_list_alloc_safely(wifi);
+        wifi->scan_list_count = 0;
+        uint16_t record_count = wifi->scan_list_limit;
 
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
-    uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
-    wifi->scan_list_count = safe_record_count;
-    TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
-    for (uint16_t i = 0; i < safe_record_count; i++) {
-        wifi_ap_record_t* record = &wifi->scan_list[i];
-        TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
+        uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
+        wifi->scan_list_count = safe_record_count;
+        TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
+        for (uint16_t i = 0; i < safe_record_count; i++) {
+            wifi_ap_record_t* record = &wifi->scan_list[i];
+            TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+        }
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -299,10 +305,12 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
             esp_wifi_connect();
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
-        TT_LOG_I(TAG, "event_handler: disconnected");
-        wifi_singleton->radio_state = WIFI_RADIO_ON;
-        wifi_publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
+        if (wifi_singleton->radio_state != WIFI_RADIO_OFF_PENDING) {
+            xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
+            TT_LOG_I(TAG, "event_handler: disconnected");
+            wifi_singleton->radio_state = WIFI_RADIO_ON;
+            wifi_publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
+        }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -310,27 +318,17 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: wifi scanning done (scan id %u)", event->scan_id);
-        bool copied_list;
-        if (
-            wifi_singleton->radio_state == WIFI_RADIO_ON ||
-            wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_ACTIVE ||
-            wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING
-        ) {
-            wifi_copy_scan_list(wifi_singleton);
-            copied_list = true;
-        } else {
-            copied_list = false;
-        }
+        bool copied_list = wifi_copy_scan_list(wifi_singleton);
 
         if (
             wifi_singleton->radio_state != WIFI_RADIO_OFF &&
             wifi_singleton->radio_state != WIFI_RADIO_OFF_PENDING
         ) {
+            wifi_singleton->scan_active = false;
             esp_wifi_scan_stop();
         }
 
         wifi_publish_event_simple(wifi_singleton, WifiEventTypeScanFinished);
-        wifi_singleton->scan_active = false;
         TT_LOG_I(TAG, "Finished scan");
 
         if (copied_list && wifi_singleton->radio_state == WIFI_RADIO_ON) {
@@ -472,7 +470,7 @@ static void wifi_disable(Wifi* wifi) {
     tt_assert(wifi->netif != nullptr);
     esp_netif_destroy(wifi->netif);
     wifi->netif = nullptr;
-
+    wifi->scan_active = false;
     wifi->radio_state = WIFI_RADIO_OFF;
     wifi_publish_event_simple(wifi, WifiEventTypeRadioStateOff);
     TT_LOG_I(TAG, "Disabled");
@@ -499,16 +497,23 @@ static void wifi_scan_internal(Wifi* wifi) {
 }
 
 static void wifi_connect_internal(Wifi* wifi) {
-    // TODO: only when connected!
-
-    if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
-        wifi_disconnect_internal(wifi);
-    } else if (wifi->radio_state != WIFI_RADIO_ON) {
-        TT_LOG_E(TAG, "Cannot connect in current state %d", wifi->radio_state);
-        return;
-    }
-
     TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid);
+
+    // Stop radio first, if needed
+    WifiRadioState radio_state = wifi->radio_state;
+    if (
+        radio_state == WIFI_RADIO_ON ||
+        radio_state == WIFI_RADIO_CONNECTION_ACTIVE ||
+        radio_state == WIFI_RADIO_CONNECTION_PENDING
+        ) {
+        TT_LOG_I(TAG, "Connecting: Stopping radio first");
+        esp_err_t stop_result = esp_wifi_stop();
+        wifi->scan_active = false;
+        if (stop_result != ESP_OK) {
+            TT_LOG_E(TAG, "Connecting: Failed to disconnect (%s)", esp_err_to_name(stop_result));
+            return;
+        }
+    }
 
     wifi->radio_state = WIFI_RADIO_CONNECTION_PENDING;
 
@@ -615,18 +620,6 @@ static void wifi_connect_internal(Wifi* wifi) {
     }
 
     xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
-}
-
-static void wifi_disconnect_internal(Wifi* wifi) {
-    esp_err_t stop_result = esp_wifi_stop();
-    if (stop_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
-    } else {
-        wifi->radio_state = WIFI_RADIO_ON;
-        wifi->secure_connection = false;
-        wifi_publish_event_simple(wifi, WifiEventTypeDisconnected);
-        TT_LOG_I(TAG, "Disconnected");
-    }
 }
 
 static void wifi_disconnect_internal_but_keep_active(Wifi* wifi) {

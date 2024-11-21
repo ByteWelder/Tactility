@@ -92,6 +92,7 @@ void wifi_manage_request_view_update(WifiManage* wifi) {
 static void wifi_manage_event_callback(const void* message, void* context) {
     auto* event = (const WifiEvent*)message;
     auto* wifi = (WifiManage*)context;
+    TT_LOG_I(TAG, "Update with state %d", wifi_get_radio_state());
     wifi_manage_state_set_radio_state(wifi, wifi_get_radio_state());
     switch (event->type) {
         case WifiEventTypeScanStarted:
