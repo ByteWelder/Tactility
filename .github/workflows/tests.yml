@@ -17,4 +17,4 @@ jobs:
       - name: Build Tests
         run: cmake --build build --target build-tests
       - name: Run Tests
-        run: build/tests/tactility-core/tactility-core-tests --exit
+        run: build/Tests/TactilityCore/TactilityCoreTests --exit
