@@ -1,4 +1,3 @@
-#include "tactility_core.h"
 #include "ui/toolbar.h"
 #include "screenshot_ui.h"
 
@@ -27,7 +26,6 @@ extern const AppManifest manifest = {
     .on_start = &on_start,
     .on_stop = &on_stop,
     .on_show = &on_show,
-    .on_hide = nullptr
 };
 
 } // namespace

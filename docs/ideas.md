@@ -16,9 +16,8 @@
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Publish firmwares with upload tool
-- De-duplicate WiFi SSIDs. Use bssid of strongest AP to connect to.
+- De-duplicate WiFi SSIDs.
 - Move libs/M5 projects to boards/M5Shared
-- Rewrite screenshot service to become an actual service (that is not auto-started)
 
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
