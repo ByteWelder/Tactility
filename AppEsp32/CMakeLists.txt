@@ -4,17 +4,17 @@ set(BOARD_COMPONENTS Tactility)
 
 if("${IDF_TARGET}" STREQUAL "esp32")
     list(APPEND BOARD_COMPONENTS
-        yellow_board
-        m5stack_core2
+        YellowBoard
+        M5stackCore2
     )
 endif()
 
 # T-Deck is an S3 platform
 if("${IDF_TARGET}" STREQUAL "esp32s3")
     list(APPEND BOARD_COMPONENTS
-        lilygo_tdeck
-        m5stack_cores3
-        waveshare_s3_touch
+        LilygoTdeck
+        M5stackCoreS3
+        WaveshareS3Touch
     )
 endif()
 

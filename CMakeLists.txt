@@ -30,15 +30,15 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     # ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "yellow_board_2432s024")
-        set(EXCLUDE_COMPONENTS "m5stack_core2")
-        set(EXCLUDE_COMPONENTS "m5stack_cores3")
+        set(EXCLUDE_COMPONENTS "YellowBoard")
+        set(EXCLUDE_COMPONENTS "M5stackCore2")
+        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
     endif()
 
     # ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
-        set(EXCLUDE_COMPONENTS "lilygo_tdeck")
-        set(EXCLUDE_COMPONENTS "waveshare_s3_touch")
+        set(EXCLUDE_COMPONENTS "LilygoTdeck")
+        set(EXCLUDE_COMPONENTS "WaveshareS3Touch")
     endif()
 else()
     message("Building for sim target")
