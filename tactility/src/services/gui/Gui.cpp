@@ -1,9 +1,9 @@
 #include "Gui_i.h"
 
 #include "Tactility.h"
-#include "services/loader/loader.h"
-#include "ui/lvgl_sync.h"
+#include "services/loader/loader_.h"
 #include "ui/lvgl_keypad.h"
+#include "ui/lvgl_sync.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

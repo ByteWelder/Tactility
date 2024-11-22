@@ -3,8 +3,8 @@
 #include "AppManifestRegistry.h"
 #include "LvglInit_i.h"
 #include "ServiceRegistry.h"
-#include "services/loader/loader.h"
 #include "TactilityHeadless.h"
+#include "services/loader/loader_.h"
 
 namespace tt {
 

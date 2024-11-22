@@ -1,14 +1,14 @@
 #include "files_data.h"
 
 #include "App.h"
-#include "apps/image_viewer/image_viewer.h"
-#include "apps/text_viewer/text_viewer.h"
 #include "Assets.h"
 #include "Check.h"
+#include "StringUtils.h"
+#include "apps/image_viewer/image_viewer.h"
+#include "apps/text_viewer/text_viewer.h"
 #include "file_utils.h"
 #include "lvgl.h"
-#include "services/loader/loader.h"
-#include "StringUtils.h"
+#include "services/loader/loader_.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
 #include <unistd.h>
