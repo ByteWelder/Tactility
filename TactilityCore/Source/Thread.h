@@ -5,203 +5,211 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#else
+#include "FreeRTOS.h"
+#include "task.h"
+#endif
 
 namespace tt {
 
-/** ThreadState */
-typedef enum {
-    ThreadStateStopped,
-    ThreadStateStarting,
-    ThreadStateRunning,
-} ThreadState;
+typedef TaskHandle_t ThreadId;
 
-/** ThreadPriority */
-typedef enum {
-    ThreadPriorityNone = 0, /**< Uninitialized, choose system default */
-    ThreadPriorityIdle = 1,
-    ThreadPriorityLowest = 2,
-    ThreadPriorityLow = 3,
-    ThreadPriorityNormal = 4,
-    ThreadPriorityHigh = 5,
-    ThreadPriorityHigher = 6,
-    ThreadPriorityHighest = 7
-} ThreadPriority;
+class Thread {
+public:
 
-#define THREAD_PRIORITY_APP ThreadPriorityNormal
-#define THREAD_PRIORITY_SERVICE ThreadPriorityHigh
-#define THREAD_PRIORITY_RENDER ThreadPriorityHigher
+    typedef enum {
+        StateStopped,
+        StateStarting,
+        StateRunning,
+    } State;
+
+    /** ThreadPriority */
+    typedef enum {
+        PriorityNone = 0, /**< Uninitialized, choose system default */
+        PriorityIdle = 1,
+        PriorityLowest = 2,
+        PriorityLow = 3,
+        PriorityNormal = 4,
+        PriorityHigh = 5,
+        PriorityHigher = 6,
+        PriorityHighest = 7
+    } Priority;
+
+
+    /** ThreadCallback Your callback to run in new thread
+     * @warning never use osThreadExit in Thread
+     */
+    typedef int32_t (*Callback)(void* context);
+
+    /** Write to stdout callback
+     * @param data pointer to data
+     * @param size data size @warning your handler must consume everything
+     */
+    typedef void (*StdoutWriteCallback)(const char* data, size_t size);
+
+    /** Thread state change callback called upon thread state change
+     * @param state new thread state
+     * @param context callback context
+     */
+    typedef void (*StateCallback)(State state, void* context);
+
+    typedef struct {
+        Thread* thread;
+        TaskHandle_t taskHandle;
+
+        State state;
+
+        Callback callback;
+        void* callbackContext;
+        int32_t callbackResult;
+
+        StateCallback stateCallback;
+        void* stateCallbackContext;
+
+        std::string name;
+
+        Priority priority;
+
+        // Keep all non-alignable byte types in one place,
+        // this ensures that the size of this structure is minimal
+        bool isStatic;
+
+        configSTACK_DEPTH_TYPE stackSize;
+    } Data;
+
+    Thread();
+
+    /** Allocate Thread, shortcut version
+
+     * @param name
+     * @param stack_size
+     * @param callback
+     * @param context
+     * @return Thread*
+     */
+    Thread(
+        const std::string& name,
+        configSTACK_DEPTH_TYPE stackSize,
+        Callback callback,
+        void* callbackContext
+    );
+
+    ~Thread();
+
+    /** Set Thread name
+     *
+     * @param name string
+     */
+    void setName(const std::string& name);
+
+    /** Mark thread as service
+     * The service cannot be stopped or removed, and cannot exit from the thread body
+     */
+    void markAsStatic();
+
+    /** Check if thread is as service
+     * If true, the service cannot be stopped or removed, and cannot exit from the thread body
+     */
+    bool isMarkedAsStatic() const;
+
+    /** Set Thread stack size
+     *
+     * @param thread Thread instance
+     * @param stackSize stack size in bytes
+     */
+    void setStackSize(size_t stackSize);
+
+    /** Set Thread callback
+     *
+     * @param thread Thread instance
+     * @param callback ThreadCallback, called upon thread run
+     * @param callbackContext what to pass to the callback
+     */
+    void setCallback(Callback callback, _Nullable void* callbackContext = nullptr);
+
+    /** Set Thread priority
+     *
+     * @param thread Thread instance
+     * @param priority ThreadPriority value
+     */
+    void setPriority(Priority priority);
+
+
+    /** Set Thread state change callback
+     *
+     * @param thread Thread instance
+     * @param callback state change callback
+     * @param context pointer to context
+     */
+    void setStateCallback(StateCallback callback, _Nullable void* callbackContext = nullptr);
+
+    /** Get Thread state
+     *
+     * @param thread Thread instance
+     *
+     * @return thread state from ThreadState
+     */
+    [[nodiscard]] State getState() const;
+
+    /** Start Thread
+     *
+     * @param thread Thread instance
+     */
+    void start();
+
+    /** Join Thread
+     *
+     * @warning    Use this method only when CPU is not busy(Idle task receives
+     *             control), otherwise it will wait forever.
+     *
+     * @param thread Thread instance
+     *
+     * @return success result
+     */
+    bool join();
+
+    /** Get FreeRTOS ThreadId for Thread instance
+     *
+     * @param thread Thread instance
+     *
+     * @return ThreadId or nullptr
+     */
+    ThreadId getId();
+
+    /** Get thread return code
+     *
+     * @param thread Thread instance
+     *
+     * @return return code
+     */
+    int32_t getReturnCode();
+
+private:
+
+    Data data;
+};
+
+#define THREAD_PRIORITY_APP Thread::PriorityNormal
+#define THREAD_PRIORITY_SERVICE Thread::PriorityHigh
+#define THREAD_PRIORITY_RENDER Thread::PriorityHigher
 #define THREAD_PRIORITY_ISR (TT_CONFIG_THREAD_MAX_PRIORITIES - 1)
-
-/** Thread anonymous structure */
-typedef struct Thread Thread;
-
-/** ThreadId proxy type to OS low level functions */
-typedef void* ThreadId;
-
-/** ThreadCallback Your callback to run in new thread
- * @warning    never use osThreadExit in Thread
- */
-typedef int32_t (*ThreadCallback)(void* context);
-
-/** Write to stdout callback
- * @param      data     pointer to data
- * @param      size     data size @warning your handler must consume everything
- */
-typedef void (*ThreadStdoutWriteCallback)(const char* data, size_t size);
-
-/** Thread state change callback called upon thread state change
- * @param      state    new thread state
- * @param      context  callback context
- */
-typedef void (*ThreadStateCallback)(ThreadState state, void* context);
-
-/** Allocate Thread
- *
- * @return     Thread instance
- */
-Thread* thread_alloc();
-
-/** Allocate Thread, shortcut version
- * 
- * @param name 
- * @param stack_size 
- * @param callback 
- * @param context 
- * @return Thread*
- */
-Thread* thread_alloc_ex(
-    const char* name,
-    uint32_t stack_size,
-    ThreadCallback callback,
-    void* context
-);
-
-/** Release Thread
- *
- * @warning    see tt_thread_join
- *
- * @param      thread  Thread instance
- */
-void thread_free(Thread* thread);
-
-/** Set Thread name
- *
- * @param      thread  Thread instance
- * @param      name    string
- */
-void thread_set_name(Thread* thread, const char* name);
-
-/**
- * @brief Set Thread appid
- * Technically, it is like a "process id", but it is not a system-wide unique identifier.
- * All threads spawned by the same app will have the same appid.
- * 
- * @param thread 
- * @param appid 
- */
-void thread_set_appid(Thread* thread, const char* appid);
-
-/** Mark thread as service
- * The service cannot be stopped or removed, and cannot exit from the thread body
- * 
- * @param thread 
- */
-void thread_mark_as_static(Thread* thread);
-
-/** Set Thread stack size
- *
- * @param      thread      Thread instance
- * @param      stack_size  stack size in bytes
- */
-void thread_set_stack_size(Thread* thread, size_t stack_size);
-
-/** Set Thread callback
- *
- * @param      thread    Thread instance
- * @param      callback  ThreadCallback, called upon thread run
- */
-void thread_set_callback(Thread* thread, ThreadCallback callback);
-
-/** Set Thread context
- *
- * @param      thread   Thread instance
- * @param      context  pointer to context for thread callback
- */
-void thread_set_context(Thread* thread, void* context);
-
-/** Set Thread priority
- *
- * @param      thread   Thread instance
- * @param      priority ThreadPriority value
- */
-void thread_set_priority(Thread* thread, ThreadPriority priority);
 
 /** Set current thread priority
  *
  * @param      priority ThreadPriority value
  */
-void thread_set_current_priority(ThreadPriority priority);
+void thread_set_current_priority(Thread::Priority priority);
 
 /** Get current thread priority
  *
  * @return     ThreadPriority value
  */
-ThreadPriority thread_get_current_priority();
-
-/** Set Thread state change callback
- *
- * @param      thread    Thread instance
- * @param      callback  state change callback
- */
-void thread_set_state_callback(Thread* thread, ThreadStateCallback callback);
-
-/** Set Thread state change context
- *
- * @param      thread   Thread instance
- * @param      context  pointer to context
- */
-void thread_set_state_context(Thread* thread, void* context);
-
-/** Get Thread state
- *
- * @param      thread  Thread instance
- *
- * @return     thread state from ThreadState
- */
-ThreadState thread_get_state(Thread* thread);
-
-/** Start Thread
- *
- * @param      thread  Thread instance
- */
-void thread_start(Thread* thread);
-
-/** Join Thread
- *
- * @warning    Use this method only when CPU is not busy(Idle task receives
- *             control), otherwise it will wait forever.
- *
- * @param      thread  Thread instance
- *
- * @return     bool
- */
-bool thread_join(Thread* thread);
-
-/** Get FreeRTOS ThreadId for Thread instance
- *
- * @param      thread  Thread instance
- *
- * @return     ThreadId or NULL
- */
-ThreadId thread_get_id(Thread* thread);
-
-/** Get thread return code
- *
- * @param      thread  Thread instance
- *
- * @return     return code
- */
-int32_t thread_get_return_code(Thread* thread);
+Thread::Priority thread_get_current_priority();
 
 /** Thread related methods that doesn't involve Thread directly */
 
@@ -237,14 +245,6 @@ uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout);
  * @return const char* name or NULL
  */
 const char* thread_get_name(ThreadId thread_id);
-
-/**
- * @brief Get thread appid
- * 
- * @param thread_id 
- * @return const char* appid
- */
-const char* thread_get_appid(ThreadId thread_id);
 
 /**
  * @brief Get thread stack watermark

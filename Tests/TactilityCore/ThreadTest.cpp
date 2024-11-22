@@ -80,7 +80,7 @@ TEST_CASE("thread state should be correct") {
     );
     CHECK_EQ(thread_get_state(thread), ThreadStateStopped);
     thread_start(thread);
-    ThreadState state = thread_get_state(thread);
+    State state = thread_get_state(thread);
     CHECK((state == ThreadStateStarting || state == ThreadStateRunning));
     interrupted = true;
     thread_join(thread);

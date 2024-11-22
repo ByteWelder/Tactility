@@ -81,7 +81,7 @@ void lvgl_task_start() {
         "lvgl",
         8192,
         NULL,
-        tt::ThreadPriorityHigh, // Should be higher than main app task
+        tt::Thread::PriorityHigh, // Should be higher than main app task
         NULL
     );
 

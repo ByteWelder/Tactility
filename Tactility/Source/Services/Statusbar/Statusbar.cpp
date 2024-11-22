@@ -136,7 +136,7 @@ static ServiceData* service_data_alloc() {
     auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
     *data = (ServiceData) {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .thread = thread_alloc(),
+        .thread = new Thread(),
         .service_interrupted = false,
         .wifi_icon_id = lvgl::statusbar_icon_add(nullptr),
         .wifi_last_icon = nullptr,
@@ -156,7 +156,7 @@ static ServiceData* service_data_alloc() {
 
 static void service_data_free(ServiceData* data) {
     tt_mutex_free(data->mutex);
-    thread_free(data->thread);
+    delete data->thread;
     lvgl::statusbar_icon_remove(data->wifi_icon_id);
     lvgl::statusbar_icon_remove(data->sdcard_icon_id);
     lvgl::statusbar_icon_remove(data->power_icon_id);
@@ -188,11 +188,10 @@ static void on_start(Service& service) {
     ServiceData* data = service_data_alloc();
     service.setData(data);
 
-    thread_set_callback(data->thread, service_main);
-    thread_set_current_priority(ThreadPriorityLow);
-    thread_set_stack_size(data->thread, 3000);
-    thread_set_context(data->thread, data);
-    thread_start(data->thread);
+    data->thread->setCallback(service_main, data);
+    data->thread->setPriority(Thread::PriorityLow);
+    data->thread->setStackSize(3000);
+    data->thread->start();
 }
 
 static void on_stop(Service& service) {
@@ -203,7 +202,7 @@ static void on_stop(Service& service) {
     data->service_interrupted = true;
     service_data_unlock(data);
     tt_mutex_release(data->mutex);
-    thread_join(data->thread);
+    data->thread->join();
 
     service_data_free(data);
 }
