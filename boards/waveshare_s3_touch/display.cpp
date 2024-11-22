@@ -1,7 +1,7 @@
 #include "config.h"
 
 #include "lvgl.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "thread.h"
 
 #include "esp_err.h"

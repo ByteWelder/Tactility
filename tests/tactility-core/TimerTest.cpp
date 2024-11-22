@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "timer.h"
 
 using namespace tt;

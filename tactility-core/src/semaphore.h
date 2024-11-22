@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core_types.h"
+#include "CoreTypes.h"
 #include "thread.h"
 
 namespace tt {

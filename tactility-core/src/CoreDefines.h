@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core_extra_defines.h"
+#include "CoreExtraDefines.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/portmacro.h"

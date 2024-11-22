@@ -1,7 +1,7 @@
 #include "Mutex.h"
 
 #include "check.h"
-#include "core_defines.h"
+#include "CoreDefines.h"
 #include "log.h"
 
 namespace tt {

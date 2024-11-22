@@ -1,5 +1,5 @@
 #include "file_utils.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include <cstdlib>
 #include <cstring>
 

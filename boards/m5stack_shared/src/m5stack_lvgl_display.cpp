@@ -1,4 +1,4 @@
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 #include "M5Unified.hpp"
 #include "esp_err.h"

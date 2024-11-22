@@ -3,7 +3,7 @@
 #include "Mutex.h"
 #include "service.h"
 #include "service_manifest.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include <string>
 #include <unordered_map>
 

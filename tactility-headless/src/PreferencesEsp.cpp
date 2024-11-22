@@ -2,7 +2,7 @@
 
 #include "nvs_flash.h"
 #include "Preferences.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 #define TAG "preferences"
 

@@ -1,7 +1,7 @@
 #include "files_data.h"
 #include "file_utils.h"
-#include "tactility_core.h"
-#include <string_utils.h>
+#include "TactilityCore.h"
+#include "StringUtils.h"
 
 namespace tt::app::files {
 

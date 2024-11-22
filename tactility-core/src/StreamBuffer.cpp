@@ -1,8 +1,8 @@
-#include "tt_stream_buffer.h"
+#include "StreamBuffer.h"
 
 #include "check.h"
-#include "core_defines.h"
-#include "core_types.h"
+#include "CoreDefines.h"
+#include "CoreTypes.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

@@ -3,7 +3,7 @@
 
 #include "Mutex.h"
 #include "pubsub.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 

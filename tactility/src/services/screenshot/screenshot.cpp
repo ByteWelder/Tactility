@@ -5,7 +5,7 @@
 #include "screenshot_task.h"
 #include "service.h"
 #include "service_registry.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 namespace tt::service::screenshot {
 

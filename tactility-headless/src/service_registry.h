@@ -1,7 +1,7 @@
 #pragma once
 
 #include "service_manifest.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 namespace tt {
 

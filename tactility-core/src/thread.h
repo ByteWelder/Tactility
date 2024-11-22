@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core_defines.h"
-#include "core_types.h"
+#include "CoreDefines.h"
+#include "CoreTypes.h"
 
 #include <cstddef>
 #include <cstdint>

@@ -1,5 +1,5 @@
 #include "label_utils.h"
-#include <tactility_core.h>
+#include "TactilityCore.h"
 
 namespace tt::lvgl {
 

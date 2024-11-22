@@ -1,6 +1,6 @@
 #include "app_manifest_registry.h"
 #include "Mutex.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include <unordered_map>
 
 #define TAG "app_registry"

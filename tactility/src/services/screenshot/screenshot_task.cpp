@@ -4,7 +4,7 @@
 #include "app.h"
 #include "Mutex.h"
 #include "services/loader/loader.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "thread.h"
 #include "ui/lvgl_sync.h"
 

@@ -3,10 +3,10 @@
 #include <cstdio>
 
 #include "check.h"
-#include "core_defines.h"
-#include "core_extra_defines.h"
-#include "core_types.h"
+#include "CoreDefines.h"
+#include "CoreExtraDefines.h"
+#include "CoreTypes.h"
 #include "critical.h"
-#include "event_flag.h"
+#include "EventFlag.h"
 #include "kernel.h"
 #include "log.h"

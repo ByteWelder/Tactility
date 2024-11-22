@@ -1,6 +1,6 @@
 #include "semaphore.h"
 #include "check.h"
-#include "core_defines.h"
+#include "CoreDefines.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

@@ -1,7 +1,7 @@
 #include "keyboard.h"
 #include "config.h"
 #include "lvgl.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "ui/lvgl_keypad.h"
 #include <driver/i2c.h>
 

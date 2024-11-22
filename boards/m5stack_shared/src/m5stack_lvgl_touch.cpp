@@ -1,6 +1,6 @@
 #include "M5Unified.hpp"
 #include "lvgl.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 #define TAG "cores3_touch"
 

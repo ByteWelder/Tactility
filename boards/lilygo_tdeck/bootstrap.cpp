@@ -2,7 +2,7 @@
 #include "display_i.h"
 #include "driver/spi_common.h"
 #include "keyboard.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 #define TAG "tdeck_bootstrap"
 

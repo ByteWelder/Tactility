@@ -2,7 +2,7 @@
 
 #include "Mutex.h"
 #include "service.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "tactility_headless.h"
 
 #define TAG "sdcard_service"

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "api_lock.h"
+#include "ApiLock.h"
 #include "app_manifest.h"
 #include "loader.h"
 #include "MessageQueue.h"

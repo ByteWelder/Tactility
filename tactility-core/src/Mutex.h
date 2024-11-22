@@ -4,7 +4,7 @@
  */
 #pragma once
 
-#include "core_types.h"
+#include "CoreTypes.h"
 #include "thread.h"
 
 #ifdef ESP_PLATFORM

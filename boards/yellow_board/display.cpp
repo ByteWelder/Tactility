@@ -1,5 +1,5 @@
 #include "config.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 #include "driver/gpio.h"
 #include "driver/ledc.h"

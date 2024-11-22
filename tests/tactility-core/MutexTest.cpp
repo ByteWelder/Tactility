@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "Mutex.h"
 
 using namespace tt;

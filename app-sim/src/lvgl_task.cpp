@@ -3,7 +3,7 @@
 #include "lvgl.h"
 #include "log.h"
 #include "lvgl_hal.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "thread.h"
 #include "ui/lvgl_sync.h"
 

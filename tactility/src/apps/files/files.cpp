@@ -8,7 +8,7 @@
 #include "file_utils.h"
 #include "lvgl.h"
 #include "services/loader/loader.h"
-#include "string_utils.h"
+#include "StringUtils.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
 #include <unistd.h>

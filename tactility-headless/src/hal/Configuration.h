@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "Sdcard.h"
 #include "Power.h"
 

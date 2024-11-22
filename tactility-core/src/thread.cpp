@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "check.h"
-#include "core_defines.h"
+#include "CoreDefines.h"
 #include "kernel.h"
 #include "log.h"
 

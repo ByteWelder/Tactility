@@ -1,7 +1,7 @@
 #include "Sdcard.h"
 
 #include "Mutex.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 
 namespace tt::hal::sdcard {
 

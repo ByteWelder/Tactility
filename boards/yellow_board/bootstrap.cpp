@@ -1,5 +1,5 @@
 #include "config.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include "display_i.h"
 #include <driver/spi_common.h>
 

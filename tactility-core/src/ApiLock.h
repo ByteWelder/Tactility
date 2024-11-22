@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event_flag.h"
+#include "EventFlag.h"
 
 typedef tt::EventFlag* ApiLock;
 

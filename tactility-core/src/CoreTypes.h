@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "tactility_core_config.h"
+#include "TactilityCoreConfig.h"
 
 namespace tt {
 

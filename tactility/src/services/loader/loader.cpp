@@ -2,7 +2,7 @@
 #include "app_manifest.h"
 #include "app_manifest_registry.h"
 #include "loader_i.h"
-#include "api_lock.h"
+#include "ApiLock.h"
 #include "service_manifest.h"
 #include "services/gui/gui.h"
 

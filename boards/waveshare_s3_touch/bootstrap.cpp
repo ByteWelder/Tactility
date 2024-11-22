@@ -1,5 +1,5 @@
 #include "config.h"
-#include "tactility_core.h"
+#include "TactilityCore.h"
 #include <driver/i2c.h>
 
 #define TAG "waveshare_bootstrap"

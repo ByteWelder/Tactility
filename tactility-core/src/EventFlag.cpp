@@ -1,7 +1,7 @@
-#include "event_flag.h"
+#include "EventFlag.h"
 
 #include "check.h"
-#include "core_defines.h"
+#include "CoreDefines.h"
 
 #ifdef ESP_TARGET
 #include "freertos/FreeRTOS.h"
