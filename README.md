@@ -44,7 +44,7 @@ Creating a touch-capable UI is [easy](https://docs.lvgl.io/9.0/get-started/quick
 ```C++
 static void app_show(App app, lv_obj_t* parent) {
     // Default toolbar with app name and close button
-    lv_obj_t* toolbar = tt::toolbar_create(parent, app);
+    lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
     
     // Label widget
