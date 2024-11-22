@@ -128,12 +128,12 @@ Take a look at the [App Lifecycle](docs/app-lifecycle.md) or the [dependency dia
 
 Directories explained:
 
-- `app-esp`: The ESP32 application example
-- `app-sim`: The PC/simulator application example
+- `AppEsp32`: The ESP32 application example
+- `AppSim`: The PC/simulator application example
 - `boards`: Contains ESP modules with drivers
-- `tactility`: The main application platform code ([src/](./tactility/src))
-- `tactility-headless`: Service framework and default services.
-- `tactility-core`: Core functionality regarding threads, stdlib, etc. ([src/](./tactility-core/src))
+- `Tactility`: The main application platform code ([src/](Tactility/Source))
+- `TactilityHeadless`: Service framework and default services.
+- `TactilityCore`: Core functionality regarding threads, stdlib, etc. ([src/](TactilityCore/Source))
 - `libs`: Contains a mix of regular libraries and ESP modules
 
 Until there is proper documentation, here are some pointers:

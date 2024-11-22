@@ -1,9 +1,9 @@
 project(tests)
 
-set(DOCTESTINC ${PROJECT_SOURCE_DIR}/include)
+set(DOCTESTINC ${PROJECT_SOURCE_DIR}/Include)
 
 enable_testing()
-add_subdirectory(tactility-core)
+add_subdirectory(TactilityCore)
 
 add_custom_target(build-tests)
-add_dependencies(build-tests tactility-core-tests)
+add_dependencies(build-tests TactilityCoreTests)
