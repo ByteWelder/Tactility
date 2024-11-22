@@ -2,7 +2,7 @@
 #include "assets.h"
 #include "lvgl.h"
 #include "tactility.h"
-#include "timer.h"
+#include "Timer.h"
 #include "ui/lvgl_sync.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"

@@ -1,6 +1,6 @@
 #include "wifi_manage_view.h"
 
-#include "log.h"
+#include "Log.h"
 #include "services/statusbar_updater/statusbar_updater.h"
 #include "services/wifi/wifi.h"
 #include "ui/style.h"

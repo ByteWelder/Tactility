@@ -5,10 +5,10 @@
 #include <cstring>
 
 #include "nvs_flash.h"
-#include "log.h"
-#include "hash.h"
+#include "Log.h"
+#include "Hash.h"
 #include "Check.h"
-#include "secure.h"
+#include "Crypt.h"
 
 #define TAG "wifi_settings"
 #define TT_NVS_NAMESPACE "wifi_settings" // limited by NVS_KEY_NAME_MAX_SIZE

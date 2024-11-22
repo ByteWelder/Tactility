@@ -1,6 +1,6 @@
 #ifndef ESP_PLATFORM
 
-#include "log.h"
+#include "Log.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

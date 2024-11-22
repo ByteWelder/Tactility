@@ -1,6 +1,6 @@
-#include "timer.h"
+#include "Timer.h"
 #include "Check.h"
-#include "kernel.h"
+#include "Kernel.h"
 #include <cstdlib>
 
 #ifdef ESP_PLATFORM

@@ -2,7 +2,7 @@
 
 #include "lvgl.h"
 #include "TactilityCore.h"
-#include "thread.h"
+#include "Thread.h"
 
 #include "esp_err.h"
 #include "esp_lcd_panel_ops.h"

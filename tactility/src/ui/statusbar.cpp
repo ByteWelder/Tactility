@@ -2,7 +2,7 @@
 #include "statusbar.h"
 
 #include "Mutex.h"
-#include "pubsub.h"
+#include "Pubsub.h"
 #include "TactilityCore.h"
 #include "ui/spacer.h"
 #include "ui/style.h"

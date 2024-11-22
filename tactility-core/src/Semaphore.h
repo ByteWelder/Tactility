@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "thread.h"
+#include "Thread.h"
 
 namespace tt {
 

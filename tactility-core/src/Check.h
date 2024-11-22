@@ -13,7 +13,7 @@
  */
 #pragma once
 
-#include "log.h"
+#include "Log.h"
 #include <cassert>
 
 #define TT_NORETURN [[noreturn]]

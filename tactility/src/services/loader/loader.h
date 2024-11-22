@@ -2,7 +2,7 @@
 
 #include "app_manifest.h"
 #include "Bundle.h"
-#include "pubsub.h"
+#include "Pubsub.h"
 #include "service_manifest.h"
 #include "TactilityCore.h"
 

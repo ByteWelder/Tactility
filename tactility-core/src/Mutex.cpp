@@ -2,7 +2,7 @@
 
 #include "Check.h"
 #include "CoreDefines.h"
-#include "log.h"
+#include "Log.h"
 
 namespace tt {
 

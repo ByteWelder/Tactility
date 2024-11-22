@@ -3,7 +3,7 @@
 #include "gui.h"
 #include "MessageQueue.h"
 #include "Mutex.h"
-#include "pubsub.h"
+#include "Pubsub.h"
 #include "view_port.h"
 #include "view_port_i.h"
 #include <cstdio>

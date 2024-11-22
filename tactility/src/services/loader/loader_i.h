@@ -4,9 +4,9 @@
 #include "app_manifest.h"
 #include "loader.h"
 #include "MessageQueue.h"
-#include "pubsub.h"
+#include "Pubsub.h"
 #include "services/gui/view_port.h"
-#include "thread.h"
+#include "Thread.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

@@ -5,7 +5,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include "thread.h"
+#include "Thread.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

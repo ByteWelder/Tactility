@@ -3,10 +3,10 @@
 #ifndef ESP_TARGET
 
 #include "Check.h"
-#include "log.h"
+#include "Log.h"
 #include "MessageQueue.h"
 #include "Mutex.h"
-#include "pubsub.h"
+#include "Pubsub.h"
 #include "service.h"
 #include <cstdlib>
 #include <cstring>

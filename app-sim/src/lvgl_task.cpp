@@ -1,10 +1,10 @@
 #include "lvgl_task.h"
 
 #include "lvgl.h"
-#include "log.h"
+#include "Log.h"
 #include "lvgl_hal.h"
 #include "TactilityCore.h"
-#include "thread.h"
+#include "Thread.h"
 #include "ui/lvgl_sync.h"
 
 #include "FreeRTOS.h"

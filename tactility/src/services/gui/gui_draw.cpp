@@ -1,6 +1,6 @@
 #include "Check.h"
 #include "gui_i.h"
-#include "log.h"
+#include "Log.h"
 #include "ui/lvgl_sync.h"
 #include "ui/statusbar.h"
 #include "ui/style.h"

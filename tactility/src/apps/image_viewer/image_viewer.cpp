@@ -1,5 +1,5 @@
 #include "image_viewer.h"
-#include "log.h"
+#include "Log.h"
 #include "lvgl.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"

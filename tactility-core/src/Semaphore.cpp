@@ -1,4 +1,4 @@
-#include "semaphore.h"
+#include "Semaphore.h"
 #include "Check.h"
 #include "CoreDefines.h"
 
@@ -16,13 +16,13 @@ Semaphore* tt_semaphore_alloc(uint32_t max_count, uint32_t initial_count) {
     tt_assert(!TT_IS_IRQ_MODE());
     tt_assert((max_count > 0U) && (initial_count <= max_count));
 
-    SemaphoreHandle_t hSemaphore = NULL;
+    SemaphoreHandle_t hSemaphore = nullptr;
     if (max_count == 1U) {
         hSemaphore = xSemaphoreCreateBinary();
-        if ((hSemaphore != NULL) && (initial_count != 0U)) {
+        if ((hSemaphore != nullptr) && (initial_count != 0U)) {
             if (xSemaphoreGive(hSemaphore) != pdPASS) {
                 vSemaphoreDelete(hSemaphore);
-                hSemaphore = NULL;
+                hSemaphore = nullptr;
             }
         }
     } else {

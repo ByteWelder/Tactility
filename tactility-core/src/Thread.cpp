@@ -1,11 +1,11 @@
-#include "thread.h"
+#include "Thread.h"
 #include <cstdlib>
 #include <cstring>
 
 #include "Check.h"
 #include "CoreDefines.h"
-#include "kernel.h"
-#include "log.h"
+#include "Kernel.h"
+#include "Log.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

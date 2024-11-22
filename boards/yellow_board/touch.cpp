@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_cst816s.h"
 #include "esp_lcd_touch.h"
-#include "log.h"
+#include "Log.h"
 
 #define TAG "twodotfour_cst816"
 

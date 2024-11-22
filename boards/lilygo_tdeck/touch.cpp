@@ -2,8 +2,8 @@
 #include "esp_err.h"
 #include "esp_lcd_panel_io_interface.h"
 #include "esp_lcd_touch_gt911.h"
-#include "log.h"
-#include <kernel.h>
+#include "Log.h"
+#include "Kernel.h"
 
 #define TAG "tdeck_touch"
 

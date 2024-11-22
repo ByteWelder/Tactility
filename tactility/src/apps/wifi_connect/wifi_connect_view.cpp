@@ -1,6 +1,6 @@
 #include "wifi_connect_view.h"
 
-#include "log.h"
+#include "Log.h"
 #include "lvgl.h"
 #include "services/gui/gui.h"
 #include "services/wifi/wifi_settings.h"

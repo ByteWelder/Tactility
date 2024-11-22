@@ -7,8 +7,8 @@
 #include "Check.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-#include "log.h"
-#include "pubsub.h"
+#include "Log.h"
+#include "Pubsub.h"
 #include "service.h"
 #include "wifi_settings.h"
 #include <atomic>

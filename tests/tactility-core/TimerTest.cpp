@@ -1,6 +1,6 @@
 #include "doctest.h"
 #include "TactilityCore.h"
-#include "timer.h"
+#include "Timer.h"
 
 using namespace tt;
 

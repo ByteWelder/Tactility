@@ -1,4 +1,4 @@
-#include "kernel.h"
+#include "Kernel.h"
 #include "Check.h"
 #include "CoreDefines.h"
 #include "CoreTypes.h"

@@ -1,5 +1,5 @@
 #include "tactility.h"
-#include "thread.h"
+#include "Thread.h"
 
 #include "FreeRTOS.h"
 #include "task.h"

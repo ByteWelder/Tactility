@@ -1,5 +1,5 @@
 #include "text_viewer.h"
-#include "log.h"
+#include "Log.h"
 #include "lvgl.h"
 #include "ui/label_utils.h"
 #include "ui/style.h"

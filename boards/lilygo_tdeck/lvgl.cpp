@@ -2,9 +2,9 @@
 #include "display_i.h"
 #include "esp_lvgl_port.h"
 #include "keyboard.h"
-#include "log.h"
+#include "Log.h"
 #include "ui/lvgl_sync.h"
-#include "thread.h"
+#include "Thread.h"
 
 #define TAG "tdeck_lvgl"
 

@@ -1,4 +1,4 @@
-#include "critical.h"
+#include "Critical.h"
 #include "CoreDefines.h"
 
 #ifdef ESP_PLATFORM

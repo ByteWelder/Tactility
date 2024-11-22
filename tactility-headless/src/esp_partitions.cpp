@@ -2,7 +2,7 @@
 
 #include "esp_partitions.h"
 #include "esp_spiffs.h"
-#include "log.h"
+#include "Log.h"
 #include "nvs_flash.h"
 
 namespace tt {
