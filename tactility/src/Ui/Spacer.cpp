@@ -1,5 +1,5 @@
-#include "spacer.h"
-#include "style.h"
+#include "Spacer.h"
+#include "Style.h"
 
 namespace tt::lvgl {
 

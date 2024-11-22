@@ -1,5 +1,5 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
-#include "statusbar.h"
+#include "Statusbar.h"
 
 #include "Mutex.h"
 #include "Pubsub.h"
@@ -7,8 +7,8 @@
 #include "ui/spacer.h"
 #include "ui/style.h"
 
+#include "LvglSync.h"
 #include "lvgl.h"
-#include "lvgl_sync.h"
 
 namespace tt::lvgl {
 

@@ -1,4 +1,4 @@
-#include "lvgl_sync.h"
+#include "LvglSync.h"
 
 namespace tt::lvgl {
 
