@@ -17,11 +17,11 @@ TEST_CASE("message queue initial count should be 0") {
     CHECK_EQ(count, 0);
 }
 
-TEST_CASE("message queue size should be correct") {
+TEST_CASE("message queue message size should be correct") {
     MessageQueue queue(1, 123);
 
-    uint32_t count = queue.getCount();
-    CHECK_EQ(count, 123);
+    uint32_t message_size = queue.getMessageSize();
+    CHECK_EQ(message_size, 123);
 }
 
 TEST_CASE("message queue count should increase when message is added") {

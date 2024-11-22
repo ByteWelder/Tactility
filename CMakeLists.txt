@@ -75,7 +75,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     endif()
 
     # Tests
-    add_subdirectory(tests)
+    add_subdirectory(Tests)
 
     # SDL & LVGL
     set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/AppSim/Source/lv_conf.h)
