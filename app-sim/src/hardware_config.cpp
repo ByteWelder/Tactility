@@ -1,10 +1,10 @@
-#include "hardware_config.h"
+#include "hal/Configuration.h"
 #include "lvgl_task.h"
 #include "src/lv_init.h"
 
 #define TAG "hardware"
 
-extern const tt::Power power;
+extern const tt::hal::Power power;
 
 static bool lvgl_init() {
     lv_init();
@@ -23,7 +23,7 @@ TT_UNUSED static void lvgl_deinit() {
 #endif
 }
 
-extern const tt::HardwareConfig sim_hardware = {
+extern const tt::hal::Configuration sim_hardware = {
     .bootstrap = nullptr,
     .init_graphics = &lvgl_init,
     .display = {

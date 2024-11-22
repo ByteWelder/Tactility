@@ -14,7 +14,7 @@ bool twodotfour_lvgl_init() {
     static esp_lcd_touch_handle_t touch_handle;
 
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = ThreadPriorityHigh,
+        .task_priority = tt::ThreadPriorityHigh,
         .task_stack = 8096,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,
@@ -50,7 +50,7 @@ bool twodotfour_lvgl_init() {
     }
 
     // Set syncing functions
-    tt_lvgl_sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
 
     return true;
 }

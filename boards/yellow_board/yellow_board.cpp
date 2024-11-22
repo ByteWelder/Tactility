@@ -4,9 +4,9 @@
 bool twodotfour_lvgl_init();
 bool twodotfour_bootstrap();
 
-extern const SdCard twodotfour_sdcard;
+extern const tt::hal::sdcard::SdCard twodotfour_sdcard;
 
-const HardwareConfig yellow_board_24inch_cap = {
+const tt::hal::Configuration yellow_board_24inch_cap = {
     .bootstrap = &twodotfour_bootstrap,
     .init_graphics = &twodotfour_lvgl_init,
     .display = {

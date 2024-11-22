@@ -1,9 +1,9 @@
-#include "sdcard.h"
+#include "Sdcard.h"
 
 #include "Mutex.h"
 #include "tactility_core.h"
 
-namespace tt {
+namespace tt::hal::sdcard {
 
 #define TAG "sdcard"
 
@@ -19,15 +19,15 @@ static MountData data = {
     .context = nullptr
 };
 
-static bool sdcard_lock(uint32_t timeout_ticks) {
+static bool lock(uint32_t timeout_ticks) {
     return mutex.acquire(timeout_ticks) == TtStatusOk;
 }
 
-static void sdcard_unlock() {
+static void unlock() {
     mutex.release();
 }
 
-bool tt_sdcard_mount(const SdCard* sdcard) {
+bool mount(const SdCard* sdcard) {
     TT_LOG_I(TAG, "Mounting");
 
     if (data.sdcard != nullptr) {
@@ -35,13 +35,13 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
         return false;
     }
 
-    if (sdcard_lock(100)) {
+    if (lock(100)) {
         void* context = sdcard->mount(TT_SDCARD_MOUNT_POINT);
         data = (MountData) {
             .sdcard = sdcard,
             .context = context
         };
-        sdcard_unlock();
+        unlock();
         return (data.context != nullptr);
     } else {
         TT_LOG_E(TAG, "Failed to lock");
@@ -49,21 +49,21 @@ bool tt_sdcard_mount(const SdCard* sdcard) {
     }
 }
 
-SdcardState tt_sdcard_get_state() {
+State get_state() {
     if (data.context == nullptr) {
-        return SdcardStateUnmounted;
+        return StateUnmounted;
     } else if (data.sdcard->is_mounted(data.context)) {
-        return SdcardStateMounted;
+        return StateMounted;
     } else {
-        return SdcardStateError;
+        return StateError;
     }
 }
 
-bool tt_sdcard_unmount(uint32_t timeout_ticks) {
+bool unmount(uint32_t timeout_ticks) {
     TT_LOG_I(TAG, "Unmounting");
     bool result = false;
 
-    if (sdcard_lock(timeout_ticks)) {
+    if (lock(timeout_ticks)) {
         if (data.sdcard != nullptr) {
             data.sdcard->unmount(data.context);
             data = (MountData) {
@@ -74,7 +74,7 @@ bool tt_sdcard_unmount(uint32_t timeout_ticks) {
         } else {
             TT_LOG_E(TAG, "Can't unmount: nothing mounted");
         }
-        sdcard_unlock();
+        unlock();
     } else {
         TT_LOG_E(TAG, "Failed to lock in %lu ticks", timeout_ticks);
     }

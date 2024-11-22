@@ -1,7 +1,7 @@
 #include "assets.h"
+#include "hal/Power.h"
+#include "hal/Sdcard.h"
 #include "Mutex.h"
-#include "power.h"
-#include "sdcard.h"
 #include "service.h"
 #include "services/wifi/wifi.h"
 #include "tactility.h"
@@ -73,12 +73,12 @@ static void update_wifi_icon(ServiceData* data) {
 
 // region sdcard
 
-static _Nullable const char* sdcard_get_status_icon(SdcardState state) {
+static _Nullable const char* sdcard_get_status_icon(hal::sdcard::State state) {
     switch (state) {
-        case SdcardStateMounted:
+        case hal::sdcard::StateMounted:
             return TT_ASSETS_ICON_SDCARD;
-        case SdcardStateError:
-        case SdcardStateUnmounted:
+        case hal::sdcard::StateError:
+        case hal::sdcard::StateUnmounted:
             return TT_ASSETS_ICON_SDCARD_ALERT;
         default:
             return nullptr;
@@ -86,7 +86,7 @@ static _Nullable const char* sdcard_get_status_icon(SdcardState state) {
 }
 
 static void update_sdcard_icon(ServiceData* data) {
-    SdcardState state = tt_sdcard_get_state();
+    hal::sdcard::State state = hal::sdcard::get_state();
     const char* desired_icon = sdcard_get_status_icon(state);
     if (data->sdcard_last_icon != desired_icon) {
         lvgl::statusbar_icon_set_image(data->sdcard_icon_id, desired_icon);
@@ -100,7 +100,7 @@ static void update_sdcard_icon(ServiceData* data) {
 // region power
 
 static _Nullable const char* power_get_status_icon() {
-    _Nullable const Power* power = get_config()->hardware->power;
+    _Nullable const hal::Power* power = get_config()->hardware->power;
     if (power != nullptr) {
         uint8_t charge = power->get_charge_level();
         if (charge >= 230) {

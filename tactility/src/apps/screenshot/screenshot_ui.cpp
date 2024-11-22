@@ -1,6 +1,6 @@
 #include "screenshot_ui.h"
 
-#include "sdcard.h"
+#include "hal/Sdcard.h"
 #include "services/gui/gui.h"
 #include "services/screenshot/screenshot.h"
 #include "tactility_core.h"
@@ -106,7 +106,7 @@ static void create_path_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_set_flex_grow(path_textarea, 1);
     ui->path_textarea = path_textarea;
     if (get_platform() == PlatformEsp) {
-        if (tt_sdcard_get_state() == SdcardStateMounted) {
+        if (hal::sdcard::get_state() == hal::sdcard::StateMounted) {
             lv_textarea_set_text(path_textarea, "A:/sdcard");
         } else {
             lv_textarea_set_text(path_textarea, "Error: no SD card");

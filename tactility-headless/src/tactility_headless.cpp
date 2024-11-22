@@ -1,6 +1,6 @@
 #include "tactility_headless.h"
-#include "hardware_config.h"
-#include "hardware_i.h"
+#include "hal/Configuration.h"
+#include "hal/Hal_i.h"
 #include "service_manifest.h"
 #include "service_registry.h"
 
@@ -20,7 +20,7 @@ static const ServiceManifest* const system_services[] = {
     &service::wifi::manifest
 };
 
-static const HardwareConfig* hardwareConfig = nullptr;
+static const hal::Configuration* hardwareConfig = nullptr;
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
@@ -31,16 +31,16 @@ static void register_and_start_system_services() {
     }
 }
 
-void headless_init(const HardwareConfig* config) {
+void headless_init(const hal::Configuration* config) {
 #ifdef ESP_PLATFORM
     esp_init();
 #endif
     hardwareConfig = config;
-    hardware_init(config);
+    hal::init(config);
     register_and_start_system_services();
 }
 
-const HardwareConfig* get_hardware_config() {
+const hal::Configuration* get_hardware_config() {
     return hardwareConfig;
 }
 

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-namespace tt {
+namespace tt::hal {
 
 typedef bool (*PowerIsCharging)();
 typedef bool (*PowerIsChargingEnabled)();

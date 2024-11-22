@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hardware_config.h"
+#include "hal/Configuration.h"
 
 // Waveshare S3 Touch LCD 4.3
-extern const tt::HardwareConfig waveshare_s3_touch;
+extern const tt::hal::Configuration waveshare_s3_touch;

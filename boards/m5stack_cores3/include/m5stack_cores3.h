@@ -1,5 +1,5 @@
 #pragma once
 
-#include "hardware_config.h"
+#include "hal/Configuration.h"
 
-extern const tt::HardwareConfig m5stack_cores3;
+extern const tt::hal::Configuration m5stack_cores3;

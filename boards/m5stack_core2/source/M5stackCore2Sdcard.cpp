@@ -1,6 +1,6 @@
 #include "check.h"
 #include "log.h"
-#include "sdcard.h"
+#include "hal/Sdcard.h"
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
@@ -78,9 +78,9 @@ static bool sdcard_is_mounted(void* context) {
     return (data != nullptr) && (sdmmc_get_status(data->card) == ESP_OK);
 }
 
-extern const SdCard m5stack_core2_sdcard = {
+extern const tt::hal::sdcard::SdCard m5stack_core2_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = SdcardMountBehaviourAnytime
+    .mount_behaviour = tt::hal::sdcard::MountBehaviourAnytime
 };

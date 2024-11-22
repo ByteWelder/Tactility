@@ -1,4 +1,4 @@
-#include "power.h"
+#include "hal/Power.h"
 #include "M5Unified.hpp"
 
 /**
@@ -29,7 +29,7 @@ static int32_t power_get_current() {
     return M5.Power.getBatteryCurrent();
 }
 
-extern const tt::Power m5stack_power = {
+extern const tt::hal::Power m5stack_power = {
     .is_charging = &power_is_charging,
     .is_charging_enabled = &power_is_charging_enabled,
     .set_charging_enabled = &power_set_charging_enabled,

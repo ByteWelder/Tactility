@@ -1,5 +1,4 @@
 #include <cstdlib>
-#include <dirent.h>
 
 #include "Mutex.h"
 #include "service.h"
@@ -15,7 +14,7 @@ static int32_t sdcard_task(void* context);
 typedef struct {
     Mutex* mutex;
     Thread* thread;
-    SdcardState last_state;
+    hal::sdcard::State last_state;
     bool interrupted;
 } ServiceData;
 
@@ -29,7 +28,7 @@ static ServiceData* service_data_alloc() {
             &sdcard_task,
             data
         ),
-        .last_state = SdcardStateUnmounted,
+        .last_state = hal::sdcard::StateUnmounted,
         .interrupted = false
     };
     thread_set_priority(data->thread, ThreadPriorityLow);
@@ -58,11 +57,11 @@ static int32_t sdcard_task(void* context) {
 
         interrupted = data->interrupted;
 
-        SdcardState new_state = tt_sdcard_get_state();
+        hal::sdcard::State new_state = hal::sdcard::get_state();
 
-        if (new_state == SdcardStateError) {
+        if (new_state == hal::sdcard::StateError) {
             TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
-            tt_sdcard_unmount(ms_to_ticks(1000));
+            hal::sdcard::unmount(ms_to_ticks(1000));
         }
 
         if (new_state != data->last_state) {

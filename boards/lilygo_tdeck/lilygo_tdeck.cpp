@@ -4,9 +4,9 @@
 bool tdeck_bootstrap();
 bool tdeck_init_lvgl();
 
-extern const tt::SdCard tdeck_sdcard;
+extern const tt::hal::sdcard::SdCard tdeck_sdcard;
 
-extern const tt::HardwareConfig lilygo_tdeck = {
+extern const tt::hal::Configuration lilygo_tdeck = {
     .bootstrap = &tdeck_bootstrap,
     .init_graphics = &tdeck_init_lvgl,
     .display = {

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "hardware_config.h"
+#include "hal/Configuration.h"
 
 namespace tt {
 
-void lvgl_init(const HardwareConfig* config);
+void lvgl_init(const hal::Configuration* config);
 
 } // namespace

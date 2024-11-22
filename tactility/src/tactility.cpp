@@ -10,7 +10,7 @@ namespace tt {
 
 #define TAG "tactility"
 
-static const Config* config_instance = NULL;
+static const Configuration* config_instance = NULL;
 
 // region Default services
 
@@ -120,7 +120,7 @@ static void register_and_start_user_services(const ServiceManifest* const servic
     }
 }
 
-void init(const Config* config) {
+void init(const Configuration* config) {
     TT_LOG_I(TAG, "init started");
 
 
@@ -155,7 +155,7 @@ void init(const Config* config) {
     TT_LOG_I(TAG, "init complete");
 }
 
-const Config* _Nullable get_config() {
+const Configuration* _Nullable get_config() {
     return config_instance;
 }
 

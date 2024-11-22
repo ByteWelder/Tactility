@@ -13,7 +13,7 @@ namespace tt::app::settings::power {
 
 typedef struct {
     Timer* update_timer;
-    const Power* power;
+    const hal::Power* power;
     lv_obj_t* enable_switch;
     lv_obj_t* charge_state;
     lv_obj_t* charge_level;

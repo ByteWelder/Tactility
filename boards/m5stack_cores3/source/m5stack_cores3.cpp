@@ -1,9 +1,9 @@
 #include "m5stack_cores3.h"
 #include "m5stack_shared.h"
 
-extern const tt::SdCard m5stack_cores3_sdcard;
+extern const tt::hal::sdcard::SdCard m5stack_cores3_sdcard;
 
-const tt::HardwareConfig m5stack_cores3 = {
+const tt::hal::Configuration m5stack_cores3 = {
     .bootstrap = &m5stack_bootstrap,
     .init_graphics = &m5stack_lvgl_init,
     .display = {

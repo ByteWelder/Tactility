@@ -1,5 +1,5 @@
 #pragma once
 
-#include "hardware_config.h"
+#include "hal/Configuration.h"
 
-extern const tt::HardwareConfig lilygo_tdeck;
+extern const tt::hal::Configuration lilygo_tdeck;

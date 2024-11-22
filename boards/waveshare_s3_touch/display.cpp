@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include "lvgl.h"
-#include "lvgl_i.h"
 #include "tactility_core.h"
 #include "thread.h"
 

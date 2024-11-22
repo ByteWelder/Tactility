@@ -1,4 +1,4 @@
-#include "sdcard.h"
+#include "hal/Sdcard.h"
 #include "check.h"
 #include "log.h"
 #include "config.h"
@@ -141,9 +141,9 @@ static bool sdcard_is_mounted(void* context) {
     }
 }
 
-extern const tt::SdCard tdeck_sdcard = {
+extern const tt::hal::sdcard::SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = tt::SdcardMountBehaviourAtBoot
+    .mount_behaviour = tt::hal::sdcard::MountBehaviourAtBoot
 };
