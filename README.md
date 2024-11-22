@@ -9,15 +9,15 @@ It provides an application framework that is based on code from the [Flipper Zer
 
 A modern desktop with built-in apps:
 
-![screenshot of desktop app](Documentation/pics/screenshot-desktop.png) ![screenshot of settings app](Documentation/pics/screenshot-settings.png)
+![screenshot of desktop app](Documentation/pics/screenshot-Desktop.png) ![screenshot of settings app](Documentation/pics/screenshot-Settings.png)
 
 Configure your Wi-Fi without having to hard-code credentials:
 
-![screenshot of wifi management app](Documentation/pics/screenshot-wifi_manage.png) ![screenshot of wifi app to connect to wifi](Documentation/pics/screenshot-wifi_connect.png)
+![screenshot of wifi management app](Documentation/pics/screenshot-WifiManage.png) ![screenshot of wifi app to connect to wifi](Documentation/pics/screenshot-WifiConnect.png)
 
 And much more!
 
-![screenshot of GPIO app](Documentation/pics/screenshot-gpio.png) ![screenshot of files app](Documentation/pics/screenshot-files.png)
+![screenshot of GPIO app](Documentation/pics/screenshot-Gpio.png) ![screenshot of files app](Documentation/pics/screenshot-Files.png)
 
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
@@ -30,7 +30,7 @@ Noteworthy features:
 
 Requirements:
 - ESP32 (any?) with a touchscreen
-- [esp-idf 5.2](https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32/get-started/index.html) or a newer v5.2.x
+- [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) or a newer v5.2.x
 
 ## Making apps is easy!
 
@@ -66,7 +66,7 @@ extern const AppManifest manifest = {
 };
 ```
 
-![hello world app screenshot](Documentation/pics/screenshot-helloworld.png)
+![hello world app screenshot](Documentation/pics/screenshot-HelloWorld.png)
 
 ## Supported Hardware
 
@@ -108,7 +108,7 @@ git clone --recurse-submodules -j8 https://github.com/ByteWelder/Tactility.git
 
 ### Build environment setup
 
-Ensure you have [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) installed, then select the correct device:
+nsure you have [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) installed, then select the correct device:
 
 Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
 
