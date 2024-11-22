@@ -1,5 +1,5 @@
 #include "semaphore.h"
-#include "check.h"
+#include "Check.h"
 #include "CoreDefines.h"
 
 #ifdef ESP_PLATFORM

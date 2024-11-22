@@ -1,5 +1,5 @@
 #include "timer.h"
-#include "check.h"
+#include "Check.h"
 #include "kernel.h"
 #include <cstdlib>
 

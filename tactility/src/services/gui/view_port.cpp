@@ -1,6 +1,6 @@
 #include "view_port.h"
 
-#include "check.h"
+#include "Check.h"
 #include "ui/style.h"
 #include "view_port_i.h"
 

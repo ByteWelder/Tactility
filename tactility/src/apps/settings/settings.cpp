@@ -1,6 +1,6 @@
 #include "app_manifest_registry.h"
 #include "assets.h"
-#include "check.h"
+#include "Check.h"
 #include "lvgl.h"
 #include "services/loader/loader.h"
 #include "ui/toolbar.h"

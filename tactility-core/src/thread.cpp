@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "check.h"
+#include "Check.h"
 #include "CoreDefines.h"
 #include "kernel.h"
 #include "log.h"

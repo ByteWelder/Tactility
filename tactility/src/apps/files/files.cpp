@@ -4,7 +4,7 @@
 #include "apps/image_viewer/image_viewer.h"
 #include "apps/text_viewer/text_viewer.h"
 #include "assets.h"
-#include "check.h"
+#include "Check.h"
 #include "file_utils.h"
 #include "lvgl.h"
 #include "services/loader/loader.h"

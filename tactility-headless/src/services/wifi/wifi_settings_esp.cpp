@@ -7,7 +7,7 @@
 #include "nvs_flash.h"
 #include "log.h"
 #include "hash.h"
-#include "check.h"
+#include "Check.h"
 #include "secure.h"
 
 #define TAG "wifi_settings"

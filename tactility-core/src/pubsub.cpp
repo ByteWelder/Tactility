@@ -1,5 +1,5 @@
 #include "pubsub.h"
-#include "check.h"
+#include "Check.h"
 #include "Mutex.h"
 #include <list>
 

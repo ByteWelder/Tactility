@@ -1,4 +1,4 @@
-#include "check.h"
+#include "Check.h"
 
 #include "CoreDefines.h"
 #include "log.h"

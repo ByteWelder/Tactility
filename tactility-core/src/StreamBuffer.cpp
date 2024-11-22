@@ -1,6 +1,6 @@
 #include "StreamBuffer.h"
 
-#include "check.h"
+#include "Check.h"
 #include "CoreDefines.h"
 #include "CoreTypes.h"
 

@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "check.h"
+#include "Check.h"
 #include "CoreDefines.h"
 #include "CoreExtraDefines.h"
 #include "CoreTypes.h"

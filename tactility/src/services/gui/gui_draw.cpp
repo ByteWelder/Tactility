@@ -1,4 +1,4 @@
-#include "check.h"
+#include "Check.h"
 #include "gui_i.h"
 #include "log.h"
 #include "ui/lvgl_sync.h"

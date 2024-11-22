@@ -1,6 +1,6 @@
 #include "secure.h"
 
-#include "check.h"
+#include "Check.h"
 #include "log.h"
 #include "mbedtls/aes.h"
 #include <cstring>
