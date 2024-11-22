@@ -3,9 +3,9 @@
 #include "App.h"
 #include "TactilityCore.h"
 #include "WifiConnectStateUpdating.h"
-#include "services/Loader/Loader.h"
-#include "services/Wifi/Wifi.h"
-#include "ui/lvgl_sync.h"
+#include "Services/Loader/Loader.h"
+#include "Services/Wifi/Wifi.h"
+#include "Ui/LvglSync.h"
 
 namespace tt::app::wifi_connect {
 

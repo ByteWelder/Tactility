@@ -1,10 +1,10 @@
 #include "Mutex.h"
 #include "Thread.h"
-#include "services/Loader/Loader.h"
-#include "ui/toolbar.h"
+#include "Services/Loader/Loader.h"
+#include "Ui/Toolbar.h"
 
 #include "GpioHal.h"
-#include "ui/lvgl_sync.h"
+#include "Ui/LvglSync.h"
 
 namespace tt::app::gpio {
 

@@ -4,8 +4,8 @@
 #include "Mutex.h"
 #include "Pubsub.h"
 #include "TactilityCore.h"
-#include "ui/spacer.h"
-#include "ui/style.h"
+#include "Ui/Spacer.h"
+#include "Ui/Style.h"
 
 #include "LvglSync.h"
 #include "lvgl.h"

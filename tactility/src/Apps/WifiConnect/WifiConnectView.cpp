@@ -6,10 +6,10 @@
 #include "WifiConnectState.h"
 #include "WifiConnectStateUpdating.h"
 #include "lvgl.h"
-#include "services/Gui/Gui.h"
-#include "services/Wifi/WifiSettings.h"
-#include "ui/style.h"
-#include "ui/toolbar.h"
+#include "Services/Gui/Gui.h"
+#include "Services/Wifi/WifiSettings.h"
+#include "Ui/Style.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::wifi_connect {
 

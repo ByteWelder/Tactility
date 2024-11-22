@@ -1,5 +1,4 @@
 #include "ScreenshotUi.h"
-#include "ui/toolbar.h"
 
 namespace tt::app::screenshot {
 

@@ -1,9 +1,9 @@
 #include "Check.h"
 #include "Gui_i.h"
 #include "Log.h"
-#include "ui/lvgl_sync.h"
-#include "ui/statusbar.h"
-#include "ui/style.h"
+#include "Ui/LvglSync.h"
+#include "Ui/Statusbar.h"
+#include "Ui/Style.h"
 
 namespace tt::service::gui {
 

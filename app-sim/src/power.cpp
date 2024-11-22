@@ -1,4 +1,4 @@
-#include "hal/Power.h"
+#include "Hal/Power.h"
 
 static bool is_charging_enabled = false;
 

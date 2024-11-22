@@ -2,7 +2,7 @@
 
 #include "display_i.h"
 #include "touch_i.h"
-#include "ui/lvgl_sync.h"
+#include "Ui/LvglSync.h"
 
 bool ws3t_init_lvgl() {
     tt::lvgl::sync_set(&ws3t_display_lock, &ws3t_display_unlock);

@@ -3,7 +3,7 @@
 #include "DisplayPreferences.h"
 #include "Tactility.h"
 #include "lvgl.h"
-#include "ui/toolbar.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::settings::display {
 

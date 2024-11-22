@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AppManifest.h"
-#include "hal/Configuration.h"
+#include "Hal/Configuration.h"
 #include "ServiceManifest.h"
 #include "TactilityConfig.h"
 

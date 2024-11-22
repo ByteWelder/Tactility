@@ -2,8 +2,8 @@
 #include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"
-#include "services/Loader/Loader.h"
-#include "ui/toolbar.h"
+#include "Services/Loader/Loader.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::settings {
 

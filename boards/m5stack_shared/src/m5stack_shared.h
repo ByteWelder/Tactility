@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hal/Power.h"
-#include "hal/Sdcard.h"
+#include "Hal/Power.h"
+#include "Hal/Sdcard.h"
 
 extern bool m5stack_lvgl_init();
 extern bool m5stack_bootstrap();

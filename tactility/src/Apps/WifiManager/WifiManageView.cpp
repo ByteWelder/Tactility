@@ -2,10 +2,10 @@
 
 #include "Log.h"
 #include "WifiManageState.h"
-#include "services/Statusbar/Statusbar.h"
-#include "services/Wifi/Wifi.h"
-#include "ui/style.h"
-#include "ui/toolbar.h"
+#include "Services/Statusbar/Statusbar.h"
+#include "Services/Wifi/Wifi.h"
+#include "Ui/Style.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::wifi_manage {
 

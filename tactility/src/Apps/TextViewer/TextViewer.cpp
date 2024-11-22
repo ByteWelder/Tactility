@@ -1,9 +1,9 @@
 #include "Log.h"
 #include "TextViewer.h"
 #include "lvgl.h"
-#include "ui/label_utils.h"
-#include "ui/style.h"
-#include "ui/toolbar.h"
+#include "Ui/LabelUtils.h"
+#include "Ui/Style.h"
+#include "Ui/Toolbar.h"
 
 #define TAG "text_viewer"
 

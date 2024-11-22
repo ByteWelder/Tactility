@@ -5,11 +5,11 @@
 #include "Check.h"
 #include "FileUtils.h"
 #include "StringUtils.h"
-#include "apps/ImageViewer/ImageViewer.h"
-#include "apps/TextViewer/TextViewer.h"
+#include "Apps/ImageViewer/ImageViewer.h"
+#include "Apps/TextViewer/TextViewer.h"
 #include "lvgl.h"
-#include "services/Loader/Loader.h"
-#include "ui/toolbar.h"
+#include "Services/Loader/Loader.h"
+#include "Ui/Toolbar.h"
 #include <dirent.h>
 #include <unistd.h>
 

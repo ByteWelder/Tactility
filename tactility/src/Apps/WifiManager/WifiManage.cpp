@@ -1,11 +1,11 @@
 #include "WifiManage.h"
 
 #include "App.h"
-#include "apps/WifiConnect/WifiConnectBundle.h"
+#include "Apps/WifiConnect/WifiConnectBundle.h"
 #include "TactilityCore.h"
-#include "services/Loader/Loader.h"
-#include "services/Wifi/WifiSettings.h"
-#include "ui/lvgl_sync.h"
+#include "Services/Loader/Loader.h"
+#include "Services/Wifi/WifiSettings.h"
+#include "Ui/LvglSync.h"
 #include "WifiManageStateUpdating.h"
 #include "WifiManageView.h"
 

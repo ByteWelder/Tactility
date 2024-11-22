@@ -1,8 +1,8 @@
 #include "ImageViewer.h"
 #include "Log.h"
 #include "lvgl.h"
-#include "ui/style.h"
-#include "ui/toolbar.h"
+#include "Ui/Style.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::image_viewer {
 

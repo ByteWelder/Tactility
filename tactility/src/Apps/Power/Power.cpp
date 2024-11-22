@@ -3,9 +3,9 @@
 #include "lvgl.h"
 #include "Tactility.h"
 #include "Timer.h"
-#include "ui/lvgl_sync.h"
-#include "ui/style.h"
-#include "ui/toolbar.h"
+#include "Ui/LvglSync.h"
+#include "Ui/Style.h"
+#include "Ui/Toolbar.h"
 
 namespace tt::app::settings::power {
 

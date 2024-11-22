@@ -1,6 +1,6 @@
 #include "TactilityHeadless.h"
-#include "hal/Configuration.h"
-#include "hal/Hal_i.h"
+#include "Hal/Configuration.h"
+#include "Hal/Hal_i.h"
 #include "ServiceManifest.h"
 #include "ServiceRegistry.h"
 

@@ -1,4 +1,4 @@
-#include "hal/Configuration.h"
+#include "Hal/Configuration.h"
 #include "lvgl_task.h"
 #include "src/lv_init.h"
 

@@ -2,7 +2,7 @@
 
 #include "Check.h"
 #include "ViewPort_i.h"
-#include "ui/style.h"
+#include "Ui/Style.h"
 
 namespace tt::service::gui {
 

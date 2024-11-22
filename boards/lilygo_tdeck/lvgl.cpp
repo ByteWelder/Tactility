@@ -3,7 +3,7 @@
 #include "esp_lvgl_port.h"
 #include "keyboard.h"
 #include "Log.h"
-#include "ui/lvgl_sync.h"
+#include "Ui/LvglSync.h"
 #include "Thread.h"
 
 #define TAG "tdeck_lvgl"

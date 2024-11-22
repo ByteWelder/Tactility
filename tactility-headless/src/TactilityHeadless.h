@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/Configuration.h"
+#include "Hal/Configuration.h"
 #include "TactilityHeadlessConfig.h"
 
 namespace tt {

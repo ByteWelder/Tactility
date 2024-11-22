@@ -1,4 +1,4 @@
-#include "hal/Power.h"
+#include "Hal/Power.h"
 #include "M5Unified.hpp"
 
 /**

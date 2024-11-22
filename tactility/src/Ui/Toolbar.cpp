@@ -1,9 +1,9 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 #include "Toolbar.h"
 
-#include "services/Loader/Loader.h"
-#include "ui/spacer.h"
-#include "ui/style.h"
+#include "Services/Loader/Loader.h"
+#include "Ui/Spacer.h"
+#include "Ui/Style.h"
 
 namespace tt::lvgl {
 

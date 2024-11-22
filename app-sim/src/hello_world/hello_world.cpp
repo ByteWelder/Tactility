@@ -1,4 +1,4 @@
-#include "ui/toolbar.h"
+#include "Ui/Toolbar.h"
 
 static void app_show(tt::App app, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt::lvgl::toolbar_create_for_app(parent, app);

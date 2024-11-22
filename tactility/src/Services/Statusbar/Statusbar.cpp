@@ -1,11 +1,11 @@
 #include "Assets.h"
-#include "hal/Power.h"
-#include "hal/Sdcard.h"
+#include "Hal/Power.h"
+#include "Hal/Sdcard.h"
 #include "Mutex.h"
 #include "Service.h"
-#include "services/Wifi/Wifi.h"
+#include "Services/Wifi/Wifi.h"
 #include "Tactility.h"
-#include "ui/statusbar.h"
+#include "Ui/Statusbar.h"
 
 namespace tt::service::statusbar {
 
