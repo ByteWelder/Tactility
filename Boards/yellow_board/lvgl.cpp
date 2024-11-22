@@ -1,7 +1,7 @@
 #include "esp_lvgl_port.h"
 #include "Log.h"
 #include "Ui/LvglSync.h"
-#include "Thread.h
+#include "Thread.h"
 
 #define TAG "twodotfour_lvgl"
 

@@ -18,14 +18,14 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(COMPONENTS AppEsp32)
     set(EXTRA_COMPONENT_DIRS
-        "boards"
+        "Boards"
         "AppEsp32"
         "Tactility"
         "TactilityHeadless"
-        "libs/esp_lvgl_port"
-        "libs/lvgl"
-        "libs/M5Unified"
-        "libs/M5GFX"
+        "Libraries/esp_lvgl_port"
+        "Libraries/lvgl"
+        "Libraries/M5Unified"
+        "Libraries/M5GFX"
     )
 
     # ESP32 boards
@@ -54,20 +54,20 @@ endif()
 
 add_subdirectory(TactilityCore)
 
-add_subdirectory(libs/lv_screenshot)
+add_subdirectory(Libraries/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/AppSim/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
-    add_subdirectory(libs/FreeRTOS-Kernel)
+    add_subdirectory(Libraries/FreeRTOS-Kernel)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC AppSim/Source # for FreeRTOSConfig.h
     )
 
     # EmbedTLS
-    add_subdirectory(libs/mbedtls)
+    add_subdirectory(Libraries/mbedtls)
 
     # Sim app
     if (NOT DEFINED ENV{SKIP_SDL})
@@ -79,7 +79,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
 
     # SDL & LVGL
     set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/AppSim/Source/lv_conf.h)
-    add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
+    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     target_include_directories(lvgl
         PUBLIC AppSim/Source # for lv_conf.h and lv_drv_conf.h
     )

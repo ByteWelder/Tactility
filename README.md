@@ -3,21 +3,21 @@
 Tactility is a front-end application platform for ESP32. It is mainly intended for touchscreen devices.
 It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
 
-![photo of devices running Tactility](docs/pics/tactility-devices.webp)
+![photo of devices running Tactility](Documentation/pics/tactility-devices.webp)
 
 **Status: Alpha**
 
 A modern desktop with built-in apps:
 
-![screenshot of desktop app](docs/pics/screenshot-desktop.png) ![screenshot of settings app](docs/pics/screenshot-settings.png)
+![screenshot of desktop app](Documentation/pics/screenshot-desktop.png) ![screenshot of settings app](Documentation/pics/screenshot-settings.png)
 
 Configure your Wi-Fi without having to hard-code credentials:
 
-![screenshot of wifi management app](docs/pics/screenshot-wifi_manage.png) ![screenshot of wifi app to connect to wifi](docs/pics/screenshot-wifi_connect.png)
+![screenshot of wifi management app](Documentation/pics/screenshot-wifi_manage.png) ![screenshot of wifi app to connect to wifi](Documentation/pics/screenshot-wifi_connect.png)
 
 And much more!
 
-![screenshot of GPIO app](docs/pics/screenshot-gpio.png) ![screenshot of files app](docs/pics/screenshot-files.png)
+![screenshot of GPIO app](Documentation/pics/screenshot-gpio.png) ![screenshot of files app](Documentation/pics/screenshot-files.png)
 
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
@@ -35,16 +35,16 @@ Requirements:
 ## Making apps is easy!
 
 The app manifest provides basic information like the application name.
-It also describes the [app lifecycle](docs/app-lifecycle.md):
+It also describes the [app lifecycle](Documentation/app-lifecycle.md):
 It tells Tactility which functions need to be called when the app is started/shown/etc.
 
-UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widgets](https://docs.lvgl.io/8.3/widgets/index.html)!
-Creating a touch-capable UI is [easy](https://docs.lvgl.io/8.3/get-started/quick-overview.html) and doesn't require your own render loop!
+UI is created with [lvgl](https://github.com/lvgl/lvgl) which has lots of [widgets](https://docs.lvgl.io/9.0/widgets/index.html)!
+Creating a touch-capable UI is [easy](https://docs.lvgl.io/9.0/get-started/quick-overview.html) and doesn't require your own render loop!
 
 ```C++
 static void app_show(App app, lv_obj_t* parent) {
     // Default toolbar with app name and close button
-    lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
+    lv_obj_t* toolbar = tt::toolbar_create_for_app(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
     
     // Label widget
@@ -54,19 +54,19 @@ static void app_show(App app, lv_obj_t* parent) {
     // Widgets are auto-removed from the parent when the app is closed
 }
 
-extern const AppManifest hello_world_app = {
-    .id = "helloworld",    // Used to identify and start an app
+extern const AppManifest manifest = {
+    .id = "HelloWorld",    // Used to identify and start an app
     .name = "Hello World", // Shown on the desktop and app's toolbar
     .icon = NULL,
     .type = AppTypeUser,
-    .on_start = NULL,
-    .on_stop = NULL,
+    .on_start = nullptr,
+    .on_stop = nullptr,
     .on_show = &app_show,  // A minimal setup sets the on_show() function
-    .on_hide = NULL
+    .on_hide = nullptr
 };
 ```
 
-![hello world app screenshot](docs/pics/screenshot-helloworld.png)
+![hello world app screenshot](Documentation/pics/screenshot-helloworld.png)
 
 ## Supported Hardware
 
@@ -108,7 +108,7 @@ git clone --recurse-submodules -j8 https://github.com/ByteWelder/Tactility.git
 
 ### Build environment setup
 
-Ensure you have [esp-idf 5.2](https://docs.espressif.com/projects/esp-idf/en/v5.2/esp32/get-started/index.html) installed, then select the correct device:
+Ensure you have [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) installed, then select the correct device:
 
 Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
 
@@ -124,17 +124,17 @@ The build scripts will detect if ESP-IDF is available. They will adapter if you 
 
 ### Development
 
-Take a look at the [App Lifecycle](docs/app-lifecycle.md) or the [dependency diagram](docs/project-structure.puml) (this uses [PlantUML](https://plantuml.com)).
+Take a look at the [App Lifecycle](Documentation/app-lifecycle.md) or the [dependency diagram](Documentation/project-structure.puml) (this uses [PlantUML](https://plantuml.com)).
 
 Directories explained:
 
 - `AppEsp32`: The ESP32 application example
 - `AppSim`: The PC/simulator application example
-- `boards`: Contains ESP modules with drivers
+- `Boards`: Contains ESP modules with drivers
 - `Tactility`: The main application platform code ([src/](Tactility/Source))
 - `TactilityHeadless`: Service framework and default services.
 - `TactilityCore`: Core functionality regarding threads, stdlib, etc. ([src/](TactilityCore/Source))
-- `libs`: Contains a mix of regular libraries and ESP modules
+- `Libraries`: Contains a mix of regular libraries and ESP modules
 
 Until there is proper documentation, here are some pointers:
 
