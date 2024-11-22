@@ -2,7 +2,7 @@
 
 #include "App.h"
 #include "ServiceManifest.h"
-#include "view_port.h"
+#include "ViewPort.h"
 
 namespace tt::service::gui {
 

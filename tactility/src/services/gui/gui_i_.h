@@ -1,11 +1,11 @@
 #pragma once
 
-#include "gui.h"
 #include "MessageQueue.h"
 #include "Mutex.h"
 #include "Pubsub.h"
-#include "view_port.h"
-#include "view_port_i.h"
+#include "ViewPort.h"
+#include "ViewPort_i.h"
+#include "gui_.h"
 #include <cstdio>
 
 namespace tt::service::gui {
