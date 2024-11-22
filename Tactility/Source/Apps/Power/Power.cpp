@@ -56,7 +56,7 @@ static void on_power_enabled_change(lv_event_t* event) {
 static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lvgl::toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create(parent, app);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
