@@ -8,7 +8,7 @@
 #include "apps/text_viewer/text_viewer.h"
 #include "file_utils.h"
 #include "lvgl.h"
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 #include "ui/toolbar.h"
 #include <dirent.h>
 #include <unistd.h>

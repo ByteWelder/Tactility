@@ -1,7 +1,7 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 #include "toolbar.h"
 
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 #include "ui/spacer.h"
 #include "ui/style.h"
 

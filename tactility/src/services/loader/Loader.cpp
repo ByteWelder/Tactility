@@ -2,8 +2,8 @@
 #include "AppManifest.h"
 #include "AppManifestRegistry.h"
 #include "App_i.h"
+#include "Loader_i.h"
 #include "ServiceManifest.h"
-#include "loader_i_.h"
 #include "services/gui/Gui.h"
 
 #ifdef ESP_PLATFORM

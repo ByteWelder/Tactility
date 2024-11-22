@@ -4,7 +4,7 @@
 #include "LvglInit_i.h"
 #include "ServiceRegistry.h"
 #include "TactilityHeadless.h"
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 
 namespace tt {
 

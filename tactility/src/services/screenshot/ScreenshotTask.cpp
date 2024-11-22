@@ -1,11 +1,11 @@
-#include "screenshot_task.h"
+#include "ScreenshotTask.h"
 #include "lv_screenshot.h"
 
 #include "App.h"
 #include "Mutex.h"
 #include "TactilityCore.h"
 #include "Thread.h"
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 #include "ui/lvgl_sync.h"
 
 namespace tt::service::screenshot {

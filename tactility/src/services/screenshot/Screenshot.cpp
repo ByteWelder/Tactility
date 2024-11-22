@@ -1,8 +1,8 @@
-#include "screenshot_.h"
+#include "Screenshot.h"
 #include <cstdlib>
 
 #include "Mutex.h"
-#include "screenshot_task.h"
+#include "ScreenshotTask.h"
 #include "Service.h"
 #include "ServiceRegistry.h"
 #include "TactilityCore.h"

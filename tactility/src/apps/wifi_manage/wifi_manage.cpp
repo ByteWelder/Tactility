@@ -3,7 +3,7 @@
 #include "App.h"
 #include "TactilityCore.h"
 #include "apps/wifi_connect/wifi_connect_bundle.h"
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 #include "services/wifi/WifiSettings.h"
 #include "ui/lvgl_sync.h"
 #include "wifi_manage_state_updating.h"

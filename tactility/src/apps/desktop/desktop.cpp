@@ -2,7 +2,7 @@
 #include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"
-#include "services/loader/loader_.h"
+#include "services/loader/Loader.h"
 
 namespace tt::app::desktop {
 

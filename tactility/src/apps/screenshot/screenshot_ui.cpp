@@ -3,7 +3,7 @@
 #include "TactilityCore.h"
 #include "hal/Sdcard.h"
 #include "services/gui/Gui.h"
-#include "services/screenshot/screenshot_.h"
+#include "services/screenshot/Screenshot.h"
 #include "ui/toolbar.h"
 
 namespace tt::app::screenshot {
