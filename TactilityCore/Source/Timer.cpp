@@ -1,148 +1,89 @@
 #include "Timer.h"
 #include "Check.h"
 #include "Kernel.h"
-#include <cstdlib>
-
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/timers.h"
-#else
-#include "FreeRTOS.h"
-#include "timers.h"
-#endif
 
 namespace tt {
 
-typedef struct {
-    TimerCallback func;
-    void* context;
-} TimerCallback_t;
-
 static void timer_callback(TimerHandle_t hTimer) {
-    auto* callback = static_cast<TimerCallback_t*>(pvTimerGetTimerID(hTimer));
+    auto* timer = static_cast<Timer*>(pvTimerGetTimerID(hTimer));
 
-    if (callback != nullptr) {
-        callback->func(callback->context);
+    if (timer != nullptr) {
+        timer->callback(timer->callbackContext);
     }
 }
 
-Timer* timer_alloc(TimerCallback func, TimerType type, void* context) {
-    tt_assert((kernel_is_irq() == 0U) && (func != nullptr));
-    auto* callback = static_cast<TimerCallback_t*>(malloc(sizeof(TimerCallback_t)));
+Timer::Timer(Type type, Callback callback, void* callbackContext) {
+    tt_assert((kernel_is_irq() == 0U) && (callback != nullptr));
 
-    callback->func = func;
-    callback->context = context;
+    this->callback = callback;
+    this->callbackContext = callbackContext;
 
     UBaseType_t reload;
-    if (type == TimerTypeOnce) {
+    if (type == TypeOnce) {
         reload = pdFALSE;
     } else {
         reload = pdTRUE;
     }
 
-    // TimerCallback function is always provided as a callback and is used to call application
-    // specified function with its context both stored in structure callb.
-    // TODO: should we use pointer to function or function directly as-is?
-    TimerHandle_t hTimer = xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, callback, timer_callback);
-    tt_assert(hTimer);
-
-    /* Return timer ID */
-    return (Timer*)hTimer;
+    this->timerHandle = xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, this, timer_callback);
+    tt_assert(this->timerHandle);
 }
 
-void timer_free(Timer* instance) {
+Timer::~Timer() {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
-
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-    auto* callback = static_cast<TimerCallback_t*>(pvTimerGetTimerID(hTimer));
-
-    tt_check(xTimerDelete(hTimer, portMAX_DELAY) == pdPASS);
-
-    while (timer_is_running(instance)) delay_tick(2);
-
-    /* Return allocated memory to dynamic pool */
-    free(callback);
+    tt_check(xTimerDelete(timerHandle, portMAX_DELAY) == pdPASS);
 }
 
-TtStatus timer_start(Timer* instance, uint32_t ticks) {
+TtStatus Timer::start(uint32_t ticks) {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-    TtStatus stat;
-
-    if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS) {
-        stat = TtStatusOk;
+    if (xTimerChangePeriod(timerHandle, ticks, portMAX_DELAY) == pdPASS) {
+        return TtStatusOk;
     } else {
-        stat = TtStatusErrorResource;
+        return TtStatusErrorResource;
     }
-
-    /* Return execution status */
-    return (stat);
 }
 
-TtStatus timer_restart(Timer* instance, uint32_t ticks) {
+TtStatus Timer::restart(uint32_t ticks) {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-    TtStatus stat;
-
-    if (xTimerChangePeriod(hTimer, ticks, portMAX_DELAY) == pdPASS &&
-        xTimerReset(hTimer, portMAX_DELAY) == pdPASS) {
-        stat = TtStatusOk;
+    if (xTimerChangePeriod(timerHandle, ticks, portMAX_DELAY) == pdPASS &&
+        xTimerReset(timerHandle, portMAX_DELAY) == pdPASS) {
+        return TtStatusOk;
     } else {
-        stat = TtStatusErrorResource;
+        return TtStatusErrorResource;
     }
-
-    /* Return execution status */
-    return (stat);
 }
 
-TtStatus timer_stop(Timer* instance) {
+TtStatus Timer::stop() {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
-
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-
-    tt_check(xTimerStop(hTimer, portMAX_DELAY) == pdPASS);
-
+    tt_check(xTimerStop(timerHandle, portMAX_DELAY) == pdPASS);
     return TtStatusOk;
 }
 
-uint32_t timer_is_running(Timer* instance) {
+bool Timer::isRunning() {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
-
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-
-    /* Return 0: not running, 1: running */
-    return (uint32_t)xTimerIsTimerActive(hTimer);
+    return xTimerIsTimerActive(timerHandle) == pdTRUE;
 }
 
-uint32_t timer_get_expire_time(Timer* instance) {
+uint32_t Timer::getExpireTime() {
     tt_assert(!kernel_is_irq());
-    tt_assert(instance);
-
-    auto hTimer = static_cast<TimerHandle_t>(instance);
-
-    return (uint32_t)xTimerGetExpiryTime(hTimer);
+    return (uint32_t)xTimerGetExpiryTime(timerHandle);
 }
 
-void timer_pending_callback(TimerPendigCallback callback, void* context, uint32_t arg) {
+void Timer::pendingCallback(PendigCallback callback, void* callbackContext, uint32_t arg) {
     BaseType_t ret = pdFAIL;
     if (kernel_is_irq()) {
-        ret = xTimerPendFunctionCallFromISR(callback, context, arg, nullptr);
+        ret = xTimerPendFunctionCallFromISR(callback, callbackContext, arg, nullptr);
     } else {
-        ret = xTimerPendFunctionCall(callback, context, arg, TtWaitForever);
+        ret = xTimerPendFunctionCall(callback, callbackContext, arg, TtWaitForever);
     }
     tt_assert(ret == pdPASS);
 }
 
-void timer_set_thread_priority(TimerThreadPriority priority) {
+void Timer::setThreadPriority(TimerThreadPriority priority)  {
     tt_assert(!kernel_is_irq());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();

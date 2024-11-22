@@ -126,13 +126,13 @@ static int32_t screenshot_task(void* context) {
 static void task_start(ScreenshotTaskData* data) {
     task_lock(data);
     tt_check(data->thread == NULL);
-    data->thread = thread_alloc_ex(
+    data->thread = new Thread(
         "screenshot",
         8192,
         &screenshot_task,
         data
     );
-    thread_start(data->thread);
+    data->thread->start();
     task_unlock(data);
 }
 
@@ -175,10 +175,10 @@ void task_stop(ScreenshotTask* task) {
         data->interrupted = true;
         task_unlock(data);
 
-        thread_join(data->thread);
+        data->thread->join();
 
         task_lock(data);
-        thread_free(data->thread);
+        delete data->thread;
         data->thread = nullptr;
         task_unlock(data);
     }

@@ -12,7 +12,7 @@ bool m5stack_lvgl_init() {
     static lv_display_t* display = nullptr;
 
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = tt::ThreadPriorityHigh,
+        .task_priority = tt::Thread::PriorityHigh,
         .task_stack = 8096,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,

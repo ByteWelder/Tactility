@@ -16,24 +16,25 @@ static void timer_callback_with_counter(void* context) {
 
 TEST_CASE("a timer passes the context correctly") {
     int foo = 1;
-    auto* timer = timer_alloc(&timer_callback_with_context, TimerTypeOnce, &foo);
-    timer_start(timer, 1);
+    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_context, &foo);
+    timer->start(1);
     delay_tick(10);
-    timer_stop(timer);
-    timer_free(timer);
+    timer->stop();
+    delete timer;
 
     CHECK_EQ(timer_callback_context, &foo);
 }
 
 TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
     int counter = 0;
-    auto* timer = timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
-    timer_start(timer, 1);
+    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, &counter);
+    timer->start(1);
     delay_tick(10);
-    timer_stop(timer);
+    timer->stop();
+    timer->start(1);
     delay_tick(10);
-    timer_stop(timer);
-    timer_free(timer);
+    timer->stop();
+    delete timer;
 
     CHECK_GE(counter, 2);
 }
@@ -41,24 +42,25 @@ TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
 TEST_CASE("TimerTypePeriodic calls the callback periodically") {
     int counter = 0;
     int ticks_to_run = 10;
-    auto* timer = timer_alloc(&timer_callback_with_counter, TimerTypePeriodic, &counter);
-    timer_start(timer, 1);
+    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, &counter);
+    timer->start(1);
     delay_tick(ticks_to_run);
-    timer_stop(timer);
-    timer_free(timer);
+    timer->stop();
+    delete timer;
 
     CHECK_EQ(counter, ticks_to_run);
 }
 
-TEST_CASE("restarting TimerTypeOnce timers has no effect") {
+TEST_CASE("restarting TimerTypeOnce timers calls the callback again") {
     int counter = 0;
-    auto* timer = timer_alloc(&timer_callback_with_counter, TimerTypeOnce, &counter);
-    timer_start(timer, 1);
+    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_counter, &counter);
+    timer->start(1);
     delay_tick(10);
-    timer_stop(timer);
+    timer->stop();
+    timer->start(1);
     delay_tick(10);
-    timer_stop(timer);
-    timer_free(timer);
+    timer->stop();
+    delete timer;
 
-    CHECK_EQ(counter, 1);
+    CHECK_EQ(counter, 2);
 }

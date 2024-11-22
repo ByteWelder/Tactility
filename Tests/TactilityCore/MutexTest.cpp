@@ -14,23 +14,23 @@ TEST_CASE("a mutex can block a thread") {
     auto* mutex = tt_mutex_alloc(MutexTypeNormal);
     tt_mutex_acquire(mutex, TtWaitForever);
 
-    Thread* thread = thread_alloc_ex(
+    Thread* thread = new Thread(
         "thread",
         1024,
         &thread_with_mutex_parameter,
         mutex
     );
-    thread_start(thread);
+    thread->start();
 
     delay_ms(5);
-    CHECK_EQ(thread_get_state(thread), ThreadStateRunning);
+    CHECK_EQ(thread->getState(), Thread::StateRunning);
 
     tt_mutex_release(mutex);
 
     delay_ms(5);
-    CHECK_EQ(thread_get_state(thread), ThreadStateStopped);
+    CHECK_EQ(thread->getState(), Thread::StateStopped);
 
-    thread_join(thread);
-    thread_free(thread);
+    thread->join();
+    delete thread;
     tt_mutex_free(mutex);
 }

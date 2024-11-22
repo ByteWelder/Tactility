@@ -90,14 +90,14 @@ static int32_t gpio_task(void* context) {
 static void task_start(Gpio* gpio) {
     tt_assert(gpio->thread == nullptr);
     lock(gpio);
-    gpio->thread = thread_alloc_ex(
+    gpio->thread = new Thread(
         "gpio",
         4096,
         &gpio_task,
         gpio
     );
     gpio->thread_interrupted = false;
-    thread_start(gpio->thread);
+    gpio->thread->start();
     unlock(gpio);
 }
 
@@ -107,10 +107,10 @@ static void task_stop(Gpio* gpio) {
     gpio->thread_interrupted = true;
     unlock(gpio);
 
-    thread_join(gpio->thread);
+    gpio->thread->join();
 
     lock(gpio);
-    thread_free(gpio->thread);
+    delete gpio->thread;
     gpio->thread = nullptr;
     unlock(gpio);
 }

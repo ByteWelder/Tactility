@@ -2,101 +2,109 @@
 
 #include "CoreTypes.h"
 
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "freertos/timers.h"
+#else
+#include "FreeRTOS.h"
+#include "timers.h"
+#endif
+
 namespace tt {
 
-typedef void (*TimerCallback)(void* context);
 
-typedef enum {
-    TimerTypeOnce = 0,    ///< One-shot timer.
-    TimerTypePeriodic = 1 ///< Repeating timer.
-} TimerType;
+class Timer {
+private:
+    TimerHandle_t timerHandle;
+public:
 
-typedef void Timer;
+    typedef void (*Callback)(void* context);
+    typedef void (*PendigCallback)(void* context, uint32_t arg);
 
-/** Allocate timer
- *
- * @param[in]  func     The callback function
- * @param[in]  type     The timer type
- * @param      context  The callback context
- *
- * @return     The pointer to Timer instance
- */
-Timer* timer_alloc(TimerCallback func, TimerType type, void* context);
 
-/** Free timer
- *
- * @param      instance  The pointer to Timer instance
- */
-void timer_free(Timer* instance);
+    Callback callback;
+    void* callbackContext;
 
-/** Start timer
- *
- * @warning    This is asynchronous call, real operation will happen as soon as
- *             timer service process this request.
- *
- * @param      instance  The pointer to Timer instance
- * @param[in]  ticks     The interval in ticks
- *
- * @return     The status.
- */
-TtStatus timer_start(Timer* instance, uint32_t ticks);
+    typedef enum {
+        TypeOnce = 0,    ///< One-shot timer.
+        TypePeriodic = 1 ///< Repeating timer.
+    } Type;
 
-/** Restart timer with previous timeout value
- *
- * @warning    This is asynchronous call, real operation will happen as soon as
- *             timer service process this request.
- *
- * @param      instance  The pointer to Timer instance
- * @param[in]  ticks     The interval in ticks
- *
- * @return     The status.
- */
-TtStatus timer_restart(Timer* instance, uint32_t ticks);
+    /**
+     * @param[in] type The timer type
+     * @param[in] callback The callback function
+     * @param callbackContext The callback context
+     */
+    Timer(Type type, Callback callback, void* callbackContext);
 
-/** Stop timer
- *
- * @warning    This is asynchronous call, real operation will happen as soon as
- *             timer service process this request.
- *
- * @param      instance  The pointer to Timer instance
- *
- * @return     The status.
- */
-TtStatus timer_stop(Timer* instance);
+    ~Timer();
 
-/** Is timer running
- *
- * @warning    This cal may and will return obsolete timer state if timer
- *             commands are still in the queue. Please read FreeRTOS timer
- *             documentation first.
- *
- * @param      instance  The pointer to Timer instance
- *
- * @return     0: not running, 1: running
- */
-uint32_t timer_is_running(Timer* instance);
+    /** Start timer
+     *
+     * @warning This is asynchronous call, real operation will happen as soon as
+     *          timer service process this request.
+     *
+     * @param[in] ticks The interval in ticks
+     * @return The status.
+     */
+    TtStatus start(uint32_t ticks);
 
-/** Get timer expire time
- *
- * @param      instance  The Timer instance
- *
- * @return     expire tick
- */
-uint32_t timer_get_expire_time(Timer* instance);
+    /** Restart timer with previous timeout value
+     *
+     * @warning    This is asynchronous call, real operation will happen as soon as
+     *             timer service process this request.
+     *
+     * @param[in] ticks The interval in ticks
+     *
+     * @return The status.
+     */
+    TtStatus restart(uint32_t ticks);
 
-typedef void (*TimerPendigCallback)(void* context, uint32_t arg);
 
-void timer_pending_callback(TimerPendigCallback callback, void* context, uint32_t arg);
+    /** Stop timer
+     *
+     * @warning    This is asynchronous call, real operation will happen as soon as
+     *             timer service process this request.
+     *
+     * @return The status.
+     */
+    TtStatus stop();
 
-typedef enum {
-    TimerThreadPriorityNormal,   /**< Lower then other threads */
-    TimerThreadPriorityElevated, /**< Same as other threads */
-} TimerThreadPriority;
+    /** Is timer running
+     *
+     * @warning    This cal may and will return obsolete timer state if timer
+     *             commands are still in the queue. Please read FreeRTOS timer
+     *             documentation first.
+     *
+     * @return true when running
+     */
+    bool isRunning();
 
-/** Set Timer thread priority
- *
- * @param[in]  priority  The priority
- */
-void timer_set_thread_priority(TimerThreadPriority priority);
+    /** Get timer expire time
+     *
+     * @param instance The Timer instance
+     *
+     * @return expire tick
+     */
+    uint32_t getExpireTime();
+
+    void pendingCallback(PendigCallback callback, void* callbackContext, uint32_t arg);
+
+    typedef enum {
+        TimerThreadPriorityNormal,   /**< Lower then other threads */
+        TimerThreadPriorityElevated, /**< Same as other threads */
+    } TimerThreadPriority;
+
+    /** Set Timer thread priority
+     *
+     * @param[in] priority The priority
+     */
+    void setThreadPriority(TimerThreadPriority priority);
+};
+
+
+
+
+
 
 } // namespace

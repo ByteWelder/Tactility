@@ -31,7 +31,7 @@ static Loader* loader_alloc() {
     loader_singleton = new Loader();
     loader_singleton->pubsub_internal = tt_pubsub_alloc();
     loader_singleton->pubsub_external = tt_pubsub_alloc();
-    loader_singleton->thread = thread_alloc_ex(
+    loader_singleton->thread = new Thread(
         "loader",
         4096, // Last known minimum was 2400 for starting Hello World app
         &loader_main,
@@ -45,7 +45,7 @@ static Loader* loader_alloc() {
 
 static void loader_free() {
     tt_assert(loader_singleton != nullptr);
-    thread_free(loader_singleton->thread);
+    delete loader_singleton->thread;
     tt_pubsub_free(loader_singleton->pubsub_internal);
     tt_pubsub_free(loader_singleton->pubsub_external);
     tt_mutex_free(loader_singleton->mutex);
@@ -334,18 +334,21 @@ static void loader_start(TT_UNUSED Service& service) {
     tt_check(loader_singleton == nullptr);
     loader_singleton = loader_alloc();
 
-    thread_set_priority(loader_singleton->thread, THREAD_PRIORITY_SERVICE);
-    thread_start(loader_singleton->thread);
+    loader_singleton->thread->setPriority(THREAD_PRIORITY_SERVICE);
+    loader_singleton->thread->start();
 }
 
 static void loader_stop(TT_UNUSED Service& service) {
     tt_check(loader_singleton != nullptr);
 
     // Send stop signal to thread and wait for thread to finish
+    loader_lock();
     LoaderMessage message(LoaderMessageTypeServiceStop);
     loader_singleton->queue.put(&message, TtWaitForever);
-    thread_join(loader_singleton->thread);
-    thread_free(loader_singleton->thread);
+    loader_unlock();
+
+    loader_singleton->thread->join();
+    delete loader_singleton->thread;
 
     loader_free();
     loader_singleton = nullptr;

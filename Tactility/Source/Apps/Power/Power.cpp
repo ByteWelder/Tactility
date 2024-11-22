@@ -20,9 +20,8 @@ typedef struct {
     lv_obj_t* current;
 } AppData;
 
-static void app_update_ui(App app) {
-    auto* data = static_cast<AppData*>(tt_app_get_data(app));
-
+static void app_update_ui(void* callbackContext) {
+    auto* data = (AppData*)callbackContext;
     bool charging_enabled = data->power->is_charging_enabled();
     const char* charge_state = data->power->is_charging() ? "yes" : "no";
     uint8_t charge_level = data->power->get_charge_level();
@@ -46,11 +45,10 @@ static void on_power_enabled_change(lv_event_t* event) {
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        App app = lv_event_get_user_data(event);
-        auto* data = static_cast<AppData*>(tt_app_get_data(app));
+        auto* data = static_cast<AppData*>(lv_event_get_user_data(event));
         if (data->power->is_charging_enabled() != is_on) {
             data->power->set_charging_enabled(is_on);
-            app_update_ui(app);
+            app_update_ui(data);
         }
     }
 }
@@ -80,7 +78,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
     lv_obj_t* enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, app);
+    lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, data);
     lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
     data->enable_switch = enable_switch;
@@ -88,27 +86,27 @@ static void app_show(App app, lv_obj_t* parent) {
     data->charge_level = lv_label_create(wrapper);
     data->current = lv_label_create(wrapper);
 
-    app_update_ui(app);
-    timer_start(data->update_timer, ms_to_ticks(1000));
+    app_update_ui(data);
+    data->update_timer->start(ms_to_ticks(1000));
 }
 
 static void app_hide(TT_UNUSED App app) {
     auto* data = static_cast<AppData*>(tt_app_get_data(app));
-    timer_stop(data->update_timer);
+    data->update_timer->stop();
 }
 
 static void app_start(App app) {
-    auto* data = static_cast<AppData*>(malloc(sizeof(AppData)));
-    tt_app_set_data(app, data);
-    data->update_timer = timer_alloc(&app_update_ui, TimerTypePeriodic, app);
+    auto* data = new AppData();
+    data->update_timer = new Timer(Timer::TypePeriodic, &app_update_ui, data);
     data->power = get_config()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
+    tt_app_set_data(app, data);
 }
 
 static void app_stop(App app) {
     auto* data = static_cast<AppData*>(tt_app_get_data(app));
-    timer_free(data->update_timer);
-    free(data);
+    delete data->update_timer;
+    delete data;
 }
 
 extern const AppManifest manifest = {

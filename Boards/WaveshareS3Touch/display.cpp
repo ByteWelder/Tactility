@@ -104,9 +104,9 @@ lv_disp_t* ws3t_display_create() {
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
     tt_assert(lvgl_mux);
 
-    tt::Thread* thread = tt::thread_alloc_ex("display_task", 8192, &display_task, nullptr);
-    tt::thread_set_priority(thread, tt::ThreadPriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
-    tt::thread_start(thread);
+    tt::Thread* thread = new tt::Thread("display_task", 8192, &display_task, nullptr);
+    thread->setPriority(tt::Thread::PriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
+    thread->start();
 
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_rgb_panel_config_t panel_config = {

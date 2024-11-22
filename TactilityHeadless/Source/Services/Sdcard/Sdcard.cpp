@@ -22,7 +22,7 @@ static ServiceData* service_data_alloc() {
     auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
     *data = (ServiceData) {
         .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .thread = thread_alloc_ex(
+        .thread = new Thread(
             "sdcard",
             3000, // Minimum is ~2800 @ ESP-IDF 5.1.2 when ejecting sdcard
             &sdcard_task,
@@ -31,13 +31,13 @@ static ServiceData* service_data_alloc() {
         .last_state = hal::sdcard::StateUnmounted,
         .interrupted = false
     };
-    thread_set_priority(data->thread, ThreadPriorityLow);
+    data->thread->setPriority(Thread::PriorityLow);
     return data;
 }
 
 static void service_data_free(ServiceData* data) {
     tt_mutex_free(data->mutex);
-    thread_free(data->thread);
+    delete data->thread;
 }
 
 static void service_data_lock(ServiceData* data) {
@@ -79,7 +79,7 @@ static void on_start(Service& service) {
     if (get_hardware_config()->sdcard != nullptr) {
         ServiceData* data = service_data_alloc();
         service.setData(data);
-        thread_start(data->thread);
+        data->thread->start();
     } else {
         TT_LOG_I(TAG, "task not started due to config");
     }
@@ -92,7 +92,7 @@ static void on_stop(Service& service) {
         data->interrupted = true;
         service_data_unlock(data);
 
-        thread_join(data->thread);
+        data->thread->join();
 
         service_data_free(data);
     }

@@ -37,7 +37,7 @@ Gui* gui_alloc() {
     auto* instance = static_cast<Gui*>(malloc(sizeof(Gui)));
     memset(instance, 0, sizeof(Gui));
     tt_check(instance != NULL);
-    instance->thread = thread_alloc_ex(
+    instance->thread = new Thread(
         "gui",
         4096, // Last known minimum was 2800 for launching desktop
         &gui_main,
@@ -56,7 +56,7 @@ Gui* gui_alloc() {
 
 void gui_free(Gui* instance) {
     tt_assert(instance != nullptr);
-    thread_free(instance->thread);
+    delete instance->thread;
     tt_mutex_free(instance->mutex);
 
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
@@ -80,7 +80,7 @@ void unlock() {
 
 void request_draw() {
     tt_assert(gui);
-    ThreadId thread_id = thread_get_id(gui->thread);
+    ThreadId thread_id = gui->thread->getId();
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
@@ -138,17 +138,17 @@ static int32_t gui_main(TT_UNUSED void* p) {
 static void start(TT_UNUSED Service& service) {
     gui = gui_alloc();
 
-    thread_set_priority(gui->thread, THREAD_PRIORITY_SERVICE);
-    thread_start(gui->thread);
+    gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
+    gui->thread->start();
 }
 
 static void stop(TT_UNUSED Service& service) {
     lock();
 
-    ThreadId thread_id = thread_get_id(gui->thread);
+    ThreadId thread_id = gui->thread->getId();
     thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
-    thread_join(gui->thread);
-    thread_free(gui->thread);
+    gui->thread->join();
+    delete gui->thread;
 
     unlock();
 
