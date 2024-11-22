@@ -1,11 +1,11 @@
-#include "tactility_headless.h"
+#include "TactilityHeadless.h"
 #include "hal/Configuration.h"
 #include "hal/Hal_i.h"
-#include "service_manifest.h"
-#include "service_registry.h"
+#include "ServiceManifest.h"
+#include "ServiceRegistry.h"
 
 #ifdef ESP_PLATFORM
-#include "esp_init.h"
+#include "EspInit.h"
 #endif
 
 namespace tt {

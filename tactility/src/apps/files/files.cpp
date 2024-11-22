@@ -3,7 +3,7 @@
 #include "app.h"
 #include "apps/image_viewer/image_viewer.h"
 #include "apps/text_viewer/text_viewer.h"
-#include "assets.h"
+#include "Assets.h"
 #include "Check.h"
 #include "file_utils.h"
 #include "lvgl.h"

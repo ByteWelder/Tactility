@@ -1,5 +1,5 @@
-#include "service.h"
-#include "service_manifest.h"
+#include "Service.h"
+#include "ServiceManifest.h"
 
 namespace tt {
 

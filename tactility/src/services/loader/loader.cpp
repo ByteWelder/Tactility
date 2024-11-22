@@ -3,7 +3,7 @@
 #include "app_manifest_registry.h"
 #include "loader_i.h"
 #include "ApiLock.h"
-#include "service_manifest.h"
+#include "ServiceManifest.h"
 #include "services/gui/gui.h"
 
 #ifdef ESP_PLATFORM

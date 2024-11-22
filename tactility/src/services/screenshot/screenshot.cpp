@@ -3,8 +3,8 @@
 
 #include "Mutex.h"
 #include "screenshot_task.h"
-#include "service.h"
-#include "service_registry.h"
+#include "Service.h"
+#include "ServiceRegistry.h"
 #include "TactilityCore.h"
 
 namespace tt::service::screenshot {

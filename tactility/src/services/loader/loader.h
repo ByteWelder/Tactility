@@ -3,7 +3,7 @@
 #include "app_manifest.h"
 #include "Bundle.h"
 #include "Pubsub.h"
-#include "service_manifest.h"
+#include "ServiceManifest.h"
 #include "TactilityCore.h"
 
 namespace tt::service::loader {

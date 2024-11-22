@@ -9,7 +9,7 @@
 #include "freertos/event_groups.h"
 #include "Log.h"
 #include "Pubsub.h"
-#include "service.h"
+#include "Service.h"
 #include "wifi_settings.h"
 #include <atomic>
 #include <cstring>

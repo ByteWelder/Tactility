@@ -1,7 +1,7 @@
 #pragma once
 
 #include "hal/Configuration.h"
-#include "tactility_headless_config.h"
+#include "TactilityHeadlessConfig.h"
 
 namespace tt {
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Mutex.h"
-#include "service_manifest.h"
+#include "ServiceManifest.h"
 
 namespace tt {
 

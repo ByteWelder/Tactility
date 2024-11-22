@@ -7,7 +7,7 @@
 #include "MessageQueue.h"
 #include "Mutex.h"
 #include "Pubsub.h"
-#include "service.h"
+#include "Service.h"
 #include <cstdlib>
 #include <cstring>
 

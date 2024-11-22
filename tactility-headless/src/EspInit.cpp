@@ -2,7 +2,7 @@
 
 #ifdef ESP_TARGET
 
-#include "esp_partitions.h"
+#include "EspPartitions.h"
 
 #include "esp_event.h"
 #include "esp_netif.h"

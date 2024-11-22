@@ -1,5 +1,5 @@
 #include "app_manifest_registry.h"
-#include "assets.h"
+#include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"
 #include "services/loader/loader.h"

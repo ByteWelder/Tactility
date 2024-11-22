@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app.h"
-#include "service_manifest.h"
+#include "ServiceManifest.h"
 #include "view_port.h"
 
 namespace tt::service::gui {

@@ -1,8 +1,8 @@
-#include "service_registry.h"
+#include "ServiceRegistry.h"
 
 #include "Mutex.h"
-#include "service.h"
-#include "service_manifest.h"
+#include "Service.h"
+#include "ServiceManifest.h"
 #include "TactilityCore.h"
 #include <string>
 #include <unordered_map>

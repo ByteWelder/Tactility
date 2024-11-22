@@ -1,9 +1,9 @@
 #include <cstdlib>
 
 #include "Mutex.h"
-#include "service.h"
+#include "Service.h"
 #include "TactilityCore.h"
-#include "tactility_headless.h"
+#include "TactilityHeadless.h"
 
 #define TAG "sdcard_service"
 

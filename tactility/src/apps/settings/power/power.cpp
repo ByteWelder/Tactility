@@ -1,5 +1,5 @@
 #include "app.h"
-#include "assets.h"
+#include "Assets.h"
 #include "lvgl.h"
 #include "tactility.h"
 #include "Timer.h"

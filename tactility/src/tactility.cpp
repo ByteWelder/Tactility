@@ -2,9 +2,9 @@
 
 #include "app_manifest_registry.h"
 #include "lvgl_init_i.h"
-#include "service_registry.h"
+#include "ServiceRegistry.h"
 #include "services/loader/loader.h"
-#include "tactility_headless.h"
+#include "TactilityHeadless.h"
 
 namespace tt {
 

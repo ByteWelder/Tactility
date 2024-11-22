@@ -2,7 +2,7 @@
 
 #include "app_manifest.h"
 #include "hal/Configuration.h"
-#include "service_manifest.h"
+#include "ServiceManifest.h"
 #include "tactility_config.h"
 
 namespace tt {

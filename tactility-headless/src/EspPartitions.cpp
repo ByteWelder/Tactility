@@ -1,8 +1,9 @@
 #ifdef ESP_TARGET
 
-#include "esp_partitions.h"
-#include "esp_spiffs.h"
+#include "EspPartitions.h"
 #include "Log.h"
+
+#include "esp_spiffs.h"
 #include "nvs_flash.h"
 
 namespace tt {
