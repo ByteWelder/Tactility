@@ -6,7 +6,7 @@
 #include "MessageQueue.h"
 #include "Pubsub.h"
 #include "Thread.h"
-#include "services/gui/ViewPort.h"
+#include "services/Gui/ViewPort.h"
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"

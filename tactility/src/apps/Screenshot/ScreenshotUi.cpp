@@ -1,9 +1,9 @@
-#include "screenshot_ui.h"
+#include "ScreenshotUi.h"
 
 #include "TactilityCore.h"
 #include "hal/Sdcard.h"
-#include "services/gui/Gui.h"
-#include "services/screenshot/Screenshot.h"
+#include "services/Gui/Gui.h"
+#include "services/Screenshot/Screenshot.h"
 #include "ui/toolbar.h"
 
 namespace tt::app::screenshot {

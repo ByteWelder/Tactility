@@ -5,7 +5,7 @@
 #include "Mutex.h"
 #include "TactilityCore.h"
 #include "Thread.h"
-#include "services/loader/Loader.h"
+#include "services/Loader/Loader.h"
 #include "ui/lvgl_sync.h"
 
 namespace tt::service::screenshot {

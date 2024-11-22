@@ -2,8 +2,8 @@
 
 #include "Log.h"
 #include "WifiManageState.h"
-#include "services/statusbar/Statusbar.h"
-#include "services/wifi/Wifi.h"
+#include "services/Statusbar/Statusbar.h"
+#include "services/Wifi/Wifi.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 

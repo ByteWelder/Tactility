@@ -6,8 +6,8 @@
 #include "WifiConnectState.h"
 #include "WifiConnectStateUpdating.h"
 #include "lvgl.h"
-#include "services/gui/Gui.h"
-#include "services/wifi/WifiSettings.h"
+#include "services/Gui/Gui.h"
+#include "services/Wifi/WifiSettings.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 

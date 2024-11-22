@@ -1,7 +1,7 @@
 #include "Gui_i.h"
 
 #include "Tactility.h"
-#include "services/loader/Loader.h"
+#include "services/Loader/Loader.h"
 #include "ui/lvgl_keypad.h"
 #include "ui/lvgl_sync.h"
 

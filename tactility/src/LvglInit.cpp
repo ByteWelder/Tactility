@@ -1,4 +1,4 @@
-#include "apps/settings/display/display_preferences.h"
+#include "apps/Display/DisplayPreferences.h"
 #include "lvgl.h"
 #include "LvglInit_i.h"
 

@@ -4,7 +4,7 @@
 #include "WifiConnectBindings.h"
 #include "WifiConnectState.h"
 #include "WifiConnectView.h"
-#include "services/wifi/Wifi.h"
+#include "services/Wifi/Wifi.h"
 
 namespace tt::app::wifi_connect {
 

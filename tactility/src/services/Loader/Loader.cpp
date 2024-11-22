@@ -4,7 +4,7 @@
 #include "App_i.h"
 #include "Loader_i.h"
 #include "ServiceManifest.h"
-#include "services/gui/Gui.h"
+#include "services/Gui/Gui.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"

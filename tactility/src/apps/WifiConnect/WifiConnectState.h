@@ -1,8 +1,8 @@
 #pragma once
 
 #include "App.h"
-#include "services/wifi/Wifi.h"
-#include "services/wifi/WifiSettings.h"
+#include "services/Wifi/Wifi.h"
+#include "services/Wifi/WifiSettings.h"
 
 namespace tt::app::wifi_connect {
 

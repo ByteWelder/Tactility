@@ -1,5 +1,5 @@
+#include "DisplayPreferences.h"
 #include "Preferences.h"
-#include "display_preferences.h"
 
 namespace tt::app::settings::display {
 

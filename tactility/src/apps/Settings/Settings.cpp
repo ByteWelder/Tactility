@@ -2,9 +2,10 @@
 #include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"
-#include "services/loader/Loader.h"
+#include "services/Loader/Loader.h"
+#include "ui/toolbar.h"
 
-namespace tt::app::desktop {
+namespace tt::app::settings {
 
 static void on_app_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
@@ -16,28 +17,33 @@ static void on_app_pressed(lv_event_t* e) {
 
 static void create_app_widget(const AppManifest* manifest, void* parent) {
     tt_check(parent);
-    auto* list = static_cast<lv_obj_t*>(parent);
+    auto* list = (lv_obj_t*)parent;
     const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
     lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void desktop_show(TT_UNUSED App app, lv_obj_t* parent) {
-    lv_obj_t* list = lv_list_create(parent);
-    lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));
-    lv_obj_center(list);
+static void on_show(App app, lv_obj_t* parent) {
+    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lv_list_add_text(list, "User");
-    app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
-    lv_list_add_text(list, "System");
-    app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
+    lvgl::toolbar_create_for_app(parent, app);
+
+    lv_obj_t* list = lv_list_create(parent);
+    lv_obj_set_width(list, LV_PCT(100));
+    lv_obj_set_flex_grow(list, 1);
+
+    app_manifest_registry_for_each_of_type(AppTypeSettings, list, create_app_widget);
 }
 
 extern const AppManifest manifest = {
-    .id = "desktop",
-    .name = "Desktop",
-    .type = AppTypeDesktop,
-    .on_show = &desktop_show,
+    .id = "settings",
+    .name = "Settings",
+    .icon = TT_ASSETS_APP_ICON_SETTINGS,
+    .type = AppTypeSystem,
+    .on_start = nullptr,
+    .on_stop = nullptr,
+    .on_show = &on_show,
+    .on_hide = nullptr
 };
 
 } // namespace

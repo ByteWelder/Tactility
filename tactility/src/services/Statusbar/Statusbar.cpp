@@ -3,7 +3,7 @@
 #include "hal/Sdcard.h"
 #include "Mutex.h"
 #include "Service.h"
-#include "services/wifi/Wifi.h"
+#include "services/Wifi/Wifi.h"
 #include "Tactility.h"
 #include "ui/statusbar.h"
 
