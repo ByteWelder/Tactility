@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 add_definitions(-DTT_DEBUG)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
@@ -12,78 +16,72 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DARDUINO_M5STACK_CORE2)
     add_compile_definitions(ARDUINO_M5STACK_CORE2)
 
-    set(COMPONENTS app-esp)
+    set(COMPONENTS AppEsp32)
     set(EXTRA_COMPONENT_DIRS
-        "boards"
-        "app-esp"
-        "tactility"
-        "tactility-headless"
-        "libs/esp_lvgl_port"
-        "libs/lvgl"
-        "libs/M5Unified"
-        "libs/M5GFX"
+        "Boards"
+        "AppEsp32"
+        "Tactility"
+        "TactilityHeadless"
+        "Libraries/esp_lvgl_port"
+        "Libraries/lvgl"
+        "Libraries/M5Unified"
+        "Libraries/M5GFX"
     )
 
     # ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "yellow_board_2432s024")
-        set(EXCLUDE_COMPONENTS "m5stack_core2")
-        set(EXCLUDE_COMPONENTS "m5stack_cores3")
+        set(EXCLUDE_COMPONENTS "YellowBoard")
+        set(EXCLUDE_COMPONENTS "M5stackCore2")
+        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
     endif()
 
     # ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
-        set(EXCLUDE_COMPONENTS "lilygo_tdeck")
-        set(EXCLUDE_COMPONENTS "waveshare_s3_touch")
+        set(EXCLUDE_COMPONENTS "LilygoTdeck")
+        set(EXCLUDE_COMPONENTS "WaveshareS3Touch")
     endif()
 else()
     message("Building for sim target")
 endif()
 
-project(tactility-root)
+project(TactilityRoot)
 
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
-    add_subdirectory(tactility)
-    add_subdirectory(tactility-headless)
+    add_subdirectory(Tactility)
+    add_subdirectory(TactilityHeadless)
 endif()
 
-add_subdirectory(tactility-core)
+add_subdirectory(TactilityCore)
 
-add_subdirectory(libs/mlib)
-add_subdirectory(libs/lv_screenshot)
+add_subdirectory(Libraries/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
-    set(CMAKE_C_STANDARD 99) # C99 # lvgl officially support C99 and above
-    set(CMAKE_CXX_STANDARD 17) # C17
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_C_COMPILER_TARGET}")
-
     # FreeRTOS
-    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/app-sim/src CACHE STRING "")
+    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/AppSim/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
-    add_subdirectory(libs/FreeRTOS-Kernel)
+    add_subdirectory(Libraries/FreeRTOS-Kernel)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
-        PUBLIC app-sim/src # for FreeRTOSConfig.h
+        PUBLIC AppSim/Source # for FreeRTOSConfig.h
     )
 
     # EmbedTLS
-    add_subdirectory(libs/mbedtls)
+    add_subdirectory(Libraries/mbedtls)
 
     # Sim app
     if (NOT DEFINED ENV{SKIP_SDL})
-        add_subdirectory(app-sim)
+        add_subdirectory(AppSim)
     endif()
 
     # Tests
-    add_subdirectory(tests)
+    add_subdirectory(Tests)
 
     # SDL & LVGL
-    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/app-sim/src/lv_conf.h)
-    add_subdirectory(libs/lvgl) # Added as idf component for ESP and as library for other targets
+    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/AppSim/Source/lv_conf.h)
+    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     target_include_directories(lvgl
-        PUBLIC app-sim/src # for lv_conf.h and lv_drv_conf.h
+        PUBLIC AppSim/Source # for lv_conf.h and lv_drv_conf.h
     )
 
     # TODO: This is a temporary skipping option for running unit tests
@@ -109,13 +107,13 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             # `brew install sdl2_image`
             find_package(SDL2_image REQUIRED)
             target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
-            target_link_libraries(app-sim ${SDL2_IMAGE_LIBRARIES})
+            target_link_libraries(AppSim ${SDL2_IMAGE_LIBRARIES})
         endif(LV_USE_DRAW_SDL)
 
         if (LV_USE_LIBPNG)
             find_package(PNG REQUIRED)
             target_include_directories(lvgl PUBLIC ${PNG_INCLUDE_DIR})
-            target_link_libraries(app-sim ${PNG_LIBRARY})
+            target_link_libraries(AppSim ${PNG_LIBRARY})
         endif(LV_USE_LIBPNG)
 
         if (LV_USE_LIBJPEG_TURBO)
@@ -124,7 +122,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             # `brew install libjpeg-turbo`
             find_package(JPEG REQUIRED)
             target_include_directories(lvgl PUBLIC ${JPEG_INCLUDE_DIRS})
-            target_link_libraries(app-sim ${JPEG_LIBRARIES})
+            target_link_libraries(AppSim ${JPEG_LIBRARIES})
         endif(LV_USE_LIBJPEG_TURBO)
 
         if (LV_USE_FFMPEG)
@@ -133,7 +131,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
 
         if (LV_USE_FREETYPE)
             find_package(Freetype REQUIRED)
-            target_link_libraries(app-sim ${FREETYPE_LIBRARIES})
+            target_link_libraries(AppSim ${FREETYPE_LIBRARIES})
             target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
         endif(LV_USE_FREETYPE)
     endif()

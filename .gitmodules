@@ -1,15 +1,15 @@
-[submodule "libs/M5GFX"]
-	path = libs/M5GFX
+[submodule "Libraries/M5GFX"]
+	path = Libraries/M5GFX
 	url = https://github.com/m5stack/M5GFX.git
-[submodule "libs/M5Unified"]
-	path = libs/M5Unified
+[submodule "Libraries/M5Unified"]
+	path = Libraries/M5Unified
 	url = https://github.com/m5stack/M5Unified.git
-[submodule "libs/FreeRTOS-Kernel"]
-	path = libs/FreeRTOS-Kernel
+[submodule "Libraries/FreeRTOS-Kernel"]
+	path = Libraries/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
-[submodule "libs/mbedtls"]
-	path = libs/mbedtls
+[submodule "Libraries/mbedtls"]
+	path = Libraries/mbedtls
 	url = https://github.com/Mbed-TLS/mbedtls.git
-[submodule "libs/lvgl"]
-	path = libs/lvgl
+[submodule "Libraries/lvgl"]
+	path = Libraries/lvgl
 	url = https://github.com/lvgl/lvgl.git

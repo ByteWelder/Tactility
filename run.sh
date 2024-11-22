@@ -6,7 +6,7 @@ else
   cmake -S ./ -B build-sim
   cmake --build build-sim -j 12
   cd data
-  ../build-sim/app-sim/app-sim
+  ../build-sim/AppSim/AppSim
   cd -
 fi
 
