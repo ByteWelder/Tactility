@@ -1,6 +1,6 @@
 #include "wifi_manage.h"
 
-#include "app.h"
+#include "App.h"
 #include "apps/wifi_connect/wifi_connect_bundle.h"
 #include "services/loader/loader.h"
 #include "services/wifi/WifiSettings.h"

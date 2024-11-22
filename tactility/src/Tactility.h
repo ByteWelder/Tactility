@@ -1,9 +1,9 @@
 #pragma once
 
-#include "app_manifest.h"
+#include "AppManifest.h"
 #include "hal/Configuration.h"
 #include "ServiceManifest.h"
-#include "tactility_config.h"
+#include "TactilityConfig.h"
 
 namespace tt {
 

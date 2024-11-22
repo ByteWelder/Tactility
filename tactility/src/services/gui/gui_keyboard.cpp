@@ -1,6 +1,6 @@
 #include "gui_i.h"
 
-#include "tactility_config.h"
+#include "TactilityConfig.h"
 #include "ui/lvgl_keypad.h"
 #include "ui/lvgl_sync.h"
 

@@ -4,7 +4,7 @@
 #include "Mutex.h"
 #include "Service.h"
 #include "services/wifi/Wifi.h"
-#include "tactility.h"
+#include "Tactility.h"
 #include "ui/statusbar.h"
 
 namespace tt::service::statusbar {

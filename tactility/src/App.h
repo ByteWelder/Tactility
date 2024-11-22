@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app_manifest.h"
+#include "AppManifest.h"
 #include "Bundle.h"
 #include "Mutex.h"
 

@@ -1,4 +1,4 @@
-#include "app_manifest_registry.h"
+#include "AppManifestRegistry.h"
 #include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"

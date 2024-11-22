@@ -1,8 +1,8 @@
-#include "app.h"
+#include "App.h"
 #include "Assets.h"
 #include "display_preferences.h"
 #include "lvgl.h"
-#include "tactility.h"
+#include "Tactility.h"
 #include "ui/toolbar.h"
 
 namespace tt::app::settings::display {

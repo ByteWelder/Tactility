@@ -1,4 +1,4 @@
-#include "tactility.h"
+#include "Tactility.h"
 
 extern const tt::hal::Configuration sim_hardware;
 extern const tt::AppManifest hello_world_app;

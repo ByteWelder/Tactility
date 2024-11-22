@@ -1,7 +1,7 @@
-#include "tactility.h"
+#include "Tactility.h"
 
-#include "app_manifest_registry.h"
-#include "lvgl_init_i.h"
+#include "AppManifestRegistry.h"
+#include "LvglInit_i.h"
 #include "ServiceRegistry.h"
 #include "services/loader/loader.h"
 #include "TactilityHeadless.h"

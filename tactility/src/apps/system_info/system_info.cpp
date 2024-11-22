@@ -1,7 +1,6 @@
-#include "app.h"
 #include "Assets.h"
 #include "lvgl.h"
-#include "tactility.h"
+#include "Tactility.h"
 #include "ui/toolbar.h"
 
 namespace tt::app::system_info {

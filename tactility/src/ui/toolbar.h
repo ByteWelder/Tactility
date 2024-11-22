@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lvgl.h"
-#include "app.h"
+#include "App.h"
 
 namespace tt::lvgl {
 

@@ -1,7 +1,7 @@
 #include "screenshot_task.h"
 #include "lv_screenshot.h"
 
-#include "app.h"
+#include "App.h"
 #include "Mutex.h"
 #include "services/loader/loader.h"
 #include "TactilityCore.h"

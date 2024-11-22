@@ -1,4 +1,4 @@
-#include "app_manifest_registry.h"
+#include "AppManifestRegistry.h"
 #include "Mutex.h"
 #include "TactilityCore.h"
 #include <unordered_map>

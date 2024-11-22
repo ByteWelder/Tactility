@@ -1,6 +1,6 @@
 #include "apps/settings/display/display_preferences.h"
 #include "lvgl.h"
-#include "lvgl_init_i.h"
+#include "LvglInit_i.h"
 
 namespace tt {
 

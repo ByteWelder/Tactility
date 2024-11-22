@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ApiLock.h"
-#include "app_manifest.h"
+#include "AppManifest.h"
 #include "loader.h"
 #include "MessageQueue.h"
 #include "Pubsub.h"

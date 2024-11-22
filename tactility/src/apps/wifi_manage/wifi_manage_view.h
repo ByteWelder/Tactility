@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app.h"
+#include "App.h"
 #include "lvgl.h"
 #include "wifi_manage_bindings.h"
 #include "wifi_manage_state.h"

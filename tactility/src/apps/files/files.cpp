@@ -1,6 +1,6 @@
 #include "files_data.h"
 
-#include "app.h"
+#include "App.h"
 #include "apps/image_viewer/image_viewer.h"
 #include "apps/text_viewer/text_viewer.h"
 #include "Assets.h"

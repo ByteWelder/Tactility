@@ -1,8 +1,8 @@
 #pragma once
 
-#include "app.h"
+#include "App.h"
 
-#include "app_manifest.h"
+#include "AppManifest.h"
 #include "Mutex.h"
 
 namespace tt {

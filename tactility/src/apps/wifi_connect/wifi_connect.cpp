@@ -1,6 +1,6 @@
 #include "wifi_connect.h"
 
-#include "app.h"
+#include "App.h"
 #include "services/loader/loader.h"
 #include "services/wifi/Wifi.h"
 #include "TactilityCore.h"

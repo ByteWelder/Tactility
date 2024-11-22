@@ -1,7 +1,7 @@
 #include "Boards.h"
 
 // Apps
-#include "tactility.h"
+#include "Tactility.h"
 
 namespace tt::service::wifi {
     extern void wifi_main(void*);
