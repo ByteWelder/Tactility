@@ -2,7 +2,7 @@
 
 #include "Log.h"
 #include "services/statusbar_updater/statusbar_updater.h"
-#include "services/wifi/wifi.h"
+#include "services/wifi/Wifi.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 #include "wifi_manage_state.h"

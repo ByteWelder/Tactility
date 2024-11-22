@@ -1,7 +1,7 @@
 #ifdef ESP_TARGET
 
-#include "wifi_globals.h"
-#include "wifi_settings.h"
+#include "WifiGlobals.h"
+#include "WifiSettings.h"
 #include <cstring>
 
 #include "nvs_flash.h"

@@ -3,7 +3,7 @@
 #include "Log.h"
 #include "lvgl.h"
 #include "services/gui/gui.h"
-#include "services/wifi/wifi_settings.h"
+#include "services/wifi/WifiSettings.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
 #include "wifi_connect.h"

@@ -1,6 +1,6 @@
 #ifdef ESP_TARGET
 
-#include "wifi.h"
+#include "Wifi.h"
 
 #include "MessageQueue.h"
 #include "Mutex.h"
@@ -10,7 +10,7 @@
 #include "Log.h"
 #include "Pubsub.h"
 #include "Service.h"
-#include "wifi_settings.h"
+#include "WifiSettings.h"
 #include <atomic>
 #include <cstring>
 #include <sys/cdefs.h>

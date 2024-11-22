@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wifi_globals.h"
+#include "WifiGlobals.h"
 
 namespace tt::service::wifi::settings {
 

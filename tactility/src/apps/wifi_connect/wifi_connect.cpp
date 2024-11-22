@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "services/loader/loader.h"
-#include "services/wifi/wifi.h"
+#include "services/wifi/Wifi.h"
 #include "TactilityCore.h"
 #include "ui/lvgl_sync.h"
 #include "wifi_connect_state_updating.h"

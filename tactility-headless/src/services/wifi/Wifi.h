@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Pubsub.h"
-#include "wifi_globals.h"
-#include "wifi_settings.h"
+#include "WifiGlobals.h"
+#include "WifiSettings.h"
 #include <cstdio>
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
-#include "wifi_settings.h"
+#include "WifiSettings.h"
 #else
 #include <cstdint>
 // From esp_wifi_types.h in ESP-IDF 5.2

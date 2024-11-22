@@ -1,6 +1,6 @@
 #ifndef ESP_TARGET
 
-#include "wifi_settings.h"
+#include "WifiSettings.h"
 #include "Log.h"
 
 namespace tt::service::wifi::settings {

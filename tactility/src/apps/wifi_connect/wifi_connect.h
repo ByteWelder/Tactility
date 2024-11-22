@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Mutex.h"
-#include "services/wifi/wifi.h"
+#include "services/wifi/Wifi.h"
 #include "wifi_connect_bindings.h"
 #include "wifi_connect_state.h"
 #include "wifi_connect_view.h"
