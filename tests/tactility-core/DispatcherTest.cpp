@@ -2,6 +2,8 @@
 #include "tactility_core.h"
 #include "Dispatcher.h"
 
+using namespace tt;
+
 void increment_callback(void* context) {
     auto* counter = (uint32_t*)context;
     (*counter)++;
@@ -12,7 +14,7 @@ TEST_CASE("dispatcher should not call callback if consume isn't called") {
 
     uint32_t counter = 0;
     dispatcher.dispatch(&increment_callback, &counter);
-    tt_delay_tick(10);
+    delay_tick(10);
 
     CHECK_EQ(counter, 0);
 }

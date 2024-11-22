@@ -1,6 +1,8 @@
 #include "doctest.h"
 #include "MessageQueue.h"
 
+using namespace tt;
+
 TEST_CASE("message queue capacity should be correct") {
     MessageQueue queue(10, 1);
 

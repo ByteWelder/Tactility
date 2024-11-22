@@ -2,10 +2,12 @@
 #include "tactility_core.h"
 #include "thread.h"
 
+using namespace tt;
+
 static int interruptable_thread(void* parameter) {
     bool* interrupted = (bool*)parameter;
     while (!*interrupted) {
-        tt_delay_ms(5);
+        delay_ms(5);
     }
     return 0;
 }
@@ -23,79 +25,79 @@ static int thread_with_return_code(void* parameter) {
 
 TEST_CASE("when a thread is started then its callback should be called") {
     bool has_called = false;
-    auto* thread = tt_thread_alloc_ex(
+    auto* thread = thread_alloc_ex(
         "immediate return task",
         4096,
         &immediate_return_thread,
         &has_called
     );
     CHECK(!has_called);
-    tt_thread_start(thread);
-    tt_thread_join(thread);
-    tt_thread_free(thread);
+    thread_start(thread);
+    thread_join(thread);
+    thread_free(thread);
     CHECK(has_called);
 }
 
 TEST_CASE("a thread can be started and stopped") {
     bool interrupted = false;
-    auto* thread = tt_thread_alloc_ex(
+    auto* thread = thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
         &interrupted
     );
     CHECK(thread);
-    tt_thread_start(thread);
+    thread_start(thread);
     interrupted = true;
-    tt_thread_join(thread);
-    tt_thread_free(thread);
+    thread_join(thread);
+    thread_free(thread);
 }
 
 TEST_CASE("thread id should only be set at when thread is started") {
     bool interrupted = false;
-    auto* thread = tt_thread_alloc_ex(
+    auto* thread = thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
         &interrupted
     );
-    CHECK(tt_thread_get_id(thread) == nullptr);
-    tt_thread_start(thread);
-    CHECK(tt_thread_get_id(thread) != nullptr);
+    CHECK_EQ(thread_get_id(thread), nullptr);
+    thread_start(thread);
+    CHECK_NE(thread_get_id(thread), nullptr);
     interrupted = true;
-    tt_thread_join(thread);
-    CHECK(tt_thread_get_id(thread) == nullptr);
-    tt_thread_free(thread);
+    thread_join(thread);
+    CHECK_EQ(thread_get_id(thread), nullptr);
+    thread_free(thread);
 }
 
 TEST_CASE("thread state should be correct") {
     bool interrupted = false;
-    auto* thread = tt_thread_alloc_ex(
+    auto* thread = thread_alloc_ex(
         "interruptable thread",
         4096,
         &interruptable_thread,
         &interrupted
     );
-    CHECK_EQ(tt_thread_get_state(thread), ThreadStateStopped);
-    tt_thread_start(thread);
-    ThreadState state = tt_thread_get_state(thread);
+    CHECK_EQ(thread_get_state(thread), ThreadStateStopped);
+    thread_start(thread);
+    ThreadState state = thread_get_state(thread);
     CHECK((state == ThreadStateStarting || state == ThreadStateRunning));
     interrupted = true;
-    tt_thread_join(thread);
-    CHECK_EQ(tt_thread_get_state(thread), ThreadStateStopped);
-    tt_thread_free(thread);
+    thread_join(thread);
+    CHECK_EQ(thread_get_state(thread), ThreadStateStopped);
+    thread_free(thread);
 }
 
 TEST_CASE("thread id should only be set at when thread is started") {
     int code = 123;
-    auto* thread = tt_thread_alloc_ex(
+    auto* thread = thread_alloc_ex(
         "return code",
         4096,
         &thread_with_return_code,
         &code
     );
-    tt_thread_start(thread);
-    tt_thread_join(thread);
-    CHECK_EQ(tt_thread_get_return_code(thread), code);
-    tt_thread_free(thread);
+    thread_start(thread);
+    thread_join(thread);
+    CHECK_EQ(thread_get_return_code(thread), code);
+    thread_free(thread);
 }

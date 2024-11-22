@@ -1,6 +1,8 @@
 #include "doctest.h"
 #include "Bundle.h"
 
+using namespace tt;
+
 TEST_CASE("boolean can be stored and retrieved") {
     Bundle bundle;
     bundle.putBool("key", true);
