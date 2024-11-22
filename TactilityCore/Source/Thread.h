@@ -96,7 +96,7 @@ public:
         const std::string& name,
         configSTACK_DEPTH_TYPE stackSize,
         Callback callback,
-        void* callbackContext
+        _Nullable void* callbackContext
     );
 
     ~Thread();
