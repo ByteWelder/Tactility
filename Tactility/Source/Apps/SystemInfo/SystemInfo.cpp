@@ -67,7 +67,7 @@ static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, siz
 
 static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create(parent, app);
 
     // This wrapper automatically has its children added vertically underneath eachother
     lv_obj_t* wrapper = lv_obj_create(parent);

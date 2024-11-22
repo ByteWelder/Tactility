@@ -26,7 +26,7 @@ static void create_app_widget(const AppManifest* manifest, void* parent) {
 static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lvgl::toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create(parent, app);
 
     lv_obj_t* list = lv_list_create(parent);
     lv_obj_set_width(list, LV_PCT(100));

@@ -85,7 +85,7 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     return obj;
 }
 
-lv_obj_t* toolbar_create_for_app(lv_obj_t* parent, App app) {
+lv_obj_t* toolbar_create(lv_obj_t* parent, App app) {
     const AppManifest& manifest = tt_app_get_manifest(app);
     lv_obj_t* toolbar = toolbar_create(parent, manifest.name);
     toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &stop_app, nullptr);

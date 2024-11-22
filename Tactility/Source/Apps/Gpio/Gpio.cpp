@@ -123,7 +123,7 @@ static void app_show(App app, lv_obj_t* parent) {
     auto* gpio = static_cast<Gpio*>(tt_app_get_data(app));
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_t* toolbar = lvgl::toolbar_create_for_app(parent, app);
+    lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     // Main content wrapper, enables scrolling content without scrolling the toolbar
