@@ -1,4 +1,4 @@
-#include "gui_i_.h"
+#include "Gui_i.h"
 
 #include "TactilityConfig.h"
 #include "ui/lvgl_keypad.h"

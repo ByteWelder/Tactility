@@ -2,7 +2,7 @@
 
 #include "TactilityCore.h"
 #include "hal/Sdcard.h"
-#include "services/gui/gui_.h"
+#include "services/gui/Gui.h"
 #include "services/screenshot/screenshot.h"
 #include "ui/toolbar.h"
 

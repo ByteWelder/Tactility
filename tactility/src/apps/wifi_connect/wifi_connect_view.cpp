@@ -2,7 +2,7 @@
 
 #include "Log.h"
 #include "lvgl.h"
-#include "services/gui/gui_.h"
+#include "services/gui/Gui.h"
 #include "services/wifi/WifiSettings.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
