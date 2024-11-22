@@ -1,15 +1,15 @@
-#include "wifi_connect_view.h"
+#include "WifiConnectView.h"
 
 #include "Log.h"
+#include "WifiConnect.h"
+#include "WifiConnectBundle.h"
+#include "WifiConnectState.h"
+#include "WifiConnectStateUpdating.h"
 #include "lvgl.h"
 #include "services/gui/Gui.h"
 #include "services/wifi/WifiSettings.h"
 #include "ui/style.h"
 #include "ui/toolbar.h"
-#include "wifi_connect.h"
-#include "wifi_connect_bundle.h"
-#include "wifi_connect_state.h"
-#include "wifi_connect_state_updating.h"
 
 namespace tt::app::wifi_connect {
 

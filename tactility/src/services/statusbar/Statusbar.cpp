@@ -209,7 +209,7 @@ static void on_stop(Service& service) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "statusbar_updater",
+    .id = "Statusbar",
     .on_start = &on_start,
     .on_stop = &on_stop
 };

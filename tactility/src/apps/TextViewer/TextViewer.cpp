@@ -1,5 +1,5 @@
-#include "text_viewer.h"
 #include "Log.h"
+#include "TextViewer.h"
 #include "lvgl.h"
 #include "ui/label_utils.h"
 #include "ui/style.h"
@@ -32,7 +32,7 @@ static void on_show(App app, lv_obj_t* parent) {
 }
 
 extern const AppManifest manifest = {
-    .id = "text_viewer",
+    .id = "TextViewer",
     .name = "Text Viewer",
     .type = AppTypeHidden,
     .on_show = &on_show

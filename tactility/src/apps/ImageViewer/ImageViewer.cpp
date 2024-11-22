@@ -1,4 +1,4 @@
-#include "image_viewer.h"
+#include "ImageViewer.h"
 #include "Log.h"
 #include "lvgl.h"
 #include "ui/style.h"
@@ -32,7 +32,7 @@ static void on_show(App app, lv_obj_t* parent) {
 }
 
 extern const AppManifest manifest = {
-    .id = "image_viewer",
+    .id = "ImageViewer",
     .name = "Image Viewer",
     .type = AppTypeHidden,
     .on_show = &on_show

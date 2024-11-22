@@ -1,9 +1,9 @@
 #pragma once
 
 #include "App.h"
+#include "WifiManageBindings.h"
+#include "WifiManageState.h"
 #include "lvgl.h"
-#include "wifi_manage_bindings.h"
-#include "wifi_manage_state.h"
 
 namespace tt::app::wifi_manage {
 

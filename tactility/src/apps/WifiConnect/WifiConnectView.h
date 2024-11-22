@@ -1,8 +1,8 @@
 #pragma once
 
+#include "WifiConnectBindings.h"
+#include "WifiConnectState.h"
 #include "lvgl.h"
-#include "wifi_connect_state.h"
-#include "wifi_connect_bindings.h"
 
 namespace tt::app::wifi_connect {
 

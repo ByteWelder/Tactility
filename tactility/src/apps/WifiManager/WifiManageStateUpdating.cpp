@@ -1,4 +1,4 @@
-#include "wifi_manage.h"
+#include "WifiManage.h"
 
 namespace tt::app::wifi_manage {
 

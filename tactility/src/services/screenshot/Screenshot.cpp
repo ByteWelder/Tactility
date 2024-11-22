@@ -133,7 +133,7 @@ bool is_started() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "screenshot",
+    .id = "Screenshot",
     .on_start = &on_start,
     .on_stop = &on_stop
 };

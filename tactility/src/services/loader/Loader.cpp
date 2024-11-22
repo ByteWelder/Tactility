@@ -352,7 +352,7 @@ static void loader_stop(TT_UNUSED Service& service) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "loader",
+    .id = "Loader",
     .on_start = &loader_start,
     .on_stop = &loader_stop
 };

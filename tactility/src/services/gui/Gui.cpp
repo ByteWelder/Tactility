@@ -156,7 +156,7 @@ static void stop(TT_UNUSED Service& service) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "gui",
+    .id = "Gui",
     .on_start = &start,
     .on_stop = &stop
 };

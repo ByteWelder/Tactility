@@ -1,11 +1,11 @@
-#include "wifi_connect.h"
+#include "WifiConnect.h"
 
 #include "App.h"
 #include "TactilityCore.h"
+#include "WifiConnectStateUpdating.h"
 #include "services/loader/Loader.h"
 #include "services/wifi/Wifi.h"
 #include "ui/lvgl_sync.h"
-#include "wifi_connect_state_updating.h"
 
 namespace tt::app::wifi_connect {
 

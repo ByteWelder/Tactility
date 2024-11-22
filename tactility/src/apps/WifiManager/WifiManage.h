@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Mutex.h"
+#include "WifiManageView.h"
 #include "services/wifi/Wifi.h"
-#include "wifi_manage_view.h"
 
 namespace tt::app::wifi_manage {
 

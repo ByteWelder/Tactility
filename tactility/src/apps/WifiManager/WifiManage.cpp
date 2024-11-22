@@ -1,13 +1,13 @@
-#include "wifi_manage.h"
+#include "WifiManage.h"
 
 #include "App.h"
+#include "apps/WifiConnect/WifiConnectBundle.h"
 #include "TactilityCore.h"
-#include "apps/wifi_connect/wifi_connect_bundle.h"
 #include "services/loader/Loader.h"
 #include "services/wifi/WifiSettings.h"
 #include "ui/lvgl_sync.h"
-#include "wifi_manage_state_updating.h"
-#include "wifi_manage_view.h"
+#include "WifiManageStateUpdating.h"
+#include "WifiManageView.h"
 
 namespace tt::app::wifi_manage {
 
@@ -167,7 +167,7 @@ static void app_stop(App app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "wifi_manage",
+    .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
     .type = AppTypeSettings,

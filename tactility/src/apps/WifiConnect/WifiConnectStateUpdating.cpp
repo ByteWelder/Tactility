@@ -1,4 +1,4 @@
-#include "wifi_connect_state_updating.h"
+#include "WifiConnectStateUpdating.h"
 
 namespace tt::app::wifi_connect {
 
