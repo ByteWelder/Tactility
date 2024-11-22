@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <string>
 
+namespace tt {
+
 class Preferences {
 private:
     const char* namespace_;
@@ -25,3 +27,5 @@ public:
     void putInt32(const std::string& key, int32_t value);
     void putString(const std::string& key, const std::string& value);
 };
+
+} // namespace

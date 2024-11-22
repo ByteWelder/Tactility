@@ -3,6 +3,8 @@
 #include "tactility_core.h"
 #include <string_utils.h>
 
+namespace tt::app::files {
+
 #define TAG "files_app"
 
 static bool get_child_path(char* base_path, const char* child_path, char* out_path, size_t max_chars) {
@@ -24,9 +26,9 @@ static bool get_child_path(char* base_path, const char* child_path, char* out_pa
     }
 }
 
-FilesData* files_data_alloc() {
-    auto* data = static_cast<FilesData*>(malloc(sizeof(FilesData)));
-    *data = (FilesData) {
+Data* data_alloc() {
+    auto* data = static_cast<Data*>(malloc(sizeof(Data)));
+    *data = (Data) {
         .current_path = { 0x00 },
         .dir_entries = nullptr,
         .dir_entries_count = 0
@@ -34,12 +36,12 @@ FilesData* files_data_alloc() {
     return data;
 }
 
-void files_data_free(FilesData* data) {
-    files_data_free_entries(data);
+void data_free(Data* data) {
+    data_free_entries(data);
     free(data);
 }
 
-void files_data_free_entries(FilesData* data) {
+void data_free_entries(Data* data) {
     for (int i = 0; i < data->dir_entries_count; ++i) {
         free(data->dir_entries[i]);
     }
@@ -48,23 +50,23 @@ void files_data_free_entries(FilesData* data) {
     data->dir_entries_count = 0;
 }
 
-static void files_data_set_entries(FilesData* data, struct dirent** entries, int count) {
+static void data_set_entries(Data* data, struct dirent** entries, int count) {
     if (data->dir_entries != nullptr) {
-        files_data_free_entries(data);
+        data_free_entries(data);
     }
 
     data->dir_entries = entries;
     data->dir_entries_count = count;
 }
 
-bool files_data_set_entries_for_path(FilesData* data, const char* path) {
+bool data_set_entries_for_path(Data* data, const char* path) {
     TT_LOG_I(TAG, "Changing path: %s -> %s", data->current_path, path);
 
     /**
      * ESP32 does not have a root directory, so we have to create it manually.
      * We'll add the NVS Flash partitions and the binding for the sdcard.
      */
-    if (tt_get_platform() == PlatformEsp && strcmp(path, "/") == 0) {
+    if (get_platform() == PlatformEsp && strcmp(path, "/") == 0) {
         int dir_entries_count = 3;
         auto** dir_entries = static_cast<dirent**>(malloc(sizeof(struct dirent*) * 3));
 
@@ -80,15 +82,15 @@ bool files_data_set_entries_for_path(FilesData* data, const char* path) {
         dir_entries[2]->d_type = TT_DT_DIR;
         strcpy(dir_entries[2]->d_name, "sdcard");
 
-        files_data_set_entries(data, dir_entries, dir_entries_count);
+        data_set_entries(data, dir_entries, dir_entries_count);
         strcpy(data->current_path, path);
         return true;
     } else {
         struct dirent** entries = nullptr;
-        int count = tt_scandir(path, &entries, &tt_dirent_filter_dot_entries, &tt_dirent_sort_alpha_and_type);
+        int count = tt::app::files::scandir(path, &entries, &dirent_filter_dot_entries, &dirent_sort_alpha_and_type);
         if (count >= 0) {
             TT_LOG_I(TAG, "%s has %u entries", path, count);
-            files_data_set_entries(data, entries, count);
+            data_set_entries(data, entries, count);
             strcpy(data->current_path, path);
             return true;
         } else {
@@ -98,13 +100,15 @@ bool files_data_set_entries_for_path(FilesData* data, const char* path) {
     }
 }
 
-bool files_data_set_entries_for_child_path(FilesData* data, const char* child_path) {
+bool data_set_entries_for_child_path(Data* data, const char* child_path) {
     char new_absolute_path[MAX_PATH_LENGTH + 1];
     if (get_child_path(data->current_path, child_path, new_absolute_path, MAX_PATH_LENGTH)) {
         TT_LOG_I(TAG, "Navigating from %s to %s", data->current_path, new_absolute_path);
-        return files_data_set_entries_for_path(data, new_absolute_path);
+        return data_set_entries_for_path(data, new_absolute_path);
     } else {
         TT_LOG_I(TAG, "Failed to get child path for %s/%s", data->current_path, child_path);
         return false;
     }
 }
+
+} // namespace

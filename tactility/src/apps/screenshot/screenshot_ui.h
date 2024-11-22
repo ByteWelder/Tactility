@@ -3,6 +3,8 @@
 #include "app.h"
 #include "lvgl.h"
 
+namespace tt::app::screenshot {
+
 typedef struct {
     lv_obj_t* mode_dropdown;
     lv_obj_t* path_textarea;
@@ -11,4 +13,6 @@ typedef struct {
     lv_obj_t* delay_textarea;
 } ScreenshotUi;
 
-void create_screenshot_ui(App app, ScreenshotUi* ui, lv_obj_t* parent);
+void create_ui(App app, ScreenshotUi* ui, lv_obj_t* parent);
+
+} // namespace

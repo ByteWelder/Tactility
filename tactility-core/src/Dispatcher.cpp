@@ -1,5 +1,7 @@
 #include "Dispatcher.h"
 
+namespace tt {
+
 Dispatcher::Dispatcher(size_t queueLimit) :
     queue(queueLimit, sizeof(DispatcherMessage)),
     mutex(MutexTypeNormal),
@@ -33,3 +35,5 @@ bool Dispatcher::consume(uint32_t timeout_ticks) {
         return false;
     }
 }
+
+} // namespace

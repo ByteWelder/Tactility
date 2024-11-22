@@ -2,4 +2,4 @@
 
 #include "hardware_config.h"
 
-extern const HardwareConfig lilygo_tdeck;
+extern const tt::HardwareConfig lilygo_tdeck;

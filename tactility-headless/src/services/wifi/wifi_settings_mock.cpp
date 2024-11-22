@@ -3,26 +3,26 @@
 #include "wifi_settings.h"
 #include "log.h"
 
+namespace tt::service::wifi::settings {
+
 #define TAG "wifi_settings_mock"
 
-bool tt_wifi_settings_contains(const char* ssid) {
+bool contains(const char* ssid) {
     return false;
 }
 
-void tt_wifi_settings_init() {
-    TT_LOG_I(TAG, "init");
-}
-
-bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
+bool load(const char* ssid, WifiApSettings* settings) {
     return false;
 }
 
-bool tt_wifi_settings_save(const WifiApSettings* settings) {
+bool save(const WifiApSettings* settings) {
     return false;
 }
 
-bool tt_wifi_settings_remove(const char* ssid) {
+bool remove(const char* ssid) {
     return false;
 }
+
+} // namespace
 
 #endif // ESP_TARGET

@@ -3,6 +3,8 @@
 #include "Mutex.h"
 #include "service_manifest.h"
 
+namespace tt {
+
 class Service {
 private:
     Mutex mutex = Mutex(MutexTypeNormal);
@@ -16,3 +18,5 @@ public:
     [[nodiscard]] void* getData() const;
     void setData(void* newData);
 };
+
+} // namespace

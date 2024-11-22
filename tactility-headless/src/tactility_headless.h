@@ -3,6 +3,10 @@
 #include "hardware_config.h"
 #include "tactility_headless_config.h"
 
-void tt_headless_init(const HardwareConfig* config);
+namespace tt {
 
-const HardwareConfig* tt_get_hardware_config();
+void headless_init(const HardwareConfig* config);
+
+const HardwareConfig* get_hardware_config();
+
+} // namespace

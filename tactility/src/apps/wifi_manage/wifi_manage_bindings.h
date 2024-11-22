@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdbool.h>
+namespace tt::app::wifi_manage {
 
 typedef void (*OnWifiToggled)(bool enable);
 typedef void (*OnConnectSsid)(const char* ssid);
@@ -11,3 +11,5 @@ typedef struct {
     OnConnectSsid on_connect_ssid;
     OnDisconnect on_disconnect;
 } WifiManageBindings;
+
+} // namespace

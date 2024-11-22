@@ -2,9 +2,11 @@
 #include "ui/toolbar.h"
 #include "screenshot_ui.h"
 
+namespace tt::app::screenshot {
+
 static void on_show(App app, lv_obj_t* parent) {
     auto* ui = static_cast<ScreenshotUi*>(tt_app_get_data(app));
-    create_screenshot_ui(app, ui, parent);
+    create_ui(app, ui, parent);
 }
 
 static void on_start(App app) {
@@ -17,7 +19,7 @@ static void on_stop(App app) {
     free(ui);
 }
 
-extern const AppManifest screenshot_app = {
+extern const AppManifest manifest = {
     .id = "screenshot",
     .name = "Screenshot",
     .icon = LV_SYMBOL_IMAGE,
@@ -27,3 +29,5 @@ extern const AppManifest screenshot_app = {
     .on_show = &on_show,
     .on_hide = nullptr
 };
+
+} // namespace

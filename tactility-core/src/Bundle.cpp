@@ -1,5 +1,7 @@
 #include "Bundle.h"
 
+namespace tt {
+
 bool Bundle::getBool(const std::string& key) const {
     return this->entries.find(key)->second.value_bool;
 }
@@ -77,3 +79,5 @@ void Bundle::putString(const std::string& key, const std::string& value) {
         .value_string = value
     };
 }
+
+} // namespace

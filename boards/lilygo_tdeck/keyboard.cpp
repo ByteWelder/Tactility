@@ -28,7 +28,7 @@ void keyboard_wait_for_response() {
     do {
         awake = keyboard_i2c_read(&read_buffer) == ESP_OK;
         if (!awake) {
-            tt_delay_ms(100);
+            tt::delay_ms(100);
         }
     } while (!awake);
     TT_LOG_I(TAG, "Keyboard responded");
@@ -74,7 +74,7 @@ Keyboard keyboard_alloc(_Nullable lv_disp_t* display) {
     lv_indev_set_read_cb(data->device, &keyboard_read_callback);
     lv_indev_set_display(data->device, display);
 
-    tt_lvgl_keypad_set_indev(data->device);
+    tt::lvgl::keypad_set_indev(data->device);
 
     return data;
 }

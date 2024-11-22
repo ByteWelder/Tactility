@@ -5,6 +5,8 @@
 #include "ui/spacer.h"
 #include "ui/style.h"
 
+namespace tt::lvgl {
+
 typedef struct {
     lv_obj_t obj;
     lv_obj_t* title_label;
@@ -28,7 +30,7 @@ static const lv_obj_class_t toolbar_class = {
 };
 
 static void stop_app(TT_UNUSED lv_event_t* event) {
-    loader_stop_app();
+    service::loader::stop_app();
 }
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -39,14 +41,14 @@ static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     LV_TRACE_OBJ_CREATE("finished");
 }
 
-lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const std::string& title) {
+lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     LV_LOG_INFO("begin");
     lv_obj_t* obj = lv_obj_class_create_obj(&toolbar_class, parent);
     lv_obj_class_init_obj(obj);
 
     auto* toolbar = (Toolbar*)obj;
 
-    tt_lv_obj_set_style_no_padding(obj);
+    obj_set_style_no_padding(obj);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
@@ -55,15 +57,15 @@ lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const std::string& title) {
 
     toolbar->close_button = lv_button_create(obj);
     lv_obj_set_size(toolbar->close_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
-    tt_lv_obj_set_style_no_padding(toolbar->close_button);
+    obj_set_style_no_padding(toolbar->close_button);
     toolbar->close_button_image = lv_image_create(toolbar->close_button);
     lv_obj_align(toolbar->close_button_image, LV_ALIGN_CENTER, 0, 0);
 
     // Need spacer to avoid button press glitch animation
-    tt_lv_spacer_create(obj, title_offset_x, 1);
+    spacer_create(obj, title_offset_x, 1);
 
     lv_obj_t* label_container = lv_obj_create(obj);
-    tt_lv_obj_set_style_no_padding(label_container);
+    obj_set_style_no_padding(label_container);
     lv_obj_set_style_border_width(label_container, 0, 0);
     lv_obj_set_height(label_container, LV_PCT(100)); // 2% less due to 4px translate (it's not great, but it works)
     lv_obj_set_flex_grow(label_container, 1);
@@ -83,25 +85,25 @@ lv_obj_t* tt_toolbar_create(lv_obj_t* parent, const std::string& title) {
     return obj;
 }
 
-lv_obj_t* tt_toolbar_create_for_app(lv_obj_t* parent, App app) {
+lv_obj_t* toolbar_create_for_app(lv_obj_t* parent, App app) {
     const AppManifest& manifest = tt_app_get_manifest(app);
-    lv_obj_t* toolbar = tt_toolbar_create(parent, manifest.name);
-    tt_toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &stop_app, nullptr);
+    lv_obj_t* toolbar = toolbar_create(parent, manifest.name);
+    toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &stop_app, nullptr);
     return toolbar;
 }
 
-void tt_toolbar_set_title(lv_obj_t* obj, const std::string& title) {
+void toolbar_set_title(lv_obj_t* obj, const std::string& title) {
     auto* toolbar = (Toolbar*)obj;
     lv_label_set_text(toolbar->title_label, title.c_str());
 }
 
-void tt_toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
+void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = (Toolbar*)obj;
     lv_obj_add_event_cb(toolbar->close_button, callback, LV_EVENT_CLICKED, user_data);
     lv_image_set_src(toolbar->close_button_image, icon); // e.g. LV_SYMBOL_CLOSE
 }
 
-uint8_t tt_toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text, lv_event_cb_t callback, void* user_data) {
+uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = (Toolbar*)obj;
     uint8_t id = toolbar->action_count;
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
@@ -109,7 +111,7 @@ uint8_t tt_toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text,
 
     lv_obj_t* action_button = lv_button_create(toolbar->action_container);
     lv_obj_set_size(action_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
-    tt_lv_obj_set_style_no_padding(action_button);
+    obj_set_style_no_padding(action_button);
     lv_obj_add_event_cb(action_button, callback, LV_EVENT_CLICKED, user_data);
     lv_obj_t* action_button_image = lv_image_create(action_button);
     lv_image_set_src(action_button_image, icon);
@@ -117,3 +119,5 @@ uint8_t tt_toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text,
 
     return id;
 }
+
+} // namespace

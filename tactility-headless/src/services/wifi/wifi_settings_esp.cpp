@@ -15,39 +15,36 @@
 
 // region Wi-Fi Credentials - static
 
-static esp_err_t tt_wifi_credentials_nvs_open(nvs_handle_t* handle, nvs_open_mode_t mode) {
+static esp_err_t credentials_nvs_open(nvs_handle_t* handle, nvs_open_mode_t mode) {
     return nvs_open(TT_NVS_NAMESPACE, NVS_READWRITE, handle);
 }
 
-static void tt_wifi_credentials_nvs_close(nvs_handle_t handle) {
+static void credentials_nvs_close(nvs_handle_t handle) {
     nvs_close(handle);
 }
 
 // endregion Wi-Fi Credentials - static
 
 // region Wi-Fi Credentials - public
+namespace tt::service::wifi::settings {
 
-bool tt_wifi_settings_contains(const char* ssid) {
+bool contains(const char* ssid) {
     nvs_handle_t handle;
-    esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READONLY);
+    esp_err_t result = credentials_nvs_open(&handle, NVS_READONLY);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to open NVS handle: %s", esp_err_to_name(result));
         return false;
     }
 
     bool key_exists = nvs_find_key(handle, ssid, NULL) == ESP_OK;
-    tt_wifi_credentials_nvs_close(handle);
+    credentials_nvs_close(handle);
 
     return key_exists;
 }
 
-void tt_wifi_settings_init() {
-    TT_LOG_I(TAG, "init");
-}
-
-bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
+bool load(const char* ssid, WifiApSettings* settings) {
     nvs_handle_t handle;
-    esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READONLY);
+    esp_err_t result = credentials_nvs_open(&handle, NVS_READONLY);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to open NVS handle: %s", esp_err_to_name(result));
         return false;
@@ -58,8 +55,8 @@ bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
     result = nvs_get_blob(handle, ssid, &encrypted_settings, &length);
 
     uint8_t iv[16];
-    tt_secure_get_iv_from_string(ssid, iv);
-    int decrypt_result = tt_secure_decrypt(
+    crypt::get_iv_from_string(ssid, iv);
+    int decrypt_result = crypt::decrypt(
         iv,
         (uint8_t*)encrypted_settings.password,
         (uint8_t*)settings->password,
@@ -77,7 +74,7 @@ bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
         TT_LOG_E(TAG, "Failed to get credentials for \"%s\": %s", ssid, esp_err_to_name(result));
     }
 
-    tt_wifi_credentials_nvs_close(handle);
+    credentials_nvs_close(handle);
 
     settings->auto_connect = encrypted_settings.auto_connect;
     strcpy((char*)settings->ssid, encrypted_settings.ssid);
@@ -85,9 +82,9 @@ bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings) {
     return result == ESP_OK;
 }
 
-bool tt_wifi_settings_save(const WifiApSettings* settings) {
+bool save(const WifiApSettings* settings) {
     nvs_handle_t handle;
-    esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READWRITE);
+    esp_err_t result = credentials_nvs_open(&handle, NVS_READWRITE);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to open NVS handle: %s", esp_err_to_name(result));
         return false;
@@ -101,8 +98,8 @@ bool tt_wifi_settings_save(const WifiApSettings* settings) {
     encrypted_settings.password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
 
     uint8_t iv[16];
-    tt_secure_get_iv_from_data(settings->ssid, strlen(settings->ssid), iv);
-    int encrypt_result = tt_secure_encrypt(
+    crypt::get_iv_from_data(settings->ssid, strlen(settings->ssid), iv);
+    int encrypt_result = crypt::encrypt(
         iv,
         (uint8_t*)settings->password,
         (uint8_t*)encrypted_settings.password,
@@ -121,13 +118,13 @@ bool tt_wifi_settings_save(const WifiApSettings* settings) {
         }
     }
 
-    tt_wifi_credentials_nvs_close(handle);
+    credentials_nvs_close(handle);
     return result == ESP_OK;
 }
 
-bool tt_wifi_settings_remove(const char* ssid) {
+bool remove(const char* ssid) {
     nvs_handle_t handle;
-    esp_err_t result = tt_wifi_credentials_nvs_open(&handle, NVS_READWRITE);
+    esp_err_t result = credentials_nvs_open(&handle, NVS_READWRITE);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to open NVS handle to store \"%s\": %s", ssid, esp_err_to_name(result));
         return false;
@@ -138,10 +135,12 @@ bool tt_wifi_settings_remove(const char* ssid) {
         TT_LOG_E(TAG, "Failed to erase credentials for \"%s\": %s", ssid, esp_err_to_name(result));
     }
 
-    tt_wifi_credentials_nvs_close(handle);
+    credentials_nvs_close(handle);
     return result == ESP_OK;
 }
 
 // end region Wi-Fi Credentials - public
+
+} // nemespace
 
 #endif // ESP_TARGET

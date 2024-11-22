@@ -2,6 +2,8 @@
 
 #include <cstdio>
 
+namespace tt {
+
 /**
  * Find the last occurrence of a character.
  * @param[in] text the text to search in
@@ -9,7 +11,7 @@
  * @param[in] find the character to search for
  * @return the index of the found character, or -1 if none found
  */
-int tt_string_find_last_index(const char* text, size_t from_index, char find);
+int string_find_last_index(const char* text, size_t from_index, char find);
 
 /**
  * Given a filesystem path as input, try and get the parent path.
@@ -17,4 +19,6 @@ int tt_string_find_last_index(const char* text, size_t from_index, char find);
  * @param[out] output an output buffer that is allocated to at least the size of "current"
  * @return true when successful
  */
-bool tt_string_get_path_parent(const char* path, char* output);
+bool string_get_path_parent(const char* path, char* output);
+
+} // namespace

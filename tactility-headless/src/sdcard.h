@@ -2,6 +2,8 @@
 
 #include "tactility_core.h"
 
+namespace tt {
+
 #define TT_SDCARD_MOUNT_POINT "/sdcard"
 
 typedef void* (*SdcardMount)(const char* mount_path);
@@ -29,3 +31,5 @@ typedef struct {
 bool tt_sdcard_mount(const SdCard* sdcard);
 SdcardState tt_sdcard_get_state();
 bool tt_sdcard_unmount(uint32_t timeout_ticks);
+
+} // namespace

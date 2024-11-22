@@ -4,6 +4,8 @@
 #include "Preferences.h"
 #include <tactility_core.h>
 
+namespace tt {
+
 static Bundle preferences;
 
 /**
@@ -64,3 +66,5 @@ void Preferences::putString(const std::string& key, const std::string& value) {
 }
 
 #endif
+
+} // namespace

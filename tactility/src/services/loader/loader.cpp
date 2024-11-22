@@ -2,6 +2,7 @@
 #include "app_manifest.h"
 #include "app_manifest_registry.h"
 #include "loader_i.h"
+#include "api_lock.h"
 #include "service_manifest.h"
 #include "services/gui/gui.h"
 
@@ -11,6 +12,8 @@
 #else
 #include "FreeRTOS.h"
 #endif
+
+namespace tt::service::loader {
 
 #define TAG "loader"
 
@@ -28,7 +31,7 @@ static Loader* loader_alloc() {
     loader_singleton = new Loader();
     loader_singleton->pubsub_internal = tt_pubsub_alloc();
     loader_singleton->pubsub_external = tt_pubsub_alloc();
-    loader_singleton->thread = tt_thread_alloc_ex(
+    loader_singleton->thread = thread_alloc_ex(
         "loader",
         4096, // Last known minimum was 2400 for starting Hello World app
         &loader_main,
@@ -42,7 +45,7 @@ static Loader* loader_alloc() {
 
 static void loader_free() {
     tt_assert(loader_singleton != nullptr);
-    tt_thread_free(loader_singleton->thread);
+    thread_free(loader_singleton->thread);
     tt_pubsub_free(loader_singleton->pubsub_internal);
     tt_pubsub_free(loader_singleton->pubsub_external);
     tt_mutex_free(loader_singleton->mutex);
@@ -50,19 +53,19 @@ static void loader_free() {
     loader_singleton = nullptr;
 }
 
-void loader_lock() {
+static void loader_lock() {
     tt_assert(loader_singleton);
     tt_assert(loader_singleton->mutex);
     tt_check(tt_mutex_acquire(loader_singleton->mutex, TtWaitForever) == TtStatusOk);
 }
 
-void loader_unlock() {
+static void loader_unlock() {
     tt_assert(loader_singleton);
     tt_assert(loader_singleton->mutex);
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus loader_start_app(const std::string& id, bool blocking, const Bundle& bundle) {
+LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle) {
     tt_assert(loader_singleton);
     LoaderMessageLoaderStatusResult result = {
         .value = LoaderStatusOk
@@ -85,13 +88,13 @@ LoaderStatus loader_start_app(const std::string& id, bool blocking, const Bundle
     return result.value;
 }
 
-void loader_stop_app() {
+void stop_app() {
     tt_check(loader_singleton);
     LoaderMessage message(LoaderMessageTypeAppStop);
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-App _Nullable loader_get_current_app() {
+App _Nullable get_current_app() {
     tt_assert(loader_singleton);
     loader_lock();
     App app = (loader_singleton->app_stack_index >= 0)
@@ -101,7 +104,7 @@ App _Nullable loader_get_current_app() {
     return app;
 }
 
-PubSub* loader_get_pubsub() {
+PubSub* get_pubsub() {
     tt_assert(loader_singleton);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
@@ -180,7 +183,7 @@ static void app_transition_to_state(App app, AppState state) {
     }
 }
 
-LoaderStatus loader_do_start_app_with_manifest(
+static LoaderStatus loader_do_start_app_with_manifest(
     const AppManifest* manifest,
     const Bundle& bundle
 ) {
@@ -226,13 +229,13 @@ LoaderStatus loader_do_start_app_with_manifest(
     return LoaderStatusOk;
 }
 
-static LoaderStatus loader_do_start_by_id(
+static LoaderStatus do_start_by_id(
     const std::string& id,
     const Bundle& bundle
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const AppManifest* manifest = tt_app_manifest_registry_find_by_id(id);
+    const AppManifest* manifest = app_manifest_registry_find_by_id(id);
     if (manifest == nullptr) {
         return LoaderStatusErrorUnknownApp;
     } else {
@@ -241,7 +244,7 @@ static LoaderStatus loader_do_start_by_id(
 }
 
 
-static void loader_do_stop_app() {
+static void do_stop_app() {
     loader_lock();
 
     int8_t current_app_index = loader_singleton->app_stack_index;
@@ -301,7 +304,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:
-                    message.result.status_value.value = loader_do_start_by_id(
+                    message.result.status_value.value = do_start_by_id(
                         message.payload.start->id,
                         message.payload.start->bundle
                     );
@@ -311,7 +314,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
                     message.cleanup();
                     break;
                 case LoaderMessageTypeAppStop:
-                    loader_do_stop_app();
+                    do_stop_app();
                     break;
                 case LoaderMessageTypeServiceStop:
                     exit_requested = true;
@@ -331,8 +334,8 @@ static void loader_start(TT_UNUSED Service& service) {
     tt_check(loader_singleton == nullptr);
     loader_singleton = loader_alloc();
 
-    tt_thread_set_priority(loader_singleton->thread, THREAD_PRIORITY_SERVICE);
-    tt_thread_start(loader_singleton->thread);
+    thread_set_priority(loader_singleton->thread, THREAD_PRIORITY_SERVICE);
+    thread_start(loader_singleton->thread);
 }
 
 static void loader_stop(TT_UNUSED Service& service) {
@@ -341,17 +344,19 @@ static void loader_stop(TT_UNUSED Service& service) {
     // Send stop signal to thread and wait for thread to finish
     LoaderMessage message(LoaderMessageTypeServiceStop);
     loader_singleton->queue.put(&message, TtWaitForever);
-    tt_thread_join(loader_singleton->thread);
-    tt_thread_free(loader_singleton->thread);
+    thread_join(loader_singleton->thread);
+    thread_free(loader_singleton->thread);
 
     loader_free();
     loader_singleton = nullptr;
 }
 
-extern const ServiceManifest loader_service = {
+extern const ServiceManifest manifest = {
     .id = "loader",
     .on_start = &loader_start,
     .on_stop = &loader_stop
 };
 
 // endregion
+
+} // namespace

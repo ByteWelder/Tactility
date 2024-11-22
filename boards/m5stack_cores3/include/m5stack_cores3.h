@@ -2,12 +2,4 @@
 
 #include "hardware_config.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern const HardwareConfig m5stack_cores3;
-
-#ifdef __cplusplus
-}
-#endif
+extern const tt::HardwareConfig m5stack_cores3;

@@ -1,14 +1,16 @@
 #include "lvgl_sync.h"
 
-static LvglLock lock_singleton = NULL;
-static LvglUnlock unlock_singleton = NULL;
+namespace tt::lvgl {
 
-void tt_lvgl_sync_set(LvglLock lock, LvglUnlock unlock) {
+static LvglLock lock_singleton = nullptr;
+static LvglUnlock unlock_singleton = nullptr;
+
+void sync_set(LvglLock lock, LvglUnlock unlock) {
     lock_singleton = lock;
     unlock_singleton = unlock;
 }
 
-bool tt_lvgl_lock(uint32_t timeout_ticks) {
+bool lock(uint32_t timeout_ticks) {
     if (lock_singleton) {
         return lock_singleton(timeout_ticks);
     } else {
@@ -16,8 +18,10 @@ bool tt_lvgl_lock(uint32_t timeout_ticks) {
     }
 }
 
-void tt_lvgl_unlock() {
+void unlock() {
     if (unlock_singleton) {
         unlock_singleton();
     }
 }
+
+} // namespace

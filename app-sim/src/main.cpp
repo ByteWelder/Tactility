@@ -1,10 +1,10 @@
-#include "hello_world/hello_world.h"
 #include "tactility.h"
 
-extern const HardwareConfig sim_hardware;
+extern const tt::HardwareConfig sim_hardware;
+extern const tt::AppManifest hello_world_app;
 
 void app_main() {
-    static const Config config = {
+    static const tt::Config config = {
         .hardware = &sim_hardware,
         .apps = {
             &hello_world_app
@@ -13,5 +13,5 @@ void app_main() {
         .auto_start_app_id = nullptr
     };
 
-    tt_init(&config);
+    tt::init(&config);
 }

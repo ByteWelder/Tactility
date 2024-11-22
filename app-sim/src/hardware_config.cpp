@@ -4,7 +4,7 @@
 
 #define TAG "hardware"
 
-extern const Power power;
+extern const tt::Power power;
 
 static bool lvgl_init() {
     lv_init();
@@ -15,7 +15,7 @@ static bool lvgl_init() {
 TT_UNUSED static void lvgl_deinit() {
     lvgl_task_interrupt();
     while (lvgl_task_is_running()) {
-        tt_delay_ms(10);
+        tt::delay_ms(10);
     }
 
 #if LV_ENABLE_GC || !LV_MEM_CUSTOM
@@ -23,7 +23,7 @@ TT_UNUSED static void lvgl_deinit() {
 #endif
 }
 
-extern const HardwareConfig sim_hardware = {
+extern const tt::HardwareConfig sim_hardware = {
     .bootstrap = nullptr,
     .init_graphics = &lvgl_init,
     .display = {

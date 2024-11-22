@@ -11,6 +11,8 @@
 #include "timers.h"
 #endif
 
+namespace tt {
+
 typedef struct {
     TimerCallback func;
     void* context;
@@ -24,8 +26,8 @@ static void timer_callback(TimerHandle_t hTimer) {
     }
 }
 
-Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context) {
-    tt_assert((tt_kernel_is_irq() == 0U) && (func != nullptr));
+Timer* timer_alloc(TimerCallback func, TimerType type, void* context) {
+    tt_assert((kernel_is_irq() == 0U) && (func != nullptr));
     auto* callback = static_cast<TimerCallback_t*>(malloc(sizeof(TimerCallback_t)));
 
     callback->func = func;
@@ -48,8 +50,8 @@ Timer* tt_timer_alloc(TimerCallback func, TimerType type, void* context) {
     return (Timer*)hTimer;
 }
 
-void tt_timer_free(Timer* instance) {
-    tt_assert(!tt_kernel_is_irq());
+void timer_free(Timer* instance) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
 
     auto hTimer = static_cast<TimerHandle_t>(instance);
@@ -57,14 +59,14 @@ void tt_timer_free(Timer* instance) {
 
     tt_check(xTimerDelete(hTimer, portMAX_DELAY) == pdPASS);
 
-    while (tt_timer_is_running(instance)) tt_delay_tick(2);
+    while (timer_is_running(instance)) delay_tick(2);
 
     /* Return allocated memory to dynamic pool */
     free(callback);
 }
 
-TtStatus tt_timer_start(Timer* instance, uint32_t ticks) {
-    tt_assert(!tt_kernel_is_irq());
+TtStatus timer_start(Timer* instance, uint32_t ticks) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
@@ -81,8 +83,8 @@ TtStatus tt_timer_start(Timer* instance, uint32_t ticks) {
     return (stat);
 }
 
-TtStatus tt_timer_restart(Timer* instance, uint32_t ticks) {
-    tt_assert(!tt_kernel_is_irq());
+TtStatus timer_restart(Timer* instance, uint32_t ticks) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
     tt_assert(ticks < portMAX_DELAY);
 
@@ -100,8 +102,8 @@ TtStatus tt_timer_restart(Timer* instance, uint32_t ticks) {
     return (stat);
 }
 
-TtStatus tt_timer_stop(Timer* instance) {
-    tt_assert(!tt_kernel_is_irq());
+TtStatus timer_stop(Timer* instance) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
 
     auto hTimer = static_cast<TimerHandle_t>(instance);
@@ -111,8 +113,8 @@ TtStatus tt_timer_stop(Timer* instance) {
     return TtStatusOk;
 }
 
-uint32_t tt_timer_is_running(Timer* instance) {
-    tt_assert(!tt_kernel_is_irq());
+uint32_t timer_is_running(Timer* instance) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
 
     auto hTimer = static_cast<TimerHandle_t>(instance);
@@ -121,8 +123,8 @@ uint32_t tt_timer_is_running(Timer* instance) {
     return (uint32_t)xTimerIsTimerActive(hTimer);
 }
 
-uint32_t tt_timer_get_expire_time(Timer* instance) {
-    tt_assert(!tt_kernel_is_irq());
+uint32_t timer_get_expire_time(Timer* instance) {
+    tt_assert(!kernel_is_irq());
     tt_assert(instance);
 
     auto hTimer = static_cast<TimerHandle_t>(instance);
@@ -130,18 +132,18 @@ uint32_t tt_timer_get_expire_time(Timer* instance) {
     return (uint32_t)xTimerGetExpiryTime(hTimer);
 }
 
-void tt_timer_pending_callback(TimerPendigCallback callback, void* context, uint32_t arg) {
+void timer_pending_callback(TimerPendigCallback callback, void* context, uint32_t arg) {
     BaseType_t ret = pdFAIL;
-    if (tt_kernel_is_irq()) {
-        ret = xTimerPendFunctionCallFromISR(callback, context, arg, NULL);
+    if (kernel_is_irq()) {
+        ret = xTimerPendFunctionCallFromISR(callback, context, arg, nullptr);
     } else {
         ret = xTimerPendFunctionCall(callback, context, arg, TtWaitForever);
     }
     tt_assert(ret == pdPASS);
 }
 
-void tt_timer_set_thread_priority(TimerThreadPriority priority) {
-    tt_assert(!tt_kernel_is_irq());
+void timer_set_thread_priority(TimerThreadPriority priority) {
+    tt_assert(!kernel_is_irq());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     tt_assert(task_handle); // Don't call this method before timer task start
@@ -154,3 +156,5 @@ void tt_timer_set_thread_priority(TimerThreadPriority priority) {
         tt_crash("Unsupported timer priority");
     }
 }
+
+} // namespace

@@ -17,6 +17,8 @@
 #include "queue.h"
 #endif
 
+namespace tt {
+
 class MessageQueue {
 private:
     QueueHandle_t queue_handle;
@@ -93,3 +95,5 @@ public:
      */
     TtStatus reset();
 };
+
+} // namespace

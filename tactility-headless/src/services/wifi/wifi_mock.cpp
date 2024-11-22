@@ -2,7 +2,6 @@
 
 #ifndef ESP_TARGET
 
-#include "assets.h"
 #include "check.h"
 #include "log.h"
 #include "MessageQueue.h"
@@ -11,6 +10,8 @@
 #include "service.h"
 #include <cstdlib>
 #include <cstring>
+
+namespace tt::service::wifi {
 
 #define TAG "wifi"
 #define WIFI_CONNECTED_BIT BIT0
@@ -37,7 +38,7 @@ static void wifi_unlock(Wifi* wifi);
 
 // region Static
 
-static void wifi_publish_event_simple(Wifi* wifi, WifiEventType type) {
+static void publish_event_simple(Wifi* wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
@@ -66,40 +67,40 @@ static void wifi_free(Wifi* instance) {
 
 // region Public functions
 
-PubSub* wifi_get_pubsub() {
+PubSub* get_pubsub() {
     tt_assert(wifi);
     return wifi->pubsub;
 }
 
-WifiRadioState wifi_get_radio_state() {
+WifiRadioState get_radio_state() {
     return wifi->radio_state;
 }
 
-void wifi_scan() {
+void scan() {
     tt_assert(wifi);
     wifi->scan_active = false; // TODO: enable and then later disable automatically
 }
 
-bool wifi_is_scanning() {
+bool is_scanning() {
     tt_assert(wifi);
     return wifi->scan_active;
 }
 
-void wifi_connect(const WifiApSettings* ap, bool remember) {
+void connect(const settings::WifiApSettings* ap, bool remember) {
     tt_assert(wifi);
     // TODO: implement
 }
 
-void wifi_disconnect() {
+void disconnect() {
     tt_assert(wifi);
 }
 
-void wifi_set_scan_records(uint16_t records) {
+void set_scan_records(uint16_t records) {
     tt_assert(wifi);
     // TODO: implement
 }
 
-void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
     tt_check(wifi);
     tt_check(result_count);
 
@@ -125,7 +126,7 @@ void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* res
     }
 }
 
-void wifi_set_enabled(bool enabled) {
+void set_enabled(bool enabled) {
     tt_assert(wifi != NULL);
     if (enabled) {
         wifi->radio_state = WIFI_RADIO_ON;
@@ -135,11 +136,11 @@ void wifi_set_enabled(bool enabled) {
     }
 }
 
-bool wifi_is_connection_secure() {
+bool is_connection_secure() {
     return wifi->secure_connection;
 }
 
-int wifi_get_rssi() {
+int get_rssi() {
     if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
         return -30;
     } else {
@@ -149,36 +150,38 @@ int wifi_get_rssi() {
 
 // endregion Public functions
 
-static void wifi_lock(Wifi* wifi) {
+static void lock(Wifi* wifi) {
     tt_crash("this fails for now");
     tt_assert(wifi);
     tt_assert(wifi->mutex);
     tt_mutex_acquire(wifi->mutex, 100);
 }
 
-static void wifi_unlock(Wifi* wifi) {
+static void unlock(Wifi* wifi) {
     tt_assert(wifi);
     tt_assert(wifi->mutex);
     tt_mutex_release(wifi->mutex);
 }
 
 
-static void wifi_service_start(TT_UNUSED Service& service) {
+static void service_start(TT_UNUSED Service& service) {
     tt_check(wifi == nullptr);
     wifi = wifi_alloc();
 }
 
-static void wifi_service_stop(TT_UNUSED Service& service) {
+static void service_stop(TT_UNUSED Service& service) {
     tt_check(wifi != nullptr);
 
     wifi_free(wifi);
     wifi = nullptr;
 }
 
-extern const ServiceManifest wifi_service = {
+extern const ServiceManifest manifest = {
     .id = "wifi",
-    .on_start = &wifi_service_start,
-    .on_stop = &wifi_service_stop
+    .on_start = &service_start,
+    .on_stop = &service_stop
 };
+
+} // namespace
 
 #endif // ESP_TARGET

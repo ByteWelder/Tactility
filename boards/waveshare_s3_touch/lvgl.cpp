@@ -5,7 +5,7 @@
 #include "ui/lvgl_sync.h"
 
 bool ws3t_init_lvgl() {
-    tt_lvgl_sync_set(&ws3t_display_lock, &ws3t_display_unlock);
+    tt::lvgl::sync_set(&ws3t_display_lock, &ws3t_display_unlock);
 
     lv_display_t* display = ws3t_display_create();
     if (display == nullptr) {

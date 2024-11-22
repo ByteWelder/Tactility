@@ -3,6 +3,8 @@
 #include "tactility_core.h"
 #include <string>
 
+namespace tt {
+
 class Service;
 
 typedef void (*ServiceOnStart)(Service& service);
@@ -25,3 +27,5 @@ typedef struct ServiceManifest {
     const ServiceOnStop on_stop = nullptr;
 
 } ServiceManifest;
+
+} // namespace

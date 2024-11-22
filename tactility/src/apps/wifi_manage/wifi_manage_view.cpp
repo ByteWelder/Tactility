@@ -7,6 +7,8 @@
 #include "ui/toolbar.h"
 #include "wifi_manage_state.h"
 
+namespace tt::app::wifi_manage {
+
 #define TAG "wifi_main_view"
 #define SPINNER_HEIGHT 40
 
@@ -39,9 +41,9 @@ static void connect(lv_event_t* event) {
     bindings->on_connect_ssid(ssid);
 }
 
-static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, WifiApRecord* record) {
+static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, service::wifi::WifiApRecord* record) {
     const char* ssid = (const char*)record->ssid;
-    const char* icon = wifi_get_status_icon_for_rssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
+    const char* icon = service::statusbar::get_status_icon_for_rssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
     lv_obj_t* ap_button = lv_list_add_btn(
         view->networks_list,
         icon,
@@ -53,10 +55,10 @@ static void create_network_button(WifiManageView* view, WifiManageBindings* bind
 static void update_network_list(WifiManageView* view, WifiManageState* state, WifiManageBindings* bindings) {
     lv_obj_clean(view->networks_list);
     switch (state->radio_state) {
-        case WIFI_RADIO_ON_PENDING:
-        case WIFI_RADIO_ON:
-        case WIFI_RADIO_CONNECTION_PENDING:
-        case WIFI_RADIO_CONNECTION_ACTIVE: {
+        case service::wifi::WIFI_RADIO_ON_PENDING:
+        case service::wifi::WIFI_RADIO_ON:
+        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
+        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE: {
             lv_obj_clear_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
             if (state->ap_records_count > 0) {
                 for (int i = 0; i < state->ap_records_count; ++i) {
@@ -72,8 +74,8 @@ static void update_network_list(WifiManageView* view, WifiManageState* state, Wi
             }
             break;
         }
-        case WIFI_RADIO_OFF_PENDING:
-        case WIFI_RADIO_OFF: {
+        case service::wifi::WIFI_RADIO_OFF_PENDING:
+        case service::wifi::WIFI_RADIO_OFF: {
             lv_obj_add_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
             break;
@@ -82,7 +84,7 @@ static void update_network_list(WifiManageView* view, WifiManageState* state, Wi
 }
 
 void update_scanning(WifiManageView* view, WifiManageState* state) {
-    if (state->radio_state == WIFI_RADIO_ON && state->scanning) {
+    if (state->radio_state == service::wifi::WIFI_RADIO_ON && state->scanning) {
         lv_obj_clear_flag(view->scanning_spinner, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(view->scanning_spinner, LV_OBJ_FLAG_HIDDEN);
@@ -92,18 +94,18 @@ void update_scanning(WifiManageView* view, WifiManageState* state) {
 static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
     lv_obj_clear_state(view->enable_switch, LV_STATE_ANY);
     switch (state->radio_state) {
-        case WIFI_RADIO_ON:
-        case WIFI_RADIO_CONNECTION_PENDING:
-        case WIFI_RADIO_CONNECTION_ACTIVE:
+        case service::wifi::WIFI_RADIO_ON:
+        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
+        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED);
             break;
-        case WIFI_RADIO_ON_PENDING:
+        case service::wifi::WIFI_RADIO_ON_PENDING:
             lv_obj_add_state(view->enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case WIFI_RADIO_OFF:
+        case service::wifi::WIFI_RADIO_OFF:
             lv_obj_remove_state(view->enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case WIFI_RADIO_OFF_PENDING:
+        case service::wifi::WIFI_RADIO_OFF_PENDING:
             lv_obj_remove_state(view->enable_switch, LV_STATE_CHECKED);
             lv_obj_add_state(view->enable_switch, LV_STATE_DISABLED);
             break;
@@ -112,8 +114,8 @@ static void update_wifi_toggle(WifiManageView* view, WifiManageState* state) {
 
 static void update_connected_ap(WifiManageView* view, WifiManageState* state, TT_UNUSED WifiManageBindings* bindings) {
     switch (state->radio_state) {
-        case WIFI_RADIO_CONNECTION_PENDING:
-        case WIFI_RADIO_CONNECTION_ACTIVE:
+        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
+        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             lv_obj_clear_flag(view->connected_ap_container, LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text(view->connected_ap_label, (const char*)state->connect_ssid);
             break;
@@ -127,11 +129,11 @@ static void update_connected_ap(WifiManageView* view, WifiManageState* state, TT
 
 // region Main
 
-void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
+void view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
     view->root = parent;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create_for_app(parent, app);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
@@ -142,8 +144,8 @@ void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* 
     lv_obj_t* switch_container = lv_obj_create(wrapper);
     lv_obj_set_width(switch_container, LV_PCT(100));
     lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(switch_container);
-    tt_lv_obj_set_style_bg_invisible(switch_container);
+    lvgl::obj_set_style_no_padding(switch_container);
+    lvgl::obj_set_style_bg_invisible(switch_container);
 
     lv_obj_t* enable_label = lv_label_create(switch_container);
     lv_label_set_text(enable_label, "Wi-Fi");
@@ -156,7 +158,7 @@ void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* 
     view->connected_ap_container = lv_obj_create(wrapper);
     lv_obj_set_size(view->connected_ap_container, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_min_height(view->connected_ap_container, SPINNER_HEIGHT, 0);
-    tt_lv_obj_set_style_no_padding(view->connected_ap_container);
+    lvgl::obj_set_style_no_padding(view->connected_ap_container);
     lv_obj_set_style_border_width(view->connected_ap_container, 0, 0);
 
     view->connected_ap_label = lv_label_create(view->connected_ap_container);
@@ -173,7 +175,7 @@ void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* 
     lv_obj_t* networks_header = lv_obj_create(wrapper);
     lv_obj_set_size(networks_header, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_min_height(networks_header, SPINNER_HEIGHT, 0);
-    tt_lv_obj_set_style_no_padding(networks_header);
+    lvgl::obj_set_style_no_padding(networks_header);
     lv_obj_set_style_border_width(networks_header, 0, 0);
 
     view->networks_label = lv_label_create(networks_header);
@@ -195,9 +197,11 @@ void wifi_manage_view_create(App app, WifiManageView* view, WifiManageBindings* 
     lv_obj_set_style_pad_bottom(view->networks_list, 8, 0);
 }
 
-void wifi_manage_view_update(WifiManageView* view, WifiManageBindings* bindings, WifiManageState* state) {
+void view_update(WifiManageView* view, WifiManageBindings* bindings, WifiManageState* state) {
     update_wifi_toggle(view, state);
     update_scanning(view, state);
     update_network_list(view, state, bindings);
     update_connected_ap(view, state, bindings);
 }
+
+} // namespace

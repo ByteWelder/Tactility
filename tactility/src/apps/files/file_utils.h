@@ -2,7 +2,9 @@
 
 #include <dirent.h>
 
-/** File types for `dirent`'s `d_type`. */
+namespace tt::app::files {
+
+    /** File types for `dirent`'s `d_type`. */
 enum {
     TT_DT_UNKNOWN = 0,
 #define TT_DT_UNKNOWN TT_DT_UNKNOWN
@@ -34,11 +36,11 @@ typedef int (*ScandirSort)(const struct dirent**, const struct dirent**);
  * @param right right-hand side part for comparison
  * @return 0, -1 or 1
  */
-int	tt_dirent_sort_alpha(const struct dirent** left, const struct dirent** right);
+int	dirent_sort_alpha(const struct dirent** left, const struct dirent** right);
 
-int tt_dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right);
+int dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right);
 
-int tt_dirent_filter_dot_entries(const struct dirent* entry);
+int dirent_filter_dot_entries(const struct dirent* entry);
 
 /**
  * A scandir()-like implementation that works on ESP32.
@@ -52,9 +54,11 @@ int tt_dirent_filter_dot_entries(const struct dirent* entry);
  * @param[in] sort an optional sorting function
  * @return the amount of items that were stored in "output" or -1 when an error occurred
  */
-int tt_scandir(
+int scandir(
     const char* path,
     struct dirent*** output,
     ScandirFilter _Nullable filter,
     ScandirSort _Nullable sort
 );
+
+} // namespace

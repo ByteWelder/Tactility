@@ -4,6 +4,8 @@
 #include "wifi_connect_state.h"
 #include "wifi_connect_bindings.h"
 
+namespace tt::app::wifi_connect {
+
 typedef struct {
     lv_obj_t* ssid_textarea;
     lv_obj_t* ssid_error;
@@ -17,6 +19,8 @@ typedef struct {
     lv_group_t* group;
 } WifiConnectView;
 
-void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent);
-void wifi_connect_view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state);
-void wifi_connect_view_destroy(WifiConnectView* view);
+void view_create(App app, void* wifi, lv_obj_t* parent);
+void view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state);
+void view_destroy(WifiConnectView* view);
+
+} // namespace

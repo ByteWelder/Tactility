@@ -7,7 +7,7 @@
 #define WAVESHARE_I2C_MASTER_TX_BUF_DISABLE 0
 #define WAVESHARE_I2C_MASTER_RX_BUF_DISABLE 0
 
-static esp_err_t i2c_init(void) {
+static esp_err_t i2c_init() {
     const i2c_config_t i2c_conf = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = GPIO_NUM_8,

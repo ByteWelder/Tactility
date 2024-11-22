@@ -12,7 +12,9 @@
 #include "stream_buffer.h"
 #endif
 
-StreamBuffer* tt_stream_buffer_alloc(size_t size, size_t trigger_level) {
+namespace tt {
+
+StreamBuffer* stream_buffer_alloc(size_t size, size_t trigger_level) {
     tt_assert(size != 0);
 
     StreamBufferHandle_t handle = xStreamBufferCreate(size, trigger_level);
@@ -21,17 +23,17 @@ StreamBuffer* tt_stream_buffer_alloc(size_t size, size_t trigger_level) {
     return handle;
 };
 
-void tt_stream_buffer_free(StreamBuffer* stream_buffer) {
+void stream_buffer_free(StreamBuffer* stream_buffer) {
     tt_assert(stream_buffer);
     vStreamBufferDelete((StreamBufferHandle_t)stream_buffer);
 };
 
-bool tt_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level) {
+bool stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level) {
     tt_assert(stream_buffer);
     return xStreamBufferSetTriggerLevel((StreamBufferHandle_t)stream_buffer, trigger_level) == pdTRUE;
 };
 
-size_t tt_stream_buffer_send(
+size_t stream_buffer_send(
     StreamBuffer* stream_buffer,
     const void* data,
     size_t length,
@@ -50,7 +52,7 @@ size_t tt_stream_buffer_send(
     return ret;
 };
 
-size_t tt_stream_buffer_receive(
+size_t stream_buffer_receive(
     StreamBuffer* stream_buffer,
     void* data,
     size_t length,
@@ -69,26 +71,28 @@ size_t tt_stream_buffer_receive(
     return ret;
 }
 
-size_t tt_stream_buffer_bytes_available(StreamBuffer* stream_buffer) {
+size_t stream_buffer_bytes_available(StreamBuffer* stream_buffer) {
     return xStreamBufferBytesAvailable((StreamBufferHandle_t)stream_buffer);
 };
 
-size_t tt_stream_buffer_spaces_available(StreamBuffer* stream_buffer) {
+size_t stream_buffer_spaces_available(StreamBuffer* stream_buffer) {
     return xStreamBufferSpacesAvailable((StreamBufferHandle_t)stream_buffer);
 };
 
-bool tt_stream_buffer_is_full(StreamBuffer* stream_buffer) {
+bool stream_buffer_is_full(StreamBuffer* stream_buffer) {
     return xStreamBufferIsFull((StreamBufferHandle_t)stream_buffer) == pdTRUE;
 };
 
-bool tt_stream_buffer_is_empty(StreamBuffer* stream_buffer) {
+bool stream_buffer_is_empty(StreamBuffer* stream_buffer) {
     return (xStreamBufferIsEmpty((StreamBufferHandle_t)stream_buffer) == pdTRUE);
 };
 
-TtStatus tt_stream_buffer_reset(StreamBuffer* stream_buffer) {
+TtStatus stream_buffer_reset(StreamBuffer* stream_buffer) {
     if (xStreamBufferReset((StreamBufferHandle_t)stream_buffer) == pdPASS) {
         return TtStatusOk;
     } else {
         return TtStatusError;
     }
 }
+
+} // namespace

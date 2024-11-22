@@ -2,7 +2,9 @@
 
 #define TAG "hardware"
 
-void tt_hardware_init(const HardwareConfig* config) {
+namespace tt {
+
+void hardware_init(const HardwareConfig* config) {
     if (config->bootstrap != nullptr) {
         TT_LOG_I(TAG, "Bootstrapping");
         tt_check(config->bootstrap(), "bootstrap failed");
@@ -16,3 +18,5 @@ void tt_hardware_init(const HardwareConfig* config) {
     tt_check(config->init_graphics, "Graphics init not set");
     tt_check(config->init_graphics(), "Graphics init failed");
 }
+
+} // namespace

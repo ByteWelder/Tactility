@@ -4,6 +4,8 @@
 #include "services/wifi/wifi.h"
 #include "wifi_manage_view.h"
 
+namespace tt::app::wifi_manage {
+
 typedef struct {
     PubSubSubscription* wifi_subscription;
     Mutex* mutex;
@@ -13,8 +15,10 @@ typedef struct {
     WifiManageBindings bindings;
 } WifiManage;
 
-void wifi_manage_lock(WifiManage* wifi);
+void lock(WifiManage* wifi);
 
-void wifi_manage_unlock(WifiManage* wifi);
+void unlock(WifiManage* wifi);
 
-void wifi_manage_request_view_update(WifiManage* wifi);
+void request_view_update(WifiManage* wifi);
+
+} // namespace

@@ -15,6 +15,8 @@
 #include "semphr.h"
 #endif
 
+namespace tt {
+
 typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive,
@@ -77,3 +79,5 @@ TtStatus tt_mutex_release(Mutex* mutex);
  */
 [[deprecated("use class")]]
 ThreadId tt_mutex_get_owner(Mutex* mutex);
+
+} // namespace

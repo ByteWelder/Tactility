@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace tt {
+
 #define TAG "service_registry"
 
 typedef std::unordered_map<std::string, const ServiceManifest*> ServiceManifestMap;
@@ -18,7 +20,7 @@ static ServiceInstanceMap service_instance_map;
 static Mutex manifest_mutex(MutexTypeNormal);
 static Mutex instance_mutex(MutexTypeNormal);
 
-void tt_service_registry_add(const ServiceManifest* manifest) {
+void service_registry_add(const ServiceManifest* manifest) {
     TT_LOG_I(TAG, "adding %s", manifest->id.c_str());
 
     manifest_mutex.acquire(TtWaitForever);
@@ -26,7 +28,7 @@ void tt_service_registry_add(const ServiceManifest* manifest) {
     manifest_mutex.release();
 }
 
-const ServiceManifest* _Nullable tt_service_registry_find_manifest_by_id(const std::string& id) {
+const ServiceManifest* _Nullable service_registry_find_manifest_by_id(const std::string& id) {
     manifest_mutex.acquire(TtWaitForever);
     auto iterator = service_manifest_map.find(id);
     _Nullable const ServiceManifest * manifest = iterator != service_manifest_map.end() ? iterator->second : nullptr;
@@ -42,7 +44,7 @@ static Service* _Nullable service_registry_find_instance_by_id(const std::string
     return service;
 }
 
-void tt_service_registry_for_each_manifest(ServiceManifestCallback callback, void* _Nullable context) {
+void service_registry_for_each_manifest(ServiceManifestCallback callback, void* _Nullable context) {
     manifest_mutex.acquire(TtWaitForever);
     for (auto& it : service_manifest_map) {
         callback(it.second, context);
@@ -51,9 +53,9 @@ void tt_service_registry_for_each_manifest(ServiceManifestCallback callback, voi
 }
 
 // TODO: return proper error/status instead of BOOL
-bool tt_service_registry_start(const std::string& id) {
+bool service_registry_start(const std::string& id) {
     TT_LOG_I(TAG, "starting %s", id.c_str());
-    const ServiceManifest* manifest = tt_service_registry_find_manifest_by_id(id);
+    const ServiceManifest* manifest = service_registry_find_manifest_by_id(id);
     if (manifest == nullptr) {
         TT_LOG_E(TAG, "manifest not found for service %s", id.c_str());
         return false;
@@ -70,11 +72,11 @@ bool tt_service_registry_start(const std::string& id) {
     return true;
 }
 
-_Nullable Service* tt_service_find(const std::string& service_id) {
+_Nullable Service* service_find(const std::string& service_id) {
     return (Service*)service_registry_find_instance_by_id(service_id);
 }
 
-bool tt_service_registry_stop(const std::string& id) {
+bool service_registry_stop(const std::string& id) {
     TT_LOG_I(TAG, "stopping %s", id.c_str());
     Service* service = service_registry_find_instance_by_id(id);
     if (service == nullptr) {
@@ -93,3 +95,5 @@ bool tt_service_registry_stop(const std::string& id) {
 
     return true;
 }
+
+} // namespace

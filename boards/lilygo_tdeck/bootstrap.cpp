@@ -74,7 +74,7 @@ bool tdeck_bootstrap() {
      * It doesn't work, because it never recovers from the error.
      */
     TT_LOG_I(TAG, "Waiting after power-on");
-    tt_delay_ms(TDECK_POWERON_DELAY);
+    tt::delay_ms(TDECK_POWERON_DELAY);
 
     TT_LOG_I(TAG, "Init I2C");
     if (!init_i2c()) {

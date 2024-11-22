@@ -1,7 +1,8 @@
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdint>
+
+namespace tt {
 
 typedef bool (*PowerIsCharging)();
 typedef bool (*PowerIsChargingEnabled)();
@@ -16,3 +17,5 @@ typedef struct {
     PowerGetBatteryCharge get_charge_level;
     PowerGetCurrent get_current;
 } Power;
+
+} // namespace tt

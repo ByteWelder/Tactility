@@ -4,18 +4,20 @@
 #include "core_defines.h"
 #include "log.h"
 
+namespace tt {
+
 #define MUTEX_DEBUGGING false
 
 #if MUTEX_DEBUGGING
 #define TAG "mutex"
-void tt_mutex_info(Mutex mutex, const char* label) {
-    MutexData* data = (MutexData*)mutex;
-    if (data == NULL) {
-        TT_LOG_I(TAG, "mutex %s: is NULL", label);
-    } else {
-        TT_LOG_I(TAG, "mutex %s: handle=%0X type=%d owner=%0x", label, data->handle, data->type, tt_mutex_get_owner(mutex));
+    void tt_mutex_info(Mutex mutex, const char* label) {
+        MutexData* data = (MutexData*)mutex;
+        if (data == NULL) {
+            TT_LOG_I(TAG, "mutex %s: is NULL", label);
+        } else {
+            TT_LOG_I(TAG, "mutex %s: handle=%0X type=%d owner=%0x", label, data->handle, data->type, tt_mutex_get_owner(mutex));
+        }
     }
-}
 #else
 #define tt_mutex_info(mutex, text)
 #endif
@@ -129,3 +131,5 @@ TtStatus tt_mutex_release(Mutex* mutex) {
 ThreadId tt_mutex_get_owner(Mutex* mutex) {
     return mutex->getOwner();
 }
+
+} // namespace

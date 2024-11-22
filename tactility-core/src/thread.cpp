@@ -15,6 +15,8 @@
 #include "task.h"
 #endif
 
+namespace tt {
+
 #define TAG "Thread"
 
 #define THREAD_NOTIFY_INDEX 1 // Index 0 is used for stream buffers
@@ -54,7 +56,7 @@ struct Thread {
 };
 
 /** Catch threads that are trying to exit wrong way */
-__attribute__((__noreturn__)) void tt_thread_catch() { //-V1082
+__attribute__((__noreturn__)) void thread_catch() { //-V1082
     // If you're here it means you're probably doing something wrong
     // with critical sections or with scheduler state
     asm volatile("nop");                // extra magic
@@ -62,7 +64,7 @@ __attribute__((__noreturn__)) void tt_thread_catch() { //-V1082
     __builtin_unreachable();
 }
 
-static void tt_thread_set_state(Thread* thread, ThreadState state) {
+static void thread_set_state(Thread* thread, ThreadState state) {
     tt_assert(thread);
     thread->state = state;
     if (thread->state_callback) {
@@ -70,7 +72,7 @@ static void tt_thread_set_state(Thread* thread, ThreadState state) {
     }
 }
 
-static void tt_thread_body(void* context) {
+static void thread_body(void* context) {
     tt_assert(context);
     auto* thread = static_cast<Thread*>(context);
 
@@ -79,7 +81,7 @@ static void tt_thread_body(void* context) {
     vTaskSetThreadLocalStoragePointer(nullptr, 0, thread);
 
     tt_assert(thread->state == ThreadStateStarting);
-    tt_thread_set_state(thread, ThreadStateRunning);
+    thread_set_state(thread, ThreadStateRunning);
 
     thread->ret = thread->callback(thread->context);
 
@@ -93,16 +95,16 @@ static void tt_thread_body(void* context) {
         );
     }
 
-    tt_thread_set_state(thread, ThreadStateStopped);
+    thread_set_state(thread, ThreadStateStopped);
 
     vTaskSetThreadLocalStoragePointer(nullptr, 0, nullptr);
     thread->task_handle = nullptr;
 
     vTaskDelete(nullptr);
-    tt_thread_catch();
+    thread_catch();
 }
 
-Thread* tt_thread_alloc() {
+Thread* thread_alloc() {
     auto* thread = static_cast<Thread*>(malloc(sizeof(Thread)));
     // TODO: create default struct instead of using memset()
     memset(thread, 0, sizeof(Thread));
@@ -114,33 +116,33 @@ Thread* tt_thread_alloc() {
         parent = (Thread*)pvTaskGetThreadLocalStoragePointer(nullptr, 0);
 
         if (parent && parent->appid) {
-            tt_thread_set_appid(thread, parent->appid);
+            thread_set_appid(thread, parent->appid);
         } else {
-            tt_thread_set_appid(thread, "unknown");
+            thread_set_appid(thread, "unknown");
         }
     } else {
         // If scheduler is not started, we are starting driver thread
-        tt_thread_set_appid(thread, "driver");
+        thread_set_appid(thread, "driver");
     }
 
     return thread;
 }
 
-Thread* tt_thread_alloc_ex(
+Thread* thread_alloc_ex(
     const char* name,
     uint32_t stack_size,
     ThreadCallback callback,
     void* context
 ) {
-    Thread* thread = tt_thread_alloc();
-    tt_thread_set_name(thread, name);
-    tt_thread_set_stack_size(thread, stack_size);
-    tt_thread_set_callback(thread, callback);
-    tt_thread_set_context(thread, context);
+    Thread* thread = thread_alloc();
+    thread_set_name(thread, name);
+    thread_set_stack_size(thread, stack_size);
+    thread_set_callback(thread, callback);
+    thread_set_context(thread, context);
     return thread;
 }
 
-void tt_thread_free(Thread* thread) {
+void thread_free(Thread* thread) {
     tt_assert(thread);
 
     // Ensure that use join before free
@@ -153,25 +155,25 @@ void tt_thread_free(Thread* thread) {
     free(thread);
 }
 
-void tt_thread_set_name(Thread* thread, const char* name) {
+void thread_set_name(Thread* thread, const char* name) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     if (thread->name) free(thread->name);
     thread->name = name ? strdup(name) : nullptr;
 }
 
-void tt_thread_set_appid(Thread* thread, const char* appid) {
+void thread_set_appid(Thread* thread, const char* appid) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     if (thread->appid) free(thread->appid);
     thread->appid = appid ? strdup(appid) : nullptr;
 }
 
-void tt_thread_mark_as_static(Thread* thread) {
+void thread_mark_as_static(Thread* thread) {
     thread->is_static = true;
 }
 
-bool tt_thread_mark_is_static(ThreadId thread_id) {
+bool thread_mark_is_static(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     assert(!TT_IS_IRQ_MODE() && (hTask != nullptr));
     auto* thread = (Thread*)pvTaskGetThreadLocalStoragePointer(hTask, 0);
@@ -179,72 +181,72 @@ bool tt_thread_mark_is_static(ThreadId thread_id) {
     return thread->is_static;
 }
 
-void tt_thread_set_stack_size(Thread* thread, size_t stack_size) {
+void thread_set_stack_size(Thread* thread, size_t stack_size) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     tt_assert(stack_size % 4 == 0);
     thread->stack_size = stack_size;
 }
 
-void tt_thread_set_callback(Thread* thread, ThreadCallback callback) {
+void thread_set_callback(Thread* thread, ThreadCallback callback) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     thread->callback = callback;
 }
 
-void tt_thread_set_context(Thread* thread, void* context) {
+void thread_set_context(Thread* thread, void* context) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     thread->context = context;
 }
 
-void tt_thread_set_priority(Thread* thread, ThreadPriority priority) {
+void thread_set_priority(Thread* thread, ThreadPriority priority) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     tt_assert(priority >= 0 && priority <= TT_CONFIG_THREAD_MAX_PRIORITIES);
     thread->priority = priority;
 }
 
-void tt_thread_set_current_priority(ThreadPriority priority) {
+void thread_set_current_priority(ThreadPriority priority) {
     UBaseType_t new_priority = priority ? priority : ThreadPriorityNormal;
     vTaskPrioritySet(nullptr, new_priority);
 }
 
-ThreadPriority tt_thread_get_current_priority() {
+ThreadPriority thread_get_current_priority() {
     return (ThreadPriority)uxTaskPriorityGet(nullptr);
 }
 
-void tt_thread_set_state_callback(Thread* thread, ThreadStateCallback callback) {
+void thread_set_state_callback(Thread* thread, ThreadStateCallback callback) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     thread->state_callback = callback;
 }
 
-void tt_thread_set_state_context(Thread* thread, void* context) {
+void thread_set_state_context(Thread* thread, void* context) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     thread->state_context = context;
 }
 
-ThreadState tt_thread_get_state(Thread* thread) {
+ThreadState thread_get_state(Thread* thread) {
     tt_assert(thread);
     return thread->state;
 }
 
-void tt_thread_start(Thread* thread) {
+void thread_start(Thread* thread) {
     tt_assert(thread);
     tt_assert(thread->callback);
     tt_assert(thread->state == ThreadStateStopped);
     tt_assert(thread->stack_size > 0 && thread->stack_size < (UINT16_MAX * sizeof(StackType_t)));
 
-    tt_thread_set_state(thread, ThreadStateStarting);
+    thread_set_state(thread, ThreadStateStarting);
 
     uint32_t stack = thread->stack_size / sizeof(StackType_t);
     UBaseType_t priority = thread->priority ? thread->priority : ThreadPriorityNormal;
     if (thread->is_static) {
 #if configSUPPORT_STATIC_ALLOCATION == 1
         thread->task_handle = xTaskCreateStatic(
-            tt_thread_body,
+            thread_body,
             thread->name,
             stack,
             thread,
@@ -255,13 +257,13 @@ void tt_thread_start(Thread* thread) {
 #else
         TT_LOG_E(TAG, "static tasks are not supported by current FreeRTOS config/platform - creating regular one");
         BaseType_t ret = xTaskCreate(
-            tt_thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
+            thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
         );
         tt_check(ret == pdPASS);
 #endif
     } else {
         BaseType_t ret = xTaskCreate(
-            tt_thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
+            thread_body, thread->name, stack, thread, priority, &(thread->task_handle)
         );
         tt_check(ret == pdPASS);
     }
@@ -269,48 +271,48 @@ void tt_thread_start(Thread* thread) {
     tt_check(thread->state == ThreadStateStopped || thread->task_handle);
 }
 
-bool tt_thread_join(Thread* thread) {
+bool thread_join(Thread* thread) {
     tt_assert(thread);
 
-    tt_check(tt_thread_get_current() != thread);
+    tt_check(thread_get_current() != thread);
 
     // !!! IMPORTANT NOTICE !!!
     //
     // If your thread exited, but your app stuck here: some other thread uses
     // all cpu time, which delays kernel from releasing task handle
     while (thread->task_handle) {
-        tt_delay_ms(10);
+        delay_ms(10);
     }
 
     return true;
 }
 
-ThreadId tt_thread_get_id(Thread* thread) {
+ThreadId thread_get_id(Thread* thread) {
     tt_assert(thread);
     return thread->task_handle;
 }
 
-int32_t tt_thread_get_return_code(Thread* thread) {
+int32_t thread_get_return_code(Thread* thread) {
     tt_assert(thread);
     tt_assert(thread->state == ThreadStateStopped);
     return thread->ret;
 }
 
-ThreadId tt_thread_get_current_id() {
+ThreadId thread_get_current_id() {
     return xTaskGetCurrentTaskHandle();
 }
 
-Thread* tt_thread_get_current() {
+Thread* thread_get_current() {
     auto* thread = static_cast<Thread*>(pvTaskGetThreadLocalStoragePointer(nullptr, 0));
     return thread;
 }
 
-void tt_thread_yield() {
+void thread_yield() {
     tt_assert(!TT_IS_IRQ_MODE());
     taskYIELD();
 }
 
-uint32_t tt_thread_flags_set(ThreadId thread_id, uint32_t flags) {
+uint32_t thread_flags_set(ThreadId thread_id, uint32_t flags) {
     auto hTask = (TaskHandle_t)thread_id;
     uint32_t rflags;
     BaseType_t yield;
@@ -338,7 +340,7 @@ uint32_t tt_thread_flags_set(ThreadId thread_id, uint32_t flags) {
     return (rflags);
 }
 
-uint32_t tt_thread_flags_clear(uint32_t flags) {
+uint32_t thread_flags_clear(uint32_t flags) {
     TaskHandle_t hTask;
     uint32_t rflags, cflags;
 
@@ -367,7 +369,7 @@ uint32_t tt_thread_flags_clear(uint32_t flags) {
     return (rflags);
 }
 
-uint32_t tt_thread_flags_get() {
+uint32_t thread_flags_get() {
     TaskHandle_t hTask;
     uint32_t rflags;
 
@@ -385,7 +387,7 @@ uint32_t tt_thread_flags_get() {
     return (rflags);
 }
 
-uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
+uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
     uint32_t rflags, nval;
     uint32_t clear;
     TickType_t t0, td, tout;
@@ -455,7 +457,7 @@ uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout
     return (rflags);
 }
 
-const char* tt_thread_get_name(ThreadId thread_id) {
+const char* thread_get_name(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     const char* name;
 
@@ -468,7 +470,7 @@ const char* tt_thread_get_name(ThreadId thread_id) {
     return (name);
 }
 
-const char* tt_thread_get_appid(ThreadId thread_id) {
+const char* thread_get_appid(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     const char* appid = "system";
 
@@ -482,7 +484,7 @@ const char* tt_thread_get_appid(ThreadId thread_id) {
     return (appid);
 }
 
-uint32_t tt_thread_get_stack_space(ThreadId thread_id) {
+uint32_t thread_get_stack_space(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     uint32_t sz;
 
@@ -495,12 +497,12 @@ uint32_t tt_thread_get_stack_space(ThreadId thread_id) {
     return (sz);
 }
 
-void tt_thread_suspend(ThreadId thread_id) {
+void thread_suspend(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     vTaskSuspend(hTask);
 }
 
-void tt_thread_resume(ThreadId thread_id) {
+void thread_resume(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     if (TT_IS_IRQ_MODE()) {
         xTaskResumeFromISR(hTask);
@@ -509,7 +511,9 @@ void tt_thread_resume(ThreadId thread_id) {
     }
 }
 
-bool tt_thread_is_suspended(ThreadId thread_id) {
+bool thread_is_suspended(ThreadId thread_id) {
     auto hTask = (TaskHandle_t)thread_id;
     return eTaskGetState(hTask) == eSuspended;
 }
+
+} // namespace

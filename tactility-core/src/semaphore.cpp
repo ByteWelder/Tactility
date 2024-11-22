@@ -10,6 +10,8 @@
 #include "semphr.h"
 #endif
 
+namespace tt {
+
 Semaphore* tt_semaphore_alloc(uint32_t max_count, uint32_t initial_count) {
     tt_assert(!TT_IS_IRQ_MODE());
     tt_assert((max_count > 0U) && (initial_count <= max_count));
@@ -122,3 +124,5 @@ uint32_t tt_semaphore_get_count(Semaphore* instance) {
     /* Return number of tokens */
     return (count);
 }
+
+} // namespace

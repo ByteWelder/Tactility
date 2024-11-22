@@ -3,14 +3,13 @@
 #include "pubsub.h"
 #include "wifi_globals.h"
 #include "wifi_settings.h"
-#include <stdbool.h>
-#include <stdio.h>
+#include <cstdio>
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
 #include "wifi_settings.h"
 #else
-#include <stdint.h>
+#include <cstdint>
 // From esp_wifi_types.h in ESP-IDF 5.2
 typedef enum {
     WIFI_AUTH_OPEN = 0,         /**< authenticate mode : open */
@@ -30,6 +29,8 @@ typedef enum {
     WIFI_AUTH_MAX
 } wifi_auth_mode_t;
 #endif
+
+namespace tt::service::wifi {
 
 typedef enum {
     /** Radio was turned on */
@@ -73,56 +74,58 @@ typedef struct {
  * @brief Get wifi pubsub
  * @return PubSub*
  */
-PubSub* wifi_get_pubsub();
+PubSub* get_pubsub();
 
-WifiRadioState wifi_get_radio_state();
+WifiRadioState get_radio_state();
 /**
  * @brief Request scanning update. Returns immediately. Results are through pubsub.
  */
-void wifi_scan();
+void scan();
 
 /**
  * @return true if wifi is actively scanning
  */
-bool wifi_is_scanning();
+bool is_scanning();
 
 /**
  * @brief Returns the access points from the last scan (if any). It only contains public APs.
  * @param records the allocated buffer to store the records in
  * @param limit the maximum amount of records to store
  */
-void wifi_get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
+void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
 
 /**
  * @brief Overrides the default scan result size of 16.
  * @param records the record limit for the scan result (84 bytes per record!)
  */
-void wifi_set_scan_records(uint16_t records);
+void set_scan_records(uint16_t records);
 
 /**
  * @brief Enable/disable the radio. Ignores input if desired state matches current state.
  * @param enabled
  */
-void wifi_set_enabled(bool enabled);
+void set_enabled(bool enabled);
 
 /**
  * @brief Connect to a network. Disconnects any existing connection.
  * Returns immediately but runs in the background. Results are through pubsub.
  * @param ap
  */
-void wifi_connect(const WifiApSettings* ap, bool remember);
+void connect(const settings::WifiApSettings* ap, bool remember);
 
 /**
  * @brief Disconnect from the access point. Doesn't have any effect when not connected.
  */
-void wifi_disconnect();
+void disconnect();
 
 /**
  * Return true if the connection isn't unencrypted.
  */
-bool wifi_is_connection_secure();
+bool is_connection_secure();
 
 /**
  * Returns the RSSI value (negative number) or return 1 when not connected
  */
-int wifi_get_rssi();
+int get_rssi();
+
+} // namespace

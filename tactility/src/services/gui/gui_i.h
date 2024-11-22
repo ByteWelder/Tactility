@@ -8,6 +8,8 @@
 #include "view_port_i.h"
 #include <cstdio>
 
+namespace tt::service::gui {
+
 #define GUI_THREAD_FLAG_DRAW (1 << 0)
 #define GUI_THREAD_FLAG_INPUT (1 << 1)
 #define GUI_THREAD_FLAG_EXIT (1 << 2)
@@ -31,10 +33,12 @@ struct Gui {
 };
 
 /** Update GUI, request redraw */
-void gui_request_draw();
+void request_draw();
 
 /** Lock GUI */
-void gui_lock();
+void lock();
 
 /** Unlock GUI */
-void gui_unlock();
+void unlock();
+
+} // namespace

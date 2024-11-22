@@ -3,6 +3,7 @@
 #include "Mutex.h"
 #include <list>
 
+namespace tt {
 
 struct PubSubSubscription {
     uint64_t id;
@@ -79,3 +80,5 @@ void tt_pubsub_publish(PubSub* pubsub, void* message) {
 
     tt_check(tt_mutex_release(pubsub->mutex) == TtStatusOk);
 }
+
+} // namespace

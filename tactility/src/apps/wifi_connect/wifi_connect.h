@@ -6,6 +6,8 @@
 #include "wifi_connect_state.h"
 #include "wifi_connect_view.h"
 
+namespace tt::app::wifi_connect {
+
 typedef struct {
     PubSubSubscription* wifi_subscription;
     Mutex* mutex;
@@ -15,8 +17,10 @@ typedef struct {
     WifiConnectBindings bindings;
 } WifiConnect;
 
-void wifi_connect_lock(WifiConnect* wifi);
+void lock(WifiConnect* wifi);
 
-void wifi_connect_unlock(WifiConnect* wifi);
+void unlock(WifiConnect* wifi);
 
-void wifi_connect_request_view_update(WifiConnect* wifi);
+void view_update(WifiConnect* wifi);
+
+} // namespace

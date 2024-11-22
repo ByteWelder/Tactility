@@ -5,6 +5,8 @@
 #include "app_manifest.h"
 #include "Mutex.h"
 
+namespace tt {
+
 class AppData {
 public:
     Mutex* mutex;
@@ -27,3 +29,5 @@ public:
      */
     void* _Nullable data = nullptr;
 };
+
+} // namespace

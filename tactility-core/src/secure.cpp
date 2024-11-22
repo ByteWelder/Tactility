@@ -3,7 +3,6 @@
 #include "check.h"
 #include "log.h"
 #include "mbedtls/aes.h"
-#include <cstdlib>
 #include <cstring>
 
 #ifdef ESP_PLATFORM
@@ -11,6 +10,8 @@
 #include "esp_mac.h"
 #include "nvs_flash.h"
 #endif
+
+namespace tt::crypt {
 
 #define TAG "secure"
 #define TT_NVS_NAMESPACE "tt_secure"
@@ -123,7 +124,7 @@ static void get_key(uint8_t key[32]) {
 #endif
 }
 
-void tt_secure_get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]) {
+void get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]) {
     memset((void*)iv, 0, 16);
     uint8_t* data_bytes = (uint8_t*)data;
     for (int i = 0; i < data_length; ++i) {
@@ -132,11 +133,11 @@ void tt_secure_get_iv_from_data(const void* data, size_t data_length, uint8_t iv
     }
 }
 
-void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]) {
-    tt_secure_get_iv_from_data((const void*)input, strlen(input), iv);
+void get_iv_from_string(const char* input, uint8_t iv[16]) {
+    get_iv_from_data((const void*)input, strlen(input), iv);
 }
 
-static int tt_aes256_crypt_cbc(
+static int aes256_crypt_cbc(
     const uint8_t key[32],
     int mode,
     size_t length,
@@ -162,7 +163,7 @@ static int tt_aes256_crypt_cbc(
     return result;
 }
 
-int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
+int encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
     tt_check(length % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     get_key(key);
@@ -171,10 +172,10 @@ int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    return tt_aes256_crypt_cbc(key, MBEDTLS_AES_ENCRYPT, length, iv_copy, in_data, out_data);
+    return aes256_crypt_cbc(key, MBEDTLS_AES_ENCRYPT, length, iv_copy, in_data, out_data);
 }
 
-int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
+int decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
     tt_check(length % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     get_key(key);
@@ -183,5 +184,7 @@ int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    return tt_aes256_crypt_cbc(key, MBEDTLS_AES_DECRYPT, length, iv_copy, in_data, out_data);
+    return aes256_crypt_cbc(key, MBEDTLS_AES_DECRYPT, length, iv_copy, in_data, out_data);
 }
+
+} // namespace

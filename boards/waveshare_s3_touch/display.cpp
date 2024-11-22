@@ -30,7 +30,7 @@ static bool lvgl_is_running = false;
 
 bool ws3t_display_lock(uint32_t timeout_ms) {
     assert(lvgl_mux && "lvgl_port_init must be called first");
-    const TickType_t timeout_ticks = (timeout_ms == 0) ? TtWaitForever : pdMS_TO_TICKS(timeout_ms);
+    const TickType_t timeout_ticks = (timeout_ms == 0) ? tt::TtWaitForever : pdMS_TO_TICKS(timeout_ms);
     return xSemaphoreTakeRecursive(lvgl_mux, timeout_ticks) == pdTRUE;
 }
 
@@ -105,9 +105,9 @@ lv_disp_t* ws3t_display_create() {
     lvgl_mux = xSemaphoreCreateRecursiveMutex();
     tt_assert(lvgl_mux);
 
-    Thread* thread = tt_thread_alloc_ex("display_task", 8192, &display_task, nullptr);
-    tt_thread_set_priority(thread, ThreadPriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
-    tt_thread_start(thread);
+    tt::Thread* thread = tt::thread_alloc_ex("display_task", 8192, &display_task, nullptr);
+    tt::thread_set_priority(thread, tt::ThreadPriorityHigh); // TODO: try out THREAD_PRIORITY_RENDER
+    tt::thread_start(thread);
 
     esp_lcd_panel_handle_t panel_handle = NULL;
     esp_lcd_rgb_panel_config_t panel_config = {

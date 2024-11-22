@@ -6,11 +6,13 @@
 #include "tactility_core.h"
 #include "ui/toolbar.h"
 
+namespace tt::app::screenshot {
+
 #define TAG "screenshot_ui"
 
 static void update_mode(ScreenshotUi* ui) {
     lv_obj_t* label = ui->start_stop_button_label;
-    if (tt_screenshot_is_started()) {
+    if (service::screenshot::is_started()) {
         lv_label_set_text(label, "Stop");
     } else {
         lv_label_set_text(label, "Start");
@@ -32,9 +34,9 @@ static void on_mode_set(lv_event_t* event) {
 static void on_start_pressed(lv_event_t* event) {
     auto* ui = static_cast<ScreenshotUi*>(lv_event_get_user_data(event));
 
-    if (tt_screenshot_is_started()) {
+    if (service::screenshot::is_started()) {
         TT_LOG_I(TAG, "Stop screenshot");
-        tt_screenshot_stop();
+        service::screenshot::stop();
     } else {
         uint32_t selected = lv_dropdown_get_selected(ui->mode_dropdown);
         const char* path = lv_textarea_get_text(ui->path_textarea);
@@ -43,13 +45,13 @@ static void on_start_pressed(lv_event_t* event) {
             const char* delay_text = lv_textarea_get_text(ui->delay_textarea);
             int delay = atoi(delay_text);
             if (delay > 0) {
-                tt_screenshot_start_timed(path, delay, 1);
+                service::screenshot::start_timed(path, delay, 1);
             } else {
                 TT_LOG_W(TAG, "Ignored screenshot start because delay was 0");
             }
         } else {
             TT_LOG_I(TAG, "Start app screenshots");
-            tt_screenshot_start_apps(path);
+            service::screenshot::start_apps(path);
         }
     }
 
@@ -71,8 +73,8 @@ static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_align_to(mode_dropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     lv_obj_add_event_cb(mode_dropdown, on_mode_set, LV_EVENT_VALUE_CHANGED, ui);
     ui->mode_dropdown = mode_dropdown;
-    ScreenshotMode mode = tt_screenshot_get_mode();
-    if (mode == ScreenshotModeApps) {
+    service::screenshot::ScreenshotMode mode = service::screenshot::get_mode();
+    if (mode == service::screenshot::ScreenshotModeApps) {
         lv_dropdown_set_selected(mode_dropdown, 1);
     }
 
@@ -103,7 +105,7 @@ static void create_path_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_textarea_set_one_line(path_textarea, true);
     lv_obj_set_flex_grow(path_textarea, 1);
     ui->path_textarea = path_textarea;
-    if (tt_get_platform() == PlatformEsp) {
+    if (get_platform() == PlatformEsp) {
         if (tt_sdcard_get_state() == SdcardStateMounted) {
             lv_textarea_set_text(path_textarea, "A:/sdcard");
         } else {
@@ -151,9 +153,9 @@ static void create_timer_settings_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_label_set_text(delay_unit_label, "seconds");
 }
 
-void create_screenshot_ui(App app, ScreenshotUi* ui, lv_obj_t* parent) {
+void create_ui(App app, ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
+    lv_obj_t* toolbar = lvgl::toolbar_create_for_app(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
@@ -166,8 +168,10 @@ void create_screenshot_ui(App app, ScreenshotUi* ui, lv_obj_t* parent) {
     create_path_ui(ui, wrapper);
     create_timer_settings_ui(ui, wrapper);
 
-    gui_keyboard_add_textarea(ui->delay_textarea);
-    gui_keyboard_add_textarea(ui->path_textarea);
+    service::gui::keyboard_add_textarea(ui->delay_textarea);
+    service::gui::keyboard_add_textarea(ui->path_textarea);
 
     update_mode(ui);
 }
+
+} // namespace

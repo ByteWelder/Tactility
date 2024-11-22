@@ -7,6 +7,8 @@
 #include "ui/style.h"
 #include "ui/toolbar.h"
 
+namespace tt::app::settings::power {
+
 #define TAG "power"
 
 typedef struct {
@@ -27,7 +29,7 @@ static void app_update_ui(App app) {
     uint16_t charge_level_scaled = (int16_t)charge_level * 100 / 255;
     int32_t current = data->power->get_current();
 
-    tt_lvgl_lock(tt_ms_to_ticks(1000));
+    lvgl::lock(ms_to_ticks(1000));
     lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled);
     lv_label_set_text_fmt(data->charge_state, "Charging: %s", charge_state);
     lv_label_set_text_fmt(data->charge_level, "Charge level: %d%%", charge_level_scaled);
@@ -36,7 +38,7 @@ static void app_update_ui(App app) {
 #else
     lv_label_set_text_fmt(data->current, "Current: %d mAh", current);
 #endif
-    tt_lvgl_unlock();
+    lvgl::unlock();
 }
 
 static void on_power_enabled_change(lv_event_t* event) {
@@ -56,7 +58,7 @@ static void on_power_enabled_change(lv_event_t* event) {
 static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    tt_toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create_for_app(parent, app);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
@@ -70,8 +72,8 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_t* switch_container = lv_obj_create(wrapper);
     lv_obj_set_width(switch_container, LV_PCT(100));
     lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(switch_container);
-    tt_lv_obj_set_style_bg_invisible(switch_container);
+    lvgl::obj_set_style_no_padding(switch_container);
+    lvgl::obj_set_style_bg_invisible(switch_container);
 
     lv_obj_t* enable_label = lv_label_create(switch_container);
     lv_label_set_text(enable_label, "Charging enabled");
@@ -87,29 +89,29 @@ static void app_show(App app, lv_obj_t* parent) {
     data->current = lv_label_create(wrapper);
 
     app_update_ui(app);
-    tt_timer_start(data->update_timer, tt_ms_to_ticks(1000));
+    timer_start(data->update_timer, ms_to_ticks(1000));
 }
 
 static void app_hide(TT_UNUSED App app) {
     auto* data = static_cast<AppData*>(tt_app_get_data(app));
-    tt_timer_stop(data->update_timer);
+    timer_stop(data->update_timer);
 }
 
 static void app_start(App app) {
     auto* data = static_cast<AppData*>(malloc(sizeof(AppData)));
     tt_app_set_data(app, data);
-    data->update_timer = tt_timer_alloc(&app_update_ui, TimerTypePeriodic, app);
-    data->power = tt_get_config()->hardware->power;
+    data->update_timer = timer_alloc(&app_update_ui, TimerTypePeriodic, app);
+    data->power = get_config()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
 }
 
 static void app_stop(App app) {
     auto* data = static_cast<AppData*>(tt_app_get_data(app));
-    tt_timer_free(data->update_timer);
+    timer_free(data->update_timer);
     free(data);
 }
 
-extern const AppManifest power_app = {
+extern const AppManifest manifest = {
     .id = "power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
@@ -119,3 +121,5 @@ extern const AppManifest power_app = {
     .on_show = &app_show,
     .on_hide = &app_hide
 };
+
+} // namespace

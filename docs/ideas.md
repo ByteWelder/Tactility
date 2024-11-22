@@ -18,6 +18,7 @@
 - Publish firmwares with upload tool
 - De-duplicate WiFi SSIDs. Use bssid of strongest AP to connect to.
 - Move libs/M5 projects to boards/M5Shared
+- Rewrite screenshot service to become an actual service (that is not auto-started)
 
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.

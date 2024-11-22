@@ -22,6 +22,8 @@
 
 #else
 
+namespace tt {
+
 typedef enum {
     LogLevelError,
     LogLevelWarning,
@@ -30,17 +32,19 @@ typedef enum {
     LogLevelTrace
 } LogLevel;
 
-void tt_log(LogLevel level, const char* tag, const char* format, ...);
+void log(LogLevel level, const char* tag, const char* format, ...);
+
+} // namespace
 
 #define TT_LOG_E(tag, format, ...) \
-    tt_log(LogLevelError, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevelError, tag, format, ##__VA_ARGS__)
 #define TT_LOG_W(tag, format, ...) \
-    tt_log(LogLevelWarning, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevelWarning, tag, format, ##__VA_ARGS__)
 #define TT_LOG_I(tag, format, ...) \
-    tt_log(LogLevelInfo, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevelInfo, tag, format, ##__VA_ARGS__)
 #define TT_LOG_D(tag, format, ...) \
-    tt_log(LogLevelDebug, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevelDebug, tag, format, ##__VA_ARGS__)
 #define TT_LOG_T(tag, format, ...) \
-    tt_log(LOG_LEVEL_TRACE, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevelTrace, tag, format, ##__VA_ARGS__)
 
 #endif // ESP_TARGET

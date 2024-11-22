@@ -3,6 +3,8 @@
 #include <cstdint>
 #include "tactility_core_config.h"
 
+namespace tt {
+
 typedef enum {
     TtWaitForever = 0xFFFFFFFFU,
 } TtWait;
@@ -33,3 +35,5 @@ typedef enum {
         -6,                         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
     TtStatusReserved = 0x7FFFFFFF ///< Prevents enum down-size compiler optimization.
 } TtStatus;
+
+} // namespace

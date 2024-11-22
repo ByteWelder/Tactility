@@ -8,6 +8,8 @@
 #include "MessageQueue.h"
 #include "Mutex.h"
 
+namespace tt {
+
 typedef void (*Callback)(void* data);
 
 class Dispatcher {
@@ -29,3 +31,5 @@ public:
     void dispatch(Callback callback, void* context);
     bool consume(uint32_t timeout_ticks);
 };
+
+} // namespace

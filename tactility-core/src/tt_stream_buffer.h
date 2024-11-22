@@ -17,6 +17,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace tt {
+
 typedef void StreamBuffer;
 
 /**
@@ -30,14 +32,14 @@ typedef void StreamBuffer;
  * before a task that is blocked on the stream buffer to wait for data is moved out of the blocked state.
  * @return The stream buffer instance.
  */
-StreamBuffer* tt_stream_buffer_alloc(size_t size, size_t trigger_level);
+StreamBuffer* stream_buffer_alloc(size_t size, size_t trigger_level);
 
 /**
  * @brief Free stream buffer instance
  * 
  * @param stream_buffer The stream buffer instance.
  */
-void tt_stream_buffer_free(StreamBuffer* stream_buffer);
+void stream_buffer_free(StreamBuffer* stream_buffer);
 
 /**
  * @brief Set trigger level for stream buffer.
@@ -50,7 +52,7 @@ void tt_stream_buffer_free(StreamBuffer* stream_buffer);
  * @return true if trigger level can be be updated (new trigger level was less than or equal to the stream buffer's length). 
  * @return false if trigger level can't be be updated (new trigger level was greater than the stream buffer's length).
  */
-bool tt_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level);
+bool stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level);
 
 /**
  * @brief Sends bytes to a stream buffer. The bytes are copied into the stream buffer.
@@ -66,7 +68,7 @@ bool tt_stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_lev
  * Ignored if called from ISR.
  * @return The number of bytes actually written to the stream buffer. 
  */
-size_t tt_stream_buffer_send(
+size_t stream_buffer_send(
     StreamBuffer* stream_buffer,
     const void* data,
     size_t length,
@@ -88,7 +90,7 @@ size_t tt_stream_buffer_send(
  * Ignored if called from ISR.
  * @return The number of bytes read from the stream buffer, if any. 
  */
-size_t tt_stream_buffer_receive(
+size_t stream_buffer_receive(
     StreamBuffer* stream_buffer,
     void* data,
     size_t length,
@@ -104,7 +106,7 @@ size_t tt_stream_buffer_receive(
  * @return The number of bytes that can be read from the stream buffer before
  * the stream buffer would be empty.
  */
-size_t tt_stream_buffer_bytes_available(StreamBuffer* stream_buffer);
+size_t stream_buffer_bytes_available(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see how much free space it contains, which is
@@ -115,7 +117,7 @@ size_t tt_stream_buffer_bytes_available(StreamBuffer* stream_buffer);
  * @return The number of bytes that can be written to the stream buffer before
  * the stream buffer would be full. 
  */
-size_t tt_stream_buffer_spaces_available(StreamBuffer* stream_buffer);
+size_t stream_buffer_spaces_available(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see if it is full.
@@ -124,7 +126,7 @@ size_t tt_stream_buffer_spaces_available(StreamBuffer* stream_buffer);
  * @return true if the stream buffer is full.
  * @return false if the stream buffer is not full.
  */
-bool tt_stream_buffer_is_full(StreamBuffer* stream_buffer);
+bool stream_buffer_is_full(StreamBuffer* stream_buffer);
 
 /**
  * @brief Queries a stream buffer to see if it is empty.
@@ -146,3 +148,5 @@ bool tt_stream_buffer_is_empty(StreamBuffer* stream_buffer);
  * from the stream buffer then the stream buffer is not reset.
  */
 TtStatus tt_stream_buffer_reset(StreamBuffer* stream_buffer);
+
+} // namespace

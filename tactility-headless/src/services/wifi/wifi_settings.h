@@ -2,6 +2,8 @@
 
 #include "wifi_globals.h"
 
+namespace tt::service::wifi::settings {
+
 /**
  * This struct is stored as-is into NVS flash.
  *
@@ -14,12 +16,12 @@ typedef struct {
     bool auto_connect;
 } WifiApSettings;
 
-void tt_wifi_settings_init();
+bool contains(const char* ssid);
 
-bool tt_wifi_settings_contains(const char* ssid);
+bool load(const char* ssid, WifiApSettings* settings);
 
-bool tt_wifi_settings_load(const char* ssid, WifiApSettings* settings);
+bool save(const WifiApSettings* settings);
 
-bool tt_wifi_settings_save(const WifiApSettings* settings);
+bool remove(const char* ssid);
 
-bool tt_wifi_settings_remove(const char* ssid);
+} // namespace

@@ -16,7 +16,7 @@ bool tdeck_init_lvgl() {
     static esp_lcd_touch_handle_t touch_handle;
 
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = THREAD_PRIORITY_RENDER,
+        .task_priority = tt::THREAD_PRIORITY_RENDER,
         .task_stack = TDECK_LVGL_TASK_STACK_DEPTH,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,
@@ -59,7 +59,7 @@ bool tdeck_init_lvgl() {
     }
 
     // Set syncing functions
-    tt_lvgl_sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
 
     keyboard_alloc(display);
 

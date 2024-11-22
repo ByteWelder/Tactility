@@ -1,7 +1,9 @@
 #include "string_utils.h"
-#include <string.h>
+#include <cstring>
 
-int tt_string_find_last_index(const char* text, size_t from_index, char find) {
+namespace tt {
+
+int string_find_last_index(const char* text, size_t from_index, char find) {
     for (size_t i = from_index; i >= 0; i--) {
         if (text[i] == find) {
             return (int)i;
@@ -10,8 +12,8 @@ int tt_string_find_last_index(const char* text, size_t from_index, char find) {
     return -1;
 }
 
-bool tt_string_get_path_parent(const char* path, char* output) {
-    int index = tt_string_find_last_index(path, strlen(path) - 1, '/');
+bool string_get_path_parent(const char* path, char* output) {
+    int index = string_find_last_index(path, strlen(path) - 1, '/');
     if (index == -1) {
         return false;
     } else if (index == 0) {
@@ -24,3 +26,5 @@ bool tt_string_get_path_parent(const char* path, char* output) {
         return true;
     }
 }
+
+} // namespace

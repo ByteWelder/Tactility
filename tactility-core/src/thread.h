@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace tt {
+
 /** ThreadState */
 typedef enum {
     ThreadStateStopped,
@@ -57,7 +59,7 @@ typedef void (*ThreadStateCallback)(ThreadState state, void* context);
  *
  * @return     Thread instance
  */
-Thread* tt_thread_alloc();
+Thread* thread_alloc();
 
 /** Allocate Thread, shortcut version
  * 
@@ -67,7 +69,7 @@ Thread* tt_thread_alloc();
  * @param context 
  * @return Thread*
  */
-Thread* tt_thread_alloc_ex(
+Thread* thread_alloc_ex(
     const char* name,
     uint32_t stack_size,
     ThreadCallback callback,
@@ -80,14 +82,14 @@ Thread* tt_thread_alloc_ex(
  *
  * @param      thread  Thread instance
  */
-void tt_thread_free(Thread* thread);
+void thread_free(Thread* thread);
 
 /** Set Thread name
  *
  * @param      thread  Thread instance
  * @param      name    string
  */
-void tt_thread_set_name(Thread* thread, const char* name);
+void thread_set_name(Thread* thread, const char* name);
 
 /**
  * @brief Set Thread appid
@@ -97,68 +99,68 @@ void tt_thread_set_name(Thread* thread, const char* name);
  * @param thread 
  * @param appid 
  */
-void tt_thread_set_appid(Thread* thread, const char* appid);
+void thread_set_appid(Thread* thread, const char* appid);
 
 /** Mark thread as service
  * The service cannot be stopped or removed, and cannot exit from the thread body
  * 
  * @param thread 
  */
-void tt_thread_mark_as_static(Thread* thread);
+void thread_mark_as_static(Thread* thread);
 
 /** Set Thread stack size
  *
  * @param      thread      Thread instance
  * @param      stack_size  stack size in bytes
  */
-void tt_thread_set_stack_size(Thread* thread, size_t stack_size);
+void thread_set_stack_size(Thread* thread, size_t stack_size);
 
 /** Set Thread callback
  *
  * @param      thread    Thread instance
  * @param      callback  ThreadCallback, called upon thread run
  */
-void tt_thread_set_callback(Thread* thread, ThreadCallback callback);
+void thread_set_callback(Thread* thread, ThreadCallback callback);
 
 /** Set Thread context
  *
  * @param      thread   Thread instance
  * @param      context  pointer to context for thread callback
  */
-void tt_thread_set_context(Thread* thread, void* context);
+void thread_set_context(Thread* thread, void* context);
 
 /** Set Thread priority
  *
  * @param      thread   Thread instance
  * @param      priority ThreadPriority value
  */
-void tt_thread_set_priority(Thread* thread, ThreadPriority priority);
+void thread_set_priority(Thread* thread, ThreadPriority priority);
 
 /** Set current thread priority
  *
  * @param      priority ThreadPriority value
  */
-void tt_thread_set_current_priority(ThreadPriority priority);
+void thread_set_current_priority(ThreadPriority priority);
 
 /** Get current thread priority
  *
  * @return     ThreadPriority value
  */
-ThreadPriority tt_thread_get_current_priority();
+ThreadPriority thread_get_current_priority();
 
 /** Set Thread state change callback
  *
  * @param      thread    Thread instance
  * @param      callback  state change callback
  */
-void tt_thread_set_state_callback(Thread* thread, ThreadStateCallback callback);
+void thread_set_state_callback(Thread* thread, ThreadStateCallback callback);
 
 /** Set Thread state change context
  *
  * @param      thread   Thread instance
  * @param      context  pointer to context
  */
-void tt_thread_set_state_context(Thread* thread, void* context);
+void thread_set_state_context(Thread* thread, void* context);
 
 /** Get Thread state
  *
@@ -166,13 +168,13 @@ void tt_thread_set_state_context(Thread* thread, void* context);
  *
  * @return     thread state from ThreadState
  */
-ThreadState tt_thread_get_state(Thread* thread);
+ThreadState thread_get_state(Thread* thread);
 
 /** Start Thread
  *
  * @param      thread  Thread instance
  */
-void tt_thread_start(Thread* thread);
+void thread_start(Thread* thread);
 
 /** Join Thread
  *
@@ -183,7 +185,7 @@ void tt_thread_start(Thread* thread);
  *
  * @return     bool
  */
-bool tt_thread_join(Thread* thread);
+bool thread_join(Thread* thread);
 
 /** Get FreeRTOS ThreadId for Thread instance
  *
@@ -191,7 +193,7 @@ bool tt_thread_join(Thread* thread);
  *
  * @return     ThreadId or NULL
  */
-ThreadId tt_thread_get_id(Thread* thread);
+ThreadId thread_get_id(Thread* thread);
 
 /** Get thread return code
  *
@@ -199,7 +201,7 @@ ThreadId tt_thread_get_id(Thread* thread);
  *
  * @return     return code
  */
-int32_t tt_thread_get_return_code(Thread* thread);
+int32_t thread_get_return_code(Thread* thread);
 
 /** Thread related methods that doesn't involve Thread directly */
 
@@ -209,24 +211,24 @@ int32_t tt_thread_get_return_code(Thread* thread);
  *
  * @return     ThreadId or NULL
  */
-ThreadId tt_thread_get_current_id();
+ThreadId thread_get_current_id();
 
 /** Get Thread instance for current thread
  * 
  * @return pointer to Thread or NULL if this thread doesn't belongs to Tactility
  */
-Thread* tt_thread_get_current();
+Thread* thread_get_current();
 
 /** Return control to scheduler */
-void tt_thread_yield();
+void thread_yield();
 
-uint32_t tt_thread_flags_set(ThreadId thread_id, uint32_t flags);
+uint32_t thread_flags_set(ThreadId thread_id, uint32_t flags);
 
-uint32_t tt_thread_flags_clear(uint32_t flags);
+uint32_t thread_flags_clear(uint32_t flags);
 
-uint32_t tt_thread_flags_get();
+uint32_t thread_flags_get();
 
-uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout);
+uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout);
 
 /**
  * @brief Get thread name
@@ -234,7 +236,7 @@ uint32_t tt_thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout
  * @param thread_id 
  * @return const char* name or NULL
  */
-const char* tt_thread_get_name(ThreadId thread_id);
+const char* thread_get_name(ThreadId thread_id);
 
 /**
  * @brief Get thread appid
@@ -242,7 +244,7 @@ const char* tt_thread_get_name(ThreadId thread_id);
  * @param thread_id 
  * @return const char* appid
  */
-const char* tt_thread_get_appid(ThreadId thread_id);
+const char* thread_get_appid(ThreadId thread_id);
 
 /**
  * @brief Get thread stack watermark
@@ -250,30 +252,32 @@ const char* tt_thread_get_appid(ThreadId thread_id);
  * @param thread_id 
  * @return uint32_t 
  */
-uint32_t tt_thread_get_stack_space(ThreadId thread_id);
+uint32_t thread_get_stack_space(ThreadId thread_id);
 
 /** Suspend thread
  * 
  * @param thread_id thread id
  */
-void tt_thread_suspend(ThreadId thread_id);
+void thread_suspend(ThreadId thread_id);
 
 /** Resume thread
  * 
  * @param thread_id thread id
  */
-void tt_thread_resume(ThreadId thread_id);
+void thread_resume(ThreadId thread_id);
 
 /** Get thread suspended state
  * 
  * @param thread_id thread id
  * @return true if thread is suspended
  */
-bool tt_thread_is_suspended(ThreadId thread_id);
+bool thread_is_suspended(ThreadId thread_id);
 
 /** Check if the thread was created with static memory
  *
  * @param thread_id  thread id
  * @return true if thread memory is static
  */
-bool tt_thread_mark_is_static(ThreadId thread_id);
+bool thread_mark_is_static(ThreadId thread_id);
+
+} // namespace

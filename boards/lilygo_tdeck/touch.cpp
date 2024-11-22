@@ -44,9 +44,9 @@ bool tdeck_init_touch(esp_lcd_panel_io_handle_t* io_handle, esp_lcd_touch_handle
             .mirror_x = 1,
             .mirror_y = 0,
         },
-        .process_coordinates = NULL,
-        .interrupt_callback = NULL,
-        .user_data = NULL
+        .process_coordinates = nullptr,
+        .interrupt_callback = nullptr,
+        .user_data = nullptr
     };
 
     if (esp_lcd_touch_new_i2c_gt911(*io_handle, &config, touch_handle) != ESP_OK) {

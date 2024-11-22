@@ -2,4 +2,8 @@
 
 #include "hardware_config.h"
 
-void tt_lvgl_init(const HardwareConfig* config);
+namespace tt {
+
+void lvgl_init(const HardwareConfig* config);
+
+} // namespace

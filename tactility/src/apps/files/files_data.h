@@ -3,6 +3,8 @@
 #include <dirent.h>
 #include "lvgl.h"
 
+namespace tt::app::files {
+
 #define MAX_PATH_LENGTH 256
 
 typedef struct {
@@ -10,10 +12,12 @@ typedef struct {
     struct dirent** dir_entries;
     int dir_entries_count;
     lv_obj_t* list;
-} FilesData;
+} Data;
 
-FilesData* files_data_alloc();
-void files_data_free(FilesData* data);
-void files_data_free_entries(FilesData* data);
-bool files_data_set_entries_for_child_path(FilesData* data, const char* child_path);
-bool files_data_set_entries_for_path(FilesData* data, const char* path);
+Data* data_alloc();
+void data_free(Data* data);
+void data_free_entries(Data* data);
+bool data_set_entries_for_child_path(Data* data, const char* child_path);
+bool data_set_entries_for_path(Data* data, const char* path);
+
+} // namespace

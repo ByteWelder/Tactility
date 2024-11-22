@@ -21,20 +21,22 @@
 #include <cstdio>
 #include <cstdint>
 
+namespace tt::crypt {
+
 /**
  * @brief Fills the IV with zeros and then creates an IV based on the input data.
  * @param data input data
  * @param data_length input data length
  * @param iv output IV
  */
-void tt_secure_get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]);
+void get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]);
 
 /**
 * @brief Fills the IV with zeros and then creates an IV based on the input data.
  * @param input input text
  * @param iv output IV
  */
-void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]);
+void get_iv_from_string(const char* input, uint8_t iv[16]);
 
 /**
  * @brief Encrypt data.
@@ -48,7 +50,7 @@ void tt_secure_get_iv_from_string(const char* input, uint8_t iv[16]);
  * @param length data length, a multiple of 16
  * @return the result of esp_aes_crypt_cbc() (MBEDTLS_ERR_*)
  */
-int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length);
+int encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length);
 
 /**
  * @brief Decrypt data.
@@ -62,4 +64,6 @@ int tt_secure_encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data,
  * @param length data length, a multiple of 16
  * @return the result of esp_aes_crypt_cbc() (MBEDTLS_ERR_*)
  */
-int tt_secure_decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length);
+int decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length);
+
+} // namespace

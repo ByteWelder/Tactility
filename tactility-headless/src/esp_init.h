@@ -2,6 +2,10 @@
 
 #ifdef ESP_TARGET
 
-void tt_esp_init();
+namespace tt {
+
+void esp_init();
+
+} // namespace
 
 #endif // ESP_TARGET

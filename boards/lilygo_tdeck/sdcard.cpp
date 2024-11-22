@@ -132,18 +132,18 @@ static bool sdcard_is_mounted(void* context) {
      * Writing and reading to the bus from 2 devices at the same time causes crashes.
      * This work-around ensures that this check is only happening when LVGL isn't rendering.
      */
-    if (tt_lvgl_lock(100)) {
+    if (tt::lvgl::lock(100)) {
         bool result = (data != nullptr) && (sdmmc_get_status(data->card) == ESP_OK);
-        tt_lvgl_unlock();
+        tt::lvgl::unlock();
         return result;
     } else {
         return false;
     }
 }
 
-extern const SdCard tdeck_sdcard = {
+extern const tt::SdCard tdeck_sdcard = {
     .mount = &sdcard_init_and_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = SdcardMountBehaviourAtBoot
+    .mount_behaviour = tt::SdcardMountBehaviourAtBoot
 };

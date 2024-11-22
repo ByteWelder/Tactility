@@ -4,6 +4,8 @@
 #include "tactility.h"
 #include "ui/toolbar.h"
 
+namespace tt::app::system_info {
+
 static size_t get_heap_free() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
@@ -64,9 +66,9 @@ static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, siz
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
-static void app_show(App app, lv_obj_t* parent) {
+static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create_for_app(parent, app);
 
     // This wrapper automatically has its children added vertically underneath eachother
     lv_obj_t* wrapper = lv_obj_create(parent);
@@ -100,12 +102,15 @@ static void app_show(App app, lv_obj_t* parent) {
 
 }
 
-extern const AppManifest system_info_app = {
+extern const AppManifest manifest = {
     .id = "systeminfo",
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
     .type = AppTypeSystem,
     .on_start = nullptr,
     .on_stop = nullptr,
-    .on_show = &app_show
+    .on_show = &on_show
 };
+
+} // namespace
+

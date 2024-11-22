@@ -40,7 +40,7 @@ static void* sdcard_mount(const char* mount_point) {
         } else {
             TT_LOG_E(TAG, "Mounting failed (%s)", esp_err_to_name(ret));
         }
-        return NULL;
+        return nullptr;
     }
 
     auto* data = static_cast<MountData*>(malloc(sizeof(MountData)));
@@ -71,9 +71,9 @@ static bool sdcard_is_mounted(void* context) {
     return (data != nullptr) && (sdmmc_get_status(data->card) == ESP_OK);
 }
 
-extern const SdCard m5stack_cores3_sdcard = {
+extern const tt::SdCard m5stack_cores3_sdcard = {
     .mount = &sdcard_mount,
     .unmount = &sdcard_unmount,
     .is_mounted = &sdcard_is_mounted,
-    .mount_behaviour = SdcardMountBehaviourAnytime
+    .mount_behaviour = tt::SdcardMountBehaviourAnytime
 };

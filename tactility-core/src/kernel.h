@@ -2,6 +2,8 @@
 
 #include "core_types.h"
 
+namespace tt {
+
 typedef enum {
     PlatformEsp,
     PlatformPc
@@ -22,13 +24,13 @@ typedef enum {
  * 
  * @return     true if CPU is in IRQ or kernel running and IRQ is masked
  */
-bool tt_kernel_is_irq();
+bool kernel_is_irq();
 
 /** Check if kernel is running
  *
  * @return     true if running, false otherwise
  */
-bool tt_kernel_is_running();
+bool kernel_is_running();
 
 /** Lock kernel, pause process scheduling
  *
@@ -36,7 +38,7 @@ bool tt_kernel_is_running();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t tt_kernel_lock();
+int32_t kernel_lock();
 
 /** Unlock kernel, resume process scheduling
  *
@@ -44,7 +46,7 @@ int32_t tt_kernel_lock();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t tt_kernel_unlock();
+int32_t kernel_unlock();
 
 /** Restore kernel lock state
  *
@@ -54,13 +56,13 @@ int32_t tt_kernel_unlock();
  *
  * @return     new lock state or error
  */
-int32_t tt_kernel_restore_lock(int32_t lock);
+int32_t kernel_restore_lock(int32_t lock);
 
 /** Get kernel systick frequency
  *
  * @return     systick counts per second
  */
-uint32_t tt_kernel_get_tick_frequency();
+uint32_t kernel_get_tick_frequency();
 
 /** Delay execution
  *
@@ -70,7 +72,7 @@ uint32_t tt_kernel_get_tick_frequency();
  *
  * @param[in]  ticks  The ticks count to pause
  */
-void tt_delay_tick(uint32_t ticks);
+void delay_tick(uint32_t ticks);
 
 /** Delay until tick
  *
@@ -80,14 +82,14 @@ void tt_delay_tick(uint32_t ticks);
  *
  * @return     The status.
  */
-TtStatus tt_delay_until_tick(uint32_t tick);
+TtStatus delay_until_tick(uint32_t tick);
 
 /** Convert milliseconds to ticks
  *
  * @param[in]   milliseconds    time in milliseconds
  * @return      time in ticks
  */
-uint32_t tt_ms_to_ticks(uint32_t milliseconds);
+uint32_t ms_to_ticks(uint32_t milliseconds);
 
 /** Delay in milliseconds
  * 
@@ -100,7 +102,7 @@ uint32_t tt_ms_to_ticks(uint32_t milliseconds);
  *
  * @param[in]  milliseconds  milliseconds to wait
  */
-void tt_delay_ms(uint32_t milliseconds);
+void delay_ms(uint32_t milliseconds);
 
 /** Delay in microseconds
  *
@@ -108,6 +110,8 @@ void tt_delay_ms(uint32_t milliseconds);
  *
  * @param[in]  microseconds  microseconds to wait
  */
-void tt_delay_us(uint32_t microseconds);
+void delay_us(uint32_t microseconds);
 
-Platform tt_get_platform();
+Platform get_platform();
+
+} // namespace

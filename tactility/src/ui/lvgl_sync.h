@@ -1,12 +1,15 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstdio>
+#include <cstdint>
+
+namespace tt::lvgl {
 
 typedef bool (*LvglLock)(uint32_t timeout_ticks);
 typedef void (*LvglUnlock)();
 
-void tt_lvgl_sync_set(LvglLock lock, LvglUnlock unlock);
-bool tt_lvgl_lock(uint32_t timeout_ticks);
-void tt_lvgl_unlock();
+void sync_set(LvglLock lock, LvglUnlock unlock);
+bool lock(uint32_t timeout_ticks);
+void unlock();
+
+} // namespace

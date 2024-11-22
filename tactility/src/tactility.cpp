@@ -6,61 +6,66 @@
 #include "services/loader/loader.h"
 #include "tactility_headless.h"
 
+namespace tt {
+
 #define TAG "tactility"
 
 static const Config* config_instance = NULL;
 
 // region Default services
 
-extern const ServiceManifest gui_service;
-extern const ServiceManifest loader_service;
-extern const ServiceManifest screenshot_service;
-extern const ServiceManifest sdcard_service;
-extern const ServiceManifest wifi_service;
-extern const ServiceManifest statusbar_updater_service;
+namespace service {
+    namespace gui { extern const ServiceManifest manifest; }
+    namespace loader { extern const ServiceManifest manifest; }
+    namespace screenshot { extern const ServiceManifest manifest; }
+    namespace statusbar { extern const ServiceManifest manifest; }
+}
 
 static const ServiceManifest* const system_services[] = {
-    &loader_service,
-    &gui_service, // depends on loader service
+    &service::loader::manifest,
+    &service::gui::manifest, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
-    &screenshot_service,
+    &service::screenshot::manifest,
 #endif
-    &statusbar_updater_service
+    &service::statusbar::manifest
 };
 
 // endregion
 
 // region Default apps
 
-extern const AppManifest desktop_app;
-extern const AppManifest display_app;
-extern const AppManifest files_app;
-extern const AppManifest gpio_app;
-extern const AppManifest image_viewer_app;
-extern const AppManifest power_app;
-extern const AppManifest settings_app;
-extern const AppManifest system_info_app;
-extern const AppManifest text_viewer_app;
-extern const AppManifest wifi_connect_app;
-extern const AppManifest wifi_manage_app;
+namespace app {
+    namespace desktop { extern const AppManifest manifest; }
+    namespace files { extern const AppManifest manifest; }
+    namespace gpio { extern const AppManifest manifest; }
+    namespace image_viewer { extern const AppManifest manifest; }
+    namespace screenshot { extern const AppManifest manifest; }
+    namespace settings { extern const AppManifest manifest; }
+    namespace settings::display { extern const AppManifest manifest; }
+    namespace settings::power { extern const AppManifest manifest; }
+    namespace system_info { extern const AppManifest manifest; }
+    namespace text_viewer { extern const AppManifest manifest; }
+    namespace wifi_connect { extern const AppManifest manifest; }
+    namespace wifi_manage { extern const AppManifest manifest; }
+}
 
 #ifndef ESP_PLATFORM
 extern const AppManifest screenshot_app;
 #endif
 
 static const AppManifest* const system_apps[] = {
-    &desktop_app,
-    &display_app,
-    &files_app,
-    &gpio_app,
-    &image_viewer_app,
-    &settings_app,
-    &system_info_app,
-    &text_viewer_app,
-    &wifi_connect_app,
-    &wifi_manage_app,
+    &app::desktop::manifest,
+    &app::files::manifest,
+    &app::gpio::manifest,
+    &app::image_viewer::manifest,
+    &app::settings::manifest,
+    &app::settings::display::manifest,
+    &app::system_info::manifest,
+    &app::text_viewer::manifest,
+    &app::wifi_connect::manifest,
+    &app::wifi_manage::manifest,
 #ifndef ESP_PLATFORM
-    &screenshot_app, // Screenshots don't work yet on ESP32
+    &app::screenshot::manifest, // Screenshots don't work yet on ESP32
 #endif
 };
 
@@ -71,11 +76,11 @@ static void register_system_apps() {
 
     int app_count = sizeof(system_apps) / sizeof(AppManifest*);
     for (int i = 0; i < app_count; ++i) {
-        tt_app_manifest_registry_add(system_apps[i]);
+        app_manifest_registry_add(system_apps[i]);
     }
 
-    if (tt_get_config()->hardware->power != nullptr) {
-        tt_app_manifest_registry_add(&power_app);
+    if (get_config()->hardware->power != nullptr) {
+        app_manifest_registry_add(&app::settings::power::manifest);
     }
 }
 
@@ -84,7 +89,7 @@ static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMI
     for (size_t i = 0; i < TT_CONFIG_APPS_LIMIT; i++) {
         const AppManifest* manifest = apps[i];
         if (manifest != nullptr) {
-            tt_app_manifest_registry_add(manifest);
+            app_manifest_registry_add(manifest);
         } else {
             // reached end of list
             break;
@@ -96,8 +101,8 @@ static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
     int app_count = sizeof(system_services) / sizeof(ServiceManifest*);
     for (int i = 0; i < app_count; ++i) {
-        tt_service_registry_add(system_services[i]);
-        tt_check(tt_service_registry_start(system_services[i]->id));
+        service_registry_add(system_services[i]);
+        tt_check(service_registry_start(system_services[i]->id));
     }
 }
 
@@ -106,26 +111,27 @@ static void register_and_start_user_services(const ServiceManifest* const servic
     for (size_t i = 0; i < TT_CONFIG_SERVICES_LIMIT; i++) {
         const ServiceManifest* manifest = services[i];
         if (manifest != nullptr) {
-            tt_service_registry_add(manifest);
-            tt_check(tt_service_registry_start(manifest->id));
+            service_registry_add(manifest);
+            tt_check(service_registry_start(manifest->id));
         } else {
             // reached end of list
             break;
         }
     }
 }
-void tt_init(const Config* config) {
-    TT_LOG_I(TAG, "tt_init started");
+
+void init(const Config* config) {
+    TT_LOG_I(TAG, "init started");
 
 
     // Assign early so starting services can use it
     config_instance = config;
 
-    tt_headless_init(config->hardware);
+    headless_init(config->hardware);
 
-    tt_lvgl_init(config->hardware);
+    lvgl_init(config->hardware);
 
-    tt_app_manifest_registry_init();
+    app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can find them if needed
@@ -138,17 +144,19 @@ void tt_init(const Config* config) {
     // Now we register the user apps, as they might rely on the user services.
     register_user_apps(config->apps);
 
-    TT_LOG_I(TAG, "tt_init starting desktop app");
-    loader_start_app(desktop_app.id, true, Bundle());
+    TT_LOG_I(TAG, "init starting desktop app");
+    service::loader::start_app(app::desktop::manifest.id, true, Bundle());
 
     if (config->auto_start_app_id) {
-        TT_LOG_I(TAG, "tt_init auto-starting %s", config->auto_start_app_id);
-        loader_start_app(config->auto_start_app_id, true, Bundle());
+        TT_LOG_I(TAG, "init auto-starting %s", config->auto_start_app_id);
+        service::loader::start_app(config->auto_start_app_id, true, Bundle());
     }
 
-    TT_LOG_I(TAG, "tt_init complete");
+    TT_LOG_I(TAG, "init complete");
 }
 
-const Config* _Nullable tt_get_config() {
+const Config* _Nullable get_config() {
     return config_instance;
 }
+
+} // namespace

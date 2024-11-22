@@ -10,7 +10,9 @@
 #include <sys/time.h>
 #endif
 
-static char tt_loglevel_to_prefix(LogLevel level) {
+namespace tt {
+
+static char loglevel_to_prefix(LogLevel level) {
     switch (level) {
         case LogLevelError:
             return 'E';
@@ -27,7 +29,7 @@ static char tt_loglevel_to_prefix(LogLevel level) {
     }
 }
 
-static const char* tt_loglevel_to_colour(LogLevel level) {
+static const char* loglevel_to_colour(LogLevel level) {
     switch (level) {
         case LogLevelError:
             return "\033[1;31m";
@@ -44,7 +46,7 @@ static const char* tt_loglevel_to_colour(LogLevel level) {
     }
 }
 
-uint64_t tt_log_timestamp() {
+uint64_t log_timestamp() {
 #ifdef ESP_PLATFORM
     if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED) {
         return clock() / CLOCKS_PER_SEC * 1000;
@@ -68,12 +70,12 @@ uint64_t tt_log_timestamp() {
 #endif
 }
 
-void tt_log(LogLevel level, const char* tag, const char* format, ...) {
+void log(LogLevel level, const char* tag, const char* format, ...) {
     printf(
         "%s%c (%lu) %s: ",
-        tt_loglevel_to_colour(level),
-        tt_loglevel_to_prefix(level),
-        tt_log_timestamp(),
+        loglevel_to_colour(level),
+        loglevel_to_prefix(level),
+        log_timestamp(),
         tag
     );
 
@@ -84,5 +86,7 @@ void tt_log(LogLevel level, const char* tag, const char* format, ...) {
 
     printf("\033[0m\n");
 }
+
+} // namespace
 
 #endif

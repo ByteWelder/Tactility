@@ -16,8 +16,9 @@
 #include "semphr.h"
 #endif
 
-#define APP_STACK_SIZE 32
+namespace tt::service::loader {
 
+#define APP_STACK_SIZE 32
 
 typedef enum {
     LoaderMessageTypeNone,
@@ -112,3 +113,5 @@ struct Loader {
     int8_t app_stack_index;
     App app_stack[APP_STACK_SIZE];
 };
+
+} // namespace

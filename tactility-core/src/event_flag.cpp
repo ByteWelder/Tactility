@@ -16,7 +16,9 @@
 #define TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS 24U
 #define TT_EVENT_FLAG_INVALID_BITS (~((1UL << TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS) - 1U))
 
-EventFlag* tt_event_flag_alloc() {
+namespace tt {
+
+EventFlag* event_flag_alloc() {
     tt_assert(!TT_IS_IRQ_MODE());
 
     EventGroupHandle_t handle = xEventGroupCreate();
@@ -25,12 +27,12 @@ EventFlag* tt_event_flag_alloc() {
     return static_cast<EventFlag*>(handle);
 }
 
-void tt_event_flag_free(EventFlag* instance) {
+void event_flag_free(EventFlag* instance) {
     tt_assert(!TT_IS_IRQ_MODE());
     vEventGroupDelete((EventGroupHandle_t)instance);
 }
 
-uint32_t tt_event_flag_set(EventFlag* instance, uint32_t flags) {
+uint32_t event_flag_set(EventFlag* instance, uint32_t flags) {
     tt_assert(instance);
     tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
@@ -54,7 +56,7 @@ uint32_t tt_event_flag_set(EventFlag* instance, uint32_t flags) {
     return (rflags);
 }
 
-uint32_t tt_event_flag_clear(EventFlag* instance, uint32_t flags) {
+uint32_t event_flag_clear(EventFlag* instance, uint32_t flags) {
     tt_assert(instance);
     tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
@@ -80,7 +82,7 @@ uint32_t tt_event_flag_clear(EventFlag* instance, uint32_t flags) {
     return (rflags);
 }
 
-uint32_t tt_event_flag_get(EventFlag* instance) {
+uint32_t event_flag_get(EventFlag* instance) {
     tt_assert(instance);
 
     auto hEventGroup = static_cast<EventGroupHandle_t>(instance);
@@ -96,7 +98,7 @@ uint32_t tt_event_flag_get(EventFlag* instance) {
     return (rflags);
 }
 
-uint32_t tt_event_flag_wait(
+uint32_t event_flag_wait(
     EventFlag* instance,
     uint32_t flags,
     uint32_t options,
@@ -152,3 +154,5 @@ uint32_t tt_event_flag_wait(
     /* Return event flags before clearing */
     return (rflags);
 }
+
+} // namespace

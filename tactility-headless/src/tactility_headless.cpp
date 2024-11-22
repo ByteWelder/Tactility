@@ -8,14 +8,16 @@
 #include "esp_init.h"
 #endif
 
+namespace tt {
+
 #define TAG "tactility"
 
-extern ServiceManifest sdcard_service;
-extern ServiceManifest wifi_service;
+namespace service::wifi { extern const ServiceManifest manifest; }
+namespace service::sdcard { extern const ServiceManifest manifest; }
 
 static const ServiceManifest* const system_services[] = {
-    &sdcard_service,
-    &wifi_service
+    &service::sdcard::manifest,
+    &service::wifi::manifest
 };
 
 static const HardwareConfig* hardwareConfig = nullptr;
@@ -24,20 +26,22 @@ static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
     int app_count = sizeof(system_services) / sizeof(ServiceManifest*);
     for (int i = 0; i < app_count; ++i) {
-        tt_service_registry_add(system_services[i]);
-        tt_check(tt_service_registry_start(system_services[i]->id));
+        service_registry_add(system_services[i]);
+        tt_check(service_registry_start(system_services[i]->id));
     }
 }
 
-void tt_headless_init(const HardwareConfig* config) {
+void headless_init(const HardwareConfig* config) {
 #ifdef ESP_PLATFORM
-    tt_esp_init();
+    esp_init();
 #endif
     hardwareConfig = config;
-    tt_hardware_init(config);
+    hardware_init(config);
     register_and_start_system_services();
 }
 
-const HardwareConfig* tt_get_hardware_config() {
+const HardwareConfig* get_hardware_config() {
     return hardwareConfig;
 }
+
+} // namespace

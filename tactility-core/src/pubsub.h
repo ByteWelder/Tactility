@@ -4,6 +4,8 @@
  */
 #pragma once
 
+namespace tt {
+
 /** PubSub Callback type */
 typedef void (*PubSubCallback)(const void* message, void* context);
 
@@ -58,3 +60,5 @@ void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscripti
  * @param      message  message pointer to publish
  */
 void tt_pubsub_publish(PubSub* pubsub, void* message);
+
+} // namespace

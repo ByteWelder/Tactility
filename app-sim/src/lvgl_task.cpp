@@ -1,6 +1,7 @@
 #include "lvgl_task.h"
 
 #include "lvgl.h"
+#include "log.h"
 #include "lvgl_hal.h"
 #include "tactility_core.h"
 #include "thread.h"
@@ -54,7 +55,7 @@ static void lvgl_unlock() {
 }
 
 void lvgl_task_interrupt() {
-    tt_check(lvgl_lock(TtWaitForever));
+    tt_check(lvgl_lock(tt::TtWaitForever));
     task_set_running(false); // interrupt task with boolean as flag
     lvgl_unlock();
 }
@@ -72,7 +73,7 @@ void lvgl_task_start() {
         task_mutex = xSemaphoreCreateRecursiveMutex();
     }
 
-    tt_lvgl_sync_set(&lvgl_lock, &lvgl_unlock);
+    tt::lvgl::sync_set(&lvgl_lock, &lvgl_unlock);
 
     // Create the main app loop, like ESP-IDF
     BaseType_t task_result = xTaskCreate(
@@ -80,7 +81,7 @@ void lvgl_task_start() {
         "lvgl",
         8192,
         NULL,
-        ThreadPriorityHigh, // Should be higher than main app task
+        tt::ThreadPriorityHigh, // Should be higher than main app task
         NULL
     );
 

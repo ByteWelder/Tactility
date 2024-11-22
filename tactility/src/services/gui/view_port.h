@@ -3,6 +3,8 @@
 #include "app.h"
 #include "lvgl.h"
 
+namespace tt::service::gui {
+
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
@@ -40,3 +42,5 @@ ViewPort* view_port_alloc(
  * @param      view_port  ViewPort instance
  */
 void view_port_free(ViewPort* view_port);
+
+} // namespace

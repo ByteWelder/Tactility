@@ -3,6 +3,8 @@
 #include "core_types.h"
 #include "thread.h"
 
+namespace tt {
+
 typedef void Semaphore;
 
 /** Allocate semaphore
@@ -44,3 +46,5 @@ TtStatus tt_semaphore_release(Semaphore* instance);
  * @return     Semaphore count
  */
 uint32_t tt_semaphore_get_count(Semaphore* instance);
+
+} // namespace

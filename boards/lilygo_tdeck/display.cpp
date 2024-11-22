@@ -79,7 +79,7 @@ lv_display_t* tdeck_display_init() {
         .flags = {
             .reset_active_high = 0
         },
-        .vendor_config = NULL
+        .vendor_config = nullptr
     };
 
     esp_lcd_panel_handle_t panel_handle;

@@ -4,6 +4,8 @@
 #include "sdcard.h"
 #include "power.h"
 
+namespace tt {
+
 typedef bool (*Bootstrap)();
 typedef bool (*InitGraphics)();
 
@@ -42,3 +44,5 @@ typedef struct {
      */
     const Power* _Nullable power;
 } HardwareConfig;
+
+} // namespace

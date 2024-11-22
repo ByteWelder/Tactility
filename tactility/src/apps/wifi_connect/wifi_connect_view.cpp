@@ -11,11 +11,13 @@
 #include "wifi_connect_state.h"
 #include "wifi_connect_state_updating.h"
 
+namespace tt::app::wifi_connect {
+
 #define TAG "wifi_connect"
 
-static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading);
+static void view_set_loading(WifiConnectView* view, bool loading);
 
-static void wifi_reset_errors(WifiConnectView* view) {
+static void reset_errors(WifiConnectView* view) {
     lv_obj_add_flag(view->password_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(view->ssid_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
@@ -25,8 +27,8 @@ static void on_connect(lv_event_t* event) {
     WifiConnect* wifi = (WifiConnect*)lv_event_get_user_data(event);
     WifiConnectView* view = &wifi->view;
 
-    wifi_connect_state_set_radio_error(wifi, false);
-    wifi_reset_errors(view);
+    state_set_radio_error(wifi, false);
+    reset_errors(view);
 
     const char* ssid = lv_textarea_get_text(view->ssid_textarea);
     size_t ssid_len = strlen(ssid);
@@ -48,9 +50,9 @@ static void on_connect(lv_event_t* event) {
 
     bool store = lv_obj_get_state(view->remember_switch) & LV_STATE_CHECKED;
 
-    wifi_connect_view_set_loading(view, true);
+    view_set_loading(view, true);
 
-    WifiApSettings settings;
+    service::wifi::settings::WifiApSettings settings;
     strcpy((char*)settings.password, password);
     strcpy((char*)settings.ssid, ssid);
     settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
@@ -63,7 +65,7 @@ static void on_connect(lv_event_t* event) {
     );
 }
 
-static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading) {
+static void view_set_loading(WifiConnectView* view, bool loading) {
     if (loading) {
         lv_obj_add_flag(view->connect_button, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(view->connecting_spinner, LV_OBJ_FLAG_HIDDEN);
@@ -80,13 +82,13 @@ static void wifi_connect_view_set_loading(WifiConnectView* view, bool loading) {
 
 }
 
-void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
+void view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
     WifiConnectView* view = &wifi->view;
 
     lv_obj_t* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
     lv_obj_set_height(button_container, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(button_container);
+    lvgl::obj_set_style_no_padding(button_container);
     lv_obj_set_style_border_width(button_container, 0, 0);
 
     view->remember_switch = lv_switch_create(button_container);
@@ -111,12 +113,12 @@ void wifi_connect_view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent
 }
 
 // TODO: Standardize dialogs
-void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
+void view_create(App app, void* wifi, lv_obj_t* parent) {
     WifiConnect* wifi_connect = (WifiConnect*)wifi;
     WifiConnectView* view = &wifi_connect->view;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create_for_app(parent, app);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
@@ -128,7 +130,7 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_t* ssid_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(ssid_wrapper, LV_PCT(100));
     lv_obj_set_height(ssid_wrapper, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(ssid_wrapper);
+    lvgl::obj_set_style_no_padding(ssid_wrapper);
     lv_obj_set_style_border_width(ssid_wrapper, 0, 0);
 
     lv_obj_t* ssid_label_wrapper = lv_obj_create(ssid_wrapper);
@@ -156,7 +158,7 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_t* password_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(password_wrapper, LV_PCT(100));
     lv_obj_set_height(password_wrapper, LV_SIZE_CONTENT);
-    tt_lv_obj_set_style_no_padding(password_wrapper);
+    lvgl::obj_set_style_no_padding(password_wrapper);
     lv_obj_set_style_border_width(password_wrapper, 0, 0);
 
     lv_obj_t* password_label_wrapper = lv_obj_create(password_wrapper);
@@ -186,11 +188,11 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     lv_obj_add_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
 
     // Bottom buttons
-    wifi_connect_view_create_bottom_buttons(wifi_connect, wrapper);
+    view_create_bottom_buttons(wifi_connect, wrapper);
 
     // Keyboard bindings
-    gui_keyboard_add_textarea(view->ssid_textarea);
-    gui_keyboard_add_textarea(view->password_textarea);
+    service::gui::keyboard_add_textarea(view->ssid_textarea);
+    service::gui::keyboard_add_textarea(view->password_textarea);
 
     // Init from app parameters
     const Bundle& bundle = tt_app_get_parameters(app);
@@ -205,19 +207,21 @@ void wifi_connect_view_create(App app, void* wifi, lv_obj_t* parent) {
     }
 }
 
-void wifi_connect_view_destroy(TT_UNUSED WifiConnectView* view) {
+void view_destroy(TT_UNUSED WifiConnectView* view) {
     // NO-OP
 }
 
-void wifi_connect_view_update(
+void view_update(
     WifiConnectView* view,
     TT_UNUSED WifiConnectBindings* bindings,
     WifiConnectState* state
 ) {
     if (state->connection_error) {
-        wifi_connect_view_set_loading(view, false);
-        wifi_reset_errors(view);
+        view_set_loading(view, false);
+        reset_errors(view);
         lv_label_set_text(view->connection_error, "Connection failed");
         lv_obj_remove_flag(view->connection_error, LV_OBJ_FLAG_HIDDEN);
     }
 }
+
+} // namespace

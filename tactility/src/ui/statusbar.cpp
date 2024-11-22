@@ -10,6 +10,8 @@
 #include "lvgl.h"
 #include "lvgl_sync.h"
 
+namespace tt::lvgl {
+
 #define TAG "statusbar"
 
 typedef struct {
@@ -52,12 +54,12 @@ static void statusbar_ensure_initialized() {
     }
 }
 
-void statusbar_lock() {
+static void statusbar_lock() {
     statusbar_ensure_initialized();
     tt_mutex_acquire(statusbar_data.mutex, TtWaitForever);
 }
 
-void statusbar_unlock() {
+static void statusbar_unlock() {
     tt_mutex_release(statusbar_data.mutex);
 }
 
@@ -81,10 +83,10 @@ static const lv_obj_class_t statusbar_class = {
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     TT_LOG_I(TAG, "event");
     auto* statusbar = static_cast<Statusbar*>(obj);
-    if (tt_lvgl_lock(tt_ms_to_ticks(100))) {
+    if (lock(ms_to_ticks(100))) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
-        tt_lvgl_unlock();
+        unlock();
     }
 }
 
@@ -114,7 +116,7 @@ static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
     }
 }
 
-lv_obj_t* tt_statusbar_create(lv_obj_t* parent) {
+lv_obj_t* statusbar_create(lv_obj_t* parent) {
     LV_LOG_INFO("begin");
     lv_obj_t* obj = lv_obj_class_create_obj(&statusbar_class, parent);
     lv_obj_class_init_obj(obj);
@@ -123,19 +125,19 @@ lv_obj_t* tt_statusbar_create(lv_obj_t* parent) {
 
     lv_obj_set_width(obj, LV_PCT(100));
     lv_obj_set_height(obj, STATUSBAR_HEIGHT);
-    tt_lv_obj_set_style_no_padding(obj);
+    obj_set_style_no_padding(obj);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
-    lv_obj_t* left_spacer = tt_lv_spacer_create(obj, 1, 1);
+    lv_obj_t* left_spacer = spacer_create(obj, 1, 1);
     lv_obj_set_flex_grow(left_spacer, 1);
 
     statusbar_lock();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         lv_obj_t* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
-        tt_lv_obj_set_style_no_padding(image);
-        tt_lv_obj_set_style_bg_blacken(image);
+        obj_set_style_no_padding(image);
+        obj_set_style_bg_blacken(image);
         statusbar->icons[i] = image;
 
         update_icon(image, &(statusbar_data.icons[i]));
@@ -169,7 +171,7 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     }
 }
 
-int8_t tt_statusbar_icon_add(const char* _Nullable image) {
+int8_t statusbar_icon_add(const char* _Nullable image) {
     statusbar_lock();
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
@@ -187,7 +189,7 @@ int8_t tt_statusbar_icon_add(const char* _Nullable image) {
     return result;
 }
 
-void tt_statusbar_icon_remove(int8_t id) {
+void statusbar_icon_remove(int8_t id) {
     TT_LOG_I(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_lock();
@@ -199,7 +201,7 @@ void tt_statusbar_icon_remove(int8_t id) {
     statusbar_unlock();
 }
 
-void tt_statusbar_icon_set_image(int8_t id, const char* image) {
+void statusbar_icon_set_image(int8_t id, const char* image) {
     TT_LOG_I(TAG, "id %d: set image %s", id, image);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_lock();
@@ -210,7 +212,7 @@ void tt_statusbar_icon_set_image(int8_t id, const char* image) {
     statusbar_unlock();
 }
 
-void tt_statusbar_icon_set_visibility(int8_t id, bool visible) {
+void statusbar_icon_set_visibility(int8_t id, bool visible) {
     TT_LOG_I(TAG, "id %d: set visibility %d", id, visible);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_lock();
@@ -220,3 +222,5 @@ void tt_statusbar_icon_set_visibility(int8_t id, bool visible) {
     tt_pubsub_publish(statusbar_data.pubsub, nullptr);
     statusbar_unlock();
 }
+
+} // namespace

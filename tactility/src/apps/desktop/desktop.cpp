@@ -4,11 +4,13 @@
 #include "lvgl.h"
 #include "services/loader/loader.h"
 
+namespace tt::app::desktop {
+
 static void on_app_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        loader_start_app(manifest->id, false, Bundle());
+        service::loader::start_app(manifest->id, false, Bundle());
     }
 }
 
@@ -26,14 +28,16 @@ static void desktop_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_center(list);
 
     lv_list_add_text(list, "User");
-    tt_app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
+    app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
     lv_list_add_text(list, "System");
-    tt_app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
+    app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
 }
 
-extern const AppManifest desktop_app = {
+extern const AppManifest manifest = {
     .id = "desktop",
     .name = "Desktop",
     .type = AppTypeDesktop,
     .on_show = &desktop_show,
 };
+
+} // namespace

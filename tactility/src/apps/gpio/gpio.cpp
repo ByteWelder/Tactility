@@ -6,6 +6,8 @@
 #include "gpio_hal.h"
 #include "ui/lvgl_sync.h"
 
+namespace tt::app::gpio {
+
 typedef struct {
     lv_obj_t* lv_pins[GPIO_NUM_MAX];
     uint8_t pin_states[GPIO_NUM_MAX];
@@ -36,7 +38,7 @@ static void update_pin_states(Gpio* gpio) {
 }
 
 static void update_pin_widgets(Gpio* gpio) {
-    if (tt_lvgl_lock(100)) {
+    if (lvgl::lock(100)) {
         lock(gpio);
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
             int level = gpio->pin_states[j];
@@ -52,7 +54,7 @@ static void update_pin_widgets(Gpio* gpio) {
                 }
             }
         }
-        tt_lvgl_unlock();
+        lvgl::unlock();
         unlock(gpio);
     }
 }
@@ -72,7 +74,7 @@ static int32_t gpio_task(void* context) {
     bool interrupted = false;
 
     while (!interrupted) {
-        tt_delay_ms(100);
+        delay_ms(100);
 
         update_pin_states(gpio);
         update_pin_widgets(gpio);
@@ -88,14 +90,14 @@ static int32_t gpio_task(void* context) {
 static void task_start(Gpio* gpio) {
     tt_assert(gpio->thread == nullptr);
     lock(gpio);
-    gpio->thread = tt_thread_alloc_ex(
+    gpio->thread = thread_alloc_ex(
         "gpio",
         4096,
         &gpio_task,
         gpio
     );
     gpio->thread_interrupted = false;
-    tt_thread_start(gpio->thread);
+    thread_start(gpio->thread);
     unlock(gpio);
 }
 
@@ -105,10 +107,10 @@ static void task_stop(Gpio* gpio) {
     gpio->thread_interrupted = true;
     unlock(gpio);
 
-    tt_thread_join(gpio->thread);
+    thread_join(gpio->thread);
 
     lock(gpio);
-    tt_thread_free(gpio->thread);
+    thread_free(gpio->thread);
     gpio->thread = nullptr;
     unlock(gpio);
 }
@@ -121,7 +123,7 @@ static void app_show(App app, lv_obj_t* parent) {
     auto* gpio = static_cast<Gpio*>(tt_app_get_data(app));
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_t* toolbar = tt_toolbar_create_for_app(parent, app);
+    lv_obj_t* toolbar = lvgl::toolbar_create_for_app(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     // Main content wrapper, enables scrolling content without scrolling the toolbar
@@ -198,7 +200,7 @@ static void on_stop(App app) {
 
 // endregion App lifecycle
 
-extern const AppManifest gpio_app = {
+extern const AppManifest manifest = {
     .id = "gpio",
     .name = "GPIO",
     .type = AppTypeSystem,
@@ -207,3 +209,5 @@ extern const AppManifest gpio_app = {
     .on_show = &app_show,
     .on_hide = &on_hide
 };
+
+} // namespace

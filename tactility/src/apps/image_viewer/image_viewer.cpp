@@ -4,18 +4,20 @@
 #include "ui/style.h"
 #include "ui/toolbar.h"
 
+namespace tt::app::image_viewer {
+
 #define TAG "image_viewer"
 
-static void app_show(App app, lv_obj_t* parent) {
+static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    tt_toolbar_create_for_app(parent, app);
+    lvgl::toolbar_create_for_app(parent, app);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    tt_lv_obj_set_style_no_padding(wrapper);
-    tt_lv_obj_set_style_bg_invisible(wrapper);
+    lvgl::obj_set_style_no_padding(wrapper);
+    lvgl::obj_set_style_bg_invisible(wrapper);
 
     lv_obj_t* image = lv_img_create(wrapper);
     lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
@@ -29,12 +31,11 @@ static void app_show(App app, lv_obj_t* parent) {
     }
 }
 
-extern const AppManifest image_viewer_app = {
+extern const AppManifest manifest = {
     .id = "image_viewer",
     .name = "Image Viewer",
     .type = AppTypeHidden,
-    .on_start = nullptr,
-    .on_stop = nullptr,
-    .on_show = &app_show,
-    .on_hide = nullptr
+    .on_show = &on_show
 };
+
+} // namespace

@@ -9,7 +9,7 @@
 #define TAG "waveshare_s3_touch_i2c"
 
 static esp_lcd_touch_handle_t touch_init_internal() {
-    static esp_lcd_panel_io_handle_t tp_io_handle = NULL;
+    static esp_lcd_panel_io_handle_t tp_io_handle = nullptr;
     static esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
     ESP_LOGI(TAG, "Initialize touch IO");
 

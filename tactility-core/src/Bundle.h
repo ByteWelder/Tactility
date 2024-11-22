@@ -9,6 +9,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace tt {
+
 class Bundle {
 
 private:
@@ -57,3 +59,5 @@ public:
     void putInt32(const std::string& key, int32_t value);
     void putString(const std::string& key, const std::string& value);
 };
+
+} // namespace

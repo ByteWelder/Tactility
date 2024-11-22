@@ -4,6 +4,8 @@
 #include "ui/style.h"
 #include "view_port_i.h"
 
+namespace tt::service::gui {
+
 #define TAG "viewport"
 
 ViewPort* view_port_alloc(
@@ -27,7 +29,7 @@ void view_port_show(ViewPort* view_port, lv_obj_t* parent) {
     tt_assert(view_port);
     tt_assert(parent);
     if (view_port->on_show) {
-        tt_lv_obj_set_style_no_padding(parent);
+        lvgl::obj_set_style_no_padding(parent);
         view_port->on_show(view_port->app, parent);
     }
 }
@@ -38,3 +40,5 @@ void view_port_hide(ViewPort* view_port) {
         view_port->on_hide(view_port->app);
     }
 }
+
+} // namespace

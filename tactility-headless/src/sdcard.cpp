@@ -3,6 +3,8 @@
 #include "Mutex.h"
 #include "tactility_core.h"
 
+namespace tt {
+
 #define TAG "sdcard"
 
 static Mutex mutex(MutexTypeRecursive);
@@ -79,3 +81,5 @@ bool tt_sdcard_unmount(uint32_t timeout_ticks) {
 
     return result;
 }
+
+} // namespace

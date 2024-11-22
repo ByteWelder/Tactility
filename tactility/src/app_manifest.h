@@ -5,6 +5,9 @@
 
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
+
+namespace tt {
+
 typedef void* App;
 
 typedef enum {
@@ -66,3 +69,5 @@ typedef struct AppManifest {
      */
     const AppOnHide _Nullable on_hide = nullptr;
 } AppManifest;
+
+} // namespace

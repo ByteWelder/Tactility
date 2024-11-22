@@ -4,7 +4,7 @@
 
 bool ws3t_bootstrap();
 
-extern const HardwareConfig waveshare_s3_touch = {
+extern const tt::HardwareConfig waveshare_s3_touch = {
     .bootstrap = &ws3t_bootstrap,
     .init_graphics = &ws3t_init_lvgl,
     .display = {

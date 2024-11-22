@@ -1,6 +1,8 @@
 #include "label_utils.h"
 #include <tactility_core.h>
 
+namespace tt::lvgl {
+
 #define TAG "tt_lv_label"
 
 static long file_get_size(FILE* file) {
@@ -54,8 +56,10 @@ static char* str_alloc_from_file(const char* filepath) {
     return text_buffer;
 }
 
-void tt_lv_label_set_text_file(lv_obj_t* label, const char* filepath) {
+void label_set_text_file(lv_obj_t* label, const char* filepath) {
     char* text = str_alloc_from_file(filepath);
     lv_label_set_text(label, text);
     free(text);
 }
+
+} // namespace

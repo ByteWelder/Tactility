@@ -1,5 +1,7 @@
 #include "app_i.h"
 
+namespace tt {
+
 #define TAG "app"
 
 void AppInstance::setState(AppState newState) {
@@ -96,3 +98,5 @@ void tt_app_set_data(App app, void* data) {
 const Bundle& tt_app_get_parameters(App app) {
     return static_cast<AppInstance*>(app)->getParameters();
 }
+
+} // namespace

@@ -21,7 +21,7 @@ int main() {
         "main",
         8192,
         nullptr,
-        ThreadPriorityNormal,
+        tt::ThreadPriorityNormal,
         nullptr
     );
 

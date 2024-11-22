@@ -6,6 +6,8 @@
 #include "service_manifest.h"
 #include "tactility_core.h"
 
+namespace tt::service::loader {
+
 typedef struct Loader Loader;
 
 typedef enum {
@@ -55,16 +57,18 @@ typedef struct {
  * @param[in] bundle optional bundle. Ownership is transferred to Loader.
  * @return LoaderStatus
  */
-LoaderStatus loader_start_app(const std::string& id, bool blocking, const Bundle& bundle);
+LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle);
 
 /**
  * @brief Stop the currently showing app. Show the previous app if any app was still running.
  */
-void loader_stop_app();
+void stop_app();
 
-App _Nullable loader_get_current_app();
+App _Nullable get_current_app();
 
 /**
  * @brief PubSub for LoaderEvent
  */
-PubSub* loader_get_pubsub();
+PubSub* get_pubsub();
+
+} // namespace

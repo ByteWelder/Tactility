@@ -3,15 +3,17 @@
 #include <cstdlib>
 #include <cstring>
 
+namespace tt::app::files {
+
 #define TAG "file_utils"
 
 #define SCANDIR_LIMIT 128
 
-int tt_dirent_filter_dot_entries(const struct dirent* entry) {
+int dirent_filter_dot_entries(const struct dirent* entry) {
     return (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) ? -1 : 0;
 }
 
-int tt_dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right) {
+int dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right) {
     bool left_is_dir = (*left)->d_type == TT_DT_DIR;
     bool right_is_dir = (*right)->d_type == TT_DT_DIR;
     if (left_is_dir == right_is_dir) {
@@ -21,11 +23,11 @@ int tt_dirent_sort_alpha_and_type(const struct dirent** left, const struct diren
     }
 }
 
-int tt_dirent_sort_alpha(const struct dirent** left, const struct dirent** right) {
+int dirent_sort_alpha(const struct dirent** left, const struct dirent** right) {
     return strcmp((*left)->d_name, (*right)->d_name);
 }
 
-int tt_scandir(
+int scandir(
     const char* path,
     struct dirent*** output,
     ScandirFilter _Nullable filter,
@@ -66,3 +68,5 @@ int tt_scandir(
     closedir(dir);
     return dirent_buffer_index;
 };
+
+}

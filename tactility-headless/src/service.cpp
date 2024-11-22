@@ -1,6 +1,8 @@
 #include "service.h"
 #include "service_manifest.h"
 
+namespace tt {
+
 Service::Service(const ServiceManifest& manifest) : manifest(manifest) {}
 
 const ServiceManifest& Service::getManifest() const { return manifest; }
@@ -17,3 +19,5 @@ void Service::setData(void* newData) {
     data = newData;
     mutex.release();
 }
+
+} // namespace

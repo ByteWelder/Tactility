@@ -6,6 +6,8 @@
 
 #define TAG "preferences"
 
+namespace tt {
+
 bool Preferences::optBool(const std::string& key, bool& out) const {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) != ESP_OK) {
@@ -95,5 +97,7 @@ void Preferences::putString(const std::string& key, const std::string& text) {
         TT_LOG_E(TAG, "failed to open namespace %s for writing", namespace_);
     }
 }
+
+} // namespace
 
 #endif
