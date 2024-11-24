@@ -16,6 +16,7 @@ const tt::hal::Configuration yellow_board_24inch_cap = {
     .power = nullptr,
     .i2c = {
         tt::hal::i2c::Configuration {
+            .name = "First",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitDisabled,
             .canReinit = true,
@@ -34,6 +35,7 @@ const tt::hal::Configuration yellow_board_24inch_cap = {
             }
         },
         tt::hal::i2c::Configuration {
+            .name = "Second",
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitDisabled,
             .canReinit = true,

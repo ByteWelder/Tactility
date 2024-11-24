@@ -7,8 +7,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
     .sdcard = &m5stack_sdcard,
     .power = &m5stack_power,
     .i2c = {
-        // Internal
         tt::hal::i2c::Configuration {
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitByExternal,
             .canReinit = false,
@@ -26,8 +26,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
                 .clk_flags = 0
             }
         },
-        // External (Grove)
         tt::hal::i2c::Configuration {
+            .name = "External", // (Grove)
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitByExternal,
             .canReinit = true,
