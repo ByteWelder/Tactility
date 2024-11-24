@@ -1,7 +1,7 @@
 #include "Hal/Hal_i.h"
 #include "Hal/I2c/I2c.h"
 
-#define TAG "hardware"
+#define TAG "hal"
 
 namespace tt::hal {
 
@@ -24,8 +24,10 @@ void init(const Configuration& configuration) {
         }
     }
 
-    tt_check(configuration.initLvgl, "Graphics init not set");
-    tt_check(configuration.initLvgl(), "Graphics init failed");
+    if (configuration.initLvgl != nullptr) {
+        TT_LOG_I(TAG, "Init LVGL");
+        tt_check(configuration.initLvgl(), "LVGL init failed");
+    }
 }
 
 } // namespace

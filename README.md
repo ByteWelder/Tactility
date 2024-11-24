@@ -1,13 +1,14 @@
 ## Overview
 
-Tactility is a front-end application platform for ESP32. It is mainly intended for touchscreen devices.
-It provides an application framework that is based on code from the [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) project.
+Tactility is a front-end application platform for ESP32.
+It is currently intended for touchscreen devices, but the goal is to also support different types of input in the future.
+Tactility provides an application framework that borrows concepts from [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) and mobile phone operating systems.
 
 ![photo of devices running Tactility](Documentation/pics/tactility-devices.webp)
 
 **Status: Alpha**
 
-A modern desktop with built-in apps:
+A desktop with built-in apps:
 
 ![screenshot of desktop app](Documentation/pics/screenshot-Desktop.png) ![screenshot of settings app](Documentation/pics/screenshot-Settings.png)
 
@@ -19,7 +20,6 @@ And much more!
 
 ![screenshot of GPIO app](Documentation/pics/screenshot-Gpio.png) ![screenshot of files app](Documentation/pics/screenshot-Files.png)
 
-
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
 Noteworthy features:
@@ -30,7 +30,7 @@ Noteworthy features:
 
 Requirements:
 - ESP32 (any?) with a touchscreen
-- [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) or a newer v5.2.x
+- [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) or a newer v5.3.x
 
 ## Making apps is easy!
 
@@ -57,12 +57,8 @@ static void app_show(App app, lv_obj_t* parent) {
 extern const AppManifest manifest = {
     .id = "HelloWorld",    // Used to identify and start an app
     .name = "Hello World", // Shown on the desktop and app's toolbar
-    .icon = NULL,
     .type = AppTypeUser,
-    .on_start = nullptr,
-    .on_stop = nullptr,
-    .on_show = &app_show,  // A minimal setup sets the on_show() function
-    .on_hide = nullptr
+    .on_show = &app_show  // A minimal setup sets the on_show() function
 };
 ```
 
@@ -108,7 +104,7 @@ git clone --recurse-submodules -j8 https://github.com/ByteWelder/Tactility.git
 
 ### Build environment setup
 
-nsure you have [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) installed, then select the correct device:
+Ensure you have [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) installed, then select the correct device:
 
 Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults` if you are setting up a custom board.
 

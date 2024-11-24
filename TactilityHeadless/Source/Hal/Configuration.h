@@ -33,7 +33,7 @@ typedef struct {
     /**
      * Create and initialize all LVGL devices. (e.g. display, touch, keyboard)
      */
-    const InitLvgl initLvgl;
+    const InitLvgl _Nullable initLvgl;
 
     /**
      * Display HAL functionality.

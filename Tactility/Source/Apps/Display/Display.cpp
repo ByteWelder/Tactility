@@ -2,8 +2,9 @@
 #include "Assets.h"
 #include "DisplayPreferences.h"
 #include "Tactility.h"
-#include "lvgl.h"
+#include "Ui/Style.h"
 #include "Ui/Toolbar.h"
+#include "lvgl.h"
 
 namespace tt::app::settings::display {
 
@@ -72,22 +73,24 @@ static void app_show(App app, lv_obj_t* parent) {
 
     lvgl::toolbar_create(parent, app);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_style_border_width(wrapper, 0, 0);
-    lv_obj_set_flex_grow(wrapper, 1);
+    lv_obj_t* main_wrapper = lv_obj_create(parent);
+    lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_width(main_wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(main_wrapper, 1);
 
-    lv_obj_t* brightness_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_size(brightness_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_t* brightness_label = lv_label_create(brightness_wrapper);
+    lv_obj_t* wrapper = lv_obj_create(main_wrapper);
+    lv_obj_set_width(wrapper, LV_PCT(100));
+    lv_obj_set_style_pad_all(wrapper, 8, 0);
+    lv_obj_set_style_border_width(wrapper, 0, 0);
+
+    lv_obj_t* brightness_label = lv_label_create(wrapper);
     lv_label_set_text(brightness_label, "Brightness");
 
-    lv_obj_t* brightness_slider = lv_slider_create(brightness_wrapper);
-    lv_obj_set_width(brightness_slider, LV_PCT(100));
+    lv_obj_t* brightness_slider = lv_slider_create(wrapper);
+    lv_obj_set_width(brightness_slider, LV_PCT(50));
+    lv_obj_align(brightness_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
     lv_slider_set_range(brightness_slider, 0, 255);
     lv_obj_add_event_cb(brightness_slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_obj_set_pos(brightness_slider, 0, 30);
 
     const Configuration* config = getConfiguration();
     hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
@@ -99,14 +102,13 @@ static void app_show(App app, lv_obj_t* parent) {
         lv_slider_set_value(brightness_slider, value, LV_ANIM_OFF);
     }
 
-    lv_obj_t* orientation_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_size(orientation_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_t* orientation_label = lv_label_create(orientation_wrapper);
+    lv_obj_t* orientation_label = lv_label_create(wrapper);
     lv_label_set_text(orientation_label, "Orientation");
-    lv_obj_align(orientation_label, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_t* orientation_dropdown = lv_dropdown_create(orientation_wrapper);
+    lv_obj_align(orientation_label, LV_ALIGN_TOP_LEFT, 0, 40);
+
+    lv_obj_t* orientation_dropdown = lv_dropdown_create(wrapper);
     lv_dropdown_set_options(orientation_dropdown, "Landscape\nLandscape (flipped)\nPortrait Left\nPortrait Right");
-    lv_obj_align(orientation_dropdown, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 32);
     lv_obj_add_event_cb(orientation_dropdown, on_orientation_set, LV_EVENT_VALUE_CHANGED, nullptr);
     uint32_t orientation_selected = display_rotation_to_orientation_setting(
         lv_display_get_rotation(lv_display_get_default())
