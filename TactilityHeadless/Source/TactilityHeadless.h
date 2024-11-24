@@ -5,8 +5,12 @@
 
 namespace tt {
 
-void init(const hal::Configuration& config);
+void initHeadless(const hal::Configuration& config);
 
-const hal::Configuration& get_hardware_config();
+} // namespace
+
+namespace tt::hal {
+
+const Configuration& getConfiguration();
 
 } // namespace

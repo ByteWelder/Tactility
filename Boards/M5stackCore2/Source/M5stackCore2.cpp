@@ -18,8 +18,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_21,
                 .scl_io_num = GPIO_NUM_22,
-                .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                .sda_pullup_en = true,
+                .scl_pullup_en = true,
                 .master = {
                     .clk_speed = 400000
                 },
@@ -37,8 +37,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_32,
                 .scl_io_num = GPIO_NUM_33,
-                .sda_pullup_en = GPIO_PULLUP_ENABLE,
-                .scl_pullup_en = GPIO_PULLUP_ENABLE,
+                .sda_pullup_en = true,
+                .scl_pullup_en = true,
                 .master = {
                     .clk_speed = 400000
                 },

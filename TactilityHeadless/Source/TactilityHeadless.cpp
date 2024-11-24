@@ -31,7 +31,7 @@ static void register_and_start_system_services() {
     }
 }
 
-void init(const hal::Configuration& config) {
+void initHeadless(const hal::Configuration& config) {
 #ifdef ESP_PLATFORM
     esp_init();
 #endif
@@ -40,9 +40,13 @@ void init(const hal::Configuration& config) {
     register_and_start_system_services();
 }
 
-const hal::Configuration& get_hardware_config() {
+namespace hal {
+
+const Configuration& getConfiguration() {
     tt_assert(hardwareConfig != nullptr);
     return *hardwareConfig;
 }
 
-} // namespace
+} // namespace hal
+
+} // namespace tt

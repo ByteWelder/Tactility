@@ -1,7 +1,8 @@
 #pragma once
 
 #include "I2cCompat.h"
-#include <CoreTypes.h>
+#include "CoreTypes.h"
+#include <string>
 #include <vector>
 
 namespace tt::hal::i2c {
@@ -13,6 +14,7 @@ typedef enum {
 } InitMode;
 
 typedef struct {
+    std::string name;
     /** The port to operate on */
     i2c_port_t port;
     /** Whether this bus should be initialized when device starts up */

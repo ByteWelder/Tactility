@@ -39,7 +39,7 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
    return true;
 }
 
-static bool configure_locked(i2c_port_t port, const i2c_config_t& configuration) {
+static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) {
     Data& data = dataArray[port];
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
@@ -55,7 +55,7 @@ static bool configure_locked(i2c_port_t port, const i2c_config_t& configuration)
 
 esp_err_t configure(i2c_port_t port, const i2c_config_t& configuration) {
     lock(port);
-    bool result = configure_locked(port, configuration);
+    bool result = configureLocked(port, configuration);
     unlock(port);
     return result;
 }
@@ -64,7 +64,7 @@ bool start(i2c_port_t port) {
     lock(port);
     dataArray[port].isStarted = true;
     unlock(port);
-    return false;
+    return true;
 }
 
 bool stop(i2c_port_t port) {

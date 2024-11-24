@@ -100,7 +100,7 @@ static void update_sdcard_icon(ServiceData* data) {
 // region power
 
 static _Nullable const char* power_get_status_icon() {
-    _Nullable const hal::Power* power = get_config()->hardware->power;
+    _Nullable const hal::Power* power = getConfiguration()->hardware->power;
     if (power != nullptr) {
         uint8_t charge = power->get_charge_level();
         if (charge >= 230) {
