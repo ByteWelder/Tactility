@@ -1,10 +1,10 @@
+#include "Log.h"
+#include "Thread.h"
+#include "Ui/LvglSync.h"
 #include "config.h"
-#include "display_i.h"
+#include "display.h"
 #include "esp_lvgl_port.h"
 #include "keyboard.h"
-#include "Log.h"
-#include "Ui/LvglSync.h"
-#include "Thread.h"
 
 #define TAG "tdeck_lvgl"
 

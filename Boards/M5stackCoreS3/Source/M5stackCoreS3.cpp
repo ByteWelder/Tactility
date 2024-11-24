@@ -1,7 +1,9 @@
-#include "M5stackCore2.h"
+#include "M5stackCoreS3.h"
 #include "M5stackShared.h"
 
-extern const tt::hal::Configuration m5stack_core2 = {
+extern const tt::hal::sdcard::SdCard m5stack_cores3_sdcard;
+
+const tt::hal::Configuration m5stack_cores3 = {
     .initPower = &m5stack_bootstrap,
     .initLvgl = &m5stack_lvgl_init,
     .sdcard = &m5stack_sdcard,
@@ -16,8 +18,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
             .timeout = 1000,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = GPIO_NUM_21,
-                .scl_io_num = GPIO_NUM_22,
+                .sda_io_num = GPIO_NUM_12,
+                .scl_io_num = GPIO_NUM_11,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {
@@ -35,8 +37,8 @@ extern const tt::hal::Configuration m5stack_core2 = {
             .timeout = 1000,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = GPIO_NUM_32,
-                .scl_io_num = GPIO_NUM_33,
+                .sda_io_num = GPIO_NUM_2,
+                .scl_io_num = GPIO_NUM_1,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {

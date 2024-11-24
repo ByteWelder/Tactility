@@ -1,5 +1,5 @@
 idf_component_register(
     SRC_DIRS "Source"
     INCLUDE_DIRS "Source"
-    REQUIRES Tactility esp_lvgl_port M5Unified
+    REQUIRES Tactility esp_lvgl_port M5Unified vfs fatfs
 )

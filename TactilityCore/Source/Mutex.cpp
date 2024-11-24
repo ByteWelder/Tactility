@@ -36,7 +36,6 @@ Mutex::Mutex(MutexType type) : type(type) {
     }
 
     tt_check(semaphore != nullptr);
-
 }
 
 Mutex::~Mutex() {

@@ -31,17 +31,18 @@ static void register_and_start_system_services() {
     }
 }
 
-void headless_init(const hal::Configuration* config) {
+void init(const hal::Configuration& config) {
 #ifdef ESP_PLATFORM
     esp_init();
 #endif
-    hardwareConfig = config;
+    hardwareConfig = &config;
     hal::init(config);
     register_and_start_system_services();
 }
 
-const hal::Configuration* get_hardware_config() {
-    return hardwareConfig;
+const hal::Configuration& get_hardware_config() {
+    tt_assert(hardwareConfig != nullptr);
+    return *hardwareConfig;
 }
 
 } // namespace

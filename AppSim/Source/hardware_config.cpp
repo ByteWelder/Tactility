@@ -24,11 +24,11 @@ TT_UNUSED static void lvgl_deinit() {
 }
 
 extern const tt::hal::Configuration sim_hardware = {
-    .bootstrap = nullptr,
-    .init_graphics = &lvgl_init,
+    .initLvgl = &lvgl_init,
     .display = {
-        .set_backlight_duty = nullptr,
+        .setBacklightDuty = nullptr,
     },
     .sdcard = nullptr,
-    .power = &power
+    .power = &power,
+    .i2c = {}
 };

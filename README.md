@@ -131,9 +131,9 @@ Directories explained:
 - `AppEsp32`: The ESP32 application example
 - `AppSim`: The PC/simulator application example
 - `Boards`: Contains ESP modules with drivers
-- `Tactility`: The main application platform code ([src/](Tactility/Source))
+- `Tactility`: The main application platform code
 - `TactilityHeadless`: Service framework and default services.
-- `TactilityCore`: Core functionality regarding threads, stdlib, etc. ([src/](TactilityCore/Source))
+- `TactilityCore`: Core functionality regarding threads, stdlib, etc.
 - `Libraries`: Contains a mix of regular libraries and ESP modules
 
 Until there is proper documentation, here are some pointers:

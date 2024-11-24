@@ -1,36 +1,42 @@
 #pragma once
 
-#include "TactilityCore.h"
-#include "Sdcard.h"
 #include "Power.h"
+#include "Sdcard.h"
+#include "I2c/I2c.h"
+#include "TactilityCore.h"
 
 namespace tt::hal {
 
-typedef bool (*Bootstrap)();
-typedef bool (*InitGraphics)();
+typedef bool (*InitPower)();
+typedef bool (*InitHardware)();
+typedef bool (*InitLvgl)();
 
 typedef void (*SetBacklightDuty)(uint8_t);
 typedef struct {
     /** Set backlight duty */
-    SetBacklightDuty set_backlight_duty;
+    _Nullable SetBacklightDuty setBacklightDuty;
 } Display;
 
 typedef struct {
     /**
-     * Optional bootstrapping method (e.g. to turn peripherals on)
-     * This is called after Tactility core init and before any other inits in the HardwareConfig.
-     * */
-    const Bootstrap _Nullable bootstrap;
-
-    /**
-     * Initializes LVGL with all relevant hardware.
-     * This includes the display and optional pointer devices (such as touch) or a keyboard.
+     * Called before I2C/SPI/etc is initialized.
+     * Used for powering on the peripherals manually.
      */
-    const InitGraphics init_graphics;
+    const InitPower _Nullable initPower = nullptr;
 
     /**
-     * An interface for display features such as setting the backlight.
-     * This does nothing when a display isn't present.
+     * Called after I2C/SPI/etc is initialized.
+     * This can be used to communicate with built-in peripherals such as an I2C keyboard.
+     */
+    const InitHardware _Nullable initHardware = nullptr;
+
+    /**
+     * Create and initialize all LVGL devices. (e.g. display, touch, keyboard)
+     */
+    const InitLvgl initLvgl;
+
+    /**
+     * Display HAL functionality.
      */
     const Display display;
 
@@ -43,6 +49,11 @@ typedef struct {
      * An optional power interface for battery or other power delivery.
      */
     const Power* _Nullable power;
+
+    /**
+     * A list of i2c devices (can be empty, but preferably accurately represents the device capabilities)
+     */
+    const std::vector<i2c::Configuration> i2c;
 } Configuration;
 
 } // namespace

@@ -4,6 +4,6 @@
 
 namespace tt::hal {
 
-void init(const Configuration* configuration);
+void init(const Configuration& configuration);
 
 } // namespace

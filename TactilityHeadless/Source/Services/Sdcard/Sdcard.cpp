@@ -76,7 +76,7 @@ static int32_t sdcard_task(void* context) {
 }
 
 static void on_start(Service& service) {
-    if (get_hardware_config()->sdcard != nullptr) {
+    if (get_hardware_config().sdcard != nullptr) {
         ServiceData* data = service_data_alloc();
         service.setData(data);
         data->thread->start();

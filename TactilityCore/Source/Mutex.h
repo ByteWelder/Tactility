@@ -27,7 +27,7 @@ private:
     SemaphoreHandle_t semaphore;
     MutexType type;
 public:
-    Mutex(MutexType type);
+    explicit Mutex(MutexType type = MutexTypeNormal);
     ~Mutex();
 
     TtStatus acquire(uint32_t timeout) const;

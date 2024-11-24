@@ -18,6 +18,7 @@
 - Publish firmwares with upload tool
 - De-duplicate WiFi SSIDs.
 - Move libs/M5 projects to boards/M5Shared
+- Refactor hardware configuration init methods to return esp_err_t instead of bool
 
 # Core Ideas
 - Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.

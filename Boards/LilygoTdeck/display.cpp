@@ -15,7 +15,8 @@ bool tdeck_backlight_init() {
         .duty_resolution = TDECK_LCD_BACKLIGHT_LEDC_DUTY_RES,
         .timer_num = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
         .freq_hz = TDECK_LCD_BACKLIGHT_LEDC_FREQUENCY,
-        .clk_cfg = LEDC_AUTO_CLK
+        .clk_cfg = LEDC_AUTO_CLK,
+        .deconfigure = false
     };
 
     if (ledc_timer_config(&ledc_timer) != ESP_OK) {
@@ -34,7 +35,10 @@ void tdeck_backlight_set(uint8_t duty) {
         .intr_type = LEDC_INTR_DISABLE,
         .timer_sel = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
         .duty = duty,
-        .hpoint = 0
+        .hpoint = 0,
+        .flags = {
+            .output_invert = 0
+        }
     };
 
     // Setting the config in the timer init and then calling ledc_set_duty() doesn't work when
@@ -56,7 +60,9 @@ lv_display_t* tdeck_display_init() {
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
         .flags = {
+            .dc_high_on_cmd = 0,
             .dc_low_on_data = 0,
+            .dc_low_on_param = 0,
             .octal_mode = 0,
             .quad_mode = 0,
             .sio_mode = 1,
@@ -123,6 +129,7 @@ lv_display_t* tdeck_display_init() {
         .panel_handle = panel_handle,
         .buffer_size = TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_DRAW_BUFFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8),
         .double_buffer = true, // Disable to free up SPIRAM
+        .trans_size = 0,
         .hres = TDECK_LCD_HORIZONTAL_RESOLUTION,
         .vres = TDECK_LCD_VERTICAL_RESOLUTION,
         .monochrome = false,
@@ -136,7 +143,7 @@ lv_display_t* tdeck_display_init() {
             .buff_spiram = true,
             .sw_rotate = false,
             .swap_bytes = true
-        }
+        },
     };
 
     return lvgl_port_add_disp(&disp_cfg);
