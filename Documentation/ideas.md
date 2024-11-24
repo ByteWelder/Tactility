@@ -1,5 +1,4 @@
 # TODOs
-- Update `view_port` to use `ViewPort` as handle externally and `ViewPortData` internally
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Have a way to deinit LVGL drivers that are created from `HardwareConfig`
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
@@ -27,9 +26,6 @@
 - tt::startApp() and similar functions as proxies for Loader app start/stop/etc.
 - tt::setAppResult() for apps that need to return data to other apps (e.g. file selection)
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
-
-# App Improvement Ideas
-- Light/dark mode selection in Display settings app.
 
 # App Ideas
 - BlueTooth keyboard app
