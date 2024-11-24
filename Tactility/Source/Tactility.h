@@ -25,6 +25,6 @@ void init(const Configuration* config);
  * While technically nullable, this instance is always set if tt_init() succeeds.
  * @return the Configuration instance that was passed on to tt_init() if init is successful
  */
-const Configuration* _Nullable get_config();
+const Configuration* _Nullable getConfiguration();
 
 } // namespace

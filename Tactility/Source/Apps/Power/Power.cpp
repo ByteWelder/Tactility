@@ -98,7 +98,7 @@ static void app_hide(TT_UNUSED App app) {
 static void app_start(App app) {
     auto* data = new AppData();
     data->update_timer = new Timer(Timer::TypePeriodic, &app_update_ui, data);
-    data->power = get_config()->hardware->power;
+    data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
     tt_app_set_data(app, data);
 }

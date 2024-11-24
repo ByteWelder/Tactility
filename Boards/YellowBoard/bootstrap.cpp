@@ -10,8 +10,8 @@ static bool init_i2c() {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = GPIO_NUM_33,
         .scl_io_num = GPIO_NUM_32,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .sda_pullup_en = false,
+        .scl_pullup_en = false,
         .master = {
             .clk_speed = 400000
         }

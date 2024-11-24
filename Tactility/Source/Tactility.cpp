@@ -42,6 +42,7 @@ namespace app {
     namespace screenshot { extern const AppManifest manifest; }
     namespace settings { extern const AppManifest manifest; }
     namespace settings::display { extern const AppManifest manifest; }
+    namespace settings::i2c { extern const AppManifest manifest; }
     namespace settings::power { extern const AppManifest manifest; }
     namespace system_info { extern const AppManifest manifest; }
     namespace text_viewer { extern const AppManifest manifest; }
@@ -60,6 +61,7 @@ static const AppManifest* const system_apps[] = {
     &app::image_viewer::manifest,
     &app::settings::manifest,
     &app::settings::display::manifest,
+    &app::settings::i2c::manifest,
     &app::system_info::manifest,
     &app::text_viewer::manifest,
     &app::wifi_connect::manifest,
@@ -79,7 +81,7 @@ static void register_system_apps() {
         app_manifest_registry_add(system_apps[i]);
     }
 
-    if (get_config()->hardware->power != nullptr) {
+    if (getConfiguration()->hardware->power != nullptr) {
         app_manifest_registry_add(&app::settings::power::manifest);
     }
 }
@@ -127,7 +129,7 @@ void init(const Configuration* config) {
     // Assign early so starting services can use it
     config_instance = config;
 
-    init(*config->hardware);
+    initHeadless(*config->hardware);
 
     lvgl_init(config->hardware);
 
@@ -155,7 +157,7 @@ void init(const Configuration* config) {
     TT_LOG_I(TAG, "init complete");
 }
 
-const Configuration* _Nullable get_config() {
+const Configuration* _Nullable getConfiguration() {
     return config_instance;
 }
 

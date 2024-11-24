@@ -12,8 +12,8 @@ static esp_err_t i2c_init() {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = GPIO_NUM_8,
         .scl_io_num = GPIO_NUM_9,
-        .sda_pullup_en = GPIO_PULLUP_DISABLE,
-        .scl_pullup_en = GPIO_PULLUP_DISABLE,
+        .sda_pullup_en = false,
+        .scl_pullup_en = false,
         .master = {
             .clk_speed = 400000
         }

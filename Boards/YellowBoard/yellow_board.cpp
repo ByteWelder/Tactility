@@ -25,8 +25,8 @@ const tt::hal::Configuration yellow_board_24inch_cap = {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_NC,
                 .scl_io_num = GPIO_NUM_NC,
-                .sda_pullup_en = GPIO_PULLUP_DISABLE,
-                .scl_pullup_en = GPIO_PULLUP_DISABLE,
+                .sda_pullup_en = false,
+                .scl_pullup_en = false,
                 .master = {
                     .clk_speed = 400000
                 },
@@ -43,8 +43,8 @@ const tt::hal::Configuration yellow_board_24inch_cap = {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_NC,
                 .scl_io_num = GPIO_NUM_NC,
-                .sda_pullup_en = GPIO_PULLUP_DISABLE,
-                .scl_pullup_en = GPIO_PULLUP_DISABLE,
+                .sda_pullup_en = false,
+                .scl_pullup_en = false,
                 .master = {
                     .clk_speed = 400000
                 },
