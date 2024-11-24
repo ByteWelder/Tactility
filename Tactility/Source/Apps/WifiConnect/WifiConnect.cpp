@@ -133,7 +133,7 @@ static void app_stop(App app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "wifi_connect",
+    .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
     .type = AppTypeSettings,

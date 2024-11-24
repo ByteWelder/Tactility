@@ -222,7 +222,7 @@ static void on_stop(App app) {
 // endregion Lifecycle
 
 extern const AppManifest manifest = {
-    .id = "files",
+    .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
     .type = AppTypeSystem,

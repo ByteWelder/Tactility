@@ -42,22 +42,14 @@ _Nullable const AppManifest * app_manifest_registry_find_by_id(const std::string
     return result;
 }
 
-void app_manifest_registry_for_each_of_type(AppType type, void* _Nullable context, AppManifestCallback callback) {
+std::vector<const AppManifest*> app_manifest_registry_get() {
+    std::vector<const AppManifest*> manifests;
     app_registry_lock();
-    for (auto& it : app_manifest_map) {
-        if (it.second->type == type) {
-            callback(it.second, context);
-        }
+    for (const auto& item: app_manifest_map) {
+        manifests.push_back(item.second);
     }
     app_registry_unlock();
-}
-
-void app_manifest_registry_for_each(AppManifestCallback callback, void* _Nullable context) {
-    app_registry_lock();
-    for (auto& it : app_manifest_map) {
-        callback(it.second, context);
-    }
-    app_registry_unlock();
+    return manifests;
 }
 
 } // namespace

@@ -18,8 +18,8 @@ static void on_stop(App app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "screenshot",
-    .name = "Screenshot",
+    .id = "Screenshot",
+    .name = "_Screenshot", // So it gets put at the bottom of the desktop and becomes less visible on small screen devices
     .icon = LV_SYMBOL_IMAGE,
     .type = AppTypeSystem,
     .on_start = &on_start,
