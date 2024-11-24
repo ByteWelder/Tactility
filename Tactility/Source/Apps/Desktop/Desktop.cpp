@@ -2,6 +2,7 @@
 #include "Assets.h"
 #include "Check.h"
 #include "lvgl.h"
+#include <algorithm>
 #include "Services/Loader/Loader.h"
 
 namespace tt::app::desktop {
@@ -27,14 +28,26 @@ static void desktop_show(TT_UNUSED App app, lv_obj_t* parent) {
     lv_obj_set_size(list, LV_PCT(100), LV_PCT(100));
     lv_obj_center(list);
 
+    auto manifests = app_manifest_registry_get();
+    std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+
     lv_list_add_text(list, "User");
-    app_manifest_registry_for_each_of_type(AppTypeUser, list, create_app_widget);
+    for (const auto& manifest: manifests) {
+        if (manifest->type == AppTypeUser) {
+            create_app_widget(manifest, list);
+        }
+    }
+
     lv_list_add_text(list, "System");
-    app_manifest_registry_for_each_of_type(AppTypeSystem, list, create_app_widget);
+    for (const auto& manifest: manifests) {
+        if (manifest->type == AppTypeSystem) {
+            create_app_widget(manifest, list);
+        }
+    }
 }
 
 extern const AppManifest manifest = {
-    .id = "desktop",
+    .id = "Desktop",
     .name = "Desktop",
     .type = AppTypeDesktop,
     .on_show = &desktop_show,

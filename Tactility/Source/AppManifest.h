@@ -70,4 +70,8 @@ typedef struct AppManifest {
     const AppOnHide _Nullable on_hide = nullptr;
 } AppManifest;
 
+struct {
+    bool operator()(const AppManifest* a, const AppManifest* b) const { return a->name < b->name; }
+} SortAppManifestByName;
+
 } // namespace

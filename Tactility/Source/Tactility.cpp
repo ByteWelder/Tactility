@@ -21,7 +21,7 @@ namespace service {
     namespace statusbar { extern const ServiceManifest manifest; }
 }
 
-static const ServiceManifest* const system_services[] = {
+static const std::vector<const ServiceManifest*> system_services = {
     &service::loader::manifest,
     &service::gui::manifest, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
@@ -54,7 +54,7 @@ namespace app {
 extern const AppManifest screenshot_app;
 #endif
 
-static const AppManifest* const system_apps[] = {
+static const std::vector<const AppManifest*> system_apps = {
     &app::desktop::manifest,
     &app::files::manifest,
     &app::gpio::manifest,
@@ -75,10 +75,8 @@ static const AppManifest* const system_apps[] = {
 
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
-
-    int app_count = sizeof(system_apps) / sizeof(AppManifest*);
-    for (int i = 0; i < app_count; ++i) {
-        app_manifest_registry_add(system_apps[i]);
+    for (const auto& app_manifest: system_apps) {
+        app_manifest_registry_add(app_manifest);
     }
 
     if (getConfiguration()->hardware->power != nullptr) {
@@ -101,10 +99,9 @@ static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMI
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
-    int app_count = sizeof(system_services) / sizeof(ServiceManifest*);
-    for (int i = 0; i < app_count; ++i) {
-        service_registry_add(system_services[i]);
-        tt_check(service_registry_start(system_services[i]->id));
+    for (const auto& service_manifest: system_services) {
+        service_registry_add(service_manifest);
+        tt_check(service_registry_start(service_manifest->id));
     }
 }
 
@@ -124,7 +121,6 @@ static void register_and_start_user_services(const ServiceManifest* const servic
 
 void init(const Configuration* config) {
     TT_LOG_I(TAG, "init started");
-
 
     // Assign early so starting services can use it
     config_instance = config;

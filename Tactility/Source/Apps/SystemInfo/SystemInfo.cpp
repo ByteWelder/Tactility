@@ -102,7 +102,7 @@ static void on_show(App app, lv_obj_t* parent) {
 }
 
 extern const AppManifest manifest = {
-    .id = "systeminfo",
+    .id = "SystemInfo",
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
     .type = AppTypeSystem,

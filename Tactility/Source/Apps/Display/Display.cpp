@@ -121,7 +121,7 @@ static void app_hide(TT_UNUSED App app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "display",
+    .id = "Display",
     .name = "Display",
     .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
     .type = AppTypeSettings,

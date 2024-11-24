@@ -110,7 +110,7 @@ static void app_stop(App app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "power",
+    .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
     .type = AppTypeSettings,

@@ -745,7 +745,7 @@ static void service_stop(Service& service) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "wifi",
+    .id = "Wifi",
     .on_start = &service_start,
     .on_stop = &service_stop
 };

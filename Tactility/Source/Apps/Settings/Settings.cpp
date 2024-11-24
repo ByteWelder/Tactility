@@ -1,9 +1,10 @@
 #include "AppManifestRegistry.h"
 #include "Assets.h"
 #include "Check.h"
-#include "lvgl.h"
 #include "Services/Loader/Loader.h"
 #include "Ui/Toolbar.h"
+#include "lvgl.h"
+#include <algorithm>
 
 namespace tt::app::settings {
 
@@ -32,11 +33,17 @@ static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
 
-    app_manifest_registry_for_each_of_type(AppTypeSettings, list, create_app_widget);
+    auto manifests = app_manifest_registry_get();
+    std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+    for (const auto& manifest: manifests) {
+        if (manifest->type == AppTypeSettings) {
+            create_app_widget(manifest, list);
+        }
+    }
 }
 
 extern const AppManifest manifest = {
-    .id = "settings",
+    .id = "Settings",
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
     .type = AppTypeSystem,

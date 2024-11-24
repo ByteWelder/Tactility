@@ -21,20 +21,17 @@
 - Refactor hardware configuration init methods to return esp_err_t instead of bool
 
 # Core Ideas
-- Make a HAL? It would mainly be there to support PC development. It's a lot of effort for supporting what's effectively a dev-only feature.
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - If present, use LED to show boot status
 - 2 wire speaker support
-- tt_app_start() and similar functions as proxies for Loader app start/stop/etc.
-- tt_app_set_result() for apps that need to return data to other apps (e.g. file selection)
+- tt::startApp() and similar functions as proxies for Loader app start/stop/etc.
+- tt::setAppResult() for apps that need to return data to other apps (e.g. file selection)
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Improvement Ideas
-- Sort desktop apps by name.
 - Light/dark mode selection in Display settings app.
 
 # App Ideas
-- File viewer (images, text... binary?)
 - BlueTooth keyboard app
 - Chip 8 emulator
 - BadUSB

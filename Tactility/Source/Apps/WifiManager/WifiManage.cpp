@@ -26,7 +26,7 @@ static void on_connect(const char* ssid) {
         Bundle bundle;
         bundle.putString(WIFI_CONNECT_PARAM_SSID, ssid);
         bundle.putString(WIFI_CONNECT_PARAM_PASSWORD, "");
-        service::loader::start_app("wifi_connect", false, bundle);
+        service::loader::start_app("WifiConnect", false, bundle);
     }
 }
 
