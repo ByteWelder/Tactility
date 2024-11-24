@@ -127,7 +127,7 @@ void init(const Configuration* config) {
     // Assign early so starting services can use it
     config_instance = config;
 
-    headless_init(config->hardware);
+    init(*config->hardware);
 
     lvgl_init(config->hardware);
 

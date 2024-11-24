@@ -15,7 +15,7 @@ static uint8_t backlight_duty = 255;
 static void slider_event_cb(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
     const Configuration* config = get_config();
-    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.set_backlight_duty;
+    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
 
     if (set_backlight_duty != nullptr) {
         int32_t slider_value = lv_slider_get_value(slider);
@@ -90,7 +90,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_pos(brightness_slider, 0, 30);
 
     const Configuration* config = get_config();
-    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.set_backlight_duty;
+    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
     if (set_backlight_duty == nullptr) {
         lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);
         lv_obj_add_state(brightness_slider, LV_STATE_DISABLED);

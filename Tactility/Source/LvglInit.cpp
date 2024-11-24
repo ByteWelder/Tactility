@@ -5,7 +5,7 @@
 namespace tt {
 
 void lvgl_init(const hal::Configuration* config) {
-    hal::SetBacklightDuty set_backlight_duty = config->display.set_backlight_duty;
+    hal::SetBacklightDuty set_backlight_duty = config->display.setBacklightDuty;
     if (set_backlight_duty != nullptr) {
         int32_t backlight_duty = app::settings::display::preferences_get_backlight_duty();
         set_backlight_duty(backlight_duty);

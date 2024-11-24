@@ -30,7 +30,7 @@ typedef struct {
 } Wifi;
 
 
-static Wifi* wifi = NULL;
+static Wifi* wifi = nullptr;
 
 // Forward declarations
 static void wifi_lock(Wifi* wifi);

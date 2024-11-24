@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES esp_wifi nvs_flash spiffs
+        REQUIRES esp_wifi nvs_flash spiffs driver
     )
 
     set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/assets")

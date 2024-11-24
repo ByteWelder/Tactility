@@ -53,11 +53,7 @@ TT_NORETURN void tt_crash_implementation();
  * @param      optional  message (const char*)
  */
 
-#ifdef NDEBUG
-#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "check failed: %s", #x); }
-#else
-#define tt_check(x, ...) assert(x)
-#endif
+#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); };
 
 /** Only in debug build: Assert condition and crash if assert failed  */
 #ifdef TT_DEBUG

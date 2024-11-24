@@ -5,11 +5,10 @@
 bool ws3t_bootstrap();
 
 extern const tt::hal::Configuration waveshare_s3_touch = {
-    .bootstrap = &ws3t_bootstrap,
-    .init_graphics = &ws3t_init_lvgl,
-    .display = {
-        .set_backlight_duty = nullptr // TODO: This requires implementing the CH422G IO expander
-    },
+    .initPower = &ws3t_bootstrap,
+    .initLvgl = &ws3t_init_lvgl,
+    .display = { .setBacklightDuty = nullptr },
     .sdcard = nullptr,
-    .power = nullptr
+    .power = nullptr,
+    .i2c = {}
 };

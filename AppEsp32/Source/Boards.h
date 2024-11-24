@@ -13,7 +13,7 @@
 #include "M5stackCore2.h"
 #define TT_BOARD_HARDWARE &m5stack_core2
 #elif defined(CONFIG_TT_BOARD_M5STACK_CORES3)
-#include "m5stack_cores3.h"
+#include "M5stackCoreS3.h"
 #define TT_BOARD_HARDWARE &m5stack_cores3
 #elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH)
 #include "waveshare_s3_touch.h"
