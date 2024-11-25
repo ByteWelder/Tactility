@@ -8,6 +8,7 @@
 #define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")
 #define TT_ASSETS_APP_ICON_DISPLAY_SETTINGS TT_ASSET("app_icon_display_settings.png")
 #define TT_ASSETS_APP_ICON_POWER_SETTINGS TT_ASSET("app_icon_power_settings.png")
+#define TT_ASSETS_APP_ICON_I2C_SETTINGS TT_ASSET("app_icon_i2c.png")
 #define TT_ASSETS_APP_ICON_SETTINGS TT_ASSET("app_icon_settings.png")
 #define TT_ASSETS_APP_ICON_SYSTEM_INFO TT_ASSET("app_icon_system_info.png")
 

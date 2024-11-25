@@ -1,7 +1,8 @@
+#include "Assets.h"
+#include "Hal/I2c/I2c.h"
 #include "Tactility.h"
 #include "Ui/Style.h"
 #include "Ui/Toolbar.h"
-#include "Hal/I2c/I2c.h"
 #include "lvgl.h"
 
 namespace tt::app::settings::i2c {
@@ -87,6 +88,7 @@ static void on_show(App app, lv_obj_t* parent) {
 extern const AppManifest manifest = {
     .id = "I2cSettings",
     .name = "I2C",
+    .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
     .type = AppTypeSettings,
     .on_show = &on_show
 };
