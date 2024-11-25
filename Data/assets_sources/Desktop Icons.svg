@@ -7,7 +7,7 @@
    id="svg11"
    sodipodi:docname="Desktop Icons.svg"
    xml:space="preserve"
-   inkscape:export-filename="../assets/power_020.png"
+   inkscape:export-filename="../assets/app_icon_i2c.png"
    inkscape:export-xdpi="3"
    inkscape:export-ydpi="3"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
@@ -30,7 +30,18 @@
    opacity: 0.5;
 }
 ]]></style><inkscape:_templateinfo><inkscape:_name>Android O icon template</inkscape:_name><inkscape:author>Venceslas DUET</inkscape:author><inkscape:_shortdesc>A collection of keylines and guides used to make adaptive icons for android O</inkscape:_shortdesc><inkscape:date>2021-02-14</inkscape:date><inkscape:_keywords>Android Icon Adaptive Keylines</inkscape:_keywords></inkscape:_templateinfo><defs
-     id="defs1"><clipPath
+     id="defs1"><inkscape:path-effect
+       effect="bspline"
+       id="path-effect3"
+       is_visible="true"
+       lpeversion="1.3"
+       weight="33.333333"
+       steps="2"
+       helper_size="0"
+       apply_no_weight="true"
+       apply_with_weight="true"
+       only_selected="false"
+       uniform="false" /><clipPath
        clipPathUnits="userSpaceOnUse"
        id="clipHatching"><rect
          width="8"
@@ -100,14 +111,14 @@
          in2="comp1"
          id="feComposite41" /></filter></defs><sodipodi:namedview
      id="base"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="g6"
      showgrid="true"
      units="px"
      showguides="true"
      inkscape:guide-bbox="true"
      inkscape:document-units="px"
-     inkscape:cx="263.92781"
-     inkscape:cy="282.45629"
+     inkscape:cx="211.14908"
+     inkscape:cy="264.49672"
      pagecolor="#505050"
      bordercolor="#eeeeee"
      borderopacity="1"
@@ -115,7 +126,7 @@
      inkscape:pageopacity="0"
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:zoom="1.2143472"
+     inkscape:zoom="1.1153257"
      inkscape:window-width="1503"
      inkscape:window-height="930"
      inkscape:window-x="0"
@@ -192,7 +203,8 @@
          sodipodi:nodetypes="cscsscsccccccscsccccccssss" /></g><g
        inkscape:groupmode="layer"
        id="layer1"
-       inkscape:label="Power_Settings"><rect
+       inkscape:label="Power_Settings"
+       style="display:none"><rect
          style="display:inline;fill:#000000;fill-opacity:1;stroke-width:0.8862;paint-order:stroke fill markers"
          id="rect4"
          width="346.68829"
@@ -233,7 +245,7 @@
          transform="translate(0.41209841,0.82986943)"><path
            id="rect15"
            style="fill:#000000;paint-order:stroke fill markers"
-           d="M 1.6464844 104.58203 L 1.6464844 417.50781 L 475.15234 417.50781 L 475.15234 104.58203 L 1.6464844 104.58203 z M 23.880859 125.99414 L 451.27148 125.99414 L 451.27148 395.27344 L 23.880859 395.27344 L 23.880859 125.99414 z "
+           d="M 1.6464844,104.58203 V 417.50781 H 475.15234 V 104.58203 Z M 23.880859,125.99414 H 451.27148 v 269.2793 H 23.880859 Z"
            transform="translate(-0.41209841,-0.82986943)" /><rect
            style="display:inline;fill:#000000;paint-order:stroke fill markers"
            id="rect2-7"
@@ -246,7 +258,37 @@
        style="display:none;fill:#333333;fill-opacity:1;stroke-width:0.665879" /><path
        d="m 47.867683,447.55649 q -19.326766,0 -33.654939,-14.32849 Q -0.1157482,418.89983 -0.1157482,399.57306 V 111.67248 q 0,-19.793166 14.3284922,-33.888136 Q 28.540917,63.689052 47.867683,63.689052 H 191.81797 l 63.97791,63.977908 h 207.9282 q 19.79316,0 33.88814,14.09529 14.09529,14.09497 14.09529,33.88814 v 223.92267 q 0,19.32677 -14.09529,33.65494 -14.09498,14.32849 -33.88814,14.32849 z m 0,-47.98343 H 463.72408 V 175.65039 h -227.9213 l -63.9779,-63.97791 H 47.867683 Z m 0,0 V 111.67248 Z"
        id="Files"
-       style="display:none;fill:#333333;fill-opacity:1;stroke-width:0.666435" /></g><style
+       style="display:none;fill:#333333;fill-opacity:1;stroke-width:0.666435" /><g
+       id="g6"
+       inkscape:label="I2C"><path
+         style="fill:#333333;stroke-width:1.10895;paint-order:stroke fill markers"
+         d="M 1.1034012,386.61813 V 121.14457 H 512.16486 V 388.6067 H 406.77087 v -75.56551 h 27.83993 v 44.74274 h 51.70271 V 146.99592 H 28.943326 V 360.76677 H 82.634608 V 313.04119 H 106.4974 v 75.56551 z"
+         id="path4"
+         inkscape:label="housing" /><circle
+         style="fill:#1a1a1a;stroke-width:1.68907;paint-order:stroke fill markers"
+         id="path5"
+         cx="416.15726"
+         cy="233.15318"
+         inkscape:label="pin4"
+         r="36.346325" /><circle
+         style="fill:#800000;stroke-width:1.68909;paint-order:stroke fill markers"
+         id="path5-62"
+         cx="311.80624"
+         cy="232.68082"
+         inkscape:label="pin3"
+         r="36.346325" /><circle
+         style="fill:#aa8800;stroke-width:1.68907;paint-order:stroke fill markers"
+         id="path5-6"
+         cx="201.49115"
+         cy="232.88933"
+         inkscape:label="pin2"
+         r="36.346325" /><circle
+         style="fill:#000080;stroke-width:1.68907;paint-order:stroke fill markers"
+         id="path5-9"
+         cx="94.05365"
+         cy="233.18108"
+         inkscape:label="pin1"
+         r="36.346325" /></g></g><style
      id="style1-9"><![CDATA[
 #keylines circle, #keylines rect { 
    vector-effect: non-scaling-stroke;
