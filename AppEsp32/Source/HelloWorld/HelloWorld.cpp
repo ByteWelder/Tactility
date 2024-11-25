@@ -1,5 +1,5 @@
 #include "lvgl.h"
-#include "Ui/Toolbar.h"
+#include "ui/Toolbar.h"
 
 static void app_show(tt::App app, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, app);

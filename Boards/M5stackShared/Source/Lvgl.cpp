@@ -1,7 +1,7 @@
 #include "esp_lvgl_port.h"
 #include "Log.h"
 #include "Thread.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 
 #define TAG "cores3_lvgl"
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Hal/Configuration.h"
+#include "hal/Configuration.h"
 
 namespace tt {
 

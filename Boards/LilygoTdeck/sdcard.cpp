@@ -1,11 +1,11 @@
-#include "Hal/Sdcard.h"
+#include "hal/Sdcard.h"
 #include "Check.h"
 #include "Log.h"
 #include "config.h"
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 
 #define TAG "tdeck_sdcard"
 

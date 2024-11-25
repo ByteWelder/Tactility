@@ -5,7 +5,7 @@
 #include "lvgl_hal.h"
 #include "TactilityCore.h"
 #include "Thread.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"

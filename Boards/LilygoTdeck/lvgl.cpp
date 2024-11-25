@@ -1,6 +1,6 @@
 #include "Log.h"
 #include "Thread.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 #include "config.h"
 #include "display.h"
 #include "esp_lvgl_port.h"

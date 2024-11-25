@@ -2,9 +2,9 @@
 
 #include "AppManifestRegistry.h"
 #include "LvglInit_i.h"
-#include "ServiceRegistry.h"
+#include "service/ServiceRegistry.h"
+#include "service/loader/Loader.h"
 #include "TactilityHeadless.h"
-#include "Services/Loader/Loader.h"
 
 namespace tt {
 
@@ -15,13 +15,13 @@ static const Configuration* config_instance = NULL;
 // region Default services
 
 namespace service {
-    namespace gui { extern const ServiceManifest manifest; }
-    namespace loader { extern const ServiceManifest manifest; }
-    namespace screenshot { extern const ServiceManifest manifest; }
-    namespace statusbar { extern const ServiceManifest manifest; }
+    namespace gui { extern const Manifest manifest; }
+    namespace loader { extern const Manifest manifest; }
+    namespace screenshot { extern const Manifest manifest; }
+    namespace statusbar { extern const Manifest manifest; }
 }
 
-static const std::vector<const ServiceManifest*> system_services = {
+static const std::vector<const service::Manifest*> system_services = {
     &service::loader::manifest,
     &service::gui::manifest, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
@@ -100,18 +100,18 @@ static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMI
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
     for (const auto& service_manifest: system_services) {
-        service_registry_add(service_manifest);
-        tt_check(service_registry_start(service_manifest->id));
+        addService(service_manifest);
+        tt_check(service::startService(service_manifest->id));
     }
 }
 
-static void register_and_start_user_services(const ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
+static void register_and_start_user_services(const service::Manifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
     TT_LOG_I(TAG, "Registering and starting user services");
     for (size_t i = 0; i < TT_CONFIG_SERVICES_LIMIT; i++) {
-        const ServiceManifest* manifest = services[i];
+        const service::Manifest* manifest = services[i];
         if (manifest != nullptr) {
-            service_registry_add(manifest);
-            tt_check(service_registry_start(manifest->id));
+            addService(manifest);
+            tt_check(service::startService(manifest->id));
         } else {
             // reached end of list
             break;
