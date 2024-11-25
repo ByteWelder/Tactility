@@ -1,6 +1,6 @@
 #include "Hash.h"
 
-namespace tt::hash {
+namespace tt::crypt {
 
 uint32_t djb2(const char* str) {
     uint32_t hash = 5381;

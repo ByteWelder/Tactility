@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cstdint>
-#include <cstdio>
 #include <string>
 #include <unordered_map>
 

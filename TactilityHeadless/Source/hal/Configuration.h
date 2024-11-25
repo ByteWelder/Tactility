@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Power.h"
-#include "Sdcard.h"
-#include "i2c/I2c.h"
+#include "hal/sdcard/Sdcard.h"
+#include "hal/i2c/I2c.h"
 
 namespace tt::hal {
 

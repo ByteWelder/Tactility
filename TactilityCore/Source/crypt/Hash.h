@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace tt::hash {
+namespace tt::crypt {
 
 /**
  * Implementation of DJB2 hashing algorithm.
