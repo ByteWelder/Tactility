@@ -2,6 +2,7 @@
 
 #include "I2cCompat.h"
 #include "CoreTypes.h"
+#include <climits>
 #include <string>
 #include <vector>
 
@@ -24,7 +25,7 @@ typedef struct {
     /** Whether configuration can be changed. */
     bool hasMutableConfiguration;
     /** Read/write timeout (not related to mutex locking mechanism) */
-    TickType_t timeout;
+    unsigned long timeout;
     /** Configuration that must be valid when initAtBoot is set to true. */
     i2c_config_t config;
 } Configuration;

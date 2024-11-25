@@ -26,7 +26,8 @@ typedef enum {
     WifiMessageTypeRadioOff,
     WifiMessageTypeScan,
     WifiMessageTypeConnect,
-    WifiMessageTypeDisconnect
+    WifiMessageTypeDisconnect,
+    WifiMessageTypeAutoConnect,
 } WifiMessageType;
 
 typedef struct {
@@ -282,7 +283,7 @@ static bool copy_scan_list(Wifi* wifi) {
 
 static void auto_connect(Wifi* wifi) {
     for (int i = 0; i < wifi->scan_list_count; ++i) {
-        const char* ssid = (const char*)wifi->scan_list[i].ssid;
+        auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
         if (settings::contains(ssid)) {
             static_assert(sizeof(wifi->scan_list[i].ssid) == (TT_WIFI_SSID_LIMIT + 1), "SSID size mismatch");
             settings::WifiApSettings ap_settings;
@@ -334,7 +335,9 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
         TT_LOG_I(TAG, "Finished scan");
 
         if (copied_list && wifi_singleton->radio_state == WIFI_RADIO_ON) {
-            auto_connect(wifi_singleton);
+            WifiMessage message = {.type = WifiMessageTypeAutoConnect};
+            // No need to lock for queue
+            wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
         }
     }
     unlock(wifi_singleton);
@@ -707,6 +710,11 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                 case WifiMessageTypeDisconnect:
                     lock(wifi);
                     disconnect_internal_but_keep_active(wifi);
+                    unlock(wifi);
+                    break;
+                case WifiMessageTypeAutoConnect:
+                    lock(wifi);
+                    auto_connect(wifi_singleton);
                     unlock(wifi);
                     break;
             }

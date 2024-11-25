@@ -6,11 +6,9 @@
 #ifdef ESP_TARGET
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
-#include "freertos/portmacro.h"
 #else
 #include "FreeRTOS.h"
 #include "event_groups.h"
-#include "portmacro.h"
 #endif
 
 #define TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS 24U
