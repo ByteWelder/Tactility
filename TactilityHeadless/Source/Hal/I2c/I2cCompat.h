@@ -1,13 +1,11 @@
 #pragma once
 
 #ifdef ESP_TARGET
-
+#include <hal/i2c_types.h>
 #include <driver/i2c.h>
-
 #else
 
 #include <cstdint>
-#include "portmacro.h"
 
 typedef int esp_err_t;
 

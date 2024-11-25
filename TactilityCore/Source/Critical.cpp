@@ -4,11 +4,9 @@
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/portmacro.h"
 #else
 #include "FreeRTOS.h"
 #include "task.h"
-#include "portmacro.h"
 #endif
 
 #ifdef ESP_PLATFORM

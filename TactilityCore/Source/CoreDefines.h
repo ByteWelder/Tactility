@@ -3,7 +3,6 @@
 #include "CoreExtraDefines.h"
 
 #ifdef ESP_PLATFORM
-#include "freertos/portmacro.h"
 #else
 #include "portmacro.h"
 #endif
