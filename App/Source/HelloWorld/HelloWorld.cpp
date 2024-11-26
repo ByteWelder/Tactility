@@ -13,6 +13,5 @@ static void app_show(tt::app::App& app, lv_obj_t* parent) {
 extern const tt::app::Manifest hello_world_app = {
     .id = "HelloWorld",
     .name = "Hello World",
-    .type = tt::app::TypeUser,
     .onShow = &app_show,
 };

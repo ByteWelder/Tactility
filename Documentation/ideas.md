@@ -5,7 +5,6 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
 - T-Deck has random sdcard SPI crashes due to sharing bus with screen SPI: make it use the LVGL lock for sdcard operations?
-- Wi-Fi connect app should show info about connection result
 - Check service/app id on registration to see if it is a duplicate id
 - Fix screenshot app on ESP32: it currently blocks when allocating memory
 - Localisation of texts
@@ -16,8 +15,8 @@
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Publish firmwares with upload tool
 - De-duplicate WiFi SSIDs.
-- Move libs/M5 projects to boards/M5Shared
 - Refactor hardware configuration init methods to return esp_err_t instead of bool
+- Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.
