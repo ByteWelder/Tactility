@@ -4,7 +4,7 @@
 
 namespace tt {
 
-void esp_init();
+void initEsp();
 
 } // namespace
 

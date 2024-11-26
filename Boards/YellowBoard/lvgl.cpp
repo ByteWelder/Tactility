@@ -1,6 +1,6 @@
 #include "esp_lvgl_port.h"
 #include "Log.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 #include "Thread.h"
 
 #define TAG "twodotfour_lvgl"
@@ -50,7 +50,7 @@ bool twodotfour_lvgl_init() {
     }
 
     // Set syncing functions
-    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::syncSet(&lvgl_port_lock, &lvgl_port_unlock);
 
     return true;
 }

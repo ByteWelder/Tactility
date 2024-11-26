@@ -11,7 +11,7 @@ namespace tt {
 
 static const char* TAG = "filesystem";
 
-static esp_err_t nvs_flash_init_safely() {
+static esp_err_t initNvsFlashSafely() {
     esp_err_t result = nvs_flash_init();
     if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -20,7 +20,7 @@ static esp_err_t nvs_flash_init_safely() {
     return result;
 }
 
-static esp_err_t spiffs_init(esp_vfs_spiffs_conf_t* conf) {
+static esp_err_t initSpiffs(esp_vfs_spiffs_conf_t* conf) {
     esp_err_t ret = esp_vfs_spiffs_register(conf);
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
@@ -43,8 +43,8 @@ static esp_err_t spiffs_init(esp_vfs_spiffs_conf_t* conf) {
     return ESP_OK;
 }
 
-esp_err_t esp_partitions_init() {
-    ESP_ERROR_CHECK(nvs_flash_init_safely());
+esp_err_t initEspPartitions() {
+    ESP_ERROR_CHECK(initNvsFlashSafely());
 
     esp_vfs_spiffs_conf_t assets_spiffs = {
         .base_path = MOUNT_POINT_ASSETS,
@@ -53,7 +53,7 @@ esp_err_t esp_partitions_init() {
         .format_if_mount_failed = false
     };
 
-    if (spiffs_init(&assets_spiffs) != ESP_OK) {
+    if (initSpiffs(&assets_spiffs) != ESP_OK) {
         return ESP_FAIL;
     }
 
@@ -64,7 +64,7 @@ esp_err_t esp_partitions_init() {
         .format_if_mount_failed = false
     };
 
-    if (spiffs_init(&config_spiffs) != ESP_OK) {
+    if (initSpiffs(&config_spiffs) != ESP_OK) {
         return ESP_FAIL;
     }
 

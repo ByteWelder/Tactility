@@ -2,7 +2,6 @@
 
 #include "Bundle.h"
 #include "Preferences.h"
-#include "TactilityCore.h"
 
 namespace tt {
 

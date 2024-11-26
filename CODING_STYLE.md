@@ -1,78 +1,71 @@
-# C coding Style
+# C++ coding Style
 
 The basic formatting rules are set in `.clang-format`. Use auto-formatting in your editor.
 
-All code should target C language revision C11/C17.
+All code should target C++ language revision 17.
 
 ## Naming
 
 ### Files
 
-Files are snake-case.
+Files are upper camel case.
 
-- Files: `^[0-9a-z_]+$`
-- Directories: `^[0-9a-z_]+$`
+- Files: `^[0-9a-zA-Z]+$`
+- Directories: `^[0-9a-zA-Z]+$`
  
 Example:
-```c
-some_feature.c
-some_feature.h
+```c++
+SomeFeature.cpp
+SomeFeature.h
 ```
 
 Private/internal headers are postfixed with `_i` before the file extension.
-Like `some_feature_i.h`
+Like `SomeFeature_i.h`
+
+### Folders
+
+Project folders include:
+- `Source` for source files and public header files
+- `Private` for private header files
+- `Include` for projects that require separate header files
+
+Sources for a specific namespace must go into a folder with the lowercase name of that namespace.
+The only exception to this is the root namespace, as this doesn't require its own subfolder.
 
 ### Function names
 
-Names are snake-case.
-
-The `tt_` prefix is used for public functions that are part of `tactility/` or `tactility-core/`
-Internal/static functions don't have prefix requirements, but prefixes are allowed.
-
-The prefix is **not** used for drivers, services and apps.
-
-Public functions have the feature name after `tt_`.
-
-If a feature has setters or getters, it's added after the feature name part.
+Names are lower camel case.
 
 Example:
 
-```c
-void tt_counter_get_limit() {
+```c++
+void getLimit() {
     // ...
 }
 ```
 
-Function names that allocate or free memory should end in `_alloc` and `_free`.
+### Preprocessor
+
+Preprocessor functions are written in snake-case and prefixed with `tt_`, for example:
+
+```c++
+#define tt_assert(x) __tt_assert_internal(x)
+```
 
 ### Type names
 
-Consts are snake-case with capital letters.
+Consts are lower camel case with capital letters.
 
-Typedefs for structs and datatype aliases are PascalCase.
+Typedefs for structs and datatype aliases are upper camel case.
+
 Examples:
 
-```c
+```c++
 typedef uint32_t SomeAlias;
+
+const SomeAlias myAlias;
 
 typedef struct {
     // ...
 } SomeStruct;
-```
-
-### Internal struct with public handle
-
-When you have a `struct` data type that is private and you want to expose a handle (pointer),
-append the internal name with `Data` like this:
-
-**feature.c**
-```c
-typedef struct {
-    // ...
-} MutexData;
-```
-
-**feature.h**
-```c
-typedef void* Mutex;
 ```

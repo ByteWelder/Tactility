@@ -1,7 +1,7 @@
 #include "esp_lvgl_port.h"
 #include "Log.h"
 #include "Thread.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 
 #define TAG "cores3_lvgl"
 
@@ -40,7 +40,7 @@ bool m5stack_lvgl_init() {
     lv_indev_set_display(touch_indev, display);
 
     // Set syncing functions
-    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::syncSet(&lvgl_port_lock, &lvgl_port_unlock);
 
     return true;
 }

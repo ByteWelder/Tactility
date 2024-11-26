@@ -1,4 +1,4 @@
-#include "Hal/Power.h"
+#include "hal/Power.h"
 #include "M5Unified.hpp"
 
 /**
@@ -30,9 +30,9 @@ static int32_t get_current() {
 }
 
 extern const tt::hal::Power m5stack_power = {
-    .is_charging = &is_charging,
-    .is_charging_enabled = &is_charging_enabled,
-    .set_charging_enabled = &set_charging_enabled,
-    .get_charge_level = &get_charge_level,
-    .get_current = &get_current
+    .isCharging = &is_charging,
+    .isChargingEnabled = &is_charging_enabled,
+    .setChargingEnabled = &set_charging_enabled,
+    .getChargeLevel = &get_charge_level,
+    .getCurrent = &get_current
 };

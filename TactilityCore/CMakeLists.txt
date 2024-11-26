@@ -3,8 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB SOURCES "Source/*.c*")
-file(GLOB HEADERS "Source/*.h*")
+file(GLOB_RECURSE SOURCES "Source/*.c*")
+file(GLOB_RECURSE HEADERS "Source/*.h*")
 
 add_library(TactilityCore OBJECT)
 

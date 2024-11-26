@@ -1,6 +1,6 @@
 #include "Log.h"
 #include "Thread.h"
-#include "Ui/LvglSync.h"
+#include "ui/LvglSync.h"
 #include "config.h"
 #include "display.h"
 #include "esp_lvgl_port.h"
@@ -59,7 +59,7 @@ bool tdeck_init_lvgl() {
     }
 
     // Set syncing functions
-    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::syncSet(&lvgl_port_lock, &lvgl_port_unlock);
 
     keyboard_alloc(display);
 

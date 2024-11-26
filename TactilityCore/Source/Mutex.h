@@ -22,6 +22,10 @@ typedef enum {
     MutexTypeRecursive,
 } MutexType;
 
+/**
+ * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
+ * Can be used in IRQ mode (within ISR context)
+ */
 class Mutex {
 private:
     SemaphoreHandle_t semaphore;

@@ -6,7 +6,7 @@
 
 namespace tt {
 
-esp_err_t esp_partitions_init();
+esp_err_t initEspPartitions();
 
 } // namespace
 

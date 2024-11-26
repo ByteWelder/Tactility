@@ -1,8 +1,8 @@
 #include "TactilityHeadless.h"
-#include "Hal/Configuration.h"
-#include "Hal/Hal_i.h"
-#include "ServiceManifest.h"
-#include "ServiceRegistry.h"
+#include "hal/Configuration.h"
+#include "hal/Hal_i.h"
+#include "service/Manifest.h"
+#include "service/ServiceRegistry.h"
 
 #ifdef ESP_PLATFORM
 #include "EspInit.h"
@@ -12,10 +12,10 @@ namespace tt {
 
 #define TAG "tactility"
 
-namespace service::wifi { extern const ServiceManifest manifest; }
-namespace service::sdcard { extern const ServiceManifest manifest; }
+namespace service::wifi { extern const Manifest manifest; }
+namespace service::sdcard { extern const Manifest manifest; }
 
-static const ServiceManifest* const system_services[] = {
+static const service::Manifest* const system_services[] = {
     &service::sdcard::manifest,
     &service::wifi::manifest
 };
@@ -24,16 +24,16 @@ static const hal::Configuration* hardwareConfig = nullptr;
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
-    int app_count = sizeof(system_services) / sizeof(ServiceManifest*);
+    int app_count = sizeof(system_services) / sizeof(service::Manifest*);
     for (int i = 0; i < app_count; ++i) {
-        service_registry_add(system_services[i]);
-        tt_check(service_registry_start(system_services[i]->id));
+        addService(system_services[i]);
+        tt_check(service::startService(system_services[i]->id));
     }
 }
 
 void initHeadless(const hal::Configuration& config) {
 #ifdef ESP_PLATFORM
-    esp_init();
+    initEsp();
 #endif
     hardwareConfig = &config;
     hal::init(config);

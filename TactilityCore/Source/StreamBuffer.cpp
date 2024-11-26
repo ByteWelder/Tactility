@@ -4,91 +4,70 @@
 #include "CoreDefines.h"
 #include "CoreTypes.h"
 
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/stream_buffer.h"
-#else
-#include "FreeRTOS.h"
-#include "stream_buffer.h"
-#endif
-
 namespace tt {
 
-StreamBuffer* stream_buffer_alloc(size_t size, size_t trigger_level) {
+StreamBuffer::StreamBuffer(size_t size, size_t triggerLevel) {
     tt_assert(size != 0);
-
-    StreamBufferHandle_t handle = xStreamBufferCreate(size, trigger_level);
+    handle = xStreamBufferCreate(size, triggerLevel);
     tt_check(handle);
-
-    return handle;
 };
 
-void stream_buffer_free(StreamBuffer* stream_buffer) {
-    tt_assert(stream_buffer);
-    vStreamBufferDelete((StreamBufferHandle_t)stream_buffer);
+StreamBuffer::~StreamBuffer() {
+    vStreamBufferDelete(handle);
 };
 
-bool stream_set_trigger_level(StreamBuffer* stream_buffer, size_t trigger_level) {
-    tt_assert(stream_buffer);
-    return xStreamBufferSetTriggerLevel((StreamBufferHandle_t)stream_buffer, trigger_level) == pdTRUE;
+bool StreamBuffer::setTriggerLevel(size_t triggerLevel) const {
+    return xStreamBufferSetTriggerLevel(handle, triggerLevel) == pdTRUE;
 };
 
-size_t stream_buffer_send(
-    StreamBuffer* stream_buffer,
+size_t StreamBuffer::send(
     const void* data,
     size_t length,
     uint32_t timeout
-) {
-    size_t ret;
-
+) const {
     if (TT_IS_IRQ_MODE()) {
         BaseType_t yield;
-        ret = xStreamBufferSendFromISR((StreamBufferHandle_t)stream_buffer, data, length, &yield);
+        size_t result = xStreamBufferSendFromISR(handle, data, length, &yield);
         portYIELD_FROM_ISR(yield);
+        return result;
     } else {
-        ret = xStreamBufferSend((StreamBufferHandle_t)stream_buffer, data, length, timeout);
+        return xStreamBufferSend(handle, data, length, timeout);
     }
-
-    return ret;
 };
 
-size_t stream_buffer_receive(
-    StreamBuffer* stream_buffer,
+size_t StreamBuffer::receive(
     void* data,
     size_t length,
     uint32_t timeout
-) {
-    size_t ret;
-
+) const {
     if (TT_IS_IRQ_MODE()) {
         BaseType_t yield;
-        ret = xStreamBufferReceiveFromISR((StreamBufferHandle_t)stream_buffer, data, length, &yield);
+        size_t result = xStreamBufferReceiveFromISR(handle, data, length, &yield);
         portYIELD_FROM_ISR(yield);
+        return result;
     } else {
-        ret = xStreamBufferReceive((StreamBufferHandle_t)stream_buffer, data, length, timeout);
+        return xStreamBufferReceive(handle, data, length, timeout);
     }
-
-    return ret;
 }
 
-size_t stream_buffer_bytes_available(StreamBuffer* stream_buffer) {
-    return xStreamBufferBytesAvailable((StreamBufferHandle_t)stream_buffer);
+size_t StreamBuffer::getAvailableReadBytes() const {
+    return xStreamBufferBytesAvailable(handle);
 };
 
-size_t stream_buffer_spaces_available(StreamBuffer* stream_buffer) {
-    return xStreamBufferSpacesAvailable((StreamBufferHandle_t)stream_buffer);
+size_t StreamBuffer::getAvailableWriteBytes() const {
+    return xStreamBufferSpacesAvailable(handle);
 };
 
-bool stream_buffer_is_full(StreamBuffer* stream_buffer) {
-    return xStreamBufferIsFull((StreamBufferHandle_t)stream_buffer) == pdTRUE;
+bool StreamBuffer::isFull() const {
+    return xStreamBufferIsFull(handle) == pdTRUE;
 };
 
-bool stream_buffer_is_empty(StreamBuffer* stream_buffer) {
-    return (xStreamBufferIsEmpty((StreamBufferHandle_t)stream_buffer) == pdTRUE);
+bool StreamBuffer::isEmpty() const {
+    return xStreamBufferIsEmpty(handle) == pdTRUE;
 };
 
-TtStatus stream_buffer_reset(StreamBuffer* stream_buffer) {
-    if (xStreamBufferReset((StreamBufferHandle_t)stream_buffer) == pdPASS) {
+TtStatus StreamBuffer::reset() const {
+    if (xStreamBufferReset(handle) == pdPASS) {
         return TtStatusOk;
     } else {
         return TtStatusError;

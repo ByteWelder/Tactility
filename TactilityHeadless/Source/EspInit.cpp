@@ -13,7 +13,7 @@ namespace tt {
 #define TAG "tactility"
 
 // Initialize NVS
-static void esp_nvs_init() {
+static void initEspNvs() {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         TT_LOG_I(TAG, "nvs erasing");
@@ -24,15 +24,15 @@ static void esp_nvs_init() {
     TT_LOG_I(TAG, "nvs initialized");
 }
 
-static void esp_network_init() {
+static void initEspNetwork() {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 }
 
-void esp_init() {
-    esp_nvs_init();
-    esp_partitions_init();
-    esp_network_init();
+void initEsp() {
+    initEspNvs();
+    initEspPartitions();
+    initEspNetwork();
 }
 
 } // namespace

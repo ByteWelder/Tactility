@@ -1,10 +1,10 @@
 #include "Tactility.h"
 
-#include "AppManifestRegistry.h"
-#include "LvglInit_i.h"
-#include "ServiceRegistry.h"
+#include "app/ManifestRegistry.h"
+#include "service/ServiceRegistry.h"
+#include "service/loader/Loader.h"
 #include "TactilityHeadless.h"
-#include "Services/Loader/Loader.h"
+#include "ui/LvglInit_i.h"
 
 namespace tt {
 
@@ -15,13 +15,13 @@ static const Configuration* config_instance = NULL;
 // region Default services
 
 namespace service {
-    namespace gui { extern const ServiceManifest manifest; }
-    namespace loader { extern const ServiceManifest manifest; }
-    namespace screenshot { extern const ServiceManifest manifest; }
-    namespace statusbar { extern const ServiceManifest manifest; }
+    namespace gui { extern const Manifest manifest; }
+    namespace loader { extern const Manifest manifest; }
+    namespace screenshot { extern const Manifest manifest; }
+    namespace statusbar { extern const Manifest manifest; }
 }
 
-static const std::vector<const ServiceManifest*> system_services = {
+static const std::vector<const service::Manifest*> system_services = {
     &service::loader::manifest,
     &service::gui::manifest, // depends on loader service
 #ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
@@ -35,26 +35,26 @@ static const std::vector<const ServiceManifest*> system_services = {
 // region Default apps
 
 namespace app {
-    namespace desktop { extern const AppManifest manifest; }
-    namespace files { extern const AppManifest manifest; }
-    namespace gpio { extern const AppManifest manifest; }
-    namespace image_viewer { extern const AppManifest manifest; }
-    namespace screenshot { extern const AppManifest manifest; }
-    namespace settings { extern const AppManifest manifest; }
-    namespace settings::display { extern const AppManifest manifest; }
-    namespace settings::i2c { extern const AppManifest manifest; }
-    namespace settings::power { extern const AppManifest manifest; }
-    namespace system_info { extern const AppManifest manifest; }
-    namespace text_viewer { extern const AppManifest manifest; }
-    namespace wifi_connect { extern const AppManifest manifest; }
-    namespace wifi_manage { extern const AppManifest manifest; }
+    namespace desktop { extern const Manifest manifest; }
+    namespace files { extern const Manifest manifest; }
+    namespace gpio { extern const Manifest manifest; }
+    namespace image_viewer { extern const Manifest manifest; }
+    namespace screenshot { extern const Manifest manifest; }
+    namespace settings { extern const Manifest manifest; }
+    namespace settings::display { extern const Manifest manifest; }
+    namespace settings::i2c { extern const Manifest manifest; }
+    namespace settings::power { extern const Manifest manifest; }
+    namespace system_info { extern const Manifest manifest; }
+    namespace text_viewer { extern const Manifest manifest; }
+    namespace wifi_connect { extern const Manifest manifest; }
+    namespace wifi_manage { extern const Manifest manifest; }
 }
 
 #ifndef ESP_PLATFORM
-extern const AppManifest screenshot_app;
+extern const app::Manifest screenshot_app;
 #endif
 
-static const std::vector<const AppManifest*> system_apps = {
+static const std::vector<const app::Manifest*> system_apps = {
     &app::desktop::manifest,
     &app::files::manifest,
     &app::gpio::manifest,
@@ -84,10 +84,10 @@ static void register_system_apps() {
     }
 }
 
-static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMIT]) {
+static void register_user_apps(const app::Manifest* const apps[TT_CONFIG_APPS_LIMIT]) {
     TT_LOG_I(TAG, "Registering user apps");
     for (size_t i = 0; i < TT_CONFIG_APPS_LIMIT; i++) {
-        const AppManifest* manifest = apps[i];
+        const app::Manifest* manifest = apps[i];
         if (manifest != nullptr) {
             app_manifest_registry_add(manifest);
         } else {
@@ -100,18 +100,18 @@ static void register_user_apps(const AppManifest* const apps[TT_CONFIG_APPS_LIMI
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
     for (const auto& service_manifest: system_services) {
-        service_registry_add(service_manifest);
-        tt_check(service_registry_start(service_manifest->id));
+        addService(service_manifest);
+        tt_check(service::startService(service_manifest->id));
     }
 }
 
-static void register_and_start_user_services(const ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
+static void register_and_start_user_services(const service::Manifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
     TT_LOG_I(TAG, "Registering and starting user services");
     for (size_t i = 0; i < TT_CONFIG_SERVICES_LIMIT; i++) {
-        const ServiceManifest* manifest = services[i];
+        const service::Manifest* manifest = services[i];
         if (manifest != nullptr) {
-            service_registry_add(manifest);
-            tt_check(service_registry_start(manifest->id));
+            addService(manifest);
+            tt_check(service::startService(manifest->id));
         } else {
             // reached end of list
             break;
@@ -127,9 +127,9 @@ void init(const Configuration* config) {
 
     initHeadless(*config->hardware);
 
-    lvgl_init(config->hardware);
+    ui::initLvgl(config->hardware);
 
-    app_manifest_registry_init();
+    app::app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can find them if needed
