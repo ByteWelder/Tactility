@@ -16,10 +16,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DARDUINO_M5STACK_CORE2)
     add_compile_definitions(ARDUINO_M5STACK_CORE2)
 
-    set(COMPONENTS AppEsp32)
+    set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
         "Boards"
-        "AppEsp32"
+        "App"
         "Tactility"
         "TactilityHeadless"
         "Libraries/esp_lvgl_port"
@@ -33,6 +33,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         set(EXCLUDE_COMPONENTS "YellowBoard")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
+    endif()
+
+    if(NOT "${IDF_TARGET}" STREQUAL "Simulator")
+        set(EXCLUDE_COMPONENTS "Simulator")
     endif()
 
     # ESP32-S3 boards
@@ -50,6 +54,7 @@ project(TactilityRoot)
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
     add_subdirectory(TactilityHeadless)
+    add_subdirectory(Boards/Simulator)
 endif()
 
 add_subdirectory(TactilityCore)
@@ -58,30 +63,32 @@ add_subdirectory(Libraries/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
-    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/AppSim/Source CACHE STRING "")
+    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
-        PUBLIC AppSim/Source # for FreeRTOSConfig.h
+        PUBLIC Boards/Simulator/Source # for FreeRTOSConfig.h
     )
 
     # EmbedTLS
+    set(ENABLE_TESTING OFF)
+    set(ENABLE_PROGRAMS OFF)
     add_subdirectory(Libraries/mbedtls)
 
     # Sim app
     if (NOT DEFINED ENV{SKIP_SDL})
-        add_subdirectory(AppSim)
+        add_subdirectory(App)
     endif()
 
     # Tests
     add_subdirectory(Tests)
 
     # SDL & LVGL
-    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/AppSim/Source/lv_conf.h)
+    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source/lv_conf.h)
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     target_include_directories(lvgl
-        PUBLIC AppSim/Source # for lv_conf.h and lv_drv_conf.h
+        PUBLIC Boards/Source # for lv_conf.h and lv_drv_conf.h
     )
 
     # TODO: This is a temporary skipping option for running unit tests

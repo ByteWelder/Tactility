@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef ESP_PLATFORM
 #include "sdkconfig.h"
 
 // Supported hardware:
@@ -22,3 +23,23 @@
 #define TT_BOARD_HARDWARE NULL
 #error Replace TT_BOARD_HARDWARE in main.c with your own. Or copy one of the ./sdkconfig.board.* files into ./sdkconfig.
 #endif
+
+#else // else simulator
+
+#include "Simulator.h"
+
+#define TT_BOARD_HARDWARE &sim_hardware
+
+extern "C" {
+void app_main();
+}
+
+int main_stub(); // Main function logic from Simulator board project
+
+// Actual main that passes on app_main (to be executed in a FreeRTOS task) and bootstraps FreeRTOS
+int main() {
+    setMainForSim(app_main);
+    return main_stub();
+}
+
+#endif // ESP_PLATFORM

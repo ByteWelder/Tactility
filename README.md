@@ -124,9 +124,8 @@ Take a look at the [App Lifecycle](Documentation/app-lifecycle.md) or the [depen
 
 Directories explained:
 
-- `AppEsp32`: The ESP32 application example
-- `AppSim`: The PC/simulator application example
-- `Boards`: Contains ESP modules with drivers
+- `App`: The application/firmware example project
+- `Boards`: Contains board configuration projects with drivers (and simulator)
 - `Tactility`: The main application platform code
 - `TactilityHeadless`: Service framework and default services.
 - `TactilityCore`: Core functionality regarding threads, stdlib, etc.

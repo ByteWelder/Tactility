@@ -176,6 +176,10 @@ static void service_stop(TT_UNUSED Service& service) {
     wifi = nullptr;
 }
 
+void wifi_main(void*) {
+    // NO-OP
+}
+
 extern const Manifest manifest = {
     .id = "Wifi",
     .onStart = &service_start,
