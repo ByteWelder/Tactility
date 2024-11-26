@@ -1,21 +1,19 @@
-#include "Tactility.h"
 #include "Thread.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "Simulator.h"
 
 #define TAG "freertos"
 
-void app_main();
-
 static void main_task(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "starting app_main()");
-    app_main();
+    executeMainFunction();
     TT_LOG_I(TAG, "returned from app_main()");
     vTaskDelete(nullptr);
 }
 
-int main() {
+int main_stub() {
     BaseType_t task_result = xTaskCreate(
         main_task,
         "main",

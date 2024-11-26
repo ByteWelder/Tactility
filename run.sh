@@ -5,8 +5,8 @@ else
   set -e
   cmake -S ./ -B build-sim
   cmake --build build-sim -j 12
-  cd data
-  ../build-sim/AppSim/AppSim
+  cd Data
+  ../build-sim/App/AppSim
   cd -
 fi
 

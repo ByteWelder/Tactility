@@ -8,16 +8,12 @@ note right of theadless : to build and use background services
 [TactilityCore] as tcore
 note right of tcore : defines, data types, logging, async, etc.
 
-package "Applications" {
-  [AppSim] as appsim
-  [AppEsp32] as appesp
-}
+[App] as app
 
-note right of appesp : AppEsp depends on the board \n projects for configuration
+note right of app : App depends on the board \n projects for configuration
 
+[app] ..> [t]
 [t] ..> [theadless]
 [theadless] ..> [tcore]
-[appsim] ..> [t]
-[appesp] ..> [t]
 
 @enduml
