@@ -10,7 +10,7 @@
 #include "freertos/FreeRTOS.h"
 #else
 #include "FreeRTOS.h"
-#include "ui/LvglSync.h"
+#include "lvgl/LvglSync.h"
 
 #endif
 

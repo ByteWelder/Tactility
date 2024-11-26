@@ -5,7 +5,7 @@
 #include "service/Service.h"
 #include "service/wifi/Wifi.h"
 #include "Tactility.h"
-#include "ui/Statusbar.h"
+#include "lvgl/Statusbar.h"
 
 namespace tt::service::statusbar {
 

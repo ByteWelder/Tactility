@@ -5,7 +5,7 @@
 #include "lvgl_hal.h"
 #include "TactilityCore.h"
 #include "Thread.h"
-#include "ui/LvglSync.h"
+#include "lvgl/LvglSync.h"
 
 #include "Mutex.h"
 
