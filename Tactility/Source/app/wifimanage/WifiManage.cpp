@@ -116,8 +116,8 @@ static void wifi_manage_event_callback(const void* message, void* context) {
     request_view_update(wifi);
 }
 
-static void app_show(App app, lv_obj_t* parent) {
-    auto* wifi = (WifiManage*)tt_app_get_data(app);
+static void app_show(App& app, lv_obj_t* parent) {
+    auto* wifi = (WifiManage*)app.getData();
 
     PubSub* wifi_pubsub = service::wifi::get_pubsub();
     wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
@@ -144,8 +144,8 @@ static void app_show(App app, lv_obj_t* parent) {
     }
 }
 
-static void app_hide(App app) {
-    auto* wifi = (WifiManage*)tt_app_get_data(app);
+static void app_hide(App& app) {
+    auto* wifi = (WifiManage*)app.getData();
     lock(wifi);
     PubSub* wifi_pubsub = service::wifi::get_pubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
@@ -154,16 +154,15 @@ static void app_hide(App app) {
     unlock(wifi);
 }
 
-static void app_start(App app) {
+static void app_start(App& app) {
     WifiManage* wifi = wifi_manage_alloc();
-    tt_app_set_data(app, wifi);
+    app.setData(wifi);
 }
 
-static void app_stop(App app) {
-    auto* wifi = (WifiManage*)tt_app_get_data(app);
+static void app_stop(App& app) {
+    auto* wifi = (WifiManage*)app.getData();
     tt_assert(wifi != nullptr);
     wifi_manage_free(wifi);
-    tt_app_set_data(app, nullptr);
 }
 
 extern const Manifest manifest = {
@@ -171,10 +170,10 @@ extern const Manifest manifest = {
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
-    .on_start = &app_start,
-    .on_stop = &app_stop,
-    .on_show = &app_show,
-    .on_hide = &app_hide
+    .onStart = &app_start,
+    .onStop = &app_stop,
+    .onShow = &app_show,
+    .onHide = &app_hide
 };
 
 } // namespace

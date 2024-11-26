@@ -1,11 +1,13 @@
 #pragma once
 
 #include "app/Manifest.h"
+#include "app/AppInstance.h"
 #include "MessageQueue.h"
 #include "Pubsub.h"
 #include "Thread.h"
 #include "service/gui/ViewPort.h"
 #include "service/loader/Loader.h"
+#include <stack>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -108,8 +110,7 @@ struct Loader {
     PubSub* pubsub_external;
     MessageQueue queue = MessageQueue(1, sizeof(LoaderMessage));
     Mutex* mutex;
-    int8_t app_stack_index;
-    app::App app_stack[APP_STACK_SIZE];
+    std::stack<app::AppInstance*> app_stack;
 };
 
 } // namespace

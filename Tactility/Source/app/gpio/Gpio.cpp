@@ -120,8 +120,8 @@ static void task_stop(Gpio* gpio) {
 
 // region App lifecycle
 
-static void app_show(App app, lv_obj_t* parent) {
-    auto* gpio = static_cast<Gpio*>(tt_app_get_data(app));
+static void app_show(App& app, lv_obj_t* parent) {
+    auto* gpio = (Gpio*)app.getData();
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
@@ -176,27 +176,26 @@ static void app_show(App app, lv_obj_t* parent) {
     task_start(gpio);
 }
 
-static void on_hide(App app) {
-    auto* gpio = static_cast<Gpio*>(tt_app_get_data(app));
+static void on_hide(App& app) {
+    auto* gpio = (Gpio*)app.getData();
     task_stop(gpio);
 }
 
-static void on_start(App app) {
-    auto* gpio = static_cast<Gpio*>(malloc(sizeof(Gpio)));
-    *gpio = (Gpio) {
+static void on_start(App& app) {
+    auto* gpio = new Gpio {
         .lv_pins = { nullptr },
         .pin_states = { 0 },
         .thread = nullptr,
         .mutex = tt_mutex_alloc(MutexTypeNormal),
         .thread_interrupted = true,
     };
-    tt_app_set_data(app, gpio);
+    app.setData(gpio);
 }
 
-static void on_stop(App app) {
-    auto* gpio = static_cast<Gpio*>(tt_app_get_data(app));
+static void on_stop(App& app) {
+    auto* gpio = (Gpio*)app.getData();
     tt_mutex_free(gpio->mutex);
-    free(gpio);
+    delete gpio;
 }
 
 // endregion App lifecycle
@@ -205,10 +204,10 @@ extern const Manifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
     .type = TypeSystem,
-    .on_start = &on_start,
-    .on_stop = &on_stop,
-    .on_show = &app_show,
-    .on_hide = &on_hide
+    .onStart = &on_start,
+    .onStop = &on_stop,
+    .onShow = &app_show,
+    .onHide = &on_hide
 };
 
 } // namespace

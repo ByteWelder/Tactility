@@ -76,11 +76,11 @@ static const std::vector<const app::Manifest*> system_apps = {
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
     for (const auto& app_manifest: system_apps) {
-        app_manifest_registry_add(app_manifest);
+        addApp(app_manifest);
     }
 
     if (getConfiguration()->hardware->power != nullptr) {
-        app_manifest_registry_add(&app::power::manifest);
+        addApp(&app::power::manifest);
     }
 }
 
@@ -89,7 +89,7 @@ static void register_user_apps(const app::Manifest* const apps[TT_CONFIG_APPS_LI
     for (size_t i = 0; i < TT_CONFIG_APPS_LIMIT; i++) {
         const app::Manifest* manifest = apps[i];
         if (manifest != nullptr) {
-            app_manifest_registry_add(manifest);
+            addApp(manifest);
         } else {
             // reached end of list
             break;
@@ -128,8 +128,6 @@ void init(const Configuration* config) {
     initHeadless(*config->hardware);
 
     lvgl::init(config->hardware);
-
-    app::app_manifest_registry_init();
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can find them if needed

@@ -1,4 +1,5 @@
 #include "Tactility.h"
+#include <Mutex.h>
 #include "app/Manifest.h"
 #include "app/ManifestRegistry.h"
 #include "service/Manifest.h"
@@ -39,8 +40,6 @@ static Loader* loader_alloc() {
         nullptr
     );
     loader_singleton->mutex = tt_mutex_alloc(MutexTypeRecursive);
-    loader_singleton->app_stack_index = -1;
-    memset(loader_singleton->app_stack, 0, sizeof(app::App) * APP_STACK_SIZE);
     return loader_singleton;
 }
 
@@ -100,14 +99,12 @@ void stop_app() {
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-app::App _Nullable get_current_app() {
+app::App* _Nullable get_current_app() {
     tt_assert(loader_singleton);
     loader_lock();
-    app::App app = (loader_singleton->app_stack_index >= 0)
-        ? loader_singleton->app_stack[loader_singleton->app_stack_index]
-        : nullptr;
+    app::AppInstance* app = loader_singleton->app_stack.top();
     loader_unlock();
-    return app;
+    return dynamic_cast<app::App*>(app);
 }
 
 PubSub* get_pubsub() {
@@ -135,9 +132,9 @@ static const char* app_state_to_string(app::State state) {
     }
 }
 
-static void app_transition_to_state(app::App app, app::State state) {
-    const app::Manifest& manifest = app::tt_app_get_manifest(app);
-    const app::State old_state = app::tt_app_get_state(app);
+static void app_transition_to_state(app::AppInstance& app, app::State state) {
+    const app::Manifest& manifest = app.getManifest();
+    const app::State old_state = app.getState();
 
     TT_LOG_I(
         TAG,
@@ -149,42 +146,42 @@ static void app_transition_to_state(app::App app, app::State state) {
 
     switch (state) {
         case app::StateInitial:
-            tt_app_set_state(app, app::StateInitial);
+            app.setState(app::StateInitial);
             break;
         case app::StateStarted:
-            if (manifest.on_start != nullptr) {
-                manifest.on_start(app);
+            if (manifest.onStart != nullptr) {
+                manifest.onStart(app);
             }
-            tt_app_set_state(app, app::StateStarted);
+            app.setState(app::StateStarted);
             break;
         case app::StateShowing: {
             LoaderEvent event_showing = {
                 .type = LoaderEventTypeApplicationShowing,
                 .app_showing = {
-                    .app = static_cast<app::App*>(app)
+                    .app = dynamic_cast<app::App&>(app)
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_showing);
-            tt_app_set_state(app, app::StateShowing);
+            app.setState(app::StateShowing);
             break;
         }
         case app::StateHiding: {
             LoaderEvent event_hiding = {
                 .type = LoaderEventTypeApplicationHiding,
                 .app_hiding = {
-                    .app = static_cast<app::App*>(app)
+                    .app = dynamic_cast<app::App&>(app)
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_hiding);
-            tt_app_set_state(app, app::StateHiding);
+            app.setState(app::StateHiding);
             break;
         }
         case app::StateStopped:
-            if (manifest.on_stop) {
-                manifest.on_stop(app);
+            if (manifest.onStop) {
+                manifest.onStop(app);
             }
-            app::tt_app_set_data(app, nullptr);
-            tt_app_set_state(app, app::StateStopped);
+            app.setData(nullptr);
+            app.setState(app::StateStopped);
             break;
     }
 }
@@ -197,27 +194,18 @@ static LoaderStatus loader_do_start_app_with_manifest(
 
     loader_lock();
 
-    if (loader_singleton->app_stack_index >= (APP_STACK_SIZE - 1)) {
-        TT_LOG_E(TAG, "failed to start app: stack limit of %d reached", APP_STACK_SIZE);
-        return LoaderStatusErrorInternal;
-    }
-
-    int8_t previous_index = loader_singleton->app_stack_index;
-    loader_singleton->app_stack_index++;
-
-    app::App app = tt_app_alloc(*manifest, bundle);
-    tt_check(loader_singleton->app_stack[loader_singleton->app_stack_index] == nullptr);
-    loader_singleton->app_stack[loader_singleton->app_stack_index] = app;
-    app_transition_to_state(app, app::StateInitial);
-    app_transition_to_state(app, app::StateStarted);
+    auto previous_app = !loader_singleton->app_stack.empty() ? loader_singleton->app_stack.top() : nullptr;
+    auto new_app = new app::AppInstance(*manifest, bundle);
+    loader_singleton->app_stack.push(new_app);
+    app_transition_to_state(*new_app, app::StateInitial);
+    app_transition_to_state(*new_app, app::StateStarted);
 
     // We might have to hide the previous app first
-    if (previous_index != -1) {
-        app::App previous_app = loader_singleton->app_stack[previous_index];
-        app_transition_to_state(previous_app, app::StateHiding);
+    if (previous_app != nullptr) {
+        app_transition_to_state(*previous_app, app::StateHiding);
     }
 
-    app_transition_to_state(app, app::StateShowing);
+    app_transition_to_state(*new_app, app::StateShowing);
 
     loader_unlock();
 
@@ -227,7 +215,7 @@ static LoaderStatus loader_do_start_app_with_manifest(
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStarted,
         .app_started = {
-            .app = static_cast<app::App*>(app)
+            .app = dynamic_cast<app::App&>(*new_app)
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
@@ -241,7 +229,7 @@ static LoaderStatus do_start_by_id(
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const app::Manifest* manifest = app::app_manifest_registry_find_by_id(id);
+    const app::Manifest* manifest = app::findAppById(id);
     if (manifest == nullptr) {
         return LoaderStatusErrorUnknownApp;
     } else {
@@ -253,38 +241,40 @@ static LoaderStatus do_start_by_id(
 static void do_stop_app() {
     loader_lock();
 
-    int8_t current_app_index = loader_singleton->app_stack_index;
+    size_t original_stack_size = loader_singleton->app_stack.size();
 
-    if (current_app_index == -1) {
+    if (original_stack_size == 0) {
         loader_unlock();
         TT_LOG_E(TAG, "Stop app: no app running");
         return;
     }
 
-    if (current_app_index == 0) {
+    if (original_stack_size == 1) {
         loader_unlock();
         TT_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }
 
     // Stop current app
-    app::App app_to_stop = loader_singleton->app_stack[current_app_index];
-    const app::Manifest& manifest = app::tt_app_get_manifest(app_to_stop);
-    app_transition_to_state(app_to_stop, app::StateHiding);
-    app_transition_to_state(app_to_stop, app::StateStopped);
+    app::AppInstance* app_to_stop = loader_singleton->app_stack.top();
+    const app::Manifest& manifest = app_to_stop->getManifest();
+    app_transition_to_state(*app_to_stop, app::StateHiding);
+    app_transition_to_state(*app_to_stop, app::StateStopped);
 
-    app::tt_app_free(app_to_stop);
-    loader_singleton->app_stack[current_app_index] = nullptr;
-    loader_singleton->app_stack_index--;
+    loader_singleton->app_stack.pop();
+    delete app_to_stop;
 
 #ifdef ESP_PLATFORM
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
     // Resume previous app
-    tt_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] != nullptr);
-    app::App app_to_resume = loader_singleton->app_stack[loader_singleton->app_stack_index];
-    app_transition_to_state(app_to_resume, app::StateShowing);
+    if (original_stack_size > 1) {
+
+    }
+    app::AppInstance* app_to_resume = loader_singleton->app_stack.top();
+    tt_assert(app_to_resume);
+    app_transition_to_state(*app_to_resume, app::StateShowing);
 
     loader_unlock();
 
@@ -294,7 +284,7 @@ static void do_stop_app() {
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStopped,
         .app_stopped = {
-            .manifest = &manifest
+            .manifest = manifest
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);

@@ -69,7 +69,7 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
     }
 }
 
-static void on_show(App app, lv_obj_t* parent) {
+static void on_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -90,7 +90,7 @@ extern const Manifest manifest = {
     .name = "I2C",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
     .type = TypeSettings,
-    .on_show = &on_show
+    .onShow = &on_show
 };
 
 } // namespace

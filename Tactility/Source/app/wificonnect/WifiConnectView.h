@@ -20,7 +20,7 @@ typedef struct {
     lv_group_t* group;
 } WifiConnectView;
 
-void view_create(App app, void* wifi, lv_obj_t* parent);
+void view_create(const App& app, void* wifi, lv_obj_t* parent);
 void view_update(WifiConnectView* view, WifiConnectBindings* bindings, WifiConnectState* state);
 void view_destroy(WifiConnectView* view);
 

@@ -24,19 +24,19 @@ typedef enum {
 } LoaderEventType;
 
 typedef struct {
-    app::App* app;
+    app::App& app;
 } LoaderEventAppStarted;
 
 typedef struct {
-    app::App* app;
+    app::App& app;
 } LoaderEventAppShowing;
 
 typedef struct {
-    app::App* app;
+    app::App& app;
 } LoaderEventAppHiding;
 
 typedef struct {
-    const app::Manifest* manifest;
+    const app::Manifest& manifest;
 } LoaderEventAppStopped;
 
 typedef struct {
@@ -63,7 +63,7 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundl
  */
 void stop_app();
 
-app::App _Nullable get_current_app();
+app::App* _Nullable get_current_app();
 
 /**
  * @brief PubSub for LoaderEvent

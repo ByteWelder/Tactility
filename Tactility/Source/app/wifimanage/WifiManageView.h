@@ -17,7 +17,7 @@ typedef struct {
     lv_obj_t* connected_ap_label;
 } WifiManageView;
 
-void view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent);
+void view_create(const App& app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent);
 void view_update(WifiManageView* view, WifiManageBindings* bindings, WifiManageState* state);
 
 } // namespace
