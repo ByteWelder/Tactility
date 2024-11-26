@@ -5,7 +5,7 @@
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
-#include "ui/LvglSync.h"
+#include "lvgl/LvglSync.h"
 
 #define TAG "tdeck_sdcard"
 

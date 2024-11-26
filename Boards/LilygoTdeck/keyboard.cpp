@@ -2,7 +2,7 @@
 #include "config.h"
 #include "lvgl.h"
 #include "TactilityCore.h"
-#include "ui/LvglKeypad.h"
+#include "lvgl/LvglKeypad.h"
 #include "hal/i2c/I2c.h"
 #include <driver/i2c.h>
 

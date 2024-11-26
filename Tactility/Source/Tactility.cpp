@@ -4,13 +4,13 @@
 #include "service/ServiceRegistry.h"
 #include "service/loader/Loader.h"
 #include "TactilityHeadless.h"
-#include "ui/LvglInit_i.h"
+#include "lvgl/Init_i.h"
 
 namespace tt {
 
 #define TAG "tactility"
 
-static const Configuration* config_instance = NULL;
+static const Configuration* config_instance = nullptr;
 
 // region Default services
 
@@ -38,16 +38,16 @@ namespace app {
     namespace desktop { extern const Manifest manifest; }
     namespace files { extern const Manifest manifest; }
     namespace gpio { extern const Manifest manifest; }
-    namespace image_viewer { extern const Manifest manifest; }
+    namespace imageviewer { extern const Manifest manifest; }
     namespace screenshot { extern const Manifest manifest; }
     namespace settings { extern const Manifest manifest; }
-    namespace settings::display { extern const Manifest manifest; }
-    namespace settings::i2c { extern const Manifest manifest; }
-    namespace settings::power { extern const Manifest manifest; }
-    namespace system_info { extern const Manifest manifest; }
-    namespace text_viewer { extern const Manifest manifest; }
-    namespace wifi_connect { extern const Manifest manifest; }
-    namespace wifi_manage { extern const Manifest manifest; }
+    namespace display { extern const Manifest manifest; }
+    namespace i2csettings { extern const Manifest manifest; }
+    namespace power { extern const Manifest manifest; }
+    namespace systeminfo { extern const Manifest manifest; }
+    namespace textviewer { extern const Manifest manifest; }
+    namespace wificonnect { extern const Manifest manifest; }
+    namespace wifimanage { extern const Manifest manifest; }
 }
 
 #ifndef ESP_PLATFORM
@@ -56,16 +56,16 @@ extern const app::Manifest screenshot_app;
 
 static const std::vector<const app::Manifest*> system_apps = {
     &app::desktop::manifest,
+    &app::display::manifest,
     &app::files::manifest,
     &app::gpio::manifest,
-    &app::image_viewer::manifest,
+    &app::i2csettings::manifest,
+    &app::imageviewer::manifest,
     &app::settings::manifest,
-    &app::settings::display::manifest,
-    &app::settings::i2c::manifest,
-    &app::system_info::manifest,
-    &app::text_viewer::manifest,
-    &app::wifi_connect::manifest,
-    &app::wifi_manage::manifest,
+    &app::systeminfo::manifest,
+    &app::textviewer::manifest,
+    &app::wificonnect::manifest,
+    &app::wifimanage::manifest,
 #ifndef ESP_PLATFORM
     &app::screenshot::manifest, // Screenshots don't work yet on ESP32
 #endif
@@ -80,7 +80,7 @@ static void register_system_apps() {
     }
 
     if (getConfiguration()->hardware->power != nullptr) {
-        app_manifest_registry_add(&app::settings::power::manifest);
+        app_manifest_registry_add(&app::power::manifest);
     }
 }
 
@@ -127,7 +127,7 @@ void init(const Configuration* config) {
 
     initHeadless(*config->hardware);
 
-    ui::initLvgl(config->hardware);
+    lvgl::init(config->hardware);
 
     app::app_manifest_registry_init();
 

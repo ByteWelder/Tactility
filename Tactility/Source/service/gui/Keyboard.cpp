@@ -1,8 +1,8 @@
 #include "Check.h"
 #include "TactilityConfig.h"
 #include "service/gui/Gui_i.h"
-#include "ui/LvglKeypad.h"
-#include "ui/LvglSync.h"
+#include "lvgl/LvglKeypad.h"
+#include "lvgl/LvglSync.h"
 
 namespace tt::service::gui {
 

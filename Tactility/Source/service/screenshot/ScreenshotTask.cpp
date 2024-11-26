@@ -6,7 +6,7 @@
 #include "TactilityCore.h"
 #include "Thread.h"
 #include "service/loader/Loader.h"
-#include "ui/LvglSync.h"
+#include "lvgl/LvglSync.h"
 
 namespace tt::service::screenshot {
 
