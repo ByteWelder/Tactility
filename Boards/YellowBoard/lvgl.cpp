@@ -50,7 +50,7 @@ bool twodotfour_lvgl_init() {
     }
 
     // Set syncing functions
-    tt::lvgl::sync_set(&lvgl_port_lock, &lvgl_port_unlock);
+    tt::lvgl::syncSet(&lvgl_port_lock, &lvgl_port_unlock);
 
     return true;
 }
