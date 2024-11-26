@@ -3,7 +3,7 @@
 #include "lvgl.h"
 #include "TactilityCore.h"
 #include "ui/LvglKeypad.h"
-#include "hal/I2c/I2c.h"
+#include "hal/i2c/I2c.h"
 #include <driver/i2c.h>
 
 #define TAG "tdeck_keyboard"

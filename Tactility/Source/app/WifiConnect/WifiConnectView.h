@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/App.h"
 #include "WifiConnectBindings.h"
 #include "WifiConnectState.h"
 #include "lvgl.h"

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "App.h"
 #include "service/wifi/Wifi.h"
 #include "service/wifi/WifiSettings.h"
 

@@ -57,7 +57,7 @@ static void app_show(App app, lv_obj_t* parent) {
 extern const AppManifest manifest = {
     .id = "HelloWorld",    // Used to identify and start an app
     .name = "Hello World", // Shown on the desktop and app's toolbar
-    .type = AppTypeUser,
+    .type = TypeUser,
     .on_show = &app_show  // A minimal setup sets the on_show() function
 };
 ```

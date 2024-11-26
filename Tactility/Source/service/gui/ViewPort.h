@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App.h"
+#include "app/App.h"
 #include "lvgl.h"
 
 namespace tt::service::gui {
@@ -8,13 +8,13 @@ namespace tt::service::gui {
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
-typedef void (*ViewPortShowCallback)(App app, lv_obj_t* parent);
-typedef void (*ViewPortHideCallback)(App app);
+typedef void (*ViewPortShowCallback)(app::App app, lv_obj_t* parent);
+typedef void (*ViewPortHideCallback)(app::App app);
 
 // TODO: Move internally, use handle publicly
 
 typedef struct {
-    App app;
+    app::App app;
     ViewPortShowCallback on_show;
     ViewPortHideCallback _Nullable on_hide;
     bool app_toolbar;
@@ -30,7 +30,7 @@ typedef struct {
  * @return     ViewPort instance
  */
 ViewPort* view_port_alloc(
-    App app,
+    app::App app,
     ViewPortShowCallback on_show,
     ViewPortHideCallback on_hide
 );

@@ -1,4 +1,4 @@
-#include "App.h"
+#include "app/App.h"
 #include "Assets.h"
 #include "lvgl.h"
 #include "Tactility.h"
@@ -109,11 +109,11 @@ static void app_stop(App app) {
     delete data;
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
-    .type = AppTypeSettings,
+    .type = TypeSettings,
     .on_start = &app_start,
     .on_stop = &app_stop,
     .on_show = &app_show,

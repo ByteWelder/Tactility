@@ -1,4 +1,4 @@
-#include "App.h"
+#include "app/App.h"
 #include "Assets.h"
 #include "DisplayPreferences.h"
 #include "Tactility.h"
@@ -122,11 +122,11 @@ static void app_hide(TT_UNUSED App app) {
     }
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Display",
     .name = "Display",
     .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
-    .type = AppTypeSettings,
+    .type = TypeSettings,
     .on_start = nullptr,
     .on_stop = nullptr,
     .on_show = &app_show,

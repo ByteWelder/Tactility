@@ -9,7 +9,7 @@ namespace tt::service::gui {
 #define TAG "viewport"
 
 ViewPort* view_port_alloc(
-    App app,
+    app::App app,
     ViewPortShowCallback on_show,
     ViewPortHideCallback on_hide
 ) {

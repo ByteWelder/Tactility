@@ -1,7 +1,7 @@
 #include "Tactility.h"
 
 extern const tt::hal::Configuration sim_hardware;
-extern const tt::AppManifest hello_world_app;
+extern const tt::app::Manifest hello_world_app;
 
 void app_main() {
     static const tt::Configuration config = {

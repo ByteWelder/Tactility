@@ -85,11 +85,11 @@ static void on_show(App app, lv_obj_t* parent) {
     }
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "I2cSettings",
     .name = "I2C",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = AppTypeSettings,
+    .type = TypeSettings,
     .on_show = &on_show
 };
 

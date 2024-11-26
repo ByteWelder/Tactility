@@ -1,16 +1,16 @@
-#include "App_i.h"
+#include "app/App.h"
 
-namespace tt {
+namespace tt::app {
 
 #define TAG "app"
 
-void AppInstance::setState(AppState newState) {
+void AppInstance::setState(State newState) {
     mutex.acquire(TtWaitForever);
     state = newState;
     mutex.release();
 }
 
-AppState AppInstance::getState() {
+State AppInstance::getState() {
     mutex.acquire(TtWaitForever);
     auto result = state;
     mutex.release();
@@ -23,18 +23,18 @@ AppState AppInstance::getState() {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-const AppManifest& AppInstance::getManifest() {
+const Manifest& AppInstance::getManifest() {
     return manifest;
 }
 
-AppFlags AppInstance::getFlags() {
+Flags AppInstance::getFlags() {
     mutex.acquire(TtWaitForever);
     auto result = flags;
     mutex.release();
     return result;
 }
 
-void AppInstance::setFlags(AppFlags newFlags) {
+void AppInstance::setFlags(Flags newFlags) {
     mutex.acquire(TtWaitForever);
     flags = newFlags;
     mutex.release();
@@ -57,7 +57,7 @@ const Bundle& AppInstance::getParameters() {
     return parameters;
 }
 
-App tt_app_alloc(const AppManifest& manifest, const Bundle& parameters) {
+App tt_app_alloc(const Manifest& manifest, const Bundle& parameters) {
     auto* instance = new AppInstance(manifest, parameters);
     return static_cast<App>(instance);
 }
@@ -67,23 +67,23 @@ void tt_app_free(App app) {
     delete instance;
 }
 
-void tt_app_set_state(App app, AppState state) {
+void tt_app_set_state(App app, State state) {
     static_cast<AppInstance*>(app)->setState(state);
 }
 
-AppState tt_app_get_state(App app) {
+State tt_app_get_state(App app) {
     return static_cast<AppInstance*>(app)->getState();
 }
 
-const AppManifest& tt_app_get_manifest(App app) {
+const Manifest& tt_app_get_manifest(App app) {
     return static_cast<AppInstance*>(app)->getManifest();
 }
 
-AppFlags tt_app_get_flags(App app) {
+Flags tt_app_get_flags(App app) {
     return static_cast<AppInstance*>(app)->getFlags();
 }
 
-void tt_app_set_flags(App app, AppFlags flags) {
+void tt_app_set_flags(App app, Flags flags) {
     return static_cast<AppInstance*>(app)->setFlags(flags);
 }
 

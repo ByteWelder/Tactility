@@ -31,10 +31,10 @@ static void on_show(App app, lv_obj_t* parent) {
     }
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "TextViewer",
     .name = "Text Viewer",
-    .type = AppTypeHidden,
+    .type = TypeHidden,
     .on_show = &on_show
 };
 

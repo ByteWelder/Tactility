@@ -9,11 +9,12 @@
 #include "freertos/event_groups.h"
 #include "Log.h"
 #include "Pubsub.h"
-#include "Service.h"
+#include "service/Service.h"
 #include "WifiSettings.h"
 #include <atomic>
 #include <cstring>
 #include <sys/cdefs.h>
+#include <TactilityCore.h>
 
 namespace tt::service::wifi {
 
@@ -67,7 +68,7 @@ public:
     bool secure_connection = false;
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
-    EventGroupHandle_t event_group;
+    EventFlag connection_wait_flags;
     settings::WifiApSettings connection_target = {
         .ssid = { 0 },
         .password = { 0 },
@@ -88,7 +89,6 @@ static void unlock(Wifi* wifi);
 
 Wifi::Wifi() : radio_state(WIFI_RADIO_OFF) {
     pubsub = tt_pubsub_alloc();
-    event_group = xEventGroupCreate();
 }
 
 Wifi::~Wifi() {
@@ -309,7 +309,7 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         if (wifi_singleton->radio_state != WIFI_RADIO_OFF_PENDING) {
-            xEventGroupSetBits(wifi_singleton->event_group, WIFI_FAIL_BIT);
+            wifi_singleton->connection_wait_flags.set(WIFI_FAIL_BIT);
             TT_LOG_I(TAG, "event_handler: disconnected");
             wifi_singleton->radio_state = WIFI_RADIO_ON;
             publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
@@ -317,7 +317,7 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
-        xEventGroupSetBits(wifi_singleton->event_group, WIFI_CONNECTED_BIT);
+        wifi_singleton->connection_wait_flags.set(WIFI_CONNECTED_BIT);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: wifi scanning done (scan id %u)", event->scan_id);
@@ -595,13 +595,7 @@ static void connect_internal(Wifi* wifi) {
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
      * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
      * The bits are set by wifi_event_handler() */
-    EventBits_t bits = xEventGroupWaitBits(
-        wifi->event_group,
-        WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
-        pdFALSE,
-        pdFALSE,
-        portMAX_DELAY
-    );
+    uint32_t bits = wifi_singleton->connection_wait_flags.wait(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 
     if (bits & WIFI_CONNECTED_BIT) {
         wifi->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
@@ -624,7 +618,7 @@ static void connect_internal(Wifi* wifi) {
         TT_LOG_E(TAG, "UNEXPECTED EVENT");
     }
 
-    xEventGroupClearBits(wifi_singleton->event_group, WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
+    wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 }
 
 static void disconnect_internal_but_keep_active(Wifi* wifi) {

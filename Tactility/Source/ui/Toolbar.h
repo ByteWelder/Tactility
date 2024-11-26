@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lvgl.h"
-#include "App.h"
+#include "app/App.h"
 
 namespace tt::lvgl {
 
@@ -19,7 +19,7 @@ typedef struct {
 } ToolbarAction;
 
 lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title);
-lv_obj_t* toolbar_create(lv_obj_t* parent, tt::App app);
+lv_obj_t* toolbar_create(lv_obj_t* parent, app::App app);
 void toolbar_set_title(lv_obj_t* obj, const std::string& title);
 void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data);
 uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text, lv_event_cb_t callback, void* user_data);

@@ -1,8 +1,6 @@
-#include "ApiLock.h"
 #include "Tactility.h"
-#include "AppManifest.h"
-#include "AppManifestRegistry.h"
-#include "App_i.h"
+#include "app/Manifest.h"
+#include "app/ManifestRegistry.h"
 #include "service/Manifest.h"
 #include "service/gui/Gui.h"
 #include "service/loader/Loader_i.h"
@@ -12,6 +10,8 @@
 #include "freertos/FreeRTOS.h"
 #else
 #include "FreeRTOS.h"
+#include "ui/LvglSync.h"
+
 #endif
 
 namespace tt::service::loader {
@@ -40,7 +40,7 @@ static Loader* loader_alloc() {
     );
     loader_singleton->mutex = tt_mutex_alloc(MutexTypeRecursive);
     loader_singleton->app_stack_index = -1;
-    memset(loader_singleton->app_stack, 0, sizeof(App) * APP_STACK_SIZE);
+    memset(loader_singleton->app_stack, 0, sizeof(app::App) * APP_STACK_SIZE);
     return loader_singleton;
 }
 
@@ -68,6 +68,7 @@ static void loader_unlock() {
 
 LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle) {
     tt_assert(loader_singleton);
+
     LoaderMessageLoaderStatusResult result = {
         .value = LoaderStatusOk
     };
@@ -75,15 +76,19 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundl
     auto* start_message = new LoaderMessageAppStart(id, bundle);
     LoaderMessage message(start_message, result);
 
-    ApiLock lock = blocking ? tt_api_lock_alloc_locked() : nullptr;
-    if (lock != nullptr) {
-        message.setLock(lock);
+    EventFlag* event_flag = blocking ? new EventFlag() : nullptr;
+    if (event_flag != nullptr) {
+        message.setApiLock(event_flag);
     }
 
     loader_singleton->queue.put(&message, TtWaitForever);
 
-    if (lock != nullptr) {
-        tt_api_lock_wait_unlock_and_free(message.api_lock);
+    if (event_flag != nullptr) {
+        /* TODO: Check if task id is not the LVGL one,
+         because otherwise this fails as the apps starting logic will try to lock lvgl
+         to update the UI and fail. */
+        event_flag->wait(TT_API_LOCK_EVENT);
+        delete event_flag;
     }
 
     return result.value;
@@ -95,10 +100,10 @@ void stop_app() {
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-App _Nullable get_current_app() {
+app::App _Nullable get_current_app() {
     tt_assert(loader_singleton);
     loader_lock();
-    App app = (loader_singleton->app_stack_index >= 0)
+    app::App app = (loader_singleton->app_stack_index >= 0)
         ? loader_singleton->app_stack[loader_singleton->app_stack_index]
         : nullptr;
     loader_unlock();
@@ -113,26 +118,26 @@ PubSub* get_pubsub() {
     return loader_singleton->pubsub_external;
 }
 
-static const char* app_state_to_string(AppState state) {
+static const char* app_state_to_string(app::State state) {
     switch (state) {
-        case AppStateInitial:
+        case app::StateInitial:
             return "initial";
-        case AppStateStarted:
+        case app::StateStarted:
             return "started";
-        case AppStateShowing:
+        case app::StateShowing:
             return "showing";
-        case AppStateHiding:
+        case app::StateHiding:
             return "hiding";
-        case AppStateStopped:
+        case app::StateStopped:
             return "stopped";
         default:
             return "?";
     }
 }
 
-static void app_transition_to_state(App app, AppState state) {
-    const AppManifest& manifest = tt_app_get_manifest(app);
-    const AppState old_state = tt_app_get_state(app);
+static void app_transition_to_state(app::App app, app::State state) {
+    const app::Manifest& manifest = app::tt_app_get_manifest(app);
+    const app::State old_state = app::tt_app_get_state(app);
 
     TT_LOG_I(
         TAG,
@@ -143,49 +148,49 @@ static void app_transition_to_state(App app, AppState state) {
     );
 
     switch (state) {
-        case AppStateInitial:
-            tt_app_set_state(app, AppStateInitial);
+        case app::StateInitial:
+            tt_app_set_state(app, app::StateInitial);
             break;
-        case AppStateStarted:
+        case app::StateStarted:
             if (manifest.on_start != nullptr) {
                 manifest.on_start(app);
             }
-            tt_app_set_state(app, AppStateStarted);
+            tt_app_set_state(app, app::StateStarted);
             break;
-        case AppStateShowing: {
+        case app::StateShowing: {
             LoaderEvent event_showing = {
                 .type = LoaderEventTypeApplicationShowing,
                 .app_showing = {
-                    .app = static_cast<App*>(app)
+                    .app = static_cast<app::App*>(app)
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_showing);
-            tt_app_set_state(app, AppStateShowing);
+            tt_app_set_state(app, app::StateShowing);
             break;
         }
-        case AppStateHiding: {
+        case app::StateHiding: {
             LoaderEvent event_hiding = {
                 .type = LoaderEventTypeApplicationHiding,
                 .app_hiding = {
-                    .app = static_cast<App*>(app)
+                    .app = static_cast<app::App*>(app)
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_hiding);
-            tt_app_set_state(app, AppStateHiding);
+            tt_app_set_state(app, app::StateHiding);
             break;
         }
-        case AppStateStopped:
+        case app::StateStopped:
             if (manifest.on_stop) {
                 manifest.on_stop(app);
             }
-            tt_app_set_data(app, nullptr);
-            tt_app_set_state(app, AppStateStopped);
+            app::tt_app_set_data(app, nullptr);
+            tt_app_set_state(app, app::StateStopped);
             break;
     }
 }
 
 static LoaderStatus loader_do_start_app_with_manifest(
-    const AppManifest* manifest,
+    const app::Manifest* manifest,
     const Bundle& bundle
 ) {
     TT_LOG_I(TAG, "start with manifest %s", manifest->id.c_str());
@@ -200,19 +205,19 @@ static LoaderStatus loader_do_start_app_with_manifest(
     int8_t previous_index = loader_singleton->app_stack_index;
     loader_singleton->app_stack_index++;
 
-    App app = tt_app_alloc(*manifest, bundle);
+    app::App app = tt_app_alloc(*manifest, bundle);
     tt_check(loader_singleton->app_stack[loader_singleton->app_stack_index] == nullptr);
     loader_singleton->app_stack[loader_singleton->app_stack_index] = app;
-    app_transition_to_state(app, AppStateInitial);
-    app_transition_to_state(app, AppStateStarted);
+    app_transition_to_state(app, app::StateInitial);
+    app_transition_to_state(app, app::StateStarted);
 
     // We might have to hide the previous app first
     if (previous_index != -1) {
-        App previous_app = loader_singleton->app_stack[previous_index];
-        app_transition_to_state(previous_app, AppStateHiding);
+        app::App previous_app = loader_singleton->app_stack[previous_index];
+        app_transition_to_state(previous_app, app::StateHiding);
     }
 
-    app_transition_to_state(app, AppStateShowing);
+    app_transition_to_state(app, app::StateShowing);
 
     loader_unlock();
 
@@ -222,7 +227,7 @@ static LoaderStatus loader_do_start_app_with_manifest(
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStarted,
         .app_started = {
-            .app = static_cast<App*>(app)
+            .app = static_cast<app::App*>(app)
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
@@ -236,7 +241,7 @@ static LoaderStatus do_start_by_id(
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const AppManifest* manifest = app_manifest_registry_find_by_id(id);
+    const app::Manifest* manifest = app::app_manifest_registry_find_by_id(id);
     if (manifest == nullptr) {
         return LoaderStatusErrorUnknownApp;
     } else {
@@ -263,12 +268,12 @@ static void do_stop_app() {
     }
 
     // Stop current app
-    App app_to_stop = loader_singleton->app_stack[current_app_index];
-    const AppManifest& manifest = tt_app_get_manifest(app_to_stop);
-    app_transition_to_state(app_to_stop, AppStateHiding);
-    app_transition_to_state(app_to_stop, AppStateStopped);
+    app::App app_to_stop = loader_singleton->app_stack[current_app_index];
+    const app::Manifest& manifest = app::tt_app_get_manifest(app_to_stop);
+    app_transition_to_state(app_to_stop, app::StateHiding);
+    app_transition_to_state(app_to_stop, app::StateStopped);
 
-    tt_app_free(app_to_stop);
+    app::tt_app_free(app_to_stop);
     loader_singleton->app_stack[current_app_index] = nullptr;
     loader_singleton->app_stack_index--;
 
@@ -278,8 +283,8 @@ static void do_stop_app() {
 
     // Resume previous app
     tt_assert(loader_singleton->app_stack[loader_singleton->app_stack_index] != nullptr);
-    App app_to_resume = loader_singleton->app_stack[loader_singleton->app_stack_index];
-    app_transition_to_state(app_to_resume, AppStateShowing);
+    app::App app_to_resume = loader_singleton->app_stack[loader_singleton->app_stack_index];
+    app_transition_to_state(app_to_resume, app::StateShowing);
 
     loader_unlock();
 
@@ -310,7 +315,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
                         message.payload.start->bundle
                     );
                     if (message.api_lock != nullptr) {
-                        tt_api_lock_unlock(message.api_lock);
+                        message.api_lock->set(TT_API_LOCK_EVENT);
                     }
                     message.cleanup();
                     break;

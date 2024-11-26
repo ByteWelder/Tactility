@@ -1,6 +1,6 @@
 #include "FilesData.h"
 #include "Tactility.h"
-#include "App.h"
+#include "app/App.h"
 #include "Assets.h"
 #include "Check.h"
 #include "FileUtils.h"
@@ -221,11 +221,11 @@ static void on_stop(App app) {
 
 // endregion Lifecycle
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
-    .type = AppTypeSystem,
+    .type = TypeSystem,
     .on_start = &on_start,
     .on_stop = &on_stop,
     .on_show = &on_show,

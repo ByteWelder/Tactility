@@ -2,9 +2,9 @@
 #include "lvgl.h"
 #include "hal/Configuration.h"
 
-namespace tt {
+namespace tt::ui {
 
-void lvgl_init(const hal::Configuration* config) {
+void initLvgl(const hal::Configuration* config) {
     hal::SetBacklightDuty set_backlight_duty = config->display.setBacklightDuty;
     if (set_backlight_duty != nullptr) {
         int32_t backlight_duty = app::settings::display::preferences_get_backlight_duty();

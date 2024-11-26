@@ -1,6 +1,6 @@
 #pragma once
 
-#include "App.h"
+#include "app/App.h"
 #include "lvgl.h"
 
 namespace tt::app::screenshot {

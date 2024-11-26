@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ApiLock.h"
-#include "AppManifest.h"
+#include "app/Manifest.h"
 #include "MessageQueue.h"
 #include "Pubsub.h"
 #include "Thread.h"
@@ -53,8 +52,7 @@ public:
     // This lock blocks anyone from starting an app as long
     // as an app is already running via loader_start()
     // This lock's lifecycle is not owned by this class.
-    // TODO: Convert to smart pointer
-    ApiLock api_lock;
+    EventFlag* _Nullable api_lock;
     LoaderMessageType type;
 
     struct {
@@ -93,8 +91,8 @@ public:
         result = { .raw_value = nullptr };
     }
 
-    void setLock(ApiLock lock) {
-        api_lock = lock;
+    void setApiLock(EventFlag* eventFlag) {
+        api_lock = eventFlag;
     }
 
     void cleanup() {
@@ -111,7 +109,7 @@ struct Loader {
     MessageQueue queue = MessageQueue(1, sizeof(LoaderMessage));
     Mutex* mutex;
     int8_t app_stack_index;
-    App app_stack[APP_STACK_SIZE];
+    app::App app_stack[APP_STACK_SIZE];
 };
 
 } // namespace

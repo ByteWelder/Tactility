@@ -1,32 +1,35 @@
 #pragma once
 
-#include "AppManifest.h"
+#include "Manifest.h"
 #include "Bundle.h"
 #include "Mutex.h"
 
-namespace tt {
+namespace tt::app {
 
 typedef enum {
-    AppStateInitial, // App is being activated in loader
-    AppStateStarted, // App is in memory
-    AppStateShowing, // App view is created
-    AppStateHiding,  // App view is destroyed
-    AppStateStopped  // App is not in memory
-} AppState;
+    StateInitial, // App is being activated in loader
+    StateStarted, // App is in memory
+    StateShowing, // App view is created
+    StateHiding,  // App view is destroyed
+    StateStopped  // App is not in memory
+} State;
 
 typedef union {
     struct {
         bool show_statusbar : 1;
     };
     unsigned char flags;
-} AppFlags;
+} Flags;
 
 
 class AppInstance {
+
+private:
+
     Mutex mutex = Mutex(MutexTypeNormal);
-    const AppManifest& manifest;
-    AppState state = AppStateInitial;
-    AppFlags flags = { .show_statusbar = true };
+    const Manifest& manifest;
+    State state = StateInitial;
+    Flags flags = { .show_statusbar = true };
     /** @brief Optional parameters to start the app with
      * When these are stored in the app struct, the struct takes ownership.
      * Do not mutate after app creation.
@@ -38,21 +41,23 @@ class AppInstance {
      * These manifest methods can optionally allocate/free data that is attached here.
      */
     void* _Nullable data = nullptr;
+
 public:
-    AppInstance(const AppManifest& manifest) :
+
+    AppInstance(const Manifest& manifest) :
         manifest(manifest) {}
 
-    AppInstance(const AppManifest& manifest, const Bundle& parameters) :
+    AppInstance(const Manifest& manifest, const Bundle& parameters) :
         manifest(manifest),
         parameters(parameters) {}
 
-    void setState(AppState state);
-    AppState getState();
+    void setState(State state);
+    State getState();
 
-    const AppManifest& getManifest();
+    const Manifest& getManifest();
 
-    AppFlags getFlags();
-    void setFlags(AppFlags flags);
+    Flags getFlags();
+    void setFlags(Flags flags);
 
     _Nullable void* getData();
     void setData(void* data);
@@ -66,22 +71,22 @@ public:
  * @return
  */
 [[deprecated("use class")]]
-App tt_app_alloc(const AppManifest& manifest, const Bundle& parameters);
+App tt_app_alloc(const Manifest& manifest, const Bundle& parameters);
 [[deprecated("use class")]]
 void tt_app_free(App app);
 
 [[deprecated("use class")]]
-void tt_app_set_state(App app, AppState state);
+void tt_app_set_state(App app, State state);
 [[deprecated("use class")]]
-AppState tt_app_get_state(App app);
+State tt_app_get_state(App app);
 
 [[deprecated("use class")]]
-const AppManifest& tt_app_get_manifest(App app);
+const Manifest& tt_app_get_manifest(App app);
 
 [[deprecated("use class")]]
-AppFlags tt_app_get_flags(App app);
+Flags tt_app_get_flags(App app);
 [[deprecated("use class")]]
-void tt_app_set_flags(App app, AppFlags flags);
+void tt_app_set_flags(App app, Flags flags);
 
 [[deprecated("use class")]]
 void* _Nullable tt_app_get_data(App app);

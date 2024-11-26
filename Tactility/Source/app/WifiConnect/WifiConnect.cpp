@@ -1,6 +1,6 @@
 #include "WifiConnect.h"
 
-#include "App.h"
+#include "app/App.h"
 #include "TactilityCore.h"
 #include "WifiConnectStateUpdating.h"
 #include "service/loader/Loader.h"
@@ -132,11 +132,11 @@ static void app_stop(App app) {
     tt_app_set_data(app, nullptr);
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
-    .type = AppTypeSettings,
+    .type = TypeSettings,
     .on_start = &app_start,
     .on_stop = &app_stop,
     .on_show = &app_show,

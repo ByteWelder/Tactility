@@ -17,11 +17,11 @@ static void on_stop(App app) {
     free(ui);
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Screenshot",
     .name = "_Screenshot", // So it gets put at the bottom of the desktop and becomes less visible on small screen devices
     .icon = LV_SYMBOL_IMAGE,
-    .type = AppTypeSystem,
+    .type = TypeSystem,
     .on_start = &on_start,
     .on_stop = &on_stop,
     .on_show = &on_show,

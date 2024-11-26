@@ -201,10 +201,10 @@ static void on_stop(App app) {
 
 // endregion App lifecycle
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
-    .type = AppTypeSystem,
+    .type = TypeSystem,
     .on_start = &on_start,
     .on_stop = &on_stop,
     .on_show = &app_show,

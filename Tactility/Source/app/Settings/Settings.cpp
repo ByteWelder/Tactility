@@ -1,4 +1,4 @@
-#include "AppManifestRegistry.h"
+#include "app/ManifestRegistry.h"
 #include "Assets.h"
 #include "Check.h"
 #include "service/loader/Loader.h"
@@ -11,12 +11,12 @@ namespace tt::app::settings {
 static void on_app_pressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
-        const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
+        const auto* manifest = static_cast<const Manifest*>(lv_event_get_user_data(e));
         service::loader::start_app(manifest->id, false, Bundle());
     }
 }
 
-static void create_app_widget(const AppManifest* manifest, void* parent) {
+static void create_app_widget(const Manifest* manifest, void* parent) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
     const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
@@ -36,17 +36,17 @@ static void on_show(App app, lv_obj_t* parent) {
     auto manifests = app_manifest_registry_get();
     std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
     for (const auto& manifest: manifests) {
-        if (manifest->type == AppTypeSettings) {
+        if (manifest->type == TypeSettings) {
             create_app_widget(manifest, list);
         }
     }
 }
 
-extern const AppManifest manifest = {
+extern const Manifest manifest = {
     .id = "Settings",
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
-    .type = AppTypeSystem,
+    .type = TypeSystem,
     .on_start = nullptr,
     .on_stop = nullptr,
     .on_show = &on_show,

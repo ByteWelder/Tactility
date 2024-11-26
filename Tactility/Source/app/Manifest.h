@@ -6,29 +6,29 @@
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
 
-namespace tt {
+namespace tt::app {
 
 typedef void* App;
 
 typedef enum {
     /** A desktop app sits at the root of the app stack managed by the Loader service */
-    AppTypeDesktop,
+    TypeDesktop,
     /** Apps that generally aren't started from the desktop (e.g. image viewer) */
-    AppTypeHidden,
+    TypeHidden,
     /** Standard apps, provided by the system. */
-    AppTypeSystem,
+    TypeSystem,
     /** The apps that are launched/shown by the Settings app. The Settings app itself is of type AppTypeSystem. */
-    AppTypeSettings,
+    TypeSettings,
     /** User-provided apps. */
-    AppTypeUser
-} AppType;
+    TypeUser
+} Type;
 
 typedef void (*AppOnStart)(App app);
 typedef void (*AppOnStop)(App app);
 typedef void (*AppOnShow)(App app, lv_obj_t* parent);
 typedef void (*AppOnHide)(App app);
 
-typedef struct AppManifest {
+typedef struct Manifest {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
@@ -47,7 +47,7 @@ typedef struct AppManifest {
     /**
      * App type affects launch behaviour.
      */
-    const AppType type = AppTypeUser;
+    const Type type = TypeUser;
 
     /**
      * Non-blocking method to call when app is started.
@@ -71,7 +71,7 @@ typedef struct AppManifest {
 } AppManifest;
 
 struct {
-    bool operator()(const AppManifest* a, const AppManifest* b) const { return a->name < b->name; }
+    bool operator()(const Manifest* a, const Manifest* b) const { return a->name < b->name; }
 } SortAppManifestByName;
 
 } // namespace
