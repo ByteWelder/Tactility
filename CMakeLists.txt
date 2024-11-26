@@ -115,6 +115,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             find_package(SDL2_image REQUIRED)
             target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
             target_link_libraries(AppSim ${SDL2_IMAGE_LIBRARIES})
+            target_link_libraries(Simulator ${SDL2_IMAGE_LIBRARIES})
         endif(LV_USE_DRAW_SDL)
 
         if (LV_USE_LIBPNG)

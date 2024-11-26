@@ -36,7 +36,7 @@ else()
     )
 
     find_package(SDL2 REQUIRED CONFIG)
-    target_link_libraries(Simulator PRIVATE ${SDL2_LIBRARIES})
+    target_link_libraries(AppSim PRIVATE ${SDL2_LIBRARIES})
     include_directories(${SDL2_INCLUDE_DIRS})
 
     add_definitions(-D_Nullable=)
