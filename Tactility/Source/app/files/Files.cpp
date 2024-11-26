@@ -180,8 +180,8 @@ static void update_views(Data* data) {
 
 // region Lifecycle
 
-static void on_show(App app, lv_obj_t* parent) {
-    auto* data = static_cast<Data*>(tt_app_get_data(app));
+static void on_show(App& app, lv_obj_t* parent) {
+    auto* data = static_cast<Data*>(app.getData());
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
@@ -196,7 +196,7 @@ static void on_show(App app, lv_obj_t* parent) {
     update_views(data);
 }
 
-static void on_start(App app) {
+static void on_start(App& app) {
     auto* data = data_alloc();
     // PC platform is bound to current work directory because of the LVGL file system mapping
     if (get_platform() == PlatformPc) {
@@ -211,11 +211,11 @@ static void on_start(App app) {
         data_set_entries_for_path(data, "/");
     }
 
-    tt_app_set_data(app, data);
+    app.setData(data);
 }
 
-static void on_stop(App app) {
-    auto* data = static_cast<Data*>(tt_app_get_data(app));
+static void on_stop(App& app) {
+    auto* data = static_cast<Data*>(app.getData());
     data_free(data);
 }
 
@@ -226,9 +226,9 @@ extern const Manifest manifest = {
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
     .type = TypeSystem,
-    .on_start = &on_start,
-    .on_stop = &on_stop,
-    .on_show = &on_show,
+    .onStart = &on_start,
+    .onStop = &on_stop,
+    .onShow = &on_show,
 };
 
 } // namespace

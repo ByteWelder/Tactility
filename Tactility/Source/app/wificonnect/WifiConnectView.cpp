@@ -113,7 +113,7 @@ void view_create_bottom_buttons(WifiConnect* wifi, lv_obj_t* parent) {
 }
 
 // TODO: Standardize dialogs
-void view_create(App app, void* wifi, lv_obj_t* parent) {
+void view_create(const App& app, void* wifi, lv_obj_t* parent) {
     WifiConnect* wifi_connect = (WifiConnect*)wifi;
     WifiConnectView* view = &wifi_connect->view;
 
@@ -195,7 +195,7 @@ void view_create(App app, void* wifi, lv_obj_t* parent) {
     service::gui::keyboard_add_textarea(view->password_textarea);
 
     // Init from app parameters
-    const Bundle& bundle = tt_app_get_parameters(app);
+    const Bundle& bundle = app.getParameters();
     std::string ssid;
     if (bundle.optString(WIFI_CONNECT_PARAM_SSID, ssid)) {
         lv_textarea_set_text(view->ssid_textarea, ssid.c_str());

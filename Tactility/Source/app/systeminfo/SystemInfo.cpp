@@ -65,7 +65,7 @@ static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, siz
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
-static void on_show(App app, lv_obj_t* parent) {
+static void on_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -106,9 +106,9 @@ extern const Manifest manifest = {
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
     .type = TypeSystem,
-    .on_start = nullptr,
-    .on_stop = nullptr,
-    .on_show = &on_show
+    .onStart = nullptr,
+    .onStop = nullptr,
+    .onShow = &on_show
 };
 
 } // namespace

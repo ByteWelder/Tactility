@@ -153,7 +153,7 @@ static void create_timer_settings_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_label_set_text(delay_unit_label, "seconds");
 }
 
-void create_ui(App app, ScreenshotUi* ui, lv_obj_t* parent) {
+void create_ui(const App& app, ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);

@@ -53,7 +53,7 @@ static void on_power_enabled_change(lv_event_t* event) {
     }
 }
 
-static void app_show(App app, lv_obj_t* parent) {
+static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -64,7 +64,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    auto* data = static_cast<AppData*>(tt_app_get_data(app));
+    auto* data = static_cast<AppData*>(app.getData());
 
     // Top row: enable/disable
     lv_obj_t* switch_container = lv_obj_create(wrapper);
@@ -90,21 +90,21 @@ static void app_show(App app, lv_obj_t* parent) {
     data->update_timer->start(ms_to_ticks(1000));
 }
 
-static void app_hide(TT_UNUSED App app) {
-    auto* data = static_cast<AppData*>(tt_app_get_data(app));
+static void app_hide(TT_UNUSED App& app) {
+    auto* data = static_cast<AppData*>(app.getData());
     data->update_timer->stop();
 }
 
-static void app_start(App app) {
+static void app_start(App& app) {
     auto* data = new AppData();
     data->update_timer = new Timer(Timer::TypePeriodic, &app_update_ui, data);
     data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
-    tt_app_set_data(app, data);
+    app.setData(data);
 }
 
-static void app_stop(App app) {
-    auto* data = static_cast<AppData*>(tt_app_get_data(app));
+static void app_stop(App& app) {
+    auto* data = static_cast<AppData*>(app.getData());
     delete data->update_timer;
     delete data;
 }
@@ -114,10 +114,10 @@ extern const Manifest manifest = {
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
     .type = TypeSettings,
-    .on_start = &app_start,
-    .on_stop = &app_stop,
-    .on_show = &app_show,
-    .on_hide = &app_hide
+    .onStart = &app_start,
+    .onStop = &app_stop,
+    .onShow = &app_show,
+    .onHide = &app_hide
 };
 
 } // namespace

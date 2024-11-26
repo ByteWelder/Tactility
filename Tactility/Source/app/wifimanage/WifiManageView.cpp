@@ -129,7 +129,7 @@ static void update_connected_ap(WifiManageView* view, WifiManageState* state, TT
 
 // region Main
 
-void view_create(App app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
+void view_create(const App& app, WifiManageView* view, WifiManageBindings* bindings, lv_obj_t* parent) {
     view->root = parent;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);

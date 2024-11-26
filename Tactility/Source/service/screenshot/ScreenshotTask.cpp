@@ -98,9 +98,9 @@ static int32_t screenshot_task(void* context) {
                 break; // Interrupted loop
             }
         } else if (data->work.type == TASK_WORK_TYPE_APPS) {
-            app::App _Nullable app = loader::get_current_app();
+            app::App* _Nullable app = loader::get_current_app();
             if (app) {
-                const app::Manifest& manifest = app::tt_app_get_manifest(app);
+                const app::Manifest& manifest = app->getManifest();
                 if (manifest.id != last_app_id) {
                     delay_ms(100);
                     last_app_id = manifest.id;
@@ -125,7 +125,7 @@ static int32_t screenshot_task(void* context) {
 
 static void task_start(ScreenshotTaskData* data) {
     task_lock(data);
-    tt_check(data->thread == NULL);
+    tt_check(data->thread == nullptr);
     data->thread = new Thread(
         "screenshot",
         8192,

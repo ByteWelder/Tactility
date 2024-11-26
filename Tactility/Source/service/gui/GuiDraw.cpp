@@ -9,7 +9,7 @@ namespace tt::service::gui {
 
 #define TAG "gui"
 
-static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::App app) {
+static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::App& app) {
     lvgl::obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
@@ -19,8 +19,8 @@ static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::App app) {
     lvgl::obj_set_style_bg_blacken(vertical_container);
 
     // TODO: Move statusbar into separate ViewPort
-    app::Flags flags = app::tt_app_get_flags(app);
-    if (flags.show_statusbar) {
+    app::Flags flags = app.getFlags();
+    if (flags.showStatusbar) {
         lvgl::statusbar_create(vertical_container);
     }
 
@@ -49,7 +49,7 @@ void redraw(Gui* gui) {
 
         ViewPort* view_port = gui->app_view_port;
         if (view_port != nullptr) {
-            app::App app = view_port->app;
+            app::App& app = view_port->app;
             lv_obj_t* container = create_app_views(gui, gui->lvgl_parent, app);
             view_port_show(view_port, container);
         } else {

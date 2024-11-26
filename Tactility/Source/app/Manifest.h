@@ -8,7 +8,7 @@ typedef struct _lv_obj_t lv_obj_t;
 
 namespace tt::app {
 
-typedef void* App;
+class App;
 
 typedef enum {
     /** A desktop app sits at the root of the app stack managed by the Loader service */
@@ -23,10 +23,11 @@ typedef enum {
     TypeUser
 } Type;
 
-typedef void (*AppOnStart)(App app);
-typedef void (*AppOnStop)(App app);
-typedef void (*AppOnShow)(App app, lv_obj_t* parent);
-typedef void (*AppOnHide)(App app);
+
+typedef void (*AppOnStart)(App& app);
+typedef void (*AppOnStop)(App& app);
+typedef void (*AppOnShow)(App& app, lv_obj_t* parent);
+typedef void (*AppOnHide)(App& app);
 
 typedef struct Manifest {
     /**
@@ -52,26 +53,26 @@ typedef struct Manifest {
     /**
      * Non-blocking method to call when app is started.
      */
-    const AppOnStart on_start = nullptr;
+    const AppOnStart onStart = nullptr;
 
     /**
      * Non-blocking method to call when app is stopped.
      */
-    const AppOnStop _Nullable on_stop = nullptr;
+    const AppOnStop _Nullable onStop = nullptr;
 
     /**
      * Non-blocking method to create the GUI
      */
-    const AppOnShow _Nullable on_show = nullptr;
+    const AppOnShow _Nullable onShow = nullptr;
 
     /**
      * Non-blocking method, called before gui is destroyed
      */
-    const AppOnHide _Nullable on_hide = nullptr;
+    const AppOnHide _Nullable onHide = nullptr;
 } AppManifest;
 
 struct {
-    bool operator()(const Manifest* a, const Manifest* b) const { return a->name < b->name; }
+    bool operator()(const Manifest* left, const Manifest* right) const { return left->name < right->name; }
 } SortAppManifestByName;
 
 } // namespace

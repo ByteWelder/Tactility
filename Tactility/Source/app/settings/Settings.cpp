@@ -24,7 +24,7 @@ static void create_app_widget(const Manifest* manifest, void* parent) {
     lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void on_show(App app, lv_obj_t* parent) {
+static void on_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -33,7 +33,7 @@ static void on_show(App app, lv_obj_t* parent) {
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
 
-    auto manifests = app_manifest_registry_get();
+    auto manifests = getApps();
     std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
     for (const auto& manifest: manifests) {
         if (manifest->type == TypeSettings) {
@@ -47,10 +47,10 @@ extern const Manifest manifest = {
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
     .type = TypeSystem,
-    .on_start = nullptr,
-    .on_stop = nullptr,
-    .on_show = &on_show,
-    .on_hide = nullptr
+    .onStart = nullptr,
+    .onStop = nullptr,
+    .onShow = &on_show,
+    .onHide = nullptr
 };
 
 } // namespace

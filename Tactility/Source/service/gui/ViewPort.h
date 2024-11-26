@@ -8,16 +8,21 @@ namespace tt::service::gui {
 /** ViewPort Draw callback
  * @warning    called from GUI thread
  */
-typedef void (*ViewPortShowCallback)(app::App app, lv_obj_t* parent);
-typedef void (*ViewPortHideCallback)(app::App app);
+typedef void (*ViewPortShowCallback)(app::App& app, lv_obj_t* parent);
+typedef void (*ViewPortHideCallback)(app::App& app);
 
 // TODO: Move internally, use handle publicly
 
-typedef struct {
-    app::App app;
-    ViewPortShowCallback on_show;
-    ViewPortHideCallback _Nullable on_hide;
-    bool app_toolbar;
+typedef struct ViewPort {
+    app::App& app;
+    ViewPortShowCallback onShow;
+    ViewPortHideCallback _Nullable onHide;
+
+    ViewPort(
+        app::App& app,
+        ViewPortShowCallback on_show,
+        ViewPortHideCallback _Nullable on_hide
+    ) : app(app), onShow(on_show), onHide(on_hide) {}
 } ViewPort;
 
 /** ViewPort allocator
@@ -30,7 +35,7 @@ typedef struct {
  * @return     ViewPort instance
  */
 ViewPort* view_port_alloc(
-    app::App app,
+    app::App& app,
     ViewPortShowCallback on_show,
     ViewPortHideCallback on_hide
 );

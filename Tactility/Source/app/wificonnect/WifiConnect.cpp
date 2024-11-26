@@ -101,8 +101,8 @@ static void event_callback(const void* message, void* context) {
     request_view_update(wifi);
 }
 
-static void app_show(App app, lv_obj_t* parent) {
-    auto* wifi = static_cast<WifiConnect*>(tt_app_get_data(app));
+static void app_show(App& app, lv_obj_t* parent) {
+    auto* wifi = static_cast<WifiConnect*>(app.getData());
 
     lock(wifi);
     wifi->view_enabled = true;
@@ -111,8 +111,8 @@ static void app_show(App app, lv_obj_t* parent) {
     unlock(wifi);
 }
 
-static void app_hide(App app) {
-    auto* wifi = static_cast<WifiConnect*>(tt_app_get_data(app));
+static void app_hide(App& app) {
+    auto* wifi = static_cast<WifiConnect*>(app.getData());
     // No need to lock view, as this is called from within Gui's LVGL context
     view_destroy(&wifi->view);
     lock(wifi);
@@ -120,16 +120,15 @@ static void app_hide(App app) {
     unlock(wifi);
 }
 
-static void app_start(App app) {
+static void app_start(App& app) {
     auto* wifi_connect = wifi_connect_alloc();
-    tt_app_set_data(app, wifi_connect);
+    app.setData(wifi_connect);
 }
 
-static void app_stop(App app) {
-    auto* wifi = static_cast<WifiConnect*>(tt_app_get_data(app));
+static void app_stop(App& app) {
+    auto* wifi = static_cast<WifiConnect*>(app.getData());
     tt_assert(wifi != nullptr);
     wifi_connect_free(wifi);
-    tt_app_set_data(app, nullptr);
 }
 
 extern const Manifest manifest = {
@@ -137,10 +136,10 @@ extern const Manifest manifest = {
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
-    .on_start = &app_start,
-    .on_stop = &app_stop,
-    .on_show = &app_show,
-    .on_hide = &app_hide
+    .onStart = &app_start,
+    .onStop = &app_stop,
+    .onShow = &app_show,
+    .onHide = &app_hide
 };
 
 } // namespace

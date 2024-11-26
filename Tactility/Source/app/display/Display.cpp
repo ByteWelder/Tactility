@@ -67,7 +67,7 @@ static void on_orientation_set(lv_event_t* event) {
     }
 }
 
-static void app_show(App app, lv_obj_t* parent) {
+static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -89,7 +89,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_obj_set_width(brightness_slider, LV_PCT(50));
     lv_obj_align(brightness_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
     lv_slider_set_range(brightness_slider, 0, 255);
-    lv_obj_add_event_cb(brightness_slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_obj_add_event_cb(brightness_slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
     const Configuration* config = getConfiguration();
     hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
@@ -115,7 +115,7 @@ static void app_show(App app, lv_obj_t* parent) {
     lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
 }
 
-static void app_hide(TT_UNUSED App app) {
+static void app_hide(TT_UNUSED App& app) {
     if (backlight_duty_set) {
         preferences_set_backlight_duty(backlight_duty);
     }
@@ -126,10 +126,10 @@ extern const Manifest manifest = {
     .name = "Display",
     .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
     .type = TypeSettings,
-    .on_start = nullptr,
-    .on_stop = nullptr,
-    .on_show = &app_show,
-    .on_hide = &app_hide
+    .onStart = nullptr,
+    .onStop = nullptr,
+    .onShow = &app_show,
+    .onHide = &app_hide
 };
 
 } // namespace
