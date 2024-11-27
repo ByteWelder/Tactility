@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <Bundle.h>
 #include "CoreDefines.h"
 
 // Forward declarations
@@ -23,11 +24,17 @@ typedef enum {
     TypeUser
 } Type;
 
+typedef enum {
+    ResultOk,
+    ResultCancelled,
+    ResultError
+} Result;
 
 typedef void (*AppOnStart)(App& app);
 typedef void (*AppOnStop)(App& app);
 typedef void (*AppOnShow)(App& app, lv_obj_t* parent);
 typedef void (*AppOnHide)(App& app);
+typedef void (*AppOnResult)(App& app, Result result, const Bundle& resultData);
 
 typedef struct Manifest {
     /**
@@ -43,7 +50,7 @@ typedef struct Manifest {
     /**
      * Optional icon.
      */
-    std::string icon = {};
+    std::string icon;
 
     /**
      * App type affects launch behaviour.
@@ -69,7 +76,12 @@ typedef struct Manifest {
      * Non-blocking method, called before gui is destroyed
      */
     const AppOnHide _Nullable onHide = nullptr;
-} AppManifest;
+
+    /**
+     * Handle the result for apps that are launched
+     */
+    const AppOnResult _Nullable onResult = nullptr;
+} Manifest;
 
 struct {
     bool operator()(const Manifest* left, const Manifest* right) const { return left->name < right->name; }

@@ -4,6 +4,7 @@
 #include "app/Manifest.h"
 #include "Bundle.h"
 #include "Mutex.h"
+#include <memory>
 
 namespace tt::app {
 
@@ -14,6 +15,20 @@ typedef enum {
     StateHiding,  // App view is destroyed
     StateStopped  // App is not in memory
 } State;
+
+struct ResultHolder {
+    ResultHolder(Result result, const Bundle& resultData) {
+        this->result = result;
+        this->resultData = new Bundle(resultData);
+    }
+
+    ~ResultHolder() {
+        delete resultData;
+    }
+
+    Result result;
+    Bundle* _Nullable resultData;
+};
 
 /**
  * Thread-safe app instance.
@@ -37,6 +52,7 @@ private:
      * These manifest methods can optionally allocate/free data that is attached here.
      */
     void* _Nullable data = nullptr;
+    std::unique_ptr<ResultHolder> resultHolder;
 
 public:
 
@@ -61,6 +77,10 @@ public:
     void setData(void* data);
 
     const Bundle& getParameters() const;
+
+    void setResult(Result result, const Bundle& bundle);
+    bool hasResult() const;
+    std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };
 
 } // namespace

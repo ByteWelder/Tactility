@@ -15,15 +15,14 @@
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Publish firmwares with upload tool
 - De-duplicate WiFi SSIDs.
-- Refactor hardware configuration init methods to return esp_err_t instead of bool
 - Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - If present, use LED to show boot status
 - 2 wire speaker support
-- tt::startApp() and similar functions as proxies for Loader app start/stop/etc.
-- tt::setAppResult() for apps that need to return data to other apps (e.g. file selection)
+- tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
+- App.setResult() for apps that need to return data to other apps (e.g. file selection)
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas

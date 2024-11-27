@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdio>
+#include <string>
+#include <vector>
 
 namespace tt {
 
@@ -20,5 +22,24 @@ int string_find_last_index(const char* text, size_t from_index, char find);
  * @return true when successful
  */
 bool string_get_path_parent(const char* path, char* output);
+
+/**
+ * Splits the provided input into separate pieces with delimiter as separator text.
+ * When the input string is empty, the output list will be empty too.
+ *
+ * @param input the input to split up
+ * @param delimiter a non-empty string to recognize as separator
+ */
+std::vector<std::string> string_split(const std::string& input, const std::string& delimiter);
+
+/**
+ * Join a set of tokens into a single string, given a delimiter (separator).
+ * If the input is an empty list, the result will be an empty string.
+ * The delimeter is only placed inbetween tokens and not appended at the end of the resulting string.
+ *
+ * @param input the tokens to join together
+ * @param delimiter the separator to join with
+ */
+std::string string_join(const std::vector<std::string>& input, const std::string& delimiter);
 
 } // namespace

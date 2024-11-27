@@ -44,6 +44,7 @@ namespace app {
     namespace display { extern const Manifest manifest; }
     namespace i2csettings { extern const Manifest manifest; }
     namespace power { extern const Manifest manifest; }
+    namespace selectiondialog { extern const Manifest manifest; }
     namespace systeminfo { extern const Manifest manifest; }
     namespace textviewer { extern const Manifest manifest; }
     namespace wificonnect { extern const Manifest manifest; }
@@ -62,6 +63,7 @@ static const std::vector<const app::Manifest*> system_apps = {
     &app::i2csettings::manifest,
     &app::imageviewer::manifest,
     &app::settings::manifest,
+    &app::selectiondialog::manifest,
     &app::systeminfo::manifest,
     &app::textviewer::manifest,
     &app::wificonnect::manifest,

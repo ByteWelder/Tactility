@@ -24,6 +24,7 @@ public:
     virtual void setData(void* data) = 0;
     virtual const Bundle& getParameters() const = 0;
     virtual Flags getFlags() const = 0;
+    virtual void setResult(Result result, const Bundle& bundle = Bundle()) = 0;
 };
 
 }
