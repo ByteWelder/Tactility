@@ -57,4 +57,9 @@ const Bundle& AppInstance::getParameters() const {
     return parameters;
 }
 
+void AppInstance::setResult(Result result, const Bundle& bundle) {
+    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, bundle));
+    resultHolder = std::move(new_holder);
+}
+
 } // namespace

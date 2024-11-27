@@ -83,13 +83,13 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     lv_obj_set_style_pad_all(toolbar->action_container, 0, 0);
     lv_obj_set_style_border_width(toolbar->action_container, 0, 0);
 
+    toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &stop_app, nullptr);
+
     return obj;
 }
 
 lv_obj_t* toolbar_create(lv_obj_t* parent, const app::App& app) {
-    lv_obj_t* toolbar = toolbar_create(parent, app.getManifest().name);
-    toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &stop_app, nullptr);
-    return toolbar;
+    return toolbar_create(parent, app.getManifest().name);
 }
 
 void toolbar_set_title(lv_obj_t* obj, const std::string& title) {

@@ -66,6 +66,7 @@ static void loader_unlock() {
 }
 
 LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle) {
+    TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
 
     LoaderMessageLoaderStatusResult result = {
@@ -94,6 +95,7 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundl
 }
 
 void stop_app() {
+    TT_LOG_I(TAG, "Stop app");
     tt_check(loader_singleton);
     LoaderMessage message(LoaderMessageTypeAppStop);
     loader_singleton->queue.put(&message, TtWaitForever);
@@ -257,6 +259,8 @@ static void do_stop_app() {
 
     // Stop current app
     app::AppInstance* app_to_stop = loader_singleton->app_stack.top();
+    std::unique_ptr<app::ResultHolder> result_holder = std::move(app_to_stop->getResult());
+
     const app::Manifest& manifest = app_to_stop->getManifest();
     app_transition_to_state(*app_to_stop, app::StateHiding);
     app_transition_to_state(*app_to_stop, app::StateStopped);
@@ -268,13 +272,37 @@ static void do_stop_app() {
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
-    // Resume previous app
-    if (original_stack_size > 1) {
-
-    }
     app::AppInstance* app_to_resume = loader_singleton->app_stack.top();
     tt_assert(app_to_resume);
     app_transition_to_state(*app_to_resume, app::StateShowing);
+
+    auto on_result = app_to_resume->getManifest().onResult;
+    if (on_result != nullptr) {
+        if (result_holder != nullptr) {
+            Bundle* result_bundle = result_holder->resultData;
+            if (result_bundle != nullptr) {
+                on_result(
+                   *app_to_resume,
+                   result_holder->result,
+                   *result_bundle
+                );
+            } else {
+                const Bundle empty_bundle;
+                on_result(
+                   *app_to_resume,
+                   result_holder->result,
+                   empty_bundle
+                );
+            }
+        } else {
+            const Bundle empty_bundle;
+            on_result(
+                *app_to_resume,
+                app::ResultCancelled,
+                empty_bundle
+            );
+        }
+    }
 
     loader_unlock();
 
