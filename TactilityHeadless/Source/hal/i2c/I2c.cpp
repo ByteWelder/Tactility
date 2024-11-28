@@ -157,28 +157,36 @@ bool isStarted(i2c_port_t port) {
     return started;
 }
 
-bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize) {
+bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
     lock(port);
-    esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, dataArray[port].configuration.timeout);
+    esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
     unlock(port);
     return result == ESP_OK;
 }
 
-bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize) {
+bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     lock(port);
-    esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, dataArray[port].configuration.timeout);
+    esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
     unlock(port);
     return result == ESP_OK;
 }
 
-bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize) {
+bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
     lock(port);
-    esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, dataArray[port].configuration.timeout);
+    esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
     unlock(port);
     return result == ESP_OK;
 }
 
-TtStatus lock(i2c_port_t port, uint32_t timeout) {
+bool masterCheckAddressForDevice(i2c_port_t port, uint8_t address, TickType_t timeout) {
+    lock(port);
+    uint8_t message[2] = { 0, 0 };
+    esp_err_t result = i2c_master_write_to_device(port, address, message, 2, timeout);
+    unlock(port);
+    return result == ESP_OK;
+}
+
+TtStatus lock(i2c_port_t port, TickType_t timeout) {
     return dataArray[port].mutex.acquire(timeout);
 }
 

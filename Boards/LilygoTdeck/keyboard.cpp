@@ -13,7 +13,7 @@ typedef struct {
 } KeyboardData;
 
 static inline bool keyboard_i2c_read(uint8_t* output) {
-    return tt::hal::i2c::masterRead(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, output, 1);
+    return tt::hal::i2c::masterRead(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, output, 1, 100 / portTICK_PERIOD_MS);
 }
 
 void keyboard_wait_for_response() {

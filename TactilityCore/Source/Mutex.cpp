@@ -35,7 +35,7 @@ Mutex::Mutex(MutexType type) : type(type) {
             tt_crash("Mutex type unknown/corrupted");
     }
 
-    tt_check(semaphore != nullptr);
+    tt_assert(semaphore != nullptr);
 }
 
 Mutex::~Mutex() {
@@ -47,7 +47,6 @@ Mutex::~Mutex() {
 TtStatus Mutex::acquire(uint32_t timeout) const {
     tt_assert(!TT_IS_IRQ_MODE());
     tt_assert(semaphore);
-    TtStatus status = TtStatusOk;
 
     tt_mutex_info(mutex, "acquire");
 
@@ -55,52 +54,54 @@ TtStatus Mutex::acquire(uint32_t timeout) const {
         case MutexTypeNormal:
             if (xSemaphoreTake(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
-                    status = TtStatusErrorTimeout;
+                    return TtStatusErrorTimeout;
                 } else {
-                    status = TtStatusErrorResource;
+                    return TtStatusErrorResource;
                 }
+            } else {
+                return TtStatusOk;
             }
             break;
         case MutexTypeRecursive:
             if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
-                    status = TtStatusErrorTimeout;
+                    return TtStatusErrorTimeout;
                 } else {
-                    status = TtStatusErrorResource;
+                    return TtStatusErrorResource;
                 }
+            } else {
+                return TtStatusOk;
             }
             break;
         default:
             tt_crash("mutex type unknown/corrupted");
     }
-
-    return status;
 }
 
 TtStatus Mutex::release() const {
     assert(!TT_IS_IRQ_MODE());
     tt_assert(semaphore);
-    TtStatus status = TtStatusOk;
-
     tt_mutex_info(mutex, "release");
 
     switch (type) {
         case MutexTypeNormal: {
             if (xSemaphoreGive(semaphore) != pdPASS) {
-                status = TtStatusErrorResource;
+                return TtStatusErrorResource;
+            } else {
+                return TtStatusOk;
             }
             break;
         }
         case MutexTypeRecursive:
             if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
-                status = TtStatusErrorResource;
+                return TtStatusErrorResource;
+            } else {
+                return TtStatusOk;
             }
             break;
         default:
             tt_crash("mutex type unknown/corrupted");
     }
-
-    return status;
 }
 
 ThreadId Mutex::getOwner() const {

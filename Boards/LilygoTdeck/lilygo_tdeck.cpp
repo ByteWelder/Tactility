@@ -18,11 +18,11 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     .power = nullptr,
     .i2c = {
         tt::hal::i2c::Configuration {
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
-            .timeout = 1000,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_18,
@@ -36,11 +36,11 @@ extern const tt::hal::Configuration lilygo_tdeck = {
             }
         },
         tt::hal::i2c::Configuration {
+            .name = "External",
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = true,
             .hasMutableConfiguration = true,
-            .timeout = 1000,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_43,
