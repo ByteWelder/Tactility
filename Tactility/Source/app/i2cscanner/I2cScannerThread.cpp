@@ -5,7 +5,7 @@
 
 namespace tt::app::i2cscanner {
 
-bool shouldStopScanThread(Data* data) {
+static bool shouldStopScanThread(Data* data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         bool is_scanning = data->scanState == ScanStateScanning;
         tt_check(data->mutex.release() == TtStatusOk);
@@ -15,7 +15,7 @@ bool shouldStopScanThread(Data* data) {
     }
 }
 
-bool getPort(Data* data, i2c_port_t* port) {
+static bool getPort(Data* data, i2c_port_t* port) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         *port = data->port;
         tt_assert(data->mutex.release() == TtStatusOk);
@@ -26,7 +26,7 @@ bool getPort(Data* data, i2c_port_t* port) {
     }
 }
 
-bool addAddressToList(Data* data, uint8_t address) {
+static bool addAddressToList(Data* data, uint8_t address) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         data->scannedAddresses.push_back(address);
         tt_assert(data->mutex.release() == TtStatusOk);
@@ -37,20 +37,7 @@ bool addAddressToList(Data* data, uint8_t address) {
     }
 }
 
-bool hasScanThread(Data* data) {
-    bool has_thread;
-    if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
-        has_thread = data->scanThread != nullptr;
-        tt_check(data->mutex.release() == TtStatusOk);
-        return has_thread;
-    } else {
-        // Unsafe way
-        TT_LOG_W(TAG, "hasScanThread lock");
-        return data->scanThread != nullptr;
-    }
-}
-
-int32_t scanThread(void* context) {
+static int32_t scanThread(void* context) {
     Data* data = (Data*) context;
     TT_LOG_I(TAG, "Scan thread started");
 
@@ -82,6 +69,19 @@ int32_t scanThread(void* context) {
     return 0;
 }
 
+bool hasScanThread(Data* data) {
+    bool has_thread;
+    if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+        has_thread = data->scanThread != nullptr;
+        tt_check(data->mutex.release() == TtStatusOk);
+        return has_thread;
+    } else {
+        // Unsafe way
+        TT_LOG_W(TAG, "hasScanThread lock");
+        return data->scanThread != nullptr;
+    }
+}
+
 void startScanning(Data* data) {
     if (hasScanThread(data)) {
         stopScanning(data);
@@ -90,8 +90,8 @@ void startScanning(Data* data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         data->scannedAddresses.clear();
 
-        lv_obj_add_flag(data->scanList, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clean(data->scanList);
+        lv_obj_add_flag(data->scanListWidget, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clean(data->scanListWidget);
 
         tt_assert(data->scanThread == nullptr);
         data->scanState = ScanStateScanning;

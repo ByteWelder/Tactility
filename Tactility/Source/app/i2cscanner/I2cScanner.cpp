@@ -47,26 +47,26 @@ static void onPressScan(lv_event_t* event) {
 static void updateViews(Data* data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         if (data->scanState == ScanStateScanning) {
-            lv_label_set_text(data->scanButtonLabel, STOP_SCAN_TEXT);
-            lv_obj_remove_flag(data->portDropdown, LV_OBJ_FLAG_CLICKABLE);
+            lv_label_set_text(data->scanButtonLabelWidget, STOP_SCAN_TEXT);
+            lv_obj_remove_flag(data->portDropdownWidget, LV_OBJ_FLAG_CLICKABLE);
         } else {
-            lv_label_set_text(data->scanButtonLabel, START_SCAN_TEXT);
-            lv_obj_add_flag(data->portDropdown, LV_OBJ_FLAG_CLICKABLE);
+            lv_label_set_text(data->scanButtonLabelWidget, START_SCAN_TEXT);
+            lv_obj_add_flag(data->portDropdownWidget, LV_OBJ_FLAG_CLICKABLE);
         }
 
-        lv_obj_clean(data->scanList);
+        lv_obj_clean(data->scanListWidget);
         if (data->scanState == ScanStateStopped) {
-            lv_obj_remove_flag(data->scanList, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(data->scanListWidget, LV_OBJ_FLAG_HIDDEN);
             if (!data->scannedAddresses.empty()) {
                 for (auto address: data->scannedAddresses) {
                     std::string address_text = getAddressText(address);
-                    lv_list_add_text(data->scanList, address_text.c_str());
+                    lv_list_add_text(data->scanListWidget, address_text.c_str());
                 }
             } else {
-                lv_list_add_text(data->scanList, "No devices found");
+                lv_list_add_text(data->scanListWidget, "No devices found");
             }
         } else {
-            lv_obj_add_flag(data->scanList, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(data->scanListWidget, LV_OBJ_FLAG_HIDDEN);
         }
 
         tt_check(data->mutex.release() == TtStatusOk);
@@ -120,7 +120,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_t* scan_button_label = lv_label_create(scan_button);
     lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(scan_button_label, START_SCAN_TEXT);
-    data->scanButtonLabel = scan_button_label;
+    data->scanButtonLabelWidget = scan_button_label;
 
     lv_obj_t* port_dropdown = lv_dropdown_create(wrapper);
     std::string dropdown_items = getPortNamesForDropdown();
@@ -129,14 +129,14 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_obj_add_event_cb(port_dropdown, onSelectBus, LV_EVENT_VALUE_CHANGED, data);
     lv_dropdown_set_selected(port_dropdown, 0);
-    data->portDropdown = port_dropdown;
+    data->portDropdownWidget = port_dropdown;
 
     lv_obj_t* scan_list = lv_list_create(main_wrapper);
     lv_obj_set_style_margin_top(scan_list, 8, 0);
     lv_obj_set_width(scan_list, LV_PCT(100));
     lv_obj_set_height(scan_list, LV_SIZE_CONTENT);
     lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
-    data->scanList = scan_list;
+    data->scanListWidget = scan_list;
 }
 
 static void onHide(App& app) {

@@ -25,9 +25,9 @@ struct Data {
     i2c_port_t port = I2C_NUM_0;
     std::vector<uint8_t> scannedAddresses;
     // Widgets
-    lv_obj_t* scanButtonLabel = nullptr;
-    lv_obj_t* portDropdown = nullptr;
-    lv_obj_t* scanList = nullptr;
+    lv_obj_t* scanButtonLabelWidget = nullptr;
+    lv_obj_t* portDropdownWidget = nullptr;
+    lv_obj_t* scanListWidget = nullptr;
 };
 
 void onThreadFinished(Data* data);
