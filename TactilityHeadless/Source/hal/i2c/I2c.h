@@ -30,8 +30,6 @@ typedef struct {
     bool canReinit;
     /** Whether configuration can be changed. */
     bool hasMutableConfiguration;
-    /** Read/write timeout (not related to mutex locking mechanism) */
-    unsigned long timeout;
     /** Configuration that must be valid when initAtBoot is set to true. */
     i2c_config_t config;
 } Configuration;
