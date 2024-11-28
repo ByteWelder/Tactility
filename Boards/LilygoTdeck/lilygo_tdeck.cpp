@@ -18,6 +18,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     .power = nullptr,
     .i2c = {
         tt::hal::i2c::Configuration {
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = false,
@@ -36,6 +37,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
             }
         },
         tt::hal::i2c::Configuration {
+            .name = "External",
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = true,

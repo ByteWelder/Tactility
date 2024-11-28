@@ -6,6 +6,12 @@
 #include <string>
 #include <vector>
 
+#ifdef ESP_TARGET
+#include "freertos/FreeRTOS.h"
+#else
+#include "FreeRTOS.h"
+#endif
+
 namespace tt::hal::i2c {
 
 typedef enum {
@@ -35,10 +41,11 @@ bool init(const std::vector<i2c::Configuration>& configurations);
 bool start(i2c_port_t port);
 bool stop(i2c_port_t port);
 bool isStarted(i2c_port_t port);
-bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize);
-bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize);
-bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize);
-TtStatus lock(i2c_port_t port, uint32_t timeout = UINT_MAX);
+bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout);
+bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout);
+bool masterCheckAddressForDevice(i2c_port_t port, uint8_t address, TickType_t timeout);
+TtStatus lock(i2c_port_t port, TickType_t timeout = UINT_MAX);
 TtStatus unlock(i2c_port_t port);
 
 } // namespace

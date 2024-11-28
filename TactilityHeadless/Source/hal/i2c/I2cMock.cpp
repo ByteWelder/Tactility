@@ -3,6 +3,7 @@
 /**
  * This code is based on i2c_manager from https://github.com/ropg/i2c_manager/blob/master/i2c_manager/i2c_manager.c (original has MIT license)
  */
+#include <Kernel.h>
 #include "I2c.h"
 #include "Log.h"
 #include "Mutex.h"
@@ -81,20 +82,24 @@ bool isStarted(i2c_port_t port) {
     return started;
 }
 
-bool read(i2c_port_t port, uint16_t address, uint32_t reg, uint8_t* buffer, uint16_t size) {
+bool read(i2c_port_t port, uint16_t address, uint32_t reg, uint8_t* buffer, uint16_t size, TickType_t timeout) {
     return false;
 }
 
-bool write(i2c_port_t port, uint16_t address, uint32_t reg, const uint8_t* buffer, uint16_t size) {
+bool write(i2c_port_t port, uint16_t address, uint32_t reg, const uint8_t* buffer, uint16_t size, TickType_t timeout) {
     return false;
 }
 
-TtStatus lock(i2c_port_t port, uint32_t timeout) {
+TtStatus lock(i2c_port_t port, TickType_t timeout) {
     return dataArray[port].mutex.acquire(timeout);
 }
 
 TtStatus unlock(i2c_port_t port) {
     return dataArray[port].mutex.release();
+}
+
+bool masterCheckAddressForDevice(i2c_port_t port, uint8_t address, TickType_t timeout) {
+    return (rand()) % 25 == 0;
 }
 
 } // namespace

@@ -50,7 +50,7 @@ typedef struct Manifest {
     /**
      * Optional icon.
      */
-    std::string icon;
+    std::string icon = {};
 
     /**
      * App type affects launch behaviour.

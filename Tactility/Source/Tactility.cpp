@@ -42,6 +42,7 @@ namespace app {
     namespace screenshot { extern const Manifest manifest; }
     namespace settings { extern const Manifest manifest; }
     namespace display { extern const Manifest manifest; }
+    namespace i2cscanner { extern const Manifest manifest; }
     namespace i2csettings { extern const Manifest manifest; }
     namespace power { extern const Manifest manifest; }
     namespace selectiondialog { extern const Manifest manifest; }
@@ -60,6 +61,7 @@ static const std::vector<const app::Manifest*> system_apps = {
     &app::display::manifest,
     &app::files::manifest,
     &app::gpio::manifest,
+    &app::i2cscanner::manifest,
     &app::i2csettings::manifest,
     &app::imageviewer::manifest,
     &app::settings::manifest,
