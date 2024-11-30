@@ -9,9 +9,7 @@
 #include <esp_lcd_panel_rgb.h>
 #include <esp_timer.h>
 #include <sys/cdefs.h>
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
+#include "RtosCompatSemaphore.h"
 
 #define TAG "waveshare_s3_touch_display"
 

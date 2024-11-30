@@ -7,19 +7,50 @@
 #include "Thread.h"
 #include "service/gui/ViewPort.h"
 #include "service/loader/Loader.h"
+#include "RtosCompatSemaphore.h"
 #include <stack>
-
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/semphr.h"
-#else
-#include "FreeRTOS.h"
-#include "semphr.h"
-#endif
 
 namespace tt::service::loader {
 
-#define APP_STACK_SIZE 32
+
+// region LoaderEvent
+
+typedef enum {
+    LoaderEventTypeApplicationStarted,
+    LoaderEventTypeApplicationShowing,
+    LoaderEventTypeApplicationHiding,
+    LoaderEventTypeApplicationStopped
+} LoaderEventType;
+
+typedef struct {
+    app::AppInstance& app;
+} LoaderEventAppStarted;
+
+typedef struct {
+    app::AppInstance& app;
+} LoaderEventAppShowing;
+
+typedef struct {
+    app::AppInstance& app;
+} LoaderEventAppHiding;
+
+typedef struct {
+    const app::Manifest& manifest;
+} LoaderEventAppStopped;
+
+typedef struct {
+    LoaderEventType type;
+    union {
+        LoaderEventAppStarted app_started;
+        LoaderEventAppShowing app_showing;
+        LoaderEventAppHiding app_hiding;
+        LoaderEventAppStopped app_stopped;
+    };
+} LoaderEvent;
+
+// endregion LoaderEvent
+
+// region LoaderMessage
 
 typedef enum {
     LoaderMessageTypeNone,
@@ -104,11 +135,13 @@ public:
     }
 };
 
+// endregion LoaderMessage
+
 struct Loader {
     Thread* thread;
     PubSub* pubsub_internal;
     PubSub* pubsub_external;
-    MessageQueue queue = MessageQueue(1, sizeof(LoaderMessage));
+    MessageQueue queue = MessageQueue(2, sizeof(LoaderMessage)); // 2 entries, so you can stop the current app while starting a new one without blocking
     Mutex* mutex;
     std::stack<app::AppInstance*> app_stack;
 };

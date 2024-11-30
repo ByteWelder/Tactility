@@ -2,14 +2,7 @@
 #include "Check.h"
 #include "CoreDefines.h"
 #include "CoreTypes.h"
-
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#else
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
+#include "RtosCompatTask.h"
 
 #ifdef ESP_PLATFORM
 #include "rom/ets_sys.h"
@@ -118,7 +111,7 @@ uint32_t kernel_get_tick_frequency() {
     return (configTICK_RATE_HZ);
 }
 
-void delay_tick(uint32_t ticks) {
+void delay_ticks(TickType_t ticks) {
     tt_assert(!kernel_is_irq());
     if (ticks == 0U) {
         taskYIELD();
@@ -127,7 +120,7 @@ void delay_tick(uint32_t ticks) {
     }
 }
 
-TtStatus delay_until_tick(uint32_t tick) {
+TtStatus delay_until_tick(TickType_t tick) {
     tt_assert(!kernel_is_irq());
 
     TickType_t tcnt, delay;
@@ -154,7 +147,7 @@ TtStatus delay_until_tick(uint32_t tick) {
     return (stat);
 }
 
-uint32_t get_tick() {
+TickType_t get_ticks() {
     TickType_t ticks;
 
     if (kernel_is_irq() != 0U) {
@@ -166,11 +159,11 @@ uint32_t get_tick() {
     return ticks;
 }
 
-uint32_t ms_to_ticks(uint32_t milliseconds) {
+TickType_t ms_to_ticks(uint32_t milliseconds) {
 #if configTICK_RATE_HZ == 1000
-    return milliseconds;
+    return (TickType_t)milliseconds;
 #else
-    return (uint32_t)((float)configTICK_RATE_HZ) / 1000.0f * (float)milliseconds;
+    return (TickType_t)((float)configTICK_RATE_HZ) / 1000.0f * (float)milliseconds;
 #endif
 }
 
@@ -182,7 +175,7 @@ void delay_ms(uint32_t milliseconds) {
 #if configTICK_RATE_HZ_RAW == 1000
         tt_delay_tick(milliseconds);
 #else
-        delay_tick(ms_to_ticks(milliseconds));
+        delay_ticks(ms_to_ticks(milliseconds));
 #endif
     } else if (milliseconds > 0) {
         delay_us(milliseconds * 1000);
@@ -201,7 +194,7 @@ Platform get_platform() {
 #ifdef ESP_PLATFORM
     return PlatformEsp;
 #else
-    return PlatformPc;
+    return PlatformSimulator;
 #endif
 }
 

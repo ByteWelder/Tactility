@@ -1,14 +1,9 @@
 #include "Tactility.h"
 #include "service/gui/Gui_i.h"
-#include "service/loader/Loader.h"
+#include "service/loader/Loader_i.h"
 #include "lvgl/LvglKeypad.h"
 #include "lvgl/LvglSync.h"
-
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#else
-#include "FreeRTOS.h"
-#endif
+#include "RtosCompat.h"
 
 namespace tt::service::gui {
 

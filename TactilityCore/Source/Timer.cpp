@@ -1,6 +1,7 @@
 #include "Timer.h"
 #include "Check.h"
 #include "Kernel.h"
+#include "RtosCompat.h"
 
 namespace tt {
 
@@ -73,7 +74,7 @@ uint32_t Timer::getExpireTime() {
     return (uint32_t)xTimerGetExpiryTime(timerHandle);
 }
 
-void Timer::pendingCallback(PendigCallback callback, void* callbackContext, uint32_t arg) {
+void Timer::pendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg) {
     BaseType_t ret = pdFAIL;
     if (kernel_is_irq()) {
         ret = xTimerPendFunctionCallFromISR(callback, callbackContext, arg, nullptr);

@@ -72,6 +72,7 @@ public:
 
     Flags getFlags() const;
     void setFlags(Flags flags);
+    Flags& mutableFlags() { return flags; }
 
     _Nullable void* getData() const;
     void setData(void* data);

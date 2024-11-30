@@ -35,6 +35,7 @@ static const std::vector<const service::Manifest*> system_services = {
 // region Default apps
 
 namespace app {
+    namespace boot { extern const Manifest manifest; }
     namespace desktop { extern const Manifest manifest; }
     namespace files { extern const Manifest manifest; }
     namespace gpio { extern const Manifest manifest; }
@@ -57,6 +58,7 @@ extern const app::Manifest screenshot_app;
 #endif
 
 static const std::vector<const app::Manifest*> system_apps = {
+    &app::boot::manifest,
     &app::desktop::manifest,
     &app::display::manifest,
     &app::files::manifest,
@@ -145,7 +147,7 @@ void init(const Configuration* config) {
     register_user_apps(config->apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
-    service::loader::start_app(app::desktop::manifest.id, true, Bundle());
+    service::loader::start_app(app::boot::manifest.id, true, Bundle());
 
     if (config->auto_start_app_id) {
         TT_LOG_I(TAG, "init auto-starting %s", config->auto_start_app_id);

@@ -14,7 +14,7 @@ TEST_CASE("dispatcher should not call callback if consume isn't called") {
 
     uint32_t counter = 0;
     dispatcher.dispatch(&increment_callback, &counter);
-    delay_tick(10);
+    delay_ticks(10);
 
     CHECK_EQ(counter, 0);
 }

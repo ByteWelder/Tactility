@@ -84,7 +84,7 @@ static void view_file(const char* path, const char* filename) {
     // For PC we need to make the path relative to the current work directory,
     // because that's how LVGL maps its 'drive letter' to the file system.
     char* processed_filepath;
-    if (get_platform() == PlatformPc) {
+    if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) == nullptr) {
             TT_LOG_E(TAG, "Failed to get current working directory");
@@ -199,7 +199,7 @@ static void on_show(App& app, lv_obj_t* parent) {
 static void on_start(App& app) {
     auto* data = data_alloc();
     // PC platform is bound to current work directory because of the LVGL file system mapping
-    if (get_platform() == PlatformPc) {
+    if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != nullptr) {
             data_set_entries_for_path(data, cwd);

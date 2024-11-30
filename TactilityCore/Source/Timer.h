@@ -2,16 +2,9 @@
 
 #include "CoreTypes.h"
 
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/timers.h"
-#else
-#include "FreeRTOS.h"
-#include "timers.h"
-#endif
+#include "RtosCompatTimers.h"
 
 namespace tt {
-
 
 class Timer {
 private:
@@ -19,7 +12,7 @@ private:
 public:
 
     typedef void (*Callback)(void* context);
-    typedef void (*PendigCallback)(void* context, uint32_t arg);
+    typedef void (*PendingCallback)(void* context, uint32_t arg);
 
 
     Callback callback;
@@ -88,7 +81,7 @@ public:
      */
     uint32_t getExpireTime();
 
-    void pendingCallback(PendigCallback callback, void* callbackContext, uint32_t arg);
+    void pendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg);
 
     typedef enum {
         TimerThreadPriorityNormal,   /**< Lower then other threads */
@@ -101,10 +94,5 @@ public:
      */
     void setThreadPriority(TimerThreadPriority priority);
 };
-
-
-
-
-
 
 } // namespace

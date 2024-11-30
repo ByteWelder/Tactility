@@ -12,6 +12,8 @@ namespace tt::app {
 class App;
 
 typedef enum {
+    /** Boot screen, shown before desktop is launched. */
+    TypeBoot,
     /** A desktop app sits at the root of the app stack managed by the Loader service */
     TypeDesktop,
     /** Apps that generally aren't started from the desktop (e.g. image viewer) */

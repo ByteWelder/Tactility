@@ -1,13 +1,6 @@
 #include "Critical.h"
 #include "CoreDefines.h"
-
-#ifdef ESP_PLATFORM
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#else
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
+#include "RtosCompatTask.h"
 
 #ifdef ESP_PLATFORM
 static portMUX_TYPE critical_mutex;
