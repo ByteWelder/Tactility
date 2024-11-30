@@ -33,7 +33,7 @@ struct Gui {
 };
 
 /** Update GUI, request redraw */
-void request_draw();
+void requestDraw();
 
 /** Lock GUI */
 void lock();

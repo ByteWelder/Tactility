@@ -71,7 +71,7 @@ void unlock() {
     tt_check(tt_mutex_release(gui->mutex) == TtStatusOk);
 }
 
-void request_draw() {
+void requestDraw() {
     tt_assert(gui);
     ThreadId thread_id = gui->thread->getId();
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
@@ -82,7 +82,7 @@ void showApp(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback o
     tt_check(gui->app_view_port == nullptr);
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
     unlock();
-    request_draw();
+    requestDraw();
 }
 
 void hideApp() {
