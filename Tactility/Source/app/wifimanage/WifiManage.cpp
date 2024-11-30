@@ -35,7 +35,7 @@ static void on_disconnect() {
 }
 
 static void on_wifi_toggled(bool enabled) {
-    service::wifi::set_enabled(enabled);
+    service::wifi::setEnabled(enabled);
 }
 
 static WifiManage* wifi_manage_alloc() {
@@ -44,8 +44,8 @@ static WifiManage* wifi_manage_alloc() {
     wifi->wifi_subscription = nullptr;
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiManageState) {
-        .scanning = service::wifi::is_scanning(),
-        .radio_state = service::wifi::get_radio_state(),
+        .scanning = service::wifi::isScanning(),
+        .radio_state = service::wifi::getRadioState(),
         .connect_ssid = { 0 },
         .ap_records = { },
         .ap_records_count = 0
@@ -94,8 +94,8 @@ void request_view_update(WifiManage* wifi) {
 static void wifi_manage_event_callback(const void* message, void* context) {
     auto* event = (service::wifi::WifiEvent*)message;
     auto* wifi = (WifiManage*)context;
-    TT_LOG_I(TAG, "Update with state %d", service::wifi::get_radio_state());
-    state_set_radio_state(wifi, service::wifi::get_radio_state());
+    TT_LOG_I(TAG, "Update with state %d", service::wifi::getRadioState());
+    state_set_radio_state(wifi, service::wifi::getRadioState());
     switch (event->type) {
         case tt::service::wifi::WifiEventTypeScanStarted:
             state_set_scanning(wifi, true);
@@ -105,7 +105,7 @@ static void wifi_manage_event_callback(const void* message, void* context) {
             state_update_scanned_records(wifi);
             break;
         case tt::service::wifi::WifiEventTypeRadioStateOn:
-            if (!service::wifi::is_scanning()) {
+            if (!service::wifi::isScanning()) {
                 service::wifi::scan();
             }
             break;
@@ -119,12 +119,12 @@ static void wifi_manage_event_callback(const void* message, void* context) {
 static void app_show(App& app, lv_obj_t* parent) {
     auto* wifi = (WifiManage*)app.getData();
 
-    PubSub* wifi_pubsub = service::wifi::get_pubsub();
+    PubSub* wifi_pubsub = service::wifi::getPubsub();
     wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
 
     // State update (it has its own locking)
-    state_set_radio_state(wifi, service::wifi::get_radio_state());
-    state_set_scanning(wifi, service::wifi::is_scanning());
+    state_set_radio_state(wifi, service::wifi::getRadioState());
+    state_set_scanning(wifi, service::wifi::isScanning());
     state_update_scanned_records(wifi);
 
     // View update
@@ -135,11 +135,11 @@ static void app_show(App& app, lv_obj_t* parent) {
     view_update(&wifi->view, &wifi->bindings, &wifi->state);
     unlock(wifi);
 
-    service::wifi::WifiRadioState radio_state = service::wifi::get_radio_state();
+    service::wifi::WifiRadioState radio_state = service::wifi::getRadioState();
     bool can_scan = radio_state == service::wifi::WIFI_RADIO_ON ||
         radio_state == service::wifi::WIFI_RADIO_CONNECTION_PENDING ||
         radio_state == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE;
-    if (can_scan && !service::wifi::is_scanning()) {
+    if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }
 }
@@ -147,7 +147,7 @@ static void app_show(App& app, lv_obj_t* parent) {
 static void app_hide(App& app) {
     auto* wifi = (WifiManage*)app.getData();
     lock(wifi);
-    PubSub* wifi_pubsub = service::wifi::get_pubsub();
+    PubSub* wifi_pubsub = service::wifi::getPubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
     wifi->wifi_subscription = nullptr;
     wifi->view_enabled = false;

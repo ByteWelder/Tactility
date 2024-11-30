@@ -67,12 +67,12 @@ static void wifi_free(Wifi* instance) {
 
 // region Public functions
 
-PubSub* get_pubsub() {
+PubSub* getPubsub() {
     tt_assert(wifi);
     return wifi->pubsub;
 }
 
-WifiRadioState get_radio_state() {
+WifiRadioState getRadioState() {
     return wifi->radio_state;
 }
 
@@ -81,7 +81,7 @@ void scan() {
     wifi->scan_active = false; // TODO: enable and then later disable automatically
 }
 
-bool is_scanning() {
+bool isScanning() {
     tt_assert(wifi);
     return wifi->scan_active;
 }
@@ -95,12 +95,12 @@ void disconnect() {
     tt_assert(wifi);
 }
 
-void set_scan_records(uint16_t records) {
+void setScanRecords(uint16_t records) {
     tt_assert(wifi);
     // TODO: implement
 }
 
-void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
     tt_check(wifi);
     tt_check(result_count);
 
@@ -126,7 +126,7 @@ void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_c
     }
 }
 
-void set_enabled(bool enabled) {
+void setEnabled(bool enabled) {
     tt_assert(wifi != NULL);
     if (enabled) {
         wifi->radio_state = WIFI_RADIO_ON;
@@ -136,11 +136,11 @@ void set_enabled(bool enabled) {
     }
 }
 
-bool is_connection_secure() {
+bool isConnectionSecure() {
     return wifi->secure_connection;
 }
 
-int get_rssi() {
+int getRssi() {
     if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
         return -30;
     } else {
