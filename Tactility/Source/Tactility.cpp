@@ -147,11 +147,11 @@ void init(const Configuration* config) {
     register_user_apps(config->apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
-    service::loader::start_app(app::boot::manifest.id, true, Bundle());
+    service::loader::startApp(app::boot::manifest.id, true, Bundle());
 
     if (config->auto_start_app_id) {
         TT_LOG_I(TAG, "init auto-starting %s", config->auto_start_app_id);
-        service::loader::start_app(config->auto_start_app_id, true, Bundle());
+        service::loader::startApp(config->auto_start_app_id, true, Bundle());
     }
 
     TT_LOG_I(TAG, "init complete");

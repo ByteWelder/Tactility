@@ -168,8 +168,8 @@ void create_ui(const App& app, ScreenshotUi* ui, lv_obj_t* parent) {
     create_path_ui(ui, wrapper);
     create_timer_settings_ui(ui, wrapper);
 
-    service::gui::keyboard_add_textarea(ui->delay_textarea);
-    service::gui::keyboard_add_textarea(ui->path_textarea);
+    service::gui::keyboardAddTextArea(ui->delay_textarea);
+    service::gui::keyboardAddTextArea(ui->path_textarea);
 
     update_mode(ui);
 }

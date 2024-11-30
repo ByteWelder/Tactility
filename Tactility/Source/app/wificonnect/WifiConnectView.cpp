@@ -191,8 +191,8 @@ void view_create(const App& app, void* wifi, lv_obj_t* parent) {
     view_create_bottom_buttons(wifi_connect, wrapper);
 
     // Keyboard bindings
-    service::gui::keyboard_add_textarea(view->ssid_textarea);
-    service::gui::keyboard_add_textarea(view->password_textarea);
+        service::gui::keyboardAddTextArea(view->ssid_textarea);
+        service::gui::keyboardAddTextArea(view->password_textarea);
 
     // Init from app parameters
     const Bundle& bundle = app.getParameters();

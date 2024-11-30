@@ -24,18 +24,18 @@ typedef enum {
  * @param[in] arguments optional parameters to pass onto the application
  * @return LoaderStatus
  */
-LoaderStatus start_app(const std::string& id, bool blocking = false, const Bundle& arguments = Bundle());
+LoaderStatus startApp(const std::string& id, bool blocking = false, const Bundle& arguments = Bundle());
 
 /**
  * @brief Stop the currently showing app. Show the previous app if any app was still running.
  */
-void stop_app();
+void stopApp();
 
-app::App* _Nullable get_current_app();
+app::App* _Nullable getCurrentApp();
 
 /**
  * @brief PubSub for LoaderEvent
  */
-PubSub* get_pubsub();
+PubSub* getPubsub();
 
 } // namespace

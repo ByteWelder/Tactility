@@ -92,7 +92,7 @@ static void event_callback(const void* message, void* context) {
         case service::wifi::WifiEventTypeConnectionSuccess:
             if (wifi->state.is_connecting) {
                 state_set_connecting(wifi, false);
-                service::loader::stop_app();
+                service::loader::stopApp();
             }
             break;
         default:

@@ -98,7 +98,7 @@ static int32_t screenshot_task(void* context) {
                 break; // Interrupted loop
             }
         } else if (data->work.type == TASK_WORK_TYPE_APPS) {
-            app::App* _Nullable app = loader::get_current_app();
+            app::App* _Nullable app = loader::getCurrentApp();
             if (app) {
                 const app::Manifest& manifest = app->getManifest();
                 if (manifest.id != last_app_id) {

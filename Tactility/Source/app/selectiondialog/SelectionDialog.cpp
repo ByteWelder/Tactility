@@ -49,11 +49,11 @@ static void onListItemSelected(lv_event_t* e) {
     if (code == LV_EVENT_CLICKED) {
         size_t index = (size_t)(e->user_data);
         TT_LOG_I(TAG, "Selected item at index %d", index);
-        tt::app::App* app = service::loader::get_current_app();
+        tt::app::App* app = service::loader::getCurrentApp();
         Bundle bundle;
         setResultIndex(bundle, (int32_t)index);
         app->setResult(app::ResultOk, bundle);
-        service::loader::stop_app();
+        service::loader::stopApp();
     }
 }
 
@@ -79,12 +79,12 @@ static void onShow(App& app, lv_obj_t* parent) {
         if (items.empty() || items.front().empty()) {
             TT_LOG_E(TAG, "No items provided");
             app.setResult(ResultError);
-            service::loader::stop_app();
+            service::loader::stopApp();
         } else if (items.size() == 1) {
             Bundle result_bundle;
             setResultIndex(result_bundle, 0);
             app.setResult(ResultOk, result_bundle);
-            service::loader::stop_app();
+            service::loader::stopApp();
             TT_LOG_W(TAG, "Auto-selecting single item");
         } else {
             size_t index = 0;
@@ -95,7 +95,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     } else {
         TT_LOG_E(TAG, "No items provided");
         app.setResult(ResultError);
-        service::loader::stop_app();
+        service::loader::stopApp();
     }
 }
 

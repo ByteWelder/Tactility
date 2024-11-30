@@ -33,8 +33,8 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     if (minimum_ticks > ticks_passed) {
         tt::delay_ticks(minimum_ticks - ticks_passed);
     }
-    tt::service::loader::stop_app();
-    tt::service::loader::start_app("Desktop");
+    tt::service::loader::stopApp();
+    tt::service::loader::startApp("Desktop");
     return 0;
 }
 

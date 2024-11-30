@@ -20,9 +20,9 @@ void loader_callback(const void* message, TT_UNUSED void* context) {
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
         app::App& app = event->app_showing.app;
         const app::Manifest& app_manifest = app.getManifest();
-        show_app(app, app_manifest.onShow, app_manifest.onHide);
+        showApp(app, app_manifest.onShow, app_manifest.onHide);
     } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
-        hide_app();
+        hideApp();
     }
 }
 
@@ -38,7 +38,7 @@ Gui* gui_alloc() {
     );
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
     instance->keyboard = nullptr;
-    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::get_pubsub(), &loader_callback, instance);
+    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &loader_callback, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     instance->keyboard_group = lv_group_create();
     instance->lvgl_parent = lv_scr_act();
@@ -77,7 +77,7 @@ void request_draw() {
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void show_app(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
+void showApp(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
     lock();
     tt_check(gui->app_view_port == nullptr);
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
@@ -85,7 +85,7 @@ void show_app(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback 
     request_draw();
 }
 
-void hide_app() {
+void hideApp() {
     lock();
     ViewPort* view_port = gui->app_view_port;
     tt_check(view_port != nullptr);

@@ -63,7 +63,7 @@ static void loader_unlock() {
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& arguments) {
+LoaderStatus startApp(const std::string& id, bool blocking, const Bundle& arguments) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
 
@@ -92,14 +92,14 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& argum
     return result.value;
 }
 
-void stop_app() {
+void stopApp() {
     TT_LOG_I(TAG, "Stop app");
     tt_check(loader_singleton);
     LoaderMessage message(LoaderMessageTypeAppStop);
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-app::App* _Nullable get_current_app() {
+app::App* _Nullable getCurrentApp() {
     tt_assert(loader_singleton);
     loader_lock();
     app::AppInstance* app = loader_singleton->app_stack.top();
@@ -107,7 +107,7 @@ app::App* _Nullable get_current_app() {
     return dynamic_cast<app::App*>(app);
 }
 
-PubSub* get_pubsub() {
+PubSub* getPubsub() {
     tt_assert(loader_singleton);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
