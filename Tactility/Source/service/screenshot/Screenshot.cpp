@@ -15,8 +15,8 @@ extern const Manifest manifest;
 
 typedef struct {
     Mutex* mutex;
-    ScreenshotTask* task;
-    ScreenshotMode mode;
+    task::ScreenshotTask* task;
+    Mode mode;
 } ServiceData;
 
 static ServiceData* service_data_alloc() {
@@ -49,14 +49,14 @@ static void on_start(Service& service) {
 static void on_stop(Service& service) {
     auto* data = static_cast<ServiceData*>(service.getData());
     if (data->task) {
-        task_free(data->task);
+        task::free(data->task);
         data->task = nullptr;
     }
     tt_mutex_free(data->mutex);
     service_data_free(data);
 }
 
-void start_apps(const char* path) {
+void startApps(const char* path) {
     _Nullable auto* service = findServiceById(manifest.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
@@ -66,16 +66,16 @@ void start_apps(const char* path) {
     auto* data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task == nullptr) {
-        data->task = task_alloc();
+        data->task = task::alloc();
         data->mode = ScreenshotModeApps;
-        task_start_apps(data->task, path);
+        task::startApps(data->task, path);
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
     service_data_unlock(data);
 }
 
-void start_timed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
+void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     _Nullable auto* service = findServiceById(manifest.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
@@ -85,9 +85,9 @@ void start_timed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     auto* data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task == nullptr) {
-        data->task = task_alloc();
+        data->task = task::alloc();
         data->mode = ScreenshotModeTimed;
-        task_start_timed(data->task, path, delay_in_seconds, amount);
+        task::startTimed(data->task, path, delay_in_seconds, amount);
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
@@ -104,8 +104,8 @@ void stop() {
     auto data = static_cast<ServiceData*>(service->getData());
     service_data_lock(data);
     if (data->task != nullptr) {
-        task_stop(data->task);
-        task_free(data->task);
+        task::stop(data->task);
+        task::free(data->task);
         data->task = nullptr;
         data->mode = ScreenshotModeNone;
     } else {
@@ -114,7 +114,7 @@ void stop() {
     service_data_unlock(data);
 }
 
-ScreenshotMode get_mode() {
+Mode getMode() {
     _Nullable auto* service = findServiceById(manifest.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
@@ -122,14 +122,14 @@ ScreenshotMode get_mode() {
     } else {
         auto* data = static_cast<ServiceData*>(service->getData());
         service_data_lock(data);
-        ScreenshotMode mode = data->mode;
+        Mode mode = data->mode;
         service_data_unlock(data);
         return mode;
     }
 }
 
-bool is_started() {
-    return get_mode() != ScreenshotModeNone;
+bool isStarted() {
+    return getMode() != ScreenshotModeNone;
 }
 
 extern const Manifest manifest = {

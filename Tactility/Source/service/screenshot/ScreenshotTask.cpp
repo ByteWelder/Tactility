@@ -8,7 +8,7 @@
 #include "service/loader/Loader.h"
 #include "lvgl/LvglSync.h"
 
-namespace tt::service::screenshot {
+namespace tt::service::screenshot::task {
 
 #define TAG "screenshot_task"
 
@@ -39,7 +39,7 @@ static void task_unlock(ScreenshotTaskData* data) {
     tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
 }
 
-ScreenshotTask* task_alloc() {
+ScreenshotTask* alloc() {
     auto* data = static_cast<ScreenshotTaskData*>(malloc(sizeof(ScreenshotTaskData)));
     *data = (ScreenshotTaskData) {
         .thread = nullptr,
@@ -49,10 +49,10 @@ ScreenshotTask* task_alloc() {
     return data;
 }
 
-void task_free(ScreenshotTask* task) {
+void free(ScreenshotTask* task) {
     auto* data = static_cast<ScreenshotTaskData*>(task);
     if (data->thread) {
-        task_stop(data);
+        stop(data);
     }
 }
 
@@ -136,7 +136,7 @@ static void task_start(ScreenshotTaskData* data) {
     task_unlock(data);
 }
 
-void task_start_apps(ScreenshotTask* task, const char* path) {
+void startApps(ScreenshotTask* task, const char* path) {
     tt_check(strlen(path) < (SCREENSHOT_PATH_LIMIT - 1));
     auto* data = static_cast<ScreenshotTaskData*>(task);
     task_lock(data);
@@ -151,7 +151,7 @@ void task_start_apps(ScreenshotTask* task, const char* path) {
     task_unlock(data);
 }
 
-void task_start_timed(ScreenshotTask* task, const char* path, uint8_t delay_in_seconds, uint8_t amount) {
+void startTimed(ScreenshotTask* task, const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     tt_check(strlen(path) < (SCREENSHOT_PATH_LIMIT - 1));
     auto* data = static_cast<ScreenshotTaskData*>(task);
     task_lock(data);
@@ -168,7 +168,7 @@ void task_start_timed(ScreenshotTask* task, const char* path, uint8_t delay_in_s
     task_unlock(data);
 }
 
-void task_stop(ScreenshotTask* task) {
+void stop(ScreenshotTask* task) {
     auto* data = static_cast<ScreenshotTaskData*>(task);
     if (data->thread != nullptr) {
         task_lock(data);

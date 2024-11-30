@@ -25,7 +25,7 @@ typedef struct {
 
 // region wifi
 
-const char* get_status_icon_for_rssi(int rssi, bool secured) {
+const char* getWifiStatusIconForRssi(int rssi, bool secured) {
     if (rssi > 0) {
         return TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE;
     } else if (rssi >= -30) {
@@ -53,7 +53,7 @@ static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure)
             return TT_ASSETS_ICON_WIFI_FIND;
         case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             rssi = wifi::get_rssi();
-            return get_status_icon_for_rssi(rssi, secure);
+            return getWifiStatusIconForRssi(rssi, secure);
         default:
             tt_crash("not implemented");
     }

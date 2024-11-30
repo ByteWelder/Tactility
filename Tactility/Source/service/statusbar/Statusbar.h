@@ -8,6 +8,6 @@ namespace tt::service::statusbar {
  * @param secured whether the access point is a secured one (as in: not an open one)
  * @return
  */
-const char* get_status_icon_for_rssi(int rssi, bool secured);
+const char* getWifiStatusIconForRssi(int rssi, bool secured);
 
 } // namespace

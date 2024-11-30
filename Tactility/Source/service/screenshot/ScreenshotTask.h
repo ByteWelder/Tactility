@@ -2,13 +2,13 @@
 
 #include <cstdint>
 
-namespace tt::service::screenshot {
+namespace tt::service::screenshot::task {
 
 typedef void ScreenshotTask;
 
-ScreenshotTask* task_alloc();
+ScreenshotTask* alloc();
 
-void task_free(ScreenshotTask* task);
+void free(ScreenshotTask* task);
 
 /** @brief Start taking screenshots after a certain delay
  * @param task the screenshot task
@@ -16,17 +16,17 @@ void task_free(ScreenshotTask* task);
  * @param delay_in_seconds the delay before starting (and between successive screenshots)
  * @param amount 0 = indefinite, >0 for a specific
  */
-void task_start_timed(ScreenshotTask* task, const char* path, uint8_t delay_in_seconds, uint8_t amount);
+void startTimed(ScreenshotTask* task, const char* path, uint8_t delay_in_seconds, uint8_t amount);
 
 /** @brief Start taking screenshot whenever an app is started
  * @param task the screenshot task
  * @param path the path to store the screenshots at
  */
-void task_start_apps(ScreenshotTask* task, const char* path);
+void startApps(ScreenshotTask* task, const char* path);
 
 /** @brief Stop taking screenshots
  * @param task the screenshot task
  */
-void task_stop(ScreenshotTask* task);
+void stop(ScreenshotTask* task);
 
 }
