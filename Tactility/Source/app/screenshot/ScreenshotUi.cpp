@@ -12,7 +12,7 @@ namespace tt::app::screenshot {
 
 static void update_mode(ScreenshotUi* ui) {
     lv_obj_t* label = ui->start_stop_button_label;
-    if (service::screenshot::is_started()) {
+    if (service::screenshot::isStarted()) {
         lv_label_set_text(label, "Stop");
     } else {
         lv_label_set_text(label, "Start");
@@ -34,7 +34,7 @@ static void on_mode_set(lv_event_t* event) {
 static void on_start_pressed(lv_event_t* event) {
     auto* ui = static_cast<ScreenshotUi*>(lv_event_get_user_data(event));
 
-    if (service::screenshot::is_started()) {
+    if (service::screenshot::isStarted()) {
         TT_LOG_I(TAG, "Stop screenshot");
         service::screenshot::stop();
     } else {
@@ -45,13 +45,13 @@ static void on_start_pressed(lv_event_t* event) {
             const char* delay_text = lv_textarea_get_text(ui->delay_textarea);
             int delay = atoi(delay_text);
             if (delay > 0) {
-                service::screenshot::start_timed(path, delay, 1);
+                service::screenshot::startTimed(path, delay, 1);
             } else {
                 TT_LOG_W(TAG, "Ignored screenshot start because delay was 0");
             }
         } else {
             TT_LOG_I(TAG, "Start app screenshots");
-            service::screenshot::start_apps(path);
+            service::screenshot::startApps(path);
         }
     }
 
@@ -73,7 +73,7 @@ static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_align_to(mode_dropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     lv_obj_add_event_cb(mode_dropdown, on_mode_set, LV_EVENT_VALUE_CHANGED, ui);
     ui->mode_dropdown = mode_dropdown;
-    service::screenshot::ScreenshotMode mode = service::screenshot::get_mode();
+    service::screenshot::Mode mode = service::screenshot::getMode();
     if (mode == service::screenshot::ScreenshotModeApps) {
         lv_dropdown_set_selected(mode_dropdown, 1);
     }
@@ -168,8 +168,8 @@ void create_ui(const App& app, ScreenshotUi* ui, lv_obj_t* parent) {
     create_path_ui(ui, wrapper);
     create_timer_settings_ui(ui, wrapper);
 
-    service::gui::keyboard_add_textarea(ui->delay_textarea);
-    service::gui::keyboard_add_textarea(ui->path_textarea);
+    service::gui::keyboardAddTextArea(ui->delay_textarea);
+    service::gui::keyboardAddTextArea(ui->path_textarea);
 
     update_mode(ui);
 }

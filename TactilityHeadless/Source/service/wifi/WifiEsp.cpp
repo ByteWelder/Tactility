@@ -99,12 +99,12 @@ Wifi::~Wifi() {
 
 // region Public functions
 
-PubSub* get_pubsub() {
+PubSub* getPubsub() {
     tt_assert(wifi_singleton);
     return wifi_singleton->pubsub;
 }
 
-WifiRadioState get_radio_state() {
+WifiRadioState getRadioState() {
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     WifiRadioState state = wifi_singleton->radio_state;
@@ -121,7 +121,7 @@ void scan() {
     unlock(wifi_singleton);
 }
 
-bool is_scanning() {
+bool isScanning() {
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     bool is_scanning = wifi_singleton->scan_active;
@@ -152,7 +152,7 @@ void disconnect() {
     unlock(wifi_singleton);
 }
 
-void set_scan_records(uint16_t records) {
+void setScanRecords(uint16_t records) {
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     if (records != wifi_singleton->scan_list_limit) {
@@ -162,7 +162,7 @@ void set_scan_records(uint16_t records) {
     unlock(wifi_singleton);
 }
 
-void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
     tt_assert(wifi_singleton);
     tt_assert(result_count);
 
@@ -185,7 +185,7 @@ void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_c
     unlock(wifi_singleton);
 }
 
-void set_enabled(bool enabled) {
+void setEnabled(bool enabled) {
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     if (enabled) {
@@ -200,7 +200,7 @@ void set_enabled(bool enabled) {
     unlock(wifi_singleton);
 }
 
-bool is_connection_secure() {
+bool isConnectionSecure() {
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     bool is_secure = wifi_singleton->secure_connection;
@@ -208,7 +208,7 @@ bool is_connection_secure() {
     return is_secure;
 }
 
-int get_rssi() {
+int getRssi() {
     tt_assert(wifi_singleton);
     static int rssi = 0;
     if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {

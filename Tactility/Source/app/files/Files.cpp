@@ -72,7 +72,7 @@ static void on_navigate_up_pressed(lv_event_t* event) {
 }
 
 static void on_exit_app_pressed(TT_UNUSED lv_event_t* event) {
-    service::loader::stop_app();
+    service::loader::stopApp();
 }
 
 static void view_file(const char* path, const char* filename) {
@@ -84,7 +84,7 @@ static void view_file(const char* path, const char* filename) {
     // For PC we need to make the path relative to the current work directory,
     // because that's how LVGL maps its 'drive letter' to the file system.
     char* processed_filepath;
-    if (get_platform() == PlatformPc) {
+    if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) == nullptr) {
             TT_LOG_E(TAG, "Failed to get current working directory");
@@ -105,7 +105,7 @@ static void view_file(const char* path, const char* filename) {
     if (is_supported_image_file(filename)) {
         Bundle bundle;
         bundle.putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
-        service::loader::start_app("ImageViewer", false, bundle);
+        service::loader::startApp("ImageViewer", false, bundle);
     } else if (is_supported_text_file(filename)) {
         Bundle bundle;
         if (get_platform() == PlatformEsp) {
@@ -114,7 +114,7 @@ static void view_file(const char* path, const char* filename) {
             // Remove forward slash, because we need a relative path
             bundle.putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
         }
-        service::loader::start_app("TextViewer", false, bundle);
+        service::loader::startApp("TextViewer", false, bundle);
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
     }
@@ -199,7 +199,7 @@ static void on_show(App& app, lv_obj_t* parent) {
 static void on_start(App& app) {
     auto* data = data_alloc();
     // PC platform is bound to current work directory because of the LVGL file system mapping
-    if (get_platform() == PlatformPc) {
+    if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != nullptr) {
             data_set_entries_for_path(data, cwd);

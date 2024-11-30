@@ -2,11 +2,17 @@
 
 #include "CoreTypes.h"
 
+#ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#else
+#include "FreeRTOS.h"
+#endif
+
 namespace tt {
 
 typedef enum {
     PlatformEsp,
-    PlatformPc
+    PlatformSimulator
 } Platform;
 
 /** Check if CPU is in IRQ or kernel running and IRQ is masked
@@ -64,6 +70,8 @@ int32_t kernel_restore_lock(int32_t lock);
  */
 uint32_t kernel_get_tick_frequency();
 
+TickType_t get_ticks();
+
 /** Delay execution
  *
  * @warning This should never be called in interrupt request context.
@@ -72,7 +80,7 @@ uint32_t kernel_get_tick_frequency();
  *
  * @param[in]  ticks  The ticks count to pause
  */
-void delay_tick(uint32_t ticks);
+void delay_ticks(TickType_t ticks);
 
 /** Delay until tick
  *
@@ -89,7 +97,7 @@ TtStatus delay_until_tick(uint32_t tick);
  * @param[in]   milliseconds    time in milliseconds
  * @return      time in ticks
  */
-uint32_t ms_to_ticks(uint32_t milliseconds);
+TickType_t ms_to_ticks(uint32_t milliseconds);
 
 /** Delay in milliseconds
  * 

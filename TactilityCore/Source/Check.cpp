@@ -2,14 +2,7 @@
 
 #include "CoreDefines.h"
 #include "Log.h"
-
-#ifdef ESP_TARGET
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#else
-#include "FreeRTOS.h"
-#include "task.h"
-#endif
+#include "RtosCompatTask.h"
 
 #define TAG "kernel"
 

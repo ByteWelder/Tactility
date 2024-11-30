@@ -74,9 +74,9 @@ typedef struct {
  * @brief Get wifi pubsub
  * @return PubSub*
  */
-PubSub* get_pubsub();
+PubSub* getPubsub();
 
-WifiRadioState get_radio_state();
+WifiRadioState getRadioState();
 /**
  * @brief Request scanning update. Returns immediately. Results are through pubsub.
  */
@@ -85,26 +85,26 @@ void scan();
 /**
  * @return true if wifi is actively scanning
  */
-bool is_scanning();
+bool isScanning();
 
 /**
  * @brief Returns the access points from the last scan (if any). It only contains public APs.
  * @param records the allocated buffer to store the records in
  * @param limit the maximum amount of records to store
  */
-void get_scan_results(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
+void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
 
 /**
  * @brief Overrides the default scan result size of 16.
  * @param records the record limit for the scan result (84 bytes per record!)
  */
-void set_scan_records(uint16_t records);
+void setScanRecords(uint16_t records);
 
 /**
  * @brief Enable/disable the radio. Ignores input if desired state matches current state.
  * @param enabled
  */
-void set_enabled(bool enabled);
+void setEnabled(bool enabled);
 
 /**
  * @brief Connect to a network. Disconnects any existing connection.
@@ -121,11 +121,11 @@ void disconnect();
 /**
  * Return true if the connection isn't unencrypted.
  */
-bool is_connection_secure();
+bool isConnectionSecure();
 
 /**
  * Returns the RSSI value (negative number) or return 1 when not connected
  */
-int get_rssi();
+int getRssi();
 
 } // namespace

@@ -16,58 +16,26 @@ typedef enum {
     LoaderStatusErrorInternal,
 } LoaderStatus;
 
-typedef enum {
-    LoaderEventTypeApplicationStarted,
-    LoaderEventTypeApplicationShowing,
-    LoaderEventTypeApplicationHiding,
-    LoaderEventTypeApplicationStopped
-} LoaderEventType;
-
-typedef struct {
-    app::App& app;
-} LoaderEventAppStarted;
-
-typedef struct {
-    app::App& app;
-} LoaderEventAppShowing;
-
-typedef struct {
-    app::App& app;
-} LoaderEventAppHiding;
-
-typedef struct {
-    const app::Manifest& manifest;
-} LoaderEventAppStopped;
-
-typedef struct {
-    LoaderEventType type;
-    union {
-        LoaderEventAppStarted app_started;
-        LoaderEventAppShowing app_showing;
-        LoaderEventAppHiding app_hiding;
-        LoaderEventAppStopped app_stopped;
-    };
-} LoaderEvent;
 
 /**
  * @brief Start an app
  * @param[in] id application name or id
- * @param[in] blocking application arguments
- * @param[in] bundle optional bundle. Ownership is transferred to Loader.
+ * @param[in] blocking whether this call is blocking or not. You cannot call this from an LVGL thread.
+ * @param[in] arguments optional parameters to pass onto the application
  * @return LoaderStatus
  */
-LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle);
+LoaderStatus startApp(const std::string& id, bool blocking = false, const Bundle& arguments = Bundle());
 
 /**
  * @brief Stop the currently showing app. Show the previous app if any app was still running.
  */
-void stop_app();
+void stopApp();
 
-app::App* _Nullable get_current_app();
+app::App* _Nullable getCurrentApp();
 
 /**
  * @brief PubSub for LoaderEvent
  */
-PubSub* get_pubsub();
+PubSub* getPubsub();
 
 } // namespace

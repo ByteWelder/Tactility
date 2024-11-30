@@ -25,7 +25,7 @@ typedef struct {
 
 // region wifi
 
-const char* get_status_icon_for_rssi(int rssi, bool secured) {
+const char* getWifiStatusIconForRssi(int rssi, bool secured) {
     if (rssi > 0) {
         return TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE;
     } else if (rssi >= -30) {
@@ -52,16 +52,16 @@ static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure)
         case wifi::WIFI_RADIO_CONNECTION_PENDING:
             return TT_ASSETS_ICON_WIFI_FIND;
         case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
-            rssi = wifi::get_rssi();
-            return get_status_icon_for_rssi(rssi, secure);
+            rssi = wifi::getRssi();
+            return getWifiStatusIconForRssi(rssi, secure);
         default:
             tt_crash("not implemented");
     }
 }
 
 static void update_wifi_icon(ServiceData* data) {
-    wifi::WifiRadioState radio_state = wifi::get_radio_state();
-    bool is_secure = wifi::is_connection_secure();
+    wifi::WifiRadioState radio_state = wifi::getRadioState();
+    bool is_secure = wifi::isConnectionSecure();
     const char* desired_icon = wifi_get_status_icon(radio_state, is_secure);
     if (data->wifi_last_icon != desired_icon) {
         lvgl::statusbar_icon_set_image(data->wifi_icon_id, desired_icon);

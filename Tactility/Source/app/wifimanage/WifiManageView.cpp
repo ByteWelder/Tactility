@@ -43,7 +43,7 @@ static void connect(lv_event_t* event) {
 
 static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, service::wifi::WifiApRecord* record) {
     const char* ssid = (const char*)record->ssid;
-    const char* icon = service::statusbar::get_status_icon_for_rssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
+    const char* icon = service::statusbar::getWifiStatusIconForRssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
     lv_obj_t* ap_button = lv_list_add_btn(
         view->networks_list,
         icon,

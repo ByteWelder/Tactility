@@ -3,6 +3,9 @@
 #define TT_ASSET_FOLDER "A:/assets/"
 #define TT_ASSET(file) TT_ASSET_FOLDER file
 
+// Splash
+#define TT_ASSETS_BOOT_LOGO TT_ASSET("boot_logo.png")
+
 // App icons
 #define TT_ASSETS_APP_ICON_FALLBACK TT_ASSET("app_icon_fallback.png")
 #define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")

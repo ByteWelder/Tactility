@@ -5,14 +5,12 @@
 #include "service/Manifest.h"
 #include "service/gui/Gui.h"
 #include "service/loader/Loader_i.h"
+#include "RtosCompat.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
-#include "freertos/FreeRTOS.h"
 #else
-#include "FreeRTOS.h"
 #include "lvgl/LvglSync.h"
-
 #endif
 
 namespace tt::service::loader {
@@ -65,7 +63,7 @@ static void loader_unlock() {
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundle) {
+LoaderStatus startApp(const std::string& id, bool blocking, const Bundle& arguments) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
 
@@ -73,7 +71,7 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundl
         .value = LoaderStatusOk
     };
 
-    auto* start_message = new LoaderMessageAppStart(id, bundle);
+    auto* start_message = new LoaderMessageAppStart(id, arguments);
     LoaderMessage message(start_message, result);
 
     EventFlag* event_flag = blocking ? new EventFlag() : nullptr;
@@ -94,14 +92,14 @@ LoaderStatus start_app(const std::string& id, bool blocking, const Bundle& bundl
     return result.value;
 }
 
-void stop_app() {
+void stopApp() {
     TT_LOG_I(TAG, "Stop app");
     tt_check(loader_singleton);
     LoaderMessage message(LoaderMessageTypeAppStop);
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-app::App* _Nullable get_current_app() {
+app::App* _Nullable getCurrentApp() {
     tt_assert(loader_singleton);
     loader_lock();
     app::AppInstance* app = loader_singleton->app_stack.top();
@@ -109,7 +107,7 @@ app::App* _Nullable get_current_app() {
     return dynamic_cast<app::App*>(app);
 }
 
-PubSub* get_pubsub() {
+PubSub* getPubsub() {
     tt_assert(loader_singleton);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
@@ -160,7 +158,7 @@ static void app_transition_to_state(app::AppInstance& app, app::State state) {
             LoaderEvent event_showing = {
                 .type = LoaderEventTypeApplicationShowing,
                 .app_showing = {
-                    .app = dynamic_cast<app::App&>(app)
+                    .app = app
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_showing);
@@ -171,7 +169,7 @@ static void app_transition_to_state(app::AppInstance& app, app::State state) {
             LoaderEvent event_hiding = {
                 .type = LoaderEventTypeApplicationHiding,
                 .app_hiding = {
-                    .app = dynamic_cast<app::App&>(app)
+                    .app = app
                 }
             };
             tt_pubsub_publish(loader_singleton->pubsub_external, &event_hiding);
@@ -198,6 +196,8 @@ static LoaderStatus loader_do_start_app_with_manifest(
 
     auto previous_app = !loader_singleton->app_stack.empty() ? loader_singleton->app_stack.top() : nullptr;
     auto new_app = new app::AppInstance(*manifest, bundle);
+    new_app->mutableFlags().showStatusbar = (manifest->type != app::TypeBoot);
+
     loader_singleton->app_stack.push(new_app);
     app_transition_to_state(*new_app, app::StateInitial);
     app_transition_to_state(*new_app, app::StateStarted);
@@ -217,7 +217,7 @@ static LoaderStatus loader_do_start_app_with_manifest(
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStarted,
         .app_started = {
-            .app = dynamic_cast<app::App&>(*new_app)
+            .app = *new_app
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
@@ -233,6 +233,7 @@ static LoaderStatus do_start_by_id(
 
     const app::Manifest* manifest = app::findAppById(id);
     if (manifest == nullptr) {
+        TT_LOG_E(TAG, "App not found: %s", id.c_str());
         return LoaderStatusErrorUnknownApp;
     } else {
         return loader_do_start_app_with_manifest(manifest, bundle);
@@ -251,14 +252,15 @@ static void do_stop_app() {
         return;
     }
 
-    if (original_stack_size == 1) {
+    // Stop current app
+    app::AppInstance* app_to_stop = loader_singleton->app_stack.top();
+
+    if (original_stack_size == 1 && app_to_stop->getManifest().type != app::TypeBoot) {
         loader_unlock();
         TT_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }
 
-    // Stop current app
-    app::AppInstance* app_to_stop = loader_singleton->app_stack.top();
     std::unique_ptr<app::ResultHolder> result_holder = std::move(app_to_stop->getResult());
 
     const app::Manifest& manifest = app_to_stop->getManifest();
@@ -272,35 +274,38 @@ static void do_stop_app() {
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
-    app::AppInstance* app_to_resume = loader_singleton->app_stack.top();
-    tt_assert(app_to_resume);
-    app_transition_to_state(*app_to_resume, app::StateShowing);
+    // If there's a previous app, resume it
+    if (!loader_singleton->app_stack.empty()) {
+        app::AppInstance* app_to_resume = loader_singleton->app_stack.top();
+        tt_assert(app_to_resume);
+        app_transition_to_state(*app_to_resume, app::StateShowing);
 
-    auto on_result = app_to_resume->getManifest().onResult;
-    if (on_result != nullptr) {
-        if (result_holder != nullptr) {
-            Bundle* result_bundle = result_holder->resultData;
-            if (result_bundle != nullptr) {
-                on_result(
-                   *app_to_resume,
-                   result_holder->result,
-                   *result_bundle
-                );
+        auto on_result = app_to_resume->getManifest().onResult;
+        if (on_result != nullptr) {
+            if (result_holder != nullptr) {
+                Bundle* result_bundle = result_holder->resultData;
+                if (result_bundle != nullptr) {
+                    on_result(
+                        *app_to_resume,
+                        result_holder->result,
+                        *result_bundle
+                    );
+                } else {
+                    const Bundle empty_bundle;
+                    on_result(
+                        *app_to_resume,
+                        result_holder->result,
+                        empty_bundle
+                    );
+                }
             } else {
                 const Bundle empty_bundle;
                 on_result(
-                   *app_to_resume,
-                   result_holder->result,
-                   empty_bundle
+                    *app_to_resume,
+                    app::ResultCancelled,
+                    empty_bundle
                 );
             }
-        } else {
-            const Bundle empty_bundle;
-            on_result(
-                *app_to_resume,
-                app::ResultCancelled,
-                empty_bundle
-            );
         }
     }
 

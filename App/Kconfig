@@ -16,5 +16,16 @@ menu "Tactility App"
             bool "M5Stack CoreS3"
         config TT_BOARD_WAVESHARE_S3_TOUCH
             bool "Waveshare S3 Touch LCD 4.3\""
+        help
+            Select a board/hardware configuration.
+            Use TT_BOARD_CUSTOM if you will manually configure the board in your project.
     endchoice
+
+    config TT_SPLASH_DURATION
+        int "Splash Duration (ms)"
+        default 1500
+        range 0 3000
+        help
+            The minimum time to show the splash screen in milliseconds.
+            When set to 0, startup will continue to desktop as soon as boot operations are finished.
 endmenu

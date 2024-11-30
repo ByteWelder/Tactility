@@ -1,14 +1,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-
-#ifdef ESP_TARGET
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#else
-#include "FreeRTOS.h"
-#include "event_groups.h"
-#endif
+#include "RtosCompatEventGroups.h"
 
 namespace tt {
 

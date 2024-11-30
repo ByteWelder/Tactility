@@ -2,15 +2,10 @@
 
 #include "I2cCompat.h"
 #include "CoreTypes.h"
+#include "RtosCompat.h"
 #include <climits>
 #include <string>
 #include <vector>
-
-#ifdef ESP_TARGET
-#include "freertos/FreeRTOS.h"
-#else
-#include "FreeRTOS.h"
-#endif
 
 namespace tt::hal::i2c {
 

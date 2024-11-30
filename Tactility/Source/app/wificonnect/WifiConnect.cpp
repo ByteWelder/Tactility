@@ -24,7 +24,7 @@ static void on_connect(const service::wifi::settings::WifiApSettings* ap_setting
 static WifiConnect* wifi_connect_alloc() {
     auto* wifi = static_cast<WifiConnect*>(malloc(sizeof(WifiConnect)));
 
-    PubSub* wifi_pubsub = service::wifi::get_pubsub();
+    PubSub* wifi_pubsub = service::wifi::getPubsub();
     wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &event_callback, wifi);
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiConnectState) {
@@ -46,7 +46,7 @@ static WifiConnect* wifi_connect_alloc() {
 }
 
 static void wifi_connect_free(WifiConnect* wifi) {
-    PubSub* wifi_pubsub = service::wifi::get_pubsub();
+    PubSub* wifi_pubsub = service::wifi::getPubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
     tt_mutex_free(wifi->mutex);
 
@@ -92,7 +92,7 @@ static void event_callback(const void* message, void* context) {
         case service::wifi::WifiEventTypeConnectionSuccess:
             if (wifi->state.is_connecting) {
                 state_set_connecting(wifi, false);
-                service::loader::stop_app();
+                service::loader::stopApp();
             }
             break;
         default:
