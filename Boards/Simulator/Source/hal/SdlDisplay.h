@@ -27,6 +27,6 @@ public:
 };
 
 tt::hal::Display* createDisplay() {
-    return dynamic_cast<tt::hal::Display*>(new SdlDisplay());
+    return static_cast<tt::hal::Display*>(new SdlDisplay());
 }
 

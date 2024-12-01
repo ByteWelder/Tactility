@@ -81,9 +81,9 @@ bool M5stackDisplay::stop() {
 }
 
 tt::hal::Touch* _Nullable M5stackDisplay::createTouch() {
-    return new M5stackTouch();
+    return static_cast<tt::hal::Touch*>(new M5stackTouch());
 }
 
 tt::hal::Display* createDisplay() {
-    return dynamic_cast<tt::hal::Display*>(new M5stackDisplay());
+    return static_cast<tt::hal::Display*>(new M5stackDisplay());
 }

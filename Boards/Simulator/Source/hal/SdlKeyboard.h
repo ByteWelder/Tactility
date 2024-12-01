@@ -22,5 +22,5 @@ public:
 };
 
 tt::hal::Keyboard* createKeyboard() {
-    return dynamic_cast<tt::hal::Keyboard*>(new SdlKeyboard());
+    return static_cast<tt::hal::Keyboard*>(new SdlKeyboard());
 }
