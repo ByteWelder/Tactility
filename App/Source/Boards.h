@@ -5,7 +5,7 @@
 
 // Supported hardware:
 #if defined(CONFIG_TT_BOARD_LILYGO_TDECK)
-#include "lilygo_tdeck.h"
+#include "LilygoTdeck.h"
 #define TT_BOARD_HARDWARE &lilygo_tdeck
 #elif defined(CONFIG_TT_BOARD_YELLOW_BOARD_24_CAP)
 #include "yellow_board.h"
@@ -28,18 +28,7 @@
 
 #include "Simulator.h"
 
-#define TT_BOARD_HARDWARE &sim_hardware
-
-extern "C" {
-void app_main();
-}
-
-int main_stub(); // Main function logic from Simulator board project
-
-// Actual main that passes on app_main (to be executed in a FreeRTOS task) and bootstraps FreeRTOS
-int main() {
-    setMainForSim(app_main);
-    return main_stub();
-}
+extern tt::hal::Configuration hardware;
+#define TT_BOARD_HARDWARE &hardware
 
 #endif // ESP_PLATFORM
