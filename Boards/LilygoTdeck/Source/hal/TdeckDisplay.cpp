@@ -184,7 +184,7 @@ void TdeckDisplay::setPowerOn(bool turnOn) {
 }
 
 tt::hal::Touch* _Nullable TdeckDisplay::createTouch() {
-    return static_cast<tt::hal::Touch>(new TdeckTouch());
+    return static_cast<tt::hal::Touch*>(new TdeckTouch());
 }
 
 void TdeckDisplay::setBacklightDuty(uint8_t backlightDuty) {
