@@ -5,7 +5,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     if("${IDF_TARGET}" STREQUAL "esp32")
         list(APPEND BOARD_COMPONENTS
-#            YellowBoard
+            YellowBoard
             M5stackCore2
         )
     endif()

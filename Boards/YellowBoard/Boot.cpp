@@ -1,6 +1,6 @@
-#include "config.h"
+#include "Config.h"
 #include "TactilityCore.h"
-#include "display_i.h"
+#include "hal/YellowTouchConstants.h"
 #include <driver/spi_common.h>
 
 #define TAG "twodotfour_bootstrap"
@@ -66,7 +66,7 @@ static bool init_spi3() {
     return true;
 }
 
-bool twodotfour_bootstrap() {
+bool twodotfour_boot() {
     TT_LOG_I(TAG, "Init I2C");
     if (!init_i2c()) {
         TT_LOG_E(TAG, "Init I2C failed");
@@ -82,13 +82,6 @@ bool twodotfour_bootstrap() {
     TT_LOG_I(TAG, "Init SPI3");
     if (!init_spi3()) {
         TT_LOG_E(TAG, "Init SPI3 failed");
-        return false;
-    }
-
-    // Don't turn the backlight on yet - Tactility init will take care of it
-    TT_LOG_I(TAG, "Init backlight");
-    if (!twodotfour_backlight_init()) {
-        TT_LOG_E(TAG, "Init backlight failed");
         return false;
     }
 

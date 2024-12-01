@@ -32,7 +32,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     # ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-#        set(EXCLUDE_COMPONENTS "YellowBoard")
+        set(EXCLUDE_COMPONENTS "YellowBoard")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
     endif()
 

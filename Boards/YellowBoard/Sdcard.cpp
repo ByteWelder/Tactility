@@ -1,7 +1,7 @@
 #include "hal/sdcard/Sdcard.h"
 #include "Check.h"
 #include "Log.h"
-#include "config.h"
+#include "Config.h"
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"

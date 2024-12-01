@@ -158,7 +158,21 @@ bool TdeckDisplay::start() {
 }
 
 bool TdeckDisplay::stop() {
-    tt_crash("Not implemented");
+    tt_assert(displayHandle != nullptr);
+
+    lvgl_port_remove_disp(displayHandle);
+
+    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        return false;
+    }
+
+    displayHandle = nullptr;
+    return true;
+
 }
 
 void TdeckDisplay::setPowerOn(bool turnOn) {
@@ -170,7 +184,7 @@ void TdeckDisplay::setPowerOn(bool turnOn) {
 }
 
 tt::hal::Touch* _Nullable TdeckDisplay::createTouch() {
-    return new TdeckTouch();
+    return static_cast<tt::hal::Touch>(new TdeckTouch());
 }
 
 void TdeckDisplay::setBacklightDuty(uint8_t backlightDuty) {
@@ -188,5 +202,5 @@ void TdeckDisplay::setBacklightDuty(uint8_t backlightDuty) {
 }
 
 tt::hal::Display* createDisplay() {
-    return dynamic_cast<tt::hal::Display*>(new TdeckDisplay());
+    return static_cast<tt::hal::Display*>(new TdeckDisplay());
 }
