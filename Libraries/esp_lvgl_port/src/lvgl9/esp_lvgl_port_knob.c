@@ -71,7 +71,7 @@ lv_indev_t *lvgl_port_add_encoder(const lvgl_port_encoder_cfg_t *encoder_cfg)
     lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
     lv_indev_set_read_cb(indev, lvgl_port_encoder_read);
     lv_indev_set_disp(indev, encoder_cfg->disp);
-    lv_indev_set_user_data(indev, encoder_ctx);
+    lv_indev_set_driver_data(indev, encoder_ctx);
     encoder_ctx->indev = indev;
     lvgl_port_unlock();
 
@@ -95,7 +95,7 @@ err:
 esp_err_t lvgl_port_remove_encoder(lv_indev_t *encoder)
 {
     assert(encoder);
-    lvgl_port_encoder_ctx_t *encoder_ctx = (lvgl_port_encoder_ctx_t *)lv_indev_get_user_data(encoder);
+    lvgl_port_encoder_ctx_t *encoder_ctx = (lvgl_port_encoder_ctx_t *)lv_indev_get_driver_data(encoder);
 
     if (encoder_ctx->knob_handle != NULL) {
         iot_knob_delete(encoder_ctx->knob_handle);
@@ -125,7 +125,7 @@ static void lvgl_port_encoder_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     static int32_t last_v = 0;
     assert(indev_drv);
-    lvgl_port_encoder_ctx_t *ctx = (lvgl_port_encoder_ctx_t *)lv_indev_get_user_data(indev_drv);
+    lvgl_port_encoder_ctx_t *ctx = (lvgl_port_encoder_ctx_t *)lv_indev_get_driver_data(indev_drv);
     assert(ctx);
 
     int32_t invd = iot_knob_get_count_value(ctx->knob_handle);

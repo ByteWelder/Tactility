@@ -4,24 +4,19 @@
 #include "hal/Display.h"
 #include "hal/Touch.h"
 #include "hal/Keyboard.h"
+#include "lvgl/LvglKeypad.h"
+#include "lvgl/Lvgl.h"
 
 namespace tt::lvgl {
 
 #define TAG "lvglinit"
 
-void init(const hal::Configuration& config) {
-    TT_LOG_I(TAG, "Starting");
-
-    if (config.initLvgl != nullptr && !config.initLvgl()) {
-        TT_LOG_E(TAG, "LVGL init failed");
-        return;
-    }
-
+bool initDisplay(const hal::Configuration& config) {
     assert(config.createDisplay);
     auto* display = config.createDisplay();
     if (!display->start()) {
         TT_LOG_E(TAG, "Display start failed");
-        return;
+        return false;
     }
 
     lv_display_t* lvgl_display = display->getLvglDisplay();
@@ -42,29 +37,64 @@ void init(const hal::Configuration& config) {
         lv_disp_set_rotation(lv_disp_get_default(), static_cast<lv_display_rotation_t>(rotation));
     }
 
+    return true;
+}
+
+bool initTouch(hal::Display* display, hal::Touch* touch) {
+    TT_LOG_I(TAG, "Touch init");
+    tt_assert(display);
+    tt_assert(touch);
+    if (touch->start(display->getLvglDisplay())) {
+        return true;
+    } else {
+        TT_LOG_E(TAG, "Touch init failed");
+        return false;
+    }
+}
+
+bool initKeyboard(hal::Display* display, hal::Keyboard* keyboard) {
+    TT_LOG_I(TAG, "Keyboard init");
+    tt_assert(display);
+    tt_assert(keyboard);
+    if (keyboard->isAttached()) {
+        if (keyboard->start(display->getLvglDisplay())) {
+            lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
+            lv_indev_set_user_data(keyboard_indev, keyboard);
+            tt::lvgl::keypad_set_indev(keyboard_indev);
+            TT_LOG_I(TAG, "Keyboard started");
+            return true;
+        } else {
+            TT_LOG_E(TAG, "Keyboard start failed");
+            return false;
+        }
+    } else {
+        TT_LOG_E(TAG, "Keyboard attach failed");
+        return false;
+    }
+}
+
+void init(const hal::Configuration& config) {
+    TT_LOG_I(TAG, "Starting");
+
+    if (config.initLvgl != nullptr && !config.initLvgl()) {
+        TT_LOG_E(TAG, "LVGL init failed");
+        return;
+    }
+
+    if (!initDisplay(config)) {
+        return;
+    }
+
+    hal::Display* display = getDisplay();
+
     hal::Touch* touch = display->getTouch();
     if (touch != nullptr) {
-        if (touch->start(lvgl_display)) {
-            TT_LOG_I(TAG, "Touch init");
-        } else {
-            TT_LOG_E(TAG, "Touch init failed");
-        }
+        initTouch(display, touch);
     }
 
     if (config.createKeyboard) {
         hal::Keyboard* keyboard = config.createKeyboard();
-        if (keyboard->isAttached()) {
-            if (keyboard->start(lvgl_display)) {
-                lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
-                lv_indev_set_user_data(keyboard_indev, keyboard);
-                tt::lvgl::keypad_set_indev(keyboard_indev);
-                TT_LOG_I(TAG, "Keyboard started");
-            } else {
-                TT_LOG_E(TAG, "Keyboard start failed");
-            }
-        } else {
-            TT_LOG_E(TAG, "Keyboard attach failed");
-        }
+        initKeyboard(display, keyboard);
     }
 
     TT_LOG_I(TAG, "Finished");

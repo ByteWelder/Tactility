@@ -90,7 +90,7 @@ lv_indev_t *lvgl_port_add_navigation_buttons(const lvgl_port_nav_btns_cfg_t *but
     lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
     lv_indev_set_read_cb(indev, lvgl_port_navigation_buttons_read);
     lv_indev_set_disp(indev, buttons_cfg->disp);
-    lv_indev_set_user_data(indev, buttons_ctx);
+    lv_indev_set_driver_data(indev, buttons_ctx);
     //buttons_ctx->indev->long_press_repeat_time = 300;
     buttons_ctx->indev = indev;
     lvgl_port_unlock();
@@ -116,7 +116,7 @@ err:
 esp_err_t lvgl_port_remove_navigation_buttons(lv_indev_t *buttons)
 {
     assert(buttons);
-    lvgl_port_nav_btns_ctx_t *buttons_ctx = (lvgl_port_nav_btns_ctx_t *)lv_indev_get_user_data(buttons);
+    lvgl_port_nav_btns_ctx_t *buttons_ctx = (lvgl_port_nav_btns_ctx_t *)lv_indev_get_driver_data(buttons);
 
     lvgl_port_lock(0);
     /* Remove input device driver */
@@ -140,7 +140,7 @@ static void lvgl_port_navigation_buttons_read(lv_indev_t *indev_drv, lv_indev_da
     static uint32_t last_key = 0;
 
     assert(indev_drv);
-    lvgl_port_nav_btns_ctx_t *ctx = (lvgl_port_nav_btns_ctx_t *)lv_indev_get_user_data(indev_drv);
+    lvgl_port_nav_btns_ctx_t *ctx = (lvgl_port_nav_btns_ctx_t *)lv_indev_get_driver_data(indev_drv);
     assert(ctx);
 
     /* Buttons */
