@@ -4,6 +4,6 @@
 
 namespace tt::lvgl {
 
-void init(const hal::Configuration* config);
+void init(const hal::Configuration& config);
 
 } // namespace

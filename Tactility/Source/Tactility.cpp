@@ -125,15 +125,18 @@ static void register_and_start_user_services(const service::Manifest* const serv
     }
 }
 
-void init(const Configuration* config) {
+void init(const Configuration& config) {
     TT_LOG_I(TAG, "init started");
 
+    tt_assert(config.hardware);
+    const hal::Configuration& hardware = *config.hardware;
+
     // Assign early so starting services can use it
-    config_instance = config;
+    config_instance = &config;
 
-    initHeadless(*config->hardware);
+    initHeadless(hardware);
 
-    lvgl::init(config->hardware);
+    lvgl::init(hardware);
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can find them if needed
@@ -142,16 +145,16 @@ void init(const Configuration* config) {
     register_system_apps();
     // Then we register and start user services. They are started after system app
     // registration just in case they want to figure out which system apps are installed.
-    register_and_start_user_services(config->services);
+    register_and_start_user_services(config.services);
     // Now we register the user apps, as they might rely on the user services.
-    register_user_apps(config->apps);
+    register_user_apps(config.apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
     service::loader::startApp(app::boot::manifest.id, true, Bundle());
 
-    if (config->auto_start_app_id) {
-        TT_LOG_I(TAG, "init auto-starting %s", config->auto_start_app_id);
-        service::loader::startApp(config->auto_start_app_id, true, Bundle());
+    if (config.auto_start_app_id) {
+        TT_LOG_I(TAG, "init auto-starting %s", config.auto_start_app_id);
+        service::loader::startApp(config.auto_start_app_id, true, Bundle());
     }
 
     TT_LOG_I(TAG, "init complete");

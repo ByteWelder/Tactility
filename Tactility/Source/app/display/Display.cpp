@@ -4,6 +4,7 @@
 #include "Tactility.h"
 #include "lvgl/Toolbar.h"
 #include "lvgl.h"
+#include "hal/Display.h"
 
 namespace tt::app::display {
 
@@ -14,16 +15,18 @@ static uint8_t backlight_duty = 255;
 
 static void slider_event_cb(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
-    const Configuration* config = getConfiguration();
-    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
+    auto* lvgl_display = lv_display_get_default();
+    tt_assert(lvgl_display != nullptr);
+    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    tt_assert(hal_display != nullptr);
 
-    if (set_backlight_duty != nullptr) {
+    if (hal_display->supportsBacklightDuty()) {
         int32_t slider_value = lv_slider_get_value(slider);
 
         backlight_duty = (uint8_t)slider_value;
         backlight_duty_set = true;
 
-        set_backlight_duty(backlight_duty);
+        hal_display->setBacklightDuty(backlight_duty);
     }
 }
 
@@ -91,9 +94,12 @@ static void app_show(App& app, lv_obj_t* parent) {
     lv_slider_set_range(brightness_slider, 0, 255);
     lv_obj_add_event_cb(brightness_slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    const Configuration* config = getConfiguration();
-    hal::SetBacklightDuty set_backlight_duty = config->hardware->display.setBacklightDuty;
-    if (set_backlight_duty == nullptr) {
+    auto* lvgl_display = lv_display_get_default();
+    tt_assert(lvgl_display != nullptr);
+    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    tt_assert(hal_display != nullptr);
+
+    if (!hal_display->supportsBacklightDuty()) {
         lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);
         lv_obj_add_state(brightness_slider, LV_STATE_DISABLED);
     } else {

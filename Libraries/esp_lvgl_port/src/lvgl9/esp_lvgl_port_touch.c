@@ -52,7 +52,7 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, lvgl_port_touchpad_read);
     lv_indev_set_disp(indev, touch_cfg->disp);
-    lv_indev_set_user_data(indev, touch_ctx);
+    lv_indev_set_driver_data(indev, touch_ctx);
     touch_ctx->indev = indev;
     lvgl_port_unlock();
 
@@ -62,7 +62,7 @@ lv_indev_t *lvgl_port_add_touch(const lvgl_port_touch_cfg_t *touch_cfg)
 esp_err_t lvgl_port_remove_touch(lv_indev_t *touch)
 {
     assert(touch);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(touch);
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_driver_data(touch);
 
     lvgl_port_lock(0);
     /* Remove input device driver */
@@ -83,7 +83,7 @@ esp_err_t lvgl_port_remove_touch(lv_indev_t *touch)
 static void lvgl_port_touchpad_read(lv_indev_t *indev_drv, lv_indev_data_t *data)
 {
     assert(indev_drv);
-    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_user_data(indev_drv);
+    lvgl_port_touch_ctx_t *touch_ctx = (lvgl_port_touch_ctx_t *)lv_indev_get_driver_data(indev_drv);
     assert(touch_ctx);
     assert(touch_ctx->handle);
 

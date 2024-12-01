@@ -10,12 +10,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         )
     endif()
 
-    # T-Deck is an S3 platform
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         list(APPEND BOARD_COMPONENTS
             LilygoTdeck
             M5stackCoreS3
-            WaveshareS3Touch
         )
     endif()
 

@@ -6,22 +6,23 @@
 
 namespace tt::hal {
 
-typedef bool (*InitPower)();
+typedef bool (*InitBoot)();
 typedef bool (*InitHardware)();
 typedef bool (*InitLvgl)();
 
 typedef void (*SetBacklightDuty)(uint8_t);
-typedef struct {
-    /** Set backlight duty */
-    _Nullable SetBacklightDuty setBacklightDuty;
-} Display;
 
-typedef struct {
+class Display;
+class Keyboard;
+typedef Display* (*CreateDisplay)();
+typedef Keyboard* (*CreateKeyboard)();
+
+struct Configuration {
     /**
      * Called before I2C/SPI/etc is initialized.
      * Used for powering on the peripherals manually.
      */
-    const InitPower _Nullable initPower = nullptr;
+    const InitBoot _Nullable initBoot = nullptr;
 
     /**
      * Called after I2C/SPI/etc is initialized.
@@ -32,27 +33,32 @@ typedef struct {
     /**
      * Create and initialize all LVGL devices. (e.g. display, touch, keyboard)
      */
-    const InitLvgl _Nullable initLvgl;
+    const InitLvgl _Nullable initLvgl = nullptr;
 
     /**
      * Display HAL functionality.
      */
-    const Display display;
+    const CreateDisplay _Nullable createDisplay = nullptr;
+
+    /**
+     * Display HAL functionality.
+     */
+    const CreateKeyboard _Nullable createKeyboard = nullptr;
 
     /**
      * An optional SD card interface.
      */
-    const sdcard::SdCard* _Nullable sdcard;
+    const sdcard::SdCard* _Nullable sdcard = nullptr;
 
     /**
      * An optional power interface for battery or other power delivery.
      */
-    const Power* _Nullable power;
+    const Power* _Nullable power = nullptr;
 
     /**
      * A list of i2c devices (can be empty, but preferably accurately represents the device capabilities)
      */
-    const std::vector<i2c::Configuration> i2c;
-} Configuration;
+    const std::vector<i2c::Configuration> i2c = {};
+};
 
 } // namespace

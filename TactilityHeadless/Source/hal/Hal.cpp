@@ -6,9 +6,9 @@
 namespace tt::hal {
 
 void init(const Configuration& configuration) {
-    if (configuration.initPower != nullptr) {
+    if (configuration.initBoot != nullptr) {
         TT_LOG_I(TAG, "Init power");
-        tt_check(configuration.initPower(), "Init power failed");
+        tt_check(configuration.initBoot(), "Init power failed");
     }
 
     tt_check(i2c::init(configuration.i2c), "I2C init failed");
@@ -22,11 +22,6 @@ void init(const Configuration& configuration) {
         if (!sdcard::mount(configuration.sdcard)) {
             TT_LOG_W(TAG, "SD card mount failed (init can continue)");
         }
-    }
-
-    if (configuration.initLvgl != nullptr) {
-        TT_LOG_I(TAG, "Init LVGL");
-        tt_check(configuration.initLvgl(), "LVGL init failed");
     }
 }
 

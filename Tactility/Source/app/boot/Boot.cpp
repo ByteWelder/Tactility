@@ -1,12 +1,13 @@
-#include <Timer.h>
 #include <Check.h>
 #include <Thread.h>
 #include <Kernel.h>
 #include "Assets.h"
 #include "app/App.h"
 #include "lvgl.h"
+#include "hal/Display.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
+#include "app/display/DisplayPreferences.h"
 
 #ifdef ESP_PLATFORM
 #include "sdkconfig.h"
@@ -26,7 +27,16 @@ struct Data {
 
 static int32_t threadCallback(TT_UNUSED void* context) {
     TickType_t start_time = tt::get_ticks();
-    // Do stuff
+
+    auto* lvgl_display = lv_display_get_default();
+    tt_assert(lvgl_display != nullptr);
+    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    tt_assert(hal_display != nullptr);
+    if (hal_display->supportsBacklightDuty()) {
+        int32_t backlight_duty = app::display::preferences_get_backlight_duty();
+        hal_display->setBacklightDuty(backlight_duty);
+    }
+
     TickType_t end_time = tt::get_ticks();
     TickType_t ticks_passed = end_time - start_time;
     TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);

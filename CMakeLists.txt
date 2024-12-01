@@ -28,22 +28,22 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/M5GFX"
     )
 
+    set(EXCLUDE_COMPONENTS "Simulator")
+
     # ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "YellowBoard")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
-        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
-    endif()
-
-    if(NOT "${IDF_TARGET}" STREQUAL "Simulator")
-        set(EXCLUDE_COMPONENTS "Simulator")
     endif()
 
     # ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
-        set(EXCLUDE_COMPONENTS "WaveshareS3Touch")
+        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
     endif()
+
+    # TEMP - DO NOT COMMIT
+    set(EXCLUDE_COMPONENTS "YellowBoard" "M5stackCore2" "WaveshareS3Touch")
 else()
     message("Building for sim target")
 endif()
