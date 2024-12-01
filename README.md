@@ -71,13 +71,13 @@ Implementing drivers can take some effort, so Tactility provides support for sev
 
 Predefined configurations are available for:
 
-| Device                                   | Screen&Touch | SD card | Power | Other    |
-|------------------------------------------|--------------|---------|-------|----------|
-| [M5Stack Core2][m5stack]                 | ✅            | ✅       | ✅ |          |
-| [M5Stack CoreS3][m5stack]                | ✅            | ✅       | ✅ |          |
-| [LilyGo T-Deck][tdeck]                   | ✅            | ✅       |   | Keyboard | 
-| [Waveshare S3 Touch][waveshare_s3_touch] | ✅            | ⏳       |   |          |
-| Yellow Board 2432S024C (\*)              | ✅            | ✅       |   |          |
+| Device                          | Screen&Touch | SD card | Power | Other    |
+|---------------------------------|--------------|---------|-------|----------|
+| [LilyGo T-Deck Plus][tdeckplus] | ✅            | ✅       | ⏳ | Keyboard | 
+| [LilyGo T-Deck][tdeck]          | ✅            | ✅       |   | Keyboard | 
+| [M5Stack Core2][m5stack]        | ✅            | ✅       | ✅ |          |
+| [M5Stack CoreS3][m5stack]       | ✅            | ✅       | ✅ |          |
+| Yellow Board 2432S024C (\*)     | ✅            | ✅       |   |          |
 
 - ✅: Capable and implemented
 - ⏳: Capable but not yet implemented
@@ -86,7 +86,7 @@ Predefined configurations are available for:
 (*) Note: Only the capacitive version is supported. See AliExpress [here][2432s024c_1] and [here][2432s024c_2].
 
 [tdeck]: https://www.lilygo.cc/products/t-deck
-[waveshare_s3_touch]: https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3
+[tdeckplus]: https://lilygo.cc/products/t-deck-plus
 [2432s024c_1]: https://www.aliexpress.com/item/1005005902429049.html
 [2432s024c_2]: https://www.aliexpress.com/item/1005005865107357.html
 [m5stack]: https://m5stack.com/
