@@ -5,17 +5,15 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     if("${IDF_TARGET}" STREQUAL "esp32")
         list(APPEND BOARD_COMPONENTS
-            YellowBoard
+#            YellowBoard
             M5stackCore2
         )
     endif()
 
-    # T-Deck is an S3 platform
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         list(APPEND BOARD_COMPONENTS
             LilygoTdeck
             M5stackCoreS3
-            WaveshareS3Touch
         )
     endif()
 

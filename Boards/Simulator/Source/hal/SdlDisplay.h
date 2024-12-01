@@ -17,7 +17,7 @@ public:
     bool isPoweredOn() const override { return displayHandle != nullptr; }
     bool supportsPowerControl() const override { return false; }
 
-    tt::hal::Touch* _Nullable getTouch() override { return dynamic_cast<tt::hal::Touch*>(new SdlTouch()); }
+    tt::hal::Touch* _Nullable createTouch() override { return dynamic_cast<tt::hal::Touch*>(new SdlTouch()); }
 
     void setBacklightDuty(uint8_t backlightDuty) override {}
     uint8_t getBacklightDuty() const override { return 255; }

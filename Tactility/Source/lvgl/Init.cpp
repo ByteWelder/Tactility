@@ -87,7 +87,7 @@ void init(const hal::Configuration& config) {
 
     hal::Display* display = getDisplay();
 
-    hal::Touch* touch = display->getTouch();
+    hal::Touch* touch = display->createTouch();
     if (touch != nullptr) {
         initTouch(display, touch);
     }

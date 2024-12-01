@@ -169,7 +169,7 @@ void TdeckDisplay::setPowerOn(bool turnOn) {
     }
 }
 
-tt::hal::Touch* _Nullable TdeckDisplay::getTouch() {
+tt::hal::Touch* _Nullable TdeckDisplay::createTouch() {
     return new TdeckTouch();
 }
 

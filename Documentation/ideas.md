@@ -1,6 +1,7 @@
 # TODOs
 - Publish firmwares with upload tool
 - Bug: When closing a top level app, there's often an error "can't stop root app"
+- Bug: I2C Scanner is on M5Stack devices is broken
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.

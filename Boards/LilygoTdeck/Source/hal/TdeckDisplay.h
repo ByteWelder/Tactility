@@ -26,7 +26,7 @@ public:
     bool isPoweredOn() const override { return poweredOn; };
     bool supportsPowerControl() const override { return true; }
 
-    tt::hal::Touch* _Nullable getTouch() override;
+    tt::hal::Touch* _Nullable createTouch() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
     uint8_t getBacklightDuty() const override { return lastBacklightDuty; }

@@ -1,4 +1,11 @@
-#include "TactilityCore.h"
+#include "M5stackDisplay.h"
+#include "M5stackTouch.h"
+#include "Log.h"
+
+#include <TactilityCore.h>
+
+#define TAG "m5shared_display"
+
 
 #include "M5Unified.hpp"
 #include "esp_err.h"
@@ -18,8 +25,7 @@ static void flush_callback(lv_display_t* display, const lv_area_t* area, uint8_t
     lv_display_flush_ready(display);
 }
 
-
-_Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
+_Nullable lv_disp_t* createDisplay(bool usePsram) {
     M5GFX& gfx = M5.Display;
 
     static lv_display_t* display = lv_display_create(gfx.width(), gfx.height());
@@ -58,4 +64,26 @@ _Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram) {
     }
 
     return display;
+}
+
+bool M5stackDisplay::start() {
+    TT_LOG_I(TAG, "Starting");
+    displayHandle = createDisplay(true);
+    TT_LOG_I(TAG, "Finished");
+    return displayHandle != nullptr;
+}
+
+bool M5stackDisplay::stop() {
+    tt_assert(displayHandle != nullptr);
+    lv_display_delete(displayHandle);
+    displayHandle = nullptr;
+    return true;
+}
+
+tt::hal::Touch* _Nullable M5stackDisplay::createTouch() {
+    return new M5stackTouch();
+}
+
+tt::hal::Display* createDisplay() {
+    return dynamic_cast<tt::hal::Display*>(new M5stackDisplay());
 }

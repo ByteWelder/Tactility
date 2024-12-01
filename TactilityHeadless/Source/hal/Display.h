@@ -15,7 +15,7 @@ public:
     [[nodiscard]] virtual bool isPoweredOn() const = 0;
     [[nodiscard]] virtual bool supportsPowerControl() const = 0;
 
-    [[nodiscard]] virtual Touch* _Nullable getTouch() = 0;
+    [[nodiscard]] virtual Touch* _Nullable createTouch() = 0;
 
     /** Set a value in the range [0, 255] */
     virtual void setBacklightDuty(uint8_t backlightDuty) = 0;

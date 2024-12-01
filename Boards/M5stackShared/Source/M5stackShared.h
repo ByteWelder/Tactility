@@ -1,6 +1,8 @@
 #pragma once
 
 #include "hal/Power.h"
+#include "hal/M5stackTouch.h"
+#include "hal/M5stackDisplay.h"
 #include "hal/sdcard/Sdcard.h"
 
 extern bool m5stack_bootstrap();

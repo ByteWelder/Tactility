@@ -5,8 +5,8 @@
 
 #define TAG "cores3_lvgl"
 
-_Nullable lv_disp_t* m5stack_lvgl_display(bool usePsram);
-_Nullable lv_indev_t* m5stack_lvgl_touch();
+_Nullable lv_disp_t* createDisplay(bool usePsram);
+_Nullable lv_indev_t* createTouch();
 
 bool m5stack_lvgl_init() {
     static lv_display_t* display = nullptr;
@@ -23,21 +23,6 @@ bool m5stack_lvgl_init() {
         TT_LOG_E(TAG, "lvgl_port_init failed");
         return false;
     }
-
-    // Add display
-    display = m5stack_lvgl_display(true);
-    if (display == nullptr) {
-        TT_LOG_E(TAG, "failed to add display");
-        return false;
-    }
-
-    // Add touch
-    lv_indev_t* touch_indev = m5stack_lvgl_touch();
-    if (touch_indev == nullptr) {
-        TT_LOG_E(TAG, "failed to add touch");
-        return false;
-    }
-    lv_indev_set_display(touch_indev, display);
 
     // Set syncing functions
     tt::lvgl::syncSet(&lvgl_port_lock, &lvgl_port_unlock);
