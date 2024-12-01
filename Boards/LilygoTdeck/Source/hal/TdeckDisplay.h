@@ -10,7 +10,7 @@ class TdeckDisplay : public tt::hal::Display {
 
 private:
 
-    esp_lcd_panel_io_handle_t iohandle = nullptr;
+    esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* displayHandle = nullptr;
     uint8_t lastBacklightDuty = 255;

@@ -79,7 +79,7 @@ bool TdeckDisplay::start() {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)TDECK_LCD_SPI_HOST, &panel_io_config, &iohandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)TDECK_LCD_SPI_HOST, &panel_io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel IO");
         return false;
     }
@@ -95,7 +95,7 @@ bool TdeckDisplay::start() {
         .vendor_config = nullptr
     };
 
-    if (esp_lcd_new_panel_st7789(iohandle, &panel_config, &panelHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_st7789(ioHandle, &panel_config, &panelHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }
@@ -131,7 +131,7 @@ bool TdeckDisplay::start() {
     }
 
     const lvgl_port_display_cfg_t disp_cfg = {
-        .io_handle = iohandle,
+        .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .buffer_size = TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_DRAW_BUFFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8),
         .double_buffer = true, // Disable to free up SPIRAM
