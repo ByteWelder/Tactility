@@ -1,11 +1,20 @@
+#include <Mutex.h>
 #include "LvglSync.h"
-
-#include "Check.h"
 
 namespace tt::lvgl {
 
-static LvglLock lock_singleton = nullptr;
-static LvglUnlock unlock_singleton = nullptr;
+Mutex lockMutex;
+
+static bool defaultLock(uint32_t timeoutTicks) {
+    return lockMutex.acquire(timeoutTicks) == TtStatusOk;
+}
+
+static void defaultUnlock() {
+    lockMutex.release();
+}
+
+static LvglLock lock_singleton = defaultLock;
+static LvglUnlock unlock_singleton = defaultUnlock;
 
 void syncSet(LvglLock lock, LvglUnlock unlock) {
     lock_singleton = lock;
@@ -13,12 +22,10 @@ void syncSet(LvglLock lock, LvglUnlock unlock) {
 }
 
 bool lock(uint32_t timeout_ticks) {
-    tt_check(lock_singleton);
     return lock_singleton(timeout_ticks);
 }
 
 void unlock() {
-    tt_check(unlock_singleton);
     unlock_singleton();
 }
 

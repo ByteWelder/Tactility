@@ -9,7 +9,7 @@
 
 namespace tt::service::screenshot {
 
-#define TAG "sdcard_service"
+#define TAG "screenshot_service"
 
 extern const Manifest manifest;
 

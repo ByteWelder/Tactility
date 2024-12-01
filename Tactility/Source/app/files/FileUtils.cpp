@@ -35,6 +35,7 @@ int scandir(
 ) {
     DIR* dir = opendir(path);
     if (dir == nullptr) {
+        TT_LOG_E(TAG, "Failed to open dir %s", path);
         return -1;
     }
 

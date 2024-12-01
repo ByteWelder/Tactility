@@ -13,8 +13,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_TARGET)
     add_compile_definitions(ESP_TARGET)
 
-    add_definitions(-DARDUINO_M5STACK_CORE2)
-    add_compile_definitions(ARDUINO_M5STACK_CORE2)
+#    add_definitions(-DARDUINO_M5STACK_CORE2)
+#    add_compile_definitions(ARDUINO_M5STACK_CORE2)
 
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
@@ -29,21 +29,24 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     )
 
     # ESP32 boards
-    if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "YellowBoard")
-        set(EXCLUDE_COMPONENTS "M5stackCore2")
-        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
-    endif()
+#    if(NOT "${IDF_TARGET}" STREQUAL "esp32")
+#        set(EXCLUDE_COMPONENTS "YellowBoard")
+#        set(EXCLUDE_COMPONENTS "M5stackCore2")
+#        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
+#    endif()
+#
+#    if(NOT "${IDF_TARGET}" STREQUAL "Simulator")
+#        set(EXCLUDE_COMPONENTS "Simulator")
+#    endif()
+#
+#    # ESP32-S3 boards
+#    if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
+#        set(EXCLUDE_COMPONENTS "LilygoTdeck")
+#        set(EXCLUDE_COMPONENTS "WaveshareS3Touch")
+#    endif()
 
-    if(NOT "${IDF_TARGET}" STREQUAL "Simulator")
-        set(EXCLUDE_COMPONENTS "Simulator")
-    endif()
-
-    # ESP32-S3 boards
-    if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
-        set(EXCLUDE_COMPONENTS "LilygoTdeck")
-        set(EXCLUDE_COMPONENTS "WaveshareS3Touch")
-    endif()
+    # TEMP - DO NOT COMMIT
+    set(EXCLUDE_COMPONENTS "YellowBoard" "M5stackCore2" "M5stackCoreS3" "WaveshareS3Touch")
 else()
     message("Building for sim target")
 endif()

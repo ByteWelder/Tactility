@@ -25,7 +25,7 @@ void app_main() {
         .auto_start_app_id = nullptr
     };
 
-    tt::init(&config);
+    tt::init(config);
 
     tt::service::wifi::wifi_main(nullptr);
 }

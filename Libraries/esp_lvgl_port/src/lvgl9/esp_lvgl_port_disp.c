@@ -114,7 +114,7 @@ lv_display_t *lvgl_port_add_disp(const lvgl_port_display_cfg_t *disp_cfg)
     lv_display_set_flush_cb(disp, lvgl_port_flush_callback);
     lv_display_add_event_cb(disp, lvgl_port_disp_size_update_callback, LV_EVENT_RESOLUTION_CHANGED, disp_ctx);
 
-    lv_display_set_user_data(disp, disp_ctx);
+    lv_display_set_driver_data(disp, disp_ctx);
     disp_ctx->disp_drv = disp;
 
 #if LVGL_PORT_HANDLE_FLUSH_READY
@@ -146,7 +146,7 @@ err:
 esp_err_t lvgl_port_remove_disp(lv_display_t *disp)
 {
     assert(disp);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(disp);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(disp);
 
     lvgl_port_lock(0);
     lv_disp_remove(disp);
@@ -229,7 +229,7 @@ static void _lvgl_port_transform_monochrome(lv_display_t *display, const lv_area
 static void lvgl_port_flush_callback(lv_display_t *drv, const lv_area_t *area, uint8_t *color_map)
 {
     assert(drv != NULL);
-    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_user_data(drv);
+    lvgl_port_display_ctx_t *disp_ctx = (lvgl_port_display_ctx_t *)lv_display_get_driver_data(drv);
     assert(disp_ctx != NULL);
 
     //TODO: try to use SPI_SWAP_DATA_RX from https://docs.espressif.com/projects/esp-idf/en/v5.1/esp32s3/api-reference/peripherals/spi_master.html#c.SPI_SWAP_DATA_TX

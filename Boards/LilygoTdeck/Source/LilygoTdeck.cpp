@@ -1,5 +1,7 @@
-#include "lilygo_tdeck.h"
-#include "display.h"
+#include "hal/Configuration.h"
+#include "hal/TdeckDisplay.h"
+#include "hal/TdeckKeyboard.h"
+#include "hal/sdcard/Sdcard.h"
 
 bool tdeck_init_power();
 bool tdeck_init_hardware();
@@ -8,12 +10,11 @@ bool tdeck_init_lvgl();
 extern const tt::hal::sdcard::SdCard tdeck_sdcard;
 
 extern const tt::hal::Configuration lilygo_tdeck = {
-    .initPower = tdeck_init_power,
+    .initBoot = tdeck_init_power,
     .initHardware = tdeck_init_hardware,
-    .initLvgl = &tdeck_init_lvgl,
-    .display = {
-        .setBacklightDuty = &tdeck_backlight_set
-    },
+    .initLvgl = tdeck_init_lvgl,
+    .createDisplay = createDisplay,
+    .createKeyboard = createKeyboard,
     .sdcard = &tdeck_sdcard,
     .power = nullptr,
     .i2c = {

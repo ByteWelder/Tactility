@@ -1,13 +1,24 @@
 #include "hal/sdcard/Sdcard.h"
 #include "Check.h"
 #include "Log.h"
-#include "config.h"
 
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 #include "lvgl/LvglSync.h"
 
 #define TAG "tdeck_sdcard"
+
+#define TDECK_SDCARD_SPI_HOST SPI2_HOST
+#define TDECK_SDCARD_PIN_CS GPIO_NUM_39
+#define TDECK_SDCARD_SPI_FREQUENCY 800000U
+#define TDECK_SDCARD_FORMAT_ON_MOUNT_FAILED false
+#define TDECK_SDCARD_MAX_OPEN_FILES 4
+#define TDECK_SDCARD_ALLOC_UNIT_SIZE (16 * 1024)
+#define TDECK_SDCARD_STATUS_CHECK_ENABLED false
+
+// Other
+#define TDECK_LCD_PIN_CS GPIO_NUM_12
+#define TDECK_RADIO_PIN_CS GPIO_NUM_9
 
 typedef struct {
     const char* mount_point;
@@ -85,7 +96,7 @@ static void* _Nullable sdcard_mount(const char* mount_point) {
         } else {
             TT_LOG_E(TAG, "Mounting failed (%s)", esp_err_to_name(ret));
         }
-        return NULL;
+        return nullptr;
     }
 
     auto* data = static_cast<MountData*>(malloc(sizeof(MountData)));
@@ -100,7 +111,7 @@ static void* _Nullable sdcard_mount(const char* mount_point) {
 static void* sdcard_init_and_mount(const char* mount_point) {
     if (!sdcard_init()) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
-        return NULL;
+        return nullptr;
     }
     auto* data = static_cast<MountData*>(sdcard_mount(mount_point));
     if (data == nullptr) {
@@ -125,6 +136,7 @@ static void sdcard_unmount(void* context) {
     free(data);
 }
 
+// TODO: Refactor to "bool getStatus(Status* status)" method so that it can fail when the lvgl lock fails
 static bool sdcard_is_mounted(void* context) {
     auto* data = static_cast<MountData*>(context);
     /**
@@ -132,13 +144,18 @@ static bool sdcard_is_mounted(void* context) {
      * Writing and reading to the bus from 2 devices at the same time causes crashes.
      * This work-around ensures that this check is only happening when LVGL isn't rendering.
      */
-    if (tt::lvgl::lock(100)) {
-        bool result = (data != nullptr) && (sdmmc_get_status(data->card) == ESP_OK);
-        tt::lvgl::unlock();
-        return result;
-    } else {
-        return false;
+    bool locked = tt::lvgl::lock(100); // TODO: Refactor to a more reliable locking mechanism
+    if (!locked) {
+        TT_LOG_W(TAG, "Failed to get LVGL lock");
     }
+
+    bool result = (data != nullptr) && (sdmmc_get_status(data->card) == ESP_OK);
+
+    if (locked) {
+        tt::lvgl::unlock();
+    }
+
+    return result;
 }
 
 extern const tt::hal::sdcard::SdCard tdeck_sdcard = {

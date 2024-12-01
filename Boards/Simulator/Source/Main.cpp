@@ -1,21 +1,31 @@
+#include "Main.h"
+#include "TactilityCore.h"
 #include "Thread.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
-#include "Simulator.h"
 
 #define TAG "freertos"
 
-static void main_task(TT_UNUSED void* parameter) {
+namespace simulator {
+
+MainFunction mainFunction = nullptr;
+
+void setMain(MainFunction newMainFunction) {
+    mainFunction = newMainFunction;
+}
+
+static void freertosMainTask(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "starting app_main()");
-    executeMainFunction();
+    assert(simulator::mainFunction);
+    mainFunction();
     TT_LOG_I(TAG, "returned from app_main()");
     vTaskDelete(nullptr);
 }
 
-int main_stub() {
+void freertosMain() {
     BaseType_t task_result = xTaskCreate(
-        main_task,
+        freertosMainTask,
         "main",
         8192,
         nullptr,
@@ -28,6 +38,8 @@ int main_stub() {
     // Blocks forever
     vTaskStartScheduler();
 }
+
+} // namespace
 
 /**
  * Assert implementation as defined in the FreeRTOSConfig.h
@@ -47,3 +59,4 @@ void vAssertCalled(unsigned long line, const char* const file) {
     }
     taskEXIT_CRITICAL();
 }
+

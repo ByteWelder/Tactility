@@ -1,10 +1,22 @@
 #pragma once
 
 #include "hal/Configuration.h"
+#include "Main.h"
 
-extern const tt::hal::Configuration sim_hardware;
+namespace simulator {
+    /** Set the function pointer of the real app_main() */
+    void setMain(MainFunction mainFunction);
+    /** The actual main task */
+    void freertosMain();
+}
 
-typedef void (*MainFunction)();
-void setMainForSim(MainFunction mainFunction);
-void executeMainFunction();
-int main_stub();
+extern "C" {
+void app_main(); // ESP-IDF's main function, implemented in the application
+}
+
+int main() {
+    // Actual main function that passes on app_main() (to be executed in a FreeRTOS task) and bootstraps FreeRTOS
+    simulator::setMain(app_main);
+    simulator::freertosMain();
+    return 0;
+}

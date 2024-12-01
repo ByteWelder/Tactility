@@ -1,8 +1,7 @@
-#include "lvgl_task.h"
+#include "LvglTask.h"
 
 #include "lvgl.h"
 #include "Log.h"
-#include "lvgl_hal.h"
 #include "TactilityCore.h"
 #include "Thread.h"
 #include "lvgl/LvglSync.h"
@@ -66,18 +65,23 @@ void lvgl_task_start() {
         lvgl_task,
         "lvgl",
         8192,
-        NULL,
+        nullptr,
         tt::Thread::PriorityHigh, // Should be higher than main app task
-        NULL
+        nullptr
     );
 
     tt_assert(task_result == pdTRUE);
 }
 
+lv_disp_t* displayHandle = nullptr;
+
 static void lvgl_task(TT_UNUSED void* arg) {
     TT_LOG_I(TAG, "lvgl task started");
 
-    lv_disp_t* display = lvgl_hal_init();
+    /** Ideally. the display handle would be created during Simulator.start(),
+     * but somehow that doesn't work. Waiting here from a ThreadFlag when that happens
+     * also doesn't work. It seems that it must be called from this task. */
+    displayHandle = lv_sdl_window_create(320, 240);
 
     uint32_t task_delay_ms = task_max_sleep_ms;
 
@@ -96,8 +100,7 @@ static void lvgl_task(TT_UNUSED void* arg) {
         vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
     }
 
-    lv_disp_remove(display);
-
-    vTaskDelete(NULL);
+    lv_disp_remove(displayHandle);
+    displayHandle = nullptr;
 }
 

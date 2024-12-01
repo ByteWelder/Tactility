@@ -4,7 +4,7 @@
 extern const tt::hal::sdcard::SdCard m5stack_cores3_sdcard;
 
 const tt::hal::Configuration m5stack_cores3 = {
-    .initPower = &m5stack_bootstrap,
+    .initBoot = &m5stack_bootstrap,
     .initLvgl = &m5stack_lvgl_init,
     .sdcard = &m5stack_sdcard,
     .power = &m5stack_power,

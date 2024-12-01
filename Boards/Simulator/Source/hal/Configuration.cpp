@@ -1,18 +1,20 @@
 #include "hal/Configuration.h"
-#include "lvgl_task.h"
+#include "LvglTask.h"
 #include "src/lv_init.h"
+#include "SdlDisplay.h"
+#include "SdlKeyboard.h"
 
 #define TAG "hardware"
 
 extern const tt::hal::Power power;
 
-static bool lvgl_init() {
+static bool initBoot() {
     lv_init();
     lvgl_task_start();
     return true;
 }
 
-TT_UNUSED static void lvgl_deinit() {
+TT_UNUSED static void deinitPower() {
     lvgl_task_interrupt();
     while (lvgl_task_is_running()) {
         tt::delay_ms(10);
@@ -23,11 +25,10 @@ TT_UNUSED static void lvgl_deinit() {
 #endif
 }
 
-extern const tt::hal::Configuration sim_hardware = {
-    .initLvgl = &lvgl_init,
-    .display = {
-        .setBacklightDuty = nullptr,
-    },
+extern const tt::hal::Configuration hardware = {
+    .initBoot = initBoot,
+    .createDisplay = createDisplay,
+    .createKeyboard = createKeyboard,
     .sdcard = nullptr,
     .power = &power,
     .i2c = {

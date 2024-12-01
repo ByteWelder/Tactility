@@ -1,32 +1,14 @@
-#include "keyboard.h"
-#include "config.h"
-#include "lvgl.h"
-#include "TactilityCore.h"
-#include "lvgl/LvglKeypad.h"
+#include "TdeckKeyboard.h"
 #include "hal/i2c/I2c.h"
 #include <driver/i2c.h>
 
 #define TAG "tdeck_keyboard"
 
-typedef struct {
-    lv_indev_t* device;
-} KeyboardData;
+#define TDECK_KEYBOARD_I2C_BUS_HANDLE I2C_NUM_0
+#define TDECK_KEYBOARD_SLAVE_ADDRESS 0x55
 
 static inline bool keyboard_i2c_read(uint8_t* output) {
     return tt::hal::i2c::masterRead(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, output, 1, 100 / portTICK_PERIOD_MS);
-}
-
-void keyboard_wait_for_response() {
-    TT_LOG_I(TAG, "Waiting for keyboard response...");
-    bool awake = false;
-    uint8_t read_buffer = 0x00;
-    do {
-        awake = keyboard_i2c_read(&read_buffer);
-        if (!awake) {
-            tt::delay_ms(100);
-        }
-    } while (!awake);
-    TT_LOG_I(TAG, "Keyboard responded");
 }
 
 /**
@@ -61,21 +43,25 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
     last_buffer = read_buffer;
 }
 
-Keyboard keyboard_alloc(_Nullable lv_disp_t* display) {
-    auto* data = static_cast<KeyboardData*>(malloc(sizeof(KeyboardData)));
-
-    data->device = lv_indev_create();
-    lv_indev_set_type(data->device, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(data->device, &keyboard_read_callback);
-    lv_indev_set_display(data->device, display);
-
-    tt::lvgl::keypad_set_indev(data->device);
-
-    return data;
+bool TdeckKeyboard::start(lv_display_t* display) {
+    deviceHandle = lv_indev_create();
+    lv_indev_set_type(deviceHandle, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(deviceHandle, &keyboard_read_callback);
+    lv_indev_set_display(deviceHandle, display);
+    lv_indev_set_user_data(deviceHandle, this);
+    return true;
 }
 
-void keyboard_free(Keyboard keyboard) {
-    auto* data = static_cast<KeyboardData*>(keyboard);
-    lv_indev_delete(data->device);
-    free(data);
+bool TdeckKeyboard::stop() {
+    lv_indev_delete(deviceHandle);
+    deviceHandle = nullptr;
+    return true;
+}
+
+bool TdeckKeyboard::isAttached() const {
+    return tt::hal::i2c::masterCheckAddressForDevice(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, 100);
+}
+
+tt::hal::Keyboard* createKeyboard() {
+    return dynamic_cast<tt::hal::Keyboard*>(new TdeckKeyboard());
 }

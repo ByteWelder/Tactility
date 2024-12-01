@@ -1,7 +1,10 @@
-#include "config.h"
+#include <driver/gpio.h>
 #include "TactilityCore.h"
 
 #define TAG "tdeck"
+
+// Power on
+#define TDECK_POWERON_GPIO GPIO_NUM_10
 
 static bool tdeck_power_on() {
     gpio_config_t device_power_signal_config = {
@@ -29,18 +32,6 @@ bool tdeck_init_power() {
         TT_LOG_E(TAG, "Power on failed");
         return false;
     }
-
-    /**
-     * Without this delay, the touch driver randomly fails when the device is USB-powered:
-     *  > lcd_panel.io.i2c: panel_io_i2c_rx_buffer(135): i2c transaction failed
-     *  > GT911: touch_gt911_read_cfg(352): GT911 read error!
-     * This might not be a problem with a lipo, but I haven't been able to test that.
-     * I tried to solve it just like I did with the keyboard:
-     * By reading from I2C until it succeeds and to then init the driver.
-     * It doesn't work, because it never recovers from the error.
-     */
-    TT_LOG_I(TAG, "Waiting after power-on");
-    tt::delay_ms(TDECK_POWERON_DELAY);
 
     return true;
 }
