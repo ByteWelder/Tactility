@@ -19,7 +19,6 @@ class State {
 public:
     State() {}
 
-
     void setScanning(bool isScanning);
     bool isScanning() const { return scanning; }
 
@@ -27,7 +26,9 @@ public:
     service::wifi::WifiRadioState getRadioState() const { return radioState; }
 
     void updateApRecords();
-    std::vector<service::wifi::WifiApRecord> getApRecords() const { return apRecords; }
+
+    const std::vector<service::wifi::WifiApRecord>& lockApRecords() const;
+    void unlockApRecords() const;
 
     void setConnectSsid(std::string ssid) { connectSsid = ssid; }
     std::string getConnectSsid() const { return connectSsid; }

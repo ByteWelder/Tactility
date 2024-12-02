@@ -15,6 +15,15 @@ void State::setRadioState(service::wifi::WifiRadioState state) {
     tt_check(mutex.release() == TtStatusOk);
 }
 
+const std::vector<service::wifi::WifiApRecord>& State::lockApRecords() const {
+    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    return apRecords;
+}
+
+void State::unlockApRecords() const {
+    tt_check(mutex.release() == TtStatusOk);
+}
+
 void State::updateApRecords() {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     apRecords = service::wifi::getScanResults();

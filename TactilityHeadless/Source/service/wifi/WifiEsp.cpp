@@ -77,6 +77,7 @@ public:
         .password = { 0 },
         .auto_connect = false
     };
+    bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
 };
 
@@ -139,6 +140,7 @@ void connect(const settings::WifiApSettings* ap, bool remember) {
     lock(wifi_singleton);
     memcpy(&wifi_singleton->connection_target, ap, sizeof(settings::WifiApSettings));
     wifi_singleton->connection_target_remember = remember;
+    wifi_singleton->pause_auto_connect = false;
     WifiMessage message = {.type = WifiMessageTypeConnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     unlock(wifi_singleton);
@@ -153,6 +155,7 @@ void disconnect() {
         .password = { 0 },
         .auto_connect = false
     };
+    wifi_singleton->pause_auto_connect = true;
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     unlock(wifi_singleton);
@@ -203,7 +206,10 @@ void setEnabled(bool enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOff};
         // No need to lock for queue
         wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
+        // Reset pause state
     }
+    wifi_singleton->pause_auto_connect = false;
+    wifi_singleton->last_scan_time = 0;
     unlock(wifi_singleton);
 }
 
@@ -675,7 +681,7 @@ static void disconnect_internal_but_keep_active(Wifi* wifi) {
 
 static bool shouldScanForAutoConnect(Wifi* wifi) {
     bool is_radio_in_scannable_state = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
-    if (is_radio_in_scannable_state) {
+    if (!wifi->pause_auto_connect && is_radio_in_scannable_state) {
         TickType_t current_time = tt::get_ticks();
         bool scan_time_has_looped = (current_time < wifi->last_scan_time);
         bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
@@ -730,7 +736,9 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                     break;
                 case WifiMessageTypeAutoConnect:
                     lock(wifi);
-                    auto_connect(wifi_singleton);
+                    if (!wifi->pause_auto_connect) {
+                        auto_connect(wifi_singleton);
+                    }
                     unlock(wifi);
                     break;
             }

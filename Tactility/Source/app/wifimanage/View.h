@@ -27,7 +27,7 @@ private:
     void updateWifiToggle(State* state);
     void updateScanning(State* state);
     void updateNetworkList(State* state, Bindings* bindings);
-    void createNetworkButton(Bindings* bindings, service::wifi::WifiApRecord* record);
+    void createNetworkButton(Bindings* bindings, const service::wifi::WifiApRecord& record);
 };
 
 

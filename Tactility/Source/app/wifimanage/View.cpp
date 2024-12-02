@@ -7,6 +7,9 @@
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
 
+#include <string>
+#include <set>
+
 namespace tt::app::wifimanage {
 
 #define TAG "wifi_main_view"
@@ -41,12 +44,12 @@ static void connect(lv_event_t* event) {
     bindings->onConnectSsid(ssid);
 }
 
-void View::createNetworkButton(Bindings* bindings, service::wifi::WifiApRecord* record) {
-    const char* icon = service::statusbar::getWifiStatusIconForRssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
+void View::createNetworkButton(Bindings* bindings, const service::wifi::WifiApRecord& record) {
+    const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
     lv_obj_t* ap_button = lv_list_add_btn(
         networks_list,
         icon,
-        record->ssid.c_str()
+        record.ssid.c_str()
     );
     lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, bindings);
 }
@@ -59,9 +62,14 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
         case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
         case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE: {
             lv_obj_clear_flag(networks_label, LV_OBJ_FLAG_HIDDEN);
-            if (!state->getApRecords().empty()) {
-                for (auto& apRecord : state->getApRecords()) {
-                    createNetworkButton(bindings, &apRecord);
+            auto& ap_records = state->lockApRecords();
+            std::set<std::string> used_ssids;
+            if (!ap_records.empty()) {
+                for (auto& record : ap_records) {
+                    if (used_ssids.find(record.ssid) == used_ssids.end()) {
+                        createNetworkButton(bindings, record);
+                        used_ssids.insert(record.ssid);
+                    }
                 }
                 lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             } else if (state->isScanning()) {
@@ -71,6 +79,7 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
                 lv_obj_t* label = lv_label_create(networks_list);
                 lv_label_set_text(label, "No networks found.");
             }
+            state->unlockApRecords();
             break;
         }
         case service::wifi::WIFI_RADIO_OFF_PENDING:
