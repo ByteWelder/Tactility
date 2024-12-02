@@ -1,5 +1,5 @@
 name: Build Yellow Board
-on: [push]
+on: [push, pull_request]
 permissions: read-all
 
 jobs:
