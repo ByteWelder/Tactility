@@ -1,7 +1,7 @@
 name: Tests
 on: [push]
 jobs:
-  Build-PC:
+  Run-Tests:
     runs-on: ubuntu-latest
     env:
       SKIP_SDL: true

@@ -4,11 +4,11 @@ jobs:
   Build-Yellow-Board:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: 'Checkout repo'
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Board select
+      - name: 'Board select'
         run: cp sdkconfig.board.yellow_board sdkconfig
       - name: build
         uses: espressif/esp-idf-ci-action@main
@@ -16,48 +16,56 @@ jobs:
           esp_idf_version: v5.3.1
           target: esp32
           path: './'
-  build-lilygo-t-deck:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v2
+      - name: 'Rename firmware'
+        run: mv build/Tactility.bin build/Tactility-YellowBoard.bin
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
         with:
-          submodules: recursive
-      - name: board select
-        run: cp sdkconfig.board.lilygo_tdeck sdkconfig
-      - name: build
-        uses: espressif/esp-idf-ci-action@main
-        with:
-          esp_idf_version: v5.3.1
-          target: esp32s3
-          path: './'
-  build-m5stack-core2:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: board select
-        run: cp sdkconfig.board.m5stack_core2 sdkconfig
-      - name: build
-        uses: espressif/esp-idf-ci-action@main
-        with:
-          esp_idf_version: v5.3.1
-          target: esp32
-          path: './'
-  build-m5stack-cores3:
-    runs-on: ubuntu-latest
-    steps:
-      - name: checkout repo
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: board select
-        run: cp sdkconfig.board.m5stack_cores3 sdkconfig
-      - name: build
-        uses: espressif/esp-idf-ci-action@main
-        with:
-          esp_idf_version: v5.3.1
-          target: esp32s3
-          path: './'
+         name: tactility-yellowboard
+         path: build/Tactility-YellowBoard.bin
+         retention-days: 5
+#  build-lilygo-t-deck:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: checkout repo
+#        uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
+#      - name: board select
+#        run: cp sdkconfig.board.lilygo_tdeck sdkconfig
+#      - name: build
+#        uses: espressif/esp-idf-ci-action@main
+#        with:
+#          esp_idf_version: v5.3.1
+#          target: esp32s3
+#          path: './'
+#  build-m5stack-core2:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: checkout repo
+#        uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
+#      - name: board select
+#        run: cp sdkconfig.board.m5stack_core2 sdkconfig
+#      - name: build
+#        uses: espressif/esp-idf-ci-action@main
+#        with:
+#          esp_idf_version: v5.3.1
+#          target: esp32
+#          path: './'
+#  build-m5stack-cores3:
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: checkout repo
+#        uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
+#      - name: board select
+#        run: cp sdkconfig.board.m5stack_cores3 sdkconfig
+#      - name: build
+#        uses: espressif/esp-idf-ci-action@main
+#        with:
+#          esp_idf_version: v5.3.1
+#          target: esp32s3
+#          path: './'

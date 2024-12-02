@@ -48,7 +48,7 @@ else()
     message("Building for sim target")
 endif()
 
-project(TactilityRoot)
+project(Tactility)
 
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
