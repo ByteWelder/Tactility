@@ -100,34 +100,41 @@ void setScanRecords(uint16_t records) {
     // TODO: implement
 }
 
-void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+std::vector<WifiApRecord> getScanResults() {
     tt_check(wifi);
-    tt_check(result_count);
 
-    if (limit >= 5) {
-        strcpy((char*)records[0].ssid, "Home WiFi");
-        records[0].auth_mode = WIFI_AUTH_WPA2_PSK;
-        records[0].rssi = -30;
-        strcpy((char*)records[1].ssid, "Living Room");
-        records[1].auth_mode = WIFI_AUTH_WPA2_PSK;
-        records[1].rssi = -67;
-        strcpy((char*)records[2].ssid, "No place like 127.0.0.1");
-        records[2].auth_mode = WIFI_AUTH_WPA2_PSK;
-        records[2].rssi = -70;
-        strcpy((char*)records[3].ssid, "Public Wi-Fi");
-        records[3].auth_mode = WIFI_AUTH_WPA2_PSK;
-        records[3].rssi = -80;
-        strcpy((char*)records[4].ssid, "Bad Reception");
-        records[4].auth_mode = WIFI_AUTH_WPA2_PSK;
-        records[4].rssi = -90;
-        *result_count = 5;
-    } else {
-        *result_count = 0;
-    }
+    std::vector<WifiApRecord> records;
+    records.push_back((WifiApRecord) {
+        .ssid = "Home Wifi",
+        .rssi = -30,
+        .auth_mode = WIFI_AUTH_WPA2_PSK
+    });
+    records.push_back((WifiApRecord) {
+        .ssid = "Living Room",
+        .rssi = -67,
+        .auth_mode = WIFI_AUTH_WPA2_PSK
+    });
+    records.push_back((WifiApRecord) {
+        .ssid = "No place like 127.0.0.1",
+        .rssi = -70,
+        .auth_mode = WIFI_AUTH_WPA2_PSK
+    });
+    records.push_back((WifiApRecord) {
+        .ssid = "Public Wi-Fi",
+        .rssi = -80,
+        .auth_mode = WIFI_AUTH_WPA2_PSK
+    });
+    records.push_back((WifiApRecord) {
+        .ssid = "Bad Reception",
+        .rssi = -90,
+        .auth_mode = WIFI_AUTH_OPEN
+    });
+
+    return records;
 }
 
 void setEnabled(bool enabled) {
-    tt_assert(wifi != NULL);
+    tt_assert(wifi != nullptr);
     if (enabled) {
         wifi->radio_state = WIFI_RADIO_ON;
         wifi->secure_connection = true;

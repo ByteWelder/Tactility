@@ -39,16 +39,13 @@ static void on_wifi_toggled(bool enabled) {
 }
 
 static WifiManage* wifi_manage_alloc() {
-    auto* wifi = static_cast<WifiManage*>(malloc(sizeof(WifiManage)));
+    auto* wifi = new WifiManage();
 
     wifi->wifi_subscription = nullptr;
     wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
     wifi->state = (WifiManageState) {
         .scanning = service::wifi::isScanning(),
-        .radio_state = service::wifi::getRadioState(),
-        .connect_ssid = { 0 },
-        .ap_records = { },
-        .ap_records_count = 0
+        .radio_state = service::wifi::getRadioState()
     };
     wifi->view_enabled = false;
     wifi->bindings = (WifiManageBindings) {
@@ -62,8 +59,7 @@ static WifiManage* wifi_manage_alloc() {
 
 static void wifi_manage_free(WifiManage* wifi) {
     tt_mutex_free(wifi->mutex);
-
-    free(wifi);
+    delete wifi;
 }
 
 void lock(WifiManage* wifi) {
@@ -130,7 +126,7 @@ static void app_show(App& app, lv_obj_t* parent) {
     // View update
     lock(wifi);
     wifi->view_enabled = true;
-    strcpy((char*)wifi->state.connect_ssid, "Connected"); // TODO update with proper SSID
+    wifi->state.connect_ssid = "Connected"; // TODO update with proper SSID
     view_create(app, &wifi->view, &wifi->bindings, parent);
     view_update(&wifi->view, &wifi->bindings, &wifi->state);
     unlock(wifi);

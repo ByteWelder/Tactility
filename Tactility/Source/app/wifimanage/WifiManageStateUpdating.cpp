@@ -16,11 +16,7 @@ void state_set_radio_state(WifiManage* wifi, service::wifi::WifiRadioState state
 
 void state_update_scanned_records(WifiManage* wifi) {
     lock(wifi);
-    service::wifi::getScanResults(
-        wifi->state.ap_records,
-        WIFI_SCAN_AP_RECORD_COUNT,
-        &wifi->state.ap_records_count
-    );
+    wifi->state.ap_records = service::wifi::getScanResults();
     unlock(wifi);
 }
 

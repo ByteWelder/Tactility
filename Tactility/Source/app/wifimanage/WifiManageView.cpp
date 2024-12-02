@@ -42,12 +42,11 @@ static void connect(lv_event_t* event) {
 }
 
 static void create_network_button(WifiManageView* view, WifiManageBindings* bindings, service::wifi::WifiApRecord* record) {
-    const char* ssid = (const char*)record->ssid;
     const char* icon = service::statusbar::getWifiStatusIconForRssi(record->rssi, record->auth_mode != WIFI_AUTH_OPEN);
     lv_obj_t* ap_button = lv_list_add_btn(
         view->networks_list,
         icon,
-        ssid
+        record->ssid.c_str()
     );
     lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, bindings);
 }
@@ -60,8 +59,8 @@ static void update_network_list(WifiManageView* view, WifiManageState* state, Wi
         case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
         case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE: {
             lv_obj_clear_flag(view->networks_label, LV_OBJ_FLAG_HIDDEN);
-            if (state->ap_records_count > 0) {
-                for (int i = 0; i < state->ap_records_count; ++i) {
+            if (!state->ap_records.empty()) {
+                for (int i = 0; i < state->ap_records.size(); ++i) {
                     create_network_button(view, bindings, &state->ap_records[i]);
                 }
                 lv_obj_clear_flag(view->networks_list, LV_OBJ_FLAG_HIDDEN);
@@ -117,7 +116,7 @@ static void update_connected_ap(WifiManageView* view, WifiManageState* state, TT
         case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
         case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             lv_obj_clear_flag(view->connected_ap_container, LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text(view->connected_ap_label, (const char*)state->connect_ssid);
+            lv_label_set_text(view->connected_ap_label, state->connect_ssid.c_str());
             break;
         default:
             lv_obj_add_flag(view->connected_ap_container, LV_OBJ_FLAG_HIDDEN);

@@ -6,14 +6,14 @@
 
 namespace tt::app::wifimanage {
 
-typedef struct {
-    PubSubSubscription* wifi_subscription;
-    Mutex* mutex;
+struct WifiManage {
+    PubSubSubscription* wifi_subscription = nullptr;
+    Mutex* mutex = nullptr;
     WifiManageState state;
     WifiManageView view;
-    bool view_enabled;
     WifiManageBindings bindings;
-} WifiManage;
+    bool view_enabled;
+};
 
 void lock(WifiManage* wifi);
 

@@ -169,28 +169,26 @@ void setScanRecords(uint16_t records) {
     unlock(wifi_singleton);
 }
 
-void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+std::vector<WifiApRecord> getScanResults() {
     TT_LOG_I(TAG, "getScanResults()");
     tt_assert(wifi_singleton);
-    tt_assert(result_count);
+
+    std::vector<WifiApRecord> records;
 
     lock(wifi_singleton);
-    if (wifi_singleton->scan_list_count == 0) {
-        *result_count = 0;
-    } else {
+    if (wifi_singleton->scan_list_count > 0) {
         uint16_t i = 0;
-        TT_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
-        uint16_t last_index = TT_MIN(wifi_singleton->scan_list_count, limit);
-        for (; i < last_index; ++i) {
-            memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
-            records[i].rssi = wifi_singleton->scan_list[i].rssi;
-            records[i].auth_mode = wifi_singleton->scan_list[i].authmode;
+        for (; i < wifi_singleton->scan_list_count; ++i) {
+            records.push_back((WifiApRecord) {
+                .ssid = (const char*)wifi_singleton->scan_list[i].ssid,
+                .rssi = wifi_singleton->scan_list[i].rssi,
+                .auth_mode = wifi_singleton->scan_list[i].authmode
+            });
         }
-        // The index already overflowed right before the for-loop was terminated,
-        // so it effectively became the list count:
-        *result_count = i;
     }
     unlock(wifi_singleton);
+
+    return records;
 }
 
 void setEnabled(bool enabled) {
