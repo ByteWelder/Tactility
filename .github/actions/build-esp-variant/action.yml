@@ -23,7 +23,7 @@ runs:
     - name: 'Board select'
       shell: bash
       run: cp ${{ inputs.sdkconfig }} sdkconfig
-    - name: build
+    - name: 'Build'
       uses: espressif/esp-idf-ci-action@main
       with:
         esp_idf_version: v5.3.1
