@@ -38,7 +38,7 @@ typedef void (*AppOnShow)(App& app, lv_obj_t* parent);
 typedef void (*AppOnHide)(App& app);
 typedef void (*AppOnResult)(App& app, Result result, const Bundle& resultData);
 
-typedef struct Manifest {
+struct Manifest {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
@@ -83,7 +83,7 @@ typedef struct Manifest {
      * Handle the result for apps that are launched
      */
     const AppOnResult _Nullable onResult = nullptr;
-} Manifest;
+};
 
 struct {
     bool operator()(const Manifest* left, const Manifest* right) const { return left->name < right->name; }
