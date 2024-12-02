@@ -8,7 +8,7 @@ jobs:
     steps:
       - name: Build Yellow Board
         id: build
-        uses: ./.github/actions/build-variant
+        uses: ./.github/actions/build-esp-variant
         with:
           board-name: yellowboard
           version: snapshot
