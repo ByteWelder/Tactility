@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
-        uses: ./.github/actions/build-esp-variant
+        uses: ./.github/actions/build-firmware
         with:
           board-name: yellowboard
           version: snapshot
@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
-        uses: ./.github/actions/build-esp-variant
+        uses: ./.github/actions/build-firmware
         with:
           board-name: lilygotdeck
           version: snapshot
@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
-        uses: ./.github/actions/build-esp-variant
+        uses: ./.github/actions/build-firmware
         with:
           board-name: m5stackcores3
           version: snapshot
