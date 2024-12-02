@@ -17,7 +17,7 @@ jobs:
           target: esp32
           path: './'
       - name: 'Rename firmware'
-        run: mv build/Tactility.bin build/Tactility-YellowBoard.bin
+        run: cp build/Tactility.bin build/Tactility-YellowBoard.bin
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
