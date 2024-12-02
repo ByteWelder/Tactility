@@ -1,0 +1,20 @@
+name: Tests
+on: [push]
+jobs:
+  Run-Tests:
+    runs-on: ubuntu-latest
+    env:
+      SKIP_SDL: true
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Configure Project
+        uses: threeal/cmake-action@v1.3.0
+      - name: Prepare Project
+        run: cmake -S ./ -B build
+      - name: Build Tests
+        run: cmake --build build --target build-tests
+      - name: Run Tests
+        run: build/Tests/TactilityCore/TactilityCoreTests --exit

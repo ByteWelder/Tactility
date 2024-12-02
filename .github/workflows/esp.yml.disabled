@@ -1,28 +1,28 @@
-#name: Build
-#on: [push]
-#jobs:
-#  Build-Yellow-Board:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: 'Checkout repo'
-#        uses: actions/checkout@v2
-#        with:
-#          submodules: recursive
-#      - name: 'Board select'
-#        shell: bash
-#        run: cp sdkconfig.board.yellow_board sdkconfig
-#      - name: build
-#        uses: espressif/esp-idf-ci-action@main
-#        with:
-#          esp_idf_version: v5.3.1
-#          target: esp32
-#          path: './'
-#      - name: 'Upload Artifact'
-#        uses: actions/upload-artifact@v4
-#        with:
-#         name: tactility-yellowboard
-#         path: build/Tactility.bin
-#         retention-days: 5
+name: Build
+on: [push]
+jobs:
+  Build-Yellow-Board:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 'Checkout repo'
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: 'Board select'
+        shell: bash
+        run: cp sdkconfig.board.yellow_board sdkconfig
+      - name: build
+        uses: espressif/esp-idf-ci-action@main
+        with:
+          esp_idf_version: v5.3.1
+          target: esp32
+          path: './'
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v4
+        with:
+         name: tactility-yellowboard
+         path: build/Tactility.bin
+         retention-days: 5
 #  build-lilygo-t-deck:
 #    runs-on: ubuntu-latest
 #    steps:
