@@ -1,0 +1,16 @@
+name: Build Yellow Board
+on: [push]
+permissions: read-all
+
+jobs:
+  build-yellowboard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build Yellow Board
+        id: build
+        uses: ./.github/actions/build-variant
+        with:
+          board-name: yellowboard
+          version: snapshot
+          sdkconfig: sdkconfig.board.yellow_board
+          arch: esp32
