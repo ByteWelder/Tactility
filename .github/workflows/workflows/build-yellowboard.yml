@@ -1,13 +1,12 @@
 name: Build Yellow Board
-on: [push, pull_request]
+on: [push]
 permissions: read-all
 
 jobs:
-  build-yellowboard:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Build Yellow Board
-        id: build
         uses: ./.github/actions/build-esp-variant
         with:
           board-name: yellowboard
