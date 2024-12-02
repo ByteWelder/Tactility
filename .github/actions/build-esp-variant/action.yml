@@ -1,21 +1,19 @@
 name: Build
 on:
   workflow_call:
-  workflow_dispatch:
-
-inputs:
-  board-name:
-    description: The name of the board
-    required: true
-  version:
-    description: The name of the board
-    required: true
-  sdkconfig:
-    description: The sdkconfig file to build
-    required: true
-  arch:
-    description: The ESP32 SOC variant
-    required: true
+    inputs:
+      board-name:
+        description: The name of the board
+        required: true
+      version:
+        description: The name of the board
+        required: true
+      sdkconfig:
+        description: The sdkconfig file to build
+        required: true
+      arch:
+        description: The ESP32 SOC variant
+        required: true
 
 jobs:
   Build-Board:
