@@ -24,16 +24,16 @@ jobs:
           submodules: recursive
       - name: 'Board select'
         shell: bash
-        run: cp ${{ inputs.sdkconfig }} sdkconfig
+        run: cp ${{ on.workflow_call.inputs.sdkconfig }} sdkconfig
       - name: build
         uses: espressif/esp-idf-ci-action@main
         with:
           esp_idf_version: v5.3.1
-          target: ${{ inputs.arch }}
+          target: ${{ on.workflow_call.inputs.arch }}
           path: './'
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v4
         with:
-          name: tactility-${{ inputs.board-name }}-${{ inputs.version }}
+          name: tactility-${{ on.workflow_call.inputs.board-name }}-${{ on.workflow_call.inputs.version }}
           path: build/Tactility.bin
           retention-days: 5
