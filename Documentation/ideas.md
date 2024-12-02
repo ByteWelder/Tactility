@@ -3,6 +3,8 @@
 - Bug: When closing a top level app, there's often an error "can't stop root app"
 - Bug: I2C Scanner is on M5Stack devices is broken
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
+- WiFi on-at-boot should be a setting in its app
+- Create app to edit WiFi settings (e.g. "forget" and "auto-connect" option)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
@@ -23,7 +25,6 @@
 - If present, use LED to show boot status
 - 2 wire speaker support
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
-- App.setResult() for apps that need to return data to other apps (e.g. file selection)
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas

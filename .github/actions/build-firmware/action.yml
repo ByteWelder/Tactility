@@ -1,0 +1,37 @@
+name: Build
+
+inputs:
+  board-name:
+    description: The name of the board
+    required: true
+  version:
+    description: The name of the board
+    required: true
+  sdkconfig:
+    description: The sdkconfig file to build
+    required: true
+  arch:
+    description: The ESP32 SOC variant
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: 'Board select'
+      shell: bash
+      run: cp ${{ inputs.sdkconfig }} sdkconfig
+    - name: 'Build'
+      uses: espressif/esp-idf-ci-action@main
+      with:
+        esp_idf_version: v5.3.1
+        target: ${{ inputs.arch }}
+        path: './'
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: tactility-${{ inputs.board-name }}-${{ inputs.version }}
+        path: build/Tactility.bin
+        retention-days: 5

@@ -1,3 +1,4 @@
+# Disabled because of issue: https://github.com/libsdl-org/setup-sdl/issues/23
 name: Build
 on: [push]
 jobs:
@@ -15,7 +16,7 @@ jobs:
           version: 2-latest
           version-sdl-image: 2-latest
       - name: Configure Project
-        uses: threeal/cmake-action@v1.3.0
+        uses: threeal/cmake-action@v2.0.0
       - name: Prepare Project
         run: cmake -S ./ -B build
       - name: Build Project
