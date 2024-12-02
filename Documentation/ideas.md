@@ -2,7 +2,6 @@
 - Publish firmwares with upload tool
 - Bug: When closing a top level app, there's often an error "can't stop root app"
 - Bug: I2C Scanner is on M5Stack devices is broken
-- When WiFi is manually disconnected, don't auto-connect. Re-enable auto-connecton after connecting manually again
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
@@ -16,7 +15,6 @@
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
-- De-duplicate WiFi SSIDs.
 - Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 - Commit fix to esp_lvgl_port to have esp_lvgl_port_disp.c user driver_data instead of user_data
 
