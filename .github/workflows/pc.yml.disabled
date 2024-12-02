@@ -1,3 +1,4 @@
+# Disabled because of issue: https://github.com/libsdl-org/setup-sdl/issues/23
 name: Build
 on: [push]
 jobs:
