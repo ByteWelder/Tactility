@@ -15,7 +15,6 @@
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
-- De-duplicate WiFi SSIDs.
 - Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 - Commit fix to esp_lvgl_port to have esp_lvgl_port_disp.c user driver_data instead of user_data
 
@@ -28,9 +27,10 @@
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas
+- Add FreeRTOS task manager functionality to System Info app
 - BlueTooth keyboard app
 - Chip 8 emulator
-- BadUSB
+- BadUSB (in December 2024, TinyUSB has a bug where uninstalling and re-installing the driver fails)
 - Discord bot
 - IR transceiver app
 - GPS app

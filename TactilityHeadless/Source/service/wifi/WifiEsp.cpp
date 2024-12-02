@@ -21,6 +21,7 @@ namespace tt::service::wifi {
 #define TAG "wifi_service"
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
+#define AUTO_SCAN_INTERVAL 10000 // ms
 
 typedef enum {
     WifiMessageTypeRadioOn,
@@ -65,6 +66,8 @@ public:
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
     bool scan_active = false;
+    /** @brief when we last requested a scan. Loops around every 50 days. */
+    TickType_t last_scan_time;
     bool secure_connection = false;
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
@@ -74,6 +77,7 @@ public:
         .password = { 0 },
         .auto_connect = false
     };
+    bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
 };
 
@@ -113,6 +117,7 @@ WifiRadioState getRadioState() {
 }
 
 void scan() {
+    TT_LOG_I(TAG, "scan()");
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     WifiMessage message = {.type = WifiMessageTypeScan};
@@ -130,16 +135,19 @@ bool isScanning() {
 }
 
 void connect(const settings::WifiApSettings* ap, bool remember) {
+    TT_LOG_I(TAG, "connect(%s, %d)", ap->ssid, remember);
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     memcpy(&wifi_singleton->connection_target, ap, sizeof(settings::WifiApSettings));
     wifi_singleton->connection_target_remember = remember;
+    wifi_singleton->pause_auto_connect = false;
     WifiMessage message = {.type = WifiMessageTypeConnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     unlock(wifi_singleton);
 }
 
 void disconnect() {
+    TT_LOG_I(TAG, "disconnect()");
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     wifi_singleton->connection_target = (settings::WifiApSettings) {
@@ -147,12 +155,14 @@ void disconnect() {
         .password = { 0 },
         .auto_connect = false
     };
+    wifi_singleton->pause_auto_connect = true;
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     unlock(wifi_singleton);
 }
 
 void setScanRecords(uint16_t records) {
+    TT_LOG_I(TAG, "setScanRecords(%d)", records);
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     if (records != wifi_singleton->scan_list_limit) {
@@ -162,30 +172,30 @@ void setScanRecords(uint16_t records) {
     unlock(wifi_singleton);
 }
 
-void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count) {
+std::vector<WifiApRecord> getScanResults() {
+    TT_LOG_I(TAG, "getScanResults()");
     tt_assert(wifi_singleton);
-    tt_assert(result_count);
+
+    std::vector<WifiApRecord> records;
 
     lock(wifi_singleton);
-    if (wifi_singleton->scan_list_count == 0) {
-        *result_count = 0;
-    } else {
+    if (wifi_singleton->scan_list_count > 0) {
         uint16_t i = 0;
-        TT_LOG_I(TAG, "processing up to %d APs", wifi_singleton->scan_list_count);
-        uint16_t last_index = TT_MIN(wifi_singleton->scan_list_count, limit);
-        for (; i < last_index; ++i) {
-            memcpy(records[i].ssid, wifi_singleton->scan_list[i].ssid, 33);
-            records[i].rssi = wifi_singleton->scan_list[i].rssi;
-            records[i].auth_mode = wifi_singleton->scan_list[i].authmode;
+        for (; i < wifi_singleton->scan_list_count; ++i) {
+            records.push_back((WifiApRecord) {
+                .ssid = (const char*)wifi_singleton->scan_list[i].ssid,
+                .rssi = wifi_singleton->scan_list[i].rssi,
+                .auth_mode = wifi_singleton->scan_list[i].authmode
+            });
         }
-        // The index already overflowed right before the for-loop was terminated,
-        // so it effectively became the list count:
-        *result_count = i;
     }
     unlock(wifi_singleton);
+
+    return records;
 }
 
 void setEnabled(bool enabled) {
+    TT_LOG_I(TAG, "setEnabled(%d)", enabled);
     tt_assert(wifi_singleton);
     lock(wifi_singleton);
     if (enabled) {
@@ -196,7 +206,10 @@ void setEnabled(bool enabled) {
         WifiMessage message = {.type = WifiMessageTypeRadioOff};
         // No need to lock for queue
         wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
+        // Reset pause state
     }
+    wifi_singleton->pause_auto_connect = false;
+    wifi_singleton->last_scan_time = 0;
     unlock(wifi_singleton);
 }
 
@@ -282,6 +295,7 @@ static bool copy_scan_list(Wifi* wifi) {
 }
 
 static void auto_connect(Wifi* wifi) {
+    TT_LOG_I(TAG, "auto_connect()");
     for (int i = 0; i < wifi->scan_list_count; ++i) {
         auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
         if (settings::contains(ssid)) {
@@ -489,6 +503,7 @@ static void scan_internal(Wifi* wifi) {
     }
 
     if (!wifi->scan_active) {
+        wifi->last_scan_time = tt::get_ticks();
         if (esp_wifi_scan_start(nullptr, false) == ESP_OK) {
             TT_LOG_I(TAG, "Starting scan");
             wifi->scan_active = true;
@@ -664,6 +679,18 @@ static void disconnect_internal_but_keep_active(Wifi* wifi) {
     TT_LOG_I(TAG, "Disconnected");
 }
 
+static bool shouldScanForAutoConnect(Wifi* wifi) {
+    bool is_radio_in_scannable_state = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
+    if (!wifi->pause_auto_connect && is_radio_in_scannable_state) {
+        TickType_t current_time = tt::get_ticks();
+        bool scan_time_has_looped = (current_time < wifi->last_scan_time);
+        bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
+        return scan_time_has_looped || no_recent_scan;
+    } else {
+        return false;
+    }
+}
+
 // ESP Wi-Fi APIs need to run from the main task, so we can't just spawn a thread
 _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "Started main loop");
@@ -678,6 +705,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
     WifiMessage message;
     while (true) {
+        TT_LOG_I(TAG, "Message queue %ld", queue.getCount());
         if (queue.get(&message, 10000 / portTICK_PERIOD_MS) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
@@ -708,7 +736,9 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
                     break;
                 case WifiMessageTypeAutoConnect:
                     lock(wifi);
-                    auto_connect(wifi_singleton);
+                    if (!wifi->pause_auto_connect) {
+                        auto_connect(wifi_singleton);
+                    }
                     unlock(wifi);
                     break;
             }
@@ -716,9 +746,9 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
         // Automatic scanning is done so we can automatically connect to access points
         lock(wifi);
-        bool should_start_scan = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
+        bool should_auto_scan = shouldScanForAutoConnect(wifi);
         unlock(wifi);
-        if (should_start_scan) {
+        if (should_auto_scan) {
             scan_internal(wifi);
         }
     }

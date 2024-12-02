@@ -4,6 +4,8 @@
 #include "WifiGlobals.h"
 #include "WifiSettings.h"
 #include <cstdio>
+#include <string>
+#include <vector>
 
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
@@ -32,7 +34,7 @@ typedef enum {
 
 namespace tt::service::wifi {
 
-typedef enum {
+enum WifiEventType {
     /** Radio was turned on */
     WifiEventTypeRadioStateOn,
     /** Radio is turning on. */
@@ -49,26 +51,26 @@ typedef enum {
     WifiEventTypeConnectionPending,
     WifiEventTypeConnectionSuccess,
     WifiEventTypeConnectionFailed
-} WifiEventType;
+};
 
-typedef enum {
+enum WifiRadioState {
     WIFI_RADIO_ON_PENDING,
     WIFI_RADIO_ON,
     WIFI_RADIO_CONNECTION_PENDING,
     WIFI_RADIO_CONNECTION_ACTIVE,
     WIFI_RADIO_OFF_PENDING,
     WIFI_RADIO_OFF
-} WifiRadioState;
+};
 
-typedef struct {
+struct WifiEvent {
     WifiEventType type;
-} WifiEvent;
+};
 
-typedef struct {
-    uint8_t ssid[TT_WIFI_SSID_LIMIT + 1];
+struct WifiApRecord {
+    std::string ssid;
     int8_t rssi;
     wifi_auth_mode_t auth_mode;
-} WifiApRecord;
+};
 
 /**
  * @brief Get wifi pubsub
@@ -89,10 +91,8 @@ bool isScanning();
 
 /**
  * @brief Returns the access points from the last scan (if any). It only contains public APs.
- * @param records the allocated buffer to store the records in
- * @param limit the maximum amount of records to store
  */
-void getScanResults(WifiApRecord records[], uint16_t limit, uint16_t* result_count);
+std::vector<WifiApRecord> getScanResults();
 
 /**
  * @brief Overrides the default scan result size of 16.
