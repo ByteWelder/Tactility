@@ -28,9 +28,10 @@
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas
+- Add FreeRTOS task manager functionality to System Info app
 - BlueTooth keyboard app
 - Chip 8 emulator
-- BadUSB
+- BadUSB (in December 2024, TinyUSB has a bug where uninstalling and re-installing the driver fails)
 - Discord bot
 - IR transceiver app
 - GPS app
