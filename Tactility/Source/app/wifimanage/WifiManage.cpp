@@ -6,17 +6,14 @@
 #include "service/loader/Loader.h"
 #include "service/wifi/WifiSettings.h"
 #include "lvgl/LvglSync.h"
-#include "WifiManageStateUpdating.h"
-#include "WifiManageView.h"
+#include "View.h"
+#include "State.h"
 
 namespace tt::app::wifimanage {
 
 #define TAG "wifi_manage"
 
-// Forward declarations
-static void event_callback(const void* message, void* context);
-
-static void on_connect(const char* ssid) {
+static void onConnect(const char* ssid) {
     service::wifi::settings::WifiApSettings settings;
     if (service::wifi::settings::load(ssid, &settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
@@ -30,75 +27,55 @@ static void on_connect(const char* ssid) {
     }
 }
 
-static void on_disconnect() {
+static void onDisconnect() {
     service::wifi::disconnect();
 }
 
-static void on_wifi_toggled(bool enabled) {
+static void onWifiToggled(bool enabled) {
     service::wifi::setEnabled(enabled);
 }
 
-static WifiManage* wifi_manage_alloc() {
-    auto* wifi = new WifiManage();
-
-    wifi->wifi_subscription = nullptr;
-    wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
-    wifi->state = (WifiManageState) {
-        .scanning = service::wifi::isScanning(),
-        .radio_state = service::wifi::getRadioState()
+WifiManage::WifiManage() {
+    bindings = (Bindings) {
+        .onWifiToggled = &onWifiToggled,
+        .onConnectSsid = &onConnect,
+        .onDisconnect = &onDisconnect
     };
-    wifi->view_enabled = false;
-    wifi->bindings = (WifiManageBindings) {
-        .on_wifi_toggled = &on_wifi_toggled,
-        .on_connect_ssid = &on_connect,
-        .on_disconnect = &on_disconnect
-    };
-
-    return wifi;
 }
 
-static void wifi_manage_free(WifiManage* wifi) {
-    tt_mutex_free(wifi->mutex);
-    delete wifi;
+void WifiManage::lock() {
+    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
 }
 
-void lock(WifiManage* wifi) {
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_acquire(wifi->mutex, TtWaitForever);
+void WifiManage::unlock() {
+    tt_check(mutex.release() == TtStatusOk);
 }
 
-void unlock(WifiManage* wifi) {
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_release(wifi->mutex);
-}
-
-void request_view_update(WifiManage* wifi) {
-    lock(wifi);
-    if (wifi->view_enabled) {
+void WifiManage::requestViewUpdate() {
+    lock();
+    if (isViewEnabled) {
         if (lvgl::lock(1000)) {
-            view_update(&wifi->view, &wifi->bindings, &wifi->state);
+            view.update(&bindings, &state);
             lvgl::unlock();
         } else {
             TT_LOG_E(TAG, "failed to lock lvgl");
         }
     }
-    unlock(wifi);
+    unlock();
 }
 
-static void wifi_manage_event_callback(const void* message, void* context) {
+static void wifiManageEventCallback(const void* message, void* context) {
     auto* event = (service::wifi::WifiEvent*)message;
     auto* wifi = (WifiManage*)context;
     TT_LOG_I(TAG, "Update with state %d", service::wifi::getRadioState());
-    state_set_radio_state(wifi, service::wifi::getRadioState());
+    wifi->getState().setRadioState(service::wifi::getRadioState());
     switch (event->type) {
         case tt::service::wifi::WifiEventTypeScanStarted:
-            state_set_scanning(wifi, true);
+            wifi->getState().setScanning(true);
             break;
         case tt::service::wifi::WifiEventTypeScanFinished:
-            state_set_scanning(wifi, false);
-            state_update_scanned_records(wifi);
+            wifi->getState().setScanning(false);
+            wifi->getState().updateApRecords();
             break;
         case tt::service::wifi::WifiEventTypeRadioStateOn:
             if (!service::wifi::isScanning()) {
@@ -109,27 +86,25 @@ static void wifi_manage_event_callback(const void* message, void* context) {
             break;
     }
 
-    request_view_update(wifi);
+    wifi->requestViewUpdate();
 }
 
-static void app_show(App& app, lv_obj_t* parent) {
-    auto* wifi = (WifiManage*)app.getData();
-
+void WifiManage::onShow(App& app, lv_obj_t* parent) {
     PubSub* wifi_pubsub = service::wifi::getPubsub();
-    wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &wifi_manage_event_callback, wifi);
+    wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &wifiManageEventCallback, this);
 
     // State update (it has its own locking)
-    state_set_radio_state(wifi, service::wifi::getRadioState());
-    state_set_scanning(wifi, service::wifi::isScanning());
-    state_update_scanned_records(wifi);
+    state.setRadioState(service::wifi::getRadioState());
+    state.setScanning(service::wifi::isScanning());
+    state.updateApRecords();
 
     // View update
-    lock(wifi);
-    wifi->view_enabled = true;
-    wifi->state.connect_ssid = "Connected"; // TODO update with proper SSID
-    view_create(app, &wifi->view, &wifi->bindings, parent);
-    view_update(&wifi->view, &wifi->bindings, &wifi->state);
-    unlock(wifi);
+    lock();
+    isViewEnabled = true;
+    state.setConnectSsid("Connected"); // TODO update with proper SSID
+    view.init(app, &bindings, parent);
+    view.update(&bindings, &state);
+    unlock();
 
     service::wifi::WifiRadioState radio_state = service::wifi::getRadioState();
     bool can_scan = radio_state == service::wifi::WIFI_RADIO_ON ||
@@ -140,36 +115,50 @@ static void app_show(App& app, lv_obj_t* parent) {
     }
 }
 
-static void app_hide(App& app) {
-    auto* wifi = (WifiManage*)app.getData();
-    lock(wifi);
+void WifiManage::onHide(TT_UNUSED App& app) {
+    lock();
     PubSub* wifi_pubsub = service::wifi::getPubsub();
-    tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
-    wifi->wifi_subscription = nullptr;
-    wifi->view_enabled = false;
-    unlock(wifi);
+    tt_pubsub_unsubscribe(wifi_pubsub, wifiSubscription);
+    wifiSubscription = nullptr;
+    isViewEnabled = false;
+    unlock();
 }
 
-static void app_start(App& app) {
-    WifiManage* wifi = wifi_manage_alloc();
+// region Manifest methods
+
+static void onStart(App& app) {
+    auto* wifi = new WifiManage();
     app.setData(wifi);
 }
 
-static void app_stop(App& app) {
+static void onStop(App& app) {
     auto* wifi = (WifiManage*)app.getData();
     tt_assert(wifi != nullptr);
-    wifi_manage_free(wifi);
+    delete wifi;
 }
+
+static void onShow(App& app, lv_obj_t* parent) {
+    auto* wifi = (WifiManage*)app.getData();
+    wifi->onShow(app, parent);
+}
+
+static void onHide(App& app) {
+    auto* wifi = (WifiManage*)app.getData();
+    wifi->onHide(app);
+}
+
+
+// endregion
 
 extern const Manifest manifest = {
     .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
-    .onStart = &app_start,
-    .onStop = &app_stop,
-    .onShow = &app_show,
-    .onHide = &app_hide
+    .onStart = onStart,
+    .onStop = onStop,
+    .onShow = onShow,
+    .onHide = onHide
 };
 
 } // namespace

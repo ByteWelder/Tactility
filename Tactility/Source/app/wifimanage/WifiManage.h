@@ -1,24 +1,34 @@
 #pragma once
 
 #include "Mutex.h"
-#include "WifiManageView.h"
+#include "View.h"
+#include "State.h"
 #include "service/wifi/Wifi.h"
 
 namespace tt::app::wifimanage {
 
-struct WifiManage {
-    PubSubSubscription* wifi_subscription = nullptr;
-    Mutex* mutex = nullptr;
-    WifiManageState state;
-    WifiManageView view;
-    WifiManageBindings bindings;
-    bool view_enabled;
+class WifiManage {
+
+    PubSubSubscription* wifiSubscription = nullptr;
+    Mutex mutex;
+    tt::app::wifimanage::State state;
+    tt::app::wifimanage::View view;
+    Bindings bindings = { };
+    bool isViewEnabled = false;
+
+public:
+
+    WifiManage();
+
+    void lock();
+    void unlock();
+
+    void onShow(App& app, lv_obj_t* parent);
+    void onHide(App& app);
+
+    State& getState() { return state; }
+
+    void requestViewUpdate();
 };
-
-void lock(WifiManage* wifi);
-
-void unlock(WifiManage* wifi);
-
-void request_view_update(WifiManage* wifi);
 
 } // namespace
