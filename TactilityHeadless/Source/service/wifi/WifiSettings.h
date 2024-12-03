@@ -24,4 +24,8 @@ bool save(const WifiApSettings* settings);
 
 bool remove(const char* ssid);
 
+void setEnableOnBoot(bool enable);
+
+bool shouldEnableOnBoot();
+
 } // namespace

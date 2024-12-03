@@ -25,6 +25,15 @@ static void on_enable_switch_changed(lv_event_t* event) {
     }
 }
 
+static void on_enable_on_boot_switch_changed(lv_event_t* event) {
+    lv_event_code_t code = lv_event_get_code(event);
+    auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
+    if (code == LV_EVENT_VALUE_CHANGED) {
+        bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
+        service::wifi::settings::setEnableOnBoot(is_on);
+    }
+}
+
 static void on_disconnect_pressed(lv_event_t* event) {
     auto* bindings = static_cast<Bindings*>(lv_event_get_user_data(event));
     bindings->onDisconnect();
@@ -120,6 +129,15 @@ void View::updateWifiToggle(State* state) {
     }
 }
 
+void View::updateEnableOnBootToggle() {
+    lv_obj_clear_state(enable_on_boot_switch, LV_STATE_ANY);
+    if (service::wifi::settings::shouldEnableOnBoot()) {
+        lv_obj_add_state(enable_on_boot_switch, LV_STATE_CHECKED);
+    } else {
+        lv_obj_remove_state(enable_on_boot_switch, LV_STATE_CHECKED);
+    }
+}
+
 void View::updateConnectedAp(State* state, TT_UNUSED Bindings* bindings) {
     switch (state->getRadioState()) {
         case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
@@ -141,7 +159,10 @@ void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
     root = parent;
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create(parent, app);
+    lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
+
+    enable_switch = lvgl::toolbar_add_switch_action(toolbar);
+    lv_obj_add_event_cb(enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
 
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
@@ -156,12 +177,12 @@ void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
     lvgl::obj_set_style_bg_invisible(switch_container);
 
     lv_obj_t* enable_label = lv_label_create(switch_container);
-    lv_label_set_text(enable_label, "Wi-Fi");
+    lv_label_set_text(enable_label, "Enable on boot");
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
-    enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
-    lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
+    enable_on_boot_switch = lv_switch_create(switch_container);
+    lv_obj_add_event_cb(enable_on_boot_switch, on_enable_on_boot_switch_changed, LV_EVENT_ALL, bindings);
+    lv_obj_set_align(enable_on_boot_switch, LV_ALIGN_RIGHT_MID);
 
     connected_ap_container = lv_obj_create(wrapper);
     lv_obj_set_size(connected_ap_container, LV_PCT(100), LV_SIZE_CONTENT);
@@ -207,6 +228,7 @@ void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
 
 void View::update(Bindings* bindings, State* state) {
     updateWifiToggle(state);
+    updateEnableOnBootToggle();
     updateScanning(state);
     updateNetworkList(state, bindings);
     updateConnectedAp(state, bindings);
