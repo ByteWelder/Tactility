@@ -2,7 +2,6 @@
 
 #include "app/App.h"
 #include "TactilityCore.h"
-#include "WifiConnectStateUpdating.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/Wifi.h"
 #include "lvgl/LvglSync.h"
@@ -11,124 +10,106 @@ namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
 
-// Forward declarations
-static void event_callback(const void* message, void* context);
-
-static void on_connect(const service::wifi::settings::WifiApSettings* ap_settings, bool remember, TT_UNUSED void* parameter) {
-    auto* wifi = static_cast<WifiConnect*>(parameter);
-    state_set_ap_settings(wifi, ap_settings);
-    state_set_connecting(wifi, true);
-    service::wifi::connect(ap_settings, remember);
-}
-
-static WifiConnect* wifi_connect_alloc() {
-    auto* wifi = static_cast<WifiConnect*>(malloc(sizeof(WifiConnect)));
-
-    PubSub* wifi_pubsub = service::wifi::getPubsub();
-    wifi->wifi_subscription = tt_pubsub_subscribe(wifi_pubsub, &event_callback, wifi);
-    wifi->mutex = tt_mutex_alloc(MutexTypeNormal);
-    wifi->state = (WifiConnectState) {
-        .settings = {
-            .ssid = { 0 },
-            .password = { 0 },
-            .auto_connect = false,
-        },
-        .connection_error = false,
-        .is_connecting = false
-    };
-    wifi->bindings = (WifiConnectBindings) {
-        .on_connect_ssid = &on_connect,
-        .on_connect_ssid_context = wifi,
-    };
-    wifi->view_enabled = false;
-
-    return wifi;
-}
-
-static void wifi_connect_free(WifiConnect* wifi) {
-    PubSub* wifi_pubsub = service::wifi::getPubsub();
-    tt_pubsub_unsubscribe(wifi_pubsub, wifi->wifi_subscription);
-    tt_mutex_free(wifi->mutex);
-
-    free(wifi);
-}
-
-void lock(WifiConnect* wifi) {
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_acquire(wifi->mutex, TtWaitForever);
-}
-
-void unlock(WifiConnect* wifi) {
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_release(wifi->mutex);
-}
-
-void request_view_update(WifiConnect* wifi) {
-    lock(wifi);
-    if (wifi->view_enabled) {
-        if (lvgl::lock(1000)) {
-            view_update(&wifi->view, &wifi->bindings, &wifi->state);
-            lvgl::unlock();
-        } else {
-            TT_LOG_E(TAG, "Failed to lock lvgl");
-        }
-    }
-    unlock(wifi);
-}
-
-static void event_callback(const void* message, void* context) {
+static void eventCallback(const void* message, void* context) {
     auto* event = static_cast<const service::wifi::WifiEvent*>(message);
     auto* wifi = static_cast<WifiConnect*>(context);
+    State& state = wifi->getState();
     switch (event->type) {
         case service::wifi::WifiEventTypeConnectionFailed:
-            if (wifi->state.is_connecting) {
-                state_set_connecting(wifi, false);
-                state_set_radio_error(wifi, true);
-                request_view_update(wifi);
+            if (state.isConnecting()) {
+                state.setConnecting(false);
+                state.setConnectionError(true);
+                wifi->requestViewUpdate();
             }
             break;
         case service::wifi::WifiEventTypeConnectionSuccess:
-            if (wifi->state.is_connecting) {
-                state_set_connecting(wifi, false);
+            if (wifi->getState().isConnecting()) {
+                state.setConnecting(false);
                 service::loader::stopApp();
             }
             break;
         default:
             break;
     }
-    request_view_update(wifi);
+    wifi->requestViewUpdate();
 }
 
-static void app_show(App& app, lv_obj_t* parent) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
-
-    lock(wifi);
-    wifi->view_enabled = true;
-    view_create(app, wifi, parent);
-    view_update(&wifi->view, &wifi->bindings, &wifi->state);
-    unlock(wifi);
+static void onConnect(const service::wifi::settings::WifiApSettings* ap_settings, bool remember, TT_UNUSED void* parameter) {
+    auto* wifi = static_cast<WifiConnect*>(parameter);
+    wifi->getState().setApSettings(ap_settings);
+    wifi->getState().setConnecting(true);
+    service::wifi::connect(ap_settings, remember);
 }
 
-static void app_hide(App& app) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
+WifiConnect::WifiConnect() {
+    PubSub* wifi_pubsub = service::wifi::getPubsub();
+    wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &eventCallback, this);
+    bindings = (Bindings) {
+        .onConnectSsid = onConnect,
+        .onConnectSsidContext = this,
+    };
+}
+
+WifiConnect::~WifiConnect() {
+    PubSub* pubsub = service::wifi::getPubsub();
+    tt_pubsub_unsubscribe(pubsub, wifiSubscription);
+}
+
+void WifiConnect::lock() {
+    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+}
+
+void WifiConnect::unlock() {
+    tt_check(mutex.release() == TtStatusOk);
+}
+
+void WifiConnect::requestViewUpdate() {
+    lock();
+    if (view_enabled) {
+        if (lvgl::lock(1000)) {
+            view.update(&bindings, &state);
+            lvgl::unlock();
+        } else {
+            TT_LOG_E(TAG, "Failed to lock lvgl");
+        }
+    }
+    unlock();
+}
+
+void WifiConnect::onShow(App& app, lv_obj_t* parent) {
+    lock();
+    view_enabled = true;
+    view.init(app, this, parent);
+    view.update(&bindings, &state);
+    unlock();
+}
+
+void WifiConnect::onHide(App& app) {
     // No need to lock view, as this is called from within Gui's LVGL context
-    view_destroy(&wifi->view);
-    lock(wifi);
-    wifi->view_enabled = false;
-    unlock(wifi);
+    lock();
+    view_enabled = false;
+    unlock();
 }
 
-static void app_start(App& app) {
-    auto* wifi_connect = wifi_connect_alloc();
+static void onShow(App& app, lv_obj_t* parent) {
+    auto* wifi = static_cast<WifiConnect*>(app.getData());
+    wifi->onShow(app, parent);
+}
+
+static void onHide(App& app) {
+    auto* wifi = static_cast<WifiConnect*>(app.getData());
+    wifi->onHide(app);
+}
+
+static void onStart(App& app) {
+    auto* wifi_connect = new WifiConnect();
     app.setData(wifi_connect);
 }
 
-static void app_stop(App& app) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
-    tt_assert(wifi != nullptr);
-    wifi_connect_free(wifi);
+static void onStop(App& app) {
+    auto* wifi_connect = static_cast<WifiConnect*>(app.getData());
+    tt_assert(wifi_connect != nullptr);
+    delete wifi_connect;
 }
 
 extern const Manifest manifest = {
@@ -136,10 +117,10 @@ extern const Manifest manifest = {
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
-    .onStart = &app_start,
-    .onStop = &app_stop,
-    .onShow = &app_show,
-    .onHide = &app_hide
+    .onStart = &onStart,
+    .onStop = &onStop,
+    .onShow = &onShow,
+    .onHide = &onHide
 };
 
 } // namespace

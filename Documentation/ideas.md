@@ -7,7 +7,6 @@
 - Create app to edit WiFi settings (e.g. "forget" and "auto-connect" option)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
-- Try out Waveshare S3 120MHz mode for PSRAM (see "enabling 120M PSRAM is necessary" in [docs](https://www.waveshare.com/wiki/ESP32-S3-Touch-LCD-4.3#Other_Notes))
 - T-Deck has random sdcard SPI crashes due to sharing bus with screen SPI: make it use the LVGL lock for sdcard operations?
 - Check service/app id on registration to see if it is a duplicate id
 - Fix screenshot app on ESP32: it currently blocks when allocating memory
@@ -18,7 +17,8 @@
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
-- Commit fix to esp_lvgl_port to have esp_lvgl_port_disp.c user driver_data instead of user_data
+- Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
+- Wifi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.
@@ -28,6 +28,7 @@
 - Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas
+- System logger
 - Add FreeRTOS task manager functionality to System Info app
 - BlueTooth keyboard app
 - Chip 8 emulator

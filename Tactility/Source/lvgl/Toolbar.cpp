@@ -103,7 +103,7 @@ void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callb
     lv_image_set_src(toolbar->close_button_image, icon); // e.g. LV_SYMBOL_CLOSE
 }
 
-uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text, lv_event_cb_t callback, void* user_data) {
+uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = (Toolbar*)obj;
     uint8_t id = toolbar->action_count;
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
@@ -118,6 +118,13 @@ uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, const char* text, lv
     lv_obj_align(action_button_image, LV_ALIGN_CENTER, 0, 0);
 
     return id;
+}
+
+lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
+    auto* toolbar = (Toolbar*)obj;
+    lv_obj_t* widget = lv_switch_create(toolbar->action_container);
+    lv_obj_set_pos(widget, 0, 4); // Because aligning doesn't work
+    return widget;
 }
 
 } // namespace

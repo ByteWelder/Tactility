@@ -1,7 +1,7 @@
 #include "WifiManage.h"
 
 #include "app/App.h"
-#include "app/wificonnect/WifiConnectBundle.h"
+#include "app/wificonnect/Parameters.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/WifiSettings.h"

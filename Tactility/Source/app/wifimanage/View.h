@@ -11,6 +11,7 @@ class View {
 private:
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
+    lv_obj_t* enable_on_boot_switch = nullptr;
     lv_obj_t* scanning_spinner = nullptr;
     lv_obj_t* networks_label = nullptr;
     lv_obj_t* networks_list = nullptr;
@@ -25,6 +26,7 @@ private:
 
     void updateConnectedAp(State* state, TT_UNUSED Bindings* bindings);
     void updateWifiToggle(State* state);
+    void updateEnableOnBootToggle();
     void updateScanning(State* state);
     void updateNetworkList(State* state, Bindings* bindings);
     void createNetworkButton(Bindings* bindings, const service::wifi::WifiApRecord& record);

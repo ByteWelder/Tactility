@@ -137,10 +137,11 @@ bool isScanning() {
 void connect(const settings::WifiApSettings* ap, bool remember) {
     TT_LOG_I(TAG, "connect(%s, %d)", ap->ssid, remember);
     tt_assert(wifi_singleton);
+    // Manual connect (e.g. via app) should stop auto-connecting until the connection is established
+    wifi_singleton->pause_auto_connect = true;
     lock(wifi_singleton);
     memcpy(&wifi_singleton->connection_target, ap, sizeof(settings::WifiApSettings));
     wifi_singleton->connection_target_remember = remember;
-    wifi_singleton->pause_auto_connect = false;
     WifiMessage message = {.type = WifiMessageTypeConnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
     unlock(wifi_singleton);
@@ -155,6 +156,7 @@ void disconnect() {
         .password = { 0 },
         .auto_connect = false
     };
+    // Manual disconnect (e.g. via app) should stop auto-connecting until a new connection is established
     wifi_singleton->pause_auto_connect = true;
     WifiMessage message = {.type = WifiMessageTypeDisconnect};
     wifi_singleton->queue.put(&message, 100 / portTICK_PERIOD_MS);
@@ -274,13 +276,20 @@ static void publish_event_simple(Wifi* wifi, WifiEventType type) {
 }
 
 static bool copy_scan_list(Wifi* wifi) {
-    if ((wifi->radio_state == WIFI_RADIO_ON || wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) && wifi->scan_active) {
-        // Create scan list if it does not exist
-        scan_list_alloc_safely(wifi);
-        wifi->scan_list_count = 0;
-        uint16_t record_count = wifi->scan_list_limit;
+    bool can_fetch_results = (wifi->radio_state == WIFI_RADIO_ON || wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) &&
+        wifi->scan_active;
 
-        ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list));
+    if (!can_fetch_results) {
+        TT_LOG_I(TAG, "Skip scan result fetching");
+        return false;
+    }
+
+    // Create scan list if it does not exist
+    scan_list_alloc_safely(wifi);
+    wifi->scan_list_count = 0;
+    uint16_t record_count = wifi->scan_list_limit;
+    esp_err_t scan_result = esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list);
+    if (scan_result == ESP_OK) {
         uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
         wifi->scan_list_count = safe_record_count;
         TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
@@ -290,6 +299,7 @@ static bool copy_scan_list(Wifi* wifi) {
         }
         return true;
     } else {
+        TT_LOG_I(TAG, "Failed to get scanned records: %s", esp_err_to_name(scan_result));
         return false;
     }
 }
@@ -322,16 +332,20 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
             esp_wifi_connect();
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        if (wifi_singleton->radio_state != WIFI_RADIO_OFF_PENDING) {
+        TT_LOG_I(TAG, "event_handler: disconnected");
+        if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
             wifi_singleton->connection_wait_flags.set(WIFI_FAIL_BIT);
-            TT_LOG_I(TAG, "event_handler: disconnected");
-            wifi_singleton->radio_state = WIFI_RADIO_ON;
-            publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
         }
+        wifi_singleton->radio_state = WIFI_RADIO_ON;
+        publish_event_simple(wifi_singleton, WifiEventTypeDisconnected);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
-        wifi_singleton->connection_wait_flags.set(WIFI_CONNECTED_BIT);
+        if (wifi_singleton->radio_state == WIFI_RADIO_CONNECTION_PENDING) {
+            wifi_singleton->connection_wait_flags.set(WIFI_CONNECTED_BIT);
+            // We resume auto-connecting only when there was an explicit request by the user for the connection
+            wifi_singleton->pause_auto_connect = false; // Resume auto-connection
+        }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
         TT_LOG_I(TAG, "event_handler: wifi scanning done (scan id %u)", event->scan_id);
@@ -594,7 +608,7 @@ static void connect_internal(Wifi* wifi) {
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (set_config_result != ESP_OK) {
         wifi->radio_state = WIFI_RADIO_ON;
-        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        TT_LOG_E(TAG, "Failed to set wifi config (%s)", esp_err_to_name(set_config_result));
         publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         return;
     }
@@ -602,7 +616,7 @@ static void connect_internal(Wifi* wifi) {
     esp_err_t wifi_start_result = esp_wifi_start();
     if (wifi_start_result != ESP_OK) {
         wifi->radio_state = WIFI_RADIO_ON;
-        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        TT_LOG_E(TAG, "Failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
         publish_event_simple(wifi, WifiEventTypeConnectionFailed);
         return;
     }
@@ -680,8 +694,11 @@ static void disconnect_internal_but_keep_active(Wifi* wifi) {
 }
 
 static bool shouldScanForAutoConnect(Wifi* wifi) {
-    bool is_radio_in_scannable_state = wifi->radio_state == WIFI_RADIO_ON && !wifi->scan_active;
-    if (!wifi->pause_auto_connect && is_radio_in_scannable_state) {
+    bool is_radio_in_scannable_state = wifi->radio_state == WIFI_RADIO_ON &&
+        !wifi->scan_active &&
+        !wifi->pause_auto_connect;
+
+    if (is_radio_in_scannable_state) {
         TickType_t current_time = tt::get_ticks();
         bool scan_time_has_looped = (current_time < wifi->last_scan_time);
         bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
@@ -698,7 +715,8 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     Wifi* wifi = wifi_singleton;
     MessageQueue& queue = wifi->queue;
 
-    if (TT_WIFI_AUTO_ENABLE) {
+    if (settings::shouldEnableOnBoot()) {
+        TT_LOG_I(TAG, "Auto-enabling due to setting");
         enable(wifi);
         scan_internal(wifi);
     }
@@ -706,7 +724,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     WifiMessage message;
     while (true) {
         TT_LOG_I(TAG, "Message queue %ld", queue.getCount());
-        if (queue.get(&message, 10000 / portTICK_PERIOD_MS) == TtStatusOk) {
+        if (queue.get(&message, 3000 / portTICK_PERIOD_MS) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:

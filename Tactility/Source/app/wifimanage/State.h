@@ -10,7 +10,7 @@ namespace tt::app::wifimanage {
  */
 class State {
 
-    Mutex mutex;
+    Mutex mutex = Mutex(MutexTypeRecursive);
     bool scanning;
     service::wifi::WifiRadioState radioState;
     std::vector<service::wifi::WifiApRecord> apRecords;
@@ -20,18 +20,18 @@ public:
     State() {}
 
     void setScanning(bool isScanning);
-    bool isScanning() const { return scanning; }
+    bool isScanning() const;
 
     void setRadioState(service::wifi::WifiRadioState state);
-    service::wifi::WifiRadioState getRadioState() const { return radioState; }
+    service::wifi::WifiRadioState getRadioState() const;
 
     void updateApRecords();
 
     const std::vector<service::wifi::WifiApRecord>& lockApRecords() const;
     void unlockApRecords() const;
 
-    void setConnectSsid(std::string ssid) { connectSsid = ssid; }
-    std::string getConnectSsid() const { return connectSsid; }
+    void setConnectSsid(std::string ssid);
+    std::string getConnectSsid() const;
 };
 
 } // namespace

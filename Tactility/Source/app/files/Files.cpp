@@ -187,7 +187,7 @@ static void on_show(App& app, lv_obj_t* parent) {
 
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, "Files");
     lvgl::toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &on_exit_app_pressed, nullptr);
-    lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, "Navigate up", &on_navigate_up_pressed, data);
+    lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, &on_navigate_up_pressed, data);
 
     data->list = lv_list_create(parent);
     lv_obj_set_width(data->list, LV_PCT(100));
