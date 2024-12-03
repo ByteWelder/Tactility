@@ -191,6 +191,7 @@ static void on_start(Service& service) {
     data->thread->setCallback(service_main, data);
     data->thread->setPriority(Thread::PriorityLow);
     data->thread->setStackSize(3000);
+    data->thread->setName("statusbar");
     data->thread->start();
 }
 
