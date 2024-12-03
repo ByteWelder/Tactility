@@ -69,10 +69,27 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_
 
 #if configUSE_TRACE_FACILITY
 
+static const char* getTaskState(const TaskStatus_t& task) {
+    switch (task.eCurrentState) {
+        case eRunning:
+            return "running";
+        case eReady:
+            return "ready";
+        case eBlocked:
+            return "blocked";
+        case eSuspended:
+            return "suspended";
+        case eDeleted:
+            return "deleted";
+        case eInvalid:
+            return "invalid";
+    }
+}
+
 static void addRtosTask(lv_obj_t* parent, const TaskStatus_t& task) {
     lv_obj_t* label = lv_label_create(parent);
     const char* name = (task.pcTaskName == nullptr || task.pcTaskName[0] == 0) ? "(unnamed)" : task.pcTaskName;
-    lv_label_set_text(label, name);
+    lv_label_set_text_fmt(label, "%s (%s)", name, getTaskState(task));
 }
 
 static void addRtosTasks(lv_obj_t* parent) {
