@@ -9,41 +9,57 @@
 
 namespace tt::app::gpio {
 
-typedef struct {
-    lv_obj_t* lv_pins[GPIO_NUM_MAX];
-    uint8_t pin_states[GPIO_NUM_MAX];
-    Thread* thread;
-    Mutex* mutex;
-    bool thread_interrupted;
-} Gpio;
+class Gpio {
 
-static void lock(Gpio* gpio) {
-    tt_check(tt_mutex_acquire(gpio->mutex, 1000) == TtStatusOk);
-}
+private:
 
-static void unlock(Gpio* gpio) {
-    tt_check(tt_mutex_release(gpio->mutex) == TtStatusOk);
-}
+    lv_obj_t* lvPins[GPIO_NUM_MAX] = {0 };
+    uint8_t pinStates[GPIO_NUM_MAX] = {0 };
+    Thread* thread = nullptr;
+    Mutex mutex;
+    bool interruptTask = true;
 
-static void update_pin_states(Gpio* gpio) {
-    lock(gpio);
+public:
+
+    void lock() {
+        tt_check(mutex.acquire(1000) == TtStatusOk);
+    }
+
+    void unlock() {
+        tt_check(mutex.release() == TtStatusOk);
+    }
+
+    void onShow(App& app, lv_obj_t* parent);
+    void onHide(App& app);
+
+    void startTask();
+    void stopTask();
+    bool shouldInterruptTask() { return interruptTask; };
+
+    void updatePinStates();
+    void updatePinWidgets();
+};
+
+
+void Gpio::updatePinStates() {
+    lock();
     // Update pin states
     for (int i = 0; i < GPIO_NUM_MAX; ++i) {
 #ifdef ESP_PLATFORM
-        gpio->pin_states[i] = gpio_get_level((gpio_num_t)i);
+        pinStates[i] = gpio_get_level((gpio_num_t)i);
 #else
-        gpio->pin_states[i] = gpio_get_level(i);
+        pinStates[i] = gpio_get_level(i);
 #endif
     }
-    unlock(gpio);
+    unlock();
 }
 
-static void update_pin_widgets(Gpio* gpio) {
+void Gpio::updatePinWidgets() {
     if (lvgl::lock(100)) {
-        lock(gpio);
+        lock();
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
-            int level = gpio->pin_states[j];
-            lv_obj_t* label = gpio->lv_pins[j];
+            int level = pinStates[j];
+            lv_obj_t* label = lvPins[j];
             void* label_user_data = lv_obj_get_user_data(label);
             // The user data stores the state, so we can avoid unnecessary updates
             if ((void*)level != label_user_data) {
@@ -56,11 +72,11 @@ static void update_pin_widgets(Gpio* gpio) {
             }
         }
         lvgl::unlock();
-        unlock(gpio);
+        unlock();
     }
 }
 
-static lv_obj_t* create_gpio_row_wrapper(lv_obj_t* parent) {
+static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent) {
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_style_pad_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
@@ -70,57 +86,56 @@ static lv_obj_t* create_gpio_row_wrapper(lv_obj_t* parent) {
 
 // region Task
 
-static int32_t gpio_task(void* context) {
+static int32_t taskMain(void* context) {
     Gpio* gpio = (Gpio*)context;
     bool interrupted = false;
 
     while (!interrupted) {
         delay_ms(100);
 
-        update_pin_states(gpio);
-        update_pin_widgets(gpio);
+        gpio->updatePinStates();
+        gpio->updatePinWidgets();
 
-        lock(gpio);
-        interrupted = gpio->thread_interrupted;
-        unlock(gpio);
+        gpio->lock();
+        interrupted = gpio->shouldInterruptTask();
+        gpio->unlock();
     }
 
     return 0;
 }
 
-static void task_start(Gpio* gpio) {
-    tt_assert(gpio->thread == nullptr);
-    lock(gpio);
-    gpio->thread = new Thread(
+void Gpio::startTask() {
+    lock();
+    tt_assert(thread == nullptr);
+    thread = new Thread(
         "gpio",
         4096,
-        &gpio_task,
-        gpio
+        &taskMain,
+        this
     );
-    gpio->thread_interrupted = false;
-    gpio->thread->start();
-    unlock(gpio);
+    interruptTask = false;
+    thread->start();
+    unlock();
 }
 
-static void task_stop(Gpio* gpio) {
-    tt_assert(gpio->thread);
-    lock(gpio);
-    gpio->thread_interrupted = true;
-    unlock(gpio);
+void Gpio::stopTask() {
+    tt_assert(thread);
+    lock();
+    interruptTask = true;
+    unlock();
 
-    gpio->thread->join();
+    thread->join();
 
-    lock(gpio);
-    delete gpio->thread;
-    gpio->thread = nullptr;
-    unlock(gpio);
+    lock();
+    delete thread;
+    thread = nullptr;
+    unlock();
 }
 
 // endregion Task
 
-// region App lifecycle
 
-static void app_show(App& app, lv_obj_t* parent) {
+void Gpio::onShow(App& app, lv_obj_t* parent) {
     auto* gpio = (Gpio*)app.getData();
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -137,10 +152,10 @@ static void app_show(App& app, lv_obj_t* parent) {
     uint8_t column_limit = 10;
     int32_t x_spacing = 20;
 
-    lv_obj_t* row_wrapper = create_gpio_row_wrapper(wrapper);
+    lv_obj_t* row_wrapper = createGpioRowWrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
 
-    lock(gpio);
+    gpio->lock();
     for (int i = GPIO_NUM_MIN; i < GPIO_NUM_MAX; ++i) {
 
         // Add the GPIO number before the first item on a row
@@ -153,7 +168,7 @@ static void app_show(App& app, lv_obj_t* parent) {
         lv_obj_t* status_label = lv_label_create(row_wrapper);
         lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing), 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
-        gpio->lv_pins[i] = status_label;
+        gpio->lvPins[i] = status_label;
 
         column++;
 
@@ -164,37 +179,43 @@ static void app_show(App& app, lv_obj_t* parent) {
             lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing), 0);
 
             // Add a new row wrapper underneath the last one
-            lv_obj_t* new_row_wrapper = create_gpio_row_wrapper(wrapper);
+            lv_obj_t* new_row_wrapper = createGpioRowWrapper(wrapper);
             lv_obj_align_to(new_row_wrapper, row_wrapper, LV_ALIGN_BOTTOM_LEFT, 0, 4);
             row_wrapper = new_row_wrapper;
 
             column = 0;
         }
     }
-    unlock(gpio);
+    gpio->unlock();
 
-    task_start(gpio);
+    gpio->startTask();
 }
 
-static void on_hide(App& app) {
+void Gpio::onHide(App& app) {
     auto* gpio = (Gpio*)app.getData();
-    task_stop(gpio);
+    gpio->stopTask();
 }
 
-static void on_start(App& app) {
-    auto* gpio = new Gpio {
-        .lv_pins = { nullptr },
-        .pin_states = { 0 },
-        .thread = nullptr,
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .thread_interrupted = true,
-    };
+
+// region App lifecycle
+
+static void onShow(App& app, lv_obj_t* parent) {
+    auto* gpio = (Gpio*)app.getData();
+    gpio->onShow(app, parent);
+}
+
+static void onHide(App& app) {
+    auto* gpio = (Gpio*)app.getData();
+    gpio->onHide(app);
+}
+
+static void onStart(App& app) {
+    auto* gpio = new Gpio();
     app.setData(gpio);
 }
 
-static void on_stop(App& app) {
+static void onStop(App& app) {
     auto* gpio = (Gpio*)app.getData();
-    tt_mutex_free(gpio->mutex);
     delete gpio;
 }
 
@@ -204,10 +225,10 @@ extern const Manifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
     .type = TypeSystem,
-    .onStart = &on_start,
-    .onStop = &on_stop,
-    .onShow = &app_show,
-    .onHide = &on_hide
+    .onStart = onStart,
+    .onStop = onStop,
+    .onShow = onShow,
+    .onHide = onHide
 };
 
 } // namespace

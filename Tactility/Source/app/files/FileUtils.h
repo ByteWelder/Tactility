@@ -7,23 +7,23 @@ namespace tt::app::files {
     /** File types for `dirent`'s `d_type`. */
 enum {
     TT_DT_UNKNOWN = 0,
-#define TT_DT_UNKNOWN TT_DT_UNKNOWN
+#define TT_DT_UNKNOWN TT_DT_UNKNOWN // Unknown type
     TT_DT_FIFO = 1,
-#define TT_DT_FIFO TT_DT_FIFO
+#define TT_DT_FIFO TT_DT_FIFO // Named pipe or FIFO
     TT_DT_CHR = 2,
-#define TT_DT_CHR TT_DT_CHR
+#define TT_DT_CHR TT_DT_CHR // Character device
     TT_DT_DIR = 4,
-#define TT_DT_DIR TT_DT_DIR
+#define TT_DT_DIR TT_DT_DIR // Directory
     TT_DT_BLK = 6,
-#define TT_DT_BLK TT_DT_BLK
+#define TT_DT_BLK TT_DT_BLK // Block device
     TT_DT_REG = 8,
-#define TT_DT_REG TT_DT_REG
+#define TT_DT_REG TT_DT_REG // Regular file
     TT_DT_LNK = 10,
-#define TT_DT_LNK TT_DT_LNK
+#define TT_DT_LNK TT_DT_LNK // Symbolic link
     TT_DT_SOCK = 12,
-#define TT_DT_SOCK TT_DT_SOCK
+#define TT_DT_SOCK TT_DT_SOCK // Local-domain socket
     TT_DT_WHT = 14
-#define TT_DT_WHT TT_DT_WHT
+#define TT_DT_WHT TT_DT_WHT // Whiteout inodes
 };
 
 typedef int (*ScandirFilter)(const struct dirent*);

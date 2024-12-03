@@ -1,4 +1,4 @@
-#include "app/display/DisplayPreferences.h"
+#include "app/display/DisplaySettings.h"
 #include "lvgl.h"
 #include "hal/Configuration.h"
 #include "hal/Display.h"
@@ -32,7 +32,7 @@ bool initDisplay(const hal::Configuration& config) {
     tt_assert(existing_display_user_data == nullptr);
     lv_display_set_user_data(lvgl_display, display);
 
-    lv_display_rotation_t rotation = app::display::preferences_get_rotation();
+    lv_display_rotation_t rotation = app::display::getRotation();
     if (rotation != lv_disp_get_rotation(lv_disp_get_default())) {
         lv_disp_set_rotation(lv_disp_get_default(), static_cast<lv_display_rotation_t>(rotation));
     }

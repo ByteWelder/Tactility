@@ -1,4 +1,5 @@
 # TODOs
+- Bug: sdcard file reading fails (due to `A:/` prefix?)
 - Publish firmwares with upload tool
 - Bug: When closing a top level app, there's often an error "can't stop root app"
 - Bug: I2C Scanner is on M5Stack devices is broken

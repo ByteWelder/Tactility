@@ -7,7 +7,7 @@
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
-#include "app/display/DisplayPreferences.h"
+#include "app/display/DisplaySettings.h"
 
 #ifdef ESP_PLATFORM
 #include "sdkconfig.h"
@@ -33,7 +33,7 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
     tt_assert(hal_display != nullptr);
     if (hal_display->supportsBacklightDuty()) {
-        int32_t backlight_duty = app::display::preferences_get_backlight_duty();
+        int32_t backlight_duty = app::display::getBacklightDuty();
         hal_display->setBacklightDuty(backlight_duty);
     }
 

@@ -1,6 +1,6 @@
 #include "app/App.h"
 #include "Assets.h"
-#include "DisplayPreferences.h"
+#include "DisplaySettings.h"
 #include "Tactility.h"
 #include "lvgl/Toolbar.h"
 #include "lvgl.h"
@@ -13,7 +13,7 @@ namespace tt::app::display {
 static bool backlight_duty_set = false;
 static uint8_t backlight_duty = 255;
 
-static void slider_event_cb(lv_event_t* event) {
+static void onSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
     auto* lvgl_display = lv_display_get_default();
     tt_assert(lvgl_display != nullptr);
@@ -35,7 +35,7 @@ static void slider_event_cb(lv_event_t* event) {
 #define ORIENTATION_PORTRAIT_LEFT 2
 #define ORIENTATION_PORTRAIT_RIGHT 3
 
-static lv_display_rotation_t orientation_setting_to_display_rotation(uint32_t setting) {
+static lv_display_rotation_t orientationSettingToDisplayOrientation(uint32_t setting) {
     if (setting == ORIENTATION_LANDSCAPE_FLIPPED) {
         return LV_DISPLAY_ROTATION_180;
     } else if (setting == ORIENTATION_PORTRAIT_LEFT) {
@@ -47,7 +47,7 @@ static lv_display_rotation_t orientation_setting_to_display_rotation(uint32_t se
     }
 }
 
-static uint32_t display_rotation_to_orientation_setting(lv_display_rotation_t orientation) {
+static uint32_t dipslayOrientationToOrientationSetting(lv_display_rotation_t orientation) {
     if (orientation == LV_DISPLAY_ROTATION_90) {
         return ORIENTATION_PORTRAIT_RIGHT;
     } else if (orientation == LV_DISPLAY_ROTATION_180) {
@@ -59,18 +59,18 @@ static uint32_t display_rotation_to_orientation_setting(lv_display_rotation_t or
     }
 }
 
-static void on_orientation_set(lv_event_t* event) {
+static void onOrientationSet(lv_event_t* event) {
     auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
     uint32_t selected = lv_dropdown_get_selected(dropdown);
     TT_LOG_I(TAG, "Selected %ld", selected);
-    lv_display_rotation_t rotation = orientation_setting_to_display_rotation(selected);
+    lv_display_rotation_t rotation = orientationSettingToDisplayOrientation(selected);
     if (lv_display_get_rotation(lv_display_get_default()) != rotation) {
         lv_display_set_rotation(lv_display_get_default(), rotation);
-        preferences_set_rotation(rotation);
+        setRotation(rotation);
     }
 }
 
-static void app_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -92,7 +92,7 @@ static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_set_width(brightness_slider, LV_PCT(50));
     lv_obj_align(brightness_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
     lv_slider_set_range(brightness_slider, 0, 255);
-    lv_obj_add_event_cb(brightness_slider, slider_event_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_add_event_cb(brightness_slider, onSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
 
     auto* lvgl_display = lv_display_get_default();
     tt_assert(lvgl_display != nullptr);
@@ -103,7 +103,7 @@ static void app_show(App& app, lv_obj_t* parent) {
         lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);
         lv_obj_add_state(brightness_slider, LV_STATE_DISABLED);
     } else {
-        uint8_t value = preferences_get_backlight_duty();
+        uint8_t value = getBacklightDuty();
         lv_slider_set_value(brightness_slider, value, LV_ANIM_OFF);
     }
 
@@ -114,16 +114,16 @@ static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_t* orientation_dropdown = lv_dropdown_create(wrapper);
     lv_dropdown_set_options(orientation_dropdown, "Landscape\nLandscape (flipped)\nPortrait Left\nPortrait Right");
     lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 32);
-    lv_obj_add_event_cb(orientation_dropdown, on_orientation_set, LV_EVENT_VALUE_CHANGED, nullptr);
-    uint32_t orientation_selected = display_rotation_to_orientation_setting(
+    lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, nullptr);
+    uint32_t orientation_selected = dipslayOrientationToOrientationSetting(
         lv_display_get_rotation(lv_display_get_default())
     );
     lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
 }
 
-static void app_hide(TT_UNUSED App& app) {
+static void onHide(TT_UNUSED App& app) {
     if (backlight_duty_set) {
-        preferences_set_backlight_duty(backlight_duty);
+        setBacklightDuty(backlight_duty);
     }
 }
 
@@ -134,8 +134,8 @@ extern const Manifest manifest = {
     .type = TypeSettings,
     .onStart = nullptr,
     .onStop = nullptr,
-    .onShow = &app_show,
-    .onHide = &app_hide
+    .onShow = onShow,
+    .onHide = onHide
 };
 
 } // namespace
