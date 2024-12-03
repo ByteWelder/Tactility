@@ -724,7 +724,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     WifiMessage message;
     while (true) {
         TT_LOG_I(TAG, "Message queue %ld", queue.getCount());
-        if (queue.get(&message, 3000 / portTICK_PERIOD_MS) == TtStatusOk) {
+        if (queue.get(&message, 10000 / portTICK_PERIOD_MS) == TtStatusOk) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case WifiMessageTypeRadioOn:
