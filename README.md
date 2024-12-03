@@ -22,7 +22,7 @@ Noteworthy features:
 - Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.
 - An application platform that can run apps and services.
 - Basic applications to boost productivity, such as a Wi-Fi connectivity and I2C apps.
-- The Tactility platform compiles on PC to speed up development.
+- Includes a PC simulator build target to speed up development.
 
 Requirements:
 - ESP32 (any?) with a touchscreen
