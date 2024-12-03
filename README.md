@@ -4,19 +4,15 @@ Tactility is a front-end application platform for ESP32.
 It is currently intended for touchscreen devices, but the goal is to also support different types of input in the future.
 Tactility provides an application framework that borrows concepts from [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) and mobile phone operating systems.
 
-![photo of devices running Tactility](Documentation/pics/tactility-devices.webp)
+![photo of devices running Tactility](Documentation/pics/tactility-devices.webp)&nbsp;&nbsp;![screenshot of desktop app](Documentation/pics/screenshot-Desktop.png)
 
 **Status: Alpha**
 
-A desktop with built-in apps:
+Next to desktop functionality, Tactility makes it easy to manage system settings:
 
-![screenshot of desktop app](Documentation/pics/screenshot-Desktop.png) ![screenshot of settings app](Documentation/pics/screenshot-Settings.png)
+![screenshot of settings app](Documentation/pics/screenshot-Settings.png) ![screenshot of wifi management app](Documentation/pics/screenshot-WifiManage.png)
 
-Configure your Wi-Fi without having to hard-code credentials:
-
-![screenshot of wifi management app](Documentation/pics/screenshot-WifiManage.png) ![screenshot of wifi app to connect to wifi](Documentation/pics/screenshot-WifiConnect.png)
-
-And much more!
+There are also built-in apps:
 
 ![screenshot of GPIO app](Documentation/pics/screenshot-Gpio.png) ![screenshot of files app](Documentation/pics/screenshot-Files.png)
 
@@ -25,8 +21,8 @@ Play with the built-in apps or build your own! Use one of the supported devices 
 Noteworthy features:
 - Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.
 - An application platform that can run apps and services.
-- Basic applications to boost productivity, such as a Wi-Fi connectivity app.
-- Run Tactility apps on PC to speed up development.
+- Basic applications to boost productivity, such as a Wi-Fi connectivity and I2C apps.
+- Includes a PC simulator build target to speed up development.
 
 Requirements:
 - ESP32 (any?) with a touchscreen
