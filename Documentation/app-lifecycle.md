@@ -6,7 +6,7 @@ The app goes through these states:
 
 Let's look at a scenario where an app launches another app:
 
-1. `first` app starts: `first.on_create()` -> `first.on_show()`
-2. `second` app starts: `first.on_hide()` -> `second.on_create()` -> `second.on_show()`
-3. `second` app stops: `second.on_hide()` -> `second.on_destroy()` -> `first.on_show()`
-4. `first` app stops: `first.on_hide()` -> `first.on_destroy()`
+1. `first` app starts: `first.onStart()` -> `first.onShow()`
+2. `second` app starts: `first.onHide()` -> `second.onStart()` -> `second.onShow()`
+3. `second` app stops: `second.onHide()` -> `second.onStop()` -> `first.onShow()`
+4. `first` app stops: `first.onHide()` -> `first.onStop()`

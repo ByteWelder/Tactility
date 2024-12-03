@@ -103,7 +103,7 @@ extern const Manifest manifest = {
      .id = "SelectionDialog",
      .name = "Selection Dialog",
      .type = TypeHidden,
-     .onShow = &onShow
+     .onShow = onShow
 };
 
 }

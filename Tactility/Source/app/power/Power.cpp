@@ -18,10 +18,10 @@ typedef struct {
     lv_obj_t* charge_state;
     lv_obj_t* charge_level;
     lv_obj_t* current;
-} AppData;
+} Data;
 
-static void app_update_ui(void* callbackContext) {
-    auto* data = (AppData*)callbackContext;
+static void updateUi(void* callbackContext) {
+    auto* data = (Data*)callbackContext;
     bool charging_enabled = data->power->isChargingEnabled();
     const char* charge_state = data->power->isCharging() ? "yes" : "no";
     uint8_t charge_level = data->power->getChargeLevel();
@@ -40,20 +40,20 @@ static void app_update_ui(void* callbackContext) {
     lvgl::unlock();
 }
 
-static void on_power_enabled_change(lv_event_t* event) {
+static void onPowerEnabledChanged(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        auto* data = static_cast<AppData*>(lv_event_get_user_data(event));
+        auto* data = static_cast<Data*>(lv_event_get_user_data(event));
         if (data->power->isChargingEnabled() != is_on) {
             data->power->setChargingEnabled(is_on);
-            app_update_ui(data);
+            updateUi(data);
         }
     }
 }
 
-static void app_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -64,7 +64,7 @@ static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    auto* data = static_cast<AppData*>(app.getData());
+    auto* data = static_cast<Data*>(app.getData());
 
     // Top row: enable/disable
     lv_obj_t* switch_container = lv_obj_create(wrapper);
@@ -78,7 +78,7 @@ static void app_show(App& app, lv_obj_t* parent) {
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
     lv_obj_t* enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, on_power_enabled_change, LV_EVENT_ALL, data);
+    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_ALL, data);
     lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
     data->enable_switch = enable_switch;
@@ -86,25 +86,25 @@ static void app_show(App& app, lv_obj_t* parent) {
     data->charge_level = lv_label_create(wrapper);
     data->current = lv_label_create(wrapper);
 
-    app_update_ui(data);
+    updateUi(data);
     data->update_timer->start(ms_to_ticks(1000));
 }
 
-static void app_hide(TT_UNUSED App& app) {
-    auto* data = static_cast<AppData*>(app.getData());
+static void onHide(TT_UNUSED App& app) {
+    auto* data = static_cast<Data*>(app.getData());
     data->update_timer->stop();
 }
 
-static void app_start(App& app) {
-    auto* data = new AppData();
-    data->update_timer = new Timer(Timer::TypePeriodic, &app_update_ui, data);
+static void onStart(App& app) {
+    auto* data = new Data();
+    data->update_timer = new Timer(Timer::TypePeriodic, &updateUi, data);
     data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
     app.setData(data);
 }
 
-static void app_stop(App& app) {
-    auto* data = static_cast<AppData*>(app.getData());
+static void onStop(App& app) {
+    auto* data = static_cast<Data*>(app.getData());
     delete data->update_timer;
     delete data;
 }
@@ -114,10 +114,10 @@ extern const Manifest manifest = {
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
     .type = TypeSettings,
-    .onStart = &app_start,
-    .onStop = &app_stop,
-    .onShow = &app_show,
-    .onHide = &app_hide
+    .onStart = onStart,
+    .onStop = onStop,
+    .onShow = onShow,
+    .onHide = onHide
 };
 
 } // namespace

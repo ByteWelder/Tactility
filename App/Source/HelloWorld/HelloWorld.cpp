@@ -1,7 +1,7 @@
 #include "lvgl.h"
 #include "lvgl/Toolbar.h"
 
-static void app_show(tt::app::App& app, lv_obj_t* parent) {
+static void onShow(tt::app::App& app, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -13,5 +13,5 @@ static void app_show(tt::app::App& app, lv_obj_t* parent) {
 extern const tt::app::Manifest hello_world_app = {
     .id = "HelloWorld",
     .name = "Hello World",
-    .onShow = &app_show,
+    .onShow = onShow,
 };

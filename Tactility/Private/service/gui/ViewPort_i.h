@@ -4,7 +4,7 @@
 
 namespace tt::service::gui {
 
-/** Process draw call. Calls on_show callback.
+/** Process draw call. Calls onShow callback.
  * To be used by GUI, called on redraw.
  *
  * @param      view_port  ViewPort instance

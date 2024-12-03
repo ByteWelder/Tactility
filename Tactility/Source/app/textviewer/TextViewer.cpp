@@ -9,7 +9,7 @@
 
 namespace tt::app::textviewer {
 
-static void on_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -35,7 +35,7 @@ extern const Manifest manifest = {
     .id = "TextViewer",
     .name = "Text Viewer",
     .type = TypeHidden,
-    .onShow = &on_show
+    .onShow = onShow
 };
 
 } // namespace

@@ -7,7 +7,7 @@
 
 namespace tt::app::i2csettings {
 
-static void on_switch_toggle(lv_event_t* event) {
+static void onSwitchToggled(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     auto* state_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     const hal::i2c::Configuration* configuration = static_cast<hal::i2c::Configuration*>(lv_event_get_user_data(event));
@@ -46,7 +46,7 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
             lv_obj_add_state(state_switch, LV_STATE_CHECKED);
         }
 
-        lv_obj_add_event_cb(state_switch, on_switch_toggle, LV_EVENT_VALUE_CHANGED, (void*)&configuration);
+        lv_obj_add_event_cb(state_switch, onSwitchToggled, LV_EVENT_VALUE_CHANGED, (void*) &configuration);
     }
 
     // SDA label
@@ -69,7 +69,7 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
     }
 }
 
-static void on_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -90,7 +90,7 @@ extern const Manifest manifest = {
     .name = "I2C",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
     .type = TypeSettings,
-    .onShow = &on_show
+    .onShow = onShow
 };
 
 } // namespace

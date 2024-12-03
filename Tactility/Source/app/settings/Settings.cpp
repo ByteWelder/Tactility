@@ -8,7 +8,7 @@
 
 namespace tt::app::settings {
 
-static void on_app_pressed(lv_event_t* e) {
+static void onAppPressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const auto* manifest = static_cast<const Manifest*>(lv_event_get_user_data(e));
@@ -16,15 +16,15 @@ static void on_app_pressed(lv_event_t* e) {
     }
 }
 
-static void create_app_widget(const Manifest* manifest, void* parent) {
+static void createWidget(const Manifest* manifest, void* parent) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
     const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
     lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
-    lv_obj_add_event_cb(btn, &on_app_pressed, LV_EVENT_CLICKED, (void*)manifest);
+    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_CLICKED, (void*)manifest);
 }
 
-static void on_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -37,7 +37,7 @@ static void on_show(App& app, lv_obj_t* parent) {
     std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
     for (const auto& manifest: manifests) {
         if (manifest->type == TypeSettings) {
-            create_app_widget(manifest, list);
+            createWidget(manifest, list);
         }
     }
 }
@@ -47,10 +47,7 @@ extern const Manifest manifest = {
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
     .type = TypeSystem,
-    .onStart = nullptr,
-    .onStop = nullptr,
-    .onShow = &on_show,
-    .onHide = nullptr
+    .onShow = onShow,
 };
 
 } // namespace

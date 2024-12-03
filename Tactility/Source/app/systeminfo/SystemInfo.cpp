@@ -5,7 +5,7 @@
 
 namespace tt::app::systeminfo {
 
-static size_t get_heap_free() {
+static size_t getHeapFree() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 #else
@@ -13,7 +13,7 @@ static size_t get_heap_free() {
 #endif
 }
 
-static size_t get_heap_total() {
+static size_t getHeapTotal() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
 #else
@@ -21,7 +21,7 @@ static size_t get_heap_total() {
 #endif
 }
 
-static size_t get_spi_free() {
+static size_t getSpiFree() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
 #else
@@ -29,7 +29,7 @@ static size_t get_spi_free() {
 #endif
 }
 
-static size_t get_spi_total() {
+static size_t getSpiTotal() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
 #else
@@ -37,7 +37,7 @@ static size_t get_spi_total() {
 #endif
 }
 
-static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, size_t total) {
+static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_t total) {
     lv_obj_t* container = lv_obj_create(parent);
     lv_obj_set_size(container, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(container, 0, 0);
@@ -65,7 +65,7 @@ static void add_memory_bar(lv_obj_t* parent, const char* label, size_t used, siz
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
-static void on_show(App& app, lv_obj_t* parent) {
+static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -83,8 +83,8 @@ static void on_show(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
-    add_memory_bar(memory_wrapper, "Heap", get_heap_total() - get_heap_free(), get_heap_total());
-    add_memory_bar(memory_wrapper, "SPI", get_spi_total() - get_spi_free(), get_spi_total());
+    addMemoryBar(memory_wrapper, "Heap", getHeapTotal() - getHeapFree(), getHeapTotal());
+    addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
 
 #ifdef ESP_PLATFORM
     // Build info
@@ -97,8 +97,6 @@ static void on_show(App& app, lv_obj_t* parent) {
     lv_obj_t* esp_idf_version = lv_label_create(build_info_wrapper);
     lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
-
-
 }
 
 extern const Manifest manifest = {
@@ -108,7 +106,7 @@ extern const Manifest manifest = {
     .type = TypeSystem,
     .onStart = nullptr,
     .onStop = nullptr,
-    .onShow = &on_show
+    .onShow = onShow
 };
 
 } // namespace
