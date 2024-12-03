@@ -160,9 +160,6 @@ void Thread::start() {
 
     setState(&data, StateStarting);
 
-    if (data.name.empty()) {
-        tt_crash_implementation();
-    }
     uint32_t stack_depth = data.stackSize / sizeof(StackType_t);
     if (data.isStatic) {
 #if configSUPPORT_STATIC_ALLOCATION == 1
