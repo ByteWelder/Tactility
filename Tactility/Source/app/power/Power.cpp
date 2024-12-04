@@ -78,7 +78,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
     lv_obj_t* enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_ALL, data);
+    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, data);
     lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
     data->enable_switch = enable_switch;

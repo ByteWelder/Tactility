@@ -10,11 +10,11 @@ namespace tt::service::wifi::settings {
  * The SSID and secret are increased by 1 byte to facilitate string null termination.
  * This makes it easier to use the char array as a string in various places.
  */
-typedef struct {
+struct WifiApSettings {
     char ssid[TT_WIFI_SSID_LIMIT + 1];
     char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1];
     bool auto_connect;
-} WifiApSettings;
+};
 
 bool contains(const char* ssid);
 

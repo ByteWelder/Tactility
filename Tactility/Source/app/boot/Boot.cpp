@@ -20,7 +20,7 @@ namespace tt::app::boot {
 static int32_t threadCallback(void* context);
 
 struct Data {
-    Data() : thread("", 4096, threadCallback, this) {}
+    Data() : thread("boot", 4096, threadCallback, this) {}
 
     Thread thread;
 };

@@ -14,8 +14,8 @@ int dirent_filter_dot_entries(const struct dirent* entry) {
 }
 
 int dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right) {
-    bool left_is_dir = (*left)->d_type == TT_DT_DIR;
-    bool right_is_dir = (*right)->d_type == TT_DT_DIR;
+    bool left_is_dir = (*left)->d_type == TT_DT_DIR || (*left)->d_type == TT_DT_CHR;
+    bool right_is_dir = (*right)->d_type == TT_DT_DIR || (*right)->d_type == TT_DT_CHR;
     if (left_is_dir == right_is_dir) {
         return strcmp((*left)->d_name, (*right)->d_name);
     } else {

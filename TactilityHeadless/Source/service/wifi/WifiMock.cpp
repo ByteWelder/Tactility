@@ -76,6 +76,10 @@ WifiRadioState getRadioState() {
     return wifi->radio_state;
 }
 
+std::string getConnectionTarget() {
+    return "Home Wifi";
+}
+
 void scan() {
     tt_assert(wifi);
     wifi->scan_active = false; // TODO: enable and then later disable automatically
@@ -110,17 +114,17 @@ std::vector<WifiApRecord> getScanResults() {
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((WifiApRecord) {
-        .ssid = "Living Room",
+        .ssid = "No place like 127.0.0.1",
         .rssi = -67,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((WifiApRecord) {
-        .ssid = "No place like 127.0.0.1",
+        .ssid = "Pretty fly for a Wi-Fi",
         .rssi = -70,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((WifiApRecord) {
-        .ssid = "Public Wi-Fi",
+        .ssid = "An AP with a really, really long name",
         .rssi = -80,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });

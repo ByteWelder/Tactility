@@ -6,6 +6,8 @@
 #include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
 
+#define SPINNER_HEIGHT TOOLBAR_HEIGHT
+
 namespace tt::lvgl {
 
 typedef struct {
@@ -80,6 +82,7 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
 
     toolbar->action_container = lv_obj_create(obj);
     lv_obj_set_width(toolbar->action_container, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(toolbar->action_container, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(toolbar->action_container, 0, 0);
     lv_obj_set_style_border_width(toolbar->action_container, 0, 0);
 
@@ -123,7 +126,16 @@ uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callba
 lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
     auto* toolbar = (Toolbar*)obj;
     lv_obj_t* widget = lv_switch_create(toolbar->action_container);
-    lv_obj_set_pos(widget, 0, 4); // Because aligning doesn't work
+    lv_obj_set_style_margin_top(widget, 4, 0); // Because aligning doesn't work
+    return widget;
+}
+
+lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
+    auto* toolbar = (Toolbar*)obj;
+    lv_obj_t* widget = lv_spinner_create(toolbar->action_container);
+    lv_obj_set_size(widget, SPINNER_HEIGHT, SPINNER_HEIGHT);
+    lv_spinner_set_anim_params(widget, 1000, 60);
+    lv_obj_set_style_pad_all(widget, 4, 0);
     return widget;
 }
 

@@ -90,6 +90,11 @@ void scan();
 bool isScanning();
 
 /**
+ * @return true the ssid name or empty string
+ */
+std::string getConnectionTarget();
+
+/**
  * @brief Returns the access points from the last scan (if any). It only contains public APs.
  */
 std::vector<WifiApRecord> getScanResults();

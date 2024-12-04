@@ -5,6 +5,8 @@
 
 namespace tt::app::systeminfo {
 
+#define TAG "system_info"
+
 static size_t getHeapFree() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
@@ -65,6 +67,47 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
+#if configUSE_TRACE_FACILITY
+
+static const char* getTaskState(const TaskStatus_t& task) {
+    switch (task.eCurrentState) {
+        case eRunning:
+            return "running";
+        case eReady:
+            return "ready";
+        case eBlocked:
+            return "blocked";
+        case eSuspended:
+            return "suspended";
+        case eDeleted:
+            return "deleted";
+        case eInvalid:
+        default:
+            return "invalid";
+    }
+}
+
+static void addRtosTask(lv_obj_t* parent, const TaskStatus_t& task) {
+    lv_obj_t* label = lv_label_create(parent);
+    const char* name = (task.pcTaskName == nullptr || task.pcTaskName[0] == 0) ? "(unnamed)" : task.pcTaskName;
+    lv_label_set_text_fmt(label, "%s (%s)", name, getTaskState(task));
+}
+
+static void addRtosTasks(lv_obj_t* parent) {
+    UBaseType_t count = uxTaskGetNumberOfTasks();
+    TaskStatus_t* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
+    uint32_t totalRuntime = 0;
+    UBaseType_t actual = uxTaskGetSystemState(tasks, count, &totalRuntime);
+    for (int i = 0; i < actual; ++i) {
+        const TaskStatus_t& task = tasks[i];
+        TT_LOG_I(TAG, "Task: %s", task.pcTaskName);
+        addRtosTask(parent, task);
+    }
+    free(tasks);
+}
+
+#endif
+
 static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
@@ -85,6 +128,15 @@ static void onShow(App& app, lv_obj_t* parent) {
 
     addMemoryBar(memory_wrapper, "Heap", getHeapTotal() - getHeapFree(), getHeapTotal());
     addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
+
+#if configUSE_TRACE_FACILITY
+    lv_obj_t* tasks_label = lv_label_create(wrapper);
+    lv_label_set_text(tasks_label, "Tasks");
+    lv_obj_t* tasks_wrapper = lv_obj_create(wrapper);
+    lv_obj_set_flex_flow(tasks_wrapper, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_size(tasks_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    addRtosTasks(tasks_wrapper);
+#endif
 
 #ifdef ESP_PLATFORM
     // Build info

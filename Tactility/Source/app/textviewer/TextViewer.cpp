@@ -25,9 +25,10 @@ static void onShow(App& app, lv_obj_t* parent) {
     const Bundle& bundle = app.getParameters();
     std::string file_argument;
     if (bundle.optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
-        std::string prefixed_path = "A:" + file_argument;
-        TT_LOG_I(TAG, "Opening %s", prefixed_path.c_str());
-        lvgl::label_set_text_file(label, prefixed_path.c_str());
+        TT_LOG_I(TAG, "Opening %s", file_argument.c_str());
+        lvgl::label_set_text_file(label, file_argument.c_str());
+    } else {
+        lv_label_set_text_fmt(label, "Failed to load %s", file_argument.c_str());
     }
 }
 
