@@ -54,6 +54,15 @@ static void connect(lv_event_t* event) {
     }
 }
 
+static void showDetails(lv_event_t* event) {
+    lv_obj_t* wrapper = lv_event_get_current_target_obj(event);
+    // Hack: Get the hidden label with the ssid
+    lv_obj_t* ssid_label = lv_obj_get_child(wrapper, 1);
+    const char* ssid = lv_label_get_text(ssid_label);
+    auto* bindings = (Bindings*)lv_event_get_user_data(event);
+    bindings->onShowApSettings(ssid);
+}
+
 void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRecord& record, bool isConnecting) {
     lv_obj_t* wrapper = lv_obj_create(networks_list);
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_CLICKED, bindings);
@@ -66,18 +75,25 @@ void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRec
     lv_obj_t* label = lv_label_create(wrapper);
     lv_obj_align(label, LV_ALIGN_LEFT_MID, 0, 0);
     lv_label_set_text(label, record.ssid.c_str());
+    lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    lv_obj_set_width(label, LV_PCT(70));
 
     lv_obj_t* info_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_size(info_wrapper, 36, 36);
     lv_obj_set_style_pad_all(info_wrapper, 0, 0);
     lv_obj_set_style_margin_all(info_wrapper, 0, 0);
+    lv_obj_set_size(info_wrapper, 36, 36);
     lv_obj_set_style_border_color(info_wrapper, lv_theme_get_color_primary(info_wrapper), 0);
+    lv_obj_add_event_cb(info_wrapper, &showDetails, LV_EVENT_CLICKED, bindings);
+    lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
 
     lv_obj_t* info_label = lv_label_create(info_wrapper);
     lv_label_set_text(info_label, "i");
+    // Hack: Create a hidden label to store data and pass it to the callback
+    lv_obj_t* ssid_label = lv_label_create(info_wrapper);
+    lv_label_set_text(ssid_label, record.ssid.c_str());
+    lv_obj_add_flag(ssid_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_text_color(info_label, lv_theme_get_color_primary(info_wrapper), 0);
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
 
     if (isConnecting) {
         lv_obj_t* connecting_spinner = lv_spinner_create(wrapper);
@@ -89,7 +105,7 @@ void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRec
         const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
         lv_obj_t* image = lv_image_create(wrapper);
         lv_image_set_src(image, icon);
-        lv_obj_align_to(image, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
+        lv_obj_align(image, LV_ALIGN_RIGHT_MID, -50, 0);
     }
 }
 
@@ -208,7 +224,7 @@ void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
     scanning_spinner = lvgl::toolbar_add_spinner_action(toolbar);
 
     enable_switch = lvgl::toolbar_add_switch_action(toolbar);
-    lv_obj_add_event_cb(enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
+    lv_obj_add_event_cb(enable_switch, on_enable_switch_changed, LV_EVENT_VALUE_CHANGED, bindings);
 
     // Wrappers
 
@@ -233,7 +249,7 @@ void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
     lv_obj_align(enable_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
     enable_on_boot_switch = lv_switch_create(wrapper);
-    lv_obj_add_event_cb(enable_on_boot_switch, on_enable_on_boot_switch_changed, LV_EVENT_ALL, bindings);
+    lv_obj_add_event_cb(enable_on_boot_switch, on_enable_on_boot_switch_changed, LV_EVENT_VALUE_CHANGED, bindings);
     lv_obj_align(enable_on_boot_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     // Networks

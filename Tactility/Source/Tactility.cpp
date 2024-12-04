@@ -49,6 +49,7 @@ namespace app {
     namespace selectiondialog { extern const Manifest manifest; }
     namespace systeminfo { extern const Manifest manifest; }
     namespace textviewer { extern const Manifest manifest; }
+    namespace wifiapsettings { extern const Manifest manifest; }
     namespace wificonnect { extern const Manifest manifest; }
     namespace wifimanage { extern const Manifest manifest; }
 }
@@ -70,6 +71,7 @@ static const std::vector<const app::Manifest*> system_apps = {
     &app::selectiondialog::manifest,
     &app::systeminfo::manifest,
     &app::textviewer::manifest,
+    &app::wifiapsettings::manifest,
     &app::wificonnect::manifest,
     &app::wifimanage::manifest,
 #ifndef ESP_PLATFORM

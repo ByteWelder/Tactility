@@ -1,13 +1,14 @@
 #include "WifiManage.h"
+#include "View.h"
+#include "State.h"
 
 #include "app/App.h"
 #include "app/wificonnect/Parameters.h"
+#include "app/wifiapsettings/WifiApSettings.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/WifiSettings.h"
 #include "lvgl/LvglSync.h"
-#include "View.h"
-#include "State.h"
 
 namespace tt::app::wifimanage {
 
@@ -27,6 +28,10 @@ static void onConnect(const char* ssid) {
     }
 }
 
+static void onShowApSettings(const char* ssid) {
+    wifiapsettings::start(ssid);
+}
+
 static void onDisconnect() {
     service::wifi::disconnect();
 }
@@ -37,9 +42,10 @@ static void onWifiToggled(bool enabled) {
 
 WifiManage::WifiManage() {
     bindings = (Bindings) {
-        .onWifiToggled = &onWifiToggled,
-        .onConnectSsid = &onConnect,
-        .onDisconnect = &onDisconnect
+        .onWifiToggled = onWifiToggled,
+        .onConnectSsid = onConnect,
+        .onDisconnect = onDisconnect,
+        .onShowApSettings = onShowApSettings
     };
 }
 
