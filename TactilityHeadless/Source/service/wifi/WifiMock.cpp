@@ -76,6 +76,10 @@ WifiRadioState getRadioState() {
     return wifi->radio_state;
 }
 
+std::string getConnectionTarget() {
+    return "Home Wifi";
+}
+
 void scan() {
     tt_assert(wifi);
     wifi->scan_active = false; // TODO: enable and then later disable automatically

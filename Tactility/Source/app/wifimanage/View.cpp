@@ -13,7 +13,6 @@
 namespace tt::app::wifimanage {
 
 #define TAG "wifi_main_view"
-#define SPINNER_HEIGHT 40
 
 static void on_enable_switch_changed(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
@@ -42,41 +41,99 @@ static void on_disconnect_pressed(lv_event_t* event) {
 // region Secondary updates
 
 static void connect(lv_event_t* event) {
-    lv_obj_t* button = lv_event_get_current_target_obj(event);
+    lv_obj_t* wrapper = lv_event_get_current_target_obj(event);
     // Assumes that the second child of the button is a label ... risky
-    lv_obj_t* label = lv_obj_get_child(button, 1);
+    lv_obj_t* label = lv_obj_get_child(wrapper, 0);
     // We get the SSID from the button label because it's safer than alloc'ing
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
-    TT_LOG_I(TAG, "Clicked AP: %s", ssid);
-    auto* bindings = static_cast<Bindings*>(lv_event_get_user_data(event));
-    bindings->onConnectSsid(ssid);
+    if (ssid != nullptr) {
+        TT_LOG_I(TAG, "Clicked AP: %s", ssid);
+        auto* bindings = (Bindings*)lv_event_get_user_data(event);
+        bindings->onConnectSsid(ssid);
+    }
 }
 
-void View::createNetworkButton(Bindings* bindings, const service::wifi::WifiApRecord& record) {
-    const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
-    lv_obj_t* ap_button = lv_list_add_btn(
-        networks_list,
-        icon,
-        record.ssid.c_str()
-    );
-    lv_obj_add_event_cb(ap_button, &connect, LV_EVENT_CLICKED, bindings);
+void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRecord& record, bool isConnecting) {
+    lv_obj_t* wrapper = lv_obj_create(networks_list);
+    lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_CLICKED, bindings);
+    lv_obj_set_user_data(wrapper, bindings);
+    lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lvgl::obj_set_style_no_padding(wrapper);
+    lv_obj_set_style_margin_all(wrapper, 0, 0);
+    lv_obj_set_style_border_width(wrapper, 0, 0);
+
+    lv_obj_t* label = lv_label_create(wrapper);
+    lv_obj_align(label, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_text(label, record.ssid.c_str());
+
+    lv_obj_t* info_wrapper = lv_obj_create(wrapper);
+    lv_obj_set_size(info_wrapper, 36, 36);
+    lv_obj_set_style_pad_all(info_wrapper, 0, 0);
+    lv_obj_set_style_margin_all(info_wrapper, 0, 0);
+    lv_obj_set_style_border_color(info_wrapper, lv_theme_get_color_primary(info_wrapper), 0);
+
+    lv_obj_t* info_label = lv_label_create(info_wrapper);
+    lv_label_set_text(info_label, "i");
+    lv_obj_set_style_text_color(info_label, lv_theme_get_color_primary(info_wrapper), 0);
+    lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
+
+    if (isConnecting) {
+        lv_obj_t* connecting_spinner = lv_spinner_create(wrapper);
+        lv_obj_set_size(connecting_spinner, 40, 40);
+        lv_spinner_set_anim_params(connecting_spinner, 1000, 60);
+        lv_obj_set_style_pad_all(connecting_spinner, 4, 0);
+        lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
+    } else {
+        const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
+        lv_obj_t* image = lv_image_create(wrapper);
+        lv_image_set_src(image, icon);
+        lv_obj_align_to(image, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
+    }
 }
 
 void View::updateNetworkList(State* state, Bindings* bindings) {
     lv_obj_clean(networks_list);
+
     switch (state->getRadioState()) {
         case service::wifi::WIFI_RADIO_ON_PENDING:
         case service::wifi::WIFI_RADIO_ON:
         case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
         case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE: {
-            lv_obj_clear_flag(networks_label, LV_OBJ_FLAG_HIDDEN);
+
+            std::string connection_target = service::wifi::getConnectionTarget();
             auto& ap_records = state->lockApRecords();
+
+            bool is_connected = !connection_target.empty() &&
+                state->getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE;
+            bool added_connected = false;
+            if (is_connected) {
+                if (!ap_records.empty()) {
+                    for (auto &record : ap_records) {
+                        if (record.ssid == connection_target) {
+                            lv_list_add_text(networks_list, "Connected");
+                            createSsidListItem(bindings, record, false);
+                            added_connected = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            lv_list_add_text(networks_list, "Other networks");
             std::set<std::string> used_ssids;
             if (!ap_records.empty()) {
                 for (auto& record : ap_records) {
                     if (used_ssids.find(record.ssid) == used_ssids.end()) {
-                        createNetworkButton(bindings, record);
+                        bool connection_target_match = (record.ssid == connection_target);
+                        bool is_connecting = connection_target_match
+                            && state->getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_PENDING &&
+                            !connection_target.empty();
+                        bool skip = connection_target_match && added_connected;
+                        if (!skip) {
+                            createSsidListItem(bindings, record, is_connecting);
+                        }
                         used_ssids.insert(record.ssid);
                     }
                 }
@@ -94,7 +151,6 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
         case service::wifi::WIFI_RADIO_OFF_PENDING:
         case service::wifi::WIFI_RADIO_OFF: {
             lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-            lv_obj_add_flag(networks_label, LV_OBJ_FLAG_HIDDEN);
             break;
         }
     }
@@ -138,19 +194,6 @@ void View::updateEnableOnBootToggle() {
     }
 }
 
-void View::updateConnectedAp(State* state, TT_UNUSED Bindings* bindings) {
-    switch (state->getRadioState()) {
-        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
-        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
-            lv_obj_clear_flag(connected_ap_container, LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text(connected_ap_label, state->getConnectSsid().c_str());
-            break;
-        default:
-            lv_obj_add_flag(connected_ap_container, LV_OBJ_FLAG_HIDDEN);
-            break;
-    }
-}
-
 // endregion Secondary updates
 
 // region Main
@@ -158,72 +201,50 @@ void View::updateConnectedAp(State* state, TT_UNUSED Bindings* bindings) {
 void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
     root = parent;
 
+    // Toolbar
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
+
+    scanning_spinner = lvgl::toolbar_add_spinner_action(toolbar);
 
     enable_switch = lvgl::toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(enable_switch, on_enable_switch_changed, LV_EVENT_ALL, bindings);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+    // Wrappers
 
-    // Top row: enable/disable
-    lv_obj_t* switch_container = lv_obj_create(wrapper);
-    lv_obj_set_width(switch_container, LV_PCT(100));
-    lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(switch_container);
-    lvgl::obj_set_style_bg_invisible(switch_container);
+    lv_obj_t* secondary_flex = lv_obj_create(parent);
+    lv_obj_set_width(secondary_flex, LV_PCT(100));
+    lv_obj_set_flex_grow(secondary_flex, 1);
+    lv_obj_set_flex_flow(secondary_flex, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_border_width(secondary_flex, 0, 0);
+    lvgl::obj_set_style_no_padding(secondary_flex);
+    lvgl::obj_set_style_bg_invisible(secondary_flex);
 
-    lv_obj_t* enable_label = lv_label_create(switch_container);
+    // align() methods don't work on flex, so we need this extra wrapper
+    lv_obj_t* wrapper = lv_obj_create(secondary_flex);
+    lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lvgl::obj_set_style_bg_invisible(wrapper);
+    lv_obj_set_style_border_width(wrapper, 0, 0);
+
+    // Enable on boot
+
+    lv_obj_t* enable_label = lv_label_create(wrapper);
     lv_label_set_text(enable_label, "Enable on boot");
-    lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
+    lv_obj_align(enable_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
-    enable_on_boot_switch = lv_switch_create(switch_container);
+    enable_on_boot_switch = lv_switch_create(wrapper);
     lv_obj_add_event_cb(enable_on_boot_switch, on_enable_on_boot_switch_changed, LV_EVENT_ALL, bindings);
-    lv_obj_set_align(enable_on_boot_switch, LV_ALIGN_RIGHT_MID);
-
-    connected_ap_container = lv_obj_create(wrapper);
-    lv_obj_set_size(connected_ap_container, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_min_height(connected_ap_container, SPINNER_HEIGHT, 0);
-    lvgl::obj_set_style_no_padding(connected_ap_container);
-    lv_obj_set_style_border_width(connected_ap_container, 0, 0);
-
-    connected_ap_label = lv_label_create(connected_ap_container);
-    lv_obj_align(connected_ap_label, LV_ALIGN_LEFT_MID, 0, 0);
-
-    lv_obj_t* disconnect_button = lv_btn_create(connected_ap_container);
-    lv_obj_add_event_cb(disconnect_button, &on_disconnect_pressed, LV_EVENT_CLICKED, bindings);
-    lv_obj_t* disconnect_label = lv_label_create(disconnect_button);
-    lv_label_set_text(disconnect_label, "Disconnect");
-    lv_obj_align(disconnect_button, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(enable_on_boot_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     // Networks
-
-    lv_obj_t* networks_header = lv_obj_create(wrapper);
-    lv_obj_set_size(networks_header, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_min_height(networks_header, SPINNER_HEIGHT, 0);
-    lvgl::obj_set_style_no_padding(networks_header);
-    lv_obj_set_style_border_width(networks_header, 0, 0);
-
-    networks_label = lv_label_create(networks_header);
-    lv_label_set_text(networks_label, "Networks");
-    lv_obj_align(networks_label, LV_ALIGN_LEFT_MID, 0, 0);
-
-    scanning_spinner = lv_spinner_create(networks_header);
-    lv_spinner_set_anim_params(scanning_spinner, 1000, 60);
-    lv_obj_set_size(scanning_spinner, SPINNER_HEIGHT, SPINNER_HEIGHT);
-    lv_obj_set_style_pad_top(scanning_spinner, 4, 0);
-    lv_obj_set_style_pad_bottom(scanning_spinner, 4, 0);
-    lv_obj_align_to(scanning_spinner, networks_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
 
     networks_list = lv_obj_create(wrapper);
     lv_obj_set_flex_flow(networks_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(networks_list, LV_PCT(100));
     lv_obj_set_height(networks_list, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_top(networks_list, 8, 0);
-    lv_obj_set_style_pad_bottom(networks_list, 8, 0);
+    lv_obj_set_style_pad_top(networks_list, 0, 0);
+    lv_obj_set_style_pad_bottom(networks_list, 0, 0);
+    lv_obj_align(networks_list, LV_ALIGN_TOP_LEFT, 0, 44);
 }
 
 void View::update(Bindings* bindings, State* state) {
@@ -231,7 +252,6 @@ void View::update(Bindings* bindings, State* state) {
     updateEnableOnBootToggle();
     updateScanning(state);
     updateNetworkList(state, bindings);
-    updateConnectedAp(state, bindings);
 }
 
 } // namespace

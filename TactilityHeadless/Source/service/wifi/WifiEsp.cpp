@@ -116,6 +116,25 @@ WifiRadioState getRadioState() {
     return state;
 }
 
+std::string getConnectionTarget() {
+    lock(wifi_singleton);
+    std::string result;
+    switch (wifi_singleton->radio_state) {
+        case WIFI_RADIO_CONNECTION_PENDING:
+        case WIFI_RADIO_CONNECTION_ACTIVE:
+            result = wifi_singleton->connection_target.ssid;
+            break;
+        case WIFI_RADIO_ON:
+        case WIFI_RADIO_ON_PENDING:
+        case WIFI_RADIO_OFF_PENDING:
+        case WIFI_RADIO_OFF:
+            result = "";
+            break;
+    }
+    unlock(wifi_singleton);
+    return result;
+}
+
 void scan() {
     TT_LOG_I(TAG, "scan()");
     tt_assert(wifi_singleton);
