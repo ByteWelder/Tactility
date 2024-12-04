@@ -82,6 +82,7 @@ static const char* getTaskState(const TaskStatus_t& task) {
         case eDeleted:
             return "deleted";
         case eInvalid:
+        default:
             return "invalid";
     }
 }
