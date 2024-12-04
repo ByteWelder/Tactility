@@ -133,6 +133,7 @@ static void onFilePressed(lv_event_t* event) {
 
         switch (dir_entry->d_type) {
             case TT_DT_DIR:
+            case TT_DT_CHR:
                 data_set_entries_for_child_path(files_data, dir_entry->d_name);
                 updateViews(files_data);
                 break;
@@ -155,7 +156,7 @@ static void createFileWidget(Data* files_data, lv_obj_t* parent, struct dirent* 
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
     const char* symbol;
-    if (dir_entry->d_type == TT_DT_DIR) {
+    if (dir_entry->d_type == TT_DT_DIR || dir_entry->d_type == TT_DT_CHR) {
         symbol = LV_SYMBOL_DIRECTORY;
     } else if (isSupportedImageFile(dir_entry->d_name)) {
         symbol = LV_SYMBOL_IMAGE;
