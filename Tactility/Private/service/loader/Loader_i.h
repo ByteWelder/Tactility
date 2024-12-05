@@ -9,6 +9,7 @@
 #include "service/loader/Loader.h"
 #include "RtosCompatSemaphore.h"
 #include <stack>
+#include <utility>
 
 namespace tt::service::loader {
 
@@ -62,14 +63,14 @@ typedef enum {
 class LoaderMessageAppStart {
 public:
     std::string id;
-    Bundle bundle;
+    std::shared_ptr<const Bundle> _Nullable parameters;
 
     LoaderMessageAppStart() = default;
 
-    LoaderMessageAppStart(const std::string& id, const Bundle& bundle) {
-        this->id = id;
-        this->bundle = bundle;
-    }
+    LoaderMessageAppStart(const std::string& id, std::shared_ptr<const Bundle> parameters) :
+        id(id),
+        parameters(std::move(parameters))
+    {}
 };
 
 typedef struct {

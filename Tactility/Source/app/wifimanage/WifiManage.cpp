@@ -21,9 +21,9 @@ static void onConnect(const char* ssid) {
         service::wifi::connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
-        Bundle bundle;
-        bundle.putString(WIFI_CONNECT_PARAM_SSID, ssid);
-        bundle.putString(WIFI_CONNECT_PARAM_PASSWORD, "");
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        bundle->putString(WIFI_CONNECT_PARAM_SSID, ssid);
+        bundle->putString(WIFI_CONNECT_PARAM_PASSWORD, "");
         service::loader::startApp("WifiConnect", false, bundle);
     }
 }
@@ -133,26 +133,19 @@ void WifiManage::onHide(TT_UNUSED AppContext& app) {
 // region Manifest methods
 
 static void onStart(AppContext& app) {
-    auto* wifi = new WifiManage();
+    auto wifi = std::shared_ptr<WifiManage>(new WifiManage());
     app.setData(wifi);
 }
 
-static void onStop(AppContext& app) {
-    auto* wifi = (WifiManage*)app.getData();
-    tt_assert(wifi != nullptr);
-    delete wifi;
-}
-
 static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto* wifi = (WifiManage*)app.getData();
+    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
     wifi->onShow(app, parent);
 }
 
 static void onHide(AppContext& app) {
-    auto* wifi = (WifiManage*)app.getData();
+    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
     wifi->onHide(app);
 }
-
 
 // endregion
 
@@ -162,7 +155,6 @@ extern const AppManifest manifest = {
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

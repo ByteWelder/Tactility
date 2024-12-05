@@ -11,7 +11,7 @@ static void onAppPressed(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        service::loader::startApp(manifest->id, false, Bundle());
+        service::loader::startApp(manifest->id, false);
     }
 }
 

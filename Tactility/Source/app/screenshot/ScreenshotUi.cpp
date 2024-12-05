@@ -3,6 +3,7 @@
 #include "TactilityCore.h"
 #include "hal/sdcard/Sdcard.h"
 #include "service/gui/Gui.h"
+#include "service/loader/Loader.h"
 #include "service/screenshot/Screenshot.h"
 #include "lvgl/Toolbar.h"
 
@@ -10,29 +11,24 @@ namespace tt::app::screenshot {
 
 #define TAG "screenshot_ui"
 
-static void update_mode(ScreenshotUi* ui) {
-    lv_obj_t* label = ui->start_stop_button_label;
-    if (service::screenshot::isStarted()) {
-        lv_label_set_text(label, "Stop");
-    } else {
-        lv_label_set_text(label, "Start");
-    }
+extern AppManifest manifest;
+static void update_mode(std::shared_ptr<ScreenshotUi> ui);
 
-    uint32_t selected = lv_dropdown_get_selected(ui->mode_dropdown);
-    if (selected == 0) { // Timer
-        lv_obj_remove_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<ScreenshotUi> _Nullable optScreenshotUi() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<ScreenshotUi>(app->getData());
     } else {
-        lv_obj_add_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
+        return nullptr;
     }
-}
-
-static void on_mode_set(lv_event_t* event) {
-    auto* ui = (ScreenshotUi*)lv_event_get_user_data(event);
-    update_mode(ui);
 }
 
 static void on_start_pressed(lv_event_t* event) {
-    auto* ui = static_cast<ScreenshotUi*>(lv_event_get_user_data(event));
+    auto ui = optScreenshotUi();
+    if (ui == nullptr) {
+        return;
+    }
 
     if (service::screenshot::isStarted()) {
         TT_LOG_I(TAG, "Stop screenshot");
@@ -58,7 +54,30 @@ static void on_start_pressed(lv_event_t* event) {
     update_mode(ui);
 }
 
-static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
+static void update_mode(std::shared_ptr<ScreenshotUi> ui) {
+    lv_obj_t* label = ui->start_stop_button_label;
+    if (service::screenshot::isStarted()) {
+        lv_label_set_text(label, "Stop");
+    } else {
+        lv_label_set_text(label, "Start");
+    }
+
+    uint32_t selected = lv_dropdown_get_selected(ui->mode_dropdown);
+    if (selected == 0) { // Timer
+        lv_obj_remove_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(ui->timer_wrapper, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+static void on_mode_set(lv_event_t* event) {
+    auto ui = optScreenshotUi();
+    if (ui != nullptr) {
+        update_mode(ui);
+    }
+}
+
+static void create_mode_setting_ui(std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_obj_t* mode_wrapper = lv_obj_create(parent);
     lv_obj_set_size(mode_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(mode_wrapper, 0, 0);
@@ -71,7 +90,7 @@ static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_t* mode_dropdown = lv_dropdown_create(mode_wrapper);
     lv_dropdown_set_options(mode_dropdown, "Timer\nApp start");
     lv_obj_align_to(mode_dropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
-    lv_obj_add_event_cb(mode_dropdown, on_mode_set, LV_EVENT_VALUE_CHANGED, ui);
+    lv_obj_add_event_cb(mode_dropdown, on_mode_set, LV_EVENT_VALUE_CHANGED, nullptr);
     ui->mode_dropdown = mode_dropdown;
     service::screenshot::Mode mode = service::screenshot::getMode();
     if (mode == service::screenshot::ScreenshotModeApps) {
@@ -83,10 +102,10 @@ static void create_mode_setting_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_obj_t* button_label = lv_label_create(button);
     lv_obj_align(button_label, LV_ALIGN_CENTER, 0, 0);
     ui->start_stop_button_label = button_label;
-    lv_obj_add_event_cb(button, &on_start_pressed, LV_EVENT_CLICKED, ui);
+    lv_obj_add_event_cb(button, &on_start_pressed, LV_EVENT_CLICKED, nullptr);
 }
 
-static void create_path_ui(ScreenshotUi* ui, lv_obj_t* parent) {
+static void create_path_ui(std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_obj_t* path_wrapper = lv_obj_create(parent);
     lv_obj_set_size(path_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(path_wrapper, 0, 0);
@@ -116,7 +135,7 @@ static void create_path_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     }
 }
 
-static void create_timer_settings_ui(ScreenshotUi* ui, lv_obj_t* parent) {
+static void create_timer_settings_ui(std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_obj_t* timer_wrapper = lv_obj_create(parent);
     lv_obj_set_size(timer_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(timer_wrapper, 0, 0);
@@ -153,7 +172,7 @@ static void create_timer_settings_ui(ScreenshotUi* ui, lv_obj_t* parent) {
     lv_label_set_text(delay_unit_label, "seconds");
 }
 
-void create_ui(const AppContext& app, ScreenshotUi* ui, lv_obj_t* parent) {
+void create_ui(const AppContext& app, std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);

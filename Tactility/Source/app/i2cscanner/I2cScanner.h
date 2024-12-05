@@ -5,6 +5,7 @@
 #include <Thread.h>
 #include "lvgl.h"
 #include "hal/i2c/I2c.h"
+#include <memory>
 
 namespace tt::app::i2cscanner {
 
@@ -30,6 +31,6 @@ struct Data {
     lv_obj_t* scanListWidget = nullptr;
 };
 
-void onThreadFinished(Data* data);
+void onThreadFinished(std::shared_ptr<Data> data);
 
 }

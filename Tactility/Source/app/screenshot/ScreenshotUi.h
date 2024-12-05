@@ -13,6 +13,6 @@ typedef struct {
     lv_obj_t* delay_textarea;
 } ScreenshotUi;
 
-void create_ui(const AppContext& app, ScreenshotUi* ui, lv_obj_t* parent);
+void create_ui(const AppContext& app, std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent);
 
 } // namespace

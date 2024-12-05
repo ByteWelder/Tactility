@@ -40,21 +40,24 @@ void AppInstance::setFlags(Flags newFlags) {
     mutex.release();
 }
 
-_Nullable void* AppInstance::getData() const {
+std::shared_ptr<void> _Nullable AppInstance::getData() const {
     mutex.acquire(TtWaitForever);
     auto result = data;
     mutex.release();
     return result;
 }
 
-void AppInstance::setData(void* newData) {
+void AppInstance::setData(std::shared_ptr<void> newData) {
     mutex.acquire(TtWaitForever);
     data = newData;
     mutex.release();
 }
 
-const Bundle& AppInstance::getParameters() const {
-    return parameters;
+std::shared_ptr<const Bundle> AppInstance::getParameters() const {
+    mutex.acquire(TtWaitForever);
+    std::shared_ptr<const Bundle> result = parameters;
+    mutex.release();
+    return result;
 }
 
 void AppInstance::setResult(Result result) {

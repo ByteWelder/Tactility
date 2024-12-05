@@ -49,7 +49,7 @@ static int32_t threadCallback(TT_UNUSED void* context) {
 }
 
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
-    Data* data = (Data*)app.getData();
+    auto data = std::static_pointer_cast<Data>(app.getData());
 
     lv_obj_t* image = lv_image_create(parent);
     lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
@@ -60,15 +60,13 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
 }
 
 static void onStart(AppContext& app) {
-    Data* data = new Data();
+    auto data = std::shared_ptr<Data>(new Data());
     app.setData(data);
 }
 
 static void onStop(AppContext& app) {
-    Data* data = (Data*)app.getData();
+    auto data = std::static_pointer_cast<Data>(app.getData());
     data->thread.join();
-    tt_assert(data);
-    delete data;
 }
 
 extern const AppManifest manifest = {

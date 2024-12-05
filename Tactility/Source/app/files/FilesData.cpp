@@ -26,40 +26,16 @@ static bool get_child_path(char* base_path, const char* child_path, char* out_pa
     }
 }
 
-Data* data_alloc() {
-    auto* data = static_cast<Data*>(malloc(sizeof(Data)));
-    *data = (Data) {
-        .current_path = { 0x00 },
-        .dir_entries = nullptr,
-        .dir_entries_count = 0
-    };
-    return data;
-}
-
-void data_free(Data* data) {
-    data_free_entries(data);
-    free(data);
-}
-
-void data_free_entries(Data* data) {
-    for (int i = 0; i < data->dir_entries_count; ++i) {
-        free(data->dir_entries[i]);
-    }
-    free(data->dir_entries);
-    data->dir_entries = nullptr;
-    data->dir_entries_count = 0;
-}
-
-static void data_set_entries(Data* data, struct dirent** entries, int count) {
+static void data_set_entries(std::shared_ptr<Data> data, struct dirent** entries, int count) {
     if (data->dir_entries != nullptr) {
-        data_free_entries(data);
+        data->freeEntries();
     }
 
     data->dir_entries = entries;
     data->dir_entries_count = count;
 }
 
-bool data_set_entries_for_path(Data* data, const char* path) {
+bool data_set_entries_for_path(std::shared_ptr<Data> data, const char* path) {
     TT_LOG_I(TAG, "Changing path: %s -> %s", data->current_path, path);
 
     /**
@@ -100,7 +76,7 @@ bool data_set_entries_for_path(Data* data, const char* path) {
     }
 }
 
-bool data_set_entries_for_child_path(Data* data, const char* child_path) {
+bool data_set_entries_for_child_path(std::shared_ptr<Data> data, const char* child_path) {
     char new_absolute_path[MAX_PATH_LENGTH + 1];
     if (get_child_path(data->current_path, child_path, new_absolute_path, MAX_PATH_LENGTH)) {
         TT_LOG_I(TAG, "Navigating from %s to %s", data->current_path, new_absolute_path);

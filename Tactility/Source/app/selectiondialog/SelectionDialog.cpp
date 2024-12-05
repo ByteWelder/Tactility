@@ -1,9 +1,9 @@
 #include "SelectionDialog.h"
-#include "Log.h"
 #include "lvgl.h"
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include <StringUtils.h>
+#include <TactilityCore.h>
 
 namespace tt::app::selectiondialog {
 
@@ -35,9 +35,9 @@ void setTitleParameter(Bundle& bundle, const std::string& title) {
     bundle.putString(PARAMETER_BUNDLE_KEY_TITLE, title);
 }
 
-static std::string getTitleParameter(const Bundle& bundle) {
+static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
     std::string result;
-    if (bundle.optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
+    if (bundle->optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
         return result;
     } else {
         return DEFAULT_TITLE;
@@ -72,9 +72,10 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
 
-    const Bundle& parameters = app.getParameters();
+    auto parameters = app.getParameters();
+    tt_check(parameters != nullptr, "No parameters");
     std::string items_concatenated;
-    if (parameters.optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
+    if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
         std::vector<std::string> items = string_split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
         if (items.empty() || items.front().empty()) {
             TT_LOG_E(TAG, "No items provided");

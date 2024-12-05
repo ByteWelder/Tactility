@@ -5,6 +5,7 @@
 #include "Bundle.h"
 #include "Mutex.h"
 #include <memory>
+#include <utility>
 
 namespace tt::app {
 
@@ -46,43 +47,43 @@ private:
      * When these are stored in the app struct, the struct takes ownership.
      * Do not mutate after app creation.
      */
-    tt::Bundle parameters;
+    std::shared_ptr<const tt::Bundle> _Nullable parameters;
     /** @brief @brief Contextual data related to the running app's instance
      * The app can attach its data to this.
      * The lifecycle is determined by the on_start and on_stop methods in the AppManifest.
      * These manifest methods can optionally allocate/free data that is attached here.
      */
-    void* _Nullable data = nullptr;
-    std::unique_ptr<ResultHolder> resultHolder;
+    std::shared_ptr<void> _Nullable data;
+    std::unique_ptr<ResultHolder> _Nullable resultHolder;
 
 public:
 
     explicit AppInstance(const AppManifest& manifest) :
         manifest(manifest) {}
 
-    AppInstance(const AppManifest& manifest, const Bundle& parameters) :
+    AppInstance(const AppManifest& manifest, std::shared_ptr<const Bundle> parameters) :
         manifest(manifest),
-        parameters(parameters) {}
+        parameters(std::move(parameters)) {}
 
     ~AppInstance() override = default;
 
     void setState(State state);
-    State getState() const;
+    [[nodiscard]] State getState() const;
 
-    const AppManifest& getManifest() const override;
+    [[nodiscard]] const AppManifest& getManifest() const override;
 
-    Flags getFlags() const override;
+    [[nodiscard]] Flags getFlags() const override;
     void setFlags(Flags flags);
     Flags& mutableFlags() { return flags; } // TODO: locking mechanism
 
-    _Nullable void* getData() const override;
-    void setData(void* data) override;
+    [[nodiscard]] std::shared_ptr<void> _Nullable getData() const override;
+    void setData(std::shared_ptr<void> data) override;
 
-    const Bundle& getParameters() const override;
+    [[nodiscard]] std::shared_ptr<const Bundle> getParameters() const override;
 
     void setResult(Result result) override;
     void setResult(Result result, const Bundle& bundle) override;
-    bool hasResult() const override;
+    [[nodiscard]] bool hasResult() const override;
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };
 

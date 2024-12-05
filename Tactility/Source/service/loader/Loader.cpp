@@ -63,7 +63,7 @@ static void loader_unlock() {
     tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
 }
 
-LoaderStatus startApp(const std::string& id, bool blocking, const Bundle& arguments) {
+LoaderStatus startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
 
@@ -71,7 +71,7 @@ LoaderStatus startApp(const std::string& id, bool blocking, const Bundle& argume
         .value = LoaderStatusOk
     };
 
-    auto* start_message = new LoaderMessageAppStart(id, arguments);
+    auto* start_message = new LoaderMessageAppStart(id, parameters);
     LoaderMessage message(start_message, result);
 
     EventFlag* event_flag = blocking ? new EventFlag() : nullptr;
@@ -188,14 +188,14 @@ static void app_transition_to_state(app::AppInstance& app, app::State state) {
 
 static LoaderStatus loader_do_start_app_with_manifest(
     const app::AppManifest* manifest,
-    const Bundle& bundle
+    std::shared_ptr<const Bundle> _Nullable parameters
 ) {
     TT_LOG_I(TAG, "start with manifest %s", manifest->id.c_str());
 
     loader_lock();
 
     auto previous_app = !loader_singleton->app_stack.empty() ? loader_singleton->app_stack.top() : nullptr;
-    auto new_app = new app::AppInstance(*manifest, bundle);
+    auto new_app = new app::AppInstance(*manifest, parameters);
     new_app->mutableFlags().showStatusbar = (manifest->type != app::TypeBoot);
 
     loader_singleton->app_stack.push(new_app);
@@ -227,7 +227,7 @@ static LoaderStatus loader_do_start_app_with_manifest(
 
 static LoaderStatus do_start_by_id(
     const std::string& id,
-    const Bundle& bundle
+    std::shared_ptr<const Bundle> _Nullable parameters
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
@@ -236,7 +236,7 @@ static LoaderStatus do_start_by_id(
         TT_LOG_E(TAG, "App not found: %s", id.c_str());
         return LoaderStatusErrorUnknownApp;
     } else {
-        return loader_do_start_app_with_manifest(manifest, bundle);
+        return loader_do_start_app_with_manifest(manifest, parameters);
     }
 }
 
@@ -335,7 +335,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
                 case LoaderMessageTypeAppStart:
                     message.result.status_value.value = do_start_by_id(
                         message.payload.start->id,
-                        message.payload.start->bundle
+                        message.payload.start->parameters
                     );
                     if (message.api_lock != nullptr) {
                         message.api_lock->set(TT_API_LOCK_EVENT);

@@ -10,6 +10,18 @@ namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
 
+extern const AppManifest manifest;
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<WifiConnect> _Nullable optWifiConnect() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<WifiConnect>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
+
 static void eventCallback(const void* message, void* context) {
     auto* event = static_cast<const service::wifi::WifiEvent*>(message);
     auto* wifi = static_cast<WifiConnect*>(context);
@@ -92,25 +104,20 @@ void WifiConnect::onHide(AppContext& app) {
 }
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
+    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
     wifi->onShow(app, parent);
 }
 
 static void onHide(AppContext& app) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
+    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
     wifi->onHide(app);
 }
 
 static void onStart(AppContext& app) {
-    auto* wifi_connect = new WifiConnect();
-    app.setData(wifi_connect);
+    auto wifi = std::shared_ptr<WifiConnect>(new WifiConnect());
+    app.setData(wifi);
 }
 
-static void onStop(AppContext& app) {
-    auto* wifi_connect = static_cast<WifiConnect*>(app.getData());
-    tt_assert(wifi_connect != nullptr);
-    delete wifi_connect;
-}
 
 extern const AppManifest manifest = {
     .id = "WifiConnect",
@@ -118,7 +125,6 @@ extern const AppManifest manifest = {
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
     .onStart = &onStart,
-    .onStop = &onStop,
     .onShow = &onShow,
     .onHide = &onHide
 };

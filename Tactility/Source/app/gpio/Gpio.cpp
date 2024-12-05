@@ -136,7 +136,7 @@ void Gpio::stopTask() {
 
 
 void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
-    auto* gpio = (Gpio*)app.getData();
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
@@ -192,7 +192,7 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
 }
 
 void Gpio::onHide(AppContext& app) {
-    auto* gpio = (Gpio*)app.getData();
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->stopTask();
 }
 
@@ -200,23 +200,18 @@ void Gpio::onHide(AppContext& app) {
 // region App lifecycle
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto* gpio = (Gpio*)app.getData();
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->onShow(app, parent);
 }
 
 static void onHide(AppContext& app) {
-    auto* gpio = (Gpio*)app.getData();
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->onHide(app);
 }
 
 static void onStart(AppContext& app) {
-    auto* gpio = new Gpio();
+    auto gpio = std::shared_ptr<Gpio>(new Gpio());
     app.setData(gpio);
-}
-
-static void onStop(AppContext& app) {
-    auto* gpio = (Gpio*)app.getData();
-    delete gpio;
 }
 
 // endregion App lifecycle
@@ -226,7 +221,6 @@ extern const AppManifest manifest = {
     .name = "GPIO",
     .type = TypeSystem,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

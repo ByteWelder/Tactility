@@ -14,7 +14,6 @@ std::string getAddressText(uint8_t address) {
     return stream.str();
 }
 
-
 std::string getPortNamesForDropdown() {
     std::vector<std::string> config_names;
     size_t port_index = 0;

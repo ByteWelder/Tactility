@@ -3,12 +3,12 @@
 #include "Parameters.h"
 #include "WifiConnect.h"
 
-#include "Log.h"
 #include "lvgl.h"
 #include "service/gui/Gui.h"
 #include "service/wifi/WifiSettings.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include <TactilityCore.h>
 
 namespace tt::app::wificonnect {
 
@@ -187,15 +187,17 @@ void View::init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
         service::gui::keyboardAddTextArea(password_textarea);
 
     // Init from app parameters
-    const Bundle& bundle = app.getParameters();
-    std::string ssid;
-    if (bundle.optString(WIFI_CONNECT_PARAM_SSID, ssid)) {
-        lv_textarea_set_text(ssid_textarea, ssid.c_str());
-    }
+    auto bundle = app.getParameters();
+    if (bundle != nullptr) {
+        std::string ssid;
+        if (bundle->optString(WIFI_CONNECT_PARAM_SSID, ssid)) {
+            lv_textarea_set_text(ssid_textarea, ssid.c_str());
+        }
 
-    std::string password;
-    if (bundle.optString(WIFI_CONNECT_PARAM_PASSWORD, password)) {
-        lv_textarea_set_text(password_textarea, password.c_str());
+        std::string password;
+        if (bundle->optString(WIFI_CONNECT_PARAM_PASSWORD, password)) {
+            lv_textarea_set_text(password_textarea, password.c_str());
+        }
     }
 }
 

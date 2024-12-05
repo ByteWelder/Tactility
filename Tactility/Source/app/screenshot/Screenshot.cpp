@@ -1,20 +1,16 @@
 #include "ScreenshotUi.h"
+#include <memory>
 
 namespace tt::app::screenshot {
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto* ui = static_cast<ScreenshotUi*>(app.getData());
+    auto ui = std::static_pointer_cast<ScreenshotUi>(app.getData());
     create_ui(app, ui, parent);
 }
 
 static void onStart(AppContext& app) {
-    auto* ui = static_cast<ScreenshotUi*>(malloc(sizeof(ScreenshotUi)));
-    app.setData(ui);
-}
-
-static void onStop(AppContext& app) {
-    auto* ui = static_cast<ScreenshotUi*>(app.getData());
-    free(ui);
+    auto ui = std::shared_ptr<ScreenshotUi>(new ScreenshotUi());
+    app.setData(ui); // Ensure data gets deleted when no more in use
 }
 
 extern const AppManifest manifest = {
@@ -23,7 +19,6 @@ extern const AppManifest manifest = {
     .icon = LV_SYMBOL_IMAGE,
     .type = TypeSystem,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
 };
 
