@@ -283,7 +283,7 @@ static void do_stop_app() {
         auto on_result = app_to_resume->getManifest().onResult;
         if (on_result != nullptr) {
             if (result_holder != nullptr) {
-                Bundle* result_bundle = result_holder->resultData.get();
+                auto result_bundle = result_holder->resultData.get();
                 if (result_bundle != nullptr) {
                     on_result(
                         *app_to_resume,

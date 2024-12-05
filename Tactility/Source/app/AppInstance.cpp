@@ -67,8 +67,8 @@ void AppInstance::setResult(Result result) {
     mutex.release();
 }
 
-void AppInstance::setResult(Result result, const Bundle& bundle) {
-    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, bundle));
+void AppInstance::setResult(Result result, std::shared_ptr<const Bundle> bundle) {
+    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, std::move(bundle)));
     mutex.acquire(TtWaitForever);
     resultHolder = std::move(new_holder);
     mutex.release();

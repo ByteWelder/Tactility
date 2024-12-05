@@ -18,18 +18,16 @@ typedef enum {
 } State;
 
 struct ResultHolder {
-    explicit ResultHolder(Result result) {
-        this->result = result;
-        this->resultData = nullptr;
-    }
-
-    ResultHolder(Result result, const Bundle& resultData) {
-        this->result = result;
-        this->resultData = std::make_unique<Bundle>(resultData);
-    }
-
     Result result;
-    std::unique_ptr<Bundle> resultData;
+    std::shared_ptr<const Bundle> resultData;
+
+    explicit ResultHolder(Result result) : result(result), resultData(nullptr) {}
+
+    ResultHolder(Result result, std::shared_ptr<const Bundle> resultData) :
+        result(result),
+        resultData(std::move(resultData))
+    {}
+
 };
 
 /**
@@ -82,7 +80,7 @@ public:
     [[nodiscard]] std::shared_ptr<const Bundle> getParameters() const override;
 
     void setResult(Result result) override;
-    void setResult(Result result, const Bundle& bundle) override;
+    void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
     [[nodiscard]] bool hasResult() const override;
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };

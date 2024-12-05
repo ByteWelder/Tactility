@@ -31,7 +31,7 @@ public:
     [[nodiscard]] virtual std::shared_ptr<const Bundle> getParameters() const = 0;
     [[nodiscard]] virtual Flags getFlags() const = 0;
     virtual void setResult(Result result) = 0;
-    virtual void setResult(Result result, const Bundle& bundle)= 0;
+    virtual void setResult(Result result, std::shared_ptr<const Bundle> bundle)= 0;
     [[nodiscard]] virtual bool hasResult() const = 0;
 };
 

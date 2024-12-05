@@ -27,12 +27,12 @@ int32_t getResultIndex(const Bundle& bundle) {
     return index;
 }
 
-void setResultIndex(Bundle& bundle, int32_t index) {
-    bundle.putInt32(RESULT_BUNDLE_KEY_INDEX, index);
+void setResultIndex(std::shared_ptr<Bundle> bundle, int32_t index) {
+    bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, index);
 }
 
-void setTitleParameter(Bundle& bundle, const std::string& title) {
-    bundle.putString(PARAMETER_BUNDLE_KEY_TITLE, title);
+void setTitleParameter(std::shared_ptr<Bundle> bundle, const std::string& title) {
+    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
 }
 
 static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
@@ -50,7 +50,7 @@ static void onListItemSelected(lv_event_t* e) {
         size_t index = (size_t)(e->user_data);
         TT_LOG_I(TAG, "Selected item at index %d", index);
         tt::app::AppContext* app = service::loader::getCurrentApp();
-        Bundle bundle;
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
         setResultIndex(bundle, (int32_t)index);
         app->setResult(app::ResultOk, bundle);
         service::loader::stopApp();
@@ -82,7 +82,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
             app.setResult(ResultError);
             service::loader::stopApp();
         } else if (items.size() == 1) {
-            Bundle result_bundle;
+            auto result_bundle = std::shared_ptr<Bundle>(new Bundle());
             setResultIndex(result_bundle, 0);
             app.setResult(ResultOk, result_bundle);
             service::loader::stopApp();
