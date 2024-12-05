@@ -80,13 +80,13 @@ public:
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
 };
 
-static Wifi* wifi_singleton = nullptr;
+static std::shared_ptr<Wifi> wifi_singleton;
 
 // Forward declarations
-static void scan_list_free_safely(Wifi* wifi);
-static void disconnect_internal_but_keep_active(Wifi* wifi);
-static void lock(Wifi* wifi);
-static void unlock(Wifi* wifi);
+static void scan_list_free_safely(std::shared_ptr<Wifi> wifi);
+static void disconnect_internal_but_keep_active(std::shared_ptr<Wifi> wifi);
+static void lock(std::shared_ptr<Wifi> wifi);
+static void unlock(std::shared_ptr<Wifi> wifi);
 
 // region Alloc
 
@@ -253,47 +253,47 @@ int getRssi() {
 
 // endregion Public functions
 
-static void lock(Wifi* wifi) {
+static void lock(std::shared_ptr<Wifi> wifi) {
     tt_assert(wifi);
     wifi->mutex.acquire(ms_to_ticks(100));
 }
 
-static void unlock(Wifi* wifi) {
+static void unlock(std::shared_ptr<Wifi> wifi) {
     tt_assert(wifi);
     wifi->mutex.release();
 }
 
-static void scan_list_alloc(Wifi* wifi) {
+static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
     tt_assert(wifi->scan_list == nullptr);
     wifi->scan_list = static_cast<wifi_ap_record_t*>(malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit));
     wifi->scan_list_count = 0;
 }
 
-static void scan_list_alloc_safely(Wifi* wifi) {
+static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
     if (wifi->scan_list == nullptr) {
         scan_list_alloc(wifi);
     }
 }
 
-static void scan_list_free(Wifi* wifi) {
+static void scan_list_free(std::shared_ptr<Wifi> wifi) {
     tt_assert(wifi->scan_list != nullptr);
     free(wifi->scan_list);
     wifi->scan_list = nullptr;
     wifi->scan_list_count = 0;
 }
 
-static void scan_list_free_safely(Wifi* wifi) {
+static void scan_list_free_safely(std::shared_ptr<Wifi> wifi) {
     if (wifi->scan_list != nullptr) {
         scan_list_free(wifi);
     }
 }
 
-static void publish_event_simple(Wifi* wifi, WifiEventType type) {
+static void publish_event_simple(std::shared_ptr<Wifi> wifi, WifiEventType type) {
     WifiEvent turning_on_event = {.type = type};
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
-static bool copy_scan_list(Wifi* wifi) {
+static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     bool can_fetch_results = (wifi->radio_state == WIFI_RADIO_ON || wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) &&
         wifi->scan_active;
 
@@ -322,7 +322,7 @@ static bool copy_scan_list(Wifi* wifi) {
     }
 }
 
-static void auto_connect(Wifi* wifi) {
+static void auto_connect(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "auto_connect()");
     for (int i = 0; i < wifi->scan_list_count; ++i) {
         auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
@@ -389,7 +389,7 @@ static void event_handler(TT_UNUSED void* arg, esp_event_base_t event_base, int3
     unlock(wifi_singleton);
 }
 
-static void enable(Wifi* wifi) {
+static void enable(std::shared_ptr<Wifi> wifi) {
     WifiRadioState state = wifi->radio_state;
     if (
         state == WIFI_RADIO_ON ||
@@ -469,7 +469,7 @@ static void enable(Wifi* wifi) {
     TT_LOG_I(TAG, "Enabled");
 }
 
-static void disable(Wifi* wifi) {
+static void disable(std::shared_ptr<Wifi> wifi) {
     WifiRadioState state = wifi->radio_state;
     if (
         state == WIFI_RADIO_OFF ||
@@ -527,7 +527,7 @@ static void disable(Wifi* wifi) {
     TT_LOG_I(TAG, "Disabled");
 }
 
-static void scan_internal(Wifi* wifi) {
+static void scan_internal(std::shared_ptr<Wifi> wifi) {
     WifiRadioState state = wifi->radio_state;
     if (state != WIFI_RADIO_ON && state != WIFI_RADIO_CONNECTION_ACTIVE && state != WIFI_RADIO_CONNECTION_PENDING) {
         TT_LOG_W(TAG, "Scan unavailable: wifi not enabled");
@@ -548,7 +548,7 @@ static void scan_internal(Wifi* wifi) {
     }
 }
 
-static void connect_internal(Wifi* wifi) {
+static void connect_internal(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid);
 
     // Stop radio first, if needed
@@ -668,7 +668,7 @@ static void connect_internal(Wifi* wifi) {
     wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 }
 
-static void disconnect_internal_but_keep_active(Wifi* wifi) {
+static void disconnect_internal_but_keep_active(std::shared_ptr<Wifi> wifi) {
     esp_err_t stop_result = esp_wifi_stop();
     if (stop_result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
@@ -711,7 +711,7 @@ static void disconnect_internal_but_keep_active(Wifi* wifi) {
     TT_LOG_I(TAG, "Disconnected");
 }
 
-static bool shouldScanForAutoConnect(Wifi* wifi) {
+static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
     bool is_radio_in_scannable_state = wifi->radio_state == WIFI_RADIO_ON &&
         !wifi->scan_active &&
         !wifi->pause_auto_connect;
@@ -730,7 +730,7 @@ static bool shouldScanForAutoConnect(Wifi* wifi) {
 _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "Started main loop");
     tt_assert(wifi_singleton != nullptr);
-    Wifi* wifi = wifi_singleton;
+    auto wifi = wifi_singleton;
     MessageQueue& queue = wifi->queue;
 
     if (settings::shouldEnableOnBoot()) {
@@ -791,7 +791,7 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
 
 static void service_start(ServiceContext& service) {
     tt_assert(wifi_singleton == nullptr);
-    wifi_singleton = new Wifi();
+    wifi_singleton = std::make_shared<Wifi>();
     service.setData(wifi_singleton);
 }
 
@@ -803,7 +803,6 @@ static void service_stop(ServiceContext& service) {
         disable(wifi_singleton);
     }
 
-    delete wifi_singleton;
     wifi_singleton = nullptr;
 
     // wifi_main() cannot be stopped yet as it runs in the main task.

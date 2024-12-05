@@ -21,11 +21,11 @@ private:
 
 public:
 
-    void lock() {
+    void lock() const {
         tt_check(mutex.acquire(1000) == TtStatusOk);
     }
 
-    void unlock() {
+    void unlock() const {
         tt_check(mutex.release() == TtStatusOk);
     }
 
@@ -34,7 +34,7 @@ public:
 
     void startTask();
     void stopTask();
-    bool shouldInterruptTask() { return interruptTask; };
+    bool shouldInterruptTask() const { return interruptTask; };
 
     void updatePinStates();
     void updatePinWidgets();
@@ -210,7 +210,7 @@ static void onHide(AppContext& app) {
 }
 
 static void onStart(AppContext& app) {
-    auto gpio = std::shared_ptr<Gpio>(new Gpio());
+    auto gpio = std::make_shared<Gpio>();
     app.setData(gpio);
 }
 

@@ -165,7 +165,7 @@ static void onHide(AppContext& app) {
 }
 
 static void onStart(AppContext& app) {
-    auto data = std::shared_ptr<Data>(new Data());
+    auto data = std::make_shared<Data>();
     app.setData(data);
 }
 

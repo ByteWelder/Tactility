@@ -119,7 +119,7 @@ static void onHide(TT_UNUSED AppContext& app) {
 }
 
 static void onStart(AppContext& app) {
-    auto data = std::shared_ptr<Data>(new Data());
+    auto data = std::shared_ptr<Data>();
     app.setData(data);
     data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
