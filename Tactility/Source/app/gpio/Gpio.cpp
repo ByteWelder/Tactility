@@ -29,8 +29,8 @@ public:
         tt_check(mutex.release() == TtStatusOk);
     }
 
-    void onShow(App& app, lv_obj_t* parent);
-    void onHide(App& app);
+    void onShow(AppContext& app, lv_obj_t* parent);
+    void onHide(AppContext& app);
 
     void startTask();
     void stopTask();
@@ -135,7 +135,7 @@ void Gpio::stopTask() {
 // endregion Task
 
 
-void Gpio::onShow(App& app, lv_obj_t* parent) {
+void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
     auto* gpio = (Gpio*)app.getData();
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -191,7 +191,7 @@ void Gpio::onShow(App& app, lv_obj_t* parent) {
     gpio->startTask();
 }
 
-void Gpio::onHide(App& app) {
+void Gpio::onHide(AppContext& app) {
     auto* gpio = (Gpio*)app.getData();
     gpio->stopTask();
 }
@@ -199,29 +199,29 @@ void Gpio::onHide(App& app) {
 
 // region App lifecycle
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     auto* gpio = (Gpio*)app.getData();
     gpio->onShow(app, parent);
 }
 
-static void onHide(App& app) {
+static void onHide(AppContext& app) {
     auto* gpio = (Gpio*)app.getData();
     gpio->onHide(app);
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     auto* gpio = new Gpio();
     app.setData(gpio);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     auto* gpio = (Gpio*)app.getData();
     delete gpio;
 }
 
 // endregion App lifecycle
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
     .type = TypeSystem,

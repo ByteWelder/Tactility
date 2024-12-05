@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Bindings.h"
 #include "State.h"
 #include "lvgl.h"
@@ -16,7 +16,7 @@ private:
     lv_obj_t* networks_list = nullptr;
 public:
     View() {}
-    void init(const App& app, Bindings* bindings, lv_obj_t* parent);
+    void init(const AppContext& app, Bindings* bindings, lv_obj_t* parent);
     void update(Bindings* bindings, State* state);
 
 private:

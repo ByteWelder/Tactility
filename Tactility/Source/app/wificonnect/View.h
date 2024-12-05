@@ -3,7 +3,7 @@
 #include "Bindings.h"
 #include "State.h"
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl.h"
 
 namespace tt::app::wificonnect {
@@ -25,7 +25,7 @@ public:
     lv_obj_t* connection_error = nullptr;
     lv_group_t* group = nullptr;
 
-    void init(App& app, WifiConnect* wifiConnect, lv_obj_t* parent);
+    void init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent);
     void update(Bindings* bindings, State* state);
 
     void createBottomButtons(WifiConnect* wifi, lv_obj_t* parent);

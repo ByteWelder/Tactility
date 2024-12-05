@@ -1,8 +1,8 @@
 #include "Tactility.h"
 #include <Mutex.h>
-#include "app/Manifest.h"
+#include "app/AppManifest.h"
 #include "app/ManifestRegistry.h"
-#include "service/Manifest.h"
+#include "service/ServiceManifest.h"
 #include "service/gui/Gui.h"
 #include "service/loader/Loader_i.h"
 #include "RtosCompat.h"
@@ -99,12 +99,12 @@ void stopApp() {
     loader_singleton->queue.put(&message, TtWaitForever);
 }
 
-app::App* _Nullable getCurrentApp() {
+app::AppContext* _Nullable getCurrentApp() {
     tt_assert(loader_singleton);
     loader_lock();
     app::AppInstance* app = loader_singleton->app_stack.top();
     loader_unlock();
-    return dynamic_cast<app::App*>(app);
+    return dynamic_cast<app::AppContext*>(app);
 }
 
 PubSub* getPubsub() {
@@ -133,7 +133,7 @@ static const char* app_state_to_string(app::State state) {
 }
 
 static void app_transition_to_state(app::AppInstance& app, app::State state) {
-    const app::Manifest& manifest = app.getManifest();
+    const app::AppManifest& manifest = app.getManifest();
     const app::State old_state = app.getState();
 
     TT_LOG_I(
@@ -187,7 +187,7 @@ static void app_transition_to_state(app::AppInstance& app, app::State state) {
 }
 
 static LoaderStatus loader_do_start_app_with_manifest(
-    const app::Manifest* manifest,
+    const app::AppManifest* manifest,
     const Bundle& bundle
 ) {
     TT_LOG_I(TAG, "start with manifest %s", manifest->id.c_str());
@@ -231,7 +231,7 @@ static LoaderStatus do_start_by_id(
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const app::Manifest* manifest = app::findAppById(id);
+    const app::AppManifest* manifest = app::findAppById(id);
     if (manifest == nullptr) {
         TT_LOG_E(TAG, "App not found: %s", id.c_str());
         return LoaderStatusErrorUnknownApp;
@@ -263,7 +263,7 @@ static void do_stop_app() {
 
     std::unique_ptr<app::ResultHolder> result_holder = std::move(app_to_stop->getResult());
 
-    const app::Manifest& manifest = app_to_stop->getManifest();
+    const app::AppManifest& manifest = app_to_stop->getManifest();
     app_transition_to_state(*app_to_stop, app::StateHiding);
     app_transition_to_state(*app_to_stop, app::StateStopped);
 
@@ -283,7 +283,7 @@ static void do_stop_app() {
         auto on_result = app_to_resume->getManifest().onResult;
         if (on_result != nullptr) {
             if (result_holder != nullptr) {
-                Bundle* result_bundle = result_holder->resultData;
+                Bundle* result_bundle = result_holder->resultData.get();
                 if (result_bundle != nullptr) {
                     on_result(
                         *app_to_resume,
@@ -359,7 +359,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
 
 // region AppManifest
 
-static void loader_start(TT_UNUSED Service& service) {
+static void loader_start(TT_UNUSED ServiceContext& service) {
     tt_check(loader_singleton == nullptr);
     loader_singleton = loader_alloc();
 
@@ -367,7 +367,7 @@ static void loader_start(TT_UNUSED Service& service) {
     loader_singleton->thread->start();
 }
 
-static void loader_stop(TT_UNUSED Service& service) {
+static void loader_stop(TT_UNUSED ServiceContext& service) {
     tt_check(loader_singleton != nullptr);
 
     // Send stop signal to thread and wait for thread to finish
@@ -383,7 +383,7 @@ static void loader_stop(TT_UNUSED Service& service) {
     loader_singleton = nullptr;
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Loader",
     .onStart = &loader_start,
     .onStop = &loader_stop

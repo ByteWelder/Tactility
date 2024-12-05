@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/Manifest.h"
+#include "app/AppManifest.h"
 #include "app/AppInstance.h"
 #include "MessageQueue.h"
 #include "Pubsub.h"
@@ -35,7 +35,7 @@ typedef struct {
 } LoaderEventAppHiding;
 
 typedef struct {
-    const app::Manifest& manifest;
+    const app::AppManifest& manifest;
 } LoaderEventAppStopped;
 
 typedef struct {

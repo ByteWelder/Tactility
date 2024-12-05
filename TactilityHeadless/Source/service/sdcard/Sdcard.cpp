@@ -1,7 +1,7 @@
 #include <cstdlib>
 
 #include "Mutex.h"
-#include "service/Service.h"
+#include "service/ServiceContext.h"
 #include "TactilityCore.h"
 #include "TactilityHeadless.h"
 
@@ -75,7 +75,7 @@ static int32_t sdcard_task(void* context) {
     return 0;
 }
 
-static void on_start(Service& service) {
+static void on_start(ServiceContext& service) {
     if (hal::getConfiguration().sdcard != nullptr) {
         ServiceData* data = service_data_alloc();
         service.setData(data);
@@ -85,7 +85,7 @@ static void on_start(Service& service) {
     }
 }
 
-static void on_stop(Service& service) {
+static void on_stop(ServiceContext& service) {
     auto* data = static_cast<ServiceData*>(service.getData());
     if (data != nullptr) {
         service_data_lock(data);
@@ -98,7 +98,7 @@ static void on_stop(Service& service) {
     }
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "sdcard",
     .onStart = &on_start,
     .onStop = &on_stop

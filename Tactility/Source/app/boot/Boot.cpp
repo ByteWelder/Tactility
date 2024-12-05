@@ -2,7 +2,7 @@
 #include <Thread.h>
 #include <Kernel.h>
 #include "Assets.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl.h"
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
@@ -48,7 +48,7 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     return 0;
 }
 
-static void onShow(TT_UNUSED App& app, lv_obj_t* parent) {
+static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     Data* data = (Data*)app.getData();
 
     lv_obj_t* image = lv_image_create(parent);
@@ -59,19 +59,19 @@ static void onShow(TT_UNUSED App& app, lv_obj_t* parent) {
     data->thread.start();
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     Data* data = new Data();
     app.setData(data);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     Data* data = (Data*)app.getData();
     data->thread.join();
     tt_assert(data);
     delete data;
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Boot",
     .name = "Boot",
     .type = TypeBoot,

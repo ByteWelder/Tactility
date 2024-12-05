@@ -49,7 +49,7 @@ static void onListItemSelected(lv_event_t* e) {
     if (code == LV_EVENT_CLICKED) {
         size_t index = (size_t)(e->user_data);
         TT_LOG_I(TAG, "Selected item at index %d", index);
-        tt::app::App* app = service::loader::getCurrentApp();
+        tt::app::AppContext* app = service::loader::getCurrentApp();
         Bundle bundle;
         setResultIndex(bundle, (int32_t)index);
         app->setResult(app::ResultOk, bundle);
@@ -63,7 +63,7 @@ static void createChoiceItem(void* parent, const std::string& title, size_t inde
     lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_CLICKED, (void*)index);
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     std::string title = getTitleParameter(app.getParameters());
     lvgl::toolbar_create(parent, title);
@@ -99,7 +99,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
      .id = "SelectionDialog",
      .name = "Selection Dialog",
      .type = TypeHidden,

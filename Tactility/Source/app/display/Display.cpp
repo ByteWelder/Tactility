@@ -1,4 +1,4 @@
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Assets.h"
 #include "DisplaySettings.h"
 #include "Tactility.h"
@@ -70,7 +70,7 @@ static void onOrientationSet(lv_event_t* event) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -121,13 +121,13 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
 }
 
-static void onHide(TT_UNUSED App& app) {
+static void onHide(TT_UNUSED AppContext& app) {
     if (backlight_duty_set) {
         setBacklightDuty(backlight_duty);
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Display",
     .name = "Display",
     .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,

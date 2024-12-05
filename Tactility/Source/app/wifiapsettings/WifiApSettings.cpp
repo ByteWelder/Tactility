@@ -1,6 +1,6 @@
 #include "WifiApSettings.h"
 #include "TactilityCore.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -11,7 +11,7 @@ namespace tt::app::wifiapsettings {
 
 #define TAG "wifi_ap_settings"
 
-extern const Manifest manifest;
+extern const AppManifest manifest;
 
 void start(const std::string& ssid) {
     Bundle bundle;
@@ -39,7 +39,7 @@ static void onToggleAutoConnect(lv_event_t* event) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     const Bundle& bundle = app.getParameters();
     std::string ssid = bundle.getString("ssid");
 
@@ -85,7 +85,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,

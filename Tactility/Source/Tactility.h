@@ -1,8 +1,8 @@
 #pragma once
 
-#include "app/Manifest.h"
+#include "app/AppManifest.h"
 #include "hal/Configuration.h"
-#include "service/Manifest.h"
+#include "service/ServiceManifest.h"
 #include "TactilityConfig.h"
 
 namespace tt {
@@ -10,8 +10,8 @@ namespace tt {
 typedef struct {
     const hal::Configuration* hardware;
     // List of user applications
-    const app::Manifest* const apps[TT_CONFIG_APPS_LIMIT];
-    const service::Manifest* const services[TT_CONFIG_SERVICES_LIMIT];
+    const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT];
+    const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT];
     const char* auto_start_app_id;
 } Configuration;
 

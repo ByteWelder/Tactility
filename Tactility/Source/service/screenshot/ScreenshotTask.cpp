@@ -1,7 +1,7 @@
 #include "ScreenshotTask.h"
 #include "lv_screenshot.h"
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Mutex.h"
 #include "TactilityCore.h"
 #include "Thread.h"
@@ -98,9 +98,9 @@ static int32_t screenshot_task(void* context) {
                 break; // Interrupted loop
             }
         } else if (data->work.type == TASK_WORK_TYPE_APPS) {
-            app::App* _Nullable app = loader::getCurrentApp();
+            app::AppContext* _Nullable app = loader::getCurrentApp();
             if (app) {
-                const app::Manifest& manifest = app->getManifest();
+                const app::AppManifest& manifest = app->getManifest();
                 if (manifest.id != last_app_id) {
                     delay_ms(100);
                     last_app_id = manifest.id;

@@ -9,7 +9,7 @@ typedef struct _lv_obj_t lv_obj_t;
 
 namespace tt::app {
 
-class App;
+class AppContext;
 
 typedef enum {
     /** Boot screen, shown before desktop is launched. */
@@ -32,13 +32,13 @@ typedef enum {
     ResultError
 } Result;
 
-typedef void (*AppOnStart)(App& app);
-typedef void (*AppOnStop)(App& app);
-typedef void (*AppOnShow)(App& app, lv_obj_t* parent);
-typedef void (*AppOnHide)(App& app);
-typedef void (*AppOnResult)(App& app, Result result, const Bundle& resultData);
+typedef void (*AppOnStart)(AppContext& app);
+typedef void (*AppOnStop)(AppContext& app);
+typedef void (*AppOnShow)(AppContext& app, lv_obj_t* parent);
+typedef void (*AppOnHide)(AppContext& app);
+typedef void (*AppOnResult)(AppContext& app, Result result, const Bundle& resultData);
 
-struct Manifest {
+struct AppManifest {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
@@ -86,7 +86,7 @@ struct Manifest {
 };
 
 struct {
-    bool operator()(const Manifest* left, const Manifest* right) const { return left->name < right->name; }
+    bool operator()(const AppManifest* left, const AppManifest* right) const { return left->name < right->name; }
 } SortAppManifestByName;
 
 } // namespace

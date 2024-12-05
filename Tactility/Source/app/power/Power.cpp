@@ -1,4 +1,4 @@
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Assets.h"
 #include "lvgl.h"
 #include "Tactility.h"
@@ -53,7 +53,7 @@ static void onPowerEnabledChanged(lv_event_t* event) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -90,12 +90,12 @@ static void onShow(App& app, lv_obj_t* parent) {
     data->update_timer->start(ms_to_ticks(1000));
 }
 
-static void onHide(TT_UNUSED App& app) {
+static void onHide(TT_UNUSED AppContext& app) {
     auto* data = static_cast<Data*>(app.getData());
     data->update_timer->stop();
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     auto* data = new Data();
     data->update_timer = new Timer(Timer::TypePeriodic, &updateUi, data);
     data->power = getConfiguration()->hardware->power;
@@ -103,13 +103,13 @@ static void onStart(App& app) {
     app.setData(data);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     auto* data = static_cast<Data*>(app.getData());
     delete data->update_timer;
     delete data;
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,

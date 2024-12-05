@@ -107,7 +107,7 @@ void View::createBottomButtons(WifiConnect* wifi, lv_obj_t* parent) {
 }
 
 // TODO: Standardize dialogs
-void View::init(App& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
+void View::init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);

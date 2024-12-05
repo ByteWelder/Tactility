@@ -1,6 +1,6 @@
 #include "FilesData.h"
 #include "Tactility.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Assets.h"
 #include "Check.h"
 #include "FileUtils.h"
@@ -182,7 +182,7 @@ static void updateViews(Data* data) {
 
 // region Lifecycle
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     auto* data = static_cast<Data*>(app.getData());
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -198,7 +198,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     updateViews(data);
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     auto* data = data_alloc();
     // PC platform is bound to current work directory because of the LVGL file system mapping
     if (get_platform() == PlatformSimulator) {
@@ -216,14 +216,14 @@ static void onStart(App& app) {
     app.setData(data);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     auto* data = static_cast<Data*>(app.getData());
     data_free(data);
 }
 
 // endregion Lifecycle
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,

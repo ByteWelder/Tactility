@@ -2,7 +2,7 @@
 #include "hal/Power.h"
 #include "hal/sdcard/Sdcard.h"
 #include "Mutex.h"
-#include "service/Service.h"
+#include "service/ServiceContext.h"
 #include "service/wifi/Wifi.h"
 #include "Tactility.h"
 #include "lvgl/Statusbar.h"
@@ -184,7 +184,7 @@ int32_t service_main(TT_UNUSED void* parameter) {
     return 0;
 }
 
-static void on_start(Service& service) {
+static void on_start(ServiceContext& service) {
     ServiceData* data = service_data_alloc();
     service.setData(data);
 
@@ -195,7 +195,7 @@ static void on_start(Service& service) {
     data->thread->start();
 }
 
-static void on_stop(Service& service) {
+static void on_stop(ServiceContext& service) {
     auto* data = static_cast<ServiceData*>(service.getData());
 
     // Stop thread
@@ -208,7 +208,7 @@ static void on_stop(Service& service) {
     service_data_free(data);
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Statusbar",
     .onStart = &on_start,
     .onStop = &on_stop

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "app/Manifest.h"
+#include "app/AppManifest.h"
 #include "Bundle.h"
 #include "Pubsub.h"
-#include "service/Manifest.h"
+#include "service/ServiceManifest.h"
 
 namespace tt::service::loader {
 
@@ -31,7 +31,7 @@ LoaderStatus startApp(const std::string& id, bool blocking = false, const Bundle
  */
 void stopApp();
 
-app::App* _Nullable getCurrentApp();
+app::AppContext* _Nullable getCurrentApp();
 
 /**
  * @brief PubSub for LoaderEvent

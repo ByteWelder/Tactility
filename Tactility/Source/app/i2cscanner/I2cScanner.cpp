@@ -4,7 +4,7 @@
 
 #include "Assets.h"
 #include "Tactility.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl/LvglSync.h"
 #include "lvgl/Toolbar.h"
 
@@ -96,7 +96,7 @@ void onThreadFinished(Data* data) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     auto* data = (Data*)app.getData();
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
@@ -139,24 +139,24 @@ static void onShow(App& app, lv_obj_t* parent) {
     data->scanListWidget = scan_list;
 }
 
-static void onHide(App& app) {
+static void onHide(AppContext& app) {
     auto* data = (Data*)app.getData();
     if (hasScanThread(data)) {
         stopScanning(data);
     }
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     Data* data = new Data();
     app.setData(data);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     Data* data = (Data*)app.getData();
     delete data;
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "I2cScanner",
     .name = "I2C Scanner",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,

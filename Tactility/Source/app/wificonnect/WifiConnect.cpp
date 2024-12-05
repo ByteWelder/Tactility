@@ -1,6 +1,6 @@
 #include "WifiConnect.h"
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/Wifi.h"
@@ -76,7 +76,7 @@ void WifiConnect::requestViewUpdate() {
     unlock();
 }
 
-void WifiConnect::onShow(App& app, lv_obj_t* parent) {
+void WifiConnect::onShow(AppContext& app, lv_obj_t* parent) {
     lock();
     view_enabled = true;
     view.init(app, this, parent);
@@ -84,35 +84,35 @@ void WifiConnect::onShow(App& app, lv_obj_t* parent) {
     unlock();
 }
 
-void WifiConnect::onHide(App& app) {
+void WifiConnect::onHide(AppContext& app) {
     // No need to lock view, as this is called from within Gui's LVGL context
     lock();
     view_enabled = false;
     unlock();
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     auto* wifi = static_cast<WifiConnect*>(app.getData());
     wifi->onShow(app, parent);
 }
 
-static void onHide(App& app) {
+static void onHide(AppContext& app) {
     auto* wifi = static_cast<WifiConnect*>(app.getData());
     wifi->onHide(app);
 }
 
-static void onStart(App& app) {
+static void onStart(AppContext& app) {
     auto* wifi_connect = new WifiConnect();
     app.setData(wifi_connect);
 }
 
-static void onStop(App& app) {
+static void onStop(AppContext& app) {
     auto* wifi_connect = static_cast<WifiConnect*>(app.getData());
     tt_assert(wifi_connect != nullptr);
     delete wifi_connect;
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
