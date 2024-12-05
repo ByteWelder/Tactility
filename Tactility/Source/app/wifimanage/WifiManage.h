@@ -11,9 +11,9 @@ class WifiManage {
 
     PubSubSubscription* wifiSubscription = nullptr;
     Mutex mutex;
-    tt::app::wifimanage::State state;
-    tt::app::wifimanage::View view;
     Bindings bindings = { };
+    State state;
+    View view = View(&bindings, &state);
     bool isViewEnabled = false;
 
 public:
@@ -26,6 +26,7 @@ public:
     void onShow(AppContext& app, lv_obj_t* parent);
     void onHide(AppContext& app);
 
+    Bindings& getBindings() { return bindings; }
     State& getState() { return state; }
 
     void requestViewUpdate();

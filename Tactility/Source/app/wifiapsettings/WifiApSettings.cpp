@@ -13,6 +13,16 @@ namespace tt::app::wifiapsettings {
 
 extern const AppManifest manifest;
 
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+const AppContext* _Nullable optWifiApSettingsApp() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return app;
+    } else {
+        return nullptr;
+    }
+}
+
 void start(const std::string& ssid) {
     auto bundle = std::shared_ptr<Bundle>(new Bundle());
     bundle->putString("ssid", ssid);
@@ -21,11 +31,19 @@ void start(const std::string& ssid) {
 
 static void onToggleAutoConnect(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
-    const Bundle& parameters = *(const Bundle*)lv_event_get_user_data(event);
+
+    auto* app = optWifiApSettingsApp();
+    if (app == nullptr) {
+        return;
+    }
+
+    auto parameters = app->getParameters();
+    tt_check(parameters != nullptr, "Parameters missing");
+
     if (code == LV_EVENT_VALUE_CHANGED) {
         auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        std::string ssid = parameters.getString("ssid");
+        std::string ssid = parameters->getString("ssid");
 
         service::wifi::settings::WifiApSettings settings {};
         if (service::wifi::settings::load(ssid.c_str(), &settings)) {
@@ -41,7 +59,7 @@ static void onToggleAutoConnect(lv_event_t* event) {
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
     auto paremeters = app.getParameters();
-    tt_check(paremeters != nullptr, "No parameters");
+    tt_check(paremeters != nullptr, "Parameters missing");
     std::string ssid = paremeters->getString("ssid");
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);

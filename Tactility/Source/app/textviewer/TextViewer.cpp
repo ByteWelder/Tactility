@@ -23,7 +23,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_t* label = lv_label_create(wrapper);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "No parameters");
+    tt_check(parameters != nullptr, "Parameters missing");
     std::string file_argument;
     if (parameters->optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
         TT_LOG_I(TAG, "Opening %s", file_argument.c_str());
