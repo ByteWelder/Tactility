@@ -14,6 +14,18 @@ namespace tt::app::wifimanage {
 
 #define TAG "wifi_manage"
 
+extern const AppManifest manifest;
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<WifiManage> _Nullable optWifiManage() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<WifiManage>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
+
 static void onConnect(const char* ssid) {
     service::wifi::settings::WifiApSettings settings;
     if (service::wifi::settings::load(ssid, &settings)) {
@@ -61,7 +73,7 @@ void WifiManage::requestViewUpdate() {
     lock();
     if (isViewEnabled) {
         if (lvgl::lock(1000)) {
-            view.update(&bindings, &state);
+            view.update();
             lvgl::unlock();
         } else {
             TT_LOG_E(TAG, "failed to lock lvgl");
@@ -108,8 +120,8 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     lock();
     isViewEnabled = true;
     state.setConnectSsid("Connected"); // TODO update with proper SSID
-    view.init(app, &bindings, parent);
-    view.update(&bindings, &state);
+    view.init(app, parent);
+    view.update();
     unlock();
 
     service::wifi::WifiRadioState radio_state = service::wifi::getRadioState();

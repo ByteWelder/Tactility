@@ -10,15 +10,15 @@
 namespace tt::app::wificonnect {
 
 class WifiConnect {
-    PubSubSubscription* wifiSubscription;
     Mutex mutex;
     State state;
-    View view;
-    bool view_enabled = false;
     Bindings bindings = {
         .onConnectSsid = nullptr,
         .onConnectSsidContext = nullptr
     };
+    View view = View(this, &bindings, &state);
+    PubSubSubscription* wifiSubscription;
+    bool view_enabled = false;
 
 public:
 

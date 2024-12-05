@@ -14,6 +14,8 @@ namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
 
+std::shared_ptr<WifiConnect> _Nullable optWifiConnect();
+
 void View::resetErrors() {
     lv_obj_add_flag(password_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ssid_error, LV_OBJ_FLAG_HIDDEN);
@@ -21,7 +23,7 @@ void View::resetErrors() {
 }
 
 static void onConnect(lv_event_t* event) {
-    auto* wifi = (WifiConnect*)lv_event_get_user_data(event);
+    auto wifi = optWifiConnect();
     auto& view = wifi->getView();
 
     wifi->getState().setConnectionError(false);
@@ -78,7 +80,7 @@ void View::setLoading(bool loading) {
     }
 }
 
-void View::createBottomButtons(WifiConnect* wifi, lv_obj_t* parent) {
+void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_t* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
     lv_obj_set_height(button_container, LV_SIZE_CONTENT);
@@ -103,11 +105,11 @@ void View::createBottomButtons(WifiConnect* wifi, lv_obj_t* parent) {
     lv_obj_t* connect_label = lv_label_create(connect_button);
     lv_label_set_text(connect_label, "Connect");
     lv_obj_align(connect_button, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(connect_button, &onConnect, LV_EVENT_CLICKED, wifi);
+    lv_obj_add_event_cb(connect_button, &onConnect, LV_EVENT_CLICKED, nullptr);
 }
 
 // TODO: Standardize dialogs
-void View::init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
+void View::init(AppContext& app, lv_obj_t* parent) {
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
@@ -180,7 +182,7 @@ void View::init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
     lv_obj_add_flag(connection_error, LV_OBJ_FLAG_HIDDEN);
 
     // Bottom buttons
-    createBottomButtons(wifiConnect, wrapper);
+    createBottomButtons(wrapper);
 
     // Keyboard bindings
         service::gui::keyboardAddTextArea(ssid_textarea);
@@ -201,10 +203,7 @@ void View::init(AppContext& app, WifiConnect* wifiConnect, lv_obj_t* parent) {
     }
 }
 
-void View::update(
-    TT_UNUSED Bindings* bindings,
-    State* state
-) {
+void View::update() {
     if (state->hasConnectionError()) {
         setLoading(false);
         resetErrors();

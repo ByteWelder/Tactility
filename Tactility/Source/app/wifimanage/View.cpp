@@ -1,7 +1,7 @@
 #include "View.h"
+#include "WifiManage.h"
 
 #include "Log.h"
-#include "State.h"
 #include "service/statusbar/Statusbar.h"
 #include "service/wifi/Wifi.h"
 #include "lvgl/Style.h"
@@ -14,13 +14,18 @@ namespace tt::app::wifimanage {
 
 #define TAG "wifi_main_view"
 
+std::shared_ptr<WifiManage> _Nullable optWifiManage();
+
 static void on_enable_switch_changed(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        auto* bindings = static_cast<Bindings*>(lv_event_get_user_data(event));
-        bindings->onWifiToggled(is_on);
+
+        auto wifi = optWifiManage();
+        auto bindings = wifi->getBindings();
+
+        bindings.onWifiToggled(is_on);
     }
 }
 
@@ -31,11 +36,6 @@ static void on_enable_on_boot_switch_changed(lv_event_t* event) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
         service::wifi::settings::setEnableOnBoot(is_on);
     }
-}
-
-static void on_disconnect_pressed(lv_event_t* event) {
-    auto* bindings = static_cast<Bindings*>(lv_event_get_user_data(event));
-    bindings->onDisconnect();
 }
 
 // region Secondary updates
@@ -63,7 +63,7 @@ static void showDetails(lv_event_t* event) {
     bindings->onShowApSettings(ssid);
 }
 
-void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRecord& record, bool isConnecting) {
+void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting) {
     lv_obj_t* wrapper = lv_obj_create(networks_list);
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
@@ -109,7 +109,7 @@ void View::createSsidListItem(Bindings* bindings, const service::wifi::WifiApRec
     }
 }
 
-void View::updateNetworkList(State* state, Bindings* bindings) {
+void View::updateNetworkList() {
     lv_obj_clean(networks_list);
 
     switch (state->getRadioState()) {
@@ -129,7 +129,7 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
                     for (auto &record : ap_records) {
                         if (record.ssid == connection_target) {
                             lv_list_add_text(networks_list, "Connected");
-                            createSsidListItem(bindings, record, false);
+                            createSsidListItem(record, false);
                             added_connected = true;
                             break;
                         }
@@ -148,7 +148,7 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
                             !connection_target.empty();
                         bool skip = connection_target_match && added_connected;
                         if (!skip) {
-                            createSsidListItem(bindings, record, is_connecting);
+                            createSsidListItem(record, is_connecting);
                         }
                         used_ssids.insert(record.ssid);
                     }
@@ -172,7 +172,7 @@ void View::updateNetworkList(State* state, Bindings* bindings) {
     }
 }
 
-void View::updateScanning(State* state) {
+void View::updateScanning() {
     if (state->getRadioState() == service::wifi::WIFI_RADIO_ON && state->isScanning()) {
         lv_obj_clear_flag(scanning_spinner, LV_OBJ_FLAG_HIDDEN);
     } else {
@@ -180,7 +180,7 @@ void View::updateScanning(State* state) {
     }
 }
 
-void View::updateWifiToggle(State* state) {
+void View::updateWifiToggle() {
     lv_obj_clear_state(enable_switch, LV_STATE_ANY);
     switch (state->getRadioState()) {
         case service::wifi::WIFI_RADIO_ON:
@@ -214,7 +214,7 @@ void View::updateEnableOnBootToggle() {
 
 // region Main
 
-void View::init(const AppContext& app, Bindings* bindings, lv_obj_t* parent) {
+void View::init(const AppContext& app, lv_obj_t* parent) {
     root = parent;
 
     // Toolbar
@@ -263,11 +263,11 @@ void View::init(const AppContext& app, Bindings* bindings, lv_obj_t* parent) {
     lv_obj_align(networks_list, LV_ALIGN_TOP_LEFT, 0, 44);
 }
 
-void View::update(Bindings* bindings, State* state) {
-    updateWifiToggle(state);
+void View::update() {
+    updateWifiToggle();
     updateEnableOnBootToggle();
-    updateScanning(state);
-    updateNetworkList(state, bindings);
+    updateScanning();
+    updateNetworkList();
 }
 
 } // namespace

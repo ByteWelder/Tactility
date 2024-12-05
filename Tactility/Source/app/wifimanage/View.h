@@ -8,24 +8,29 @@
 namespace tt::app::wifimanage {
 
 class View {
+
 private:
+
+    Bindings* bindings;
+    State* state;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
     lv_obj_t* enable_on_boot_switch = nullptr;
     lv_obj_t* scanning_spinner = nullptr;
     lv_obj_t* networks_list = nullptr;
-public:
-    View() {}
-    void init(const AppContext& app, Bindings* bindings, lv_obj_t* parent);
-    void update(Bindings* bindings, State* state);
 
-private:
-
-    void updateWifiToggle(State* state);
+    void updateWifiToggle();
     void updateEnableOnBootToggle();
-    void updateScanning(State* state);
-    void updateNetworkList(State* state, Bindings* bindings);
-    void createSsidListItem(Bindings* bindings, const service::wifi::WifiApRecord& record, bool isConnecting);
+    void updateScanning();
+    void updateNetworkList();
+    void createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting);
+
+public:
+
+    View(Bindings* bindings, State* state) : bindings(bindings), state(state) {}
+
+    void init(const AppContext& app, lv_obj_t* parent);
+    void update();
 };
 
 
