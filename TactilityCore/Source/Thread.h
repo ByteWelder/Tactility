@@ -154,7 +154,7 @@ public:
      *
      * @return thread state from ThreadState
      */
-    [[nodiscard]] State getState() const;
+    State getState() const;
 
     /** Start Thread
      *
