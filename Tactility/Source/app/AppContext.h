@@ -25,14 +25,14 @@ protected:
 
 public:
 
-    [[nodiscard]] virtual const AppManifest& getManifest() const = 0;
-    [[nodiscard]] virtual std::shared_ptr<void> _Nullable getData() const = 0;
+    virtual const AppManifest& getManifest() const = 0;
+    virtual std::shared_ptr<void> _Nullable getData() const = 0;
     virtual void setData(std::shared_ptr<void> data) = 0;
-    [[nodiscard]] virtual std::shared_ptr<const Bundle> getParameters() const = 0;
-    [[nodiscard]] virtual Flags getFlags() const = 0;
+    virtual std::shared_ptr<const Bundle> getParameters() const = 0;
+    virtual Flags getFlags() const = 0;
     virtual void setResult(Result result) = 0;
     virtual void setResult(Result result, std::shared_ptr<const Bundle> bundle)= 0;
-    [[nodiscard]] virtual bool hasResult() const = 0;
+    virtual bool hasResult() const = 0;
 };
 
 }

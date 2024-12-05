@@ -66,22 +66,22 @@ public:
     ~AppInstance() override = default;
 
     void setState(State state);
-    [[nodiscard]] State getState() const;
+    State getState() const;
 
-    [[nodiscard]] const AppManifest& getManifest() const override;
+    const AppManifest& getManifest() const override;
 
-    [[nodiscard]] Flags getFlags() const override;
+    Flags getFlags() const override;
     void setFlags(Flags flags);
     Flags& mutableFlags() { return flags; } // TODO: locking mechanism
 
-    [[nodiscard]] std::shared_ptr<void> _Nullable getData() const override;
+    std::shared_ptr<void> _Nullable getData() const override;
     void setData(std::shared_ptr<void> data) override;
 
-    [[nodiscard]] std::shared_ptr<const Bundle> getParameters() const override;
+    std::shared_ptr<const Bundle> getParameters() const override;
 
     void setResult(Result result) override;
     void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
-    [[nodiscard]] bool hasResult() const override;
+    bool hasResult() const override;
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };
 

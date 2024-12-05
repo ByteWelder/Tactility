@@ -13,8 +13,8 @@ protected:
 
 public:
 
-    [[nodiscard]] virtual const service::ServiceManifest& getManifest() const = 0;
-    [[nodiscard]] virtual void* getData() const = 0;
+    virtual const service::ServiceManifest& getManifest() const = 0;
+    virtual void* getData() const = 0;
     virtual void setData(void* newData) = 0;
 };
 

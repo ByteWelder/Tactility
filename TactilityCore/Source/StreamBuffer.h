@@ -54,7 +54,7 @@ public:
      * @return true if trigger level can be be updated (new trigger level was less than or equal to the stream buffer's length).
      * @return false if trigger level can't be be updated (new trigger level was greater than the stream buffer's length).
      */
-    [[nodiscard]] bool setTriggerLevel(size_t triggerLevel) const;
+    bool setTriggerLevel(size_t triggerLevel) const;
 
     /**
      * @brief Sends bytes to a stream buffer. The bytes are copied into the stream buffer.
@@ -69,7 +69,7 @@ public:
      * Ignored if called from ISR.
      * @return The number of bytes actually written to the stream buffer.
      */
-    [[nodiscard]] size_t send(
+    size_t send(
         const void* data,
         size_t length,
         uint32_t timeout
@@ -89,7 +89,7 @@ public:
      * Ignored if called from ISR.
      * @return The number of bytes read from the stream buffer, if any.
      */
-    [[nodiscard]] size_t receive(
+    size_t receive(
         void* data,
         size_t length,
         uint32_t timeout
@@ -103,7 +103,7 @@ public:
      * @return The number of bytes that can be read from the stream buffer before
      * the stream buffer would be empty.
      */
-    [[nodiscard]] size_t getAvailableReadBytes() const;
+    size_t getAvailableReadBytes() const;
 
     /**
      * @brief Queries a stream buffer to see how much free space it contains, which is
@@ -113,7 +113,7 @@ public:
      * @return The number of bytes that can be written to the stream buffer before
      * the stream buffer would be full.
      */
-    [[nodiscard]] size_t getAvailableWriteBytes() const;
+    size_t getAvailableWriteBytes() const;
 
     /**
      * @brief Queries a stream buffer to see if it is full.
@@ -121,7 +121,7 @@ public:
      * @return true if the stream buffer is full.
      * @return false if the stream buffer is not full.
      */
-    [[nodiscard]] bool isFull() const;
+    bool isFull() const;
 
     /**
      * @brief Queries a stream buffer to see if it is empty.
@@ -130,7 +130,7 @@ public:
      * @return true if the stream buffer is empty.
      * @return false if the stream buffer is not empty.
      */
-    [[nodiscard]] bool isEmpty() const;
+    bool isEmpty() const;
 
     /**
      * @brief Resets a stream buffer to its initial, empty, state. Any data that was
@@ -141,7 +141,7 @@ public:
      * @return TtStatusError if there was a task blocked waiting to send to or read
      * from the stream buffer then the stream buffer is not reset.
      */
-    [[nodiscard]] TtStatus reset() const;
+    TtStatus reset() const;
 };
 
 
