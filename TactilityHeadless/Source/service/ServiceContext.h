@@ -2,6 +2,7 @@
 
 #include "Mutex.h"
 #include "ServiceManifest.h"
+#include <memory>
 
 namespace tt::service {
 
@@ -14,8 +15,8 @@ protected:
 public:
 
     virtual const service::ServiceManifest& getManifest() const = 0;
-    virtual void* getData() const = 0;
-    virtual void setData(void* newData) = 0;
+    virtual std::shared_ptr<void> getData() const = 0;
+    virtual void setData(std::shared_ptr<void> newData) = 0;
 };
 
 } // namespace

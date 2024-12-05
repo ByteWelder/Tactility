@@ -10,7 +10,7 @@ private:
 
     Mutex mutex = Mutex(MutexTypeNormal);
     const service::ServiceManifest& manifest;
-    void* data = nullptr;
+    std::shared_ptr<void> data = nullptr;
 
 public:
 
@@ -18,8 +18,8 @@ public:
     ~ServiceInstance() override = default;
 
     const service::ServiceManifest& getManifest() const override;
-    void* getData() const override;
-    void setData(void* newData) override;
+    std::shared_ptr<void> getData() const override;
+    void setData(std::shared_ptr<void> newData) override;
 };
 
 }
