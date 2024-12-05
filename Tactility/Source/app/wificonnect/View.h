@@ -14,7 +14,6 @@ class View {
 
 private:
 
-    WifiConnect* wifiConnect;
     Bindings* bindings;
     State* state;
 
@@ -25,14 +24,12 @@ public:
     lv_obj_t* password_textarea = nullptr;
     lv_obj_t* password_error = nullptr;
     lv_obj_t* connect_button = nullptr;
-    lv_obj_t* cancel_button = nullptr;
     lv_obj_t* remember_switch = nullptr;
     lv_obj_t* connecting_spinner = nullptr;
     lv_obj_t* connection_error = nullptr;
     lv_group_t* group = nullptr;
 
-    View(WifiConnect* wifiConnect, Bindings* bindings, State* state) :
-        wifiConnect(wifiConnect),
+    View(Bindings* bindings, State* state) :
         bindings(bindings),
         state(state)
     {}

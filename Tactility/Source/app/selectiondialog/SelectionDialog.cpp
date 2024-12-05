@@ -73,7 +73,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(list, 1);
 
     auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "No parameters");
+    tt_check(parameters != nullptr, "Parameters missing");
     std::string items_concatenated;
     if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
         std::vector<std::string> items = string_split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);

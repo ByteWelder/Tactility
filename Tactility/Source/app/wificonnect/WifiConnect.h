@@ -16,7 +16,7 @@ class WifiConnect {
         .onConnectSsid = nullptr,
         .onConnectSsidContext = nullptr
     };
-    View view = View(this, &bindings, &state);
+    View view = View(&bindings, &state);
     PubSubSubscription* wifiSubscription;
     bool view_enabled = false;
 
