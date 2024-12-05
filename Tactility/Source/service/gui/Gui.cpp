@@ -18,8 +18,8 @@ Gui* gui = nullptr;
 void loader_callback(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const loader::LoaderEvent*>(message);
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
-        app::App& app = event->app_showing.app;
-        const app::Manifest& app_manifest = app.getManifest();
+        app::AppContext& app = event->app_showing.app;
+        const app::AppManifest& app_manifest = app.getManifest();
         showApp(app, app_manifest.onShow, app_manifest.onHide);
     } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
         hideApp();
@@ -77,7 +77,7 @@ void requestDraw() {
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void showApp(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
+void showApp(app::AppContext& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
     lock();
     tt_check(gui->app_view_port == nullptr);
     gui->app_view_port = view_port_alloc(app, on_show, on_hide);
@@ -128,14 +128,14 @@ static int32_t gui_main(TT_UNUSED void* p) {
 
 // region AppManifest
 
-static void start(TT_UNUSED Service& service) {
+static void start(TT_UNUSED ServiceContext& service) {
     gui = gui_alloc();
 
     gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
     gui->thread->start();
 }
 
-static void stop(TT_UNUSED Service& service) {
+static void stop(TT_UNUSED ServiceContext& service) {
     lock();
 
     ThreadId thread_id = gui->thread->getId();
@@ -148,7 +148,7 @@ static void stop(TT_UNUSED Service& service) {
     gui_free(gui);
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Gui",
     .onStart = &start,
     .onStop = &stop

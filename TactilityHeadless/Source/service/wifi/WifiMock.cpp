@@ -7,7 +7,7 @@
 #include "MessageQueue.h"
 #include "Mutex.h"
 #include "Pubsub.h"
-#include "service/Service.h"
+#include "service/ServiceContext.h"
 #include <cstdlib>
 #include <cstring>
 
@@ -175,12 +175,12 @@ static void unlock(Wifi* wifi) {
 }
 
 
-static void service_start(TT_UNUSED Service& service) {
+static void service_start(TT_UNUSED ServiceContext& service) {
     tt_check(wifi == nullptr);
     wifi = wifi_alloc();
 }
 
-static void service_stop(TT_UNUSED Service& service) {
+static void service_stop(TT_UNUSED ServiceContext& service) {
     tt_check(wifi != nullptr);
 
     wifi_free(wifi);
@@ -191,7 +191,7 @@ void wifi_main(void*) {
     // NO-OP
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Wifi",
     .onStart = &service_start,
     .onStop = &service_stop

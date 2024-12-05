@@ -23,7 +23,7 @@ State AppInstance::getState() const {
  * Consider creating MutableBundle vs Bundle.
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
-const Manifest& AppInstance::getManifest() const {
+const AppManifest& AppInstance::getManifest() const {
     return manifest;
 }
 
@@ -40,26 +40,45 @@ void AppInstance::setFlags(Flags newFlags) {
     mutex.release();
 }
 
-_Nullable void* AppInstance::getData() const {
+std::shared_ptr<void> _Nullable AppInstance::getData() const {
     mutex.acquire(TtWaitForever);
     auto result = data;
     mutex.release();
     return result;
 }
 
-void AppInstance::setData(void* newData) {
+void AppInstance::setData(std::shared_ptr<void> newData) {
     mutex.acquire(TtWaitForever);
     data = newData;
     mutex.release();
 }
 
-const Bundle& AppInstance::getParameters() const {
-    return parameters;
+std::shared_ptr<const Bundle> AppInstance::getParameters() const {
+    mutex.acquire(TtWaitForever);
+    std::shared_ptr<const Bundle> result = parameters;
+    mutex.release();
+    return result;
 }
 
-void AppInstance::setResult(Result result, const Bundle& bundle) {
-    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, bundle));
+void AppInstance::setResult(Result result) {
+    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result));
+    mutex.acquire(TtWaitForever);
     resultHolder = std::move(new_holder);
+    mutex.release();
+}
+
+void AppInstance::setResult(Result result, std::shared_ptr<const Bundle> bundle) {
+    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, std::move(bundle)));
+    mutex.acquire(TtWaitForever);
+    resultHolder = std::move(new_holder);
+    mutex.release();
+}
+
+bool AppInstance::hasResult() const {
+    mutex.acquire(TtWaitForever);
+    bool has_result = resultHolder != nullptr;
+    mutex.release();
+    return has_result;
 }
 
 } // namespace

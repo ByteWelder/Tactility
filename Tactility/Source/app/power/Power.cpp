@@ -1,4 +1,4 @@
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Assets.h"
 #include "lvgl.h"
 #include "Tactility.h"
@@ -6,22 +6,35 @@
 #include "lvgl/LvglSync.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include "service/loader/Loader.h"
 
 namespace tt::app::power {
 
 #define TAG "power"
 
-typedef struct {
-    Timer* update_timer;
+extern const AppManifest manifest;
+static void on_timer(TT_UNUSED void* context);
+
+struct Data {
+    std::unique_ptr<Timer> update_timer = std::unique_ptr<Timer>(new Timer(Timer::TypePeriodic, &on_timer, nullptr));
     const hal::Power* power;
     lv_obj_t* enable_switch;
     lv_obj_t* charge_state;
     lv_obj_t* charge_level;
     lv_obj_t* current;
-} Data;
+};
 
-static void updateUi(void* callbackContext) {
-    auto* data = (Data*)callbackContext;
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<Data> _Nullable optData() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<Data>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
+
+static void updateUi(std::shared_ptr<Data> data) {
     bool charging_enabled = data->power->isChargingEnabled();
     const char* charge_state = data->power->isCharging() ? "yes" : "no";
     uint8_t charge_level = data->power->getChargeLevel();
@@ -40,20 +53,30 @@ static void updateUi(void* callbackContext) {
     lvgl::unlock();
 }
 
+static void on_timer(TT_UNUSED void* context) {
+    auto data = optData();
+    if (data != nullptr) {
+        updateUi(data);
+    }
+}
+
 static void onPowerEnabledChanged(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        auto* data = static_cast<Data*>(lv_event_get_user_data(event));
-        if (data->power->isChargingEnabled() != is_on) {
-            data->power->setChargingEnabled(is_on);
-            updateUi(data);
+
+        auto data = optData();
+        if (data != nullptr) {
+            if (data->power->isChargingEnabled() != is_on) {
+                data->power->setChargingEnabled(is_on);
+                updateUi(data);
+            }
         }
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -64,7 +87,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    auto* data = static_cast<Data*>(app.getData());
+    auto data = std::static_pointer_cast<Data>(app.getData());
 
     // Top row: enable/disable
     lv_obj_t* switch_container = lv_obj_create(wrapper);
@@ -78,7 +101,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
 
     lv_obj_t* enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, data);
+    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
     data->enable_switch = enable_switch;
@@ -90,32 +113,24 @@ static void onShow(App& app, lv_obj_t* parent) {
     data->update_timer->start(ms_to_ticks(1000));
 }
 
-static void onHide(TT_UNUSED App& app) {
-    auto* data = static_cast<Data*>(app.getData());
+static void onHide(TT_UNUSED AppContext& app) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
     data->update_timer->stop();
 }
 
-static void onStart(App& app) {
-    auto* data = new Data();
-    data->update_timer = new Timer(Timer::TypePeriodic, &updateUi, data);
+static void onStart(AppContext& app) {
+    auto data = std::shared_ptr<Data>(new Data());
+    app.setData(data);
     data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
-    app.setData(data);
 }
 
-static void onStop(App& app) {
-    auto* data = static_cast<Data*>(app.getData());
-    delete data->update_timer;
-    delete data;
-}
-
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
     .type = TypeSettings,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

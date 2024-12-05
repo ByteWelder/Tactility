@@ -28,8 +28,8 @@ public:
     void lock();
     void unlock();
 
-    void onShow(App& app, lv_obj_t* parent);
-    void onHide(App& app);
+    void onShow(AppContext& app, lv_obj_t* parent);
+    void onHide(AppContext& app);
 
     State& getState() { return state; }
     Bindings& getBindings() { return bindings; }

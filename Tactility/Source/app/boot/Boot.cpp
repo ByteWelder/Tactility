@@ -2,7 +2,7 @@
 #include <Thread.h>
 #include <Kernel.h>
 #include "Assets.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl.h"
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
@@ -48,8 +48,8 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     return 0;
 }
 
-static void onShow(TT_UNUSED App& app, lv_obj_t* parent) {
-    Data* data = (Data*)app.getData();
+static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
 
     lv_obj_t* image = lv_image_create(parent);
     lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
@@ -59,19 +59,17 @@ static void onShow(TT_UNUSED App& app, lv_obj_t* parent) {
     data->thread.start();
 }
 
-static void onStart(App& app) {
-    Data* data = new Data();
+static void onStart(AppContext& app) {
+    auto data = std::shared_ptr<Data>(new Data());
     app.setData(data);
 }
 
-static void onStop(App& app) {
-    Data* data = (Data*)app.getData();
+static void onStop(AppContext& app) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
     data->thread.join();
-    tt_assert(data);
-    delete data;
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Boot",
     .name = "Boot",
     .type = TypeBoot,

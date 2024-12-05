@@ -91,7 +91,7 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     return obj;
 }
 
-lv_obj_t* toolbar_create(lv_obj_t* parent, const app::App& app) {
+lv_obj_t* toolbar_create(lv_obj_t* parent, const app::AppContext& app) {
     return toolbar_create(parent, app.getManifest().name);
 }
 

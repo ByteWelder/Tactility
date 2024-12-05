@@ -29,8 +29,8 @@ public:
         tt_check(mutex.release() == TtStatusOk);
     }
 
-    void onShow(App& app, lv_obj_t* parent);
-    void onHide(App& app);
+    void onShow(AppContext& app, lv_obj_t* parent);
+    void onHide(AppContext& app);
 
     void startTask();
     void stopTask();
@@ -135,8 +135,8 @@ void Gpio::stopTask() {
 // endregion Task
 
 
-void Gpio::onShow(App& app, lv_obj_t* parent) {
-    auto* gpio = (Gpio*)app.getData();
+void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
@@ -191,42 +191,36 @@ void Gpio::onShow(App& app, lv_obj_t* parent) {
     gpio->startTask();
 }
 
-void Gpio::onHide(App& app) {
-    auto* gpio = (Gpio*)app.getData();
+void Gpio::onHide(AppContext& app) {
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->stopTask();
 }
 
 
 // region App lifecycle
 
-static void onShow(App& app, lv_obj_t* parent) {
-    auto* gpio = (Gpio*)app.getData();
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->onShow(app, parent);
 }
 
-static void onHide(App& app) {
-    auto* gpio = (Gpio*)app.getData();
+static void onHide(AppContext& app) {
+    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->onHide(app);
 }
 
-static void onStart(App& app) {
-    auto* gpio = new Gpio();
+static void onStart(AppContext& app) {
+    auto gpio = std::shared_ptr<Gpio>(new Gpio());
     app.setData(gpio);
-}
-
-static void onStop(App& app) {
-    auto* gpio = (Gpio*)app.getData();
-    delete gpio;
 }
 
 // endregion App lifecycle
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
     .type = TypeSystem,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

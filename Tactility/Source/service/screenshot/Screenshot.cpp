@@ -3,7 +3,7 @@
 
 #include "Mutex.h"
 #include "ScreenshotTask.h"
-#include "service/Service.h"
+#include "service/ServiceContext.h"
 #include "service/ServiceRegistry.h"
 #include "TactilityCore.h"
 
@@ -11,7 +11,7 @@ namespace tt::service::screenshot {
 
 #define TAG "screenshot_service"
 
-extern const Manifest manifest;
+extern const ServiceManifest manifest;
 
 typedef struct {
     Mutex* mutex;
@@ -41,12 +41,12 @@ static void service_data_unlock(ServiceData* data) {
     tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
 }
 
-static void on_start(Service& service) {
+static void on_start(ServiceContext& service) {
     ServiceData* data = service_data_alloc();
     service.setData(data);
 }
 
-static void on_stop(Service& service) {
+static void on_stop(ServiceContext& service) {
     auto* data = static_cast<ServiceData*>(service.getData());
     if (data->task) {
         task::free(data->task);
@@ -95,7 +95,7 @@ void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
 }
 
 void stop() {
-    _Nullable Service* service = findServiceById(manifest.id);
+    _Nullable ServiceContext* service = findServiceById(manifest.id);
     if (service == nullptr) {
         TT_LOG_E(TAG, "Service not found");
         return;
@@ -132,7 +132,7 @@ bool isStarted() {
     return getMode() != ScreenshotModeNone;
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Screenshot",
     .onStart = &on_start,
     .onStop = &on_stop

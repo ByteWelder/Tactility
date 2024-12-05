@@ -1,6 +1,6 @@
 #include "WifiConnect.h"
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/Wifi.h"
@@ -9,6 +9,18 @@
 namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
+
+extern const AppManifest manifest;
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<WifiConnect> _Nullable optWifiConnect() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<WifiConnect>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
 
 static void eventCallback(const void* message, void* context) {
     auto* event = static_cast<const service::wifi::WifiEvent*>(message);
@@ -76,7 +88,7 @@ void WifiConnect::requestViewUpdate() {
     unlock();
 }
 
-void WifiConnect::onShow(App& app, lv_obj_t* parent) {
+void WifiConnect::onShow(AppContext& app, lv_obj_t* parent) {
     lock();
     view_enabled = true;
     view.init(app, this, parent);
@@ -84,41 +96,35 @@ void WifiConnect::onShow(App& app, lv_obj_t* parent) {
     unlock();
 }
 
-void WifiConnect::onHide(App& app) {
+void WifiConnect::onHide(AppContext& app) {
     // No need to lock view, as this is called from within Gui's LVGL context
     lock();
     view_enabled = false;
     unlock();
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
     wifi->onShow(app, parent);
 }
 
-static void onHide(App& app) {
-    auto* wifi = static_cast<WifiConnect*>(app.getData());
+static void onHide(AppContext& app) {
+    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
     wifi->onHide(app);
 }
 
-static void onStart(App& app) {
-    auto* wifi_connect = new WifiConnect();
-    app.setData(wifi_connect);
+static void onStart(AppContext& app) {
+    auto wifi = std::shared_ptr<WifiConnect>(new WifiConnect());
+    app.setData(wifi);
 }
 
-static void onStop(App& app) {
-    auto* wifi_connect = static_cast<WifiConnect*>(app.getData());
-    tt_assert(wifi_connect != nullptr);
-    delete wifi_connect;
-}
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
     .onStart = &onStart,
-    .onStop = &onStop,
     .onShow = &onShow,
     .onHide = &onHide
 };

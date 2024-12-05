@@ -4,21 +4,37 @@
 
 #include "Assets.h"
 #include "Tactility.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl/LvglSync.h"
 #include "lvgl/Toolbar.h"
+#include "service/loader/Loader.h"
 
 #define START_SCAN_TEXT "Scan"
 #define STOP_SCAN_TEXT "Stop scan"
 
 namespace tt::app::i2cscanner {
 
-static void updateViews(Data* data);
+static void updateViews(std::shared_ptr<Data> data);
+extern const AppManifest manifest;
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<Data> _Nullable optData() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<Data>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
 
 static void onSelectBus(lv_event_t* event) {
+    auto data = optData();
+    if (data == nullptr) {
+        return;
+    }
+
     auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
     uint32_t selected = lv_dropdown_get_selected(dropdown);
-    Data* data = (Data*) lv_event_get_user_data(event);
     auto i2c_devices = tt::getConfiguration()->hardware->i2c;
     assert(selected < i2c_devices.size());
 
@@ -35,16 +51,18 @@ static void onSelectBus(lv_event_t* event) {
 }
 
 static void onPressScan(lv_event_t* event) {
-    auto* data = (Data*)lv_event_get_user_data(event);
-    if (data->scanState == ScanStateScanning) {
-        stopScanning(data);
-    } else {
-        startScanning(data);
+    auto data = optData();
+    if (data != nullptr) {
+        if (data->scanState == ScanStateScanning) {
+            stopScanning(data);
+        } else {
+            startScanning(data);
+        }
+        updateViews(data);
     }
-    updateViews(data);
 }
 
-static void updateViews(Data* data) {
+static void updateViews(std::shared_ptr<Data> data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         if (data->scanState == ScanStateScanning) {
             lv_label_set_text(data->scanButtonLabelWidget, STOP_SCAN_TEXT);
@@ -75,7 +93,7 @@ static void updateViews(Data* data) {
     }
 }
 
-static void updateViewsSafely(Data* data) {
+static void updateViewsSafely(std::shared_ptr<Data> data) {
     if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
         updateViews(data);
         lvgl::unlock();
@@ -84,7 +102,7 @@ static void updateViewsSafely(Data* data) {
     }
 }
 
-void onThreadFinished(Data* data) {
+void onThreadFinished(std::shared_ptr<Data> data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         if (data->scanState == ScanStateScanning) {
             data->scanState = ScanStateStopped;
@@ -96,8 +114,8 @@ void onThreadFinished(Data* data) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
-    auto* data = (Data*)app.getData();
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
@@ -116,7 +134,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_t* scan_button = lv_button_create(wrapper);
     lv_obj_set_width(scan_button, LV_PCT(48));
     lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
-    lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_CLICKED, data);
+    lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_CLICKED, nullptr);
     lv_obj_t* scan_button_label = lv_label_create(scan_button);
     lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(scan_button_label, START_SCAN_TEXT);
@@ -127,7 +145,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_dropdown_set_options(port_dropdown, dropdown_items.c_str());
     lv_obj_set_width(port_dropdown, LV_PCT(48));
     lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_add_event_cb(port_dropdown, onSelectBus, LV_EVENT_VALUE_CHANGED, data);
+    lv_obj_add_event_cb(port_dropdown, onSelectBus, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_dropdown_set_selected(port_dropdown, 0);
     data->portDropdownWidget = port_dropdown;
 
@@ -139,30 +157,24 @@ static void onShow(App& app, lv_obj_t* parent) {
     data->scanListWidget = scan_list;
 }
 
-static void onHide(App& app) {
-    auto* data = (Data*)app.getData();
+static void onHide(AppContext& app) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
     if (hasScanThread(data)) {
         stopScanning(data);
     }
 }
 
-static void onStart(App& app) {
-    Data* data = new Data();
+static void onStart(AppContext& app) {
+    auto data = std::shared_ptr<Data>(new Data());
     app.setData(data);
 }
 
-static void onStop(App& app) {
-    Data* data = (Data*)app.getData();
-    delete data;
-}
-
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "I2cScanner",
     .name = "I2C Scanner",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
     .type = TypeSystem,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

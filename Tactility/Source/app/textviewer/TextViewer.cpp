@@ -1,4 +1,4 @@
-#include "Log.h"
+#include <TactilityCore.h>
 #include "TextViewer.h"
 #include "lvgl.h"
 #include "lvgl/LabelUtils.h"
@@ -9,7 +9,7 @@
 
 namespace tt::app::textviewer {
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -22,9 +22,10 @@ static void onShow(App& app, lv_obj_t* parent) {
 
     lv_obj_t* label = lv_label_create(wrapper);
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    const Bundle& bundle = app.getParameters();
+    auto parameters = app.getParameters();
+    tt_check(parameters != nullptr, "No parameters");
     std::string file_argument;
-    if (bundle.optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
+    if (parameters->optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
         TT_LOG_I(TAG, "Opening %s", file_argument.c_str());
         lvgl::label_set_text_file(label, file_argument.c_str());
     } else {
@@ -32,7 +33,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "TextViewer",
     .name = "Text Viewer",
     .type = TypeHidden,

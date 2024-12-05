@@ -1,6 +1,6 @@
 #include "WifiApSettings.h"
 #include "TactilityCore.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -11,11 +11,11 @@ namespace tt::app::wifiapsettings {
 
 #define TAG "wifi_ap_settings"
 
-extern const Manifest manifest;
+extern const AppManifest manifest;
 
 void start(const std::string& ssid) {
-    Bundle bundle;
-    bundle.putString("ssid", ssid);
+    auto bundle = std::shared_ptr<Bundle>(new Bundle());
+    bundle->putString("ssid", ssid);
     service::loader::startApp(manifest.id, false, bundle);
 }
 
@@ -39,9 +39,10 @@ static void onToggleAutoConnect(lv_event_t* event) {
     }
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
-    const Bundle& bundle = app.getParameters();
-    std::string ssid = bundle.getString("ssid");
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto paremeters = app.getParameters();
+    tt_check(paremeters != nullptr, "No parameters");
+    std::string ssid = paremeters->getString("ssid");
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, ssid);
@@ -69,7 +70,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
     lv_obj_t* auto_connect_switch = lv_switch_create(wrapper);
-    lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&bundle);
+    lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
     lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     service::wifi::settings::WifiApSettings settings {};
@@ -85,7 +86,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,

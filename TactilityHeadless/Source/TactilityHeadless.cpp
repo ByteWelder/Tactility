@@ -1,7 +1,7 @@
 #include "TactilityHeadless.h"
 #include "hal/Configuration.h"
 #include "hal/Hal_i.h"
-#include "service/Manifest.h"
+#include "service/ServiceManifest.h"
 #include "service/ServiceRegistry.h"
 
 #ifdef ESP_PLATFORM
@@ -12,10 +12,10 @@ namespace tt {
 
 #define TAG "tactility"
 
-namespace service::wifi { extern const Manifest manifest; }
-namespace service::sdcard { extern const Manifest manifest; }
+namespace service::wifi { extern const ServiceManifest manifest; }
+namespace service::sdcard { extern const ServiceManifest manifest; }
 
-static const service::Manifest* const system_services[] = {
+static const service::ServiceManifest* const system_services[] = {
     &service::sdcard::manifest,
     &service::wifi::manifest
 };
@@ -24,7 +24,7 @@ static const hal::Configuration* hardwareConfig = nullptr;
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
-    int app_count = sizeof(system_services) / sizeof(service::Manifest*);
+    int app_count = sizeof(system_services) / sizeof(service::ServiceManifest*);
     for (int i = 0; i < app_count; ++i) {
         addService(system_services[i]);
         tt_check(service::startService(system_services[i]->id));

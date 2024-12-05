@@ -6,10 +6,9 @@
 #include "Mutex.h"
 #include "Check.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "Log.h"
 #include "Pubsub.h"
-#include "service/Service.h"
+#include "service/ServiceContext.h"
 #include "WifiSettings.h"
 #include <atomic>
 #include <cstring>
@@ -790,13 +789,13 @@ _Noreturn int32_t wifi_main(TT_UNUSED void* parameter) {
     }
 }
 
-static void service_start(Service& service) {
+static void service_start(ServiceContext& service) {
     tt_assert(wifi_singleton == nullptr);
     wifi_singleton = new Wifi();
     service.setData(wifi_singleton);
 }
 
-static void service_stop(Service& service) {
+static void service_stop(ServiceContext& service) {
     tt_assert(wifi_singleton != nullptr);
 
     WifiRadioState state = wifi_singleton->radio_state;
@@ -812,7 +811,7 @@ static void service_stop(Service& service) {
     tt_crash("not fully implemented");
 }
 
-extern const Manifest manifest = {
+extern const ServiceManifest manifest = {
     .id = "Wifi",
     .onStart = &service_start,
     .onStop = &service_stop

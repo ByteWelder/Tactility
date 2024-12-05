@@ -1,11 +1,12 @@
 #include "I2cScannerThread.h"
 #include "lvgl.h"
-#include "service/gui/Gui.h"
-#include <iomanip>
+#include "service/loader/Loader.h"
 
 namespace tt::app::i2cscanner {
 
-static bool shouldStopScanThread(Data* data) {
+std::shared_ptr<Data> _Nullable optData();
+
+static bool shouldStopScanThread(std::shared_ptr<Data> data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         bool is_scanning = data->scanState == ScanStateScanning;
         tt_check(data->mutex.release() == TtStatusOk);
@@ -15,7 +16,7 @@ static bool shouldStopScanThread(Data* data) {
     }
 }
 
-static bool getPort(Data* data, i2c_port_t* port) {
+static bool getPort(std::shared_ptr<Data> data, i2c_port_t* port) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         *port = data->port;
         tt_assert(data->mutex.release() == TtStatusOk);
@@ -26,7 +27,7 @@ static bool getPort(Data* data, i2c_port_t* port) {
     }
 }
 
-static bool addAddressToList(Data* data, uint8_t address) {
+static bool addAddressToList(std::shared_ptr<Data> data, uint8_t address) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         data->scannedAddresses.push_back(address);
         tt_assert(data->mutex.release() == TtStatusOk);
@@ -37,8 +38,12 @@ static bool addAddressToList(Data* data, uint8_t address) {
     }
 }
 
-static int32_t scanThread(void* context) {
-    Data* data = (Data*) context;
+static int32_t scanThread(TT_UNUSED void* context) {
+    auto data = optData();
+    if (data == nullptr) {
+        return -1;
+    }
+
     TT_LOG_I(TAG, "Scan thread started");
 
     for (uint8_t address = 0; address < 128; ++address) {
@@ -69,7 +74,7 @@ static int32_t scanThread(void* context) {
     return 0;
 }
 
-bool hasScanThread(Data* data) {
+bool hasScanThread(std::shared_ptr<Data> data) {
     bool has_thread;
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         has_thread = data->scanThread != nullptr;
@@ -82,7 +87,7 @@ bool hasScanThread(Data* data) {
     }
 }
 
-void startScanning(Data* data) {
+void startScanning(std::shared_ptr<Data> data) {
     if (hasScanThread(data)) {
         stopScanning(data);
     }
@@ -99,7 +104,7 @@ void startScanning(Data* data) {
             "i2c scanner",
             4096,
             scanThread,
-            data
+            nullptr
         );
         data->scanThread->start();
         tt_check(data->mutex.release() == TtStatusOk);
@@ -108,7 +113,7 @@ void startScanning(Data* data) {
     }
 }
 
-void stopScanning(Data* data) {
+void stopScanning(std::shared_ptr<Data> data) {
     bool sent_halt;
     if (data->mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
         tt_assert(data->scanThread != nullptr);

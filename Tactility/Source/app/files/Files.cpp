@@ -1,6 +1,6 @@
 #include "FilesData.h"
 #include "Tactility.h"
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "Assets.h"
 #include "Check.h"
 #include "FileUtils.h"
@@ -16,6 +16,18 @@
 namespace tt::app::files {
 
 #define TAG "files_app"
+
+extern const AppManifest manifest;
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<Data> _Nullable optData() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<Data>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
 
 /**
  * Case-insensitive check to see if the given file matches the provided file extension.
@@ -57,10 +69,14 @@ static bool isSupportedTextFile(const char* filename) {
 
 // region Views
 
-static void updateViews(Data* data);
+static void updateViews(std::shared_ptr<Data> data);
 
-static void onNavigateUpPressed(lv_event_t* event) {
-    auto* files_data = (Data*)lv_event_get_user_data(event);
+static void onNavigateUpPressed(TT_UNUSED lv_event_t* event) {
+    auto files_data = optData();
+    if (files_data == nullptr) {
+        return;
+    }
+
     if (strcmp(files_data->current_path, "/") != 0) {
         TT_LOG_I(TAG, "Navigating upwards");
         char new_absolute_path[MAX_PATH_LENGTH];
@@ -68,6 +84,7 @@ static void onNavigateUpPressed(lv_event_t* event) {
             data_set_entries_for_path(files_data, new_absolute_path);
         }
     }
+
     updateViews(files_data);
 }
 
@@ -103,16 +120,16 @@ static void viewFile(const char* path, const char* filename) {
     TT_LOG_I(TAG, "Clicked %s", filepath);
 
     if (isSupportedImageFile(filename)) {
-        Bundle bundle;
-        bundle.putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        bundle->putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         service::loader::startApp("ImageViewer", false, bundle);
     } else if (isSupportedTextFile(filename)) {
-        Bundle bundle;
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
         if (get_platform() == PlatformEsp) {
-            bundle.putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
+            bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
-            bundle.putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
+            bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath + 1);
         }
         service::loader::startApp("TextViewer", false, bundle);
     } else {
@@ -123,11 +140,13 @@ static void viewFile(const char* path, const char* filename) {
 }
 
 static void onFilePressed(lv_event_t* event) {
+    auto files_data = optData();
+    if (files_data == nullptr) {
+        return;
+    }
+
     lv_event_code_t code = lv_event_get_code(event);
     if (code == LV_EVENT_CLICKED) {
-        lv_obj_t* button = lv_event_get_current_target_obj(event);
-        auto* files_data = static_cast<Data*>(lv_obj_get_user_data(button));
-
         auto* dir_entry = static_cast<dirent*>(lv_event_get_user_data(event));
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry->d_name, dir_entry->d_type);
 
@@ -152,7 +171,7 @@ static void onFilePressed(lv_event_t* event) {
     }
 }
 
-static void createFileWidget(Data* files_data, lv_obj_t* parent, struct dirent* dir_entry) {
+static void createFileWidget(lv_obj_t* parent, struct dirent* dir_entry) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
     const char* symbol;
@@ -166,15 +185,14 @@ static void createFileWidget(Data* files_data, lv_obj_t* parent, struct dirent* 
         symbol = LV_SYMBOL_FILE;
     }
     lv_obj_t* button = lv_list_add_button(list, symbol, dir_entry->d_name);
-    lv_obj_set_user_data(button, files_data);
     lv_obj_add_event_cb(button, &onFilePressed, LV_EVENT_CLICKED, (void*)dir_entry);
 }
 
-static void updateViews(Data* data) {
+static void updateViews(std::shared_ptr<Data> data) {
     lv_obj_clean(data->list);
     for (int i = 0; i < data->dir_entries_count; ++i) {
         TT_LOG_I(TAG, "Entry: %s %d", data->dir_entries[i]->d_name, data->dir_entries[i]->d_type);
-        createFileWidget(data, data->list, data->dir_entries[i]);
+        createFileWidget(data->list, data->dir_entries[i]);
     }
 }
 
@@ -182,14 +200,14 @@ static void updateViews(Data* data) {
 
 // region Lifecycle
 
-static void onShow(App& app, lv_obj_t* parent) {
-    auto* data = static_cast<Data*>(app.getData());
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, "Files");
     lvgl::toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &onExitAppPressed, nullptr);
-    lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressed, data);
+    lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressed, nullptr);
 
     data->list = lv_list_create(parent);
     lv_obj_set_width(data->list, LV_PCT(100));
@@ -198,8 +216,8 @@ static void onShow(App& app, lv_obj_t* parent) {
     updateViews(data);
 }
 
-static void onStart(App& app) {
-    auto* data = data_alloc();
+static void onStart(AppContext& app) {
+    auto data = std::shared_ptr<Data>(new Data());
     // PC platform is bound to current work directory because of the LVGL file system mapping
     if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];
@@ -216,20 +234,14 @@ static void onStart(App& app) {
     app.setData(data);
 }
 
-static void onStop(App& app) {
-    auto* data = static_cast<Data*>(app.getData());
-    data_free(data);
-}
-
 // endregion Lifecycle
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
     .type = TypeSystem,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
 };
 

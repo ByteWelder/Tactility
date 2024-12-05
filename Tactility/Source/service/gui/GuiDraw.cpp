@@ -9,7 +9,7 @@ namespace tt::service::gui {
 
 #define TAG "gui"
 
-static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::App& app) {
+static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::AppContext& app) {
     lvgl::obj_set_style_bg_blacken(parent);
 
     lv_obj_t* vertical_container = lv_obj_create(parent);
@@ -49,7 +49,7 @@ void redraw(Gui* gui) {
 
         ViewPort* view_port = gui->app_view_port;
         if (view_port != nullptr) {
-            app::App& app = view_port->app;
+            app::AppContext& app = view_port->app;
             lv_obj_t* container = create_app_views(gui, gui->lvgl_parent, app);
             view_port_show(view_port, container);
         } else {

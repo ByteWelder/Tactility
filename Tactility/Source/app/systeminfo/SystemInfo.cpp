@@ -108,7 +108,7 @@ static void addRtosTasks(lv_obj_t* parent) {
 
 #endif
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
@@ -151,7 +151,7 @@ static void onShow(App& app, lv_obj_t* parent) {
 #endif
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "SystemInfo",
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,

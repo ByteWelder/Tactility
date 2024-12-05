@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "ViewPort.h"
 
 namespace tt::service::gui {
@@ -14,7 +14,7 @@ typedef struct Gui Gui;
  * @param on_show
  * @param on_hide
  */
-void showApp(app::App& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide);
+void showApp(app::AppContext& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide);
 
 /**
  * Hide the current app's viewport.

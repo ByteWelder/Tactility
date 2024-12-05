@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Manifest.h"
+#include "AppManifest.h"
 #include <string>
 #include <vector>
 
 namespace tt::app {
 
-void addApp(const Manifest* manifest);
-const Manifest _Nullable* findAppById(const std::string& id);
-std::vector<const Manifest*> getApps();
+void addApp(const AppManifest* manifest);
+const AppManifest _Nullable* findAppById(const std::string& id);
+std::vector<const AppManifest*> getApps();
 
 } // namespace

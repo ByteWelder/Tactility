@@ -7,12 +7,12 @@
 
 namespace tt::app {
 
-typedef std::unordered_map<std::string, const Manifest*> AppManifestMap;
+typedef std::unordered_map<std::string, const AppManifest*> AppManifestMap;
 
 static AppManifestMap app_manifest_map;
 static Mutex hash_mutex(MutexTypeNormal);
 
-void addApp(const Manifest* manifest) {
+void addApp(const AppManifest* manifest) {
     TT_LOG_I(TAG, "Registering manifest %s", manifest->id.c_str());
 
     hash_mutex.acquire(TtWaitForever);
@@ -20,16 +20,16 @@ void addApp(const Manifest* manifest) {
     hash_mutex.release();
 }
 
-_Nullable const Manifest * findAppById(const std::string& id) {
+_Nullable const AppManifest * findAppById(const std::string& id) {
     hash_mutex.acquire(TtWaitForever);
     auto iterator = app_manifest_map.find(id);
-    _Nullable const Manifest* result = iterator != app_manifest_map.end() ? iterator->second : nullptr;
+    _Nullable const AppManifest* result = iterator != app_manifest_map.end() ? iterator->second : nullptr;
     hash_mutex.release();
     return result;
 }
 
-std::vector<const Manifest*> getApps() {
-    std::vector<const Manifest*> manifests;
+std::vector<const AppManifest*> getApps() {
+    std::vector<const AppManifest*> manifests;
     hash_mutex.acquire(TtWaitForever);
     for (const auto& item: app_manifest_map) {
         manifests.push_back(item.second);

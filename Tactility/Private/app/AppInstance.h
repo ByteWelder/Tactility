@@ -1,10 +1,11 @@
 #pragma once
 
-#include "app/App.h"
-#include "app/Manifest.h"
+#include "app/AppContext.h"
+#include "app/AppManifest.h"
 #include "Bundle.h"
 #include "Mutex.h"
 #include <memory>
+#include <utility>
 
 namespace tt::app {
 
@@ -17,70 +18,70 @@ typedef enum {
 } State;
 
 struct ResultHolder {
-    ResultHolder(Result result, const Bundle& resultData) {
-        this->result = result;
-        this->resultData = new Bundle(resultData);
-    }
-
-    ~ResultHolder() {
-        delete resultData;
-    }
-
     Result result;
-    Bundle* _Nullable resultData;
+    std::shared_ptr<const Bundle> resultData;
+
+    explicit ResultHolder(Result result) : result(result), resultData(nullptr) {}
+
+    ResultHolder(Result result, std::shared_ptr<const Bundle> resultData) :
+        result(result),
+        resultData(std::move(resultData))
+    {}
+
 };
 
 /**
  * Thread-safe app instance.
  */
-class AppInstance : public App {
+class AppInstance : public AppContext {
 
 private:
 
     Mutex mutex = Mutex(MutexTypeNormal);
-    const Manifest& manifest;
+    const AppManifest& manifest;
     State state = StateInitial;
     Flags flags = { .showStatusbar = true };
     /** @brief Optional parameters to start the app with
      * When these are stored in the app struct, the struct takes ownership.
      * Do not mutate after app creation.
      */
-    tt::Bundle parameters;
+    std::shared_ptr<const tt::Bundle> _Nullable parameters;
     /** @brief @brief Contextual data related to the running app's instance
      * The app can attach its data to this.
      * The lifecycle is determined by the on_start and on_stop methods in the AppManifest.
      * These manifest methods can optionally allocate/free data that is attached here.
      */
-    void* _Nullable data = nullptr;
-    std::unique_ptr<ResultHolder> resultHolder;
+    std::shared_ptr<void> _Nullable data;
+    std::unique_ptr<ResultHolder> _Nullable resultHolder;
 
 public:
 
-    AppInstance(const Manifest& manifest) :
+    explicit AppInstance(const AppManifest& manifest) :
         manifest(manifest) {}
 
-    AppInstance(const Manifest& manifest, const Bundle& parameters) :
+    AppInstance(const AppManifest& manifest, std::shared_ptr<const Bundle> parameters) :
         manifest(manifest),
-        parameters(parameters) {}
+        parameters(std::move(parameters)) {}
 
-    ~AppInstance() {}
+    ~AppInstance() override = default;
 
     void setState(State state);
-    State getState() const;
+    [[nodiscard]] State getState() const;
 
-    const Manifest& getManifest() const;
+    [[nodiscard]] const AppManifest& getManifest() const override;
 
-    Flags getFlags() const;
+    [[nodiscard]] Flags getFlags() const override;
     void setFlags(Flags flags);
-    Flags& mutableFlags() { return flags; }
+    Flags& mutableFlags() { return flags; } // TODO: locking mechanism
 
-    _Nullable void* getData() const;
-    void setData(void* data);
+    [[nodiscard]] std::shared_ptr<void> _Nullable getData() const override;
+    void setData(std::shared_ptr<void> data) override;
 
-    const Bundle& getParameters() const;
+    [[nodiscard]] std::shared_ptr<const Bundle> getParameters() const override;
 
-    void setResult(Result result, const Bundle& bundle);
-    bool hasResult() const;
+    void setResult(Result result) override;
+    void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
+    [[nodiscard]] bool hasResult() const override;
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };
 

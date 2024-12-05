@@ -2,7 +2,7 @@
 #include "View.h"
 #include "State.h"
 
-#include "app/App.h"
+#include "app/AppContext.h"
 #include "app/wificonnect/Parameters.h"
 #include "app/wifiapsettings/WifiApSettings.h"
 #include "TactilityCore.h"
@@ -21,9 +21,9 @@ static void onConnect(const char* ssid) {
         service::wifi::connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
-        Bundle bundle;
-        bundle.putString(WIFI_CONNECT_PARAM_SSID, ssid);
-        bundle.putString(WIFI_CONNECT_PARAM_PASSWORD, "");
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        bundle->putString(WIFI_CONNECT_PARAM_SSID, ssid);
+        bundle->putString(WIFI_CONNECT_PARAM_PASSWORD, "");
         service::loader::startApp("WifiConnect", false, bundle);
     }
 }
@@ -95,7 +95,7 @@ static void wifiManageEventCallback(const void* message, void* context) {
     wifi->requestViewUpdate();
 }
 
-void WifiManage::onShow(App& app, lv_obj_t* parent) {
+void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     PubSub* wifi_pubsub = service::wifi::getPubsub();
     wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &wifiManageEventCallback, this);
 
@@ -121,7 +121,7 @@ void WifiManage::onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-void WifiManage::onHide(TT_UNUSED App& app) {
+void WifiManage::onHide(TT_UNUSED AppContext& app) {
     lock();
     PubSub* wifi_pubsub = service::wifi::getPubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifiSubscription);
@@ -132,37 +132,29 @@ void WifiManage::onHide(TT_UNUSED App& app) {
 
 // region Manifest methods
 
-static void onStart(App& app) {
-    auto* wifi = new WifiManage();
+static void onStart(AppContext& app) {
+    auto wifi = std::shared_ptr<WifiManage>(new WifiManage());
     app.setData(wifi);
 }
 
-static void onStop(App& app) {
-    auto* wifi = (WifiManage*)app.getData();
-    tt_assert(wifi != nullptr);
-    delete wifi;
-}
-
-static void onShow(App& app, lv_obj_t* parent) {
-    auto* wifi = (WifiManage*)app.getData();
+static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
     wifi->onShow(app, parent);
 }
 
-static void onHide(App& app) {
-    auto* wifi = (WifiManage*)app.getData();
+static void onHide(AppContext& app) {
+    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
     wifi->onHide(app);
 }
 
-
 // endregion
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
     .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeSettings,
     .onStart = onStart,
-    .onStop = onStop,
     .onShow = onShow,
     .onHide = onHide
 };

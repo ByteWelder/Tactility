@@ -1,9 +1,9 @@
 #include "SelectionDialog.h"
-#include "Log.h"
 #include "lvgl.h"
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include <StringUtils.h>
+#include <TactilityCore.h>
 
 namespace tt::app::selectiondialog {
 
@@ -27,17 +27,17 @@ int32_t getResultIndex(const Bundle& bundle) {
     return index;
 }
 
-void setResultIndex(Bundle& bundle, int32_t index) {
-    bundle.putInt32(RESULT_BUNDLE_KEY_INDEX, index);
+void setResultIndex(std::shared_ptr<Bundle> bundle, int32_t index) {
+    bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, index);
 }
 
-void setTitleParameter(Bundle& bundle, const std::string& title) {
-    bundle.putString(PARAMETER_BUNDLE_KEY_TITLE, title);
+void setTitleParameter(std::shared_ptr<Bundle> bundle, const std::string& title) {
+    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
 }
 
-static std::string getTitleParameter(const Bundle& bundle) {
+static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
     std::string result;
-    if (bundle.optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
+    if (bundle->optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
         return result;
     } else {
         return DEFAULT_TITLE;
@@ -49,8 +49,8 @@ static void onListItemSelected(lv_event_t* e) {
     if (code == LV_EVENT_CLICKED) {
         size_t index = (size_t)(e->user_data);
         TT_LOG_I(TAG, "Selected item at index %d", index);
-        tt::app::App* app = service::loader::getCurrentApp();
-        Bundle bundle;
+        tt::app::AppContext* app = service::loader::getCurrentApp();
+        auto bundle = std::shared_ptr<Bundle>(new Bundle());
         setResultIndex(bundle, (int32_t)index);
         app->setResult(app::ResultOk, bundle);
         service::loader::stopApp();
@@ -63,7 +63,7 @@ static void createChoiceItem(void* parent, const std::string& title, size_t inde
     lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_CLICKED, (void*)index);
 }
 
-static void onShow(App& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     std::string title = getTitleParameter(app.getParameters());
     lvgl::toolbar_create(parent, title);
@@ -72,16 +72,17 @@ static void onShow(App& app, lv_obj_t* parent) {
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
 
-    const Bundle& parameters = app.getParameters();
+    auto parameters = app.getParameters();
+    tt_check(parameters != nullptr, "No parameters");
     std::string items_concatenated;
-    if (parameters.optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
+    if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
         std::vector<std::string> items = string_split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
         if (items.empty() || items.front().empty()) {
             TT_LOG_E(TAG, "No items provided");
             app.setResult(ResultError);
             service::loader::stopApp();
         } else if (items.size() == 1) {
-            Bundle result_bundle;
+            auto result_bundle = std::shared_ptr<Bundle>(new Bundle());
             setResultIndex(result_bundle, 0);
             app.setResult(ResultOk, result_bundle);
             service::loader::stopApp();
@@ -99,7 +100,7 @@ static void onShow(App& app, lv_obj_t* parent) {
     }
 }
 
-extern const Manifest manifest = {
+extern const AppManifest manifest = {
      .id = "SelectionDialog",
      .name = "Selection Dialog",
      .type = TypeHidden,

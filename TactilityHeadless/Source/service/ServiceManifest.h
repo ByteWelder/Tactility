@@ -4,12 +4,12 @@
 
 namespace tt::service {
 
-class Service;
+class ServiceContext;
 
-typedef void (*ServiceOnStart)(Service& service);
-typedef void (*ServiceOnStop)(Service& service);
+typedef void (*ServiceOnStart)(ServiceContext& service);
+typedef void (*ServiceOnStop)(ServiceContext& service);
 
-typedef struct Manifest {
+struct ServiceManifest {
     /**
      * The identifier by which the app is launched by the system and other apps.
      */
@@ -25,6 +25,6 @@ typedef struct Manifest {
      */
     const ServiceOnStop onStop = nullptr;
 
-} Manifest;
+};
 
 } // namespace

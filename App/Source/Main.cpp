@@ -7,7 +7,7 @@ namespace tt::service::wifi {
     extern void wifi_main(void*);
 }
 
-extern const tt::app::Manifest hello_world_app;
+extern const tt::app::AppManifest hello_world_app;
 
 extern "C" {
 

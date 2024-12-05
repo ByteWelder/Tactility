@@ -214,7 +214,7 @@ void View::updateEnableOnBootToggle() {
 
 // region Main
 
-void View::init(const App& app, Bindings* bindings, lv_obj_t* parent) {
+void View::init(const AppContext& app, Bindings* bindings, lv_obj_t* parent) {
     root = parent;
 
     // Toolbar
