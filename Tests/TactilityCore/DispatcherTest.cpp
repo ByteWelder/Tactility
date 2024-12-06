@@ -14,7 +14,7 @@ void increment_callback(TT_UNUSED std::shared_ptr<void> context) {
 void value_checker(std::shared_ptr<void> context) {
     auto value = std::static_pointer_cast<uint32_t>(context);
     if (*value != value_chacker_expected) {
-        tt_crash_implementation();
+        tt_crash("Test error");
     }
 }
 
