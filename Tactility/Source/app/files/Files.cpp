@@ -81,7 +81,7 @@ static void onNavigateUpPressed(TT_UNUSED lv_event_t* event) {
     if (strcmp(files_data->current_path, "/") != 0) {
         TT_LOG_I(TAG, "Navigating upwards");
         char new_absolute_path[MAX_PATH_LENGTH];
-        if (string_get_path_parent(files_data->current_path, new_absolute_path)) {
+        if (string::getPathParent(files_data->current_path, new_absolute_path)) {
             data_set_entries_for_path(files_data, new_absolute_path);
         }
     }

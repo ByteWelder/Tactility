@@ -27,7 +27,7 @@ std::string getPortNamesForDropdown() {
         }
         port_index++;
     }
-    return string_join(config_names, "\n");
+    return string::join(config_names, "\n");
 }
 
 }

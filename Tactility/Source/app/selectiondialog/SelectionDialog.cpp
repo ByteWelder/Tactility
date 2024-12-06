@@ -17,7 +17,7 @@ namespace tt::app::selectiondialog {
 #define TAG "selection_dialog"
 
 void setItemsParameter(Bundle& bundle, const std::vector<std::string>& items) {
-    std::string result = string_join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
+    std::string result = string::join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
     bundle.putString(PARAMETER_BUNDLE_KEY_ITEMS, result);
 }
 
@@ -76,7 +76,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     tt_check(parameters != nullptr, "Parameters missing");
     std::string items_concatenated;
     if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
-        std::vector<std::string> items = string_split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
+        std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
         if (items.empty() || items.front().empty()) {
             TT_LOG_E(TAG, "No items provided");
             app.setResult(ResultError);

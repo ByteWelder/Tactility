@@ -3,9 +3,9 @@
 #include <iostream>
 #include <sstream>
 
-namespace tt {
+namespace tt::string {
 
-int string_find_last_index(const char* text, size_t from_index, char find) {
+int findLastIndex(const char* text, size_t from_index, char find) {
     for (size_t i = from_index; i >= 0; i--) {
         if (text[i] == find) {
             return (int)i;
@@ -14,8 +14,8 @@ int string_find_last_index(const char* text, size_t from_index, char find) {
     return -1;
 }
 
-bool string_get_path_parent(const char* path, char* output) {
-    int index = string_find_last_index(path, strlen(path) - 1, '/');
+bool getPathParent(const char* path, char* output) {
+    int index = findLastIndex(path, strlen(path) - 1, '/');
     if (index == -1) {
         return false;
     } else if (index == 0) {
@@ -29,7 +29,7 @@ bool string_get_path_parent(const char* path, char* output) {
     }
 }
 
-std::vector<std::string> string_split(const std::string&input, const std::string&delimiter) {
+std::vector<std::string> split(const std::string&input, const std::string&delimiter) {
     size_t token_index = 0;
     size_t delimiter_index;
     const size_t delimiter_length = delimiter.length();
@@ -50,7 +50,7 @@ std::vector<std::string> string_split(const std::string&input, const std::string
     return result;
 }
 
-std::string string_join(const std::vector<std::string>& input, const std::string& delimiter) {
+std::string join(const std::vector<std::string>& input, const std::string& delimiter) {
     std::stringstream stream;
     size_t size = input.size();
 
