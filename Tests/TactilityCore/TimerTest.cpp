@@ -2,32 +2,34 @@
 #include "TactilityCore.h"
 #include "Timer.h"
 
+#include <utility>
+
 using namespace tt;
 
-void* timer_callback_context = NULL;
-static void timer_callback_with_context(void* context) {
-    timer_callback_context = context;
+std::shared_ptr<void> timer_callback_context = NULL;
+static void timer_callback_with_context(std::shared_ptr<void> context) {
+    timer_callback_context = std::move(context);
 }
 
-static void timer_callback_with_counter(void* context) {
-    int* int_ptr = (int*)context;
+static void timer_callback_with_counter(std::shared_ptr<void> context) {
+    auto int_ptr = std::static_pointer_cast<int>(context);
     (*int_ptr)++;
 }
 
 TEST_CASE("a timer passes the context correctly") {
-    int foo = 1;
-    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_context, &foo);
+    auto foo = std::make_shared<int>(1);
+    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_context, foo);
     timer->start(1);
     delay_ticks(10);
     timer->stop();
     delete timer;
 
-    CHECK_EQ(timer_callback_context, &foo);
+    CHECK_EQ(*std::static_pointer_cast<int>(timer_callback_context), *foo);
 }
 
 TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
-    int counter = 0;
-    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, &counter);
+    auto counter = std::make_shared<int>(0);
+    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, counter);
     timer->start(1);
     delay_ticks(10);
     timer->stop();
@@ -36,7 +38,7 @@ TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
     timer->stop();
     delete timer;
 
-    CHECK_GE(counter, 2);
+    CHECK_GE(*counter, 2);
 }
 
 TEST_CASE("TimerTypePeriodic calls the callback periodically") {
