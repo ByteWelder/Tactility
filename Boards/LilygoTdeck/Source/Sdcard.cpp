@@ -144,7 +144,7 @@ static bool sdcard_is_mounted(void* context) {
      * Writing and reading to the bus from 2 devices at the same time causes crashes.
      * This work-around ensures that this check is only happening when LVGL isn't rendering.
      */
-    bool locked = tt::lvgl::lock(100); // TODO: Refactor to a more reliable locking mechanism
+    bool locked = tt::lvgl::lock(50); // TODO: Refactor to a more reliable locking mechanism
     if (!locked) {
         TT_LOG_W(TAG, "Failed to get LVGL lock");
     }

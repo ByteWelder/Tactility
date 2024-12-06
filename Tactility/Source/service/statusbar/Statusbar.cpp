@@ -1,11 +1,13 @@
 #include "Assets.h"
+#include "Mutex.h"
+#include "Timer.h"
+#include "Tactility.h"
+
 #include "hal/Power.h"
 #include "hal/sdcard/Sdcard.h"
-#include "Mutex.h"
+#include "lvgl/Statusbar.h"
 #include "service/ServiceContext.h"
 #include "service/wifi/Wifi.h"
-#include "Tactility.h"
-#include "lvgl/Statusbar.h"
 #include "service/ServiceRegistry.h"
 
 namespace tt::service::statusbar {
@@ -16,8 +18,7 @@ extern const ServiceManifest manifest;
 
 struct ServiceData {
     Mutex mutex;
-    Thread thread;
-    bool service_interrupted = false;
+    std::unique_ptr<Timer> updateTimer;
     int8_t wifi_icon_id = lvgl::statusbar_icon_add(nullptr);
     const char* wifi_last_icon = nullptr;
     int8_t sdcard_icon_id = lvgl::statusbar_icon_add(nullptr);
@@ -153,51 +154,35 @@ static void service_data_free(ServiceData* data) {
    free(data);
 }
 
-int32_t serviceMain(TT_UNUSED void* parameter) {
-    TT_LOG_I(TAG, "Started main loop");
-    delay_ms(20); // TODO: Make service instance findable earlier on (but expose "starting" state?)
-    auto context = tt::service::findServiceById(manifest.id);
-    if (context == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
-        return -1;
-    }
-
-    auto data = std::static_pointer_cast<ServiceData>(context->getData());
-
-    while (!data->service_interrupted) {
-        update_wifi_icon(data);
-        update_sdcard_icon(data);
-        update_power_icon(data);
-        delay_ms(1000);
-    }
-    return 0;
+static void onUpdate(std::shared_ptr<void> parameter) {
+    auto data = std::static_pointer_cast<ServiceData>(parameter);
+    // TODO: Make thread-safe for LVGL
+    update_wifi_icon(data);
+    update_sdcard_icon(data);
+    update_power_icon(data);
 }
 
 static void onStart(ServiceContext& service) {
     auto data = std::make_shared<ServiceData>();
     service.setData(data);
 
+    // TODO: Make thread-safe for LVGL
     lvgl::statusbar_icon_set_visibility(data->wifi_icon_id, true);
     update_wifi_icon(data);
     update_sdcard_icon(data); // also updates visibility
     update_power_icon(data);
 
-
-    data->thread.setCallback(serviceMain, nullptr);
-    data->thread.setPriority(Thread::PriorityLow);
-    data->thread.setStackSize(3000);
-    data->thread.setName("statusbar");
-    data->thread.start();
+    data->updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onUpdate, data);
+    // We want to try and scan more often in case of startup or scan lock failure
+    data->updateTimer->start(1000);
 }
 
 static void onStop(ServiceContext& service) {
     auto data = std::static_pointer_cast<ServiceData>(service.getData());
 
     // Stop thread
-    data->lock();
-    data->service_interrupted = true;
-    data->unlock();
-    data->thread.join();
+    data->updateTimer->stop();
+    data->updateTimer = nullptr;
 }
 
 extern const ServiceManifest manifest = {

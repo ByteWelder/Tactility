@@ -1,3 +1,4 @@
+#include <Dispatcher.h>
 #include "TactilityHeadless.h"
 #include "hal/Configuration.h"
 #include "hal/Hal_i.h"
@@ -14,6 +15,8 @@ namespace tt {
 
 namespace service::wifi { extern const ServiceManifest manifest; }
 namespace service::sdcard { extern const ServiceManifest manifest; }
+
+static Dispatcher mainDispatcher;
 
 static const service::ServiceManifest* const system_services[] = {
     &service::sdcard::manifest,
@@ -38,6 +41,11 @@ void initHeadless(const hal::Configuration& config) {
     hardwareConfig = &config;
     hal::init(config);
     register_and_start_system_services();
+}
+
+
+Dispatcher& getMainDispatcher() {
+    return mainDispatcher;
 }
 
 namespace hal {

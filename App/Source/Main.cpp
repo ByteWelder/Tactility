@@ -4,7 +4,7 @@
 #include "Tactility.h"
 
 namespace tt::service::wifi {
-    extern void wifi_main(void*);
+    extern void wifi_task(void*);
 }
 
 extern const tt::app::AppManifest hello_world_app;
@@ -25,9 +25,7 @@ void app_main() {
         .auto_start_app_id = nullptr
     };
 
-    tt::init(config);
-
-    tt::service::wifi::wifi_main(nullptr);
+    tt::run(config);
 }
 
 } // extern

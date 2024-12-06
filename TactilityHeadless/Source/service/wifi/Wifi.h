@@ -59,7 +59,7 @@ enum WifiRadioState {
     WIFI_RADIO_CONNECTION_PENDING,
     WIFI_RADIO_CONNECTION_ACTIVE,
     WIFI_RADIO_OFF_PENDING,
-    WIFI_RADIO_OFF
+    WIFI_RADIO_OFF,
 };
 
 struct WifiEvent {
@@ -74,9 +74,9 @@ struct WifiApRecord {
 
 /**
  * @brief Get wifi pubsub
- * @return PubSub*
+ * @return PubSub
  */
-PubSub* getPubsub();
+std::shared_ptr<PubSub> getPubsub();
 
 WifiRadioState getRadioState();
 /**

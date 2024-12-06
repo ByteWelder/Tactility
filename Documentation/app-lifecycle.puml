@@ -1,9 +1,9 @@
 @startuml
-[*] --> on_create : app is started
-on_create --> on_show : app becomes visible
-on_show --> on_hide : app is no longer visible
-on_hide --> on_destroy : app is being closed
-on_destroy --> [*]
+[*] --> onStart : app is created
+onStart --> onShow : app becomes visible
+onShow --> onHide : app is no longer visible
+onHide --> onStop : app is preparing to be destroyed
+onStop --> [*] : app is destroyed
 skinparam ranksep 25
 skinparam padding 2
 @enduml

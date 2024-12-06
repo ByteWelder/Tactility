@@ -2,10 +2,13 @@
 
 #include "hal/Configuration.h"
 #include "TactilityHeadlessConfig.h"
+#include "Dispatcher.h"
 
 namespace tt {
 
 void initHeadless(const hal::Configuration& config);
+
+Dispatcher& getMainDispatcher();
 
 } // namespace
 

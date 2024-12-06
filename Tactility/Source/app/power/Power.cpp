@@ -13,7 +13,7 @@ namespace tt::app::power {
 #define TAG "power"
 
 extern const AppManifest manifest;
-static void on_timer(TT_UNUSED void* context);
+static void on_timer(TT_UNUSED std::shared_ptr<void> context);
 
 struct Data {
     std::unique_ptr<Timer> update_timer = std::unique_ptr<Timer>(new Timer(Timer::TypePeriodic, &on_timer, nullptr));

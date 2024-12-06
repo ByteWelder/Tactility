@@ -22,7 +22,7 @@ typedef struct {
 
 typedef struct {
     Mutex* mutex;
-    PubSub* pubsub;
+    std::shared_ptr<PubSub> pubsub;
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT];
 } StatusbarData;
 
@@ -40,7 +40,7 @@ typedef struct {
 
 static void statusbar_init() {
     statusbar_data.mutex = tt_mutex_alloc(MutexTypeRecursive);
-    statusbar_data.pubsub = tt_pubsub_alloc();
+    statusbar_data.pubsub = std::make_shared<PubSub>();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; i++) {
         statusbar_data.icons[i].image = nullptr;
         statusbar_data.icons[i].visible = false;

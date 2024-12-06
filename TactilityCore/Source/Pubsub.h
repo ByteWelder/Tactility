@@ -4,30 +4,30 @@
  */
 #pragma once
 
+#include "Mutex.h"
+#include <list>
+
 namespace tt {
 
 /** PubSub Callback type */
 typedef void (*PubSubCallback)(const void* message, void* context);
 
-/** PubSub type */
-typedef struct PubSub PubSub;
+struct PubSubSubscription {
+    uint64_t id;
+    PubSubCallback callback;
+    void* callback_context;
+};
 
-/** PubSubSubscription type */
-typedef struct PubSubSubscription PubSubSubscription;
+struct PubSub {
+    typedef std::list<PubSubSubscription> Subscriptions;
+    uint64_t last_id = 0;
+    Subscriptions items;
+    Mutex mutex;
 
-/** Allocate PubSub
- *
- * Reentrable, Not threadsafe, one owner
- *
- * @return     pointer to PubSub instance
- */
-PubSub* tt_pubsub_alloc();
-
-/** Free PubSub
- * 
- * @param      pubsub  PubSub instance
- */
-void tt_pubsub_free(PubSub* pubsub);
+    ~PubSub() {
+        tt_check(items.empty());
+    }
+};
 
 /** Subscribe to PubSub
  * 
@@ -40,7 +40,7 @@ void tt_pubsub_free(PubSub* pubsub);
  * @return     pointer to PubSubSubscription instance
  */
 PubSubSubscription*
-tt_pubsub_subscribe(PubSub* pubsub, PubSubCallback callback, void* callback_context);
+tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCallback callback, void* callback_context);
 
 /** Unsubscribe from PubSub
  * 
@@ -50,7 +50,7 @@ tt_pubsub_subscribe(PubSub* pubsub, PubSubCallback callback, void* callback_cont
  * @param      pubsub               pointer to PubSub instance
  * @param      pubsub_subscription  pointer to PubSubSubscription instance
  */
-void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscription);
+void tt_pubsub_unsubscribe(std::shared_ptr<PubSub> pubsub, PubSubSubscription* pubsub_subscription);
 
 /** Publish message to PubSub
  *
@@ -59,6 +59,6 @@ void tt_pubsub_unsubscribe(PubSub* pubsub, PubSubSubscription* pubsub_subscripti
  * @param      pubsub   pointer to PubSub instance
  * @param      message  message pointer to publish
  */
-void tt_pubsub_publish(PubSub* pubsub, void* message);
+void tt_pubsub_publish(std::shared_ptr<PubSub> pubsub, void* message);
 
 } // namespace

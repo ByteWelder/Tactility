@@ -140,10 +140,10 @@ public:
 
 struct Loader {
     Thread* thread;
-    PubSub* pubsub_internal;
-    PubSub* pubsub_external;
+    std::shared_ptr<PubSub> pubsub_internal = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub> pubsub_external = std::make_shared<PubSub>();
     MessageQueue queue = MessageQueue(2, sizeof(LoaderMessage)); // 2 entries, so you can stop the current app while starting a new one without blocking
-    Mutex* mutex;
+    Mutex mutex = Mutex(MutexTypeRecursive);
     std::stack<app::AppInstance*> app_stack;
 };
 

@@ -21,7 +21,7 @@ typedef struct {
     /** @brief Locking mechanism for modifying the Wifi instance */
     Mutex* mutex;
     /** @brief The public event bus */
-    PubSub* pubsub;
+    std::shared_ptr<PubSub> pubsub;
     /** @brief The internal message queue */
     MessageQueue queue;
     bool scan_active;
@@ -50,7 +50,7 @@ static void publish_event_simple(Wifi* wifi, WifiEventType type) {
 static Wifi* wifi_alloc() {
     auto* instance = static_cast<Wifi*>(malloc(sizeof(Wifi)));
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
-    instance->pubsub = tt_pubsub_alloc();
+    instance->pubsub = std::make_shared<PubSub>();
     instance->scan_active = false;
     instance->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
     instance->secure_connection = false;
@@ -59,7 +59,6 @@ static Wifi* wifi_alloc() {
 
 static void wifi_free(Wifi* instance) {
     tt_mutex_free(instance->mutex);
-    tt_pubsub_free(instance->pubsub);
     free(instance);
 }
 
@@ -67,7 +66,7 @@ static void wifi_free(Wifi* instance) {
 
 // region Public functions
 
-PubSub* getPubsub() {
+std::shared_ptr<PubSub> getPubsub() {
     tt_assert(wifi);
     return wifi->pubsub;
 }

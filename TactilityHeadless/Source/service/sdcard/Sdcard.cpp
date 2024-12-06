@@ -1,10 +1,12 @@
-#include <cstdlib>
-
 #include "Mutex.h"
+#include "Timer.h"
+
 #include "service/ServiceContext.h"
 #include "TactilityCore.h"
 #include "TactilityHeadless.h"
 #include "service/ServiceRegistry.h"
+
+#include <cstdlib>
 
 #define TAG "sdcard_service"
 
@@ -15,21 +17,11 @@ extern const ServiceManifest manifest;
 
 struct ServiceData {
     Mutex mutex;
-    Thread thread = Thread(
-        "sdcard",
-        3000, // Minimum is ~2800 @ ESP-IDF 5.1.2 when ejecting sdcard
-        &sdcard_task,
-        nullptr
-    );
+    std::unique_ptr<Timer> updateTimer;
     hal::sdcard::State lastState = hal::sdcard::StateUnmounted;
-    bool interrupted = false;
 
-    ServiceData() {
-        thread.setPriority(Thread::PriorityLow);
-    }
-
-    void lock() const {
-        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    bool lock(TickType_t timeout) const {
+        return mutex.acquire(timeout) == TtStatusOk;
     }
 
     void unlock() const {
@@ -38,46 +30,36 @@ struct ServiceData {
 };
 
 
-static int32_t sdcard_task(TT_UNUSED void* context) {
-    delay_ms(20); // TODO: Make service instance findable earlier on (but expose "starting" state?)
-    auto service = findServiceById(manifest.id);
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
-        return -1;
+static void onUpdate(std::shared_ptr<void> context) {
+    auto data = std::static_pointer_cast<ServiceData>(context);
+
+    if (!data->lock(50)) {
+        TT_LOG_W(TAG, "Failed to acquire lock");
+        return;
     }
 
-    auto data = std::static_pointer_cast<ServiceData>(service->getData());
+    hal::sdcard::State new_state = hal::sdcard::getState();
 
-    bool interrupted = false;
+    if (new_state == hal::sdcard::StateError) {
+        TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
+        hal::sdcard::unmount(ms_to_ticks(1000));
+    }
 
-    do {
-        data->lock();
+    if (new_state != data->lastState) {
+        data->lastState = new_state;
+    }
 
-        interrupted = data->interrupted;
-
-        hal::sdcard::State new_state = hal::sdcard::getState();
-
-        if (new_state == hal::sdcard::StateError) {
-            TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
-            hal::sdcard::unmount(ms_to_ticks(1000));
-        }
-
-        if (new_state != data->lastState) {
-            data->lastState = new_state;
-        }
-
-        data->lock();
-        delay_ms(2000);
-    } while (!interrupted);
-
-    return 0;
+    data->unlock();
 }
 
 static void onStart(ServiceContext& service) {
     if (hal::getConfiguration().sdcard != nullptr) {
         auto data = std::make_shared<ServiceData>();
         service.setData(data);
-        data->thread.start();
+
+        data->updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onUpdate, data);
+        // We want to try and scan more often in case of startup or scan lock failure
+        data->updateTimer->start(1000);
     } else {
         TT_LOG_I(TAG, "task not started due to config");
     }
@@ -85,12 +67,10 @@ static void onStart(ServiceContext& service) {
 
 static void onStop(ServiceContext& service) {
     auto data = std::static_pointer_cast<ServiceData>(service.getData());
-    if (data != nullptr) {
-        data->lock();
-        data->interrupted = true;
-        data->unlock();
-
-        data->thread.join();
+    if (data->updateTimer != nullptr) {
+        // Stop thread
+        data->updateTimer->stop();
+        data->updateTimer = nullptr;
     }
 }
 
