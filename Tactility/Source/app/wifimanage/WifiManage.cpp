@@ -108,7 +108,7 @@ static void wifiManageEventCallback(const void* message, void* context) {
 }
 
 void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
-    PubSub* wifi_pubsub = service::wifi::getPubsub();
+    auto wifi_pubsub = service::wifi::getPubsub();
     wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &wifiManageEventCallback, this);
 
     // State update (it has its own locking)
@@ -128,6 +128,7 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     bool can_scan = radio_state == service::wifi::WIFI_RADIO_ON ||
         radio_state == service::wifi::WIFI_RADIO_CONNECTION_PENDING ||
         radio_state == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE;
+    TT_LOG_I(TAG, "%d %d", radio_state, service::wifi::isScanning());
     if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }
@@ -135,7 +136,7 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
 
 void WifiManage::onHide(TT_UNUSED AppContext& app) {
     lock();
-    PubSub* wifi_pubsub = service::wifi::getPubsub();
+    auto wifi_pubsub = service::wifi::getPubsub();
     tt_pubsub_unsubscribe(wifi_pubsub, wifiSubscription);
     wifiSubscription = nullptr;
     isViewEnabled = false;

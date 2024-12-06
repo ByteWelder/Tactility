@@ -37,6 +37,6 @@ app::AppContext* _Nullable getCurrentApp();
 /**
  * @brief PubSub for LoaderEvent
  */
-PubSub* getPubsub();
+std::shared_ptr<PubSub> getPubsub();
 
 } // namespace

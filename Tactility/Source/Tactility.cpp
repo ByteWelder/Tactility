@@ -1,3 +1,4 @@
+#include <Dispatcher.h>
 #include "Tactility.h"
 
 #include "app/ManifestRegistry.h"
@@ -127,7 +128,7 @@ static void register_and_start_user_services(const service::ServiceManifest* con
     }
 }
 
-void init(const Configuration& config) {
+void run(const Configuration& config) {
     TT_LOG_I(TAG, "init started");
 
     tt_assert(config.hardware);
@@ -160,6 +161,11 @@ void init(const Configuration& config) {
     }
 
     TT_LOG_I(TAG, "init complete");
+
+    TT_LOG_I(TAG, "Processing main dispatcher");
+    while (true) {
+        getMainDispatcher().consume(TtWaitForever);
+    }
 }
 
 const Configuration* _Nullable getConfiguration() {

@@ -3,6 +3,7 @@
 #include "CoreTypes.h"
 
 #include "RtosCompatTimers.h"
+#include <memory>
 
 namespace tt {
 
@@ -11,12 +12,12 @@ private:
     TimerHandle_t timerHandle;
 public:
 
-    typedef void (*Callback)(void* context);
+    typedef void (*Callback)(std::shared_ptr<void> context);
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
 
     Callback callback;
-    void* callbackContext;
+    std::shared_ptr<void> callbackContext;
 
     typedef enum {
         TypeOnce = 0,    ///< One-shot timer.
@@ -28,7 +29,7 @@ public:
      * @param[in] callback The callback function
      * @param callbackContext The callback context
      */
-    Timer(Type type, Callback callback, void* callbackContext);
+    Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext);
 
     ~Timer();
 

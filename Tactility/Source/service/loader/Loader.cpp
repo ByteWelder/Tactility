@@ -29,38 +29,30 @@ static Loader* loader_singleton = nullptr;
 static Loader* loader_alloc() {
     assert(loader_singleton == nullptr);
     loader_singleton = new Loader();
-    loader_singleton->pubsub_internal = tt_pubsub_alloc();
-    loader_singleton->pubsub_external = tt_pubsub_alloc();
     loader_singleton->thread = new Thread(
         "loader",
         4096, // Last known minimum was 2400 for starting Hello World app
         &loader_main,
         nullptr
     );
-    loader_singleton->mutex = tt_mutex_alloc(MutexTypeRecursive);
     return loader_singleton;
 }
 
 static void loader_free() {
     tt_assert(loader_singleton != nullptr);
     delete loader_singleton->thread;
-    tt_pubsub_free(loader_singleton->pubsub_internal);
-    tt_pubsub_free(loader_singleton->pubsub_external);
-    tt_mutex_free(loader_singleton->mutex);
     delete loader_singleton;
     loader_singleton = nullptr;
 }
 
 static void loader_lock() {
     tt_assert(loader_singleton);
-    tt_assert(loader_singleton->mutex);
-    tt_check(tt_mutex_acquire(loader_singleton->mutex, TtWaitForever) == TtStatusOk);
+    tt_check(loader_singleton->mutex.acquire(TtWaitForever) == TtStatusOk);
 }
 
 static void loader_unlock() {
     tt_assert(loader_singleton);
-    tt_assert(loader_singleton->mutex);
-    tt_check(tt_mutex_release(loader_singleton->mutex) == TtStatusOk);
+    tt_check(loader_singleton->mutex.release() == TtStatusOk);
 }
 
 LoaderStatus startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
@@ -107,7 +99,7 @@ app::AppContext* _Nullable getCurrentApp() {
     return dynamic_cast<app::AppContext*>(app);
 }
 
-PubSub* getPubsub() {
+std::shared_ptr<PubSub> getPubsub() {
     tt_assert(loader_singleton);
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited

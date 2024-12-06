@@ -1,4 +1,6 @@
 #include "Timer.h"
+
+#include <utility>
 #include "Check.h"
 #include "Kernel.h"
 #include "RtosCompat.h"
@@ -13,11 +15,11 @@ static void timer_callback(TimerHandle_t hTimer) {
     }
 }
 
-Timer::Timer(Type type, Callback callback, void* callbackContext) {
+Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) {
     tt_assert((kernel_is_irq() == 0U) && (callback != nullptr));
 
     this->callback = callback;
-    this->callbackContext = callbackContext;
+    this->callbackContext = std::move(callbackContext);
 
     UBaseType_t reload;
     if (type == TypeOnce) {

@@ -7,8 +7,12 @@
 #include "CoreTypes.h"
 #include "Thread.h"
 #include "RtosCompatSemaphore.h"
+#include "Check.h"
+#include <memory>
 
 namespace tt {
+
+class ScopedMutexUsage;
 
 typedef enum {
     MutexTypeNormal,
@@ -30,6 +34,30 @@ public:
     TtStatus acquire(uint32_t timeout) const;
     TtStatus release() const;
     ThreadId getOwner() const;
+
+    std::unique_ptr<ScopedMutexUsage> scoped() const;
+};
+
+class ScopedMutexUsage {
+
+    const Mutex& mutex;
+    bool acquired = false;
+
+public:
+
+    ScopedMutexUsage(const Mutex& mutex) : mutex(mutex) {}
+
+    ~ScopedMutexUsage() {
+        if (acquired) {
+            tt_check(mutex.release() == TtStatusOk);
+        }
+    }
+
+    bool acquire(uint32_t timeout) {
+        TtStatus result = mutex.acquire(timeout);
+        acquired = (result == TtStatusOk);
+        return acquired;
+    }
 };
 
 /** Allocate Mutex

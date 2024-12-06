@@ -50,7 +50,7 @@ static void publish_event_simple(Wifi* wifi, WifiEventType type) {
 static Wifi* wifi_alloc() {
     auto* instance = static_cast<Wifi*>(malloc(sizeof(Wifi)));
     instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
-    instance->pubsub = tt_pubsub_alloc();
+    instance->pubsub = new PubSub();
     instance->scan_active = false;
     instance->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
     instance->secure_connection = false;
@@ -59,7 +59,7 @@ static Wifi* wifi_alloc() {
 
 static void wifi_free(Wifi* instance) {
     tt_mutex_free(instance->mutex);
-    tt_pubsub_free(instance->pubsub);
+    delete instance->pubsub;
     free(instance);
 }
 

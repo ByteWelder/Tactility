@@ -7,29 +7,39 @@
 
 #include "MessageQueue.h"
 #include "Mutex.h"
+#include "EventFlag.h"
+#include <memory>
+#include <queue>
 
 namespace tt {
 
-typedef void (*Callback)(void* data);
+typedef void (*Callback)(std::shared_ptr<void> data);
 
 class Dispatcher {
 private:
-    typedef struct {
+    struct DispatcherMessage {
         Callback callback;
-        void* context;
-    } DispatcherMessage;
+        std::shared_ptr<void> context; // Can't use unique_ptr with void, so we use shared_ptr
 
-    MessageQueue queue;
+        DispatcherMessage(Callback callback, std::shared_ptr<void> context) :
+            callback(callback),
+            context(std::move(context))
+        {}
+
+        ~DispatcherMessage() = default;
+    };
+
     Mutex mutex;
-    DispatcherMessage buffer; // Buffer for consuming a message
+    std::queue<std::shared_ptr<DispatcherMessage>> queue;
+    EventFlag eventFlag;
 
 public:
 
-    explicit Dispatcher(size_t queueLimit = 8);
+    explicit Dispatcher();
     ~Dispatcher();
 
-    void dispatch(Callback callback, void* context);
-    bool consume(uint32_t timeout_ticks);
+    void dispatch(Callback callback, std::shared_ptr<void> context);
+    uint32_t consume(uint32_t timeout_ticks);
 };
 
 } // namespace

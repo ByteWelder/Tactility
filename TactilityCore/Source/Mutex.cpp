@@ -111,6 +111,10 @@ ThreadId Mutex::getOwner() const {
 }
 
 
+std::unique_ptr<ScopedMutexUsage> Mutex::scoped() const {
+    return std::move(std::make_unique<ScopedMutexUsage>(*this));
+}
+
 Mutex* tt_mutex_alloc(MutexType type) {
     return new Mutex(type);
 }
@@ -125,7 +129,6 @@ TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
 
 TtStatus tt_mutex_release(Mutex* mutex) {
     return mutex->release();
-
 }
 
 ThreadId tt_mutex_get_owner(Mutex* mutex) {
