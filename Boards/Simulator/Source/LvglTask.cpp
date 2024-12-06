@@ -11,8 +11,8 @@
 #define TAG "lvgl_task"
 
 // Mutex for LVGL drawing
-static tt::Mutex lvgl_mutex(tt::MutexTypeRecursive);
-static tt::Mutex task_mutex(tt::MutexTypeRecursive);
+static tt::Mutex lvgl_mutex(tt::Mutex::TypeRecursive);
+static tt::Mutex task_mutex(tt::Mutex::TypeRecursive);
 
 static uint32_t task_max_sleep_ms = 10;
 // Mutex for LVGL task state (to modify task_running state)

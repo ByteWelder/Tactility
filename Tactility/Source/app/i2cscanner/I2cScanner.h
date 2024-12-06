@@ -19,7 +19,7 @@ enum ScanState {
 
 struct Data {
     // Core
-    Mutex mutex = Mutex(MutexTypeRecursive);
+    Mutex mutex = Mutex(Mutex::TypeRecursive);
     Thread* _Nullable scanThread = nullptr;
     // State
     ScanState scanState;

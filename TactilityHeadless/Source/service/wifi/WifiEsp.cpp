@@ -47,8 +47,8 @@ private:
 public:
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex radioMutex = Mutex(MutexTypeRecursive);
-    Mutex dataMutex = Mutex(MutexTypeRecursive);
+    Mutex radioMutex = Mutex(Mutex::TypeRecursive);
+    Mutex dataMutex = Mutex(Mutex::TypeRecursive);
     std::unique_ptr<Timer> autoConnectTimer;
     /** @brief The public event bus */
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();

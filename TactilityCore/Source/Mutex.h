@@ -14,21 +14,27 @@ namespace tt {
 
 class ScopedMutexUsage;
 
-typedef enum {
-    MutexTypeNormal,
-    MutexTypeRecursive,
-} MutexType;
-
 /**
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Can be used in IRQ mode (within ISR context)
  */
 class Mutex {
-private:
-    SemaphoreHandle_t semaphore;
-    MutexType type;
+
 public:
-    explicit Mutex(MutexType type = MutexTypeNormal);
+
+    enum Type {
+        TypeNormal,
+        TypeRecursive,
+    };
+
+private:
+
+    SemaphoreHandle_t semaphore;
+    Type type;
+
+public:
+
+    explicit Mutex(Type type = TypeNormal);
     ~Mutex();
 
     TtStatus acquire(uint32_t timeout) const;
@@ -68,7 +74,7 @@ public:
  */
 
 [[deprecated("use class")]]
-Mutex* tt_mutex_alloc(MutexType type);
+Mutex* tt_mutex_alloc(Mutex::Type type);
 
 /** Free Mutex
  *

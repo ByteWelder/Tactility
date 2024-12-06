@@ -22,13 +22,13 @@ namespace tt {
 #define tt_mutex_info(mutex, text)
 #endif
 
-Mutex::Mutex(MutexType type) : type(type) {
+Mutex::Mutex(Type type) : type(type) {
     tt_mutex_info(data, "alloc");
     switch (type) {
-        case MutexTypeNormal:
+        case TypeNormal:
             semaphore = xSemaphoreCreateMutex();
             break;
-        case MutexTypeRecursive:
+        case TypeRecursive:
             semaphore = xSemaphoreCreateRecursiveMutex();
             break;
         default:
@@ -51,7 +51,7 @@ TtStatus Mutex::acquire(uint32_t timeout) const {
     tt_mutex_info(mutex, "acquire");
 
     switch (type) {
-        case MutexTypeNormal:
+        case TypeNormal:
             if (xSemaphoreTake(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
@@ -62,7 +62,7 @@ TtStatus Mutex::acquire(uint32_t timeout) const {
                 return TtStatusOk;
             }
             break;
-        case MutexTypeRecursive:
+        case TypeRecursive:
             if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
@@ -84,7 +84,7 @@ TtStatus Mutex::release() const {
     tt_mutex_info(mutex, "release");
 
     switch (type) {
-        case MutexTypeNormal: {
+        case TypeNormal: {
             if (xSemaphoreGive(semaphore) != pdPASS) {
                 return TtStatusErrorResource;
             } else {
@@ -92,7 +92,7 @@ TtStatus Mutex::release() const {
             }
             break;
         }
-        case MutexTypeRecursive:
+        case TypeRecursive:
             if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
                 return TtStatusErrorResource;
             } else {
@@ -115,7 +115,7 @@ std::unique_ptr<ScopedMutexUsage> Mutex::scoped() const {
     return std::move(std::make_unique<ScopedMutexUsage>(*this));
 }
 
-Mutex* tt_mutex_alloc(MutexType type) {
+Mutex* tt_mutex_alloc(Mutex::Type type) {
     return new Mutex(type);
 }
 

@@ -11,7 +11,7 @@ static int thread_with_mutex_parameter(void* parameter) {
 }
 
 TEST_CASE("a mutex can block a thread") {
-    auto* mutex = tt_mutex_alloc(MutexTypeNormal);
+    auto* mutex = tt_mutex_alloc(Mutex::TypeNormal);
     tt_mutex_acquire(mutex, TtWaitForever);
 
     Thread* thread = new Thread(

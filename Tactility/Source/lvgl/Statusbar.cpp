@@ -39,7 +39,7 @@ typedef struct {
 } Statusbar;
 
 static void statusbar_init() {
-    statusbar_data.mutex = tt_mutex_alloc(MutexTypeRecursive);
+    statusbar_data.mutex = tt_mutex_alloc(Mutex::TypeRecursive);
     statusbar_data.pubsub = std::make_shared<PubSub>();
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; i++) {
         statusbar_data.icons[i].image = nullptr;

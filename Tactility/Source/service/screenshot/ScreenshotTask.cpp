@@ -43,7 +43,7 @@ ScreenshotTask* alloc() {
     auto* data = static_cast<ScreenshotTaskData*>(malloc(sizeof(ScreenshotTaskData)));
     *data = (ScreenshotTaskData) {
         .thread = nullptr,
-        .mutex = tt_mutex_alloc(MutexTypeRecursive),
+        .mutex = tt_mutex_alloc(Mutex::TypeRecursive),
         .interrupted = false
     };
     return data;
