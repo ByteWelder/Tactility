@@ -12,7 +12,6 @@
 - Fix screenshot app on ESP32: it currently blocks when allocating memory
 - Localisation of texts (load in boot app from sd?)
 - Portrait support for GPIO app
-- App lifecycle docs mention on_create/on_destroy but app lifecycle is on_start/on_stop
 - Explore LVGL9's FreeRTOS functionality
 - Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Bug: in LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
@@ -26,7 +25,6 @@
 - If present, use LED to show boot status
 - 2 wire speaker support
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
-- Wi-Fi using dispatcher to dispatch its main functionality to the dedicated Wi-Fi CPU core (to avoid main loop hack)
 
 # App Ideas
 - System logger
