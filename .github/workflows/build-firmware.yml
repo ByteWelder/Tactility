@@ -12,7 +12,6 @@ jobs:
         uses: ./.github/actions/build-firmware
         with:
           board-name: yellowboard
-          version: snapshot
           sdkconfig: sdkconfig.board.yellow_board
           arch: esp32
   lilygo-tdeck:
@@ -23,7 +22,6 @@ jobs:
         uses: ./.github/actions/build-firmware
         with:
           board-name: lilygotdeck
-          version: snapshot
           sdkconfig: sdkconfig.board.lilygo_tdeck
           arch: esp32s3
   m5stack-core2:
@@ -34,7 +32,6 @@ jobs:
         uses: ./.github/actions/build-firmware
         with:
           board-name: m5stackcore2
-          version: snapshot
           sdkconfig: sdkconfig.board.m5stack_core2
           arch: esp32
   m5stack-cores3:
@@ -45,6 +42,5 @@ jobs:
         uses: ./.github/actions/build-firmware
         with:
           board-name: m5stackcores3
-          version: snapshot
           sdkconfig: sdkconfig.board.m5stack_cores3
           arch: esp32s3
