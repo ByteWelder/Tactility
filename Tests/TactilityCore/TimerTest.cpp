@@ -42,20 +42,20 @@ TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
 }
 
 TEST_CASE("TimerTypePeriodic calls the callback periodically") {
-    int counter = 0;
+    auto counter = std::make_shared<int>(0);
     int ticks_to_run = 10;
-    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, &counter);
+    auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, counter);
     timer->start(1);
     delay_ticks(ticks_to_run);
     timer->stop();
     delete timer;
 
-    CHECK_EQ(counter, ticks_to_run);
+    CHECK_EQ(*counter, ticks_to_run);
 }
 
 TEST_CASE("restarting TimerTypeOnce timers calls the callback again") {
-    int counter = 0;
-    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_counter, &counter);
+    auto counter = std::make_shared<int>(0);
+    auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_counter, counter);
     timer->start(1);
     delay_ticks(10);
     timer->stop();
@@ -64,5 +64,5 @@ TEST_CASE("restarting TimerTypeOnce timers calls the callback again") {
     timer->stop();
     delete timer;
 
-    CHECK_EQ(counter, 2);
+    CHECK_EQ(*counter, 2);
 }
