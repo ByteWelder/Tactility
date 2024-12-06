@@ -114,7 +114,7 @@ static void onHide(AppContext& app) {
 }
 
 static void onStart(AppContext& app) {
-    auto wifi = std::shared_ptr<WifiConnect>(new WifiConnect());
+    auto wifi = std::make_shared<WifiConnect>();
     app.setData(wifi);
 }
 

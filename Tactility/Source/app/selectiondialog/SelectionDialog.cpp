@@ -50,7 +50,7 @@ static void onListItemSelected(lv_event_t* e) {
         size_t index = (size_t)(e->user_data);
         TT_LOG_I(TAG, "Selected item at index %d", index);
         tt::app::AppContext* app = service::loader::getCurrentApp();
-        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        auto bundle = std::make_shared<Bundle>();
         setResultIndex(bundle, (int32_t)index);
         app->setResult(app::ResultOk, bundle);
         service::loader::stopApp();
@@ -82,7 +82,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
             app.setResult(ResultError);
             service::loader::stopApp();
         } else if (items.size() == 1) {
-            auto result_bundle = std::shared_ptr<Bundle>(new Bundle());
+            auto result_bundle = std::make_shared<Bundle>();
             setResultIndex(result_bundle, 0);
             app.setResult(ResultOk, result_bundle);
             service::loader::stopApp();

@@ -33,7 +33,7 @@ static void onConnect(const char* ssid) {
         service::wifi::connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
-        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        auto bundle = std::make_shared<Bundle>();
         bundle->putString(WIFI_CONNECT_PARAM_SSID, ssid);
         bundle->putString(WIFI_CONNECT_PARAM_PASSWORD, "");
         service::loader::startApp("WifiConnect", false, bundle);
@@ -145,7 +145,7 @@ void WifiManage::onHide(TT_UNUSED AppContext& app) {
 // region Manifest methods
 
 static void onStart(AppContext& app) {
-    auto wifi = std::shared_ptr<WifiManage>(new WifiManage());
+    auto wifi = std::make_shared<WifiManage>();
     app.setData(wifi);
 }
 

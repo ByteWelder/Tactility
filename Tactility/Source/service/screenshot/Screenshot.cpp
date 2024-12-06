@@ -1,5 +1,6 @@
 #include "Screenshot.h"
 #include <cstdlib>
+#include <memory>
 
 #include "Mutex.h"
 #include "ScreenshotTask.h"
@@ -13,48 +14,25 @@ namespace tt::service::screenshot {
 
 extern const ServiceManifest manifest;
 
-typedef struct {
-    Mutex* mutex;
-    task::ScreenshotTask* task;
-    Mode mode;
-} ServiceData;
+struct ServiceData {
+    Mutex mutex;
+    task::ScreenshotTask* task = nullptr;
+    Mode mode = ScreenshotModeNone;
 
-static ServiceData* service_data_alloc() {
-    auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
-    *data = (ServiceData) {
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .task = nullptr,
-        .mode = ScreenshotModeNone
-    };
-    return data;
-}
-
-static void service_data_free(ServiceData* data) {
-    tt_mutex_free(data->mutex);
-}
-
-static void service_data_lock(ServiceData* data) {
-    tt_check(tt_mutex_acquire(data->mutex, TtWaitForever) == TtStatusOk);
-}
-
-static void service_data_unlock(ServiceData* data) {
-    tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
-}
-
-static void on_start(ServiceContext& service) {
-    ServiceData* data = service_data_alloc();
-    service.setData(data);
-}
-
-static void on_stop(ServiceContext& service) {
-    auto* data = static_cast<ServiceData*>(service.getData());
-    if (data->task) {
-        task::free(data->task);
-        data->task = nullptr;
+    ~ServiceData() {
+        if (task) {
+            task::free(task);
+        }
     }
-    tt_mutex_free(data->mutex);
-    service_data_free(data);
-}
+
+    void lock() {
+        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    }
+
+    void unlock() {
+        tt_check(mutex.release() == TtStatusOk);
+    }
+};
 
 void startApps(const char* path) {
     _Nullable auto* service = findServiceById(manifest.id);
@@ -63,8 +41,8 @@ void startApps(const char* path) {
         return;
     }
 
-    auto* data = static_cast<ServiceData*>(service->getData());
-    service_data_lock(data);
+    auto data = std::static_pointer_cast<ServiceData>(service->getData());
+    data->lock();
     if (data->task == nullptr) {
         data->task = task::alloc();
         data->mode = ScreenshotModeApps;
@@ -72,7 +50,7 @@ void startApps(const char* path) {
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
-    service_data_unlock(data);
+    data->unlock();
 }
 
 void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
@@ -82,8 +60,8 @@ void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
         return;
     }
 
-    auto* data = static_cast<ServiceData*>(service->getData());
-    service_data_lock(data);
+    auto data = std::static_pointer_cast<ServiceData>(service->getData());
+    data->lock();
     if (data->task == nullptr) {
         data->task = task::alloc();
         data->mode = ScreenshotModeTimed;
@@ -91,7 +69,7 @@ void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
-    service_data_unlock(data);
+    data->unlock();
 }
 
 void stop() {
@@ -101,8 +79,8 @@ void stop() {
         return;
     }
 
-    auto data = static_cast<ServiceData*>(service->getData());
-    service_data_lock(data);
+    auto data = std::static_pointer_cast<ServiceData>(service->getData());
+    data->lock();
     if (data->task != nullptr) {
         task::stop(data->task);
         task::free(data->task);
@@ -111,7 +89,7 @@ void stop() {
     } else {
         TT_LOG_E(TAG, "Screenshot task not running");
     }
-    service_data_unlock(data);
+    data->unlock();
 }
 
 Mode getMode() {
@@ -120,10 +98,10 @@ Mode getMode() {
         TT_LOG_E(TAG, "Service not found");
         return ScreenshotModeNone;
     } else {
-        auto* data = static_cast<ServiceData*>(service->getData());
-        service_data_lock(data);
+        auto data = std::static_pointer_cast<ServiceData>(service->getData());
+        data->lock();
         Mode mode = data->mode;
-        service_data_unlock(data);
+        data->unlock();
         return mode;
     }
 }
@@ -132,10 +110,14 @@ bool isStarted() {
     return getMode() != ScreenshotModeNone;
 }
 
+static void onStart(ServiceContext& service) {
+    auto data = std::make_shared<ServiceData>();
+    service.setData(data);
+}
+
 extern const ServiceManifest manifest = {
     .id = "Screenshot",
-    .onStart = &on_start,
-    .onStop = &on_stop
+    .onStart = onStart
 };
 
 } // namespace

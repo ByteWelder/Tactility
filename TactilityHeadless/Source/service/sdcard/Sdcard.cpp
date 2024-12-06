@@ -4,56 +4,54 @@
 #include "service/ServiceContext.h"
 #include "TactilityCore.h"
 #include "TactilityHeadless.h"
+#include "service/ServiceRegistry.h"
 
 #define TAG "sdcard_service"
 
 namespace tt::service::sdcard {
 
 static int32_t sdcard_task(void* context);
+extern const ServiceManifest manifest;
 
-typedef struct {
-    Mutex* mutex;
-    Thread* thread;
-    hal::sdcard::State lastState;
-    bool interrupted;
-} ServiceData;
+struct ServiceData {
+    Mutex mutex;
+    Thread thread = Thread(
+        "sdcard",
+        3000, // Minimum is ~2800 @ ESP-IDF 5.1.2 when ejecting sdcard
+        &sdcard_task,
+        nullptr
+    );
+    hal::sdcard::State lastState = hal::sdcard::StateUnmounted;
+    bool interrupted = false;
 
-static ServiceData* service_data_alloc() {
-    auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
-    *data = (ServiceData) {
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .thread = new Thread(
-            "sdcard",
-            3000, // Minimum is ~2800 @ ESP-IDF 5.1.2 when ejecting sdcard
-            &sdcard_task,
-            data
-        ),
-        .lastState = hal::sdcard::StateUnmounted,
-        .interrupted = false
-    };
-    data->thread->setPriority(Thread::PriorityLow);
-    return data;
-}
+    ServiceData() {
+        thread.setPriority(Thread::PriorityLow);
+    }
 
-static void service_data_free(ServiceData* data) {
-    tt_mutex_free(data->mutex);
-    delete data->thread;
-}
+    void lock() const {
+        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    }
 
-static void service_data_lock(ServiceData* data) {
-    tt_check(tt_mutex_acquire(data->mutex, TtWaitForever) == TtStatusOk);
-}
+    void unlock() const {
+        tt_check(mutex.release() == TtStatusOk);
+    }
+};
 
-static void service_data_unlock(ServiceData* data) {
-    tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
-}
 
-static int32_t sdcard_task(void* context) {
-    auto* data = (ServiceData*)context;
+static int32_t sdcard_task(TT_UNUSED void* context) {
+    delay_ms(20); // TODO: Make service instance findable earlier on (but expose "starting" state?)
+    auto service = findServiceById(manifest.id);
+    if (service == nullptr) {
+        TT_LOG_E(TAG, "Service not found");
+        return -1;
+    }
+
+    auto data = std::static_pointer_cast<ServiceData>(service->getData());
+
     bool interrupted = false;
 
     do {
-        service_data_lock(data);
+        data->lock();
 
         interrupted = data->interrupted;
 
@@ -68,40 +66,38 @@ static int32_t sdcard_task(void* context) {
             data->lastState = new_state;
         }
 
-        service_data_unlock(data);
+        data->lock();
         delay_ms(2000);
     } while (!interrupted);
 
     return 0;
 }
 
-static void on_start(ServiceContext& service) {
+static void onStart(ServiceContext& service) {
     if (hal::getConfiguration().sdcard != nullptr) {
-        ServiceData* data = service_data_alloc();
+        auto data = std::make_shared<ServiceData>();
         service.setData(data);
-        data->thread->start();
+        data->thread.start();
     } else {
         TT_LOG_I(TAG, "task not started due to config");
     }
 }
 
-static void on_stop(ServiceContext& service) {
-    auto* data = static_cast<ServiceData*>(service.getData());
+static void onStop(ServiceContext& service) {
+    auto data = std::static_pointer_cast<ServiceData>(service.getData());
     if (data != nullptr) {
-        service_data_lock(data);
+        data->lock();
         data->interrupted = true;
-        service_data_unlock(data);
+        data->unlock();
 
-        data->thread->join();
-
-        service_data_free(data);
+        data->thread.join();
     }
 }
 
 extern const ServiceManifest manifest = {
     .id = "sdcard",
-    .onStart = &on_start,
-    .onStop = &on_stop
+    .onStart = onStart,
+    .onStop = onStop
 };
 
 } // namespace

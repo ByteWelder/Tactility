@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "service/ServiceInstance.h"
 
 namespace tt::service {
@@ -6,16 +8,16 @@ ServiceInstance::ServiceInstance(const service::ServiceManifest&manifest) : mani
 
 const service::ServiceManifest& ServiceInstance::getManifest() const { return manifest; }
 
-void* ServiceInstance::getData() const {
+std::shared_ptr<void> ServiceInstance::getData() const {
     mutex.acquire(TtWaitForever);
-    void* data_copy = data;
+    std::shared_ptr<void> result = data;
     mutex.release();
-    return data_copy;
+    return result;
 }
 
-void ServiceInstance::setData(void* newData) {
+void ServiceInstance::setData(std::shared_ptr<void> newData) {
     mutex.acquire(TtWaitForever);
-    data = newData;
+    data = std::move(newData);
     mutex.release();
 }
 

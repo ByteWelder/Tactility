@@ -12,6 +12,7 @@
 #include "lvgl/Toolbar.h"
 #include <dirent.h>
 #include <unistd.h>
+#include <memory>
 
 namespace tt::app::files {
 
@@ -120,11 +121,11 @@ static void viewFile(const char* path, const char* filename) {
     TT_LOG_I(TAG, "Clicked %s", filepath);
 
     if (isSupportedImageFile(filename)) {
-        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        auto bundle = std::make_shared<Bundle>();
         bundle->putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         service::loader::startApp("ImageViewer", false, bundle);
     } else if (isSupportedTextFile(filename)) {
-        auto bundle = std::shared_ptr<Bundle>(new Bundle());
+        auto bundle = std::make_shared<Bundle>();
         if (get_platform() == PlatformEsp) {
             bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
         } else {
@@ -217,7 +218,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 }
 
 static void onStart(AppContext& app) {
-    auto data = std::shared_ptr<Data>(new Data());
+    auto data = std::make_shared<Data>();
     // PC platform is bound to current work directory because of the LVGL file system mapping
     if (get_platform() == PlatformSimulator) {
         char cwd[PATH_MAX];

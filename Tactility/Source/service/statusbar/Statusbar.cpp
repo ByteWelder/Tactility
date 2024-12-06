@@ -6,22 +6,39 @@
 #include "service/wifi/Wifi.h"
 #include "Tactility.h"
 #include "lvgl/Statusbar.h"
+#include "service/ServiceRegistry.h"
 
 namespace tt::service::statusbar {
 
 #define TAG "statusbar_service"
 
-typedef struct {
-    Mutex* mutex;
-    Thread* thread;
-    bool service_interrupted;
-    int8_t wifi_icon_id;
-    const char* wifi_last_icon;
-    int8_t sdcard_icon_id;
-    const char* sdcard_last_icon;
-    int8_t power_icon_id;
-    const char* power_last_icon;
-} ServiceData;
+extern const ServiceManifest manifest;
+
+struct ServiceData {
+    Mutex mutex;
+    Thread thread;
+    bool service_interrupted = false;
+    int8_t wifi_icon_id = lvgl::statusbar_icon_add(nullptr);
+    const char* wifi_last_icon = nullptr;
+    int8_t sdcard_icon_id = lvgl::statusbar_icon_add(nullptr);
+    const char* sdcard_last_icon = nullptr;
+    int8_t power_icon_id = lvgl::statusbar_icon_add(nullptr);
+    const char* power_last_icon = nullptr;
+
+    ~ServiceData() {
+        lvgl::statusbar_icon_remove(wifi_icon_id);
+        lvgl::statusbar_icon_remove(sdcard_icon_id);
+        lvgl::statusbar_icon_remove(power_icon_id);
+    }
+
+    void lock() const {
+        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    }
+
+    void unlock() const {
+        tt_check(mutex.release() == TtStatusOk);
+    }
+};
 
 // region wifi
 
@@ -59,7 +76,7 @@ static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure)
     }
 }
 
-static void update_wifi_icon(ServiceData* data) {
+static void update_wifi_icon(std::shared_ptr<ServiceData> data) {
     wifi::WifiRadioState radio_state = wifi::getRadioState();
     bool is_secure = wifi::isConnectionSecure();
     const char* desired_icon = wifi_get_status_icon(radio_state, is_secure);
@@ -85,7 +102,7 @@ static _Nullable const char* sdcard_get_status_icon(hal::sdcard::State state) {
     }
 }
 
-static void update_sdcard_icon(ServiceData* data) {
+static void update_sdcard_icon(std::shared_ptr<ServiceData> data) {
     hal::sdcard::State state = hal::sdcard::getState();
     const char* desired_icon = sdcard_get_status_icon(state);
     if (data->sdcard_last_icon != desired_icon) {
@@ -119,7 +136,7 @@ static _Nullable const char* power_get_status_icon() {
     }
 }
 
-static void update_power_icon(ServiceData* data) {
+static void update_power_icon(std::shared_ptr<ServiceData> data) {
     const char* desired_icon = power_get_status_icon();
     if (data->power_last_icon != desired_icon) {
         lvgl::statusbar_icon_set_image(data->power_icon_id, desired_icon);
@@ -132,49 +149,21 @@ static void update_power_icon(ServiceData* data) {
 
 // region service
 
-static ServiceData* service_data_alloc() {
-    auto* data = static_cast<ServiceData*>(malloc(sizeof(ServiceData)));
-    *data = (ServiceData) {
-        .mutex = tt_mutex_alloc(MutexTypeNormal),
-        .thread = new Thread(),
-        .service_interrupted = false,
-        .wifi_icon_id = lvgl::statusbar_icon_add(nullptr),
-        .wifi_last_icon = nullptr,
-        .sdcard_icon_id = lvgl::statusbar_icon_add(nullptr),
-        .sdcard_last_icon = nullptr,
-        .power_icon_id = lvgl::statusbar_icon_add(nullptr),
-        .power_last_icon = nullptr
-    };
-
-    lvgl::statusbar_icon_set_visibility(data->wifi_icon_id, true);
-    update_wifi_icon(data);
-    update_sdcard_icon(data); // also updates visibility
-    update_power_icon(data);
-
-    return data;
-}
-
 static void service_data_free(ServiceData* data) {
-    tt_mutex_free(data->mutex);
-    delete data->thread;
-    lvgl::statusbar_icon_remove(data->wifi_icon_id);
-    lvgl::statusbar_icon_remove(data->sdcard_icon_id);
-    lvgl::statusbar_icon_remove(data->power_icon_id);
-    free(data);
+   free(data);
 }
 
-static void service_data_lock(ServiceData* data) {
-    tt_check(tt_mutex_acquire(data->mutex, TtWaitForever) == TtStatusOk);
-}
-
-static void service_data_unlock(ServiceData* data) {
-    tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
-}
-
-int32_t service_main(TT_UNUSED void* parameter) {
+int32_t serviceMain(TT_UNUSED void* parameter) {
     TT_LOG_I(TAG, "Started main loop");
-    auto* data = (ServiceData*)parameter;
-    tt_assert(data != nullptr);
+    delay_ms(20); // TODO: Make service instance findable earlier on (but expose "starting" state?)
+    auto context = tt::service::findServiceById(manifest.id);
+    if (context == nullptr) {
+        TT_LOG_E(TAG, "Service not found");
+        return -1;
+    }
+
+    auto data = std::static_pointer_cast<ServiceData>(context->getData());
+
     while (!data->service_interrupted) {
         update_wifi_icon(data);
         update_sdcard_icon(data);
@@ -184,34 +173,37 @@ int32_t service_main(TT_UNUSED void* parameter) {
     return 0;
 }
 
-static void on_start(ServiceContext& service) {
-    ServiceData* data = service_data_alloc();
+static void onStart(ServiceContext& service) {
+    auto data = std::make_shared<ServiceData>();
     service.setData(data);
 
-    data->thread->setCallback(service_main, data);
-    data->thread->setPriority(Thread::PriorityLow);
-    data->thread->setStackSize(3000);
-    data->thread->setName("statusbar");
-    data->thread->start();
+    lvgl::statusbar_icon_set_visibility(data->wifi_icon_id, true);
+    update_wifi_icon(data);
+    update_sdcard_icon(data); // also updates visibility
+    update_power_icon(data);
+
+
+    data->thread.setCallback(serviceMain, nullptr);
+    data->thread.setPriority(Thread::PriorityLow);
+    data->thread.setStackSize(3000);
+    data->thread.setName("statusbar");
+    data->thread.start();
 }
 
-static void on_stop(ServiceContext& service) {
-    auto* data = static_cast<ServiceData*>(service.getData());
+static void onStop(ServiceContext& service) {
+    auto data = std::static_pointer_cast<ServiceData>(service.getData());
 
     // Stop thread
-    service_data_lock(data);
+    data->lock();
     data->service_interrupted = true;
-    service_data_unlock(data);
-    tt_mutex_release(data->mutex);
-    data->thread->join();
-
-    service_data_free(data);
+    data->unlock();
+    data->thread.join();
 }
 
 extern const ServiceManifest manifest = {
     .id = "Statusbar",
-    .onStart = &on_start,
-    .onStop = &on_stop
+    .onStart = onStart,
+    .onStop = onStop
 };
 
 // endregion service

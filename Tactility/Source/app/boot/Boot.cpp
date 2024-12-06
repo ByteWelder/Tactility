@@ -60,7 +60,7 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
 }
 
 static void onStart(AppContext& app) {
-    auto data = std::shared_ptr<Data>(new Data());
+    auto data = std::make_shared<Data>();
     app.setData(data);
 }
 
