@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #include "ElfSymbols.h"
 #include "elf_symbol.h"
 
@@ -15,3 +17,5 @@ const struct esp_elfsym elf_symbols[] {
 void initElfSymbols() {
     elf_set_custom_symbols(elf_symbols);
 }
+
+#endif // ESP_PLATFORM

@@ -28,10 +28,10 @@ else()
         PUBLIC Source/
     )
 
-    ADD_DEFINITIONS(-d_nULLABLE=)
-    ADD_DEFINITIONS(-d_nONNULL=)
-    TARGET_LINK_LIBRARIES(TactilityCore
-        public MBEDTLS
-        public FREERTOS_KERNEL
+    add_definitions(-D_Nullable=)
+    add_definitions(-D_Nonnull=)
+    target_link_libraries(TactilityCore
+        PUBLIC mbedtls
+        PUBLIC freertos_kernel
     )
 endif()
