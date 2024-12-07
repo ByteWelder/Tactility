@@ -21,9 +21,12 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Boards"
         "App"
         "Tactility"
+        "TactilityCore"
         "TactilityHeadless"
         "Libraries/esp_lvgl_port"
+        "Libraries/elf_loader"
         "Libraries/lvgl"
+        "Libraries/lv_screenshot"
         "Libraries/M5Unified"
         "Libraries/M5GFX"
     )
@@ -53,23 +56,22 @@ project(Tactility)
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
+    add_subdirectory(TactilityCore)
     add_subdirectory(TactilityHeadless)
     add_subdirectory(Boards/Simulator)
 endif()
-
-add_subdirectory(TactilityCore)
-
-add_subdirectory(Libraries/lv_screenshot)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
+    add_subdirectory(Libraries/lv_screenshot)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC Boards/Simulator/Source # for FreeRTOSConfig.h
     )
+
 
     # EmbedTLS
     set(ENABLE_TESTING OFF)

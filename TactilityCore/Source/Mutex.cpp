@@ -112,7 +112,7 @@ ThreadId Mutex::getOwner() const {
 
 
 std::unique_ptr<ScopedMutexUsage> Mutex::scoped() const {
-    return std::move(std::make_unique<ScopedMutexUsage>(*this));
+    return std::make_unique<ScopedMutexUsage>(*this);
 }
 
 Mutex* tt_mutex_alloc(Mutex::Type type) {

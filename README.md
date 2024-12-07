@@ -19,9 +19,10 @@ There are also built-in apps:
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
 Noteworthy features:
-- Touch UI capabilities (via LVGL) with support for input devices such as on-device trackball or keyboard.
-- An application platform that can run apps and services.
-- Basic applications to boost productivity, such as a Wi-Fi connectivity and I2C apps.
+- Touch UI capabilities (via LVGL) with support for input devices such as keyboard, trackable and more.
+- Run apps and services.
+- Run external apps from SD card. (limited APIs available, for now)
+- Basic applications to boost productivity, such as a Wi-Fi connectivity and I2C.
 - Includes a PC simulator build target to speed up development.
 
 Requirements:

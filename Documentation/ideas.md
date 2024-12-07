@@ -1,4 +1,5 @@
 # TODOs
+- Loader: Use Timer instead of Thread, and move API to `tt::app::`
 - Gpio: Use Timer instead of Thread
 - I2cScannerThread: Use Timer instead of Thread
 - Bug: I2C Scanner is on M5Stack devices is broken

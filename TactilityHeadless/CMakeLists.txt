@@ -10,18 +10,15 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES esp_wifi nvs_flash spiffs driver
+        REQUIRES TactilityCore esp_wifi nvs_flash spiffs driver
     )
 
-    set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/assets")
-    spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
-
-    set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/config")
-    spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
-
-    target_link_libraries(${COMPONENT_LIB}
-        PUBLIC TactilityCore
-    )
+    if (NOT DEFINED TACTILITY_SKIP_SPIFFS)
+        set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/assets")
+        spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
+        set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/config")
+        spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
+    endif()
 
     add_definitions(-DESP_PLATFORM)
 else()

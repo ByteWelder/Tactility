@@ -20,3 +20,7 @@ namespace tt::app::selectiondialog {
 
     int32_t getResultIndex(const Bundle& bundle);
 }
+
+extern "C" {
+void tt_app_selectiondialog_start(const char* title, int argc, const char* argv[]);
+}

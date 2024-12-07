@@ -1,0 +1,8 @@
+dependencies:
+  espressif/cmake_utilities:
+    version: 0.*
+  idf:
+    version: '>=4.4.3'
+description: Espressif ELF(Executable and Linkable Format) Loader
+url: https://github.com/espressif/esp-iot-solution/tree/master/components/elf_loader
+version: 0.1.0
