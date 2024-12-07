@@ -10,18 +10,18 @@
 #include <unistd.h>
 #endif
 
-namespace tt {
+namespace tt::kernel {
 
-bool kernel_is_irq() {
+bool isIrq() {
     return TT_IS_IRQ_MODE();
 }
 
-bool kernel_is_running() {
+bool isRunning() {
     return xTaskGetSchedulerState() != taskSCHEDULER_RUNNING;
 }
 
-int32_t kernel_lock() {
-    tt_assert(!kernel_is_irq());
+int32_t lock() {
+    tt_assert(!isIrq());
 
     int32_t lock;
 
@@ -45,8 +45,8 @@ int32_t kernel_lock() {
     return (lock);
 }
 
-int32_t kernel_unlock() {
-    tt_assert(!kernel_is_irq());
+int32_t unlock() {
+    tt_assert(!isIrq());
 
     int32_t lock;
 
@@ -75,8 +75,8 @@ int32_t kernel_unlock() {
     return (lock);
 }
 
-int32_t kernel_restore_lock(int32_t lock) {
-    tt_assert(!kernel_is_irq());
+int32_t restoreLock(int32_t lock) {
+    tt_assert(!isIrq());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
@@ -106,13 +106,13 @@ int32_t kernel_restore_lock(int32_t lock) {
     return (lock);
 }
 
-uint32_t kernel_get_tick_frequency() {
+uint32_t getTickFrequency() {
     /* Return frequency in hertz */
     return (configTICK_RATE_HZ);
 }
 
-void delay_ticks(TickType_t ticks) {
-    tt_assert(!kernel_is_irq());
+void delayTicks(TickType_t ticks) {
+    tt_assert(!isIrq());
     if (ticks == 0U) {
         taskYIELD();
     } else {
@@ -120,8 +120,8 @@ void delay_ticks(TickType_t ticks) {
     }
 }
 
-TtStatus delay_until_tick(TickType_t tick) {
-    tt_assert(!kernel_is_irq());
+TtStatus delayUntilTick(TickType_t tick) {
+    tt_assert(!isIrq());
 
     TickType_t tcnt, delay;
     TtStatus stat;
@@ -147,10 +147,10 @@ TtStatus delay_until_tick(TickType_t tick) {
     return (stat);
 }
 
-TickType_t get_ticks() {
+TickType_t getTicks() {
     TickType_t ticks;
 
-    if (kernel_is_irq() != 0U) {
+    if (isIrq() != 0U) {
         ticks = xTaskGetTickCountFromISR();
     } else {
         ticks = xTaskGetTickCount();
@@ -159,7 +159,7 @@ TickType_t get_ticks() {
     return ticks;
 }
 
-TickType_t ms_to_ticks(uint32_t milliseconds) {
+TickType_t millisToTicks(uint32_t milliseconds) {
 #if configTICK_RATE_HZ == 1000
     return (TickType_t)milliseconds;
 #else
@@ -167,7 +167,7 @@ TickType_t ms_to_ticks(uint32_t milliseconds) {
 #endif
 }
 
-void delay_ms(uint32_t milliseconds) {
+void delayMillis(uint32_t milliseconds) {
     if (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING) {
         if (milliseconds > 0 && milliseconds < portMAX_DELAY - 1) {
             milliseconds += 1;
@@ -175,14 +175,14 @@ void delay_ms(uint32_t milliseconds) {
 #if configTICK_RATE_HZ_RAW == 1000
         tt_delay_tick(milliseconds);
 #else
-        delay_ticks(ms_to_ticks(milliseconds));
+        delayTicks(kernel::millisToTicks(milliseconds));
 #endif
     } else if (milliseconds > 0) {
-        delay_us(milliseconds * 1000);
+        kernel::delayMicros(milliseconds * 1000);
     }
 }
 
-void delay_us(uint32_t microseconds) {
+void delayMicros(uint32_t microseconds) {
 #ifdef ESP_PLATFORM
     ets_delay_us(microseconds);
 #else
@@ -190,7 +190,7 @@ void delay_us(uint32_t microseconds) {
 #endif
 }
 
-Platform get_platform() {
+Platform getPlatform() {
 #ifdef ESP_PLATFORM
     return PlatformEsp;
 #else

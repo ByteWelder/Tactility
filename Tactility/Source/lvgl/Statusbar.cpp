@@ -83,7 +83,7 @@ static const lv_obj_class_t statusbar_class = {
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     TT_LOG_I(TAG, "event");
     auto* statusbar = static_cast<Statusbar*>(obj);
-    if (lock(ms_to_ticks(100))) {
+    if (lock(kernel::millisToTicks(100))) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
         unlock();

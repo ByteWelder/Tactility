@@ -102,7 +102,7 @@ static void viewFile(const char* path, const char* filename) {
     // For PC we need to make the path relative to the current work directory,
     // because that's how LVGL maps its 'drive letter' to the file system.
     char* processed_filepath;
-    if (get_platform() == PlatformSimulator) {
+    if (kernel::getPlatform() == kernel::PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) == nullptr) {
             TT_LOG_E(TAG, "Failed to get current working directory");
@@ -126,7 +126,7 @@ static void viewFile(const char* path, const char* filename) {
         service::loader::startApp("ImageViewer", false, bundle);
     } else if (isSupportedTextFile(filename)) {
         auto bundle = std::make_shared<Bundle>();
-        if (get_platform() == PlatformEsp) {
+        if (kernel::getPlatform() == kernel::PlatformEsp) {
             bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
@@ -220,7 +220,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 static void onStart(AppContext& app) {
     auto data = std::make_shared<Data>();
     // PC platform is bound to current work directory because of the LVGL file system mapping
-    if (get_platform() == PlatformSimulator) {
+    if (kernel::getPlatform() == kernel::PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) != nullptr) {
             data_set_entries_for_path(data, cwd);

@@ -41,7 +41,7 @@ static void updateUi(std::shared_ptr<Data> data) {
     uint16_t charge_level_scaled = (int16_t)charge_level * 100 / 255;
     int32_t current = data->power->getCurrent();
 
-    lvgl::lock(ms_to_ticks(1000));
+    lvgl::lock(kernel::millisToTicks(1000));
     lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled);
     lv_label_set_text_fmt(data->charge_state, "Charging: %s", charge_state);
     lv_label_set_text_fmt(data->charge_level, "Charge level: %d%%", charge_level_scaled);
@@ -110,7 +110,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     data->current = lv_label_create(wrapper);
 
     updateUi(data);
-    data->update_timer->start(ms_to_ticks(1000));
+    data->update_timer->start(kernel::millisToTicks(1000));
 }
 
 static void onHide(TT_UNUSED AppContext& app) {

@@ -91,7 +91,7 @@ static int32_t taskMain(void* context) {
     bool interrupted = false;
 
     while (!interrupted) {
-        delay_ms(100);
+        kernel::delayMillis(100);
 
         gpio->updatePinStates();
         gpio->updatePinWidgets();

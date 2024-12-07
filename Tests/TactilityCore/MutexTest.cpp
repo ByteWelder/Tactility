@@ -22,12 +22,12 @@ TEST_CASE("a mutex can block a thread") {
     );
     thread->start();
 
-    delay_ms(5);
+    kernel::delayMillis(5);
     CHECK_EQ(thread->getState(), Thread::StateRunning);
 
     tt_mutex_release(mutex);
 
-    delay_ms(5);
+    kernel::delayMillis(5);
     CHECK_EQ(thread->getState(), Thread::StateStopped);
 
     thread->join();

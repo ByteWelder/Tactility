@@ -8,7 +8,7 @@
 #include "FreeRTOS.h"
 #endif
 
-namespace tt {
+namespace tt::kernel {
 
 typedef enum {
     PlatformEsp,
@@ -30,13 +30,13 @@ typedef enum {
  * 
  * @return     true if CPU is in IRQ or kernel running and IRQ is masked
  */
-bool kernel_is_irq();
+bool isIrq();
 
 /** Check if kernel is running
  *
  * @return     true if running, false otherwise
  */
-bool kernel_is_running();
+bool isRunning();
 
 /** Lock kernel, pause process scheduling
  *
@@ -44,7 +44,7 @@ bool kernel_is_running();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t kernel_lock();
+int32_t lock();
 
 /** Unlock kernel, resume process scheduling
  *
@@ -52,7 +52,7 @@ int32_t kernel_lock();
  *
  * @return     previous lock state(0 - unlocked, 1 - locked)
  */
-int32_t kernel_unlock();
+int32_t unlock();
 
 /** Restore kernel lock state
  *
@@ -62,15 +62,15 @@ int32_t kernel_unlock();
  *
  * @return     new lock state or error
  */
-int32_t kernel_restore_lock(int32_t lock);
+int32_t restoreLock(int32_t lock);
 
 /** Get kernel systick frequency
  *
  * @return     systick counts per second
  */
-uint32_t kernel_get_tick_frequency();
+uint32_t getTickFrequency();
 
-TickType_t get_ticks();
+TickType_t getTicks();
 
 /** Delay execution
  *
@@ -80,7 +80,7 @@ TickType_t get_ticks();
  *
  * @param[in]  ticks  The ticks count to pause
  */
-void delay_ticks(TickType_t ticks);
+void delayTicks(TickType_t ticks);
 
 /** Delay until tick
  *
@@ -90,14 +90,14 @@ void delay_ticks(TickType_t ticks);
  *
  * @return     The status.
  */
-TtStatus delay_until_tick(uint32_t tick);
+TtStatus delayUntilTick(uint32_t tick);
 
 /** Convert milliseconds to ticks
  *
- * @param[in]   milliseconds    time in milliseconds
+ * @param[in]   milliSeconds    time in milliseconds
  * @return      time in ticks
  */
-TickType_t ms_to_ticks(uint32_t milliseconds);
+TickType_t millisToTicks(uint32_t milliSeconds);
 
 /** Delay in milliseconds
  * 
@@ -108,18 +108,18 @@ TickType_t ms_to_ticks(uint32_t milliseconds);
  * 
  * @warning    Cannot be used from ISR
  *
- * @param[in]  milliseconds  milliseconds to wait
+ * @param[in]  milliSeconds  milliseconds to wait
  */
-void delay_ms(uint32_t milliseconds);
+void delayMillis(uint32_t milliSeconds);
 
 /** Delay in microseconds
  *
  * Implemented using Cortex DWT counter. Blocking and non aliased.
  *
- * @param[in]  microseconds  microseconds to wait
+ * @param[in]  microSeconds  microseconds to wait
  */
-void delay_us(uint32_t microseconds);
+void delayMicros(uint32_t microSeconds);
 
-Platform get_platform();
+Platform getPlatform();
 
 } // namespace

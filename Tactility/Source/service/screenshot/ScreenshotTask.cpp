@@ -76,7 +76,7 @@ static int32_t screenshot_task(void* context) {
         if (data->work.type == TASK_WORK_TYPE_DELAY) {
             // Splitting up the delays makes it easier to stop the service
             for (int i = 0; i < (data->work.delay_in_seconds * 10) && !is_interrupted(data); ++i){
-                delay_ms(100);
+                kernel::delayMillis(100);
             }
 
             if (is_interrupted(data)) {
@@ -102,7 +102,7 @@ static int32_t screenshot_task(void* context) {
             if (app) {
                 const app::AppManifest& manifest = app->getManifest();
                 if (manifest.id != last_app_id) {
-                    delay_ms(100);
+                    kernel::delayMillis(100);
                     last_app_id = manifest.id;
 
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
@@ -116,7 +116,7 @@ static int32_t screenshot_task(void* context) {
                     lvgl::unlock();
                 }
             }
-            delay_ms(250);
+            kernel::delayMillis(250);
         }
     }
 

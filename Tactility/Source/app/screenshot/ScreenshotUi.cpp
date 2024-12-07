@@ -124,7 +124,7 @@ static void create_path_ui(std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_textarea_set_one_line(path_textarea, true);
     lv_obj_set_flex_grow(path_textarea, 1);
     ui->path_textarea = path_textarea;
-    if (get_platform() == PlatformEsp) {
+    if (kernel::getPlatform() == kernel::PlatformEsp) {
         if (hal::sdcard::getState() == hal::sdcard::StateMounted) {
             lv_textarea_set_text(path_textarea, "A:/sdcard");
         } else {

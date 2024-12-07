@@ -7,7 +7,7 @@ using namespace tt;
 static int interruptable_thread(void* parameter) {
     bool* interrupted = (bool*)parameter;
     while (!*interrupted) {
-        delay_ms(5);
+        kernel::delayMillis(5);
     }
     return 0;
 }

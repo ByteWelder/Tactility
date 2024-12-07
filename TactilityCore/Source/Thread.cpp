@@ -197,7 +197,7 @@ bool Thread::join() {
     // If your thread exited, but your app stuck here: some other thread uses
     // all cpu time, which delays kernel from releasing task handle
     while (data.taskHandle) {
-        delay_ms(10);
+        kernel::delayMillis(10);
     }
 
     return true;

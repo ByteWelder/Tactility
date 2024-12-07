@@ -664,7 +664,7 @@ static void dispatchScan(std::shared_ptr<void> context) {
     }
 
     // TODO: Thread safety
-    wifi->last_scan_time = tt::get_ticks();
+    wifi->last_scan_time = tt::kernel::getTicks();
 
     if (esp_wifi_scan_start(nullptr, false) != ESP_OK) {
         TT_LOG_I(TAG, "Can't start scan");
@@ -872,7 +872,7 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
         return false;
     }
 
-    TickType_t current_time = tt::get_ticks();
+    TickType_t current_time = tt::kernel::getTicks();
     bool scan_time_has_looped = (current_time < wifi->last_scan_time);
     bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
 

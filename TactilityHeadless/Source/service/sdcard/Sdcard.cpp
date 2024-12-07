@@ -42,7 +42,7 @@ static void onUpdate(std::shared_ptr<void> context) {
 
     if (new_state == hal::sdcard::StateError) {
         TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
-        hal::sdcard::unmount(ms_to_ticks(1000));
+        hal::sdcard::unmount(kernel::millisToTicks(1000));
     }
 
     if (new_state != data->lastState) {
