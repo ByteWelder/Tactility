@@ -1,6 +1,6 @@
 #include "MessageQueue.h"
 #include "Check.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 
 namespace tt {
 

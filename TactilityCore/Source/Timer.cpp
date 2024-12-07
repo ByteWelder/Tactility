@@ -2,7 +2,7 @@
 
 #include <utility>
 #include "Check.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 #include "RtosCompat.h"
 
 namespace tt {

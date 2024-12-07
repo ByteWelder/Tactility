@@ -20,6 +20,7 @@
 
 #include <cstdio>
 #include <cstdint>
+#include <string>
 
 namespace tt::crypt {
 
@@ -29,14 +30,7 @@ namespace tt::crypt {
  * @param data_length input data length
  * @param iv output IV
  */
-void get_iv_from_data(const void* data, size_t data_length, uint8_t iv[16]);
-
-/**
-* @brief Fills the IV with zeros and then creates an IV based on the input data.
- * @param input input text
- * @param iv output IV
- */
-void get_iv_from_string(const char* input, uint8_t iv[16]);
+void getIv(const void* data, size_t data_length, uint8_t iv[16]);
 
 /**
  * @brief Encrypt data.

@@ -9,18 +9,18 @@ static portMUX_TYPE critical_mutex;
 #define TT_ENTER_CRITICAL() taskENTER_CRITICAL()
 #endif
 
-namespace tt::critical {
+namespace tt::kernel::critical {
 
 TtCriticalInfo enter() {
-    TtCriticalInfo info;
+    TtCriticalInfo info = {
+        .isrm = 0,
+        .fromIsr = TT_IS_ISR(),
+        .kernelRunning = (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
+    };
 
-    info.isrm = 0;
-    info.from_isr = TT_IS_ISR();
-    info.kernel_running = (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING);
-
-    if (info.from_isr) {
+    if (info.fromIsr) {
         info.isrm = taskENTER_CRITICAL_FROM_ISR();
-    } else if (info.kernel_running) {
+    } else if (info.kernelRunning) {
         TT_ENTER_CRITICAL();
     } else {
         portDISABLE_INTERRUPTS();
@@ -30,9 +30,9 @@ TtCriticalInfo enter() {
 }
 
 void exit(TtCriticalInfo info) {
-    if (info.from_isr) {
+    if (info.fromIsr) {
         taskEXIT_CRITICAL_FROM_ISR(info.isrm);
-    } else if (info.kernel_running) {
+    } else if (info.kernelRunning) {
         TT_ENTER_CRITICAL();
     } else {
         portENABLE_INTERRUPTS();

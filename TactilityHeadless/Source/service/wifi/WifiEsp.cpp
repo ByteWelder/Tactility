@@ -2,15 +2,10 @@
 
 #include "Wifi.h"
 
-#include "MessageQueue.h"
-#include "Mutex.h"
-#include "Check.h"
-#include "Log.h"
+#include "TactilityHeadless.h"
 #include "Timer.h"
 #include "service/ServiceContext.h"
 #include "WifiSettings.h"
-#include "TactilityCore.h"
-#include "TactilityHeadless.h"
 
 #include "freertos/FreeRTOS.h"
 

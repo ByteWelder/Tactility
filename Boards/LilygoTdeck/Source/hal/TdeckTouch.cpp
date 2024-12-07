@@ -3,7 +3,7 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
 #include "Log.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 #include "esp_lvgl_port.h"
 
 #define TAG "tdeck_touch"

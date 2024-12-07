@@ -3,10 +3,8 @@
 /**
  * This code is based on i2c_manager from https://github.com/ropg/i2c_manager/blob/master/i2c_manager/i2c_manager.c (original has MIT license)
  */
-#include <Kernel.h>
+#include "TactilityCore.h"
 #include "I2c.h"
-#include "Log.h"
-#include "Mutex.h"
 
 namespace tt::hal::i2c {
 

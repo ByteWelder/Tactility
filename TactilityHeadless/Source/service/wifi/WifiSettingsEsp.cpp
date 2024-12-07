@@ -54,7 +54,7 @@ bool load(const char* ssid, WifiApSettings* settings) {
     result = nvs_get_blob(handle, ssid, &encrypted_settings, &length);
 
     uint8_t iv[16];
-    crypt::get_iv_from_string(ssid, iv);
+    crypt::getIv(ssid, strlen(ssid), iv);
     int decrypt_result = crypt::decrypt(
         iv,
         (uint8_t*)encrypted_settings.password,
@@ -97,7 +97,7 @@ bool save(const WifiApSettings* settings) {
     encrypted_settings.password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT] = 0;
 
     uint8_t iv[16];
-    crypt::get_iv_from_data(settings->ssid, strlen(settings->ssid), iv);
+    crypt::getIv(settings->ssid, strlen(settings->ssid), iv);
     int encrypt_result = crypt::encrypt(
         iv,
         (uint8_t*)settings->password,

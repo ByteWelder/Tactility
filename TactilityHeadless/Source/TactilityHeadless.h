@@ -1,5 +1,6 @@
 #pragma once
 
+#include "TactilityCore.h"
 #include "hal/Configuration.h"
 #include "TactilityHeadlessConfig.h"
 #include "Dispatcher.h"

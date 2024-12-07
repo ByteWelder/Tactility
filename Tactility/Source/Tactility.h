@@ -12,7 +12,7 @@ typedef struct {
     // List of user applications
     const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT];
     const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT];
-    const char* auto_start_app_id;
+    const char* autoStartAppId;
 } Configuration;
 
 /**

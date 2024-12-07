@@ -1,13 +1,13 @@
-#include <Check.h>
-#include <Thread.h>
-#include <Kernel.h>
 #include "Assets.h"
+#include "TactilityCore.h"
+
 #include "app/AppContext.h"
-#include "lvgl.h"
+#include "app/display/DisplaySettings.h"
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
-#include "app/display/DisplaySettings.h"
+
+#include "lvgl.h"
 
 #ifdef ESP_PLATFORM
 #include "sdkconfig.h"

@@ -3,7 +3,7 @@
 
 #include "Check.h"
 #include "CoreDefines.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 #include "Log.h"
 
 namespace tt {
