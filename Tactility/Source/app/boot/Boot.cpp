@@ -1,13 +1,13 @@
-#include <Check.h>
-#include <Thread.h>
-#include <Kernel.h>
 #include "Assets.h"
+#include "TactilityCore.h"
+
 #include "app/AppContext.h"
-#include "lvgl.h"
+#include "app/display/DisplaySettings.h"
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
-#include "app/display/DisplaySettings.h"
+
+#include "lvgl.h"
 
 #ifdef ESP_PLATFORM
 #include "sdkconfig.h"
@@ -26,7 +26,7 @@ struct Data {
 };
 
 static int32_t threadCallback(TT_UNUSED void* context) {
-    TickType_t start_time = tt::get_ticks();
+    TickType_t start_time = tt::kernel::getTicks();
 
     auto* lvgl_display = lv_display_get_default();
     tt_assert(lvgl_display != nullptr);
@@ -37,11 +37,11 @@ static int32_t threadCallback(TT_UNUSED void* context) {
         hal_display->setBacklightDuty(backlight_duty);
     }
 
-    TickType_t end_time = tt::get_ticks();
+    TickType_t end_time = tt::kernel::getTicks();
     TickType_t ticks_passed = end_time - start_time;
     TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
     if (minimum_ticks > ticks_passed) {
-        tt::delay_ticks(minimum_ticks - ticks_passed);
+        tt::kernel::delayTicks(minimum_ticks - ticks_passed);
     }
     tt::service::loader::stopApp();
     tt::service::loader::startApp("Desktop");

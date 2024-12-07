@@ -17,7 +17,7 @@ static bool initBoot() {
 TT_UNUSED static void deinitPower() {
     lvgl_task_interrupt();
     while (lvgl_task_is_running()) {
-        tt::delay_ms(10);
+        tt::kernel::delayMillis(10);
     }
 
 #if LV_ENABLE_GC || !LV_MEM_CUSTOM

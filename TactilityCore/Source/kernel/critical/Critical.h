@@ -10,12 +10,12 @@
 #define TT_CRITICAL_EXIT() __tt_critical_exit(__tt_critical_info);
 #endif
 
-namespace tt::critical {
+namespace tt::kernel::critical {
 
 typedef struct {
     uint32_t isrm;
-    bool from_isr;
-    bool kernel_running;
+    bool fromIsr;
+    bool kernelRunning;
 } TtCriticalInfo;
 
 TtCriticalInfo enter();

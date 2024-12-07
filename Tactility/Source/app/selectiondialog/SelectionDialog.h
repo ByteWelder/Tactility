@@ -14,10 +14,7 @@
  */
 namespace tt::app::selectiondialog {
 
-    /** App startup parameters */
-
-    void setTitleParameter(Bundle& bundle, const std::string& title);
-    void setItemsParameter(Bundle& bundle, const std::vector<std::string>& items);
+    void start(std::string title, const std::vector<std::string>& items);
 
     /** App result data */
 

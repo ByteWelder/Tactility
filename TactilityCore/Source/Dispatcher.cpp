@@ -7,7 +7,7 @@ namespace tt {
 #define BACKPRESSURE_WARNING_COUNT 100
 
 Dispatcher::Dispatcher() :
-    mutex(MutexTypeNormal)
+    mutex(Mutex::TypeNormal)
 {}
 
 Dispatcher::~Dispatcher() {

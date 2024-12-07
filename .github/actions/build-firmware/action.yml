@@ -4,9 +4,6 @@ inputs:
   board-name:
     description: The name of the board
     required: true
-  version:
-    description: The name of the board
-    required: true
   sdkconfig:
     description: The sdkconfig file to build
     required: true
@@ -32,6 +29,6 @@ runs:
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
-        name: tactility-${{ inputs.board-name }}-${{ inputs.version }}
+        name: tactility-${{ inputs.board-name }}
         path: build/Tactility.bin
         retention-days: 5

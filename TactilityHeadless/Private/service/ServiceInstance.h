@@ -8,7 +8,7 @@ class ServiceInstance : public ServiceContext {
 
 private:
 
-    Mutex mutex = Mutex(MutexTypeNormal);
+    Mutex mutex = Mutex(Mutex::TypeNormal);
     const service::ServiceManifest& manifest;
     std::shared_ptr<void> data = nullptr;
 

@@ -20,7 +20,7 @@ TEST_CASE("a timer passes the context correctly") {
     auto foo = std::make_shared<int>(1);
     auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_context, foo);
     timer->start(1);
-    delay_ticks(10);
+    kernel::delayTicks(10);
     timer->stop();
     delete timer;
 
@@ -31,10 +31,10 @@ TEST_CASE("TimerTypePeriodic timers can be stopped and restarted") {
     auto counter = std::make_shared<int>(0);
     auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, counter);
     timer->start(1);
-    delay_ticks(10);
+    kernel::delayTicks(10);
     timer->stop();
     timer->start(1);
-    delay_ticks(10);
+    kernel::delayTicks(10);
     timer->stop();
     delete timer;
 
@@ -46,7 +46,7 @@ TEST_CASE("TimerTypePeriodic calls the callback periodically") {
     int ticks_to_run = 10;
     auto* timer = new Timer(Timer::TypePeriodic, &timer_callback_with_counter, counter);
     timer->start(1);
-    delay_ticks(ticks_to_run);
+    kernel::delayTicks(ticks_to_run);
     timer->stop();
     delete timer;
 
@@ -57,10 +57,10 @@ TEST_CASE("restarting TimerTypeOnce timers calls the callback again") {
     auto counter = std::make_shared<int>(0);
     auto* timer = new Timer(Timer::TypeOnce, &timer_callback_with_counter, counter);
     timer->start(1);
-    delay_ticks(10);
+    kernel::delayTicks(10);
     timer->stop();
     timer->start(1);
-    delay_ticks(10);
+    kernel::delayTicks(10);
     timer->stop();
     delete timer;
 

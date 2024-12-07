@@ -2,15 +2,10 @@
 
 #include "Wifi.h"
 
-#include "MessageQueue.h"
-#include "Mutex.h"
-#include "Check.h"
-#include "Log.h"
+#include "TactilityHeadless.h"
 #include "Timer.h"
 #include "service/ServiceContext.h"
 #include "WifiSettings.h"
-#include "TactilityCore.h"
-#include "TactilityHeadless.h"
 
 #include "freertos/FreeRTOS.h"
 
@@ -47,8 +42,8 @@ private:
 public:
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex radioMutex = Mutex(MutexTypeRecursive);
-    Mutex dataMutex = Mutex(MutexTypeRecursive);
+    Mutex radioMutex = Mutex(Mutex::TypeRecursive);
+    Mutex dataMutex = Mutex(Mutex::TypeRecursive);
     std::unique_ptr<Timer> autoConnectTimer;
     /** @brief The public event bus */
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
@@ -664,7 +659,7 @@ static void dispatchScan(std::shared_ptr<void> context) {
     }
 
     // TODO: Thread safety
-    wifi->last_scan_time = tt::get_ticks();
+    wifi->last_scan_time = tt::kernel::getTicks();
 
     if (esp_wifi_scan_start(nullptr, false) != ESP_OK) {
         TT_LOG_I(TAG, "Can't start scan");
@@ -872,7 +867,7 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
         return false;
     }
 
-    TickType_t current_time = tt::get_ticks();
+    TickType_t current_time = tt::kernel::getTicks();
     bool scan_time_has_looped = (current_time < wifi->last_scan_time);
     bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
 

@@ -2,7 +2,7 @@
 
 #include <utility>
 #include "Check.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 #include "RtosCompat.h"
 
 namespace tt {
@@ -16,7 +16,7 @@ static void timer_callback(TimerHandle_t hTimer) {
 }
 
 Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) {
-    tt_assert((kernel_is_irq() == 0U) && (callback != nullptr));
+    tt_assert((kernel::isIrq() == 0U) && (callback != nullptr));
 
     this->callback = callback;
     this->callbackContext = std::move(callbackContext);
@@ -33,12 +33,12 @@ Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext
 }
 
 Timer::~Timer() {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     tt_check(xTimerDelete(timerHandle, portMAX_DELAY) == pdPASS);
 }
 
 TtStatus Timer::start(uint32_t ticks) {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     tt_assert(ticks < portMAX_DELAY);
 
     if (xTimerChangePeriod(timerHandle, ticks, portMAX_DELAY) == pdPASS) {
@@ -49,7 +49,7 @@ TtStatus Timer::start(uint32_t ticks) {
 }
 
 TtStatus Timer::restart(uint32_t ticks) {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     tt_assert(ticks < portMAX_DELAY);
 
     if (xTimerChangePeriod(timerHandle, ticks, portMAX_DELAY) == pdPASS &&
@@ -61,24 +61,24 @@ TtStatus Timer::restart(uint32_t ticks) {
 }
 
 TtStatus Timer::stop() {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     tt_check(xTimerStop(timerHandle, portMAX_DELAY) == pdPASS);
     return TtStatusOk;
 }
 
 bool Timer::isRunning() {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     return xTimerIsTimerActive(timerHandle) == pdTRUE;
 }
 
 uint32_t Timer::getExpireTime() {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
     return (uint32_t)xTimerGetExpiryTime(timerHandle);
 }
 
 void Timer::pendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg) {
     BaseType_t ret = pdFAIL;
-    if (kernel_is_irq()) {
+    if (kernel::isIrq()) {
         ret = xTimerPendFunctionCallFromISR(callback, callbackContext, arg, nullptr);
     } else {
         ret = xTimerPendFunctionCall(callback, callbackContext, arg, TtWaitForever);
@@ -87,7 +87,7 @@ void Timer::pendingCallback(PendingCallback callback, void* callbackContext, uin
 }
 
 void Timer::setThreadPriority(TimerThreadPriority priority)  {
-    tt_assert(!kernel_is_irq());
+    tt_assert(!kernel::isIrq());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     tt_assert(task_handle); // Don't call this method before timer task start

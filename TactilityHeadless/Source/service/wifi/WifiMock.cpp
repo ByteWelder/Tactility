@@ -49,7 +49,7 @@ static void publish_event_simple(Wifi* wifi, WifiEventType type) {
 
 static Wifi* wifi_alloc() {
     auto* instance = static_cast<Wifi*>(malloc(sizeof(Wifi)));
-    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    instance->mutex = tt_mutex_alloc(Mutex::TypeRecursive);
     instance->pubsub = std::make_shared<PubSub>();
     instance->scan_active = false;
     instance->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;

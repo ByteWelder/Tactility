@@ -16,9 +16,14 @@ namespace tt::app::selectiondialog {
 
 #define TAG "selection_dialog"
 
-void setItemsParameter(Bundle& bundle, const std::vector<std::string>& items) {
-    std::string result = string_join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
-    bundle.putString(PARAMETER_BUNDLE_KEY_ITEMS, result);
+extern const AppManifest manifest;
+
+void start(std::string title, const std::vector<std::string>& items) {
+    std::string items_joined = string::join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
+    auto bundle = std::make_shared<Bundle>();
+    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
+    bundle->putString(PARAMETER_BUNDLE_KEY_ITEMS, items_joined);
+    service::loader::startApp(manifest.id, false, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
@@ -29,10 +34,6 @@ int32_t getResultIndex(const Bundle& bundle) {
 
 void setResultIndex(std::shared_ptr<Bundle> bundle, int32_t index) {
     bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, index);
-}
-
-void setTitleParameter(std::shared_ptr<Bundle> bundle, const std::string& title) {
-    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
 }
 
 static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
@@ -76,7 +77,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     tt_check(parameters != nullptr, "Parameters missing");
     std::string items_concatenated;
     if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
-        std::vector<std::string> items = string_split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
+        std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
         if (items.empty() || items.front().empty()) {
             TT_LOG_E(TAG, "No items provided");
             app.setResult(ResultError);

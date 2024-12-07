@@ -15,17 +15,29 @@
 
 #include "Log.h"
 #include <cassert>
+#include "CoreDefines.h"
 
 #define TT_NORETURN [[noreturn]]
 
 /** Crash system */
-TT_NORETURN void tt_crash_implementation();
+namespace tt {
+    /**
+     * Don't call this directly. Use tt_crash() as it will trace info.
+     */
+    TT_NORETURN void _crash();
+}
 
 /** Crash system with message. */
-#define tt_crash(message)                                                                    \
-    do {                                                                                       \
-        TT_LOG_E("crash", "%s\n\tat %s:%d", ((message) ? (message) : ""), __FILE__, __LINE__); \
-        tt_crash_implementation();                                                             \
+#define tt_crash(...) TT_ARG_CAT(_tt_crash,TT_ARGCOUNT(__VA_ARGS__))(__VA_ARGS__)
+
+#define _tt_crash0()  do {                                                  \
+        TT_LOG_E("crash", "at %s:%d", __FILE__, __LINE__);                  \
+        tt::_crash();                                                       \
+    } while (0)
+
+#define _tt_crash1(message) do {                                            \
+        TT_LOG_E("crash", "%s\n\tat %s:%d", message, __FILE__, __LINE__);   \
+        tt::_crash();                                                       \
     } while (0)
 
 /** Halt system
@@ -53,7 +65,7 @@ TT_NORETURN void tt_crash_implementation();
  * @param      optional  message (const char*)
  */
 
-#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); tt_crash_implementation(); }
+#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); tt::_crash(); }
 
 /** Only in debug build: Assert condition and crash if assert failed  */
 #ifdef TT_DEBUG

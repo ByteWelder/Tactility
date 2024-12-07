@@ -1,17 +1,17 @@
 #include "MessageQueue.h"
 #include "Check.h"
-#include "Kernel.h"
+#include "kernel/Kernel.h"
 
 namespace tt {
 
 MessageQueue::MessageQueue(uint32_t msg_count, uint32_t msg_size) {
-    tt_assert((kernel_is_irq() == 0U) && (msg_count > 0U) && (msg_size > 0U));
+    tt_assert((kernel::isIrq() == 0U) && (msg_count > 0U) && (msg_size > 0U));
     queue_handle = xQueueCreate(msg_count, msg_size);
     tt_check(queue_handle);
 }
 
 MessageQueue::~MessageQueue() {
-    tt_assert(kernel_is_irq() == 0U);
+    tt_assert(kernel::isIrq() == 0U);
     vQueueDelete(queue_handle);
 }
 
@@ -21,7 +21,7 @@ TtStatus MessageQueue::put(const void* msg_ptr, uint32_t timeout) {
 
     stat = TtStatusOk;
 
-    if (kernel_is_irq() != 0U) {
+    if (kernel::isIrq() != 0U) {
         if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
@@ -57,7 +57,7 @@ TtStatus MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
 
     stat = TtStatusOk;
 
-    if (kernel_is_irq() != 0U) {
+    if (kernel::isIrq() != 0U) {
         if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
             stat = TtStatusErrorParameter;
         } else {
@@ -122,7 +122,7 @@ uint32_t MessageQueue::getCount() const {
 
     if (queue_handle == nullptr) {
         count = 0U;
-    } else if (kernel_is_irq() != 0U) {
+    } else if (kernel::isIrq() != 0U) {
         count = uxQueueMessagesWaitingFromISR(queue_handle);
     } else {
         count = uxQueueMessagesWaiting(queue_handle);
@@ -139,7 +139,7 @@ uint32_t MessageQueue::getSpace() const {
 
     if (mq == nullptr) {
         space = 0U;
-    } else if (kernel_is_irq() != 0U) {
+    } else if (kernel::isIrq() != 0U) {
         isrm = taskENTER_CRITICAL_FROM_ISR();
 
         /* space = pxQueue->uxLength - pxQueue->uxMessagesWaiting; */
@@ -157,7 +157,7 @@ uint32_t MessageQueue::getSpace() const {
 TtStatus MessageQueue::reset() {
     TtStatus stat;
 
-    if (kernel_is_irq() != 0U) {
+    if (kernel::isIrq() != 0U) {
         stat = TtStatusErrorISR;
     } else if (queue_handle == nullptr) {
         stat = TtStatusErrorParameter;

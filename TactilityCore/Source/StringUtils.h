@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace tt {
+namespace tt::string {
 
 /**
  * Find the last occurrence of a character.
@@ -13,7 +13,7 @@ namespace tt {
  * @param[in] find the character to search for
  * @return the index of the found character, or -1 if none found
  */
-int string_find_last_index(const char* text, size_t from_index, char find);
+int findLastIndex(const char* text, size_t from_index, char find);
 
 /**
  * Given a filesystem path as input, try and get the parent path.
@@ -21,7 +21,7 @@ int string_find_last_index(const char* text, size_t from_index, char find);
  * @param[out] output an output buffer that is allocated to at least the size of "current"
  * @return true when successful
  */
-bool string_get_path_parent(const char* path, char* output);
+bool getPathParent(const char* path, char* output);
 
 /**
  * Splits the provided input into separate pieces with delimiter as separator text.
@@ -30,7 +30,7 @@ bool string_get_path_parent(const char* path, char* output);
  * @param input the input to split up
  * @param delimiter a non-empty string to recognize as separator
  */
-std::vector<std::string> string_split(const std::string& input, const std::string& delimiter);
+std::vector<std::string> split(const std::string& input, const std::string& delimiter);
 
 /**
  * Join a set of tokens into a single string, given a delimiter (separator).
@@ -40,6 +40,6 @@ std::vector<std::string> string_split(const std::string& input, const std::strin
  * @param input the tokens to join together
  * @param delimiter the separator to join with
  */
-std::string string_join(const std::vector<std::string>& input, const std::string& delimiter);
+std::string join(const std::vector<std::string>& input, const std::string& delimiter);
 
 } // namespace

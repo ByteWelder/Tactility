@@ -36,7 +36,7 @@ Gui* gui_alloc() {
         &gui_main,
         nullptr
     );
-    instance->mutex = tt_mutex_alloc(MutexTypeRecursive);
+    instance->mutex = tt_mutex_alloc(Mutex::TypeRecursive);
     instance->keyboard = nullptr;
     instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &loader_callback, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));

@@ -1,4 +1,6 @@
 # TODOs
+- Gpio: Use Timer instead of Thread
+- I2cScannerThread: Use Timer instead of Thread
 - Bug: I2C Scanner is on M5Stack devices is broken
 - WiFi AP Connect app: add "Forget" option.
 - T-Deck Plus: Implement battery status

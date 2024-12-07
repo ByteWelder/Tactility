@@ -22,7 +22,7 @@ void app_main() {
             &hello_world_app,
         },
         .services = {},
-        .auto_start_app_id = nullptr
+        .autoStartAppId = nullptr
     };
 
     tt::run(config);

@@ -7,7 +7,7 @@ namespace tt::hal::sdcard {
 
 #define TAG "sdcard"
 
-static Mutex mutex(MutexTypeRecursive);
+static Mutex mutex(Mutex::TypeRecursive);
 
 typedef struct {
     const SdCard* sdcard;

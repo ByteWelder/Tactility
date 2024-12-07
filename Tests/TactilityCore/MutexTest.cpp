@@ -11,7 +11,7 @@ static int thread_with_mutex_parameter(void* parameter) {
 }
 
 TEST_CASE("a mutex can block a thread") {
-    auto* mutex = tt_mutex_alloc(MutexTypeNormal);
+    auto* mutex = tt_mutex_alloc(Mutex::TypeNormal);
     tt_mutex_acquire(mutex, TtWaitForever);
 
     Thread* thread = new Thread(
@@ -22,12 +22,12 @@ TEST_CASE("a mutex can block a thread") {
     );
     thread->start();
 
-    delay_ms(5);
+    kernel::delayMillis(5);
     CHECK_EQ(thread->getState(), Thread::StateRunning);
 
     tt_mutex_release(mutex);
 
-    delay_ms(5);
+    kernel::delayMillis(5);
     CHECK_EQ(thread->getState(), Thread::StateStopped);
 
     thread->join();
