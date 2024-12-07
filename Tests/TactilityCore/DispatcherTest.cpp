@@ -24,7 +24,7 @@ TEST_CASE("dispatcher should not call callback if consume isn't called") {
 
     auto context = std::make_shared<uint32_t>();
     dispatcher.dispatch(&increment_callback, std::move(context));
-    delay_ticks(10);
+    kernel::delayTicks(10);
 
     CHECK_EQ(counter, 0);
 }
