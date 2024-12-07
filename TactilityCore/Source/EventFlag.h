@@ -5,8 +5,6 @@
 
 namespace tt {
 
-#define TT_API_LOCK_EVENT (1U << 0)
-
 /**
  * Wrapper for FreeRTOS xEventGroup.
  */

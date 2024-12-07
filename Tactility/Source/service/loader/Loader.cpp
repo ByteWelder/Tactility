@@ -16,6 +16,7 @@
 namespace tt::service::loader {
 
 #define TAG "loader"
+#define LOADER_EVENT_FLAG 1
 
 typedef struct {
     LoaderEventType type;
@@ -77,7 +78,7 @@ LoaderStatus startApp(const std::string& id, bool blocking, std::shared_ptr<cons
         /* TODO: Check if task id is not the LVGL one,
          because otherwise this fails as the apps starting logic will try to lock lvgl
          to update the UI and fail. */
-        event_flag->wait(TT_API_LOCK_EVENT);
+        event_flag->wait(LOADER_EVENT_FLAG);
         delete event_flag;
     }
 
@@ -330,7 +331,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
                         message.payload.start->parameters
                     );
                     if (message.api_lock != nullptr) {
-                        message.api_lock->set(TT_API_LOCK_EVENT);
+                        message.api_lock->set(LOADER_EVENT_FLAG);
                     }
                     message.cleanup();
                     break;
