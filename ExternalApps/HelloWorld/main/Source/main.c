@@ -17,7 +17,7 @@ static void onShow(AppContextHandle context, lv_obj_t* parent) {
 
 int main(int argc, char* argv[]) {
     tt_set_app_manifest(
-        "HelloWorld",
+        "Hello World",
         NULL,
         NULL,
         NULL,
