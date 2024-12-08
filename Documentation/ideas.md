@@ -22,12 +22,14 @@
 - Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
 - Wifi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
 - T-Deck Plus: Create separate board config
+- External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - If present, use LED to show boot status
 - 2 wire speaker support
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
+- USB implementation to make device act as mass storage device.
 
 # App Ideas
 - System logger

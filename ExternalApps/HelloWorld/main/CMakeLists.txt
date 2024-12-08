@@ -11,5 +11,6 @@ add_prebuilt_library(TactilityHeadless ../../../build/esp-idf/TactilityHeadless/
 add_prebuilt_library(lvgl ../../../build/esp-idf/lvgl/liblvgl.a)
 
 include_directories("../../../TactilityC/Source")
+include_directories("../../../Libraries/lvgl/src")
 
 target_link_libraries(${COMPONENT_LIB} PRIVATE TactilityC Tactility TactilityCore TactilityHeadless lvgl)

@@ -53,7 +53,10 @@ namespace app {
     namespace wifiapsettings { extern const AppManifest manifest; }
     namespace wificonnect { extern const AppManifest manifest; }
     namespace wifimanage { extern const AppManifest manifest; }
+
+    extern const AppManifest elfWrapperManifest;
 }
+
 
 #ifndef ESP_PLATFORM
 extern const app::AppManifest screenshot_app;
@@ -77,6 +80,8 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::wifimanage::manifest,
 #ifndef ESP_PLATFORM
     &app::screenshot::manifest, // Screenshots don't work yet on ESP32
+#else
+    &app::elfWrapperManifest, // For hot-loading ELF apps
 #endif
 };
 
