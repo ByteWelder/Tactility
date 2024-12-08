@@ -26,10 +26,15 @@ static const lv_obj_class_t toolbar_class = {
     .base_class = &lv_obj_class,
     .constructor_cb = &toolbar_constructor,
     .destructor_cb = nullptr,
+    .event_cb = nullptr,
+    .user_data = nullptr,
+    .name = nullptr,
     .width_def = LV_PCT(100),
     .height_def = TOOLBAR_HEIGHT,
+    .editable = false,
     .group_def = LV_OBJ_CLASS_GROUP_DEF_TRUE,
     .instance_size = sizeof(Toolbar),
+    .theme_inheritable = false
 };
 
 static void stop_app(TT_UNUSED lv_event_t* event) {

@@ -1,6 +1,5 @@
 #include "Pubsub.h"
 #include "Check.h"
-#include <list>
 
 namespace tt {
 

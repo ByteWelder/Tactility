@@ -14,22 +14,19 @@ namespace tt::lvgl {
 
 #define TAG "statusbar"
 
-typedef struct {
-    const char* image;
-    bool visible;
-    bool claimed;
-} StatusbarIcon;
-
-typedef struct {
-    Mutex* mutex;
-    std::shared_ptr<PubSub> pubsub;
-    StatusbarIcon icons[STATUSBAR_ICON_LIMIT];
-} StatusbarData;
-
-static StatusbarData statusbar_data = {
-    .mutex = nullptr,
-    .icons = {}
+struct StatusbarIcon {
+    const char* image = nullptr;
+    bool visible = false;
+    bool claimed = false;
 };
+
+struct StatusbarData {
+    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
+    StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = { 0 };
+};
+
+static StatusbarData statusbar_data;
 
 typedef struct {
     lv_obj_t obj;
@@ -38,29 +35,12 @@ typedef struct {
     PubSubSubscription* pubsub_subscription;
 } Statusbar;
 
-static void statusbar_init() {
-    statusbar_data.mutex = tt_mutex_alloc(Mutex::TypeRecursive);
-    statusbar_data.pubsub = std::make_shared<PubSub>();
-    for (int i = 0; i < STATUSBAR_ICON_LIMIT; i++) {
-        statusbar_data.icons[i].image = nullptr;
-        statusbar_data.icons[i].visible = false;
-        statusbar_data.icons[i].claimed = false;
-    }
-}
-
-static void statusbar_ensure_initialized() {
-    if (statusbar_data.mutex == nullptr) {
-        statusbar_init();
-    }
-}
-
 static void statusbar_lock() {
-    statusbar_ensure_initialized();
-    tt_mutex_acquire(statusbar_data.mutex, TtWaitForever);
+    statusbar_data.mutex.acquire(TtWaitForever);
 }
 
 static void statusbar_unlock() {
-    tt_mutex_release(statusbar_data.mutex);
+    statusbar_data.mutex.release();
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
@@ -74,10 +54,14 @@ static const lv_obj_class_t statusbar_class = {
     .constructor_cb = &statusbar_constructor,
     .destructor_cb = &statusbar_destructor,
     .event_cb = &statusbar_event,
+    .user_data = nullptr,
+    .name = nullptr,
     .width_def = LV_PCT(100),
     .height_def = STATUSBAR_HEIGHT,
+    .editable = false,
     .group_def = LV_OBJ_CLASS_GROUP_DEF_TRUE,
-    .instance_size = sizeof(Statusbar)
+    .instance_size = sizeof(Statusbar),
+    .theme_inheritable = false
 };
 
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
@@ -96,7 +80,6 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     LV_TRACE_OBJ_CREATE("finished");
     auto* statusbar = (Statusbar*)obj;
-    statusbar_ensure_initialized();
     statusbar->pubsub_subscription = tt_pubsub_subscribe(statusbar_data.pubsub, &statusbar_pubsub_event, statusbar);
 }
 

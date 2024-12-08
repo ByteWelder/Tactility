@@ -16,12 +16,12 @@ extern const AppManifest manifest;
 static void on_timer(TT_UNUSED std::shared_ptr<void> context);
 
 struct Data {
-    std::unique_ptr<Timer> update_timer = std::unique_ptr<Timer>(new Timer(Timer::TypePeriodic, &on_timer, nullptr));
-    const hal::Power* power;
-    lv_obj_t* enable_switch;
-    lv_obj_t* charge_state;
-    lv_obj_t* charge_level;
-    lv_obj_t* current;
+    Timer update_timer = Timer(Timer::TypePeriodic, &on_timer, nullptr);
+    const hal::Power* power = getConfiguration()->hardware->power;
+    lv_obj_t* enable_switch = nullptr;
+    lv_obj_t* charge_state = nullptr;
+    lv_obj_t* charge_level = nullptr;
+    lv_obj_t* current = nullptr;
 };
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
@@ -53,7 +53,7 @@ static void updateUi(std::shared_ptr<Data> data) {
     lvgl::unlock();
 }
 
-static void on_timer(TT_UNUSED void* context) {
+static void on_timer(TT_UNUSED std::shared_ptr<void> context) {
     auto data = optData();
     if (data != nullptr) {
         updateUi(data);
@@ -110,18 +110,17 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     data->current = lv_label_create(wrapper);
 
     updateUi(data);
-    data->update_timer->start(kernel::millisToTicks(1000));
+    data->update_timer.start(kernel::millisToTicks(1000));
 }
 
 static void onHide(TT_UNUSED AppContext& app) {
     auto data = std::static_pointer_cast<Data>(app.getData());
-    data->update_timer->stop();
+    data->update_timer.stop();
 }
 
 static void onStart(AppContext& app) {
     auto data = std::shared_ptr<Data>();
     app.setData(data);
-    data->power = getConfiguration()->hardware->power;
     assert(data->power != nullptr); // The Power app only shows up on supported devices
 }
 
