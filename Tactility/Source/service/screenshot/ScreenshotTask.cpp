@@ -17,36 +17,31 @@ namespace tt::service::screenshot::task {
 
 #define SCREENSHOT_PATH_LIMIT 128
 
-typedef struct {
-    int type;
-    uint8_t delay_in_seconds;
-    uint8_t amount;
-    char path[SCREENSHOT_PATH_LIMIT];
-} ScreenshotTaskWork;
 
-typedef struct {
-    Thread* thread;
-    Mutex* mutex;
-    bool interrupted;
+struct ScreenshotTaskWork {
+    int type = TASK_WORK_TYPE_DELAY ;
+    uint8_t delay_in_seconds = 0;
+    uint8_t amount = 0;
+    char path[SCREENSHOT_PATH_LIMIT] = { 0 };
+};
+
+struct ScreenshotTaskData {
+    Thread* thread = nullptr;
+    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    bool interrupted = false;
     ScreenshotTaskWork work;
-} ScreenshotTaskData;
+};
 
 static void task_lock(ScreenshotTaskData* data) {
-    tt_check(tt_mutex_acquire(data->mutex, TtWaitForever) == TtStatusOk);
+    tt_check(data->mutex.acquire(TtWaitForever) == TtStatusOk);
 }
 
 static void task_unlock(ScreenshotTaskData* data) {
-    tt_check(tt_mutex_release(data->mutex) == TtStatusOk);
+    tt_check(data->mutex.release() == TtStatusOk);
 }
 
 ScreenshotTask* alloc() {
-    auto* data = static_cast<ScreenshotTaskData*>(malloc(sizeof(ScreenshotTaskData)));
-    *data = (ScreenshotTaskData) {
-        .thread = nullptr,
-        .mutex = tt_mutex_alloc(Mutex::TypeRecursive),
-        .interrupted = false
-    };
-    return data;
+    return new ScreenshotTaskData();
 }
 
 void free(ScreenshotTask* task) {
@@ -54,6 +49,7 @@ void free(ScreenshotTask* task) {
     if (data->thread) {
         stop(data);
     }
+    delete data;
 }
 
 static bool is_interrupted(ScreenshotTaskData* data) {

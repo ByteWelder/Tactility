@@ -97,7 +97,6 @@ static void* sdcard_mount(const char* mount_point) {
     return data;
 }
 
-
 static void* sdcard_init_and_mount(const char* mount_point) {
     if (!sdcard_init()) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");

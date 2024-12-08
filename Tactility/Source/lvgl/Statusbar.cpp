@@ -23,7 +23,7 @@ struct StatusbarIcon {
 struct StatusbarData {
     Mutex mutex = Mutex(Mutex::TypeRecursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
-    StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = { 0 };
+    StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
 };
 
 static StatusbarData statusbar_data;
@@ -151,6 +151,7 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     if (code == LV_EVENT_VALUE_CHANGED) {
         lv_obj_invalidate(obj);
     } else if (code == LV_EVENT_DRAW_MAIN) {
+        // NO-OP
     }
 }
 
