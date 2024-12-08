@@ -5,8 +5,6 @@
 
 namespace tt::file {
 
-#define TAG "file"
-
 long getSize(FILE* file);
 
 std::unique_ptr<uint8_t[]> readBinary(const char* filepath, size_t& outSize);

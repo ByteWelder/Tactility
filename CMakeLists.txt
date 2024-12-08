@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 add_definitions(-DTT_DEBUG)
 
@@ -48,6 +48,12 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     # TEMP - DO NOT COMMIT
     set(EXCLUDE_COMPONENTS "YellowBoard" "M5stackCore2" "WaveshareS3Touch")
+
+    # LVGL
+    get_filename_component(
+        LVGL_CONFIG_FULL_PATH Libraries/lvgl_conf ABSOLUTE
+    )
+    add_compile_definitions(LV_CONF_PATH=${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h)
 else()
     message("Building for sim target")
 endif()
@@ -74,7 +80,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         PUBLIC Boards/Simulator/Source # for FreeRTOSConfig.h
     )
 
-
     # EmbedTLS
     set(ENABLE_TESTING OFF)
     set(ENABLE_PROGRAMS OFF)
@@ -88,13 +93,16 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # Tests
     add_subdirectory(Tests)
 
-    # SDL & LVGL
-    set(LV_CONF_PATH ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source/lv_conf.h)
-    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
-    target_include_directories(lvgl
-        PUBLIC Boards/Source # for lv_conf.h and lv_drv_conf.h
-    )
+    # LVGL
 
+    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
+    include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
+    if (NOT DEFINED ENV{SKIP_SDL})
+        target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
+    endif()
+    target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h")
+
+    # SDL
     # TODO: This is a temporary skipping option for running unit tests
     # TODO: Remove when github action for SDL is working again
     if (NOT DEFINED ENV{SKIP_SDL})
@@ -117,7 +125,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
             # `sudo apt install libsdl2-image-dev`
             # `brew install sdl2_image`
             find_package(SDL2_image REQUIRED)
-            target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
+            include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
             target_link_libraries(AppSim ${SDL2_IMAGE_LIBRARIES})
             target_link_libraries(Simulator ${SDL2_IMAGE_LIBRARIES})
         endif(LV_USE_DRAW_SDL)

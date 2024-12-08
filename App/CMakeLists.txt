@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     set(BOARD_COMPONENTS Tactility TactilityC)

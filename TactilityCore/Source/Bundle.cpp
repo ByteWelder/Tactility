@@ -62,20 +62,23 @@ bool Bundle::optString(const std::string& key, std::string& out) const {
 void Bundle::putBool(const std::string& key, bool value) {
     this->entries[key] = {
         .type = TypeBool,
-        .value_bool = value
+        .value_bool = value,
+        .value_string = ""
     };
 }
 
 void Bundle::putInt32(const std::string& key, int32_t value) {
     this->entries[key] = {
         .type = TypeInt32,
-        .value_int32 = value
+        .value_int32 = value,
+        .value_string = ""
     };
 }
 
 void Bundle::putString(const std::string& key, const std::string& value) {
     this->entries[key] = {
         .type = TypeString,
+        .value_bool = false,
         .value_string = value
     };
 }

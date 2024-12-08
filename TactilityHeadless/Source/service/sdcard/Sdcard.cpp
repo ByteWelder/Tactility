@@ -12,7 +12,6 @@
 
 namespace tt::service::sdcard {
 
-static int32_t sdcard_task(void* context);
 extern const ServiceManifest manifest;
 
 struct ServiceData {

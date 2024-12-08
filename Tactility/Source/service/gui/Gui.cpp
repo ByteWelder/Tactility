@@ -27,8 +27,7 @@ void loader_callback(const void* message, TT_UNUSED void* context) {
 }
 
 Gui* gui_alloc() {
-    auto* instance = static_cast<Gui*>(malloc(sizeof(Gui)));
-    memset(instance, 0, sizeof(Gui));
+    auto* instance = new Gui();
     tt_check(instance != nullptr);
     instance->thread = new Thread(
         "gui",
@@ -36,8 +35,6 @@ Gui* gui_alloc() {
         &gui_main,
         nullptr
     );
-    instance->mutex = tt_mutex_alloc(Mutex::TypeRecursive);
-    instance->keyboard = nullptr;
     instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &loader_callback, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     instance->keyboard_group = lv_group_create();
@@ -50,25 +47,23 @@ Gui* gui_alloc() {
 void gui_free(Gui* instance) {
     tt_assert(instance != nullptr);
     delete instance->thread;
-    tt_mutex_free(instance->mutex);
 
+    lv_group_delete(instance->keyboard_group);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     lv_group_del(instance->keyboard_group);
     lvgl::unlock();
 
-    free(instance);
+    delete instance;
 }
 
 void lock() {
     tt_assert(gui);
-    tt_assert(gui->mutex);
-    tt_check(tt_mutex_acquire(gui->mutex, configTICK_RATE_HZ) == TtStatusOk);
+    tt_check(gui->mutex.acquire(configTICK_RATE_HZ) == TtStatusOk);
 }
 
 void unlock() {
     tt_assert(gui);
-    tt_assert(gui->mutex);
-    tt_check(tt_mutex_release(gui->mutex) == TtStatusOk);
+    tt_check(gui->mutex.release() == TtStatusOk);
 }
 
 void requestDraw() {

@@ -71,6 +71,7 @@ static void thread_body(void* context) {
 
 Thread::Thread() :
     data({
+        .thread = nullptr,
         .taskHandle = nullptr,
         .state = StateStopped,
         .callback = nullptr,
@@ -90,6 +91,7 @@ Thread::Thread(
     Callback callback,
     _Nullable void* callbackContext) :
     data({
+        .thread = nullptr,
         .taskHandle = nullptr,
         .state = StateStopped,
         .callback = callback,

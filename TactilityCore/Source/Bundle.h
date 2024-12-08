@@ -23,7 +23,6 @@ private:
     } Type;
 
     typedef struct {
-        std::string key;
         Type type;
         union {
             bool value_bool;
