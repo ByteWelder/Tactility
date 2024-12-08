@@ -4,7 +4,6 @@
 #include "ElfApp.h"
 #include "TactilityCore.h"
 #include "esp_elf.h"
-#include "ElfSymbols.h"
 
 namespace tt::app {
 
@@ -12,9 +11,6 @@ namespace tt::app {
 
 bool startElfApp(const char* filePath) {
     TT_LOG_I(TAG, "Starting ELF %s", filePath);
-
-    // TODO: Move
-    initElfSymbols();
 
     size_t size = 0;
     auto elf_file_data = file::readBinary(filePath, size);

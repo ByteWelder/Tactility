@@ -21,6 +21,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Boards"
         "App"
         "Tactility"
+        "TactilityC"
         "TactilityCore"
         "TactilityHeadless"
         "Libraries/esp_lvgl_port"
@@ -56,6 +57,7 @@ project(Tactility)
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
+    add_subdirectory(TactilityC)
     add_subdirectory(TactilityCore)
     add_subdirectory(TactilityHeadless)
     add_subdirectory(Boards/Simulator)

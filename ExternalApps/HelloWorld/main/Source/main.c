@@ -1,4 +1,4 @@
-extern void tt_app_selectiondialog_start(const char* title, int argc, const char* argv[]);
+#include "TactilityC/app/SelectionDialog.h"
 
 int main(int argc, char* argv[])
 {

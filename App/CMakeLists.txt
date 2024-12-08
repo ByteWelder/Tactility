@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    set(BOARD_COMPONENTS Tactility)
+    set(BOARD_COMPONENTS Tactility TactilityC)
 
     if("${IDF_TARGET}" STREQUAL "esp32")
         list(APPEND BOARD_COMPONENTS
@@ -28,6 +28,7 @@ else()
     add_executable(AppSim ${SOURCES})
     target_link_libraries(AppSim
         PRIVATE Tactility
+        PRIVATE TactilityC
         PRIVATE TactilityCore
         PRIVATE TactilityHeadless
         PRIVATE Simulator
