@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void initElfSymbols();
+void tt_init_tactility_c();
 
 #ifdef __cplusplus
 }

@@ -26,9 +26,7 @@ void app_main() {
         .autoStartAppId = nullptr
     };
 
-#ifdef ESP_PLATFORM
-    initElfSymbols();
-#endif
+    tt_init_tactility_c(); // ELF bindings for side-loading on ESP32
 
     tt::run(config);
 }
