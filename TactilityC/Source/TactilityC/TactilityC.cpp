@@ -1,3 +1,5 @@
+extern "C" {
+
 #ifdef ESP_PLATFORM
 
 #include "elf_symbol.h"
@@ -7,8 +9,6 @@
 #include "lvgl/Toolbar.h"
 
 #include "lvgl.h"
-
-extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
@@ -139,7 +139,7 @@ void tt_init_tactility_c() {
     elf_set_custom_symbols(elf_symbols);
 }
 
-#else // PC
+#else // Simulator
 
 void tt_init_tactility_c() {
 }
@@ -147,4 +147,3 @@ void tt_init_tactility_c() {
 #endif // ESP_PLATFORM
 
 }
-

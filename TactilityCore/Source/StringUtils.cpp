@@ -6,7 +6,7 @@
 namespace tt::string {
 
 int findLastIndex(const char* text, size_t from_index, char find) {
-    for (size_t i = from_index; i >= 0; i--) {
+    for (int i = (int)from_index; i >= 0; i--) {
         if (text[i] == find) {
             return (int)i;
         }

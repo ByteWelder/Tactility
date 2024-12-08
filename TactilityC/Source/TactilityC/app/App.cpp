@@ -1,3 +1,4 @@
+#include <Check.h>
 #include "App.h"
 #include "Log.h"
 #include "app/ElfApp.h"
@@ -49,19 +50,19 @@ static void onHideWrapper(tt::app::AppContext& context) {
 static void onResultWrapper(tt::app::AppContext& context, tt::app::Result result, const tt::Bundle& resultData) {
     if (elfOnResult != nullptr) {
         TT_LOG_I(TAG, "onResultWrapper");
-//        Result convertedResult = AppResultError;
-//        switch (result) {
-//            case tt::app::ResultOk:
-//                convertedResult = AppResultOk;
-//                break;
-//            case tt::app::ResultCancelled:
-//                convertedResult = AppResultCancelled;
-//                break;
-//            case tt::app::ResultError:
-//                convertedResult = AppResultError;
-//                break;
-//        }
-//        elfOnResult(&context, convertedResult, (BundleHandle)&resultData);
+        Result convertedResult = AppResultError;
+        switch (result) {
+            case tt::app::ResultOk:
+                convertedResult = AppResultOk;
+                break;
+            case tt::app::ResultCancelled:
+                convertedResult = AppResultCancelled;
+                break;
+            case tt::app::ResultError:
+                convertedResult = AppResultError;
+                break;
+        }
+        elfOnResult(&context, convertedResult, (BundleHandle)&resultData);
     } else {
         TT_LOG_W(TAG, "onResultWrapper not set");
     }
@@ -89,6 +90,7 @@ void tt_set_app_manifest(
     AppOnHide _Nullable onHide,
     AppOnResult _Nullable onResult
 ) {
+#ifdef ESP_PLATFORM
     manifest.name = name;
     manifest.icon = icon ? icon : "";
     elfOnStart = onStart;
@@ -97,6 +99,9 @@ void tt_set_app_manifest(
     elfOnHide = onHide;
     elfOnResult = onResult;
     tt::app::setElfAppManifest(manifest);
+#else
+    tt_crash("Not intended for PC");
+#endif
 }
 
 }

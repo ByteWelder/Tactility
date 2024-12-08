@@ -90,6 +90,8 @@ bool save(const WifiApSettings* settings) {
     }
 
     WifiApSettings encrypted_settings = {
+        .ssid = { 0 },
+        .password = { 0 },
         .auto_connect = settings->auto_connect,
     };
     strcpy((char*)encrypted_settings.ssid, settings->ssid);
