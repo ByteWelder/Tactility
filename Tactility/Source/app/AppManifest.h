@@ -57,32 +57,32 @@ struct AppManifest {
     /**
      * App type affects launch behaviour.
      */
-    const Type type = TypeUser;
+    Type type = TypeUser;
 
     /**
      * Non-blocking method to call when app is started.
      */
-    const AppOnStart onStart = nullptr;
+    AppOnStart onStart = nullptr;
 
     /**
      * Non-blocking method to call when app is stopped.
      */
-    const AppOnStop _Nullable onStop = nullptr;
+    AppOnStop _Nullable onStop = nullptr;
 
     /**
      * Non-blocking method to create the GUI
      */
-    const AppOnShow _Nullable onShow = nullptr;
+    AppOnShow _Nullable onShow = nullptr;
 
     /**
      * Non-blocking method, called before gui is destroyed
      */
-    const AppOnHide _Nullable onHide = nullptr;
+    AppOnHide _Nullable onHide = nullptr;
 
     /**
      * Handle the result for apps that are launched
      */
-    const AppOnResult _Nullable onResult = nullptr;
+    AppOnResult _Nullable onResult = nullptr;
 };
 
 struct {

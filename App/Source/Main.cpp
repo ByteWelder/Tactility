@@ -2,6 +2,7 @@
 
 // Apps
 #include "Tactility.h"
+#include "TactilityC/TactilityC.h"
 
 namespace tt::service::wifi {
     extern void wifi_task(void*);
@@ -24,6 +25,8 @@ void app_main() {
         .services = {},
         .autoStartAppId = nullptr
     };
+
+    tt_init_tactility_c(); // ELF bindings for side-loading on ESP32
 
     tt::run(config);
 }

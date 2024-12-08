@@ -1,15 +1,17 @@
 #include "FilesData.h"
-#include "Tactility.h"
 #include "app/AppContext.h"
+#include "Tactility.h"
 #include "Assets.h"
 #include "Check.h"
 #include "FileUtils.h"
 #include "StringUtils.h"
+#include "app/ElfApp.h"
 #include "app/imageviewer/ImageViewer.h"
 #include "app/textviewer/TextViewer.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Toolbar.h"
+
 #include <dirent.h>
 #include <unistd.h>
 #include <memory>
@@ -50,6 +52,15 @@ static bool hasFileExtension(const char* path, const char* extension) {
     }
 
     return true;
+}
+
+static bool isSupportedExecutableFile(const char* filename) {
+#ifdef ESP_PLATFORM
+    // Currently only the PNG library is built into Tactility
+    return hasFileExtension(filename, ".elf");
+#else
+    return false;
+#endif
 }
 
 static bool isSupportedImageFile(const char* filename) {
@@ -120,7 +131,11 @@ static void viewFile(const char* path, const char* filename) {
 
     TT_LOG_I(TAG, "Clicked %s", filepath);
 
-    if (isSupportedImageFile(filename)) {
+    if (isSupportedExecutableFile(filename)) {
+#ifdef ESP_PLATFORM
+        app::startElfApp(processed_filepath);
+#endif
+    } else if (isSupportedImageFile(filename)) {
         auto bundle = std::make_shared<Bundle>();
         bundle->putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
         service::loader::startApp("ImageViewer", false, bundle);

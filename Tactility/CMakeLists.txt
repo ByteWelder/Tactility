@@ -10,11 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES TactilityHeadless lvgl driver
-    )
-
-    target_link_libraries(${COMPONENT_LIB}
-        PUBLIC lv_screenshot
+        REQUIRES TactilityHeadless lvgl driver elf_loader lv_screenshot
     )
 
     add_definitions(-DESP_PLATFORM)
