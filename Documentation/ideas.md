@@ -1,10 +1,11 @@
 # TODOs
+- AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
+- Create AlertDialog app like on Android with title, message and optional buttons. Update WifiApSettings with it.
 - Loader: Use Timer instead of Thread, and move API to `tt::app::`
 - Gpio: Use Timer instead of Thread
 - I2cScannerThread: Use Timer instead of Thread
 - Bug: I2C Scanner is on M5Stack devices is broken
 - WiFi AP Connect app: add "Forget" option.
-- T-Deck Plus: Implement battery status
 - Make firmwares available via release process
 - Make firmwares available via web serial website
 - Bug: When closing a top level app, there's often an error "can't stop root app"

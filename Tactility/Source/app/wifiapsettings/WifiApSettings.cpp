@@ -1,6 +1,7 @@
 #include "WifiApSettings.h"
 #include "TactilityCore.h"
 #include "app/AppContext.h"
+#include "app/selectiondialog/SelectionDialog.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -27,6 +28,14 @@ void start(const std::string& ssid) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString("ssid", ssid);
     service::loader::startApp(manifest.id, false, bundle);
+}
+
+static void onPressForget(lv_event_t* event) {
+    std::vector<std::string> choices = {
+        "Yes",
+        "No"
+    };
+    selectiondialog::start("Are you sure?", choices);
 }
 
 static void onToggleAutoConnect(lv_event_t* event) {
@@ -67,29 +76,34 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 
     // Wrappers
 
-    lv_obj_t* secondary_flex = lv_obj_create(parent);
-    lv_obj_set_width(secondary_flex, LV_PCT(100));
-    lv_obj_set_flex_grow(secondary_flex, 1);
-    lv_obj_set_flex_flow(secondary_flex, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_border_width(secondary_flex, 0, 0);
-    lvgl::obj_set_style_no_padding(secondary_flex);
-    lvgl::obj_set_style_bg_invisible(secondary_flex);
-
-    // align() methods don't work on flex, so we need this extra wrapper
-    lv_obj_t* wrapper = lv_obj_create(secondary_flex);
-    lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_t* wrapper = lv_obj_create(parent);
+    lv_obj_set_width(wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(wrapper, 1);
+    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
     lvgl::obj_set_style_bg_invisible(wrapper);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
 
     // Auto-connect toggle
 
-    lv_obj_t* auto_connect_label = lv_label_create(wrapper);
+    lv_obj_t* auto_connect_wrapper = lv_obj_create(wrapper);
+    lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lvgl::obj_set_style_no_padding(auto_connect_wrapper);
+    lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
+
+    lv_obj_t* auto_connect_label = lv_label_create(auto_connect_wrapper);
     lv_label_set_text(auto_connect_label, "Auto-connect");
     lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
-    lv_obj_t* auto_connect_switch = lv_switch_create(wrapper);
+    lv_obj_t* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
     lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
     lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
+
+    lv_obj_t* forget_button = lv_button_create(wrapper);
+    lv_obj_set_width(forget_button, LV_PCT(100));
+    lv_obj_align_to(forget_button, auto_connect_wrapper, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+    lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_CLICKED, nullptr);
+    lv_obj_t* forget_button_label = lv_label_create(forget_button);
+    lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
+    lv_label_set_text(forget_button_label, "Forget");
 
     service::wifi::settings::WifiApSettings settings {};
     if (service::wifi::settings::load(ssid.c_str(), &settings)) {
@@ -104,12 +118,43 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     }
 }
 
+void onResult(AppContext& app, Result result, const Bundle& bundle) {
+    auto index = selectiondialog::getResultIndex(bundle);
+    if (index == 0) {// Yes
+        auto* app = optWifiApSettingsApp();
+        if (app == nullptr) {
+            return;
+        }
+
+        auto parameters = app->getParameters();
+        tt_check(parameters != nullptr, "Parameters missing");
+
+        std::string ssid = parameters->getString("ssid");
+        if (service::wifi::settings::remove(ssid.c_str())) {
+            TT_LOG_I(TAG, "Removed SSID");
+
+            if (
+                service::wifi::getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE &&
+                service::wifi::getConnectionTarget() == ssid
+            ) {
+                service::wifi::disconnect();
+            }
+
+            // Stop self
+            service::loader::stopApp();
+        } else {
+            TT_LOG_E(TAG, "Failed to remove SSID");
+        }
+    }
+}
+
 extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,
     .type = TypeHidden,
-    .onShow = onShow
+    .onShow = onShow,
+    .onResult = onResult
 };
 
 } // namespace

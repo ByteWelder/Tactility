@@ -267,39 +267,15 @@ static void do_stop_app() {
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
+    app::AppOnResult on_result = nullptr;
+    app::AppInstance* app_to_resume = nullptr;
     // If there's a previous app, resume it
     if (!loader_singleton->app_stack.empty()) {
-        app::AppInstance* app_to_resume = loader_singleton->app_stack.top();
+        app_to_resume = loader_singleton->app_stack.top();
         tt_assert(app_to_resume);
         app_transition_to_state(*app_to_resume, app::StateShowing);
 
-        auto on_result = app_to_resume->getManifest().onResult;
-        if (on_result != nullptr) {
-            if (result_holder != nullptr) {
-                auto result_bundle = result_holder->resultData.get();
-                if (result_bundle != nullptr) {
-                    on_result(
-                        *app_to_resume,
-                        result_holder->result,
-                        *result_bundle
-                    );
-                } else {
-                    const Bundle empty_bundle;
-                    on_result(
-                        *app_to_resume,
-                        result_holder->result,
-                        empty_bundle
-                    );
-                }
-            } else {
-                const Bundle empty_bundle;
-                on_result(
-                    *app_to_resume,
-                    app::ResultCancelled,
-                    empty_bundle
-                );
-            }
-        }
+        on_result = app_to_resume->getManifest().onResult;
     }
 
     loader_unlock();
@@ -314,6 +290,33 @@ static void do_stop_app() {
         }
     };
     tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
+
+    if (on_result != nullptr && app_to_resume != nullptr) {
+        if (result_holder != nullptr) {
+            auto result_bundle = result_holder->resultData.get();
+            if (result_bundle != nullptr) {
+                on_result(
+                    *app_to_resume,
+                    result_holder->result,
+                    *result_bundle
+                );
+            } else {
+                const Bundle empty_bundle;
+                on_result(
+                    *app_to_resume,
+                    result_holder->result,
+                    empty_bundle
+                );
+            }
+        } else {
+            const Bundle empty_bundle;
+            on_result(
+                *app_to_resume,
+                app::ResultCancelled,
+                empty_bundle
+            );
+        }
+    }
 }
 
 

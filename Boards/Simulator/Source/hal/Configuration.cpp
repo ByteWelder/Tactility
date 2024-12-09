@@ -1,12 +1,11 @@
 #include "hal/Configuration.h"
+#include "hal/SimulatorPower.h"
 #include "LvglTask.h"
 #include "src/lv_init.h"
 #include "SdlDisplay.h"
 #include "SdlKeyboard.h"
 
 #define TAG "hardware"
-
-extern const tt::hal::Power power;
 
 static bool initBoot() {
     lv_init();
@@ -30,7 +29,7 @@ extern const tt::hal::Configuration hardware = {
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = nullptr,
-    .power = &power,
+    .power = simulatorPower,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
