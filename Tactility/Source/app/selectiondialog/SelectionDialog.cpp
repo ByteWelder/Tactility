@@ -109,15 +109,3 @@ extern const AppManifest manifest = {
 };
 
 }
-extern "C" {
-
-extern void tt_app_selectiondialog_start2(const char* title, int argc, const char* argv[]) {
-    std::vector<std::string> list;
-    for (int i = 0; i < argc; i++) {
-        const char* item = argv[i];
-        list.push_back(item);
-    }
-    tt::app::selectiondialog::start(title, list);
-}
-
-}

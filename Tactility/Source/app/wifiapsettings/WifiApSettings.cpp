@@ -1,7 +1,7 @@
 #include "WifiApSettings.h"
 #include "TactilityCore.h"
 #include "app/AppContext.h"
-#include "app/selectiondialog/SelectionDialog.h"
+#include "app/alertdialog/AlertDialog.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -30,12 +30,12 @@ void start(const std::string& ssid) {
     service::loader::startApp(manifest.id, false, bundle);
 }
 
-static void onPressForget(lv_event_t* event) {
+static void onPressForget(TT_UNUSED lv_event_t* event) {
     std::vector<std::string> choices = {
         "Yes",
         "No"
     };
-    selectiondialog::start("Are you sure?", choices);
+    alertdialog::start("Confirmation", "Forget the Wi-Fi access point?", choices);
 }
 
 static void onToggleAutoConnect(lv_event_t* event) {
@@ -118,8 +118,8 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     }
 }
 
-void onResult(AppContext& app, Result result, const Bundle& bundle) {
-    auto index = selectiondialog::getResultIndex(bundle);
+void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& bundle) {
+    auto index = alertdialog::getResultIndex(bundle);
     if (index == 0) {// Yes
         auto* app = optWifiApSettingsApp();
         if (app == nullptr) {

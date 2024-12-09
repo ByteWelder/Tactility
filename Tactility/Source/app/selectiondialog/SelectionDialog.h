@@ -16,7 +16,10 @@ namespace tt::app::selectiondialog {
 
     void start(std::string title, const std::vector<std::string>& items);
 
-    /** App result data */
-
+    /**
+     * Get the index of the item that the user selected.
+     *
+     * @return a value greater than 0 when a selection was done, or -1 when the app was closed without selecting an item.
+     */
     int32_t getResultIndex(const Bundle& bundle);
 }
