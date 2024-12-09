@@ -8,6 +8,7 @@ bool tdeck_init_hardware();
 bool tdeck_init_lvgl();
 
 extern const tt::hal::sdcard::SdCard tdeck_sdcard;
+extern const tt::hal::Power tdeck_power;
 
 extern const tt::hal::Configuration lilygo_tdeck = {
     .initBoot = tdeck_init_power,
@@ -16,7 +17,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = &tdeck_sdcard,
-    .power = nullptr,
+    .power = &tdeck_power,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
