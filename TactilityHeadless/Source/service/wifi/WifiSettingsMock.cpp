@@ -16,11 +16,11 @@ bool load(const char* ssid, WifiApSettings* settings) {
 }
 
 bool save(const WifiApSettings* settings) {
-    return false;
+    return true;
 }
 
 bool remove(const char* ssid) {
-    return false;
+    return true;
 }
 
 } // namespace
