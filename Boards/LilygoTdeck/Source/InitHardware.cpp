@@ -18,8 +18,6 @@
 #define TDECK_LCD_BACKLIGHT_LEDC_DUTY_RES LEDC_TIMER_8_BIT
 #define TDECK_LCD_BACKLIGHT_LEDC_FREQUENCY (4000)
 
-bool init_power_adc();
-
 static bool init_spi() {
     spi_bus_config_t bus_config = {
         .mosi_io_num = TDECK_SPI_PIN_MOSI,
@@ -39,11 +37,6 @@ bool tdeck_init_hardware() {
     if (!init_spi()) {
         TT_LOG_E(TAG, "Init SPI failed");
         return false;
-    }
-
-    TT_LOG_I(TAG, "Init ADC");
-    if (!init_power_adc()) {
-        TT_LOG_W(TAG, "ADC init failed");
     }
 
     return true;

@@ -4,45 +4,38 @@
 
 namespace tt::hal {
 
-typedef bool (*PowerIsCharging)();
-typedef bool (*PowerIsChargingEnabled)();
-typedef void (*PowerSetChargingEnabled)(bool enabled);
-typedef uint8_t (*PowerGetBatteryCharge)(); // Power value [0, 255] which maps to 0-100% charge
-typedef int32_t (*PowerGetCurrent)(); // Consumption or charge current in mAh
+class Power{
 
-typedef struct {
-    PowerIsCharging isCharging;
-    PowerIsChargingEnabled isChargingEnabled;
-    PowerSetChargingEnabled setChargingEnabled;
-    PowerGetBatteryCharge getChargeLevel;
-    PowerGetCurrent getCurrent;
-} Power;
+public:
 
-class PowerNew {
-    struct Metric {
-        enum Type {
-            IS_CHARGING, // bool
-            CURRENT, // uint32_t, mAh
-            BATTERY_VOLTAGE, // float [0.0, ...]
-            CHARGE_LEVEL, // float [0.0, 1.0]
-        };
-        union {
-            bool valueAsBool;
-            uint32_t valueAsUint32;
-            float valueAsFloat;
-        };
+    Power() = default;
+    virtual ~Power() = default;
+
+    enum MetricType {
+        IS_CHARGING, // bool
+        CURRENT, // int32_t, mAh
+        BATTERY_VOLTAGE, // uint32_t, mV
+        CHARGE_LEVEL, // uint8_t [0, 100]
     };
 
-    virtual bool isMetricSupported(Metric::Type type) = 0;
+    union MetricData {
+        int32_t valueAsInt32 = 0;
+        uint32_t valueAsUint32;
+        uint8_t valueAsUint8;
+        float valueAsFloat;
+        bool valueAsBool;
+    };
+
+    virtual bool supportsMetric(MetricType type) const = 0;
 
     /**
      * @return false when metric is not supported or (temporarily) not available.
      */
-    virtual bool getMetric(Metric& metric) = 0;
+    virtual bool getMetric(Power::MetricType type, MetricData& data) = 0;
 
-    virtual bool supportsChargeControl() { return true; }
-    virtual bool isAllowedToCharge() { return false; }
-    virtual void setChargingAllowed(bool canCharge) { /* NO-OP*/ }
+    virtual bool supportsChargeControl() const { return false; }
+    virtual bool isAllowedToCharge() const { return false; }
+    virtual void setAllowedToCharge(bool canCharge) { /* NO-OP*/ }
 };
 
 } // namespace tt

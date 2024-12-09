@@ -118,22 +118,28 @@ static void update_sdcard_icon(std::shared_ptr<ServiceData> data) {
 // region power
 
 static _Nullable const char* power_get_status_icon() {
-    _Nullable const hal::Power* power = getConfiguration()->hardware->power;
-    if (power != nullptr) {
-        uint8_t charge = power->getChargeLevel();
-        if (charge >= 230) {
-            return TT_ASSETS_ICON_POWER_100;
-        } else if (charge >= 161) {
-            return TT_ASSETS_ICON_POWER_080;
-        } else if (charge >= 127) {
-            return TT_ASSETS_ICON_POWER_060;
-        } else if (charge >= 76) {
-            return TT_ASSETS_ICON_POWER_040;
-        } else {
-            return TT_ASSETS_ICON_POWER_020;
-        }
-    } else {
+    const std::shared_ptr<hal::Power> power = getConfiguration()->hardware->power();
+    if (power == nullptr) {
         return nullptr;
+    }
+
+    hal::Power::MetricData charge_level;
+    if (!power->getMetric(hal::Power::MetricType::CHARGE_LEVEL, charge_level)) {
+        return nullptr;
+    }
+
+    uint8_t charge = charge_level.valueAsUint8;
+
+    if (charge >= 90) {
+        return TT_ASSETS_ICON_POWER_100;
+    } else if (charge >= 70) {
+        return TT_ASSETS_ICON_POWER_080;
+    } else if (charge >= 50) {
+        return TT_ASSETS_ICON_POWER_060;
+    } else if (charge >= 30) {
+        return TT_ASSETS_ICON_POWER_040;
+    } else {
+        return TT_ASSETS_ICON_POWER_020;
     }
 }
 
