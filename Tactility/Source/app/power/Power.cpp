@@ -18,6 +18,7 @@ static void onTimer(TT_UNUSED std::shared_ptr<void> context);
 struct Data {
     Timer update_timer = Timer(Timer::TypePeriodic, &onTimer, nullptr);
     std::shared_ptr<tt::hal::Power> power = getConfiguration()->hardware->power();
+    lv_obj_t* enable_label = nullptr;
     lv_obj_t* enable_switch = nullptr;
     lv_obj_t* battery_voltage = nullptr;
     lv_obj_t* charge_state = nullptr;
@@ -73,8 +74,10 @@ static void updateUi(std::shared_ptr<Data> data) {
     if (charging_enabled_set) {
         lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled);
         lv_obj_remove_flag(data->enable_switch, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(data->enable_label, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(data->enable_switch, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(data->enable_label, LV_OBJ_FLAG_HIDDEN);
     }
 
     lv_label_set_text_fmt(data->charge_state, "Charging: %s", charge_state);
@@ -143,9 +146,9 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lvgl::obj_set_style_no_padding(switch_container);
     lvgl::obj_set_style_bg_invisible(switch_container);
 
-    lv_obj_t* enable_label = lv_label_create(switch_container);
-    lv_label_set_text(enable_label, "Charging enabled");
-    lv_obj_set_align(enable_label, LV_ALIGN_LEFT_MID);
+    data->enable_label = lv_label_create(switch_container);
+    lv_label_set_text(data->enable_label, "Charging enabled");
+    lv_obj_set_align(data->enable_label, LV_ALIGN_LEFT_MID);
 
     lv_obj_t* enable_switch = lv_switch_create(switch_container);
     lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, nullptr);
