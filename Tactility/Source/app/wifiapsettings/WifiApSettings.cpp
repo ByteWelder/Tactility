@@ -1,7 +1,7 @@
 #include "WifiApSettings.h"
 #include "TactilityCore.h"
 #include "app/AppContext.h"
-#include "app/selectiondialog/SelectionDialog.h"
+#include "app/alertdialog/AlertDialog.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -35,7 +35,7 @@ static void onPressForget(lv_event_t* event) {
         "Yes",
         "No"
     };
-    selectiondialog::start("Are you sure?", choices);
+    alertdialog::start("Confirmation", "Remove the WiFi access point?", choices);
 }
 
 static void onToggleAutoConnect(lv_event_t* event) {
@@ -119,7 +119,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 }
 
 void onResult(AppContext& app, Result result, const Bundle& bundle) {
-    auto index = selectiondialog::getResultIndex(bundle);
+    auto index = alertdialog::getResultIndex(bundle);
     if (index == 0) {// Yes
         auto* app = optWifiApSettingsApp();
         if (app == nullptr) {

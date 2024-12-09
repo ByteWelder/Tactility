@@ -1,6 +1,5 @@
 # TODOs
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
-- Create AlertDialog app like on Android with title, message and optional buttons. Update WifiApSettings with it.
 - Loader: Use Timer instead of Thread, and move API to `tt::app::`
 - Gpio: Use Timer instead of Thread
 - I2cScannerThread: Use Timer instead of Thread
@@ -36,7 +35,6 @@
 
 # App Ideas
 - System logger
-- Add FreeRTOS task manager functionality to System Info app
 - BlueTooth keyboard app
 - Chip 8 emulator
 - BadUSB (in December 2024, TinyUSB has a bug where uninstalling and re-installing the driver fails)

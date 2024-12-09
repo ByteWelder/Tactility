@@ -1,4 +1,3 @@
-#include <Dispatcher.h>
 #include "Tactility.h"
 
 #include "app/ManifestRegistry.h"
@@ -36,6 +35,7 @@ static const std::vector<const service::ServiceManifest*> system_services = {
 // region Default apps
 
 namespace app {
+    namespace alertdialog { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
     namespace desktop { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
@@ -63,6 +63,7 @@ extern const app::AppManifest screenshot_app;
 #endif
 
 static const std::vector<const app::AppManifest*> system_apps = {
+    &app::alertdialog::manifest,
     &app::boot::manifest,
     &app::desktop::manifest,
     &app::display::manifest,
