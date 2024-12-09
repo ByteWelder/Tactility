@@ -30,7 +30,7 @@ void start(const std::string& ssid) {
     service::loader::startApp(manifest.id, false, bundle);
 }
 
-static void onPressForget(lv_event_t* event) {
+static void onPressForget(TT_UNUSED lv_event_t* event) {
     std::vector<std::string> choices = {
         "Yes",
         "No"
@@ -118,7 +118,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     }
 }
 
-void onResult(AppContext& app, Result result, const Bundle& bundle) {
+void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& bundle) {
     auto index = alertdialog::getResultIndex(bundle);
     if (index == 0) {// Yes
         auto* app = optWifiApSettingsApp();
