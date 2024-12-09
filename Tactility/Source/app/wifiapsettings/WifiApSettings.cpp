@@ -35,7 +35,7 @@ static void onPressForget(lv_event_t* event) {
         "Yes",
         "No"
     };
-    alertdialog::start("Confirmation", "Remove the WiFi access point?", choices);
+    alertdialog::start("Confirmation", "Forget the Wi-Fi access point?", choices);
 }
 
 static void onToggleAutoConnect(lv_event_t* event) {
