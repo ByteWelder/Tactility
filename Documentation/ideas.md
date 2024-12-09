@@ -23,6 +23,8 @@
 - Wifi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
 - T-Deck Plus: Create separate board config
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
+- hal::Configuration: Replace CreateX fields with plain instances
+- T-Deck Power: capacity estimation uses linear voltage curve, but it should use some sort of battery discharge curve.
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.

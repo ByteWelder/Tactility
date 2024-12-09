@@ -2,7 +2,6 @@
 #include "hal/TdeckDisplayConstants.h"
 #include <driver/spi_common.h>
 #include <soc/gpio_num.h>
-#include <driver/ledc.h>
 
 #define TAG "tdeck"
 
@@ -18,7 +17,6 @@
 #define TDECK_LCD_BACKLIGHT_LEDC_CHANNEL LEDC_CHANNEL_0
 #define TDECK_LCD_BACKLIGHT_LEDC_DUTY_RES LEDC_TIMER_8_BIT
 #define TDECK_LCD_BACKLIGHT_LEDC_FREQUENCY (4000)
-
 
 static bool init_spi() {
     spi_bus_config_t bus_config = {

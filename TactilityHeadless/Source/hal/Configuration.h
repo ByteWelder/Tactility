@@ -16,6 +16,7 @@ class Display;
 class Keyboard;
 typedef Display* (*CreateDisplay)();
 typedef Keyboard* (*CreateKeyboard)();
+typedef std::shared_ptr<Power> (*CreatePower)();
 
 struct Configuration {
     /**
@@ -53,7 +54,7 @@ struct Configuration {
     /**
      * An optional power interface for battery or other power delivery.
      */
-    const Power* _Nullable power = nullptr;
+    const CreatePower _Nullable power = nullptr;
 
     /**
      * A list of i2c devices (can be empty, but preferably accurately represents the device capabilities)

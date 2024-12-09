@@ -1,6 +1,7 @@
 #include "hal/Configuration.h"
 #include "hal/TdeckDisplay.h"
 #include "hal/TdeckKeyboard.h"
+#include "hal/TdeckPower.h"
 #include "hal/sdcard/Sdcard.h"
 
 bool tdeck_init_power();
@@ -16,7 +17,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = &tdeck_sdcard,
-    .power = nullptr,
+    .power = tdeck_get_power,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
