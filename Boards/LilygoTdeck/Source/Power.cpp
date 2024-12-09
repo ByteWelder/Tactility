@@ -1,5 +1,6 @@
 #include "hal/Power.h"
 #include "Log.h"
+#include "CoreDefines.h"
 
 #include <esp_adc/adc_continuous.h>
 #include <esp_adc/adc_oneshot.h>
@@ -8,7 +9,10 @@
 
 // From https://github.com/meshtastic/firmware/blob/f81d3b045dd1b7e3ca7870af3da915ff4399ea98/variants/t-deck/variant.h
 // ratio of voltage divider = 2.0 (RD2=100k, RD3=100k)
-//#define ADC_MULTIPLIER 2.11 // 2.0 + 10% for correction of display under voltage
+#define ADC_MULTIPLIER 2.11f // 0.11 added to correct for display under-voltage
+#define ADC_REF_VOLTAGE 3.3f
+#define BATTERY_VOLTAGE_MIN 3.2f
+#define BATTERY_VOLTAGE_MAX 4.2f
 
 adc_oneshot_unit_handle_t adcHandle;
 adc_oneshot_unit_init_cfg_t adcConfig = {
@@ -18,7 +22,7 @@ adc_oneshot_unit_init_cfg_t adcConfig = {
 };
 
 adc_oneshot_chan_cfg_t adcChannelConfig = {
-    .atten = ADC_ATTEN_DB_0,
+    .atten = ADC_ATTEN_DB_12,
     .bitwidth = ADC_BITWIDTH_DEFAULT,
 };
 
@@ -48,12 +52,16 @@ static void set_charging_enabled(bool enabled) {
 }
 
 static uint8_t get_charge_level() {
-
-    int value;
-    if (adc_oneshot_read(adcHandle, ADC_CHANNEL_3, &value) == ESP_OK) {
-        float scaled = value / 4096.f * 255.f;
-        TT_LOG_W(TAG, "Read %d (%f scaled)", value, scaled);
-        return scaled;
+    int raw;
+    if (adc_oneshot_read(adcHandle, ADC_CHANNEL_3, &raw) == ESP_OK) {
+        float raw_factor = (float)raw / 4096.f;
+        float raw_voltage = raw_factor * ADC_REF_VOLTAGE;
+        float scaled_voltage = raw_voltage * ADC_MULTIPLIER;
+        float voltage_percentage = (scaled_voltage - BATTERY_VOLTAGE_MIN) / (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN);
+        float voltage_factor = TT_MIN(1.0f, voltage_percentage);
+        auto result = (uint8_t)(voltage_factor * 255.f);
+        TT_LOG_W(TAG, "Raw = %d, raw factor %.4f, raw voltage = %.2f, scaled voltage = %.2f, factor = %.2f, result = %d", raw, raw_factor, raw_voltage, scaled_voltage, voltage_factor, result);
+        return result;
     } else {
         TT_LOG_E(TAG, "Read failed");
         return 0;
