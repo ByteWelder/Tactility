@@ -38,6 +38,7 @@ namespace app {
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
+    namespace crashdiagnostics { extern const AppManifest manifest; }
     namespace desktop { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
     namespace gpio { extern const AppManifest manifest; }
@@ -67,6 +68,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::alertdialog::manifest,
     &app::applist::manifest,
     &app::boot::manifest,
+    &app::crashdiagnostics::manifest,
     &app::desktop::manifest,
     &app::display::manifest,
     &app::files::manifest,

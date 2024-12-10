@@ -4,6 +4,7 @@
 #include "app/AppContext.h"
 #include "app/display/DisplaySettings.h"
 #include "hal/Display.h"
+#include "kernel/PanicHandler.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
 
@@ -43,8 +44,15 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     if (minimum_ticks > ticks_passed) {
         tt::kernel::delayTicks(minimum_ticks - ticks_passed);
     }
+
     tt::service::loader::stopApp();
-    tt::service::loader::startApp("Desktop");
+    esp_reset_reason_t reason = esp_reset_reason();
+    if (reason == ESP_RST_PANIC) {
+        tt::service::loader::startApp("CrashDiagnostics");
+    } else {
+        tt::service::loader::startApp("Desktop");
+    }
+
     return 0;
 }
 
