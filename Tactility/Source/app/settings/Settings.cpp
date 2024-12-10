@@ -46,7 +46,7 @@ extern const AppManifest manifest = {
     .id = "Settings",
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
-    .type = TypeSystem,
+    .type = TypeHidden,
     .onShow = onShow,
 };
 
