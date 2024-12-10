@@ -1,4 +1,6 @@
 # TODOs
+- Crash logs stored on sdcard or elsewhere: perhaps show crash screen after recovering from crash (with QR code? https://github.com/ricmoo/QRCode)
+- Logging
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
 - Loader: Use Timer instead of Thread, and move API to `tt::app::`
 - Gpio: Use Timer instead of Thread

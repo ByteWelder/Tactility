@@ -1,8 +1,6 @@
 ## Overview
 
-Tactility is a front-end application platform for ESP32.
-It is currently intended for touchscreen devices, but the goal is to also support different types of input in the future.
-Tactility provides an application framework that borrows concepts from [Flipper Zero](https://github.com/flipperdevices/flipperzero-firmware/) and mobile phone operating systems.
+Tactility is an operating system that is focusing on the ESP32 microcontroller.
 
 ![photo of devices running Tactility](Documentation/pics/tactility-devices.webp)&nbsp;&nbsp;![screenshot of desktop app](Documentation/pics/screenshot-Desktop.png)
 
@@ -14,7 +12,7 @@ Next to desktop functionality, Tactility makes it easy to manage system settings
 
 There are also built-in apps:
 
-![screenshot of GPIO app](Documentation/pics/screenshot-Gpio.png) ![screenshot of files app](Documentation/pics/screenshot-Files.png)
+![screenshot off app list app](Documentation/pics/screenshot-AppList.png)  ![screenshot of files app](Documentation/pics/screenshot-Files.png)
 
 Play with the built-in apps or build your own! Use one of the supported devices or set up the drivers for your own hardware platform.
 
@@ -26,8 +24,9 @@ Noteworthy features:
 - Includes a PC simulator build target to speed up development.
 
 Requirements:
-- ESP32 (any?) with a touchscreen
+- ESP32 (any?)
 - [esp-idf 5.3](https://docs.espressif.com/projects/esp-idf/en/release-v5.3/esp32/get-started/index.html) or a newer v5.3.x
+- (for PC simulator) SDL2 library, including SDL image
 
 ## Making apps is easy!
 
