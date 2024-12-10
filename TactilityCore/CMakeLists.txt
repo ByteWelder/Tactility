@@ -9,7 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
-        REQUIRES mbedtls nvs_flash
+        REQUIRES mbedtls nvs_flash esp_rom
     )
 
     add_definitions(-DESP_PLATFORM)

@@ -54,6 +54,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         LVGL_CONFIG_FULL_PATH Libraries/lvgl_conf ABSOLUTE
     )
     add_compile_definitions(LV_CONF_PATH=${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h)
+    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
 else()
     message("Building for sim target")
 endif()
