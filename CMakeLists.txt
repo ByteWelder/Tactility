@@ -30,6 +30,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/lv_screenshot"
         "Libraries/M5Unified"
         "Libraries/M5GFX"
+        "Libraries/QRCode"
     )
 
     set(EXCLUDE_COMPONENTS "Simulator")
@@ -76,6 +77,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     add_subdirectory(Libraries/lv_screenshot)
+    add_subdirectory(Libraries/QRCode)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC Boards/Simulator/Source # for FreeRTOSConfig.h
