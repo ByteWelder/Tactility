@@ -46,12 +46,16 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     }
 
     tt::service::loader::stopApp();
+#ifdef ESP_PLATFORM
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_PANIC) {
         tt::service::loader::startApp("CrashDiagnostics");
     } else {
         tt::service::loader::startApp("Desktop");
     }
+#else
+    tt::service::loader::startApp("Desktop");
+#endif
 
     return 0;
 }

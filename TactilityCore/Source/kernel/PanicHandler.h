@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #pragma once
 
 #include <cstdio>
@@ -16,3 +18,5 @@ struct CrashData {
 };
 
 const CrashData* getRtcCrashData();
+
+#endif

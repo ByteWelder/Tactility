@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #include "PanicHandler.h"
 
 #include <esp_rom_sys.h>
@@ -57,3 +59,5 @@ void __wrap_esp_panic_handler(void* info) {
 }
 
 const CrashData* getRtcCrashData() { return &crashData; }
+
+#endif
