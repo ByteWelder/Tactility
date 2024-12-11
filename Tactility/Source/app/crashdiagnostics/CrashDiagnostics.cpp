@@ -50,8 +50,13 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     }
 
     std::stringstream stream;
-    stream << "https://crash.bytewelder.com?a=1&s=";
-    // Skip
+
+    stream << "https://oops.bytewelder.com?";
+    stream << "i=1"; // Application id
+    // stream << "&v=snapshot"; // Version
+    stream << "&a=" << CONFIG_IDF_TARGET; // Architecture
+    stream << "&s="; // Stacktrace
+
     for (int i = 0; i < crash_data->callstackLength; ++i) {
         uint32_t pc = stack_buffer[(i * 2)];
         uint32_t sp = stack_buffer[(i * 2) + 1];
