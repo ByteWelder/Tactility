@@ -78,12 +78,10 @@ bool getQrVersionForLength(size_t inLength, int& outVersion) {
     return true;
 }
 
+
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     auto* display = lv_obj_get_display(parent);
     int32_t parent_height = lv_display_get_vertical_resolution(display) - STATUSBAR_HEIGHT;
-
-    int32_t button_height = 40;
-    int32_t button_margin = 16;
 
     lv_obj_add_event_cb(parent, onContinuePressed, LV_EVENT_CLICKED, nullptr);
     auto* top_label = lv_label_create(parent);
@@ -123,11 +121,26 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
 
     TT_LOG_I(TAG, "QR size: %d", qrcode.size);
 
-    int pixel_size = 2;
-
+    // Calculate QR dot size
+    int32_t top_label_height = lv_obj_get_height(top_label) + 2;
+    int32_t bottom_label_height = lv_obj_get_height(bottom_label) + 2;
     TT_LOG_I(TAG, "Create canvas");
+    int32_t available_height = parent_height - top_label_height - bottom_label_height;
+    int32_t available_width = lv_display_get_horizontal_resolution(display);
+    int32_t smallest_size = TT_MIN(available_height, available_width);
+    int32_t pixel_size;
+    if (qrcode.size * 2 <= smallest_size) {
+        pixel_size = 2;
+    } else if (qrcode.size <= smallest_size) {
+        pixel_size = 1;
+    } else {
+        TT_LOG_E(TAG, "QR code won't fit screen");
+        service::loader::stopApp();
+        return;
+    }
+
     auto* canvas = lv_canvas_create(parent);
-    lv_obj_set_size(canvas, LV_PCT(100), parent_height - button_height - button_margin);
+    lv_obj_set_size(canvas, pixel_size * qrcode.size, pixel_size * qrcode.size);
     lv_obj_align(canvas, LV_ALIGN_CENTER, 0, 0);
     lv_canvas_fill_bg(canvas, lv_color_black(), LV_OPA_COVER);
     lv_obj_set_content_height(canvas, qrcode.size * pixel_size);
