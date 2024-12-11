@@ -13,7 +13,7 @@
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Check service/app id on registration to see if it is a duplicate id
-- Fix screenshot app on ESP32: it currently blocks when allocating memory
+- Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - Localisation of texts (load in boot app from sd?)
 - Portrait support for GPIO app
 - Explore LVGL9's FreeRTOS functionality

@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
+    file(GLOB_RECURSE SOURCE_FILES Source/*.c*) # TODO: Fix
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
