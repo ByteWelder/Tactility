@@ -87,7 +87,7 @@ bool TdeckDisplay::start() {
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
+        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = TDECK_LCD_BITS_PER_PIXEL,
         .flags = {
             .reset_active_high = 0
@@ -148,7 +148,7 @@ bool TdeckDisplay::start() {
             .buff_dma = false,
             .buff_spiram = true,
             .sw_rotate = false,
-            .swap_bytes = true
+            .swap_bytes = false
         },
     };
 
