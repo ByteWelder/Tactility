@@ -102,7 +102,7 @@ static void updateViewsSafely(std::shared_ptr<Data> data) {
     }
 }
 
-void onThreadFinished(std::shared_ptr<Data> data) {
+void onScanTimerFinished(std::shared_ptr<Data> data) {
     if (data->mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         if (data->scanState == ScanStateScanning) {
             data->scanState = ScanStateStopped;
@@ -110,7 +110,7 @@ void onThreadFinished(std::shared_ptr<Data> data) {
         }
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "onThreadFinished lock");
+        TT_LOG_W(TAG, "onScanTimerFinished lock");
     }
 }
 
@@ -159,7 +159,16 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 
 static void onHide(AppContext& app) {
     auto data = std::static_pointer_cast<Data>(app.getData());
-    if (hasScanThread(data)) {
+
+    bool isRunning = false;
+    if (data->mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
+        isRunning = data->scanTimer->isRunning();
+        data->mutex.release();
+    } else {
+        return;
+    }
+
+    if (isRunning) {
         stopScanning(data);
     }
 }

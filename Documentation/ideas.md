@@ -1,5 +1,7 @@
 # TODOs
+- Release process should bundle all libs and TactilityC headers and generate an SDK project
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
+  We'll need to keep track of all manifest instances, so that the wrapper can look up the relevant manifest for the relevant callbacks.
 - T-Deck: Clear screen before turning on blacklight
 - Single wire audio
 - Audio recording app
@@ -8,11 +10,8 @@
 - Logging to disk/etc.
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
-- Loader: Use Timer instead of Thread, and move API to `tt::app::`
-- Gpio: Use Timer instead of Thread
-- I2cScannerThread: Use Timer instead of Thread
+- Loader: Use main dispatcher instead of Thread, and move API to `tt::app::`
 - Bug: I2C Scanner is on M5Stack devices is broken
-- WiFi AP Connect app: add "Forget" option.
 - Make firmwares available via release process
 - Make firmwares available via web serial website
 - Bug: When closing a top level app, there's often an error "can't stop root app"
