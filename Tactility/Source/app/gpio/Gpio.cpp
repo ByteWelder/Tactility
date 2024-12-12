@@ -6,6 +6,7 @@
 
 #include "GpioHal.h"
 #include "lvgl/LvglSync.h"
+#include "Timer.h"
 
 namespace tt::app::gpio {
 
@@ -15,9 +16,8 @@ private:
 
     lv_obj_t* lvPins[GPIO_NUM_MAX] = {0 };
     uint8_t pinStates[GPIO_NUM_MAX] = {0 };
-    Thread* thread = nullptr;
+    std::unique_ptr<Timer> timer;
     Mutex mutex;
-    bool interruptTask = true;
 
 public:
 
@@ -32,9 +32,8 @@ public:
     void onShow(AppContext& app, lv_obj_t* parent);
     void onHide(AppContext& app);
 
-    void startTask();
+    void startTask(std::shared_ptr<Gpio> ptr);
     void stopTask();
-    bool shouldInterruptTask() const { return interruptTask; };
 
     void updatePinStates();
     void updatePinWidgets();
@@ -86,50 +85,30 @@ static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent) {
 
 // region Task
 
-static int32_t taskMain(void* context) {
-    Gpio* gpio = (Gpio*)context;
-    bool interrupted = false;
+static void onTimer(std::shared_ptr<void> context) {
+    auto gpio = std::static_pointer_cast<Gpio>(context);
 
-    while (!interrupted) {
-        kernel::delayMillis(100);
-
-        gpio->updatePinStates();
-        gpio->updatePinWidgets();
-
-        gpio->lock();
-        interrupted = gpio->shouldInterruptTask();
-        gpio->unlock();
-    }
-
-    return 0;
+    gpio->updatePinStates();
+    gpio->updatePinWidgets();
 }
 
-void Gpio::startTask() {
+void Gpio::startTask(std::shared_ptr<Gpio> ptr) {
     lock();
-    tt_assert(thread == nullptr);
-    thread = new Thread(
-        "gpio",
-        4096,
-        &taskMain,
-        this
+    tt_assert(timer == nullptr);
+    timer = std::make_unique<Timer>(
+        Timer::TypePeriodic,
+        &onTimer,
+        ptr
     );
-    interruptTask = false;
-    thread->start();
+    timer->start(100 / portTICK_PERIOD_MS);
     unlock();
 }
 
 void Gpio::stopTask() {
-    tt_assert(thread);
-    lock();
-    interruptTask = true;
-    unlock();
+    tt_assert(timer);
 
-    thread->join();
-
-    lock();
-    delete thread;
-    thread = nullptr;
-    unlock();
+    timer->stop();
+    timer = nullptr;
 }
 
 // endregion Task
@@ -188,14 +167,13 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
     }
     gpio->unlock();
 
-    gpio->startTask();
+    gpio->startTask(gpio);
 }
 
 void Gpio::onHide(AppContext& app) {
     auto gpio = std::static_pointer_cast<Gpio>(app.getData());
     gpio->stopTask();
 }
-
 
 // region App lifecycle
 
