@@ -17,7 +17,9 @@ static const Configuration* config_instance = nullptr;
 namespace service {
     namespace gui { extern const ServiceManifest manifest; }
     namespace loader { extern const ServiceManifest manifest; }
+#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
     namespace screenshot { extern const ServiceManifest manifest; }
+#endif
     namespace statusbar { extern const ServiceManifest manifest; }
 }
 
@@ -54,13 +56,15 @@ namespace app {
     namespace wifiapsettings { extern const AppManifest manifest; }
     namespace wificonnect { extern const AppManifest manifest; }
     namespace wifimanage { extern const AppManifest manifest; }
-
+#ifdef ESP_PLATFORM
     extern const AppManifest elfWrapperManifest;
+    namespace crashdiagnostics { extern const AppManifest manifest; }
+#else
+    namespace app::screenshot { extern const AppManifest manifest; }
+#endif
 }
 
-
 #ifndef ESP_PLATFORM
-extern const app::AppManifest screenshot_app;
 #endif
 
 static const std::vector<const app::AppManifest*> system_apps = {
@@ -81,10 +85,11 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::wifiapsettings::manifest,
     &app::wificonnect::manifest,
     &app::wifimanage::manifest,
-#ifndef ESP_PLATFORM
-    &app::screenshot::manifest, // Screenshots don't work yet on ESP32
-#else
+#ifdef ESP_PLATFORM
+    &app::crashdiagnostics::manifest,
     &app::elfWrapperManifest, // For hot-loading ELF apps
+#else
+    &app::screenshot::manifest, // Screenshots don't work yet on ESP32
 #endif
 };
 

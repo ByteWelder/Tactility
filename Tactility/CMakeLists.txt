@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES TactilityHeadless lvgl driver elf_loader lv_screenshot
+        REQUIRES TactilityHeadless lvgl driver elf_loader lv_screenshot QRCode
     )
 
     add_definitions(-DESP_PLATFORM)

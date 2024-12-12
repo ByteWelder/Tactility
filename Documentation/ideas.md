@@ -1,6 +1,12 @@
 # TODOs
-- Crash logs stored on sdcard or elsewhere: perhaps show crash screen after recovering from crash (with QR code? https://github.com/ricmoo/QRCode)
-- Logging
+- Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
+- T-Deck: Clear screen before turning on blacklight
+- Single wire audio
+- Audio recording app
+- Files app: file operations: rename, delete, copy, paste (long press?), create folder
+- T-Deck: Use knob for UI selection
+- Logging to disk/etc.
+- Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
 - Loader: Use Timer instead of Thread, and move API to `tt::app::`
 - Gpio: Use Timer instead of Thread
@@ -14,7 +20,7 @@
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Check service/app id on registration to see if it is a duplicate id
-- Fix screenshot app on ESP32: it currently blocks when allocating memory
+- Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - Localisation of texts (load in boot app from sd?)
 - Portrait support for GPIO app
 - Explore LVGL9's FreeRTOS functionality
@@ -27,6 +33,7 @@
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - hal::Configuration: Replace CreateX fields with plain instances
 - T-Deck Power: capacity estimation uses linear voltage curve, but it should use some sort of battery discharge curve.
+- Consider scanning SD card for external apps and auto-register them (in a temporary register?)
 
 # Core Ideas
 - Support for displays with different DPI. Consider the layer-based system like on Android.
@@ -44,3 +51,4 @@
 - IR transceiver app
 - GPS app
 - Investigate CSI https://stevenmhernandez.github.io/ESP32-CSI-Tool/
+- Compile unix tools to ELF apps?

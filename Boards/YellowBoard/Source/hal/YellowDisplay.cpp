@@ -72,8 +72,8 @@ bool YellowDisplay::start() {
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
-        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = TWODOTFOUR_LCD_BITS_PER_PIXEL,
         .flags = {
             .reset_active_high = false
@@ -123,7 +123,7 @@ bool YellowDisplay::start() {
             .buff_dma = true,
             .buff_spiram = false,
             .sw_rotate = false,
-            .swap_bytes = true
+            .swap_bytes = false
         }
     };
 

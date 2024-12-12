@@ -6,13 +6,9 @@
 #define TAG "power"
 
 /**
- * The ratio of the voltage divider is supposedly 2.0, but when we set that, the ADC reports a bit over 4.45V
- * when charging the device.
- * There was also supposedly a +0.11 sag compensation related to "display under-voltage" according to Meshtastic firmware.
- * Either Meshtastic implemented it incorrectly OR there is simply a 5-10% deviation in accuracy.
- * The latter is feasible as the selected resistors for the voltage divider might not have been matched appropriately.
+ * 2.0 ratio, but +.11 added as display voltage sag compensation.
  */
-#define ADC_MULTIPLIER 1.89f
+#define ADC_MULTIPLIER 2.11
 
 #define ADC_REF_VOLTAGE 3.3f
 #define BATTERY_VOLTAGE_MIN 3.2f
