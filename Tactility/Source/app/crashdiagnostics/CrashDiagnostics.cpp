@@ -1,12 +1,12 @@
 #ifdef ESP_PLATFORM
 
-#include <sstream>
-#include <esp_cpu_utils.h>
+#include <esp_private/panic_internal.h>
 #include "lvgl.h"
 #include "lvgl/Statusbar.h"
-#include "kernel/PanicHandler.h"
 #include "service/loader/Loader.h"
 #include "qrcode.h"
+#include "QrHelpers.h"
+#include "QrUrl.h"
 
 #define TAG "crash_diagnostics"
 
@@ -16,68 +16,6 @@ void onContinuePressed(TT_UNUSED lv_event_t* event) {
     tt::service::loader::stopApp();
     tt::service::loader::startApp("Desktop");
 }
-
-static std::string getUrlFromCrashData() {
-    auto* crash_data = getRtcCrashData();
-    auto* stack_buffer = (uint32_t*)malloc(crash_data->callstackLength * 2 * sizeof(uint32_t));
-    for (int i = 0; i < crash_data->callstackLength; ++i) {
-        const CallstackFrame&frame = crash_data->callstack[i];
-        uint32_t pc = esp_cpu_process_stack_pc(frame.pc);
-        uint32_t sp = frame.sp;
-        stack_buffer[i * 2] = pc;
-        stack_buffer[(i * 2) + 1] = sp;
-    }
-
-    std::stringstream stream;
-
-    stream << "https://oops.bytewelder.com?";
-    stream << "i=1"; // Application id
-    // stream << "&v=snapshot"; // Version
-    stream << "&a=" << CONFIG_IDF_TARGET; // Architecture
-    stream << "&s="; // Stacktrace
-
-    for (int i = 0; i < crash_data->callstackLength; ++i) {
-        uint32_t pc = stack_buffer[(i * 2)];
-        uint32_t sp = stack_buffer[(i * 2) + 1];
-        stream << std::hex << pc << std::hex << sp;
-        TT_LOG_D(TAG, "%#08x:%#08x", (unsigned int)pc, (unsigned int)sp);
-    }
-
-    free(stack_buffer);
-
-    return stream.str();
-}
-
-bool getQrVersionForLength(size_t inLength, int& outVersion) {
-    // See http://blog.qr4.nl/page/QR-Code-Data-Capacity.aspx
-    int qr_version;
-    if (inLength <= 134) {
-        outVersion = 6;
-    } else if (inLength <= 192) {
-        outVersion = 8;
-    } else if (inLength <= 271) {
-        outVersion = 10;
-    } else if (inLength <= 367) {
-        outVersion = 12;
-    } else if (inLength <= 458) {
-        outVersion = 14;
-    } else if (inLength <= 586) {
-        outVersion = 16;
-    } else if (inLength <= 718) {
-        outVersion = 18;
-    } else if (inLength <= 858) {
-        outVersion = 20;
-    } else if (inLength <= 1003) {
-        outVersion = 22;
-    } else {
-        // QR codes can be bigger, but they won't fit the screen
-        TT_LOG_E(TAG, "Data too long to generate QR: %d", inLength);
-        return false;
-    }
-
-    return true;
-}
-
 
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     auto* display = lv_obj_get_display(parent);
@@ -97,7 +35,7 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     size_t url_length = url.length();
 
     int qr_version;
-    if (!getQrVersionForLength(url_length, qr_version)) {
+    if (!getQrVersionForBinaryDataLength(url_length, qr_version)) {
         TT_LOG_E(TAG, "QR is too large");
         service::loader::stopApp();
         return;
