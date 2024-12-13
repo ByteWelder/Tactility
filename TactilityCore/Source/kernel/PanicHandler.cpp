@@ -27,10 +27,11 @@ void __wrap_esp_panic_handler(void* info) {
 
     esp_backtrace_get_start(&frame.pc, &frame.sp, &frame.next_pc);
     crashData.callstack[0].pc = frame.pc;
+#if CRASH_DATA_INCLUDES_SP
     crashData.callstack[0].sp = frame.sp;
+#endif
     crashData.callstackLength++;
 
-    uint32_t max_framecount = (1024 - 1) / sizeof(esp_backtrace_frame_t);
     crashData.callstackCorrupted = !(esp_stack_ptr_is_sane(frame.sp) &&
         (esp_ptr_executable((void *)esp_cpu_process_stack_pc(frame.pc)) ||
         /* Ignore the first corrupted PC in case of InstrFetchProhibited */
@@ -43,7 +44,9 @@ void __wrap_esp_panic_handler(void* info) {
     ) {
         if (esp_backtrace_get_next_frame(&frame)) {
             crashData.callstack[crashData.callstackLength].pc = frame.pc;
+#if CRASH_DATA_INCLUDES_SP
             crashData.callstack[crashData.callstackLength].sp = frame.sp;
+#endif
             crashData.callstackLength++;
         } else {
             crashData.callstackCorrupted = true;

@@ -4,11 +4,14 @@
 
 #include <cstdio>
 
-#define CRASH_DATA_CALLSTACK_LIMIT 32 // bytes
+#define CRASH_DATA_CALLSTACK_LIMIT 64
+#define CRASH_DATA_INCLUDES_SP false
 
 struct CallstackFrame {
     uint32_t pc = 0;
+#if CRASH_DATA_INCLUDES_SP
     uint32_t sp = 0;
+#endif
 };
 
 struct CrashData {
