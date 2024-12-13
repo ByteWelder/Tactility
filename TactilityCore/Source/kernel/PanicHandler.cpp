@@ -32,7 +32,6 @@ void __wrap_esp_panic_handler(void* info) {
 #endif
     crashData.callstackLength++;
 
-    uint32_t max_framecount = (1024 - 1) / sizeof(esp_backtrace_frame_t);
     crashData.callstackCorrupted = !(esp_stack_ptr_is_sane(frame.sp) &&
         (esp_ptr_executable((void *)esp_cpu_process_stack_pc(frame.pc)) ||
         /* Ignore the first corrupted PC in case of InstrFetchProhibited */

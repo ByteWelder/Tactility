@@ -235,7 +235,6 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 static void onStart(AppContext& app) {
     auto* test = new uint32_t;
     delete test;
-    delete test;
     auto data = std::make_shared<Data>();
     // PC platform is bound to current work directory because of the LVGL file system mapping
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
