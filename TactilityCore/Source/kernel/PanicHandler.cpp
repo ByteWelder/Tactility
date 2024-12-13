@@ -27,7 +27,9 @@ void __wrap_esp_panic_handler(void* info) {
 
     esp_backtrace_get_start(&frame.pc, &frame.sp, &frame.next_pc);
     crashData.callstack[0].pc = frame.pc;
+#if CRASH_DATA_INCLUDES_SP
     crashData.callstack[0].sp = frame.sp;
+#endif
     crashData.callstackLength++;
 
     uint32_t max_framecount = (1024 - 1) / sizeof(esp_backtrace_frame_t);
@@ -43,7 +45,9 @@ void __wrap_esp_panic_handler(void* info) {
     ) {
         if (esp_backtrace_get_next_frame(&frame)) {
             crashData.callstack[crashData.callstackLength].pc = frame.pc;
+#if CRASH_DATA_INCLUDES_SP
             crashData.callstack[crashData.callstackLength].sp = frame.sp;
+#endif
             crashData.callstackLength++;
         } else {
             crashData.callstackCorrupted = true;
