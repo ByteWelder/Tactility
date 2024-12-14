@@ -118,10 +118,12 @@ static void update_sdcard_icon(std::shared_ptr<ServiceData> data) {
 // region power
 
 static _Nullable const char* power_get_status_icon() {
-    const std::shared_ptr<hal::Power> power = getConfiguration()->hardware->power();
-    if (power == nullptr) {
+    auto get_power = getConfiguration()->hardware->power;
+    if (get_power == nullptr) {
         return nullptr;
     }
+
+    auto power = get_power();
 
     hal::Power::MetricData charge_level;
     if (!power->getMetric(hal::Power::MetricType::CHARGE_LEVEL, charge_level)) {
