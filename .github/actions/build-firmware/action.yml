@@ -1,10 +1,7 @@
 name: Build
 
 inputs:
-  board-name:
-    description: The name of the board
-    required: true
-  sdkconfig:
+  board_id:
     description: The sdkconfig file to build
     required: true
   arch:
@@ -19,16 +16,25 @@ runs:
         submodules: recursive
     - name: 'Board select'
       shell: bash
-      run: cp ${{ inputs.sdkconfig }} sdkconfig
+      run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
     - name: 'Build'
       uses: espressif/esp-idf-ci-action@main
       with:
         esp_idf_version: v5.3.1
         target: ${{ inputs.arch }}
         path: './'
-    - name: 'Upload Artifact'
+    - name: 'Release'
+      shell: bash
+      run: Buildscripts/release.sh ${{ inputs.board_id }}
+    - name: 'Upload Artifact: Release'
       uses: actions/upload-artifact@v4
       with:
-        name: tactility-${{ inputs.board-name }}
-        path: build/Tactility.bin
+        name: tactility-${{ inputs.board_name }}
+        path: release/Tactility-${{ inputs.board_id }}
+        retention-days: 5
+    - name: 'Upload Artifact: Release symbols'
+      uses: actions/upload-artifact@v4
+      with:
+        name: tactility-${{ inputs.board_name }}
+        path: release/Tactility-${{ inputs.board_id }-symbols
         retention-days: 5
