@@ -1,17 +1,16 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(TACTILITY_SKIP_SPIFFS 1)
-add_definitions(-DESP_TARGET)
-add_compile_definitions(ESP_TARGET)
-
-add_definitions(-DLV_CONF_PATH=../../../Boards/Simulator/Source/lv_conf.h)
-
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-set(EXTRA_COMPONENT_DIRS "../../Libraries/elf_loader")
+if (DEFINED ENV{TACTILITY_SDK_PATH})
+    set(TACTILITY_SDK_PATH $ENV{TACTILITY_SDK_PATH})
+else()
+    set(TACTILITY_SDK_PATH "../../release/TactilitySDK")
+    message(WARNING "⚠️ TACTILITY_SDK_PATH environment variable is not set, defaulting to ${TACTILITY_PATH}")
+endif()
+
+include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
+set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH})
 
 project(HelloWorld)
-
-include(elf_loader)
-project_elf(HelloWorld)
-
+tactility_project(HelloWorld)
