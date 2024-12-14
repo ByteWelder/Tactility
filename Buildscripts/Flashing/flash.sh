@@ -32,7 +32,7 @@ require_bin jq "install jq from your package manager or install python and run '
 
 if [[ $1 -eq 0 ]]; then
     echo -e "\e[31m⚠️ Must Specify port as argument. For example:\n\tflash.sh /dev/ttyACM0\n\tflash.sh /dev/ttyUSB0\e[0m"
-    exit -1;
+    exit -1
 fi
 
 cd Binaries

@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#
+# Usage: release.sh [boardname]
+# Example: release.sh lilygo_tdeck
+# Description: Releases the current build labeled as a release for the specified board name.
+#
+
 echoNewPhase() {
     echo -e "⏳ \e[36m${1}\e[0m"
 }
@@ -9,16 +15,11 @@ fatalError() {
     exit 0
 }
 
-build() {
-    sdkconfig_file=$1
-    echoNewPhase "Building $sdkconfig_file"
-
-    rm -rf build
-
-    cp $sdkconfig_file sdkconfig
-    if not idf.py build; then
-        fatalError "Failed to build esp32s3 SDK"
-    fi
+releaseSymbols() {
+    target_path=$1
+    echoNewPhase "Making symbols release at '$target_path'"
+    mkdir $target_path
+    cp build/*.elf $target_path/
 }
 
 release() {
@@ -38,33 +39,17 @@ release() {
     cp Buildscripts/Flashing/* $target_path
 }
 
-releaseSymbols() {
-    target_path=$1
-    echoNewPhase "Making symbols release at '$target_path'"
-    mkdir $target_path
-    cp build/*.elf $target_path/
-}
-
-releaseAll() {
-    board=$1
-    board_clean=${board/_/-}
-    build sdkconfig.board.$board
-    release $release_path/Tactility-$board_clean
-    releaseSymbols $release_path/Tactility-$board_clean-symbols
-}
-
+board=$1
+board_clean=${board/_/-}
 release_path=release
 
-releaseAll lilygo_tdeck
+if [ $# -lt 1 ]; then
+    fatalError "Must pass board name as first argument. (e.g. lilygo_tdeck)"
+fi
 
-./Buildscripts/release-sdk.sh $release_path/Tactility-ESP32S3-SDK/TactilitySDK
+if [ ! -f $sdkconfig_file ]; then
+    fatalError "Board not found: ${sdkconfig_file}"
+fi
 
-releaseAll yellow_board
-
-./Buildscripts/release-sdk.sh $release_path/Tactility-ESP32-SDK/TactilitySDK
-
-releaseAll m5stack_core2
-
-releaseAll m5stack_cores3
-
-exit 1
+release "${release_path}/Tactility-${board_clean}"
+releaseSymbols "${release_path}/Tactility-${board_clean}-symbols"

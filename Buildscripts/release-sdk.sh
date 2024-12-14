@@ -1,11 +1,19 @@
 #!/usr/bin/bash
 
+#
+# Usage: release-sdk.sh [target_path]
+# Example: release.sh release/TactilitySDK
+# Description: Releases the current build files as an SDK in the specified folder.
+#
+
 target_path=$1
 
 mkdir -p $target_path
 
 build_dir=`pwd`
 library_path=$target_path/Libraries
+
+cp version.txt $target_path
 
 # Tactility
 tactility_library_path=$library_path/Tactility
