@@ -105,13 +105,19 @@ Copy the `sdkconfig.board.YOUR_BOARD` into `sdkconfig`. Use `sdkconfig.defaults`
 
 ### Building firmware
 
-You can run `idf.py flash monitor`, but there are some helpers available too:
+Building for ESP32(\*) or PC:
 
-`./build.sh` - build the ESP-IDF or the PC version of Tactility (*)
-`./build.sh -p /dev/ttyACM0` - optional: you can pass on extra parameters for esp-idf builds
-`./run.sh` - Does `flash` and `monitor` for ESP-IDF and simply builds and starts it for PC
+```bash
+idf.py build
+```
 
-The build scripts will detect if ESP-IDF is available. They will adapter if you ran `${IDF_PATH}/export.sh`.
+Flashing ESP32:
+
+```bash
+idf.py flash monitor
+```
+
+(\*) The build scripts will detect if ESP-IDF is available. They will adapt if you ran `${IDF_PATH}/export.sh`
 
 ### Development
 
