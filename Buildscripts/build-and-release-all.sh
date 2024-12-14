@@ -17,12 +17,12 @@ SECONDS=0
 build lilygo-tdeck
 release lilygo-tdeck
 
-releaseSdk release/Tactility-ESP32S3-SDK/TactilitySDK
+releaseSdk release/TactilitySDK-esp32s3
 
 build yellow-board
 release yellow-board
 
-releaseSdk release/Tactility-ESP32-SDK/TactilitySDK
+releaseSdk release/TactilitySDK-esp32
 
 build m5stack-core2
 release m5stack-core2
