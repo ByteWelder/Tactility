@@ -14,21 +14,21 @@ function releaseSdk() {
 
 SECONDS=0
 
-build lilygo_tdeck
-release lilygo_tdeck
+build lilygo-tdeck
+release lilygo-tdeck
 
-releaseSdk release/Tactility-ESP32S3-SDK/TactilitySDK
+releaseSdk release/TactilitySDK-esp32s3
 
-build yellow_board
-release yellow_board
+build yellow-board
+release yellow-board
 
-releaseSdk release/Tactility-ESP32-SDK/TactilitySDK
+releaseSdk release/TactilitySDK-esp32
 
-build m5stack_core2
-release m5stack_core2
+build m5stack-core2
+release m5stack-core2
 
-build m5stack_cores3
-release m5stack_cores3
+build m5stack-cores3
+release m5stack-cores3
 
 duration=$SECONDS
 

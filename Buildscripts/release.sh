@@ -2,7 +2,7 @@
 
 #
 # Usage: release.sh [boardname]
-# Example: release.sh lilygo_tdeck
+# Example: release.sh lilygo-tdeck
 # Description: Releases the current build labeled as a release for the specified board name.
 #
 
@@ -40,7 +40,6 @@ release() {
 }
 
 board=$1
-board_clean=${board/_/-}
 release_path=release
 
 if [ $# -lt 1 ]; then
@@ -51,5 +50,5 @@ if [ ! -f $sdkconfig_file ]; then
     fatalError "Board not found: ${sdkconfig_file}"
 fi
 
-release "${release_path}/Tactility-${board_clean}"
-releaseSymbols "${release_path}/Tactility-${board_clean}-symbols"
+release "${release_path}/Tactility-${board}"
+releaseSymbols "${release_path}/Tactility-${board}-symbols"

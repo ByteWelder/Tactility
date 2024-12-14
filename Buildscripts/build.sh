@@ -2,7 +2,7 @@
 
 #
 # Usage: build.sh [boardname]
-# Example: build.sh lilygo_tdeck
+# Example: build.sh lilygo-tdeck
 # Description: Makes a clean build for the specified board.
 #
 

@@ -1,0 +1,24 @@
+name: Build SDK
+on: [push]
+
+permissions: read-all
+
+jobs:
+  esp32:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-sdk
+        with:
+          board_id: yellow-board
+          arch: esp32
+  esp32s3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-sdk
+        with:
+          board_id: lilygo-tdeck
+          arch: esp32s3

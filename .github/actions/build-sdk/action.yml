@@ -25,16 +25,10 @@ runs:
         path: './'
     - name: 'Release'
       shell: bash
-      run: Buildscripts/release.sh ${{ inputs.board_id }}
-    - name: 'Upload Artifact: Release'
+      run: Buildscripts/release-sdk.sh  release/TactilitySDK
+    - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
-        name: tactility-${{ inputs.board_id }}
-        path: release/Tactility-${{ inputs.board_id }}
-        retention-days: 5
-    - name: 'Upload Artifact: Release symbols'
-      uses: actions/upload-artifact@v4
-      with:
-        name: tactility-${{ inputs.board_id }}-symbols
-        path: release/Tactility-${{ inputs.board_id }}-symbols
+        name: TactilitySDK-${{ inputs.arch }}
+        path: release/TactilitySDK
         retention-days: 5
