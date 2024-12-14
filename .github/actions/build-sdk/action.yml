@@ -1,0 +1,34 @@
+name: Build
+
+inputs:
+  board_id:
+    description: The sdkconfig file to build
+    required: true
+  arch:
+    description: The ESP32 SOC variant
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: 'Board select'
+      shell: bash
+      run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
+    - name: 'Build'
+      uses: espressif/esp-idf-ci-action@main
+      with:
+        esp_idf_version: v5.3.1
+        target: ${{ inputs.arch }}
+        path: './'
+    - name: 'Release'
+      shell: bash
+      run: Buildscripts/release-sdk.sh  release/TactilitySDK
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: TactilitySDK-${{ inputs.arch }}
+        path: release/TactilitySDK
+        retention-days: 5
