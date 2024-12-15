@@ -9,9 +9,7 @@ For other usages, [contact me](https://kenvanhoeylandt.net).
 
 # TactilityC & TactilitySDK
 
-TactilityC (source & binaries) and the TactilitySDK distribution files are licensed under an [MIT License](Documentation/license-tactilitysdk.md).
-
-All scripts and Tactility headers in the SDK are licensed under the MIT License.
+TactilityC (source & binaries) and the TactilitySDK distribution files are available under an [MIT License](Documentation/license-tactilitysdk.md).
 
 # Other licenses & copyrights
 
