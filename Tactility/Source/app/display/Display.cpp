@@ -94,7 +94,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_slider_set_range(brightness_slider, 0, 255);
     lv_obj_add_event_cb(brightness_slider, onSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
 
-    auto* lvgl_display = lv_display_get_default();
+    auto* lvgl_display = lv_obj_get_display(parent);
     tt_assert(lvgl_display != nullptr);
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
     tt_assert(hal_display != nullptr);

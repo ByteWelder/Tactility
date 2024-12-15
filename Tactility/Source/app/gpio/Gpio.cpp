@@ -127,9 +127,14 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_style_border_width(wrapper, 0, 0);
 
-    uint8_t column = 0;
-    uint8_t column_limit = 10;
+    auto* display = lv_obj_get_display(parent);
+    auto horizontal_px = lv_display_get_horizontal_resolution(display);
+    auto vertical_px = lv_display_get_vertical_resolution(display);
+    bool is_landscape_display = horizontal_px > vertical_px;
+
     int32_t x_spacing = 20;
+    uint8_t column = 0;
+    uint8_t column_limit = is_landscape_display ? 10 : 5;
 
     lv_obj_t* row_wrapper = createGpioRowWrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
