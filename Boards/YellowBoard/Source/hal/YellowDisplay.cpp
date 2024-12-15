@@ -111,6 +111,7 @@ bool YellowDisplay::start() {
         .panel_handle = panelHandle,
         .buffer_size = TWODOTFOUR_LCD_DRAW_BUFFER_SIZE,
         .double_buffer = false,
+        .trans_size = 0,
         .hres = TWODOTFOUR_LCD_HORIZONTAL_RESOLUTION,
         .vres = TWODOTFOUR_LCD_VERTICAL_RESOLUTION,
         .monochrome = false,
