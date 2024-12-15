@@ -12,13 +12,15 @@ if(NOT WIN32)
     string(ASCII 27 Esc)
     set(ColourReset "${Esc}[m")
     set(Cyan        "${Esc}[36m")
-    set(White       "${Esc}[37m")
+    set(Grey        "${Esc}[37m")
     set(LightPurple "${Esc}[1;35m")
+    set(White       "${Esc}[1;37m")
 else()
     set(ColourReset "")
     set(Cyan        "")
-    set(White       "")
+    set(Grey        "")
     set(LightPurple "")
+    set(White       "")
 endif()
 
 message("\n\n\
@@ -30,7 +32,7 @@ message("\n\n\
      ${Cyan}@@@@@@@@@@@@@@@@${LightPurple}@@@\n\
     ${Cyan}@@@@@@@@@@@@@@@@@${LightPurple}@@@\n\
               ${Cyan}@@@    ${LightPurple}@@@                 ${White}Tactility ${TACTILITY_VERSION}\n\
-              ${Cyan}@@@    ${LightPurple}@@@                 ${White}${TACTILITY_TARGET}\n\
+              ${Cyan}@@@    ${LightPurple}@@@                 ${Grey}${TACTILITY_TARGET}\n\
               ${Cyan}@@@${LightPurple}@@@@@@@@@@@@@@@@@\n\
               ${Cyan}@@@${LightPurple}@@@@@@@@@@@@@@@@\n\
               ${Cyan}@@@\n\
