@@ -6,7 +6,7 @@ if (DEFINED ENV{TACTILITY_SDK_PATH})
     set(TACTILITY_SDK_PATH $ENV{TACTILITY_SDK_PATH})
 else()
     set(TACTILITY_SDK_PATH "../../release/TactilitySDK")
-    message(WARNING "⚠️ TACTILITY_SDK_PATH environment variable is not set, defaulting to ${TACTILITY_PATH}")
+    message(WARNING "⚠️ TACTILITY_SDK_PATH environment variable is not set, defaulting to ${TACTILITY_SDK_PATH}")
 endif()
 
 include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")

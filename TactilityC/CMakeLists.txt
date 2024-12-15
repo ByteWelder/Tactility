@@ -9,7 +9,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
-        REQUIRES Tactility TactilityCore TactilityHeadless lvgl elf_loader
+        REQUIRES lvgl
+        PRIV_REQUIRES Tactility TactilityCore TactilityHeadless elf_loader
     )
 
     add_definitions(-DESP_PLATFORM)
@@ -38,7 +39,7 @@ else()
         PRIVATE Tactility
         PRIVATE TactilityCore
         PRIVATE TactilityHeadless
-        PRIVATE lvgl
+        PUBLIC lvgl
     )
 endif()
 
