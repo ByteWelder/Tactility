@@ -6,35 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
-get_filename_component(
-    VERSION_TEXT_FILE ../version.txt ABSOLUTE
-)
-
-file(READ ${VERSION_TEXT_FILE} TACTILITY_VERSION)
-
-if (DEFINED ENV{ESP_IDF_VERSION})
-    set(TACTILITY_TARGET "   @ ESP-IDF")
-else()
-    set(TACTILITY_TARGET "  @ Simulator")
-endif()
-
-message("\n\n\
-                      @@\n\
-                     @@@\n\
-                     @@@\n\
-                     @@@\n\
-                     @@@\n\
-     @@@@@@@@@@@@@@@@@@@\n\
-    @@@@@@@@@@@@@@@@@@@@\n\
-              @@@    @@@                 Tactility ${TACTILITY_VERSION}\n\
-              @@@    @@@                 ${TACTILITY_TARGET}\n\
-              @@@@@@@@@@@@@@@@@@@@\n\
-              @@@@@@@@@@@@@@@@@@@\n\
-              @@@\n\
-              @@@\n\
-              @@@\n\
-              @@@\n\
-              @@\n\n")
+include("Buildscripts/logo.cmake")
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
