@@ -9,9 +9,9 @@
    id="svg1"
    inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
    sodipodi:docname="Tactility.svg"
-   inkscape:export-filename="Tactility.png"
-   inkscape:export-xdpi="96"
-   inkscape:export-ydpi="96"
+   inkscape:export-filename="../assets/boot_logo.png"
+   inkscape:export-xdpi="22.013334"
+   inkscape:export-ydpi="22.013334"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns="http://www.w3.org/2000/svg"
@@ -27,14 +27,14 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="1"
-     inkscape:cx="410.5"
-     inkscape:cy="336.5"
-     inkscape:window-width="2115"
-     inkscape:window-height="1295"
-     inkscape:window-x="26"
-     inkscape:window-y="23"
-     inkscape:window-maximized="0"
-     inkscape:current-layer="svg1"
+     inkscape:cx="411"
+     inkscape:cy="336"
+     inkscape:window-width="1503"
+     inkscape:window-height="930"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g29"
      showgrid="false" />
   <defs
      id="defs1">
@@ -221,53 +221,55 @@
        inkscape:label="Glyph">
       <g
          id="g28"
-         inkscape:label="Upright T">
-        <path
-           style="fill:#ffffff;stroke-width:0.289836;paint-order:stroke fill markers"
-           id="rect26"
-           width="60"
-           height="10"
-           x="10"
-           y="150"
-           sodipodi:type="rect"
-           inkscape:path-effect="#path-effect1"
-           d="M 20.022406,150 H 70 v 10 H 10 a 10.011209,10.011209 135.06412 0 1 10.022406,-10 z" />
-        <path
-           style="fill:#ffffff;stroke-width:0.264583;paint-order:stroke fill markers"
-           id="rect28"
-           width="10"
-           height="60"
-           x="40"
-           y="150"
-           sodipodi:type="rect"
-           inkscape:path-effect="#path-effect4"
-           d="m 40,150 h 10 v 60 h -0.01471 A 9.9852864,9.9852864 45 0 1 40,200.01471 Z" />
-      </g>
+         inkscape:label="Upright T"
+         style="fill:#7376ff;fill-opacity:1" />
       <g
          id="g28-0"
          transform="rotate(180,55,165)"
-         inkscape:label="Upside-down T">
-        <path
-           style="fill:#ffffff;stroke-width:0.289836;paint-order:stroke fill markers"
-           id="rect26-4"
-           width="60"
-           height="10"
-           x="10"
-           y="150"
-           sodipodi:type="rect"
-           inkscape:path-effect="#path-effect3"
-           d="M 19.96875,150 H 70 v 10 H 10 v -0.0312 A 9.96875,9.96875 135 0 1 19.96875,150 Z" />
-        <path
-           style="fill:#ffffff;stroke-width:0.264583;paint-order:stroke fill markers"
-           id="rect28-8"
-           width="10"
-           height="60"
-           x="40"
-           y="150"
-           sodipodi:type="rect"
-           inkscape:path-effect="#path-effect2"
-           d="m 40,150 h 10 v 60 A 10.011209,10.011209 45.064117 0 1 40,199.97759 Z" />
-      </g>
+         inkscape:label="Upside-down T"
+         style="fill:#f876e9;fill-opacity:1" />
+      <path
+         style="fill:#00bbff;fill-opacity:1;stroke-width:0.289836;paint-order:stroke fill markers"
+         id="rect26"
+         width="60"
+         height="10"
+         x="10"
+         y="150"
+         sodipodi:type="rect"
+         inkscape:path-effect="#path-effect1"
+         d="M 20.022406,150 H 70 v 10 H 10 a 10.011209,10.011209 135.06412 0 1 10.022406,-10 z" />
+      <path
+         style="fill:#ee81c3;fill-opacity:1;stroke-width:0.289836;paint-order:stroke fill markers"
+         id="rect26-4"
+         width="60"
+         height="10"
+         x="10"
+         y="150"
+         sodipodi:type="rect"
+         inkscape:path-effect="#path-effect3"
+         d="M 19.96875,150 H 70 v 10 H 10 v -0.0312 A 9.96875,9.96875 135 0 1 19.96875,150 Z"
+         transform="rotate(180,55,165)" />
+      <path
+         style="fill:#00bbff;fill-opacity:1;stroke-width:0.264583;paint-order:stroke fill markers"
+         id="rect28"
+         width="10"
+         height="60"
+         x="40"
+         y="150"
+         sodipodi:type="rect"
+         inkscape:path-effect="#path-effect4"
+         d="m 40,150 h 10 v 60 h -0.01471 A 9.9852864,9.9852864 45 0 1 40,200.01471 Z" />
+      <path
+         style="fill:#ee81c3;fill-opacity:1;stroke-width:0.264583;paint-order:stroke fill markers"
+         id="rect28-8"
+         width="10"
+         height="60"
+         x="40"
+         y="150"
+         sodipodi:type="rect"
+         inkscape:path-effect="#path-effect2"
+         d="m 40,150 h 10 v 60 A 10.011209,10.011209 45.064117 0 1 40,199.97759 Z"
+         transform="rotate(180,55,165)" />
     </g>
     <text
        xml:space="preserve"
