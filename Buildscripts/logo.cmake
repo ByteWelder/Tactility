@@ -39,4 +39,4 @@ message("\n\n\
               @@@\n\
               @@@\n\
               @@@\n\
-              @@\n\n")
+              @@\n\n${ColourReset}")
