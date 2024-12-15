@@ -16,14 +16,19 @@ void addApp(const AppManifest* manifest) {
     TT_LOG_I(TAG, "Registering manifest %s", manifest->id.c_str());
 
     hash_mutex.acquire(TtWaitForever);
-    app_manifest_map[manifest->id] = manifest;
+
+    if (app_manifest_map[manifest->id] == nullptr) {
+        app_manifest_map[manifest->id] = manifest;
+    } else {
+        TT_LOG_E(TAG, "App id in use: %s", manifest->id.c_str());
+    }
+
     hash_mutex.release();
 }
 
 _Nullable const AppManifest * findAppById(const std::string& id) {
     hash_mutex.acquire(TtWaitForever);
-    auto iterator = app_manifest_map.find(id);
-    _Nullable const AppManifest* result = iterator != app_manifest_map.end() ? iterator->second : nullptr;
+    _Nullable const AppManifest* result = app_manifest_map[id.c_str()];
     hash_mutex.release();
     return result;
 }

@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
+include("Buildscripts/logo.cmake")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
