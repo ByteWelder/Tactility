@@ -1,16 +1,15 @@
 # Tactility
 
-The Tactility project as a whole is licensed under the [GNU General Public License v3](Documentation/license-tactility.md).
+The Tactility project is available under the [GNU General Public License v3](Documentation/license-tactility.md).
 Distributions and forks must adhere to the license terms.
 
-# TactilitySDK
+The Tactility logo copyrights are owned by Ken Van Hoeylandt.
+Firmwares built from [the original repository](https://github.com/ByteWelder/Tactility) can be redistributed with the Tactility logo.
+For other usages, [contact me](https://kenvanhoeylandt.net).
 
-The TactilitySDK distribution files are licensed under an [MIT License](Documentation/license-tactilitysdk.md).
+# TactilityC & TactilitySDK
 
-The Tactility binaries themselves are bound to the GPL v3 license.
-Third party application binaries that compile with the SDK do not include the SDK binaries itself, so they are not bound to this GPL license.
-
-All scripts and Tactility headers in the SDK are licensed under the MIT License.
+TactilityC (source & binaries) and the TactilitySDK distribution files are available under an [MIT License](Documentation/license-tactilitysdk.md).
 
 # Other licenses & copyrights
 
@@ -18,5 +17,5 @@ See [COPYRIGHT.md](COPYRIGHT.md).
 
 # FAQ
 
-- Q: Can I build closed source and/or for-profit applications?
+- Q: Can I build closed source applications?
 - A: Yes, but only if you build them as external apps with the TactilitySDK. Internal apps are part of the OS and currently remain licensed under GPL v3.
