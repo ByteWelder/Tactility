@@ -24,7 +24,11 @@ void addService(const ServiceManifest* manifest) {
     TT_LOG_I(TAG, "Adding %s", manifest->id.c_str());
 
     manifest_mutex.acquire(TtWaitForever);
-    service_manifest_map[manifest->id] = manifest;
+    if (service_manifest_map[manifest->id] == nullptr) {
+        service_manifest_map[manifest->id] = manifest;
+    } else {
+        TT_LOG_E(TAG, "Service id in use: %s", manifest->id.c_str());
+    }
     manifest_mutex.release();
 }
 

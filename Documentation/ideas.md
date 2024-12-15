@@ -3,7 +3,6 @@
 - Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - In LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
-- Must check service/app id on registration to see if it is a duplicate id
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
 
 # TODOs
