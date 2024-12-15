@@ -30,17 +30,17 @@ static void onSliderEvent(lv_event_t* event) {
     }
 }
 
-#define ORIENTATION_LANDSCAPE 0
-#define ORIENTATION_LANDSCAPE_FLIPPED 1
-#define ORIENTATION_PORTRAIT_LEFT 2
-#define ORIENTATION_PORTRAIT_RIGHT 3
+#define ROTATION_DEFAULT 0
+#define ROTATION_180 1
+#define ROTATION_270 2
+#define ROTATION_90 3
 
-static lv_display_rotation_t orientationSettingToDisplayOrientation(uint32_t setting) {
-    if (setting == ORIENTATION_LANDSCAPE_FLIPPED) {
+static lv_display_rotation_t orientationSettingToDisplayRotation(uint32_t setting) {
+    if (setting == ROTATION_180) {
         return LV_DISPLAY_ROTATION_180;
-    } else if (setting == ORIENTATION_PORTRAIT_LEFT) {
+    } else if (setting == ROTATION_270) {
         return LV_DISPLAY_ROTATION_270;
-    } else if (setting == ORIENTATION_PORTRAIT_RIGHT) {
+    } else if (setting == ROTATION_90) {
         return LV_DISPLAY_ROTATION_90;
     } else {
         return LV_DISPLAY_ROTATION_0;
@@ -49,13 +49,13 @@ static lv_display_rotation_t orientationSettingToDisplayOrientation(uint32_t set
 
 static uint32_t dipslayOrientationToOrientationSetting(lv_display_rotation_t orientation) {
     if (orientation == LV_DISPLAY_ROTATION_90) {
-        return ORIENTATION_PORTRAIT_RIGHT;
+        return ROTATION_90;
     } else if (orientation == LV_DISPLAY_ROTATION_180) {
-        return ORIENTATION_LANDSCAPE_FLIPPED;
+        return ROTATION_180;
     } else if (orientation == LV_DISPLAY_ROTATION_270) {
-        return ORIENTATION_PORTRAIT_LEFT;
+        return ROTATION_270;
     } else {
-        return ORIENTATION_LANDSCAPE;
+        return ROTATION_DEFAULT;
     }
 }
 
@@ -63,7 +63,7 @@ static void onOrientationSet(lv_event_t* event) {
     auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
     uint32_t selected = lv_dropdown_get_selected(dropdown);
     TT_LOG_I(TAG, "Selected %ld", selected);
-    lv_display_rotation_t rotation = orientationSettingToDisplayOrientation(selected);
+    lv_display_rotation_t rotation = orientationSettingToDisplayRotation(selected);
     if (lv_display_get_rotation(lv_display_get_default()) != rotation) {
         lv_display_set_rotation(lv_display_get_default(), rotation);
         setRotation(rotation);
@@ -111,8 +111,17 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_label_set_text(orientation_label, "Orientation");
     lv_obj_align(orientation_label, LV_ALIGN_TOP_LEFT, 0, 40);
 
+    auto horizontal_px = lv_display_get_horizontal_resolution(lvgl_display);
+    auto vertical_px = lv_display_get_vertical_resolution(lvgl_display);
+    bool is_landscape_display = horizontal_px > vertical_px;
+
     lv_obj_t* orientation_dropdown = lv_dropdown_create(wrapper);
-    lv_dropdown_set_options(orientation_dropdown, "Landscape\nLandscape (flipped)\nPortrait Left\nPortrait Right");
+    if (is_landscape_display) {
+        lv_dropdown_set_options(orientation_dropdown, "Landscape\nLandscape (flipped)\nPortrait Left\nPortrait Right");
+    } else {
+        lv_dropdown_set_options(orientation_dropdown, "Portrait\nPortrait (flipped)\nLandscape Left\nLandscape Right");
+    }
+
     lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 32);
     lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, nullptr);
     uint32_t orientation_selected = dipslayOrientationToOrientationSetting(
