@@ -100,10 +100,6 @@ static void onNavigateUpPressed(TT_UNUSED lv_event_t* event) {
     updateViews(files_data);
 }
 
-static void onExitAppPressed(TT_UNUSED lv_event_t* event) {
-    service::loader::stopApp();
-}
-
 static void viewFile(const char* path, const char* filename) {
     size_t path_len = strlen(path);
     size_t filename_len = strlen(filename);
@@ -222,7 +218,6 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, "Files");
-    lvgl::toolbar_set_nav_action(toolbar, LV_SYMBOL_CLOSE, &onExitAppPressed, nullptr);
     lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressed, nullptr);
 
     data->list = lv_list_create(parent);

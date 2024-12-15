@@ -1,6 +1,5 @@
 # Bugs
 - I2C Scanner is on M5Stack devices is broken
-- When closing a top level app, there's often an error "can't stop root app"
 - Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - In LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
