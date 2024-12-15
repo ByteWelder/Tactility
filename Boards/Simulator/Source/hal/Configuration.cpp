@@ -1,3 +1,4 @@
+#include "Tactility.h"
 #include "hal/Configuration.h"
 #include "hal/SimulatorPower.h"
 #include "LvglTask.h"
@@ -6,6 +7,8 @@
 #include "SdlKeyboard.h"
 
 #define TAG "hardware"
+
+extern const tt::hal::sdcard::SdCard simulatorSdcard;
 
 static bool initBoot() {
     lv_init();
@@ -28,7 +31,7 @@ extern const tt::hal::Configuration hardware = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
-    .sdcard = nullptr,
+    .sdcard = &simulatorSdcard,
     .power = simulatorPower,
     .i2c = {
         tt::hal::i2c::Configuration {

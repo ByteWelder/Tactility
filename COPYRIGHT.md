@@ -1,10 +1,12 @@
-## Tactility
+# Tactility
 
 The Tactility logo copyrights are owned by Ken Van Hoeylandt.
 Firmwares built from [the original repository](https://github.com/ByteWelder/Tactility) can be redistributed with the Tactility logo.
 For other usages, [contact me](https://kenvanhoeylandt.net).
 
-The Tactility firmware and code are published under [GPL License Version 3](./LICENSE.md).
+The Tactility project is published under [GPL License Version 3](./LICENSE.md).
+
+The TactilitySDK project is published under an [MIT License](./LICENSE.md).
 
 # Dependencies 
 

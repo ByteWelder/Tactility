@@ -1,7 +1,7 @@
 #include "FilesData.h"
 #include "FileUtils.h"
 #include "StringUtils.h"
-#include "TactilityCore.h"
+#include "Tactility.h"
 
 namespace tt::app::files {
 
@@ -42,19 +42,24 @@ bool data_set_entries_for_path(std::shared_ptr<Data> data, const char* path) {
      * ESP32 does not have a root directory, so we have to create it manually.
      * We'll add the NVS Flash partitions and the binding for the sdcard.
      */
-    if (kernel::getPlatform() == kernel::PlatformEsp && strcmp(path, "/") == 0) {
+#if TT_SCREENSHOT_MODE
+    bool show_custom_root = true;
+#else
+    bool show_custom_root = (kernel::getPlatform() == kernel::PlatformEsp && strcmp(path, "/") == 0);
+#endif
+    if (show_custom_root) {
         int dir_entries_count = 3;
-        auto** dir_entries = static_cast<dirent**>(malloc(sizeof(struct dirent*) * 3));
+        auto** dir_entries = (dirent**)malloc(sizeof(struct dirent*) * 3);
 
-        dir_entries[0] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
+        dir_entries[0] = (dirent*)malloc(sizeof(struct dirent));
         dir_entries[0]->d_type = TT_DT_DIR;
         strcpy(dir_entries[0]->d_name, "assets");
 
-        dir_entries[1] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
+        dir_entries[1] = (dirent*)malloc(sizeof(struct dirent));
         dir_entries[1]->d_type = TT_DT_DIR;
         strcpy(dir_entries[1]->d_name, "config");
 
-        dir_entries[2] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
+        dir_entries[2] = (dirent*)malloc(sizeof(struct dirent));
         dir_entries[2]->d_type = TT_DT_DIR;
         strcpy(dir_entries[2]->d_name, "sdcard");
 
