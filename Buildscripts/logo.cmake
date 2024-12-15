@@ -23,12 +23,14 @@ else()
     set(White       "")
 endif()
 
+# Some terminals (e.g. GitHub Actions) reset colour for every in a multiline message(),
+# so we add the colour to each line instead of assuming it would automatically be re-used.
 message("\n\n\
                       ${LightPurple}@@\n\
-                     @@@\n\
-                     @@@\n\
-                     @@@\n\
-                     @@@\n\
+                     ${LightPurple}@@@\n\
+                     ${LightPurple}@@@\n\
+                     ${LightPurple}@@@\n\
+                     ${LightPurple}@@@\n\
      ${Cyan}@@@@@@@@@@@@@@@@${LightPurple}@@@\n\
     ${Cyan}@@@@@@@@@@@@@@@@@${LightPurple}@@@\n\
               ${Cyan}@@@    ${LightPurple}@@@                 ${White}Tactility ${TACTILITY_VERSION}\n\
@@ -36,7 +38,7 @@ message("\n\n\
               ${Cyan}@@@${LightPurple}@@@@@@@@@@@@@@@@@\n\
               ${Cyan}@@@${LightPurple}@@@@@@@@@@@@@@@@\n\
               ${Cyan}@@@\n\
-              @@@\n\
-              @@@\n\
-              @@@\n\
-              @@\n\n${ColourReset}")
+              ${Cyan}@@@\n\
+              ${Cyan}@@@\n\
+              ${Cyan}@@@\n\
+              ${Cyan}@@\n\n${ColourReset}")
