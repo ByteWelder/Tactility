@@ -1,4 +1,4 @@
-get_filename_component(VERSION_TEXT_FILE ../version.txt ABSOLUTE)
+get_filename_component(VERSION_TEXT_FILE version.txt ABSOLUTE)
 
 file(READ ${VERSION_TEXT_FILE} TACTILITY_VERSION)
 
