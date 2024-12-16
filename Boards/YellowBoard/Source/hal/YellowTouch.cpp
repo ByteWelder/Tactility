@@ -29,8 +29,8 @@ bool YellowTouch::start(lv_display_t* display) {
     esp_lcd_touch_config_t config = {
         .x_max = 240,
         .y_max = 320,
-        .rst_gpio_num = GPIO_NUM_25,
-        .int_gpio_num = GPIO_NUM_21,
+        .rst_gpio_num = GPIO_NUM_NC, //GPIO_NUM_25,
+        .int_gpio_num = GPIO_NUM_NC, //GPIO_NUM_21,
         .levels = {
             .reset = 0,
             .interrupt = 0,

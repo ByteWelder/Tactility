@@ -4,5 +4,5 @@ dependencies:
     version: "^1"
     override_path: "../../../../lcd_touch/esp_lcd_touch_tt21100/"
   esp_lvgl_port:
-    version: ">=1.2.0"
+    version: "*"
     override_path: "../../../"

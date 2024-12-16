@@ -12,7 +12,6 @@
 #define TDECK_TOUCH_I2C_BUS_HANDLE I2C_NUM_0
 #define TDECK_TOUCH_X_MAX 240
 #define TDECK_TOUCH_Y_MAX 320
-#define TDECK_TOUCH_PIN_INT GPIO_NUM_16
 
 bool TdeckTouch::start(lv_display_t* display) {
     const esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
@@ -41,7 +40,7 @@ bool TdeckTouch::start(lv_display_t* display) {
         .x_max = TDECK_TOUCH_X_MAX,
         .y_max = TDECK_TOUCH_Y_MAX,
         .rst_gpio_num = GPIO_NUM_NC,
-        .int_gpio_num = TDECK_TOUCH_PIN_INT,
+        .int_gpio_num = GPIO_NUM_NC, // There is no reset pin for touch on the T-Deck, leading to a bug in esp_lvgl_port firing multiple click events when tapping the screen
         .levels = {
             .reset = 0,
             .interrupt = 0,

@@ -9,6 +9,7 @@
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
 #include <TactilityCore.h>
+#include <cstring>
 
 namespace tt::app::wificonnect {
 

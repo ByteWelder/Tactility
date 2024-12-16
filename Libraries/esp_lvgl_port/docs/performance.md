@@ -1,6 +1,6 @@
 # LCD & LVGL Performance
 
-This document provides steps, how to set up your LCD and LVGL port for the best performance and comparison of different settings. All settings and measurements are valid for Espressif's chips.
+This document provides steps, how to set up your LCD and LVGL port for the best performance and comparison of different settings. All settings and measurements are valid for Espressif's chips. Examples in [ESP-BSP](https://github.com/espressif/esp-bsp) are ready to use with the best performance.
 
 ## Performance metrics
 
@@ -26,7 +26,7 @@ On the other hand, the frame buffer(s) will consume significant portion of your 
 
 Main takeaways from the graph are:
 
-* The size of **LVGL buffer** and **double buffering** feature has big impact on performance. 
+* The size of **LVGL buffer** and **double buffering** feature has big impact on performance.
 * Frame buffer size >25% of the screen does not bring relevant performance boost
 * Frame buffer size <10% will have severe negative effect on performance
 
@@ -67,7 +67,7 @@ The main LVGL task can be processed on the second core of the CPU. It can increa
 
 ### Using esp-idf `memcpy` and `memset` instead LVGL's configuration
 
-Native esp-idf implementation are a little (~1-3 FPS) faster.
+Native esp-idf implementation are a little (~1-3 FPS) faster (only for LVGL8).
 
 * `CONFIG_LV_MEMCPY_MEMSET_STD=y`
 
@@ -75,9 +75,44 @@ Native esp-idf implementation are a little (~1-3 FPS) faster.
 
 This setting can improve subjective performance during screen transitions (scrolling, etc.).
 
+LVGL8
 * `CONFIG_LV_DISP_DEF_REFR_PERIOD=10`
 
+LVGL9
+* `CONFIG_LV_DEF_REFR_PERIOD=10`
+
 ## Example FPS improvement vs graphical settings
+
+The LVGL9 benchmark demo uses a different algorithm for measuring FPS. In this case, we used the same algorithm for measurement in LVGL8 for comparison.
+
+### RGB LCD, PSRAM (octal) with GDMA - ESP32-S3-LCD-EV-BOARD
+
+<img src="https://github.com/espressif/esp-bsp/blob/master/docu/pics/esp32-s3-lcd-ev-board_800x480.png?raw=true" align="right" width="300px" />
+
+Default settings:
+* BSP example `display_lvgl_demos`
+* LCD: 4.3" 800x480
+* Interface: RGB
+* LVGL buffer size: 800 x 480
+* LVGL buffer mode: Direct (avoid-tearing)
+* LVGL double buffer: NO
+* Optimization: Debug
+* CPU frequency: 160 MHz
+* Flash frequency: 80 MHz
+* PSRAM frequency: 80 MHz
+* Flash mode: DIO
+* LVGL display refresh period: 30 ms
+
+| Average FPS (LVGL8) |  Average FPS (LVGL 9.2)  | Changed settings |
+| :---: | :---: | ---------------- |
+|  12   |   9   | Default          |
+|  13   |   9   | + Optimization: Performance (`CONFIG_COMPILER_OPTIMIZATION_PERF=y`) |
+|  14   |  11   | + CPU frequency: 240 MHz   (`CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y`) |
+|  14   |  11   | + Flash mode: QIO (`CONFIG_ESPTOOLPY_FLASHMODE_QIO=y`) |
+|  15   |  11   | + LVGL fast memory enabled (`CONFIG_LV_ATTRIBUTE_FAST_MEM_USE_IRAM=y`) |
+|  16   |  11   | + (`CONFIG_LV_DISP_DEF_REFR_PERIOD=10` / `CONFIG_LV_DEF_REFR_PERIOD=10`) |
+
+### Parallel 8080 LCD (only for LVGL8)
 
 <img src="https://github.com/espressif/esp-bsp/blob/master/docu/pics/7inch-Capacitive-Touch-LCD-C_l.jpg?raw=true" align="right" width="300px" />
 
@@ -94,7 +129,7 @@ Default settings:
 * Flash mode: DIO
 * LVGL display refresh period: 30 ms
 
-### Internal RAM with DMA
+#### Internal RAM with DMA
 
 | Average FPS | Weighted FPS | Changed settings |
 | :---: | :---: | ---------------- |
@@ -105,7 +140,7 @@ Default settings:
 |  28   |  **60**   | + LVGL fast memory enabled (`CONFIG_LV_ATTRIBUTE_FAST_MEM_USE_IRAM=y`) |
 |  41   |  55   | + (`CONFIG_LV_DISP_DEF_REFR_PERIOD=10`) |
 
-### PSRAM (QUAD) without DMA
+#### PSRAM (QUAD) without DMA
 
 Default changes:
 * LCD IO clock: 2 MHz
@@ -124,36 +159,10 @@ Default changes:
 
 [^1]: This is not working in default and sometimes in fast changes on screen is not working properly.
 
-### RGB LCD (without `esp_lvgl_port`), PSRAM (octal) with GDMA - ESP32-S3-LCD-EV-BOARD
-
-<img src="https://github.com/espressif/esp-bsp/blob/master/docu/pics/esp32-s3-lcd-ev-board_800x480.png?raw=true" align="right" width="300px" />
-
-Default settings:
-* BSP example `display_lvgl_demos`
-* LCD: 4.3" 800x480
-* Interface: RGB
-* LVGL buffer size: 800 x 100
-* LVGL double buffer: NO
-* Optimization: Debug
-* CPU frequency: 160 MHz
-* Flash frequency: 80 MHz
-* PSRAM frequency: 80 MHz
-* Flash mode: DIO
-* LVGL display refresh period: 30 ms
-
-| Average FPS |  Weighted FPS  | Changed settings |
-| :---: | :---: | ---------------- |
-|  18   |  24   | Default          |
-|  18   |  26   | + Optimization: Performance (`CONFIG_COMPILER_OPTIMIZATION_PERF=y`) |
-|  21   |  32   | + CPU frequency: 240 MHz   (`CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y`) |
-|  21   |  32   | + Flash mode: QIO (`CONFIG_ESPTOOLPY_FLASHMODE_QIO=y`) |
-|  21   |  32   | + LVGL fast memory enabled (`CONFIG_LV_ATTRIBUTE_FAST_MEM_USE_IRAM=y`) |
-|  35   |  34   | + (`CONFIG_LV_DISP_DEF_REFR_PERIOD=10`) |
-
 ## Conclusion
 
 The graphical performance depends on a lot of things and settings, many of which affect the whole system (Compiler, Flash, CPU, PSRAM configuration...). The user should primarily focus on trade-off between frame-buffer(s) size and RAM consumption of the buffer, before optimizing the design further.
 
 Other configuration options not covered in this document are:
-* Hardware interfaces, color depth, screen definition (size), clocks, LCD controller and more. 
+* Hardware interfaces, color depth, screen definition (size), clocks, LCD controller and more.
 * Complexity of the graphical application (number of LVGL objects and their styles).

@@ -15,6 +15,7 @@
 #include <dirent.h>
 #include <unistd.h>
 #include <memory>
+#include <cstring>
 
 namespace tt::app::files {
 

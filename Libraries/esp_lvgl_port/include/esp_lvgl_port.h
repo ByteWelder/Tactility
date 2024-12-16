@@ -12,11 +12,11 @@
 #pragma once
 
 #include "esp_err.h"
-#include "esp_lvgl_port_button.h"
-#include "esp_lvgl_port_compatibility.h"
+#include "lvgl.h"
 #include "esp_lvgl_port_disp.h"
-#include "esp_lvgl_port_knob.h"
 #include "esp_lvgl_port_touch.h"
+#include "esp_lvgl_port_knob.h"
+#include "esp_lvgl_port_button.h"
 #include "esp_lvgl_port_usbhid.h"
 
 #if LVGL_VERSION_MAJOR == 8
@@ -26,6 +26,23 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief LVGL Port task event type
+ */
+typedef enum {
+    LVGL_PORT_EVENT_DISPLAY = 1,
+    LVGL_PORT_EVENT_TOUCH   = 2,
+    LVGL_PORT_EVENT_USER    = 99,
+} lvgl_port_event_type_t;
+
+/**
+ * @brief LVGL Port task events
+ */
+typedef struct {
+    lvgl_port_event_type_t type;
+    void *param;
+} lvgl_port_event_t;
 
 /**
  * @brief Init configuration structure
@@ -72,6 +89,7 @@ esp_err_t lvgl_port_init(const lvgl_port_cfg_t *cfg);
  *
  * @return
  *      - ESP_OK                    on success
+ *      - ESP_ERR_TIMEOUT           when stopping the LVGL task times out
  */
 esp_err_t lvgl_port_deinit(void);
 
@@ -101,7 +119,7 @@ void lvgl_port_unlock(void);
 void lvgl_port_flush_ready(lv_display_t *disp);
 
 /**
- * @brief Stop lvgl task
+ * @brief Stop lvgl timer
  *
  *
  * @return
@@ -111,7 +129,7 @@ void lvgl_port_flush_ready(lv_display_t *disp);
 esp_err_t lvgl_port_stop(void);
 
 /**
- * @brief Resume lvgl task
+ * @brief Resume lvgl timer
  *
  *
  * @return
@@ -119,6 +137,20 @@ esp_err_t lvgl_port_stop(void);
  *      - ESP_ERR_INVALID_STATE if the timer is not running
  */
 esp_err_t lvgl_port_resume(void);
+
+/**
+ * @brief Notify LVGL task, that display need reload
+ *
+ * @note It is called from LVGL events and touch interrupts
+ *
+ * @param event     event type
+ * @param param     user param
+ * @return
+ *      - ESP_OK on success
+ *      - ESP_ERR_NOT_SUPPORTED if it is not implemented
+ *      - ESP_ERR_INVALID_STATE if queue is not initialized (can be returned after LVGL deinit)
+ */
+esp_err_t lvgl_port_task_wake(lvgl_port_event_type_t event, void *param);
 
 #ifdef __cplusplus
 }

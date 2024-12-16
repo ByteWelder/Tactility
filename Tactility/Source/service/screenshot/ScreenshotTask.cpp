@@ -1,3 +1,4 @@
+#include <cstring>
 #include "ScreenshotTask.h"
 #include "lv_screenshot.h"
 
