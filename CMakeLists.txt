@@ -56,7 +56,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     get_filename_component(
         LVGL_CONFIG_FULL_PATH Libraries/lvgl_conf ABSOLUTE
     )
-    add_compile_definitions(LV_CONF_PATH=${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h)
+
+    add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h")
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
 
     file(READ version.txt TACTILITY_VERSION)
@@ -108,7 +109,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     if (NOT DEFINED ENV{SKIP_SDL})
         target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
     endif()
-    target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h")
+    target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=\"${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h\"")
 
     # SDL
     # TODO: This is a temporary skipping option for running unit tests

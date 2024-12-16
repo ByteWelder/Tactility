@@ -50,7 +50,7 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
 static void onButtonClicked(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED) {
-        size_t index = (size_t)(e->user_data);
+        auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
         TT_LOG_I(TAG, "Selected item at index %d", index);
         tt::app::AppContext* app = service::loader::getCurrentApp();
         auto bundle = std::make_shared<Bundle>();

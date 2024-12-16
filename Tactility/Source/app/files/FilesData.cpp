@@ -1,3 +1,4 @@
+#include <cstring>
 #include "FilesData.h"
 #include "FileUtils.h"
 #include "StringUtils.h"
