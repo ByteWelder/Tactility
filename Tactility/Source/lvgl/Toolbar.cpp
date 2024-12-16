@@ -1,10 +1,10 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 #include "Toolbar.h"
-#include "Tactility.h"
 
 #include "service/loader/Loader.h"
 #include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
+#include "Spinner.h"
 
 #define SPINNER_HEIGHT TOOLBAR_HEIGHT
 
@@ -137,11 +137,7 @@ lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
 
 lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
     auto* toolbar = (Toolbar*)obj;
-    lv_obj_t* widget = lv_spinner_create(toolbar->action_container);
-    lv_obj_set_size(widget, SPINNER_HEIGHT, SPINNER_HEIGHT);
-    lv_spinner_set_anim_params(widget, 1000, 60);
-    lv_obj_set_style_pad_all(widget, 4, 0);
-    return widget;
+    return tt_spinner_create(toolbar->action_container);
 }
 
 } // namespace

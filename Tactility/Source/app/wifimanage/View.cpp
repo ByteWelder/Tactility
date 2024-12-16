@@ -6,6 +6,7 @@
 #include "service/wifi/Wifi.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include "lvgl/Spinner.h"
 
 #include <string>
 #include <set>
@@ -96,10 +97,7 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     if (isConnecting) {
-        lv_obj_t* connecting_spinner = lv_spinner_create(wrapper);
-        lv_obj_set_size(connecting_spinner, 40, 40);
-        lv_spinner_set_anim_params(connecting_spinner, 1000, 60);
-        lv_obj_set_style_pad_all(connecting_spinner, 4, 0);
+        lv_obj_t* connecting_spinner = tt_spinner_create(wrapper);
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
         const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
