@@ -1,7 +1,6 @@
 # Bugs
 - I2C Scanner is on M5Stack devices is broken
 - Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
-- In LVGL9 with M5Core2, crash when bottom item is clicked without scrolling first
 - Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
 - elf_loader, lvgl and TactilityC in TactilitySDK should include their license files
@@ -29,7 +28,6 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Localisation of texts (load in boot app from sd?)
 - Explore LVGL9's FreeRTOS functionality
-- Explore LVGL9's ILI93414 driver for 2.4" Yellow Board
 - Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
