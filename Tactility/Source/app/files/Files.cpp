@@ -219,7 +219,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, "Files");
-    lvgl::toolbar_add_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressed, nullptr);
+    lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressed, nullptr);
 
     data->list = lv_list_create(parent);
     lv_obj_set_width(data->list, LV_PCT(100));

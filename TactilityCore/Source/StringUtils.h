@@ -24,6 +24,12 @@ int findLastIndex(const char* text, size_t from_index, char find);
 bool getPathParent(const char* path, char* output);
 
 /**
+ * Given a filesystem path as input, get the last segment of a path
+ * @param[in] path input path
+ */
+std::string getLastPathSegment(const std::string& path);
+
+/**
  * Splits the provided input into separate pieces with delimiter as separator text.
  * When the input string is empty, the output list will be empty too.
  *

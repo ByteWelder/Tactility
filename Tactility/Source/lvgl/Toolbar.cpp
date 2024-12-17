@@ -16,7 +16,6 @@ typedef struct {
     lv_obj_t* close_button;
     lv_obj_t* close_button_image;
     lv_obj_t* action_container;
-    ToolbarAction* action_array[TOOLBAR_ACTION_LIMIT];
     uint8_t  action_count;
 } Toolbar;
 
@@ -60,30 +59,23 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
-    int32_t title_offset_x = (TOOLBAR_HEIGHT - TOOLBAR_TITLE_FONT_HEIGHT - 8) / 4 * 3;
-    int32_t title_offset_y = (TOOLBAR_HEIGHT - TOOLBAR_TITLE_FONT_HEIGHT - 8) / 2;
-
     toolbar->close_button = lv_button_create(obj);
     lv_obj_set_size(toolbar->close_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
     obj_set_style_no_padding(toolbar->close_button);
     toolbar->close_button_image = lv_image_create(toolbar->close_button);
     lv_obj_align(toolbar->close_button_image, LV_ALIGN_CENTER, 0, 0);
 
-    // Need spacer to avoid button press glitch animation
-    spacer_create(obj, title_offset_x, 1);
-
-    lv_obj_t* label_container = lv_obj_create(obj);
-    obj_set_style_no_padding(label_container);
-    lv_obj_set_style_border_width(label_container, 0, 0);
-    lv_obj_set_height(label_container, LV_PCT(100)); // 2% less due to 4px translate (it's not great, but it works)
-    lv_obj_set_flex_grow(label_container, 1);
-
-    toolbar->title_label = lv_label_create(label_container);
+    toolbar->title_label = lv_label_create(obj);
     lv_obj_set_style_text_font(toolbar->title_label, &lv_font_montserrat_18, 0); // TODO replace with size 18
-    lv_obj_set_height(toolbar->title_label, TOOLBAR_TITLE_FONT_HEIGHT);
     lv_label_set_text(toolbar->title_label, title.c_str());
-    lv_obj_set_pos(toolbar->title_label, 0, title_offset_y);
     lv_obj_set_style_text_align(toolbar->title_label, LV_TEXT_ALIGN_LEFT, 0);
+    lv_obj_set_flex_grow(toolbar->title_label, 1);
+    int32_t title_offset_x = (TOOLBAR_HEIGHT - TOOLBAR_TITLE_FONT_HEIGHT - 8) / 4 * 3;
+    // Margin top doesn't work
+    lv_obj_set_style_pad_top(toolbar->title_label, title_offset_x, 0);
+    lv_obj_set_style_margin_left(toolbar->title_label, 8, 0);
+    // Hack for margin bug where buttons in flex get rendered more narrowly
+    lv_obj_set_style_margin_right(toolbar->title_label, -8, 0);
 
     toolbar->action_container = lv_obj_create(obj);
     lv_obj_set_width(toolbar->action_container, LV_SIZE_CONTENT);
@@ -112,7 +104,7 @@ void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callb
     lv_image_set_src(toolbar->close_button_image, icon); // e.g. LV_SYMBOL_CLOSE
 }
 
-uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
+lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = (Toolbar*)obj;
     uint8_t id = toolbar->action_count;
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
@@ -126,7 +118,7 @@ uint8_t toolbar_add_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callba
     lv_image_set_src(action_button_image, icon);
     lv_obj_align(action_button_image, LV_ALIGN_CENTER, 0, 0);
 
-    return id;
+    return action_button;
 }
 
 lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
