@@ -130,7 +130,7 @@ lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
 
 lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
     auto* toolbar = (Toolbar*)obj;
-    return tt_spinner_create(toolbar->action_container);
+    return tt::lvgl::spinner_create(toolbar->action_container);
 }
 
 } // namespace

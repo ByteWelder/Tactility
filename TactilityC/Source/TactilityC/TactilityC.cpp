@@ -1,5 +1,3 @@
-extern "C" {
-
 #ifdef ESP_PLATFORM
 
 #include "elf_symbol.h"
@@ -7,8 +5,11 @@ extern "C" {
 #include "app/App.h"
 #include "app/SelectionDialog.h"
 #include "lvgl/Toolbar.h"
+#include "TactilityC/lvgl/Spinner.h"
 
 #include "lvgl.h"
+
+extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
@@ -16,6 +17,8 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_set_app_manifest),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_simple),
+    // tt::lvgl
+    ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj
     ESP_ELFSYM_EXPORT(lv_obj_add_event_cb),
     ESP_ELFSYM_EXPORT(lv_obj_align),

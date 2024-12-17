@@ -97,7 +97,7 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     if (isConnecting) {
-        lv_obj_t* connecting_spinner = tt_spinner_create(wrapper);
+        lv_obj_t* connecting_spinner = tt::lvgl::spinner_create(wrapper);
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
         const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
