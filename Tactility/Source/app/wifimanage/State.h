@@ -11,7 +11,8 @@ namespace tt::app::wifimanage {
 class State {
 
     Mutex mutex = Mutex(Mutex::TypeRecursive);
-    bool scanning;
+    bool scanning = false;
+    bool scannedAfterRadioOn = false;
     service::wifi::WifiRadioState radioState;
     std::vector<service::wifi::WifiApRecord> apRecords;
     std::string connectSsid;
@@ -21,6 +22,8 @@ public:
 
     void setScanning(bool isScanning);
     bool isScanning() const;
+
+    bool hasScannedAfterRadioOn() const { return scannedAfterRadioOn; }
 
     void setRadioState(service::wifi::WifiRadioState state);
     service::wifi::WifiRadioState getRadioState() const;

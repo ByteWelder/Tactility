@@ -152,7 +152,8 @@ void View::updateNetworkList() {
                     }
                 }
                 lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-            } else if (state->isScanning()) {
+            } else if (!state->hasScannedAfterRadioOn() || state->isScanning()) {
+                // hasScannedAfterRadioOn() prevents briefly showing "No networks found" when turning radio on.
                 lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             } else {
                 lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);

@@ -6,12 +6,16 @@ namespace tt::app::wifimanage {
 void State::setScanning(bool isScanning) {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     scanning = isScanning;
+    scannedAfterRadioOn |= isScanning;
     tt_check(mutex.release() == TtStatusOk);
 }
 
 void State::setRadioState(service::wifi::WifiRadioState state) {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     radioState = state;
+    if (radioState == service::wifi::WIFI_RADIO_OFF) {
+        scannedAfterRadioOn = false;
+    }
     tt_check(mutex.release() == TtStatusOk);
 }
 
