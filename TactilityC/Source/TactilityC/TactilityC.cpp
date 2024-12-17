@@ -113,9 +113,6 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(lv_list_add_button),
     ESP_ELFSYM_EXPORT(lv_list_get_button_text),
     ESP_ELFSYM_EXPORT(lv_list_set_button_text),
-    // lv_spinner
-    ESP_ELFSYM_EXPORT(lv_spinner_create),
-    ESP_ELFSYM_EXPORT(lv_spinner_set_anim_params),
     // lv_textarea
     ESP_ELFSYM_EXPORT(lv_textarea_create),
     ESP_ELFSYM_EXPORT(lv_textarea_get_accepted_chars),
