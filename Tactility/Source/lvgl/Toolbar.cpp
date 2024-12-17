@@ -90,6 +90,7 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     lv_obj_set_flex_flow(toolbar->action_container, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(toolbar->action_container, 0, 0);
     lv_obj_set_style_border_width(toolbar->action_container, 0, 0);
+    lv_obj_set_flex_align(toolbar->action_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
 
     toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &stop_app, nullptr);
 
