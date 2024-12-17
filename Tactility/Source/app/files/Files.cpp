@@ -204,7 +204,7 @@ static void createFileWidget(lv_obj_t* parent, struct dirent* dir_entry) {
 static void updateViews(std::shared_ptr<Data> data) {
     lv_obj_clean(data->list);
     for (int i = 0; i < data->dir_entries_count; ++i) {
-        TT_LOG_I(TAG, "Entry: %s %d", data->dir_entries[i]->d_name, data->dir_entries[i]->d_type);
+        TT_LOG_D(TAG, "Entry: %s %d", data->dir_entries[i]->d_name, data->dir_entries[i]->d_type);
         createFileWidget(data->list, data->dir_entries[i]);
     }
 }

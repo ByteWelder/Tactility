@@ -8,8 +8,10 @@
   - loading splash (even in Files app)
   - WiFi is on and navigating back to Desktop
   Suggested mitigation: When no PSRAM is availabl, use simplified desktop buttons
+- WiFi fails quietly when there isn't enough memory. Add statusbar icon for memory pressure. Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 
 # TODOs
+- When WiFi is on, but there is no connection, it sort of seems like WiFi is off. Find better icon? Gnome uses a grayed-out 100% connectivity one.
 - Create different partitions files for different ESP flash size targets (N4, N8, N16, N32)
 - Rewrite `sdcard` HAL to class
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.

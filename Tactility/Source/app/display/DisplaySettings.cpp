@@ -15,7 +15,7 @@ void setBacklightDuty(uint8_t value) {
 uint8_t getBacklightDuty() {
     int32_t result;
     if (preferences.optInt32(BACKLIGHT_DUTY_KEY, result)) {
-        return (uint8_t)(result % 255);
+        return (uint8_t)(result % 256);
     } else {
         return 200;
     }

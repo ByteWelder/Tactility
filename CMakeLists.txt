@@ -61,7 +61,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
 
     file(READ version.txt TACTILITY_VERSION)
-    add_compile_definitions(TT_VERSION="$TACTILITY_VERSION")
+    add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
 else()
     message("Building for sim target")
 endif()
