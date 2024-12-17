@@ -1,8 +1,9 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "lvgl.h"
+#include "Assets.h"
 #include "CoreDefines.h"
 #include "Log.h"
+#include "lvgl.h"
 
 static void tt_spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
 
@@ -25,7 +26,7 @@ lv_obj_t* tt_spinner_create(lv_obj_t* parent) {
     lv_obj_t* obj = lv_obj_class_create_obj(&tt_spinner_class, parent);
     lv_obj_class_init_obj(obj);
 
-    lv_image_set_src(obj, "A:/assets/spinner.png");
+    lv_image_set_src(obj, TT_ASSETS_UI_SPINNER);
 
     return obj;
 }

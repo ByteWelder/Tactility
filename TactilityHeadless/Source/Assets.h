@@ -6,6 +6,9 @@
 // Splash
 #define TT_ASSETS_BOOT_LOGO TT_ASSET("boot_logo.png")
 
+// UI
+#define TT_ASSETS_UI_SPINNER TT_ASSET("spinner.png")
+
 // App icons
 #define TT_ASSETS_APP_ICON_FALLBACK TT_ASSET("app_icon_fallback.png")
 #define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")
