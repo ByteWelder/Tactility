@@ -162,7 +162,10 @@ static void onHide(AppContext& app) {
 
     bool isRunning = false;
     if (data->mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
-        isRunning = data->scanTimer->isRunning();
+        auto* timer = data->scanTimer.get();
+        if (timer != nullptr) {
+            isRunning = timer->isRunning();
+        }
         data->mutex.release();
     } else {
         return;
