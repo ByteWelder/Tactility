@@ -40,34 +40,58 @@ int scandir(
     }
 
     *output = static_cast<dirent**>(malloc(sizeof(void*) * SCANDIR_LIMIT));
+    if (*output == nullptr) {
+        TT_LOG_E(TAG, "Out of memory");
+        closedir(dir);
+        return -1;
+    }
+
     struct dirent** dirent_array = *output;
-    int dirent_buffer_index = 0;
+    int next_dirent_index = 0;
 
     struct dirent* current_entry;
+    bool out_of_memory = false;
     while ((current_entry = readdir(dir)) != nullptr) {
         if (filter(current_entry) == 0) {
-            dirent_array[dirent_buffer_index] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
-            memcpy(dirent_array[dirent_buffer_index], current_entry, sizeof(struct dirent));
+            dirent_array[next_dirent_index] = static_cast<dirent*>(malloc(sizeof(struct dirent)));
+            if (dirent_array[next_dirent_index] != nullptr) {
+                memcpy(dirent_array[next_dirent_index], current_entry, sizeof(struct dirent));
 
-            dirent_buffer_index++;
-            if (dirent_buffer_index >= SCANDIR_LIMIT) {
-                TT_LOG_E(TAG, "Directory has more than %d files", SCANDIR_LIMIT);
+                next_dirent_index++;
+                if (next_dirent_index >= SCANDIR_LIMIT) {
+                    TT_LOG_E(TAG, "Directory has more than %d files", SCANDIR_LIMIT);
+                    break;
+                }
+            } else {
+                TT_LOG_E(TAG, "Alloc failed. Aborting and cleaning up.");
+                out_of_memory = true;
                 break;
             }
         }
     }
 
-    if (dirent_buffer_index == 0) {
+    // Out-of-memory clean-up
+    if (out_of_memory && next_dirent_index > 0) {
+        for (int i = 0; i < next_dirent_index; ++i) {
+            TT_LOG_I(TAG, "Cleanup item %d", i);
+            free(dirent_array[i]);
+        }
+        TT_LOG_I(TAG, "Free");
+        free(*output);
+        closedir(dir);
+        return -1;
+    // Empty directory
+    } else if (next_dirent_index == 0) {
         free(*output);
         *output = nullptr;
     } else {
         if (sort) {
-            qsort(dirent_array, dirent_buffer_index, sizeof(struct dirent*), (__compar_fn_t)sort);
+            qsort(dirent_array, next_dirent_index, sizeof(struct dirent*), (__compar_fn_t)sort);
         }
     }
 
     closedir(dir);
-    return dirent_buffer_index;
+    return next_dirent_index;
 };
 
 }
