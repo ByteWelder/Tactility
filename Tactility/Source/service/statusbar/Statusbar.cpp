@@ -62,13 +62,13 @@ const char* getWifiStatusIconForRssi(int rssi, bool secured) {
 static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure) {
     int rssi;
     switch (state) {
-        case wifi::WIFI_RADIO_ON_PENDING:
         case wifi::WIFI_RADIO_ON:
+        case wifi::WIFI_RADIO_ON_PENDING:
+        case wifi::WIFI_RADIO_CONNECTION_PENDING:
+            return TT_ASSETS_ICON_WIFI_FIND;
         case wifi::WIFI_RADIO_OFF_PENDING:
         case wifi::WIFI_RADIO_OFF:
             return TT_ASSETS_ICON_WIFI_OFF;
-        case wifi::WIFI_RADIO_CONNECTION_PENDING:
-            return TT_ASSETS_ICON_WIFI_FIND;
         case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             rssi = wifi::getRssi();
             return getWifiStatusIconForRssi(rssi, secure);
