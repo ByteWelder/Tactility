@@ -7,8 +7,9 @@
 - ESP32 (CYD) runs out of memory when:
   - loading splash (even in Files app)
   - WiFi is on and navigating back to Desktop
-  Suggested mitigation: When no PSRAM is availabl, use simplified desktop buttons
+  Suggested mitigation: When no PSRAM is available, use simplified desktop buttons
 - WiFi fails quietly when there isn't enough memory. Add statusbar icon for memory pressure. Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
+- WiFi details "forget" button should be hidden when WiFi credentials are not stores yet.
 
 # TODOs
 - When WiFi is on, but there is no connection, it sort of seems like WiFi is off. Find better icon? Gnome uses a grayed-out 100% connectivity one.
