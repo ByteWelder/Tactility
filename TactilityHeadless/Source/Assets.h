@@ -39,8 +39,14 @@
 #define TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED TT_ASSET("wifi_signal_4_locked.png")
 
 // Power status
-#define TT_ASSETS_ICON_POWER_020 TT_ASSET("power_020.png")
-#define TT_ASSETS_ICON_POWER_040 TT_ASSET("power_040.png")
-#define TT_ASSETS_ICON_POWER_060 TT_ASSET("power_060.png")
-#define TT_ASSETS_ICON_POWER_080 TT_ASSET("power_080.png")
+#define TT_ASSETS_ICON_POWER_0 TT_ASSET("power_0.png")
+#define TT_ASSETS_ICON_POWER_10 TT_ASSET("power_10.png")
+#define TT_ASSETS_ICON_POWER_20 TT_ASSET("power_20.png")
+#define TT_ASSETS_ICON_POWER_30 TT_ASSET("power_30.png")
+#define TT_ASSETS_ICON_POWER_40 TT_ASSET("power_40.png")
+#define TT_ASSETS_ICON_POWER_50 TT_ASSET("power_50.png")
+#define TT_ASSETS_ICON_POWER_60 TT_ASSET("power_60.png")
+#define TT_ASSETS_ICON_POWER_70 TT_ASSET("power_70.png")
+#define TT_ASSETS_ICON_POWER_80 TT_ASSET("power_80.png")
+#define TT_ASSETS_ICON_POWER_90 TT_ASSET("power_90.png")
 #define TT_ASSETS_ICON_POWER_100 TT_ASSET("power_100.png")

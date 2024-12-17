@@ -132,16 +132,28 @@ static _Nullable const char* power_get_status_icon() {
 
     uint8_t charge = charge_level.valueAsUint8;
 
-    if (charge >= 90) {
+    if (charge >= 95) {
         return TT_ASSETS_ICON_POWER_100;
-    } else if (charge >= 70) {
-        return TT_ASSETS_ICON_POWER_080;
-    } else if (charge >= 50) {
-        return TT_ASSETS_ICON_POWER_060;
-    } else if (charge >= 30) {
-        return TT_ASSETS_ICON_POWER_040;
-    } else {
-        return TT_ASSETS_ICON_POWER_020;
+    } else if (charge >= 85) {
+        return TT_ASSETS_ICON_POWER_90;
+    } else if (charge >= 75) {
+        return TT_ASSETS_ICON_POWER_80;
+    } else if (charge >= 65) {
+        return TT_ASSETS_ICON_POWER_70;
+    } else if (charge >= 55) {
+        return TT_ASSETS_ICON_POWER_60;
+    } else if (charge >= 45) {
+        return TT_ASSETS_ICON_POWER_50;
+    } else if (charge >= 35) {
+        return TT_ASSETS_ICON_POWER_40;
+    } else if (charge >= 25) {
+        return TT_ASSETS_ICON_POWER_30;
+    } else if (charge >= 15) {
+        return TT_ASSETS_ICON_POWER_20;
+    } else if (charge >= 5) {
+        return TT_ASSETS_ICON_POWER_10;
+    } else  {
+        return TT_ASSETS_ICON_POWER_0;
     }
 }
 
