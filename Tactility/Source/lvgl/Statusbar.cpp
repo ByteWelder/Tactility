@@ -90,8 +90,6 @@ static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
     if (icon->image != nullptr && icon->visible && icon->claimed) {
-        lv_obj_set_style_image_recolor(image, lv_color_white(), 0);
-        lv_obj_set_style_image_recolor_opa(image, 255, 0);
         lv_image_set_src(image, icon->image);
         lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
     } else {

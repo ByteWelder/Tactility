@@ -43,19 +43,13 @@ struct ServiceData {
 
 // region wifi
 
-const char* getWifiStatusIconForRssi(int rssi, bool secured) {
-    if (rssi > 0) {
-        return TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE;
-    } else if (rssi >= -30) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_4;
-    } else if (rssi >= -67) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_3;
+const char* getWifiStatusIconForRssi(int rssi) {
+    if (rssi >= -60) {
+        return TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_WHITE;
     } else if (rssi >= -70) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_2_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_2;
-    } else if (rssi >= -80) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_1_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_1;
+        return TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_WHITE;
     } else {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_0_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_0;
+        return TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_WHITE;
     }
 }
 
@@ -65,13 +59,13 @@ static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure)
         case wifi::WIFI_RADIO_ON:
         case wifi::WIFI_RADIO_ON_PENDING:
         case wifi::WIFI_RADIO_CONNECTION_PENDING:
-            return TT_ASSETS_ICON_WIFI_FIND;
+            return TT_ASSETS_ICON_WIFI_SCAN_WHITE;
         case wifi::WIFI_RADIO_OFF_PENDING:
         case wifi::WIFI_RADIO_OFF:
-            return TT_ASSETS_ICON_WIFI_OFF;
+            return TT_ASSETS_ICON_WIFI_OFF_WHITE;
         case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             rssi = wifi::getRssi();
-            return getWifiStatusIconForRssi(rssi, secure);
+            return getWifiStatusIconForRssi(rssi);
         default:
             tt_crash("not implemented");
     }

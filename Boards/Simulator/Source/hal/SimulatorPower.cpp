@@ -26,7 +26,7 @@ bool SimulatorPower::getMetric(Power::MetricType type, Power::MetricData& data) 
             data.valueAsUint32 = 4032;
             return true;
         case CHARGE_LEVEL:
-            data.valueAsUint8 = 80;
+            data.valueAsUint8 = 100;
             return true;
     }
 

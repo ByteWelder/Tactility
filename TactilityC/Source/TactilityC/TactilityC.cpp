@@ -139,11 +139,15 @@ void tt_init_tactility_c() {
     elf_set_custom_symbols(elf_symbols);
 }
 
+}
+
 #else // Simulator
+
+extern "C" {
 
 void tt_init_tactility_c() {
 }
 
-#endif // ESP_PLATFORM
-
 }
+
+#endif // ESP_PLATFORM
