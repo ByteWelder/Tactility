@@ -1,14 +1,17 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "lvgl.h"
+#include "Assets.h"
 #include "CoreDefines.h"
 #include "Log.h"
+#include "lvgl.h"
 
-static void tt_spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
+namespace tt::lvgl {
+
+static void spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
 
 const lv_obj_class_t tt_spinner_class = {
     .base_class = &lv_image_class,
-    .constructor_cb = tt_spinner_constructor,
+    .constructor_cb = spinner_constructor,
     .destructor_cb = nullptr,
     .event_cb = nullptr,
     .user_data = nullptr,
@@ -21,11 +24,11 @@ const lv_obj_class_t tt_spinner_class = {
     .theme_inheritable = 0
 };
 
-lv_obj_t* tt_spinner_create(lv_obj_t* parent) {
+lv_obj_t* spinner_create(lv_obj_t* parent) {
     lv_obj_t* obj = lv_obj_class_create_obj(&tt_spinner_class, parent);
     lv_obj_class_init_obj(obj);
 
-    lv_image_set_src(obj, "A:/assets/spinner.png");
+    lv_image_set_src(obj, TT_ASSETS_UI_SPINNER);
 
     return obj;
 }
@@ -39,7 +42,7 @@ static void anim_rotation_callback(void* var, int32_t v) {
     lv_obj_set_style_transform_rotation(object, v, 0);
 }
 
-static void tt_spinner_constructor(TT_UNUSED const lv_obj_class_t* object_class, lv_obj_t* object) {
+static void spinner_constructor(TT_UNUSED const lv_obj_class_t* object_class, lv_obj_t* object) {
     lv_obj_remove_flag(object, LV_OBJ_FLAG_CLICKABLE);
 
     lv_anim_t a;
@@ -50,4 +53,6 @@ static void tt_spinner_constructor(TT_UNUSED const lv_obj_class_t* object_class,
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
     lv_anim_set_exec_cb(&a, anim_rotation_callback);
     lv_anim_start(&a);
+}
+
 }

@@ -43,35 +43,29 @@ struct ServiceData {
 
 // region wifi
 
-const char* getWifiStatusIconForRssi(int rssi, bool secured) {
-    if (rssi > 0) {
-        return TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE;
-    } else if (rssi >= -30) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_4;
-    } else if (rssi >= -67) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_3;
+const char* getWifiStatusIconForRssi(int rssi) {
+    if (rssi >= -60) {
+        return TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_WHITE;
     } else if (rssi >= -70) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_2_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_2;
-    } else if (rssi >= -80) {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_1_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_1;
+        return TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_WHITE;
     } else {
-        return secured ? TT_ASSETS_ICON_WIFI_SIGNAL_0_LOCKED : TT_ASSETS_ICON_WIFI_SIGNAL_0;
+        return TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_WHITE;
     }
 }
 
 static const char* wifi_get_status_icon(wifi::WifiRadioState state, bool secure) {
     int rssi;
     switch (state) {
-        case wifi::WIFI_RADIO_ON_PENDING:
         case wifi::WIFI_RADIO_ON:
+        case wifi::WIFI_RADIO_ON_PENDING:
+        case wifi::WIFI_RADIO_CONNECTION_PENDING:
+            return TT_ASSETS_ICON_WIFI_SCAN_WHITE;
         case wifi::WIFI_RADIO_OFF_PENDING:
         case wifi::WIFI_RADIO_OFF:
-            return TT_ASSETS_ICON_WIFI_OFF;
-        case wifi::WIFI_RADIO_CONNECTION_PENDING:
-            return TT_ASSETS_ICON_WIFI_FIND;
+            return TT_ASSETS_ICON_WIFI_OFF_WHITE;
         case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
             rssi = wifi::getRssi();
-            return getWifiStatusIconForRssi(rssi, secure);
+            return getWifiStatusIconForRssi(rssi);
         default:
             tt_crash("not implemented");
     }
@@ -132,16 +126,28 @@ static _Nullable const char* power_get_status_icon() {
 
     uint8_t charge = charge_level.valueAsUint8;
 
-    if (charge >= 90) {
+    if (charge >= 95) {
         return TT_ASSETS_ICON_POWER_100;
-    } else if (charge >= 70) {
-        return TT_ASSETS_ICON_POWER_080;
-    } else if (charge >= 50) {
-        return TT_ASSETS_ICON_POWER_060;
-    } else if (charge >= 30) {
-        return TT_ASSETS_ICON_POWER_040;
-    } else {
-        return TT_ASSETS_ICON_POWER_020;
+    } else if (charge >= 85) {
+        return TT_ASSETS_ICON_POWER_90;
+    } else if (charge >= 75) {
+        return TT_ASSETS_ICON_POWER_80;
+    } else if (charge >= 65) {
+        return TT_ASSETS_ICON_POWER_70;
+    } else if (charge >= 55) {
+        return TT_ASSETS_ICON_POWER_60;
+    } else if (charge >= 45) {
+        return TT_ASSETS_ICON_POWER_50;
+    } else if (charge >= 35) {
+        return TT_ASSETS_ICON_POWER_40;
+    } else if (charge >= 25) {
+        return TT_ASSETS_ICON_POWER_30;
+    } else if (charge >= 15) {
+        return TT_ASSETS_ICON_POWER_20;
+    } else if (charge >= 5) {
+        return TT_ASSETS_ICON_POWER_10;
+    } else  {
+        return TT_ASSETS_ICON_POWER_0;
     }
 }
 

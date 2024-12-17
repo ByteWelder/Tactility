@@ -8,6 +8,7 @@
 #include "service/wifi/WifiSettings.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include "lvgl/Spinner.h"
 #include <TactilityCore.h>
 #include <cstring>
 
@@ -97,8 +98,7 @@ void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align_to(remember_label, remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
 
-    connecting_spinner = lv_spinner_create(button_container);
-    lv_obj_set_size(connecting_spinner, 32, 32);
+    connecting_spinner = tt::lvgl::spinner_create(button_container);
     lv_obj_align(connecting_spinner, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_flag(connecting_spinner, LV_OBJ_FLAG_HIDDEN);
 

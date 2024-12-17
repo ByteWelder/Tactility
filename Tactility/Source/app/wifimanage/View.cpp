@@ -2,7 +2,7 @@
 #include "WifiManage.h"
 
 #include "Log.h"
-#include "service/statusbar/Statusbar.h"
+#include "Assets.h"
 #include "service/wifi/Wifi.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -16,6 +16,16 @@ namespace tt::app::wifimanage {
 #define TAG "wifi_main_view"
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
+
+const char* getWifiStatusIconForRssi(int rssi) {
+    if (rssi >= -60) {
+        return TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_BLACK;
+    } else if (rssi >= -70) {
+        return TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_BLACK;
+    } else {
+        return TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_BLACK;
+    }
+}
 
 static void on_enable_switch_changed(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
@@ -97,13 +107,19 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     if (isConnecting) {
-        lv_obj_t* connecting_spinner = tt_spinner_create(wrapper);
+        lv_obj_t* connecting_spinner = tt::lvgl::spinner_create(wrapper);
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
-        const char* icon = service::statusbar::getWifiStatusIconForRssi(record.rssi, record.auth_mode != WIFI_AUTH_OPEN);
-        lv_obj_t* image = lv_image_create(wrapper);
-        lv_image_set_src(image, icon);
-        lv_obj_align(image, LV_ALIGN_RIGHT_MID, -50, 0);
+        const char* icon = getWifiStatusIconForRssi(record.rssi);
+        lv_obj_t* rssi_image = lv_image_create(wrapper);
+        lv_image_set_src(rssi_image, icon);
+        lv_obj_align(rssi_image, LV_ALIGN_RIGHT_MID, -42, 0);
+
+        if (record.auth_mode != WIFI_AUTH_OPEN) {
+            lv_obj_t* lock_image = lv_image_create(wrapper);
+            lv_image_set_src(lock_image, TT_ASSETS_ICON_WIFI_LOCK_BLACK);
+            lv_obj_align(lock_image, LV_ALIGN_RIGHT_MID, -62, 0);
+        }
     }
 }
 
@@ -152,7 +168,8 @@ void View::updateNetworkList() {
                     }
                 }
                 lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-            } else if (state->isScanning()) {
+            } else if (!state->hasScannedAfterRadioOn() || state->isScanning()) {
+                // hasScannedAfterRadioOn() prevents briefly showing "No networks found" when turning radio on.
                 lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             } else {
                 lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);

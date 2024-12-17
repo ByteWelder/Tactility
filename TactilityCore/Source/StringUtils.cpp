@@ -1,6 +1,5 @@
 #include "StringUtils.h"
 #include <cstring>
-#include <iostream>
 #include <sstream>
 
 namespace tt::string {
@@ -26,6 +25,15 @@ bool getPathParent(const char* path, char* output) {
         memcpy(output, path, index);
         output[index] = 0x00;
         return true;
+    }
+}
+
+std::string getLastPathSegment(const std::string& path) {
+    auto index = path.find_last_of('/');
+    if (index != std::string::npos) {
+        return path.substr(index + 1);
+    } else {
+        return "";
     }
 }
 

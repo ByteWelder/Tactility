@@ -6,6 +6,9 @@
 // Splash
 #define TT_ASSETS_BOOT_LOGO TT_ASSET("boot_logo.png")
 
+// UI
+#define TT_ASSETS_UI_SPINNER TT_ASSET("spinner.png")
+
 // App icons
 #define TT_ASSETS_APP_ICON_FALLBACK TT_ASSET("app_icon_fallback.png")
 #define TT_ASSETS_APP_ICON_FILES TT_ASSET("app_icon_files.png")
@@ -20,24 +23,26 @@
 #define TT_ASSETS_ICON_SDCARD_ALERT TT_ASSET("sdcard_alert.png")
 
 // Wifi status
-#define TT_ASSETS_ICON_WIFI_CONNECTION_ISSUE TT_ASSET("wifi_connection_issue.png")
-#define TT_ASSETS_ICON_WIFI_FIND TT_ASSET("wifi_find.png")
-#define TT_ASSETS_ICON_WIFI_OFF TT_ASSET("wifi_off.png")
-#define TT_ASSETS_ICON_WIFI_PERM_SCAN TT_ASSET("wifi_perm_scan.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_0 TT_ASSET("wifi_signal_0.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_0_LOCKED TT_ASSET("wifi_signal_0_locked.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_1 TT_ASSET("wifi_signal_1.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_1_LOCKED TT_ASSET("wifi_signal_1_locked.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_2 TT_ASSET("wifi_signal_2.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_2_LOCKED TT_ASSET("wifi_signal_2_locked.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_3 TT_ASSET("wifi_signal_3.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_3_LOCKED TT_ASSET("wifi_signal_3_locked.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_4 TT_ASSET("wifi_signal_4.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_4_LOCKED TT_ASSET("wifi_signal_4_locked.png")
+#define TT_ASSETS_ICON_WIFI_OFF_WHITE TT_ASSET("wifi_off_white.png")
+#define TT_ASSETS_ICON_WIFI_SCAN_WHITE TT_ASSET("wifi_scan_white.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_WHITE TT_ASSET("wifi_signal_weak_white.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_WHITE TT_ASSET("wifi_signal_medium_white.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_WHITE TT_ASSET("wifi_signal_strong_white.png")
+// Black (Wifi Manage)
+#define TT_ASSETS_ICON_WIFI_LOCK_BLACK TT_ASSET("wifi_lock_black.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_BLACK TT_ASSET("wifi_signal_weak_black.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_BLACK TT_ASSET("wifi_signal_medium_black.png")
+#define TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_BLACK TT_ASSET("wifi_signal_strong_black.png")
 
 // Power status
-#define TT_ASSETS_ICON_POWER_020 TT_ASSET("power_020.png")
-#define TT_ASSETS_ICON_POWER_040 TT_ASSET("power_040.png")
-#define TT_ASSETS_ICON_POWER_060 TT_ASSET("power_060.png")
-#define TT_ASSETS_ICON_POWER_080 TT_ASSET("power_080.png")
+#define TT_ASSETS_ICON_POWER_0 TT_ASSET("power_0.png")
+#define TT_ASSETS_ICON_POWER_10 TT_ASSET("power_10.png")
+#define TT_ASSETS_ICON_POWER_20 TT_ASSET("power_20.png")
+#define TT_ASSETS_ICON_POWER_30 TT_ASSET("power_30.png")
+#define TT_ASSETS_ICON_POWER_40 TT_ASSET("power_40.png")
+#define TT_ASSETS_ICON_POWER_50 TT_ASSET("power_50.png")
+#define TT_ASSETS_ICON_POWER_60 TT_ASSET("power_60.png")
+#define TT_ASSETS_ICON_POWER_70 TT_ASSET("power_70.png")
+#define TT_ASSETS_ICON_POWER_80 TT_ASSET("power_80.png")
+#define TT_ASSETS_ICON_POWER_90 TT_ASSET("power_90.png")
 #define TT_ASSETS_ICON_POWER_100 TT_ASSET("power_100.png")
