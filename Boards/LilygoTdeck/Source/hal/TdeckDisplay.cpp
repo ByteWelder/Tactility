@@ -4,6 +4,7 @@
 #include "Log.h"
 
 #include <TactilityCore.h>
+#include <esp_lcd_panel_commands.h>
 
 #include "driver/ledc.h"
 #include "driver/spi_master.h"
@@ -193,11 +194,35 @@ void TdeckDisplay::setBacklightDuty(uint8_t backlightDuty) {
         isBacklightInitialized = true;
     }
 
-    if (setBacklight(backlightDuty)) {
-        TT_LOG_I(TAG, "Backlight set: %d", backlightDuty);
-        lastBacklightDuty = backlightDuty;
-    } else {
+    if (!setBacklight(backlightDuty)) {
         TT_LOG_E(TAG, "Failed to configure display backlight");
+    }
+}
+
+void TdeckDisplay::setGammaCurve(uint8_t index) {
+    uint8_t gamma_curve;
+    switch (index) {
+        case 0:
+            gamma_curve = 0x01;
+            break;
+        case 1:
+            gamma_curve = 0x04;
+            break;
+        case 2:
+            gamma_curve = 0x02;
+            break;
+        case 3:
+            gamma_curve = 0x08;
+            break;
+        default:
+            return;
+    }
+    const uint8_t param[] = {
+        gamma_curve
+    };
+
+    if (esp_lcd_panel_io_tx_param(ioHandle , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set gamma");
     }
 }
 

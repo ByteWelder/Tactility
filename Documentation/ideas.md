@@ -1,24 +1,25 @@
 # Bugs
+- elf_loader, lvgl and TactilityC in TactilitySDK should include their license files
 - I2C Scanner is on M5Stack devices is broken
 - Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
-- Commit fix to esp_lvgl_port to have `esp_lvgl_port_disp.c` user driver_data instead of user_data
-- WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes activate again.
-- elf_loader, lvgl and TactilityC in TactilitySDK should include their license files
-- ESP32 (CYD) runs out of memory when:
-  - loading splash (even in Files app)
-  - WiFi is on and navigating back to Desktop
-  Suggested mitigation: When no PSRAM is available, use simplified desktop buttons
-- WiFi fails quietly when there isn't enough memory. Add statusbar icon for memory pressure. Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
+- WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
+- ESP32 (CYD) memory issues (or any device without PSRAM):
+  - Boot app doesn't show logo 
+  - WiFi is on and navigating back to Desktop makes desktop icons disappear
+  - WiFi might fail quiety when trying to enable it: this shows no feedback (force it by increasing LVGL buffers to 100kB)
+  Possible mitigations: 
+  - When no PSRAM is available, use simplified desktop buttons
+  - Add statusbar icon for memory pressure.
+  - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - WiFi details "forget" button should be hidden when WiFi credentials are not stores yet.
 
 # TODOs
-- When WiFi is on, but there is no connection, it sort of seems like WiFi is off. Find better icon? Gnome uses a grayed-out 100% connectivity one.
 - Create different partitions files for different ESP flash size targets (N4, N8, N16, N32)
 - Rewrite `sdcard` HAL to class
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
   We'll need to keep track of all manifest instances, so that the wrapper can look up the relevant manifest for the relevant callbacks.
 - T-Deck: Clear screen before turning on blacklight
-- Single wire audio
+- Audio player app
 - Audio recording app
 - Files app: file operations: rename, delete, copy, paste (long press?), create folder
 - T-Deck: Use knob for UI selection
@@ -41,7 +42,7 @@
 - T-Deck Plus: Create separate board config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - Make firmwares available via web serial website
-- If present, use LED to show boot status
+- If present, use LED to show boot/wifi status
 - T-Deck Power: capacity estimation uses linear voltage curve, but it should use some sort of battery discharge curve.
  
 # App Ideas

@@ -42,7 +42,8 @@ bool YellowTouch::start(lv_display_t* display) {
         },
         .process_coordinates = nullptr,
         .interrupt_callback = nullptr,
-        .user_data = nullptr
+        .user_data = nullptr,
+        .driver_data = nullptr
     };
 
     if (esp_lcd_touch_new_i2c_cst816s(ioHandle, &config, &touchHandle) != ESP_OK) {

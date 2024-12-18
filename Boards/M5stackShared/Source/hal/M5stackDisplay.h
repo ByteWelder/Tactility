@@ -23,10 +23,6 @@ public:
 
     tt::hal::Touch* _Nullable createTouch() override;
 
-    void setBacklightDuty(uint8_t backlightDuty) override {}
-    uint8_t getBacklightDuty() const override { return 255; }
-    bool supportsBacklightDuty() const override { return false; }
-
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
 
