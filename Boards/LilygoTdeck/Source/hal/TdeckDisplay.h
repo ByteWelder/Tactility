@@ -13,7 +13,6 @@ private:
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* displayHandle = nullptr;
-    uint8_t lastBacklightDuty = 255;
     bool poweredOn = false;
 
 public:
@@ -29,8 +28,10 @@ public:
     tt::hal::Touch* _Nullable createTouch() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
-    uint8_t getBacklightDuty() const override { return lastBacklightDuty; }
     bool supportsBacklightDuty() const override { return true; }
+
+    void setGammaCurve(uint8_t index) override;
+    uint8_t getGammaCurveCount() const override { return 4; };
 
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 

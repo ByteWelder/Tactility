@@ -4,6 +4,7 @@
 #include "Log.h"
 
 #include <TactilityCore.h>
+#include <esp_lcd_panel_commands.h>
 
 #include "driver/gpio.h"
 #include "driver/ledc.h"
@@ -109,6 +110,7 @@ bool YellowDisplay::start() {
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
+        .control_handle = nullptr,
         .buffer_size = TWODOTFOUR_LCD_DRAW_BUFFER_SIZE,
         .double_buffer = false,
         .trans_size = 0,
@@ -120,11 +122,14 @@ bool YellowDisplay::start() {
             .mirror_x = true,
             .mirror_y = false,
         },
+        .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
             .buff_dma = true,
             .buff_spiram = false,
             .sw_rotate = false,
-            .swap_bytes = true
+            .swap_bytes = true,
+            .full_refresh = false,
+            .direct_mode = false
         }
     };
 
@@ -156,13 +161,48 @@ void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
         isBacklightInitialized = true;
     }
 
-    if (setBacklight(backlightDuty)) {
-        TT_LOG_I(TAG, "Backlight set: %d", backlightDuty);
-        lastBacklightDuty = backlightDuty;
-    } else {
+    if (!setBacklight(backlightDuty)) {
         TT_LOG_E(TAG, "Failed to configure display backlight");
     }
 }
+
+/**
+ * Note:
+ * The datasheet implies this should work, but it doesn't:
+ * https://www.digikey.com/htmldatasheets/production/1640716/0/0/1/ILI9341-Datasheet.pdf
+ *
+ * This repo claims it only has 1 curve:
+ * https://github.com/brucemack/hello-ili9341
+ *
+ * I'm leaving it in as I'm not sure if it's just my hardware that's problematic.
+ */
+void YellowDisplay::setGammaCurve(uint8_t index) {
+    uint8_t gamma_curve;
+    switch (index) {
+        case 0:
+            gamma_curve = 0x01;
+            break;
+        case 1:
+            gamma_curve = 0x04;
+            break;
+        case 2:
+            gamma_curve = 0x02;
+            break;
+        case 3:
+            gamma_curve = 0x08;
+            break;
+        default:
+            return;
+    }
+    const uint8_t param[] = {
+        gamma_curve
+    };
+
+    if (esp_lcd_panel_io_tx_param(ioHandle , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set gamma");
+    }
+}
+
 tt::hal::Touch* _Nullable YellowDisplay::createTouch() {
     return static_cast<tt::hal::Touch*>(new YellowTouch());
 }
