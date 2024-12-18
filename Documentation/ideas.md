@@ -1,5 +1,4 @@
 # Bugs
-- elf_loader, lvgl and TactilityC in TactilitySDK should include their license files
 - I2C Scanner is on M5Stack devices is broken
 - Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
