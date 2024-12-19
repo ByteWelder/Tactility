@@ -110,11 +110,6 @@ ThreadId Mutex::getOwner() const {
     return (ThreadId)xSemaphoreGetMutexHolder(semaphore);
 }
 
-
-std::unique_ptr<ScopedMutexUsage> Mutex::scoped() const {
-    return std::make_unique<ScopedMutexUsage>(*this);
-}
-
 Mutex* tt_mutex_alloc(Mutex::Type type) {
     return new Mutex(type);
 }

@@ -29,4 +29,24 @@ void unlock() {
     unlock_singleton();
 }
 
+class LvglSync : public Lockable {
+public:
+    ~LvglSync() override = default;
+
+    bool lock(uint32_t timeoutTicks) const override {
+        return tt::lvgl::lock(timeoutTicks);
+    }
+
+    bool unlock() const override {
+        tt::lvgl::unlock();
+        return true;
+    }
+};
+
+static std::shared_ptr<Lockable> lvglSync = std::make_shared<LvglSync>();
+
+std::shared_ptr<Lockable> getLvglSyncLockable() {
+    return lvglSync;
+}
+
 } // namespace

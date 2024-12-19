@@ -11,8 +11,10 @@
   - Add statusbar icon for memory pressure.
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - WiFi details "forget" button should be hidden when WiFi credentials are not stores yet.
+- Clean up static_cast when casting to base class.
 
 # TODOs
+- Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
 - Create different partitions files for different ESP flash size targets (N4, N8, N16, N32)
 - Rewrite `sdcard` HAL to class
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
