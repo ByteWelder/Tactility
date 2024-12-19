@@ -86,15 +86,16 @@ static void update_wifi_icon(std::shared_ptr<ServiceData> data) {
 
 // region sdcard
 
-static _Nullable const char* sdcard_get_status_icon(hal::SdCard::State state) {
+static const char* sdcard_get_status_icon(hal::SdCard::State state) {
     switch (state) {
         case hal::SdCard::StateMounted:
             return TT_ASSETS_ICON_SDCARD;
         case hal::SdCard::StateError:
         case hal::SdCard::StateUnmounted:
+        case hal::SdCard::StateUnknown:
             return TT_ASSETS_ICON_SDCARD_ALERT;
         default:
-            return nullptr;
+            tt_crash("Unhandled SdCard state");
     }
 }
 

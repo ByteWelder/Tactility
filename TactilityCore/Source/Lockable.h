@@ -17,23 +17,24 @@ public:
     std::unique_ptr<ScopedLockableUsage> scoped() const;
 };
 
-class ScopedLockableUsage {
+class ScopedLockableUsage final : public Lockable {
 
     const Lockable& lockable;
-    bool locked = false;
 
 public:
 
     explicit ScopedLockableUsage(const Lockable& lockable) : lockable(lockable) {}
 
-    ~ScopedLockableUsage() {
-        if (locked) {
-            tt_check(lockable.unlock());
-        }
+    ~ScopedLockableUsage() final {
+        lockable.unlock(); // We don't care whether it succeeded or not
     }
 
-    bool lock(uint32_t timeout) const {
+    bool lock(uint32_t timeout) const override {
         return lockable.lock(timeout);
+    }
+
+    bool unlock() const override {
+        return lockable.unlock();
     }
 };
 
