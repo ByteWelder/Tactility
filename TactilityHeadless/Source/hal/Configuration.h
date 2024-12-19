@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Power.h"
-#include "hal/sdcard/Sdcard.h"
 #include "hal/i2c/I2c.h"
+#include "SdCard.h"
 
 namespace tt::hal {
 
@@ -49,7 +49,7 @@ struct Configuration {
     /**
      * An optional SD card interface.
      */
-    const sdcard::SdCard* _Nullable sdcard = nullptr;
+    const std::shared_ptr<SdCard> _Nullable sdcard = nullptr;
 
     /**
      * An optional power interface for battery or other power delivery.

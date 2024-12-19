@@ -1,11 +1,12 @@
 #include "ScreenshotUi.h"
 
 #include "TactilityCore.h"
-#include "hal/sdcard/Sdcard.h"
+#include "hal/SdCard.h"
 #include "service/gui/Gui.h"
 #include "service/loader/Loader.h"
 #include "service/screenshot/Screenshot.h"
 #include "lvgl/Toolbar.h"
+#include "TactilityHeadless.h"
 
 namespace tt::app::screenshot {
 
@@ -24,7 +25,7 @@ std::shared_ptr<ScreenshotUi> _Nullable optScreenshotUi() {
     }
 }
 
-static void on_start_pressed(lv_event_t* event) {
+static void on_start_pressed(TT_UNUSED lv_event_t* event) {
     auto ui = optScreenshotUi();
     if (ui == nullptr) {
         return;
@@ -70,7 +71,7 @@ static void update_mode(std::shared_ptr<ScreenshotUi> ui) {
     }
 }
 
-static void on_mode_set(lv_event_t* event) {
+static void on_mode_set(TT_UNUSED lv_event_t* event) {
     auto ui = optScreenshotUi();
     if (ui != nullptr) {
         update_mode(ui);
@@ -125,7 +126,8 @@ static void create_path_ui(std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent) {
     lv_obj_set_flex_grow(path_textarea, 1);
     ui->path_textarea = path_textarea;
     if (kernel::getPlatform() == kernel::PlatformEsp) {
-        if (hal::sdcard::getState() == hal::sdcard::StateMounted) {
+        auto sdcard = tt::hal::getConfiguration().sdcard;
+        if (sdcard != nullptr && sdcard->getState() == hal::SdCard::StateMounted) {
             lv_textarea_set_text(path_textarea, "A:/sdcard");
         } else {
             lv_textarea_set_text(path_textarea, "Error: no SD card");

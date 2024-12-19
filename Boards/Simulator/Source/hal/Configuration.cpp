@@ -5,10 +5,9 @@
 #include "src/lv_init.h"
 #include "SdlDisplay.h"
 #include "SdlKeyboard.h"
+#include "SimulatorSdCard.h"
 
 #define TAG "hardware"
-
-extern const tt::hal::sdcard::SdCard simulatorSdcard;
 
 static bool initBoot() {
     lv_init();
@@ -31,7 +30,7 @@ extern const tt::hal::Configuration hardware = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
-    .sdcard = &simulatorSdcard,
+    .sdcard = std::make_shared<SimulatorSdCard>(),
     .power = simulatorPower,
     .i2c = {
         tt::hal::i2c::Configuration {

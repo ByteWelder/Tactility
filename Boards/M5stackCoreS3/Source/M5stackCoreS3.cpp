@@ -1,12 +1,11 @@
 #include "M5stackCoreS3.h"
 #include "M5stackShared.h"
-#include "hal/M5stackPower.h"
 
 const tt::hal::Configuration m5stack_cores3 = {
     .initBoot = m5stack_bootstrap,
     .initLvgl = m5stack_lvgl_init,
     .createDisplay = createDisplay,
-    .sdcard = &m5stack_sdcard,
+    .sdcard = createM5SdCard(),
     .power = m5stack_get_power,
     .i2c = {
         tt::hal::i2c::Configuration {
