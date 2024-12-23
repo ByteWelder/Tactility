@@ -66,12 +66,7 @@ static bool is_interrupted(ScreenshotTaskData* data) {
 
 static void makeScreenshot(const char* filename) {
     if (lvgl::lock(50 / portTICK_PERIOD_MS)) {
-#ifdef ESP_PLATFORM
-        lv_color_format_t color_format = LV_COLOR_FORMAT_RGB888;
-#else // Simulator
-        lv_color_format_t color_format = LV_COLOR_FORMAT_NATIVE;
-#endif
-        if (lv_screenshot_create(lv_scr_act(), color_format, LV_100ASK_SCREENSHOT_SV_PNG, filename)) {
+        if (lv_screenshot_create(lv_scr_act(), LV_100ASK_SCREENSHOT_SV_PNG, filename)) {
             TT_LOG_I(TAG, "Screenshot saved to %s", filename);
         } else {
             TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
