@@ -101,11 +101,7 @@ static int32_t screenshot_task(void* context) {
             if (!is_interrupted(data)) {
                 screenshots_taken++;
                 char filename[SCREENSHOT_PATH_LIMIT + 32];
-#ifdef ESP_PLATFORM
-                sprintf(filename, "%s/%d.png", data->work.path, screenshots_taken);
-#else
                 sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
-#endif
                 makeScreenshot(filename);
 
                 if (data->work.amount > 0 && screenshots_taken >= data->work.amount) {
@@ -119,16 +115,9 @@ static int32_t screenshot_task(void* context) {
                 if (manifest.id != last_app_id) {
                     kernel::delayMillis(100);
                     last_app_id = manifest.id;
-
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
-#ifdef ESP_PLATFORM
-                    screenshots_taken++;
-                    sprintf(filename, "%s/%d.png", data->work.path, screenshots_taken);
-#else
                     sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest.id.c_str());
-#endif
                     makeScreenshot(filename);
-
                 }
             }
             // Ensure the LVGL widgets are rendered as the app just started
