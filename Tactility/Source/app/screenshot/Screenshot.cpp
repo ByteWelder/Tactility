@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include "ScreenshotUi.h"
 #include <memory>
 
@@ -23,3 +27,5 @@ extern const AppManifest manifest = {
 };
 
 } // namespace
+
+#endif

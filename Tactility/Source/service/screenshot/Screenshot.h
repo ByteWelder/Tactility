@@ -1,5 +1,9 @@
 #pragma once
 
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include <cstdint>
 
 namespace tt::service::screenshot {
@@ -29,3 +33,5 @@ Mode getMode();
 bool isStarted();
 
 } // namespace
+
+#endif

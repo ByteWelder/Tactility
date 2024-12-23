@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include "ScreenshotUi.h"
 
 #include "TactilityCore.h"
@@ -196,3 +200,5 @@ void create_ui(const AppContext& app, std::shared_ptr<ScreenshotUi> ui, lv_obj_t
 }
 
 } // namespace
+
+#endif

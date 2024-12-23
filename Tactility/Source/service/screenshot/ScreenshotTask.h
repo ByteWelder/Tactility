@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #pragma once
 
 #include <cstdint>
@@ -30,3 +34,5 @@ void startApps(ScreenshotTask* task, const char* path);
 void stop(ScreenshotTask* task);
 
 }
+
+#endif

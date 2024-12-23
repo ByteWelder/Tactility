@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include <cstring>
 #include "ScreenshotTask.h"
 #include "lv_screenshot.h"
@@ -60,6 +64,24 @@ static bool is_interrupted(ScreenshotTaskData* data) {
     return interrupted;
 }
 
+static void makeScreenshot(const char* filename) {
+    if (lvgl::lock(50 / portTICK_PERIOD_MS)) {
+#ifdef ESP_PLATFORM
+        lv_color_format_t color_format = LV_COLOR_FORMAT_RGB888;
+#else // Simulator
+        lv_color_format_t color_format = LV_COLOR_FORMAT_NATIVE;
+#endif
+        if (lv_screenshot_create(lv_scr_act(), color_format, LV_100ASK_SCREENSHOT_SV_PNG, filename)) {
+            TT_LOG_I(TAG, "Screenshot saved to %s", filename);
+        } else {
+            TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
+        }
+        lvgl::unlock();
+    } else {
+        TT_LOG_E(TAG, "Failed to acquire LVGL lock");
+    }
+}
+
 static int32_t screenshot_task(void* context) {
     auto* data = static_cast<ScreenshotTaskData*>(context);
 
@@ -76,23 +98,19 @@ static int32_t screenshot_task(void* context) {
                 kernel::delayMillis(100);
             }
 
-            if (is_interrupted(data)) {
-                break;
-            }
+            if (!is_interrupted(data)) {
+                screenshots_taken++;
+                char filename[SCREENSHOT_PATH_LIMIT + 32];
+#ifdef ESP_PLATFORM
+                sprintf(filename, "%s/%d.png", data->work.path, screenshots_taken);
+#else
+                sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
+#endif
+                makeScreenshot(filename);
 
-            screenshots_taken++;
-            char filename[SCREENSHOT_PATH_LIMIT + 32];
-            sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
-            lvgl::lock(TtWaitForever);
-            if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
-                TT_LOG_I(TAG, "Screenshot saved to %s", filename);
-            } else {
-                TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
-            }
-            lvgl::unlock();
-
-            if (data->work.amount > 0 && screenshots_taken >= data->work.amount) {
-                break; // Interrupted loop
+                if (data->work.amount > 0 && screenshots_taken >= data->work.amount) {
+                    break; // Interrupted loop
+                }
             }
         } else if (data->work.type == TASK_WORK_TYPE_APPS) {
             app::AppContext* _Nullable app = loader::getCurrentApp();
@@ -103,16 +121,17 @@ static int32_t screenshot_task(void* context) {
                     last_app_id = manifest.id;
 
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
+#ifdef ESP_PLATFORM
+                    screenshots_taken++;
+                    sprintf(filename, "%s/%d.png", data->work.path, screenshots_taken);
+#else
                     sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest.id.c_str());
-                    lvgl::lock(TtWaitForever);
-                    if (lv_screenshot_create(lv_scr_act(), LV_COLOR_FORMAT_NATIVE, LV_100ASK_SCREENSHOT_SV_PNG, filename)){
-                        TT_LOG_I(TAG, "Screenshot saved to %s", filename);
-                    } else {
-                        TT_LOG_E(TAG, "Screenshot not saved to %s", filename);
-                    }
-                    lvgl::unlock();
+#endif
+                    makeScreenshot(filename);
+
                 }
             }
+            // Ensure the LVGL widgets are rendered as the app just started
             kernel::delayMillis(250);
         }
     }
@@ -182,3 +201,5 @@ void stop(ScreenshotTask* task) {
 }
 
 } // namespace
+
+#endif

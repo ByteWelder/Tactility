@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include "Screenshot.h"
 #include <cstdlib>
 #include <memory>
@@ -120,3 +124,5 @@ extern const ServiceManifest manifest = {
 };
 
 } // namespace
+
+#endif

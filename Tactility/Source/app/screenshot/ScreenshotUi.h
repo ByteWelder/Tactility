@@ -1,3 +1,7 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #pragma once
 
 #include "app/AppContext.h"
@@ -16,3 +20,5 @@ typedef struct {
 void create_ui(const AppContext& app, std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent);
 
 } // namespace
+
+#endif
