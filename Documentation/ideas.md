@@ -1,6 +1,5 @@
 # Bugs
 - I2C Scanner is on M5Stack devices is broken
-- Fix screenshot app on ESP32: it currently blocks when allocating memory (its cmakelists.txt also needs a fix, see TODO in there)
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
 - ESP32 (CYD) memory issues (or any device without PSRAM):
   - Boot app doesn't show logo 
@@ -44,6 +43,9 @@
 - Make firmwares available via web serial website
 - If present, use LED to show boot/wifi status
 - T-Deck Power: capacity estimation uses linear voltage curve, but it should use some sort of battery discharge curve.
+- Statusbar widget to show how much memory is in use?
+- Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
+- Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
  
 # App Ideas
 - USB implementation to make device act as mass storage device.
