@@ -1,6 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include "Lockable.h"
+
+#include <memory>
 
 namespace tt::lvgl {
 
@@ -11,5 +13,7 @@ void syncSet(LvglLock lock, LvglUnlock unlock);
 bool isSyncSet();
 bool lock(uint32_t timeout_ticks);
 void unlock();
+
+std::shared_ptr<Lockable> getLvglSyncLockable();
 
 } // namespace

@@ -5,18 +5,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    file(GLOB_RECURSE SOURCE_FILES Source/*.c*) # TODO: Fix
-
     idf_component_register(
-        SRCS ${SOURCE_FILES}
-        INCLUDE_DIRS "src/"
+        SRC_DIRS "Source/"
+        INCLUDE_DIRS "Source/"
+        PRIV_INCLUDE_DIRS "Private/"
         REQUIRES lvgl
     )
 
     add_definitions(-DESP_PLATFORM)
 else()
-    file(GLOB SOURCES "src/*.c*")
-    file(GLOB HEADERS "src/*.h*")
+    file(GLOB SOURCES "Source/*.c*")
+    file(GLOB HEADERS "Source/*.h*")
 
     add_library(lv_screenshot STATIC)
 
@@ -26,8 +25,8 @@ else()
     )
 
     target_include_directories(lv_screenshot
-        PRIVATE private
-        PUBLIC src
+        PRIVATE Private
+        PUBLIC Source
     )
 
     target_link_libraries(lv_screenshot

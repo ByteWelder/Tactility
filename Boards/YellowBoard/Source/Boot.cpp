@@ -1,4 +1,4 @@
-#include "Config.h"
+#include "YellowConfig.h"
 #include "TactilityCore.h"
 #include "hal/YellowTouchConstants.h"
 #include <driver/spi_common.h>

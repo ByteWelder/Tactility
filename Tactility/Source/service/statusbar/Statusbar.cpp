@@ -4,11 +4,12 @@
 #include "Tactility.h"
 
 #include "hal/Power.h"
-#include "hal/sdcard/Sdcard.h"
+#include "hal/SdCard.h"
 #include "lvgl/Statusbar.h"
 #include "service/ServiceContext.h"
 #include "service/wifi/Wifi.h"
 #include "service/ServiceRegistry.h"
+#include "TactilityHeadless.h"
 
 namespace tt::service::statusbar {
 
@@ -85,25 +86,29 @@ static void update_wifi_icon(std::shared_ptr<ServiceData> data) {
 
 // region sdcard
 
-static _Nullable const char* sdcard_get_status_icon(hal::sdcard::State state) {
+static const char* sdcard_get_status_icon(hal::SdCard::State state) {
     switch (state) {
-        case hal::sdcard::StateMounted:
+        case hal::SdCard::StateMounted:
             return TT_ASSETS_ICON_SDCARD;
-        case hal::sdcard::StateError:
-        case hal::sdcard::StateUnmounted:
+        case hal::SdCard::StateError:
+        case hal::SdCard::StateUnmounted:
+        case hal::SdCard::StateUnknown:
             return TT_ASSETS_ICON_SDCARD_ALERT;
         default:
-            return nullptr;
+            tt_crash("Unhandled SdCard state");
     }
 }
 
 static void update_sdcard_icon(std::shared_ptr<ServiceData> data) {
-    hal::sdcard::State state = hal::sdcard::getState();
-    const char* desired_icon = sdcard_get_status_icon(state);
-    if (data->sdcard_last_icon != desired_icon) {
-        lvgl::statusbar_icon_set_image(data->sdcard_icon_id, desired_icon);
-        lvgl::statusbar_icon_set_visibility(data->sdcard_icon_id, desired_icon != nullptr);
-        data->sdcard_last_icon = desired_icon;
+    auto sdcard = tt::hal::getConfiguration().sdcard;
+    if (sdcard != nullptr) {
+        auto state = sdcard->getState();
+        const char* desired_icon = sdcard_get_status_icon(state);
+        if (data->sdcard_last_icon != desired_icon) {
+            lvgl::statusbar_icon_set_image(data->sdcard_icon_id, desired_icon);
+            lvgl::statusbar_icon_set_visibility(data->sdcard_icon_id, desired_icon != nullptr);
+            data->sdcard_last_icon = desired_icon;
+        }
     }
 }
 

@@ -3,9 +3,8 @@
 #include "hal/Power.h"
 #include "hal/M5stackTouch.h"
 #include "hal/M5stackDisplay.h"
-#include "hal/sdcard/Sdcard.h"
+#include "hal/M5stackPower.h"
+#include "hal/M5stackSdCard.h"
 
 extern bool m5stack_bootstrap();
 extern bool m5stack_lvgl_init();
-
-extern const tt::hal::sdcard::SdCard m5stack_sdcard;

@@ -8,6 +8,7 @@
 #include "Thread.h"
 #include "RtosCompatSemaphore.h"
 #include "Check.h"
+#include "Lockable.h"
 #include <memory>
 
 namespace tt {
@@ -18,7 +19,7 @@ class ScopedMutexUsage;
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Can be used in IRQ mode (within ISR context)
  */
-class Mutex {
+class Mutex : public Lockable {
 
 public:
 
@@ -35,35 +36,15 @@ private:
 public:
 
     explicit Mutex(Type type = TypeNormal);
-    ~Mutex();
+    ~Mutex() override;
 
-    TtStatus acquire(uint32_t timeout) const;
+    TtStatus acquire(uint32_t timeoutTicks) const;
     TtStatus release() const;
+
+    bool lock(uint32_t timeoutTicks) const override { return acquire(timeoutTicks) == TtStatusOk; }
+    bool unlock() const override { return release() == TtStatusOk; }
+
     ThreadId getOwner() const;
-
-    std::unique_ptr<ScopedMutexUsage> scoped() const;
-};
-
-class ScopedMutexUsage {
-
-    const Mutex& mutex;
-    bool acquired = false;
-
-public:
-
-    ScopedMutexUsage(const Mutex& mutex) : mutex(mutex) {}
-
-    ~ScopedMutexUsage() {
-        if (acquired) {
-            tt_check(mutex.release() == TtStatusOk);
-        }
-    }
-
-    bool acquire(uint32_t timeout) {
-        TtStatus result = mutex.acquire(timeout);
-        acquired = (result == TtStatusOk);
-        return acquired;
-    }
 };
 
 /** Allocate Mutex
