@@ -1,9 +1,10 @@
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #include "Screenshot.h"
-#include <cstdlib>
 #include <memory>
 
-#include "Mutex.h"
-#include "ScreenshotTask.h"
 #include "service/ServiceContext.h"
 #include "service/ServiceRegistry.h"
 
@@ -13,105 +14,84 @@ namespace tt::service::screenshot {
 
 extern const ServiceManifest manifest;
 
-struct ServiceData {
-    Mutex mutex;
-    task::ScreenshotTask* task = nullptr;
-    Mode mode = ScreenshotModeNone;
-
-    ~ServiceData() {
-        if (task) {
-            task::free(task);
-        }
+std::shared_ptr<ScreenshotService> _Nullable optScreenshotService() {
+    ServiceContext* context = service::findServiceById(manifest.id);
+    if (context != nullptr) {
+        return std::static_pointer_cast<ScreenshotService>(context->getData());
+    } else {
+        return nullptr;
     }
+}
 
-    void lock() {
-        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
-    }
-
-    void unlock() {
-        tt_check(mutex.release() == TtStatusOk);
-    }
-};
-
-void startApps(const char* path) {
-    _Nullable auto* service = findServiceById(manifest.id);
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
+void ScreenshotService::startApps(const char* path) {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
         return;
     }
 
-    auto data = std::static_pointer_cast<ServiceData>(service->getData());
-    data->lock();
-    if (data->task == nullptr) {
-        data->task = task::alloc();
-        data->mode = ScreenshotModeApps;
-        task::startApps(data->task, path);
+    if (task == nullptr || task->isFinished()) {
+        task = std::make_unique<ScreenshotTask>();
+        mode = ScreenshotModeApps;
+        task->startApps(path);
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
-    data->unlock();
 }
 
-void startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
-    _Nullable auto* service = findServiceById(manifest.id);
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
+void ScreenshotService::startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
         return;
     }
 
-    auto data = std::static_pointer_cast<ServiceData>(service->getData());
-    data->lock();
-    if (data->task == nullptr) {
-        data->task = task::alloc();
-        data->mode = ScreenshotModeTimed;
-        task::startTimed(data->task, path, delay_in_seconds, amount);
+    if (task == nullptr || task->isFinished()) {
+        task = std::make_unique<ScreenshotTask>();
+        mode = ScreenshotModeTimed;
+        task->startTimed(path, delay_in_seconds, amount);
     } else {
         TT_LOG_E(TAG, "Screenshot task already running");
     }
-    data->unlock();
 }
 
-void stop() {
-    _Nullable ServiceContext* service = findServiceById(manifest.id);
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
+void ScreenshotService::stop() {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
         return;
     }
 
-    auto data = std::static_pointer_cast<ServiceData>(service->getData());
-    data->lock();
-    if (data->task != nullptr) {
-        task::stop(data->task);
-        task::free(data->task);
-        data->task = nullptr;
-        data->mode = ScreenshotModeNone;
+    if (task != nullptr) {
+        task = nullptr;
+        mode = ScreenshotModeNone;
     } else {
         TT_LOG_E(TAG, "Screenshot task not running");
     }
-    data->unlock();
 }
 
-Mode getMode() {
-    _Nullable auto* service = findServiceById(manifest.id);
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found");
+Mode ScreenshotService::getMode() {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
         return ScreenshotModeNone;
+    }
+
+    return mode;
+}
+
+bool ScreenshotService::isTaskStarted() {
+    auto* current_task = task.get();
+    if (current_task == nullptr) {
+        return false;
     } else {
-        auto data = std::static_pointer_cast<ServiceData>(service->getData());
-        data->lock();
-        Mode mode = data->mode;
-        data->unlock();
-        return mode;
+        return !current_task->isFinished();
     }
 }
 
-bool isStarted() {
-    return getMode() != ScreenshotModeNone;
-}
-
-static void onStart(ServiceContext& service) {
-    auto data = std::make_shared<ServiceData>();
-    service.setData(data);
+static void onStart(ServiceContext& serviceContext) {
+    auto service = std::make_shared<ScreenshotService>();
+    serviceContext.setData(service);
 }
 
 extern const ServiceManifest manifest = {
@@ -120,3 +100,5 @@ extern const ServiceManifest manifest = {
 };
 
 } // namespace
+
+#endif
