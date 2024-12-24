@@ -11,6 +11,7 @@
 #include "service/screenshot/Screenshot.h"
 #include "lvgl/Toolbar.h"
 #include "TactilityHeadless.h"
+#include "lvgl/LvglSync.h"
 
 namespace tt::app::screenshot {
 
@@ -39,6 +40,30 @@ static void onModeSetCallback(TT_UNUSED lv_event_t* event) {
     auto ui = optScreenshotUi();
     if (ui != nullptr) {
         ui->onModeSet();
+    }
+}
+
+static void onTimerCallback(TT_UNUSED std::shared_ptr<void> context) {
+    auto screenshot_ui = optScreenshotUi();
+    if (screenshot_ui != nullptr) {
+        screenshot_ui->onTimerTick();
+    }
+}
+
+ScreenshotUi::ScreenshotUi() {
+    updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onTimerCallback, nullptr);
+}
+
+ScreenshotUi::~ScreenshotUi() {
+    if (updateTimer->isRunning()) {
+        updateTimer->stop();
+    }
+}
+
+void ScreenshotUi::onTimerTick() {
+    auto lvgl_lock = lvgl::getLvglSyncLockable()->scoped();
+    if (lvgl_lock->lock(50 / portTICK_PERIOD_MS)) {
+        updateScreenshotMode();
     }
 }
 
@@ -198,6 +223,10 @@ void ScreenshotUi::createTimerSettingsWidgets(lv_obj_t* parent) {
 }
 
 void ScreenshotUi::createWidgets(const AppContext& app, lv_obj_t* parent) {
+    if (updateTimer->isRunning()) {
+        updateTimer->stop();
+    }
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     auto* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -216,6 +245,10 @@ void ScreenshotUi::createWidgets(const AppContext& app, lv_obj_t* parent) {
     service::gui::keyboardAddTextArea(pathTextArea);
 
     updateScreenshotMode();
+
+    if (!updateTimer->isRunning()) {
+        updateTimer->start(500 / portTICK_PERIOD_MS);
+    }
 }
 
 } // namespace
