@@ -47,9 +47,15 @@ void ScreenshotUi::onModeSet() {
 }
 
 void ScreenshotUi::onStartPressed() {
-    if (service::screenshot::isStarted()) {
+    auto service = service::screenshot::optScreenshotService();
+    if (service == nullptr) {
+        TT_LOG_E(TAG, "Service not found/running");
+        return;
+    }
+
+    if (service->isTaskStarted()) {
         TT_LOG_I(TAG, "Stop screenshot");
-        service::screenshot::stop();
+        service->stop();
     } else {
         uint32_t selected = lv_dropdown_get_selected(modeDropdown);
         const char* path = lv_textarea_get_text(pathTextArea);
@@ -58,13 +64,13 @@ void ScreenshotUi::onStartPressed() {
             const char* delay_text = lv_textarea_get_text(delayTextArea);
             int delay = atoi(delay_text);
             if (delay > 0) {
-                service::screenshot::startTimed(path, delay, 1);
+                service->startTimed(path, delay, 1);
             } else {
                 TT_LOG_W(TAG, "Ignored screenshot start because delay was 0");
             }
         } else {
             TT_LOG_I(TAG, "Start app screenshots");
-            service::screenshot::startApps(path);
+            service->startApps(path);
         }
     }
 
@@ -72,8 +78,14 @@ void ScreenshotUi::onStartPressed() {
 }
 
 void ScreenshotUi::updateScreenshotMode() {
+    auto service = service::screenshot::optScreenshotService();
+    if (service == nullptr) {
+        TT_LOG_E(TAG, "Service not found/running");
+        return;
+    }
+
     lv_obj_t* label = startStopButtonLabel;
-    if (service::screenshot::isStarted()) {
+    if (service->isTaskStarted()) {
         lv_label_set_text(label, "Stop");
     } else {
         lv_label_set_text(label, "Start");
@@ -89,6 +101,12 @@ void ScreenshotUi::updateScreenshotMode() {
 
 
 void ScreenshotUi::createModeSettingWidgets(lv_obj_t* parent) {
+    auto service = service::screenshot::optScreenshotService();
+    if (service == nullptr) {
+        TT_LOG_E(TAG, "Service not found/running");
+        return;
+    }
+
     auto* mode_wrapper = lv_obj_create(parent);
     lv_obj_set_size(mode_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(mode_wrapper, 0, 0);
@@ -102,7 +120,7 @@ void ScreenshotUi::createModeSettingWidgets(lv_obj_t* parent) {
     lv_dropdown_set_options(modeDropdown, "Timer\nApp start");
     lv_obj_align_to(modeDropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     lv_obj_add_event_cb(modeDropdown, onModeSetCallback, LV_EVENT_VALUE_CHANGED, nullptr);
-    service::screenshot::Mode mode = service::screenshot::getMode();
+    service::screenshot::Mode mode = service->getMode();
     if (mode == service::screenshot::ScreenshotModeApps) {
         lv_dropdown_set_selected(modeDropdown, 1);
     }

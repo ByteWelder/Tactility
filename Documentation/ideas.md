@@ -36,6 +36,7 @@
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
 - Support hot-plugging SD card
+- Make a list of common error texts (e.g. mutex lock failure) to save space and to be consistent
 
 # Nice-to-haves
 - T-Deck Plus: Create separate board config?

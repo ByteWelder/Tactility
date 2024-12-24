@@ -7,61 +7,42 @@
 #include "lv_screenshot.h"
 
 #include "app/AppContext.h"
-#include "Mutex.h"
 #include "TactilityCore.h"
-#include "Thread.h"
 #include "service/loader/Loader.h"
 #include "lvgl/LvglSync.h"
 
-namespace tt::service::screenshot::task {
+namespace tt::service::screenshot {
 
 #define TAG "screenshot_task"
 
-#define TASK_WORK_TYPE_DELAY 1
-#define TASK_WORK_TYPE_APPS 2
-
-#define SCREENSHOT_PATH_LIMIT 128
-
-
-struct ScreenshotTaskWork {
-    int type = TASK_WORK_TYPE_DELAY ;
-    uint8_t delay_in_seconds = 0;
-    uint8_t amount = 0;
-    char path[SCREENSHOT_PATH_LIMIT] = { 0 };
-};
-
-struct ScreenshotTaskData {
-    Thread* thread = nullptr;
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
-    bool interrupted = false;
-    ScreenshotTaskWork work;
-};
-
-static void task_lock(ScreenshotTaskData* data) {
-    tt_check(data->mutex.acquire(TtWaitForever) == TtStatusOk);
-}
-
-static void task_unlock(ScreenshotTaskData* data) {
-    tt_check(data->mutex.release() == TtStatusOk);
-}
-
-ScreenshotTask* alloc() {
-    return new ScreenshotTaskData();
-}
-
-void free(ScreenshotTask* task) {
-    auto* data = static_cast<ScreenshotTaskData*>(task);
-    if (data->thread) {
-        stop(data);
+ScreenshotTask::~ScreenshotTask() {
+    if (thread) {
+        stop();
     }
-    delete data;
 }
 
-static bool is_interrupted(ScreenshotTaskData* data) {
-    task_lock(data);
-    bool interrupted = data->interrupted;
-    task_unlock(data);
+bool ScreenshotTask::isInterrupted() {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
+        return true;
+    }
     return interrupted;
+}
+
+bool ScreenshotTask::isFinished() {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
+        return false;
+    }
+    return finished;
+}
+
+void ScreenshotTask::setFinished() {
+    auto scoped_lockable = mutex.scoped();
+    scoped_lockable->lock(TtWaitForever);
+    finished = true;
 }
 
 static void makeScreenshot(const char* filename) {
@@ -77,33 +58,35 @@ static void makeScreenshot(const char* filename) {
     }
 }
 
-static int32_t screenshot_task(void* context) {
-    auto* data = static_cast<ScreenshotTaskData*>(context);
+static int32_t screenshotTaskCallback(void* context) {
+    auto* data = static_cast<ScreenshotTask*>(context);
+    assert(data != nullptr);
+    data->taskMain();
+    return 0;
+}
 
-    bool interrupted = false;
+void ScreenshotTask::taskMain() {
     uint8_t screenshots_taken = 0;
     std::string last_app_id;
 
-    while (!interrupted) {
-        interrupted = is_interrupted(data);
-
-        if (data->work.type == TASK_WORK_TYPE_DELAY) {
+    while (!isInterrupted()) {
+        if (work.type == TASK_WORK_TYPE_DELAY) {
             // Splitting up the delays makes it easier to stop the service
-            for (int i = 0; i < (data->work.delay_in_seconds * 10) && !is_interrupted(data); ++i){
+            for (int i = 0; i < (work.delay_in_seconds * 10) && !isInterrupted(); ++i){
                 kernel::delayMillis(100);
             }
 
-            if (!is_interrupted(data)) {
+            if (!isInterrupted()) {
                 screenshots_taken++;
                 char filename[SCREENSHOT_PATH_LIMIT + 32];
-                sprintf(filename, "%s/screenshot-%d.png", data->work.path, screenshots_taken);
+                sprintf(filename, "%s/screenshot-%d.png", work.path, screenshots_taken);
                 makeScreenshot(filename);
 
-                if (data->work.amount > 0 && screenshots_taken >= data->work.amount) {
+                if (work.amount > 0 && screenshots_taken >= work.amount) {
                     break; // Interrupted loop
                 }
             }
-        } else if (data->work.type == TASK_WORK_TYPE_APPS) {
+        } else if (work.type == TASK_WORK_TYPE_APPS) {
             app::AppContext* _Nullable app = loader::getCurrentApp();
             if (app) {
                 const app::AppManifest& manifest = app->getManifest();
@@ -111,7 +94,7 @@ static int32_t screenshot_task(void* context) {
                     kernel::delayMillis(100);
                     last_app_id = manifest.id;
                     char filename[SCREENSHOT_PATH_LIMIT + 32];
-                    sprintf(filename, "%s/screenshot-%s.png", data->work.path, manifest.id.c_str());
+                    sprintf(filename, "%s/screenshot-%s.png", work.path, manifest.id.c_str());
                     makeScreenshot(filename);
                 }
             }
@@ -120,67 +103,79 @@ static int32_t screenshot_task(void* context) {
         }
     }
 
-    return 0;
+    setFinished();
 }
 
-static void task_start(ScreenshotTaskData* data) {
-    task_lock(data);
-    tt_check(data->thread == nullptr);
-    data->thread = new Thread(
+void ScreenshotTask::taskStart() {
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
+        return;
+    }
+
+    tt_check(thread == nullptr);
+    thread = new Thread(
         "screenshot",
         8192,
-        &screenshot_task,
-        data
+        &screenshotTaskCallback,
+        this
     );
-    data->thread->start();
-    task_unlock(data);
+    thread->start();
 }
 
-void startApps(ScreenshotTask* task, const char* path) {
+void ScreenshotTask::startApps(const char* path) {
     tt_check(strlen(path) < (SCREENSHOT_PATH_LIMIT - 1));
-    auto* data = static_cast<ScreenshotTaskData*>(task);
-    task_lock(data);
-    if (data->thread == nullptr) {
-        data->interrupted = false;
-        data->work.type = TASK_WORK_TYPE_APPS;
-        strcpy(data->work.path, path);
-        task_start(data);
+
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
+        return;
+    }
+
+    if (thread == nullptr) {
+        interrupted = false;
+        work.type = TASK_WORK_TYPE_APPS;
+        strcpy(work.path, path);
+        taskStart();
     } else {
         TT_LOG_E(TAG, "Task was already running");
     }
-    task_unlock(data);
 }
 
-void startTimed(ScreenshotTask* task, const char* path, uint8_t delay_in_seconds, uint8_t amount) {
+void ScreenshotTask::startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     tt_check(strlen(path) < (SCREENSHOT_PATH_LIMIT - 1));
-    auto* data = static_cast<ScreenshotTaskData*>(task);
-    task_lock(data);
-    if (data->thread == nullptr) {
-        data->interrupted = false;
-        data->work.type = TASK_WORK_TYPE_DELAY;
-        data->work.delay_in_seconds = delay_in_seconds;
-        data->work.amount = amount;
-        strcpy(data->work.path, path);
-        task_start(data);
+    auto scoped_lockable = mutex.scoped();
+    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+        TT_LOG_E(TAG, "Mutex lock failed");
+        return;
+    }
+
+    if (thread == nullptr) {
+        interrupted = false;
+        work.type = TASK_WORK_TYPE_DELAY;
+        work.delay_in_seconds = delay_in_seconds;
+        work.amount = amount;
+        strcpy(work.path, path);
+        taskStart();
     } else {
         TT_LOG_E(TAG, "Task was already running");
     }
-    task_unlock(data);
 }
 
-void stop(ScreenshotTask* task) {
-    auto* data = static_cast<ScreenshotTaskData*>(task);
-    if (data->thread != nullptr) {
-        task_lock(data);
-        data->interrupted = true;
-        task_unlock(data);
+void ScreenshotTask::stop() {
+    if (thread != nullptr) {
+        if (mutex.lock(50 / portTICK_PERIOD_MS)) {
+            interrupted = true;
+            tt_check(mutex.unlock());
+        }
 
-        data->thread->join();
+        thread->join();
 
-        task_lock(data);
-        delete data->thread;
-        data->thread = nullptr;
-        task_unlock(data);
+        if (mutex.lock(50 / portTICK_PERIOD_MS)) {
+            delete thread;
+            thread = nullptr;
+            tt_check(mutex.unlock());
+        }
     }
 }
 
