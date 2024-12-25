@@ -89,7 +89,7 @@ static void updateViews(std::shared_ptr<Data> data) {
 
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "updateViews lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViews");
     }
 }
 
@@ -98,7 +98,7 @@ static void updateViewsSafely(std::shared_ptr<Data> data) {
         updateViews(data);
         lvgl::unlock();
     } else {
-        TT_LOG_W(TAG, "updateViewsSafely lock LVGL");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViewsSafely");
     }
 }
 
@@ -110,7 +110,7 @@ void onScanTimerFinished(std::shared_ptr<Data> data) {
         }
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "onScanTimerFinished lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimerFinished");
     }
 }
 

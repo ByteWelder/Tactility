@@ -27,9 +27,9 @@ static bool tdeck_power_on() {
 }
 
 bool tdeck_init_power() {
-    ESP_LOGI(TAG, "Power on");
+    ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
     if (!tdeck_power_on()) {
-        TT_LOG_E(TAG, "Power on failed");
+        TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
         return false;
     }
 

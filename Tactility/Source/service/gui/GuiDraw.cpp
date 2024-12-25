@@ -59,7 +59,7 @@ void redraw(Gui* gui) {
         // Unlock GUI and LVGL
         lvgl::unlock();
     } else {
-        TT_LOG_E(TAG, "failed to lock lvgl");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
     }
 
     unlock();
