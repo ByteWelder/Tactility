@@ -2,7 +2,9 @@
 
 #include "elf_symbol.h"
 
-#include "tt_app.h"
+#include "tt_app_context.h"
+#include "tt_app_manifest.h"
+#include "tt_app_alertdialog.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
 #include "tt_lvgl_spinner.h"
@@ -19,7 +21,15 @@ extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
+    ESP_ELFSYM_EXPORT(tt_app_context_get_data),
+    ESP_ELFSYM_EXPORT(tt_app_context_set_data),
+    ESP_ELFSYM_EXPORT(tt_app_context_get_parameters),
+    ESP_ELFSYM_EXPORT(tt_app_context_set_result),
+    ESP_ELFSYM_EXPORT(tt_app_context_has_result),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),
+    ESP_ELFSYM_EXPORT(tt_app_selectiondialog_get_result_index),
+    ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
+    ESP_ELFSYM_EXPORT(tt_app_alertdialog_get_result_index),
     ESP_ELFSYM_EXPORT(tt_bundle_alloc),
     ESP_ELFSYM_EXPORT(tt_bundle_free),
     ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),

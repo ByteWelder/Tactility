@@ -1,7 +1,7 @@
 #pragma once
 
 #include <lvgl.h>
-#include "tt_app.h"
+#include "tt_app_context.h"
 
 #ifdef __cplusplus
 extern "C" {

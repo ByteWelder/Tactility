@@ -1,6 +1,5 @@
-#include <stddef.h>
-#include "TactilityC/app/App.h"
-#include "TactilityC/lvgl/Toolbar.h"
+#include "tt_app_manifest.h"
+#include "tt_lvgl_toolbar.h"
 
 /**
  * Note: LVGL and Tactility methods need to be exposed manually from TactilityC/Source/TactilityC.cpp

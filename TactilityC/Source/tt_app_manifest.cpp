@@ -1,10 +1,10 @@
-#include "tt_app.h"
+#include "tt_app_manifest.h"
 
 #include <Check.h>
 #include <Log.h>
 #include <app/ElfApp.h>
 
-#define TAG "tactilityc_app"
+#define TAG "tt_app"
 
 AppOnStart elfOnStart = nullptr;
 AppOnStop elfOnStop = nullptr;

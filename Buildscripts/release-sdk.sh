@@ -36,6 +36,7 @@ cd Libraries/lvgl
 find src/ -name '*.h' | cpio -pdm $find_target_dir
 cd -
 cp Libraries/lvgl/lvgl.h $find_target_dir
+cp Libraries/lvgl/lv_version.h $find_target_dir
 cp Libraries/lvgl/LICENCE.txt $lvgl_library_path/LICENSE.txt
 cp Libraries/lvgl_conf/lv_conf_kconfig.h $lvgl_library_path/Include/lv_conf.h
 

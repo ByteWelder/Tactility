@@ -1,19 +1,19 @@
 #pragma once
 
+#include "tt_bundle.h"
 #include <lvgl.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void* AppContextHandle;
-typedef void* BundleHandle;
-
 typedef enum {
     AppResultOk,
     AppResultCancelled,
     AppResultError
 } Result;
+
+typedef void* AppContextHandle;
 
 typedef void (*AppOnStart)(AppContextHandle app);
 typedef void (*AppOnStop)(AppContextHandle app);
