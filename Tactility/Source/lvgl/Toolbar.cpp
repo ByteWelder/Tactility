@@ -1,12 +1,11 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
+
 #include "Toolbar.h"
 
 #include "service/loader/Loader.h"
 #include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
 #include "Spinner.h"
-
-#define SPINNER_HEIGHT TOOLBAR_HEIGHT
 
 namespace tt::lvgl {
 
@@ -106,7 +105,6 @@ void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callb
 
 lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = (Toolbar*)obj;
-    uint8_t id = toolbar->action_count;
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
     toolbar->action_count++;
 
@@ -125,6 +123,7 @@ lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
     auto* toolbar = (Toolbar*)obj;
     lv_obj_t* widget = lv_switch_create(toolbar->action_container);
     lv_obj_set_style_margin_top(widget, 4, 0); // Because aligning doesn't work
+    lv_obj_set_style_margin_right(widget, 4, 0);
     return widget;
 }
 
