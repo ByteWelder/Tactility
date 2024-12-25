@@ -9,6 +9,7 @@
 #include "tt_lvgl_toolbar.h"
 #include "tt_message_queue.h"
 #include "tt_mutex.h"
+#include "tt_semaphore.h"
 
 #include <lvgl.h>
 
@@ -40,6 +41,11 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_mutex_free),
     ESP_ELFSYM_EXPORT(tt_mutex_lock),
     ESP_ELFSYM_EXPORT(tt_mutex_unlock),
+    ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
+    ESP_ELFSYM_EXPORT(tt_semaphore_free),
+    ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
+    ESP_ELFSYM_EXPORT(tt_semaphore_release),
+    ESP_ELFSYM_EXPORT(tt_semaphore_get_count),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj

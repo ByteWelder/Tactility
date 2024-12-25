@@ -15,37 +15,29 @@ namespace tt {
 
 /**
  * Wrapper for xSemaphoreCreateBinary (max count == 1) and xSemaphoreCreateCounting (max count > 1)
- * Can be used in IRQ mode (within ISR context)
+ * Can be used from IRQ/ISR mode, but cannot be created/destroyed from such a context.
  */
 class Semaphore {
 private:
     SemaphoreHandle_t handle;
 public:
     /**
+     * Cannot be called from IRQ/ISR mode.
      * @param[in] maxCount The maximum count
      * @param[in] initialCount The initial count
      */
     Semaphore(uint32_t maxCount, uint32_t initialCount);
 
-    /**
-     * @param instance The pointer to Semaphore instance
-     */
+    /** Cannot be called from IRQ/ISR mode. */
     ~Semaphore();
 
-    /** Acquire semaphore
-     * @param[in] timeout The timeout
-     * @return the status
-     */
-    TtStatus acquire(uint32_t timeout) const;
+    /** Acquire semaphore */
+    bool acquire(uint32_t timeoutTicks) const;
 
-    /** Release semaphore
-     * @return the status
-     */
-    TtStatus release() const;
+    /** Release semaphore */
+    bool release() const;
 
-    /** Get semaphore count
-     * @return semaphore count
-     */
+    /** @return semaphore count */
     uint32_t getCount() const;
 };
 
