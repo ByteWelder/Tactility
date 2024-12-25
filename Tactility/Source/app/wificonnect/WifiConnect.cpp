@@ -82,7 +82,7 @@ void WifiConnect::requestViewUpdate() {
             view.update();
             lvgl::unlock();
         } else {
-            TT_LOG_E(TAG, "Failed to lock lvgl");
+            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
         }
     }
     unlock();

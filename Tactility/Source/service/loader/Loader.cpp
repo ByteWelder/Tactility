@@ -131,7 +131,7 @@ static void app_transition_to_state(app::AppInstance& app, app::State state) {
 
     TT_LOG_I(
         TAG,
-        "app \"%s\" state: %s -> %s",
+        "App \"%s\" state: %s -> %s",
         manifest.id.c_str(),
         app_state_to_string(old_state),
         app_state_to_string(state)
@@ -183,7 +183,7 @@ static LoaderStatus loader_do_start_app_with_manifest(
     const app::AppManifest* manifest,
     std::shared_ptr<const Bundle> _Nullable parameters
 ) {
-    TT_LOG_I(TAG, "start with manifest %s", manifest->id.c_str());
+    TT_LOG_I(TAG, "Start with manifest %s", manifest->id.c_str());
 
     loader_lock();
 

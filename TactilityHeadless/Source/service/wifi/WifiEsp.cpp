@@ -570,7 +570,7 @@ static void dispatchEnable(std::shared_ptr<void> context) {
         publish_event_simple(wifi, WifiEventTypeRadioStateOn);
         TT_LOG_I(TAG, "Enabled");
     } else {
-        TT_LOG_E(TAG, "enable() mutex timeout");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
 }
 
@@ -580,7 +580,7 @@ static void dispatchDisable(std::shared_ptr<void> context) {
     auto lockable = wifi->radioMutex.scoped();
 
     if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "disable() mutex timeout");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "disable()");
         return;
     }
 
@@ -647,7 +647,7 @@ static void dispatchScan(std::shared_ptr<void> context) {
     auto lockable = wifi->radioMutex.scoped();
 
     if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "dispatchScan() mutex timeout");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -681,7 +681,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
     auto lockable = wifi->radioMutex.scoped();
 
     if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "dispatchConnect() mutex timeout");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "dispatchConnect()");
         return;
     }
 
@@ -810,7 +810,7 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
     auto lockable = wifi->radioMutex.scoped();
 
     if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "disconnect_internal_but_keep_active() mutex timeout");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 

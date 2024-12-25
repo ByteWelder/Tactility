@@ -24,7 +24,7 @@ ScreenshotTask::~ScreenshotTask() {
 bool ScreenshotTask::isInterrupted() {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return true;
     }
     return interrupted;
@@ -33,7 +33,7 @@ bool ScreenshotTask::isInterrupted() {
 bool ScreenshotTask::isFinished() {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return false;
     }
     return finished;
@@ -54,7 +54,7 @@ static void makeScreenshot(const char* filename) {
         }
         lvgl::unlock();
     } else {
-        TT_LOG_E(TAG, "Failed to acquire LVGL lock");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
     }
 }
 
@@ -109,7 +109,7 @@ void ScreenshotTask::taskMain() {
 void ScreenshotTask::taskStart() {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -128,7 +128,7 @@ void ScreenshotTask::startApps(const char* path) {
 
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -146,7 +146,7 @@ void ScreenshotTask::startTimed(const char* path, uint8_t delay_in_seconds, uint
     tt_check(strlen(path) < (SCREENSHOT_PATH_LIMIT - 1));
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 

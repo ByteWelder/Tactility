@@ -136,7 +136,7 @@ tt::hal::SdCard::State SpiSdCard::getState() const {
     if (config->lockable) {
         bool locked = config->lockable->lock(50); // TODO: Refactor to a more reliable locking mechanism
         if (!locked) {
-            TT_LOG_W(TAG, "Failed to get LVGL lock");
+            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
             return StateUnknown;
         }
     }

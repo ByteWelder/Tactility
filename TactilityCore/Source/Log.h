@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LogMessages.h"
+
 #ifdef ESP_TARGET
 #include "esp_log.h"
 #else

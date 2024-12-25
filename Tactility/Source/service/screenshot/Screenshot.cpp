@@ -26,7 +26,7 @@ std::shared_ptr<ScreenshotService> _Nullable optScreenshotService() {
 void ScreenshotService::startApps(const char* path) {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -35,14 +35,14 @@ void ScreenshotService::startApps(const char* path) {
         mode = ScreenshotModeApps;
         task->startApps(path);
     } else {
-        TT_LOG_E(TAG, "Screenshot task already running");
+        TT_LOG_W(TAG, "Screenshot task already running");
     }
 }
 
 void ScreenshotService::startTimed(const char* path, uint8_t delay_in_seconds, uint8_t amount) {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -51,14 +51,14 @@ void ScreenshotService::startTimed(const char* path, uint8_t delay_in_seconds, u
         mode = ScreenshotModeTimed;
         task->startTimed(path, delay_in_seconds, amount);
     } else {
-        TT_LOG_E(TAG, "Screenshot task already running");
+        TT_LOG_W(TAG, "Screenshot task already running");
     }
 }
 
 void ScreenshotService::stop() {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -66,14 +66,14 @@ void ScreenshotService::stop() {
         task = nullptr;
         mode = ScreenshotModeNone;
     } else {
-        TT_LOG_E(TAG, "Screenshot task not running");
+        TT_LOG_W(TAG, "Screenshot task not running");
     }
 }
 
 Mode ScreenshotService::getMode() {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, "Mutex lock failed");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return ScreenshotModeNone;
     }
 

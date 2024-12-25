@@ -38,7 +38,7 @@ static void onUpdate(std::shared_ptr<void> context) {
     auto data = std::static_pointer_cast<ServiceData>(context);
 
     if (!data->lock(50)) {
-        TT_LOG_W(TAG, "Failed to acquire lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 

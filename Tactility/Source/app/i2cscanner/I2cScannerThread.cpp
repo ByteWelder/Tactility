@@ -22,7 +22,7 @@ static bool getPort(std::shared_ptr<Data> data, i2c_port_t* port) {
         tt_assert(data->mutex.release() == TtStatusOk);
         return true;
     } else {
-        TT_LOG_W(TAG, "getPort lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "getPort");
         return false;
     }
 }
@@ -33,7 +33,7 @@ static bool addAddressToList(std::shared_ptr<Data> data, uint8_t address) {
         tt_assert(data->mutex.release() == TtStatusOk);
         return true;
     } else {
-        TT_LOG_W(TAG, "addAddressToList lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "addAddressToList");
         return false;
     }
 }
@@ -58,7 +58,7 @@ static void onScanTimer(TT_UNUSED std::shared_ptr<void> context) {
                 }
             }
         } else {
-            TT_LOG_W(TAG, "onScanTimer lock");
+            TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimer");
             break;
         }
 
@@ -82,7 +82,7 @@ bool hasScanThread(std::shared_ptr<Data> data) {
         return has_thread;
     } else {
         // Unsafe way
-        TT_LOG_W(TAG, "hasScanTimer lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "hasScanTimer");
         return data->scanTimer != nullptr;
     }
 }
@@ -107,7 +107,7 @@ void startScanning(std::shared_ptr<Data> data) {
         data->scanTimer->start(10);
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "startScanning lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "startScanning");
     }
 }
 
@@ -117,7 +117,7 @@ void stopScanning(std::shared_ptr<Data> data) {
         data->scanState = ScanStateStopped;
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_E(TAG, "Acquire mutex failed");
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
 }
 
