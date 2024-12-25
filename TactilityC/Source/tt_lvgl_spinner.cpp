@@ -1,4 +1,4 @@
-#include "Spinner.h"
+#include "tt_lvgl_spinner.h"
 #include "lvgl/Spinner.h"
 
 extern "C" {

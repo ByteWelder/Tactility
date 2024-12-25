@@ -5,10 +5,12 @@
 
 namespace tt {
 
+[[deprecated("Using this is poor software design in most scenarios")]]
 typedef enum {
     TtWaitForever = 0xFFFFFFFFU,
 } TtWait;
 
+[[deprecated("Define flags as needed")]]
 typedef enum {
     TtFlagWaitAny = 0x00000000U, ///< Wait for any flag (default).
     TtFlagWaitAll = 0x00000001U, ///< Wait for all flags.
@@ -22,6 +24,7 @@ typedef enum {
     TtFlagErrorISR = 0xFFFFFFFAU,       ///< TtStatusErrorISR (-6).
 } TtFlag;
 
+[[deprecated("Use bool or specific type")]]
 typedef enum {
     TtStatusOk = 0, ///< Operation completed successfully.
     TtStatusError =

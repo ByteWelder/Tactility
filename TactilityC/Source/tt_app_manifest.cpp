@@ -1,9 +1,10 @@
-#include <Check.h>
-#include "App.h"
-#include "Log.h"
-#include "app/ElfApp.h"
+#include "tt_app_manifest.h"
 
-#define TAG "tactilityc_app"
+#include <Check.h>
+#include <Log.h>
+#include <app/ElfApp.h>
+
+#define TAG "tt_app"
 
 AppOnStart elfOnStart = nullptr;
 AppOnStop elfOnStop = nullptr;
@@ -100,7 +101,7 @@ void tt_set_app_manifest(
     elfOnResult = onResult;
     tt::app::setElfAppManifest(manifest);
 #else
-    tt_crash("Not intended for PC");
+    tt_crash("TactilityC is intended for PC/Simulator");
 #endif
 }
 

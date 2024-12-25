@@ -66,12 +66,8 @@ bool StreamBuffer::isEmpty() const {
     return xStreamBufferIsEmpty(handle) == pdTRUE;
 };
 
-TtStatus StreamBuffer::reset() const {
-    if (xStreamBufferReset(handle) == pdPASS) {
-        return TtStatusOk;
-    } else {
-        return TtStatusError;
-    }
+bool StreamBuffer::reset() const {
+    return xStreamBufferReset(handle) == pdPASS;
 }
 
 } // namespace

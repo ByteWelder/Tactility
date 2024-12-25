@@ -80,7 +80,7 @@ TEST_CASE("message queue should make copy of data") {
 
     // We want to verify that the value was copied into the queue and retrieved properly
     int32_t queue_number = 0;
-    CHECK_EQ(queue.get(&queue_number, 100), TtStatusOk);
+    CHECK_EQ(queue.get(&queue_number, 100), true);
     CHECK_EQ(queue_number, test_value);
 }
 

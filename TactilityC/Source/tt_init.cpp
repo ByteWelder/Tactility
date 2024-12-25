@@ -2,21 +2,86 @@
 
 #include "elf_symbol.h"
 
-#include "app/App.h"
-#include "app/SelectionDialog.h"
-#include "lvgl/Toolbar.h"
-#include "TactilityC/lvgl/Spinner.h"
+#include "tt_app_context.h"
+#include "tt_app_manifest.h"
+#include "tt_app_alertdialog.h"
+#include "tt_app_selectiondialog.h"
+#include "tt_bundle.h"
+#include "tt_lvgl_spinner.h"
+#include "tt_lvgl_toolbar.h"
+#include "tt_message_queue.h"
+#include "tt_mutex.h"
+#include "tt_semaphore.h"
+#include "tt_thread.h"
+#include "tt_timer.h"
 
-#include "lvgl.h"
+#include <lvgl.h>
 
 extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
+    ESP_ELFSYM_EXPORT(tt_app_context_get_data),
+    ESP_ELFSYM_EXPORT(tt_app_context_set_data),
+    ESP_ELFSYM_EXPORT(tt_app_context_get_parameters),
+    ESP_ELFSYM_EXPORT(tt_app_context_set_result),
+    ESP_ELFSYM_EXPORT(tt_app_context_has_result),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),
+    ESP_ELFSYM_EXPORT(tt_app_selectiondialog_get_result_index),
+    ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
+    ESP_ELFSYM_EXPORT(tt_app_alertdialog_get_result_index),
+    ESP_ELFSYM_EXPORT(tt_bundle_alloc),
+    ESP_ELFSYM_EXPORT(tt_bundle_free),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_int32),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_string),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_string),
     ESP_ELFSYM_EXPORT(tt_set_app_manifest),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_simple),
+    ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
+    ESP_ELFSYM_EXPORT(tt_message_queue_free),
+    ESP_ELFSYM_EXPORT(tt_message_queue_put),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_capacity),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_message_size),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_count),
+    ESP_ELFSYM_EXPORT(tt_message_queue_reset),
+    ESP_ELFSYM_EXPORT(tt_mutex_alloc),
+    ESP_ELFSYM_EXPORT(tt_mutex_free),
+    ESP_ELFSYM_EXPORT(tt_mutex_lock),
+    ESP_ELFSYM_EXPORT(tt_mutex_unlock),
+    ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
+    ESP_ELFSYM_EXPORT(tt_semaphore_free),
+    ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
+    ESP_ELFSYM_EXPORT(tt_semaphore_release),
+    ESP_ELFSYM_EXPORT(tt_semaphore_get_count),
+    ESP_ELFSYM_EXPORT(tt_thread_alloc),
+    ESP_ELFSYM_EXPORT(tt_thread_alloc_ext),
+    ESP_ELFSYM_EXPORT(tt_thread_free),
+    ESP_ELFSYM_EXPORT(tt_thread_set_name),
+    ESP_ELFSYM_EXPORT(tt_thread_mark_as_static),
+    ESP_ELFSYM_EXPORT(tt_thread_is_marked_as_static),
+    ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
+    ESP_ELFSYM_EXPORT(tt_thread_set_callback),
+    ESP_ELFSYM_EXPORT(tt_thread_set_priority),
+    ESP_ELFSYM_EXPORT(tt_thread_set_state_callback),
+    ESP_ELFSYM_EXPORT(tt_thread_get_state),
+    ESP_ELFSYM_EXPORT(tt_thread_start),
+    ESP_ELFSYM_EXPORT(tt_thread_join),
+    ESP_ELFSYM_EXPORT(tt_thread_get_id),
+    ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
+    ESP_ELFSYM_EXPORT(tt_timer_alloc),
+    ESP_ELFSYM_EXPORT(tt_timer_free),
+    ESP_ELFSYM_EXPORT(tt_timer_start),
+    ESP_ELFSYM_EXPORT(tt_timer_restart),
+    ESP_ELFSYM_EXPORT(tt_timer_stop),
+    ESP_ELFSYM_EXPORT(tt_timer_is_running),
+    ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
+    ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
+    ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj

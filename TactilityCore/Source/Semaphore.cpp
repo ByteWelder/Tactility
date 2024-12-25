@@ -28,49 +28,36 @@ Semaphore::~Semaphore() {
     vSemaphoreDelete(handle);
 }
 
-TtStatus Semaphore::acquire(uint32_t timeout) const {
+bool Semaphore::acquire(uint32_t timeout) const {
     if (TT_IS_IRQ_MODE()) {
         if (timeout != 0U) {
-            return TtStatusErrorParameter;
+            return false;
         } else {
             BaseType_t yield = pdFALSE;
 
             if (xSemaphoreTakeFromISR(handle, &yield) != pdPASS) {
-                return TtStatusErrorResource;
+                return false;
             } else {
                 portYIELD_FROM_ISR(yield);
-                return TtStatusOk;
+                return true;
             }
         }
     } else {
-        if (xSemaphoreTake(handle, (TickType_t)timeout) != pdPASS) {
-            if (timeout != 0U) {
-                return TtStatusErrorTimeout;
-            } else {
-                return TtStatusErrorResource;
-            }
-        } else {
-            return TtStatusOk;
-        }
+        return xSemaphoreTake(handle, (TickType_t)timeout) == pdPASS;
     }
 }
 
-TtStatus Semaphore::release() const {
+bool Semaphore::release() const {
     if (TT_IS_IRQ_MODE()) {
         BaseType_t yield = pdFALSE;
-
         if (xSemaphoreGiveFromISR(handle, &yield) != pdTRUE) {
-            return TtStatusErrorResource;
+            return false;
         } else {
             portYIELD_FROM_ISR(yield);
-            return TtStatusOk;
+            return true;
         }
     } else {
-        if (xSemaphoreGive(handle) != pdPASS) {
-            return TtStatusErrorResource;
-        } else {
-            return TtStatusOk;
-        }
+        return xSemaphoreGive(handle) == pdPASS;
     }
 }
 

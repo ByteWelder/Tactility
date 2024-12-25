@@ -2,7 +2,7 @@
 
 // Apps
 #include "Tactility.h"
-#include "TactilityC/TactilityC.h"
+#include "tt_init.h"
 
 namespace tt::service::wifi {
     extern void wifi_task(void*);
