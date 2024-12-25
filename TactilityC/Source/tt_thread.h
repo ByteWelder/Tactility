@@ -19,9 +19,9 @@ extern "C" {
 typedef void* ThreadHandle;
 
 typedef enum {
-    StateStopped,
-    StateStarting,
-    StateRunning,
+    ThreadStateStopped,
+    ThreadStateStarting,
+    ThreadStateRunning,
 } ThreadState;
 
 typedef TaskHandle_t ThreadId;
@@ -38,14 +38,14 @@ typedef int32_t (*ThreadCallback)(void* context);
 typedef void (*ThreadStateCallback)(ThreadState state, void* context);
 
 typedef enum {
-    PriorityNone = 0, /**< Uninitialized, choose system default */
-    PriorityIdle = 1,
-    PriorityLowest = 2,
-    PriorityLow = 3,
-    PriorityNormal = 4,
-    PriorityHigh = 5,
-    PriorityHigher = 6,
-    PriorityHighest = 7
+    ThreadPriorityNone = 0, /**< Uninitialized, choose system default */
+    ThreadPriorityIdle = 1,
+    ThreadPriorityLowest = 2,
+    ThreadPriorityLow = 3,
+    ThreadPriorityNormal = 4,
+    ThreadPriorityHigh = 5,
+    ThreadPriorityHigher = 6,
+    ThreadPriorityHighest = 7
 } ThreadPriority;
 
 ThreadHandle tt_thread_alloc();

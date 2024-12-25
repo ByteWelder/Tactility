@@ -11,6 +11,7 @@
 #include "tt_mutex.h"
 #include "tt_semaphore.h"
 #include "tt_thread.h"
+#include "tt_timer.h"
 
 #include <lvgl.h>
 
@@ -62,6 +63,15 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_thread_join),
     ESP_ELFSYM_EXPORT(tt_thread_get_id),
     ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
+    ESP_ELFSYM_EXPORT(tt_timer_alloc),
+    ESP_ELFSYM_EXPORT(tt_timer_free),
+    ESP_ELFSYM_EXPORT(tt_timer_start),
+    ESP_ELFSYM_EXPORT(tt_timer_restart),
+    ESP_ELFSYM_EXPORT(tt_timer_stop),
+    ESP_ELFSYM_EXPORT(tt_timer_is_running),
+    ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
+    ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
+    ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj
