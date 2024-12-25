@@ -19,81 +19,61 @@
 
 namespace tt {
 
+/**
+ * Message Queue implementation.
+ * Calls can be done from ISR/IRQ mode unless otherwise specified.
+ */
 class MessageQueue {
 private:
     QueueHandle_t queue_handle;
 
 public:
     /** Allocate message queue
-     *
-     * @param[in]  msg_count  The message count
-     * @param[in]  msg_size   The message size
+     * @param[in] capacity Maximum messages in queue
+     * @param[in] messageSize The size in bytes of a single message
      */
-    MessageQueue(uint32_t msg_count, uint32_t msg_size);
+    MessageQueue(uint32_t capacity, uint32_t messageSize);
 
     ~MessageQueue();
 
     /** Put message into queue
-     *
-     * @param      instance  pointer to MessageQueue instance
-     * @param[in]  msg_ptr   The message pointer
-     * @param[in]  timeout   The timeout
-     * @param[in]  msg_prio  The message prio
-     *
-     * @return     The status.
+     * @param[in] message A pointer to a message. The message will be copied into a buffer.
+     * @param[in] timeoutTicks
+     * @return success result
      */
-    TtStatus put(const void* msg_ptr, uint32_t timeout);
+    bool put(const void* message, uint32_t timeoutTicks);
 
     /** Get message from queue
-     *
-     * @param      instance  pointer to MessageQueue instance
-     * @param      msg_ptr   The message pointer
-     * @param      msg_prio  The message prioority
-     * @param[in]  timeout_ticks   The timeout
-     *
-     * @return     The status.
+     * @param message A pointer to an already allocated message object
+     * @param[in] timeoutTicks
+     * @return success result
      */
-    TtStatus get(void* msg_ptr, uint32_t timeout_ticks);
+    bool get(void* message, uint32_t timeoutTicks);
 
-    /** Get queue capacity
-     *
-     * @param      instance  pointer to MessageQueue instance
-     *
-     * @return     capacity in object count
+    /**
+     * @return The maximum amount of messages that can be in the queue at any given time.
      */
     uint32_t getCapacity() const;
 
-    /** Get message size
-     *
-     * @param      instance  pointer to MessageQueue instance
-     *
-     * @return     Message size in bytes
+    /**
+     * @return The size of a single message in bytes
      */
     uint32_t getMessageSize() const;
 
-    /** Get message count in queue
-     *
-     * @param      instance  pointer to MessageQueue instance
-     *
-     * @return     Message count
+    /**
+     * @return How many messages are currently in the queue.
      */
     uint32_t getCount() const;
 
-    /** Get queue available space
-     *
-     * @param      instance  pointer to MessageQueue instance
-     *
-     * @return     Message count
+    /**
+     * @return How many messages can be added to the queue before the put() method starts blocking.
      */
     uint32_t getSpace() const;
 
-    /** Reset queue
-     *
-     * @param      instance  pointer to MessageQueue instance
-     *
-     * @return     The status.
+    /** Reset queue (cannot be called in ISR/IRQ mode)
+     * @return success result
      */
-    TtStatus reset();
+    bool reset();
 };
 
 } // namespace

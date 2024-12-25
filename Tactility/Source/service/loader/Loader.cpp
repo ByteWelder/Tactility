@@ -325,7 +325,7 @@ static int32_t loader_main(TT_UNUSED void* parameter) {
     bool exit_requested = false;
     while (!exit_requested) {
         tt_assert(loader_singleton != nullptr);
-        if (loader_singleton->queue.get(&message, TtWaitForever) == TtStatusOk) {
+        if (loader_singleton->queue.get(&message, TtWaitForever)) {
             TT_LOG_I(TAG, "Processing message of type %d", message.type);
             switch (message.type) {
                 case LoaderMessageTypeAppStart:

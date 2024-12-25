@@ -1,7 +1,7 @@
 #pragma once
 
-#include "lvgl.h"
-#include "TactilityC/app/App.h"
+#include <lvgl.h>
+#include "tt_app.h"
 
 #ifdef __cplusplus
 extern "C" {

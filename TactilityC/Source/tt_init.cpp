@@ -2,21 +2,44 @@
 
 #include "elf_symbol.h"
 
-#include "app/App.h"
-#include "app/SelectionDialog.h"
-#include "lvgl/Toolbar.h"
-#include "TactilityC/lvgl/Spinner.h"
+#include "tt_app.h"
+#include "tt_app_selectiondialog.h"
+#include "tt_bundle.h"
+#include "tt_lvgl_spinner.h"
+#include "tt_lvgl_toolbar.h"
+#include "tt_message_queue.h"
+#include "tt_mutex.h"
 
-#include "lvgl.h"
+#include <lvgl.h>
 
 extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),
+    ESP_ELFSYM_EXPORT(tt_bundle_alloc),
+    ESP_ELFSYM_EXPORT(tt_bundle_free),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_int32),
+    ESP_ELFSYM_EXPORT(tt_bundle_opt_string),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
+    ESP_ELFSYM_EXPORT(tt_bundle_put_string),
     ESP_ELFSYM_EXPORT(tt_set_app_manifest),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_simple),
+    ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
+    ESP_ELFSYM_EXPORT(tt_message_queue_free),
+    ESP_ELFSYM_EXPORT(tt_message_queue_put),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_capacity),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_message_size),
+    ESP_ELFSYM_EXPORT(tt_message_queue_get_count),
+    ESP_ELFSYM_EXPORT(tt_message_queue_reset),
+    ESP_ELFSYM_EXPORT(tt_mutex_alloc),
+    ESP_ELFSYM_EXPORT(tt_mutex_free),
+    ESP_ELFSYM_EXPORT(tt_mutex_lock),
+    ESP_ELFSYM_EXPORT(tt_mutex_unlock),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj

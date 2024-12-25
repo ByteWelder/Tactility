@@ -4,9 +4,9 @@
 
 namespace tt {
 
-MessageQueue::MessageQueue(uint32_t msg_count, uint32_t msg_size) {
-    tt_assert((kernel::isIrq() == 0U) && (msg_count > 0U) && (msg_size > 0U));
-    queue_handle = xQueueCreate(msg_count, msg_size);
+MessageQueue::MessageQueue(uint32_t capacity, uint32_t msg_size) {
+    tt_assert((kernel::isIrq() == 0U) && (capacity > 0U) && (msg_size > 0U));
+    queue_handle = xQueueCreate(capacity, msg_size);
     tt_check(queue_handle);
 }
 
@@ -15,106 +15,75 @@ MessageQueue::~MessageQueue() {
     vQueueDelete(queue_handle);
 }
 
-TtStatus MessageQueue::put(const void* msg_ptr, uint32_t timeout) {
-    TtStatus stat;
+bool MessageQueue::put(const void* message, uint32_t timeout) {
+    bool result = true;
     BaseType_t yield;
 
-    stat = TtStatusOk;
-
     if (kernel::isIrq() != 0U) {
-        if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
-            stat = TtStatusErrorParameter;
+        if ((queue_handle == nullptr) || (message == nullptr) || (timeout != 0U)) {
+            result = false;
         } else {
             yield = pdFALSE;
 
-            if (xQueueSendToBackFromISR(queue_handle, msg_ptr, &yield) != pdTRUE) {
-                stat = TtStatusErrorResource;
+            if (xQueueSendToBackFromISR(queue_handle, message, &yield) != pdTRUE) {
+                result = false;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
-    } else {
-        if ((queue_handle == nullptr) || (msg_ptr == nullptr)) {
-            stat = TtStatusErrorParameter;
-        } else {
-            if (xQueueSendToBack(queue_handle, msg_ptr, (TickType_t)timeout) != pdPASS) {
-                if (timeout != 0U) {
-                    stat = TtStatusErrorTimeout;
-                } else {
-                    stat = TtStatusErrorResource;
-                }
-            }
-        }
+    } else if ((queue_handle == nullptr) || (message == nullptr)) {
+        result = false;
+    } else if (xQueueSendToBack(queue_handle, message, (TickType_t)timeout) != pdPASS) {
+        result = false;
     }
 
-    /* Return execution status */
-    return (stat);
+    return result;
 }
 
-TtStatus MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
-    TtStatus stat;
+bool MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
+    bool result = true;
     BaseType_t yield;
 
-    stat = TtStatusOk;
 
-    if (kernel::isIrq() != 0U) {
+    if (kernel::isIrq()) {
         if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
-            stat = TtStatusErrorParameter;
+            result = false;
         } else {
             yield = pdFALSE;
 
             if (xQueueReceiveFromISR(queue_handle, msg_ptr, &yield) != pdPASS) {
-                stat = TtStatusErrorResource;
+                result = false;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
         if ((queue_handle == nullptr) || (msg_ptr == nullptr)) {
-            stat = TtStatusErrorParameter;
-        } else {
-            if (xQueueReceive(queue_handle, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
-                if (timeout_ticks != 0U) {
-                    stat = TtStatusErrorTimeout;
-                } else {
-                    stat = TtStatusErrorResource;
-                }
-            }
+            result = false;
+        } else if (xQueueReceive(queue_handle, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
+            result = false;
         }
     }
 
-    /* Return execution status */
-    return (stat);
+    return result;
 }
 
 uint32_t MessageQueue::getCapacity() const {
     auto* mq = (StaticQueue_t*)(queue_handle);
-    uint32_t capacity;
-
     if (mq == nullptr) {
-        capacity = 0U;
+        return 0U;
     } else {
-        /* capacity = pxQueue->uxLength */
-        capacity = mq->uxDummy4[1];
+        return mq->uxDummy4[1];
     }
-
-    /* Return maximum number of messages */
-    return (capacity);
 }
 
 uint32_t MessageQueue::getMessageSize() const {
     auto* mq = (StaticQueue_t*)(queue_handle);
-    uint32_t size;
-
     if (mq == nullptr) {
-        size = 0U;
+        return 0U;
     } else {
-        /* size = pxQueue->uxItemSize */
-        size = mq->uxDummy4[2];
+        return mq->uxDummy4[2];
     }
-
-    /* Return maximum message size */
-    return (size);
 }
 
 uint32_t MessageQueue::getCount() const {
@@ -129,7 +98,7 @@ uint32_t MessageQueue::getCount() const {
     }
 
     /* Return number of queued messages */
-    return ((uint32_t)count);
+    return (uint32_t)count;
 }
 
 uint32_t MessageQueue::getSpace() const {
@@ -150,24 +119,17 @@ uint32_t MessageQueue::getSpace() const {
         space = (uint32_t)uxQueueSpacesAvailable((QueueHandle_t)mq);
     }
 
-    /* Return number of available slots */
-    return (space);
+    return space;
 }
 
-TtStatus MessageQueue::reset() {
-    TtStatus stat;
-
-    if (kernel::isIrq() != 0U) {
-        stat = TtStatusErrorISR;
-    } else if (queue_handle == nullptr) {
-        stat = TtStatusErrorParameter;
+bool MessageQueue::reset() {
+    tt_check(!kernel::isIrq());
+    if (queue_handle == nullptr) {
+        return false;
     } else {
-        stat = TtStatusOk;
-        (void)xQueueReset(queue_handle);
+        xQueueReset(queue_handle);
+        return true;
     }
-
-    /* Return execution status */
-    return (stat);
 }
 
 } // namespace

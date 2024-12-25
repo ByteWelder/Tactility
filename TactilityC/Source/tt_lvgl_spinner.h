@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lvgl.h"
+#include <lvgl.h>
 
 #ifdef __cplusplus
 extern "C" {
