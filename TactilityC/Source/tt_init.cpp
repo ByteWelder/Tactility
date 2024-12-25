@@ -10,6 +10,7 @@
 #include "tt_message_queue.h"
 #include "tt_mutex.h"
 #include "tt_semaphore.h"
+#include "tt_thread.h"
 
 #include <lvgl.h>
 
@@ -46,6 +47,21 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
     ESP_ELFSYM_EXPORT(tt_semaphore_release),
     ESP_ELFSYM_EXPORT(tt_semaphore_get_count),
+    ESP_ELFSYM_EXPORT(tt_thread_alloc),
+    ESP_ELFSYM_EXPORT(tt_thread_alloc_ext),
+    ESP_ELFSYM_EXPORT(tt_thread_free),
+    ESP_ELFSYM_EXPORT(tt_thread_set_name),
+    ESP_ELFSYM_EXPORT(tt_thread_mark_as_static),
+    ESP_ELFSYM_EXPORT(tt_thread_is_marked_as_static),
+    ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
+    ESP_ELFSYM_EXPORT(tt_thread_set_callback),
+    ESP_ELFSYM_EXPORT(tt_thread_set_priority),
+    ESP_ELFSYM_EXPORT(tt_thread_set_state_callback),
+    ESP_ELFSYM_EXPORT(tt_thread_get_state),
+    ESP_ELFSYM_EXPORT(tt_thread_start),
+    ESP_ELFSYM_EXPORT(tt_thread_join),
+    ESP_ELFSYM_EXPORT(tt_thread_get_id),
+    ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_obj
