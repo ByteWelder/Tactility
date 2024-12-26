@@ -167,12 +167,7 @@ void run(const Configuration& config) {
     register_user_apps(config.apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
-    service::loader::startApp(app::boot::manifest.id, true);
-
-    if (config.autoStartAppId) {
-        TT_LOG_I(TAG, "init auto-starting %s", config.autoStartAppId);
-        service::loader::startApp(config.autoStartAppId, true);
-    }
+    service::loader::startApp(app::boot::manifest.id);
 
     TT_LOG_I(TAG, "init complete");
 

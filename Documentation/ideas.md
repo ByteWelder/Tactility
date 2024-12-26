@@ -9,7 +9,6 @@
   - When no PSRAM is available, use simplified desktop buttons
   - Add statusbar icon for memory pressure.
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
-- WiFi details "forget" button should be hidden when WiFi credentials are not stores yet.
 - Clean up static_cast when casting to base class.
 
 # TODOs
@@ -25,7 +24,7 @@
 - Logging to disk/etc.
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
-- Loader: Use main dispatcher instead of Thread, and move API to `tt::app::`
+- Loader: Use main dispatcher instead of Thread
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
@@ -36,7 +35,6 @@
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
 - Support hot-plugging SD card
-- Make a list of common error texts (e.g. mutex lock failure) to save space and to be consistent
 
 # Nice-to-haves
 - T-Deck Plus: Create separate board config?

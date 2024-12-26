@@ -4,29 +4,33 @@
 #include "app/AppContext.h"
 #include "app/display/DisplaySettings.h"
 #include "hal/Display.h"
-#include "kernel/PanicHandler.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
 
 #include "lvgl.h"
+#include "Tactility.h"
 
 #ifdef ESP_PLATFORM
+#include "kernel/PanicHandler.h"
 #include "sdkconfig.h"
 #else
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
 
+#define TAG "Boot"
+
 namespace tt::app::boot {
 
-static int32_t threadCallback(void* context);
+static int32_t bootThreadCallback(void* context);
+static void startNextApp();
 
 struct Data {
-    Data() : thread("boot", 4096, threadCallback, this) {}
+    Data() : thread("boot", 4096, bootThreadCallback, this) {}
 
     Thread thread;
 };
 
-static int32_t threadCallback(TT_UNUSED void* context) {
+static int32_t bootThreadCallback(TT_UNUSED void* context) {
     TickType_t start_time = tt::kernel::getTicks();
 
     auto* lvgl_display = lv_display_get_default();
@@ -46,18 +50,33 @@ static int32_t threadCallback(TT_UNUSED void* context) {
     }
 
     tt::service::loader::stopApp();
+
+
+    startNextApp();
+
+    return 0;
+}
+
+static void startNextApp() {
+    auto config = tt::getConfiguration();
+    std::string next_app;
+    if (config->autoStartAppId) {
+        TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
+        next_app = config->autoStartAppId;
+    } else {
+        next_app = "Desktop";
+    }
+
 #ifdef ESP_PLATFORM
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_PANIC) {
         tt::service::loader::startApp("CrashDiagnostics");
     } else {
-        tt::service::loader::startApp("Desktop");
+        tt::service::loader::startApp(next_app);
     }
 #else
-    tt::service::loader::startApp("Desktop");
+    tt::service::loader::startApp(next_app);
 #endif
-
-    return 0;
 }
 
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
