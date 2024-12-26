@@ -106,7 +106,7 @@ void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_t* connect_label = lv_label_create(connect_button);
     lv_label_set_text(connect_label, "Connect");
     lv_obj_align(connect_button, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(connect_button, &onConnect, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(connect_button, &onConnect, LV_EVENT_SHORT_CLICKED, nullptr);
 }
 
 // TODO: Standardize dialogs

@@ -152,7 +152,7 @@ void ScreenshotUi::createModeSettingWidgets(lv_obj_t* parent) {
 
     auto* button = lv_button_create(mode_wrapper);
     lv_obj_align(button, LV_ALIGN_RIGHT_MID, 0, 0);
-    lv_obj_add_event_cb(button, &onStartPressedCallback, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(button, &onStartPressedCallback, LV_EVENT_SHORT_CLICKED, nullptr);
     startStopButtonLabel = lv_label_create(button);
     lv_obj_align(startStopButtonLabel, LV_ALIGN_CENTER, 0, 0);
 }

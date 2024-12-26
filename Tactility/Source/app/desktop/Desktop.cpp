@@ -28,7 +28,7 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 
     auto* button_image = lv_image_create(apps_button);
     lv_image_set_src(button_image, imageFile);
-    lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_CLICKED, (void*)appId);
+    lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
     lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), 0);
     lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, 0);
 

@@ -49,15 +49,13 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
 
 static void onButtonClicked(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED) {
-        auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        TT_LOG_I(TAG, "Selected item at index %d", index);
-        tt::app::AppContext* app = service::loader::getCurrentApp();
-        auto bundle = std::make_shared<Bundle>();
-        setResultIndex(bundle, (int32_t)index);
-        app->setResult(app::ResultOk, bundle);
-        service::loader::stopApp();
-    }
+    auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
+    TT_LOG_I(TAG, "Selected item at index %d", index);
+    tt::app::AppContext* app = service::loader::getCurrentApp();
+    auto bundle = std::make_shared<Bundle>();
+    setResultIndex(bundle, (int32_t)index);
+    app->setResult(app::ResultOk, bundle);
+    service::loader::stopApp();
 }
 
 static void createButton(lv_obj_t* parent, const std::string& text, size_t index) {
@@ -65,7 +63,7 @@ static void createButton(lv_obj_t* parent, const std::string& text, size_t index
     lv_obj_t* button_label = lv_label_create(button);
     lv_obj_align(button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(button_label, text.c_str());
-    lv_obj_add_event_cb(button, &onButtonClicked, LV_EVENT_CLICKED, (void*)index);
+    lv_obj_add_event_cb(button, &onButtonClicked, LV_EVENT_SHORT_CLICKED, (void*)index);
 }
 
 static void onShow(AppContext& app, lv_obj_t* parent) {

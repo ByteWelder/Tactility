@@ -21,7 +21,7 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     auto* display = lv_obj_get_display(parent);
     int32_t parent_height = lv_display_get_vertical_resolution(display) - STATUSBAR_HEIGHT;
 
-    lv_obj_add_event_cb(parent, onContinuePressed, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(parent, onContinuePressed, LV_EVENT_SHORT_CLICKED, nullptr);
     auto* top_label = lv_label_create(parent);
     lv_label_set_text(top_label, "Oops! We've crashed ..."); // TODO: Funny messages
     lv_obj_align(top_label, LV_ALIGN_TOP_MID, 0, 2);
