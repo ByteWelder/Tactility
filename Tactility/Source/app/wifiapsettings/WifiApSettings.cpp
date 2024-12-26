@@ -112,9 +112,10 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
         } else {
             lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
         }
-
     } else {
-        TT_LOG_E(TAG, "Failed to load settings");
+        TT_LOG_W(TAG, "No settings found");
+        lv_obj_add_flag(forget_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(auto_connect_wrapper, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
