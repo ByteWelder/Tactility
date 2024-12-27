@@ -13,7 +13,7 @@ class DispatcherThread {
 
 public:
 
-    explicit DispatcherThread(const std::string& threadName, size_t threadStackSize = 4096);
+    explicit DispatcherThread(const std::string& threadName, size_t threadStackSize = 9000);
     ~DispatcherThread();
 
     /**

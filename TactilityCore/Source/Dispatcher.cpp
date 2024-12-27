@@ -59,10 +59,13 @@ uint32_t Dispatcher::consume(uint32_t timeout_ticks) {
                 consumed++;
                 processing = !queue.empty();
                 // Don't keep lock as callback might be slow
-                tt_check(mutex.unlock());
 
+                tt_check(mutex.unlock());
                 item->callback(item->context);
+            } else {
+                tt_check(mutex.unlock());
             }
+
         } else {
             TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         }
