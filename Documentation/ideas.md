@@ -19,7 +19,6 @@
 - T-Deck: Clear screen before turning on blacklight
 - Audio player app
 - Audio recording app
-- Files app: file operations: rename, delete, copy, paste (long press?), create folder
 - T-Deck: Use knob for UI selection
 - Logging to disk/etc.
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
@@ -45,6 +44,7 @@
 - Statusbar widget to show how much memory is in use?
 - Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
 - Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
+- Files app: copy/paste actions
  
 # App Ideas
 - USB implementation to make device act as mass storage device.

@@ -26,17 +26,17 @@ long getSize(FILE* file) {
     return file_size;
 }
 
-static std::unique_ptr<uint8_t[]> readBinaryInternal(const char* filepath, size_t& outSize, size_t sizePadding = 0) {
-    FILE* file = fopen(filepath, "rb");
+static std::unique_ptr<uint8_t[]> readBinaryInternal(const std::string& filepath, size_t& outSize, size_t sizePadding = 0) {
+    FILE* file = fopen(filepath.c_str(), "rb");
 
     if (file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open %s", filepath);
+        TT_LOG_E(TAG, "Failed to open %s", filepath.c_str());
         return nullptr;
     }
 
     long content_length = getSize(file);
     if (content_length == -1) {
-        TT_LOG_E(TAG, "Failed to determine content length for %s", filepath);
+        TT_LOG_E(TAG, "Failed to determine content length for %s", filepath.c_str());
         return nullptr;
     }
 
@@ -64,11 +64,11 @@ static std::unique_ptr<uint8_t[]> readBinaryInternal(const char* filepath, size_
     return data;
 }
 
-std::unique_ptr<uint8_t[]> readBinary(const char* filepath, size_t& outSize) {
+std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSize) {
     return readBinaryInternal(filepath, outSize);
 }
 
-std::unique_ptr<uint8_t[]> readString(const char* filepath) {
+std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     size_t size = 0;
     auto data = readBinaryInternal(filepath, size, 1);
     if (size > 0) {

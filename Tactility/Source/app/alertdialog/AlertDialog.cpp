@@ -76,6 +76,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 
     lv_obj_t* message_label = lv_label_create(parent);
     lv_obj_align(message_label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_set_width(message_label, LV_PCT(80));
 
     std::string message;
     if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {

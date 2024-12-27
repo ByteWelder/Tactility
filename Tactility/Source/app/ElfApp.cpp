@@ -16,13 +16,13 @@ static size_t elfManifestSetCount = 0;
 std::unique_ptr<uint8_t[]> elfFileData;
 esp_elf_t elf;
 
-bool startElfApp(const char* filePath) {
-    TT_LOG_I(TAG, "Starting ELF %s", filePath);
+bool startElfApp(const std::string& filePath) {
+    TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
 
     assert(elfFileData == nullptr);
 
     size_t size = 0;
-    elfFileData = file::readBinary(filePath, size);
+    elfFileData = file::readBinary(filePath.c_str(), size);
     if (elfFileData == nullptr) {
         return false;
     }

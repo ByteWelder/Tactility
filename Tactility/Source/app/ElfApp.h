@@ -6,7 +6,7 @@
 
 namespace tt::app {
 
-bool startElfApp(const char* filePath);
+bool startElfApp(const std::string& filePath);
 
 void setElfAppManifest(const AppManifest& manifest);
 

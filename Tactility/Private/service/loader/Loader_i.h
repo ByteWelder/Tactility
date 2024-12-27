@@ -94,7 +94,7 @@ struct Loader {
     std::shared_ptr<PubSub> pubsub_external = std::make_shared<PubSub>();
     Mutex mutex = Mutex(Mutex::TypeRecursive);
     std::stack<app::AppInstance*> app_stack;
-    std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher_thread");
+    std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher", 6144); // Files app requires ~5k
 };
 
 } // namespace

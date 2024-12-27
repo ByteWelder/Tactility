@@ -21,7 +21,7 @@ int findLastIndex(const char* text, size_t from_index, char find);
  * @param[out] output an output buffer that is allocated to at least the size of "current"
  * @return true when successful
  */
-bool getPathParent(const char* path, char* output);
+bool getPathParent(const std::string& path, std::string& output);
 
 /**
  * Given a filesystem path as input, get the last segment of a path

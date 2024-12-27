@@ -1,4 +1,3 @@
-#include "Mutex.h"
 #include "app/AppManifest.h"
 #include "app/ManifestRegistry.h"
 #include "service/ServiceManifest.h"
@@ -13,7 +12,6 @@
 #else
 #include "lvgl/LvglSync.h"
 #include "TactilityHeadless.h"
-
 #endif
 
 namespace tt::service::loader {

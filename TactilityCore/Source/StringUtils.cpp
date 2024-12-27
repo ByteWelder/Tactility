@@ -13,17 +13,15 @@ int findLastIndex(const char* text, size_t from_index, char find) {
     return -1;
 }
 
-bool getPathParent(const char* path, char* output) {
-    int index = findLastIndex(path, strlen(path) - 1, '/');
+bool getPathParent(const std::string& path, std::string& output) {
+    int index = findLastIndex(path.c_str(), path.length() - 1, '/');
     if (index == -1) {
         return false;
     } else if (index == 0) {
-        output[0] = '/';
-        output[1] = 0x00;
+        output = "/";
         return true;
     } else {
-        memcpy(output, path, index);
-        output[index] = 0x00;
+        output = path.substr(0, index);
         return true;
     }
 }
