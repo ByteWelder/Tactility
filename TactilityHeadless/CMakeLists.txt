@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES TactilityCore esp_wifi nvs_flash spiffs driver
+        REQUIRES TactilityCore esp_wifi nvs_flash driver spiffs vfs fatfs
     )
 
     if (NOT DEFINED TACTILITY_SKIP_SPIFFS)

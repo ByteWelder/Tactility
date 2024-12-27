@@ -1,16 +1,15 @@
 #include "YellowBoard.h"
 #include "hal/YellowDisplay.h"
+#include "hal/YellowSdCard.h"
 
 bool twodotfour_lvgl_init();
 bool twodotfour_boot();
-
-extern const tt::hal::sdcard::SdCard twodotfour_sdcard;
 
 const tt::hal::Configuration yellow_board_24inch_cap = {
     .initBoot = &twodotfour_boot,
     .initLvgl = &twodotfour_lvgl_init,
     .createDisplay = createDisplay,
-    .sdcard = &twodotfour_sdcard,
+    .sdcard = createYellowSdCard(),
     .power = nullptr,
     .i2c = {
         tt::hal::i2c::Configuration {

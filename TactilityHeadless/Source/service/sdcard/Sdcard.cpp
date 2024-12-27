@@ -17,7 +17,7 @@ extern const ServiceManifest manifest;
 struct ServiceData {
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
-    hal::sdcard::State lastState = hal::sdcard::StateUnmounted;
+    hal::SdCard::State lastState = hal::SdCard::StateUnmounted;
 
     bool lock(TickType_t timeout) const {
         return mutex.acquire(timeout) == TtStatusOk;
@@ -30,18 +30,23 @@ struct ServiceData {
 
 
 static void onUpdate(std::shared_ptr<void> context) {
-    auto data = std::static_pointer_cast<ServiceData>(context);
-
-    if (!data->lock(50)) {
-        TT_LOG_W(TAG, "Failed to acquire lock");
+    auto sdcard = tt::hal::getConfiguration().sdcard;
+    if (sdcard == nullptr) {
         return;
     }
 
-    hal::sdcard::State new_state = hal::sdcard::getState();
+    auto data = std::static_pointer_cast<ServiceData>(context);
 
-    if (new_state == hal::sdcard::StateError) {
+    if (!data->lock(50)) {
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        return;
+    }
+
+    auto new_state = sdcard->getState();
+
+    if (new_state == hal::SdCard::StateError) {
         TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
-        hal::sdcard::unmount(kernel::millisToTicks(1000));
+        sdcard->unmount();
     }
 
     if (new_state != data->lastState) {

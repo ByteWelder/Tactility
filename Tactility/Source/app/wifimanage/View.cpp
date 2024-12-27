@@ -76,7 +76,7 @@ static void showDetails(lv_event_t* event) {
 
 void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting) {
     lv_obj_t* wrapper = lv_obj_create(networks_list);
-    lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_CLICKED, bindings);
+    lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
     lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
     lvgl::obj_set_style_no_padding(wrapper);
@@ -94,7 +94,7 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
     lv_obj_set_style_margin_all(info_wrapper, 0, 0);
     lv_obj_set_size(info_wrapper, 36, 36);
     lv_obj_set_style_border_color(info_wrapper, lv_theme_get_color_primary(info_wrapper), 0);
-    lv_obj_add_event_cb(info_wrapper, &showDetails, LV_EVENT_CLICKED, bindings);
+    lv_obj_add_event_cb(info_wrapper, &showDetails, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
 
     lv_obj_t* info_label = lv_label_create(info_wrapper);

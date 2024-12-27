@@ -19,25 +19,32 @@
 #define TDECK_LCD_BACKLIGHT_LEDC_FREQUENCY (4000)
 
 static bool init_spi() {
+    TT_LOG_I(TAG, LOG_MESSAGE_SPI_INIT_START_FMT, TDECK_SPI_HOST);
+
     spi_bus_config_t bus_config = {
         .mosi_io_num = TDECK_SPI_PIN_MOSI,
         .miso_io_num = TDECK_SPI_PIN_MISO,
         .sclk_io_num = TDECK_SPI_PIN_SCLK,
         .quadwp_io_num = -1, // Quad SPI LCD driver is not yet supported
         .quadhd_io_num = -1, // Quad SPI LCD driver is not yet supported
+        .data4_io_num = 0,
+        .data5_io_num = 0,
+        .data6_io_num = 0,
+        .data7_io_num = 0,
         .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+        .flags = 0,
+        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
+        .intr_flags = 0
     };
 
-    return spi_bus_initialize(TDECK_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) == ESP_OK;
-}
-
-bool tdeck_init_hardware() {
-    TT_LOG_I(TAG, "Init SPI");
-
-    if (!init_spi()) {
-        TT_LOG_E(TAG, "Init SPI failed");
+    if (spi_bus_initialize(TDECK_SPI_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
+        TT_LOG_E(TAG, LOG_MESSAGE_SPI_INIT_FAILED_FMT, TDECK_SPI_HOST);
         return false;
     }
 
     return true;
+}
+
+bool tdeck_init_hardware() {
+    return init_spi();
 }

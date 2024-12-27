@@ -9,11 +9,8 @@
 namespace tt::app::applist {
 
 static void onAppPressed(lv_event_t* e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED) {
-        const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        service::loader::startApp(manifest->id, false);
-    }
+    const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
+    service::loader::startApp(manifest->id, false);
 }
 
 static void createAppWidget(const AppManifest* manifest, void* parent) {
@@ -21,7 +18,7 @@ static void createAppWidget(const AppManifest* manifest, void* parent) {
     auto* list = reinterpret_cast<lv_obj_t*>(parent);
     const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
     lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
-    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_CLICKED, (void*)manifest);
+    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest);
 }
 
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {

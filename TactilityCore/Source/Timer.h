@@ -15,7 +15,6 @@ public:
     typedef void (*Callback)(std::shared_ptr<void> context);
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
-
     Callback callback;
     std::shared_ptr<void> callbackContext;
 
@@ -39,9 +38,9 @@ public:
      *          timer service process this request.
      *
      * @param[in] ticks The interval in ticks
-     * @return The status.
+     * @return success result
      */
-    TtStatus start(uint32_t ticks);
+    bool start(uint32_t intervalTicks);
 
     /** Restart timer with previous timeout value
      *
@@ -50,9 +49,9 @@ public:
      *
      * @param[in] ticks The interval in ticks
      *
-     * @return The status.
+     * @return success result
      */
-    TtStatus restart(uint32_t ticks);
+    bool restart(uint32_t intervalTicks);
 
 
     /** Stop timer
@@ -60,9 +59,9 @@ public:
      * @warning    This is asynchronous call, real operation will happen as soon as
      *             timer service process this request.
      *
-     * @return The status.
+     * @return success result
      */
-    TtStatus stop();
+    bool stop();
 
     /** Is timer running
      *
@@ -82,18 +81,18 @@ public:
      */
     uint32_t getExpireTime();
 
-    void pendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg);
+    bool setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg);
 
     typedef enum {
         TimerThreadPriorityNormal,   /**< Lower then other threads */
         TimerThreadPriorityElevated, /**< Same as other threads */
-    } TimerThreadPriority;
+    } ThreadPriority;
 
     /** Set Timer thread priority
      *
      * @param[in] priority The priority
      */
-    void setThreadPriority(TimerThreadPriority priority);
+    void setThreadPriority(ThreadPriority priority);
 };
 
 } // namespace

@@ -46,22 +46,19 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
 }
 
 static void onListItemSelected(lv_event_t* e) {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED) {
-        size_t index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        TT_LOG_I(TAG, "Selected item at index %d", index);
-        tt::app::AppContext* app = service::loader::getCurrentApp();
-        auto bundle = std::make_shared<Bundle>();
-        setResultIndex(bundle, (int32_t)index);
-        app->setResult(app::ResultOk, bundle);
-        service::loader::stopApp();
-    }
+    size_t index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
+    TT_LOG_I(TAG, "Selected item at index %d", index);
+    tt::app::AppContext* app = service::loader::getCurrentApp();
+    auto bundle = std::make_shared<Bundle>();
+    setResultIndex(bundle, (int32_t)index);
+    app->setResult(app::ResultOk, bundle);
+    service::loader::stopApp();
 }
 
 static void createChoiceItem(void* parent, const std::string& title, size_t index) {
     auto* list = static_cast<lv_obj_t*>(parent);
     lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
-    lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_CLICKED, (void*)index);
+    lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_SHORT_CLICKED, (void*)index);
 }
 
 static void onShow(AppContext& app, lv_obj_t* parent) {

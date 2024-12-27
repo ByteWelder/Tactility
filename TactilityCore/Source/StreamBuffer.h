@@ -141,7 +141,7 @@ public:
      * @return TtStatusError if there was a task blocked waiting to send to or read
      * from the stream buffer then the stream buffer is not reset.
      */
-    TtStatus reset() const;
+    bool reset() const;
 };
 
 

@@ -89,7 +89,7 @@ static void updateViews(std::shared_ptr<Data> data) {
 
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "updateViews lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViews");
     }
 }
 
@@ -98,7 +98,7 @@ static void updateViewsSafely(std::shared_ptr<Data> data) {
         updateViews(data);
         lvgl::unlock();
     } else {
-        TT_LOG_W(TAG, "updateViewsSafely lock LVGL");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViewsSafely");
     }
 }
 
@@ -110,7 +110,7 @@ void onScanTimerFinished(std::shared_ptr<Data> data) {
         }
         tt_check(data->mutex.release() == TtStatusOk);
     } else {
-        TT_LOG_W(TAG, "onScanTimerFinished lock");
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimerFinished");
     }
 }
 
@@ -134,7 +134,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_t* scan_button = lv_button_create(wrapper);
     lv_obj_set_width(scan_button, LV_PCT(48));
     lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
-    lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_SHORT_CLICKED, nullptr);
     lv_obj_t* scan_button_label = lv_label_create(scan_button);
     lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(scan_button_label, START_SCAN_TEXT);

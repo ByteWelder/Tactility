@@ -1,6 +1,8 @@
 #pragma once
 
 #include <dirent.h>
+#include <string>
+#include <vector>
 
 namespace tt::app::files {
 
@@ -26,19 +28,13 @@ enum {
 #define TT_DT_WHT TT_DT_WHT // Whiteout inodes
 };
 
+std::string getChildPath(const std::string& basePath, const std::string& childPath);
+
 typedef int (*ScandirFilter)(const struct dirent*);
 
-typedef int (*ScandirSort)(const struct dirent**, const struct dirent**);
+typedef bool (*ScandirSort)(const struct dirent&, const struct dirent&);
 
-/**
- * Alphabetic sorting function for tt_scandir()
- * @param left left-hand side part for comparison
- * @param right right-hand side part for comparison
- * @return 0, -1 or 1
- */
-int	dirent_sort_alpha(const struct dirent** left, const struct dirent** right);
-
-int dirent_sort_alpha_and_type(const struct dirent** left, const struct dirent** right);
+bool dirent_sort_alpha_and_type(const struct dirent& left, const struct dirent& right);
 
 int dirent_filter_dot_entries(const struct dirent* entry);
 
@@ -49,16 +45,20 @@ int dirent_filter_dot_entries(const struct dirent* entry);
  * The caller is responsible for free-ing the memory of these.
  *
  * @param[in] path path the scan for files and directories
- * @param[out] output a pointer to an array of dirent*
+ * @param[out] outList a pointer to vector of dirent
  * @param[in] filter an optional filter to filter out specific items
  * @param[in] sort an optional sorting function
  * @return the amount of items that were stored in "output" or -1 when an error occurred
  */
 int scandir(
-    const char* path,
-    struct dirent*** output,
+    const std::string& path,
+    std::vector<dirent>& outList,
     ScandirFilter _Nullable filter,
     ScandirSort _Nullable sort
 );
+
+bool isSupportedExecutableFile(const std::string& filename);
+bool isSupportedImageFile(const std::string& filename);
+bool isSupportedTextFile(const std::string& filename);
 
 } // namespace

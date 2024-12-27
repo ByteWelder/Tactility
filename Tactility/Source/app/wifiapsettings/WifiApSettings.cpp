@@ -100,7 +100,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_t* forget_button = lv_button_create(wrapper);
     lv_obj_set_width(forget_button, LV_PCT(100));
     lv_obj_align_to(forget_button, auto_connect_wrapper, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_CLICKED, nullptr);
+    lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_SHORT_CLICKED, nullptr);
     lv_obj_t* forget_button_label = lv_label_create(forget_button);
     lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(forget_button_label, "Forget");
@@ -112,9 +112,10 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
         } else {
             lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
         }
-
     } else {
-        TT_LOG_E(TAG, "Failed to load settings");
+        TT_LOG_W(TAG, "No settings found");
+        lv_obj_add_flag(forget_button, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(auto_connect_wrapper, LV_OBJ_FLAG_HIDDEN);
     }
 }
 

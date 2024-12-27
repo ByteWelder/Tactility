@@ -17,19 +17,19 @@ static const Configuration* config_instance = nullptr;
 namespace service {
     namespace gui { extern const ServiceManifest manifest; }
     namespace loader { extern const ServiceManifest manifest; }
-#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
+    namespace statusbar { extern const ServiceManifest manifest; }
+#if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
-    namespace statusbar { extern const ServiceManifest manifest; }
 }
 
 static const std::vector<const service::ServiceManifest*> system_services = {
     &service::loader::manifest,
     &service::gui::manifest, // depends on loader service
-#ifndef ESP_PLATFORM // Screenshots don't work yet on ESP32
-    &service::screenshot::manifest,
+    &service::statusbar::manifest,
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    &service::screenshot::manifest
 #endif
-    &service::statusbar::manifest
 };
 
 // endregion
@@ -44,23 +44,24 @@ namespace app {
     namespace files { extern const AppManifest manifest; }
     namespace gpio { extern const AppManifest manifest; }
     namespace imageviewer { extern const AppManifest manifest; }
-    namespace screenshot { extern const AppManifest manifest; }
-    namespace settings { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace i2cscanner { extern const AppManifest manifest; }
     namespace i2csettings { extern const AppManifest manifest; }
+    namespace inputdialog { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
     namespace selectiondialog { extern const AppManifest manifest; }
+    namespace settings { extern const AppManifest manifest; }
     namespace systeminfo { extern const AppManifest manifest; }
     namespace textviewer { extern const AppManifest manifest; }
     namespace wifiapsettings { extern const AppManifest manifest; }
     namespace wificonnect { extern const AppManifest manifest; }
     namespace wifimanage { extern const AppManifest manifest; }
+#if TT_FEATURE_SCREENSHOT_ENABLED
+        namespace screenshot { extern const AppManifest manifest; }
+#endif
 #ifdef ESP_PLATFORM
     extern const AppManifest elfWrapperManifest;
     namespace crashdiagnostics { extern const AppManifest manifest; }
-#else
-    namespace app::screenshot { extern const AppManifest manifest; }
 #endif
 }
 
@@ -77,6 +78,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::gpio::manifest,
     &app::i2cscanner::manifest,
     &app::i2csettings::manifest,
+    &app::inputdialog::manifest,
     &app::imageviewer::manifest,
     &app::settings::manifest,
     &app::selectiondialog::manifest,
@@ -85,11 +87,12 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::wifiapsettings::manifest,
     &app::wificonnect::manifest,
     &app::wifimanage::manifest,
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    &app::screenshot::manifest,
+#endif
 #ifdef ESP_PLATFORM
     &app::crashdiagnostics::manifest,
     &app::elfWrapperManifest, // For hot-loading ELF apps
-#else
-    &app::screenshot::manifest, // Screenshots don't work yet on ESP32
 #endif
 };
 
@@ -166,12 +169,7 @@ void run(const Configuration& config) {
     register_user_apps(config.apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
-    service::loader::startApp(app::boot::manifest.id, true);
-
-    if (config.autoStartAppId) {
-        TT_LOG_I(TAG, "init auto-starting %s", config.autoStartAppId);
-        service::loader::startApp(config.autoStartAppId, true);
-    }
+    service::loader::startApp(app::boot::manifest.id);
 
     TT_LOG_I(TAG, "init complete");
 

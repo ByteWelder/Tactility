@@ -1,3 +1,8 @@
+#include "Timer.h"
+#include "TactilityConfig.h"
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+
 #pragma once
 
 #include "app/AppContext.h"
@@ -5,14 +10,33 @@
 
 namespace tt::app::screenshot {
 
-typedef struct {
-    lv_obj_t* mode_dropdown;
-    lv_obj_t* path_textarea;
-    lv_obj_t* start_stop_button_label;
-    lv_obj_t* timer_wrapper;
-    lv_obj_t* delay_textarea;
-} ScreenshotUi;
+class ScreenshotUi {
 
-void create_ui(const AppContext& app, std::shared_ptr<ScreenshotUi> ui, lv_obj_t* parent);
+    lv_obj_t* modeDropdown = nullptr;
+    lv_obj_t* pathTextArea = nullptr;
+    lv_obj_t* startStopButtonLabel = nullptr;
+    lv_obj_t* timerWrapper = nullptr;
+    lv_obj_t* delayTextArea = nullptr;
+    std::unique_ptr<Timer> updateTimer;
+
+    void createTimerSettingsWidgets(lv_obj_t* parent);
+    void createModeSettingWidgets(lv_obj_t* parent);
+    void createFilePathWidgets(lv_obj_t* parent);
+
+    void updateScreenshotMode();
+
+public:
+
+    ScreenshotUi();
+    ~ScreenshotUi();
+
+    void createWidgets(const AppContext& app, lv_obj_t* parent);
+    void onStartPressed();
+    void onModeSet();
+    void onTimerTick();
+};
+
 
 } // namespace
+
+#endif
