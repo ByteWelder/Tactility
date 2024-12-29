@@ -17,10 +17,6 @@ public:
 
     bool stop() override;
 
-    void setPowerOn(bool turnOn) override {}
-    bool isPoweredOn() const override { return true; };
-    bool supportsPowerControl() const override { return false; }
-
     tt::hal::Touch* _Nullable createTouch() override;
 
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }

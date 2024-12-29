@@ -7,7 +7,7 @@
 #include "esp_lcd_touch.h"
 #include "esp_lvgl_port.h"
 
-#define TAG "m5stack_touch"
+#define TAG "twodotfour_touch"
 
 bool YellowTouch::start(lv_display_t* display) {
     TT_LOG_I(TAG, "Starting");

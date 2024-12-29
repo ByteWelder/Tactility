@@ -2,11 +2,12 @@
 
 #include "lvgl.h"
 #include "hal/Display.h"
-#include "esp_lcd_panel_io.h"
+
+#include <esp_lcd_types.h>
 
 extern lv_disp_t* displayHandle;
 
-class YellowDisplay : public tt::hal::Display {
+class Core2Display : public tt::hal::Display {
 
 private:
 
@@ -22,8 +23,7 @@ public:
 
     tt::hal::Touch* _Nullable createTouch() override;
 
-    void setBacklightDuty(uint8_t backlightDuty) override;
-    bool supportsBacklightDuty() const override { return true; }
+    bool supportsBacklightDuty() const override { return false; }
 
     void setGammaCurve(uint8_t index) override;
     uint8_t getGammaCurveCount() const override { return 4; };

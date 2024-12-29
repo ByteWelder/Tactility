@@ -1,18 +1,20 @@
 #include "M5stackCore2.h"
-#include "M5stackShared.h"
+#include "InitBoot.h"
+#include "InitLvgl.h"
+#include "hal/Core2Display.h"
 
 extern const tt::hal::Configuration m5stack_core2 = {
-    .initBoot = m5stack_bootstrap,
-    .initLvgl = m5stack_lvgl_init,
+    .initBoot = initBoot,
+    .initLvgl = initLvgl,
     .createDisplay = createDisplay,
-    .sdcard = createM5SdCard(),
-    .power = m5stack_get_power,
+//    .sdcard = createM5SdCard(),
+//    .power = m5stack_get_power,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitByExternal,
-            .canReinit = false,
+            .initMode = tt::hal::i2c::InitByTactility,
+            .canReinit = false, // Might be set to try after trying out what it does AXP and screen
             .hasMutableConfiguration = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
@@ -29,7 +31,7 @@ extern const tt::hal::Configuration m5stack_core2 = {
         tt::hal::i2c::Configuration {
             .name = "External", // (Grove)
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitByExternal,
+            .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {

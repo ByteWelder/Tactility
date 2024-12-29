@@ -25,7 +25,7 @@ DispatcherThread::~DispatcherThread() {
 
 void DispatcherThread::_threadMain() {
     do {
-        dispatcher.consume(1000);
+        dispatcher.consume(1000 / portTICK_PERIOD_MS);
     } while (!interruptThread);
 }
 

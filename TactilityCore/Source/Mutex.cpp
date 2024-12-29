@@ -61,7 +61,6 @@ TtStatus Mutex::acquire(uint32_t timeout) const {
             } else {
                 return TtStatusOk;
             }
-            break;
         case TypeRecursive:
             if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
@@ -72,7 +71,6 @@ TtStatus Mutex::acquire(uint32_t timeout) const {
             } else {
                 return TtStatusOk;
             }
-            break;
         default:
             tt_crash("mutex type unknown/corrupted");
     }
@@ -90,7 +88,6 @@ TtStatus Mutex::release() const {
             } else {
                 return TtStatusOk;
             }
-            break;
         }
         case TypeRecursive:
             if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
@@ -98,7 +95,6 @@ TtStatus Mutex::release() const {
             } else {
                 return TtStatusOk;
             }
-            break;
         default:
             tt_crash("mutex type unknown/corrupted");
     }
