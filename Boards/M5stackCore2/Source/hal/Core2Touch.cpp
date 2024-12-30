@@ -15,7 +15,7 @@ static int32_t threadCallback(void* context) {
 }
 
 Core2Touch::Core2Touch() :
-    driverThread(tt::Thread("", 4096, threadCallback, this))
+    driverThread(tt::Thread("core2_touch", 4096, threadCallback, this))
 { }
 
 void Core2Touch::driverThreadMain() {
@@ -67,7 +67,7 @@ bool Core2Touch::start(lv_display_t* display) {
 
     uint16_t width = lv_display_get_horizontal_resolution(display);
     uint16_t height = lv_display_get_vertical_resolution(display);
-    if (!driver.begin(5, width, height)) {
+    if (!driver.begin(FT6X36_DEFAULT_THRESHOLD, width, height)) {
         TT_LOG_E(TAG, "driver.begin() failed");
         return false;
     }
