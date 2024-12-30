@@ -11,6 +11,9 @@
 #define CORE2_SPI2_PIN_MOSI GPIO_NUM_23
 #define CORE2_SPI2_PIN_MISO GPIO_NUM_38
 
+m5::I2C_Class i2c;
+m5::AXP192_Class axpDevice(0x34, 400000, &i2c);
+
 static bool initSpi2() {
     TT_LOG_I(TAG, LOG_MESSAGE_SPI_INIT_START_FMT, SPI2_HOST);
     const spi_bus_config_t bus_config = {
@@ -38,9 +41,6 @@ static bool initSpi2() {
 }
 
 bool initAxp() {
-    m5::I2C_Class i2c;
-    m5::AXP192_Class axpDevice(0x34, 400000, &i2c);
-
     if (!i2c.begin(I2C_NUM_0, GPIO_NUM_21, GPIO_NUM_22)) {
         TT_LOG_E(TAG, "I2C init failed");
         return false;
@@ -58,7 +58,6 @@ bool initAxp() {
     axpDevice.writeRegister8(0x92, 0x02); // GPIO1 PWM
     axpDevice.setChargeCurrent(390); // Core2 battery = 390mAh
     axpDevice.setDCDC3(3300);
-    i2c.stop();
 
     return true;
 }
