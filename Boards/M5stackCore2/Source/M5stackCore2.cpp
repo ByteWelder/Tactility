@@ -2,12 +2,13 @@
 #include "InitBoot.h"
 #include "InitLvgl.h"
 #include "hal/Core2Display.h"
+#include "hal/Core2SdCard.h"
 
 extern const tt::hal::Configuration m5stack_core2 = {
     .initBoot = initBoot,
     .initLvgl = initLvgl,
     .createDisplay = createDisplay,
-//    .sdcard = createM5SdCard(),
+    .sdcard = createSdCard(),
 //    .power = m5stack_get_power,
     .i2c = {
         tt::hal::i2c::Configuration {
