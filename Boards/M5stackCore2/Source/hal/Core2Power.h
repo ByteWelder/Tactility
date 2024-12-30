@@ -13,8 +13,8 @@ private:
 
 public:
 
-    Core2Power();
-    ~Core2Power();
+    Core2Power() = default;
+    ~Core2Power() = default;
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;

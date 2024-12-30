@@ -7,12 +7,6 @@
 
 extern m5::AXP192_Class axpDevice;
 
-Core2Power::Core2Power() {
-}
-
-Core2Power::~Core2Power() {
-}
-
 bool Core2Power::supportsMetric(MetricType type) const {
     switch (type) {
         case BATTERY_VOLTAGE:
