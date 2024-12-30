@@ -35,12 +35,12 @@ typedef struct {
     PubSubSubscription* pubsub_subscription;
 } Statusbar;
 
-static void statusbar_lock() {
-    statusbar_data.mutex.acquire(TtWaitForever);
+static bool statusbar_lock(uint32_t timeoutTicks) {
+    return statusbar_data.mutex.lock(timeoutTicks);
 }
 
-static void statusbar_unlock() {
-    statusbar_data.mutex.release();
+static bool statusbar_unlock() {
+    return statusbar_data.mutex.unlock();
 }
 
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
@@ -113,7 +113,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     lv_obj_t* left_spacer = spacer_create(obj, 1, 1);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_lock();
+    statusbar_lock(TtWaitForever);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         lv_obj_t* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
@@ -129,11 +129,12 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 }
 
 static void update_main(Statusbar* statusbar) {
-    statusbar_lock();
-    for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
-        update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
+    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+        for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
+            update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
+        }
+        statusbar_unlock();
     }
-    statusbar_unlock();
 }
 
 static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t* event) {
@@ -154,7 +155,7 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
 }
 
 int8_t statusbar_icon_add(const char* _Nullable image) {
-    statusbar_lock();
+    statusbar_lock(TtWaitForever);
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
@@ -174,7 +175,7 @@ int8_t statusbar_icon_add(const char* _Nullable image) {
 void statusbar_icon_remove(int8_t id) {
     TT_LOG_I(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_lock();
+    statusbar_lock(TtWaitForever);
     StatusbarIcon* icon = &statusbar_data.icons[id];
     icon->claimed = false;
     icon->visible = false;
@@ -184,25 +185,27 @@ void statusbar_icon_remove(int8_t id) {
 }
 
 void statusbar_icon_set_image(int8_t id, const char* image) {
-    TT_LOG_I(TAG, "id %d: set image %s", id, image);
+    TT_LOG_I(TAG, "id %d: set image %s", id, image ? image : "(none)");
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_lock();
-    StatusbarIcon* icon = &statusbar_data.icons[id];
-    tt_check(icon->claimed);
-    icon->image = image;
-    tt_pubsub_publish(statusbar_data.pubsub, nullptr);
-    statusbar_unlock();
+    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+        StatusbarIcon* icon = &statusbar_data.icons[id];
+        tt_check(icon->claimed);
+        icon->image = image;
+        tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+        statusbar_unlock();
+    }
 }
 
 void statusbar_icon_set_visibility(int8_t id, bool visible) {
     TT_LOG_I(TAG, "id %d: set visibility %d", id, visible);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_lock();
-    StatusbarIcon* icon = &statusbar_data.icons[id];
-    tt_check(icon->claimed);
-    icon->visible = visible;
-    tt_pubsub_publish(statusbar_data.pubsub, nullptr);
-    statusbar_unlock();
+    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+        StatusbarIcon* icon = &statusbar_data.icons[id];
+        tt_check(icon->claimed);
+        icon->visible = visible;
+        tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+        statusbar_unlock();
+    }
 }
 
 } // namespace

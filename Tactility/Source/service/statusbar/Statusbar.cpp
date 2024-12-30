@@ -10,6 +10,7 @@
 #include "service/wifi/Wifi.h"
 #include "service/ServiceRegistry.h"
 #include "TactilityHeadless.h"
+#include "lvgl/LvglSync.h"
 
 namespace tt::service::statusbar {
 
@@ -182,7 +183,10 @@ static void onUpdate(std::shared_ptr<void> parameter) {
 }
 
 static void onStart(ServiceContext& service) {
+    lvgl::lock(TtWaitForever);
     auto data = std::make_shared<ServiceData>();
+    lvgl::unlock();
+
     service.setData(data);
 
     // TODO: Make thread-safe for LVGL

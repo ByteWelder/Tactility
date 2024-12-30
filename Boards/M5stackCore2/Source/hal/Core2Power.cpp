@@ -25,9 +25,15 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
         case BATTERY_VOLTAGE:
             data.valueAsUint32 = (uint32_t)TT_MAX((axpDevice.getBatteryVoltage() * 1000.f), 0.0f);
             return true;
-        case CHARGE_LEVEL:
-            data.valueAsUint8 = axpDevice.getBatteryLevel();
-            return true;
+        case CHARGE_LEVEL: {
+            auto level = axpDevice.getBatteryLevel();
+            if (level > 0) {
+                data.valueAsUint8 = (uint8_t)level;
+                return true;
+            } else {
+                return false;
+            }
+        }
         case IS_CHARGING:
             data.valueAsBool = axpDevice.isCharging();
             return true;

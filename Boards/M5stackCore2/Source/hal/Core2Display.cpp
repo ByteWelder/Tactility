@@ -75,7 +75,7 @@ bool Core2Display::start() {
         .panel_handle = panelHandle,
         .control_handle = nullptr,
         .buffer_size = CORE2_LCD_DRAW_BUFFER_SIZE,
-        .double_buffer = false,
+        .double_buffer = true,
         .trans_size = 0,
         .hres = CORE2_LCD_HORIZONTAL_RESOLUTION,
         .vres = CORE2_LCD_VERTICAL_RESOLUTION,
