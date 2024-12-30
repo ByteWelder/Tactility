@@ -14,7 +14,7 @@ private:
 public:
 
     Core2Power() = default;
-    ~Core2Power() = default;
+    ~Core2Power() override = default;
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
