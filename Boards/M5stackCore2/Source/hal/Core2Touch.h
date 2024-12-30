@@ -2,7 +2,7 @@
 
 #include "hal/Touch.h"
 #include "TactilityCore.h"
-#include "FT6X36.h"
+#include "ft6x36/FT6X36.h"
 
 class Core2Touch : public tt::hal::Touch {
 
