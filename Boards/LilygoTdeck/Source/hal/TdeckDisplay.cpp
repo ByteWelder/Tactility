@@ -117,12 +117,12 @@ bool TdeckDisplay::start() {
     }
 
     if (esp_lcd_panel_swap_xy(panelHandle, true) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to init panel");
+        TT_LOG_E(TAG, "Failed to swap XY ");
         return false;
     }
 
     if (esp_lcd_panel_mirror(panelHandle, true, false) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to init panel");
+        TT_LOG_E(TAG, "Failed to mirror panel");
         return false;
     }
 

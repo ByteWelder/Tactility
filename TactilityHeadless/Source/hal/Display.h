@@ -11,9 +11,9 @@ public:
     virtual bool start() = 0;
     virtual bool stop() = 0;
 
-    virtual void setPowerOn(bool turnOn) = 0;
-    virtual bool isPoweredOn() const = 0;
-    virtual bool supportsPowerControl() const = 0;
+    virtual void setPowerOn(bool turnOn) {}
+    virtual bool isPoweredOn() const { return true; }
+    virtual bool supportsPowerControl() const { return false; }
 
     virtual Touch* _Nullable createTouch() = 0;
 

@@ -1,73 +1,30 @@
-#include "YellowDisplay.h"
-#include "YellowDisplayConstants.h"
-#include "YellowTouch.h"
+#include "Core2Display.h"
+#include "Core2DisplayConstants.h"
 #include "Log.h"
 
 #include <TactilityCore.h>
 #include <esp_lcd_panel_commands.h>
 
 #include "driver/gpio.h"
-#include "driver/ledc.h"
 #include "esp_err.h"
 #include "esp_lcd_ili9341.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lvgl_port.h"
+#include "Core2Touch.h"
 
 #define TAG "yellow_display"
 
-static bool isBacklightInitialized = false;
-
-static bool initBacklight() {
-    ledc_timer_config_t ledc_timer = {
-        .speed_mode = TWODOTFOUR_LCD_BACKLIGHT_LEDC_MODE,
-        .duty_resolution = TWODOTFOUR_LCD_BACKLIGHT_LEDC_DUTY_RES,
-        .timer_num = TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER,
-        .freq_hz = TWODOTFOUR_LCD_BACKLIGHT_LEDC_FREQUENCY,
-        .clk_cfg = LEDC_AUTO_CLK,
-        .deconfigure = false
-    };
-
-    if (ledc_timer_config(&ledc_timer) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight led timer config failed");
-        return false;
-    }
-
-    return true;
-}
-
-static bool setBacklight(uint8_t duty) {
-    ledc_channel_config_t ledc_channel = {
-        .gpio_num = TWODOTFOUR_LCD_PIN_BACKLIGHT,
-        .speed_mode = TWODOTFOUR_LCD_BACKLIGHT_LEDC_MODE,
-        .channel = TWODOTFOUR_LCD_BACKLIGHT_LEDC_CHANNEL,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER,
-        .duty = duty,
-        .hpoint = 0,
-        .flags = {
-            .output_invert = false
-        }
-    };
-
-    if (ledc_channel_config(&ledc_channel) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight init failed");
-        return false;
-    }
-
-    return true;
-}
-
-bool YellowDisplay::start() {
+bool Core2Display::start() {
     TT_LOG_I(TAG, "Starting");
 
     const esp_lcd_panel_io_spi_config_t panel_io_config = ILI9341_PANEL_IO_SPI_CONFIG(
-        TWODOTFOUR_LCD_PIN_CS,
-        TWODOTFOUR_LCD_PIN_DC,
+        CORE2_LCD_PIN_CS,
+        CORE2_LCD_PIN_DC,
         nullptr,
         nullptr
     );
 
-    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)TWODOTFOUR_LCD_SPI_HOST, &panel_io_config, &ioHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)CORE2_LCD_SPI_HOST, &panel_io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }
@@ -76,7 +33,7 @@ bool YellowDisplay::start() {
         .reset_gpio_num = GPIO_NUM_NC,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
-        .bits_per_pixel = TWODOTFOUR_LCD_BITS_PER_PIXEL,
+        .bits_per_pixel = CORE2_LCD_BITS_PER_PIXEL,
         .flags = {
             .reset_active_high = false
         },
@@ -98,8 +55,13 @@ bool YellowDisplay::start() {
         return false;
     }
 
-    if (esp_lcd_panel_mirror(panelHandle, true, false) != ESP_OK) {
+    if (esp_lcd_panel_mirror(panelHandle, false, false) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set panel to mirror");
+        return false;
+    }
+
+    if (esp_lcd_panel_invert_color(panelHandle, true) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel to invert");
         return false;
     }
 
@@ -112,21 +74,21 @@ bool YellowDisplay::start() {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = TWODOTFOUR_LCD_DRAW_BUFFER_SIZE,
-        .double_buffer = false,
+        .buffer_size = CORE2_LCD_DRAW_BUFFER_SIZE,
+        .double_buffer = true,
         .trans_size = 0,
-        .hres = TWODOTFOUR_LCD_HORIZONTAL_RESOLUTION,
-        .vres = TWODOTFOUR_LCD_VERTICAL_RESOLUTION,
+        .hres = CORE2_LCD_HORIZONTAL_RESOLUTION,
+        .vres = CORE2_LCD_VERTICAL_RESOLUTION,
         .monochrome = false,
         .rotation = {
             .swap_xy = false,
-            .mirror_x = true,
+            .mirror_x = false,
             .mirror_y = false,
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
-            .buff_dma = true,
-            .buff_spiram = false,
+            .buff_dma = false,
+            .buff_spiram = true,
             .sw_rotate = false,
             .swap_bytes = true,
             .full_refresh = false,
@@ -139,7 +101,7 @@ bool YellowDisplay::start() {
     return displayHandle != nullptr;
 }
 
-bool YellowDisplay::stop() {
+bool Core2Display::stop() {
     tt_assert(displayHandle != nullptr);
 
     lvgl_port_remove_disp(displayHandle);
@@ -156,17 +118,6 @@ bool YellowDisplay::stop() {
     return true;
 }
 
-void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
-    if (!isBacklightInitialized) {
-        tt_check(initBacklight());
-        isBacklightInitialized = true;
-    }
-
-    if (!setBacklight(backlightDuty)) {
-        TT_LOG_E(TAG, "Failed to configure display backlight");
-    }
-}
-
 /**
  * Note:
  * The datasheet implies this should work, but it doesn't:
@@ -177,7 +128,7 @@ void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
  *
  * I'm leaving it in as I'm not sure if it's just my hardware that's problematic.
  */
-void YellowDisplay::setGammaCurve(uint8_t index) {
+void Core2Display::setGammaCurve(uint8_t index) {
     uint8_t gamma_curve;
     switch (index) {
         case 0:
@@ -204,10 +155,10 @@ void YellowDisplay::setGammaCurve(uint8_t index) {
     }
 }
 
-tt::hal::Touch* _Nullable YellowDisplay::createTouch() {
-    return static_cast<tt::hal::Touch*>(new YellowTouch());
+tt::hal::Touch* _Nullable Core2Display::createTouch() {
+    return static_cast<tt::hal::Touch*>(new Core2Touch());
 }
 
 tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new YellowDisplay());
+    return static_cast<tt::hal::Display*>(new Core2Display());
 }
