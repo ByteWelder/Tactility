@@ -4,4 +4,4 @@
 
 using namespace tt::hal;
 
-std::shared_ptr<SdCard> createM5SdCard();
+std::shared_ptr<SdCard> createSdCard();

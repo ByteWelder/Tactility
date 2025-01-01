@@ -3,7 +3,7 @@
 #include "hal/Touch.h"
 #include "TactilityCore.h"
 
-class M5stackTouch : public tt::hal::Touch {
+class CoreS3Touch : public tt::hal::Touch {
 private:
     lv_indev_t* _Nullable deviceHandle = nullptr;
 public:

@@ -1,17 +1,21 @@
 #include "M5stackCoreS3.h"
-#include "M5stackShared.h"
+#include "InitBoot.h"
+#include "InitLvgl.h"
+#include "hal/CoreS3Display.h"
+#include "hal/CoreS3SdCard.h"
+#include "hal/CoreS3Power.h"
 
 const tt::hal::Configuration m5stack_cores3 = {
-    .initBoot = m5stack_bootstrap,
-    .initLvgl = m5stack_lvgl_init,
+    .initBoot = initBoot,
+    .initLvgl = initLvgl,
     .createDisplay = createDisplay,
-    .sdcard = createM5SdCard(),
-    .power = m5stack_get_power,
+    .sdcard = createSdCard(),
+    .power = createPower,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitByExternal,
+            .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
             .config = (i2c_config_t) {
@@ -29,7 +33,7 @@ const tt::hal::Configuration m5stack_cores3 = {
         tt::hal::i2c::Configuration {
             .name = "External", // Grove
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitByExternal,
+            .initMode = tt::hal::i2c::InitByTactility,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {
