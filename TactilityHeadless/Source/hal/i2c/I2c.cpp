@@ -8,6 +8,8 @@
 
 namespace tt::hal::i2c {
 
+static const uint8_t ACK_CHECK_EN = 1;
+
 typedef struct Data {
     Mutex mutex;
     bool isConfigured = false;
@@ -164,11 +166,60 @@ bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize
     return result == ESP_OK;
 }
 
+esp_err_t masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
+    tt_check(reg != 0);
+
+    lock(port);
+
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    // Set address pointer
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
+    i2c_master_write(cmd, &reg, 1, ACK_CHECK_EN);
+    // Read length of response from current pointer
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_READ, ACK_CHECK_EN);
+    if (dataSize > 1) {
+        i2c_master_read(cmd, data, dataSize - 1, I2C_MASTER_ACK);
+    }
+    i2c_master_read_byte(cmd, data + dataSize - 1, I2C_MASTER_NACK);
+    i2c_master_stop(cmd);
+    esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
+    i2c_cmd_link_delete(cmd);
+
+    ESP_LOG_BUFFER_HEX_LEVEL(TAG, data, dataSize, ESP_LOG_DEBUG);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+
+    unlock(port);
+    return result;
+}
+
 bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     lock(port);
     esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
     unlock(port);
     return result == ESP_OK;
+}
+
+esp_err_t masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    tt_check(reg != 0);
+
+    lock(port);
+
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    i2c_master_start(cmd);
+    i2c_master_write_byte(cmd, (address << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
+    i2c_master_write_byte(cmd, reg, ACK_CHECK_EN);
+    i2c_master_write(cmd, (uint8_t*) data, dataSize, ACK_CHECK_EN);
+    i2c_master_stop(cmd);
+    esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
+    i2c_cmd_link_delete(cmd);
+
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+
+    unlock(port);
+
+    return result;
 }
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {

@@ -53,7 +53,7 @@ static void updateUi(std::shared_ptr<Data> data) {
     }
 
     bool charging_enabled_set = data->power->supportsChargeControl();
-    bool charging_enabled = data->power->supportsChargeControl() && data->power->isAllowedToCharge();
+    bool charging_enabled_and_allowed = data->power->supportsChargeControl() && data->power->isAllowedToCharge();
 
     int32_t current;
     bool current_set = false;
@@ -72,7 +72,7 @@ static void updateUi(std::shared_ptr<Data> data) {
     lvgl::lock(kernel::millisToTicks(1000));
 
     if (charging_enabled_set) {
-        lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled);
+        lv_obj_set_state(data->enable_switch, LV_STATE_CHECKED, charging_enabled_and_allowed);
         lv_obj_remove_flag(data->enable_switch, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(data->enable_label, LV_OBJ_FLAG_HIDDEN);
     } else {
