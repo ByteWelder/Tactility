@@ -174,6 +174,7 @@ void CoreS3Display::setGammaCurve(uint8_t index) {
 
 void CoreS3Display::setBacklightDuty(uint8_t backlightDuty) {
     const uint8_t voltage = 20 + ((8 * backlightDuty) / 255); // [0b00000, 0b11100] - under 20 is too dark
+    // TODO: Refactor to use Axp2102 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L42
     if (tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x99, &voltage, 1, 1000) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set display backlight voltage");
     }
