@@ -2,5 +2,6 @@ dependencies:
   espressif/esp_lcd_ili9341: "2.0.0"
   espressif/esp_lcd_touch_cst816s: "1.0.3"
   espressif/esp_lcd_touch_gt911: "1.1.1~2"
+  espressif/esp_lcd_touch_ft5x06: "1.0.6~1"
   espressif/esp_lcd_touch: "1.1.2"
   idf: '5.3.1'

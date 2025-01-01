@@ -1,26 +1,27 @@
-#include "M5stackSdCard.h"
+#include "CoreS3SdCard.h"
 
 #include "lvgl/LvglSync.h"
 #include "hal/SpiSdCard.h"
 
 #include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
 
-#define SDCARD_PIN_CS GPIO_NUM_4
-#define SDCARD_SPI_FREQUENCY 800000U
+#define CORES3_SDCARD_SPI_FREQUENCY 800000U
+#define CORES3_SDCARD_PIN_CS GPIO_NUM_4
+#define CORES3_LCD_PIN_CS GPIO_NUM_3
 
-std::shared_ptr<SdCard> createM5SdCard() {
+std::shared_ptr<SdCard> createSdCard() {
     auto* configuration = new tt::hal::SpiSdCard::Config(
-        SDCARD_SPI_FREQUENCY,
-        SDCARD_PIN_CS,
+        CORES3_SDCARD_SPI_FREQUENCY,
+        CORES3_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCard::MountBehaviourAtBoot,
         tt::lvgl::getLvglSyncLockable(),
         {
-            GPIO_NUM_5
-        }
+            CORES3_LCD_PIN_CS
+        },
+        SPI3_HOST
     );
 
     auto* sdcard = (SdCard*) new SpiSdCard(

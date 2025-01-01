@@ -64,6 +64,7 @@ bool SpiSdCard::mountInternal(const char* mountPoint) {
 
     // Init without card detect (CD) and write protect (WD)
     sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT();
+    slot_config.host_id = config->spiHost;
     slot_config.gpio_cs = config->spiPinCs;
     slot_config.gpio_cd = config->spiPinCd;
     slot_config.gpio_wp = config->spiPinWp;
@@ -74,6 +75,7 @@ bool SpiSdCard::mountInternal(const char* mountPoint) {
     // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
     // Observation: Using this automatically sets the bus to 20MHz
     host.max_freq_khz = config->spiFrequency;
+    host.slot = config->spiHost;
 
     esp_err_t result = esp_vfs_fat_sdspi_mount(mountPoint, &host, &slot_config, &mount_config, &card);
 

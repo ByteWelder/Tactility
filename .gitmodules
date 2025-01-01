@@ -1,9 +1,3 @@
-[submodule "Libraries/M5GFX"]
-	path = Libraries/M5GFX
-	url = https://github.com/m5stack/M5GFX.git
-[submodule "Libraries/M5Unified"]
-	path = Libraries/M5Unified
-	url = https://github.com/m5stack/M5Unified.git
 [submodule "Libraries/FreeRTOS-Kernel"]
 	path = Libraries/FreeRTOS-Kernel
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git

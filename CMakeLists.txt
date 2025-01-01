@@ -15,9 +15,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_definitions(-DESP_TARGET)
     add_compile_definitions(ESP_TARGET)
 
-    add_definitions(-DARDUINO_M5STACK_CORE2)
-    add_compile_definitions(ARDUINO_M5STACK_CORE2)
-
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
         "Boards"
@@ -30,8 +27,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/elf_loader"
         "Libraries/lvgl"
         "Libraries/lv_screenshot"
-        "Libraries/M5Unified"
-        "Libraries/M5GFX"
         "Libraries/QRCode"
     )
 
