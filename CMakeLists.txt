@@ -49,9 +49,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
     endif()
 
-    # TEMP - DO NOT COMMIT
-    set(EXCLUDE_COMPONENTS "YellowBoard" "M5stackCore2" "WaveshareS3Touch")
-
     # LVGL
     get_filename_component(
         LVGL_CONFIG_FULL_PATH Libraries/lvgl_conf ABSOLUTE

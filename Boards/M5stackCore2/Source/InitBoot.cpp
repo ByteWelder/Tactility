@@ -3,7 +3,9 @@
 #include <intr_types.h>
 #include "Log.h"
 #include "hal/Core2DisplayConstants.h"
-#include "M5Unified/src/utility/AXP192_Class.hpp"
+#include "axp192/axp192.h"
+#include "hal/i2c/I2c.h"
+#include "CoreDefines.h"
 
 #define TAG "core2"
 
@@ -11,8 +13,15 @@
 #define CORE2_SPI2_PIN_MOSI GPIO_NUM_23
 #define CORE2_SPI2_PIN_MISO GPIO_NUM_38
 
-m5::I2C_Class i2c;
-m5::AXP192_Class axpDevice(0x34, 400000, &i2c);
+axp192_t axpDevice;
+
+static int32_t axpI2cRead(TT_UNUSED void* handle, uint8_t address, uint8_t reg, uint8_t* buffer, uint16_t size) {
+    return tt::hal::i2c::masterRead(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
+}
+
+static int32_t axpI2cWrite(TT_UNUSED void* handle, uint8_t address, uint8_t reg, const uint8_t* buffer, uint16_t size) {
+    return tt::hal::i2c::masterWrite(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
+}
 
 static bool initSpi2() {
     TT_LOG_I(TAG, LOG_MESSAGE_SPI_INIT_START_FMT, SPI2_HOST);
@@ -41,23 +50,20 @@ static bool initSpi2() {
 }
 
 bool initAxp() {
-    if (!i2c.begin(I2C_NUM_0, GPIO_NUM_21, GPIO_NUM_22)) {
-        TT_LOG_E(TAG, "I2C init failed");
-        return false;
-    }
+    axpDevice.read = axpI2cRead;
+    axpDevice.write = axpI2cWrite;
 
-    if (!axpDevice.begin()) {
-        TT_LOG_E(TAG, "AXP init failed");
-        return false;
-    }
+    axp192_ioctl(&axpDevice, AXP192_LDO2_SET_VOLTAGE, 3300); // LCD + SD
+    axp192_ioctl(&axpDevice, AXP192_LDO3_SET_VOLTAGE, 0); // VIB_MOTOR STOP
+    axp192_ioctl(&axpDevice, AXP192_DCDC3_SET_VOLTAGE, 3300);
 
-    axpDevice.setLDO2(3300); // LCD + SD peripheral power supply
-    axpDevice.setLDO3(0); // VIB_MOTOR STOP
-    axpDevice.setGPIO2(false); // SPEAKER STOP
-    axpDevice.writeRegister8(0x9A, 255); // PWM 255 (LED OFF)
-    axpDevice.writeRegister8(0x92, 0x02); // GPIO1 PWM
-    axpDevice.setChargeCurrent(390); // Core2 battery = 390mAh
-    axpDevice.setDCDC3(3300);
+    axp192_ioctl(&axpDevice, AXP192_LDO2_ENABLE);
+    axp192_ioctl(&axpDevice, AXP192_LDO3_DISABLE);
+    axp192_ioctl(&axpDevice, AXP192_DCDC3_ENABLE);
+
+    axp192_write(&axpDevice, AXP192_PWM1_DUTY_CYCLE_2, 255); // PWM 255 (LED OFF)
+    axp192_write(&axpDevice, AXP192_GPIO1_CONTROL, 0x02); // GPIO1 PWM
+    // TODO: We could charge at 390mA according to the M5Unified code, but the AXP driver in M5Unified limits to 132mA, so it's unclear what the AXP supports.
 
     return true;
 }

@@ -7,10 +7,6 @@ using namespace tt::hal;
 
 class Core2Power : public Power {
 
-private:
-
-    bool allowedToCharge = true;
-
 public:
 
     Core2Power() = default;

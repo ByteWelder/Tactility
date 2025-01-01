@@ -6,15 +6,15 @@
 namespace tt::hal {
 
 void init(const Configuration& configuration) {
-    if (configuration.initBoot != nullptr) {
-        TT_LOG_I(TAG, "Init power");
-        tt_check(configuration.initBoot(), "Init power failed");
-    }
-
     tt_check(i2c::init(configuration.i2c), "I2C init failed");
     if (configuration.initHardware != nullptr) {
         TT_LOG_I(TAG, "Init hardware");
         tt_check(configuration.initHardware(), "Hardware init failed");
+    }
+
+    if (configuration.initBoot != nullptr) {
+        TT_LOG_I(TAG, "Init power");
+        tt_check(configuration.initBoot(), "Init power failed");
     }
 
     if (configuration.sdcard != nullptr) {
