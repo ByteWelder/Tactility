@@ -2,6 +2,34 @@
 
 #include "LogMessages.h"
 
+#if CONFIG_SPIRAM_USE_MALLOC == 1 or not defined(ESP_PLATFORM)
+#define TT_LOG_ENTRY_COUNT 200
+#define TT_LOG_MESSAGE_SIZE 128
+#else
+#define TT_LOG_ENTRY_COUNT 50
+#define TT_LOG_MESSAGE_SIZE 50
+#endif
+
+namespace tt {
+
+enum LogLevel {
+    LogLevelNone,       /*!< No log output */
+    LogLevelError,      /*!< Critical errors, software module can not recover on its own */
+    LogLevelWarning,    /*!< Error conditions from which recovery measures have been taken */
+    LogLevelInfo,       /*!< Information messages which describe normal flow of events */
+    LogLevelDebug,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
+    LogLevelVerbose     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
+};
+
+struct LogEntry {
+    LogLevel level = LogLevelNone;
+    char message[TT_LOG_MESSAGE_SIZE] = { 0 };
+};
+
+LogEntry* copyLogEntries(unsigned int& outIndex);
+
+} // namespace tt
+
 #ifdef ESP_TARGET
 #include "esp_log.h"
 #else
@@ -25,14 +53,6 @@
 #else
 
 namespace tt {
-
-typedef enum {
-    LogLevelError,
-    LogLevelWarning,
-    LogLevelInfo,
-    LogLevelDebug,
-    LogLevelTrace
-} LogLevel;
 
 void log(LogLevel level, const char* tag, const char* format, ...);
 
