@@ -10,20 +10,13 @@
 
 bool CoreS3Touch::start(lv_display_t* display) {
     TT_LOG_I(TAG, "Starting");
-    esp_lcd_panel_io_handle_t ioHandle;
-    esp_lcd_touch_handle_t touchHandle;
 
     esp_lcd_panel_io_i2c_config_t touch_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
 
-    // TODO: Check when ESP-IDF publishes fix (5.3.2 or 5.4.x)
-    static_assert(ESP_IDF_VERSION == ESP_IDF_VERSION_VAL(5, 3, 1));
-    esp_lcd_new_panel_io_i2c(I2C_NUM_0, &touch_io_config, &ioHandle);
-    /*
     if (esp_lcd_new_panel_io_i2c(I2C_NUM_0, &touch_io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Touch I2C IO init failed");
         return false;
     }
-    */
 
     esp_lcd_touch_config_t config = {
         .x_max = 320,
@@ -47,6 +40,7 @@ bool CoreS3Touch::start(lv_display_t* display) {
 
     if (esp_lcd_touch_new_i2c_ft5x06(ioHandle, &config, &touchHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Driver init failed");
+        cleanup();
         return false;
     }
 
@@ -58,6 +52,7 @@ bool CoreS3Touch::start(lv_display_t* display) {
     deviceHandle = lvgl_port_add_touch(&touch_cfg);
     if (deviceHandle == nullptr) {
         TT_LOG_E(TAG, "Adding touch failed");
+        cleanup();
         return false;
     }
 
@@ -66,8 +61,23 @@ bool CoreS3Touch::start(lv_display_t* display) {
 }
 
 bool CoreS3Touch::stop() {
-    tt_assert(deviceHandle != nullptr);
-    lv_indev_delete(deviceHandle);
-    deviceHandle = nullptr;
+    cleanup();
     return true;
+}
+
+void CoreS3Touch::cleanup() {
+    if (deviceHandle != nullptr) {
+        lv_indev_delete(deviceHandle);
+        deviceHandle = nullptr;
+    }
+
+    if (touchHandle != nullptr) {
+        esp_lcd_touch_del(touchHandle);
+        touchHandle = nullptr;
+    }
+
+    if (ioHandle != nullptr) {
+        esp_lcd_panel_io_del(ioHandle);
+        ioHandle = nullptr;
+    }
 }

@@ -3,7 +3,6 @@
 #include "esp_err.h"
 #include "esp_lcd_touch_gt911.h"
 #include "Log.h"
-#include "kernel/Kernel.h"
 #include "esp_lvgl_port.h"
 
 #define TAG "tdeck_touch"
@@ -16,25 +15,10 @@
 bool TdeckTouch::start(lv_display_t* display) {
     const esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
 
-    // TODO: Revert on new ESP-IDF version
-    static_assert(ESP_IDF_VERSION == ESP_IDF_VERSION_VAL(5, 3, 1));
-    esp_lcd_new_panel_io_i2c(
-        (esp_lcd_i2c_bus_handle_t)TDECK_TOUCH_I2C_BUS_HANDLE,
-        &io_config,
-        &ioHandle
-    );
-    /*
-    if (
-        esp_lcd_new_panel_io_i2c(
-            (esp_lcd_i2c_bus_handle_t)TDECK_TOUCH_I2C_BUS_HANDLE,
-            &touch_io_config,
-            &ioHandle
-        ) != ESP_OK
-    ) {
+    if (esp_lcd_new_panel_io_i2c(TDECK_TOUCH_I2C_BUS_HANDLE, &io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "touch io i2c creation failed");
         return false;
     }
-    */
 
     esp_lcd_touch_config_t config = {
         .x_max = TDECK_TOUCH_X_MAX,
@@ -58,7 +42,7 @@ bool TdeckTouch::start(lv_display_t* display) {
 
     if (esp_lcd_touch_new_i2c_gt911(ioHandle, &config, &touchHandle) != ESP_OK) {
         TT_LOG_E(TAG, "GT199 driver init failed");
-        // TODO: De-init IO
+        cleanup();
         return false;
     }
 
@@ -71,6 +55,7 @@ bool TdeckTouch::start(lv_display_t* display) {
     deviceHandle = lvgl_port_add_touch(&touch_cfg);
     if (deviceHandle == nullptr) {
         TT_LOG_E(TAG, "Adding touch failed");
+        cleanup();
         return false;
     }
 
@@ -78,19 +63,23 @@ bool TdeckTouch::start(lv_display_t* display) {
 }
 
 bool TdeckTouch::stop() {
-    if (esp_lcd_touch_del(touchHandle) == ESP_OK) {
-        touchHandle = nullptr;
-    } else {
-        TT_LOG_E(TAG, "Deleting driver failed");
-        return false;
-    }
-
-    if (esp_lcd_panel_io_del(ioHandle) == ESP_OK) {
-        ioHandle = nullptr;
-    } else {
-        TT_LOG_E(TAG, "Deleting IO handle failed");
-        return false;
-    }
-
+    cleanup();
     return true;
+}
+
+void TdeckTouch::cleanup() {
+    if (deviceHandle != nullptr) {
+        lv_indev_delete(deviceHandle);
+        deviceHandle = nullptr;
+    }
+
+    if (touchHandle != nullptr) {
+        esp_lcd_touch_del(touchHandle);
+        touchHandle = nullptr;
+    }
+
+    if (ioHandle != nullptr) {
+        esp_lcd_panel_io_del(ioHandle);
+        ioHandle = nullptr;
+    }
 }
