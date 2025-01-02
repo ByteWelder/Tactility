@@ -73,6 +73,8 @@ public:
     bool mount(const char* mountPath) override;
     bool unmount() override;
     State getState() const override;
+
+    sdmmc_card_t* _Nullable getCard() { return card; }
 };
 
 }
