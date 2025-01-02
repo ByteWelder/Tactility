@@ -46,7 +46,7 @@ static tusb_desc_device_t descriptor_config = {
     .bDeviceSubClass = MISC_SUBCLASS_COMMON,
     .bDeviceProtocol = MISC_PROTOCOL_IAD,
     .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = 0x303A, // This is Espressif VID. This needs to be changed according to Users / Customers
+    .idVendor = 0x303A, // TODO: Espressif VID. Do we need to change this?
     .idProduct = 0x4002,
     .bcdDevice = 0x100,
     .iManufacturer = 0x01,
@@ -55,7 +55,7 @@ static tusb_desc_device_t descriptor_config = {
     .bNumConfigurations = 0x01
 };
 
-static char const *string_desc_arr[] = {
+static char const* string_desc_arr[] = {
     (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
     "Espressif",                    // 1: Manufacturer
     "Tactility Device",             // 2: Product
