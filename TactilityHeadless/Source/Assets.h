@@ -5,6 +5,7 @@
 
 // Splash
 #define TT_ASSETS_BOOT_LOGO TT_ASSET("boot_logo.png")
+#define TT_ASSETS_BOOT_LOGO_USB TT_ASSET("boot_logo_usb.png")
 
 // UI
 #define TT_ASSETS_UI_SPINNER TT_ASSET("spinner.png")

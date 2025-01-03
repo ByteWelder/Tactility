@@ -54,6 +54,7 @@ namespace app {
     namespace settings { extern const AppManifest manifest; }
     namespace systeminfo { extern const AppManifest manifest; }
     namespace textviewer { extern const AppManifest manifest; }
+    namespace usbsettings { extern const AppManifest manifest; }
     namespace wifiapsettings { extern const AppManifest manifest; }
     namespace wificonnect { extern const AppManifest manifest; }
     namespace wifimanage { extern const AppManifest manifest; }
@@ -86,6 +87,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::selectiondialog::manifest,
     &app::systeminfo::manifest,
     &app::textviewer::manifest,
+    &app::usbsettings::manifest,
     &app::wifiapsettings::manifest,
     &app::wificonnect::manifest,
     &app::wifimanage::manifest,

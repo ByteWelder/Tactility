@@ -9,6 +9,7 @@
 
 #include "lvgl.h"
 #include "Tactility.h"
+#include "hal/usb/Usb.h"
 
 #ifdef ESP_PLATFORM
 #include "kernel/PanicHandler.h"
@@ -31,28 +32,32 @@ struct Data {
 };
 
 static int32_t bootThreadCallback(TT_UNUSED void* context) {
-    TickType_t start_time = tt::kernel::getTicks();
+    TickType_t start_time = kernel::getTicks();
 
     auto* lvgl_display = lv_display_get_default();
     tt_assert(lvgl_display != nullptr);
-    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    auto* hal_display = (hal::Display*)lv_display_get_user_data(lvgl_display);
     tt_assert(hal_display != nullptr);
     if (hal_display->supportsBacklightDuty()) {
         int32_t backlight_duty = app::display::getBacklightDuty();
         hal_display->setBacklightDuty(backlight_duty);
     }
 
-    TickType_t end_time = tt::kernel::getTicks();
-    TickType_t ticks_passed = end_time - start_time;
-    TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
-    if (minimum_ticks > ticks_passed) {
-        tt::kernel::delayTicks(minimum_ticks - ticks_passed);
+    if (hal::usb::isUsbBootMode()) {
+        TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+        hal::usb::resetUsbBootMode();
+        hal::usb::startMassStorageWithSdmmc();
+    } else {
+        TickType_t end_time = tt::kernel::getTicks();
+        TickType_t ticks_passed = end_time - start_time;
+        TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
+        if (minimum_ticks > ticks_passed) {
+            kernel::delayTicks(minimum_ticks - ticks_passed);
+        }
+
+        tt::service::loader::stopApp();
+        startNextApp();
     }
-
-    tt::service::loader::stopApp();
-
-
-    startNextApp();
 
     return 0;
 }
@@ -84,7 +89,13 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
 
     lv_obj_t* image = lv_image_create(parent);
     lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
-    lv_image_set_src(image, TT_ASSETS_BOOT_LOGO);
+
+    if (hal::usb::isUsbBootMode()) {
+        lv_image_set_src(image, TT_ASSETS_BOOT_LOGO_USB);
+    } else {
+        lv_image_set_src(image, TT_ASSETS_BOOT_LOGO);
+    }
+
     lvgl::obj_set_style_bg_blacken(parent);
 
     data->thread.start();

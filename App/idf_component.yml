@@ -4,4 +4,8 @@ dependencies:
   espressif/esp_lcd_touch_gt911: "1.1.1~2"
   espressif/esp_lcd_touch_ft5x06: "1.0.6~1"
   espressif/esp_lcd_touch: "1.1.2"
+  espressif/esp_tinyusb:
+    version: "1.5.0"
+    rules:
+      - if: "target == esp32s3"
   idf: '5.3.2'
