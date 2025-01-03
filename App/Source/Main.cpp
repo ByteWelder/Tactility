@@ -1,12 +1,9 @@
 #include "Boards.h"
-
-// Apps
 #include "Tactility.h"
-#include "tt_init.h"
 
-namespace tt::service::wifi {
-    extern void wifi_task(void*);
-}
+#ifdef ESP_PLATFORM
+#include "tt_init.h"
+#endif
 
 extern const tt::app::AppManifest hello_world_app;
 
@@ -26,7 +23,9 @@ void app_main() {
         .autoStartAppId = nullptr
     };
 
+#ifdef ESP_PLATFORM
     tt_init_tactility_c(); // ELF bindings for side-loading on ESP32
+#endif
 
     tt::run(config);
 }

@@ -49,7 +49,7 @@ static void onScanTimer(TT_UNUSED std::shared_ptr<void> context) {
     for (uint8_t address = 0; address < 128; ++address) {
         i2c_port_t port;
         if (getPort(data, &port)) {
-            if (hal::i2c::masterCheckAddressForDevice(port, address, 10 / portTICK_PERIOD_MS)) {
+            if (hal::i2c::masterHasDeviceAtAddress(port, address, 10 / portTICK_PERIOD_MS)) {
                 TT_LOG_I(TAG, "Found device at address %d", address);
                 if (!shouldStopScanTimer(data)) {
                     addAddressToList(data, address);

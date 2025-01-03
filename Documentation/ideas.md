@@ -1,5 +1,4 @@
 # Bugs
-- I2C Scanner is on M5Stack devices is broken
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
 - ESP32 (CYD) memory issues (or any device without PSRAM):
   - Boot app doesn't show logo 
