@@ -3,14 +3,13 @@
 - ESP32 (CYD) memory issues (or any device without PSRAM):
   - Boot app doesn't show logo 
   - WiFi is on and navigating back to Desktop makes desktop icons disappear
-  - WiFi might fail quiety when trying to enable it: this shows no feedback (force it by increasing LVGL buffers to 100kB)
+  - WiFi might fail quietly when trying to enable it: this shows no feedback (force it by increasing LVGL buffers to 100kB)
   Possible mitigations: 
   - When no PSRAM is available, use simplified desktop buttons
   - Add statusbar icon for memory pressure.
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
-- hal::I2c has inconsistent return values for read/write functions
 
 # TODOs
 - Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
