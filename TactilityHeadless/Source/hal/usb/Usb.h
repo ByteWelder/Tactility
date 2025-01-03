@@ -11,6 +11,7 @@ enum Mode {
 bool startMassStorageWithSdmmc();
 void stop();
 Mode getMode();
+bool isSupported();
 
 bool canRebootIntoMassStorageSdmmc();
 void rebootIntoMassStorageSdmmc();

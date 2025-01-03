@@ -9,6 +9,7 @@ namespace tt::hal::usb {
 bool startMassStorageWithSdmmc() { return false; }
 void stop() {}
 Mode getMode() { return ModeDefault; }
+bool isSupported() { return false; }
 
 bool canRebootIntoMassStorageSdmmc() { return false; }
 void rebootIntoMassStorageSdmmc() {}

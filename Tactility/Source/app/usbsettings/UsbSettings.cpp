@@ -21,11 +21,14 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
         lv_obj_align(button, LV_ALIGN_CENTER, 0, 0);
         lv_obj_add_event_cb(button, onRebootMassStorage, LV_EVENT_SHORT_CLICKED, nullptr);
     } else {
+        bool supported = hal::usb::isSupported();
+        const char* first = supported ? "USB storage not available:" : "USB driver not supported";
+        const char* second = supported ? "SD card not mounted" : "on this hardware";
         auto* label_a = lv_label_create(parent);
-        lv_label_set_text(label_a, "USB storage not available");
+        lv_label_set_text(label_a, first);
         lv_obj_align(label_a, LV_ALIGN_CENTER, 0, 0);
         auto* label_b = lv_label_create(parent);
-        lv_label_set_text(label_b, "(no SD card mounted)");
+        lv_label_set_text(label_b, second);
         lv_obj_align_to(label_b, label_a, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
     }
 

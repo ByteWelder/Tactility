@@ -6,11 +6,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (DEFINED ENV{ESP_IDF_VERSION})
     file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 
+    list(APPEND REQUIRES_LIST TactilityCore esp_wifi nvs_flash driver spiffs vfs fatfs )
+    if("${IDF_TARGET}" STREQUAL "esp32s3")
+        list(APPEND REQUIRES_LIST esp_tinyusb)
+    endif()
+
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Source/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES TactilityCore esp_wifi nvs_flash driver spiffs vfs fatfs esp_tinyusb
+        REQUIRES ${REQUIRES_LIST}
     )
 
     if (NOT DEFINED TACTILITY_SKIP_SPIFFS)

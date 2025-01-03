@@ -32,13 +32,13 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(EXCLUDE_COMPONENTS "Simulator")
 
-    # ESP32 boards
+    # Non-ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "YellowBoard")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
     endif()
 
-    # ESP32-S3 boards
+    # Non-ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
