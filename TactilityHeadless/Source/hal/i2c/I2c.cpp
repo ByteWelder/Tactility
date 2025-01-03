@@ -58,7 +58,7 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
    return true;
 }
 
-static bool configure_locked(i2c_port_t port, const i2c_config_t& configuration) {
+static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) {
     Data& data = dataArray[port];
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
@@ -73,10 +73,14 @@ static bool configure_locked(i2c_port_t port, const i2c_config_t& configuration)
 }
 
 bool configure(i2c_port_t port, const i2c_config_t& configuration) {
-    lock(port);
-    bool result = configure_locked(port, configuration);
-    unlock(port);
-    return result;
+    if (lock(port)) {
+        bool result = configureLocked(port, configuration);
+        unlock(port);
+        return result;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
 static bool startLocked(i2c_port_t port) {
@@ -113,10 +117,14 @@ static bool startLocked(i2c_port_t port) {
 }
 
 bool start(i2c_port_t port) {
-    lock(port);
-    bool result = startLocked(port);
-    unlock(port);
-    return result;
+    if (lock(port)) {
+        bool result = startLocked(port);
+        unlock(port);
+        return result;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
 static bool stopLocked(i2c_port_t port) {
@@ -146,30 +154,45 @@ static bool stopLocked(i2c_port_t port) {
 }
 
 bool stop(i2c_port_t port) {
-    lock(port);
-    bool result = stopLocked(port);
-    unlock(port);
-    return result;
+    if (lock(port)) {
+        bool result = stopLocked(port);
+        unlock(port);
+        return result;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
 bool isStarted(i2c_port_t port) {
-    lock(port);
-    bool started = dataArray[port].isStarted;
-    unlock(port);
-    return started;
+    if (lock(port, 50 / portTICK_PERIOD_MS)) {
+        bool started = dataArray[port].isStarted;
+        unlock(port);
+        return started;
+    } else {
+        // If we can't get a lock, we assume the device is busy and thus has started
+        return true;
+    }
 }
 
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
-    lock(port);
-    esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
-    unlock(port);
-    return result == ESP_OK;
+    if (lock(port)) {
+        esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
+        unlock(port);
+        return result == ESP_OK;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
-esp_err_t masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
+bool masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
-    lock(port);
+    if (!lock(port)) {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     // Set address pointer
@@ -187,24 +210,32 @@ esp_err_t masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* dat
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
+    unlock(port);
+
     ESP_LOG_BUFFER_HEX_LEVEL(TAG, data, dataSize, ESP_LOG_DEBUG);
     ESP_ERROR_CHECK_WITHOUT_ABORT(result);
 
-    unlock(port);
-    return result;
-}
-
-bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
-    lock(port);
-    esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
-    unlock(port);
     return result == ESP_OK;
 }
 
-esp_err_t masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    if (lock(port)) {
+        esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
+        unlock(port);
+        return result == ESP_OK;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
+}
+
+bool masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
-    lock(port);
+    if (!lock(port)) {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -215,34 +246,42 @@ esp_err_t masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
-
     unlock(port);
 
-    return result;
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+
+    return result == ESP_OK;
 }
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
-    lock(port);
-    esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
-    unlock(port);
-    return result == ESP_OK;
+    if (lock(port)) {
+        esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
+        unlock(port);
+        return result == ESP_OK;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
-bool masterCheckAddressForDevice(i2c_port_t port, uint8_t address, TickType_t timeout) {
-    lock(port);
-    uint8_t message[2] = { 0, 0 };
-    esp_err_t result = i2c_master_write_to_device(port, address, message, 2, timeout);
-    unlock(port);
-    return result == ESP_OK;
+bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
+    if (lock(port)) {
+        uint8_t message[2] = { 0, 0 };
+        esp_err_t result = i2c_master_write_to_device(port, address, message, 2, timeout);
+        unlock(port);
+        return result == ESP_OK;
+    } else {
+        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        return false;
+    }
 }
 
-TtStatus lock(i2c_port_t port, TickType_t timeout) {
-    return dataArray[port].mutex.acquire(timeout);
+bool lock(i2c_port_t port, TickType_t timeout) {
+    return dataArray[port].mutex.lock(timeout);
 }
 
-TtStatus unlock(i2c_port_t port) {
-    return dataArray[port].mutex.release();
+bool unlock(i2c_port_t port) {
+    return dataArray[port].mutex.unlock();
 }
 
 } // namespace

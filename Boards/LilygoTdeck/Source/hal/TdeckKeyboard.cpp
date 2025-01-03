@@ -59,7 +59,7 @@ bool TdeckKeyboard::stop() {
 }
 
 bool TdeckKeyboard::isAttached() const {
-    return tt::hal::i2c::masterCheckAddressForDevice(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, 100);
+    return tt::hal::i2c::masterHasDeviceAtAddress(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, 100);
 }
 
 tt::hal::Keyboard* createKeyboard() {

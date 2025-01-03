@@ -7,6 +7,7 @@
 #include "tt_app_alertdialog.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
+#include "tt_hal_i2c.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
 #include "tt_message_queue.h"
@@ -39,6 +40,17 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
     ESP_ELFSYM_EXPORT(tt_set_app_manifest),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_is_started),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_read),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_read_register),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_write),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_write_register),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_write_read),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_master_has_device_at_address),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_lock),
+    ESP_ELFSYM_EXPORT(tt_hal_i2c_unlock),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_simple),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),

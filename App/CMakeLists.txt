@@ -28,7 +28,6 @@ else()
     add_executable(AppSim ${SOURCES})
     target_link_libraries(AppSim
         PRIVATE Tactility
-        PRIVATE TactilityC
         PRIVATE TactilityCore
         PRIVATE TactilityHeadless
         PRIVATE Simulator

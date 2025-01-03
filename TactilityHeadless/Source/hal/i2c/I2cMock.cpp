@@ -88,15 +88,15 @@ bool write(i2c_port_t port, uint16_t address, uint32_t reg, const uint8_t* buffe
     return false;
 }
 
-TtStatus lock(i2c_port_t port, TickType_t timeout) {
-    return dataArray[port].mutex.acquire(timeout);
+bool lock(i2c_port_t port, TickType_t timeout) {
+    return dataArray[port].mutex.lock(timeout);
 }
 
-TtStatus unlock(i2c_port_t port) {
-    return dataArray[port].mutex.release();
+bool unlock(i2c_port_t port) {
+    return dataArray[port].mutex.unlock();
 }
 
-bool masterCheckAddressForDevice(i2c_port_t port, uint8_t address, TickType_t timeout) {
+bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
     return (rand()) % 25 == 0;
 }
 
