@@ -1,13 +1,21 @@
-#include "UsbTusb.h"
+#ifdef ESP_PLATFORM
 
-#if defined(ESP_PLATFORM) && CONFIG_TINYUSB_MSC_ENABLED == 1
+#include "UsbTusb.h"
+#include "sdkconfig.h"
+
+#if CONFIG_TINYUSB_MSC_ENABLED == 1
 
 #include "Log.h"
 #include "tinyusb.h"
 #include "tusb_msc_storage.h"
 
-#define EPNUM_MSC       1
+#define TAG "usb"
+#define EPNUM_MSC 1
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+
+namespace tt::hal::usb {
+    extern sdmmc_card_t* _Nullable getCard();
+}
 
 enum {
     ITF_NUM_MSC = 0,
@@ -21,6 +29,8 @@ enum {
     EDPT_MSC_OUT  = 0x01,
     EDPT_MSC_IN   = 0x81,
 };
+
+static bool driverInstalled = false;
 
 static tusb_desc_device_t descriptor_config = {
     .bLength = sizeof(descriptor_config),
@@ -120,7 +130,7 @@ bool tusbIsSupported() { return true; }
 bool tusbStartMassStorageWithSdmmc() {
     ensureDriverInstalled();
 
-    auto* card = getCard();
+    auto* card = tt::hal::usb::getCard();
     if (card == nullptr) {
         TT_LOG_E(TAG, "SD card not mounted");
         return false;
@@ -152,4 +162,6 @@ bool tusbIsSupported() { return false; }
 bool tusbStartMassStorageWithSdmmc() { return false; }
 void tusbStop() {}
 
-#endif
+#endif // TinyUSB enabled
+
+#endif // ESP_PLATFORM

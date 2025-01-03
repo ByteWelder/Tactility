@@ -17,10 +17,9 @@ struct BootMode {
 };
 
 static Mode currentMode = ModeDefault;
-static bool driverInstalled = false;
 static RTC_NOINIT_ATTR BootMode bootMode;
 
-static sdmmc_card_t* _Nullable getCard() {
+sdmmc_card_t* _Nullable getCard() {
     auto sdcard = getConfiguration().sdcard;
     if (sdcard == nullptr) {
         TT_LOG_W(TAG, "No SD card configuration found");
