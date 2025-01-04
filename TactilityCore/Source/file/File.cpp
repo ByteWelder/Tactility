@@ -49,7 +49,7 @@ static std::unique_ptr<uint8_t[]> readBinaryInternal(const std::string& filepath
     size_t buffer_offset = 0;
     while (buffer_offset < content_length) {
         size_t bytes_read = fread(&data.get()[buffer_offset], 1, content_length - buffer_offset, file);
-        TT_LOG_I(TAG, "Read %d bytes", bytes_read);
+        TT_LOG_D(TAG, "Read %d bytes", bytes_read);
         if (bytes_read > 0) {
             buffer_offset += bytes_read;
         } else { // Something went wrong?

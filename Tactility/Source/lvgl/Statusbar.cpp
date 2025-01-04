@@ -4,7 +4,6 @@
 #include "Mutex.h"
 #include "Pubsub.h"
 #include "TactilityCore.h"
-#include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
 
 #include "LvglSync.h"
@@ -110,7 +109,9 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
-    lv_obj_t* left_spacer = spacer_create(obj, 1, 1);
+    lv_obj_t* left_spacer = lv_obj_create(obj);
+    lv_obj_set_size(left_spacer, 1, 1);
+    obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
     statusbar_lock(TtWaitForever);

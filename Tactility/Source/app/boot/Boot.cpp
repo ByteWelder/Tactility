@@ -18,7 +18,7 @@
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
 
-#define TAG "Boot"
+#define TAG "boot"
 
 namespace tt::app::boot {
 

@@ -118,7 +118,7 @@ static uint64_t getTimestamp() {
 
 void log(LogLevel level, const char* tag, const char* format, ...) {
     std::stringstream buffer;
-    buffer << toColour(level) << toPrefix(level) << " (" << getTimestamp() << ") " << tag << " " << format << "\033[0m\n";
+    buffer << toColour(level) << toPrefix(level) << " (" << getTimestamp() << ") " << tag << ": " << format << "\033[0m\n";
 
     va_list args;
     va_start(args, format);
