@@ -4,7 +4,6 @@
 #include "Mutex.h"
 #include "Pubsub.h"
 #include "TactilityCore.h"
-#include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
 
 #include "LvglSync.h"
@@ -15,7 +14,7 @@ namespace tt::lvgl {
 #define TAG "statusbar"
 
 struct StatusbarIcon {
-    const char* image = nullptr;
+    std::string image;
     bool visible = false;
     bool claimed = false;
 };
@@ -89,8 +88,8 @@ static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj
 }
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
-    if (icon->image != nullptr && icon->visible && icon->claimed) {
-        lv_image_set_src(image, icon->image);
+    if (!icon->image.empty() && icon->visible && icon->claimed) {
+        lv_image_set_src(image, icon->image.c_str());
         lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
@@ -110,7 +109,9 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
-    lv_obj_t* left_spacer = spacer_create(obj, 1, 1);
+    lv_obj_t* left_spacer = lv_obj_create(obj);
+    lv_obj_set_size(left_spacer, 1, 1);
+    obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
     statusbar_lock(TtWaitForever);
@@ -154,13 +155,13 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     }
 }
 
-int8_t statusbar_icon_add(const char* _Nullable image) {
+int8_t statusbar_icon_add(const std::string& image) {
     statusbar_lock(TtWaitForever);
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
             statusbar_data.icons[i].claimed = true;
-            statusbar_data.icons[i].visible = (image != nullptr);
+            statusbar_data.icons[i].visible = !image.empty();
             statusbar_data.icons[i].image = image;
             result = i;
             TT_LOG_I(TAG, "id %d: added", i);
@@ -172,6 +173,10 @@ int8_t statusbar_icon_add(const char* _Nullable image) {
     return result;
 }
 
+int8_t statusbar_icon_add() {
+    return statusbar_icon_add("");
+}
+
 void statusbar_icon_remove(int8_t id) {
     TT_LOG_I(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
@@ -179,13 +184,13 @@ void statusbar_icon_remove(int8_t id) {
     StatusbarIcon* icon = &statusbar_data.icons[id];
     icon->claimed = false;
     icon->visible = false;
-    icon->image = nullptr;
+    icon->image = "";
     tt_pubsub_publish(statusbar_data.pubsub, nullptr);
     statusbar_unlock();
 }
 
-void statusbar_icon_set_image(int8_t id, const char* image) {
-    TT_LOG_I(TAG, "id %d: set image %s", id, image ? image : "(none)");
+void statusbar_icon_set_image(int8_t id, const std::string& image) {
+    TT_LOG_I(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
         StatusbarIcon* icon = &statusbar_data.icons[id];

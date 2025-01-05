@@ -13,6 +13,7 @@ private:
 
     Bindings* bindings;
     State* state;
+    std::unique_ptr<app::Paths> paths;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
     lv_obj_t* enable_on_boot_switch = nullptr;

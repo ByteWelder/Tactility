@@ -1,7 +1,9 @@
+#include "app/AppContext.h"
 #include "app/ManifestRegistry.h"
 #include "Check.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
+#include "Assets.h"
 
 namespace tt::app::desktop {
 
@@ -61,9 +63,13 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * 80);
     int32_t padding = TT_MIN(available_width / 4, 64);
 
-    createAppButton(wrapper, "Apps", "A:/assets/desktop_icon_apps.png", "AppList", 0);
-    createAppButton(wrapper, "Files", "A:/assets/desktop_icon_files.png", "Files", padding);
-    createAppButton(wrapper, "Settings", "A:/assets/desktop_icon_settings.png", "Settings", padding);
+    auto paths = app.getPaths();
+    auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
+    auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
+    auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
+    createAppButton(wrapper, "Apps", apps_icon_path.c_str(), "AppList", 0);
+    createAppButton(wrapper, "Files", files_icon_path.c_str(), "Files", padding);
+    createAppButton(wrapper, "Settings", settings_icon_path.c_str(), "Settings", padding);
 }
 
 extern const AppManifest manifest = {

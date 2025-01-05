@@ -20,6 +20,8 @@ public:
     const service::ServiceManifest& getManifest() const override;
     std::shared_ptr<void> getData() const override;
     void setData(std::shared_ptr<void> newData) override;
+
+    std::unique_ptr<Paths> getPaths() const override;
 };
 
 }

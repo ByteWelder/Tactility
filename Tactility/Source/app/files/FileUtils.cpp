@@ -36,6 +36,7 @@ int scandir(
     ScandirFilter _Nullable filterMethod,
     ScandirSort _Nullable sortMethod
 ) {
+    TT_LOG_I(TAG, "scandir start");
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
         TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
@@ -55,6 +56,7 @@ int scandir(
         sort(outList.begin(), outList.end(), sortMethod);
     }
 
+    TT_LOG_I(TAG, "scandir finish");
     return (int)outList.size();
 };
 

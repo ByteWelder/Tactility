@@ -4,7 +4,7 @@
 
 namespace tt {
 
-#define TAG "Dispatcher"
+#define TAG "dispatcher"
 #define BACKPRESSURE_WARNING_COUNT 100
 #define WAIT_FLAG 1
 

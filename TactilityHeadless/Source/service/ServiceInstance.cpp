@@ -1,6 +1,7 @@
 #include <utility>
 
 #include "service/ServiceInstance.h"
+#include "service/ServiceInstancePaths.h"
 
 namespace tt::service {
 
@@ -19,6 +20,10 @@ void ServiceInstance::setData(std::shared_ptr<void> newData) {
     mutex.acquire(TtWaitForever);
     data = std::move(newData);
     mutex.release();
+}
+
+std::unique_ptr<Paths> ServiceInstance::getPaths() const {
+    return std::make_unique<ServiceInstancePaths>(manifest);
 }
 
 }

@@ -243,7 +243,7 @@ static void stopAppInternal() {
         return;
     }
 
-    std::unique_ptr<app::ResultHolder> result_holder = std::move(app_to_stop->getResult());
+    auto result_holder = std::move(app_to_stop->getResult());
 
     const app::AppManifest& manifest = app_to_stop->getManifest();
     transitionAppToState(*app_to_stop, app::StateHiding);

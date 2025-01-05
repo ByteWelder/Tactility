@@ -3,7 +3,6 @@
 #include "Toolbar.h"
 
 #include "service/loader/Loader.h"
-#include "lvgl/Spacer.h"
 #include "lvgl/Style.h"
 #include "Spinner.h"
 

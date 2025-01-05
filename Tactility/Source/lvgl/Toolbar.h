@@ -16,4 +16,5 @@ void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callb
 lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data);
 lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj);
 lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj);
+
 } // namespace

@@ -1,7 +1,5 @@
-#include "TactilityCore.h"
-
 #ifdef ESP_TARGET
-
+#include "TactilityCore.h"
 #include "EspPartitions_i.h"
 
 #include "esp_event.h"
@@ -13,7 +11,7 @@ namespace tt {
 #define TAG "tactility"
 
 // Initialize NVS
-static void initEspNvs() {
+static void initNvs() {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         TT_LOG_I(TAG, "nvs erasing");
@@ -24,15 +22,15 @@ static void initEspNvs() {
     TT_LOG_I(TAG, "nvs initialized");
 }
 
-static void initEspNetwork() {
+static void initNetwork() {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 }
 
 void initEsp() {
-    initEspNvs();
-    initEspPartitions();
-    initEspNetwork();
+    initNvs();
+    initPartitionsEsp();
+    initNetwork();
 }
 
 } // namespace

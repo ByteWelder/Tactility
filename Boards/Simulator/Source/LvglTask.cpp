@@ -82,6 +82,7 @@ static void lvgl_task(TT_UNUSED void* arg) {
      * but somehow that doesn't work. Waiting here from a ThreadFlag when that happens
      * also doesn't work. It seems that it must be called from this task. */
     displayHandle = lv_sdl_window_create(320, 240);
+    lv_sdl_window_set_title(displayHandle, "Tactility");
 
     uint32_t task_delay_ms = task_max_sleep_ms;
 

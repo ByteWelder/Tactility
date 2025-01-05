@@ -18,7 +18,7 @@
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
 
-#define TAG "Boot"
+#define TAG "boot"
 
 namespace tt::app::boot {
 
@@ -90,11 +90,11 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     lv_obj_t* image = lv_image_create(parent);
     lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
 
-    if (hal::usb::isUsbBootMode()) {
-        lv_image_set_src(image, TT_ASSETS_BOOT_LOGO_USB);
-    } else {
-        lv_image_set_src(image, TT_ASSETS_BOOT_LOGO);
-    }
+    auto paths = app.getPaths();
+    const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
+    auto logo_path = paths->getSystemPathLvgl(logo);
+    TT_LOG_I(TAG, "%s", logo_path.c_str());
+    lv_image_set_src(image, logo_path.c_str());
 
     lvgl::obj_set_style_bg_blacken(parent);
 
