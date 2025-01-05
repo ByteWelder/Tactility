@@ -22,7 +22,7 @@ bool startElfApp(const std::string& filePath) {
     assert(elfFileData == nullptr);
 
     size_t size = 0;
-    elfFileData = file::readBinary(filePath.c_str(), size);
+    elfFileData = file::readBinary(filePath, size);
     if (elfFileData == nullptr) {
         return false;
     }
