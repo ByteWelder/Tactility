@@ -25,6 +25,7 @@
 #ifdef ESP_TARGET
 #define TT_IS_IRQ_MODE() (xPortInIsrContext() == pdTRUE)
 #else
+[[deprecated("use TT_IS_ISR")]]
 #define TT_IS_IRQ_MODE() false
 #endif
 
