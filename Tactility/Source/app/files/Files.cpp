@@ -19,6 +19,9 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 
 static void onStart(AppContext& app) {
     auto files = std::make_shared<Files>();
+    auto* test = new uint;
+    delete test;
+    delete test;
     app.setData(files);
 }
 
