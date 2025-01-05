@@ -40,9 +40,8 @@ namespace tt {
         tt::_crash();                                                       \
     } while (0)
 
-/** Halt system
- *
- * @param      optional  message (const char*)
+/** Halt the system
+ * @param[in] optional message (const char*)
  */
 #define tt_halt(...) M_APPLY(__tt_halt, M_IF_EMPTY(__VA_ARGS__)((NULL), (__VA_ARGS__)))
 
@@ -61,8 +60,8 @@ namespace tt {
 
 /** Check condition and crash if failed
  *
- * @param      condition to check
- * @param      optional  message (const char*)
+ * @param[in] condition to check
+ * @param[in] optional message (const char*)
  */
 
 #define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); tt::_crash(); }
@@ -89,10 +88,7 @@ namespace tt {
 #endif
 
 /** Assert condition and crash if failed
- *
- * @warning    only will do check if firmware compiled in debug mode
- *
- * @param      condition to check
- * @param      optional  message (const char*)
+ * @warning only will do check if firmware compiled in debug mode
+ * @param[in] condition to check
  */
 #define tt_assert(expression) assert(expression)
