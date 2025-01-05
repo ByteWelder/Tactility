@@ -25,7 +25,7 @@ std::string getUrlFromCrashData() {
 
     std::stringstream stream;
 
-    stream << "https://oops.bytewelder.com?";
+    stream << "https://oops.tactility.one?";
     stream << "i=1"; // Application id
     stream << "&v=" << TT_VERSION; // Version
     stream << "&a=" << CONFIG_IDF_TARGET; // Architecture
