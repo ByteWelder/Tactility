@@ -44,7 +44,7 @@ Mutex::~Mutex() {
     semaphore = nullptr; // If the mutex is used after release, this might help debugging
 }
 
-TtStatus Mutex::acquire(uint32_t timeout) const {
+TtStatus Mutex::acquire(TickType_t timeout) const {
     tt_assert(!TT_IS_IRQ_MODE());
     tt_assert(semaphore);
 
@@ -114,7 +114,7 @@ void tt_mutex_free(Mutex* mutex) {
     delete mutex;
 }
 
-TtStatus tt_mutex_acquire(Mutex* mutex, uint32_t timeout) {
+TtStatus tt_mutex_acquire(Mutex* mutex, TickType_t timeout) {
     return mutex-> acquire(timeout);
 }
 

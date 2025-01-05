@@ -6,6 +6,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <FreeRTOS.h>
 
 typedef void* MutexHandle;
 
@@ -16,7 +17,7 @@ enum TtMutexType {
 
 MutexHandle tt_mutex_alloc(enum TtMutexType);
 void tt_mutex_free(MutexHandle handle);
-bool tt_mutex_lock(MutexHandle handle, uint32_t timeoutTicks);
+bool tt_mutex_lock(MutexHandle handle, TickType_t timeoutTicks);
 bool tt_mutex_unlock(MutexHandle handle);
 
 #ifdef __cplusplus

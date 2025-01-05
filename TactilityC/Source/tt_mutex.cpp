@@ -20,8 +20,8 @@ void tt_mutex_free(MutexHandle handle) {
     delete HANDLE_AS_MUTEX(handle);
 }
 
-bool tt_mutex_lock(MutexHandle handle, uint32_t timeoutTicks) {
-    return HANDLE_AS_MUTEX(handle)->lock(timeoutTicks);
+bool tt_mutex_lock(MutexHandle handle, TickType_t timeout) {
+    return HANDLE_AS_MUTEX(handle)->lock(timeout);
 }
 
 bool tt_mutex_unlock(MutexHandle handle) {

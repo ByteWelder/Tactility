@@ -1,17 +1,20 @@
 #pragma once
 
 #include "Check.h"
+#include "RtosCompat.h"
 #include <memory>
 
 namespace tt {
 
 class ScopedLockableUsage;
 
+/** Represents a lock/mutex */
 class Lockable {
 public:
     virtual ~Lockable() = default;
 
-    virtual bool lock(uint32_t timeoutTicks) const = 0;
+    virtual bool lock(TickType_t timeoutTicks) const = 0;
+
     virtual bool unlock() const = 0;
 
     std::unique_ptr<ScopedLockableUsage> scoped() const;
@@ -29,7 +32,7 @@ public:
         lockable.unlock(); // We don't care whether it succeeded or not
     }
 
-    bool lock(uint32_t timeout) const override {
+    bool lock(TickType_t timeout) const override {
         return lockable.lock(timeout);
     }
 
