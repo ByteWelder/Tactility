@@ -1,11 +1,7 @@
 #pragma once
 
-#define TT_ASSET_FOLDER "A:/assets/"
+#define TT_ASSET_FOLDER "A:/system/"
 #define TT_ASSET(file) TT_ASSET_FOLDER file
-
-// Splash
-#define TT_ASSETS_BOOT_LOGO TT_ASSET("boot_logo.png")
-#define TT_ASSETS_BOOT_LOGO_USB TT_ASSET("boot_logo_usb.png")
 
 // UI
 #define TT_ASSETS_UI_SPINNER TT_ASSET("spinner.png")
@@ -29,11 +25,6 @@
 #define TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_WHITE TT_ASSET("wifi_signal_weak_white.png")
 #define TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_WHITE TT_ASSET("wifi_signal_medium_white.png")
 #define TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_WHITE TT_ASSET("wifi_signal_strong_white.png")
-// Black (Wifi Manage)
-#define TT_ASSETS_ICON_WIFI_LOCK_BLACK TT_ASSET("wifi_lock_black.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_BLACK TT_ASSET("wifi_signal_weak_black.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_BLACK TT_ASSET("wifi_signal_medium_black.png")
-#define TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_BLACK TT_ASSET("wifi_signal_strong_black.png")
 
 // Power status
 #define TT_ASSETS_ICON_POWER_0 TT_ASSET("power_0.png")

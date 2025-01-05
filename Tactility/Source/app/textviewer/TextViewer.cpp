@@ -24,11 +24,16 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     auto parameters = app.getParameters();
     tt_check(parameters != nullptr, "Parameters missing");
+    bool success = false;
     std::string file_argument;
     if (parameters->optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
         TT_LOG_I(TAG, "Opening %s", file_argument.c_str());
-        lvgl::label_set_text_file(label, file_argument.c_str());
-    } else {
+        if (lvgl::label_set_text_file(label, file_argument.c_str())) {
+            success = true;
+        }
+    }
+
+    if (!success) {
         lv_label_set_text_fmt(label, "Failed to load %s", file_argument.c_str());
     }
 }

@@ -19,7 +19,7 @@ void init(const Configuration& configuration) {
 
     if (configuration.sdcard != nullptr) {
         TT_LOG_I(TAG, "Mounting sdcard");
-        if (!configuration.sdcard->mount(TT_SDCARD_MOUNT_POINT )) {
+        if (!configuration.sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
             TT_LOG_W(TAG, "SD card mount failed (init can continue)");
         }
     }

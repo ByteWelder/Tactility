@@ -71,11 +71,15 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     size_t size = 0;
     auto data = readBinaryInternal(filepath, size, 1);
-    if (size > 0) {
+    if (data == nullptr) {
+        return nullptr;
+    } else if (size > 0) {
         data.get()[size] = 0; // Append null terminator
         return data;
-    } else {
-        return nullptr;
+    } else { // Empty file: return empty string
+        auto value = std::make_unique<uint8_t[]>(1);
+        value[0] = 0;
+        return value;
     }
 }
 

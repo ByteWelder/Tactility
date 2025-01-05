@@ -4,6 +4,7 @@
 
 namespace tt::hal {
 
+#define TT_SDCARD_MOUNT_NAME "sdcard"
 #define TT_SDCARD_MOUNT_POINT "/sdcard"
 
 class SdCard {

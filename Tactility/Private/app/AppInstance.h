@@ -82,6 +82,9 @@ public:
     void setResult(Result result) override;
     void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
     bool hasResult() const override;
+
+    std::unique_ptr<Paths> getPaths() const override;
+
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 };
 

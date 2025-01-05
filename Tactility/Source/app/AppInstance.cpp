@@ -1,4 +1,5 @@
 #include "app/AppInstance.h"
+#include "app/AppInstancePaths.h"
 
 namespace tt::app {
 
@@ -79,6 +80,10 @@ bool AppInstance::hasResult() const {
     bool has_result = resultHolder != nullptr;
     mutex.release();
     return has_result;
+}
+
+std::unique_ptr<Paths> AppInstance::getPaths() const {
+    return std::make_unique<AppInstancePaths>(manifest);
 }
 
 } // namespace

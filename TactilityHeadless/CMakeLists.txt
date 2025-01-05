@@ -19,10 +19,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     )
 
     if (NOT DEFINED TACTILITY_SKIP_SPIFFS)
-        set(ASSETS_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/assets")
-        spiffs_create_partition_image(assets ${ASSETS_SRC_DIR} FLASH_IN_PROJECT)
-        set(CONFIG_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../Data/config")
-        spiffs_create_partition_image(config ${CONFIG_SRC_DIR} FLASH_IN_PROJECT)
+        # Read-only
+        fatfs_create_rawflash_image(system "${CMAKE_CURRENT_SOURCE_DIR}/../Data/system" FLASH_IN_PROJECT PRESERVE_TIME)
+        # Read-write
+        fatfs_create_spiflash_image(data "${CMAKE_CURRENT_SOURCE_DIR}/../Data/data" FLASH_IN_PROJECT PRESERVE_TIME)
     endif()
 
     add_definitions(-DESP_PLATFORM)

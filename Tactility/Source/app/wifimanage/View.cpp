@@ -2,7 +2,6 @@
 #include "WifiManage.h"
 
 #include "Log.h"
-#include "Assets.h"
 #include "service/wifi/Wifi.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
@@ -19,11 +18,11 @@ std::shared_ptr<WifiManage> _Nullable optWifiManage();
 
 const char* getWifiStatusIconForRssi(int rssi) {
     if (rssi >= -60) {
-        return TT_ASSETS_ICON_WIFI_SIGNAL_STRONG_BLACK;
+        return "signal_strong.png";
     } else if (rssi >= -70) {
-        return TT_ASSETS_ICON_WIFI_SIGNAL_MEDIUM_BLACK;
+        return "signal_medium.png";
     } else {
-        return TT_ASSETS_ICON_WIFI_SIGNAL_WEAK_BLACK;
+        return "signal_weak.png";
     }
 }
 
@@ -111,13 +110,15 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
         const char* icon = getWifiStatusIconForRssi(record.rssi);
+        auto icon_path = paths->getSystemPathLvgl(icon);
         lv_obj_t* rssi_image = lv_image_create(wrapper);
-        lv_image_set_src(rssi_image, icon);
+        lv_image_set_src(rssi_image, icon_path.c_str());
         lv_obj_align(rssi_image, LV_ALIGN_RIGHT_MID, -42, 0);
 
         if (record.auth_mode != WIFI_AUTH_OPEN) {
             lv_obj_t* lock_image = lv_image_create(wrapper);
-            lv_image_set_src(lock_image, TT_ASSETS_ICON_WIFI_LOCK_BLACK);
+            auto lock = paths->getSystemPathLvgl("lock.png");
+            lv_image_set_src(lock_image, lock.c_str());
             lv_obj_align(lock_image, LV_ALIGN_RIGHT_MID, -62, 0);
         }
     }
@@ -231,6 +232,8 @@ void View::updateEnableOnBootToggle() {
 
 void View::init(const AppContext& app, lv_obj_t* parent) {
     root = parent;
+
+    paths = std::move(app.getPaths());
 
     // Toolbar
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);

@@ -2,6 +2,8 @@
 #include "kernel/Kernel.h"
 #include "Log.h"
 #include "FileUtils.h"
+#include "Partitions.h"
+#include "hal/SdCard.h"
 
 #include <unistd.h>
 
@@ -51,17 +53,17 @@ bool State::setEntriesForPath(const std::string& path) {
         dir_entries.push_back({
             .d_ino = 0,
             .d_type = TT_DT_DIR,
-            .d_name = "assets"
+            .d_name = SYSTEM_PARTITION_NAME
         });
         dir_entries.push_back({
             .d_ino = 1,
             .d_type = TT_DT_DIR,
-            .d_name = "config"
+            .d_name = DATA_PARTITION_NAME
         });
         dir_entries.push_back({
             .d_ino = 2,
             .d_type = TT_DT_DIR,
-            .d_name = "sdcard"
+            .d_name = TT_SDCARD_MOUNT_NAME
         });
 
         current_path = path;
