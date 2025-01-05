@@ -29,8 +29,8 @@ void DispatcherThread::_threadMain() {
     } while (!interruptThread);
 }
 
-void DispatcherThread::dispatch(Callback callback, std::shared_ptr<void> context) {
-    dispatcher.dispatch(callback, std::move(context));
+void DispatcherThread::dispatch(Dispatcher::Function function, std::shared_ptr<void> context) {
+    dispatcher.dispatch(function, std::move(context));
 }
 
 void DispatcherThread::start() {

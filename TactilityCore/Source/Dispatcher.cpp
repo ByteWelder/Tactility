@@ -18,8 +18,8 @@ Dispatcher::~Dispatcher() {
     mutex.release();
 }
 
-void Dispatcher::dispatch(Callback callback, std::shared_ptr<void> context) {
-    auto message = std::make_shared<DispatcherMessage>(callback, std::move(context));
+void Dispatcher::dispatch(Function function, std::shared_ptr<void> context) {
+    auto message = std::make_shared<DispatcherMessage>(function, std::move(context));
     // Mutate
     if (mutex.lock(1000 / portTICK_PERIOD_MS)) {
         queue.push(std::move(message));
@@ -34,16 +34,16 @@ void Dispatcher::dispatch(Callback callback, std::shared_ptr<void> context) {
     }
 }
 
-uint32_t Dispatcher::consume(uint32_t timeout_ticks) {
+uint32_t Dispatcher::consume(TickType_t timeout) {
     // Wait for signal and clear
     TickType_t start_ticks = kernel::getTicks();
-    if (eventFlag.wait(WAIT_FLAG, TtFlagWaitAny, timeout_ticks) == WAIT_FLAG) {
+    if (eventFlag.wait(WAIT_FLAG, TtFlagWaitAny, timeout) == WAIT_FLAG) {
         eventFlag.clear(WAIT_FLAG);
     } else {
         return 0;
     }
 
-    TickType_t ticks_remaining = TT_MAX(timeout_ticks - (kernel::getTicks() - start_ticks), 0);
+    TickType_t ticks_remaining = TT_MAX(timeout - (kernel::getTicks() - start_ticks), 0);
 
     TT_LOG_I(TAG, "Dispatcher continuing (%d ticks)", (int)ticks_remaining);
 
@@ -59,7 +59,7 @@ uint32_t Dispatcher::consume(uint32_t timeout_ticks) {
                 processing = !queue.empty();
                 // Don't keep lock as callback might be slow
                 tt_check(mutex.unlock());
-                item->callback(item->context);
+                item->function(item->context);
             } else {
                 processing = false;
                 tt_check(mutex.unlock());

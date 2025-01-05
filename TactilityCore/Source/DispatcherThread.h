@@ -19,7 +19,7 @@ public:
     /**
      * Dispatch a message.
      */
-    void dispatch(Callback callback, std::shared_ptr<void> context);
+    void dispatch(Dispatcher::Function function, std::shared_ptr<void> context);
 
     /** Start the thread (blocking). */
     void start();
