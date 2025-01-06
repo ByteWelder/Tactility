@@ -14,6 +14,8 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 
 # TODOs
+- Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
+- Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
 - Mutex: Cleanup deprecated methods
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)

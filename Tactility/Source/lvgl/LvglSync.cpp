@@ -3,10 +3,10 @@
 
 namespace tt::lvgl {
 
-Mutex lockMutex;
+static Mutex lockMutex;
 
-static bool defaultLock(uint32_t timeoutTicks) {
-    return lockMutex.acquire(timeoutTicks) == TtStatusOk;
+static bool defaultLock(uint32_t timeoutMillis) {
+    return lockMutex.acquire(timeoutMillis) == TtStatusOk;
 }
 
 static void defaultUnlock() {
@@ -21,8 +21,8 @@ void syncSet(LvglLock lock, LvglUnlock unlock) {
     unlock_singleton = unlock;
 }
 
-bool lock(uint32_t timeout_ticks) {
-    return lock_singleton(timeout_ticks);
+bool lock(TickType_t timeout) {
+    return lock_singleton(pdMS_TO_TICKS(timeout == 0 ? portMAX_DELAY : timeout));
 }
 
 void unlock() {
@@ -33,7 +33,7 @@ class LvglSync : public Lockable {
 public:
     ~LvglSync() override = default;
 
-    bool lock(uint32_t timeoutTicks) const override {
+    bool lock(TickType_t timeoutTicks) const override {
         return tt::lvgl::lock(timeoutTicks);
     }
 
