@@ -10,7 +10,6 @@
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
-- SD card statusbar icon shows error when there's a read timeout on the SD card status. Don't show the error icon in this scenario.
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - getConfiguration() in TT headless is a reference, while in TT main project it's a pointer. Make it a pointer for headless too.
 - Consistently use either ESP_TARGET or ESP_PLATFORM
@@ -38,7 +37,6 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Localisation of texts (load in boot app from sd?)
 - Explore LVGL9's FreeRTOS functionality
-- Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
