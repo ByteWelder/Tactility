@@ -27,7 +27,6 @@
 - Audio player app
 - Audio recording app
 - T-Deck: Use knob for UI selection
-- Logging to disk/etc.
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
 - Loader: Use main dispatcher instead of Thread
@@ -53,6 +52,7 @@
 - Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
 - Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
 - Files app: copy/paste actions
+- On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
  
 # App Ideas
 - USB implementation to make device act as mass storage device.
