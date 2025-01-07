@@ -1,4 +1,4 @@
-#ifdef ESP_PLATFORM
+#ifdef ESP_TARGET
 
 #include "lvgl.h"
 #include "lvgl/Statusbar.h"
