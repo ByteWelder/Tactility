@@ -13,11 +13,10 @@
 - SD card statusbar icon shows error when there's a read timeout on the SD card status. Don't show the error icon in this scenario.
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - getConfiguration() in TT headless is a reference, while in TT main project it's a pointer. Make it a pointer for headless too.
+- Consistently use either ESP_TARGET or ESP_PLATFORM
 
 # TODOs
-- Tactility.h config: List of apps and services can be a std::vector (get rid of TT_CONFIG_SERVICES_LIMIT and TT_CONFIG_APPS_LIMIT)
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
-- Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
 - Mutex: Cleanup deprecated methods
 - CrashHandler: use "corrupted" flag

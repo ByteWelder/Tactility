@@ -40,7 +40,6 @@ namespace app {
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
-    namespace desktop { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
     namespace gpio { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
@@ -48,6 +47,7 @@ namespace app {
     namespace i2csettings { extern const AppManifest manifest; }
     namespace imageviewer { extern const AppManifest manifest; }
     namespace inputdialog { extern const AppManifest manifest; }
+    namespace launcher { extern const AppManifest manifest; }
     namespace log { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
     namespace selectiondialog { extern const AppManifest manifest; }
@@ -74,7 +74,6 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::alertdialog::manifest,
     &app::applist::manifest,
     &app::boot::manifest,
-    &app::desktop::manifest,
     &app::display::manifest,
     &app::files::manifest,
     &app::gpio::manifest,
@@ -82,6 +81,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::i2csettings::manifest,
     &app::imageviewer::manifest,
     &app::inputdialog::manifest,
+    &app::launcher::manifest,
     &app::log::manifest,
     &app::settings::manifest,
     &app::selectiondialog::manifest,

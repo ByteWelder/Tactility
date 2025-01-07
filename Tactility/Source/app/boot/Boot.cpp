@@ -1,8 +1,8 @@
-#include "Assets.h"
 #include "TactilityCore.h"
 
 #include "app/AppContext.h"
 #include "app/display/DisplaySettings.h"
+#include "app/launcher/Launcher.h"
 #include "hal/Display.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
@@ -14,6 +14,7 @@
 #ifdef ESP_PLATFORM
 #include "kernel/PanicHandler.h"
 #include "sdkconfig.h"
+#include "app/crashdiagnostics/CrashDiagnostics.h"
 #else
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
@@ -62,32 +63,29 @@ static int32_t bootThreadCallback(TT_UNUSED void* context) {
     return 0;
 }
 
-static void startNextApp() {
-    auto config = tt::getConfiguration();
-    std::string next_app;
-    if (config->autoStartAppId) {
-        TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
-        next_app = config->autoStartAppId;
-    } else {
-        next_app = "Desktop";
-    }
 
+static void startNextApp() {
 #ifdef ESP_PLATFORM
     esp_reset_reason_t reason = esp_reset_reason();
     if (reason == ESP_RST_PANIC) {
-        tt::service::loader::startApp("CrashDiagnostics");
-    } else {
-        tt::service::loader::startApp(next_app);
+        app::crashdiagnostics::start();
+        return;
     }
-#else
-    tt::service::loader::startApp(next_app);
 #endif
+
+    auto* config = tt::getConfiguration();
+    if (config->autoStartAppId) {
+        TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
+        tt::service::loader::startApp(config->autoStartAppId);
+    } else {
+        app::launcher::start();
+    }
 }
 
 static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
     auto data = std::static_pointer_cast<Data>(app.getData());
 
-    lv_obj_t* image = lv_image_create(parent);
+    auto* image = lv_image_create(parent);
     lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
 
     auto paths = app.getPaths();

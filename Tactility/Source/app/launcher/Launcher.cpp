@@ -5,7 +5,7 @@
 #include "service/loader/Loader.h"
 #include "Assets.h"
 
-namespace tt::app::desktop {
+namespace tt::app::launcher {
 
 static void onAppPressed(TT_UNUSED lv_event_t* e) {
     auto* appId = (const char*)lv_event_get_user_data(e);
@@ -33,6 +33,8 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
     lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
     lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), 0);
     lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, 0);
+    // Ensure buttons are still tappable when asset fails to load
+    lv_obj_set_size(button_image, 64, 64);
 
     auto* label = lv_label_create(wrapper);
     lv_label_set_text(label, title);
@@ -73,10 +75,14 @@ static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
 }
 
 extern const AppManifest manifest = {
-    .id = "Desktop",
-    .name = "Desktop",
-    .type = TypeDesktop,
+    .id = "Launcher",
+    .name = "Launcher",
+    .type = TypeLauncher,
     .onShow = onShow,
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace
