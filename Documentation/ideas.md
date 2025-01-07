@@ -14,6 +14,7 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 
 # TODOs
+- Tactility.h headless config: List of apps and services can be a std::vector (get rid of TT_CONFIG_SERVICES_LIMIT)
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html

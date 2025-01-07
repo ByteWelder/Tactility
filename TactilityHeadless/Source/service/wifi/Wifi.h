@@ -84,53 +84,42 @@ WifiRadioState getRadioState();
  */
 void scan();
 
-/**
- * @return true if wifi is actively scanning
- */
+/** @return true if wifi is actively scanning */
 bool isScanning();
 
-/**
- * @return true the ssid name or empty string
- */
+/** @return true the ssid name or empty string */
 std::string getConnectionTarget();
 
-/**
- * @brief Returns the access points from the last scan (if any). It only contains public APs.
- */
+/** @return the access points from the last scan (if any). It only contains public APs. */
 std::vector<WifiApRecord> getScanResults();
 
 /**
  * @brief Overrides the default scan result size of 16.
- * @param records the record limit for the scan result (84 bytes per record!)
+ * @param[in] records the record limit for the scan result (84 bytes per record!)
  */
 void setScanRecords(uint16_t records);
 
 /**
  * @brief Enable/disable the radio. Ignores input if desired state matches current state.
- * @param enabled
+ * @param[in] enabled
  */
 void setEnabled(bool enabled);
 
 /**
  * @brief Connect to a network. Disconnects any existing connection.
  * Returns immediately but runs in the background. Results are through pubsub.
- * @param ap
+ * @param[in] ap
+ * @param[in] remember whether to save the ap data to the settings upon successful connection
  */
 void connect(const settings::WifiApSettings* ap, bool remember);
 
-/**
- * @brief Disconnect from the access point. Doesn't have any effect when not connected.
- */
+/** @brief Disconnect from the access point. Doesn't have any effect when not connected. */
 void disconnect();
 
-/**
- * Return true if the connection isn't unencrypted.
- */
+/** @return true if the connection isn't unencrypted. */
 bool isConnectionSecure();
 
-/**
- * Returns the RSSI value (negative number) or return 1 when not connected
- */
+/** @return the RSSI value (negative number) or return 1 when not connected. */
 int getRssi();
 
 } // namespace

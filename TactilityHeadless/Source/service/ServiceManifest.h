@@ -9,22 +9,16 @@ class ServiceContext;
 typedef void (*ServiceOnStart)(ServiceContext& service);
 typedef void (*ServiceOnStop)(ServiceContext& service);
 
+/** A ledger that describes the main parts of a service. */
 struct ServiceManifest {
-    /**
-     * The identifier by which the app is launched by the system and other apps.
-     */
+    /** The identifier by which the app is launched by the system and other apps. */
     std::string id {};
 
-    /**
-     * Non-blocking method to call when service is started.
-     */
+    /** Non-blocking method to call when service is started. */
     const ServiceOnStart onStart = nullptr;
 
-    /**
-     * Non-blocking method to call when service is stopped.
-     */
+    /** Non-blocking method to call when service is stopped. */
     const ServiceOnStop onStop = nullptr;
-
 };
 
 } // namespace

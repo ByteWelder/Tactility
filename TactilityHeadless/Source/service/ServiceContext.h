@@ -8,6 +8,7 @@ namespace tt::service {
 
 class Paths;
 
+/** This is the public representatoin of a service instance. */
 class ServiceContext {
 
 protected:
@@ -16,9 +17,13 @@ protected:
 
 public:
 
+    /** @return a reference ot the service's manifest */
     virtual const service::ServiceManifest& getManifest() const = 0;
-    virtual std::shared_ptr<void> getData() const = 0;
+    /** @return a shared pointer to the data that is attached to the service */
+    virtual std::shared_ptr<void> _Nullable getData() const = 0;
+    /** Set the data for a service. */
     virtual void setData(std::shared_ptr<void> newData) = 0;
+    /** Retrieve the paths that are relevant to this service */
     virtual std::unique_ptr<Paths> getPaths() const = 0;
 };
 
