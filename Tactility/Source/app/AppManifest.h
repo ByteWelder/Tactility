@@ -69,8 +69,8 @@ struct AppManifest {
     AppOnResult _Nullable onResult = nullptr;
 };
 
-struct SortAppManifestByName{
+struct {
     bool operator()(const AppManifest* left, const AppManifest* right) const { return left->name < right->name; }
-};
+} SortAppManifestByName;
 
 } // namespace
