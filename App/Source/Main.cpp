@@ -18,9 +18,7 @@ void app_main() {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
-        },
-        .services = {},
-        .autoStartAppId = nullptr
+        }
     };
 
 #ifdef ESP_PLATFORM

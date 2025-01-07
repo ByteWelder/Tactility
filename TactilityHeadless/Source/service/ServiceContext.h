@@ -8,7 +8,10 @@ namespace tt::service {
 
 class Paths;
 
-/** This is the public representatoin of a service instance. */
+/**
+ * The public representation of a service instance.
+ * @warning Do not store references or pointers to these! You can retrieve them via the Loader service.
+ */
 class ServiceContext {
 
 protected:

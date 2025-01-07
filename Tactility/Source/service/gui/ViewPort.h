@@ -26,26 +26,22 @@ typedef struct ViewPort {
 } ViewPort;
 
 /** ViewPort allocator
- *
  * always returns view_port or stops system if not enough memory.
  * @param app
- * @param on_show Called to create LVGL widgets
- * @param on_hide Called before clearing the LVGL widget parent
- *
- * @return     ViewPort instance
+ * @param onShow Called to create LVGL widgets
+ * @param onHide Called before clearing the LVGL widget parent
+ * @return ViewPort instance
  */
 ViewPort* view_port_alloc(
     app::AppContext& app,
-    ViewPortShowCallback on_show,
-    ViewPortHideCallback on_hide
+    ViewPortShowCallback onShow,
+    ViewPortHideCallback onHide
 );
 
-/** ViewPort deallocator
- *
+/** ViewPort destruction
  * Ensure that view_port was unregistered in GUI system before use.
- *
- * @param      view_port  ViewPort instance
+ * @param viewPort ViewPort instance
  */
-void view_port_free(ViewPort* view_port);
+void view_port_free(ViewPort* viewPort);
 
 } // namespace

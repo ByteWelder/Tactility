@@ -16,8 +16,8 @@ typedef union {
 } Flags;
 
 /**
- * A limited representation of the application instance.
- * Do not store references or pointers to these!
+ * The public representation of an application instance.
+ * @warning Do not store references or pointers to these! You can retrieve them via the service registry.
  */
 class AppContext {
 
