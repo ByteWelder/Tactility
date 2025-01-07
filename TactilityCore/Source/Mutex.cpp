@@ -106,24 +106,4 @@ ThreadId Mutex::getOwner() const {
     return (ThreadId)xSemaphoreGetMutexHolder(semaphore);
 }
 
-Mutex* tt_mutex_alloc(Mutex::Type type) {
-    return new Mutex(type);
-}
-
-void tt_mutex_free(Mutex* mutex) {
-    delete mutex;
-}
-
-TtStatus tt_mutex_acquire(Mutex* mutex, TickType_t timeout) {
-    return mutex-> acquire(timeout);
-}
-
-TtStatus tt_mutex_release(Mutex* mutex) {
-    return mutex->release();
-}
-
-ThreadId tt_mutex_get_owner(Mutex* mutex) {
-    return mutex->getOwner();
-}
-
 } // namespace

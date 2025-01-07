@@ -8,8 +8,6 @@
 #include "Mutex.h"
 #include "Pubsub.h"
 #include "service/ServiceContext.h"
-#include <cstdlib>
-#include <cstring>
 
 namespace tt::service::wifi {
 
@@ -17,24 +15,22 @@ namespace tt::service::wifi {
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT BIT1
 
-typedef struct {
+struct Wifi {
+    Wifi() = default;
+    ~Wifi() = default;
+
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex* mutex;
+    Mutex mutex = Mutex(Mutex::TypeRecursive);
     /** @brief The public event bus */
-    std::shared_ptr<PubSub> pubsub;
+    std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     /** @brief The internal message queue */
-    MessageQueue queue;
-    bool scan_active;
-    bool secure_connection;
-    WifiRadioState radio_state;
-} Wifi;
+    bool scan_active = false;
+    bool secure_connection = false;
+    WifiRadioState radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
+};
 
 
 static Wifi* wifi = nullptr;
-
-// Forward declarations
-static void wifi_lock(Wifi* wifi);
-static void wifi_unlock(Wifi* wifi);
 
 // region Static
 
@@ -44,25 +40,6 @@ static void publish_event_simple(Wifi* wifi, WifiEventType type) {
 }
 
 // endregion Static
-
-// region Alloc
-
-static Wifi* wifi_alloc() {
-    auto* instance = static_cast<Wifi*>(malloc(sizeof(Wifi)));
-    instance->mutex = tt_mutex_alloc(Mutex::TypeRecursive);
-    instance->pubsub = std::make_shared<PubSub>();
-    instance->scan_active = false;
-    instance->radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
-    instance->secure_connection = false;
-    return instance;
-}
-
-static void wifi_free(Wifi* instance) {
-    tt_mutex_free(instance->mutex);
-    free(instance);
-}
-
-// endregion Alloc
 
 // region Public functions
 
@@ -160,29 +137,14 @@ int getRssi() {
 
 // endregion Public functions
 
-static void lock(Wifi* wifi) {
-    tt_crash("this fails for now");
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_acquire(wifi->mutex, 100);
-}
-
-static void unlock(Wifi* wifi) {
-    tt_assert(wifi);
-    tt_assert(wifi->mutex);
-    tt_mutex_release(wifi->mutex);
-}
-
-
 static void service_start(TT_UNUSED ServiceContext& service) {
     tt_check(wifi == nullptr);
-    wifi = wifi_alloc();
+    wifi = new Wifi();
 }
 
 static void service_stop(TT_UNUSED ServiceContext& service) {
     tt_check(wifi != nullptr);
-
-    wifi_free(wifi);
+    delete wifi;
     wifi = nullptr;
 }
 

@@ -17,7 +17,6 @@
 # TODOs
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
-- Mutex: Cleanup deprecated methods
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
 - Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
