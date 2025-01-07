@@ -2,7 +2,6 @@
 
 #include "TactilityCore.h"
 #include "hal/Configuration.h"
-#include "TactilityHeadlessConfig.h"
 #include "Dispatcher.h"
 
 namespace tt {
@@ -20,7 +19,7 @@ Dispatcher& getMainDispatcher();
 
 namespace tt::hal {
 
-/** Can be called after initHeadless() is called. Will crash otherwise. */
-const Configuration& getConfiguration();
+/** While technically this configuration is nullable, it's never null after initHeadless() is called. */
+const Configuration* _Nullable getConfiguration();
 
 } // namespace

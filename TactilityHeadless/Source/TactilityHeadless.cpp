@@ -50,9 +50,8 @@ Dispatcher& getMainDispatcher() {
 
 namespace hal {
 
-const Configuration& getConfiguration() {
-    tt_assert(hardwareConfig != nullptr);
-    return *hardwareConfig;
+const Configuration* getConfiguration() {
+    return hardwareConfig;
 }
 
 } // namespace hal

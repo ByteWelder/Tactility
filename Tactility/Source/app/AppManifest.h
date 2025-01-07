@@ -15,8 +15,8 @@ class AppContext;
 enum Type {
     /** Boot screen, shown before desktop is launched. */
     TypeBoot,
-    /** A desktop app sits at the root of the app stack managed by the Loader service */
-    TypeDesktop,
+    /** A launcher app sits at the root of the app stack after the boot splash is finished */
+    TypeLauncher,
     /** Apps that generally aren't started from the desktop (e.g. image viewer) */
     TypeHidden,
     /** Standard apps, provided by the system. */

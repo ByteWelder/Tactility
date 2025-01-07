@@ -62,40 +62,4 @@ public:
     ThreadId getOwner() const;
 };
 
-/** Allocate Mutex
- * @param[in] type The mutex type
- * @return pointer to Mutex instance
- */
-
-[[deprecated("use class")]]
-Mutex* tt_mutex_alloc(Mutex::Type type);
-
-/** Free Mutex
- * @param[in] mutex The Mutex instance
- */
-[[deprecated("use class")]]
-void tt_mutex_free(Mutex* mutex);
-
-/** Acquire mutex
- * @param[in] mutex
- * @param[in] timeout
- * @return the status result
- */
-[[deprecated("use class")]]
-TtStatus tt_mutex_acquire(Mutex* mutex, TickType_t timeout);
-
-/** Release mutex
- * @param[in] mutex The Mutex instance
- * @return the status result
- */
-[[deprecated("use class")]]
-TtStatus tt_mutex_release(Mutex* mutex);
-
-/** Get mutex owner thread id
- * @param[in] mutex The Mutex instance
- * @return The thread identifier.
- */
-[[deprecated("use class")]]
-ThreadId tt_mutex_get_owner(Mutex* mutex);
-
 } // namespace

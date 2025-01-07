@@ -1,12 +1,12 @@
-#ifdef ESP_PLATFORM
+#ifdef ESP_TARGET
 
-#include <esp_private/panic_internal.h>
 #include "lvgl.h"
 #include "lvgl/Statusbar.h"
-#include "service/loader/Loader.h"
+#include "app/launcher/Launcher.h"
 #include "qrcode.h"
 #include "QrHelpers.h"
 #include "QrUrl.h"
+#include "service/loader/Loader.h"
 
 #define TAG "crash_diagnostics"
 
@@ -14,10 +14,10 @@ namespace tt::app::crashdiagnostics {
 
 void onContinuePressed(TT_UNUSED lv_event_t* event) {
     tt::service::loader::stopApp();
-    tt::service::loader::startApp("Desktop");
+    tt::app::launcher::start();
 }
 
-static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
+static void onShow(AppContext& app, lv_obj_t* parent) {
     auto* display = lv_obj_get_display(parent);
     int32_t parent_height = lv_display_get_vertical_resolution(display) - STATUSBAR_HEIGHT;
 
@@ -115,6 +115,10 @@ extern const AppManifest manifest = {
     .type = TypeHidden,
     .onShow = onShow
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace
 

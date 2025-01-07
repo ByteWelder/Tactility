@@ -20,7 +20,7 @@ static Mode currentMode = ModeDefault;
 static RTC_NOINIT_ATTR BootMode bootMode;
 
 sdmmc_card_t* _Nullable getCard() {
-    auto sdcard = getConfiguration().sdcard;
+    auto sdcard = getConfiguration()->sdcard;
     if (sdcard == nullptr) {
         TT_LOG_W(TAG, "No SD card configuration found");
         return nullptr;

@@ -132,20 +132,19 @@ static const char* getSdCardStatusIcon(hal::SdCard::State state) {
 }
 
 static void updateSdCardIcon(const service::Paths* paths, const std::shared_ptr<ServiceData>& data) {
-    auto sdcard = tt::hal::getConfiguration().sdcard;
+    auto sdcard = tt::hal::getConfiguration()->sdcard;
     if (sdcard != nullptr) {
         auto state = sdcard->getState();
-        const char* desired_icon = getSdCardStatusIcon(state);
-        if (data->sdcard_last_icon != desired_icon) {
-            if (desired_icon != nullptr) {
+        if (state != hal::SdCard::StateUnknown) {
+            auto* desired_icon = getSdCardStatusIcon(state);
+            if (data->sdcard_last_icon != desired_icon) {
                 auto icon_path = paths->getSystemPathLvgl(desired_icon);
                 lvgl::statusbar_icon_set_image(data->sdcard_icon_id, icon_path);
                 lvgl::statusbar_icon_set_visibility(data->sdcard_icon_id, true);
-            } else {
-                lvgl::statusbar_icon_set_visibility(data->sdcard_icon_id, false);
+                data->sdcard_last_icon = desired_icon;
             }
-            data->sdcard_last_icon = desired_icon;
         }
+        // TODO: Consider tracking how long the SD card has been in unknown status and then show error
     }
 }
 

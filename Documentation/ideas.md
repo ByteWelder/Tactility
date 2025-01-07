@@ -10,16 +10,12 @@
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
-- SD card statusbar icon shows error when there's a read timeout on the SD card status. Don't show the error icon in this scenario.
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- getConfiguration() in TT headless is a reference, while in TT main project it's a pointer. Make it a pointer for headless too.
+- Consistently use either ESP_TARGET or ESP_PLATFORM
 
 # TODOs
-- Tactility.h config: List of apps and services can be a std::vector (get rid of TT_CONFIG_SERVICES_LIMIT and TT_CONFIG_APPS_LIMIT)
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
-- Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
-- Mutex: Cleanup deprecated methods
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
 - Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
@@ -30,7 +26,6 @@
 - Audio player app
 - Audio recording app
 - T-Deck: Use knob for UI selection
-- Logging to disk/etc.
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
 - Loader: Use main dispatcher instead of Thread
@@ -39,7 +34,6 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Localisation of texts (load in boot app from sd?)
 - Explore LVGL9's FreeRTOS functionality
-- Replace M5Unified and M5GFX with custom drivers (so we can fix the Core2 SD card mounting bug, and so we regain some firmware space)
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
@@ -57,6 +51,7 @@
 - Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
 - Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
 - Files app: copy/paste actions
+- On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
  
 # App Ideas
 - USB implementation to make device act as mass storage device.
