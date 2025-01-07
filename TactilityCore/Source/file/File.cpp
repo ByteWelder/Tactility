@@ -26,6 +26,11 @@ long getSize(FILE* file) {
     return file_size;
 }
 
+/** Read a file.
+ * @param[in] filepath
+ * @param[out] outSize the amount of bytes that were read, excluding the sizePadding
+ * @param[in] sizePadding optional padding to add at the end of the output data (the values are not set)
+ */
 static std::unique_ptr<uint8_t[]> readBinaryInternal(const std::string& filepath, size_t& outSize, size_t sizePadding = 0) {
     FILE* file = fopen(filepath.c_str(), "rb");
 
@@ -53,15 +58,19 @@ static std::unique_ptr<uint8_t[]> readBinaryInternal(const std::string& filepath
         if (bytes_read > 0) {
             buffer_offset += bytes_read;
         } else { // Something went wrong?
-            data = nullptr;
             break;
         }
     }
 
-    outSize = buffer_offset;
-
     fclose(file);
-    return data;
+
+    if (buffer_offset == content_length) {
+        outSize = buffer_offset;
+        return data;
+    } else {
+        outSize = 0;
+        return nullptr;
+    }
 }
 
 std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSize) {
@@ -71,15 +80,11 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     size_t size = 0;
     auto data = readBinaryInternal(filepath, size, 1);
-    if (data == nullptr) {
-        return nullptr;
-    } else if (size > 0) {
+    if (data != nullptr) {
         data.get()[size] = 0; // Append null terminator
         return data;
-    } else { // Empty file: return empty string
-        auto value = std::make_unique<uint8_t[]>(1);
-        value[0] = 0;
-        return value;
+    } else {
+        return nullptr;
     }
 }
 

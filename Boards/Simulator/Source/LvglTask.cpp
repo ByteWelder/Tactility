@@ -41,8 +41,8 @@ bool lvgl_task_is_running() {
     return result;
 }
 
-static bool lvgl_lock(uint32_t timeout_ticks) {
-    return lvgl_mutex.acquire(timeout_ticks) == tt::TtStatusOk;
+static bool lvgl_lock(uint32_t timeoutMillis) {
+    return lvgl_mutex.acquire(pdMS_TO_TICKS(timeoutMillis)) == tt::TtStatusOk;
 }
 
 static void lvgl_unlock() {

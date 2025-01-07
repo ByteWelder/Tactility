@@ -5,6 +5,10 @@
 
 namespace tt {
 
+/**
+ * Settings that persist on NVS flash for ESP32.
+ * On simulator, the settings are only in-memory.
+ */
 class Preferences {
 private:
     const char* namespace_;

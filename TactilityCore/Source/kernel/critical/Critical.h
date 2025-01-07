@@ -10,8 +10,15 @@ typedef struct {
     bool kernelRunning;
 } TtCriticalInfo;
 
+/** Enter a critical section
+ * @return info on the status
+ */
 TtCriticalInfo enter();
 
+/**
+ * Exit a critical section
+ * @param[in] info the info from when the critical section was started
+ */
 void exit(TtCriticalInfo info);
 
 } // namespace

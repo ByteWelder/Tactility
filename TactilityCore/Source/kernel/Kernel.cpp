@@ -12,16 +12,12 @@
 
 namespace tt::kernel {
 
-bool isIrq() {
-    return TT_IS_IRQ_MODE();
-}
-
 bool isRunning() {
     return xTaskGetSchedulerState() != taskSCHEDULER_RUNNING;
 }
 
 int32_t lock() {
-    tt_assert(!isIrq());
+    tt_assert(!TT_IS_ISR());
 
     int32_t lock;
 
@@ -46,7 +42,7 @@ int32_t lock() {
 }
 
 int32_t unlock() {
-    tt_assert(!isIrq());
+    tt_assert(!TT_IS_ISR());
 
     int32_t lock;
 
@@ -76,7 +72,7 @@ int32_t unlock() {
 }
 
 int32_t restoreLock(int32_t lock) {
-    tt_assert(!isIrq());
+    tt_assert(!TT_IS_ISR());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
@@ -112,7 +108,7 @@ uint32_t getTickFrequency() {
 }
 
 void delayTicks(TickType_t ticks) {
-    tt_assert(!isIrq());
+    tt_assert(!TT_IS_ISR());
     if (ticks == 0U) {
         taskYIELD();
     } else {
@@ -121,7 +117,7 @@ void delayTicks(TickType_t ticks) {
 }
 
 TtStatus delayUntilTick(TickType_t tick) {
-    tt_assert(!isIrq());
+    tt_assert(!TT_IS_ISR());
 
     TickType_t tcnt, delay;
     TtStatus stat;
@@ -150,7 +146,7 @@ TtStatus delayUntilTick(TickType_t tick) {
 TickType_t getTicks() {
     TickType_t ticks;
 
-    if (isIrq() != 0U) {
+    if (TT_IS_ISR() != 0U) {
         ticks = xTaskGetTickCountFromISR();
     } else {
         ticks = xTaskGetTickCount();

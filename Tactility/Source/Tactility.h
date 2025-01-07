@@ -7,17 +7,23 @@
 
 namespace tt {
 
-typedef struct {
+/** @brief The configuration for the operating system
+ * It contains the hardware configuration, apps and services
+ */
+struct Configuration {
+    /** HAL configuration (drivers) */
     const hal::Configuration* hardware;
-    // List of user applications
-    const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT];
-    const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT];
-    const char* autoStartAppId;
-} Configuration;
+    /** List of user applications */
+    const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT] = {};
+    /** List of user services */
+    const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT] = {};
+    /** Optional app to start automatically after the splash screen. */
+    const char* _Nullable autoStartAppId = nullptr;
+};
 
 /**
  * Attempts to initialize Tactility and all configured hardware.
- * @param config
+ * @param[in] config
  */
 void run(const Configuration& config);
 

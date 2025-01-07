@@ -1,22 +1,32 @@
 #pragma once
 
 #include "Check.h"
+#include "RtosCompat.h"
 #include <memory>
 
 namespace tt {
 
 class ScopedLockableUsage;
 
+/** Represents a lock/mutex */
 class Lockable {
 public:
     virtual ~Lockable() = default;
 
-    virtual bool lock(uint32_t timeoutTicks) const = 0;
+    virtual bool lock(TickType_t timeoutTicks) const = 0;
+
     virtual bool unlock() const = 0;
 
     std::unique_ptr<ScopedLockableUsage> scoped() const;
 };
 
+/**
+ * Represents a lockable instance that is scoped to a specific lifecycle.
+ * Once the ScopedLockableUsage is destroyed, unlock() is called automatically.
+ *
+ * In other words:
+ * You have to lock() this object manually, but unlock() happens automatically on destruction.
+ */
 class ScopedLockableUsage final : public Lockable {
 
     const Lockable& lockable;
@@ -29,7 +39,7 @@ public:
         lockable.unlock(); // We don't care whether it succeeded or not
     }
 
-    bool lock(uint32_t timeout) const override {
+    bool lock(TickType_t timeout) const override {
         return lockable.lock(timeout);
     }
 

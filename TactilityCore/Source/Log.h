@@ -12,6 +12,7 @@
 
 namespace tt {
 
+/** Used for log output filtering */
 enum LogLevel {
     LogLevelNone,       /*!< No log output */
     LogLevelError,      /*!< Critical errors, software module can not recover on its own */
@@ -26,6 +27,10 @@ struct LogEntry {
     char message[TT_LOG_MESSAGE_SIZE] = { 0 };
 };
 
+/** Make a copy of the currently stored entries.
+ * The array size is TT_LOG_ENTRY_COUNT
+ * @param[out] outIndex the write index for the next log entry.
+ */
 LogEntry* copyLogEntries(unsigned int& outIndex);
 
 } // namespace tt

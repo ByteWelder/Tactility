@@ -2,7 +2,6 @@
 
 #include "PanicHandler.h"
 
-#include <esp_rom_sys.h>
 #include <esp_debug_helpers.h>
 #include <esp_attr.h>
 #include <esp_memory_utils.h>
@@ -10,6 +9,10 @@
 
 extern "C" {
 
+/**
+ * This static variable survives a crash reboot.
+ * It is reset by the Boot app.
+ */
 static RTC_NOINIT_ATTR CrashData crashData;
 
 void __real_esp_panic_handler(void* info);
@@ -61,6 +64,6 @@ void __wrap_esp_panic_handler(void* info) {
 
 }
 
-const CrashData* getRtcCrashData() { return &crashData; }
+const CrashData& getRtcCrashData() { return crashData; }
 
 #endif

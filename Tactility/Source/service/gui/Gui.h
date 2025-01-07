@@ -9,12 +9,11 @@ typedef struct Gui Gui;
 
 /**
  * Set the app viewport in the gui state and request the gui to draw it.
- *
- * @param app
- * @param on_show
- * @param on_hide
+ * @param[in] app
+ * @param[in] onShow
+ * @param[in] onHide
  */
-void showApp(app::AppContext& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide);
+void showApp(app::AppContext& app, ViewPortShowCallback onShow, ViewPortHideCallback onHide);
 
 /**
  * Hide the current app's viewport.
@@ -25,7 +24,7 @@ void hideApp();
 
 /**
  * Show the on-screen keyboard.
- * @param textarea the textarea to focus the input for
+ * @param[in] textarea the textarea to focus the input for
  */
 void keyboardShow(lv_obj_t* textarea);
 
@@ -47,7 +46,7 @@ bool keyboardIsEnabled();
  * Glue code for the on-screen keyboard and the hardware keyboard:
  *  - Attach automatic hide/show parameters for the on-screen keyboard.
  *  - Registers the textarea to the default lv_group_t for hardware keyboards.
- * @param textarea
+ * @param[in] textarea
  */
 void keyboardAddTextArea(lv_obj_t* textarea);
 

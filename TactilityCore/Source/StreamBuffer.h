@@ -35,8 +35,8 @@ public:
      * interrupt that will write to the buffer (the writer), and only one task or
      * interrupt that will read from the buffer (the reader).
      *
-     * @param size The total number of bytes the stream buffer will be able to hold at any one time.
-     * @param triggerLevel The number of bytes that must be in the stream buffer
+     * @param[in] size The total number of bytes the stream buffer will be able to hold at any one time.
+     * @param[in] triggerLevel The number of bytes that must be in the stream buffer
      * before a task that is blocked on the stream buffer to wait for data is moved out of the blocked state.
      * @return The stream buffer instance.
      */
@@ -50,7 +50,7 @@ public:
      * stream buffer before a task that is blocked on the stream buffer to
      * wait for data is moved out of the blocked state.
      *
-     * @param triggerLevel The new trigger level for the stream buffer.
+     * @param[in] triggerLevel The new trigger level for the stream buffer.
      * @return true if trigger level can be be updated (new trigger level was less than or equal to the stream buffer's length).
      * @return false if trigger level can't be be updated (new trigger level was greater than the stream buffer's length).
      */
@@ -60,9 +60,9 @@ public:
      * @brief Sends bytes to a stream buffer. The bytes are copied into the stream buffer.
      * Wakes up task waiting for data to become available if called from ISR.
      *
-     * @param data A pointer to the data that is to be copied into the stream buffer.
-     * @param length The maximum number of bytes to copy from data into the stream buffer.
-     * @param timeout The maximum amount of time the task should remain in the
+     * @param[in] data A pointer to the data that is to be copied into the stream buffer.
+     * @param[in] length The maximum number of bytes to copy from data into the stream buffer.
+     * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for space to become available if the stream buffer is full.
      * Will return immediately if timeout is zero.
      * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
@@ -79,10 +79,10 @@ public:
      * @brief Receives bytes from a stream buffer.
      * Wakes up task waiting for space to become available if called from ISR.
      *
-     * @param data A pointer to the buffer into which the received bytes will be
+     * @param[in] data A pointer to the buffer into which the received bytes will be
      * copied.
-     * @param length The length of the buffer pointed to by the data parameter.
-     * @param timeout The maximum amount of time the task should remain in the
+     * @param[in] length The length of the buffer pointed to by the data parameter.
+     * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for data to become available if the stream buffer is empty.
      * Will return immediately if timeout is zero.
      * Setting timeout to TtWaitForever will cause the task to wait indefinitely.

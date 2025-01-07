@@ -16,7 +16,7 @@ static void timer_callback(TimerHandle_t hTimer) {
 }
 
 Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) {
-    tt_assert((kernel::isIrq() == 0U) && (callback != nullptr));
+    tt_assert((!TT_IS_ISR()) && (callback != nullptr));
 
     this->callback = callback;
     this->callbackContext = std::move(callbackContext);
@@ -33,48 +33,49 @@ Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext
 }
 
 Timer::~Timer() {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     tt_check(xTimerDelete(timerHandle, portMAX_DELAY) == pdPASS);
 }
 
 bool Timer::start(uint32_t intervalTicks) {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     tt_assert(intervalTicks < portMAX_DELAY);
     return xTimerChangePeriod(timerHandle, intervalTicks, portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::restart(uint32_t intervalTicks) {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     tt_assert(intervalTicks < portMAX_DELAY);
     return xTimerChangePeriod(timerHandle, intervalTicks, portMAX_DELAY) == pdPASS &&
         xTimerReset(timerHandle, portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::stop() {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     return xTimerStop(timerHandle, portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::isRunning() {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     return xTimerIsTimerActive(timerHandle) == pdTRUE;
 }
 
 uint32_t Timer::getExpireTime() {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
     return (uint32_t)xTimerGetExpiryTime(timerHandle);
 }
 
-bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg) {
-    if (kernel::isIrq()) {
-        return xTimerPendFunctionCallFromISR(callback, callbackContext, arg, nullptr) == pdPASS;
+bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout) {
+    if (TT_IS_ISR()) {
+        assert(timeout == 0);
+        return xTimerPendFunctionCallFromISR(callback, callbackContext, callbackArg, nullptr) == pdPASS;
     } else {
-        return xTimerPendFunctionCall(callback, callbackContext, arg, TtWaitForever) == pdPASS;
+        return xTimerPendFunctionCall(callback, callbackContext, callbackArg, timeout) == pdPASS;
     }
 }
 
 void Timer::setThreadPriority(ThreadPriority priority)  {
-    tt_assert(!kernel::isIrq());
+    tt_assert(!TT_IS_ISR());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     tt_assert(task_handle); // Don't call this method before timer task start

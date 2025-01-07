@@ -5,13 +5,13 @@
 namespace tt {
 
 MessageQueue::MessageQueue(uint32_t capacity, uint32_t msg_size) {
-    tt_assert((kernel::isIrq() == 0U) && (capacity > 0U) && (msg_size > 0U));
+    tt_assert(!TT_IS_ISR() && (capacity > 0U) && (msg_size > 0U));
     queue_handle = xQueueCreate(capacity, msg_size);
     tt_check(queue_handle);
 }
 
 MessageQueue::~MessageQueue() {
-    tt_assert(kernel::isIrq() == 0U);
+    tt_assert(!TT_IS_ISR());
     vQueueDelete(queue_handle);
 }
 
@@ -19,7 +19,7 @@ bool MessageQueue::put(const void* message, uint32_t timeout) {
     bool result = true;
     BaseType_t yield;
 
-    if (kernel::isIrq() != 0U) {
+    if (TT_IS_ISR()) {
         if ((queue_handle == nullptr) || (message == nullptr) || (timeout != 0U)) {
             result = false;
         } else {
@@ -45,7 +45,7 @@ bool MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
     BaseType_t yield;
 
 
-    if (kernel::isIrq()) {
+    if (TT_IS_ISR()) {
         if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
             result = false;
         } else {
@@ -91,7 +91,7 @@ uint32_t MessageQueue::getCount() const {
 
     if (queue_handle == nullptr) {
         count = 0U;
-    } else if (kernel::isIrq() != 0U) {
+    } else if (TT_IS_ISR()) {
         count = uxQueueMessagesWaitingFromISR(queue_handle);
     } else {
         count = uxQueueMessagesWaiting(queue_handle);
@@ -108,7 +108,7 @@ uint32_t MessageQueue::getSpace() const {
 
     if (mq == nullptr) {
         space = 0U;
-    } else if (kernel::isIrq() != 0U) {
+    } else if (TT_IS_ISR()) {
         isrm = taskENTER_CRITICAL_FROM_ISR();
 
         /* space = pxQueue->uxLength - pxQueue->uxMessagesWaiting; */
@@ -123,7 +123,7 @@ uint32_t MessageQueue::getSpace() const {
 }
 
 bool MessageQueue::reset() {
-    tt_check(!kernel::isIrq());
+    tt_check(!TT_IS_ISR());
     if (queue_handle == nullptr) {
         return false;
     } else {

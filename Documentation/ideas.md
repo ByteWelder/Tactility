@@ -1,4 +1,4 @@
-# Bugs
+# Issues
 - WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
 - ESP32 (CYD) memory issues (or any device without PSRAM):
   - Boot app doesn't show logo 
@@ -11,8 +11,17 @@
 - Clean up static_cast when casting to base class.
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
 - SD card statusbar icon shows error when there's a read timeout on the SD card status. Don't show the error icon in this scenario.
+- EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
+- getConfiguration() in TT headless is a reference, while in TT main project it's a pointer. Make it a pointer for headless too.
 
 # TODOs
+- Tactility.h config: List of apps and services can be a std::vector (get rid of TT_CONFIG_SERVICES_LIMIT and TT_CONFIG_APPS_LIMIT)
+- Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
+- Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
+- Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
+- Mutex: Cleanup deprecated methods
+- CrashHandler: use "corrupted" flag
+- CrashHandler: process other types of crashes (WDT?)
 - Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
 - Create different partitions files for different ESP flash size targets (N4, N8, N16, N32)
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
@@ -37,6 +46,8 @@
 - Support hot-plugging SD card
 
 # Nice-to-haves
+- OTA updates
+- Web flasher
 - T-Deck Plus: Create separate board config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - Make firmwares available via web serial website

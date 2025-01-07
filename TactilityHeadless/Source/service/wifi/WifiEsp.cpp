@@ -780,7 +780,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "Waiting for EventFlag by event_handler()");
 
     if (bits & WIFI_CONNECTED_BIT) {
-        wifi->setSecureConnection(wifi_config.sta.password[0] != 0x00);
+        wifi->setSecureConnection(wifi_config.sta.password[0] != 0x00U);
         wifi->setRadioState(WIFI_RADIO_CONNECTION_ACTIVE);
         publish_event_simple(wifi, WifiEventTypeConnectionSuccess);
         TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid);

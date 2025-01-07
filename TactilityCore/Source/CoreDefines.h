@@ -45,5 +45,3 @@
 #define _TT_ARGCOUNT4(X,...) _TT_ARGCOUNT ## __VA_OPT__(5(__VA_ARGS__) TT_ARG_IGNORE) (4)
 #define _TT_ARGCOUNT5(X,...) 5
 #define _TT_ARGCOUNT(X) X
-
-// endregion

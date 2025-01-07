@@ -13,16 +13,24 @@
 
 namespace tt {
 
-typedef void (*Callback)(std::shared_ptr<void> data);
 
+/**
+ * A thread-safe way to defer code execution.
+ * Generally, one task would dispatch the execution,
+ * while the other thread consumes and executes the work.
+ */
 class Dispatcher {
+public:
+
+    typedef void (*Function)(std::shared_ptr<void> data);
+
 private:
     struct DispatcherMessage {
-        Callback callback;
+        Function function;
         std::shared_ptr<void> context; // Can't use unique_ptr with void, so we use shared_ptr
 
-        DispatcherMessage(Callback callback, std::shared_ptr<void> context) :
-            callback(callback),
+        DispatcherMessage(Function function, std::shared_ptr<void> context) :
+            function(function),
             context(std::move(context))
         {}
 
@@ -38,8 +46,19 @@ public:
     explicit Dispatcher();
     ~Dispatcher();
 
-    void dispatch(Callback callback, std::shared_ptr<void> context);
-    uint32_t consume(uint32_t timeout_ticks);
+    /**
+     * Queue a function to be consumed elsewhere.
+     * @param[in] function the function to execute elsewhere
+     * @param[in] context the data to pass onto the function
+     */
+    void dispatch(Function function, std::shared_ptr<void> context);
+
+    /**
+     * Consume a dispatched function (if any)
+     * @param[in] timeout the ticks to wait for a message
+     * @return the amount of messages that were consumed
+     */
+    uint32_t consume(TickType_t timeout);
 };
 
 } // namespace

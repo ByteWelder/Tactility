@@ -91,14 +91,14 @@ static void get_nvs_key(uint8_t key[32]) {
 
 /**
  * Performs XOR on 2 memory regions and stores it in a third
- * @param[in] in_left input buffer for XOR
- * @param[in] in_right second input buffer for XOR
+ * @param[in] inLeft input buffer for XOR
+ * @param[in] inRight second input buffer for XOR
  * @param[out] out output buffer for result of XOR
  * @param[in] length data length (all buffers must be at least this size)
  */
-static void xorKey(const uint8_t* in_left, const uint8_t* in_right, uint8_t* out, size_t length) {
+static void xorKey(const uint8_t* inLeft, const uint8_t* inRight, uint8_t* out, size_t length) {
     for (int i = 0; i < length; ++i) {
-        out[i] = in_left[i] ^ in_right[i];
+        out[i] = inLeft[i] ^ inRight[i];
     }
 }
 
@@ -112,10 +112,10 @@ static void getKey(uint8_t key[32]) {
     TT_LOG_W(TAG, "An attacker with physical access to your ESP32 can decrypt your secure data.");
 #endif
 
+#ifdef ESP_PLATFORM
     uint8_t hardware_key[32];
     uint8_t nvs_key[32];
 
-#ifdef ESP_PLATFORM
     get_hardware_key(hardware_key);
     get_nvs_key(nvs_key);
     xorKey(hardware_key, nvs_key, key, 32);
@@ -125,10 +125,10 @@ static void getKey(uint8_t key[32]) {
 #endif
 }
 
-void getIv(const void* data, size_t data_length, uint8_t iv[16]) {
+void getIv(const void* data, size_t dataLength, uint8_t iv[16]) {
     memset((void*)iv, 0, 16);
-    uint8_t* data_bytes = (uint8_t*)data;
-    for (int i = 0; i < data_length; ++i) {
+    auto* data_bytes = (uint8_t*)data;
+    for (int i = 0; i < dataLength; ++i) {
         size_t safe_index = i % 16;
         iv[safe_index] %= data_bytes[i];
     }
@@ -160,8 +160,8 @@ static int aes256CryptCbc(
     return result;
 }
 
-int encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
-    tt_check(length % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
+int encrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength) {
+    tt_check(dataLength % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     getKey(key);
 
@@ -169,11 +169,11 @@ int encrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t le
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    return aes256CryptCbc(key, MBEDTLS_AES_ENCRYPT, length, iv_copy, in_data, out_data);
+    return aes256CryptCbc(key, MBEDTLS_AES_ENCRYPT, dataLength, iv_copy, inData, outData);
 }
 
-int decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t length) {
-    tt_check(length % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
+int decrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength) {
+    tt_check(dataLength % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     getKey(key);
 
@@ -181,7 +181,7 @@ int decrypt(const uint8_t iv[16], uint8_t* in_data, uint8_t* out_data, size_t le
     uint8_t iv_copy[16];
     memcpy(iv_copy, iv, sizeof(iv_copy));
 
-    return aes256CryptCbc(key, MBEDTLS_AES_DECRYPT, length, iv_copy, in_data, out_data);
+    return aes256CryptCbc(key, MBEDTLS_AES_DECRYPT, dataLength, iv_copy, inData, outData);
 }
 
 } // namespace

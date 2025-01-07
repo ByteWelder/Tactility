@@ -10,6 +10,9 @@
 
 namespace tt {
 
+/**
+ * A dictionary that maps keys (strings) onto several atomary types.
+ */
 class Bundle {
 
 private:

@@ -26,11 +26,10 @@ typedef enum {
  */
 void startApp(const std::string& id, bool blocking = false, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
 
-/**
- * @brief Stop the currently showing app. Show the previous app if any app was still running.
- */
+/** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stopApp();
 
+/** @return the currently running app (it is only ever null before the splash screen is shown) */
 app::AppContext* _Nullable getCurrentApp();
 
 /**
