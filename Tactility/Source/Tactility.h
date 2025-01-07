@@ -14,9 +14,9 @@ struct Configuration {
     /** HAL configuration (drivers) */
     const hal::Configuration* hardware;
     /** List of user applications */
-    const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT] = {};
+    const std::vector<const app::AppManifest*> apps;
     /** List of user services */
-    const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT] = {};
+    const std::vector<const service::ServiceManifest*> services;
     /** Optional app to start automatically after the splash screen. */
     const char* _Nullable autoStartAppId = nullptr;
 };

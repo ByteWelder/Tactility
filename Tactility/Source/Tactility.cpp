@@ -104,7 +104,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
 
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
-    for (const auto& app_manifest: system_apps) {
+    for (const auto* app_manifest: system_apps) {
         addApp(app_manifest);
     }
 
@@ -113,16 +113,11 @@ static void register_system_apps() {
     }
 }
 
-static void register_user_apps(const app::AppManifest* const apps[TT_CONFIG_APPS_LIMIT]) {
+static void register_user_apps(const std::vector<const app::AppManifest*>& apps) {
     TT_LOG_I(TAG, "Registering user apps");
-    for (size_t i = 0; i < TT_CONFIG_APPS_LIMIT; i++) {
-        const app::AppManifest* manifest = apps[i];
-        if (manifest != nullptr) {
-            addApp(manifest);
-        } else {
-            // reached end of list
-            break;
-        }
+    for (auto* manifest : apps) {
+        assert(manifest != nullptr);
+        addApp(manifest);
     }
 }
 
@@ -134,17 +129,12 @@ static void register_and_start_system_services() {
     }
 }
 
-static void register_and_start_user_services(const service::ServiceManifest* const services[TT_CONFIG_SERVICES_LIMIT]) {
+static void register_and_start_user_services(const std::vector<const service::ServiceManifest*>& services) {
     TT_LOG_I(TAG, "Registering and starting user services");
-    for (size_t i = 0; i < TT_CONFIG_SERVICES_LIMIT; i++) {
-        const service::ServiceManifest* manifest = services[i];
-        if (manifest != nullptr) {
-            addService(manifest);
-            tt_check(service::startService(manifest->id));
-        } else {
-            // reached end of list
-            break;
-        }
+    for (auto* manifest : services) {
+        assert(manifest != nullptr);
+        addService(manifest);
+        tt_check(service::startService(manifest->id));
     }
 }
 
