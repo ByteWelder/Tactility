@@ -1,12 +1,13 @@
 #pragma once
 
+#include <freertos/FreeRTOS.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <FreeRTOS.h>
 
 typedef void* MutexHandle;
 

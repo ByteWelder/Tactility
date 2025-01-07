@@ -36,7 +36,8 @@ public:
 
     ~MessageQueue();
 
-    /** Put message into queue
+    /** Post a message to the queue.
+     * The message is queued by copy, not by reference.
      * @param[in] message A pointer to a message. The message will be copied into a buffer.
      * @param[in] timeoutTicks
      * @return success result
@@ -44,7 +45,7 @@ public:
     bool put(const void* message, uint32_t timeoutTicks);
 
     /** Get message from queue
-     * @param message A pointer to an already allocated message object
+     * @param[out] message A pointer to an already allocated message object
      * @param[in] timeoutTicks
      * @return success result
      */

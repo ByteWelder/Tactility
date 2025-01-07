@@ -3,12 +3,12 @@
 
 namespace tt {
 
-PubSubSubscription* tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCallback callback, void* callback_context) {
+PubSubSubscription* tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCallback callback, void* callbackContext) {
     tt_check(pubsub->mutex.acquire(TtWaitForever) == TtStatusOk);
     PubSubSubscription subscription = {
         .id = (++pubsub->last_id),
         .callback = callback,
-        .callback_context = callback_context
+        .callback_context = callbackContext
     };
     pubsub->items.push_back(
         subscription

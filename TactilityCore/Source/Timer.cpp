@@ -65,11 +65,12 @@ uint32_t Timer::getExpireTime() {
     return (uint32_t)xTimerGetExpiryTime(timerHandle);
 }
 
-bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg) {
+bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout) {
     if (TT_IS_ISR()) {
-        return xTimerPendFunctionCallFromISR(callback, callbackContext, arg, nullptr) == pdPASS;
+        assert(timeout == 0);
+        return xTimerPendFunctionCallFromISR(callback, callbackContext, callbackArg, nullptr) == pdPASS;
     } else {
-        return xTimerPendFunctionCall(callback, callbackContext, arg, TtWaitForever) == pdPASS;
+        return xTimerPendFunctionCall(callback, callbackContext, callbackArg, timeout) == pdPASS;
     }
 }
 

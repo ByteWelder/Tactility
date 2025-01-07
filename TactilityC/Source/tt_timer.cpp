@@ -29,11 +29,11 @@ void tt_timer_free(TimerHandle handle) {
     delete wrapper;
 }
 
-bool tt_timer_start(TimerHandle handle, uint32_t intervalTicks) {
+bool tt_timer_start(TimerHandle handle, TickType_t intervalTicks) {
     return ((TimerWrapper*)handle)->timer->start(intervalTicks);
 }
 
-bool tt_timer_restart(TimerHandle handle, uint32_t intervalTicks) {
+bool tt_timer_restart(TimerHandle handle, TickType_t intervalTicks) {
     return ((TimerWrapper*)handle)->timer->restart(intervalTicks);
 }
 
@@ -49,11 +49,12 @@ uint32_t tt_timer_get_expire_time(TimerHandle handle) {
     return ((TimerWrapper*)handle)->timer->getExpireTime();
 }
 
-bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback callback, void* callbackContext, uint32_t arg) {
+bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeoutTicks) {
     return ((TimerWrapper*)handle)->timer->setPendingCallback(
         callback,
         callbackContext,
-        arg
+        callbackArg,
+        (TickType_t)timeoutTicks
     );
 }
 

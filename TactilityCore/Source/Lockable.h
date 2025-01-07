@@ -20,6 +20,13 @@ public:
     std::unique_ptr<ScopedLockableUsage> scoped() const;
 };
 
+/**
+ * Represents a lockable instance that is scoped to a specific lifecycle.
+ * Once the ScopedLockableUsage is destroyed, unlock() is called automatically.
+ *
+ * In other words:
+ * You have to lock() this object manually, but unlock() happens automatically on destruction.
+ */
 class ScopedLockableUsage final : public Lockable {
 
     const Lockable& lockable;

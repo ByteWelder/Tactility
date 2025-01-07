@@ -30,34 +30,27 @@ struct PubSub {
 };
 
 /** Subscribe to PubSub
- * 
  * Threadsafe, Reentrable
- * 
- * @param      pubsub            pointer to PubSub instance
- * @param[in]  callback          The callback
- * @param      callback_context  The callback context
- *
- * @return     pointer to PubSubSubscription instance
+ * @param[in] pubsub pointer to PubSub instance
+ * @param[in] callback
+ * @param[in] callbackContext the data to pass to the callback
+ * @return subscription instance
  */
 PubSubSubscription*
-tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCallback callback, void* callback_context);
+tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCallback callback, void* callbackContext);
 
 /** Unsubscribe from PubSub
- * 
- * No use of `pubsub_subscription` allowed after call of this method
- * Threadsafe, Reentrable.
- *
- * @param      pubsub               pointer to PubSub instance
- * @param      pubsub_subscription  pointer to PubSubSubscription instance
+ * No use of `tt_pubsub_subscription` allowed after call of this method
+ * Threadsafe, Re-entrable.
+ * @param[in] pubsub
+ * @param[in] subscription
  */
-void tt_pubsub_unsubscribe(std::shared_ptr<PubSub> pubsub, PubSubSubscription* pubsub_subscription);
+void tt_pubsub_unsubscribe(std::shared_ptr<PubSub> pubsub, PubSubSubscription* subscription);
 
 /** Publish message to PubSub
- *
  * Threadsafe, Reentrable.
- * 
- * @param      pubsub   pointer to PubSub instance
- * @param      message  message pointer to publish
+ * @param[in] pubsub
+ * @param[in] message message pointer to publish - it is passed as-is to the callback
  */
 void tt_pubsub_publish(std::shared_ptr<PubSub> pubsub, void* message);
 

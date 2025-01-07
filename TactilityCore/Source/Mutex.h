@@ -13,8 +13,6 @@
 
 namespace tt {
 
-class ScopedMutexUsage;
-
 /**
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Can be used in IRQ mode (within ISR context)

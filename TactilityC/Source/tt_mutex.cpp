@@ -21,7 +21,7 @@ void tt_mutex_free(MutexHandle handle) {
 }
 
 bool tt_mutex_lock(MutexHandle handle, TickType_t timeout) {
-    return HANDLE_AS_MUTEX(handle)->lock(timeout);
+    return HANDLE_AS_MUTEX(handle)->lock((TickType_t)timeout);
 }
 
 bool tt_mutex_unlock(MutexHandle handle) {

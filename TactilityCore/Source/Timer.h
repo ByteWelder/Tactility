@@ -33,55 +33,44 @@ public:
     ~Timer();
 
     /** Start timer
-     *
-     * @warning This is asynchronous call, real operation will happen as soon as
-     *          timer service process this request.
-     *
+     * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
      * @param[in] ticks The interval in ticks
      * @return success result
      */
     bool start(uint32_t intervalTicks);
 
     /** Restart timer with previous timeout value
-     *
-     * @warning    This is asynchronous call, real operation will happen as soon as
-     *             timer service process this request.
-     *
+     * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
      * @param[in] ticks The interval in ticks
-     *
      * @return success result
      */
     bool restart(uint32_t intervalTicks);
 
-
     /** Stop timer
-     *
-     * @warning    This is asynchronous call, real operation will happen as soon as
-     *             timer service process this request.
-     *
+     * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
      * @return success result
      */
     bool stop();
 
     /** Is timer running
-     *
-     * @warning    This cal may and will return obsolete timer state if timer
-     *             commands are still in the queue. Please read FreeRTOS timer
-     *             documentation first.
-     *
+     * @warning This cal may and will return obsolete timer state if timer commands are still in the queue. Please read FreeRTOS timer documentation first.
      * @return true when running
      */
     bool isRunning();
 
     /** Get timer expire time
-     *
-     * @param instance The Timer instance
-     *
      * @return expire tick
      */
     uint32_t getExpireTime();
 
-    bool setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t arg);
+    /**
+     * Calls xTimerPendFunctionCall internally.
+     * @param[in] callback the function to call
+     * @param[in] callbackContext the first function argument
+     * @param[in] callbackArg the second function argument
+     * @param[in] timeout the function timeout (must set to 0 in ISR mode)
+     */
+    bool setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout);
 
     typedef enum {
         TimerThreadPriorityNormal,   /**< Lower then other threads */
@@ -89,7 +78,6 @@ public:
     } ThreadPriority;
 
     /** Set Timer thread priority
-     *
      * @param[in] priority The priority
      */
     void setThreadPriority(ThreadPriority priority);

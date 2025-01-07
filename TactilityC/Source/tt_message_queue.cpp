@@ -13,11 +13,11 @@ void tt_message_queue_free(MessageQueueHandle handle) {
     delete HANDLE_TO_MESSAGE_QUEUE(handle);
 }
 
-bool tt_message_queue_put(MessageQueueHandle handle, const void* message, uint32_t timeout) {
+bool tt_message_queue_put(MessageQueueHandle handle, const void* message, TickType_t timeout) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->put(message, timeout);
 }
 
-bool tt_message_queue_get(MessageQueueHandle handle, void* message, uint32_t timeout) {
+bool tt_message_queue_get(MessageQueueHandle handle, void* message, TickType_t timeout) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->get(message, timeout);
 }
 

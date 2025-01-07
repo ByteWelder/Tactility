@@ -14,6 +14,7 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 
 # TODOs
+- Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Rename "Desktop" to "Launcher" because it more clearly communicates its purpose
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
 - Mutex: Cleanup deprecated methods
@@ -43,6 +44,8 @@
 - Support hot-plugging SD card
 
 # Nice-to-haves
+- OTA updates
+- Web flasher
 - T-Deck Plus: Create separate board config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - Make firmwares available via web serial website
