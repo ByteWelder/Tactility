@@ -11,7 +11,6 @@
 - Clean up static_cast when casting to base class.
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- getConfiguration() in TT headless is a reference, while in TT main project it's a pointer. Make it a pointer for headless too.
 - Consistently use either ESP_TARGET or ESP_PLATFORM
 
 # TODOs

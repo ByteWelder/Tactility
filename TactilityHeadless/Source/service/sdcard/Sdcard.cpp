@@ -30,7 +30,7 @@ struct ServiceData {
 
 
 static void onUpdate(std::shared_ptr<void> context) {
-    auto sdcard = tt::hal::getConfiguration().sdcard;
+    auto sdcard = tt::hal::getConfiguration()->sdcard;
     if (sdcard == nullptr) {
         return;
     }
@@ -57,7 +57,7 @@ static void onUpdate(std::shared_ptr<void> context) {
 }
 
 static void onStart(ServiceContext& service) {
-    if (hal::getConfiguration().sdcard != nullptr) {
+    if (hal::getConfiguration()->sdcard != nullptr) {
         auto data = std::make_shared<ServiceData>();
         service.setData(data);
 

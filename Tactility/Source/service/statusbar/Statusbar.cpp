@@ -132,7 +132,7 @@ static const char* getSdCardStatusIcon(hal::SdCard::State state) {
 }
 
 static void updateSdCardIcon(const service::Paths* paths, const std::shared_ptr<ServiceData>& data) {
-    auto sdcard = tt::hal::getConfiguration().sdcard;
+    auto sdcard = tt::hal::getConfiguration()->sdcard;
     if (sdcard != nullptr) {
         auto state = sdcard->getState();
         if (state != hal::SdCard::StateUnknown) {
