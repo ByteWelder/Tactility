@@ -10,8 +10,6 @@ typedef bool (*InitBoot)();
 typedef bool (*InitHardware)();
 typedef bool (*InitLvgl)();
 
-typedef void (*SetBacklightDuty)(uint8_t);
-
 class Display;
 class Keyboard;
 typedef Display* (*CreateDisplay)();
@@ -57,7 +55,7 @@ struct Configuration {
     const CreatePower _Nullable power = nullptr;
 
     /**
-     * A list of i2c devices (can be empty, but preferably accurately represents the device capabilities)
+     * A list of i2c interfaces
      */
     const std::vector<i2c::Configuration> i2c = {};
 };

@@ -6,6 +6,7 @@
 #include "hal/Keyboard.h"
 #include "lvgl/LvglKeypad.h"
 #include "lvgl/Lvgl.h"
+#include "kernel/SystemEvents.h"
 
 namespace tt::lvgl {
 
@@ -76,6 +77,8 @@ bool initKeyboard(hal::Display* display, hal::Keyboard* keyboard) {
 void init(const hal::Configuration& config) {
     TT_LOG_I(TAG, "Starting");
 
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitLvglBegin);
+
     if (config.initLvgl != nullptr && !config.initLvgl()) {
         TT_LOG_E(TAG, "LVGL init failed");
         return;
@@ -98,6 +101,8 @@ void init(const hal::Configuration& config) {
     }
 
     TT_LOG_I(TAG, "Finished");
+
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitLvglEnd);
 }
 
 } // namespace

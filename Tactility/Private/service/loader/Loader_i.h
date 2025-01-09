@@ -90,10 +90,13 @@ public:
 // endregion LoaderMessage
 
 struct Loader {
-    std::shared_ptr<PubSub> pubsub_internal = std::make_shared<PubSub>();
-    std::shared_ptr<PubSub> pubsub_external = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub> pubsubInternal = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
     Mutex mutex = Mutex(Mutex::TypeRecursive);
-    std::stack<app::AppInstance*> app_stack;
+    std::stack<app::AppInstance*> appStack;
+    /** The dispatcher thread needs a callstack large enough to accommodate all the dispatched methods.
+     * This includes full LVGL redraw via Gui::redraw()
+     */
     std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher", 6144); // Files app requires ~5k
 };
 

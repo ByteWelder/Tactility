@@ -54,9 +54,9 @@ void keyboardAddTextArea(lv_obj_t* textarea) {
     }
 
     // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
-    lv_group_add_obj(gui->keyboard_group, textarea);
+    lv_group_add_obj(gui->keyboardGroup, textarea);
 
-    lvgl::keypad_activate(gui->keyboard_group);
+    lvgl::keypad_activate(gui->keyboardGroup);
 
     lvgl::unlock();
     unlock();

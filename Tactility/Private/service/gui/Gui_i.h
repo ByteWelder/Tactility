@@ -23,13 +23,14 @@ struct Gui {
     PubSubSubscription* loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas
-    lv_obj_t* lvgl_parent = nullptr;
+    lv_obj_t* appRootWidget = nullptr;
+    lv_obj_t* statusbarWidget = nullptr;
 
     // App-specific
-    ViewPort* app_view_port = nullptr;
+    ViewPort* appViewPort = nullptr;
 
     lv_obj_t* _Nullable keyboard = nullptr;
-    lv_group_t* keyboard_group = nullptr;
+    lv_group_t* keyboardGroup = nullptr;
 };
 
 /** Update GUI, request redraw */

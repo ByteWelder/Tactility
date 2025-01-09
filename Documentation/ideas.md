@@ -12,8 +12,10 @@
 - M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - Consistently use either ESP_TARGET or ESP_PLATFORM
+- tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 
 # TODOs
+- Make "blocking" argument the last one, and put it default to false (or remove it entirely?): void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
 - CrashHandler: use "corrupted" flag

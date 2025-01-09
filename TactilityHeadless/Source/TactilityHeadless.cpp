@@ -4,9 +4,12 @@
 #include "hal/Hal_i.h"
 #include "service/ServiceManifest.h"
 #include "service/ServiceRegistry.h"
+#include "kernel/SystemEvents.h"
+#include "network/NtpPrivate.h"
 
 #ifdef ESP_PLATFORM
 #include "EspInit.h"
+
 #endif
 
 namespace tt {
@@ -40,6 +43,7 @@ void initHeadless(const hal::Configuration& config) {
 #endif
     hardwareConfig = &config;
     hal::init(config);
+    network::ntp::init();
     register_and_start_system_services();
 }
 
