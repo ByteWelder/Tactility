@@ -11,7 +11,6 @@
 
 #else
 #include "lvgl/LvglSync.h"
-#include "TactilityHeadless.h"
 #endif
 
 namespace tt::service::loader {
@@ -42,7 +41,7 @@ static void loader_free() {
     loader_singleton = nullptr;
 }
 
-void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
+void startApp(const std::string& id, bool blocking, const std::shared_ptr<const Bundle>& parameters) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
 
@@ -67,7 +66,7 @@ void stopApp() {
 app::AppContext* _Nullable getCurrentApp() {
     tt_assert(loader_singleton);
     if (loader_singleton->mutex.lock(10 / portTICK_PERIOD_MS)) {
-        app::AppInstance* app = loader_singleton->app_stack.top();
+        app::AppInstance* app = loader_singleton->appStack.top();
         loader_singleton->mutex.unlock();
         return dynamic_cast<app::AppContext*>(app);
     } else {
@@ -80,7 +79,7 @@ std::shared_ptr<PubSub> getPubsub() {
     // it's safe to return pubsub without locking
     // because it's never freed and loader is never exited
     // also the loader instance cannot be obtained until the pubsub is created
-    return loader_singleton->pubsub_external;
+    return loader_singleton->pubsubExternal;
 }
 
 static const char* appStateToString(app::State state) {
@@ -129,7 +128,7 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
                     .app = app
                 }
             };
-            tt_pubsub_publish(loader_singleton->pubsub_external, &event_showing);
+            tt_pubsub_publish(loader_singleton->pubsubExternal, &event_showing);
             app.setState(app::StateShowing);
             break;
         }
@@ -140,7 +139,7 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
                     .app = app
                 }
             };
-            tt_pubsub_publish(loader_singleton->pubsub_external, &event_hiding);
+            tt_pubsub_publish(loader_singleton->pubsubExternal, &event_hiding);
             app.setState(app::StateHiding);
             break;
         }
@@ -167,11 +166,11 @@ static LoaderStatus startAppWithManifestInternal(
         return LoaderStatusErrorInternal;
     }
 
-    auto previous_app = !loader_singleton->app_stack.empty() ? loader_singleton->app_stack.top() : nullptr;
+    auto previous_app = !loader_singleton->appStack.empty() ? loader_singleton->appStack.top() : nullptr;
     auto new_app = new app::AppInstance(*manifest, parameters);
     new_app->mutableFlags().showStatusbar = (manifest->type != app::TypeBoot);
 
-    loader_singleton->app_stack.push(new_app);
+    loader_singleton->appStack.push(new_app);
     transitionAppToState(*new_app, app::StateInitial);
     transitionAppToState(*new_app, app::StateStarted);
 
@@ -183,7 +182,7 @@ static LoaderStatus startAppWithManifestInternal(
     transitionAppToState(*new_app, app::StateShowing);
 
     LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStarted};
-    tt_pubsub_publish(loader_singleton->pubsub_internal, &event_internal);
+    tt_pubsub_publish(loader_singleton->pubsubInternal, &event_internal);
 
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStarted,
@@ -191,7 +190,7 @@ static LoaderStatus startAppWithManifestInternal(
             .app = *new_app
         }
     };
-    tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
+    tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
     return LoaderStatusOk;
 }
@@ -228,7 +227,7 @@ static void stopAppInternal() {
         return;
     }
 
-    size_t original_stack_size = loader_singleton->app_stack.size();
+    size_t original_stack_size = loader_singleton->appStack.size();
 
     if (original_stack_size == 0) {
         TT_LOG_E(TAG, "Stop app: no app running");
@@ -236,7 +235,7 @@ static void stopAppInternal() {
     }
 
     // Stop current app
-    app::AppInstance* app_to_stop = loader_singleton->app_stack.top();
+    app::AppInstance* app_to_stop = loader_singleton->appStack.top();
 
     if (original_stack_size == 1 && app_to_stop->getManifest().type != app::TypeBoot) {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
@@ -249,7 +248,7 @@ static void stopAppInternal() {
     transitionAppToState(*app_to_stop, app::StateHiding);
     transitionAppToState(*app_to_stop, app::StateStopped);
 
-    loader_singleton->app_stack.pop();
+    loader_singleton->appStack.pop();
     delete app_to_stop;
 
 #ifdef ESP_PLATFORM
@@ -259,8 +258,8 @@ static void stopAppInternal() {
     app::AppOnResult on_result = nullptr;
     app::AppInstance* app_to_resume = nullptr;
     // If there's a previous app, resume it
-    if (!loader_singleton->app_stack.empty()) {
-        app_to_resume = loader_singleton->app_stack.top();
+    if (!loader_singleton->appStack.empty()) {
+        app_to_resume = loader_singleton->appStack.top();
         tt_assert(app_to_resume);
         transitionAppToState(*app_to_resume, app::StateShowing);
 
@@ -272,7 +271,7 @@ static void stopAppInternal() {
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
 
     LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStopped};
-    tt_pubsub_publish(loader_singleton->pubsub_internal, &event_internal);
+    tt_pubsub_publish(loader_singleton->pubsubInternal, &event_internal);
 
     LoaderEvent event_external = {
         .type = LoaderEventTypeApplicationStopped,
@@ -280,7 +279,7 @@ static void stopAppInternal() {
             .manifest = manifest
         }
     };
-    tt_pubsub_publish(loader_singleton->pubsub_external, &event_external);
+    tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
     if (on_result != nullptr && app_to_resume != nullptr) {
         if (result_holder != nullptr) {
