@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bits/stdc++.h>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -47,5 +48,23 @@ std::vector<std::string> split(const std::string& input, const std::string& deli
  * @param delimiter the separator to join with
  */
 std::string join(const std::vector<std::string>& input, const std::string& delimiter);
+
+/**
+ * Returns the lowercase value of a string.
+ * @param[in] the string with lower and/or uppercase characters
+ * @return a string with only lowercase characters
+ */
+template <typename T>
+std::basic_string<T> lowercase(const std::basic_string<T>& input) {
+    std::basic_string<T> output = input;
+    std::transform(
+        output.begin(),
+        output.end(),
+        output.begin(),
+        [](const T character) { return static_cast<T>(std::tolower(character)); }
+    );
+    return std::move(output);
+}
+
 
 } // namespace

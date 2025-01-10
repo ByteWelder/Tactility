@@ -37,8 +37,8 @@ static const char* getEventName(SystemEvent event) {
             return TT_STRINGIFY(SystemEvent::NetworkConnected);
         case SystemEvent::NetworkDisconnected:
             return TT_STRINGIFY(SystemEvent::NetworkDisconnected);
-        case SystemEvent::NtpSynced:
-            return TT_STRINGIFY(SystemEvent::NtpSynced);
+        case SystemEvent::Time:
+            return TT_STRINGIFY(SystemEvent::Time);
     }
 
     tt_crash(); // Missing case above

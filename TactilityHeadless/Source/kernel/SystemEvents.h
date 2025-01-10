@@ -15,7 +15,8 @@ enum class SystemEvent {
     /** Gained IP address */
     NetworkConnected,
     NetworkDisconnected,
-    NtpSynced
+    /** An important system time-related event, such as NTP update or time-zone change */
+    Time,
 };
 
 /** Value 0 mean "no subscription" */

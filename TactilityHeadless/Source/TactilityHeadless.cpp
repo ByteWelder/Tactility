@@ -6,10 +6,10 @@
 #include "service/ServiceRegistry.h"
 #include "kernel/SystemEvents.h"
 #include "network/NtpPrivate.h"
+#include "time/TimePrivate.h"
 
 #ifdef ESP_PLATFORM
 #include "EspInit.h"
-
 #endif
 
 namespace tt {
@@ -42,6 +42,7 @@ void initHeadless(const hal::Configuration& config) {
     initEsp();
 #endif
     hardwareConfig = &config;
+    time::init();
     hal::init(config);
     network::ntp::init();
     register_and_start_system_services();

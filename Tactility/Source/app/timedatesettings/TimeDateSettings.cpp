@@ -5,6 +5,8 @@
 #include "app/timezone/TimeZone.h"
 #include "Assets.h"
 #include "Tactility.h"
+#include "time/Time.h"
+#include "lvgl/LvglSync.h"
 #include <iomanip>
 
 #define TAG "text_viewer"
@@ -15,6 +17,7 @@ extern const AppManifest manifest;
 
 struct Data {
     Mutex mutex = Mutex(Mutex::TypeRecursive);
+    lv_obj_t* regionLabelWidget = nullptr;
 };
 
 std::string getPortNamesForDropdown() {
@@ -65,10 +68,18 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_style_pad_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
 
+    auto* region_prefix_label = lv_label_create(wrapper);
+    lv_label_set_text(region_prefix_label, "Region: ");
+    lv_obj_align(region_prefix_label, LV_ALIGN_TOP_LEFT, 0, 8); // Shift to align with selection box
+
     auto* region_label = lv_label_create(wrapper);
-    lv_obj_set_width(region_label, LV_PCT(48));
-    lv_label_set_text_fmt(region_label, "Region: %s", "(not set)");
-    lv_obj_align(region_label, LV_ALIGN_TOP_LEFT, 0, 8); // Shift to align with selection box
+    std::string timeZoneName = time::getTimeZoneName();
+    if (timeZoneName.empty()) {
+        timeZoneName = "not set";
+    }
+    data->regionLabelWidget = region_label;
+    lv_label_set_text(region_label, timeZoneName.c_str());
+    lv_obj_align_to(region_label, region_prefix_label, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
 
     auto* region_button = lv_button_create(wrapper);
     lv_obj_align(region_button, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -88,6 +99,14 @@ static void onResult(AppContext& app, Result result, const Bundle& bundle) {
         auto name = timezone::getResultName(bundle);
         auto code = timezone::getResultCode(bundle);
         TT_LOG_I(TAG, "Result name=%s code=%s", name.c_str(), code.c_str());
+        time::setTimeZone(name, code);
+
+        if (!name.empty()) {
+            if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+                lv_label_set_text(data->regionLabelWidget, name.c_str());
+                lvgl::unlock();
+            }
+        }
     }
 }
 

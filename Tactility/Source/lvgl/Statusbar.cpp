@@ -137,7 +137,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
         statusbar_data.systemEventSubscription = kernel::systemEventAddListener(
-            kernel::SystemEvent::NtpSynced,
+            kernel::SystemEvent::Time,
             onNetworkConnected
         );
     }

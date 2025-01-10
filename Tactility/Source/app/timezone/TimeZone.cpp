@@ -7,8 +7,10 @@
 #include "Partitions.h"
 #include "TactilityHeadless.h"
 #include "lvgl/LvglSync.h"
+#include "service/gui/Gui.h"
 #include <memory>
 #include <StringUtils.h>
+#include <Timer.h>
 
 namespace tt::app::timezone {
 
@@ -27,7 +29,9 @@ struct TimeZoneEntry {
 struct Data {
     Mutex mutex;
     std::vector<TimeZoneEntry> entries;
-    lv_obj_t* list;
+    std::unique_ptr<Timer> updateTimer;
+    lv_obj_t* listWidget = nullptr;
+    lv_obj_t* filterTextareaWidget = nullptr;
 };
 
 static void updateList(std::shared_ptr<Data>& data);
@@ -43,6 +47,8 @@ static bool parseEntry(const std::string& input, std::string& outName, std::stri
         return true;
     }
 }
+
+// region Result
 
 std::string getResultName(const Bundle& bundle) {
     std::string result;
@@ -62,6 +68,31 @@ void setResultName(std::shared_ptr<Bundle>& bundle, const std::string& name) {
 
 void setResultCode(std::shared_ptr<Bundle>& bundle, const std::string& code) {
     bundle->putString(RESULT_BUNDLE_CODE_INDEX, code);
+}
+
+// endregion
+
+static void onUpdateTimer(std::shared_ptr<void> context) {
+    TT_LOG_I(TAG, "onUpdateTimer");
+    auto data = std::static_pointer_cast<Data>(context);
+    updateList(data);
+}
+
+static void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
+    TT_LOG_I(TAG, "onTextareaValueChanged");
+    auto* app = service::loader::getCurrentApp();
+    auto app_data = app->getData();
+    auto data = std::static_pointer_cast<Data>(app_data);
+
+    if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
+        if (data->updateTimer->isRunning()) {
+            data->updateTimer->stop();
+        }
+
+        data->updateTimer->start(500 / portTICK_PERIOD_MS);
+
+        data->mutex.unlock();
+    }
 }
 
 static void onListItemSelected(lv_event_t* e) {
@@ -125,18 +156,61 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
+    auto* search_wrapper = lv_obj_create(parent);
+    lv_obj_set_size(search_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(search_wrapper, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(search_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_pad_all(search_wrapper, 0, 0);
+    lv_obj_set_style_border_width(search_wrapper, 0, 0);
+
+    auto* icon = lv_image_create(search_wrapper);
+    lv_obj_set_style_margin_left(icon, 8, 0);
+    lv_obj_set_style_image_recolor_opa(icon, 255, 0);
+    lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
+
+    std::string icon_path = app.getPaths()->getSystemPathLvgl("search.png");
+    lv_image_set_src(icon, icon_path.c_str());
+    lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
+
+    auto* textarea = lv_textarea_create(search_wrapper);
+    lv_textarea_set_placeholder_text(textarea, "e.g. Europe/Amsterdam");
+    lv_textarea_set_one_line(textarea, true);
+    lv_obj_add_event_cb(textarea, onTextareaValueChanged, LV_EVENT_VALUE_CHANGED, nullptr);
+    data->filterTextareaWidget = textarea;
+    lv_obj_set_flex_grow(textarea, 1);
+    service::gui::keyboardAddTextArea(textarea);
+
     auto* list = lv_list_create(parent);
     lv_obj_set_width(list, LV_PCT(100));
     lv_obj_set_flex_grow(list, 1);
-    data->list = list;
+    lv_obj_set_style_border_width(list, 0, 0);
+    data->listWidget = list;
 
 }
 
 static void updateList(std::shared_ptr<Data>& data) {
+    auto scoped_mutex = data->mutex.scoped();
+    if (!scoped_mutex->lock(100 / portTICK_PERIOD_MS)) {
+        return;
+    }
+
     if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+        lv_obj_clean(data->listWidget);
         uint32_t index = 0;
+        uint32_t items = 0;
+        std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(data->filterTextareaWidget)));
         for (auto& entry : data->entries) {
-            createListItem(data->list, entry.name, index++);
+            if (tt::string::lowercase(entry.name).find(filter) != std::string::npos) {
+                createListItem(data->listWidget, entry.name, index);
+                items++;
+            }
+            index++;
+
+            // Safety guard
+            if (items > 50) {
+                // TODO: Show warning that we're not displaying a complete list
+                break;
+            }
         }
         lvgl::unlock();
     }
@@ -149,6 +223,7 @@ static void onReadTimeZone(std::shared_ptr<void> input) {
 
 static void onStart(AppContext& app) {
     auto data = std::make_shared<Data>();
+    data->updateTimer = std::make_unique<Timer>(Timer::TypeOnce, onUpdateTimer, data);
     app.setData(data);
     getMainDispatcher().dispatch(onReadTimeZone, data);
 }
