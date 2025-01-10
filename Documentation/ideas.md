@@ -13,6 +13,7 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - Consistently use either ESP_TARGET or ESP_PLATFORM
 - tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
+- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack depth (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 
 # TODOs
 - Try to fix SDL pipeline issue with apt-get:
