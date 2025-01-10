@@ -2,7 +2,6 @@
 
 #include "lvgl.h"
 #include "Log.h"
-#include "TactilityCore.h"
 #include "Thread.h"
 #include "lvgl/LvglSync.h"
 

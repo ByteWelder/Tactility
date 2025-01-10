@@ -33,6 +33,12 @@ Website: https://fonts.google.com/icons
 
 License: Multiple (SIL Open Font License, Apache License, Ubuntu Font License): https://developers.google.com/fonts/faq 
 
+### Timezones CSV
+
+Website: https://github.com/nayarsystems/posix_tz_db
+
+License: [MIT](https://github.com/nayarsystems/posix_tz_db/blob/master/LICENSE)
+
 ### Other Components
 
 See `/components` for the respective projects and their licenses.

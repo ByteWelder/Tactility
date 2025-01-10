@@ -4,6 +4,9 @@
 #include "hal/Hal_i.h"
 #include "service/ServiceManifest.h"
 #include "service/ServiceRegistry.h"
+#include "kernel/SystemEvents.h"
+#include "network/NtpPrivate.h"
+#include "time/TimePrivate.h"
 
 #ifdef ESP_PLATFORM
 #include "EspInit.h"
@@ -39,7 +42,9 @@ void initHeadless(const hal::Configuration& config) {
     initEsp();
 #endif
     hardwareConfig = &config;
+    time::init();
     hal::init(config);
+    network::ntp::init();
     register_and_start_system_services();
 }
 

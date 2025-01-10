@@ -1,4 +1,6 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
+
+#include <Timer.h>
 #include "Statusbar.h"
 
 #include "Mutex.h"
@@ -8,10 +10,14 @@
 
 #include "LvglSync.h"
 #include "lvgl.h"
+#include "kernel/SystemEvents.h"
+#include "time/Time.h"
 
 namespace tt::lvgl {
 
 #define TAG "statusbar"
+
+static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context);
 
 struct StatusbarIcon {
     std::string image;
@@ -23,12 +29,18 @@ struct StatusbarData {
     Mutex mutex = Mutex(Mutex::TypeRecursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
+    Timer* time_update_timer = new Timer(Timer::TypeOnce, onUpdateTime, nullptr);
+    uint8_t time_hours = 0;
+    uint8_t time_minutes = 0;
+    bool time_set = false;
+    kernel::SystemEventSubscription systemEventSubscription = 0;
 };
 
 static StatusbarData statusbar_data;
 
 typedef struct {
     lv_obj_t obj;
+    lv_obj_t* time;
     lv_obj_t* icons[STATUSBAR_ICON_LIMIT];
     lv_obj_t* battery_icon;
     PubSubSubscription* pubsub_subscription;
@@ -46,7 +58,39 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_event(const lv_obj_class_t* class_p, lv_event_t* event);
 
+static void update_time(Statusbar* statusbar);
 static void update_main(Statusbar* statusbar);
+
+static TickType_t getNextUpdateTime() {
+    time_t now = ::time(nullptr);
+    struct tm* tm_struct = localtime(&now);
+    uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
+    TT_LOG_I(TAG, "Update in %lu s", seconds_to_wait);
+    return pdMS_TO_TICKS(seconds_to_wait * 1000U);
+}
+
+static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context) {
+    time_t now = ::time(nullptr);
+    struct tm* tm_struct = localtime(&now);
+
+    if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
+        if (tm_struct->tm_year >= (2025 - 1900)) {
+            statusbar_data.time_hours = tm_struct->tm_hour;
+            statusbar_data.time_minutes = tm_struct->tm_min;
+            statusbar_data.time_set = true;
+
+            // Reschedule
+            statusbar_data.time_update_timer->start(getNextUpdateTime());
+
+            // Notify widget
+            tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+        } else {
+            statusbar_data.time_update_timer->start(pdMS_TO_TICKS(60000U));
+        }
+
+        statusbar_data.mutex.unlock();
+    }
+}
 
 static const lv_obj_class_t statusbar_class = {
     .base_class = &lv_obj_class,
@@ -73,6 +117,15 @@ static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     }
 }
 
+static void onNetworkConnected(TT_UNUSED kernel::SystemEvent event) {
+    if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
+        statusbar_data.time_update_timer->stop();
+        statusbar_data.time_update_timer->start(5);
+
+        statusbar_data.mutex.unlock();
+    }
+}
+
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
     LV_UNUSED(class_p);
     LV_TRACE_OBJ_CREATE("begin");
@@ -80,6 +133,14 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     LV_TRACE_OBJ_CREATE("finished");
     auto* statusbar = (Statusbar*)obj;
     statusbar->pubsub_subscription = tt_pubsub_subscribe(statusbar_data.pubsub, &statusbar_pubsub_event, statusbar);
+
+    if (!statusbar_data.time_update_timer->isRunning()) {
+        statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
+        statusbar_data.systemEventSubscription = kernel::systemEventAddListener(
+            kernel::SystemEvent::Time,
+            onNetworkConnected
+        );
+    }
 }
 
 static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -108,15 +169,21 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_no_padding(obj);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
-    lv_obj_t* left_spacer = lv_obj_create(obj);
+    statusbar->time = lv_label_create(obj);
+    lv_obj_set_style_text_color(statusbar->time, lv_color_white(), 0);
+    lv_obj_set_style_margin_left(statusbar->time, 4, 0);
+    update_time(statusbar);
+
+    auto* left_spacer = lv_obj_create(obj);
     lv_obj_set_size(left_spacer, 1, 1);
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
     statusbar_lock(TtWaitForever);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
-        lv_obj_t* image = lv_image_create(obj);
+        auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
         obj_set_style_no_padding(image);
         obj_set_style_bg_blacken(image);
@@ -129,7 +196,19 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     return obj;
 }
 
+static void update_time(Statusbar* statusbar) {
+    if (statusbar_data.time_set) {
+        bool format24 = time::isTimeFormat24Hour();
+        int hours = format24 ? statusbar_data.time_hours : statusbar_data.time_hours % 12;
+        lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data.time_minutes);
+    } else {
+        lv_label_set_text(statusbar->time, "");
+    }
+}
+
 static void update_main(Statusbar* statusbar) {
+    update_time(statusbar);
+
     if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
             update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
@@ -150,8 +229,6 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
 
     if (code == LV_EVENT_VALUE_CHANGED) {
         lv_obj_invalidate(obj);
-    } else if (code == LV_EVENT_DRAW_MAIN) {
-        // NO-OP
     }
 }
 

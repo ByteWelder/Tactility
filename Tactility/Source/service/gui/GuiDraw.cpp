@@ -9,27 +9,14 @@ namespace tt::service::gui {
 
 #define TAG "gui"
 
-static lv_obj_t* create_app_views(Gui* gui, lv_obj_t* parent, app::AppContext& app) {
-    lvgl::obj_set_style_bg_blacken(parent);
-
-    lv_obj_t* vertical_container = lv_obj_create(parent);
-    lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
-    lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_no_padding(vertical_container);
-    lvgl::obj_set_style_bg_blacken(vertical_container);
-
-    // TODO: Move statusbar into separate ViewPort
-    app::Flags flags = app.getFlags();
-    if (flags.showStatusbar) {
-        lvgl::statusbar_create(vertical_container);
-    }
-
-    lv_obj_t* child_container = lv_obj_create(vertical_container);
+static lv_obj_t* createAppViews(Gui* gui, lv_obj_t* parent, app::AppContext& app) {
+    lv_obj_send_event(gui->statusbarWidget, LV_EVENT_DRAW_MAIN, nullptr);
+    lv_obj_t* child_container = lv_obj_create(parent);
     lv_obj_set_width(child_container, LV_PCT(100));
     lv_obj_set_flex_grow(child_container, 1);
 
     if (keyboardIsEnabled()) {
-        gui->keyboard = lv_keyboard_create(vertical_container);
+        gui->keyboard = lv_keyboard_create(parent);
         lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
     } else {
         gui->keyboard = nullptr;
@@ -45,12 +32,20 @@ void redraw(Gui* gui) {
     lock();
 
     if (lvgl::lock(1000)) {
-        lv_obj_clean(gui->lvgl_parent);
+        lv_obj_clean(gui->appRootWidget);
 
-        ViewPort* view_port = gui->app_view_port;
+        ViewPort* view_port = gui->appViewPort;
         if (view_port != nullptr) {
             app::AppContext& app = view_port->app;
-            lv_obj_t* container = create_app_views(gui, gui->lvgl_parent, app);
+
+            app::Flags flags = app.getFlags();
+            if (flags.showStatusbar) {
+                lv_obj_remove_flag(gui->statusbarWidget, LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_add_flag(gui->statusbarWidget, LV_OBJ_FLAG_HIDDEN);
+            }
+
+            lv_obj_t* container = createAppViews(gui, gui->appRootWidget, app);
             view_port_show(view_port, container);
         } else {
             TT_LOG_W(TAG, "nothing to draw");

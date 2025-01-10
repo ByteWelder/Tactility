@@ -1,9 +1,10 @@
 #include "Tactility.h"
 #include "service/gui/Gui_i.h"
 #include "service/loader/Loader_i.h"
-#include "lvgl/LvglKeypad.h"
 #include "lvgl/LvglSync.h"
 #include "RtosCompat.h"
+#include "lvgl/Style.h"
+#include "lvgl/Statusbar.h"
 
 namespace tt::service::gui {
 
@@ -11,11 +12,11 @@ namespace tt::service::gui {
 
 // Forward declarations
 void redraw(Gui*);
-static int32_t gui_main(void*);
+static int32_t guiMain(TT_UNUSED void* p);
 
 Gui* gui = nullptr;
 
-void loader_callback(const void* message, TT_UNUSED void* context) {
+void onLoaderMessage(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const loader::LoaderEvent*>(message);
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
         app::AppContext& app = event->app_showing.app;
@@ -32,13 +33,34 @@ Gui* gui_alloc() {
     instance->thread = new Thread(
         "gui",
         4096, // Last known minimum was 2800 for launching desktop
-        &gui_main,
+        &guiMain,
         nullptr
     );
-    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &loader_callback, instance);
+    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &onLoaderMessage, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
-    instance->keyboard_group = lv_group_create();
-    instance->lvgl_parent = lv_scr_act();
+    instance->keyboardGroup = lv_group_create();
+    auto* screen_root = lv_scr_act();
+
+    lvgl::obj_set_style_bg_blacken(screen_root);
+
+    lv_obj_t* vertical_container = lv_obj_create(screen_root);
+    lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
+    lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
+    lvgl::obj_set_style_no_padding(vertical_container);
+    lvgl::obj_set_style_bg_blacken(vertical_container);
+
+    instance->statusbarWidget = lvgl::statusbar_create(vertical_container);
+
+    auto* app_container = lv_obj_create(vertical_container);
+    lvgl::obj_set_style_no_padding(app_container);
+    lv_obj_set_style_border_width(app_container, 0, 0);
+    lvgl::obj_set_style_bg_blacken(app_container);
+    lv_obj_set_width(app_container, LV_PCT(100));
+    lv_obj_set_flex_grow(app_container, 1);
+    lv_obj_set_flex_flow(app_container, LV_FLEX_FLOW_COLUMN);
+
+    instance->appRootWidget = app_container;
+
     lvgl::unlock();
 
     return instance;
@@ -48,9 +70,9 @@ void gui_free(Gui* instance) {
     tt_assert(instance != nullptr);
     delete instance->thread;
 
-    lv_group_delete(instance->keyboard_group);
+    lv_group_delete(instance->keyboardGroup);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
-    lv_group_del(instance->keyboard_group);
+    lv_group_del(instance->keyboardGroup);
     lvgl::unlock();
 
     delete instance;
@@ -74,15 +96,15 @@ void requestDraw() {
 
 void showApp(app::AppContext& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
     lock();
-    tt_check(gui->app_view_port == nullptr);
-    gui->app_view_port = view_port_alloc(app, on_show, on_hide);
+    tt_check(gui->appViewPort == nullptr);
+    gui->appViewPort = view_port_alloc(app, on_show, on_hide);
     unlock();
     requestDraw();
 }
 
 void hideApp() {
     lock();
-    ViewPort* view_port = gui->app_view_port;
+    ViewPort* view_port = gui->appViewPort;
     tt_check(view_port != nullptr);
 
     // We must lock the LVGL port, because the viewport hide callbacks
@@ -92,11 +114,11 @@ void hideApp() {
     lvgl::unlock();
 
     view_port_free(view_port);
-    gui->app_view_port = nullptr;
+    gui->appViewPort = nullptr;
     unlock();
 }
 
-static int32_t gui_main(TT_UNUSED void* p) {
+static int32_t guiMain(TT_UNUSED void* p) {
     tt_check(gui);
     Gui* local_gui = gui;
 

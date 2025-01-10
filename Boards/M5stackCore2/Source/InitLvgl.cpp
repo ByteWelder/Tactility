@@ -8,7 +8,7 @@
 // LVGL
 // The minimum task stack seems to be about 3500, but that crashes the wifi app in some scenarios
 // At 4000, it crashes when the fps renderer is available
-#define CORE2_LVGL_TASK_STACK_DEPTH 8192
+#define CORE2_LVGL_TASK_STACK_DEPTH 9216
 
 bool initLvgl() {
     const lvgl_port_cfg_t lvgl_cfg = {

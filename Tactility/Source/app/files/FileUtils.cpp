@@ -2,6 +2,7 @@
 #include "TactilityCore.h"
 #include <cstring>
 #include <bits/stdc++.h>
+#include <StringUtils.h>
 
 namespace tt::app::files {
 
@@ -69,25 +70,13 @@ bool isSupportedExecutableFile(const std::string& filename) {
 #endif
 }
 
-template <typename T>
-std::basic_string<T> lowercase(const std::basic_string<T>& input) {
-    std::basic_string<T> output = input;
-    std::transform(
-        output.begin(),
-        output.end(),
-        output.begin(),
-        [](const T character) { return static_cast<T>(std::tolower(character)); }
-    );
-    return std::move(output);
-}
-
 bool isSupportedImageFile(const std::string& filename) {
     // Currently only the PNG library is built into Tactility
-    return lowercase(filename).ends_with(".png");
+    return string::lowercase(filename).ends_with(".png");
 }
 
 bool isSupportedTextFile(const std::string& filename) {
-    std::string filename_lower = lowercase(filename);
+    std::string filename_lower = string::lowercase(filename);
     return filename_lower.ends_with(".txt") ||
            filename_lower.ends_with(".ini") ||
            filename_lower.ends_with(".json") ||

@@ -24,6 +24,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     )
 else()
 
+
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
     target_link_libraries(AppSim
@@ -33,9 +34,11 @@ else()
         PRIVATE Simulator
     )
 
-    find_package(SDL2 REQUIRED CONFIG)
-    target_link_libraries(AppSim PRIVATE ${SDL2_LIBRARIES})
-    include_directories(${SDL2_INCLUDE_DIRS})
+    if (NOT DEFINED ENV{SKIP_SDL})
+        find_package(SDL2 REQUIRED CONFIG)
+        include_directories(${SDL2_INCLUDE_DIRS})
+        target_link_libraries(AppSim PRIVATE ${SDL2_LIBRARIES})
+    endif()
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)

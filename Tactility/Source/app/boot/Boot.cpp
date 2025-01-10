@@ -10,6 +10,7 @@
 #include "lvgl.h"
 #include "Tactility.h"
 #include "hal/usb/Usb.h"
+#include "kernel/SystemEvents.h"
 
 #ifdef ESP_PLATFORM
 #include "kernel/PanicHandler.h"
@@ -34,6 +35,8 @@ struct Data {
 
 static int32_t bootThreadCallback(TT_UNUSED void* context) {
     TickType_t start_time = kernel::getTicks();
+
+    kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
 
     auto* lvgl_display = lv_display_get_default();
     tt_assert(lvgl_display != nullptr);

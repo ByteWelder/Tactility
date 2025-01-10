@@ -33,3 +33,5 @@
  * @param[in] lower lower bounds for x
  */
 #define TT_CLAMP(x, upper, lower) (TT_MIN(upper, TT_MAX(x, lower)))
+
+#define TT_STRINGIFY(x) #x

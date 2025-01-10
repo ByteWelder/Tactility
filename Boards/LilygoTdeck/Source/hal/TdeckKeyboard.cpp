@@ -30,11 +30,11 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
 
     if (keyboard_i2c_read(&read_buffer)) {
         if (read_buffer == 0 && read_buffer != last_buffer) {
-            TT_LOG_I(TAG, "Released %d", last_buffer);
+            TT_LOG_D(TAG, "Released %d", last_buffer);
             data->key = last_buffer;
             data->state = LV_INDEV_STATE_RELEASED;
         } else if (read_buffer != 0) {
-            TT_LOG_I(TAG, "Pressed %d", read_buffer);
+            TT_LOG_D(TAG, "Pressed %d", read_buffer);
             data->key = read_buffer;
             data->state = LV_INDEV_STATE_PRESSED;
         }

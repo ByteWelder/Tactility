@@ -64,7 +64,6 @@ project(Tactility)
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
-    add_subdirectory(TactilityC)
     add_subdirectory(TactilityCore)
     add_subdirectory(TactilityHeadless)
     add_subdirectory(Boards/Simulator)
@@ -96,65 +95,14 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tests)
 
     # LVGL
-
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
     if (NOT DEFINED ENV{SKIP_SDL})
-        target_include_directories(lvgl PUBLIC ${SDL2_IMAGE_INCLUDE_DIRS})
+        find_package(SDL2 REQUIRED CONFIG)
+        target_include_directories(lvgl PUBLIC ${SDL2_INCLUDE_DIRS})
+        target_link_libraries(lvgl
+            PRIVATE ${SDL2_LIBRARIES}
+        )
     endif()
     target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=\"${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h\"")
-
-    # SDL
-    # TODO: This is a temporary skipping option for running unit tests
-    # TODO: Remove when github action for SDL is working again
-    if (NOT DEFINED ENV{SKIP_SDL})
-        find_package(SDL2 REQUIRED CONFIG)
-
-        option(LV_USE_DRAW_SDL "Use SDL draw unit" OFF)
-        option(LV_USE_LIBPNG "Use libpng to decode PNG" OFF)
-        option(LV_USE_LIBJPEG_TURBO "Use libjpeg turbo to decode JPEG" OFF)
-        option(LV_USE_FFMPEG "Use libffmpeg to display video using lv_ffmpeg" OFF)
-        option(LV_USE_FREETYPE "Use freetype lib" OFF)
-
-        add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
-        add_compile_definitions($<$<BOOL:${LV_USE_LIBPNG}>:LV_USE_LIBPNG=1>)
-        add_compile_definitions($<$<BOOL:${LV_USE_LIBJPEG_TURBO}>:LV_USE_LIBJPEG_TURBO=1>)
-        add_compile_definitions($<$<BOOL:${LV_USE_FFMPEG}>:LV_USE_FFMPEG=1>)
-
-        if (LV_USE_DRAW_SDL)
-            set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-            # Need to install libsdl2-image-dev
-            # `sudo apt install libsdl2-image-dev`
-            # `brew install sdl2_image`
-            find_package(SDL2_image REQUIRED)
-            include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
-            target_link_libraries(AppSim ${SDL2_IMAGE_LIBRARIES})
-            target_link_libraries(Simulator ${SDL2_IMAGE_LIBRARIES})
-        endif(LV_USE_DRAW_SDL)
-
-        if (LV_USE_LIBPNG)
-            find_package(PNG REQUIRED)
-            target_include_directories(lvgl PUBLIC ${PNG_INCLUDE_DIR})
-            target_link_libraries(AppSim ${PNG_LIBRARY})
-        endif(LV_USE_LIBPNG)
-
-        if (LV_USE_LIBJPEG_TURBO)
-            # Need to install libjpeg-turbo8-dev
-            # `sudo apt install libjpeg-turbo8-dev`
-            # `brew install libjpeg-turbo`
-            find_package(JPEG REQUIRED)
-            target_include_directories(lvgl PUBLIC ${JPEG_INCLUDE_DIRS})
-            target_link_libraries(AppSim ${JPEG_LIBRARIES})
-        endif(LV_USE_LIBJPEG_TURBO)
-
-        if (LV_USE_FFMPEG)
-            target_link_libraries(main avformat avcodec avutil swscale)
-        endif(LV_USE_FFMPEG)
-
-        if (LV_USE_FREETYPE)
-            find_package(Freetype REQUIRED)
-            target_link_libraries(AppSim ${FREETYPE_LIBRARIES})
-            target_include_directories(lvgl PUBLIC ${FREETYPE_INCLUDE_DIRS})
-        endif(LV_USE_FREETYPE)
-    endif()
 endif()
