@@ -7,7 +7,6 @@
 #include "Tactility.h"
 #include "time/Time.h"
 #include "lvgl/LvglSync.h"
-#include <iomanip>
 
 #define TAG "text_viewer"
 
@@ -19,22 +18,6 @@ struct Data {
     Mutex mutex = Mutex(Mutex::TypeRecursive);
     lv_obj_t* regionLabelWidget = nullptr;
 };
-
-std::string getPortNamesForDropdown() {
-    std::vector<std::string> config_names;
-    size_t port_index = 0;
-    for (const auto& i2c_config: tt::getConfiguration()->hardware->i2c) {
-        if (!i2c_config.name.empty()) {
-            config_names.push_back(i2c_config.name);
-        } else {
-            std::stringstream stream;
-            stream << "Port " << std::to_string(port_index);
-            config_names.push_back(stream.str());
-        }
-        port_index++;
-    }
-    return tt::string::join(config_names, "\n");
-}
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<Data> _Nullable optData() {
@@ -50,6 +33,12 @@ static void onConfigureTimeZonePressed(TT_UNUSED lv_event_t* event) {
     timezone::start();
 }
 
+static void onTimeFormatChanged(lv_event_t* event) {
+    auto* widget = lv_event_get_target_obj(event);
+    bool show_24 = lv_obj_has_state(widget, LV_STATE_CHECKED);
+    time::setTimeFormat24Hour(show_24);
+}
+
 static void onShow(AppContext& app, lv_obj_t* parent) {
     auto data = std::static_pointer_cast<Data>(app.getData());
 
@@ -62,30 +51,50 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_width(main_wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(main_wrapper, 1);
 
-    auto* wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_height(wrapper, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(wrapper, 0, 0);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+    auto* region_wrapper = lv_obj_create(main_wrapper);
+    lv_obj_set_width(region_wrapper, LV_PCT(100));
+    lv_obj_set_height(region_wrapper, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(region_wrapper, 0, 0);
+    lv_obj_set_style_border_width(region_wrapper, 0, 0);
 
-    auto* region_prefix_label = lv_label_create(wrapper);
+    auto* region_prefix_label = lv_label_create(region_wrapper);
     lv_label_set_text(region_prefix_label, "Region: ");
-    lv_obj_align(region_prefix_label, LV_ALIGN_TOP_LEFT, 0, 8); // Shift to align with selection box
+    lv_obj_align(region_prefix_label, LV_ALIGN_LEFT_MID, 0, 0);
 
-    auto* region_label = lv_label_create(wrapper);
+    auto* region_label = lv_label_create(region_wrapper);
     std::string timeZoneName = time::getTimeZoneName();
     if (timeZoneName.empty()) {
         timeZoneName = "not set";
     }
     data->regionLabelWidget = region_label;
     lv_label_set_text(region_label, timeZoneName.c_str());
-    lv_obj_align_to(region_label, region_prefix_label, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+    // TODO: Find out why Y offset is needed
+    lv_obj_align_to(region_label, region_prefix_label, LV_ALIGN_OUT_RIGHT_MID, 0, 8);
 
-    auto* region_button = lv_button_create(wrapper);
+    auto* region_button = lv_button_create(region_wrapper);
     lv_obj_align(region_button, LV_ALIGN_TOP_RIGHT, 0, 0);
     auto* region_button_image = lv_image_create(region_button);
     lv_obj_add_event_cb(region_button, onConfigureTimeZonePressed, LV_EVENT_SHORT_CLICKED, nullptr);
     lv_image_set_src(region_button_image, LV_SYMBOL_SETTINGS);
+
+    auto* time_format_wrapper= lv_obj_create(main_wrapper);
+    lv_obj_set_width(time_format_wrapper, LV_PCT(100));
+    lv_obj_set_height(time_format_wrapper, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(time_format_wrapper, 0, 0);
+    lv_obj_set_style_border_width(time_format_wrapper, 0, 0);
+
+    auto* time_24h_label = lv_label_create(time_format_wrapper);
+    lv_label_set_text(time_24h_label, "24-hour clock");
+    lv_obj_align(time_24h_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+    auto* time_24h_switch = lv_switch_create(time_format_wrapper);
+    lv_obj_align(time_24h_switch, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_add_event_cb(time_24h_switch, onTimeFormatChanged, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (time::isTimeFormat24Hour()) {
+        lv_obj_add_state(time_24h_switch, LV_STATE_CHECKED);
+    } else {
+        lv_obj_remove_state(time_24h_switch, LV_STATE_CHECKED);
+    }
 }
 
 static void onStart(AppContext& app) {

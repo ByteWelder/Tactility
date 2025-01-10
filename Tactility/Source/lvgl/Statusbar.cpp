@@ -11,6 +11,7 @@
 #include "LvglSync.h"
 #include "lvgl.h"
 #include "kernel/SystemEvents.h"
+#include "time/Time.h"
 
 namespace tt::lvgl {
 
@@ -61,7 +62,7 @@ static void update_time(Statusbar* statusbar);
 static void update_main(Statusbar* statusbar);
 
 static TickType_t getNextUpdateTime() {
-    time_t now = time(nullptr);
+    time_t now = ::time(nullptr);
     struct tm* tm_struct = localtime(&now);
     uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
     TT_LOG_I(TAG, "Update in %lu s", seconds_to_wait);
@@ -69,7 +70,7 @@ static TickType_t getNextUpdateTime() {
 }
 
 static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context) {
-    time_t now = time(nullptr);
+    time_t now = ::time(nullptr);
     struct tm* tm_struct = localtime(&now);
 
     if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
@@ -90,7 +91,6 @@ static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context) {
         statusbar_data.mutex.unlock();
     }
 }
-
 
 static const lv_obj_class_t statusbar_class = {
     .base_class = &lv_obj_class,
@@ -198,7 +198,9 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
 static void update_time(Statusbar* statusbar) {
     if (statusbar_data.time_set) {
-        lv_label_set_text_fmt(statusbar->time, "%d:%02d", statusbar_data.time_hours, statusbar_data.time_minutes);
+        bool format24 = time::isTimeFormat24Hour();
+        int hours = format24 ? statusbar_data.time_hours : statusbar_data.time_hours % 12;
+        lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data.time_minutes);
     } else {
         lv_label_set_text(statusbar->time, "");
     }
