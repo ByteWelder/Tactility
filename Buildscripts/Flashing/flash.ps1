@@ -9,7 +9,7 @@ if ((Get-Command "esptool.py" -ErrorAction SilentlyContinue) -eq $null)
 
 
 # Create flash command based on partitions
-$json = Get-Content .\build\flasher_args.json -Raw | ConvertFrom-Json
+$json = Get-Content .\Binaries\flasher_args.json -Raw | ConvertFrom-Json
 $jsonClean = $json.flash_files -replace '[\{\}\@\;]', ''
 $jsonClean = $jsonClean -replace '[\=]', ' '
 
