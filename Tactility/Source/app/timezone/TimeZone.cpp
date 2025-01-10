@@ -73,13 +73,11 @@ void setResultCode(std::shared_ptr<Bundle>& bundle, const std::string& code) {
 // endregion
 
 static void onUpdateTimer(std::shared_ptr<void> context) {
-    TT_LOG_I(TAG, "onUpdateTimer");
     auto data = std::static_pointer_cast<Data>(context);
     updateList(data);
 }
 
 static void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
-    TT_LOG_I(TAG, "onTextareaValueChanged");
     auto* app = service::loader::getCurrentApp();
     auto app_data = app->getData();
     auto data = std::static_pointer_cast<Data>(app_data);
@@ -116,7 +114,7 @@ static void createListItem(lv_obj_t* list, const std::string& title, size_t inde
     lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_SHORT_CLICKED, (void*)index);
 }
 
-static void readTimeZones(const std::shared_ptr<Data>& data) {
+static void readTimeZones(const std::shared_ptr<Data>& data, std::string filter) {
     auto path = std::string(MOUNT_POINT_SYSTEM) + "/timezones.csv";
     auto* file = fopen(path.c_str(), "rb");
     if (file == nullptr) {
@@ -129,16 +127,26 @@ static void readTimeZones(const std::shared_ptr<Data>& data) {
     uint32_t count = 0;
     std::vector<TimeZoneEntry> entries;
     while (fgets(line, 96, file)) {
-        count++;
         if (parseEntry(line, name, code)) {
-            entries.push_back({
-                .name = name,
-                .code = code
-            });
+            if (tt::string::lowercase(name).find(filter) != std::string::npos) {
+                count++;
+                entries.push_back({
+                    .name = name,
+                    .code = code
+                });
+
+                // Safety guard
+                if (count > 50) {
+                    // TODO: Show warning that we're not displaying a complete list
+                    break;
+                }
+            }
         } else {
             TT_LOG_E(TAG, "Parse error at line %lu", count);
         }
     }
+
+    fclose(file);
 
     if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
         data->entries = std::move(entries);
@@ -148,6 +156,33 @@ static void readTimeZones(const std::shared_ptr<Data>& data) {
     }
 
     TT_LOG_I(TAG, "Processed %lu entries", count);
+}
+
+static void updateList(std::shared_ptr<Data>& data) {
+    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+        std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(data->filterTextareaWidget)));
+        readTimeZones(data, filter);
+        lvgl::unlock();
+    } else {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+        return;
+    }
+
+    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+        if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
+            lv_obj_clean(data->listWidget);
+
+            uint32_t index = 0;
+            for (auto& entry : data->entries) {
+                createListItem(data->listWidget, entry.name, index);
+                index++;
+            }
+
+            data->mutex.unlock();
+        }
+
+        lvgl::unlock();
+    }
 }
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
@@ -185,47 +220,12 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(list, 1);
     lv_obj_set_style_border_width(list, 0, 0);
     data->listWidget = list;
-
-}
-
-static void updateList(std::shared_ptr<Data>& data) {
-    auto scoped_mutex = data->mutex.scoped();
-    if (!scoped_mutex->lock(100 / portTICK_PERIOD_MS)) {
-        return;
-    }
-
-    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
-        lv_obj_clean(data->listWidget);
-        uint32_t index = 0;
-        uint32_t items = 0;
-        std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(data->filterTextareaWidget)));
-        for (auto& entry : data->entries) {
-            if (tt::string::lowercase(entry.name).find(filter) != std::string::npos) {
-                createListItem(data->listWidget, entry.name, index);
-                items++;
-            }
-            index++;
-
-            // Safety guard
-            if (items > 50) {
-                // TODO: Show warning that we're not displaying a complete list
-                break;
-            }
-        }
-        lvgl::unlock();
-    }
-}
-
-static void onReadTimeZone(std::shared_ptr<void> input) {
-    auto data = std::static_pointer_cast<Data>(input);
-    readTimeZones(data);
 }
 
 static void onStart(AppContext& app) {
     auto data = std::make_shared<Data>();
     data->updateTimer = std::make_unique<Timer>(Timer::TypeOnce, onUpdateTimer, data);
     app.setData(data);
-    getMainDispatcher().dispatch(onReadTimeZone, data);
 }
 
 extern const AppManifest manifest = {
