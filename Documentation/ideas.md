@@ -15,6 +15,11 @@
 - tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 
 # TODOs
+- Try to fix SDL pipeline issue with apt-get:
+  ```yaml
+  - name: Install SDL
+    run: sudo apt-get install -y libsdl2-dev cmake
+  ```
 - Make "blocking" argument the last one, and put it default to false (or remove it entirely?): void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html

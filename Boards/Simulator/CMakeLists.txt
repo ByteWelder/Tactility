@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.20)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
 
+    find_package(SDL2 REQUIRED CONFIG)
+
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     file(GLOB_RECURSE HEADERS "Source/*.h*")
 
@@ -11,11 +13,13 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         PRIVATE ${SOURCES}
         PUBLIC ${HEADERS}
     )
+
     target_link_libraries(Simulator
         PRIVATE Tactility
         PRIVATE TactilityCore
         PRIVATE TactilityHeadless
         PRIVATE lvgl
+        PRIVATE ${SDL2_LIBRARIES}
     )
 
     add_definitions(-D_Nullable=)
