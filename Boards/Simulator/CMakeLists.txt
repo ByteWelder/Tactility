@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.20)
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
 
-    find_package(SDL2 REQUIRED CONFIG)
-
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     file(GLOB_RECURSE HEADERS "Source/*.h*")
 
@@ -21,6 +19,11 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         PRIVATE lvgl
         PRIVATE ${SDL2_LIBRARIES}
     )
+
+    if (NOT DEFINED ENV{SKIP_SDL})
+        find_package(SDL2 REQUIRED CONFIG)
+        target_link_libraries(Simulator PRIVATE ${SDL2_LIBRARIES})
+    endif()
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
