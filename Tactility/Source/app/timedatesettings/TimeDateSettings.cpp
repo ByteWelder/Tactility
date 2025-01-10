@@ -1,48 +1,108 @@
-#include <TactilityCore.h>
-#include "TextViewer.h"
+#include <StringUtils.h>
 #include "lvgl.h"
-#include "lvgl/LabelUtils.h"
-#include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include "service/loader/Loader.h"
+#include "app/timezone/TimeZone.h"
+#include "Assets.h"
+#include "Tactility.h"
+#include <iomanip>
 
 #define TAG "text_viewer"
 
-namespace tt::app::textviewer {
+namespace tt::app::timedatesettings {
+
+extern const AppManifest manifest;
+
+struct Data {
+    Mutex mutex = Mutex(Mutex::TypeRecursive);
+};
+
+std::string getPortNamesForDropdown() {
+    std::vector<std::string> config_names;
+    size_t port_index = 0;
+    for (const auto& i2c_config: tt::getConfiguration()->hardware->i2c) {
+        if (!i2c_config.name.empty()) {
+            config_names.push_back(i2c_config.name);
+        } else {
+            std::stringstream stream;
+            stream << "Port " << std::to_string(port_index);
+            config_names.push_back(stream.str());
+        }
+        port_index++;
+    }
+    return tt::string::join(config_names, "\n");
+}
+
+/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+std::shared_ptr<Data> _Nullable optData() {
+    app::AppContext* app = service::loader::getCurrentApp();
+    if (app->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<Data>(app->getData());
+    } else {
+        return nullptr;
+    }
+}
+
+static void onConfigureTimeZonePressed(TT_UNUSED lv_event_t* event) {
+    timezone::start();
+}
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
+    auto data = std::static_pointer_cast<Data>(app.getData());
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+
     lvgl::toolbar_create(parent, app);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
+    auto* main_wrapper = lv_obj_create(parent);
+    lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_width(main_wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(main_wrapper, 1);
+
+    auto* wrapper = lv_obj_create(main_wrapper);
     lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_no_padding(wrapper);
-    lvgl::obj_set_style_bg_invisible(wrapper);
+    lv_obj_set_height(wrapper, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(wrapper, 0, 0);
+    lv_obj_set_style_border_width(wrapper, 0, 0);
 
-    lv_obj_t* label = lv_label_create(wrapper);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "Parameters missing");
-    bool success = false;
-    std::string file_argument;
-    if (parameters->optString(TEXT_VIEWER_FILE_ARGUMENT, file_argument)) {
-        TT_LOG_I(TAG, "Opening %s", file_argument.c_str());
-        if (lvgl::label_set_text_file(label, file_argument.c_str())) {
-            success = true;
-        }
-    }
+    auto* region_label = lv_label_create(wrapper);
+    lv_obj_set_width(region_label, LV_PCT(48));
+    lv_label_set_text_fmt(region_label, "Region: %s", "(not set)");
+    lv_obj_align(region_label, LV_ALIGN_TOP_LEFT, 0, 8); // Shift to align with selection box
 
-    if (!success) {
-        lv_label_set_text_fmt(label, "Failed to load %s", file_argument.c_str());
+    auto* region_button = lv_button_create(wrapper);
+    lv_obj_align(region_button, LV_ALIGN_TOP_RIGHT, 0, 0);
+    auto* region_button_image = lv_image_create(region_button);
+    lv_obj_add_event_cb(region_button, onConfigureTimeZonePressed, LV_EVENT_SHORT_CLICKED, nullptr);
+    lv_image_set_src(region_button_image, LV_SYMBOL_SETTINGS);
+}
+
+static void onStart(AppContext& app) {
+    auto data = std::make_shared<Data>();
+    app.setData(data);
+}
+
+static void onResult(AppContext& app, Result result, const Bundle& bundle) {
+    if (result == ResultOk) {
+        auto data = std::static_pointer_cast<Data>(app.getData());
+        auto name = timezone::getResultName(bundle);
+        auto code = timezone::getResultCode(bundle);
+        TT_LOG_I(TAG, "Result name=%s code=%s", name.c_str(), code.c_str());
     }
 }
 
 extern const AppManifest manifest = {
-    .id = "TextViewer",
-    .name = "Text Viewer",
-    .type = TypeHidden,
-    .onShow = onShow
+    .id = "TimeDateSettings",
+    .name = "Time & Date",
+    .icon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
+    .type = TypeSettings,
+    .onStart = onStart,
+    .onShow = onShow,
+    .onResult = onResult
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace

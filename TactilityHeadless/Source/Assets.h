@@ -14,3 +14,4 @@
 #define TT_ASSETS_APP_ICON_I2C_SETTINGS TT_ASSET("app_icon_i2c.png")
 #define TT_ASSETS_APP_ICON_SETTINGS TT_ASSET("app_icon_settings.png")
 #define TT_ASSETS_APP_ICON_SYSTEM_INFO TT_ASSET("app_icon_system_info.png")
+#define TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS TT_ASSET("app_icon_time_date_settings.png")
