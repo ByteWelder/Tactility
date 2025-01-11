@@ -13,6 +13,8 @@ $jsonClean = $json.flash_files -replace '[\{\}\@\;]', ''
 $jsonClean = $jsonClean -replace '[\=]', ' '
 
 cd Binaries
+$command = "esptool --port $port erase_flash"
+Invoke-Expression $command
 $command = "esptool --port $port -b 460800 write_flash $jsonClean"
 Invoke-Expression $command
 cd ..
