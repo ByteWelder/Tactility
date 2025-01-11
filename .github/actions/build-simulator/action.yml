@@ -15,7 +15,8 @@ runs:
       uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: Install Wayland
+    - name: Install Linux Dependencies for SDL
+      if: matrix.os == 'ubuntu-latest'
       shell: bash
       # See Libraries/SDL/docs/README-linux.md
       run: >
