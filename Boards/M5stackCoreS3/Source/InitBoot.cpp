@@ -58,12 +58,12 @@ bool initGpioExpander() {
     // SD card
     aw9523_P0 |= (1 << 4);
 
-    if (tt::hal::i2c::masterWrite(I2C_NUM_0, AW9523_ADDRESS, 0x02, &aw9523_P0, 1, 1000) != ESP_OK) {
+    if (!tt::hal::i2c::masterWrite(I2C_NUM_0, AW9523_ADDRESS, 0x02, &aw9523_P0, 1, 1000)) {
         TT_LOG_E(TAG, "Failed to enable LCD");
         return false;
     }
 
-    if (tt::hal::i2c::masterWrite(I2C_NUM_0, AW9523_ADDRESS, 0x03, &aw9523_P1, 1, 1000) != ESP_OK) {
+    if (!tt::hal::i2c::masterWrite(I2C_NUM_0, AW9523_ADDRESS, 0x03, &aw9523_P1, 1, 1000)) {
         TT_LOG_E(TAG, "Failed to enable touch");
         return false;
     }
@@ -76,21 +76,21 @@ bool initPowerControl() {
 
     uint8_t sdcard_3v3 = 0b00011100;
     // TODO: Refactor to use Axp2101 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L62
-    if (tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x95, &sdcard_3v3, 1, 1000) != ESP_OK) {
+    if (!tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x95, &sdcard_3v3, 1, 1000)) {
         TT_LOG_E(TAG, "Failed to enable SD card");
         return false;
     }
 
     // TODO: Refactor to use Axp2102 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L42
     uint8_t axp_dld01_enable = 0xBF; // For backlight
-    if (tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x90, &axp_dld01_enable, 1, 1000) != ESP_OK) {
+    if (!tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x90, &axp_dld01_enable, 1, 1000)) {
         TT_LOG_E(TAG, "Failed to enable display backlight");
         return false;
     }
 
     // TODO: Refactor to use Axp2101 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L62
     uint8_t axp_dld01_voltage = 0b00011000; // For backlight
-    if (tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x99, &axp_dld01_voltage, 1, 1000) != ESP_OK) {
+    if (!tt::hal::i2c::masterWrite(I2C_NUM_0, AXP2101_ADDRESS, 0x99, &axp_dld01_voltage, 1, 1000)) {
         TT_LOG_E(TAG, "Failed to set display backlight voltage");
         return false;
     }
