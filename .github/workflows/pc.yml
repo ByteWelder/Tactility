@@ -9,17 +9,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - uses: libsdl-org/setup-sdl@main
-        id: sdl
-        with:
-          install-linux-dependencies: true
-          version: 2-latest
-          version-sdl-image: 2-latest
       - name: Configure Project
         uses: threeal/cmake-action@v2.0.0
       - name: Prepare Project
         run: cmake -S ./ -B build
       - name: Build Project
-        env:
-          USE_SDL_WITH_NAMESPACE: true
         run: cmake --build build

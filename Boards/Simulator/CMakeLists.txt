@@ -17,13 +17,10 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
         PRIVATE TactilityCore
         PRIVATE TactilityHeadless
         PRIVATE lvgl
-        PRIVATE ${SDL2_LIBRARIES}
+        PRIVATE SDL2-static
     )
 
-    if (NOT DEFINED ENV{SKIP_SDL})
-        find_package(SDL2 REQUIRED CONFIG)
-        target_link_libraries(Simulator PRIVATE ${SDL2_LIBRARIES})
-    endif()
+    target_link_libraries(Simulator PRIVATE ${SDL2_LIBRARIES})
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)

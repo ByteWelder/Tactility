@@ -70,6 +70,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
 endif()
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
+
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
@@ -87,22 +88,19 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/mbedtls)
 
     # Sim app
-    if (NOT DEFINED ENV{SKIP_SDL})
-        add_subdirectory(App)
-    endif()
+    add_subdirectory(App)
 
     # Tests
     add_subdirectory(Tests)
 
+    # SDL
+    add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
+    add_subdirectory(Libraries/SDL) # Added as idf component for ESP and as library for other targets
+
     # LVGL
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
-    if (NOT DEFINED ENV{SKIP_SDL})
-        find_package(SDL2 REQUIRED CONFIG)
-        target_include_directories(lvgl PUBLIC ${SDL2_INCLUDE_DIRS})
-        target_link_libraries(lvgl
-            PRIVATE ${SDL2_LIBRARIES}
-        )
-    endif()
     target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=\"${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h\"")
+    target_link_libraries(lvgl PRIVATE SDL2-static)
+
 endif()

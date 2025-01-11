@@ -163,7 +163,7 @@
 #define LV_USE_DRAW_DAVE2D 0
 
 /* Draw using cached SDL textures*/
-#define LV_USE_DRAW_SDL 0
+#define LV_USE_DRAW_SDL 1
 
 /* Use VG-Lite GPU. */
 #define LV_USE_DRAW_VG_LITE 0
