@@ -38,4 +38,5 @@ fi
 cd Binaries
 # Create flash command based on partitions
 KEY_VALUES=`jq -r '.flash_files  | keys[] as $k | "\($k) \(.[$k])"' flasher_args.json  | tr "\n" " "`
+esptool.py --port $1 erase_flash
 esptool.py --port $1 --connect-attempts 10 -b 460800 write_flash $KEY_VALUES
