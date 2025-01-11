@@ -7,3 +7,6 @@
 [submodule "Libraries/lvgl"]
 	path = Libraries/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "Libraries/SDL"]
+	path = Libraries/SDL
+	url = https://github.com/libsdl-org/SDL.git
