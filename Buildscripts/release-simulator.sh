@@ -14,9 +14,6 @@ build_dir=`pwd`
 
 cp version.txt $target_path
 
-cmake -S ./ -B buildsim
-cmake --build buildsim --target AppSim
-
 cp buildsim/App/AppSim $target_path/
 cp -r Data/data $target_path/
 cp -r Data/system $target_path/

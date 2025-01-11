@@ -11,23 +11,18 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Wayland
-      shell: bash
-      run: |
-        sudo apt-get update
-        sudo apt-get purge x11-*
-        sudo apt-get install sway meson libwayland-dev
-      env:
-        WLR_BACKENDS: headless
-        WLR_LIBINPUT_NO_DEVICES: 1
-        WAYLAND_DISPLAY: wayland-1
-        GTK_USE_PORTAL: 0
     - name: "Checkout repo"
       uses: actions/checkout@v2
       with:
         submodules: recursive
     - name: "Configure Project"
       uses: threeal/cmake-action@v1.3.0
+    - name: "Prepare Project"
+      shell: bash
+      run: cmake -S ./ -B build -DUNIX=true
+    - name: "Build Tests"
+      shell: bash
+      run: cmake --build build --target build-tests
     - name: 'Release'
       shell: bash
       run: Buildscripts/release-simulator.sh release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
