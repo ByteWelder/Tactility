@@ -1,0 +1,13 @@
+# Disabled because of issue: https://github.com/libsdl-org/setup-sdl/issues/23
+name: Build Simulator
+on: [push]
+jobs:
+  Build-Simulator:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-simulator
+        with:
+          os_name: linux
+          platform_name: amd64
