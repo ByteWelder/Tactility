@@ -1,0 +1,32 @@
+name: Build
+
+inputs:
+  os_name:
+    description: A descriptive name for the operating system (e.g. linux, windows)
+    required: true
+  platform_name:
+    description: A descriptive name for the target platform (e.g. amd64, aarch64, etc.)
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Checkout repo"
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: "Configure Project"
+      uses: threeal/cmake-action@v1.3.0
+    - name: "Prepare Project"
+      run: cmake -S ./ -B build
+    - name: "Build"
+      run: cmake --build build --target AppSim
+    - name: 'Release'
+      shell: bash
+      run: Buildscripts/release-simulator.sh release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+        path: release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+        retention-days: 30
