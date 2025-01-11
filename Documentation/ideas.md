@@ -14,6 +14,7 @@
 - Consistently use either ESP_TARGET or ESP_PLATFORM
 - tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
+- M5Stack Core only shows 4MB of SPIRAM in use
 
 # TODOs
 - Make a ledger for setting CPU affinity of various services and tasks
