@@ -11,6 +11,21 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Install Wayland
+      run: |
+        mkdir $XDG_RUNTIME_DIR
+        chown $USER $XDG_RUNTIME_DIR
+        chmod 0700 $XDG_RUNTIME_DIR
+        sudo apt-get update
+        sudo apt-get purge x11-*
+        sudo apt-get install sway meson libwayland-dev
+        echo $XDG_RUNTIME_DIR
+      env:
+        XDG_RUNTIME_DIR: /home/runner/work/tactility/xdg
+        WLR_BACKENDS: headless
+        WLR_LIBINPUT_NO_DEVICES: 1
+        WAYLAND_DISPLAY: wayland-1
+        GTK_USE_PORTAL: 0
     - name: "Checkout repo"
       uses: actions/checkout@v2
       with:
