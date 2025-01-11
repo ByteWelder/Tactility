@@ -19,8 +19,8 @@ SomeFeature.cpp
 SomeFeature.h
 ```
 
-Private/internal headers are postfixed with `_i` before the file extension.
-Like `SomeFeature_i.h`
+Private/internal headers are postfixed with `Private` before the file extension.
+Like `SomeFeaturePrivate.h`
 
 ### Folders
 
@@ -56,16 +56,28 @@ Preprocessor functions are written in snake-case and prefixed with `tt_`, for ex
 
 Consts are lower camel case with capital letters.
 
-Typedefs for structs and datatype aliases are upper camel case.
+Typedefs for structs, classes and datatype aliases are upper camel case.
 
 Examples:
 
 ```c++
-typedef uint32_t SomeAlias;
+typedef uint32_t ThreadId;
 
-const SomeAlias myAlias;
+const ThreadId id;
 
-typedef struct {
+struct ThreadData {
     // ...
-} SomeStruct;
+};
+```
+
+### Enumerations
+
+`enum class` or `enum struct` is preferred over plain `enum` because of scoping. It's styled like this:
+
+```c++
+enum class  {
+    Ok,
+    NotSupported,
+    Error
+};
 ```
