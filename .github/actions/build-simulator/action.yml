@@ -17,10 +17,6 @@ runs:
         submodules: recursive
     - name: "Configure Project"
       uses: threeal/cmake-action@v1.3.0
-    - name: "Prepare Project"
-      run: cmake -S ./ -B build
-    - name: "Build"
-      run: cmake --build build --target AppSim
     - name: 'Release'
       shell: bash
       run: Buildscripts/release-simulator.sh release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
