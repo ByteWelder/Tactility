@@ -12,6 +12,7 @@ runs:
   using: "composite"
   steps:
     - name: Install Wayland
+      shell: bash
       run: |
         mkdir $XDG_RUNTIME_DIR
         chown $USER $XDG_RUNTIME_DIR
