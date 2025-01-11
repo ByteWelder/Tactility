@@ -19,7 +19,7 @@ runs:
       uses: threeal/cmake-action@v1.3.0
     - name: "Prepare Project"
       shell: bash
-      run: cmake -S ./ -B buildsim -DUNIX=TRUE -DSDL_X11=TRUE -DSDL_WAYLAND=TRUE
+      run: cmake -S ./ -B buildsim -DUNIX=TRUE -DUNIX -DSDL_X11=ON -DSDL_WAYLAND=ON
     - name: "Build Tests"
       shell: bash
       run: cmake --build buildsim --target AppSim
