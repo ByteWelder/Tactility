@@ -16,7 +16,7 @@ runs:
       with:
         submodules: recursive
     - name: Install Linux Dependencies for SDL
-      if: matrix.os == 'ubuntu-latest'
+      if: ${{ inputs.platform_name }} == 'linux'
       shell: bash
       # See Libraries/SDL/docs/README-linux.md
       run: >
