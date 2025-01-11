@@ -19,7 +19,7 @@ runs:
       uses: threeal/cmake-action@v1.3.0
     - name: "Prepare Project"
       shell: bash
-      run: cmake -S ./ -B buildsim -DUNIX=true
+      run: cmake -S ./ -B buildsim -DUNIX=TRUE -DCMAKE_HOST_UNIX=TRUE
     - name: "Build Tests"
       shell: bash
       run: cmake --build buildsim --target AppSim
