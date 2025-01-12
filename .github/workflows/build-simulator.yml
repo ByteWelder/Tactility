@@ -11,7 +11,7 @@ jobs:
         with:
           os_name: linux
           platform_name: amd64
-          publish: True
+          publish: true
   Build-Simulator-macOS:
     runs-on: macos-latest
     steps:
@@ -22,4 +22,4 @@ jobs:
           os_name: macos
           platform_name: aarch64
           # macOS simulator currently fails due to main thread requirement for rendering
-          publish: False
+          publish: false
