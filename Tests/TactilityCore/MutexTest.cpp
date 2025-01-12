@@ -23,12 +23,12 @@ TEST_CASE("a mutex can block a thread") {
     thread.start();
 
     kernel::delayMillis(5);
-    CHECK_EQ(thread.getState(), Thread::StateRunning);
+    CHECK_EQ(thread.getState(), Thread::State::Running);
 
     mutex.unlock();
 
     kernel::delayMillis(5);
-    CHECK_EQ(thread.getState(), Thread::StateStopped);
+    CHECK_EQ(thread.getState(), Thread::State::Stopped);
 
     thread.join();
 }
