@@ -23,3 +23,13 @@ jobs:
           platform_name: aarch64
           # macOS simulator currently fails due to main thread requirement for rendering
           publish: false
+  Build-Simulator-Windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-simulator
+        with:
+          os_name: windows
+          platform_name: amd64
+          publish: false
