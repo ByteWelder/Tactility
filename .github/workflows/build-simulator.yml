@@ -2,7 +2,7 @@
 name: Build Simulator
 on: [push]
 jobs:
-  Build-Simulator:
+  Build-Simulator-Linux:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -11,3 +11,15 @@ jobs:
         with:
           os_name: linux
           platform_name: amd64
+          publish: true
+  Build-Simulator-macOS:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-simulator
+        with:
+          os_name: macos
+          platform_name: aarch64
+          # macOS simulator currently fails due to main thread requirement for rendering
+          publish: false

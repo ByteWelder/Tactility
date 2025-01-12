@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 #
 # Usage: release-sdk.sh [target_path]

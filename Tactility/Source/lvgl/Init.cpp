@@ -5,7 +5,7 @@
 #include "hal/Touch.h"
 #include "hal/Keyboard.h"
 #include "lvgl/LvglKeypad.h"
-#include "lvgl/Lvgl.h"
+#include "lvgl/LvglDisplay.h"
 #include "kernel/SystemEvents.h"
 
 namespace tt::lvgl {

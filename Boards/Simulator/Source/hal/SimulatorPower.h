@@ -11,15 +11,15 @@ class SimulatorPower : public Power {
 
 public:
 
-    SimulatorPower() {}
-    ~SimulatorPower() {}
+    SimulatorPower() = default;
+    ~SimulatorPower() override = default;
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
 
-    bool supportsChargeControl() const { return true; }
-    bool isAllowedToCharge() const { return allowedToCharge; }
-    void setAllowedToCharge(bool canCharge) { allowedToCharge = canCharge; }
+    bool supportsChargeControl() const override { return true; }
+    bool isAllowedToCharge() const override { return allowedToCharge; }
+    void setAllowedToCharge(bool canCharge) override { allowedToCharge = canCharge; }
 };
 
 std::shared_ptr<Power> simulatorPower();

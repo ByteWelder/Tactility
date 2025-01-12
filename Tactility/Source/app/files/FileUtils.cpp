@@ -1,7 +1,6 @@
 #include "FileUtils.h"
 #include "TactilityCore.h"
 #include <cstring>
-#include <bits/stdc++.h>
 #include <StringUtils.h>
 
 namespace tt::app::files {

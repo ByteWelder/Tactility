@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 cmake -S ./ -B build-sim
 cmake --build build-sim --target build-tests -j 14

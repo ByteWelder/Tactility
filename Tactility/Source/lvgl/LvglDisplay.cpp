@@ -1,4 +1,4 @@
-#include "lvgl/Lvgl.h"
+#include "lvgl/LvglDisplay.h"
 #include "Check.h"
 
 namespace tt::lvgl {

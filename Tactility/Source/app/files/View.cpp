@@ -1,4 +1,3 @@
-#include <cstring>
 #include "app/alertdialog/AlertDialog.h"
 #include "app/imageviewer/ImageViewer.h"
 #include "app/inputdialog/InputDialog.h"
@@ -11,7 +10,8 @@
 #include "Tactility.h"
 #include "View.h"
 #include "StringUtils.h"
-#include <filesystem>
+#include <cstring>
+#include <unistd.h>
 
 #define TAG "files_app"
 

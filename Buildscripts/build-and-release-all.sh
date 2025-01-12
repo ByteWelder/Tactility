@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 function build() {
     Buildscripts/build.sh $1
