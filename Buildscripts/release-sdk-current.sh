@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #
 # Description: Releases the current build files as an SDK in release/TactilitySDK

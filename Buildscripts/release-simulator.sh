@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/sh
 
 #
 # Usage: release-simulator.sh [builddir] [target_path]
