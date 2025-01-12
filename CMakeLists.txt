@@ -70,16 +70,25 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
 endif()
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
+    # Threads, for getting pthreads with FreeRTOS on non-POSIX system
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads REQUIRED)
+
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
     add_subdirectory(Libraries/FreeRTOS-Kernel)
-    add_subdirectory(Libraries/lv_screenshot)
-    add_subdirectory(Libraries/QRCode)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC Boards/Simulator/Source # for FreeRTOSConfig.h
     )
+    target_link_libraries(freertos_kernel Threads::Threads)
+
+    # lv_screenshot
+    add_subdirectory(Libraries/lv_screenshot)
+
+    # QRCode
+    add_subdirectory(Libraries/QRCode)
 
     # EmbedTLS
     set(ENABLE_TESTING OFF)
