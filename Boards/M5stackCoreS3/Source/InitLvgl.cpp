@@ -12,7 +12,7 @@
 
 bool initLvgl() {
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = tt::THREAD_PRIORITY_RENDER,
+        .task_priority = static_cast<UBaseType_t>(tt::THREAD_PRIORITY_RENDER),
         .task_stack = CORE2_LVGL_TASK_STACK_DEPTH,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,

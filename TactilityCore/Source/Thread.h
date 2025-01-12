@@ -16,24 +16,23 @@ typedef TaskHandle_t ThreadId;
 class Thread {
 public:
 
-    typedef enum {
-        StateStopped,
-        StateStarting,
-        StateRunning,
-    } State;
+    enum class State{
+        Stopped,
+        Starting,
+        Running,
+    };
 
     /** ThreadPriority */
-    typedef enum {
-        PriorityNone = 0, /**< Uninitialized, choose system default */
-        PriorityIdle = 1,
-        PriorityLowest = 2,
-        PriorityLow = 3,
-        PriorityNormal = 4,
-        PriorityHigh = 5,
-        PriorityHigher = 6,
-        PriorityHighest = 7
-    } Priority;
-
+    enum class Priority : UBaseType_t {
+        None = 0U, /**< Uninitialized, choose system default */
+        Idle = 1U,
+        Lower = 2U,
+        Low = 3U,
+        Normal = 4U,
+        High = 5U,
+        Higher = 6U,
+        Critical = 7U
+    };
 
     /** ThreadCallback Your callback to run in new thread
      * @warning never use osThreadExit in Thread
@@ -55,41 +54,33 @@ public:
     typedef struct {
         Thread* thread;
         TaskHandle_t taskHandle;
-
         State state;
-
         Callback callback;
         void* callbackContext;
         int32_t callbackResult;
-
         StateCallback stateCallback;
         void* stateCallbackContext;
-
         std::string name;
-
         Priority priority;
-
-        // Keep all non-alignable byte types in one place,
-        // this ensures that the size of this structure is minimal
-        bool isStatic;
-
         configSTACK_DEPTH_TYPE stackSize;
+        portBASE_TYPE affinity;
     } Data;
 
     Thread();
 
     /** Allocate Thread, shortcut version
-     * @param[in] name
-     * @param[in] stack_size
+     * @param[in] name the name of the thread
+     * @param[in] stackSize in bytes
      * @param[in] callback
      * @param[in] callbackContext
-     * @return Thread*
+     * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
      */
     Thread(
         const std::string& name,
         configSTACK_DEPTH_TYPE stackSize,
         Callback callback,
-        _Nullable void* callbackContext
+        _Nullable void* callbackContext,
+        portBASE_TYPE affinity = -1
     );
 
     ~Thread();
@@ -98,16 +89,6 @@ public:
      * @param[in] name string
      */
     void setName(const std::string& name);
-
-    /** Mark thread as service
-     * The service cannot be stopped or removed, and cannot exit from the thread body
-     */
-    void markAsStatic();
-
-    /** Check if thread is as service
-     * If true, the service cannot be stopped or removed, and cannot exit from the thread body
-     */
-    bool isMarkedAsStatic() const;
 
     /** Set Thread stack size
      * @param[in] stackSize stack size in bytes
@@ -137,8 +118,7 @@ public:
      */
     State getState() const;
 
-    /** Start Thread
-     */
+    /** Start Thread */
     void start();
 
     /** Join Thread
@@ -150,10 +130,10 @@ public:
     /** Get FreeRTOS ThreadId for Thread instance
      * @return ThreadId or nullptr
      */
-    ThreadId getId();
+    ThreadId getId() const;
 
     /** @return thread return code */
-    int32_t getReturnCode();
+    int32_t getReturnCode() const;
 
 private:
 
@@ -161,9 +141,9 @@ private:
 };
 
 #define THREAD_PRIORITY_APP Thread::PriorityNormal
-#define THREAD_PRIORITY_SERVICE Thread::PriorityHigh
-#define THREAD_PRIORITY_RENDER Thread::PriorityHigher
-#define THREAD_PRIORITY_ISR (TT_CONFIG_THREAD_MAX_PRIORITIES - 1)
+#define THREAD_PRIORITY_SERVICE Thread::Priority::High
+#define THREAD_PRIORITY_RENDER Thread::Priority::Higher
+#define THREAD_PRIORITY_ISR Thread::Priority::Critical
 
 /** Set current thread priority
  * @param[in] priority ThreadPriority value
@@ -219,11 +199,5 @@ void thread_resume(ThreadId threadId);
  * @return true if thread is suspended
  */
 bool thread_is_suspended(ThreadId threadId);
-
-/** Check if the thread was created with static memory
- * @param[in] threadId thread id
- * @return true if thread memory is static
- */
-bool thread_mark_is_static(ThreadId threadId);
 
 } // namespace

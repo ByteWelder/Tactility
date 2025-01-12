@@ -31,14 +31,6 @@ void tt_thread_set_name(ThreadHandle handle, const char* name) {
     HANDLE_AS_THREAD(handle)->setName(name);
 }
 
-void tt_thread_mark_as_static(ThreadHandle handle) {
-    HANDLE_AS_THREAD(handle)->markAsStatic();
-}
-
-bool tt_thread_is_marked_as_static(ThreadHandle handle) {
-    return HANDLE_AS_THREAD(handle)->isMarkedAsStatic();
-}
-
 void tt_thread_set_stack_size(ThreadHandle handle, size_t size) {
     HANDLE_AS_THREAD(handle)->setStackSize(size);
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "tt_thread.h"
 #include <freertos/FreeRTOS.h>
 
 #ifdef __cplusplus
@@ -16,11 +17,6 @@ typedef enum {
     TimerTypePeriodic = 1 ///< Repeating timer.
 } TimerType;
 
-typedef enum {
-    TimerThreadPriorityNormal,   /**< Lower then other threads */
-    TimerThreadPriorityElevated, /**< Same as other threads */
-} TimerThreadPriority;
-
 typedef void (*TimerCallback)(void* context);
 typedef void (*TimerPendingCallback)(void* context, uint32_t arg);
 
@@ -32,7 +28,7 @@ bool tt_timer_stop(TimerHandle handle);
 bool tt_timer_is_running(TimerHandle handle);
 uint32_t tt_timer_get_expire_time(TimerHandle handle);
 bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeoutTicks);
-void tt_timer_set_thread_priority(TimerHandle handle, TimerThreadPriority priority);
+void tt_timer_set_thread_priority(TimerHandle handle, ThreadPriority priority);
 
 #ifdef __cplusplus
 }

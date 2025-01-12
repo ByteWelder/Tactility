@@ -74,8 +74,6 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_thread_alloc_ext),
     ESP_ELFSYM_EXPORT(tt_thread_free),
     ESP_ELFSYM_EXPORT(tt_thread_set_name),
-    ESP_ELFSYM_EXPORT(tt_thread_mark_as_static),
-    ESP_ELFSYM_EXPORT(tt_thread_is_marked_as_static),
     ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
     ESP_ELFSYM_EXPORT(tt_thread_set_callback),
     ESP_ELFSYM_EXPORT(tt_thread_set_priority),

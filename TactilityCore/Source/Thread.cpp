@@ -19,7 +19,7 @@ namespace tt {
 #define THREAD_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_TASK_NOTIFY) - 1U))
 #define EVENT_FLAGS_INVALID_BITS (~((1UL << MAX_BITS_EVENT_GROUPS) - 1U))
 
-static_assert(Thread::PriorityHighest <= TT_CONFIG_THREAD_MAX_PRIORITIES, "highest thread priority is higher than max priority");
+static_assert(static_cast<UBaseType_t>(Thread::Priority::Critical) <= TT_CONFIG_THREAD_MAX_PRIORITIES, "highest thread priority is higher than max priority");
 static_assert(TT_CONFIG_THREAD_MAX_PRIORITIES <= configMAX_PRIORITIES, "highest tactility priority is higher than max FreeRTOS priority");
 
 void setState(Thread::Data* data, Thread::State state) {
@@ -28,6 +28,8 @@ void setState(Thread::Data* data, Thread::State state) {
         data->stateCallback(state, data->stateCallbackContext);
     }
 }
+
+static_assert(configSUPPORT_DYNAMIC_ALLOCATION == 1);
 
 /** Catch threads that are trying to exit wrong way */
 __attribute__((__noreturn__)) void thread_catch() { //-V1082
@@ -47,20 +49,12 @@ static void thread_body(void* context) {
     tt_assert(pvTaskGetThreadLocalStoragePointer(nullptr, 0) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, 0, data->thread);
 
-    tt_assert(data->state == Thread::StateStarting);
-    setState(data, Thread::StateRunning);
+    tt_assert(data->state == Thread::State::Starting);
+    setState(data, Thread::State::Running);
     data->callbackResult = data->callback(data->callbackContext);
-    tt_assert(data->state == Thread::StateRunning);
+    tt_assert(data->state == Thread::State::Running);
 
-    if (data->isStatic) {
-        TT_LOG_I(
-            TAG,
-            "%s static task memory will not be reclaimed",
-            data->name.empty() ? "<unnamed service>" : data->name.c_str()
-        );
-    }
-
-    setState(data, Thread::StateStopped);
+    setState(data, Thread::State::Stopped);
 
     vTaskSetThreadLocalStoragePointer(nullptr, 0, nullptr);
     data->taskHandle = nullptr;
@@ -73,15 +67,14 @@ Thread::Thread() :
     data({
         .thread = nullptr,
         .taskHandle = nullptr,
-        .state = StateStopped,
+        .state = State::Stopped,
         .callback = nullptr,
         .callbackContext = nullptr,
         .callbackResult = 0,
         .stateCallback = nullptr,
         .stateCallbackContext = nullptr,
         .name = std::string(),
-        .priority = PriorityNormal,
-        .isStatic = false,
+        .priority = Priority::Normal,
         .stackSize = 0,
     }) { }
 
@@ -89,64 +82,56 @@ Thread::Thread(
     const std::string& name,
     configSTACK_DEPTH_TYPE stackSize,
     Callback callback,
-    _Nullable void* callbackContext) :
+    _Nullable void* callbackContext,
+    portBASE_TYPE affinity
+) :
     data({
         .thread = nullptr,
         .taskHandle = nullptr,
-        .state = StateStopped,
+        .state = State::Stopped,
         .callback = callback,
         .callbackContext = callbackContext,
         .callbackResult = 0,
         .stateCallback = nullptr,
         .stateCallbackContext = nullptr,
         .name = name,
-        .priority = PriorityNormal,
-        .isStatic = false,
+        .priority = Priority::Normal,
         .stackSize = stackSize,
+        .affinity = affinity
     }) { }
 
 Thread::~Thread() {
     // Ensure that use join before free
-    tt_assert(data.state == StateStopped);
+    tt_assert(data.state == State::Stopped);
     tt_assert(data.taskHandle == nullptr);
 }
 
 void Thread::setName(const std::string& newName) {
-    tt_assert(data.state == StateStopped);
+    tt_assert(data.state == State::Stopped);
     data.name = newName;
 }
 
-
-void Thread::markAsStatic() {
-    data.isStatic = true;
-}
-
-bool Thread::isMarkedAsStatic() const {
-    return data.isStatic;
-}
-
 void Thread::setStackSize(size_t stackSize) {
-    tt_assert(data.state == StateStopped);
+    tt_assert(data.state == State::Stopped);
     tt_assert(stackSize % 4 == 0);
     data.stackSize = stackSize;
 }
 
 void Thread::setCallback(Callback callback, _Nullable void* callbackContext) {
-    tt_assert(data.state == StateStopped);
+    tt_assert(data.state == State::Stopped);
     data.callback = callback;
     data.callbackContext = callbackContext;
 }
 
 
 void Thread::setPriority(Priority priority) {
-    tt_assert(data.state == StateStopped);
-    tt_assert(priority >= 0 && priority <= TT_CONFIG_THREAD_MAX_PRIORITIES);
+    tt_assert(data.state == State::Stopped);
     data.priority = priority;
 }
 
 
 void Thread::setStateCallback(StateCallback callback, _Nullable void* callbackContext) {
-    tt_assert(data.state == StateStopped);
+    tt_assert(data.state == State::Stopped);
     data.stateCallback = callback;
     data.stateCallbackContext = callbackContext;
 }
@@ -157,38 +142,49 @@ Thread::State Thread::getState() const {
 
 void Thread::start() {
     tt_assert(data.callback);
-    tt_assert(data.state == StateStopped);
-    tt_assert(data.stackSize > 0 && data.stackSize < (UINT16_MAX * sizeof(StackType_t)));
+    tt_assert(data.state == State::Stopped);
+    tt_assert(data.stackSize > 0U && data.stackSize < (UINT16_MAX * sizeof(StackType_t)));
 
-    setState(&data, StateStarting);
+    setState(&data, State::Starting);
 
     uint32_t stack_depth = data.stackSize / sizeof(StackType_t);
-    if (data.isStatic) {
-#if configSUPPORT_STATIC_ALLOCATION == 1
-        data.taskHandle = xTaskCreateStatic(
+
+    BaseType_t result;
+    if (data.affinity != -1) {
+#ifdef ESP_PLATFORM
+        result = xTaskCreatePinnedToCore(
             thread_body,
             data.name.c_str(),
             stack_depth,
-            &data,
-            data.priority,
-            static_cast<StackType_t*>(malloc(sizeof(StackType_t) * stack_depth)),
-            static_cast<StaticTask_t*>(malloc(sizeof(StaticTask_t)))
+            this,
+            static_cast<UBaseType_t>(data.priority),
+            &(data.taskHandle),
+            data.affinity
         );
 #else
-        TT_LOG_E(TAG, "static tasks are not supported by current FreeRTOS config/platform - creating regular one");
-        BaseType_t result = xTaskCreate(
-            thread_body, data.name.c_str(), stack_depth, this, data.priority, &(data.taskHandle)
+        TT_LOG_W(TAG, "Pinned tasks are not supported by current FreeRTOS platform - creating regular one");
+        result = xTaskCreate(
+            thread_body,
+            data.name.c_str(),
+            stack_depth,
+            this,
+            static_cast<UBaseType_t>(data.priority),
+            &(data.taskHandle)
         );
-        tt_check(result == pdPASS);
 #endif
     } else {
-        BaseType_t result = xTaskCreate(
-            thread_body, data.name.c_str(), stack_depth, this, data.priority, &(data.taskHandle)
+        result = xTaskCreate(
+            thread_body,
+            data.name.c_str(),
+            stack_depth,
+            this,
+            static_cast<UBaseType_t>(data.priority),
+            &(data.taskHandle)
         );
-        tt_check(result == pdPASS);
     }
 
-    tt_check(data.state == StateStopped || data.taskHandle);
+    tt_check(result == pdPASS);
+    tt_check(data.state == State::Stopped || data.taskHandle);
 }
 
 bool Thread::join() {
@@ -205,12 +201,12 @@ bool Thread::join() {
     return true;
 }
 
-ThreadId Thread::getId() {
+ThreadId Thread::getId() const {
     return data.taskHandle;
 }
 
-int32_t Thread::getReturnCode() {
-    tt_assert(data.state == StateStopped);
+int32_t Thread::getReturnCode() const {
+    tt_assert(data.state == State::Stopped);
     return data.callbackResult;
 }
 
@@ -224,8 +220,7 @@ Thread* thread_get_current() {
 }
 
 void thread_set_current_priority(Thread::Priority priority) {
-    UBaseType_t new_priority = priority ? priority : Thread::PriorityNormal;
-    vTaskPrioritySet(nullptr, new_priority);
+    vTaskPrioritySet(nullptr, static_cast<UBaseType_t>(priority));
 }
 
 Thread::Priority thread_get_current_priority() {
@@ -235,14 +230,6 @@ Thread::Priority thread_get_current_priority() {
 void thread_yield() {
     tt_assert(!TT_IS_IRQ_MODE());
     taskYIELD();
-}
-
-bool thread_mark_is_static(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
-    assert(!TT_IS_IRQ_MODE() && (hTask != nullptr));
-    auto* thread = (Thread*)pvTaskGetThreadLocalStoragePointer(hTask, 0);
-    assert(thread != nullptr);
-    return thread->isMarkedAsStatic();
 }
 
 uint32_t thread_flags_set(ThreadId thread_id, uint32_t flags) {

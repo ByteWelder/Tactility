@@ -3,6 +3,7 @@
 #include "CoreTypes.h"
 
 #include "RtosCompatTimers.h"
+#include "Thread.h"
 #include <memory>
 
 namespace tt {
@@ -34,17 +35,17 @@ public:
 
     /** Start timer
      * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
-     * @param[in] ticks The interval in ticks
+     * @param[in] interval The interval in ticks
      * @return success result
      */
-    bool start(uint32_t intervalTicks);
+    bool start(TickType_t interval);
 
     /** Restart timer with previous timeout value
      * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
-     * @param[in] ticks The interval in ticks
+     * @param[in] interval The interval in ticks
      * @return success result
      */
-    bool restart(uint32_t intervalTicks);
+    bool restart(TickType_t interval);
 
     /** Stop timer
      * @warning This is asynchronous call, real operation will happen as soon as timer service process this request.
@@ -61,7 +62,7 @@ public:
     /** Get timer expire time
      * @return expire tick
      */
-    uint32_t getExpireTime();
+    TickType_t getExpireTime();
 
     /**
      * Calls xTimerPendFunctionCall internally.
@@ -69,18 +70,19 @@ public:
      * @param[in] callbackContext the first function argument
      * @param[in] callbackArg the second function argument
      * @param[in] timeout the function timeout (must set to 0 in ISR mode)
+     * @return true on success
      */
     bool setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout);
 
-    typedef enum {
-        TimerThreadPriorityNormal,   /**< Lower then other threads */
-        TimerThreadPriorityElevated, /**< Same as other threads */
-    } ThreadPriority;
+    enum class Priority{
+        Normal,   /**< Lower then other threads */
+        Elevated, /**< Same as other threads */
+    };
 
     /** Set Timer thread priority
      * @param[in] priority The priority
      */
-    void setThreadPriority(ThreadPriority priority);
+    void setThreadPriority(Thread::Priority priority);
 };
 
 } // namespace
