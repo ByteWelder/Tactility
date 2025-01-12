@@ -16,7 +16,7 @@ runs:
       with:
         submodules: recursive
     - name: Install Linux Dependencies for SDL
-      if: ${{ inputs.platform_name }} == 'linux'
+      if: ${{ runner.os }} == 'Linux'
       shell: bash
       # See Libraries/SDL/docs/README-linux.md
       run: >
