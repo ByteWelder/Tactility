@@ -3,6 +3,7 @@
 #include "StringUtils.h"
 #include <iomanip>
 #include <vector>
+#include <sstream>
 
 namespace tt::app::i2cscanner {
 
