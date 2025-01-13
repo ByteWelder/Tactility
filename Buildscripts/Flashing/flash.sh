@@ -21,22 +21,35 @@ function is_bin_in_path {
 
 function require_bin {
   program=$1
-  tip=$2
   if ! is_bin_in_path $program; then
-    echo -e "\e[31m⚠️ $program not found!\n\t$tip\e[0m"
+      exit 1
+  else
+      exit 0
   fi
 }
 
-require_bin esptool.py "install esptool from your package manager or install python and run 'pip install esptool'"
-require_bin jq "install jq from your package manager or install python and run 'pip install jq'"
+# Find either esptool (installed via system package manager) or esptool.py (installed via pip)
+if ! is_bin_in_path esptool; then
+  if ! is_bin_in_path esptool.py; then
+    echo "\e[31m⚠️  esptool not found! Install it from your package manager or install python and run 'pip install esptool'\e[0m"
+    exit 1
+  else 
+    esptoolPath=esptool.py
+  fi
+else
+  esptoolPath=esptool
+fi
 
-if [[ $1 -eq 0 ]]; then
+# Ensure the port was specified
+if [ -z "$1" ]; then
     echo -e "\e[31m⚠️ Must Specify port as argument. For example:\n\tflash.sh /dev/ttyACM0\n\tflash.sh /dev/ttyUSB0\e[0m"
     exit -1
 fi
 
+# Take the flash_arg file contents and join each line in the file into a single line
+flash_args=`grep \n Binaries/flash_args | awk '{print}' ORS=' '`
 cd Binaries
-# Create flash command based on partitions
-KEY_VALUES=`jq -r '.flash_files  | keys[] as $k | "\($k) \(.[$k])"' flasher_args.json  | tr "\n" " "`
-esptool.py --port $1 erase_flash
-esptool.py --port $1 --connect-attempts 10 -b 460800 write_flash $KEY_VALUES
+$esptoolPath --port $1 erase_flash
+$esptoolPath --port $1 write_flash $flash_args
+cd -
+
