@@ -38,14 +38,14 @@ typedef int32_t (*ThreadCallback)(void* context);
 typedef void (*ThreadStateCallback)(ThreadState state, void* context);
 
 typedef enum {
-    ThreadPriorityNone = 0, /**< Uninitialized, choose system default */
-    ThreadPriorityIdle = 1,
-    ThreadPriorityLowest = 2,
-    ThreadPriorityLow = 3,
-    ThreadPriorityNormal = 4,
-    ThreadPriorityHigh = 5,
-    ThreadPriorityHigher = 6,
-    ThreadPriorityHighest = 7
+    ThreadPriorityNone = 0U, /**< Uninitialized, choose system default */
+    ThreadPriorityIdle = 1U,
+    ThreadPriorityLowest = 2U,
+    ThreadPriorityLow = 3U,
+    ThreadPriorityNormal = 4U,
+    ThreadPriorityHigh = 5U,
+    ThreadPriorityHigher = 6U,
+    ThreadPriorityHighest = 7U
 } ThreadPriority;
 
 ThreadHandle tt_thread_alloc();
@@ -57,8 +57,6 @@ ThreadHandle tt_thread_alloc_ext(
 );
 void tt_thread_free(ThreadHandle handle);
 void tt_thread_set_name(ThreadHandle handle, const char* name);
-void tt_thread_mark_as_static(ThreadHandle handle);
-bool tt_thread_is_marked_as_static(ThreadHandle handle);
 void tt_thread_set_stack_size(ThreadHandle handle, size_t size);
 void tt_thread_set_callback(ThreadHandle handle, ThreadCallback callback, void* _Nullable callbackContext);
 void tt_thread_set_priority(ThreadHandle handle, ThreadPriority priority);

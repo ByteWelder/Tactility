@@ -65,7 +65,7 @@ void lvgl_task_start() {
         "lvgl",
         8192,
         nullptr,
-        tt::Thread::PriorityHigh, // Should be higher than main app task
+        static_cast<UBaseType_t>(tt::Thread::Priority::High), // Should be higher than main app task
         nullptr
     );
 

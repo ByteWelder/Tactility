@@ -36,16 +36,16 @@ Timer::~Timer() {
     tt_check(xTimerDelete(timerHandle, portMAX_DELAY) == pdPASS);
 }
 
-bool Timer::start(uint32_t intervalTicks) {
+bool Timer::start(TickType_t interval) {
     tt_assert(!TT_IS_ISR());
-    tt_assert(intervalTicks < portMAX_DELAY);
-    return xTimerChangePeriod(timerHandle, intervalTicks, portMAX_DELAY) == pdPASS;
+    tt_assert(interval < portMAX_DELAY);
+    return xTimerChangePeriod(timerHandle, interval, portMAX_DELAY) == pdPASS;
 }
 
-bool Timer::restart(uint32_t intervalTicks) {
+bool Timer::restart(TickType_t interval) {
     tt_assert(!TT_IS_ISR());
-    tt_assert(intervalTicks < portMAX_DELAY);
-    return xTimerChangePeriod(timerHandle, intervalTicks, portMAX_DELAY) == pdPASS &&
+    tt_assert(interval < portMAX_DELAY);
+    return xTimerChangePeriod(timerHandle, interval, portMAX_DELAY) == pdPASS &&
         xTimerReset(timerHandle, portMAX_DELAY) == pdPASS;
 }
 
@@ -59,9 +59,9 @@ bool Timer::isRunning() {
     return xTimerIsTimerActive(timerHandle) == pdTRUE;
 }
 
-uint32_t Timer::getExpireTime() {
+TickType_t Timer::getExpireTime() {
     tt_assert(!TT_IS_ISR());
-    return (uint32_t)xTimerGetExpiryTime(timerHandle);
+    return xTimerGetExpiryTime(timerHandle);
 }
 
 bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout) {
@@ -73,19 +73,13 @@ bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, 
     }
 }
 
-void Timer::setThreadPriority(ThreadPriority priority)  {
+void Timer::setThreadPriority(Thread::Priority priority)  {
     tt_assert(!TT_IS_ISR());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     tt_assert(task_handle); // Don't call this method before timer task start
 
-    if (priority == TimerThreadPriorityNormal) {
-        vTaskPrioritySet(task_handle, configTIMER_TASK_PRIORITY);
-    } else if (priority == TimerThreadPriorityElevated) {
-        vTaskPrioritySet(task_handle, configMAX_PRIORITIES - 1);
-    } else {
-        tt_crash("Unsupported timer priority");
-    }
+    vTaskPrioritySet(task_handle, static_cast<UBaseType_t>(priority));
 }
 
 } // namespace

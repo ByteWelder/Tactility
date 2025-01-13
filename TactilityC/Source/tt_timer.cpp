@@ -58,8 +58,8 @@ bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback call
     );
 }
 
-void tt_timer_set_thread_priority(TimerHandle handle, TimerThreadPriority priority) {
-    ((TimerWrapper*)handle)->timer->setThreadPriority((tt::Timer::ThreadPriority)priority);
+void tt_timer_set_thread_priority(TimerHandle handle, ThreadPriority priority) {
+    ((TimerWrapper*)handle)->timer->setThreadPriority((tt::Thread::Priority)priority);
 }
 
 }

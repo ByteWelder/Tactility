@@ -28,12 +28,9 @@
 - Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
   We'll need to keep track of all manifest instances, so that the wrapper can look up the relevant manifest for the relevant callbacks.
 - T-Deck: Clear screen before turning on blacklight
-- Audio player app
-- Audio recording app
 - T-Deck: Use knob for UI selection
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
 - AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
-- Loader: Use main dispatcher instead of Thread
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
@@ -45,6 +42,8 @@
 - Support hot-plugging SD card
 
 # Nice-to-haves
+- Audio player app
+- Audio recording app
 - OTA updates
 - Web flasher
 - T-Deck Plus: Create separate board config?

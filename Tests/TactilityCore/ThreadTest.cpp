@@ -78,13 +78,13 @@ TEST_CASE("thread state should be correct") {
         &interruptable_thread,
         &interrupted
     );
-    CHECK_EQ(thread->getState(), Thread::StateStopped);
+    CHECK_EQ(thread->getState(), Thread::State::Stopped);
     thread->start();
     Thread::State state = thread->getState();
-    CHECK((state == Thread::StateStarting || state == Thread::StateRunning));
+    CHECK((state == Thread::State::Starting || state == Thread::State::Running));
     interrupted = true;
     thread->join();
-    CHECK_EQ(thread->getState(), Thread::StateStopped);
+    CHECK_EQ(thread->getState(), Thread::State::Stopped);
     delete thread;
 }
 

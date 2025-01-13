@@ -7,7 +7,7 @@
 
 bool twodotfour_lvgl_init() {
     const lvgl_port_cfg_t lvgl_cfg = {
-        .task_priority = tt::THREAD_PRIORITY_RENDER,
+        .task_priority = static_cast<UBaseType_t>(tt::THREAD_PRIORITY_RENDER),
         .task_stack = 8096,
         .task_affinity = -1, // core pinning
         .task_max_sleep_ms = 500,

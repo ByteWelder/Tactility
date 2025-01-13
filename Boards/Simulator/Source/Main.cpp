@@ -29,7 +29,7 @@ void freertosMain() {
         "main",
         8192,
         nullptr,
-        tt::Thread::PriorityNormal,
+        static_cast<UBaseType_t>(tt::Thread::Priority::Normal),
         nullptr
     );
 

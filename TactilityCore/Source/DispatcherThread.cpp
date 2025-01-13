@@ -18,7 +18,7 @@ DispatcherThread::DispatcherThread(const std::string& threadName, size_t threadS
 }
 
 DispatcherThread::~DispatcherThread() {
-    if (thread->getState() != Thread::StateStopped) {
+    if (thread->getState() != Thread::State::Stopped) {
         stop();
     }
 }
