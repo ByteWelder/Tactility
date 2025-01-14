@@ -29,12 +29,12 @@ runs:
     - name: 'Upload Artifact: Release'
       uses: actions/upload-artifact@v4
       with:
-        name: tactility-${{ inputs.board_id }}
+        name: Tactility-${{ inputs.board_id }}
         path: release/Tactility-${{ inputs.board_id }}
         retention-days: 30
     - name: 'Upload Artifact: Release symbols'
       uses: actions/upload-artifact@v4
       with:
-        name: tactility-${{ inputs.board_id }}-symbols
+        name: Tactility-${{ inputs.board_id }}-symbols
         path: release/Tactility-${{ inputs.board_id }}-symbols
         retention-days: 30
