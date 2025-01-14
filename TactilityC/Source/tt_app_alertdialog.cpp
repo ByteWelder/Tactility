@@ -3,7 +3,7 @@
 
 extern "C" {
 
-void tt_app_alertdialog_start(const char* title, const char* message, const char* buttonLabels[], uint32_t buttonLabelCount) {
+void tt_app_alertdialog_start(const char* title, const char* message, const char* _Nullable buttonLabels[], uint32_t buttonLabelCount) {
     std::vector<std::string> list;
     for (int i = 0; i < buttonLabelCount; i++) {
         const char* item = buttonLabels[i];

@@ -15,7 +15,7 @@ extern "C" {
  * @param[in] buttonLabels the buttons to show, or null when there are none to show
  * @param[in] buttonLabelCount the amount of buttons (0 or more)
  */
-void tt_app_alertdialog_start(const char* title, const char* message, const char* buttonLabels[], uint32_t buttonLabelCount);
+void tt_app_alertdialog_start(const char* title, const char* message, const char* _Nullable buttonLabels[], uint32_t buttonLabelCount);
 
 /**
  * @return the index of the button that was clicked (the index in the array when start() was called)
