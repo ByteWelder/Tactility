@@ -1,3 +1,7 @@
 #pragma once
 
-#define IMAGE_VIEWER_FILE_ARGUMENT "file"
+namespace tt::app::imageviewer {
+
+void start(const std::string& file);
+
+};

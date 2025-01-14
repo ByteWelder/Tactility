@@ -3,13 +3,12 @@
 #include "Check.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
-#include "Assets.h"
 
 namespace tt::app::launcher {
 
 static void onAppPressed(TT_UNUSED lv_event_t* e) {
     auto* appId = (const char*)lv_event_get_user_data(e);
-    service::loader::startApp(appId, false);
+    service::loader::startApp(appId);
 }
 
 static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char* imageFile, const char* appId, int32_t buttonPaddingLeft) {

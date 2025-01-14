@@ -1,6 +1,8 @@
-#include "Files.h"
+#include "app/files/FilesPrivate.h"
+
 #include "app/AppContext.h"
 #include "Assets.h"
+#include "service/loader/Loader.h"
 
 #include <memory>
 
@@ -36,5 +38,9 @@ extern const AppManifest manifest = {
     .onShow = onShow,
     .onResult = onResult
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace

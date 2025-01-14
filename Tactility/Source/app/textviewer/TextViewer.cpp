@@ -4,8 +4,10 @@
 #include "lvgl/LabelUtils.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
+#include "service/loader/Loader.h"
 
 #define TAG "text_viewer"
+#define TEXT_VIEWER_FILE_ARGUMENT "file"
 
 namespace tt::app::textviewer {
 
@@ -44,5 +46,12 @@ extern const AppManifest manifest = {
     .type = TypeHidden,
     .onShow = onShow
 };
+
+void start(const std::string& file) {
+    auto parameters = std::make_shared<Bundle>();
+    parameters->putString(TEXT_VIEWER_FILE_ARGUMENT, file);
+    service::loader::startApp(manifest.id, parameters);
+}
+
 
 } // namespace

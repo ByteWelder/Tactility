@@ -57,17 +57,12 @@ typedef struct {
 
 class LoaderMessageAppStart {
 public:
-    // This lock blocks anyone from starting an app as long
-    // as an app is already running via loader_start()
-    // This lock's lifecycle is not owned by this class.
-    std::shared_ptr<EventFlag> api_lock = std::make_shared<EventFlag>();
     std::string id;
     std::shared_ptr<const Bundle> _Nullable parameters;
 
     LoaderMessageAppStart() = default;
 
     LoaderMessageAppStart(LoaderMessageAppStart& other) :
-        api_lock(other.api_lock),
         id(other.id),
         parameters(other.parameters) {}
 
@@ -77,14 +72,6 @@ public:
     {}
 
     ~LoaderMessageAppStart() = default;
-
-    std::shared_ptr<EventFlag> getApiLockEventFlag() { return api_lock; }
-
-    uint32_t getApiLockEventFlagValue() { return 1; }
-
-    void onProcessed() {
-        api_lock->set(1);
-    }
 };
 
 // endregion LoaderMessage

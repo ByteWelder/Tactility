@@ -27,7 +27,7 @@ const AppContext* _Nullable optWifiApSettingsApp() {
 void start(const std::string& ssid) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString("ssid", ssid);
-    service::loader::startApp(manifest.id, false, bundle);
+    service::loader::startApp(manifest.id, bundle);
 }
 
 static void onPressForget(TT_UNUSED lv_event_t* event) {

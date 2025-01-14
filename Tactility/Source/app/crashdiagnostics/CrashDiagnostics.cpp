@@ -1,11 +1,11 @@
 #ifdef ESP_TARGET
 
+#include "app/crashdiagnostics/QrHelpers.h"
+#include "app/crashdiagnostics/QrUrl.h"
+#include "app/launcher/Launcher.h"
 #include "lvgl.h"
 #include "lvgl/Statusbar.h"
-#include "app/launcher/Launcher.h"
 #include "qrcode.h"
-#include "QrHelpers.h"
-#include "QrUrl.h"
 #include "service/loader/Loader.h"
 
 #define TAG "crash_diagnostics"

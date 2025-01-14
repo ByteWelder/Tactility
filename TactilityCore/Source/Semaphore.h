@@ -32,7 +32,7 @@ public:
     ~Semaphore();
 
     /** Acquire semaphore */
-    bool acquire(uint32_t timeoutTicks) const;
+    bool acquire(uint32_t timeout) const;
 
     /** Release semaphore */
     bool release() const;

@@ -1,4 +1,4 @@
-#include "I2cScannerThread.h"
+#include "app/i2cscanner/I2cScannerThread.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
 

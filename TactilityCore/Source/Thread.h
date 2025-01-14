@@ -122,17 +122,22 @@ public:
     void start();
 
     /** Join Thread
-     * @warning Use this method only when CPU is not busy (Idle task receives control), otherwise it will wait forever.
+     * @warning make sure you manually interrupt any logic in your thread (e.g. by an EventFlag or boolean+Mutex)
+     * @param[in] timeout the maximum amount of time to wait
+     * @param[in] pollInterval the amount of ticks to wait before we check again if the thread is finished
      * @return success result
      */
-    bool join();
+    bool join(TickType_t timeout = portMAX_DELAY, TickType_t pollInterval = 10);
 
     /** Get FreeRTOS ThreadId for Thread instance
      * @return ThreadId or nullptr
      */
     ThreadId getId() const;
 
-    /** @return thread return code */
+    /**
+     * @warning crashes when state is not "stopped"
+     * @return thread return code
+     */
     int32_t getReturnCode() const;
 
 private:

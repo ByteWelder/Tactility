@@ -41,20 +41,11 @@ static void loader_free() {
     loader_singleton = nullptr;
 }
 
-void startApp(const std::string& id, bool blocking, const std::shared_ptr<const Bundle>& parameters) {
+void startApp(const std::string& id, const std::shared_ptr<const Bundle>& parameters) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
-
     auto message = std::make_shared<LoaderMessageAppStart>(id, parameters);
     loader_singleton->dispatcherThread->dispatch(onStartAppMessage, message);
-
-    auto event_flag = message->getApiLockEventFlag();
-    if (blocking) {
-        /* TODO: Check if task id is not the LVGL one,
-         because otherwise this fails as the apps starting logic will try to lock lvgl
-         to update the UI and fail. */
-        event_flag->wait(message->getApiLockEventFlagValue());
-    }
 }
 
 void stopApp() {

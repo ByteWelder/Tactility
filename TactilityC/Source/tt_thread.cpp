@@ -55,8 +55,8 @@ void tt_thread_start(ThreadHandle handle) {
     HANDLE_AS_THREAD(handle)->start();
 }
 
-bool tt_thread_join(ThreadHandle handle) {
-    return HANDLE_AS_THREAD(handle)->join();
+bool tt_thread_join(ThreadHandle handle, TickType_t timeout) {
+    return HANDLE_AS_THREAD(handle)->join(timeout);
 }
 
 ThreadId tt_thread_get_id(ThreadHandle handle) {

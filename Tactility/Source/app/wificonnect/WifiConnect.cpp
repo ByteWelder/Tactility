@@ -1,4 +1,4 @@
-#include "WifiConnect.h"
+#include "app/wificonnect/WifiConnectPrivate.h"
 
 #include "app/AppContext.h"
 #include "TactilityCore.h"
@@ -9,6 +9,8 @@
 namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
+#define WIFI_CONNECT_PARAM_SSID "ssid" // String
+#define WIFI_CONNECT_PARAM_PASSWORD "password" // String
 
 extern const AppManifest manifest;
 
@@ -123,10 +125,25 @@ extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
-    .type = TypeSettings,
+    .type = TypeHidden,
     .onStart = &onStart,
     .onShow = &onShow,
     .onHide = &onHide
 };
+
+void start(const std::string& ssid, const std::string& password) {
+    auto parameters = std::make_shared<Bundle>();
+    parameters->putString(WIFI_CONNECT_PARAM_SSID, ssid);
+    parameters->putString(WIFI_CONNECT_PARAM_PASSWORD, password);
+    service::loader::startApp(manifest.id, parameters);
+}
+
+bool optSsidParameter(const std::shared_ptr<const Bundle>& bundle, std::string& ssid) {
+    return bundle->optString(WIFI_CONNECT_PARAM_SSID, ssid);
+}
+
+bool optPasswordParameter(const std::shared_ptr<const Bundle>& bundle, std::string& password) {
+    return bundle->optString(WIFI_CONNECT_PARAM_PASSWORD, password);
+}
 
 } // namespace

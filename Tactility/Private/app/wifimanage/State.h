@@ -18,7 +18,7 @@ class State {
     std::string connectSsid;
 
 public:
-    State() {}
+    State() = default;
 
     void setScanning(bool isScanning);
     bool isScanning() const;
@@ -33,7 +33,7 @@ public:
     const std::vector<service::wifi::WifiApRecord>& lockApRecords() const;
     void unlockApRecords() const;
 
-    void setConnectSsid(std::string ssid);
+    void setConnectSsid(const std::string& ssid);
     std::string getConnectSsid() const;
 };
 

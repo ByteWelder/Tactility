@@ -10,7 +10,7 @@ namespace tt::app::applist {
 
 static void onAppPressed(lv_event_t* e) {
     const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-    service::loader::startApp(manifest->id, false);
+    service::loader::startApp(manifest->id);
 }
 
 static void createAppWidget(const AppManifest* manifest, void* parent) {
