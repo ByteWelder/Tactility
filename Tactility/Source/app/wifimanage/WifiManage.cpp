@@ -1,6 +1,6 @@
-#include "WifiManage.h"
-#include "View.h"
-#include "State.h"
+#include "app/wifimanage/WifiManagePrivate.h"
+#include "app/wifimanage/View.h"
+#include "app/wifimanage/State.h"
 
 #include "app/AppContext.h"
 #include "app/wifiapsettings/WifiApSettings.h"
@@ -173,5 +173,9 @@ extern const AppManifest manifest = {
     .onShow = onShow,
     .onHide = onHide
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace

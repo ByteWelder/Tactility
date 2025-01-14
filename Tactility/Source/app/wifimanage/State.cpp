@@ -1,5 +1,5 @@
 #include <Check.h>
-#include "WifiManage.h"
+#include "app/wifimanage/WifiManagePrivate.h"
 
 namespace tt::app::wifimanage {
 
@@ -48,7 +48,7 @@ void State::updateApRecords() {
     tt_check(mutex.release() == TtStatusOk);
 }
 
-void State::setConnectSsid(std::string ssid) {
+void State::setConnectSsid(const std::string& ssid) {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     connectSsid = ssid;
     tt_check(mutex.release() == TtStatusOk);

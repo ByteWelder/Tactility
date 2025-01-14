@@ -1,8 +1,8 @@
 #pragma once
 
 #include "app/AppContext.h"
-#include "Bindings.h"
-#include "State.h"
+#include "./Bindings.h"
+#include "./State.h"
 #include "lvgl.h"
 
 namespace tt::app::wifimanage {

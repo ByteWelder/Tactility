@@ -1,5 +1,5 @@
-#include "View.h"
-#include "WifiManage.h"
+#include "app/wifimanage/View.h"
+#include "app/wifimanage/WifiManagePrivate.h"
 
 #include "Log.h"
 #include "service/wifi/Wifi.h"
