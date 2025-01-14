@@ -12,7 +12,13 @@
  */
 namespace tt::app::alertdialog {
 
-    void start(std::string title, std::string message, const std::vector<std::string>& buttonLabels);
+    /**
+     * Show a dialog with the provided title, message and 0, 1 or more buttons.
+     * @param[in] title the title to show in the toolbar
+     * @param[in] message the message to display
+     * @param[in] buttonLabels the buttons to show
+     */
+    void start(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels);
 
     /**
      * Get the index of the button that the user selected.
