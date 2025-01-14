@@ -1,6 +1,5 @@
-#include "View.h"
-#include "State.h"
-#include "Parameters.h"
+#include "app/wificonnect/View.h"
+#include "app/wificonnect/WifiConnectPrivate.h"
 #include "WifiConnect.h"
 
 #include "lvgl.h"
@@ -186,19 +185,19 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     createBottomButtons(wrapper);
 
     // Keyboard bindings
-        service::gui::keyboardAddTextArea(ssid_textarea);
-        service::gui::keyboardAddTextArea(password_textarea);
+    service::gui::keyboardAddTextArea(ssid_textarea);
+    service::gui::keyboardAddTextArea(password_textarea);
 
     // Init from app parameters
     auto bundle = app.getParameters();
     if (bundle != nullptr) {
         std::string ssid;
-        if (bundle->optString(WIFI_CONNECT_PARAM_SSID, ssid)) {
+        if (optSsidParameter(bundle, ssid)) {
             lv_textarea_set_text(ssid_textarea, ssid.c_str());
         }
 
         std::string password;
-        if (bundle->optString(WIFI_CONNECT_PARAM_PASSWORD, password)) {
+        if (optPasswordParameter(bundle, ssid)) {
             lv_textarea_set_text(password_textarea, password.c_str());
         }
     }

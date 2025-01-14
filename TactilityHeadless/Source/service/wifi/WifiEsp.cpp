@@ -199,6 +199,11 @@ void connect(const settings::WifiApSettings* ap, bool remember) {
     wifi->pause_auto_connect = true;
     memcpy(&wifi->connection_target, ap, sizeof(settings::WifiApSettings));
     wifi->connection_target_remember = remember;
+
+    if (wifi->getRadioState() == WIFI_RADIO_OFF) {
+        getMainDispatcher().dispatch(dispatchEnable, wifi);
+    }
+
     getMainDispatcher().dispatch(dispatchConnect, wifi);
 }
 

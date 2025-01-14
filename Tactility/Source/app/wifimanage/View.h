@@ -19,11 +19,13 @@ private:
     lv_obj_t* enable_on_boot_switch = nullptr;
     lv_obj_t* scanning_spinner = nullptr;
     lv_obj_t* networks_list = nullptr;
+    lv_obj_t* connect_to_hidden = nullptr;
 
     void updateWifiToggle();
     void updateEnableOnBootToggle();
     void updateScanning();
     void updateNetworkList();
+    void updateConnectToHidden();
     void createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting);
 
 public:

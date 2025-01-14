@@ -3,12 +3,12 @@
 #include "State.h"
 
 #include "app/AppContext.h"
-#include "app/wificonnect/Parameters.h"
 #include "app/wifiapsettings/WifiApSettings.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/WifiSettings.h"
 #include "lvgl/LvglSync.h"
+#include "app/wificonnect/WifiConnect.h"
 
 namespace tt::app::wifimanage {
 
@@ -33,10 +33,7 @@ static void onConnect(const char* ssid) {
         service::wifi::connect(&settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
-        auto bundle = std::make_shared<Bundle>();
-        bundle->putString(WIFI_CONNECT_PARAM_SSID, ssid);
-        bundle->putString(WIFI_CONNECT_PARAM_PASSWORD, "");
-        service::loader::startApp("WifiConnect", false, bundle);
+        wificonnect::start(ssid);
     }
 }
 
@@ -52,12 +49,17 @@ static void onWifiToggled(bool enabled) {
     service::wifi::setEnabled(enabled);
 }
 
+static void onConnectToHidden() {
+    wificonnect::start();
+}
+
 WifiManage::WifiManage() {
     bindings = (Bindings) {
         .onWifiToggled = onWifiToggled,
         .onConnectSsid = onConnect,
         .onDisconnect = onDisconnect,
-        .onShowApSettings = onShowApSettings
+        .onShowApSettings = onShowApSettings,
+        .onConnectToHidden = onConnectToHidden
     };
 }
 

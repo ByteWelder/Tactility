@@ -85,7 +85,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
     } else if (isSupportedImageFile(filename)) {
         auto bundle = std::make_shared<Bundle>();
         bundle->putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
-        service::loader::startApp("ImageViewer", false, bundle);
+        service::loader::startApp("ImageViewer", bundle);
     } else if (isSupportedTextFile(filename)) {
         auto bundle = std::make_shared<Bundle>();
         if (kernel::getPlatform() == kernel::PlatformEsp) {
@@ -94,7 +94,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             // Remove forward slash, because we need a relative path
             bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath.substr(1));
         }
-        service::loader::startApp("TextViewer", false, bundle);
+        service::loader::startApp("TextViewer", bundle);
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
     }

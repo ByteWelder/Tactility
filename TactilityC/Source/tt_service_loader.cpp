@@ -4,9 +4,9 @@
 
 extern "C" {
 
-void tt_service_loader_start_app(const char* id, bool blocking, BundleHandle _Nullable bundle) {
+void tt_service_loader_start_app(const char* id, BundleHandle _Nullable bundle) {
     auto shared_bundle = std::shared_ptr<tt::Bundle>((tt::Bundle*)bundle);
-    tt::service::loader::startApp(id, blocking, std::move(shared_bundle));
+    tt::service::loader::startApp(id, std::move(shared_bundle));
 }
 
 void tt_service_loader_stop_app() {
