@@ -1,3 +1,7 @@
 #pragma once
 
-#define TEXT_VIEWER_FILE_ARGUMENT "file"
+namespace tt::app::textviewer {
+
+void start(const std::string&file);
+
+}

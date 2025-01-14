@@ -1,15 +1,16 @@
 #include <TactilityCore.h>
-#include "ImageViewer.h"
 #include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
 #include "StringUtils.h"
+#include "service/loader/Loader.h"
 
 namespace tt::app::imageviewer {
 
 extern const AppManifest manifest;
 
 #define TAG "image_viewer"
+#define IMAGE_VIEWER_FILE_ARGUMENT "file"
 
 static void onShow(AppContext& app, lv_obj_t* parent) {
     auto wrapper = lv_obj_create(parent);
@@ -56,5 +57,11 @@ extern const AppManifest manifest = {
     .type = TypeHidden,
     .onShow = onShow
 };
+
+void start(const std::string& file) {
+    auto parameters = std::make_shared<Bundle>();
+    parameters->putString(IMAGE_VIEWER_FILE_ARGUMENT, file);
+    service::loader::startApp(manifest.id, parameters);
+}
 
 } // namespace

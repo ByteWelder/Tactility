@@ -1,4 +1,4 @@
-#include "I2cHelpers.h"
+#include "app/i2cscanner/I2cHelpers.h"
 #include "Tactility.h"
 #include "StringUtils.h"
 #include <iomanip>

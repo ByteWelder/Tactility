@@ -1,3 +1,6 @@
+#include "app/files/FileUtils.h"
+#include "app/files/View.h"
+
 #include "app/alertdialog/AlertDialog.h"
 #include "app/imageviewer/ImageViewer.h"
 #include "app/inputdialog/InputDialog.h"
@@ -6,9 +9,7 @@
 #include "lvgl/Toolbar.h"
 #include "lvgl/LvglSync.h"
 #include "service/loader/Loader.h"
-#include "FileUtils.h"
 #include "Tactility.h"
-#include "View.h"
 #include "StringUtils.h"
 #include <cstring>
 #include <unistd.h>
@@ -83,18 +84,14 @@ void View::viewFile(const std::string& path, const std::string& filename) {
         app::startElfApp(processed_filepath);
 #endif
     } else if (isSupportedImageFile(filename)) {
-        auto bundle = std::make_shared<Bundle>();
-        bundle->putString(IMAGE_VIEWER_FILE_ARGUMENT, processed_filepath);
-        service::loader::startApp("ImageViewer", bundle);
+        app::imageviewer::start(processed_filepath);
     } else if (isSupportedTextFile(filename)) {
-        auto bundle = std::make_shared<Bundle>();
         if (kernel::getPlatform() == kernel::PlatformEsp) {
-            bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath);
+            app::textviewer::start(processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
-            bundle->putString(TEXT_VIEWER_FILE_ARGUMENT, processed_filepath.substr(1));
+            app::textviewer::start(processed_filepath.substr(1));
         }
-        service::loader::startApp("TextViewer", bundle);
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
     }

@@ -1,6 +1,5 @@
+#include "app/crashdiagnostics/QrHelpers.h"
 #include <cstdint>
-#include <cassert>
-#include "QrHelpers.h"
 
 /**
  * Maps QR version (starting at a fictitious 0)  to the usable byte size for L(ow) CRC checking QR.

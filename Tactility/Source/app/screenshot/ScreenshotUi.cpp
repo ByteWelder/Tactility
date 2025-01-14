@@ -2,7 +2,7 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "ScreenshotUi.h"
+#include "app/screenshot/ScreenshotUi.h"
 
 #include "TactilityCore.h"
 #include "hal/SdCard.h"

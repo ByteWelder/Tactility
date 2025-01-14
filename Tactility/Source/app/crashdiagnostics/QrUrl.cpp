@@ -1,6 +1,6 @@
 #ifdef ESP_TARGET
 
-#include "QrUrl.h"
+#include "app/crashdiagnostics/QrUrl.h"
 
 #include "kernel/PanicHandler.h"
 #include "Log.h"
