@@ -7,9 +7,10 @@ extern "C" {
 #include <stdint.h>
 #include <stdbool.h>
 
+/** The handle that represents a bundle instance */
 typedef void* BundleHandle;
 
-/** @return a new Bundle instance */
+/** @return a new bundle instance */
 BundleHandle tt_bundle_alloc();
 
 /** Dealloc an existing bundle instance */
