@@ -187,15 +187,19 @@ void Thread::start() {
     tt_check(data.state == State::Stopped || data.taskHandle);
 }
 
-bool Thread::join() {
+bool Thread::join(TickType_t timeout, TickType_t pollInterval) {
     tt_check(thread_get_current() != this);
 
     // !!! IMPORTANT NOTICE !!!
     //
     // If your thread exited, but your app stuck here: some other thread uses
     // all cpu time, which delays kernel from releasing task handle
+    TickType_t start_ticks = kernel::getTicks();
     while (data.taskHandle) {
-        kernel::delayMillis(10);
+        kernel::delayTicks(pollInterval);
+        if ((kernel::getTicks() - start_ticks) > timeout) {
+            return false;
+        }
     }
 
     return true;
