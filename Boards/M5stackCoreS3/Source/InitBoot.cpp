@@ -74,22 +74,25 @@ bool initGpioExpander() {
 bool initPowerControl() {
     TT_LOG_I(TAG, "Init power control");
 
-    static constexpr std::uint8_t reg_data_array[] = {
-        0x90, 0xBF, // LDOS ON/OFF control 0
-        0x92, 18 -5, // ALDO1 set to 1.8v // for AW88298
-        0x93, 33 -5, // ALDO2 set to 3.3v // for ES7210
-        0x94, 33 -5, // ALDO3 set to 3.3v // for camera
-        0x95, 33 -5, // ALDO3 set to 3.3v // for TF card slot
-        0x99, 29 - 5, // Display backlight
-        0x27, 0x00, // PowerKey Hold=1sec / PowerOff=4sec
-        0x69, 0x11, // CHGLED setting
-        0x10, 0x30, // PMU common config
-        0x30, 0x0F // ADC enabled (for voltage measurement)
-    };
+    uint8_t sdcard_3v3 = 0b00011100;
+    // TODO: Refactor to use Axp2101 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L62
+    if (!tt::hal::i2c::masterWriteRegister(I2C_NUM_0, AXP2101_ADDRESS, 0x95, &sdcard_3v3, 1, 1000)) {
+        TT_LOG_E(TAG, "Failed to enable SD card");
+        return false;
+    }
+
+    // TODO: Refactor to use Axp2102 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L42
+    uint8_t axp_dld01_enable = 0xBF; // For backlight
+    if (!tt::hal::i2c::masterWriteRegister(I2C_NUM_0, AXP2101_ADDRESS, 0x90, &axp_dld01_enable, 1, 1000)) {
+        TT_LOG_E(TAG, "Failed to enable display backlight");
+        return false;
+    }
 
     // TODO: Refactor to use Axp2101 class with https://github.com/m5stack/M5Unified/blob/b8cfec7fed046242da7f7b8024a4e92004a51ff7/src/utility/AXP2101_Class.cpp#L62
-    if (!tt::hal::i2c::masterWriteRegisterArray(I2C_NUM_0, AXP2101_ADDRESS, reg_data_array, sizeof(reg_data_array), 1000)) {
-        TT_LOG_E(TAG, "Failed to init 1 or more AXCP2102 values");
+    uint8_t axp_dld01_voltage = 0b00011000; // For backlight
+    if (!tt::hal::i2c::masterWriteRegister(I2C_NUM_0, AXP2101_ADDRESS, 0x99, &axp_dld01_voltage, 1, 1000)) {
+        TT_LOG_E(TAG, "Failed to set display backlight voltage");
+
         return false;
     }
 
