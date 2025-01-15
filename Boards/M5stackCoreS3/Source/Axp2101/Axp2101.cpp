@@ -3,7 +3,7 @@
 
 bool Axp2101::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
         out = (data[0] & 0x0F) << 8 | data[1];
         return true;
     } else {
@@ -13,7 +13,7 @@ bool Axp2101::readRegister12(uint8_t reg, float& out) const {
 
 bool Axp2101::readRegister14(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
         out = (data[0] & 0x3F) << 8 | data[1];
         return true;
     } else {
@@ -23,7 +23,7 @@ bool Axp2101::readRegister14(uint8_t reg, float& out) const {
 
 bool Axp2101::readRegister16(uint8_t reg, uint16_t& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
         out = data[0] << 8 | data[1];
         return true;
     } else {
@@ -36,7 +36,7 @@ bool Axp2101::readRegister8(uint8_t reg, uint8_t& result) const {
 }
 
 bool Axp2101::writeRegister8(uint8_t reg, uint8_t value) const {
-    return tt::hal::i2c::masterWrite(port, DEFAULT_ADDRESS, reg, &value, 1, DEFAULT_TIMEOUT);
+    return tt::hal::i2c::masterWriteRegister(port, DEFAULT_ADDRESS, reg, &value, 1, DEFAULT_TIMEOUT);
 }
 
 bool Axp2101::getBatteryVoltage(float& vbatMillis) const {

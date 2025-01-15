@@ -198,7 +198,7 @@ bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize
     }
 }
 
-bool masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
+bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
     if (!lock(port)) {
@@ -241,7 +241,7 @@ bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_
     }
 }
 
-bool masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+bool masterWriteRegister(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
     if (!lock(port)) {
@@ -263,6 +263,17 @@ bool masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* 
     ESP_ERROR_CHECK_WITHOUT_ABORT(result);
 
     return result == ESP_OK;
+}
+
+bool masterWriteRegisterArray(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    assert(dataSize % 2 == 0);
+    bool result = true;
+    for (int i = 0; i < dataSize; i += 2) {
+        if (!masterWriteRegister(port, address, data[i], &data[i + 1], 1, timeout)) {
+            result = false;
+        }
+    }
+    return result;
 }
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
