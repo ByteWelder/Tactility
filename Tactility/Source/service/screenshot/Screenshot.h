@@ -10,11 +10,11 @@
 
 namespace tt::service::screenshot {
 
-typedef enum {
-    ScreenshotModeNone,
-    ScreenshotModeTimed,
-    ScreenshotModeApps
-} Mode;
+enum class Mode {
+    None,
+    Timed,
+    Apps
+};
 
 class ScreenshotService {
 
@@ -22,14 +22,14 @@ private:
 
     Mutex mutex;
     std::unique_ptr<ScreenshotTask> task;
-    Mode mode = ScreenshotModeNone;
+    Mode mode = Mode::None;
 
 public:
 
     bool isTaskStarted();
 
     /** The state of the service. */
-    Mode getMode();
+    Mode getMode() const;
 
     /** @brief Start taking screenshot whenever an app is started
      * @param[in] path the path to store the screenshots at

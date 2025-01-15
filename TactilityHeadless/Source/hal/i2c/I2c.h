@@ -9,11 +9,11 @@
 
 namespace tt::hal::i2c {
 
-typedef enum {
-    InitByTactility, // Tactility will initialize it in the correct bootup phase
-    InitByExternal, // The device is already initialized and Tactility should assume it works
-    InitDisabled // Not initialized by default
-} InitMode;
+enum class InitMode {
+    ByTactility, // Tactility will initialize it in the correct bootup phase
+    ByExternal, // The device is already initialized and Tactility should assume it works
+    Disabled // Not initialized by default
+};
 
 struct Configuration {
     std::string name;

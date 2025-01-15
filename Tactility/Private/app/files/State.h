@@ -19,7 +19,7 @@ public:
 
 private:
 
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::vector<dirent> dir_entries;
     std::string current_path;
     std::string selected_child_entry;

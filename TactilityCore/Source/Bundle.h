@@ -19,11 +19,11 @@ private:
 
     typedef uint32_t Hash;
 
-    typedef enum {
-        TypeBool,
-        TypeInt32,
-        TypeString,
-    } Type;
+    enum class Type {
+        Bool,
+        Int32,
+        String,
+    };
 
     typedef struct {
         Type type;

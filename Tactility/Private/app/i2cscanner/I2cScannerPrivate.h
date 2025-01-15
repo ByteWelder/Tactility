@@ -20,7 +20,7 @@ enum ScanState {
 
 struct Data {
     // Core
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::unique_ptr<Timer> scanTimer = nullptr;
     // State
     ScanState scanState;

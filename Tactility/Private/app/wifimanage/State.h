@@ -10,11 +10,11 @@ namespace tt::app::wifimanage {
  */
 class State {
 
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     bool scanning = false;
     bool scannedAfterRadioOn = false;
-    service::wifi::WifiRadioState radioState;
-    std::vector<service::wifi::WifiApRecord> apRecords;
+    service::wifi::RadioState radioState;
+    std::vector<service::wifi::ApRecord> apRecords;
     std::string connectSsid;
 
 public:
@@ -25,12 +25,12 @@ public:
 
     bool hasScannedAfterRadioOn() const { return scannedAfterRadioOn; }
 
-    void setRadioState(service::wifi::WifiRadioState state);
-    service::wifi::WifiRadioState getRadioState() const;
+    void setRadioState(service::wifi::RadioState state);
+    service::wifi::RadioState getRadioState() const;
 
     void updateApRecords();
 
-    const std::vector<service::wifi::WifiApRecord>& lockApRecords() const;
+    const std::vector<service::wifi::ApRecord>& lockApRecords() const;
     void unlockApRecords() const;
 
     void setConnectSsid(const std::string& ssid);

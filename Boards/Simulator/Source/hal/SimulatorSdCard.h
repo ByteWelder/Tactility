@@ -8,14 +8,14 @@ class SimulatorSdCard : public SdCard {
 private:
     State state;
 public:
-    SimulatorSdCard() : SdCard(MountBehaviourAtBoot), state(StateUnmounted) {}
+    SimulatorSdCard() : SdCard(MountBehaviour::AtBoot), state(State::Unmounted) {}
 
     bool mount(const char* mountPath) override {
-        state = StateMounted;
+        state = State::Mounted;
         return true;
     }
     bool unmount() override {
-        state = StateUnmounted;
+        state = State::Unmounted;
         return true;
     }
 

@@ -37,7 +37,7 @@ class AppInstance : public AppContext {
 
 private:
 
-    Mutex mutex = Mutex(Mutex::TypeNormal);
+    Mutex mutex = Mutex(Mutex::Type::Normal);
     const AppManifest& manifest;
     State state = StateInitial;
     Flags flags = { .showStatusbar = true };

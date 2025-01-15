@@ -13,17 +13,17 @@
 namespace tt {
 
 /** Used for log output filtering */
-enum LogLevel {
-    LogLevelNone,       /*!< No log output */
-    LogLevelError,      /*!< Critical errors, software module can not recover on its own */
-    LogLevelWarning,    /*!< Error conditions from which recovery measures have been taken */
-    LogLevelInfo,       /*!< Information messages which describe normal flow of events */
-    LogLevelDebug,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
-    LogLevelVerbose     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
+enum class LogLevel {
+    None,       /*!< No log output */
+    Error,      /*!< Critical errors, software module can not recover on its own */
+    Warning,    /*!< Error conditions from which recovery measures have been taken */
+    Info,       /*!< Information messages which describe normal flow of events */
+    Debug,      /*!< Extra information which is not necessary for normal use (values, pointers, sizes, etc). */
+    Verbose     /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 };
 
 struct LogEntry {
-    LogLevel level = LogLevelNone;
+    LogLevel level = LogLevel::None;
     char message[TT_LOG_MESSAGE_SIZE] = { 0 };
 };
 
@@ -64,14 +64,14 @@ void log(LogLevel level, const char* tag, const char* format, ...);
 } // namespace
 
 #define TT_LOG_E(tag, format, ...) \
-    tt::log(tt::LogLevelError, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Error, tag, format, ##__VA_ARGS__)
 #define TT_LOG_W(tag, format, ...) \
-    tt::log(tt::LogLevelWarning, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Warning, tag, format, ##__VA_ARGS__)
 #define TT_LOG_I(tag, format, ...) \
-    tt::log(tt::LogLevelInfo, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Info, tag, format, ##__VA_ARGS__)
 #define TT_LOG_D(tag, format, ...) \
-    tt::log(tt::LogLevelDebug, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Debug, tag, format, ##__VA_ARGS__)
 #define TT_LOG_T(tag, format, ...) \
-    tt::log(tt::LogLevelTrace, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Trace, tag, format, ##__VA_ARGS__)
 
 #endif // ESP_TARGET

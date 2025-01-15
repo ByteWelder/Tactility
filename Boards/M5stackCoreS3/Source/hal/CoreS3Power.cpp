@@ -5,11 +5,11 @@
 
 bool CoreS3Power::supportsMetric(MetricType type) const {
     switch (type) {
-        case BATTERY_VOLTAGE:
-        case IS_CHARGING:
-        case CHARGE_LEVEL:
+        case MetricType::BatteryVoltage:
+        case MetricType::IsCharging:
+        case MetricType::ChargeLevel:
             return true;
-        case CURRENT:
+        case MetricType::Current:
             return false;
     }
 
@@ -18,7 +18,7 @@ bool CoreS3Power::supportsMetric(MetricType type) const {
 
 bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case BATTERY_VOLTAGE: {
+        case MetricType::BatteryVoltage: {
             float milliVolt;
             if (axpDevice.getBatteryVoltage(milliVolt)) {
                 data.valueAsUint32 = (uint32_t)milliVolt;
@@ -27,7 +27,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case CHARGE_LEVEL: {
+        case MetricType::ChargeLevel: {
             float vbatMillis;
             if (axpDevice.getBatteryVoltage(vbatMillis)) {
                 float vbat = vbatMillis / 1000.f;
@@ -44,7 +44,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case IS_CHARGING: {
+        case MetricType::IsCharging: {
             Axp2101::ChargeStatus status;
             if (axpDevice.getChargeStatus(status)) {
                 data.valueAsBool = (status == Axp2101::CHARGE_STATUS_CHARGING);
@@ -53,7 +53,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case CURRENT:
+        case MetricType::Current:
             return false;
     }
 

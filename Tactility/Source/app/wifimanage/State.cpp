@@ -10,16 +10,16 @@ void State::setScanning(bool isScanning) {
     tt_check(mutex.release() == TtStatusOk);
 }
 
-void State::setRadioState(service::wifi::WifiRadioState state) {
+void State::setRadioState(service::wifi::RadioState state) {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     radioState = state;
-    if (radioState == service::wifi::WIFI_RADIO_OFF) {
+    if (radioState == service::wifi::RadioState::Off) {
         scannedAfterRadioOn = false;
     }
     tt_check(mutex.release() == TtStatusOk);
 }
 
-service::wifi::WifiRadioState State::getRadioState() const {
+service::wifi::RadioState State::getRadioState() const {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     auto result = radioState;
     tt_check(mutex.release() == TtStatusOk);
@@ -33,7 +33,7 @@ bool State::isScanning() const {
     return result;
 }
 
-const std::vector<service::wifi::WifiApRecord>& State::lockApRecords() const {
+const std::vector<service::wifi::ApRecord>& State::lockApRecords() const {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     return apRecords;
 }

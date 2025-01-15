@@ -10,13 +10,6 @@ namespace tt::service::loader {
 
 typedef struct Loader Loader;
 
-typedef enum {
-    LoaderStatusOk,
-    LoaderStatusErrorAppStarted,
-    LoaderStatusErrorUnknownApp,
-    LoaderStatusErrorInternal,
-} LoaderStatus;
-
 
 /**
  * @brief Start an app

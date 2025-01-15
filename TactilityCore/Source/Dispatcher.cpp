@@ -9,7 +9,7 @@ namespace tt {
 #define WAIT_FLAG 1
 
 Dispatcher::Dispatcher() :
-    mutex(Mutex::TypeNormal)
+    mutex(Mutex::Type::Normal)
 {}
 
 Dispatcher::~Dispatcher() {

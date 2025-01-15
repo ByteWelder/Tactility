@@ -9,16 +9,16 @@ namespace tt::hal {
 
 class SdCard {
 public:
-    enum State {
-        StateMounted,
-        StateUnmounted,
-        StateError,
-        StateUnknown
+    enum class State {
+        Mounted,
+        Unmounted,
+        Error,
+        Unknown
     };
 
-    enum MountBehaviour {
-        MountBehaviourAtBoot, /** Only mount at boot */
-        MountBehaviourAnytime /** Mount/dismount any time */
+    enum class MountBehaviour {
+        AtBoot, /** Only mount at boot */
+        Anytime /** Mount/dismount any time */
     };
 
 private:
@@ -33,7 +33,7 @@ public:
     virtual State getState() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
-    bool isMounted() const { return getState() == StateMounted; }
+    bool isMounted() const { return getState() == State::Mounted; }
 };
 
 } // namespace

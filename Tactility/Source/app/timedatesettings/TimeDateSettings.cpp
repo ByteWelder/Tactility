@@ -4,7 +4,6 @@
 #include "service/loader/Loader.h"
 #include "app/timezone/TimeZone.h"
 #include "Assets.h"
-#include "Tactility.h"
 #include "time/Time.h"
 #include "lvgl/LvglSync.h"
 
@@ -15,7 +14,7 @@ namespace tt::app::timedatesettings {
 extern const AppManifest manifest;
 
 struct Data {
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     lv_obj_t* regionLabelWidget = nullptr;
 };
 

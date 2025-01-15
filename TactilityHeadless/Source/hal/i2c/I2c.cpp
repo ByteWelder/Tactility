@@ -21,11 +21,23 @@ static Data dataArray[I2C_NUM_MAX];
 
 #define TAG "i2c"
 
+const char* initModeToString(InitMode mode) {
+    switch (mode) {
+        case InitMode::ByTactility:
+            return TT_STRINGIFY(InitMode::ByTactility);
+        case InitMode::ByExternal:
+            return TT_STRINGIFY(InitMode::ByExternal);
+        case InitMode::Disabled:
+            return TT_STRINGIFY(InitMode::Disabled);
+    }
+    tt_crash("not implemented");
+}
+
 void printInfo(const Data& data) {
     TT_LOG_V(TAG, "I2C info for port %d", data.configuration.port);
     TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
     TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %d", data.configuration.initMode);
+    TT_LOG_V(TAG, "  initMode: %s", initModeToString(data.configuration.initMode));
     TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
     TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
     TT_LOG_V(TAG, "  SDA pin: %d", data.configuration.config.sda_io_num);
@@ -46,11 +58,11 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
 
    for (const auto& config: configurations) {
        printInfo(dataArray[config.port]);
-       if (config.initMode == InitByTactility) {
+       if (config.initMode == InitMode::ByTactility) {
            if (!start(config.port)) {
                return false;
            }
-       } else if (config.initMode == InitByExternal) {
+       } else if (config.initMode == InitMode::ByExternal) {
            dataArray[config.port].isStarted = true;
        }
    }

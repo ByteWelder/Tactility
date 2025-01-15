@@ -127,7 +127,7 @@ bool SpiSdCard::unmount() {
 // TODO: Refactor to "bool getStatus(Status* status)" method so that it can fail when the lvgl lock fails
 tt::hal::SdCard::State SpiSdCard::getState() const {
     if (card == nullptr) {
-        return StateUnmounted;
+        return State::Unmounted;
     }
 
     /**
@@ -139,7 +139,7 @@ tt::hal::SdCard::State SpiSdCard::getState() const {
         bool locked = config->lockable->lock(50); // TODO: Refactor to a more reliable locking mechanism
         if (!locked) {
             TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-            return StateUnknown;
+            return State::Unknown;
         }
     }
 
@@ -150,9 +150,9 @@ tt::hal::SdCard::State SpiSdCard::getState() const {
     }
 
     if (result) {
-        return StateMounted;
+        return State::Mounted;
     } else {
-        return StateError;
+        return State::Error;
     }
 }
 

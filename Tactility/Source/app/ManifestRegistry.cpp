@@ -10,7 +10,7 @@ namespace tt::app {
 typedef std::unordered_map<std::string, const AppManifest*> AppManifestMap;
 
 static AppManifestMap app_manifest_map;
-static Mutex hash_mutex(Mutex::TypeNormal);
+static Mutex hash_mutex(Mutex::Type::Normal);
 
 void addApp(const AppManifest* manifest) {
     TT_LOG_I(TAG, "Registering manifest %s", manifest->id.c_str());

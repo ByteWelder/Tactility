@@ -56,11 +56,11 @@ TdeckPower::~TdeckPower() {
 
 bool TdeckPower::supportsMetric(MetricType type) const {
     switch (type) {
-        case BATTERY_VOLTAGE:
-        case CHARGE_LEVEL:
+        case MetricType::BatteryVoltage:
+        case MetricType::ChargeLevel:
             return true;
-        case IS_CHARGING:
-        case CURRENT:
+        case MetricType::IsCharging:
+        case MetricType::Current:
             return false;
     }
 
@@ -69,17 +69,17 @@ bool TdeckPower::supportsMetric(MetricType type) const {
 
 bool TdeckPower::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case BATTERY_VOLTAGE:
+        case MetricType::BatteryVoltage:
             return readBatteryVoltageSampled(data.valueAsUint32);
-        case CHARGE_LEVEL:
+        case MetricType::ChargeLevel:
             if (readBatteryVoltageSampled(data.valueAsUint32)) {
                 data.valueAsUint32 = estimateChargeLevelFromVoltage(data.valueAsUint32);
                 return true;
             } else {
                 return false;
             }
-        case IS_CHARGING:
-        case CURRENT:
+        case MetricType::IsCharging:
+        case MetricType::Current:
             return false;
     }
 

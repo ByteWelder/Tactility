@@ -96,7 +96,7 @@ void Gpio::startTask(std::shared_ptr<Gpio> ptr) {
     lock();
     tt_assert(timer == nullptr);
     timer = std::make_unique<Timer>(
-        Timer::TypePeriodic,
+        Timer::Type::Periodic,
         &onTimer,
         ptr
     );

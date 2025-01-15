@@ -85,19 +85,20 @@ void WifiManage::requestViewUpdate() {
 }
 
 static void wifiManageEventCallback(const void* message, void* context) {
-    auto* event = (service::wifi::WifiEvent*)message;
+    auto* event = (service::wifi::Event*)message;
     auto* wifi = (WifiManage*)context;
-    TT_LOG_I(TAG, "Update with state %d", service::wifi::getRadioState());
-    wifi->getState().setRadioState(service::wifi::getRadioState());
+    auto radio_state = service::wifi::getRadioState();
+    TT_LOG_I(TAG, "Update with state %s", service::wifi::radioStateToString(radio_state));
+    wifi->getState().setRadioState(radio_state);
     switch (event->type) {
-        case tt::service::wifi::WifiEventTypeScanStarted:
+        case tt::service::wifi::EventType::ScanStarted:
             wifi->getState().setScanning(true);
             break;
-        case tt::service::wifi::WifiEventTypeScanFinished:
+        case tt::service::wifi::EventType::ScanFinished:
             wifi->getState().setScanning(false);
             wifi->getState().updateApRecords();
             break;
-        case tt::service::wifi::WifiEventTypeRadioStateOn:
+        case tt::service::wifi::EventType::RadioStateOn:
             if (!service::wifi::isScanning()) {
                 service::wifi::scan();
             }
@@ -126,11 +127,11 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     view.update();
     unlock();
 
-    service::wifi::WifiRadioState radio_state = service::wifi::getRadioState();
-    bool can_scan = radio_state == service::wifi::WIFI_RADIO_ON ||
-        radio_state == service::wifi::WIFI_RADIO_CONNECTION_PENDING ||
-        radio_state == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE;
-    TT_LOG_I(TAG, "%d %d", radio_state, service::wifi::isScanning());
+    service::wifi::RadioState radio_state = service::wifi::getRadioState();
+    bool can_scan = radio_state == service::wifi::RadioState::On ||
+        radio_state == service::wifi::RadioState::ConnectionPending ||
+        radio_state == service::wifi::RadioState::ConnectionActive;
+    TT_LOG_I(TAG, "%s %d", service::wifi::radioStateToString(radio_state), (int)service::wifi::isScanning());
     if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }

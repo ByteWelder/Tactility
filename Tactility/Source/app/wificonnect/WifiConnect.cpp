@@ -25,18 +25,18 @@ std::shared_ptr<WifiConnect> _Nullable optWifiConnect() {
 }
 
 static void eventCallback(const void* message, void* context) {
-    auto* event = static_cast<const service::wifi::WifiEvent*>(message);
+    auto* event = static_cast<const service::wifi::Event*>(message);
     auto* wifi = static_cast<WifiConnect*>(context);
     State& state = wifi->getState();
     switch (event->type) {
-        case service::wifi::WifiEventTypeConnectionFailed:
+        case service::wifi::EventType::ConnectionFailed:
             if (state.isConnecting()) {
                 state.setConnecting(false);
                 state.setConnectionError(true);
                 wifi->requestViewUpdate();
             }
             break;
-        case service::wifi::WifiEventTypeConnectionSuccess:
+        case service::wifi::EventType::ConnectionSuccess:
             if (wifi->getState().isConnecting()) {
                 state.setConnecting(false);
                 service::loader::stopApp();

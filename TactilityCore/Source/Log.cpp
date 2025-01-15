@@ -61,15 +61,15 @@ namespace tt {
 
 static char toPrefix(LogLevel level) {
     switch (level) {
-        case LogLevelError:
+        case LogLevel::Error:
             return 'E';
-        case LogLevelWarning:
+        case LogLevel::Warning:
             return 'W';
-        case LogLevelInfo:
+        case LogLevel::Info:
             return 'I';
-        case LogLevelDebug:
+        case LogLevel::Debug:
             return 'D';
-        case LogLevelVerbose:
+        case LogLevel::Verbose:
             return 'T';
         default:
             return '?';
@@ -78,15 +78,15 @@ static char toPrefix(LogLevel level) {
 
 static const char* toColour(LogLevel level) {
     switch (level) {
-        case LogLevelError:
+        case LogLevel::Error:
             return "\033[1;31m";
-        case LogLevelWarning:
+        case LogLevel::Warning:
             return "\033[33m";
-        case LogLevelInfo:
+        case LogLevel::Info:
             return "\033[32m";
-        case LogLevelDebug:
+        case LogLevel::Debug:
             return "\033[1;37m";
-        case LogLevelVerbose:
+        case LogLevel::Verbose:
             return "\033[37m";
         default:
             return "";

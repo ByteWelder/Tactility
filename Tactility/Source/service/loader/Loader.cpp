@@ -17,6 +17,13 @@ namespace tt::service::loader {
 
 #define TAG "loader"
 
+enum class LoaderStatus {
+    Ok,
+    ErrorAppStarted,
+    ErrorUnknownApp,
+    ErrorInternal,
+};
+
 typedef struct {
     LoaderEventType type;
 } LoaderEventInternal;
@@ -154,7 +161,7 @@ static LoaderStatus startAppWithManifestInternal(
 
     auto scoped_lock = loader_singleton->mutex.scoped();
     if (!scoped_lock->lock(50 / portTICK_PERIOD_MS)) {
-        return LoaderStatusErrorInternal;
+        return LoaderStatus::ErrorInternal;
     }
 
     auto previous_app = !loader_singleton->appStack.empty() ? loader_singleton->appStack.top() : nullptr;
@@ -183,7 +190,7 @@ static LoaderStatus startAppWithManifestInternal(
     };
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
-    return LoaderStatusOk;
+    return LoaderStatus::Ok;
 }
 
 static void onStartAppMessage(std::shared_ptr<void> message) {
@@ -204,7 +211,7 @@ static LoaderStatus startAppInternal(
     const app::AppManifest* manifest = app::findAppById(id);
     if (manifest == nullptr) {
         TT_LOG_E(TAG, "App not found: %s", id.c_str());
-        return LoaderStatusErrorUnknownApp;
+        return LoaderStatus::ErrorUnknownApp;
     } else {
         return startAppWithManifestInternal(manifest, parameters);
     }

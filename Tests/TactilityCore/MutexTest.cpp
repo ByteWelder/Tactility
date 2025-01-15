@@ -11,7 +11,7 @@ static int32_t thread_with_mutex_parameter(void* parameter) {
 }
 
 TEST_CASE("a mutex can block a thread") {
-    auto mutex = Mutex(Mutex::TypeNormal);
+    auto mutex = Mutex(Mutex::Type::Normal);
     mutex.lock(portMAX_DELAY);
 
     Thread thread = Thread(

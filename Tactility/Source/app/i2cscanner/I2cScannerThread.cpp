@@ -100,7 +100,7 @@ void startScanning(std::shared_ptr<Data> data) {
 
         data->scanState = ScanStateScanning;
         data->scanTimer = std::make_unique<Timer>(
-            Timer::TypeOnce,
+            Timer::Type::Once,
             onScanTimer,
             data
         );

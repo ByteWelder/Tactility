@@ -25,10 +25,10 @@ namespace tt {
 Mutex::Mutex(Type type) : type(type) {
     tt_mutex_info(data, "alloc");
     switch (type) {
-        case TypeNormal:
+        case Type::Normal:
             semaphore = xSemaphoreCreateMutex();
             break;
-        case TypeRecursive:
+        case Type::Recursive:
             semaphore = xSemaphoreCreateRecursiveMutex();
             break;
         default:
@@ -51,7 +51,7 @@ TtStatus Mutex::acquire(TickType_t timeout) const {
     tt_mutex_info(mutex, "acquire");
 
     switch (type) {
-        case TypeNormal:
+        case Type::Normal:
             if (xSemaphoreTake(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
@@ -61,7 +61,7 @@ TtStatus Mutex::acquire(TickType_t timeout) const {
             } else {
                 return TtStatusOk;
             }
-        case TypeRecursive:
+        case Type::Recursive:
             if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
@@ -82,14 +82,14 @@ TtStatus Mutex::release() const {
     tt_mutex_info(mutex, "release");
 
     switch (type) {
-        case TypeNormal: {
+        case Type::Normal: {
             if (xSemaphoreGive(semaphore) != pdPASS) {
                 return TtStatusErrorResource;
             } else {
                 return TtStatusOk;
             }
         }
-        case TypeRecursive:
+        case Type::Recursive:
             if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
                 return TtStatusErrorResource;
             } else {

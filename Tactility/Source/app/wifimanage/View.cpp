@@ -78,7 +78,7 @@ static void showDetails(lv_event_t* event) {
     bindings->onShowApSettings(ssid);
 }
 
-void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting) {
+void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting) {
     lv_obj_t* wrapper = lv_obj_create(networks_list);
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
@@ -131,15 +131,15 @@ void View::createSsidListItem(const service::wifi::WifiApRecord& record, bool is
 
 void View::updateConnectToHidden() {
     switch (state->getRadioState()) {
-        case service::wifi::WIFI_RADIO_ON:
-        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
-        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
+        case service::wifi::RadioState::On:
+        case service::wifi::RadioState::ConnectionPending:
+        case service::wifi::RadioState::ConnectionActive:
             lv_obj_remove_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case service::wifi::WIFI_RADIO_ON_PENDING:
-        case service::wifi::WIFI_RADIO_OFF_PENDING:
-        case service::wifi::WIFI_RADIO_OFF:
+        case service::wifi::RadioState::OnPending:
+        case service::wifi::RadioState::OffPending:
+        case service::wifi::RadioState::Off:
             lv_obj_add_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
     }
@@ -149,16 +149,16 @@ void View::updateNetworkList() {
     lv_obj_clean(networks_list);
 
     switch (state->getRadioState()) {
-        case service::wifi::WIFI_RADIO_ON_PENDING:
-        case service::wifi::WIFI_RADIO_ON:
-        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
-        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE: {
+        case service::wifi::RadioState::OnPending:
+        case service::wifi::RadioState::On:
+        case service::wifi::RadioState::ConnectionPending:
+        case service::wifi::RadioState::ConnectionActive: {
 
             std::string connection_target = service::wifi::getConnectionTarget();
             auto& ap_records = state->lockApRecords();
 
             bool is_connected = !connection_target.empty() &&
-                state->getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE;
+                state->getRadioState() == service::wifi::RadioState::ConnectionActive;
             bool added_connected = false;
             if (is_connected) {
                 if (!ap_records.empty()) {
@@ -180,8 +180,8 @@ void View::updateNetworkList() {
                     if (used_ssids.find(record.ssid) == used_ssids.end()) {
                         bool connection_target_match = (record.ssid == connection_target);
                         bool is_connecting = connection_target_match
-                            && state->getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_PENDING &&
-                            !connection_target.empty();
+                                             && state->getRadioState() == service::wifi::RadioState::ConnectionPending &&
+                                             !connection_target.empty();
                         bool skip = connection_target_match && added_connected;
                         if (!skip) {
                             createSsidListItem(record, is_connecting);
@@ -201,8 +201,8 @@ void View::updateNetworkList() {
             state->unlockApRecords();
             break;
         }
-        case service::wifi::WIFI_RADIO_OFF_PENDING:
-        case service::wifi::WIFI_RADIO_OFF: {
+        case service::wifi::RadioState::OffPending:
+        case service::wifi::RadioState::Off: {
             lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             break;
         }
@@ -210,7 +210,7 @@ void View::updateNetworkList() {
 }
 
 void View::updateScanning() {
-    if (state->getRadioState() == service::wifi::WIFI_RADIO_ON && state->isScanning()) {
+    if (state->getRadioState() == service::wifi::RadioState::On && state->isScanning()) {
         lv_obj_clear_flag(scanning_spinner, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(scanning_spinner, LV_OBJ_FLAG_HIDDEN);
@@ -220,18 +220,18 @@ void View::updateScanning() {
 void View::updateWifiToggle() {
     lv_obj_clear_state(enable_switch, LV_STATE_ANY);
     switch (state->getRadioState()) {
-        case service::wifi::WIFI_RADIO_ON:
-        case service::wifi::WIFI_RADIO_CONNECTION_PENDING:
-        case service::wifi::WIFI_RADIO_CONNECTION_ACTIVE:
+        case service::wifi::RadioState::On:
+        case service::wifi::RadioState::ConnectionPending:
+        case service::wifi::RadioState::ConnectionActive:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED);
             break;
-        case service::wifi::WIFI_RADIO_ON_PENDING:
+        case service::wifi::RadioState::OnPending:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::WIFI_RADIO_OFF:
+        case service::wifi::RadioState::Off:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::WIFI_RADIO_OFF_PENDING:
+        case service::wifi::RadioState::OffPending:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED);
             lv_obj_add_state(enable_switch, LV_STATE_DISABLED);
             break;

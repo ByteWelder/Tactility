@@ -15,7 +15,7 @@ extern const tt::hal::Configuration m5stack_core2 = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitByTactility,
+            .initMode = tt::hal::i2c::InitMode::ByTactility,
             .canReinit = false, // Might be set to try after trying out what it does AXP and screen
             .hasMutableConfiguration = false,
             .config = (i2c_config_t) {
@@ -33,7 +33,7 @@ extern const tt::hal::Configuration m5stack_core2 = {
         tt::hal::i2c::Configuration {
             .name = "External", // (Grove)
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitByTactility,
+            .initMode = tt::hal::i2c::InitMode::ByTactility,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {

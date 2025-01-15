@@ -79,7 +79,7 @@ public:
 struct Loader {
     std::shared_ptr<PubSub> pubsubInternal = std::make_shared<PubSub>();
     std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::stack<app::AppInstance*> appStack;
     /** The dispatcher thread needs a callstack large enough to accommodate all the dispatched methods.
      * This includes full LVGL redraw via Gui::redraw()

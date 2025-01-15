@@ -26,7 +26,7 @@ private:
     void updateScanning();
     void updateNetworkList();
     void updateConnectToHidden();
-    void createSsidListItem(const service::wifi::WifiApRecord& record, bool isConnecting);
+    void createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting);
 
 public:
 

@@ -16,7 +16,7 @@ std::shared_ptr<SdCard> createYellowSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
-        SdCard::MountBehaviourAtBoot,
+        SdCard::MountBehaviour::AtBoot,
         nullptr,
         std::vector<gpio_num_t>(),
         SDCARD_SPI_HOST

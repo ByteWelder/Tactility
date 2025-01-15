@@ -1,4 +1,3 @@
-#include <TactilityCore.h>
 #include <sstream>
 #include <vector>
 #include "lvgl.h"
@@ -13,12 +12,12 @@
 namespace tt::app::log {
 
 struct LogAppData {
-    LogLevel filterLevel = LogLevelInfo;
+    LogLevel filterLevel = LogLevel::Info;
     lv_obj_t* labelWidget = nullptr;
 };
 
 static bool shouldShowLog(LogLevel filterLevel, LogLevel logLevel) {
-    if (filterLevel == LogLevelNone || logLevel == LogLevelNone) {
+    if (filterLevel == LogLevel::None || logLevel == LogLevel::None) {
         return false;
     } else {
         return filterLevel >= logLevel;
@@ -115,19 +114,19 @@ static void onResult(AppContext& app, Result result, const Bundle& bundle) {
     if (result == ResultOk) {
         switch (resultIndex) {
             case 0:
-                data->filterLevel = LogLevelVerbose;
+                data->filterLevel = LogLevel::Verbose;
                 break;
             case 1:
-                data->filterLevel = LogLevelDebug;
+                data->filterLevel = LogLevel::Debug;
                 break;
             case 2:
-                data->filterLevel = LogLevelInfo;
+                data->filterLevel = LogLevel::Info;
                 break;
             case 3:
-                data->filterLevel = LogLevelWarning;
+                data->filterLevel = LogLevel::Warning;
                 break;
             case 4:
-                data->filterLevel = LogLevelError;
+                data->filterLevel = LogLevel::Error;
                 break;
             default:
                 break;

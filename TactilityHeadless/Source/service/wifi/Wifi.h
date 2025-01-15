@@ -34,39 +34,39 @@ typedef enum {
 
 namespace tt::service::wifi {
 
-enum WifiEventType {
+enum class EventType {
     /** Radio was turned on */
-    WifiEventTypeRadioStateOn,
+    RadioStateOn,
     /** Radio is turning on. */
-    WifiEventTypeRadioStateOnPending,
+    RadioStateOnPending,
     /** Radio is turned off */
-    WifiEventTypeRadioStateOff,
+    RadioStateOff,
     /** Radio is turning off */
-    WifiEventTypeRadioStateOffPending,
+    RadioStateOffPending,
     /** Started scanning for access points */
-    WifiEventTypeScanStarted,
+    ScanStarted,
     /** Finished scanning for access points */ // TODO: 1 second validity
-    WifiEventTypeScanFinished,
-    WifiEventTypeDisconnected,
-    WifiEventTypeConnectionPending,
-    WifiEventTypeConnectionSuccess,
-    WifiEventTypeConnectionFailed
+    ScanFinished,
+    Disconnected,
+    ConnectionPending,
+    ConnectionSuccess,
+    ConnectionFailed
 };
 
-enum WifiRadioState {
-    WIFI_RADIO_ON_PENDING,
-    WIFI_RADIO_ON,
-    WIFI_RADIO_CONNECTION_PENDING,
-    WIFI_RADIO_CONNECTION_ACTIVE,
-    WIFI_RADIO_OFF_PENDING,
-    WIFI_RADIO_OFF,
+enum class RadioState {
+    OnPending,
+    On,
+    ConnectionPending,
+    ConnectionActive,
+    OffPending,
+    Off,
 };
 
-struct WifiEvent {
-    WifiEventType type;
+struct Event {
+    EventType type;
 };
 
-struct WifiApRecord {
+struct ApRecord {
     std::string ssid;
     int8_t rssi;
     wifi_auth_mode_t auth_mode;
@@ -78,7 +78,12 @@ struct WifiApRecord {
  */
 std::shared_ptr<PubSub> getPubsub();
 
-WifiRadioState getRadioState();
+/** @return Get the current radio state */
+RadioState getRadioState();
+
+/** For logging purposes */
+const char* radioStateToString(RadioState state);
+
 /**
  * @brief Request scanning update. Returns immediately. Results are through pubsub.
  */
@@ -91,7 +96,7 @@ bool isScanning();
 std::string getConnectionTarget();
 
 /** @return the access points from the last scan (if any). It only contains public APs. */
-std::vector<WifiApRecord> getScanResults();
+std::vector<ApRecord> getScanResults();
 
 /**
  * @brief Overrides the default scan result size of 16.

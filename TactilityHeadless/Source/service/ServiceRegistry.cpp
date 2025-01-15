@@ -17,8 +17,8 @@ typedef std::unordered_map<std::string, ServiceInstance*> ServiceInstanceMap;
 static ManifestMap service_manifest_map;
 static ServiceInstanceMap service_instance_map;
 
-static Mutex manifest_mutex(Mutex::TypeNormal);
-static Mutex instance_mutex(Mutex::TypeNormal);
+static Mutex manifest_mutex(Mutex::Type::Normal);
+static Mutex instance_mutex(Mutex::Type::Normal);
 
 void addService(const ServiceManifest* manifest) {
     TT_LOG_I(TAG, "Adding %s", manifest->id.c_str());

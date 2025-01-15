@@ -135,7 +135,7 @@ void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& 
             TT_LOG_I(TAG, "Removed SSID");
 
             if (
-                service::wifi::getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE &&
+                service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
                 service::wifi::getConnectionTarget() == ssid
             ) {
                 service::wifi::disconnect();
