@@ -58,7 +58,7 @@ bool tt_hal_i2c_master_read_register(i2c_port_t port, uint8_t address, uint8_t r
  * @param[in] dataSize
  * @param[in] timeout
  */
-bool tt_hal_i2c_master_write(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool tt_hal_i2c_master_write(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
 
 /**
  * Write to a register of an I2C port in master mode.
@@ -69,7 +69,7 @@ bool tt_hal_i2c_master_write(i2c_port_t port, uint16_t address, const uint8_t* d
  * @param[in] dataSize
  * @param[in] timeout
  */
-bool tt_hal_i2c_master_write_register(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool tt_hal_i2c_master_write_register(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
 
 /**
  * Write then read from an I2C port in master mode.

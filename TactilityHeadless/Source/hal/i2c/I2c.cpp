@@ -189,6 +189,7 @@ bool isStarted(i2c_port_t port) {
 
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
     if (lock(port)) {
+        // TODO: We're passing an inaccurate timeout value as we already lost time with locking and previous writes in this loop
         esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
         unlock(port);
         return result == ESP_OK;
@@ -219,6 +220,7 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
     }
     i2c_master_read_byte(cmd, data + dataSize - 1, I2C_MASTER_NACK);
     i2c_master_stop(cmd);
+    // TODO: We're passing an inaccurate timeout value as we already lost time with locking
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
@@ -230,8 +232,9 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
     return result == ESP_OK;
 }
 
-bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     if (lock(port)) {
+        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
         esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
         unlock(port);
         return result == ESP_OK;
@@ -241,7 +244,7 @@ bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_
     }
 }
 
-bool masterWriteRegister(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
     if (!lock(port)) {
@@ -255,6 +258,7 @@ bool masterWriteRegister(i2c_port_t port, uint16_t address, uint8_t reg, const u
     i2c_master_write_byte(cmd, reg, ACK_CHECK_EN);
     i2c_master_write(cmd, (uint8_t*) data, dataSize, ACK_CHECK_EN);
     i2c_master_stop(cmd);
+    // TODO: We're passing an inaccurate timeout value as we already lost time with locking
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
@@ -265,10 +269,11 @@ bool masterWriteRegister(i2c_port_t port, uint16_t address, uint8_t reg, const u
     return result == ESP_OK;
 }
 
-bool masterWriteRegisterArray(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     assert(dataSize % 2 == 0);
     bool result = true;
     for (int i = 0; i < dataSize; i += 2) {
+        // TODO: We're passing an inaccurate timeout value as we already lost time with locking and previous writes in this loop
         if (!masterWriteRegister(port, address, data[i], &data[i + 1], 1, timeout)) {
             result = false;
         }
@@ -278,6 +283,7 @@ bool masterWriteRegisterArray(i2c_port_t port, uint16_t address, const uint8_t* 
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
     if (lock(port)) {
+        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
         esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
         unlock(port);
         return result == ESP_OK;
@@ -290,6 +296,7 @@ bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData,
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
     if (lock(port)) {
         uint8_t message[2] = { 0, 0 };
+        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
         esp_err_t result = i2c_master_write_to_device(port, address, message, 2, timeout);
         unlock(port);
         return result == ESP_OK;
