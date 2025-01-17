@@ -16,11 +16,11 @@
 axp192_t axpDevice;
 
 static int32_t axpI2cRead(TT_UNUSED void* handle, uint8_t address, uint8_t reg, uint8_t* buffer, uint16_t size) {
-    return tt::hal::i2c::masterRead(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
+    return tt::hal::i2c::masterReadRegister(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
 }
 
 static int32_t axpI2cWrite(TT_UNUSED void* handle, uint8_t address, uint8_t reg, const uint8_t* buffer, uint16_t size) {
-    return tt::hal::i2c::masterWrite(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
+    return tt::hal::i2c::masterWriteRegister(I2C_NUM_0, address, reg, buffer, size, 50 / portTICK_PERIOD_MS);
 }
 
 static bool initSpi2() {
