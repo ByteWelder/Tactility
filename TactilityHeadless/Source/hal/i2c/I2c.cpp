@@ -200,8 +200,6 @@ bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize
 }
 
 bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
-    tt_check(reg != 0);
-
     if (!lock(port)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
