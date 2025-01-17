@@ -1,6 +1,6 @@
-#include "I2cScanner.h"
-#include "I2cScannerThread.h"
-#include "I2cHelpers.h"
+#include "app/i2cscanner/I2cScannerPrivate.h"
+#include "app/i2cscanner/I2cScannerThread.h"
+#include "app/i2cscanner/I2cHelpers.h"
 
 #include "Assets.h"
 #include "Tactility.h"
@@ -50,7 +50,7 @@ static void onSelectBus(lv_event_t* event) {
     TT_LOG_I(TAG, "Selected %ld", selected);
 }
 
-static void onPressScan(lv_event_t* event) {
+static void onPressScan(TT_UNUSED lv_event_t* event) {
     auto data = optData();
     if (data != nullptr) {
         if (data->scanState == ScanStateScanning) {
@@ -190,5 +190,9 @@ extern const AppManifest manifest = {
     .onShow = onShow,
     .onHide = onHide
 };
+
+void start() {
+    service::loader::startApp(manifest.id);
+}
 
 } // namespace

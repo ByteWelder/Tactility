@@ -33,6 +33,10 @@ uint32_t tt_message_queue_get_count(MessageQueueHandle handle) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->getCount();
 }
 
+uint32_t tt_message_queue_get_space(MessageQueueHandle handle) {
+    return HANDLE_TO_MESSAGE_QUEUE(handle)->getSpace();
+}
+
 bool tt_message_queue_reset(MessageQueueHandle handle) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->reset();
 }

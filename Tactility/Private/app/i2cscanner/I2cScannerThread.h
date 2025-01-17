@@ -1,6 +1,6 @@
 #pragma once
 
-#include "I2cScanner.h"
+#include "./I2cScannerPrivate.h"
 #include <memory>
 
 namespace tt::app::i2cscanner {

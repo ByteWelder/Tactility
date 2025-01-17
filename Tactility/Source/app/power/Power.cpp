@@ -16,7 +16,7 @@ extern const AppManifest manifest;
 static void onTimer(TT_UNUSED std::shared_ptr<void> context);
 
 struct Data {
-    Timer update_timer = Timer(Timer::TypePeriodic, &onTimer, nullptr);
+    Timer update_timer = Timer(Timer::Type::Periodic, &onTimer, nullptr);
     std::shared_ptr<tt::hal::Power> power = getConfiguration()->hardware->power();
     lv_obj_t* enable_label = nullptr;
     lv_obj_t* enable_switch = nullptr;
@@ -39,7 +39,7 @@ std::shared_ptr<Data> _Nullable optData() {
 static void updateUi(std::shared_ptr<Data> data) {
     const char* charge_state;
     hal::Power::MetricData metric_data;
-    if (data->power->getMetric(hal::Power::MetricType::IS_CHARGING, metric_data)) {
+    if (data->power->getMetric(hal::Power::MetricType::IsCharging, metric_data)) {
         charge_state = metric_data.valueAsBool ? "yes" : "no";
     } else {
         charge_state = "N/A";
@@ -47,7 +47,7 @@ static void updateUi(std::shared_ptr<Data> data) {
 
     uint8_t charge_level;
     bool charge_level_scaled_set = false;
-    if (data->power->getMetric(hal::Power::MetricType::CHARGE_LEVEL, metric_data)) {
+    if (data->power->getMetric(hal::Power::MetricType::ChargeLevel, metric_data)) {
         charge_level = metric_data.valueAsUint8;
         charge_level_scaled_set = true;
     }
@@ -57,14 +57,14 @@ static void updateUi(std::shared_ptr<Data> data) {
 
     int32_t current;
     bool current_set = false;
-    if (data->power->getMetric(hal::Power::MetricType::CURRENT, metric_data)) {
+    if (data->power->getMetric(hal::Power::MetricType::Current, metric_data)) {
         current = metric_data.valueAsInt32;
         current_set = true;
     }
 
     uint32_t battery_voltage;
     bool battery_voltage_set = false;
-    if (data->power->getMetric(hal::Power::MetricType::BATTERY_VOLTAGE, metric_data)) {
+    if (data->power->getMetric(hal::Power::MetricType::BatteryVoltage, metric_data)) {
         battery_voltage = metric_data.valueAsUint32;
         battery_voltage_set = true;
     }

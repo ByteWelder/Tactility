@@ -8,11 +8,11 @@ extern axp192_t axpDevice;
 
 bool Core2Power::supportsMetric(MetricType type) const {
     switch (type) {
-        case BATTERY_VOLTAGE:
-        case CHARGE_LEVEL:
-        case IS_CHARGING:
+        case MetricType::BatteryVoltage:
+        case MetricType::ChargeLevel:
+        case MetricType::IsCharging:
             return true;
-        case CURRENT:
+        case MetricType::Current:
             return false;
     }
 
@@ -21,7 +21,7 @@ bool Core2Power::supportsMetric(MetricType type) const {
 
 bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case BATTERY_VOLTAGE: {
+        case MetricType::BatteryVoltage: {
             float voltage;
             if (axp192_read(&axpDevice, AXP192_BATTERY_VOLTAGE, &voltage) == ESP_OK) {
                 data.valueAsUint32 = (uint32_t)TT_MAX((voltage * 1000.f), 0.0f);
@@ -30,7 +30,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case CHARGE_LEVEL: {
+        case MetricType::ChargeLevel: {
             float vbat, charge_current;
             if (
                 axp192_read(&axpDevice, AXP192_BATTERY_VOLTAGE, &vbat) == ESP_OK &&
@@ -51,7 +51,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case IS_CHARGING: {
+        case MetricType::IsCharging: {
             float charge_current;
             if (axp192_read(&axpDevice, AXP192_CHARGE_CURRENT, &charge_current) == ESP_OK) {
                 data.valueAsBool = charge_current > 0.001f;
@@ -60,7 +60,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case CURRENT: {
+        case MetricType::Current: {
             float charge_current, discharge_current;
             if (
                 axp192_read(&axpDevice, AXP192_CHARGE_CURRENT, &charge_current) == ESP_OK &&

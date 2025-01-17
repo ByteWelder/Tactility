@@ -32,7 +32,7 @@ void ScreenshotService::startApps(const char* path) {
 
     if (task == nullptr || task->isFinished()) {
         task = std::make_unique<ScreenshotTask>();
-        mode = ScreenshotModeApps;
+        mode = Mode::Apps;
         task->startApps(path);
     } else {
         TT_LOG_W(TAG, "Screenshot task already running");
@@ -48,7 +48,7 @@ void ScreenshotService::startTimed(const char* path, uint8_t delayInSeconds, uin
 
     if (task == nullptr || task->isFinished()) {
         task = std::make_unique<ScreenshotTask>();
-        mode = ScreenshotModeTimed;
+        mode = Mode::Timed;
         task->startTimed(path, delayInSeconds, amount);
     } else {
         TT_LOG_W(TAG, "Screenshot task already running");
@@ -64,17 +64,17 @@ void ScreenshotService::stop() {
 
     if (task != nullptr) {
         task = nullptr;
-        mode = ScreenshotModeNone;
+        mode = Mode::None;
     } else {
         TT_LOG_W(TAG, "Screenshot task not running");
     }
 }
 
-Mode ScreenshotService::getMode() {
+Mode ScreenshotService::getMode() const {
     auto scoped_lockable = mutex.scoped();
     if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
-        return ScreenshotModeNone;
+        return Mode::None;
     }
 
     return mode;

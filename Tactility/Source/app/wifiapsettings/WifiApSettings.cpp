@@ -27,7 +27,7 @@ const AppContext* _Nullable optWifiApSettingsApp() {
 void start(const std::string& ssid) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString("ssid", ssid);
-    service::loader::startApp(manifest.id, false, bundle);
+    service::loader::startApp(manifest.id, bundle);
 }
 
 static void onPressForget(TT_UNUSED lv_event_t* event) {
@@ -135,7 +135,7 @@ void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& 
             TT_LOG_I(TAG, "Removed SSID");
 
             if (
-                service::wifi::getRadioState() == service::wifi::WIFI_RADIO_CONNECTION_ACTIVE &&
+                service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
                 service::wifi::getConnectionTarget() == ssid
             ) {
                 service::wifi::disconnect();

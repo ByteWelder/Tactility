@@ -8,9 +8,9 @@ extern "C" {
 MutexHandle tt_mutex_alloc(enum TtMutexType type) {
     switch (type) {
         case TtMutexType::MUTEX_TYPE_NORMAL:
-            return new tt::Mutex(tt::Mutex::TypeNormal);
+            return new tt::Mutex(tt::Mutex::Type::Normal);
         case TtMutexType::MUTEX_TYPE_RECURSIVE:
-            return new tt::Mutex(tt::Mutex::TypeRecursive);
+            return new tt::Mutex(tt::Mutex::Type::Recursive);
         default:
             tt_crash("Type not supported");
     }

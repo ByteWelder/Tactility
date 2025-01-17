@@ -19,7 +19,7 @@ namespace tt::service::gui {
 struct Gui {
     // Thread and lock
     Thread* thread = nullptr;
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     PubSubSubscription* loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas

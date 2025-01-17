@@ -224,7 +224,7 @@ static void onShow(AppContext& app, lv_obj_t* parent) {
 
 static void onStart(AppContext& app) {
     auto data = std::make_shared<Data>();
-    data->updateTimer = std::make_unique<Timer>(Timer::TypeOnce, onUpdateTimer, data);
+    data->updateTimer = std::make_unique<Timer>(Timer::Type::Once, onUpdateTimer, data);
     app.setData(data);
 }
 

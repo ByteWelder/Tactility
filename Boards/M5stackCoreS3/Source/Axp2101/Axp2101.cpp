@@ -1,44 +1,6 @@
 #include "Axp2101.h"
 #include "Log.h"
 
-bool Axp2101::readRegister12(uint8_t reg, float& out) const {
-    std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
-        out = (data[0] & 0x0F) << 8 | data[1];
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool Axp2101::readRegister14(uint8_t reg, float& out) const {
-    std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
-        out = (data[0] & 0x3F) << 8 | data[1];
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool Axp2101::readRegister16(uint8_t reg, uint16_t& out) const {
-    std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterRead(port, DEFAULT_ADDRESS, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
-        out = data[0] << 8 | data[1];
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool Axp2101::readRegister8(uint8_t reg, uint8_t& result) const {
-    return tt::hal::i2c::masterWriteRead(port, DEFAULT_ADDRESS, &reg, 1, &result, 1, DEFAULT_TIMEOUT);
-}
-
-bool Axp2101::writeRegister8(uint8_t reg, uint8_t value) const {
-    return tt::hal::i2c::masterWrite(port, DEFAULT_ADDRESS, reg, &value, 1, DEFAULT_TIMEOUT);
-}
-
 bool Axp2101::getBatteryVoltage(float& vbatMillis) const {
     return readRegister14(0x34, vbatMillis);
 }
@@ -71,4 +33,27 @@ bool Axp2101::setChargingEnabled(bool enabled) const {
     } else {
         return false;
     }
+}
+
+bool Axp2101::isVBus() const {
+    uint8_t value;
+    return readRegister8(0x00, value) && (value & 0x20);
+}
+
+bool Axp2101::getVBusVoltage(float& out) const {
+    if (!isVBus()) {
+        return false;
+    } else {
+        float vbus;
+        if (readRegister14(0x38, vbus) && vbus < 16375) {
+            out = vbus / 1000.0f;
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+bool Axp2101::setRegisters(uint8_t* bytePairs, size_t bytePairsSize) const {
+    return tt::hal::i2c::masterWriteRegisterArray(port, address, bytePairs, bytePairsSize, DEFAULT_TIMEOUT);
 }

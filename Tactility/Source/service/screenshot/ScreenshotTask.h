@@ -25,7 +25,7 @@ class ScreenshotTask {
     };
 
     Thread* thread = nullptr;
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     bool interrupted = false;
     bool finished = false;
     ScreenshotTaskWork work;

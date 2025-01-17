@@ -14,7 +14,7 @@
  */
 namespace tt::app::selectiondialog {
 
-    void start(std::string title, const std::vector<std::string>& items);
+    void start(const std::string& title, const std::vector<std::string>& items);
 
     /**
      * Get the index of the item that the user selected.

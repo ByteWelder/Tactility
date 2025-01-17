@@ -21,7 +21,7 @@ Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext
     this->callbackContext = std::move(callbackContext);
 
     UBaseType_t reload;
-    if (type == TypeOnce) {
+    if (type == Type::Once) {
         reload = pdFALSE;
     } else {
         reload = pdTRUE;

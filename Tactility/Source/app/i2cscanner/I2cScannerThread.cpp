@@ -1,4 +1,4 @@
-#include "I2cScannerThread.h"
+#include "app/i2cscanner/I2cScannerThread.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
 
@@ -100,7 +100,7 @@ void startScanning(std::shared_ptr<Data> data) {
 
         data->scanState = ScanStateScanning;
         data->scanTimer = std::make_unique<Timer>(
-            Timer::TypeOnce,
+            Timer::Type::Once,
             onScanTimer,
             data
         );

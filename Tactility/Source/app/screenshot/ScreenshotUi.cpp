@@ -2,7 +2,7 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "ScreenshotUi.h"
+#include "app/screenshot/ScreenshotUi.h"
 
 #include "TactilityCore.h"
 #include "hal/SdCard.h"
@@ -51,7 +51,7 @@ static void onTimerCallback(TT_UNUSED std::shared_ptr<void> context) {
 }
 
 ScreenshotUi::ScreenshotUi() {
-    updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onTimerCallback, nullptr);
+    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onTimerCallback, nullptr);
 }
 
 ScreenshotUi::~ScreenshotUi() {
@@ -146,7 +146,7 @@ void ScreenshotUi::createModeSettingWidgets(lv_obj_t* parent) {
     lv_obj_align_to(modeDropdown, mode_label, LV_ALIGN_OUT_RIGHT_MID, 8, 0);
     lv_obj_add_event_cb(modeDropdown, onModeSetCallback, LV_EVENT_VALUE_CHANGED, nullptr);
     service::screenshot::Mode mode = service->getMode();
-    if (mode == service::screenshot::ScreenshotModeApps) {
+    if (mode == service::screenshot::Mode::Apps) {
         lv_dropdown_set_selected(modeDropdown, 1);
     }
 
@@ -177,7 +177,7 @@ void ScreenshotUi::createFilePathWidgets(lv_obj_t* parent) {
     lv_obj_set_flex_grow(pathTextArea, 1);
     if (kernel::getPlatform() == kernel::PlatformEsp) {
         auto sdcard = tt::hal::getConfiguration()->sdcard;
-        if (sdcard != nullptr && sdcard->getState() == hal::SdCard::StateMounted) {
+        if (sdcard != nullptr && sdcard->getState() == hal::SdCard::State::Mounted) {
             lv_textarea_set_text(pathTextArea, "A:/sdcard");
         } else {
             lv_textarea_set_text(pathTextArea, "Error: no SD card");

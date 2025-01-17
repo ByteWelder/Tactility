@@ -28,9 +28,9 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
    }
 
    for (const auto& config: configurations) {
-       if (config.initMode == InitByTactility && !start(config.port)) {
+       if (config.initMode == InitMode::ByTactility && !start(config.port)) {
            return false;
-       } else if (config.initMode == InitByExternal) {
+       } else if (config.initMode == InitMode::ByExternal) {
            dataArray[config.port].isStarted = true;
        }
    }

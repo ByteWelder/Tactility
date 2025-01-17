@@ -16,22 +16,22 @@ std::string Bundle::getString(const std::string& key) const {
 
 bool Bundle::hasBool(const std::string& key) const {
     auto entry = this->entries.find(key);
-    return entry != std::end(this->entries) && entry->second.type == TypeBool;
+    return entry != std::end(this->entries) && entry->second.type == Type::Bool;
 }
 
 bool Bundle::hasInt32(const std::string& key) const {
     auto entry = this->entries.find(key);
-    return entry != std::end(this->entries) && entry->second.type == TypeInt32;
+    return entry != std::end(this->entries) && entry->second.type == Type::Int32;
 }
 
 bool Bundle::hasString(const std::string& key) const {
     auto entry = this->entries.find(key);
-    return entry != std::end(this->entries) && entry->second.type == TypeString;
+    return entry != std::end(this->entries) && entry->second.type == Type::String;
 }
 
 bool Bundle::optBool(const std::string& key, bool& out) const {
     auto entry = this->entries.find(key);
-    if (entry != std::end(this->entries) && entry->second.type == TypeBool) {
+    if (entry != std::end(this->entries) && entry->second.type == Type::Bool) {
         out = entry->second.value_bool;
         return true;
     } else {
@@ -41,7 +41,7 @@ bool Bundle::optBool(const std::string& key, bool& out) const {
 
 bool Bundle::optInt32(const std::string& key, int32_t& out) const {
     auto entry = this->entries.find(key);
-    if (entry != std::end(this->entries) && entry->second.type == TypeInt32) {
+    if (entry != std::end(this->entries) && entry->second.type == Type::Int32) {
         out = entry->second.value_int32;
         return true;
     } else {
@@ -51,7 +51,7 @@ bool Bundle::optInt32(const std::string& key, int32_t& out) const {
 
 bool Bundle::optString(const std::string& key, std::string& out) const {
     auto entry = this->entries.find(key);
-    if (entry != std::end(this->entries) && entry->second.type == TypeString) {
+    if (entry != std::end(this->entries) && entry->second.type == Type::String) {
         out = entry->second.value_string;
         return true;
     } else {
@@ -61,7 +61,7 @@ bool Bundle::optString(const std::string& key, std::string& out) const {
 
 void Bundle::putBool(const std::string& key, bool value) {
     this->entries[key] = {
-        .type = TypeBool,
+        .type = Type::Bool,
         .value_bool = value,
         .value_string = ""
     };
@@ -69,7 +69,7 @@ void Bundle::putBool(const std::string& key, bool value) {
 
 void Bundle::putInt32(const std::string& key, int32_t value) {
     this->entries[key] = {
-        .type = TypeInt32,
+        .type = Type::Int32,
         .value_int32 = value,
         .value_string = ""
     };
@@ -77,7 +77,7 @@ void Bundle::putInt32(const std::string& key, int32_t value) {
 
 void Bundle::putString(const std::string& key, const std::string& value) {
     this->entries[key] = {
-        .type = TypeString,
+        .type = Type::String,
         .value_bool = false,
         .value_string = value
     };

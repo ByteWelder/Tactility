@@ -18,12 +18,12 @@ namespace tt::app::selectiondialog {
 
 extern const AppManifest manifest;
 
-void start(std::string title, const std::vector<std::string>& items) {
+void start(const std::string& title, const std::vector<std::string>& items) {
     std::string items_joined = string::join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_ITEMS, items_joined);
-    service::loader::startApp(manifest.id, false, bundle);
+    service::loader::startApp(manifest.id, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {

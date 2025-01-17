@@ -2,10 +2,10 @@
 
 namespace tt::hal::usb {
 
-enum Mode {
-    ModeDefault, // Default state of USB stack
-    ModeNone, // State after TinyUSB was used and (partially) deinitialized
-    ModeMassStorageSdmmc
+enum class Mode {
+    Default, // Default state of USB stack
+    None, // State after TinyUSB was used and (partially) deinitialized
+    MassStorageSdmmc
 };
 
 bool startMassStorageWithSdmmc();

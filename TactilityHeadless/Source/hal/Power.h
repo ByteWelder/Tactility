@@ -11,11 +11,11 @@ public:
     Power() = default;
     virtual ~Power() = default;
 
-    enum MetricType {
-        IS_CHARGING, // bool
-        CURRENT, // int32_t, mAh - battery current: either during charging (positive value) or discharging (negative value)
-        BATTERY_VOLTAGE, // uint32_t, mV
-        CHARGE_LEVEL, // uint8_t [0, 100]
+    enum class MetricType {
+        IsCharging, // bool
+        Current, // int32_t, mAh - battery current: either during charging (positive value) or discharging (negative value)
+        BatteryVoltage, // uint32_t, mV
+        ChargeLevel, // uint8_t [0, 100]
     };
 
     union MetricData {

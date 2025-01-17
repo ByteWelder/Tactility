@@ -19,10 +19,15 @@ public:
     Callback callback;
     std::shared_ptr<void> callbackContext;
 
-    typedef enum {
-        TypeOnce = 0,    ///< One-shot timer.
-        TypePeriodic = 1 ///< Repeating timer.
-    } Type;
+    enum class Type {
+        Once = 0,    ///< One-shot timer.
+        Periodic = 1 ///< Repeating timer.
+    };
+
+    enum class Priority{
+        Normal,   /**< Lower then other threads */
+        Elevated, /**< Same as other threads */
+    };
 
     /**
      * @param[in] type The timer type
@@ -73,11 +78,6 @@ public:
      * @return true on success
      */
     bool setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout);
-
-    enum class Priority{
-        Normal,   /**< Lower then other threads */
-        Elevated, /**< Same as other threads */
-    };
 
     /** Set Timer thread priority
      * @param[in] priority The priority

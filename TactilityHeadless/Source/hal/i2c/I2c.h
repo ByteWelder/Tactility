@@ -9,11 +9,11 @@
 
 namespace tt::hal::i2c {
 
-typedef enum {
-    InitByTactility, // Tactility will initialize it in the correct bootup phase
-    InitByExternal, // The device is already initialized and Tactility should assume it works
-    InitDisabled // Not initialized by default
-} InitMode;
+enum class InitMode {
+    ByTactility, // Tactility will initialize it in the correct bootup phase
+    ByExternal, // The device is already initialized and Tactility should assume it works
+    Disabled // Not initialized by default
+};
 
 struct Configuration {
     std::string name;
@@ -35,7 +35,6 @@ enum Status {
     UNKNOWN
 };
 
-
 bool init(const std::vector<i2c::Configuration>& configurations);
 
 bool start(i2c_port_t port);
@@ -43,9 +42,10 @@ bool stop(i2c_port_t port);
 bool isStarted(i2c_port_t port);
 
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout);
-bool masterRead(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout);
-bool masterWrite(i2c_port_t port, uint16_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
-bool masterWrite(i2c_port_t port, uint16_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout);
+bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
+bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout);
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout);
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout);
 

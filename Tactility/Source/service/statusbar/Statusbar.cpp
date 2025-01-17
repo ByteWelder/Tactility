@@ -80,17 +80,17 @@ const char* getWifiStatusIconForRssi(int rssi) {
     }
 }
 
-static const char* getWifiStatusIcon(wifi::WifiRadioState state, bool secure) {
+static const char* getWifiStatusIcon(wifi::RadioState state, bool secure) {
     int rssi;
     switch (state) {
-        case wifi::WIFI_RADIO_ON:
-        case wifi::WIFI_RADIO_ON_PENDING:
-        case wifi::WIFI_RADIO_CONNECTION_PENDING:
+        case wifi::RadioState::On:
+        case wifi::RadioState::OnPending:
+        case wifi::RadioState::ConnectionPending:
             return STATUSBAR_ICON_WIFI_SCAN_WHITE;
-        case wifi::WIFI_RADIO_OFF_PENDING:
-        case wifi::WIFI_RADIO_OFF:
+        case wifi::RadioState::OffPending:
+        case wifi::RadioState::Off:
             return STATUSBAR_ICON_WIFI_OFF_WHITE;
-        case wifi::WIFI_RADIO_CONNECTION_ACTIVE:
+        case wifi::RadioState::ConnectionActive:
             rssi = wifi::getRssi();
             return getWifiStatusIconForRssi(rssi);
         default:
@@ -99,7 +99,7 @@ static const char* getWifiStatusIcon(wifi::WifiRadioState state, bool secure) {
 }
 
 static void updateWifiIcon(const service::Paths* paths, const std::shared_ptr<ServiceData>& data) {
-    wifi::WifiRadioState radio_state = wifi::getRadioState();
+    wifi::RadioState radio_state = wifi::getRadioState();
     bool is_secure = wifi::isConnectionSecure();
     const char* desired_icon = getWifiStatusIcon(radio_state, is_secure);
     if (data->wifi_last_icon != desired_icon) {
@@ -120,11 +120,11 @@ static void updateWifiIcon(const service::Paths* paths, const std::shared_ptr<Se
 
 static const char* getSdCardStatusIcon(hal::SdCard::State state) {
     switch (state) {
-        case hal::SdCard::StateMounted:
+        case hal::SdCard::State::Mounted:
             return STATUSBAR_ICON_SDCARD;
-        case hal::SdCard::StateError:
-        case hal::SdCard::StateUnmounted:
-        case hal::SdCard::StateUnknown:
+        case hal::SdCard::State::Error:
+        case hal::SdCard::State::Unmounted:
+        case hal::SdCard::State::Unknown:
             return STATUSBAR_ICON_SDCARD_ALERT;
         default:
             tt_crash("Unhandled SdCard state");
@@ -135,7 +135,7 @@ static void updateSdCardIcon(const service::Paths* paths, const std::shared_ptr<
     auto sdcard = tt::hal::getConfiguration()->sdcard;
     if (sdcard != nullptr) {
         auto state = sdcard->getState();
-        if (state != hal::SdCard::StateUnknown) {
+        if (state != hal::SdCard::State::Unknown) {
             auto* desired_icon = getSdCardStatusIcon(state);
             if (data->sdcard_last_icon != desired_icon) {
                 auto icon_path = paths->getSystemPathLvgl(desired_icon);
@@ -161,7 +161,7 @@ static _Nullable const char* getPowerStatusIcon() {
     auto power = get_power();
 
     hal::Power::MetricData charge_level;
-    if (!power->getMetric(hal::Power::MetricType::CHARGE_LEVEL, charge_level)) {
+    if (!power->getMetric(hal::Power::MetricType::ChargeLevel, charge_level)) {
         return nullptr;
     }
 
@@ -228,7 +228,7 @@ static void onStart(ServiceContext& service) {
     auto data = std::make_shared<ServiceData>();
     lvgl::unlock();
 
-    data->paths = std::move(service.getPaths());
+    data->paths = service.getPaths();
 
     service.setData(data);
 
@@ -238,7 +238,7 @@ static void onStart(ServiceContext& service) {
     updateSdCardIcon(data->paths.get(), data); // also updates visibility
     updatePowerStatusIcon(data->paths.get(), data);
 
-    data->updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onUpdate, data);
+    data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
     // We want to try and scan more often in case of startup or scan lock failure
     data->updateTimer->start(1000);
 }

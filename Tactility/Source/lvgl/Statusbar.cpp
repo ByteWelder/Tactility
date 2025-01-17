@@ -26,10 +26,10 @@ struct StatusbarIcon {
 };
 
 struct StatusbarData {
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::TypeOnce, onUpdateTime, nullptr);
+    Timer* time_update_timer = new Timer(Timer::Type::Once, onUpdateTime, nullptr);
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;

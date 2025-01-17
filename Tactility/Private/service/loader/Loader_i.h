@@ -57,17 +57,12 @@ typedef struct {
 
 class LoaderMessageAppStart {
 public:
-    // This lock blocks anyone from starting an app as long
-    // as an app is already running via loader_start()
-    // This lock's lifecycle is not owned by this class.
-    std::shared_ptr<EventFlag> api_lock = std::make_shared<EventFlag>();
     std::string id;
     std::shared_ptr<const Bundle> _Nullable parameters;
 
     LoaderMessageAppStart() = default;
 
     LoaderMessageAppStart(LoaderMessageAppStart& other) :
-        api_lock(other.api_lock),
         id(other.id),
         parameters(other.parameters) {}
 
@@ -77,14 +72,6 @@ public:
     {}
 
     ~LoaderMessageAppStart() = default;
-
-    std::shared_ptr<EventFlag> getApiLockEventFlag() { return api_lock; }
-
-    uint32_t getApiLockEventFlagValue() { return 1; }
-
-    void onProcessed() {
-        api_lock->set(1);
-    }
 };
 
 // endregion LoaderMessage
@@ -92,7 +79,7 @@ public:
 struct Loader {
     std::shared_ptr<PubSub> pubsubInternal = std::make_shared<PubSub>();
     std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::stack<app::AppInstance*> appStack;
     /** The dispatcher thread needs a callstack large enough to accommodate all the dispatched methods.
      * This includes full LVGL redraw via Gui::redraw()

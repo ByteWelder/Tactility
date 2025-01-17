@@ -21,9 +21,9 @@ class Mutex : public Lockable {
 
 public:
 
-    enum Type {
-        TypeNormal,
-        TypeRecursive,
+    enum class Type {
+        Normal,
+        Recursive,
     };
 
 private:
@@ -33,7 +33,7 @@ private:
 
 public:
 
-    explicit Mutex(Type type = TypeNormal);
+    explicit Mutex(Type type = Type::Normal);
     ~Mutex() override;
 
     /** Attempt to lock the mutex. Blocks until timeout passes or lock is acquired.

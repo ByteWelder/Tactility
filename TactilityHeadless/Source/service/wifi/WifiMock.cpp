@@ -20,13 +20,13 @@ struct Wifi {
     ~Wifi() = default;
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex mutex = Mutex(Mutex::TypeRecursive);
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     /** @brief The public event bus */
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     /** @brief The internal message queue */
     bool scan_active = false;
     bool secure_connection = false;
-    WifiRadioState radio_state = WIFI_RADIO_CONNECTION_ACTIVE;
+    RadioState radio_state = RadioState::ConnectionActive;
 };
 
 
@@ -34,8 +34,8 @@ static Wifi* wifi = nullptr;
 
 // region Static
 
-static void publish_event_simple(Wifi* wifi, WifiEventType type) {
-    WifiEvent turning_on_event = {.type = type};
+static void publish_event_simple(Wifi* wifi, EventType type) {
+    Event turning_on_event = { .type = type };
     tt_pubsub_publish(wifi->pubsub, &turning_on_event);
 }
 
@@ -48,7 +48,7 @@ std::shared_ptr<PubSub> getPubsub() {
     return wifi->pubsub;
 }
 
-WifiRadioState getRadioState() {
+RadioState getRadioState() {
     return wifi->radio_state;
 }
 
@@ -80,31 +80,31 @@ void setScanRecords(uint16_t records) {
     // TODO: implement
 }
 
-std::vector<WifiApRecord> getScanResults() {
+std::vector<ApRecord> getScanResults() {
     tt_check(wifi);
 
-    std::vector<WifiApRecord> records;
-    records.push_back((WifiApRecord) {
+    std::vector<ApRecord> records;
+    records.push_back((ApRecord) {
         .ssid = "Home Wifi",
         .rssi = -30,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
-    records.push_back((WifiApRecord) {
+    records.push_back((ApRecord) {
         .ssid = "No place like 127.0.0.1",
         .rssi = -67,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
-    records.push_back((WifiApRecord) {
+    records.push_back((ApRecord) {
         .ssid = "Pretty fly for a Wi-Fi",
         .rssi = -70,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
-    records.push_back((WifiApRecord) {
+    records.push_back((ApRecord) {
         .ssid = "An AP with a really, really long name",
         .rssi = -80,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
-    records.push_back((WifiApRecord) {
+    records.push_back((ApRecord) {
         .ssid = "Bad Reception",
         .rssi = -90,
         .auth_mode = WIFI_AUTH_OPEN
@@ -116,10 +116,10 @@ std::vector<WifiApRecord> getScanResults() {
 void setEnabled(bool enabled) {
     tt_assert(wifi != nullptr);
     if (enabled) {
-        wifi->radio_state = WIFI_RADIO_ON;
+        wifi->radio_state = RadioState::On;
         wifi->secure_connection = true;
     } else {
-        wifi->radio_state = WIFI_RADIO_OFF;
+        wifi->radio_state = RadioState::Off;
     }
 }
 
@@ -128,7 +128,7 @@ bool isConnectionSecure() {
 }
 
 int getRssi() {
-    if (wifi->radio_state == WIFI_RADIO_CONNECTION_ACTIVE) {
+    if (wifi->radio_state == RadioState::ConnectionActive) {
         return -30;
     } else {
         return 0;

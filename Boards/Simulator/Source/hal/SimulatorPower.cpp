@@ -4,10 +4,10 @@
 
 bool SimulatorPower::supportsMetric(MetricType type) const {
     switch (type) {
-        case IS_CHARGING:
-        case CURRENT:
-        case BATTERY_VOLTAGE:
-        case CHARGE_LEVEL:
+        case MetricType::IsCharging:
+        case MetricType::Current:
+        case MetricType::BatteryVoltage:
+        case MetricType::ChargeLevel:
             return true;
     }
 
@@ -16,16 +16,16 @@ bool SimulatorPower::supportsMetric(MetricType type) const {
 
 bool SimulatorPower::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case IS_CHARGING:
+        case MetricType::IsCharging:
             data.valueAsBool = true;
             return true;
-        case CURRENT:
+        case MetricType::Current:
             data.valueAsInt32 = 42;
             return true;
-        case BATTERY_VOLTAGE:
+        case MetricType::BatteryVoltage:
             data.valueAsUint32 = 4032;
             return true;
-        case CHARGE_LEVEL:
+        case MetricType::ChargeLevel:
             data.valueAsUint8 = 100;
             return true;
     }

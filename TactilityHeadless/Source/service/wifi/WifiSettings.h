@@ -11,9 +11,9 @@ namespace tt::service::wifi::settings {
  * This makes it easier to use the char array as a string in various places.
  */
 struct WifiApSettings {
-    char ssid[TT_WIFI_SSID_LIMIT + 1];
-    char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1];
-    bool auto_connect;
+    char ssid[TT_WIFI_SSID_LIMIT + 1] = { 0 };
+    char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1] = { 0 };
+    bool auto_connect = true;
 };
 
 bool contains(const char* ssid);

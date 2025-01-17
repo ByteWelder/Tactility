@@ -1,24 +1,16 @@
 #pragma once
 
 #include "hal/i2c/I2c.h"
+#include "I2cDevice/I2cDevice.h"
+
+#define AXP2101_ADDRESS 0x34
 
 /**
  * References:
  * - https://github.com/m5stack/M5Unified/blob/master/src/utility/AXP2101_Class.cpp
  * - http://file.whycan.com/files/members/6736/AXP2101_Datasheet_V1.0_en_3832.pdf
  */
-class Axp2101 {
-
-    i2c_port_t port;
-
-    static constexpr uint8_t DEFAULT_ADDRESS = 0x34;
-    static constexpr TickType_t DEFAULT_TIMEOUT = 1000 / portTICK_PERIOD_MS;
-
-    bool readRegister8(uint8_t reg, uint8_t& result) const;
-    bool writeRegister8(uint8_t reg, uint8_t value) const;
-    bool readRegister12(uint8_t reg, float& out) const;
-    bool readRegister14(uint8_t reg, float& out) const;
-    bool readRegister16(uint8_t reg, uint16_t& out) const;
+class Axp2101 : I2cDevice {
 
 public:
 
@@ -28,10 +20,15 @@ public:
         CHARGE_STATUS_STANDBY = 0b00
     };
 
-    Axp2101(i2c_port_t port) : port(port) {}
+    explicit Axp2101(i2c_port_t port) : I2cDevice(port, AXP2101_ADDRESS) {}
+
+    bool setRegisters(uint8_t* bytePairs, size_t bytePairsSize) const;
 
     bool getBatteryVoltage(float& vbatMillis) const;
     bool getChargeStatus(ChargeStatus& status) const;
     bool isChargingEnabled(bool& enabled) const;
     bool setChargingEnabled(bool enabled) const;
+
+    bool isVBus() const;
+    bool getVBusVoltage(float& out) const;
 };

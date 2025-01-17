@@ -16,7 +16,7 @@ struct BootMode {
     uint32_t flag = 0;
 };
 
-static Mode currentMode = ModeDefault;
+static Mode currentMode = Mode::Default;
 static RTC_NOINIT_ATTR BootMode bootMode;
 
 sdmmc_card_t* _Nullable getCard() {
@@ -47,7 +47,7 @@ sdmmc_card_t* _Nullable getCard() {
 }
 
 static bool canStartNewMode() {
-    return isSupported() && (currentMode == ModeDefault || currentMode == ModeNone);
+    return isSupported() && (currentMode == Mode::Default || currentMode == Mode::None);
 }
 
 bool isSupported() {
@@ -65,7 +65,7 @@ bool startMassStorageWithSdmmc() {
         TT_LOG_E(TAG, "Failed to init mass storage: %s", esp_err_to_name(result));
         return false;
     } else {
-        currentMode = ModeMassStorageSdmmc;
+        currentMode = Mode::MassStorageSdmmc;
         return true;
     }
 }
@@ -77,7 +77,7 @@ void stop() {
 
     tusbStop();
 
-    currentMode = ModeNone;
+    currentMode = Mode::None;
 }
 
 Mode getMode() {

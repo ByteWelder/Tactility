@@ -16,7 +16,7 @@ std::shared_ptr<SdCard> createSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
-        SdCard::MountBehaviourAtBoot,
+        SdCard::MountBehaviour::AtBoot,
         tt::lvgl::getLvglSyncLockable(),
         {
             CORES3_LCD_PIN_CS

@@ -17,7 +17,7 @@ extern const ServiceManifest manifest;
 struct ServiceData {
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
-    hal::SdCard::State lastState = hal::SdCard::StateUnmounted;
+    hal::SdCard::State lastState = hal::SdCard::State::Unmounted;
 
     bool lock(TickType_t timeout) const {
         return mutex.acquire(timeout) == TtStatusOk;
@@ -44,7 +44,7 @@ static void onUpdate(std::shared_ptr<void> context) {
 
     auto new_state = sdcard->getState();
 
-    if (new_state == hal::SdCard::StateError) {
+    if (new_state == hal::SdCard::State::Error) {
         TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
         sdcard->unmount();
     }
@@ -61,7 +61,7 @@ static void onStart(ServiceContext& service) {
         auto data = std::make_shared<ServiceData>();
         service.setData(data);
 
-        data->updateTimer = std::make_unique<Timer>(Timer::TypePeriodic, onUpdate, data);
+        data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
         // We want to try and scan more often in case of startup or scan lock failure
         data->updateTimer->start(1000);
     } else {
