@@ -29,15 +29,13 @@
  *********************/
 #define TAG        "HX8357"
 
+// See datasheet page 127: https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
 #define MADCTL_BIT_INDEX_DATA_LATCH_ORDER 2 // 0 = left-to-right refresh, 1 = right-to-left
 #define MADCTL_BIT_INDEX_RGB_BGR_ORDER 3 // 0 = RGB, 1 = BGR
 #define MADCTL_BIT_INDEX_LINE_ADDRESS_ORDER 4 // 0 = top-to-bottom refresh, 1 = bottom-to-top
 #define MADCTL_BIT_INDEX_PAGE_COLUMN_ORDER 5 // 0 = normal, 1 = reverse
 #define MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER 6 // 0 = left-to-right, 1 = right-to-left
 #define MADCTL_BIT_INDEX_PAGE_ADDRESS_ORDER 7 // 0 = top-to-bottom, 1 = bottom-to-top
-
-// TODO: Move
-#define HX8357_DC GPIO_NUM_47
 
 /**********************
  *      TYPEDEFS

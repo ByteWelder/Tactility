@@ -10,6 +10,8 @@
  * Adafruit TFT FeatherWing - 3.5" 480x320 Touchscreen for Feathers
  *    https://www.adafruit.com/product/3651
  *
+ * Datasheet:
+ *    https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
  */
 
 #ifndef HX8357_H
