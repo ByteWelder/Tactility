@@ -40,3 +40,12 @@ jobs:
         with:
           board_id: m5stack-cores3
           arch: esp32s3
+  unphone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: unphone
+          arch: esp32s3
