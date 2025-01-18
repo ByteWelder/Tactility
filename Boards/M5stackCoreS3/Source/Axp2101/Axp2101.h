@@ -1,7 +1,6 @@
 #pragma once
 
-#include "hal/i2c/I2c.h"
-#include "I2cDevice/I2cDevice.h"
+#include "hal/i2c/I2cDevice.h"
 
 #define AXP2101_ADDRESS 0x34
 

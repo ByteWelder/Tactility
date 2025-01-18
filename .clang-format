@@ -5,6 +5,7 @@ AccessModifierOffset: -4
 AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveAssignments: None
 AlignOperands: DontAlign
+AlignTrailingComments: false
 AllowAllArgumentsOnNextLine: false
 AllowAllConstructorInitializersOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
@@ -37,6 +38,8 @@ BreakInheritanceList: BeforeColon
 ColumnLimit: 0
 CompactNamespaces: false
 ContinuationIndentWidth: 4
+EmptyLineBeforeAccessModifier: Always
+EmptyLineAfterAccessModifier: Always
 IndentCaseLabels: true
 IndentPPDirectives: None
 IndentWidth: 4

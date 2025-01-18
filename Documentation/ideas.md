@@ -17,6 +17,9 @@
 - M5Stack Core only shows 4MB of SPIRAM in use
 
 # TODOs
+- Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
+- We currently make all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
+  Projects will load and compile faster as it won't compile all the dependencies of all these other boards
 - Make a ledger for setting CPU affinity of various services and tasks
 - Make "blocking" argument the last one, and put it default to false (or remove it entirely?): void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.

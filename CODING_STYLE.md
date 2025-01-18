@@ -2,7 +2,9 @@
 
 The basic formatting rules are set in `.clang-format`. Use auto-formatting in your editor.
 
-All code should target C++ language revision 17.
+All code should target C++ language revision 20.
+
+If you use CLion, please enable the setting called "Enable ClangFormat" under Settings > Editor > Code Style.
 
 ## Naming
 
@@ -81,3 +83,7 @@ enum class  {
     Error
 };
 ```
+
+### Exceptions
+
+Don't ever throw them. Make a return type that wraps all the error and success scenarios that are relevant.

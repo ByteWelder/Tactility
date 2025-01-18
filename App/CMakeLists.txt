@@ -14,6 +14,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         list(APPEND BOARD_COMPONENTS
             LilygoTdeck
             M5stackCoreS3
+            UnPhone
         )
     endif()
 
