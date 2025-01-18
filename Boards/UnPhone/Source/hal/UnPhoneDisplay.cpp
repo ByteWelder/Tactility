@@ -49,8 +49,7 @@ bool UnPhoneDisplay::stop() {
 }
 
 tt::hal::Touch* _Nullable UnPhoneDisplay::createTouch() {
-    return nullptr;
-//    return static_cast<tt::hal::Touch*>(new UnPhoneTouch());
+    return static_cast<tt::hal::Touch*>(new UnPhoneTouch());
 }
 
 tt::hal::Display* createDisplay() {
