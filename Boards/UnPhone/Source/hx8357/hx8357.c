@@ -22,18 +22,19 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "../hx8357_config.h"
+
 /*********************
  *      DEFINES
  *********************/
 #define TAG        "HX8357"
 
-#define MADCTL_MY  0x80 ///< Bottom to top
-#define MADCTL_MX  0x40 ///< Right to left
-#define MADCTL_MV  0x20 ///< Reverse Mode
-#define MADCTL_ML  0x10 ///< LCD refresh Bottom to top
-#define MADCTL_RGB 0x00 ///< Red-Green-Blue pixel order
-#define MADCTL_BGR 0x08 ///< Blue-Green-Red pixel order
-#define MADCTL_MH  0x04 ///< LCD refresh right to left
+#define MADCTL_BIT_INDEX_DATA_LATCH_ORDER 2 // 0 = left-to-right refresh, 1 = right-to-left
+#define MADCTL_BIT_INDEX_RGB_BGR_ORDER 3 // 0 = RGB, 1 = BGR
+#define MADCTL_BIT_INDEX_LINE_ADDRESS_ORDER 4 // 0 = top-to-bottom refresh, 1 = bottom-to-top
+#define MADCTL_BIT_INDEX_PAGE_COLUMN_ORDER 5 // 0 = normal, 1 = reverse
+#define MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER 6 // 0 = left-to-right, 1 = right-to-left
+#define MADCTL_BIT_INDEX_PAGE_ADDRESS_ORDER 7 // 0 = top-to-bottom, 1 = bottom-to-top
 
 // TODO: Move
 #define HX8357_DC GPIO_NUM_47
@@ -167,14 +168,14 @@ void hx8357_init(void)
 	gpio_set_direction(HX8357_DC, GPIO_MODE_OUTPUT);
 
 #if HX8357_USE_RST
-    gpio_pad_select_gpio(HX8357_RST);
+    esp_rom_gpio_pad_select_gpio(HX8357_RST);
 	gpio_set_direction(HX8357_RST, GPIO_MODE_OUTPUT);
 
 	//Reset the display
 	gpio_set_level(HX8357_RST, 0);
-	vTaskDelay(10 / portTICK_RATE_MS);
+	vTaskDelay(10 / portTICK_PERIOD_MS);
 	gpio_set_level(HX8357_RST, 1);
-	vTaskDelay(120 / portTICK_RATE_MS);
+	vTaskDelay(120 / portTICK_PERIOD_MS);
 #endif
 
 	ESP_LOGI(TAG, "Initialization.");
@@ -212,8 +213,6 @@ void hx8357_init(void)
 //(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map);
 void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map)
 {
-    ESP_LOGI("hx", "flush");
-
 	uint32_t size = lv_area_get_width(area) * lv_area_get_height(area);
 
 	/* Column addresses  */
@@ -249,20 +248,23 @@ void hx8357_set_rotation(uint8_t r)
 {
 	r = r & 3; // can't be higher than 3
 
-	switch(r) {
-		case 0:
-			r = MADCTL_MX | MADCTL_MY | MADCTL_RGB;
-			break;
-		case 1:
-			r = MADCTL_MV | MADCTL_MY | MADCTL_RGB;
-      		break;
-		case 2:
-			r = MADCTL_RGB;
-  			break;
-		case 3:
-			r = MADCTL_MX | MADCTL_MV | MADCTL_RGB;
-		break;
-	}
+//	switch(r) {
+//		case 0:
+//			r = MADCTL_MX | MADCTL_MY | MADCTL_RGB;
+//			break;
+//		case 1:
+//			r = MADCTL_MV | MADCTL_MY | MADCTL_RGB;
+//      		break;
+//		case 2:
+//			r = MADCTL_RGB;
+//  			break;
+//		case 3:
+//			r = MADCTL_MX | MADCTL_MV | MADCTL_RGB;
+//		break;
+//	}
+
+    // TODO: Fix the above code
+    r = BIT(MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER);
 
 	hx8357_send_cmd(HX8357_MADCTL);
 	hx8357_send_data(&r, 1);

@@ -17,6 +17,7 @@ bool UnPhoneDisplay::start() {
     disp_spi_add_device(SPI2_HOST);
 
     hx8357_init();
+    hx8357_set_rotation(2);
 
     displayHandle = lv_display_create(UNPHONE_LCD_HORIZONTAL_RESOLUTION, UNPHONE_LCD_VERTICAL_RESOLUTION);
     static uint8_t buf1[UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_VERTICAL_RESOLUTION / 10 * UNPHONE_LCD_BITS_PER_PIXEL / 8];

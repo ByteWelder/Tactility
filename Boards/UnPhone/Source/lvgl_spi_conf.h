@@ -4,3 +4,4 @@
 #define SPI_TFT_SPI_MODE (0)
 #define DISP_SPI_CS GPIO_NUM_48
 #define DISP_SPI_INPUT_DELAY_NS 0
+
