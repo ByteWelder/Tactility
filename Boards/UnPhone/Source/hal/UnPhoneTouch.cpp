@@ -22,7 +22,7 @@ bool UnPhoneTouch::start(lv_display_t* display) {
         .x_max = UNPHONE_TOUCH_X_MAX,
         .y_max = UNPHONE_TOUCH_Y_MAX,
         .rst_gpio_num = GPIO_NUM_NC,
-        .int_gpio_num = GPIO_NUM_NC, // There is no reset pin for touch on the T-Deck, leading to a bug in esp_lvgl_port firing multiple click events when tapping the screen
+        .int_gpio_num = GPIO_NUM_NC,
         .levels = {
             .reset = 0,
             .interrupt = 0,
