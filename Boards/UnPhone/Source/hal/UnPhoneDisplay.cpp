@@ -10,28 +10,36 @@
 #include "hx8357/disp_spi.h"
 
 #define TAG "unphone_display"
+#define BUFFER_SIZE (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8)
 
 bool UnPhoneDisplay::start() {
     TT_LOG_I(TAG, "Starting");
 
     disp_spi_add_device(SPI2_HOST);
 
-    hx8357_init();
-    hx8357_set_rotation(2);
+    hx8357_reset(GPIO_NUM_46);
+    hx8357_init(UNPHONE_LCD_PIN_DC);
+    uint8_t madctl = (1U << MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER);
+    hx8357_set_madctl(madctl);
 
     displayHandle = lv_display_create(UNPHONE_LCD_HORIZONTAL_RESOLUTION, UNPHONE_LCD_VERTICAL_RESOLUTION);
-    static uint8_t buf1[UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_VERTICAL_RESOLUTION / 10 * UNPHONE_LCD_BITS_PER_PIXEL / 8];
-    static uint8_t buf2[UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_VERTICAL_RESOLUTION / 10 * UNPHONE_LCD_BITS_PER_PIXEL / 8];
+    lv_display_set_physical_resolution(displayHandle, UNPHONE_LCD_HORIZONTAL_RESOLUTION, UNPHONE_LCD_VERTICAL_RESOLUTION);
+    lv_display_set_color_format(displayHandle, LV_COLOR_FORMAT_NATIVE);
+
+    // TODO malloc to use SPIRAM
+    static auto* buffer1 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    static auto* buffer2 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    assert(buffer1 != nullptr);
+    assert(buffer2 != nullptr);
+
     lv_display_set_buffers(
         displayHandle,
-        buf1,
-        buf2,
-        sizeof(buf1),
+        buffer1,
+        buffer2,
+        BUFFER_SIZE,
         LV_DISPLAY_RENDER_MODE_PARTIAL
     );
 
-    lv_display_set_color_format(displayHandle, LV_COLOR_FORMAT_RGB565);
-    lv_display_set_physical_resolution(displayHandle, UNPHONE_LCD_HORIZONTAL_RESOLUTION, UNPHONE_LCD_VERTICAL_RESOLUTION);
     lv_display_set_flush_cb(displayHandle, hx8357_flush);
 
     TT_LOG_I(TAG, "Finished");
@@ -45,7 +53,6 @@ bool UnPhoneDisplay::stop() {
     displayHandle = nullptr;
 
     return true;
-
 }
 
 tt::hal::Touch* _Nullable UnPhoneDisplay::createTouch() {

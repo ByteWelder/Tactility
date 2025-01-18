@@ -1,5 +1,5 @@
 /**
- * @file HX8357.h
+ * @file hx8357.h
  *
  * Roughly based on the Adafruit_HX8357_Library
  *
@@ -28,10 +28,8 @@ extern "C" {
 #include <stdint.h>
 
 #include <lvgl.h>
+#include <soc/gpio_num.h>
 
-/*******************
- * HX8357B/D REGS
-*********************/
 #define HX8357D                    0xD  ///< Our internal const for D type
 #define HX8357B                    0xB  ///< Our internal const for B type
 
@@ -105,21 +103,23 @@ extern "C" {
 #define HX8357B_SETGAMMA          0xC8 ///< Set Gamma
 #define HX8357B_SETPANELRELATED   0xE9 ///< Set panel related
 
- /**********************
- *      TYPEDEFS
- **********************/
-
-/**********************
- * GLOBAL PROTOTYPES
- **********************/
-
-void hx8357_init(void);
 void hx8357_flush(lv_disp_t * drv, const lv_area_t * area, uint8_t * color_map);
-void hx8357_set_rotation(uint8_t r);
+// MADCTL
+// See datasheet page 123: https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
+#define MADCTL_BIT_INDEX_COMMON_OUTPUTS_RAM 0 // N/A - set to 0
+#define MADCTL_BIT_INDEX_SEGMENT_OUTPUTS_RAM 1 // N/A - set to 0
+#define MADCTL_BIT_INDEX_DATA_LATCH_ORDER 2 // 0 = left-to-right refresh, 1 = right-to-left
+#define MADCTL_BIT_INDEX_RGB_BGR_ORDER 3 // 0 = RGB, 1 = BGR
+#define MADCTL_BIT_INDEX_LINE_ADDRESS_ORDER 4 // 0 = top-to-bottom refresh, 1 = bottom-to-top
+#define MADCTL_BIT_INDEX_PAGE_COLUMN_ORDER 5 // 0 = normal, 1 = reverse
+#define MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER 6 // 0 = left-to-right, 1 = right-to-left
+#define MADCTL_BIT_INDEX_PAGE_ADDRESS_ORDER 7 // 0 = top-to-bottom, 1 = bottom-to-top
 
-/**********************
- *      MACROS
- **********************/
+void hx8357_reset(gpio_num_t resetPin);
+void hx8357_init(gpio_num_t dcPin);
+void hx8357_set_madctl(uint8_t value);
+void hx8357_set_rotation(uint8_t r);
+void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map);
 
 #ifdef __cplusplus
 } /* extern "C" */

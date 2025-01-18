@@ -22,24 +22,17 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "../hx8357_config.h"
-
 /*********************
  *      DEFINES
  *********************/
-#define TAG        "HX8357"
 
-// See datasheet page 127: https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
-#define MADCTL_BIT_INDEX_DATA_LATCH_ORDER 2 // 0 = left-to-right refresh, 1 = right-to-left
-#define MADCTL_BIT_INDEX_RGB_BGR_ORDER 3 // 0 = RGB, 1 = BGR
-#define MADCTL_BIT_INDEX_LINE_ADDRESS_ORDER 4 // 0 = top-to-bottom refresh, 1 = bottom-to-top
-#define MADCTL_BIT_INDEX_PAGE_COLUMN_ORDER 5 // 0 = normal, 1 = reverse
-#define MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER 6 // 0 = left-to-right, 1 = right-to-left
-#define MADCTL_BIT_INDEX_PAGE_ADDRESS_ORDER 7 // 0 = top-to-bottom, 1 = bottom-to-top
+#define TAG "HX8357"
 
 /**********************
  *      TYPEDEFS
  **********************/
+
+static gpio_num_t dcPin = GPIO_NUM_NC;
 
 /*The LCD needs a bunch of command/argument values to be initialized. They are stored in this struct. */
 typedef struct {
@@ -134,7 +127,7 @@ static const uint8_t
       0x11, 0x1d, 0x23, 0x35, 0x41, 0x4b, 0x4b, 0x42, 0x3A,
       0x27, 0x1B, 0x08, 0x09, 0x03, 0x00, 0x01,
     HX8357_COLMOD, 1,
-      0x55,                      // 16 bit
+      0x57,                      // 0x55 = 16 bit, 0x57 = 24bit
     HX8357_MADCTL, 1,
       0xC0,
     HX8357_TEON, 1,
@@ -159,24 +152,27 @@ static const uint8_t
  **********************/
 static uint8_t displayType = HX8357D;
 
-void hx8357_init(void)
-{
-	//Initialize non-SPI GPIOs
-    esp_rom_gpio_pad_select_gpio(HX8357_DC);
-	gpio_set_direction(HX8357_DC, GPIO_MODE_OUTPUT);
+void hx8357_reset(gpio_num_t resetPin) {
+    if (resetPin != GPIO_NUM_NC) {
+        esp_rom_gpio_pad_select_gpio(resetPin);
+        gpio_set_direction(resetPin, GPIO_MODE_OUTPUT);
 
-#if HX8357_USE_RST
-    esp_rom_gpio_pad_select_gpio(HX8357_RST);
-	gpio_set_direction(HX8357_RST, GPIO_MODE_OUTPUT);
+        //Reset the display
+        gpio_set_level(resetPin, 0);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+        gpio_set_level(resetPin, 1);
+        vTaskDelay(120 / portTICK_PERIOD_MS);
+    }
+}
 
-	//Reset the display
-	gpio_set_level(HX8357_RST, 0);
-	vTaskDelay(10 / portTICK_PERIOD_MS);
-	gpio_set_level(HX8357_RST, 1);
-	vTaskDelay(120 / portTICK_PERIOD_MS);
-#endif
+void hx8357_init(gpio_num_t newDcPin) {
+    ESP_LOGI(TAG, "Initialization.");
 
-	ESP_LOGI(TAG, "Initialization.");
+    dcPin = newDcPin;
+
+    //Initialize non-SPI GPIOs
+    esp_rom_gpio_pad_select_gpio(dcPin);
+	gpio_set_direction(dcPin, GPIO_MODE_OUTPUT);
 
 	//Send all the commands
 	const uint8_t *addr = (displayType == HX8357B) ? initb : initd;
@@ -206,7 +202,6 @@ void hx8357_init(void)
     hx8357_send_cmd(HX8357_INVOFF);
 #endif
 }
-
 
 //(lv_display_t * disp, const lv_area_t * area, uint8_t * px_map);
 void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map)
@@ -239,7 +234,7 @@ void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map)
 
 	/*Memory write*/
 	hx8357_send_cmd(HX8357_RAMWR);
-	hx8357_send_color((void*)color_map, size * 2);
+	hx8357_send_color((void*)color_map, size * (LV_COLOR_DEPTH / 8));
 }
 
 void hx8357_set_rotation(uint8_t r)
@@ -262,12 +257,15 @@ void hx8357_set_rotation(uint8_t r)
 //	}
 
     // TODO: Fix the above code
-    r = BIT(MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER);
+    r = BIT(MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER); // Swap XY
 
-	hx8357_send_cmd(HX8357_MADCTL);
-	hx8357_send_data(&r, 1);
+    hx8357_set_madctl(r);
 }
 
+void hx8357_set_madctl(uint8_t value) {
+    hx8357_send_cmd(HX8357_MADCTL);
+    hx8357_send_data(&value, 1);
+}
 /**********************
  *   STATIC FUNCTIONS
  **********************/
@@ -276,7 +274,7 @@ void hx8357_set_rotation(uint8_t r)
 static void hx8357_send_cmd(uint8_t cmd)
 {
 	disp_wait_for_pending_transactions();
-	gpio_set_level(HX8357_DC, 0);	 /*Command mode*/
+	gpio_set_level(dcPin, 0);	 /*Command mode*/
 	disp_spi_send_data(&cmd, 1);
 }
 
@@ -284,7 +282,7 @@ static void hx8357_send_cmd(uint8_t cmd)
 static void hx8357_send_data(void * data, uint16_t length)
 {
 	disp_wait_for_pending_transactions();
-	gpio_set_level(HX8357_DC, 1);	 /*Data mode*/
+	gpio_set_level(dcPin, 1);	 /*Data mode*/
 	disp_spi_send_data(data, length);
 }
 
@@ -292,6 +290,6 @@ static void hx8357_send_data(void * data, uint16_t length)
 static void hx8357_send_color(void * data, uint16_t length)
 {
 	disp_wait_for_pending_transactions();
-	gpio_set_level(HX8357_DC, 1);   /*Data mode*/
+	gpio_set_level(dcPin, 1);   /*Data mode*/
 	disp_spi_send_colors(data, length);
 }
