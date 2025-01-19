@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Thread.h"
 #include "bq24295/Bq24295.h"
 #include <esp_io_expander_tca95xx_16bit.h>
 
@@ -12,11 +13,18 @@ private:
 
     esp_io_expander_handle_t ioExpander = nullptr;
     Bq24295 batteryManagement = Bq24295(I2C_NUM_0);
+    tt::Thread buttonHandlingThread;
+    bool buttonHandlingThreadInterruptRequest = false;
+
+    bool initNavButtons();
+    static bool initOutputPins();
+    static bool initPowerSwitch();
+    bool initGpioExpander();
 
 public:
 
     UnPhoneFeatures() = default;
-    ~UnPhoneFeatures() = default;
+    ~UnPhoneFeatures();
 
     bool init();
 

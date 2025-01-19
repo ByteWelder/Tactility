@@ -1,5 +1,7 @@
 #include "UnPhoneFeatures.h"
+#include "FreeRTOS-Kernel/include/FreeRTOS.h"
 #include "Log.h"
+#include "service/loader/Loader.h"
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
@@ -24,9 +26,101 @@ namespace expanderpin {
 
 #define TAG "unhpone_features"
 
-bool UnPhoneFeatures::init() {
-    TT_LOG_I(TAG, "init");
+// TODO: Make part of a new type of UnPhoneFeatures data struct that holds all the thread-related data
+QueueHandle_t interruptQueue;
 
+static void IRAM_ATTR navButtonInterruptHandler(void* args) {
+    int pinNumber = (int)args;
+    xQueueSendFromISR(interruptQueue, &pinNumber, NULL);
+}
+
+static int32_t buttonHandlingThreadMain(void* context) {
+    auto* interrupted = (bool*)context;
+    int pinNumber;
+    while (!*interrupted) {
+        if (xQueueReceive(interruptQueue, &pinNumber, portMAX_DELAY)) {
+            TT_LOG_I(TAG, "Pressed button %d", pinNumber);
+            if (pinNumber == pin::BUTTON1) {
+                tt::service::loader::stopApp();
+            }
+        }
+    }
+    return 0;
+}
+
+UnPhoneFeatures::~UnPhoneFeatures() {
+    if (buttonHandlingThread.getState() != tt::Thread::State::Stopped) {
+        buttonHandlingThreadInterruptRequest = true;
+        buttonHandlingThread.join();
+    }
+}
+
+bool UnPhoneFeatures::initPowerSwitch() {
+    uint64_t power_pin_mask = BIT64(pin::POWER_SWITCH);
+
+    gpio_config_t power_gpio_config = {
+        .pin_bit_mask = power_pin_mask,
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_POSEDGE,
+    };
+
+    if (gpio_config(&power_gpio_config) != ESP_OK) {
+        TT_LOG_E(TAG, "Power pin init failed");
+        return false;
+    }
+
+    if (rtc_gpio_pullup_en(pin::POWER_SWITCH) == ESP_OK &&
+        rtc_gpio_pulldown_en(pin::POWER_SWITCH) == ESP_OK) {
+        return true;
+    } else {
+        TT_LOG_E(TAG, "Failed to set RTC for power switch");
+        return false;
+    }
+}
+
+bool UnPhoneFeatures::initNavButtons() {
+    interruptQueue = xQueueCreate(4, sizeof(int));
+
+    buttonHandlingThread.setName("unphone_buttons");
+    buttonHandlingThread.setPriority(tt::Thread::Priority::High);
+    buttonHandlingThread.setStackSize(3072);
+    buttonHandlingThread.setCallback(buttonHandlingThreadMain, &buttonHandlingThreadInterruptRequest);
+    buttonHandlingThread.start();
+
+    uint64_t input_pin_mask =
+        BIT64(pin::BUTTON1) |
+        BIT64(pin::BUTTON2) |
+        BIT64(pin::BUTTON3);
+
+    gpio_config_t input_gpio_config = {
+        .pin_bit_mask = input_pin_mask,
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_NEGEDGE,
+    };
+
+    if (gpio_config(&input_gpio_config) != ESP_OK) {
+        TT_LOG_E(TAG, "Nav button pin init failed");
+        return false;
+    }
+
+    if (
+        gpio_install_isr_service(0) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON1, navButtonInterruptHandler, (void*)pin::BUTTON1) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON2, navButtonInterruptHandler, (void*)pin::BUTTON2) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON3, navButtonInterruptHandler, (void*)pin::BUTTON3) != ESP_OK
+    ) {
+        TT_LOG_E(TAG, "Nav buttons ISR init failed");
+        return false;
+    }
+
+    return true;
+}
+
+bool UnPhoneFeatures::initOutputPins() {
     uint64_t output_pin_mask =
         BIT64(pin::IR_LEDS) |
         BIT64(pin::LED_RED);
@@ -44,47 +138,10 @@ bool UnPhoneFeatures::init() {
         return false;
     }
 
-    uint64_t input_pin_mask =
-        BIT64(pin::BUTTON1) |
-        BIT64(pin::BUTTON2) |
-        BIT64(pin::BUTTON3);
+    return true;
+}
 
-    gpio_config_t input_gpio_config = {
-        .pin_bit_mask = input_pin_mask,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-
-    if (gpio_config(&input_gpio_config) != ESP_OK) {
-        TT_LOG_E(TAG, "Input pin init failed");
-        return false;
-    }
-
-    if (gpio_config(&input_gpio_config) != ESP_OK) {
-        TT_LOG_E(TAG, "Input pin init failed");
-        return false;
-    }
-
-    uint64_t power_pin_mask = BIT64(pin::POWER_SWITCH);
-
-    gpio_config_t power_gpio_config = {
-        .pin_bit_mask = power_pin_mask,
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_POSEDGE,
-    };
-
-    if (gpio_config(&power_gpio_config) != ESP_OK) {
-        TT_LOG_E(TAG, "Power pin init failed");
-        return false;
-    }
-
-    rtc_gpio_pullup_en(pin::POWER_SWITCH);
-    rtc_gpio_pulldown_en(pin::POWER_SWITCH);
-
+bool UnPhoneFeatures::initGpioExpander() {
     // ESP_IO_EXPANDER_I2C_TCA9555_ADDRESS_110 corresponds with 0x26 from the docs at
     // https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads#L206
     if (esp_io_expander_new_i2c_tca95xx_16bit(I2C_NUM_0, ESP_IO_EXPANDER_I2C_TCA9555_ADDRESS_110, &ioExpander) != ESP_OK) {
@@ -101,6 +158,32 @@ bool UnPhoneFeatures::init() {
     esp_io_expander_set_dir(ioExpander, expanderpin::VIBE, IO_EXPANDER_OUTPUT);
     // Input pins
     esp_io_expander_set_dir(ioExpander, expanderpin::USB_VSENSE, IO_EXPANDER_INPUT);
+
+    return true;
+}
+
+bool UnPhoneFeatures::init() {
+    TT_LOG_I(TAG, "init");
+
+    if (!initNavButtons()) {
+        TT_LOG_E(TAG, "Input pin init failed");
+        return false;
+    }
+
+    if (!initOutputPins()) {
+        TT_LOG_E(TAG, "Output pin init failed");
+        return false;
+    }
+
+    if (!initPowerSwitch()) {
+        TT_LOG_E(TAG, "Power button init failed");
+        return false;
+    }
+
+    if (!initGpioExpander()) {
+        TT_LOG_E(TAG, "GPIO expander init failed");
+        return false;
+    }
 
     return true;
 }
