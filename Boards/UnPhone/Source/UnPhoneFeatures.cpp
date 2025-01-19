@@ -2,6 +2,7 @@
 #include "Log.h"
 #include "kernel/Kernel.h"
 #include <driver/gpio.h>
+#include <driver/rtc_io.h>
 #include <esp_sleep.h>
 
 namespace pin {
@@ -81,6 +82,9 @@ bool UnPhoneFeatures::init() {
         TT_LOG_E(TAG, "Power pin init failed");
         return false;
     }
+
+    rtc_gpio_pullup_en(pin::POWER_SWITCH);
+    rtc_gpio_pulldown_en(pin::POWER_SWITCH);
 
     // ESP_IO_EXPANDER_I2C_TCA9555_ADDRESS_110 corresponds with 0x26 from the docs at
     // https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads#L206
