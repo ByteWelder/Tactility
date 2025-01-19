@@ -1,6 +1,5 @@
 #include "UnPhoneFeatures.h"
 #include "Log.h"
-#include "kernel/Kernel.h"
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
