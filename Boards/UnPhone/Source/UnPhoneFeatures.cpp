@@ -74,7 +74,7 @@ bool UnPhoneFeatures::init() {
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_ENABLE,
-        .intr_type = GPIO_INTR_HIGH_LEVEL,
+        .intr_type = GPIO_INTR_POSEDGE,
     };
 
     if (gpio_config(&power_gpio_config) != ESP_OK) {
