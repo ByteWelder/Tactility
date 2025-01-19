@@ -98,12 +98,11 @@ extern "C" {
 #define HX8357B_RDID3             0xDC  ///< Read ID #3
 #define HX8357B_RDID4             0xDD  ///< Read ID #4
 
-#define HX8357D_SETGAMMA          0xE0  ///< Set Gamma
-
+#define HX8357D_SETGAMMA          0xE0  ///< Set Gamma curve data
+#define HX8357D_SETGAMMA_BY_ID    0x26  ///< Set Gamma curve by curve identifier (0x01, 0x02, 0x04, 0x08)
 #define HX8357B_SETGAMMA          0xC8 ///< Set Gamma
 #define HX8357B_SETPANELRELATED   0xE9 ///< Set panel related
 
-void hx8357_flush(lv_disp_t * drv, const lv_area_t * area, uint8_t * color_map);
 // MADCTL
 // See datasheet page 123: https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
 #define MADCTL_BIT_INDEX_COMMON_OUTPUTS_RAM 0 // N/A - set to 0
@@ -118,8 +117,14 @@ void hx8357_flush(lv_disp_t * drv, const lv_area_t * area, uint8_t * color_map);
 void hx8357_reset(gpio_num_t resetPin);
 void hx8357_init(gpio_num_t dcPin);
 void hx8357_set_madctl(uint8_t value);
-void hx8357_set_rotation(uint8_t r);
-void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map);
+void hx8357_flush(lv_disp_t* drv, const lv_area_t* area, uint8_t* color_map);
+
+uint8_t hx8357d_get_gamma_curve_count();
+/**
+ * Note: this doesn't work, even though the manual says it should
+ * Page 141: https://cdn-shop.adafruit.com/datasheets/HX8357-D_DS_April2012.pdf
+ */
+void hx8357d_set_gamme_curve(uint8_t index);
 
 #ifdef __cplusplus
 } /* extern "C" */

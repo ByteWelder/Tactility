@@ -194,8 +194,6 @@ void hx8357_init(gpio_num_t newDcPin) {
 		}
 	}
 
-	hx8357_set_rotation(1);
-
 #if HX8357_INVERT_COLORS
 	hx8357_send_cmd(HX8357_INVON);
 #else
@@ -237,31 +235,6 @@ void hx8357_flush(lv_disp_t* drv, const lv_area_t * area, uint8_t * color_map)
 	hx8357_send_color((void*)color_map, size * (LV_COLOR_DEPTH / 8));
 }
 
-void hx8357_set_rotation(uint8_t r)
-{
-	r = r & 3; // can't be higher than 3
-
-//	switch(r) {
-//		case 0:
-//			r = MADCTL_MX | MADCTL_MY | MADCTL_RGB;
-//			break;
-//		case 1:
-//			r = MADCTL_MV | MADCTL_MY | MADCTL_RGB;
-//      		break;
-//		case 2:
-//			r = MADCTL_RGB;
-//  			break;
-//		case 3:
-//			r = MADCTL_MX | MADCTL_MV | MADCTL_RGB;
-//		break;
-//	}
-
-    // TODO: Fix the above code
-    r = BIT(MADCTL_BIT_INDEX_COLUMN_ADDRESS_ORDER); // Swap XY
-
-    hx8357_set_madctl(r);
-}
-
 void hx8357_set_madctl(uint8_t value) {
     hx8357_send_cmd(HX8357_MADCTL);
     hx8357_send_data(&value, 1);
@@ -292,4 +265,28 @@ static void hx8357_send_color(void * data, uint16_t length)
 	disp_wait_for_pending_transactions();
 	gpio_set_level(dcPin, 1);   /*Data mode*/
 	disp_spi_send_colors(data, length);
+}
+
+uint8_t hx8357d_get_gamma_curve_count() {
+    return 4;
+}
+
+void hx8357d_set_gamme_curve(uint8_t index) {
+    uint8_t curve = 1;
+    switch (index) {
+        case 0:
+            curve = 0x01;
+            break;
+        case 1:
+            curve = 0x02;
+            break;
+        case 2:
+            curve = 0x04;
+            break;
+        case 3:
+            curve = 0x08;
+            break;
+    }
+    hx8357_send_cmd(HX8357D_SETGAMMA_BY_ID);
+    hx8357_send_data(&curve, 1);
 }
