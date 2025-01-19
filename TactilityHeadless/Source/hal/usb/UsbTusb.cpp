@@ -149,7 +149,12 @@ bool tusbStartMassStorageWithSdmmc() {
         }
     };
 
-    return tinyusb_msc_storage_init_sdmmc(&config_sdmmc) == ESP_OK;
+    auto result = tinyusb_msc_storage_init_sdmmc(&config_sdmmc);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "TinyUSB init failed: %s", esp_err_to_name(result));
+    }
+
+    return result == ESP_OK;
 }
 
 void tusbStop() {
