@@ -6,7 +6,7 @@
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
-#define TDECK_SDCARD_SPI_FREQUENCY 800000U
+#define TDECK_SDCARD_SPI_FREQUENCY 20000000U
 #define TDECK_SDCARD_PIN_CS GPIO_NUM_39
 #define TDECK_LCD_PIN_CS GPIO_NUM_12
 #define TDECK_RADIO_PIN_CS GPIO_NUM_9
