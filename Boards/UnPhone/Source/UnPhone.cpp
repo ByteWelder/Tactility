@@ -11,7 +11,7 @@ extern const tt::hal::Configuration unPhone = {
     .initHardware = unPhoneInitHardware,
     .initLvgl = unPhoneInitLvgl,
     .createDisplay = createDisplay,
-//    .sdcard = createUnPhoneSdCard(),
+    .sdcard = createUnPhoneSdCard(),
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
