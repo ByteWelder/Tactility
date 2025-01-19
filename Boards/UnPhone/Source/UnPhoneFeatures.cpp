@@ -1,6 +1,7 @@
 #include "UnPhoneFeatures.h"
 #include "FreeRTOS-Kernel/include/FreeRTOS.h"
 #include "Log.h"
+#include "kernel/Kernel.h"
 #include "service/loader/Loader.h"
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
@@ -39,10 +40,18 @@ static int32_t buttonHandlingThreadMain(void* context) {
     int pinNumber;
     while (!*interrupted) {
         if (xQueueReceive(interruptQueue, &pinNumber, portMAX_DELAY)) {
+            // The buttons might generate more than 1 click because of how they are built
             TT_LOG_I(TAG, "Pressed button %d", pinNumber);
             if (pinNumber == pin::BUTTON1) {
                 tt::service::loader::stopApp();
             }
+
+            // Debounce all events for a short period of time
+            // This is easier than keeping track when each button was last pressed
+            tt::kernel::delayMillis(50);
+            xQueueReset(interruptQueue);
+            tt::kernel::delayMillis(50);
+            xQueueReset(interruptQueue);
         }
     }
     return 0;
@@ -56,17 +65,15 @@ UnPhoneFeatures::~UnPhoneFeatures() {
 }
 
 bool UnPhoneFeatures::initPowerSwitch() {
-    uint64_t power_pin_mask = BIT64(pin::POWER_SWITCH);
-
-    gpio_config_t power_gpio_config = {
-        .pin_bit_mask = power_pin_mask,
+    gpio_config_t config = {
+        .pin_bit_mask = BIT64(pin::POWER_SWITCH),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .intr_type = GPIO_INTR_POSEDGE,
     };
 
-    if (gpio_config(&power_gpio_config) != ESP_OK) {
+    if (gpio_config(&config) != ESP_OK) {
         TT_LOG_E(TAG, "Power pin init failed");
         return false;
     }
@@ -81,6 +88,11 @@ bool UnPhoneFeatures::initPowerSwitch() {
 }
 
 bool UnPhoneFeatures::initNavButtons() {
+    if (!initGpioExpander()) {
+        TT_LOG_E(TAG, "GPIO expander init failed");
+        return false;
+    }
+
     interruptQueue = xQueueCreate(4, sizeof(int));
 
     buttonHandlingThread.setName("unphone_buttons");
@@ -89,20 +101,25 @@ bool UnPhoneFeatures::initNavButtons() {
     buttonHandlingThread.setCallback(buttonHandlingThreadMain, &buttonHandlingThreadInterruptRequest);
     buttonHandlingThread.start();
 
-    uint64_t input_pin_mask =
+    uint64_t pin_mask =
         BIT64(pin::BUTTON1) |
         BIT64(pin::BUTTON2) |
         BIT64(pin::BUTTON3);
 
-    gpio_config_t input_gpio_config = {
-        .pin_bit_mask = input_pin_mask,
+    gpio_config_t config = {
+        .pin_bit_mask = pin_mask,
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_NEGEDGE,
+        /**
+         * We have to listen to the button release (= positive signal).
+         * If we listen to button press, the buttons might create more than 1 signal
+         * when they are continuously pressed.
+         */
+        .intr_type = GPIO_INTR_POSEDGE,
     };
 
-    if (gpio_config(&input_gpio_config) != ESP_OK) {
+    if (gpio_config(&config) != ESP_OK) {
         TT_LOG_E(TAG, "Nav button pin init failed");
         return false;
     }
@@ -125,7 +142,7 @@ bool UnPhoneFeatures::initOutputPins() {
         BIT64(pin::IR_LEDS) |
         BIT64(pin::LED_RED);
 
-    gpio_config_t output_gpio_config = {
+    gpio_config_t config = {
         .pin_bit_mask = output_pin_mask,
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
@@ -133,7 +150,7 @@ bool UnPhoneFeatures::initOutputPins() {
         .intr_type = GPIO_INTR_DISABLE,
     };
 
-    if (gpio_config(&output_gpio_config) != ESP_OK) {
+    if (gpio_config(&config) != ESP_OK) {
         TT_LOG_E(TAG, "Output pin init failed");
         return false;
     }
@@ -165,6 +182,11 @@ bool UnPhoneFeatures::initGpioExpander() {
 bool UnPhoneFeatures::init() {
     TT_LOG_I(TAG, "init");
 
+    if (!initGpioExpander()) {
+        TT_LOG_E(TAG, "GPIO expander init failed");
+        return false;
+    }
+
     if (!initNavButtons()) {
         TT_LOG_E(TAG, "Input pin init failed");
         return false;
@@ -177,11 +199,6 @@ bool UnPhoneFeatures::init() {
 
     if (!initPowerSwitch()) {
         TT_LOG_E(TAG, "Power button init failed");
-        return false;
-    }
-
-    if (!initGpioExpander()) {
-        TT_LOG_E(TAG, "GPIO expander init failed");
         return false;
     }
 
