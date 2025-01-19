@@ -64,23 +64,21 @@ static bool unPhonePowerOn() {
 
     unPhoneFeatures.printInfo();
 
+    // Vibrate once
+    // Note: Do this before power switching logic, to detect silent boot loops
+    unPhoneFeatures.setVibePower(true);
+    tt::kernel::delayMillis(150);
+    unPhoneFeatures.setVibePower(false);
+
+    // Turn off the device if power switch is on off state,
+    // instead of waiting for the Thread to start and continue booting
     updatePowerSwitch();
     startPowerSwitchThread();
 
     unPhoneFeatures.setBacklightPower(false);
-
-    // Init touch screen GPIOs (used for vibe motor)
     unPhoneFeatures.setVibePower(false);
-
     unPhoneFeatures.setIrPower(false);
-
-    // This will be default LOW implicitly, but this makes it explicit
     unPhoneFeatures.setExpanderPower(false);
-
-    // Vibrate once
-    unPhoneFeatures.setVibePower(true);
-    tt::kernel::delayMillis(150);
-    unPhoneFeatures.setVibePower(false);
 
     return true;
 }
