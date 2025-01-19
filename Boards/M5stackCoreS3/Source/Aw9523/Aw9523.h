@@ -1,6 +1,6 @@
 #pragma once
 
-#include "I2cDevice/I2cDevice.h"
+#include "hal/i2c/I2cDevice.h"
 
 #define AW9523_ADDRESS 0x58
 

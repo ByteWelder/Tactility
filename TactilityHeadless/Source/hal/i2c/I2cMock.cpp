@@ -80,20 +80,36 @@ bool isStarted(i2c_port_t port) {
     return started;
 }
 
-bool read(i2c_port_t port, uint16_t address, uint32_t reg, uint8_t* buffer, uint16_t size, TickType_t timeout) {
-    return false;
-}
-
-bool write(i2c_port_t port, uint16_t address, uint32_t reg, const uint8_t* buffer, uint16_t size, TickType_t timeout) {
-    return false;
-}
-
 bool lock(i2c_port_t port, TickType_t timeout) {
     return dataArray[port].mutex.lock(timeout);
 }
 
 bool unlock(i2c_port_t port) {
     return dataArray[port].mutex.unlock();
+}
+
+bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
+    return false;
+}
+
+bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
+    return false;
+}
+
+bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    return false;
+}
+
+bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    return false;
+}
+
+bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    return false;
+}
+
+bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
+    return false;
 }
 
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {

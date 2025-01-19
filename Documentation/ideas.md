@@ -15,8 +15,12 @@
 - tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
+- Try to improve Core2 and CoreS3 performance by setting swap_bytes of display driver to false (this is a software operation on the display buffer!) and use 24 bit colour mode if needed
 
 # TODOs
+- Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
+- We currently make all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
+  Projects will load and compile faster as it won't compile all the dependencies of all these other boards
 - Make a ledger for setting CPU affinity of various services and tasks
 - Make "blocking" argument the last one, and put it default to false (or remove it entirely?): void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.

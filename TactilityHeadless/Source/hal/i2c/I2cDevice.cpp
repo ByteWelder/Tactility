@@ -2,7 +2,7 @@
 
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = (data[0] & 0x0F) << 8 | data[1];
         return true;
     } else {
@@ -12,7 +12,7 @@ bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
 
 bool I2cDevice::readRegister14(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = (data[0] & 0x3F) << 8 | data[1];
         return true;
     } else {
@@ -22,7 +22,7 @@ bool I2cDevice::readRegister14(uint8_t reg, float& out) const {
 
 bool I2cDevice::readRegister16(uint8_t reg, uint16_t& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT) == ESP_OK) {
+    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = data[0] << 8 | data[1];
         return true;
     } else {

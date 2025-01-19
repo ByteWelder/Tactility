@@ -60,13 +60,12 @@ bool startMassStorageWithSdmmc() {
         return false;
     }
 
-    auto result = tusbStartMassStorageWithSdmmc();
-    if (result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to init mass storage: %s", esp_err_to_name(result));
-        return false;
-    } else {
+    if (tusbStartMassStorageWithSdmmc()) {
         currentMode = Mode::MassStorageSdmmc;
         return true;
+    } else {
+        TT_LOG_E(TAG, "Failed to init mass storage");
+        return false;
     }
 }
 
