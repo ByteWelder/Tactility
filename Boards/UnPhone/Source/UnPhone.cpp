@@ -1,3 +1,4 @@
+#include "UnPhoneFeatures.h"
 #include "hal/Configuration.h"
 #include "hal/UnPhoneDisplay.h"
 #include "hal/UnPhoneSdCard.h"
@@ -5,6 +6,9 @@
 bool unPhoneInitPower();
 bool unPhoneInitHardware();
 bool unPhoneInitLvgl();
+
+// Shared object, used in PowerOn and UnPhoneDisplay
+UnPhoneFeatures unPhoneFeatures;
 
 extern const tt::hal::Configuration unPhone = {
     .initBoot = unPhoneInitPower,

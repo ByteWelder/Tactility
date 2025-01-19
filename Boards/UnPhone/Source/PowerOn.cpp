@@ -4,7 +4,7 @@
 
 #define TAG "unphone"
 
-UnPhoneFeatures unPhoneFeatures;
+extern UnPhoneFeatures unPhoneFeatures;
 
 static std::unique_ptr<tt::Thread> powerThread;
 
@@ -77,14 +77,10 @@ static bool unPhonePowerOn() {
     // This will be default LOW implicitly, but this makes it explicit
     unPhoneFeatures.setExpanderPower(false);
 
-    for (int i = 0; i < 3; i++) { // buzz a bit
-        unPhoneFeatures.setVibePower(true);
-        tt::kernel::delayMillis(150);
-        unPhoneFeatures.setVibePower(false);
-        tt::kernel::delayMillis(150);
-    }
-
-    unPhoneFeatures.setBacklightPower(true);
+    // Vibrate once
+    unPhoneFeatures.setVibePower(true);
+    tt::kernel::delayMillis(150);
+    unPhoneFeatures.setVibePower(false);
 
     return true;
 }

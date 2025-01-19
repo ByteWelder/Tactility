@@ -5,12 +5,15 @@
 
 #include <TactilityCore.h>
 
+#include "UnPhoneFeatures.h"
 #include "esp_err.h"
-#include "hx8357/hx8357.h"
 #include "hx8357/disp_spi.h"
+#include "hx8357/hx8357.h"
 
 #define TAG "unphone_display"
 #define BUFFER_SIZE (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8)
+
+extern UnPhoneFeatures unPhoneFeatures;
 
 bool UnPhoneDisplay::start() {
     TT_LOG_I(TAG, "Starting");
@@ -42,8 +45,14 @@ bool UnPhoneDisplay::start() {
 
     lv_display_set_flush_cb(displayHandle, hx8357_flush);
 
-    TT_LOG_I(TAG, "Finished");
-    return displayHandle != nullptr;
+    if (displayHandle != nullptr) {
+        TT_LOG_I(TAG, "Finished");
+        unPhoneFeatures.setBacklightPower(true);
+        return true;
+    } else {
+        TT_LOG_I(TAG, "Failed");
+        return false;
+    }
 }
 
 bool UnPhoneDisplay::stop() {
