@@ -64,7 +64,6 @@ namespace app {
         namespace screenshot { extern const AppManifest manifest; }
 #endif
 #ifdef ESP_PLATFORM
-    extern const AppManifest elfWrapperManifest;
     namespace crashdiagnostics { extern const AppManifest manifest; }
 #endif
 }
@@ -99,8 +98,7 @@ static const std::vector<const app::AppManifest*> system_apps = {
     &app::screenshot::manifest,
 #endif
 #ifdef ESP_PLATFORM
-    &app::crashdiagnostics::manifest,
-    &app::elfWrapperManifest, // For hot-loading ELF apps
+    &app::crashdiagnostics::manifest
 #endif
 };
 

@@ -34,7 +34,7 @@ typedef void (*AppOnResult)(AppContextHandle app, Result result, BundleHandle re
 void tt_set_app_manifest(
     const char* name,
     const char* _Nullable icon,
-    AppOnStart onStart,
+    AppOnStart _Nullable onStart,
     AppOnStop _Nullable onStop,
     AppOnShow _Nullable onShow,
     AppOnHide _Nullable onHide,

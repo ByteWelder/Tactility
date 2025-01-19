@@ -4,121 +4,145 @@
 #include "ElfApp.h"
 #include "TactilityCore.h"
 #include "esp_elf.h"
-
 #include "service/loader/Loader.h"
+
+#include <string>
 
 namespace tt::app {
 
 #define TAG "elf_app"
-#define ELF_WRAPPER_APP_ID "ElfWrapper"
+
+struct ElfManifest {
+    /** The user-readable name of the app. Used in UI. */
+    std::string name;
+    /** Optional icon. */
+    std::string icon;
+    OnStart _Nullable onStart;
+    OnStop _Nullable onStop;
+    OnShow _Nullable onShow;
+    OnHide _Nullable onHide;
+    OnResult _Nullable onResult;
+};
 
 static size_t elfManifestSetCount = 0;
-std::unique_ptr<uint8_t[]> elfFileData;
-esp_elf_t elf;
+static ElfManifest elfManifest;
+
+class ElfApp : public App {
+
+private:
+
+    std::string filePath;
+    std::unique_ptr<uint8_t[]> elfFileData;
+    esp_elf_t elf;
+    std::unique_ptr<ElfManifest> manifest;
+
+    bool startElf() {
+        TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
+        assert(elfFileData == nullptr);
+
+        size_t size = 0;
+        elfFileData = file::readBinary(filePath, size);
+        if (elfFileData == nullptr) {
+            return false;
+        }
+
+        if (esp_elf_init(&elf) < 0) {
+            TT_LOG_E(TAG, "Failed to initialize");
+            return false;
+        }
+
+        if (esp_elf_relocate(&elf, elfFileData.get()) < 0) {
+            TT_LOG_E(TAG, "Failed to load executable");
+            return false;
+        }
+
+        int argc = 0;
+        char* argv[] = {};
+
+        size_t manifest_set_count = elfManifestSetCount;
+        if (esp_elf_request(&elf, 0, argc, argv) < 0) {
+            TT_LOG_W(TAG, "Executable returned error code");
+            return false;
+        }
+
+        return true;
+    }
+
+    void stopElf() {
+        TT_LOG_I(TAG, "Cleaning up ELF");
+        if (elfFileData != nullptr) {
+            esp_elf_deinit(&elf);
+            elfFileData = nullptr;
+        }
+    }
+
+public:
+
+    ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
+
+    void onStart(AppContext& appContext) override {
+        auto initial_count = elfManifestSetCount;
+        if (startElf()) {
+            if (elfManifestSetCount > initial_count) {
+                manifest = std::make_unique<ElfManifest>(elfManifest);
+                manifest->onStart(appContext);
+//                service::loader::startApp(ELF_WRAPPER_APP_ID);
+            }
+        }
+    }
+
+    void onStop(AppContext& appContext) override {
+        TT_LOG_I(TAG, "Cleaning up app");
+        if (manifest != nullptr) {
+            manifest->onStop(appContext);
+            this->manifest = nullptr;
+        }
+        stopElf();
+    }
+
+    void onShow(AppContext& appContext, lv_obj_t* parent) override {
+        if (manifest != nullptr) {
+            manifest->onShow(appContext, parent);
+        }
+    }
+
+    void onHide(AppContext& appContext) override {
+        if (manifest != nullptr) {
+            manifest->onHide(appContext);
+        }
+    }
+
+    void onResult(AppContext& appContext, Result result, const Bundle& resultBundle) override {
+        if (manifest != nullptr) {
+            manifest->onResult(appContext, result, resultBundle);
+        }
+    }
+};
+
+void setElfAppManifest(
+    const char* name,
+    const char* _Nullable icon,
+    OnStart _Nullable onStart,
+    OnStop _Nullable onStop,
+    OnShow _Nullable onShow,
+    OnHide _Nullable onHide,
+    OnResult _Nullable onResult
+) {
+    elfManifest = ElfManifest {
+        .name = name ? name : "",
+        .icon = icon ? icon : "",
+        .onStart = onStart,
+        .onStop = onStop,
+        .onShow = onShow,
+        .onHide = onHide,
+        .onResult = onResult
+    };
+    elfManifestSetCount++;
+}
 
 bool startElfApp(const std::string& filePath) {
-    TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
-
-    assert(elfFileData == nullptr);
-
-    size_t size = 0;
-    elfFileData = file::readBinary(filePath, size);
-    if (elfFileData == nullptr) {
-        return false;
-    }
-
-    if (esp_elf_init(&elf) < 0) {
-        TT_LOG_E(TAG, "Failed to initialize");
-        return false;
-    }
-
-    if (esp_elf_relocate(&elf, elfFileData.get()) < 0) {
-        TT_LOG_E(TAG, "Failed to load executable");
-        return false;
-    }
-
-    int argc = 0;
-    char* argv[] = {};
-
-    size_t manifest_set_count = elfManifestSetCount;
-    if (esp_elf_request(&elf, 0, argc, argv) < 0) {
-        TT_LOG_W(TAG, "Executable returned error code");
-        return false;
-    }
-
-    if (elfManifestSetCount > manifest_set_count) {
-        service::loader::startApp(ELF_WRAPPER_APP_ID);
-    } else {
-        TT_LOG_W(TAG, "App did not set manifest to run - cleaning up ELF");
-        esp_elf_deinit(&elf);
-        elfFileData = nullptr;
-    }
-
-    return true;
-}
-
-static void onStart(AppContext& app) {}
-static void onStop(AppContext& app) {}
-static void onShow(AppContext& app, lv_obj_t* parent) {}
-static void onHide(AppContext& app) {}
-static void onResult(AppContext& app, Result result, const Bundle& resultBundle) {}
-
-AppManifest elfManifest = {
-    .id = "",
-    .name = "",
-    .type = Type::Hidden,
-    .onStart = onStart,
-    .onStop = onStop,
-    .onShow = onShow,
-    .onHide = onHide,
-    .onResult = onResult
-};
-
-static void onStartWrapper(AppContext& app) {
-    elfManifest.onStart(app);
-}
-
-static void onStopWrapper(AppContext& app) {
-    elfManifest.onStop(app);
-    TT_LOG_I(TAG, "Cleaning up ELF");
-    esp_elf_deinit(&elf);
-    elfFileData = nullptr;
-}
-
-static void onShowWrapper(AppContext& app, lv_obj_t* parent) {
-    elfManifest.onShow(app, parent);
-}
-
-static void onHideWrapper(AppContext& app) {
-    elfManifest.onHide(app);
-}
-
-static void onResultWrapper(AppContext& app, Result result, const Bundle& bundle) {
-    elfManifest.onResult(app, result, bundle);
-}
-
-AppManifest elfWrapperManifest = {
-    .id = ELF_WRAPPER_APP_ID,
-    .name = "ELF Wrapper",
-    .type = Type::Hidden,
-    .onStart = onStartWrapper,
-    .onStop = onStopWrapper,
-    .onShow = onShowWrapper,
-    .onHide = onHideWrapper,
-    .onResult = onResultWrapper
-};
-
-void setElfAppManifest(const AppManifest& manifest) {
-    elfManifest.id = manifest.id;
-    elfManifest.name = manifest.name;
-    elfWrapperManifest.name = manifest.name;
-    elfManifest.onStart = manifest.onStart;
-    elfManifest.onStop = manifest.onStop;
-    elfManifest.onShow = manifest.onShow;
-    elfManifest.onHide = manifest.onHide;
-    elfManifest.onResult = manifest.onResult;
-
-    elfManifestSetCount++;
+    // TODO: Register app in registry, then start it
+    return false;
 }
 
 } // namespace

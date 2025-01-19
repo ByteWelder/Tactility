@@ -3,6 +3,7 @@
 #include <Check.h>
 #include <Log.h>
 #include <app/ElfApp.h>
+#include <app/AppCompatC.h>
 
 #define TAG "tt_app"
 
@@ -11,42 +12,6 @@ AppOnStop elfOnStop = nullptr;
 AppOnShow elfOnShow = nullptr;
 AppOnHide elfOnHide = nullptr;
 AppOnResult elfOnResult = nullptr;
-
-static void onStartWrapper(tt::app::AppContext& context) {
-    if (elfOnStart != nullptr) {
-        TT_LOG_I(TAG, "onStartWrapper");
-        elfOnStart(&context);
-    } else {
-        TT_LOG_W(TAG, "onStartWrapper not set");
-    }
-}
-
-static void onStopWrapper(tt::app::AppContext& context) {
-    if (elfOnStop != nullptr) {
-        TT_LOG_I(TAG, "onStopWrapper");
-        elfOnStop(&context);
-    } else {
-        TT_LOG_W(TAG, "onStopWrapper not set");
-    }
-}
-
-static void onShowWrapper(tt::app::AppContext& context, lv_obj_t* parent) {
-    if (elfOnShow != nullptr) {
-        TT_LOG_I(TAG, "onShowWrapper");
-        elfOnShow(&context, parent);
-    } else {
-        TT_LOG_W(TAG, "onShowWrapper not set");
-    }
-}
-
-static void onHideWrapper(tt::app::AppContext& context) {
-    if (elfOnHide != nullptr) {
-        TT_LOG_I(TAG, "onHideWrapper");
-        elfOnHide(&context);
-    } else {
-        TT_LOG_W(TAG, "onHideWrapper not set");
-    }
-}
 
 static void onResultWrapper(tt::app::AppContext& context, tt::app::Result result, const tt::Bundle& resultData) {
     if (elfOnResult != nullptr) {
@@ -69,37 +34,27 @@ static void onResultWrapper(tt::app::AppContext& context, tt::app::Result result
     }
 }
 
-tt::app::AppManifest manifest = {
-    .id = "ElfWrapperInTactilityC",
-    .name = "",
-    .icon = "",
-    .onStart = onStartWrapper,
-    .onStop = onStopWrapper,
-    .onShow = onShowWrapper,
-    .onHide = onHideWrapper,
-    .onResult = onResultWrapper
-};
-
 extern "C" {
 
 void tt_set_app_manifest(
     const char* name,
     const char* _Nullable icon,
-    AppOnStart onStart,
+    AppOnStart _Nullable onStart,
     AppOnStop _Nullable onStop,
     AppOnShow _Nullable onShow,
     AppOnHide _Nullable onHide,
     AppOnResult _Nullable onResult
 ) {
 #ifdef ESP_PLATFORM
-    manifest.name = name;
-    manifest.icon = icon ? icon : "";
-    elfOnStart = onStart;
-    elfOnStop = onStop;
-    elfOnShow = onShow;
-    elfOnHide = onHide;
-    elfOnResult = onResult;
-    tt::app::setElfAppManifest(manifest);
+    tt::app::setElfAppManifest(
+        name,
+        icon,
+        (tt::app::OnStart)onStart,
+        (tt::app::OnStop)onStop,
+        (tt::app::OnShow)onShow,
+        (tt::app::OnHide)onHide,
+        (tt::app::OnResult)onResult
+    );
 #else
     tt_crash("TactilityC is intended for PC/Simulator");
 #endif

@@ -249,12 +249,12 @@ static void stopAppInternal() {
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
-    app::AppInstance* app_to_resume = nullptr;
+    app::AppInstance* instance_to_resume = nullptr;
     // If there's a previous app, resume it
     if (!loader_singleton->appStack.empty()) {
-        app_to_resume = loader_singleton->appStack.top();
-        tt_assert(app_to_resume);
-        transitionAppToState(*app_to_resume, app::StateShowing);
+        instance_to_resume = loader_singleton->appStack.top();
+        tt_assert(instance_to_resume);
+        transitionAppToState(*instance_to_resume, app::StateShowing);
     }
 
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
@@ -272,27 +272,27 @@ static void stopAppInternal() {
     };
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
-    if (app_to_resume != nullptr) {
+    if (instance_to_resume != nullptr) {
         if (result_holder != nullptr) {
             auto result_bundle = result_holder->resultData.get();
             if (result_bundle != nullptr) {
-                app_to_resume->getApp()->onResult(
-                    *app_to_resume,
+                instance_to_resume->getApp()->onResult(
+                    *instance_to_resume,
                     result_holder->result,
                     *result_bundle
                 );
             } else {
                 const Bundle empty_bundle;
-                app_to_resume->getApp()->onResult(
-                    *app_to_resume,
+                instance_to_resume->getApp()->onResult(
+                    *instance_to_resume,
                     result_holder->result,
                     empty_bundle
                 );
             }
         } else {
             const Bundle empty_bundle;
-            app_to_resume->getApp()->onResult(
-                *app_to_resume,
+            instance_to_resume->getApp()->onResult(
+                *instance_to_resume,
                 app::Result::Cancelled,
                 empty_bundle
             );
