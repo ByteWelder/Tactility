@@ -74,7 +74,7 @@ bool SpiSdCard::mountInternal(const char* mountPoint) {
     // The following value is from T-Deck repo's UnitTest.ino project:
     // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
     // Observation: Using this automatically sets the bus to 20MHz
-    host.max_freq_khz = config->spiFrequency;
+    host.max_freq_khz = config->spiFrequency / 1000U;
     host.slot = config->spiHost;
 
     esp_err_t result = esp_vfs_fat_sdspi_mount(mountPoint, &host, &slot_config, &mount_config, &card);
