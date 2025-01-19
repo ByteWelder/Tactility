@@ -85,40 +85,41 @@ static void startNextApp() {
     }
 }
 
-static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
+class BootApp : public App {
 
-    auto* image = lv_image_create(parent);
-    lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
+    void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
 
-    auto paths = app.getPaths();
-    const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
-    auto logo_path = paths->getSystemPathLvgl(logo);
-    TT_LOG_I(TAG, "%s", logo_path.c_str());
-    lv_image_set_src(image, logo_path.c_str());
+        auto* image = lv_image_create(parent);
+        lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
 
-    lvgl::obj_set_style_bg_blacken(parent);
+        auto paths = app.getPaths();
+        const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
+        auto logo_path = paths->getSystemPathLvgl(logo);
+        TT_LOG_I(TAG, "%s", logo_path.c_str());
+        lv_image_set_src(image, logo_path.c_str());
 
-    data->thread.start();
-}
+        lvgl::obj_set_style_bg_blacken(parent);
 
-static void onStart(AppContext& app) {
-    auto data = std::make_shared<Data>();
-    app.setData(data);
-}
+        data->thread.start();
+    }
 
-static void onStop(AppContext& app) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
-    data->thread.join();
-}
+    void onStart(AppContext& app) override {
+        auto data = std::make_shared<Data>();
+        app.setData(data);
+    }
+
+    void onStop(AppContext& app) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
+        data->thread.join();
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "Boot",
     .name = "Boot",
-    .type = TypeBoot,
-    .onStart = onStart,
-    .onStop = onStop,
-    .onShow = onShow,
+    .type = Type::Boot,
+    .createApp = create<BootApp>
 };
 
 } // namespace

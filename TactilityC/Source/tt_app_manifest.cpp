@@ -53,13 +53,13 @@ static void onResultWrapper(tt::app::AppContext& context, tt::app::Result result
         TT_LOG_I(TAG, "onResultWrapper");
         Result convertedResult = AppResultError;
         switch (result) {
-            case tt::app::ResultOk:
+            case tt::app::Result::Ok:
                 convertedResult = AppResultOk;
                 break;
-            case tt::app::ResultCancelled:
+            case tt::app::Result::Cancelled:
                 convertedResult = AppResultCancelled;
                 break;
-            case tt::app::ResultError:
+            case tt::app::Result::Error:
                 convertedResult = AppResultError;
                 break;
         }

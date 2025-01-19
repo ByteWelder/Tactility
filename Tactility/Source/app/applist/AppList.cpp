@@ -21,41 +21,47 @@ static void createAppWidget(const AppManifest* manifest, void* parent) {
     lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest);
 }
 
-static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
-    auto* toolbar = lvgl::toolbar_create(parent, app);
-    lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+class AppListApp : public App {
 
-    lv_obj_t* list = lv_list_create(parent);
-    lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_align_to(list, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+public:
 
-    auto toolbar_height = lv_obj_get_height(toolbar);
-    auto parent_content_height = lv_obj_get_content_height(parent);
-    lv_obj_set_height(list, parent_content_height - toolbar_height);
+    void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        auto* toolbar = lvgl::toolbar_create(parent, app);
+        lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
-    auto manifests = getApps();
-    std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+        lv_obj_t* list = lv_list_create(parent);
+        lv_obj_set_width(list, LV_PCT(100));
+        lv_obj_align_to(list, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
 
-    lv_list_add_text(list, "User");
-    for (const auto& manifest: manifests) {
-        if (manifest->type == TypeUser) {
-            createAppWidget(manifest, list);
+        auto toolbar_height = lv_obj_get_height(toolbar);
+        auto parent_content_height = lv_obj_get_content_height(parent);
+        lv_obj_set_height(list, parent_content_height - toolbar_height);
+
+        auto manifests = getApps();
+        std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+
+        lv_list_add_text(list, "User");
+        for (const auto& manifest: manifests) {
+            if (manifest->type == Type::User) {
+                createAppWidget(manifest, list);
+            }
+        }
+
+        lv_list_add_text(list, "System");
+        for (const auto& manifest: manifests) {
+            if (manifest->type == Type::System) {
+                createAppWidget(manifest, list);
+            }
         }
     }
+};
 
-    lv_list_add_text(list, "System");
-    for (const auto& manifest: manifests) {
-        if (manifest->type == TypeSystem) {
-            createAppWidget(manifest, list);
-        }
-    }
-}
 
 extern const AppManifest manifest = {
     .id = "AppList",
     .name = "Apps",
-    .type = TypeHidden,
-    .onShow = onShow,
+    .type = Type::Hidden,
+    .createApp = create<AppListApp>,
 };
 
 } // namespace

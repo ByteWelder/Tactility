@@ -114,9 +114,7 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
             app.setState(app::StateInitial);
             break;
         case app::StateStarted:
-            if (manifest.onStart != nullptr) {
-                manifest.onStart(app);
-            }
+            app.getApp()->onStart(app);
             app.setState(app::StateStarted);
             break;
         case app::StateShowing: {
@@ -142,9 +140,7 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
             break;
         }
         case app::StateStopped:
-            if (manifest.onStop) {
-                manifest.onStop(app);
-            }
+            app.getApp()->onStop(app);
             app.setData(nullptr);
             app.setState(app::StateStopped);
             break;
@@ -166,7 +162,7 @@ static LoaderStatus startAppWithManifestInternal(
 
     auto previous_app = !loader_singleton->appStack.empty() ? loader_singleton->appStack.top() : nullptr;
     auto new_app = new app::AppInstance(*manifest, parameters);
-    new_app->mutableFlags().showStatusbar = (manifest->type != app::TypeBoot);
+    new_app->mutableFlags().showStatusbar = (manifest->type != app::Type::Boot);
 
     loader_singleton->appStack.push(new_app);
     transitionAppToState(*new_app, app::StateInitial);
@@ -235,7 +231,7 @@ static void stopAppInternal() {
     // Stop current app
     app::AppInstance* app_to_stop = loader_singleton->appStack.top();
 
-    if (original_stack_size == 1 && app_to_stop->getManifest().type != app::TypeBoot) {
+    if (original_stack_size == 1 && app_to_stop->getManifest().type != app::Type::Boot) {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }
@@ -253,15 +249,12 @@ static void stopAppInternal() {
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
-    app::AppOnResult on_result = nullptr;
     app::AppInstance* app_to_resume = nullptr;
     // If there's a previous app, resume it
     if (!loader_singleton->appStack.empty()) {
         app_to_resume = loader_singleton->appStack.top();
         tt_assert(app_to_resume);
         transitionAppToState(*app_to_resume, app::StateShowing);
-
-        on_result = app_to_resume->getManifest().onResult;
     }
 
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
@@ -279,18 +272,18 @@ static void stopAppInternal() {
     };
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
-    if (on_result != nullptr && app_to_resume != nullptr) {
+    if (app_to_resume != nullptr) {
         if (result_holder != nullptr) {
             auto result_bundle = result_holder->resultData.get();
             if (result_bundle != nullptr) {
-                on_result(
+                app_to_resume->getApp()->onResult(
                     *app_to_resume,
                     result_holder->result,
                     *result_bundle
                 );
             } else {
                 const Bundle empty_bundle;
-                on_result(
+                app_to_resume->getApp()->onResult(
                     *app_to_resume,
                     result_holder->result,
                     empty_bundle
@@ -298,9 +291,9 @@ static void stopAppInternal() {
             }
         } else {
             const Bundle empty_bundle;
-            on_result(
+            app_to_resume->getApp()->onResult(
                 *app_to_resume,
-                app::ResultCancelled,
+                app::Result::Cancelled,
                 empty_bundle
             );
         }

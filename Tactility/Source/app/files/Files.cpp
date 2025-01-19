@@ -12,31 +12,30 @@ namespace tt::app::files {
 
 extern const AppManifest manifest;
 
-/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
+class FilesApp : public App {
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto files = std::static_pointer_cast<Files>(app.getData());
-    files->onShow(parent);
-}
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto files = std::static_pointer_cast<Files>(app.getData());
+        files->onShow(parent);
+    }
 
-static void onStart(AppContext& app) {
-    auto files = std::make_shared<Files>();
-    app.setData(files);
-}
+    void onStart(AppContext& app) override {
+        auto files = std::make_shared<Files>();
+        app.setData(files);
+    }
 
-static void onResult(AppContext& app, Result result, const Bundle& bundle) {
-    auto files = std::static_pointer_cast<Files>(app.getData());
-    files->onResult(result, bundle);
-}
+    void onResult(AppContext& app, Result result, const Bundle& bundle) override {
+        auto files = std::static_pointer_cast<Files>(app.getData());
+        files->onResult(result, bundle);
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
-    .type = TypeHidden,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onResult = onResult
+    .type = Type::Hidden,
+    .createApp = create<FilesApp>
 };
 
 void start() {

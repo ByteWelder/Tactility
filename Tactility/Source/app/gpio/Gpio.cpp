@@ -182,30 +182,30 @@ void Gpio::onHide(AppContext& app) {
 
 // region App lifecycle
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-    gpio->onShow(app, parent);
-}
+class GpioApp : public App {
+    void onShow(AppContext& app, lv_obj_t* parent) {
+        auto gpio = std::static_pointer_cast<Gpio>(app.getData());
+        gpio->onShow(app, parent);
+    }
 
-static void onHide(AppContext& app) {
-    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-    gpio->onHide(app);
-}
+    void onHide(AppContext& app) {
+        auto gpio = std::static_pointer_cast<Gpio>(app.getData());
+        gpio->onHide(app);
+    }
 
-static void onStart(AppContext& app) {
-    auto gpio = std::make_shared<Gpio>();
-    app.setData(gpio);
-}
+    void onStart(AppContext& app) {
+        auto gpio = std::make_shared<Gpio>();
+        app.setData(gpio);
+    }
+};
 
 // endregion App lifecycle
 
 extern const AppManifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
-    .type = TypeSystem,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onHide = onHide
+    .type = Type::System,
+    .createApp = create<GpioApp>
 };
 
 } // namespace

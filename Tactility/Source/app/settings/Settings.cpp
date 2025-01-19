@@ -21,30 +21,33 @@ static void createWidget(const AppManifest* manifest, void* parent) {
     lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest);
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+class SettingsApp : public App {
 
-    lvgl::toolbar_create(parent, app);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lv_obj_t* list = lv_list_create(parent);
-    lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_set_flex_grow(list, 1);
+        lvgl::toolbar_create(parent, app);
 
-    auto manifests = getApps();
-    std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
-    for (const auto& manifest: manifests) {
-        if (manifest->type == TypeSettings) {
-            createWidget(manifest, list);
+        lv_obj_t* list = lv_list_create(parent);
+        lv_obj_set_width(list, LV_PCT(100));
+        lv_obj_set_flex_grow(list, 1);
+
+        auto manifests = getApps();
+        std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+        for (const auto& manifest: manifests) {
+            if (manifest->type == Type::Settings) {
+                createWidget(manifest, list);
+            }
         }
     }
-}
+};
 
 extern const AppManifest manifest = {
     .id = "Settings",
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
-    .type = TypeHidden,
-    .onShow = onShow,
+    .type = Type::Hidden,
+    .createApp = create<SettingsApp>
 };
 
 } // namespace

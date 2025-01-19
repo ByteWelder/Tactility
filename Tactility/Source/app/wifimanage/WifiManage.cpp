@@ -148,20 +148,23 @@ void WifiManage::onHide(TT_UNUSED AppContext& app) {
 
 // region Manifest methods
 
-static void onStart(AppContext& app) {
-    auto wifi = std::make_shared<WifiManage>();
-    app.setData(wifi);
-}
+class WifiManageApp : public App {
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
-    wifi->onShow(app, parent);
-}
+    void onStart(AppContext& app) override {
+        auto wifi = std::make_shared<WifiManage>();
+        app.setData(wifi);
+    }
 
-static void onHide(AppContext& app) {
-    auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
-    wifi->onHide(app);
-}
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
+        wifi->onShow(app, parent);
+    }
+
+    void onHide(AppContext& app) override {
+        auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
+        wifi->onHide(app);
+    }
+};
 
 // endregion
 
@@ -169,10 +172,8 @@ extern const AppManifest manifest = {
     .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
-    .type = TypeSettings,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onHide = onHide
+    .type = Type::Settings,
+    .createApp = create<WifiManageApp>
 };
 
 void start() {

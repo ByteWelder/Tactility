@@ -54,7 +54,7 @@ static void onButtonClicked(lv_event_t* e) {
     tt::app::AppContext* app = service::loader::getCurrentApp();
     auto bundle = std::make_shared<Bundle>();
     setResultIndex(bundle, (int32_t)index);
-    app->setResult(app::ResultOk, bundle);
+    app->setResult(app::Result::Ok, bundle);
     service::loader::stopApp();
 }
 
@@ -66,59 +66,64 @@ static void createButton(lv_obj_t* parent, const std::string& text, size_t index
     lv_obj_add_event_cb(button, &onButtonClicked, LV_EVENT_SHORT_CLICKED, (void*)index);
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "Parameters missing");
+class AlertDialogApp : public App {
 
-    std::string title = getTitleParameter(app.getParameters());
-    lv_obj_t* toolbar = lvgl::toolbar_create(parent, title);
-    lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+public:
 
-    lv_obj_t* message_label = lv_label_create(parent);
-    lv_obj_align(message_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_width(message_label, LV_PCT(80));
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto parameters = app.getParameters();
+        tt_check(parameters != nullptr, "Parameters missing");
 
-    std::string message;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {
-        lv_label_set_text(message_label, message.c_str());
-        lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
-    }
+        std::string title = getTitleParameter(app.getParameters());
+        lv_obj_t* toolbar = lvgl::toolbar_create(parent, title);
+        lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
-    lv_obj_t* button_wrapper = lv_obj_create(parent);
-    lv_obj_set_flex_flow(button_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_size(button_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(button_wrapper, 0, 0);
-    lv_obj_set_flex_align(button_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_border_width(button_wrapper, 0, 0);
-    lv_obj_align(button_wrapper, LV_ALIGN_BOTTOM_MID, 0, -4);
+        lv_obj_t* message_label = lv_label_create(parent);
+        lv_obj_align(message_label, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_width(message_label, LV_PCT(80));
 
-    std::string items_concatenated;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_concatenated)) {
-        std::vector<std::string> labels = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
-        if (labels.empty() || labels.front().empty()) {
-            TT_LOG_E(TAG, "No items provided");
-            app.setResult(ResultError);
-            service::loader::stopApp();
-        } else if (labels.size() == 1) {
-            auto result_bundle = std::make_shared<Bundle>();
-            setResultIndex(result_bundle, 0);
-            app.setResult(ResultOk, result_bundle);
-            service::loader::stopApp();
-            TT_LOG_W(TAG, "Auto-selecting single item");
-        } else {
-            size_t index = 0;
-            for (const auto& label: labels) {
-                createButton(button_wrapper, label, index++);
+        std::string message;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {
+            lv_label_set_text(message_label, message.c_str());
+            lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
+        }
+
+        lv_obj_t* button_wrapper = lv_obj_create(parent);
+        lv_obj_set_flex_flow(button_wrapper, LV_FLEX_FLOW_ROW);
+        lv_obj_set_size(button_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_all(button_wrapper, 0, 0);
+        lv_obj_set_flex_align(button_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_border_width(button_wrapper, 0, 0);
+        lv_obj_align(button_wrapper, LV_ALIGN_BOTTOM_MID, 0, -4);
+
+        std::string items_concatenated;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_concatenated)) {
+            std::vector<std::string> labels = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
+            if (labels.empty() || labels.front().empty()) {
+                TT_LOG_E(TAG, "No items provided");
+                app.setResult(Result::Error);
+                service::loader::stopApp();
+            } else if (labels.size() == 1) {
+                auto result_bundle = std::make_shared<Bundle>();
+                setResultIndex(result_bundle, 0);
+                app.setResult(Result::Ok, result_bundle);
+                service::loader::stopApp();
+                TT_LOG_W(TAG, "Auto-selecting single item");
+            } else {
+                size_t index = 0;
+                for (const auto& label: labels) {
+                    createButton(button_wrapper, label, index++);
+                }
             }
         }
     }
-}
+};
 
 extern const AppManifest manifest = {
-     .id = "AlertDialog",
-     .name = "Alert Dialog",
-     .type = TypeHidden,
-     .onShow = onShow
+    .id = "AlertDialog",
+    .name = "Alert Dialog",
+    .type = Type::Hidden,
+    .createApp = create<AlertDialogApp>
 };
 
 }

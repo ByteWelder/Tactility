@@ -1,12 +1,14 @@
 #pragma once
 
-#include "AppManifest.h"
 #include "Bundle.h"
 #include <memory>
 
 namespace tt::app {
 
+// Forward declarations
 class Paths;
+struct AppManifest;
+enum class Result;
 
 typedef union {
     struct {

@@ -13,7 +13,7 @@ typedef struct Gui Gui;
  * @param[in] onShow
  * @param[in] onHide
  */
-void showApp(app::AppContext& app, ViewPortShowCallback onShow, ViewPortHideCallback onHide);
+void showApp(app::AppInstance& app);
 
 /**
  * Hide the current app's viewport.

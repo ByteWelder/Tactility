@@ -283,7 +283,7 @@ void View::onNavigate() {
 }
 
 void View::onResult(Result result, const Bundle& bundle) {
-    if (result != ResultOk) {
+    if (result != Result::Ok) {
         return;
     }
 

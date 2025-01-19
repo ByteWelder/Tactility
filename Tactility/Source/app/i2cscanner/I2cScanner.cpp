@@ -114,81 +114,82 @@ void onScanTimerFinished(std::shared_ptr<Data> data) {
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+class I2cScannerApp : public App {
 
-    lvgl::toolbar_create(parent, app);
+    void onStart(AppContext& app) override {
+        auto data = std::make_shared<Data>();
+        app.setData(data);
+    }
 
-    lv_obj_t* main_wrapper = lv_obj_create(parent);
-    lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(main_wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(main_wrapper, 1);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lv_obj_t* wrapper = lv_obj_create(main_wrapper);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_height(wrapper, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(wrapper, 0, 0);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+        lvgl::toolbar_create(parent, app);
 
-    lv_obj_t* scan_button = lv_button_create(wrapper);
-    lv_obj_set_width(scan_button, LV_PCT(48));
-    lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
-    lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_SHORT_CLICKED, nullptr);
-    lv_obj_t* scan_button_label = lv_label_create(scan_button);
-    lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(scan_button_label, START_SCAN_TEXT);
-    data->scanButtonLabelWidget = scan_button_label;
+        lv_obj_t* main_wrapper = lv_obj_create(parent);
+        lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_width(main_wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(main_wrapper, 1);
 
-    lv_obj_t* port_dropdown = lv_dropdown_create(wrapper);
-    std::string dropdown_items = getPortNamesForDropdown();
-    lv_dropdown_set_options(port_dropdown, dropdown_items.c_str());
-    lv_obj_set_width(port_dropdown, LV_PCT(48));
-    lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_add_event_cb(port_dropdown, onSelectBus, LV_EVENT_VALUE_CHANGED, nullptr);
-    lv_dropdown_set_selected(port_dropdown, 0);
-    data->portDropdownWidget = port_dropdown;
+        lv_obj_t* wrapper = lv_obj_create(main_wrapper);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_height(wrapper, LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_all(wrapper, 0, 0);
+        lv_obj_set_style_border_width(wrapper, 0, 0);
 
-    lv_obj_t* scan_list = lv_list_create(main_wrapper);
-    lv_obj_set_style_margin_top(scan_list, 8, 0);
-    lv_obj_set_width(scan_list, LV_PCT(100));
-    lv_obj_set_height(scan_list, LV_SIZE_CONTENT);
-    lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
-    data->scanListWidget = scan_list;
-}
+        lv_obj_t* scan_button = lv_button_create(wrapper);
+        lv_obj_set_width(scan_button, LV_PCT(48));
+        lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
+        lv_obj_add_event_cb(scan_button, &onPressScan, LV_EVENT_SHORT_CLICKED, nullptr);
+        lv_obj_t* scan_button_label = lv_label_create(scan_button);
+        lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(scan_button_label, START_SCAN_TEXT);
+        data->scanButtonLabelWidget = scan_button_label;
 
-static void onHide(AppContext& app) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
+        lv_obj_t* port_dropdown = lv_dropdown_create(wrapper);
+        std::string dropdown_items = getPortNamesForDropdown();
+        lv_dropdown_set_options(port_dropdown, dropdown_items.c_str());
+        lv_obj_set_width(port_dropdown, LV_PCT(48));
+        lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_add_event_cb(port_dropdown, onSelectBus, LV_EVENT_VALUE_CHANGED, nullptr);
+        lv_dropdown_set_selected(port_dropdown, 0);
+        data->portDropdownWidget = port_dropdown;
 
-    bool isRunning = false;
-    if (data->mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
-        auto* timer = data->scanTimer.get();
-        if (timer != nullptr) {
-            isRunning = timer->isRunning();
+        lv_obj_t* scan_list = lv_list_create(main_wrapper);
+        lv_obj_set_style_margin_top(scan_list, 8, 0);
+        lv_obj_set_width(scan_list, LV_PCT(100));
+        lv_obj_set_height(scan_list, LV_SIZE_CONTENT);
+        lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
+        data->scanListWidget = scan_list;
+    }
+
+    void onHide(AppContext& app) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
+
+        bool isRunning = false;
+        if (data->mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
+            auto* timer = data->scanTimer.get();
+            if (timer != nullptr) {
+                isRunning = timer->isRunning();
+            }
+            data->mutex.release();
+        } else {
+            return;
         }
-        data->mutex.release();
-    } else {
-        return;
-    }
 
-    if (isRunning) {
-        stopScanning(data);
+        if (isRunning) {
+            stopScanning(data);
+        }
     }
-}
-
-static void onStart(AppContext& app) {
-    auto data = std::make_shared<Data>();
-    app.setData(data);
-}
+};
 
 extern const AppManifest manifest = {
     .id = "I2cScanner",
     .name = "I2C Scanner",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = TypeSystem,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onHide = onHide
+    .type = Type::System,
+    .createApp = create<I2cScannerApp>
 };
 
 void start() {

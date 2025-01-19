@@ -54,14 +54,19 @@ private:
     std::shared_ptr<void> _Nullable data;
     std::unique_ptr<ResultHolder> _Nullable resultHolder;
 
+    std::unique_ptr<App> app;
+
 public:
 
     explicit AppInstance(const AppManifest& manifest) :
-        manifest(manifest) {}
+        manifest(manifest),
+        app(manifest.createApp())
+    {}
 
     AppInstance(const AppManifest& manifest, std::shared_ptr<const Bundle> parameters) :
         manifest(manifest),
-        parameters(std::move(parameters)) {}
+        parameters(std::move(parameters)),
+        app(manifest.createApp()) {}
 
     ~AppInstance() override = default;
 
@@ -86,6 +91,8 @@ public:
     std::unique_ptr<Paths> getPaths() const override;
 
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
+
+    const std::unique_ptr<App>& getApp() const { return app; }
 };
 
 } // namespace

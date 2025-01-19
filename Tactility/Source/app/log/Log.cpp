@@ -84,66 +84,67 @@ static void updateViews() {
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto data = std::static_pointer_cast<LogAppData>(app.getData());
+class LogApp : public App {
 
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    auto* toolbar = lvgl::toolbar_create(parent, app);
-    lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_EDIT, onLevelFilterPressed, nullptr);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto data = std::static_pointer_cast<LogAppData>(app.getData());
 
-    auto* wrapper = lv_obj_create(parent);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_no_padding(wrapper);
-    lvgl::obj_set_style_bg_invisible(wrapper);
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        auto* toolbar = lvgl::toolbar_create(parent, app);
+        lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_EDIT, onLevelFilterPressed, nullptr);
 
-    data->labelWidget = lv_label_create(wrapper);
-    lv_obj_align(data->labelWidget, LV_ALIGN_CENTER, 0, 0);
-    setLogEntries(data->labelWidget);
-}
+        auto* wrapper = lv_obj_create(parent);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(wrapper, 1);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lvgl::obj_set_style_no_padding(wrapper);
+        lvgl::obj_set_style_bg_invisible(wrapper);
 
-static void onStart(AppContext& app) {
-    auto data = std::make_shared<LogAppData>();
-    app.setData(data);
-}
-
-static void onResult(AppContext& app, Result result, const Bundle& bundle) {
-    auto resultIndex = selectiondialog::getResultIndex(bundle);
-    auto data = std::static_pointer_cast<LogAppData>(app.getData());
-    if (result == ResultOk) {
-        switch (resultIndex) {
-            case 0:
-                data->filterLevel = LogLevel::Verbose;
-                break;
-            case 1:
-                data->filterLevel = LogLevel::Debug;
-                break;
-            case 2:
-                data->filterLevel = LogLevel::Info;
-                break;
-            case 3:
-                data->filterLevel = LogLevel::Warning;
-                break;
-            case 4:
-                data->filterLevel = LogLevel::Error;
-                break;
-            default:
-                break;
-        }
+        data->labelWidget = lv_label_create(wrapper);
+        lv_obj_align(data->labelWidget, LV_ALIGN_CENTER, 0, 0);
+        setLogEntries(data->labelWidget);
     }
 
-    updateViews();
-}
+    void onStart(AppContext& app) override {
+        auto data = std::make_shared<LogAppData>();
+        app.setData(data);
+    }
+
+    void onResult(AppContext& app, Result result, const Bundle& bundle) override {
+        auto resultIndex = selectiondialog::getResultIndex(bundle);
+        auto data = std::static_pointer_cast<LogAppData>(app.getData());
+        if (result == Result::Ok) {
+            switch (resultIndex) {
+                case 0:
+                    data->filterLevel = LogLevel::Verbose;
+                    break;
+                case 1:
+                    data->filterLevel = LogLevel::Debug;
+                    break;
+                case 2:
+                    data->filterLevel = LogLevel::Info;
+                    break;
+                case 3:
+                    data->filterLevel = LogLevel::Warning;
+                    break;
+                case 4:
+                    data->filterLevel = LogLevel::Error;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        updateViews();
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "Log",
     .name = "Log",
     .icon = LV_SYMBOL_LIST,
-    .type = TypeSystem,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onResult = onResult
+    .type = Type::System,
+    .createApp = create<LogApp>
 };
 
 } // namespace

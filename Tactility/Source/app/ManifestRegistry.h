@@ -1,10 +1,12 @@
 #pragma once
 
-#include "AppManifest.h"
+#include "App.h"
 #include <string>
 #include <vector>
 
 namespace tt::app {
+
+struct AppManifest;
 
 /** Register an application with its manifest */
 void addApp(const AppManifest* manifest);

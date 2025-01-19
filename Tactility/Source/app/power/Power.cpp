@@ -126,63 +126,64 @@ static void onPowerEnabledChanged(lv_event_t* event) {
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+class PowerApp : public App {
 
-    lvgl::toolbar_create(parent, app);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_style_border_width(wrapper, 0, 0);
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lvgl::toolbar_create(parent, app);
 
-    auto data = std::static_pointer_cast<Data>(app.getData());
+        lv_obj_t* wrapper = lv_obj_create(parent);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_flex_grow(wrapper, 1);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
-    // Top row: enable/disable
-    lv_obj_t* switch_container = lv_obj_create(wrapper);
-    lv_obj_set_width(switch_container, LV_PCT(100));
-    lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(switch_container);
-    lvgl::obj_set_style_bg_invisible(switch_container);
+        auto data = std::static_pointer_cast<Data>(app.getData());
 
-    data->enable_label = lv_label_create(switch_container);
-    lv_label_set_text(data->enable_label, "Charging enabled");
-    lv_obj_set_align(data->enable_label, LV_ALIGN_LEFT_MID);
+        // Top row: enable/disable
+        lv_obj_t* switch_container = lv_obj_create(wrapper);
+        lv_obj_set_width(switch_container, LV_PCT(100));
+        lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
+        lvgl::obj_set_style_no_padding(switch_container);
+        lvgl::obj_set_style_bg_invisible(switch_container);
 
-    lv_obj_t* enable_switch = lv_switch_create(switch_container);
-    lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
+        data->enable_label = lv_label_create(switch_container);
+        lv_label_set_text(data->enable_label, "Charging enabled");
+        lv_obj_set_align(data->enable_label, LV_ALIGN_LEFT_MID);
 
-    data->enable_switch = enable_switch;
-    data->charge_state = lv_label_create(wrapper);
-    data->charge_level = lv_label_create(wrapper);
-    data->battery_voltage = lv_label_create(wrapper);
-    data->current = lv_label_create(wrapper);
+        lv_obj_t* enable_switch = lv_switch_create(switch_container);
+        lv_obj_add_event_cb(enable_switch, onPowerEnabledChanged, LV_EVENT_VALUE_CHANGED, nullptr);
+        lv_obj_set_align(enable_switch, LV_ALIGN_RIGHT_MID);
 
-    updateUi(data);
-    data->update_timer.start(kernel::millisToTicks(1000));
-}
+        data->enable_switch = enable_switch;
+        data->charge_state = lv_label_create(wrapper);
+        data->charge_level = lv_label_create(wrapper);
+        data->battery_voltage = lv_label_create(wrapper);
+        data->current = lv_label_create(wrapper);
 
-static void onHide(TT_UNUSED AppContext& app) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
-    data->update_timer.stop();
-}
+        updateUi(data);
+        data->update_timer.start(kernel::millisToTicks(1000));
+    }
 
-static void onStart(AppContext& app) {
-    auto data = std::make_shared<Data>();
-    app.setData(data);
-    assert(data->power != nullptr); // The Power app only shows up on supported devices
-}
+    void onHide(TT_UNUSED AppContext& app) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
+        data->update_timer.stop();
+    }
+
+    void onStart(AppContext& app) override {
+        auto data = std::make_shared<Data>();
+        app.setData(data);
+        assert(data->power != nullptr); // The Power app only shows up on supported devices
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
-    .type = TypeSettings,
-    .onStart = onStart,
-    .onShow = onShow,
-    .onHide = onHide
+    .type = Type::Settings,
+    .createApp = create<PowerApp>
 };
 
 } // namespace

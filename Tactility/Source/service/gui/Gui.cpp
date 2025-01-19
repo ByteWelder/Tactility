@@ -19,9 +19,8 @@ Gui* gui = nullptr;
 void onLoaderMessage(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const loader::LoaderEvent*>(message);
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
-        app::AppContext& app = event->app_showing.app;
-        const app::AppManifest& app_manifest = app.getManifest();
-        showApp(app, app_manifest.onShow, app_manifest.onHide);
+        auto& app_instance = event->app_showing.app;
+        showApp(app_instance);
     } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
         hideApp();
     }
@@ -94,10 +93,10 @@ void requestDraw() {
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void showApp(app::AppContext& app, ViewPortShowCallback on_show, ViewPortHideCallback on_hide) {
+void showApp(app::AppInstance& app) {
     lock();
     tt_check(gui->appViewPort == nullptr);
-    gui->appViewPort = view_port_alloc(app, on_show, on_hide);
+    gui->appViewPort = view_port_alloc(app);
     unlock();
     requestDraw();
 }

@@ -104,7 +104,7 @@ static void onListItemSelected(lv_event_t* e) {
     auto bundle = std::make_shared<Bundle>();
     setResultName(bundle, entry.name);
     setResultCode(bundle, entry.code);
-    app->setResult(app::ResultOk, bundle);
+    app->setResult(app::Result::Ok, bundle);
 
     service::loader::stopApp();
 }
@@ -185,55 +185,57 @@ static void updateList(std::shared_ptr<Data>& data) {
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto data = std::static_pointer_cast<Data>(app.getData());
+class TimeZoneApp : public App {
 
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create(parent, app);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto data = std::static_pointer_cast<Data>(app.getData());
 
-    auto* search_wrapper = lv_obj_create(parent);
-    lv_obj_set_size(search_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_flex_flow(search_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_flex_align(search_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-    lv_obj_set_style_pad_all(search_wrapper, 0, 0);
-    lv_obj_set_style_border_width(search_wrapper, 0, 0);
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lvgl::toolbar_create(parent, app);
 
-    auto* icon = lv_image_create(search_wrapper);
-    lv_obj_set_style_margin_left(icon, 8, 0);
-    lv_obj_set_style_image_recolor_opa(icon, 255, 0);
-    lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
+        auto* search_wrapper = lv_obj_create(parent);
+        lv_obj_set_size(search_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(search_wrapper, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(search_wrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+        lv_obj_set_style_pad_all(search_wrapper, 0, 0);
+        lv_obj_set_style_border_width(search_wrapper, 0, 0);
 
-    std::string icon_path = app.getPaths()->getSystemPathLvgl("search.png");
-    lv_image_set_src(icon, icon_path.c_str());
-    lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
+        auto* icon = lv_image_create(search_wrapper);
+        lv_obj_set_style_margin_left(icon, 8, 0);
+        lv_obj_set_style_image_recolor_opa(icon, 255, 0);
+        lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 
-    auto* textarea = lv_textarea_create(search_wrapper);
-    lv_textarea_set_placeholder_text(textarea, "e.g. Europe/Amsterdam");
-    lv_textarea_set_one_line(textarea, true);
-    lv_obj_add_event_cb(textarea, onTextareaValueChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-    data->filterTextareaWidget = textarea;
-    lv_obj_set_flex_grow(textarea, 1);
-    service::gui::keyboardAddTextArea(textarea);
+        std::string icon_path = app.getPaths()->getSystemPathLvgl("search.png");
+        lv_image_set_src(icon, icon_path.c_str());
+        lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 
-    auto* list = lv_list_create(parent);
-    lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_set_flex_grow(list, 1);
-    lv_obj_set_style_border_width(list, 0, 0);
-    data->listWidget = list;
-}
+        auto* textarea = lv_textarea_create(search_wrapper);
+        lv_textarea_set_placeholder_text(textarea, "e.g. Europe/Amsterdam");
+        lv_textarea_set_one_line(textarea, true);
+        lv_obj_add_event_cb(textarea, onTextareaValueChanged, LV_EVENT_VALUE_CHANGED, nullptr);
+        data->filterTextareaWidget = textarea;
+        lv_obj_set_flex_grow(textarea, 1);
+        service::gui::keyboardAddTextArea(textarea);
 
-static void onStart(AppContext& app) {
-    auto data = std::make_shared<Data>();
-    data->updateTimer = std::make_unique<Timer>(Timer::Type::Once, onUpdateTimer, data);
-    app.setData(data);
-}
+        auto* list = lv_list_create(parent);
+        lv_obj_set_width(list, LV_PCT(100));
+        lv_obj_set_flex_grow(list, 1);
+        lv_obj_set_style_border_width(list, 0, 0);
+        data->listWidget = list;
+    }
+
+    void onStart(AppContext& app) override {
+        auto data = std::make_shared<Data>();
+        data->updateTimer = std::make_unique<Timer>(Timer::Type::Once, onUpdateTimer, data);
+        app.setData(data);
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "TimeZone",
     .name = "Select timezone",
-    .type = TypeHidden,
-    .onStart = onStart,
-    .onShow = onShow,
+    .type = Type::Hidden,
+    .createApp = create<TimeZoneApp>
 };
 
 void start() {

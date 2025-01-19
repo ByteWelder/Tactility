@@ -66,7 +66,7 @@ static void onResult(AppContext& app, Result result, const Bundle& resultBundle)
 AppManifest elfManifest = {
     .id = "",
     .name = "",
-    .type = TypeHidden,
+    .type = Type::Hidden,
     .onStart = onStart,
     .onStop = onStop,
     .onShow = onShow,
@@ -100,7 +100,7 @@ static void onResultWrapper(AppContext& app, Result result, const Bundle& bundle
 AppManifest elfWrapperManifest = {
     .id = ELF_WRAPPER_APP_ID,
     .name = "ELF Wrapper",
-    .type = TypeHidden,
+    .type = Type::Hidden,
     .onStart = onStartWrapper,
     .onStop = onStopWrapper,
     .onShow = onShowWrapper,

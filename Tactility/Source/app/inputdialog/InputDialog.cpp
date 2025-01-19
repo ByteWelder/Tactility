@@ -55,9 +55,9 @@ static void onButtonClicked(lv_event_t* e) {
     if (index == 0) {
         const char* text = lv_textarea_get_text((lv_obj_t*)user_data);
         setResult(bundle, text);
-        app->setResult(app::ResultOk, bundle);
+        app->setResult(app::Result::Ok, bundle);
     } else {
-        app->setResult(app::ResultCancelled, bundle);
+        app->setResult(app::Result::Cancelled, bundle);
 
     }
     service::loader::stopApp();
@@ -71,50 +71,53 @@ static void createButton(lv_obj_t* parent, const std::string& text, void* callba
     lv_obj_add_event_cb(button, &onButtonClicked, LV_EVENT_SHORT_CLICKED, callbackContext);
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "Parameters missing");
+class InputDialogApp : public App {
 
-    std::string title = getTitleParameter(app.getParameters());
-    auto* toolbar = lvgl::toolbar_create(parent, title);
-    lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto parameters = app.getParameters();
+        tt_check(parameters != nullptr, "Parameters missing");
 
-    auto* message_label = lv_label_create(parent);
-    lv_obj_align(message_label, LV_ALIGN_CENTER, 0, -20);
-    lv_obj_set_width(message_label, LV_PCT(80));
+        std::string title = getTitleParameter(app.getParameters());
+        auto* toolbar = lvgl::toolbar_create(parent, title);
+        lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
-    std::string message;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {
-        lv_label_set_text(message_label, message.c_str());
-        lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
+        auto* message_label = lv_label_create(parent);
+        lv_obj_align(message_label, LV_ALIGN_CENTER, 0, -20);
+        lv_obj_set_width(message_label, LV_PCT(80));
+
+        std::string message;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {
+            lv_label_set_text(message_label, message.c_str());
+            lv_label_set_long_mode(message_label, LV_LABEL_LONG_WRAP);
+        }
+
+        auto* textarea = lv_textarea_create(parent);
+        lv_obj_align_to(textarea, message_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
+        lv_textarea_set_one_line(textarea, true);
+        std::string prefilled;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_PREFILLED, prefilled)) {
+            lv_textarea_set_text(textarea, prefilled.c_str());
+        }
+        service::gui::keyboardAddTextArea(textarea);
+
+        auto* button_wrapper = lv_obj_create(parent);
+        lv_obj_set_flex_flow(button_wrapper, LV_FLEX_FLOW_ROW);
+        lv_obj_set_size(button_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_all(button_wrapper, 0, 0);
+        lv_obj_set_flex_align(button_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_border_width(button_wrapper, 0, 0);
+        lv_obj_align(button_wrapper, LV_ALIGN_BOTTOM_MID, 0, -4);
+
+        createButton(button_wrapper, "OK", textarea);
+        createButton(button_wrapper, "Cancel", nullptr);
     }
-
-    auto* textarea = lv_textarea_create(parent);
-    lv_obj_align_to(textarea, message_label, LV_ALIGN_OUT_BOTTOM_MID, 0, 4);
-    lv_textarea_set_one_line(textarea, true);
-    std::string prefilled;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_PREFILLED, prefilled)) {
-        lv_textarea_set_text(textarea, prefilled.c_str());
-    }
-    service::gui::keyboardAddTextArea(textarea);
-
-    auto* button_wrapper = lv_obj_create(parent);
-    lv_obj_set_flex_flow(button_wrapper, LV_FLEX_FLOW_ROW);
-    lv_obj_set_size(button_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(button_wrapper, 0, 0);
-    lv_obj_set_flex_align(button_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_border_width(button_wrapper, 0, 0);
-    lv_obj_align(button_wrapper, LV_ALIGN_BOTTOM_MID, 0, -4);
-
-    createButton(button_wrapper, "OK", textarea);
-    createButton(button_wrapper, "Cancel", nullptr);
-}
+};
 
 extern const AppManifest manifest = {
-     .id = "InputDialog",
-     .name = "Input Dialog",
-     .type = TypeHidden,
-     .onShow = onShow
+    .id = "InputDialog",
+    .name = "Input Dialog",
+    .type = Type::Hidden,
+    .createApp = create<InputDialogApp>
 };
 
 }

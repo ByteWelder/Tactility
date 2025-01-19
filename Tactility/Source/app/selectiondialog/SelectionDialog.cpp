@@ -51,7 +51,7 @@ static void onListItemSelected(lv_event_t* e) {
     tt::app::AppContext* app = service::loader::getCurrentApp();
     auto bundle = std::make_shared<Bundle>();
     setResultIndex(bundle, (int32_t)index);
-    app->setResult(app::ResultOk, bundle);
+    app->setResult(app::Result::Ok, bundle);
     service::loader::stopApp();
 }
 
@@ -61,48 +61,51 @@ static void createChoiceItem(void* parent, const std::string& title, size_t inde
     lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_SHORT_CLICKED, (void*)index);
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    std::string title = getTitleParameter(app.getParameters());
-    lvgl::toolbar_create(parent, title);
+class SelectionDialogApp : public App {
 
-    lv_obj_t* list = lv_list_create(parent);
-    lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_set_flex_grow(list, 1);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        std::string title = getTitleParameter(app.getParameters());
+        lvgl::toolbar_create(parent, title);
 
-    auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "Parameters missing");
-    std::string items_concatenated;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
-        std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
-        if (items.empty() || items.front().empty()) {
-            TT_LOG_E(TAG, "No items provided");
-            app.setResult(ResultError);
-            service::loader::stopApp();
-        } else if (items.size() == 1) {
-            auto result_bundle = std::make_shared<Bundle>();
-            setResultIndex(result_bundle, 0);
-            app.setResult(ResultOk, result_bundle);
-            service::loader::stopApp();
-            TT_LOG_W(TAG, "Auto-selecting single item");
-        } else {
-            size_t index = 0;
-            for (const auto& item: items) {
-                createChoiceItem(list, item, index++);
+        lv_obj_t* list = lv_list_create(parent);
+        lv_obj_set_width(list, LV_PCT(100));
+        lv_obj_set_flex_grow(list, 1);
+
+        auto parameters = app.getParameters();
+        tt_check(parameters != nullptr, "Parameters missing");
+        std::string items_concatenated;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
+            std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
+            if (items.empty() || items.front().empty()) {
+                TT_LOG_E(TAG, "No items provided");
+                app.setResult(Result::Error);
+                service::loader::stopApp();
+            } else if (items.size() == 1) {
+                auto result_bundle = std::make_shared<Bundle>();
+                setResultIndex(result_bundle, 0);
+                app.setResult(Result::Ok, result_bundle);
+                service::loader::stopApp();
+                TT_LOG_W(TAG, "Auto-selecting single item");
+            } else {
+                size_t index = 0;
+                for (const auto& item: items) {
+                    createChoiceItem(list, item, index++);
+                }
             }
+        } else {
+            TT_LOG_E(TAG, "No items provided");
+            app.setResult(Result::Error);
+            service::loader::stopApp();
         }
-    } else {
-        TT_LOG_E(TAG, "No items provided");
-        app.setResult(ResultError);
-        service::loader::stopApp();
     }
-}
+};
 
 extern const AppManifest manifest = {
-     .id = "SelectionDialog",
-     .name = "Selection Dialog",
-     .type = TypeHidden,
-     .onShow = onShow
+    .id = "SelectionDialog",
+    .name = "Selection Dialog",
+    .type = Type::Hidden,
+    .createApp = create<SelectionDialogApp>
 };
 
 }

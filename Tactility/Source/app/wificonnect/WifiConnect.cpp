@@ -105,30 +105,30 @@ void WifiConnect::onHide(TT_UNUSED AppContext& app) {
     unlock();
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
-    wifi->onShow(app, parent);
-}
+class WifiConnectApp : public App {
 
-static void onHide(AppContext& app) {
-    auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
-    wifi->onHide(app);
-}
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
+        wifi->onShow(app, parent);
+    }
 
-static void onStart(AppContext& app) {
-    auto wifi = std::make_shared<WifiConnect>();
-    app.setData(wifi);
-}
+    void onHide(AppContext& app) override {
+        auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
+        wifi->onHide(app);
+    }
 
+    void onStart(AppContext& app) override {
+        auto wifi = std::make_shared<WifiConnect>();
+        app.setData(wifi);
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
-    .type = TypeHidden,
-    .onStart = &onStart,
-    .onShow = &onShow,
-    .onHide = &onHide
+    .type = Type::Hidden,
+    .createApp = create<WifiConnectApp>
 };
 
 void start(const std::string& ssid, const std::string& password) {
