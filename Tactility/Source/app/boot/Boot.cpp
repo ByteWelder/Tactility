@@ -24,72 +24,66 @@
 
 namespace tt::app::boot {
 
-static int32_t bootThreadCallback(void* context);
-static void startNextApp();
-
-struct Data {
-    Data() : thread("boot", 4096, bootThreadCallback, this) {}
-
-    Thread thread;
-};
-
-static int32_t bootThreadCallback(TT_UNUSED void* context) {
-    TickType_t start_time = kernel::getTicks();
-
-    kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
-
-    auto* lvgl_display = lv_display_get_default();
-    tt_assert(lvgl_display != nullptr);
-    auto* hal_display = (hal::Display*)lv_display_get_user_data(lvgl_display);
-    tt_assert(hal_display != nullptr);
-    if (hal_display->supportsBacklightDuty()) {
-        int32_t backlight_duty = app::display::getBacklightDuty();
-        hal_display->setBacklightDuty(backlight_duty);
-    }
-
-    if (hal::usb::isUsbBootMode()) {
-        TT_LOG_I(TAG, "Rebooting into mass storage device mode");
-        hal::usb::resetUsbBootMode();
-        hal::usb::startMassStorageWithSdmmc();
-    } else {
-        TickType_t end_time = tt::kernel::getTicks();
-        TickType_t ticks_passed = end_time - start_time;
-        TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
-        if (minimum_ticks > ticks_passed) {
-            kernel::delayTicks(minimum_ticks - ticks_passed);
-        }
-
-        tt::service::loader::stopApp();
-        startNextApp();
-    }
-
-    return 0;
-}
-
-
-static void startNextApp() {
-#ifdef ESP_PLATFORM
-    esp_reset_reason_t reason = esp_reset_reason();
-    if (reason == ESP_RST_PANIC) {
-        app::crashdiagnostics::start();
-        return;
-    }
-#endif
-
-    auto* config = tt::getConfiguration();
-    if (config->autoStartAppId) {
-        TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
-        tt::service::loader::startApp(config->autoStartAppId);
-    } else {
-        app::launcher::start();
-    }
-}
-
 class BootApp : public App {
 
-    void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
-        auto data = std::static_pointer_cast<Data>(app.getData());
+private:
 
+    Thread thread = Thread("boot", 4096, bootThreadCallback, this);
+
+    static int32_t bootThreadCallback(TT_UNUSED void* context) {
+        TickType_t start_time = kernel::getTicks();
+
+        kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
+
+        auto* lvgl_display = lv_display_get_default();
+        tt_assert(lvgl_display != nullptr);
+        auto* hal_display = (hal::Display*)lv_display_get_user_data(lvgl_display);
+        tt_assert(hal_display != nullptr);
+        if (hal_display->supportsBacklightDuty()) {
+            int32_t backlight_duty = app::display::getBacklightDuty();
+            hal_display->setBacklightDuty(backlight_duty);
+        }
+
+        if (hal::usb::isUsbBootMode()) {
+            TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+            hal::usb::resetUsbBootMode();
+            hal::usb::startMassStorageWithSdmmc();
+        } else {
+            TickType_t end_time = tt::kernel::getTicks();
+            TickType_t ticks_passed = end_time - start_time;
+            TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
+            if (minimum_ticks > ticks_passed) {
+                kernel::delayTicks(minimum_ticks - ticks_passed);
+            }
+
+            tt::service::loader::stopApp();
+            startNextApp();
+        }
+
+        return 0;
+    }
+
+    static void startNextApp() {
+#ifdef ESP_PLATFORM
+        esp_reset_reason_t reason = esp_reset_reason();
+        if (reason == ESP_RST_PANIC) {
+            app::crashdiagnostics::start();
+            return;
+        }
+#endif
+
+        auto* config = tt::getConfiguration();
+        if (config->autoStartAppId) {
+            TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
+            tt::service::loader::startApp(config->autoStartAppId);
+        } else {
+            app::launcher::start();
+        }
+    }
+
+public:
+
+    void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
         auto* image = lv_image_create(parent);
         lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
 
@@ -101,17 +95,14 @@ class BootApp : public App {
 
         lvgl::obj_set_style_bg_blacken(parent);
 
-        data->thread.start();
-    }
-
-    void onStart(AppContext& app) override {
-        auto data = std::make_shared<Data>();
-        app.setData(data);
+        // Just in case this app is somehow resumed
+        if (thread.getState() == Thread::State::Stopped) {
+            thread.start();
+        }
     }
 
     void onStop(AppContext& app) override {
-        auto data = std::static_pointer_cast<Data>(app.getData());
-        data->thread.join();
+        thread.join();
     }
 };
 

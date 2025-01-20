@@ -6,6 +6,7 @@
 namespace tt::app {
 
 // Forward declarations
+class App;
 class Paths;
 struct AppManifest;
 enum class Result;
@@ -40,6 +41,8 @@ public:
     virtual void setResult(Result result, std::shared_ptr<const Bundle> bundle)= 0;
     virtual bool hasResult() const = 0;
     virtual std::unique_ptr<Paths> getPaths() const = 0;
+
+    virtual const std::shared_ptr<App> getApp() const = 0;
 };
 
 class Paths {

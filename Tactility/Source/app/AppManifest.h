@@ -46,9 +46,9 @@ private:
 
 public:
 
-    const static Location Internal;
+    static Location internal() { return {}; }
 
-    static Location External(const std::string& path) {
+    static Location external(const std::string& path) {
         return Location(path);
     }
 
@@ -73,7 +73,7 @@ struct AppManifest {
     Type type = Type::User;
 
     /** Where the app is located */
-    Location location = Location::Internal;
+    Location location = Location::internal();
 
     /** Create the instance of the app */
     CreateApp createApp = nullptr;

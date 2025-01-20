@@ -1,4 +1,5 @@
-#include "app/files/FilesPrivate.h"
+#include "app/files/View.h"
+#include "app/files/State.h"
 
 #include "app/AppContext.h"
 #include "Assets.h"
@@ -13,20 +14,21 @@ namespace tt::app::files {
 extern const AppManifest manifest;
 
 class FilesApp : public App {
+    std::unique_ptr<View> view;
+    std::shared_ptr<State> state;
 
-    void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto files = std::static_pointer_cast<Files>(app.getData());
-        files->onShow(parent);
+public:
+    FilesApp() {
+        state = std::make_shared<State>();
+        view = std::make_unique<View>(state);
     }
 
-    void onStart(AppContext& app) override {
-        auto files = std::make_shared<Files>();
-        app.setData(files);
+    void onShow(AppContext& appContext, lv_obj_t* parent) override {
+        view->init(parent);
     }
 
-    void onResult(AppContext& app, Result result, const Bundle& bundle) override {
-        auto files = std::static_pointer_cast<Files>(app.getData());
-        files->onResult(result, bundle);
+    void onResult(AppContext& appContext, Result result, const Bundle& bundle) override {
+        view->onResult(result, bundle);
     }
 };
 

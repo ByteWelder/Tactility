@@ -113,7 +113,7 @@ public:
 
     std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 
-    const std::shared_ptr<App>& getApp() const { return app; }
+    const std::shared_ptr<App> getApp() const override { return app; }
 };
 
 } // namespace

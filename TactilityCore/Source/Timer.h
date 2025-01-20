@@ -34,7 +34,7 @@ public:
      * @param[in] callback The callback function
      * @param callbackContext The callback context
      */
-    Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext);
+    Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext = nullptr);
 
     ~Timer();
 

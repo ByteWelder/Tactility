@@ -1,6 +1,5 @@
 #include "Mutex.h"
 #include "Thread.h"
-#include "Tactility.h"
 #include "service/loader/Loader.h"
 #include "lvgl/Toolbar.h"
 
@@ -10,7 +9,9 @@
 
 namespace tt::app::gpio {
 
-class Gpio {
+extern const AppManifest manifest;
+
+class GpioApp : public App {
 
 private:
 
@@ -18,6 +19,9 @@ private:
     uint8_t pinStates[GPIO_NUM_MAX] = {0 };
     std::unique_ptr<Timer> timer;
     Mutex mutex;
+
+    static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent);
+    static void onTimer(TT_UNUSED std::shared_ptr<void> context);
 
 public:
 
@@ -29,18 +33,17 @@ public:
         tt_check(mutex.release() == TtStatusOk);
     }
 
-    void onShow(AppContext& app, lv_obj_t* parent);
-    void onHide(AppContext& app);
+    void onShow(AppContext& app, lv_obj_t* parent) override;
+    void onHide(AppContext& app) override;
 
-    void startTask(std::shared_ptr<Gpio> ptr);
+    void startTask();
     void stopTask();
 
     void updatePinStates();
     void updatePinWidgets();
 };
 
-
-void Gpio::updatePinStates() {
+void GpioApp::updatePinStates() {
     lock();
     // Update pin states
     for (int i = 0; i < GPIO_NUM_MAX; ++i) {
@@ -53,7 +56,7 @@ void Gpio::updatePinStates() {
     unlock();
 }
 
-void Gpio::updatePinWidgets() {
+void GpioApp::updatePinWidgets() {
     if (lvgl::lock(100)) {
         lock();
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
@@ -75,7 +78,7 @@ void Gpio::updatePinWidgets() {
     }
 }
 
-static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent) {
+lv_obj_t* GpioApp::createGpioRowWrapper(lv_obj_t* parent) {
     lv_obj_t* wrapper = lv_obj_create(parent);
     lv_obj_set_style_pad_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
@@ -85,26 +88,29 @@ static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent) {
 
 // region Task
 
-static void onTimer(std::shared_ptr<void> context) {
-    auto gpio = std::static_pointer_cast<Gpio>(context);
-
-    gpio->updatePinStates();
-    gpio->updatePinWidgets();
+void GpioApp::onTimer(TT_UNUSED std::shared_ptr<void> context) {
+    auto appContext = service::loader::getCurrentApp();
+    if (appContext->getManifest().id == manifest.id) {
+        auto app = std::static_pointer_cast<GpioApp>(appContext->getApp());
+        if (app != nullptr) {
+            app->updatePinStates();
+            app->updatePinWidgets();
+        }
+    }
 }
 
-void Gpio::startTask(std::shared_ptr<Gpio> ptr) {
+void GpioApp::startTask() {
     lock();
     tt_assert(timer == nullptr);
     timer = std::make_unique<Timer>(
         Timer::Type::Periodic,
-        &onTimer,
-        ptr
+        &onTimer
     );
     timer->start(100 / portTICK_PERIOD_MS);
     unlock();
 }
 
-void Gpio::stopTask() {
+void GpioApp::stopTask() {
     tt_assert(timer);
 
     timer->stop();
@@ -114,9 +120,7 @@ void Gpio::stopTask() {
 // endregion Task
 
 
-void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
-    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-
+void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -139,7 +143,7 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_t* row_wrapper = createGpioRowWrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
 
-    gpio->lock();
+    lock();
     for (int i = GPIO_NUM_MIN; i < GPIO_NUM_MAX; ++i) {
 
         // Add the GPIO number before the first item on a row
@@ -152,7 +156,7 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
         lv_obj_t* status_label = lv_label_create(row_wrapper);
         lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing), 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
-        gpio->lvPins[i] = status_label;
+        lvPins[i] = status_label;
 
         column++;
 
@@ -170,36 +174,14 @@ void Gpio::onShow(AppContext& app, lv_obj_t* parent) {
             column = 0;
         }
     }
-    gpio->unlock();
+    unlock();
 
-    gpio->startTask(gpio);
+    startTask();
 }
 
-void Gpio::onHide(AppContext& app) {
-    auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-    gpio->stopTask();
+void GpioApp::onHide(AppContext& app) {
+    stopTask();
 }
-
-// region App lifecycle
-
-class GpioApp : public App {
-    void onShow(AppContext& app, lv_obj_t* parent) {
-        auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-        gpio->onShow(app, parent);
-    }
-
-    void onHide(AppContext& app) {
-        auto gpio = std::static_pointer_cast<Gpio>(app.getData());
-        gpio->onHide(app);
-    }
-
-    void onStart(AppContext& app) {
-        auto gpio = std::make_shared<Gpio>();
-        app.setData(gpio);
-    }
-};
-
-// endregion App lifecycle
 
 extern const AppManifest manifest = {
     .id = "Gpio",

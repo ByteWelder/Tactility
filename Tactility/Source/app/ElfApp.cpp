@@ -1,11 +1,12 @@
 #ifdef ESP_PLATFORM
 
 #include "ElfApp.h"
+#include "Log.h"
 #include "StringUtils.h"
 #include "TactilityCore.h"
 #include "esp_elf.h"
 #include "file/File.h"
-#include "Log.h"
+#include "service/loader/Loader.h"
 
 #include <string>
 
@@ -34,9 +35,10 @@ class ElfApp : public App {
 
 private:
 
-    std::string filePath;
+    const std::string filePath;
     std::unique_ptr<uint8_t[]> elfFileData;
     esp_elf_t elf;
+    bool shouldCleanupElf = false; // Whether we have to clean up the above "elf" object
     std::unique_ptr<ElfManifest> manifest;
     void* data = nullptr;
 
@@ -52,6 +54,7 @@ private:
 
         if (esp_elf_init(&elf) < 0) {
             TT_LOG_E(TAG, "Failed to initialize");
+            shouldCleanupElf = true;
             return false;
         }
 
@@ -63,7 +66,6 @@ private:
         int argc = 0;
         char* argv[] = {};
 
-        size_t manifest_set_count = elfManifestSetCount;
         if (esp_elf_request(&elf, 0, argc, argv) < 0) {
             TT_LOG_W(TAG, "Executable returned error code");
             return false;
@@ -74,15 +76,19 @@ private:
 
     void stopElf() {
         TT_LOG_I(TAG, "Cleaning up ELF");
-        if (elfFileData != nullptr) {
+
+        if (shouldCleanupElf) {
             esp_elf_deinit(&elf);
+        }
+
+        if (elfFileData != nullptr) {
             elfFileData = nullptr;
         }
     }
 
 public:
 
-    ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
+    explicit ElfApp(const std::string& filePath) : filePath(filePath) {}
 
     void onStart(AppContext& appContext) override {
         auto initial_count = elfManifestSetCount;
@@ -98,6 +104,8 @@ public:
                     manifest->onStart(appContext, data);
                 }
             }
+        } else {
+            service::loader::stopApp();
         }
     }
 
@@ -171,7 +179,7 @@ bool registerElfApp(const std::string& filePath) {
             .id = getElfAppId(filePath),
             .name = tt::string::removeFileExtension(tt::string::getLastPathSegment(filePath)),
             .type = Type::User,
-            .location = Location::External(filePath)
+            .location = Location::external(filePath)
         };
         addApp(manifest);
     }

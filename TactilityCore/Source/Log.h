@@ -2,7 +2,14 @@
 
 #include "LogMessages.h"
 
-#if CONFIG_SPIRAM_USE_MALLOC == 1 or not defined(ESP_PLATFORM)
+#ifdef ESP_TARGET
+#include <esp_log.h>
+#else
+#include <cstdarg>
+#include <cstdio>
+#endif
+
+#if not defined(ESP_PLATFORM) or (defined(CONFIG_SPIRAM_USE_MALLOC) && CONFIG_SPIRAM_USE_MALLOC  == 1)
 #define TT_LOG_ENTRY_COUNT 200
 #define TT_LOG_MESSAGE_SIZE 128
 #else
@@ -35,12 +42,6 @@ LogEntry* copyLogEntries(unsigned int& outIndex);
 
 } // namespace tt
 
-#ifdef ESP_TARGET
-#include "esp_log.h"
-#else
-#include <cstdarg>
-#include <cstdio>
-#endif
 
 #ifdef ESP_TARGET
 

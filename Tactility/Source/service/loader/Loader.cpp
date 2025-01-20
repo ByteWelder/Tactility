@@ -232,7 +232,7 @@ static void stopAppInternal() {
     }
 
     // Stop current app
-    auto& app_to_stop = loader_singleton->appStack.top();
+    auto app_to_stop = loader_singleton->appStack.top();
 
     if (original_stack_size == 1 && app_to_stop->getManifest().type != app::Type::Boot) {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
@@ -246,6 +246,10 @@ static void stopAppInternal() {
     transitionAppToState(*app_to_stop, app::StateStopped);
 
     loader_singleton->appStack.pop();
+
+    if (app_to_stop.use_count() > 1) {
+        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().id.c_str(), app_to_stop.use_count() - 1);
+    }
 
 #ifdef ESP_PLATFORM
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
