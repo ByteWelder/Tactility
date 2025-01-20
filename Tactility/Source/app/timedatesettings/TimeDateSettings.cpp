@@ -13,41 +13,26 @@ namespace tt::app::timedatesettings {
 
 extern const AppManifest manifest;
 
-struct Data {
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
-    lv_obj_t* regionLabelWidget = nullptr;
-};
-
-/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
-std::shared_ptr<Data> _Nullable optData() {
-    auto app = service::loader::getCurrentApp();
-    if (app != nullptr && app->getManifest().id == manifest.id) {
-        return std::static_pointer_cast<Data>(app->getData());
-    } else {
-        return nullptr;
-    }
-}
-
-static void onConfigureTimeZonePressed(TT_UNUSED lv_event_t* event) {
-    timezone::start();
-}
-
-static void onTimeFormatChanged(lv_event_t* event) {
-    auto* widget = lv_event_get_target_obj(event);
-    bool show_24 = lv_obj_has_state(widget, LV_STATE_CHECKED);
-    time::setTimeFormat24Hour(show_24);
-}
-
 class TimeDateSettingsApp : public App {
 
-    void onStart(AppContext& app) override {
-        auto data = std::make_shared<Data>();
-        app.setData(data);
+private:
+
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    lv_obj_t* regionLabelWidget = nullptr;
+
+    static void onConfigureTimeZonePressed(TT_UNUSED lv_event_t* event) {
+        timezone::start();
     }
 
-    void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto data = std::static_pointer_cast<Data>(app.getData());
+    static void onTimeFormatChanged(lv_event_t* event) {
+        auto* widget = lv_event_get_target_obj(event);
+        bool show_24 = lv_obj_has_state(widget, LV_STATE_CHECKED);
+        time::setTimeFormat24Hour(show_24);
+    }
 
+public:
+
+    void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
         lvgl::toolbar_create(parent, app);
@@ -72,7 +57,7 @@ class TimeDateSettingsApp : public App {
         if (timeZoneName.empty()) {
             timeZoneName = "not set";
         }
-        data->regionLabelWidget = region_label;
+        regionLabelWidget = region_label;
         lv_label_set_text(region_label, timeZoneName.c_str());
         // TODO: Find out why Y offset is needed
         lv_obj_align_to(region_label, region_prefix_label, LV_ALIGN_OUT_RIGHT_MID, 0, 8);
@@ -105,7 +90,6 @@ class TimeDateSettingsApp : public App {
 
     void onResult(AppContext& app, Result result, const Bundle& bundle) override {
         if (result == Result::Ok) {
-            auto data = std::static_pointer_cast<Data>(app.getData());
             auto name = timezone::getResultName(bundle);
             auto code = timezone::getResultCode(bundle);
             TT_LOG_I(TAG, "Result name=%s code=%s", name.c_str(), code.c_str());
@@ -113,7 +97,7 @@ class TimeDateSettingsApp : public App {
 
             if (!name.empty()) {
                 if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
-                    lv_label_set_text(data->regionLabelWidget, name.c_str());
+                    lv_label_set_text(regionLabelWidget, name.c_str());
                     lvgl::unlock();
                 }
             }

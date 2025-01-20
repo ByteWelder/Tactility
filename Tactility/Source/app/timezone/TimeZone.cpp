@@ -26,16 +26,6 @@ struct TimeZoneEntry {
     std::string code;
 };
 
-struct Data {
-    Mutex mutex;
-    std::vector<TimeZoneEntry> entries;
-    std::unique_ptr<Timer> updateTimer;
-    lv_obj_t* listWidget = nullptr;
-    lv_obj_t* filterTextareaWidget = nullptr;
-};
-
-static void updateList(std::shared_ptr<Data>& data);
-
 static bool parseEntry(const std::string& input, std::string& outName, std::string& outCode) {
     std::string partial_strip = input.substr(1, input.size() - 3);
     auto first_end_quote = partial_strip.find('"');
@@ -72,126 +62,140 @@ void setResultCode(std::shared_ptr<Bundle>& bundle, const std::string& code) {
 
 // endregion
 
-static void onUpdateTimer(std::shared_ptr<void> context) {
-    auto data = std::static_pointer_cast<Data>(context);
-    updateList(data);
-}
-
-static void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
-    auto app = service::loader::getCurrentApp();
-    tt_assert(app != nullptr);
-    auto app_data = app->getData();
-    auto data = std::static_pointer_cast<Data>(app_data);
-
-    if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
-        if (data->updateTimer->isRunning()) {
-            data->updateTimer->stop();
-        }
-
-        data->updateTimer->start(500 / portTICK_PERIOD_MS);
-
-        data->mutex.unlock();
-    }
-}
-
-static void onListItemSelected(lv_event_t* e) {
-    auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-    TT_LOG_I(TAG, "Selected item at index %zu", index);
-    auto app = service::loader::getCurrentApp();
-    tt_assert(app != nullptr);
-    auto data = std::static_pointer_cast<Data>(app->getData());
-
-    auto& entry = data->entries[index];
-
-    auto bundle = std::make_shared<Bundle>();
-    setResultName(bundle, entry.name);
-    setResultCode(bundle, entry.code);
-    app->setResult(app::Result::Ok, bundle);
-
-    service::loader::stopApp();
-}
-
-static void createListItem(lv_obj_t* list, const std::string& title, size_t index) {
-    lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
-    lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_SHORT_CLICKED, (void*)index);
-}
-
-static void readTimeZones(const std::shared_ptr<Data>& data, std::string filter) {
-    auto path = std::string(MOUNT_POINT_SYSTEM) + "/timezones.csv";
-    auto* file = fopen(path.c_str(), "rb");
-    if (file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open %s", path.c_str());
-        return;
-    }
-    char line[96];
-    std::string name;
-    std::string code;
-    uint32_t count = 0;
-    std::vector<TimeZoneEntry> entries;
-    while (fgets(line, 96, file)) {
-        if (parseEntry(line, name, code)) {
-            if (tt::string::lowercase(name).find(filter) != std::string::npos) {
-                count++;
-                entries.push_back({
-                    .name = name,
-                    .code = code
-                });
-
-                // Safety guard
-                if (count > 50) {
-                    // TODO: Show warning that we're not displaying a complete list
-                    break;
-                }
-            }
-        } else {
-            TT_LOG_E(TAG, "Parse error at line %lu", count);
-        }
-    }
-
-    fclose(file);
-
-    if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
-        data->entries = std::move(entries);
-        data->mutex.unlock();
-    } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
-    }
-
-    TT_LOG_I(TAG, "Processed %lu entries", count);
-}
-
-static void updateList(std::shared_ptr<Data>& data) {
-    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
-        std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(data->filterTextareaWidget)));
-        readTimeZones(data, filter);
-        lvgl::unlock();
-    } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-        return;
-    }
-
-    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
-        if (data->mutex.lock(100 / portTICK_PERIOD_MS)) {
-            lv_obj_clean(data->listWidget);
-
-            uint32_t index = 0;
-            for (auto& entry : data->entries) {
-                createListItem(data->listWidget, entry.name, index);
-                index++;
-            }
-
-            data->mutex.unlock();
-        }
-
-        lvgl::unlock();
-    }
-}
 
 class TimeZoneApp : public App {
 
-    void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto data = std::static_pointer_cast<Data>(app.getData());
+private:
 
+    Mutex mutex;
+    std::vector<TimeZoneEntry> entries;
+    std::unique_ptr<Timer> updateTimer;
+    lv_obj_t* listWidget = nullptr;
+    lv_obj_t* filterTextareaWidget = nullptr;
+
+    static void onTextareaValueChangedCallback(TT_UNUSED lv_event_t* e) {
+        auto* app = (TimeZoneApp*)lv_event_get_user_data(e);
+        app->onTextareaValueChanged(e);
+    }
+
+    void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
+        if (mutex.lock(100 / portTICK_PERIOD_MS)) {
+            if (updateTimer->isRunning()) {
+                updateTimer->stop();
+            }
+
+            updateTimer->start(500 / portTICK_PERIOD_MS);
+
+            mutex.unlock();
+        }
+    }
+
+    static void onListItemSelectedCallback(lv_event_t* e) {
+        auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
+        auto appContext = service::loader::getCurrentApp();
+        if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+            auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
+            app->onListItemSelected(index);
+        }
+    }
+
+    void onListItemSelected(std::size_t index) {
+        TT_LOG_I(TAG, "Selected item at index %zu", index);
+
+        auto& entry = entries[index];
+
+        auto bundle = std::make_shared<Bundle>();
+        setResultName(bundle, entry.name);
+        setResultCode(bundle, entry.code);
+
+        service::loader::getCurrentApp()->setResult(app::Result::Ok, bundle);
+        service::loader::stopApp();
+    }
+
+    static void createListItem(lv_obj_t* list, const std::string& title, size_t index) {
+        lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
+        lv_obj_add_event_cb(btn, &onListItemSelectedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
+    }
+
+    static void updateTimerCallback(std::shared_ptr<void> context) {
+        auto appContext = service::loader::getCurrentApp();
+        if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+            auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
+            app->updateList();
+        }
+    }
+
+    void readTimeZones(std::string filter) {
+        auto path = std::string(MOUNT_POINT_SYSTEM) + "/timezones.csv";
+        auto* file = fopen(path.c_str(), "rb");
+        if (file == nullptr) {
+            TT_LOG_E(TAG, "Failed to open %s", path.c_str());
+            return;
+        }
+        char line[96];
+        std::string name;
+        std::string code;
+        uint32_t count = 0;
+        std::vector<TimeZoneEntry> new_entries;
+        while (fgets(line, 96, file)) {
+            if (parseEntry(line, name, code)) {
+                if (tt::string::lowercase(name).find(filter) != std::string::npos) {
+                    count++;
+                    new_entries.push_back({.name = name, .code = code});
+
+                    // Safety guard
+                    if (count > 50) {
+                        // TODO: Show warning that we're not displaying a complete list
+                        break;
+                    }
+                }
+            } else {
+                TT_LOG_E(TAG, "Parse error at line %lu", count);
+            }
+        }
+
+        fclose(file);
+
+        if (mutex.lock(100 / portTICK_PERIOD_MS)) {
+            entries = std::move(new_entries);
+            mutex.unlock();
+        } else {
+            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        }
+
+        TT_LOG_I(TAG, "Processed %lu entries", count);
+    }
+
+    void updateList() {
+        if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+            std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(filterTextareaWidget)));
+            readTimeZones(filter);
+            lvgl::unlock();
+        } else {
+            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+            return;
+        }
+
+        if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+            if (mutex.lock(100 / portTICK_PERIOD_MS)) {
+                lv_obj_clean(listWidget);
+
+                uint32_t index = 0;
+                for (auto& entry : entries) {
+                    createListItem(listWidget, entry.name, index);
+                    index++;
+                }
+
+                mutex.unlock();
+            }
+
+            lvgl::unlock();
+        }
+    }
+
+public:
+
+    void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lvgl::toolbar_create(parent, app);
 
@@ -214,8 +218,8 @@ class TimeZoneApp : public App {
         auto* textarea = lv_textarea_create(search_wrapper);
         lv_textarea_set_placeholder_text(textarea, "e.g. Europe/Amsterdam");
         lv_textarea_set_one_line(textarea, true);
-        lv_obj_add_event_cb(textarea, onTextareaValueChanged, LV_EVENT_VALUE_CHANGED, nullptr);
-        data->filterTextareaWidget = textarea;
+        lv_obj_add_event_cb(textarea, onTextareaValueChangedCallback, LV_EVENT_VALUE_CHANGED, this);
+        filterTextareaWidget = textarea;
         lv_obj_set_flex_grow(textarea, 1);
         service::gui::keyboardAddTextArea(textarea);
 
@@ -223,13 +227,11 @@ class TimeZoneApp : public App {
         lv_obj_set_width(list, LV_PCT(100));
         lv_obj_set_flex_grow(list, 1);
         lv_obj_set_style_border_width(list, 0, 0);
-        data->listWidget = list;
+        listWidget = list;
     }
 
     void onStart(AppContext& app) override {
-        auto data = std::make_shared<Data>();
-        data->updateTimer = std::make_unique<Timer>(Timer::Type::Once, onUpdateTimer, data);
-        app.setData(data);
+        updateTimer = std::make_unique<Timer>(Timer::Type::Once, updateTimerCallback, nullptr);
     }
 };
 
