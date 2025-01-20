@@ -49,27 +49,6 @@ std::shared_ptr<const Bundle> AppInstance::getParameters() const {
     return result;
 }
 
-void AppInstance::setResult(Result result) {
-    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result));
-    mutex.acquire(TtWaitForever);
-    resultHolder = std::move(new_holder);
-    mutex.release();
-}
-
-void AppInstance::setResult(Result result, std::shared_ptr<const Bundle> bundle) {
-    std::unique_ptr<ResultHolder> new_holder(new ResultHolder(result, std::move(bundle)));
-    mutex.acquire(TtWaitForever);
-    resultHolder = std::move(new_holder);
-    mutex.release();
-}
-
-bool AppInstance::hasResult() const {
-    mutex.acquire(TtWaitForever);
-    bool has_result = resultHolder != nullptr;
-    mutex.release();
-    return has_result;
-}
-
 std::unique_ptr<Paths> AppInstance::getPaths() const {
     tt_assert(manifest != nullptr);
     return std::make_unique<AppInstancePaths>(*manifest);

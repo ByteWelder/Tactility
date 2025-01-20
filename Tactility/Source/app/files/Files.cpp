@@ -27,8 +27,8 @@ public:
         view->init(parent);
     }
 
-    void onResult(AppContext& appContext, Result result, const Bundle& bundle) override {
-        view->onResult(result, bundle);
+    void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> bundle) override {
+        view->onResult(result, std::move(bundle));
     }
 };
 

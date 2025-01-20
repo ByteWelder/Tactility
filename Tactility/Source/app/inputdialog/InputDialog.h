@@ -11,10 +11,10 @@
  */
 namespace tt::app::inputdialog {
 
-    void start(const std::string& title, const std::string& message, const std::string& prefilled = "");
+void start(const std::string& title, const std::string& message, const std::string& prefilled = "");
 
-    /**
-     * @return the text that was in the field when OK was pressed, or otherwise empty string
-     */
-    std::string getResult(const Bundle& bundle);
+/**
+ * @return the text that was in the field when OK was pressed, or otherwise empty string
+ */
+std::string getResult(const Bundle& bundle);
 }

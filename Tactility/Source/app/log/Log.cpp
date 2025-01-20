@@ -92,8 +92,8 @@ public:
         updateLogEntries();
     }
 
-    void onResult(AppContext& app, Result result, const Bundle& bundle) override {
-        auto resultIndex = selectiondialog::getResultIndex(bundle);
+    void onResult(AppContext& app, Result result, std::unique_ptr<Bundle> bundle) override {
+        auto resultIndex = selectiondialog::getResultIndex(*bundle);
         if (result == Result::Ok) {
             switch (resultIndex) {
                 case 0:

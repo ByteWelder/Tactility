@@ -88,10 +88,10 @@ public:
         }
     }
 
-    void onResult(AppContext& app, Result result, const Bundle& bundle) override {
+    void onResult(AppContext& app, Result result, std::unique_ptr<Bundle> bundle) override {
         if (result == Result::Ok) {
-            auto name = timezone::getResultName(bundle);
-            auto code = timezone::getResultCode(bundle);
+            auto name = timezone::getResultName(*bundle);
+            auto code = timezone::getResultCode(*bundle);
             TT_LOG_I(TAG, "Result name=%s code=%s", name.c_str(), code.c_str());
             time::setTimeZone(name, code);
 

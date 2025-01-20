@@ -18,19 +18,6 @@ typedef enum {
     StateStopped  // App is not in memory
 } State;
 
-struct ResultHolder {
-    Result result;
-    std::shared_ptr<const Bundle> resultData;
-
-    explicit ResultHolder(Result result) : result(result), resultData(nullptr) {}
-
-    ResultHolder(Result result, std::shared_ptr<const Bundle> resultData) :
-        result(result),
-        resultData(std::move(resultData))
-    {}
-
-};
-
 /**
  * Thread-safe app instance.
  */
@@ -53,7 +40,6 @@ private:
      * These manifest methods can optionally allocate/free data that is attached here.
      */
     std::shared_ptr<void> _Nullable data;
-    std::unique_ptr<ResultHolder> _Nullable resultHolder;
 
     std::shared_ptr<App> app;
 
@@ -102,13 +88,7 @@ public:
 
     std::shared_ptr<const Bundle> getParameters() const override;
 
-    void setResult(Result result) override;
-    void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
-    bool hasResult() const override;
-
     std::unique_ptr<Paths> getPaths() const override;
-
-    std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
 
     std::shared_ptr<App> getApp() const override { return app; }
 };

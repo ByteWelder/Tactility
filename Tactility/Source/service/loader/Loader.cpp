@@ -62,7 +62,7 @@ void stopApp() {
     loader_singleton->dispatcherThread->dispatch(onStopAppMessage, nullptr);
 }
 
-std::shared_ptr<app::AppContext> _Nullable getCurrentApp() {
+std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext() {
     tt_assert(loader_singleton);
     if (loader_singleton->mutex.lock(10 / portTICK_PERIOD_MS)) {
         auto app = loader_singleton->appStack.top();
@@ -71,6 +71,11 @@ std::shared_ptr<app::AppContext> _Nullable getCurrentApp() {
     } else {
         return nullptr;
     }
+}
+
+std::shared_ptr<app::App> _Nullable getCurrentApp() {
+    auto app_context = getCurrentAppContext();
+    return app_context != nullptr ? app_context->getApp() : nullptr;
 }
 
 std::shared_ptr<PubSub> getPubsub() {
@@ -238,7 +243,12 @@ static void stopAppInternal() {
         return;
     }
 
-    auto result_holder = std::move(app_to_stop->getResult());
+    bool result_set = false;
+    app::Result result;
+    std::unique_ptr<Bundle> result_bundle;
+    if (app_to_stop->getApp()->moveResult(result, result_bundle)) {
+        result_set = true;
+    }
 
     const app::AppManifest& manifest = app_to_stop->getManifest();
     transitionAppToState(*app_to_stop, app::StateHiding);
@@ -278,20 +288,18 @@ static void stopAppInternal() {
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
     if (instance_to_resume != nullptr) {
-        if (result_holder != nullptr) {
-            auto result_bundle = result_holder->resultData.get();
+        if (result_set) {
             if (result_bundle != nullptr) {
                 instance_to_resume->getApp()->onResult(
                     *instance_to_resume,
-                    result_holder->result,
-                    *result_bundle
+                    result,
+                    std::move(result_bundle)
                 );
             } else {
-                const Bundle empty_bundle;
                 instance_to_resume->getApp()->onResult(
                     *instance_to_resume,
-                    result_holder->result,
-                    empty_bundle
+                    result,
+                    nullptr
                 );
             }
         } else {
@@ -299,7 +307,7 @@ static void stopAppInternal() {
             instance_to_resume->getApp()->onResult(
                 *instance_to_resume,
                 app::Result::Cancelled,
-                empty_bundle
+                nullptr
             );
         }
     }

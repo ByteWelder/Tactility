@@ -137,9 +137,9 @@ public:
         }
     }
 
-    void onResult(AppContext& appContext, Result result, const Bundle& resultBundle) override {
+    void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> resultBundle) override {
         if (manifest != nullptr && manifest->onResult != nullptr) {
-            manifest->onResult(appContext, data, result, resultBundle);
+            manifest->onResult(appContext, data, result, std::move(resultBundle));
         }
     }
 };

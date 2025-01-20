@@ -52,12 +52,12 @@ std::string getResultCode(const Bundle& bundle) {
     return result;
 }
 
-void setResultName(std::shared_ptr<Bundle>& bundle, const std::string& name) {
-    bundle->putString(RESULT_BUNDLE_NAME_INDEX, name);
+void setResultName(Bundle& bundle, const std::string& name) {
+    bundle.putString(RESULT_BUNDLE_NAME_INDEX, name);
 }
 
-void setResultCode(std::shared_ptr<Bundle>& bundle, const std::string& code) {
-    bundle->putString(RESULT_BUNDLE_CODE_INDEX, code);
+void setResultCode(Bundle& bundle, const std::string& code) {
+    bundle.putString(RESULT_BUNDLE_CODE_INDEX, code);
 }
 
 // endregion
@@ -92,7 +92,7 @@ private:
 
     static void onListItemSelectedCallback(lv_event_t* e) {
         auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        auto appContext = service::loader::getCurrentApp();
+        auto appContext = service::loader::getCurrentAppContext();
         if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
             auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
             app->onListItemSelected(index);
@@ -104,11 +104,12 @@ private:
 
         auto& entry = entries[index];
 
-        auto bundle = std::make_shared<Bundle>();
-        setResultName(bundle, entry.name);
-        setResultCode(bundle, entry.code);
+        auto bundle = std::make_unique<Bundle>();
+        setResultName(*bundle, entry.name);
+        setResultCode(*bundle, entry.code);
 
-        service::loader::getCurrentApp()->setResult(app::Result::Ok, bundle);
+        setResult(app::Result::Ok, std::move(bundle));
+
         service::loader::stopApp();
     }
 
@@ -118,7 +119,7 @@ private:
     }
 
     static void updateTimerCallback(std::shared_ptr<void> context) {
-        auto appContext = service::loader::getCurrentApp();
+        auto appContext = service::loader::getCurrentAppContext();
         if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
             auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
             app->updateList();

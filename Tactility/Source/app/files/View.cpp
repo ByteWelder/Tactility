@@ -8,11 +8,14 @@
 #include "app/ElfApp.h"
 #include "lvgl/Toolbar.h"
 #include "lvgl/LvglSync.h"
-#include "service/loader/Loader.h"
 #include "Tactility.h"
 #include "StringUtils.h"
 #include <cstring>
 #include <unistd.h>
+
+#ifdef ESP_PLATFORM
+#include "service/loader/Loader.h"
+#endif
 
 #define TAG "files_app"
 
@@ -284,8 +287,8 @@ void View::onNavigate() {
     }
 }
 
-void View::onResult(Result result, const Bundle& bundle) {
-    if (result != Result::Ok) {
+void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
+    if (result != Result::Ok || bundle == nullptr) {
         return;
     }
 
@@ -294,7 +297,7 @@ void View::onResult(Result result, const Bundle& bundle) {
 
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
-            if (alertdialog::getResultIndex(bundle) == 0) {
+            if (alertdialog::getResultIndex(*bundle) == 0) {
                 int delete_count = (int)remove(filepath.c_str());
                 if (delete_count > 0) {
                     TT_LOG_I(TAG, "Deleted %d items", delete_count);
@@ -307,7 +310,7 @@ void View::onResult(Result result, const Bundle& bundle) {
             break;
         }
         case State::ActionRename: {
-            auto new_name = app::inputdialog::getResult(bundle);
+            auto new_name = app::inputdialog::getResult(*bundle);
             if (!new_name.empty() && new_name != state->getSelectedChildEntry()) {
                 std::string rename_to = getChildPath(state->getCurrentPath(), new_name);
                 if (rename(filepath.c_str(), rename_to.c_str())) {

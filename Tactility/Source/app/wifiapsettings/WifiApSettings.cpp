@@ -16,7 +16,7 @@ extern const AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 const std::shared_ptr<AppContext> _Nullable optWifiApSettingsApp() {
-    auto app = service::loader::getCurrentApp();
+    auto app = service::loader::getCurrentAppContext();
     if (app != nullptr && app->getManifest().id == manifest.id) {
         return app;
     } else {
@@ -121,8 +121,8 @@ class WifiApSettings : public App {
         }
     }
 
-    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, const Bundle& bundle) override {
-        auto index = alertdialog::getResultIndex(bundle);
+    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, std::unique_ptr<Bundle> bundle) override {
+        auto index = alertdialog::getResultIndex(*bundle);
         if (index == 0) { // Yes
             auto app = optWifiApSettingsApp();
             if (app == nullptr) {

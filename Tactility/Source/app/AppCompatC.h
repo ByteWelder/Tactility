@@ -11,7 +11,7 @@ typedef void (*OnStart)(AppContext& app, void* _Nullable data);
 typedef void (*OnStop)(AppContext& app, void* _Nullable data);
 typedef void (*OnShow)(AppContext& app, void* _Nullable data, lv_obj_t* parent);
 typedef void (*OnHide)(AppContext& app, void* _Nullable data);
-typedef void (*OnResult)(AppContext& app, void* _Nullable data, Result result, const Bundle& resultData);
+typedef void (*OnResult)(AppContext& app, void* _Nullable data, Result result, std::unique_ptr<Bundle> resultData);
 
 class AppCompatC : public App {
 
@@ -78,9 +78,9 @@ public:
         }
     }
 
-    void onResult(AppContext& appContext, Result result, const Bundle& resultData) override {
+    void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> _Nullable resultData) override {
         if (onResultCallback != nullptr) {
-            onResultCallback(appContext, data, result, resultData);
+            onResultCallback(appContext, data, result, std::move(resultData));
         }
     }
 };

@@ -18,6 +18,7 @@ namespace tt::app::inputdialog {
 #define TAG "input_dialog"
 
 extern const AppManifest manifest;
+class InputDialogApp;
 
 void start(const std::string& title, const std::string& message, const std::string& prefilled) {
     auto bundle = std::make_shared<Bundle>();
@@ -33,10 +34,6 @@ std::string getResult(const Bundle& bundle) {
     return result;
 }
 
-void setResult(const std::shared_ptr<Bundle>& bundle, const std::string& result) {
-    bundle->putString(RESULT_BUNDLE_KEY_RESULT, result);
-}
-
 static std::string getTitleParameter(const std::shared_ptr<const Bundle>& bundle) {
     std::string result;
     if (bundle->optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
@@ -46,34 +43,42 @@ static std::string getTitleParameter(const std::shared_ptr<const Bundle>& bundle
     }
 }
 
-static void onButtonClicked(lv_event_t* e) {
-    auto user_data = lv_event_get_user_data(e);
-    int index = (user_data != 0) ? 0 : 1;
-    TT_LOG_I(TAG, "Selected item at index %d", index);
-    auto app = service::loader::getCurrentApp();
-    tt_assert(app != nullptr);
-    auto bundle = std::make_shared<Bundle>();
-    if (index == 0) {
-        const char* text = lv_textarea_get_text((lv_obj_t*)user_data);
-        setResult(bundle, text);
-        app->setResult(app::Result::Ok, bundle);
-    } else {
-        app->setResult(app::Result::Cancelled, bundle);
-
-    }
-    service::loader::stopApp();
-}
-
-static void createButton(lv_obj_t* parent, const std::string& text, void* callbackContext) {
-    lv_obj_t* button = lv_button_create(parent);
-    lv_obj_t* button_label = lv_label_create(button);
-    lv_obj_align(button_label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(button_label, text.c_str());
-    lv_obj_add_event_cb(button, &onButtonClicked, LV_EVENT_SHORT_CLICKED, callbackContext);
-}
-
 class InputDialogApp : public App {
 
+private:
+
+    static void createButton(lv_obj_t* parent, const std::string& text, void* callbackContext) {
+        lv_obj_t* button = lv_button_create(parent);
+        lv_obj_t* button_label = lv_label_create(button);
+        lv_obj_align(button_label, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(button_label, text.c_str());
+        lv_obj_add_event_cb(button, onButtonClickedCallback, LV_EVENT_SHORT_CLICKED, callbackContext);
+    }
+
+    static void onButtonClickedCallback(lv_event_t* e) {
+        auto appContext = service::loader::getCurrentAppContext();
+        tt_assert(appContext != nullptr);
+        auto app = std::static_pointer_cast<InputDialogApp>(appContext->getApp());
+        app->onButtonClicked(e);
+    }
+
+    void onButtonClicked(lv_event_t* e) {
+        auto user_data = lv_event_get_user_data(e);
+        int index = (user_data != 0) ? 0 : 1;
+        TT_LOG_I(TAG, "Selected item at index %d", index);
+        if (index == 0) {
+            auto bundle = std::make_unique<Bundle>();
+            const char* text = lv_textarea_get_text((lv_obj_t*)user_data);
+            bundle->putString(RESULT_BUNDLE_KEY_RESULT, text);
+            setResult(app::Result::Ok, std::move(bundle));
+        } else {
+            setResult(app::Result::Cancelled);
+
+        }
+        service::loader::stopApp();
+    }
+
+public:
     void onShow(AppContext& app, lv_obj_t* parent) override {
         auto parameters = app.getParameters();
         tt_check(parameters != nullptr, "Parameters missing");

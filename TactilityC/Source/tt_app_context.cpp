@@ -1,4 +1,5 @@
 #include "tt_app_context.h"
+#include <app/App.h>
 #include <app/AppContext.h>
 
 struct AppContextDataWrapper {
@@ -14,12 +15,12 @@ BundleHandle _Nullable tt_app_context_get_parameters(AppContextHandle handle) {
 }
 
 void tt_app_context_set_result(AppContextHandle handle, Result result, BundleHandle _Nullable bundle) {
-    auto shared_bundle = std::shared_ptr<tt::Bundle>((tt::Bundle*)bundle);
-    HANDLE_AS_APP_CONTEXT(handle)->setResult((tt::app::Result)result, std::move(shared_bundle));
+    auto shared_bundle = std::unique_ptr<tt::Bundle>((tt::Bundle*)bundle);
+    HANDLE_AS_APP_CONTEXT(handle)->getApp()->setResult((tt::app::Result)result, std::move(shared_bundle));
 }
 
 bool tt_app_context_has_result(AppContextHandle handle) {
-    return HANDLE_AS_APP_CONTEXT(handle)->hasResult();
+    return HANDLE_AS_APP_CONTEXT(handle)->getApp()->hasResult();
 }
 
 }

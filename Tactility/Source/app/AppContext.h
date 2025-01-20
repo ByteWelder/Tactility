@@ -32,9 +32,6 @@ public:
 
     virtual const AppManifest& getManifest() const = 0;
     virtual std::shared_ptr<const Bundle> getParameters() const = 0;
-    virtual void setResult(Result result) = 0;
-    virtual void setResult(Result result, std::shared_ptr<const Bundle> bundle)= 0;
-    virtual bool hasResult() const = 0;
     virtual std::unique_ptr<Paths> getPaths() const = 0;
 
     virtual std::shared_ptr<App> getApp() const = 0;
