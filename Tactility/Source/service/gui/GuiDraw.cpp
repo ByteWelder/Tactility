@@ -36,7 +36,7 @@ void redraw(Gui* gui) {
 
         ViewPort* view_port = gui->appViewPort;
         if (view_port != nullptr) {
-            app::AppContext& app = view_port->app;
+            auto& app = view_port->app;
 
             app::Flags flags = app.getFlags();
             if (flags.showStatusbar) {

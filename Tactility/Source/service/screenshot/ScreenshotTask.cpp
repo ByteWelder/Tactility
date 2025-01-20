@@ -87,8 +87,8 @@ void ScreenshotTask::taskMain() {
                 }
             }
         } else if (work.type == TASK_WORK_TYPE_APPS) {
-            app::AppContext* _Nullable app = loader::getCurrentApp();
-            if (app) {
+            auto app = loader::getCurrentApp();
+            if (app != nullptr) {
                 const app::AppManifest& manifest = app->getManifest();
                 if (manifest.id != last_app_id) {
                     kernel::delayMillis(100);

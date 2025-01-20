@@ -78,4 +78,13 @@ std::string join(const std::vector<std::string>& input, const std::string& delim
     return stream.str();
 }
 
+std::string removeFileExtension(const std::string& input) {
+    auto index = input.find('.');
+    if (index != std::string::npos) {
+        return input.substr(0, index);
+    } else {
+        return input;
+    }
+}
+
 } // namespace

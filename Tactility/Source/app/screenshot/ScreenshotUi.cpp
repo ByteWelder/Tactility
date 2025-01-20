@@ -21,8 +21,8 @@ extern AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<ScreenshotUi> _Nullable optScreenshotUi() {
-    app::AppContext* app = service::loader::getCurrentApp();
-    if (app->getManifest().id == manifest.id) {
+    auto app = service::loader::getCurrentApp();
+    if (app != nullptr && app->getManifest().id == manifest.id) {
         return std::static_pointer_cast<ScreenshotUi>(app->getData());
     } else {
         return nullptr;

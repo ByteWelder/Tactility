@@ -13,12 +13,12 @@ static void onAppPressed(lv_event_t* e) {
     service::loader::startApp(manifest->id);
 }
 
-static void createWidget(const AppManifest* manifest, void* parent) {
+static void createWidget(const std::shared_ptr<AppManifest>& manifest, void* parent) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
     const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
     lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
-    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest);
+    lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest.get());
 }
 
 class SettingsApp : public App {

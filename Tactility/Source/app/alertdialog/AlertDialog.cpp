@@ -51,7 +51,7 @@ static void onButtonClicked(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
     TT_LOG_I(TAG, "Selected item at index %d", index);
-    tt::app::AppContext* app = service::loader::getCurrentApp();
+    auto app = service::loader::getCurrentApp();
     auto bundle = std::make_shared<Bundle>();
     setResultIndex(bundle, (int32_t)index);
     app->setResult(app::Result::Ok, bundle);

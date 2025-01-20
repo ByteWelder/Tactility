@@ -6,8 +6,9 @@
 #include "RtosCompat.h"
 
 #ifdef ESP_PLATFORM
-#include "esp_heap_caps.h"
 #include "TactilityHeadless.h"
+#include "app/ElfApp.h"
+#include "esp_heap_caps.h"
 
 #else
 #include "lvgl/LvglSync.h"
@@ -61,12 +62,12 @@ void stopApp() {
     loader_singleton->dispatcherThread->dispatch(onStopAppMessage, nullptr);
 }
 
-app::AppContext* _Nullable getCurrentApp() {
+std::shared_ptr<app::AppContext> _Nullable getCurrentApp() {
     tt_assert(loader_singleton);
     if (loader_singleton->mutex.lock(10 / portTICK_PERIOD_MS)) {
-        app::AppInstance* app = loader_singleton->appStack.top();
+        auto app = loader_singleton->appStack.top();
         loader_singleton->mutex.unlock();
-        return dynamic_cast<app::AppContext*>(app);
+        return std::move(app);
     } else {
         return nullptr;
     }
@@ -148,8 +149,8 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
 }
 
 static LoaderStatus startAppWithManifestInternal(
-    const app::AppManifest* manifest,
-    std::shared_ptr<const Bundle> _Nullable parameters
+    const std::shared_ptr<app::AppManifest>& manifest,
+    const std::shared_ptr<const Bundle> _Nullable& parameters
 ) {
     tt_check(loader_singleton != nullptr);
 
@@ -161,7 +162,9 @@ static LoaderStatus startAppWithManifestInternal(
     }
 
     auto previous_app = !loader_singleton->appStack.empty() ? loader_singleton->appStack.top() : nullptr;
-    auto new_app = new app::AppInstance(*manifest, parameters);
+
+    auto new_app = std::make_shared<app::AppInstance>(manifest, parameters);
+
     new_app->mutableFlags().showStatusbar = (manifest->type != app::Type::Boot);
 
     loader_singleton->appStack.push(new_app);
@@ -204,7 +207,7 @@ static LoaderStatus startAppInternal(
 ) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    const app::AppManifest* manifest = app::findAppById(id);
+    auto manifest = app::findAppById(id);
     if (manifest == nullptr) {
         TT_LOG_E(TAG, "App not found: %s", id.c_str());
         return LoaderStatus::ErrorUnknownApp;
@@ -229,7 +232,7 @@ static void stopAppInternal() {
     }
 
     // Stop current app
-    app::AppInstance* app_to_stop = loader_singleton->appStack.top();
+    auto& app_to_stop = loader_singleton->appStack.top();
 
     if (original_stack_size == 1 && app_to_stop->getManifest().type != app::Type::Boot) {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
@@ -243,13 +246,12 @@ static void stopAppInternal() {
     transitionAppToState(*app_to_stop, app::StateStopped);
 
     loader_singleton->appStack.pop();
-    delete app_to_stop;
 
 #ifdef ESP_PLATFORM
     TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
-    app::AppInstance* instance_to_resume = nullptr;
+    std::shared_ptr<app::AppInstance> instance_to_resume;
     // If there's a previous app, resume it
     if (!loader_singleton->appStack.empty()) {
         instance_to_resume = loader_singleton->appStack.top();

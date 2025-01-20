@@ -7,24 +7,31 @@
 extern "C" {
 #endif
 
+/** Important: These values must map to tt::app::Result values exactly */
 typedef enum {
-    AppResultOk,
-    AppResultCancelled,
-    AppResultError
+    AppResultOk = 0,
+    AppResultCancelled = 1,
+    AppResultError = 2
 } Result;
 
 typedef void* AppContextHandle;
 
-typedef void (*AppOnStart)(AppContextHandle app);
-typedef void (*AppOnStop)(AppContextHandle app);
-typedef void (*AppOnShow)(AppContextHandle app, lv_obj_t* parent);
-typedef void (*AppOnHide)(AppContextHandle app);
-typedef void (*AppOnResult)(AppContextHandle app, Result result, BundleHandle resultData);
+/** Important: These function types must map to t::app types exactly */
+typedef void* (*AppCreateData)();
+typedef void (*AppDestroyData)(void* data);
+typedef void (*AppOnStart)(AppContextHandle app, void* _Nullable data);
+typedef void (*AppOnStop)(AppContextHandle app, void* _Nullable data);
+typedef void (*AppOnShow)(AppContextHandle app, void* _Nullable data, lv_obj_t* parent);
+typedef void (*AppOnHide)(AppContextHandle app, void* _Nullable data);
+typedef void (*AppOnResult)(AppContextHandle app, void* _Nullable data, Result result, BundleHandle resultData);
 
 /**
  * This is used to register the manifest of an external app.
  * @param[in] name the application's human-readable name
- * @param[in] icon the optional application icon (you can use LV_SYMBOL_* too)
+ * @param[in] icon the application icon (you can use LV_SYMBOL_* too)
+ * @param[in] createData the application can allocate data to re-use later (e.g. struct with state)
+ * @param[in] destroyData if createData is specified, this one must be specified too
+ * @param[in] onStart called when the app is launched (started)
  * @param[in] onStart called when the app is launched (started)
  * @param[in] onStop called when the app is exited (stopped)
  * @param[in] onShow called when the app is about to be shown to the user (app becomes visible)
@@ -34,6 +41,8 @@ typedef void (*AppOnResult)(AppContextHandle app, Result result, BundleHandle re
 void tt_set_app_manifest(
     const char* name,
     const char* _Nullable icon,
+    AppCreateData _Nullable createData,
+    AppDestroyData _Nullable destroyData,
     AppOnStart _Nullable onStart,
     AppOnStop _Nullable onStop,
     AppOnShow _Nullable onShow,

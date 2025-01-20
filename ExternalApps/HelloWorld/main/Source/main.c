@@ -5,7 +5,7 @@
  * Note: LVGL and Tactility methods need to be exposed manually from TactilityC/Source/tt_init.cpp
  * Only C is supported for now (C++ symbols fail to link)
  */
-static void onShow(AppContextHandle context, lv_obj_t* parent) {
+static void onShow(AppContextHandle context, void* data, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt_lvgl_toolbar_create(parent, context);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -17,6 +17,8 @@ static void onShow(AppContextHandle context, lv_obj_t* parent) {
 int main(int argc, char* argv[]) {
     tt_set_app_manifest(
         "Hello World",
+        NULL,
+        NULL,
         NULL,
         NULL,
         NULL,

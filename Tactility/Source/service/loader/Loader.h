@@ -22,7 +22,7 @@ void startApp(const std::string& id, const std::shared_ptr<const Bundle>& _Nulla
 void stopApp();
 
 /** @return the currently running app (it is only ever null before the splash screen is shown) */
-app::AppContext* _Nullable getCurrentApp();
+std::shared_ptr<app::AppContext> _Nullable getCurrentApp();
 
 /**
  * @brief PubSub for LoaderEvent

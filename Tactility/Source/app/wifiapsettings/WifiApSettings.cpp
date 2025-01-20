@@ -15,9 +15,9 @@ namespace tt::app::wifiapsettings {
 extern const AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
-const AppContext* _Nullable optWifiApSettingsApp() {
-    app::AppContext* app = service::loader::getCurrentApp();
-    if (app->getManifest().id == manifest.id) {
+const std::shared_ptr<AppContext> _Nullable optWifiApSettingsApp() {
+    auto app = service::loader::getCurrentApp();
+    if (app != nullptr && app->getManifest().id == manifest.id) {
         return app;
     } else {
         return nullptr;
@@ -41,7 +41,7 @@ static void onPressForget(TT_UNUSED lv_event_t* event) {
 static void onToggleAutoConnect(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
 
-    auto* app = optWifiApSettingsApp();
+    auto app = optWifiApSettingsApp();
     if (app == nullptr) {
         return;
     }
@@ -121,10 +121,10 @@ class WifiApSettings : public App {
         }
     }
 
-    void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& bundle) override {
+    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, const Bundle& bundle) override {
         auto index = alertdialog::getResultIndex(bundle);
         if (index == 0) { // Yes
-            auto* app = optWifiApSettingsApp();
+            auto app = optWifiApSettingsApp();
             if (app == nullptr) {
                 return;
             }

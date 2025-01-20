@@ -25,7 +25,8 @@ State AppInstance::getState() const {
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
 const AppManifest& AppInstance::getManifest() const {
-    return manifest;
+    tt_assert(manifest != nullptr);
+    return *manifest;
 }
 
 Flags AppInstance::getFlags() const {
@@ -83,7 +84,8 @@ bool AppInstance::hasResult() const {
 }
 
 std::unique_ptr<Paths> AppInstance::getPaths() const {
-    return std::make_unique<AppInstancePaths>(manifest);
+    tt_assert(manifest != nullptr);
+    return std::make_unique<AppInstancePaths>(*manifest);
 }
 
 } // namespace

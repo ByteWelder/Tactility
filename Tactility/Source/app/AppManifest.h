@@ -31,12 +31,33 @@ enum class Type {
 
 /** Result status code for application result callback. */
 enum class Result {
-    Ok,
-    Cancelled,
-    Error
+    Ok = 0U,
+    Cancelled = 1U,
+    Error = 2U
 };
 
-typedef App*(*CreateApp)();
+class Location {
+
+private:
+
+    std::string path;
+    Location() = default;
+    explicit Location(const std::string& path) : path(path) {}
+
+public:
+
+    const static Location Internal;
+
+    static Location External(const std::string& path) {
+        return Location(path);
+    }
+
+    bool isInternal() const { return path.empty(); }
+    bool isExternal() const { return !path.empty(); }
+    const std::string& getPath() const { return path; }
+};
+
+typedef std::shared_ptr<App>(*CreateApp)();
 
 struct AppManifest {
     /** The identifier by which the app is launched by the system and other apps. */
@@ -51,12 +72,15 @@ struct AppManifest {
     /** App type affects launch behaviour. */
     Type type = Type::User;
 
+    /** Where the app is located */
+    Location location = Location::Internal;
+
     /** Create the instance of the app */
     CreateApp createApp = nullptr;
 };
 
 struct {
-    bool operator()(const AppManifest* left, const AppManifest* right) const { return left->name < right->name; }
+    bool operator()(const std::shared_ptr<AppManifest>& left, const std::shared_ptr<AppManifest>& right) const { return left->name < right->name; }
 } SortAppManifestByName;
 
 } // namespace

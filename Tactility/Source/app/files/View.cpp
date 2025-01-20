@@ -81,7 +81,9 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 
     if (isSupportedExecutableFile(filename)) {
 #ifdef ESP_PLATFORM
-        app::startElfApp(processed_filepath);
+        app::registerElfApp(processed_filepath);
+        auto app_id = app::getElfAppId(processed_filepath);
+        service::loader::startApp(app_id);
 #endif
     } else if (isSupportedImageFile(filename)) {
         app::imageviewer::start(processed_filepath);

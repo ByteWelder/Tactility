@@ -1,10 +1,11 @@
 #ifdef ESP_PLATFORM
 
-#include "file/File.h"
 #include "ElfApp.h"
+#include "StringUtils.h"
 #include "TactilityCore.h"
 #include "esp_elf.h"
-#include "service/loader/Loader.h"
+#include "file/File.h"
+#include "Log.h"
 
 #include <string>
 
@@ -17,6 +18,8 @@ struct ElfManifest {
     std::string name;
     /** Optional icon. */
     std::string icon;
+    CreateData _Nullable createData;
+    DestroyData _Nullable destroyData;
     OnStart _Nullable onStart;
     OnStop _Nullable onStop;
     OnShow _Nullable onShow;
@@ -35,6 +38,7 @@ private:
     std::unique_ptr<uint8_t[]> elfFileData;
     esp_elf_t elf;
     std::unique_ptr<ElfManifest> manifest;
+    void* data = nullptr;
 
     bool startElf() {
         TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
@@ -85,8 +89,14 @@ public:
         if (startElf()) {
             if (elfManifestSetCount > initial_count) {
                 manifest = std::make_unique<ElfManifest>(elfManifest);
-                manifest->onStart(appContext);
-//                service::loader::startApp(ELF_WRAPPER_APP_ID);
+
+                if (manifest->createData != nullptr) {
+                    data = manifest->createData();
+                }
+
+                if (manifest->onStart != nullptr) {
+                    manifest->onStart(appContext, data);
+                }
             }
         }
     }
@@ -94,27 +104,34 @@ public:
     void onStop(AppContext& appContext) override {
         TT_LOG_I(TAG, "Cleaning up app");
         if (manifest != nullptr) {
-            manifest->onStop(appContext);
+            if (manifest->onStop != nullptr) {
+                manifest->onStop(appContext, data);
+            }
+
+            if (manifest->destroyData != nullptr && data != nullptr) {
+                manifest->destroyData(data);
+            }
+
             this->manifest = nullptr;
         }
         stopElf();
     }
 
     void onShow(AppContext& appContext, lv_obj_t* parent) override {
-        if (manifest != nullptr) {
-            manifest->onShow(appContext, parent);
+        if (manifest != nullptr && manifest->onShow != nullptr) {
+            manifest->onShow(appContext, data, parent);
         }
     }
 
     void onHide(AppContext& appContext) override {
-        if (manifest != nullptr) {
-            manifest->onHide(appContext);
+        if (manifest != nullptr && manifest->onHide != nullptr) {
+            manifest->onHide(appContext, data);
         }
     }
 
     void onResult(AppContext& appContext, Result result, const Bundle& resultBundle) override {
-        if (manifest != nullptr) {
-            manifest->onResult(appContext, result, resultBundle);
+        if (manifest != nullptr && manifest->onResult != nullptr) {
+            manifest->onResult(appContext, data, result, resultBundle);
         }
     }
 };
@@ -122,6 +139,8 @@ public:
 void setElfAppManifest(
     const char* name,
     const char* _Nullable icon,
+    CreateData _Nullable createData,
+    DestroyData _Nullable destroyData,
     OnStart _Nullable onStart,
     OnStop _Nullable onStop,
     OnShow _Nullable onShow,
@@ -131,6 +150,8 @@ void setElfAppManifest(
     elfManifest = ElfManifest {
         .name = name ? name : "",
         .icon = icon ? icon : "",
+        .createData = createData,
+        .destroyData = destroyData,
         .onStart = onStart,
         .onStop = onStop,
         .onShow = onShow,
@@ -140,9 +161,28 @@ void setElfAppManifest(
     elfManifestSetCount++;
 }
 
-bool startElfApp(const std::string& filePath) {
-    // TODO: Register app in registry, then start it
+std::string getElfAppId(const std::string& filePath) {
+    return filePath;
+}
+
+bool registerElfApp(const std::string& filePath) {
+    if (findAppById(filePath) == nullptr) {
+        auto manifest = AppManifest {
+            .id = getElfAppId(filePath),
+            .name = tt::string::removeFileExtension(tt::string::getLastPathSegment(filePath)),
+            .type = Type::User,
+            .location = Location::External(filePath)
+        };
+        addApp(manifest);
+    }
     return false;
+}
+
+std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {
+    TT_LOG_I(TAG, "createElfApp");
+    tt_assert(manifest != nullptr);
+    tt_assert(manifest->location.isExternal());
+    return std::make_shared<ElfApp>(manifest->location.getPath());
 }
 
 } // namespace

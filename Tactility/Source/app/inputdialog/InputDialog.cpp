@@ -50,7 +50,8 @@ static void onButtonClicked(lv_event_t* e) {
     auto user_data = lv_event_get_user_data(e);
     int index = (user_data != 0) ? 0 : 1;
     TT_LOG_I(TAG, "Selected item at index %d", index);
-    tt::app::AppContext* app = service::loader::getCurrentApp();
+    auto app = service::loader::getCurrentApp();
+    tt_assert(app != nullptr);
     auto bundle = std::make_shared<Bundle>();
     if (index == 0) {
         const char* text = lv_textarea_get_text((lv_obj_t*)user_data);

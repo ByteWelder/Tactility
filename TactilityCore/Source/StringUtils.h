@@ -66,5 +66,9 @@ std::basic_string<T> lowercase(const std::basic_string<T>& input) {
     return std::move(output);
 }
 
+/**
+ * @return the first part of a file name right up (and excluding) the first period character.
+ */
+std::string removeFileExtension(const std::string& input);
 
 } // namespace

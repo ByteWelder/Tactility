@@ -107,11 +107,11 @@ static const std::vector<const app::AppManifest*> system_apps = {
 static void register_system_apps() {
     TT_LOG_I(TAG, "Registering default apps");
     for (const auto* app_manifest: system_apps) {
-        addApp(app_manifest);
+        addApp(*app_manifest);
     }
 
     if (getConfiguration()->hardware->power != nullptr) {
-        addApp(&app::power::manifest);
+        addApp(app::power::manifest);
     }
 }
 
@@ -119,7 +119,7 @@ static void register_user_apps(const std::vector<const app::AppManifest*>& apps)
     TT_LOG_I(TAG, "Registering user apps");
     for (auto* manifest : apps) {
         assert(manifest != nullptr);
-        addApp(manifest);
+        addApp(*manifest);
     }
 }
 

@@ -7,34 +7,38 @@
 
 namespace tt::app {
 
-typedef std::unordered_map<std::string, const AppManifest*> AppManifestMap;
+typedef std::unordered_map<std::string, std::shared_ptr<AppManifest>> AppManifestMap;
 
 static AppManifestMap app_manifest_map;
 static Mutex hash_mutex(Mutex::Type::Normal);
 
-void addApp(const AppManifest* manifest) {
-    TT_LOG_I(TAG, "Registering manifest %s", manifest->id.c_str());
+void addApp(const AppManifest& manifest) {
+    TT_LOG_I(TAG, "Registering manifest %s", manifest.id.c_str());
 
     hash_mutex.acquire(TtWaitForever);
 
-    if (app_manifest_map[manifest->id] == nullptr) {
-        app_manifest_map[manifest->id] = manifest;
+    if (!app_manifest_map.contains(manifest.id)) {
+        app_manifest_map[manifest.id] = std::make_shared<AppManifest>(manifest);
     } else {
-        TT_LOG_E(TAG, "App id in use: %s", manifest->id.c_str());
+        TT_LOG_E(TAG, "App id in use: %s", manifest.id.c_str());
     }
 
     hash_mutex.release();
 }
 
-_Nullable const AppManifest * findAppById(const std::string& id) {
+_Nullable std::shared_ptr<AppManifest> findAppById(const std::string& id) {
     hash_mutex.acquire(TtWaitForever);
-    _Nullable const AppManifest* result = app_manifest_map[id.c_str()];
+    auto result = app_manifest_map.find(id);
     hash_mutex.release();
-    return result;
+    if (result != app_manifest_map.end()) {
+        return result->second;
+    } else {
+        return nullptr;
+    }
 }
 
-std::vector<const AppManifest*> getApps() {
-    std::vector<const AppManifest*> manifests;
+std::vector<std::shared_ptr<AppManifest>> getApps() {
+    std::vector<std::shared_ptr<AppManifest>> manifests;
     hash_mutex.acquire(TtWaitForever);
     for (const auto& item: app_manifest_map) {
         manifests.push_back(item.second);

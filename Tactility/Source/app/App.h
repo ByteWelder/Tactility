@@ -25,6 +25,6 @@ public:
 };
 
 template<typename T>
-App* create() { return new T; }
+std::shared_ptr<App> create() { return std::shared_ptr<T>(new T); }
 
 }

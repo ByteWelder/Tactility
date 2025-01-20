@@ -78,7 +78,8 @@ static void onUpdateTimer(std::shared_ptr<void> context) {
 }
 
 static void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
-    auto* app = service::loader::getCurrentApp();
+    auto app = service::loader::getCurrentApp();
+    tt_assert(app != nullptr);
     auto app_data = app->getData();
     auto data = std::static_pointer_cast<Data>(app_data);
 
@@ -96,7 +97,8 @@ static void onTextareaValueChanged(TT_UNUSED lv_event_t* e) {
 static void onListItemSelected(lv_event_t* e) {
     auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
     TT_LOG_I(TAG, "Selected item at index %zu", index);
-    auto* app = service::loader::getCurrentApp();
+    auto app = service::loader::getCurrentApp();
+    tt_assert(app != nullptr);
     auto data = std::static_pointer_cast<Data>(app->getData());
 
     auto& entry = data->entries[index];
