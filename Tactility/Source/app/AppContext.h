@@ -42,7 +42,7 @@ public:
     virtual bool hasResult() const = 0;
     virtual std::unique_ptr<Paths> getPaths() const = 0;
 
-    virtual const std::shared_ptr<App> getApp() const = 0;
+    virtual std::shared_ptr<App> getApp() const = 0;
 };
 
 class Paths {

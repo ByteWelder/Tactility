@@ -2,11 +2,8 @@
 #include "Timer.h"
 
 #include "service/ServiceContext.h"
-#include "TactilityCore.h"
 #include "TactilityHeadless.h"
 #include "service/ServiceRegistry.h"
-
-#include <cstdlib>
 
 #define TAG "sdcard_service"
 
@@ -27,7 +24,6 @@ struct ServiceData {
         tt_check(mutex.release() == TtStatusOk);
     }
 };
-
 
 static void onUpdate(std::shared_ptr<void> context) {
     auto sdcard = tt::hal::getConfiguration()->sdcard;

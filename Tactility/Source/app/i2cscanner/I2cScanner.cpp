@@ -90,7 +90,7 @@ void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_t* scan_button = lv_button_create(wrapper);
     lv_obj_set_width(scan_button, LV_PCT(48));
     lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
-    lv_obj_add_event_cb(scan_button, onPressScanCallback, LV_EVENT_SHORT_CLICKED, nullptr);
+    lv_obj_add_event_cb(scan_button, onPressScanCallback, LV_EVENT_SHORT_CLICKED, this);
     lv_obj_t* scan_button_label = lv_label_create(scan_button);
     lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(scan_button_label, START_SCAN_TEXT);
@@ -101,7 +101,7 @@ void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_dropdown_set_options(port_dropdown, dropdown_items.c_str());
     lv_obj_set_width(port_dropdown, LV_PCT(48));
     lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_add_event_cb(port_dropdown, onSelectBusCallback, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_add_event_cb(port_dropdown, onSelectBusCallback, LV_EVENT_VALUE_CHANGED, this);
     lv_dropdown_set_selected(port_dropdown, 0);
     portDropdownWidget = port_dropdown;
 
@@ -135,14 +135,14 @@ void I2cScannerApp::onHide(AppContext& app) {
 // region Callbacks
 
 void I2cScannerApp::onSelectBusCallback(lv_event_t* event) {
-    auto app = optApp();
+    auto* app = (I2cScannerApp*)lv_event_get_user_data(event);
     if (app != nullptr) {
         app->onSelectBus(event);
     }
 }
 
 void I2cScannerApp::onPressScanCallback(lv_event_t* event) {
-    auto app = optApp();
+    auto* app = (I2cScannerApp*)lv_event_get_user_data(event);
     if (app != nullptr) {
         app->onPressScan(event);
     }
