@@ -14,17 +14,12 @@ static void onShow(AppContextHandle context, void* data, lv_obj_t* parent) {
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 
+ExternalAppManifest manifest = {
+    .name = "Hello World",
+    .onShow = onShow
+};
+
 int main(int argc, char* argv[]) {
-    tt_set_app_manifest(
-        "Hello World",
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        NULL,
-        onShow,
-        NULL,
-        NULL
-    );
+    tt_app_register(&manifest);
     return 0;
 }
