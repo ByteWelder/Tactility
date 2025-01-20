@@ -100,9 +100,6 @@ public:
     void setFlags(Flags flags);
     Flags& mutableFlags() { return flags; } // TODO: locking mechanism
 
-    std::shared_ptr<void> _Nullable getData() const override;
-    void setData(std::shared_ptr<void> data) override;
-
     std::shared_ptr<const Bundle> getParameters() const override;
 
     void setResult(Result result) override;

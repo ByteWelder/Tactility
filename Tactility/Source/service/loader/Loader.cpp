@@ -142,7 +142,6 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
         }
         case app::StateStopped:
             app.getApp()->onStop(app);
-            app.setData(nullptr);
             app.setState(app::StateStopped);
             break;
     }

@@ -11,14 +11,6 @@ typedef void* AppContextHandle;
 /** @return the data that was attached to this app context */
 void* _Nullable tt_app_context_get_data(AppContextHandle handle);
 
-/**
- * Attach data to an application context.
- * Don't forget to manually delete allocated memory when onStopped() is called.
- * @param[in] handle the app context handle
- * @param[in] data the data to attach
- */
-void tt_app_context_set_data(AppContextHandle handle, void* _Nullable data);
-
 /** @return the bundle that belongs to this application, or null */
 BundleHandle _Nullable tt_app_context_get_parameters(AppContextHandle handle);
 

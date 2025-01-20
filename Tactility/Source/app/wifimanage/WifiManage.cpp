@@ -18,9 +18,9 @@ extern const AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<WifiManage> _Nullable optWifiManage() {
-    auto app = service::loader::getCurrentApp();
-    if (app != nullptr && app->getManifest().id == manifest.id) {
-        return std::static_pointer_cast<WifiManage>(app->getData());
+    auto appContext = service::loader::getCurrentApp();
+    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<WifiManage>(appContext->getApp());
     } else {
         return nullptr;
     }
@@ -146,34 +146,12 @@ void WifiManage::onHide(TT_UNUSED AppContext& app) {
     unlock();
 }
 
-// region Manifest methods
-
-class WifiManageApp : public App {
-
-    void onStart(AppContext& app) override {
-        auto wifi = std::make_shared<WifiManage>();
-        app.setData(wifi);
-    }
-
-    void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
-        wifi->onShow(app, parent);
-    }
-
-    void onHide(AppContext& app) override {
-        auto wifi = std::static_pointer_cast<WifiManage>(app.getData());
-        wifi->onHide(app);
-    }
-};
-
-// endregion
-
 extern const AppManifest manifest = {
     .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
     .type = Type::Settings,
-    .createApp = create<WifiManageApp>
+    .createApp = create<WifiManage>
 };
 
 void start() {

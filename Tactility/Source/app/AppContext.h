@@ -30,11 +30,6 @@ protected:
 
 public:
 
-    [[deprecated("store data in App class")]]
-    virtual std::shared_ptr<void> _Nullable getData() const = 0;
-    [[deprecated("store data in App class")]]
-    virtual void setData(std::shared_ptr<void> data) = 0;
-
     virtual const AppManifest& getManifest() const = 0;
     virtual std::shared_ptr<const Bundle> getParameters() const = 0;
     virtual void setResult(Result result) = 0;

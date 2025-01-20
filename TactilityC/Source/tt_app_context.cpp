@@ -9,17 +9,6 @@ extern "C" {
 
 #define HANDLE_AS_APP_CONTEXT(handle) ((tt::app::AppContext*)(handle))
 
-void* _Nullable tt_app_context_get_data(AppContextHandle handle) {
-    auto wrapper = std::reinterpret_pointer_cast<AppContextDataWrapper>(HANDLE_AS_APP_CONTEXT(handle)->getData());
-    return wrapper ? wrapper->data : nullptr;
-}
-
-void tt_app_context_set_data(AppContextHandle handle, void* _Nullable data) {
-    auto wrapper = std::make_shared<AppContextDataWrapper>();
-    wrapper->data = data;
-    HANDLE_AS_APP_CONTEXT(handle)->setData(std::move(wrapper));
-}
-
 BundleHandle _Nullable tt_app_context_get_parameters(AppContextHandle handle) {
     return (BundleHandle)HANDLE_AS_APP_CONTEXT(handle)->getParameters().get();
 }

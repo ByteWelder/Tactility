@@ -16,9 +16,9 @@ extern const AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<WifiConnect> _Nullable optWifiConnect() {
-    auto app = service::loader::getCurrentApp();
-    if (app != nullptr && app->getManifest().id == manifest.id) {
-        return std::static_pointer_cast<WifiConnect>(app->getData());
+    auto appContext = service::loader::getCurrentApp();
+    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+        return std::static_pointer_cast<WifiConnect>(appContext->getApp());
     } else {
         return nullptr;
     }
@@ -105,30 +105,12 @@ void WifiConnect::onHide(TT_UNUSED AppContext& app) {
     unlock();
 }
 
-class WifiConnectApp : public App {
-
-    void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
-        wifi->onShow(app, parent);
-    }
-
-    void onHide(AppContext& app) override {
-        auto wifi = std::static_pointer_cast<WifiConnect>(app.getData());
-        wifi->onHide(app);
-    }
-
-    void onStart(AppContext& app) override {
-        auto wifi = std::make_shared<WifiConnect>();
-        app.setData(wifi);
-    }
-};
-
 extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
     .type = Type::Hidden,
-    .createApp = create<WifiConnectApp>
+    .createApp = create<WifiConnect>
 };
 
 void start(const std::string& ssid, const std::string& password) {
