@@ -1,10 +1,11 @@
 #include "app/files/State.h"
 #include "app/files/FileUtils.h"
 
-#include "kernel/Kernel.h"
 #include "Log.h"
 #include "Partitions.h"
+#include "TactilityHeadless.h"
 #include "hal/SdCard.h"
+#include "kernel/Kernel.h"
 
 #include <unistd.h>
 
@@ -61,11 +62,22 @@ bool State::setEntriesForPath(const std::string& path) {
             .d_type = TT_DT_DIR,
             .d_name = DATA_PARTITION_NAME
         });
-        dir_entries.push_back({
-            .d_ino = 2,
-            .d_type = TT_DT_DIR,
-            .d_name = TT_SDCARD_MOUNT_NAME
-        });
+
+#ifndef TT_SCREENSHOT_MODE
+        auto sdcard = tt::hal::getConfiguration()->sdcard;
+        if (sdcard != nullptr) {
+            auto state = sdcard->getState();
+            if (state == hal::SdCard::State::Mounted) {
+#endif
+                dir_entries.push_back({
+                    .d_ino = 2,
+                    .d_type = TT_DT_DIR,
+                    .d_name = TT_SDCARD_MOUNT_NAME
+                });
+#ifndef TT_SCREENSHOT_MODE
+            }
+        }
+#endif
 
         current_path = path;
         selected_child_entry = "";
