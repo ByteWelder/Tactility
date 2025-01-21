@@ -14,22 +14,6 @@
 
 namespace tt::service::loader {
 
-
-// region LoaderEvent
-
-typedef enum {
-    LoaderEventTypeApplicationStarted,
-    LoaderEventTypeApplicationShowing,
-    LoaderEventTypeApplicationHiding,
-    LoaderEventTypeApplicationStopped
-} LoaderEventType;
-
-struct LoaderEvent {
-    LoaderEventType type;
-};
-
-// endregion LoaderEvent
-
 // region LoaderMessage
 
 class LoaderMessageAppStart {

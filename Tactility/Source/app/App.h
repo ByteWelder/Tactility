@@ -3,6 +3,7 @@
 #include "AppContext.h"
 #include "Bundle.h"
 #include <Mutex.h>
+#include <string>
 
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
@@ -74,5 +75,21 @@ public:
 
 template<typename T>
 std::shared_ptr<App> create() { return std::shared_ptr<T>(new T); }
+
+/**
+ * @brief Start an app
+ * @param[in] id application name or id
+ * @param[in] parameters optional parameters to pass onto the application
+ */
+void start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
+
+/** @brief Stop the currently showing app. Show the previous app if any app was still running. */
+void stop();
+
+/** @return the currently running app context (it is only ever null before the splash screen is shown) */
+std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
+
+/** @return the currently running app (it is only ever null before the splash screen is shown) */
+std::shared_ptr<app::App> _Nullable getCurrentApp();
 
 }

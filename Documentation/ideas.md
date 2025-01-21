@@ -42,7 +42,6 @@
 - Explore LVGL9's FreeRTOS functionality
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
-- tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
 - Support hot-plugging SD card
 
 # Nice-to-haves

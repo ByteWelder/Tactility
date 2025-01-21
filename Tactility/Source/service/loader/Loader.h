@@ -8,15 +8,27 @@
 
 namespace tt::service::loader {
 
-typedef struct Loader Loader;
+// region LoaderEvent for PubSub
 
+typedef enum {
+    LoaderEventTypeApplicationStarted,
+    LoaderEventTypeApplicationShowing,
+    LoaderEventTypeApplicationHiding,
+    LoaderEventTypeApplicationStopped
+} LoaderEventType;
+
+struct LoaderEvent {
+    LoaderEventType type;
+};
+
+// endregion LoaderEvent for PubSub
 
 /**
  * @brief Start an app
  * @param[in] id application name or id
  * @param[in] parameters optional parameters to pass onto the application
  */
-void startApp(const std::string& id, const std::shared_ptr<const Bundle>& _Nullable parameters = nullptr);
+void startApp(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
 
 /** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stopApp();
