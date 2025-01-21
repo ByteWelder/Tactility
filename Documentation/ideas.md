@@ -15,7 +15,6 @@
 - M5Stack Core only shows 4MB of SPIRAM in use
 - Try to improve Core2 and CoreS3 performance by setting swap_bytes of display driver to false (this is a software operation on the display buffer!) and use 24 bit colour mode if needed
 - Files app: When SD card is not mounted, don't show it
-- Crash log must mention board type
 - Oops crashlog site: Add copy-pasteable addr2line command (e.g. xtensa-esp32s3-elf-addr2line -pfiaC -e Tactility.elf 00000000)
 
 # TODOs
