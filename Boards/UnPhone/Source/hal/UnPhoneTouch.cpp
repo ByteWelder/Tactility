@@ -1,14 +1,17 @@
 #include "UnPhoneTouch.h"
 
-#include "esp_err.h"
 #include "Log.h"
-#include "esp_lvgl_port.h"
+#include "esp_err.h"
 #include "esp_lcd_touch_xpt2046.h"
+#include "esp_lvgl_port.h"
+#include "lvgl/LvglSync.h"
 
 #define TAG "unphone_touch"
 
 #define UNPHONE_TOUCH_X_MAX 320
 #define UNPHONE_TOUCH_Y_MAX 480
+
+UnPhoneTouch* UnPhoneTouch::instance = nullptr;
 
 bool UnPhoneTouch::start(lv_display_t* display) {
     const esp_lcd_panel_io_spi_config_t io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(GPIO_NUM_38);
@@ -57,10 +60,12 @@ bool UnPhoneTouch::start(lv_display_t* display) {
         return false;
     }
 
+    instance = this;
     return true;
 }
 
 bool UnPhoneTouch::stop() {
+    instance = nullptr;
     cleanup();
     return true;
 }
@@ -80,4 +85,16 @@ void UnPhoneTouch::cleanup() {
         esp_lcd_panel_io_del(ioHandle);
         ioHandle = nullptr;
     }
+}
+
+bool UnPhoneTouch::getVBat(float& outputVbat) {
+    if (touchHandle != nullptr) {
+        // Shares the SPI bus with the display, so we have to sync/lock as this method might be called from anywhere
+        if (tt::lvgl::lock(50 / portTICK_PERIOD_MS)) {
+            esp_lcd_touch_xpt2046_read_battery_level(touchHandle, &outputVbat);
+            tt::lvgl::unlock();
+            return true;
+        }
+    }
+    return false;
 }

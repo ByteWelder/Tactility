@@ -1,6 +1,7 @@
 #include "UnPhoneFeatures.h"
 #include "hal/Configuration.h"
 #include "hal/UnPhoneDisplay.h"
+#include "hal/UnPhonePower.h"
 #include "hal/UnPhoneSdCard.h"
 
 bool unPhoneInitPower();
@@ -16,6 +17,7 @@ extern const tt::hal::Configuration unPhone = {
     .initLvgl = unPhoneInitLvgl,
     .createDisplay = createDisplay,
     .sdcard = createUnPhoneSdCard(),
+    .power = unPhoneGetPower,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",

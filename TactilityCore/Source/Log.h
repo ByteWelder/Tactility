@@ -72,7 +72,7 @@ void log(LogLevel level, const char* tag, const char* format, ...);
     tt::log(tt::LogLevel::Info, tag, format, ##__VA_ARGS__)
 #define TT_LOG_D(tag, format, ...) \
     tt::log(tt::LogLevel::Debug, tag, format, ##__VA_ARGS__)
-#define TT_LOG_T(tag, format, ...) \
+#define TT_LOG_V(tag, format, ...) \
     tt::log(tt::LogLevel::Trace, tag, format, ##__VA_ARGS__)
 
 #endif // ESP_TARGET
