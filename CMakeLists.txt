@@ -8,6 +8,9 @@ set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
 include("Buildscripts/logo.cmake")
 
+file(READ version.txt TACTILITY_VERSION)
+add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
@@ -50,9 +53,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h")
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
-
-    file(READ version.txt TACTILITY_VERSION)
-    add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
 else()
     message("Building for sim target")
 endif()
