@@ -238,8 +238,14 @@ static void stopAppInternal() {
 
     loader_singleton->appStack.pop();
 
+    // We only expect the app to be referenced within the current scope
     if (app_to_stop.use_count() > 1) {
         TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().id.c_str(), app_to_stop.use_count() - 1);
+    }
+
+    // Refcount is expected to be 2: 1 within app_to_stop and 1 within the current scope
+    if (app_to_stop->getApp().use_count() > 2) {
+        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().id.c_str(), app_to_stop->getApp().use_count() - 2);
     }
 
 #ifdef ESP_PLATFORM
