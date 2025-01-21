@@ -103,9 +103,9 @@ static const char* appStateToString(app::State state) {
     }
 }
 
-static void transitionAppToState(app::AppInstance& app, app::State state) {
-    const app::AppManifest& manifest = app.getManifest();
-    const app::State old_state = app.getState();
+static void transitionAppToState(std::shared_ptr<app::AppInstance> app, app::State state) {
+    const app::AppManifest& manifest = app->getManifest();
+    const app::State old_state = app->getState();
 
     TT_LOG_I(
         TAG,
@@ -117,37 +117,28 @@ static void transitionAppToState(app::AppInstance& app, app::State state) {
 
     switch (state) {
         case app::StateInitial:
-            app.setState(app::StateInitial);
+            app->setState(app::StateInitial);
             break;
         case app::StateStarted:
-            app.getApp()->onStart(app);
-            app.setState(app::StateStarted);
+            app->getApp()->onStart(*app);
+            app->setState(app::StateStarted);
             break;
         case app::StateShowing: {
-            LoaderEvent event_showing = {
-                .type = LoaderEventTypeApplicationShowing,
-                .app_showing = {
-                    .app = app
-                }
-            };
+            LoaderEvent event_showing = { .type = LoaderEventTypeApplicationShowing };
             tt_pubsub_publish(loader_singleton->pubsubExternal, &event_showing);
-            app.setState(app::StateShowing);
+            app->setState(app::StateShowing);
             break;
         }
         case app::StateHiding: {
-            LoaderEvent event_hiding = {
-                .type = LoaderEventTypeApplicationHiding,
-                .app_hiding = {
-                    .app = app
-                }
-            };
+            LoaderEvent event_hiding = { .type = LoaderEventTypeApplicationHiding };
             tt_pubsub_publish(loader_singleton->pubsubExternal, &event_hiding);
-            app.setState(app::StateHiding);
+            app->setState(app::StateHiding);
             break;
         }
         case app::StateStopped:
-            app.getApp()->onStop(app);
-            app.setState(app::StateStopped);
+            // TODO: Verify manifest
+            app->getApp()->onStop(*app);
+            app->setState(app::StateStopped);
             break;
     }
 }
@@ -172,25 +163,17 @@ static LoaderStatus startAppWithManifestInternal(
     new_app->mutableFlags().showStatusbar = (manifest->type != app::Type::Boot);
 
     loader_singleton->appStack.push(new_app);
-    transitionAppToState(*new_app, app::StateInitial);
-    transitionAppToState(*new_app, app::StateStarted);
+    transitionAppToState(new_app, app::StateInitial);
+    transitionAppToState(new_app, app::StateStarted);
 
     // We might have to hide the previous app first
     if (previous_app != nullptr) {
-        transitionAppToState(*previous_app, app::StateHiding);
+        transitionAppToState(previous_app, app::StateHiding);
     }
 
-    transitionAppToState(*new_app, app::StateShowing);
+    transitionAppToState(new_app, app::StateShowing);
 
-    LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStarted};
-    tt_pubsub_publish(loader_singleton->pubsubInternal, &event_internal);
-
-    LoaderEvent event_external = {
-        .type = LoaderEventTypeApplicationStarted,
-        .app_started = {
-            .app = *new_app
-        }
-    };
+    LoaderEvent event_external = { .type = LoaderEventTypeApplicationStarted };
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
     return LoaderStatus::Ok;
@@ -250,9 +233,8 @@ static void stopAppInternal() {
         result_set = true;
     }
 
-    const app::AppManifest& manifest = app_to_stop->getManifest();
-    transitionAppToState(*app_to_stop, app::StateHiding);
-    transitionAppToState(*app_to_stop, app::StateStopped);
+    transitionAppToState(app_to_stop, app::StateHiding);
+    transitionAppToState(app_to_stop, app::StateStopped);
 
     loader_singleton->appStack.pop();
 
@@ -269,22 +251,14 @@ static void stopAppInternal() {
     if (!loader_singleton->appStack.empty()) {
         instance_to_resume = loader_singleton->appStack.top();
         tt_assert(instance_to_resume);
-        transitionAppToState(*instance_to_resume, app::StateShowing);
+        transitionAppToState(instance_to_resume, app::StateShowing);
     }
 
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
     scoped_lock->unlock();
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
 
-    LoaderEventInternal event_internal = {.type = LoaderEventTypeApplicationStopped};
-    tt_pubsub_publish(loader_singleton->pubsubInternal, &event_internal);
-
-    LoaderEvent event_external = {
-        .type = LoaderEventTypeApplicationStopped,
-        .app_stopped = {
-            .manifest = manifest
-        }
-    };
+    LoaderEvent event_external = { .type = LoaderEventTypeApplicationStopped };
     tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
 
     if (instance_to_resume != nullptr) {

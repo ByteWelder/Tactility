@@ -6,7 +6,6 @@
 #include "MessageQueue.h"
 #include "Pubsub.h"
 #include "Thread.h"
-#include "service/gui/ViewPort.h"
 #include "service/loader/Loader.h"
 #include "RtosCompatSemaphore.h"
 #include <stack>
@@ -25,31 +24,9 @@ typedef enum {
     LoaderEventTypeApplicationStopped
 } LoaderEventType;
 
-typedef struct {
-    app::AppInstance& app;
-} LoaderEventAppStarted;
-
-typedef struct {
-    app::AppInstance& app;
-} LoaderEventAppShowing;
-
-typedef struct {
-    app::AppInstance& app;
-} LoaderEventAppHiding;
-
-typedef struct {
-    const app::AppManifest& manifest;
-} LoaderEventAppStopped;
-
-typedef struct {
+struct LoaderEvent {
     LoaderEventType type;
-    union {
-        LoaderEventAppStarted app_started;
-        LoaderEventAppShowing app_showing;
-        LoaderEventAppHiding app_hiding;
-        LoaderEventAppStopped app_stopped;
-    };
-} LoaderEvent;
+};
 
 // endregion LoaderEvent
 
@@ -77,7 +54,6 @@ public:
 // endregion LoaderMessage
 
 struct Loader {
-    std::shared_ptr<PubSub> pubsubInternal = std::make_shared<PubSub>();
     std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::stack<std::shared_ptr<app::AppInstance>> appStack;

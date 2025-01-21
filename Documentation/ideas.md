@@ -9,9 +9,7 @@
   - Add statusbar icon for memory pressure.
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
-- M5Stack CoreS3 SD card mounts, but cannot be read. There is currently a notice about it [here](https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/README.md).
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- Consistently use either ESP_TARGET or ESP_PLATFORM
 - tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
@@ -21,24 +19,23 @@
 - Oops crashlog site: Add copy-pasteable addr2line command (e.g. xtensa-esp32s3-elf-addr2line -pfiaC -e Tactility.elf 00000000)
 
 # TODOs
-- Give external app a different icon
+- Experiment with what happens when using C++ code in an external app (without using standard library!)
+- Get rid of "ESP_TARGET" and use official "ESP_PLATFORM"
+- SpiSdCard should use SDMMC_FREQ_DEFAULT by default
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
-- We currently make all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
+- We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
   Projects will load and compile faster as it won't compile all the dependencies of all these other boards
 - Make a ledger for setting CPU affinity of various services and tasks
-- Make "blocking" argument the last one, and put it default to false (or remove it entirely?): void startApp(const std::string& id, bool blocking, std::shared_ptr<const Bundle> parameters) {
 - Boot hooks instead of a single boot method in config. Define different boot phases/levels in enum.
 - Add toggle to Display app for sysmon overlay: https://docs.lvgl.io/master/API/others/sysmon/index.html
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
 - Call tt::lvgl::isSyncSet after HAL init and show error (and crash?) when it is not set.
 - Create different partitions files for different ESP flash size targets (N4, N8, N16, N32)
-- Attach ELF data to wrapper app (as app data) (check that app state is "running"!) so you can run more than 1 external apps at a time.
-  We'll need to keep track of all manifest instances, so that the wrapper can look up the relevant manifest for the relevant callbacks.
 - T-Deck: Clear screen before turning on blacklight
-- T-Deck: Use knob for UI selection
+- T-Deck: Use knob for UI selection?
 - Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
-- AppContext's onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
+- App::onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
 - Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
@@ -50,6 +47,8 @@
 - Support hot-plugging SD card
 
 # Nice-to-haves
+- CoreS3 has a hardware issue that prevents mounting SD cards while using the display too: allow USB Mass Storage to use `/data` instead? Perhaps give the USB settings app a drop down to select the root filesystem to attach.
+- Give external app a different icon. Allow an external app update their id, icon, type and name once they are running(, and persist that info?). Loader will need to be able to find app by (external) location.
 - Audio player app
 - Audio recording app
 - OTA updates
@@ -66,6 +65,8 @@
 - On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
  
 # App Ideas
+- Weather app: https://lab.flipper.net/apps/flip_weather
+- wget app: https://lab.flipper.net/apps/web_crawler (add profiles for known public APIs?)
 - USB implementation to make device act as mass storage device.
 - System logger
 - BlueTooth keyboard app

@@ -19,7 +19,7 @@ Gui* gui = nullptr;
 void onLoaderMessage(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const loader::LoaderEvent*>(message);
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
-        auto& app_instance = event->app_showing.app;
+        auto app_instance = service::loader::getCurrentAppContext();
         showApp(app_instance);
     } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
         hideApp();
@@ -93,27 +93,25 @@ void requestDraw() {
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void showApp(app::AppInstance& app) {
+void showApp(std::shared_ptr<app::AppContext> app) {
     lock();
-    tt_check(gui->appViewPort == nullptr);
-    gui->appViewPort = view_port_alloc(app);
+    tt_check(gui->appToRender == nullptr);
+    gui->appToRender = std::move(app);
     unlock();
     requestDraw();
 }
 
 void hideApp() {
     lock();
-    ViewPort* view_port = gui->appViewPort;
-    tt_check(view_port != nullptr);
+    tt_check(gui->appToRender != nullptr);
 
     // We must lock the LVGL port, because the viewport hide callbacks
     // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
     tt_check(lvgl::lock(configTICK_RATE_HZ));
-    view_port_hide(view_port);
+    gui->appToRender->getApp()->onHide(*gui->appToRender);
     lvgl::unlock();
 
-    view_port_free(view_port);
-    gui->appViewPort = nullptr;
+    gui->appToRender = nullptr;
     unlock();
 }
 

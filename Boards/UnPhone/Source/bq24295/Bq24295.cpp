@@ -3,12 +3,15 @@
 
 #define TAG "bq24295"
 
-/** Reference: https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads */
+/** Reference:
+ * https://www.ti.com/lit/ds/symlink/bq24295.pdf
+ * https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads
+ */
 namespace registers {
-    static const uint8_t WATCHDOG = 0x05U; // Charge end/timer cntrl
-    static const uint8_t OPERATION_CONTROL = 0x07U; // Misc operation control
-    static const uint8_t STATUS = 0x08U; // System status
-    static const uint8_t VERSION = 0x0AU; // Vendor/part/revision status
+    static const uint8_t WATCHDOG = 0x05U; // Datasheet page 35: Charge end/timer cntrl
+    static const uint8_t OPERATION_CONTROL = 0x07U; // Datasheet page 37: Misc operation control
+    static const uint8_t STATUS = 0x08U; // Datasheet page 38: System status
+    static const uint8_t VERSION = 0x0AU; // Datasheet page 38: Vendor/part/revision status
 } // namespace registers
 
 // region Watchdog

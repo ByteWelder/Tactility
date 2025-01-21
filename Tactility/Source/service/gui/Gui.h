@@ -1,7 +1,7 @@
 #pragma once
 
+#include "app/AppInstance.h"
 #include "app/AppContext.h"
-#include "ViewPort.h"
 
 namespace tt::service::gui {
 
@@ -10,10 +10,8 @@ typedef struct Gui Gui;
 /**
  * Set the app viewport in the gui state and request the gui to draw it.
  * @param[in] app
- * @param[in] onShow
- * @param[in] onHide
  */
-void showApp(app::AppInstance& app);
+void showApp(std::shared_ptr<app::AppContext> app);
 
 /**
  * Hide the current app's viewport.
