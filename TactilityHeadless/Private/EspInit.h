@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 namespace tt {
 
@@ -8,4 +8,4 @@ void initEsp();
 
 } // namespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

@@ -12,9 +12,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
-    add_definitions(-DESP_TARGET)
-    add_compile_definitions(ESP_TARGET)
-
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
         "Boards"

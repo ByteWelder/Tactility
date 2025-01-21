@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 namespace tt::app::crashdiagnostics {
 
