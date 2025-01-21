@@ -18,7 +18,6 @@
 
 # TODOs
 - Experiment with what happens when using C++ code in an external app (without using standard library!)
-- SpiSdCard should use SDMMC_FREQ_DEFAULT by default
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
 - We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
   Projects will load and compile faster as it won't compile all the dependencies of all these other boards
