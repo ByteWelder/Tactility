@@ -31,7 +31,7 @@ TT_NORETURN void _crash() {
     logTaskInfo();
     logMemoryInfo();
     // TODO: Add breakpoint when debugger is attached.
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
     esp_system_abort("System halted. Connect debugger for more info.");
 #endif
     __builtin_unreachable();

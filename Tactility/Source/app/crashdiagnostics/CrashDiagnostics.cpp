@@ -1,4 +1,4 @@
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "app/crashdiagnostics/QrHelpers.h"
 #include "app/crashdiagnostics/QrUrl.h"

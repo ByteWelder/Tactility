@@ -5,7 +5,6 @@
 
 #include <esp_vfs_fat.h>
 
-#define UNPHONE_SDCARD_SPI_FREQUENCY 20000000U
 #define UNPHONE_SDCARD_PIN_CS GPIO_NUM_43
 #define UNPHONE_LCD_PIN_CS GPIO_NUM_48
 #define UNPHONE_LORA_PIN_CS GPIO_NUM_44
@@ -13,7 +12,6 @@
 
 std::shared_ptr<SdCard> createUnPhoneSdCard() {
     auto* configuration = new tt::hal::SpiSdCard::Config(
-        UNPHONE_SDCARD_SPI_FREQUENCY,
         UNPHONE_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,

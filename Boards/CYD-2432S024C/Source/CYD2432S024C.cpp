@@ -1,11 +1,11 @@
-#include "YellowBoard.h"
+#include "CYD2432S024C.h"
 #include "hal/YellowDisplay.h"
 #include "hal/YellowSdCard.h"
 
 bool twodotfour_lvgl_init();
 bool twodotfour_boot();
 
-const tt::hal::Configuration yellow_board_24inch_cap = {
+const tt::hal::Configuration cyd_2432S024c_config = {
     .initBoot = &twodotfour_boot,
     .initLvgl = &twodotfour_lvgl_init,
     .createDisplay = createDisplay,

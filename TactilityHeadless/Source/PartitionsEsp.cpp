@@ -1,4 +1,4 @@
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "EspPartitions_i.h"
 #include "Log.h"
@@ -51,4 +51,4 @@ esp_err_t initPartitionsEsp() {
 
 } // namespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

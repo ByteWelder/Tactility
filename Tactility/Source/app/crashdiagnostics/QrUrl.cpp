@@ -1,4 +1,4 @@
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "app/crashdiagnostics/QrUrl.h"
 
@@ -7,6 +7,8 @@
 
 #include <sstream>
 #include <esp_cpu_utils.h>
+
+#include <sdkconfig.h>
 
 std::string getUrlFromCrashData() {
     auto crash_data = getRtcCrashData();
@@ -28,6 +30,7 @@ std::string getUrlFromCrashData() {
     stream << "https://oops.tactility.one";
     stream << "?v=" << TT_VERSION; // Version
     stream << "&a=" << CONFIG_IDF_TARGET; // Architecture
+    stream << "&b=" << CONFIG_TT_BOARD_ID; // Board identifier
     stream << "&s="; // Stacktrace
 
     for (int i = crash_data.callstackLength - 1; i >= 0; --i) {

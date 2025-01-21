@@ -11,7 +11,7 @@ jobs:
       - name: "Build"
         uses: ./.github/actions/build-sdk
         with:
-          board_id: yellow-board
+          board_id: cyd-2432S024c
           arch: esp32
   esp32s3:
     runs-on: ubuntu-latest

@@ -6,8 +6,6 @@ endfunction()
 
 macro(tactility_project project_name)
     set(TACTILITY_SKIP_SPIFFS 1)
-    add_definitions(-DESP_TARGET)
-    add_compile_definitions(ESP_TARGET)
 
     include("${TACTILITY_SDK_PATH}/Libraries/elf_loader/elf_loader.cmake")
     project_elf($project_name)

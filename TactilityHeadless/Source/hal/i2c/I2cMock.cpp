@@ -1,4 +1,4 @@
-#ifndef ESP_TARGET
+#ifndef ESP_PLATFORM
 
 /**
  * This code is based on i2c_manager from https://github.com/ropg/i2c_manager/blob/master/i2c_manager/i2c_manager.c (original has MIT license)

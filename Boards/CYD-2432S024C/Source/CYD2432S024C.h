@@ -3,4 +3,4 @@
 #include "hal/Configuration.h"
 
 // Capacitive touch version of the 2.4" yellow board
-extern const tt::hal::Configuration yellow_board_24inch_cap;
+extern const tt::hal::Configuration cyd_2432S024c_config;

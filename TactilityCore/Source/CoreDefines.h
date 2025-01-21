@@ -22,7 +22,7 @@
 #define TT_ALIGN(n) __attribute__((aligned(n)))
 
 // Used by portENABLE_INTERRUPTS and portDISABLE_INTERRUPTS?
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 #define TT_IS_IRQ_MODE() (xPortInIsrContext() == pdTRUE)
 #else
 #define TT_IS_IRQ_MODE() false

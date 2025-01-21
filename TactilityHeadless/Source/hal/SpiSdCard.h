@@ -19,7 +19,6 @@ class SpiSdCard : public tt::hal::SdCard {
 public:
     struct Config {
         Config(
-            int spiFrequency,
             gpio_num_t spiPinCs,
             gpio_num_t spiPinCd,
             gpio_num_t spiPinWp,
@@ -27,8 +26,9 @@ public:
             MountBehaviour mountBehaviourAtBoot,
             std::shared_ptr<Lockable> lockable = nullptr,
             std::vector<gpio_num_t> csPinWorkAround = std::vector<gpio_num_t>(),
-            spi_host_device_t spiHost = SPI2_HOST
-        ) : spiFrequency(spiFrequency),
+            spi_host_device_t spiHost = SPI2_HOST,
+            int spiFrequencyKhz = SDMMC_FREQ_DEFAULT
+        ) : spiFrequencyKhz(spiFrequencyKhz),
             spiPinCs(spiPinCs),
             spiPinCd(spiPinCd),
             spiPinWp(spiPinWp),
@@ -39,7 +39,7 @@ public:
             spiHost(spiHost)
         {}
 
-        int spiFrequency;
+        int spiFrequencyKhz;
         gpio_num_t spiPinCs; // Clock
         gpio_num_t spiPinCd; // Card detect
         gpio_num_t spiPinWp; // Write-protect

@@ -38,6 +38,7 @@ static void register_and_start_system_services() {
 }
 
 void initHeadless(const hal::Configuration& config) {
+    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_BOARD_NAME, CONFIG_TT_BOARD_ID);
 #ifdef ESP_PLATFORM
     initEsp();
 #endif

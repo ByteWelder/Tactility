@@ -141,7 +141,7 @@ static void register_and_start_user_services(const std::vector<const service::Se
 }
 
 void run(const Configuration& config) {
-    TT_LOG_I(TAG, "init started");
+    TT_LOG_D(TAG, "run");
 
     tt_assert(config.hardware);
     const hal::Configuration& hardware = *config.hardware;

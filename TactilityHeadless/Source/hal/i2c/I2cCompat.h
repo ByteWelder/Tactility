@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 #include <hal/i2c_types.h>
 #include <driver/i2c.h>
 #else

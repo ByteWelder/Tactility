@@ -49,10 +49,10 @@ static void loader_free() {
     loader_singleton = nullptr;
 }
 
-void startApp(const std::string& id, const std::shared_ptr<const Bundle>& parameters) {
+void startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     tt_assert(loader_singleton);
-    auto message = std::make_shared<LoaderMessageAppStart>(id, parameters);
+    auto message = std::make_shared<LoaderMessageAppStart>(id, std::move(parameters));
     loader_singleton->dispatcherThread->dispatch(onStartAppMessage, message);
 }
 

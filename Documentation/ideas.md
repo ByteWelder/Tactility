@@ -10,18 +10,12 @@
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
-- Try to improve Core2 and CoreS3 performance by setting swap_bytes of display driver to false (this is a software operation on the display buffer!) and use 24 bit colour mode if needed
-- Files app: When SD card is not mounted, don't show it
-- Crash log must mention board type
 - Oops crashlog site: Add copy-pasteable addr2line command (e.g. xtensa-esp32s3-elf-addr2line -pfiaC -e Tactility.elf 00000000)
 
 # TODOs
 - Experiment with what happens when using C++ code in an external app (without using standard library!)
-- Get rid of "ESP_TARGET" and use official "ESP_PLATFORM"
-- SpiSdCard should use SDMMC_FREQ_DEFAULT by default
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
 - We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
   Projects will load and compile faster as it won't compile all the dependencies of all these other boards
@@ -43,7 +37,6 @@
 - Explore LVGL9's FreeRTOS functionality
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
-- tt::app::start() and similar functions as proxies for Loader app start/stop/etc.
 - Support hot-plugging SD card
 
 # Nice-to-haves

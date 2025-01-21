@@ -7,11 +7,9 @@
 
 #define SDCARD_SPI_HOST SPI3_HOST
 #define SDCARD_PIN_CS GPIO_NUM_5
-#define SDCARD_SPI_FREQUENCY 20000000U
 
 std::shared_ptr<SdCard> createYellowSdCard() {
     auto* configuration = new tt::hal::SpiSdCard::Config(
-        SDCARD_SPI_FREQUENCY,
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,

@@ -8,12 +8,12 @@ set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
 include("Buildscripts/logo.cmake")
 
+file(READ version.txt TACTILITY_VERSION)
+add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-
-    add_definitions(-DESP_TARGET)
-    add_compile_definitions(ESP_TARGET)
 
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
@@ -34,7 +34,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     # Non-ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "YellowBoard")
+        set(EXCLUDE_COMPONENTS "CYD-2432S024C")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
     endif()
 
@@ -53,11 +53,10 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h")
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
-
-    file(READ version.txt TACTILITY_VERSION)
-    add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
 else()
     message("Building for sim target")
+    add_compile_definitions(CONFIG_TT_BOARD_ID="simulator")
+    add_compile_definitions(CONFIG_TT_BOARD_NAME="Simulator")
 endif()
 
 project(Tactility)

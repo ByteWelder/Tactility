@@ -1,4 +1,4 @@
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "WifiGlobals.h"
 #include "WifiSettings.h"
@@ -144,4 +144,4 @@ bool remove(const char* ssid) {
 
 } // nemespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

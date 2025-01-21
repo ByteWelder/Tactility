@@ -1,6 +1,6 @@
 #include "Wifi.h"
 
-#ifndef ESP_TARGET
+#ifndef ESP_PLATFORM
 
 #include "Check.h"
 #include "Log.h"
@@ -160,4 +160,4 @@ extern const ServiceManifest manifest = {
 
 } // namespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

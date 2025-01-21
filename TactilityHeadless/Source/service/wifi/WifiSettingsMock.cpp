@@ -1,4 +1,4 @@
-#ifndef ESP_TARGET
+#ifndef ESP_PLATFORM
 
 #include "WifiSettings.h"
 #include "Log.h"
@@ -25,4 +25,4 @@ bool remove(const char* ssid) {
 
 } // namespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

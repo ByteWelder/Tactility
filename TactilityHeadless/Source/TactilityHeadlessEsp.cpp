@@ -1,4 +1,4 @@
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "TactilityCore.h"
 #include "EspPartitions_i.h"

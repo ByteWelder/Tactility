@@ -2,7 +2,7 @@
 
 #include "LogMessages.h"
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 #include <esp_log.h>
 #else
 #include <cstdarg>
@@ -43,7 +43,7 @@ LogEntry* copyLogEntries(unsigned int& outIndex);
 } // namespace tt
 
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #define TT_LOG_E(tag, format, ...) \
     ESP_LOGE(tag, format, ##__VA_ARGS__)
@@ -75,4 +75,4 @@ void log(LogLevel level, const char* tag, const char* format, ...);
 #define TT_LOG_V(tag, format, ...) \
     tt::log(tt::LogLevel::Trace, tag, format, ##__VA_ARGS__)
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM

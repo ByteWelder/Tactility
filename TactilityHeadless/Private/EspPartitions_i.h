@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef ESP_TARGET
+#ifdef ESP_PLATFORM
 
 #include "esp_err.h"
 
@@ -10,4 +10,4 @@ esp_err_t initPartitionsEsp();
 
 } // namespace
 
-#endif // ESP_TARGET
+#endif // ESP_PLATFORM
