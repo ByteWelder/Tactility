@@ -55,6 +55,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
 else()
     message("Building for sim target")
+    add_compile_definitions(CONFIG_TT_BOARD_ID="simulator")
+    add_compile_definitions(CONFIG_TT_BOARD_NAME="Simulator")
 endif()
 
 project(Tactility)
