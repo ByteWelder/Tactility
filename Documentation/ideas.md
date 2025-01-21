@@ -10,7 +10,6 @@
   - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
 - Clean up static_cast when casting to base class.
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- tt_check() failure during app argument bundle nullptr check seems to trigger SIGSEGV
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
 - Try to improve Core2 and CoreS3 performance by setting swap_bytes of display driver to false (this is a software operation on the display buffer!) and use 24 bit colour mode if needed
