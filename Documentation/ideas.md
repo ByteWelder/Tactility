@@ -12,7 +12,6 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
-- Try to improve Core2 and CoreS3 performance by setting swap_bytes of display driver to false (this is a software operation on the display buffer!) and use 24 bit colour mode if needed
 - Oops crashlog site: Add copy-pasteable addr2line command (e.g. xtensa-esp32s3-elf-addr2line -pfiaC -e Tactility.elf 00000000)
 
 # TODOs
