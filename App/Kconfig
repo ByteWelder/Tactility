@@ -11,7 +11,7 @@ menu "Tactility App"
         default TT_BOARD_CUSTOM
         config TT_BOARD_CUSTOM
             bool "Custom"
-        config TT_BOARD_YELLOW_BOARD_24_CAP
+        config TT_BOARD_CYD_2432S024C
             bool "CYD 2432S024C"
         config TT_BOARD_LILYGO_TDECK
             bool "LilyGo T-Deck"

@@ -4,14 +4,14 @@ on: [push]
 permissions: read-all
 
 jobs:
-  yellow-board:
+  cyd-2432S024c:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:
-          board_id: yellow-board
+          board_id: cyd-2432S024c
           arch: esp32
   lilygo-tdeck:
     runs-on: ubuntu-latest

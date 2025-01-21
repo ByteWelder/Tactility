@@ -7,7 +7,7 @@
 #if defined(CONFIG_TT_BOARD_LILYGO_TDECK)
 #include "LilygoTdeck.h"
 #define TT_BOARD_HARDWARE &lilygo_tdeck
-#elif defined(CONFIG_TT_BOARD_YELLOW_BOARD_24_CAP)
+#elif defined(CONFIG_TT_BOARD_CYD_2432S024C)
 #include "YellowBoard.h"
 #define TT_BOARD_HARDWARE &yellow_board_24inch_cap
 #elif defined(CONFIG_TT_BOARD_M5STACK_CORE2)
