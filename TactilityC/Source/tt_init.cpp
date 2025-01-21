@@ -22,8 +22,7 @@ extern "C" {
 
 const struct esp_elfsym elf_symbols[] {
     // Tactility
-    ESP_ELFSYM_EXPORT(tt_app_context_get_data),
-    ESP_ELFSYM_EXPORT(tt_app_context_set_data),
+    ESP_ELFSYM_EXPORT(tt_app_register),
     ESP_ELFSYM_EXPORT(tt_app_context_get_parameters),
     ESP_ELFSYM_EXPORT(tt_app_context_set_result),
     ESP_ELFSYM_EXPORT(tt_app_context_has_result),
@@ -39,7 +38,6 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
-    ESP_ELFSYM_EXPORT(tt_set_app_manifest),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_is_started),

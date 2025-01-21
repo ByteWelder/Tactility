@@ -1,9 +1,10 @@
 #pragma once
 
-#include "app/AppContext.h"
-#include "app/AppManifest.h"
 #include "Bundle.h"
 #include "Mutex.h"
+#include "app/AppContext.h"
+#include "app/AppManifest.h"
+#include "app/ElfApp.h"
 #include <memory>
 #include <utility>
 
@@ -17,19 +18,6 @@ typedef enum {
     StateStopped  // App is not in memory
 } State;
 
-struct ResultHolder {
-    Result result;
-    std::shared_ptr<const Bundle> resultData;
-
-    explicit ResultHolder(Result result) : result(result), resultData(nullptr) {}
-
-    ResultHolder(Result result, std::shared_ptr<const Bundle> resultData) :
-        result(result),
-        resultData(std::move(resultData))
-    {}
-
-};
-
 /**
  * Thread-safe app instance.
  */
@@ -38,7 +26,7 @@ class AppInstance : public AppContext {
 private:
 
     Mutex mutex = Mutex(Mutex::Type::Normal);
-    const AppManifest& manifest;
+    const std::shared_ptr<AppManifest> manifest;
     State state = StateInitial;
     Flags flags = { .showStatusbar = true };
     /** @brief Optional parameters to start the app with
@@ -52,16 +40,40 @@ private:
      * These manifest methods can optionally allocate/free data that is attached here.
      */
     std::shared_ptr<void> _Nullable data;
-    std::unique_ptr<ResultHolder> _Nullable resultHolder;
+
+    std::shared_ptr<App> app;
+
+    static std::shared_ptr<app::App> createApp(
+        const std::shared_ptr<app::AppManifest>& manifest
+    ) {
+        if (manifest->location.isInternal()) {
+            tt_assert(manifest->createApp != nullptr);
+            return manifest->createApp();
+        } else if (manifest->location.isExternal()) {
+            if (manifest->createApp != nullptr) {
+                TT_LOG_W("", "Manifest specifies createApp, but this is not used with external apps");
+            }
+#ifdef ESP_PLATFORM
+            return app::createElfApp(manifest);
+#else
+            tt_crash("not supported");
+#endif
+        } else {
+            tt_crash("not implemented");
+        }
+    }
 
 public:
 
-    explicit AppInstance(const AppManifest& manifest) :
-        manifest(manifest) {}
-
-    AppInstance(const AppManifest& manifest, std::shared_ptr<const Bundle> parameters) :
+    explicit AppInstance(const std::shared_ptr<AppManifest>& manifest) :
         manifest(manifest),
-        parameters(std::move(parameters)) {}
+        app(createApp(manifest))
+    {}
+
+    AppInstance(const std::shared_ptr<AppManifest>& manifest, std::shared_ptr<const Bundle> parameters) :
+        manifest(manifest),
+        parameters(std::move(parameters)),
+        app(createApp(manifest)) {}
 
     ~AppInstance() override = default;
 
@@ -70,22 +82,15 @@ public:
 
     const AppManifest& getManifest() const override;
 
-    Flags getFlags() const override;
+    Flags getFlags() const;
     void setFlags(Flags flags);
     Flags& mutableFlags() { return flags; } // TODO: locking mechanism
 
-    std::shared_ptr<void> _Nullable getData() const override;
-    void setData(std::shared_ptr<void> data) override;
-
     std::shared_ptr<const Bundle> getParameters() const override;
-
-    void setResult(Result result) override;
-    void setResult(Result result, std::shared_ptr<const Bundle> bundle) override;
-    bool hasResult() const override;
 
     std::unique_ptr<Paths> getPaths() const override;
 
-    std::unique_ptr<ResultHolder>& getResult() { return resultHolder; }
+    std::shared_ptr<App> getApp() const override { return app; }
 };
 
 } // namespace

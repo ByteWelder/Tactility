@@ -32,10 +32,6 @@ int32_t getResultIndex(const Bundle& bundle) {
     return index;
 }
 
-void setResultIndex(std::shared_ptr<Bundle> bundle, int32_t index) {
-    bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, index);
-}
-
 static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
     std::string result;
     if (bundle->optString(PARAMETER_BUNDLE_KEY_TITLE, result)) {
@@ -45,64 +41,77 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
     }
 }
 
-static void onListItemSelected(lv_event_t* e) {
-    size_t index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-    TT_LOG_I(TAG, "Selected item at index %d", index);
-    tt::app::AppContext* app = service::loader::getCurrentApp();
-    auto bundle = std::make_shared<Bundle>();
-    setResultIndex(bundle, (int32_t)index);
-    app->setResult(app::ResultOk, bundle);
-    service::loader::stopApp();
-}
+class SelectionDialogApp : public App {
 
-static void createChoiceItem(void* parent, const std::string& title, size_t index) {
-    auto* list = static_cast<lv_obj_t*>(parent);
-    lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
-    lv_obj_add_event_cb(btn, &onListItemSelected, LV_EVENT_SHORT_CLICKED, (void*)index);
-}
+private:
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    std::string title = getTitleParameter(app.getParameters());
-    lvgl::toolbar_create(parent, title);
+    static void onListItemSelectedCallback(lv_event_t* e) {
+        auto appContext = service::loader::getCurrentAppContext();
+        tt_assert(appContext != nullptr);
+        auto app = std::static_pointer_cast<SelectionDialogApp>(appContext->getApp());
+        app->onListItemSelected(e);
+    }
 
-    lv_obj_t* list = lv_list_create(parent);
-    lv_obj_set_width(list, LV_PCT(100));
-    lv_obj_set_flex_grow(list, 1);
-
-    auto parameters = app.getParameters();
-    tt_check(parameters != nullptr, "Parameters missing");
-    std::string items_concatenated;
-    if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
-        std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
-        if (items.empty() || items.front().empty()) {
-            TT_LOG_E(TAG, "No items provided");
-            app.setResult(ResultError);
-            service::loader::stopApp();
-        } else if (items.size() == 1) {
-            auto result_bundle = std::make_shared<Bundle>();
-            setResultIndex(result_bundle, 0);
-            app.setResult(ResultOk, result_bundle);
-            service::loader::stopApp();
-            TT_LOG_W(TAG, "Auto-selecting single item");
-        } else {
-            size_t index = 0;
-            for (const auto& item: items) {
-                createChoiceItem(list, item, index++);
-            }
-        }
-    } else {
-        TT_LOG_E(TAG, "No items provided");
-        app.setResult(ResultError);
+    void onListItemSelected(lv_event_t* e) {
+        size_t index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
+        TT_LOG_I(TAG, "Selected item at index %d", index);
+        auto bundle = std::make_unique<Bundle>();
+        bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);
+        setResult(app::Result::Ok, std::move(bundle));
         service::loader::stopApp();
     }
-}
+
+    static void createChoiceItem(void* parent, const std::string& title, size_t index) {
+        auto* list = static_cast<lv_obj_t*>(parent);
+        lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
+        lv_obj_add_event_cb(btn, onListItemSelectedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
+    }
+
+public:
+
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        std::string title = getTitleParameter(app.getParameters());
+        lvgl::toolbar_create(parent, title);
+
+        lv_obj_t* list = lv_list_create(parent);
+        lv_obj_set_width(list, LV_PCT(100));
+        lv_obj_set_flex_grow(list, 1);
+
+        auto parameters = app.getParameters();
+        tt_check(parameters != nullptr, "Parameters missing");
+        std::string items_concatenated;
+        if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
+            std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
+            if (items.empty() || items.front().empty()) {
+                TT_LOG_E(TAG, "No items provided");
+                setResult(Result::Error);
+                service::loader::stopApp();
+            } else if (items.size() == 1) {
+                auto result_bundle = std::make_unique<Bundle>();
+                result_bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, 0);
+                setResult(Result::Ok, std::move(result_bundle));
+                service::loader::stopApp();
+                TT_LOG_W(TAG, "Auto-selecting single item");
+            } else {
+                size_t index = 0;
+                for (const auto& item: items) {
+                    createChoiceItem(list, item, index++);
+                }
+            }
+        } else {
+            TT_LOG_E(TAG, "No items provided");
+            setResult(Result::Error);
+            service::loader::stopApp();
+        }
+    }
+};
 
 extern const AppManifest manifest = {
-     .id = "SelectionDialog",
-     .name = "Selection Dialog",
-     .type = TypeHidden,
-     .onShow = onShow
+    .id = "SelectionDialog",
+    .name = "Selection Dialog",
+    .type = Type::Hidden,
+    .createApp = create<SelectionDialogApp>
 };
 
 }

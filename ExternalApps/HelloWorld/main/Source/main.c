@@ -5,7 +5,7 @@
  * Note: LVGL and Tactility methods need to be exposed manually from TactilityC/Source/tt_init.cpp
  * Only C is supported for now (C++ symbols fail to link)
  */
-static void onShow(AppContextHandle context, lv_obj_t* parent) {
+static void onShow(AppContextHandle context, void* data, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt_lvgl_toolbar_create(parent, context);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -14,15 +14,12 @@ static void onShow(AppContextHandle context, lv_obj_t* parent) {
     lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
 }
 
+ExternalAppManifest manifest = {
+    .name = "Hello World",
+    .onShow = onShow
+};
+
 int main(int argc, char* argv[]) {
-    tt_set_app_manifest(
-        "Hello World",
-        NULL,
-        NULL,
-        NULL,
-        onShow,
-        NULL,
-        NULL
-    );
+    tt_app_register(&manifest);
     return 0;
 }

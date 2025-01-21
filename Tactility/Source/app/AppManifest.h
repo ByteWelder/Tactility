@@ -1,44 +1,63 @@
 #pragma once
 
-#include <string>
-#include <Bundle.h>
 #include "CoreDefines.h"
+#include "ManifestRegistry.h"
+#include <Bundle.h>
+#include <string>
 
 // Forward declarations
 typedef struct _lv_obj_t lv_obj_t;
 
 namespace tt::app {
 
+class App;
 class AppContext;
 
 /** Application types */
-enum Type {
+enum class Type {
     /** Boot screen, shown before desktop is launched. */
-    TypeBoot,
+    Boot,
     /** A launcher app sits at the root of the app stack after the boot splash is finished */
-    TypeLauncher,
+    Launcher,
     /** Apps that generally aren't started from the desktop (e.g. image viewer) */
-    TypeHidden,
+    Hidden,
     /** Standard apps, provided by the system. */
-    TypeSystem,
+    System,
     /** The apps that are launched/shown by the Settings app. The Settings app itself is of type AppTypeSystem. */
-    TypeSettings,
+    Settings,
     /** User-provided apps. */
-    TypeUser
+    User
 };
 
 /** Result status code for application result callback. */
-typedef enum {
-    ResultOk,
-    ResultCancelled,
-    ResultError
-} Result;
+enum class Result {
+    Ok = 0U,
+    Cancelled = 1U,
+    Error = 2U
+};
 
-typedef void (*AppOnStart)(AppContext& app);
-typedef void (*AppOnStop)(AppContext& app);
-typedef void (*AppOnShow)(AppContext& app, lv_obj_t* parent);
-typedef void (*AppOnHide)(AppContext& app);
-typedef void (*AppOnResult)(AppContext& app, Result result, const Bundle& resultData);
+class Location {
+
+private:
+
+    std::string path;
+    Location() = default;
+    explicit Location(const std::string& path) : path(path) {}
+
+public:
+
+    static Location internal() { return {}; }
+
+    static Location external(const std::string& path) {
+        return Location(path);
+    }
+
+    bool isInternal() const { return path.empty(); }
+    bool isExternal() const { return !path.empty(); }
+    const std::string& getPath() const { return path; }
+};
+
+typedef std::shared_ptr<App>(*CreateApp)();
 
 struct AppManifest {
     /** The identifier by which the app is launched by the system and other apps. */
@@ -51,26 +70,17 @@ struct AppManifest {
     std::string icon = {};
 
     /** App type affects launch behaviour. */
-    Type type = TypeUser;
+    Type type = Type::User;
 
-    /** Non-blocking method to call when app is started. */
-    AppOnStart onStart = nullptr;
+    /** Where the app is located */
+    Location location = Location::internal();
 
-    /** Non-blocking method to call when app is stopped. */
-    AppOnStop _Nullable onStop = nullptr;
-
-    /** Non-blocking method to create the GUI. */
-    AppOnShow _Nullable onShow = nullptr;
-
-    /** Non-blocking method, called before gui is destroyed. */
-    AppOnHide _Nullable onHide = nullptr;
-
-    /** Handle the result for apps that are launched. */
-    AppOnResult _Nullable onResult = nullptr;
+    /** Create the instance of the app */
+    CreateApp createApp = nullptr;
 };
 
 struct {
-    bool operator()(const AppManifest* left, const AppManifest* right) const { return left->name < right->name; }
+    bool operator()(const std::shared_ptr<AppManifest>& left, const std::shared_ptr<AppManifest>& right) const { return left->name < right->name; }
 } SortAppManifestByName;
 
 } // namespace

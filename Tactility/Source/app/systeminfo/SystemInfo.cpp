@@ -108,57 +108,58 @@ static void addRtosTasks(lv_obj_t* parent) {
 
 #endif
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create(parent, app);
+class SystemInfoApp : public App {
 
-    // This wrapper automatically has its children added vertically underneath eachother
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lvgl::toolbar_create(parent, app);
 
-    // Wrapper for the memory usage bars
-    lv_obj_t* memory_label = lv_label_create(wrapper);
-    lv_label_set_text(memory_label, "Memory usage");
-    lv_obj_t* memory_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        // This wrapper automatically has its children added vertically underneath eachother
+        lv_obj_t* wrapper = lv_obj_create(parent);
+        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(wrapper, 1);
 
-    addMemoryBar(memory_wrapper, "Heap", getHeapTotal() - getHeapFree(), getHeapTotal());
-    addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
+        // Wrapper for the memory usage bars
+        lv_obj_t* memory_label = lv_label_create(wrapper);
+        lv_label_set_text(memory_label, "Memory usage");
+        lv_obj_t* memory_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+
+        addMemoryBar(memory_wrapper, "Heap", getHeapTotal() - getHeapFree(), getHeapTotal());
+        addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
 
 #if configUSE_TRACE_FACILITY
-    lv_obj_t* tasks_label = lv_label_create(wrapper);
-    lv_label_set_text(tasks_label, "Tasks");
-    lv_obj_t* tasks_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_flex_flow(tasks_wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_size(tasks_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    addRtosTasks(tasks_wrapper);
+        lv_obj_t* tasks_label = lv_label_create(wrapper);
+        lv_label_set_text(tasks_label, "Tasks");
+        lv_obj_t* tasks_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_flex_flow(tasks_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_size(tasks_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        addRtosTasks(tasks_wrapper);
 #endif
 
 #ifdef ESP_PLATFORM
-    // Build info
-    lv_obj_t* build_info_label = lv_label_create(wrapper);
-    lv_label_set_text(build_info_label, "Build info");
-    lv_obj_t* build_info_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_flex_flow(build_info_wrapper, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_size(build_info_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        // Build info
+        lv_obj_t* build_info_label = lv_label_create(wrapper);
+        lv_label_set_text(build_info_label, "Build info");
+        lv_obj_t* build_info_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_flex_flow(build_info_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_size(build_info_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
-    lv_obj_t* esp_idf_version = lv_label_create(build_info_wrapper);
-    lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+        lv_obj_t* esp_idf_version = lv_label_create(build_info_wrapper);
+        lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
-}
+    }
+};
 
 extern const AppManifest manifest = {
     .id = "SystemInfo",
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
-    .type = TypeSystem,
-    .onStart = nullptr,
-    .onStop = nullptr,
-    .onShow = onShow
+    .type = Type::System,
+    .createApp = create<SystemInfoApp>
 };
 
 } // namespace

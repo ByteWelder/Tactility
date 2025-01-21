@@ -14,7 +14,7 @@ void tt_service_loader_stop_app() {
 }
 
 AppContextHandle tt_service_loader_get_current_app() {
-    return tt::service::loader::getCurrentApp();
+    return tt::service::loader::getCurrentAppContext().get();
 }
 
 }

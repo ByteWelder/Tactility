@@ -1,12 +1,15 @@
 #pragma once
 
-#include "AppManifest.h"
 #include "Bundle.h"
 #include <memory>
 
 namespace tt::app {
 
+// Forward declarations
+class App;
 class Paths;
+struct AppManifest;
+enum class Result;
 
 typedef union {
     struct {
@@ -28,14 +31,10 @@ protected:
 public:
 
     virtual const AppManifest& getManifest() const = 0;
-    virtual std::shared_ptr<void> _Nullable getData() const = 0;
-    virtual void setData(std::shared_ptr<void> data) = 0;
     virtual std::shared_ptr<const Bundle> getParameters() const = 0;
-    virtual Flags getFlags() const = 0;
-    virtual void setResult(Result result) = 0;
-    virtual void setResult(Result result, std::shared_ptr<const Bundle> bundle)= 0;
-    virtual bool hasResult() const = 0;
     virtual std::unique_ptr<Paths> getPaths() const = 0;
+
+    virtual std::shared_ptr<App> getApp() const = 0;
 };
 
 class Paths {

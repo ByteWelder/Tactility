@@ -4,9 +4,8 @@
 #include "Mutex.h"
 #include "Pubsub.h"
 #include "service/gui/Gui.h"
-#include "service/gui/ViewPort.h"
-#include "service/gui/ViewPort_i.h"
 #include <cstdio>
+#include <lvgl.h>
 
 namespace tt::service::gui {
 
@@ -27,7 +26,7 @@ struct Gui {
     lv_obj_t* statusbarWidget = nullptr;
 
     // App-specific
-    ViewPort* appViewPort = nullptr;
+    std::shared_ptr<app::AppContext> appToRender = nullptr;
 
     lv_obj_t* _Nullable keyboard = nullptr;
     lv_group_t* keyboardGroup = nullptr;

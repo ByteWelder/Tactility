@@ -21,8 +21,11 @@ void startApp(const std::string& id, const std::shared_ptr<const Bundle>& _Nulla
 /** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stopApp();
 
+/** @return the currently running app context (it is only ever null before the splash screen is shown) */
+std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
+
 /** @return the currently running app (it is only ever null before the splash screen is shown) */
-app::AppContext* _Nullable getCurrentApp();
+std::shared_ptr<app::App> _Nullable getCurrentApp();
 
 /**
  * @brief PubSub for LoaderEvent

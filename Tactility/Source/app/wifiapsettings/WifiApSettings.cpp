@@ -15,9 +15,9 @@ namespace tt::app::wifiapsettings {
 extern const AppManifest manifest;
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
-const AppContext* _Nullable optWifiApSettingsApp() {
-    app::AppContext* app = service::loader::getCurrentApp();
-    if (app->getManifest().id == manifest.id) {
+const std::shared_ptr<AppContext> _Nullable optWifiApSettingsApp() {
+    auto app = service::loader::getCurrentAppContext();
+    if (app != nullptr && app->getManifest().id == manifest.id) {
         return app;
     } else {
         return nullptr;
@@ -41,7 +41,7 @@ static void onPressForget(TT_UNUSED lv_event_t* event) {
 static void onToggleAutoConnect(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
 
-    auto* app = optWifiApSettingsApp();
+    auto app = optWifiApSettingsApp();
     if (app == nullptr) {
         return;
     }
@@ -66,96 +66,98 @@ static void onToggleAutoConnect(lv_event_t* event) {
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    auto paremeters = app.getParameters();
-    tt_check(paremeters != nullptr, "Parameters missing");
-    std::string ssid = paremeters->getString("ssid");
+class WifiApSettings : public App {
 
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create(parent, ssid);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto paremeters = app.getParameters();
+        tt_check(paremeters != nullptr, "Parameters missing");
+        std::string ssid = paremeters->getString("ssid");
 
-    // Wrappers
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lvgl::toolbar_create(parent, ssid);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_bg_invisible(wrapper);
+        // Wrappers
 
-    // Auto-connect toggle
+        lv_obj_t* wrapper = lv_obj_create(parent);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(wrapper, 1);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lvgl::obj_set_style_bg_invisible(wrapper);
 
-    lv_obj_t* auto_connect_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(auto_connect_wrapper);
-    lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
+        // Auto-connect toggle
 
-    lv_obj_t* auto_connect_label = lv_label_create(auto_connect_wrapper);
-    lv_label_set_text(auto_connect_label, "Auto-connect");
-    lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
+        lv_obj_t* auto_connect_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lvgl::obj_set_style_no_padding(auto_connect_wrapper);
+        lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
 
-    lv_obj_t* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
-    lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
-    lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_t* auto_connect_label = lv_label_create(auto_connect_wrapper);
+        lv_label_set_text(auto_connect_label, "Auto-connect");
+        lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
-    lv_obj_t* forget_button = lv_button_create(wrapper);
-    lv_obj_set_width(forget_button, LV_PCT(100));
-    lv_obj_align_to(forget_button, auto_connect_wrapper, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-    lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_SHORT_CLICKED, nullptr);
-    lv_obj_t* forget_button_label = lv_label_create(forget_button);
-    lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
-    lv_label_set_text(forget_button_label, "Forget");
+        lv_obj_t* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
+        lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
+        lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-    service::wifi::settings::WifiApSettings settings {};
-    if (service::wifi::settings::load(ssid.c_str(), &settings)) {
-        if (settings.auto_connect) {
-            lv_obj_add_state(auto_connect_switch, LV_STATE_CHECKED);
+        lv_obj_t* forget_button = lv_button_create(wrapper);
+        lv_obj_set_width(forget_button, LV_PCT(100));
+        lv_obj_align_to(forget_button, auto_connect_wrapper, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+        lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_SHORT_CLICKED, nullptr);
+        lv_obj_t* forget_button_label = lv_label_create(forget_button);
+        lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
+        lv_label_set_text(forget_button_label, "Forget");
+
+        service::wifi::settings::WifiApSettings settings {};
+        if (service::wifi::settings::load(ssid.c_str(), &settings)) {
+            if (settings.auto_connect) {
+                lv_obj_add_state(auto_connect_switch, LV_STATE_CHECKED);
+            } else {
+                lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
+            }
         } else {
-            lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
+            TT_LOG_W(TAG, "No settings found");
+            lv_obj_add_flag(forget_button, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_add_flag(auto_connect_wrapper, LV_OBJ_FLAG_HIDDEN);
         }
-    } else {
-        TT_LOG_W(TAG, "No settings found");
-        lv_obj_add_flag(forget_button, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(auto_connect_wrapper, LV_OBJ_FLAG_HIDDEN);
     }
-}
 
-void onResult(TT_UNUSED AppContext& app, TT_UNUSED Result result, const Bundle& bundle) {
-    auto index = alertdialog::getResultIndex(bundle);
-    if (index == 0) {// Yes
-        auto* app = optWifiApSettingsApp();
-        if (app == nullptr) {
-            return;
-        }
-
-        auto parameters = app->getParameters();
-        tt_check(parameters != nullptr, "Parameters missing");
-
-        std::string ssid = parameters->getString("ssid");
-        if (service::wifi::settings::remove(ssid.c_str())) {
-            TT_LOG_I(TAG, "Removed SSID");
-
-            if (
-                service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
-                service::wifi::getConnectionTarget() == ssid
-            ) {
-                service::wifi::disconnect();
+    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, std::unique_ptr<Bundle> bundle) override {
+        auto index = alertdialog::getResultIndex(*bundle);
+        if (index == 0) { // Yes
+            auto app = optWifiApSettingsApp();
+            if (app == nullptr) {
+                return;
             }
 
-            // Stop self
-            service::loader::stopApp();
-        } else {
-            TT_LOG_E(TAG, "Failed to remove SSID");
+            auto parameters = app->getParameters();
+            tt_check(parameters != nullptr, "Parameters missing");
+
+            std::string ssid = parameters->getString("ssid");
+            if (service::wifi::settings::remove(ssid.c_str())) {
+                TT_LOG_I(TAG, "Removed SSID");
+
+                if (
+                    service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
+                    service::wifi::getConnectionTarget() == ssid
+                ) {
+                    service::wifi::disconnect();
+                }
+
+                // Stop self
+                service::loader::stopApp();
+            } else {
+                TT_LOG_E(TAG, "Failed to remove SSID");
+            }
         }
     }
-}
+};
 
 extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,
-    .type = TypeHidden,
-    .onShow = onShow,
-    .onResult = onResult
+    .type = Type::Hidden,
+    .createApp = create<WifiApSettings>
 };
 
 } // namespace

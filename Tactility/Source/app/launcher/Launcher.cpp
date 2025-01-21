@@ -42,42 +42,45 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
     return wrapper;
 }
 
-static void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) {
-    auto* wrapper = lv_obj_create(parent);
+class LauncherApp : public App {
 
-    lv_obj_align(wrapper, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_pad_all(wrapper, 0, 0);
-    lv_obj_set_size(wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
-    lv_obj_set_flex_grow(wrapper, 1);
+    void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        auto* wrapper = lv_obj_create(parent);
 
-    auto* display = lv_obj_get_display(parent);
-    auto horizontal_px = lv_display_get_horizontal_resolution(display);
-    auto vertical_px = lv_display_get_vertical_resolution(display);
-    bool is_landscape_display = horizontal_px > vertical_px;
-    if (is_landscape_display) {
-        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
-    } else {
-        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_align(wrapper, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_style_pad_all(wrapper, 0, 0);
+        lv_obj_set_size(wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_flex_grow(wrapper, 1);
+
+        auto* display = lv_obj_get_display(parent);
+        auto horizontal_px = lv_display_get_horizontal_resolution(display);
+        auto vertical_px = lv_display_get_vertical_resolution(display);
+        bool is_landscape_display = horizontal_px > vertical_px;
+        if (is_landscape_display) {
+            lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
+        } else {
+            lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        }
+
+        int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * 80);
+        int32_t padding = is_landscape_display ? TT_MIN(available_width / 4, 64) : 0;
+
+        auto paths = app.getPaths();
+        auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
+        auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
+        auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
+        createAppButton(wrapper, "Apps", apps_icon_path.c_str(), "AppList", 0);
+        createAppButton(wrapper, "Files", files_icon_path.c_str(), "Files", padding);
+        createAppButton(wrapper, "Settings", settings_icon_path.c_str(), "Settings", padding);
     }
-
-    int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * 80);
-    int32_t padding = is_landscape_display ? TT_MIN(available_width / 4, 64) : 0;
-
-    auto paths = app.getPaths();
-    auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
-    auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
-    auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
-    createAppButton(wrapper, "Apps", apps_icon_path.c_str(), "AppList", 0);
-    createAppButton(wrapper, "Files", files_icon_path.c_str(), "Files", padding);
-    createAppButton(wrapper, "Settings", settings_icon_path.c_str(), "Settings", padding);
-}
+};
 
 extern const AppManifest manifest = {
     .id = "Launcher",
     .name = "Launcher",
-    .type = TypeLauncher,
-    .onShow = onShow,
+    .type = Type::Launcher,
+    .createApp = create<LauncherApp>
 };
 
 void start() {

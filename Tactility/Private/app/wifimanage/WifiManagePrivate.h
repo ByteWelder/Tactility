@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/App.h"
 #include "Mutex.h"
 #include "./View.h"
 #include "./State.h"
@@ -7,7 +8,9 @@
 
 namespace tt::app::wifimanage {
 
-class WifiManage {
+class WifiManage : public App {
+
+private:
 
     PubSubSubscription* wifiSubscription = nullptr;
     Mutex mutex;
@@ -23,8 +26,8 @@ public:
     void lock();
     void unlock();
 
-    void onShow(AppContext& app, lv_obj_t* parent);
-    void onHide(AppContext& app);
+    void onShow(AppContext& app, lv_obj_t* parent) override;
+    void onHide(AppContext& app) override;
 
     Bindings& getBindings() { return bindings; }
     State& getState() { return state; }

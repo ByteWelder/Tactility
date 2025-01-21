@@ -35,7 +35,7 @@ public:
     void onRenamePressed();
     void onDeletePressed();
     void onDirEntryListScrollBegin();
-    void onResult(Result result, const Bundle& bundle);
+    void onResult(Result result, std::unique_ptr<Bundle> bundle);
 };
 
 }

@@ -19,17 +19,7 @@ enum ScanState {
 };
 
 struct Data {
-    // Core
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
-    std::unique_ptr<Timer> scanTimer = nullptr;
-    // State
-    ScanState scanState;
-    i2c_port_t port = I2C_NUM_0;
-    std::vector<uint8_t> scannedAddresses;
-    // Widgets
-    lv_obj_t* scanButtonLabelWidget = nullptr;
-    lv_obj_t* portDropdownWidget = nullptr;
-    lv_obj_t* scanListWidget = nullptr;
+
 };
 
 void onScanTimerFinished(std::shared_ptr<Data> data);

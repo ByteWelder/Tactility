@@ -8,4 +8,4 @@ Please open an [Issue](https://github.com/ByteWelder/Tactility/issues/new) on Gi
 
 # Code Style
 
-See [this document](CODING_STYLE.md).
+See [this document](CODING_STYLE.md) and [.clang-format](.clang-format).

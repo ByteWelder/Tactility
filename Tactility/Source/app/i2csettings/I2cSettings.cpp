@@ -69,28 +69,31 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
     }
 }
 
-static void onShow(AppContext& app, lv_obj_t* parent) {
-    lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lvgl::toolbar_create(parent, app);
+class I2cSettingsApp : public App {
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_width(wrapper, LV_PCT(100));
-    lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_no_padding(wrapper);
-    lvgl::obj_set_style_bg_invisible(wrapper);
+    void onShow(AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lvgl::toolbar_create(parent, app);
 
-    for (const auto& configuration: getConfiguration()->hardware->i2c) {
-        show(wrapper, configuration);
+        lv_obj_t* wrapper = lv_obj_create(parent);
+        lv_obj_set_width(wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(wrapper, 1);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lvgl::obj_set_style_no_padding(wrapper);
+        lvgl::obj_set_style_bg_invisible(wrapper);
+
+        for (const auto& configuration: getConfiguration()->hardware->i2c) {
+            show(wrapper, configuration);
+        }
     }
-}
+};
 
 extern const AppManifest manifest = {
     .id = "I2cSettings",
     .name = "I2C",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = TypeSettings,
-    .onShow = onShow
+    .type = Type::Settings,
+    .createApp = create<I2cSettingsApp>
 };
 
 } // namespace
