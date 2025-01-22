@@ -446,6 +446,12 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         return;
     }
 
+    if (event_base == WIFI_EVENT) {
+        TT_LOG_I(TAG, "eventHandler: WIFI_EVENT (%ld)", event_id);
+    } else if (event_base == IP_EVENT) {
+        TT_LOG_W(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
+    }
+
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         TT_LOG_I(TAG, "eventHandler: sta start");
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
@@ -708,6 +714,8 @@ static void dispatchConnect(std::shared_ptr<void> context) {
         }
     }
 
+    wifi->setScanActive(false);
+
     wifi->setRadioState(RadioState::ConnectionPending);
 
     publish_event_simple(wifi, EventType::ConnectionPending);
@@ -729,7 +737,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
             .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
             .threshold = {
                 .rssi = 0,
-                .authmode = WIFI_AUTH_WPA2_WPA3_PSK,
+                .authmode = WIFI_AUTH_OPEN,
             },
             .pmf_cfg = {
                 .capable = false,
@@ -762,6 +770,13 @@ static void dispatchConnect(std::shared_ptr<void> context) {
     memcpy(wifi_config.sta.ssid, wifi_singleton->connection_target.ssid, sizeof(wifi_config.sta.ssid));
     memcpy(wifi_config.sta.password, wifi_singleton->connection_target.password, sizeof(wifi_config.sta.password));
 
+    if (wifi_singleton->connection_target.password[0] != 0x00U) {
+        wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK;
+    } else {
+        wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+    }
+
+    TT_LOG_I(TAG, "esp_wifi_set_config()");
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
     if (set_config_result != ESP_OK) {
         wifi->setRadioState(RadioState::On);
@@ -770,6 +785,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
         return;
     }
 
+    TT_LOG_I(TAG, "esp_wifi_start()");
     esp_err_t wifi_start_result = esp_wifi_start();
     if (wifi_start_result != ESP_OK) {
         wifi->setRadioState(RadioState::On);

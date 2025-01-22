@@ -25,7 +25,8 @@ static void updatePowerSwitch() {
             }
         } else { // power switch off and usb plugged in we sleep
             unPhoneFeatures.wakeOnPowerSwitch();
-            esp_sleep_enable_timer_wakeup(60000000); // ea min: USB? else->shipping
+            // Using UINT64_MAX leads to boot loops because of a bug in esp_sleep_start() converting it to int64_t before sleeping
+            esp_sleep_enable_timer_wakeup(UINT64_MAX / 2); // ea min: USB? else->shipping
             esp_deep_sleep_start(); // deep sleep, wait for wakeup on GPIO
         }
 

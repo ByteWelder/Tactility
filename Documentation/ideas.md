@@ -12,9 +12,10 @@
 - EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - M5Stack Core only shows 4MB of SPIRAM in use
-- Oops crashlog site: Add copy-pasteable addr2line command (e.g. xtensa-esp32s3-elf-addr2line -pfiaC -e Tactility.elf 00000000)
 
 # TODOs
+- Expose app::Paths to TactilityC
+- Refactor ServiceManifest into C++ class-based design like the App class
 - Experiment with what happens when using C++ code in an external app (without using standard library!)
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
 - We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
@@ -45,12 +46,10 @@
 - Audio player app
 - Audio recording app
 - OTA updates
-- Web flasher
 - T-Deck Plus: Create separate board config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
-- Make firmwares available via web serial website
 - If present, use LED to show boot/wifi status
-- T-Deck Power: capacity estimation uses linear voltage curve, but it should use some sort of battery discharge curve.
+- Capacity based on voltage: estimation for various devices uses linear voltage curve, but it should use some sort of battery discharge curve.
 - Statusbar widget to show how much memory is in use?
 - Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
 - Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
