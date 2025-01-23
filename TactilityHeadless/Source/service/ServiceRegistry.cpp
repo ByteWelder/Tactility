@@ -68,11 +68,14 @@ bool startService(const std::string& id) {
     }
 
     auto service_instance = std::make_shared<ServiceInstance>(manifest);
-    service_instance->getService()->onStart(*service_instance);
 
+    // Register first, so that a service can retrieve itself during onStart()
     instance_mutex.acquire(TtWaitForever);
     service_instance_map[manifest->id] = service_instance;
     instance_mutex.release();
+
+    service_instance->getService()->onStart(*service_instance);
+
     TT_LOG_I(TAG, "Started %s", id.c_str());
 
     return true;
