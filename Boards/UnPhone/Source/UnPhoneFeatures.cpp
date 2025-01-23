@@ -168,12 +168,28 @@ bool UnPhoneFeatures::initGpioExpander() {
     assert(ioExpander != nullptr);
 
     // Output pins
+
+    /**
+     * Important:
+     * If you clear the pins too late, the display or vibration motor might briefly turn on.
+     */
+
     esp_io_expander_set_dir(ioExpander, expanderpin::BACKLIGHT, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(ioExpander, expanderpin::BACKLIGHT, 0);
+
     esp_io_expander_set_dir(ioExpander, expanderpin::EXPANDER_POWER, IO_EXPANDER_OUTPUT);
+
     esp_io_expander_set_dir(ioExpander, expanderpin::LED_GREEN, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(ioExpander, expanderpin::LED_GREEN, 0);
+
     esp_io_expander_set_dir(ioExpander, expanderpin::LED_BLUE, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(ioExpander, expanderpin::LED_BLUE, 0);
+
     esp_io_expander_set_dir(ioExpander, expanderpin::VIBE, IO_EXPANDER_OUTPUT);
+    esp_io_expander_set_level(ioExpander, expanderpin::VIBE, 0);
+
     // Input pins
+
     esp_io_expander_set_dir(ioExpander, expanderpin::USB_VSENSE, IO_EXPANDER_INPUT);
 
     return true;
@@ -266,16 +282,12 @@ void UnPhoneFeatures::turnPeripheralsOff() const {
 bool UnPhoneFeatures::setShipping(bool on) const {
     if (on) {
         TT_LOG_W(TAG, "setShipping: on");
-        uint8_t mask = (1 << 4) | (1 << 5);
-        // REG05[5:4] = 00
-        batteryManagement.setWatchDogBitOff(mask);
+        batteryManagement.setWatchDogTimer(Bq24295::WatchDogTimer::Disabled);
         // Set bit 5 to disable
         batteryManagement.setOperationControlBitOn(1 << 5);
     } else {
         TT_LOG_W(TAG, "setShipping: off");
-        // REG05[5:4] = 01
-        batteryManagement.setWatchDogBitOff(1 << 5);
-        batteryManagement.setWatchDogBitOn(1 << 4);
+        batteryManagement.setWatchDogTimer(Bq24295::WatchDogTimer::Enabled40s);
         // Clear bit 5 to enable
         batteryManagement.setOperationControlBitOff(1 << 5);
     }
@@ -287,10 +299,5 @@ void UnPhoneFeatures::wakeOnPowerSwitch() const {
 }
 
 bool UnPhoneFeatures::isUsbPowerConnected() const {
-    uint8_t status;
-    if (batteryManagement.getStatus(status)) {
-        return (status & 4U) != 0U;
-    } else {
-        return false;
-    }
+    return batteryManagement.isUsbPowerConnected();
 }
