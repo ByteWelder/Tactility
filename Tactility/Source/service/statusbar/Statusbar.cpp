@@ -223,38 +223,36 @@ static void onUpdate(std::shared_ptr<void> parameter) {
     updatePowerStatusIcon(paths, data);
 }
 
-static void onStart(ServiceContext& service) {
-    lvgl::lock(TtWaitForever);
-    auto data = std::make_shared<ServiceData>();
-    lvgl::unlock();
+class StatusbarService : public Service {
 
-    data->paths = service.getPaths();
+    std::shared_ptr<ServiceData> data = std::make_shared<ServiceData>();
 
-    service.setData(data);
+public:
 
-    // TODO: Make thread-safe for LVGL
-    lvgl::statusbar_icon_set_visibility(data->wifi_icon_id, true);
-    updateWifiIcon(data->paths.get(), data);
-    updateSdCardIcon(data->paths.get(), data); // also updates visibility
-    updatePowerStatusIcon(data->paths.get(), data);
+    void onStart(ServiceContext& service) override {
+        data->paths = service.getPaths();
 
-    data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
-    // We want to try and scan more often in case of startup or scan lock failure
-    data->updateTimer->start(1000);
-}
+        // TODO: Make thread-safe for LVGL
+        lvgl::statusbar_icon_set_visibility(data->wifi_icon_id, true);
+        updateWifiIcon(data->paths.get(), data);
+        updateSdCardIcon(data->paths.get(), data); // also updates visibility
+        updatePowerStatusIcon(data->paths.get(), data);
 
-static void onStop(ServiceContext& service) {
-    auto data = std::static_pointer_cast<ServiceData>(service.getData());
+        data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
+        // We want to try and scan more often in case of startup or scan lock failure
+        data->updateTimer->start(1000);
+    }
 
-    // Stop thread
-    data->updateTimer->stop();
-    data->updateTimer = nullptr;
-}
+    void onStop(ServiceContext& service) override{
+        data->updateTimer->stop();
+        data->updateTimer = nullptr;
+    }
+};
+
 
 extern const ServiceManifest manifest = {
     .id = "Statusbar",
-    .onStart = onStart,
-    .onStop = onStop
+    .createService = create<StatusbarService>
 };
 
 // endregion service

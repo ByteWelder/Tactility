@@ -52,32 +52,38 @@ static void onUpdate(std::shared_ptr<void> context) {
     data->unlock();
 }
 
-static void onStart(ServiceContext& service) {
-    if (hal::getConfiguration()->sdcard != nullptr) {
-        auto data = std::make_shared<ServiceData>();
-        service.setData(data);
+class SdCardService : public Service {
 
-        data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
-        // We want to try and scan more often in case of startup or scan lock failure
-        data->updateTimer->start(1000);
-    } else {
-        TT_LOG_I(TAG, "task not started due to config");
-    }
-}
+private:
 
-static void onStop(ServiceContext& service) {
-    auto data = std::static_pointer_cast<ServiceData>(service.getData());
-    if (data->updateTimer != nullptr) {
-        // Stop thread
-        data->updateTimer->stop();
-        data->updateTimer = nullptr;
+    std::shared_ptr<ServiceData> data = std::make_shared<ServiceData>();
+
+public:
+
+    void onStart(ServiceContext& service) override {
+        if (hal::getConfiguration()->sdcard != nullptr) {
+
+            data->updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, data);
+            // We want to try and scan more often in case of startup or scan lock failure
+            data->updateTimer->start(1000);
+        } else {
+            TT_LOG_I(TAG, "task not started due to config");
+        }
     }
-}
+
+    void onStop(ServiceContext& service) override {
+        if (data->updateTimer != nullptr) {
+            // Stop thread
+            data->updateTimer->stop();
+            data->updateTimer = nullptr;
+        }
+    }
+};
+
 
 extern const ServiceManifest manifest = {
     .id = "sdcard",
-    .onStart = onStart,
-    .onStop = onStop
+    .createService = create<SdCardService>
 };
 
 } // namespace

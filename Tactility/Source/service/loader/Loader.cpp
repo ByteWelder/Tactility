@@ -295,31 +295,35 @@ static void stopAppInternal() {
 
 // region AppManifest
 
-static void loader_start(TT_UNUSED ServiceContext& service) {
-    tt_check(loader_singleton == nullptr);
-    loader_singleton = loader_alloc();
-    loader_singleton->dispatcherThread->start();
-}
+class LoaderService : public Service {
 
-static void loader_stop(TT_UNUSED ServiceContext& service) {
-    tt_check(loader_singleton != nullptr);
+public:
 
-    // Send stop signal to thread and wait for thread to finish
-    if (!loader_singleton->mutex.lock(2000 / portTICK_PERIOD_MS)) {
-        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "loader_stop");
+    void onStart(TT_UNUSED ServiceContext& service) override {
+        tt_check(loader_singleton == nullptr);
+        loader_singleton = loader_alloc();
+        loader_singleton->dispatcherThread->start();
     }
-    loader_singleton->dispatcherThread->stop();
 
-    loader_singleton->mutex.unlock();
+    void onStop(TT_UNUSED ServiceContext& service) override {
+        tt_check(loader_singleton != nullptr);
 
-    loader_free();
-    loader_singleton = nullptr;
-}
+        // Send stop signal to thread and wait for thread to finish
+        if (!loader_singleton->mutex.lock(2000 / portTICK_PERIOD_MS)) {
+            TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "loader_stop");
+        }
+        loader_singleton->dispatcherThread->stop();
+
+        loader_singleton->mutex.unlock();
+
+        loader_free();
+        loader_singleton = nullptr;
+    }
+};
 
 extern const ServiceManifest manifest = {
     .id = "Loader",
-    .onStart = &loader_start,
-    .onStop = &loader_stop
+    .createService = create<LoaderService>
 };
 
 // endregion

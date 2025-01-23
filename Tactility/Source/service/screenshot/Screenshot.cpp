@@ -15,12 +15,7 @@ namespace tt::service::screenshot {
 extern const ServiceManifest manifest;
 
 std::shared_ptr<ScreenshotService> _Nullable optScreenshotService() {
-    ServiceContext* context = service::findServiceById(manifest.id);
-    if (context != nullptr) {
-        return std::static_pointer_cast<ScreenshotService>(context->getData());
-    } else {
-        return nullptr;
-    }
+    return service::findServiceById<ScreenshotService>(manifest.id);
 }
 
 void ScreenshotService::startApps(const char* path) {
@@ -89,14 +84,9 @@ bool ScreenshotService::isTaskStarted() {
     }
 }
 
-static void onStart(ServiceContext& serviceContext) {
-    auto service = std::make_shared<ScreenshotService>();
-    serviceContext.setData(service);
-}
-
 extern const ServiceManifest manifest = {
     .id = "Screenshot",
-    .onStart = onStart
+    .createService = create<ScreenshotService>
 };
 
 } // namespace

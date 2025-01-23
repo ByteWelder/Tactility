@@ -23,15 +23,6 @@ namespace service {
 #endif
 }
 
-static const std::vector<const service::ServiceManifest*> system_services = {
-    &service::loader::manifest,
-    &service::gui::manifest, // depends on loader service
-    &service::statusbar::manifest,
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    &service::screenshot::manifest
-#endif
-};
-
 // endregion
 
 // region Default apps
@@ -125,18 +116,19 @@ static void register_user_apps(const std::vector<const app::AppManifest*>& apps)
 
 static void register_and_start_system_services() {
     TT_LOG_I(TAG, "Registering and starting system services");
-    for (const auto& service_manifest: system_services) {
-        addService(service_manifest);
-        tt_check(service::startService(service_manifest->id));
-    }
+    addService(service::loader::manifest);
+    addService(service::gui::manifest);
+    addService(service::statusbar::manifest);
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    addService(service::screenshot::manifest);
+#endif
 }
 
-static void register_and_start_user_services(const std::vector<const service::ServiceManifest*>& services) {
+static void register_and_start_user_services(const std::vector<const service::ServiceManifest*>& manifests) {
     TT_LOG_I(TAG, "Registering and starting user services");
-    for (auto* manifest : services) {
+    for (auto* manifest : manifests) {
         assert(manifest != nullptr);
-        addService(manifest);
-        tt_check(service::startService(manifest->id));
+        addService(*manifest);
     }
 }
 

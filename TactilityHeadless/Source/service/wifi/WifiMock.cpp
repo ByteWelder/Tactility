@@ -137,25 +137,26 @@ int getRssi() {
 
 // endregion Public functions
 
-static void service_start(TT_UNUSED ServiceContext& service) {
-    tt_check(wifi == nullptr);
-    wifi = new Wifi();
-}
+class WifiService : public Service {
 
-static void service_stop(TT_UNUSED ServiceContext& service) {
-    tt_check(wifi != nullptr);
-    delete wifi;
-    wifi = nullptr;
-}
+public:
 
-void wifi_main(void*) {
-    // NO-OP
-}
+    void onStart(TT_UNUSED ServiceContext& service) override {
+        tt_check(wifi == nullptr);
+        wifi = new Wifi();
+    }
+
+    void onStop(TT_UNUSED ServiceContext& service) override {
+        tt_check(wifi != nullptr);
+        delete wifi;
+        wifi = nullptr;
+    }
+};
+
 
 extern const ServiceManifest manifest = {
     .id = "Wifi",
-    .onStart = &service_start,
-    .onStop = &service_stop
+    .createService = create<WifiService>
 };
 
 } // namespace
