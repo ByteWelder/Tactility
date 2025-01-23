@@ -7,6 +7,19 @@ namespace tt {
 static LogEntry* logEntries = nullptr;
 static unsigned int nextLogEntryIndex;
 
+/**
+ * This used to be a simple static value, but that crashes on device boot where early logging happens.
+ * For some unknown reason, the static Mutex instance wouldn't have their constructor called before
+ * the mutex is used.
+ */
+Mutex& getLogMutex() {
+    static Mutex* logMutex = nullptr;
+    if (logMutex == nullptr) {
+        logMutex = new Mutex();
+    }
+    return *logMutex;
+}
+
 static void ensureLogEntriesExist() {
     if (logEntries == nullptr) {
         logEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
@@ -16,25 +29,34 @@ static void ensureLogEntriesExist() {
 }
 
 static void storeLog(LogLevel level, const char* format, va_list args) {
-    ensureLogEntriesExist();
+    if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
+        ensureLogEntriesExist();
 
-    logEntries[nextLogEntryIndex].level = level;
-    vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
+        logEntries[nextLogEntryIndex].level = level;
+        vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
 
-    nextLogEntryIndex++;
-    if (nextLogEntryIndex == TT_LOG_ENTRY_COUNT) {
-        nextLogEntryIndex = 0;
+        nextLogEntryIndex++;
+        if (nextLogEntryIndex == TT_LOG_ENTRY_COUNT) {
+            nextLogEntryIndex = 0;
+        }
+
+        getLogMutex().unlock();
     }
 }
 
 LogEntry* copyLogEntries(unsigned int& outIndex) {
-    auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
-    assert(newEntries != nullptr);
-    for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
-        memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
+    if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
+        auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
+        assert(newEntries != nullptr);
+        for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
+            memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
+        }
+        outIndex = nextLogEntryIndex;
+        getLogMutex().unlock();
+        return newEntries;
+    } else {
+        return nullptr;
     }
-    outIndex = nextLogEntryIndex;
-    return newEntries;
 }
 
 } // namespace tt
