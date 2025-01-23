@@ -9,7 +9,6 @@
 #include "EventFlag.h"
 #include "kernel/Kernel.h"
 #include "kernel/critical/Critical.h"
-#include "kernel/Kernel.h"
 #include "Log.h"
 #include "Mutex.h"
 #include "Thread.h"
