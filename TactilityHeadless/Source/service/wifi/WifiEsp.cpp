@@ -936,7 +936,7 @@ void onAutoConnectTimer(std::shared_ptr<void> context) {
     }
 }
 
-class WifiService : public Service {
+class WifiService final : public Service {
 
 public:
 

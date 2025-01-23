@@ -137,16 +137,16 @@ int getRssi() {
 
 // endregion Public functions
 
-class WifiService : public Service {
+class WifiService final : public Service {
 
 public:
 
-    void onStart(TT_UNUSED ServiceContext& service) override {
+    void onStart(TT_UNUSED ServiceContext& service) final {
         tt_check(wifi == nullptr);
         wifi = new Wifi();
     }
 
-    void onStop(TT_UNUSED ServiceContext& service) override {
+    void onStop(TT_UNUSED ServiceContext& service) final {
         tt_check(wifi != nullptr);
         delete wifi;
         wifi = nullptr;

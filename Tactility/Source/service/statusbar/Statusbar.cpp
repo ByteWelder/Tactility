@@ -124,6 +124,8 @@ static _Nullable const char* getPowerStatusIcon() {
 
 class StatusbarService final : public Service {
 
+private:
+
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
     int8_t wifi_icon_id = lvgl::statusbar_icon_add();

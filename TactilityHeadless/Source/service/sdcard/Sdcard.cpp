@@ -11,7 +11,7 @@ namespace tt::service::sdcard {
 
 extern const ServiceManifest manifest;
 
-class SdCardService : public Service {
+class SdCardService final : public Service {
 
 private:
 
@@ -56,7 +56,7 @@ private:
 
 public:
 
-    void onStart(ServiceContext& serviceContext) override {
+    void onStart(ServiceContext& serviceContext) final {
         if (hal::getConfiguration()->sdcard != nullptr) {
             auto service = findServiceById(manifest.id);
             updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, service);
@@ -67,7 +67,7 @@ public:
         }
     }
 
-    void onStop(ServiceContext& serviceContext) override {
+    void onStop(ServiceContext& serviceContext) final {
         if (updateTimer != nullptr) {
             // Stop thread
             updateTimer->stop();

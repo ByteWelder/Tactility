@@ -295,17 +295,17 @@ static void stopAppInternal() {
 
 // region AppManifest
 
-class LoaderService : public Service {
+class LoaderService final : public Service {
 
 public:
 
-    void onStart(TT_UNUSED ServiceContext& service) override {
+    void onStart(TT_UNUSED ServiceContext& service) final {
         tt_check(loader_singleton == nullptr);
         loader_singleton = loader_alloc();
         loader_singleton->dispatcherThread->start();
     }
 
-    void onStop(TT_UNUSED ServiceContext& service) override {
+    void onStop(TT_UNUSED ServiceContext& service) final {
         tt_check(loader_singleton != nullptr);
 
         // Send stop signal to thread and wait for thread to finish

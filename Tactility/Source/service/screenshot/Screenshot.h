@@ -17,7 +17,7 @@ enum class Mode {
     Apps
 };
 
-class ScreenshotService : public Service {
+class ScreenshotService final : public Service {
 
 private:
 
