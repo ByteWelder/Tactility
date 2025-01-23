@@ -6,7 +6,6 @@ namespace tt {
 
 static LogEntry* logEntries = nullptr;
 static unsigned int nextLogEntryIndex;
-static Mutex logMutex;
 
 static void ensureLogEntriesExist() {
     if (logEntries == nullptr) {
@@ -17,34 +16,25 @@ static void ensureLogEntriesExist() {
 }
 
 static void storeLog(LogLevel level, const char* format, va_list args) {
-    if (logMutex.lock(5 / portTICK_PERIOD_MS)) {
-        ensureLogEntriesExist();
+    ensureLogEntriesExist();
 
-        logEntries[nextLogEntryIndex].level = level;
-        vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
+    logEntries[nextLogEntryIndex].level = level;
+    vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
 
-        nextLogEntryIndex++;
-        if (nextLogEntryIndex == TT_LOG_ENTRY_COUNT) {
-            nextLogEntryIndex = 0;
-        }
-
-        logMutex.unlock();
+    nextLogEntryIndex++;
+    if (nextLogEntryIndex == TT_LOG_ENTRY_COUNT) {
+        nextLogEntryIndex = 0;
     }
 }
 
 LogEntry* copyLogEntries(unsigned int& outIndex) {
-    if (logMutex.lock(5 / portTICK_PERIOD_MS)) {
-        auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
-        assert(newEntries != nullptr);
-        for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
-            memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
-        }
-        outIndex = nextLogEntryIndex;
-        logMutex.unlock();
-        return newEntries;
-    } else {
-        return nullptr;
+    auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
+    assert(newEntries != nullptr);
+    for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
+        memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
     }
+    outIndex = nextLogEntryIndex;
+    return newEntries;
 }
 
 } // namespace tt
