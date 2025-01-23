@@ -46,7 +46,7 @@ Mutex::~Mutex() {
 
 TtStatus Mutex::acquire(TickType_t timeout) const {
     tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert(semaphore);
+    tt_assert(semaphore != nullptr);
 
     tt_mutex_info(mutex, "acquire");
 

@@ -6,7 +6,19 @@ namespace tt {
 
 static LogEntry* logEntries = nullptr;
 static unsigned int nextLogEntryIndex;
-static Mutex logMutex;
+
+/**
+ * This used to be a simple static value, but that crashes on device boot where early logging happens.
+ * For some unknown reason, the static Mutex instance wouldn't have their constructor called before
+ * the mutex is used.
+ */
+Mutex& getLogMutex() {
+    static Mutex* logMutex = nullptr;
+    if (logMutex == nullptr) {
+        logMutex = new Mutex();
+    }
+    return *logMutex;
+}
 
 static void ensureLogEntriesExist() {
     if (logEntries == nullptr) {
@@ -17,7 +29,7 @@ static void ensureLogEntriesExist() {
 }
 
 static void storeLog(LogLevel level, const char* format, va_list args) {
-    if (logMutex.lock(5 / portTICK_PERIOD_MS)) {
+    if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
         ensureLogEntriesExist();
 
         logEntries[nextLogEntryIndex].level = level;
@@ -28,19 +40,19 @@ static void storeLog(LogLevel level, const char* format, va_list args) {
             nextLogEntryIndex = 0;
         }
 
-        logMutex.unlock();
+        getLogMutex().unlock();
     }
 }
 
 LogEntry* copyLogEntries(unsigned int& outIndex) {
-    if (logMutex.lock(5 / portTICK_PERIOD_MS)) {
+    if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
         auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
         assert(newEntries != nullptr);
         for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
             memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
         }
         outIndex = nextLogEntryIndex;
-        logMutex.unlock();
+        getLogMutex().unlock();
         return newEntries;
     } else {
         return nullptr;
