@@ -79,7 +79,7 @@ std::string join(const std::vector<std::string>& input, const std::string& delim
 }
 
 std::string removeFileExtension(const std::string& input) {
-    auto index = input.find('.');
+    auto index = input.rfind('.');
     if (index != std::string::npos) {
         return input.substr(0, index);
     } else {
