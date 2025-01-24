@@ -66,7 +66,7 @@ Gui* gui_alloc() {
 }
 
 void gui_free(Gui* instance) {
-    tt_assert(instance != nullptr);
+    assert(instance != nullptr);
     delete instance->thread;
 
     lv_group_delete(instance->keyboardGroup);
@@ -78,17 +78,17 @@ void gui_free(Gui* instance) {
 }
 
 void lock() {
-    tt_assert(gui);
-    tt_check(gui->mutex.acquire(configTICK_RATE_HZ) == TtStatusOk);
+    assert(gui);
+    tt_check(gui->mutex.lock(configTICK_RATE_HZ));
 }
 
 void unlock() {
-    tt_assert(gui);
-    tt_check(gui->mutex.release() == TtStatusOk);
+    assert(gui);
+    tt_check(gui->mutex.unlock());
 }
 
 void requestDraw() {
-    tt_assert(gui);
+    assert(gui);
     ThreadId thread_id = gui->thread->getId();
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
@@ -147,7 +147,7 @@ class GuiService : public Service {
 public:
 
     void onStart(TT_UNUSED ServiceContext& service) override {
-        tt_assert(gui == nullptr);
+        assert(gui == nullptr);
         gui = gui_alloc();
 
         gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
@@ -155,7 +155,7 @@ public:
     }
 
     void onStop(TT_UNUSED ServiceContext& service) override {
-        tt_assert(gui != nullptr);
+        assert(gui != nullptr);
         lock();
 
         ThreadId thread_id = gui->thread->getId();

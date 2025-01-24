@@ -24,9 +24,9 @@ static uint8_t gamma = 255;
 static void onBacklightSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
     auto* lvgl_display = lv_display_get_default();
-    tt_assert(lvgl_display != nullptr);
+    assert(lvgl_display != nullptr);
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
-    tt_assert(hal_display != nullptr);
+    assert(hal_display != nullptr);
 
     if (hal_display->supportsBacklightDuty()) {
         int32_t slider_value = lv_slider_get_value(slider);
@@ -41,9 +41,9 @@ static void onBacklightSliderEvent(lv_event_t* event) {
 static void onGammaSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
     auto* lvgl_display = lv_display_get_default();
-    tt_assert(lvgl_display != nullptr);
+    assert(lvgl_display != nullptr);
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
-    tt_assert(hal_display != nullptr);
+    assert(hal_display != nullptr);
 
     if (hal_display->getGammaCurveCount() > 0) {
         int32_t slider_value = lv_slider_get_value(slider);
@@ -57,9 +57,9 @@ static void onGammaSliderEvent(lv_event_t* event) {
 
 static tt::hal::Display* getHalDisplay(lv_obj_t* widget) {
     auto* lvgl_display = lv_obj_get_display(widget);
-    tt_assert(lvgl_display != nullptr);
+    assert(lvgl_display != nullptr);
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
-    tt_assert(hal_display != nullptr);
+    assert(hal_display != nullptr);
     return hal_display;
 }
 
@@ -135,7 +135,7 @@ class DisplayApp : public App {
         lv_obj_add_event_cb(gamma_slider, onGammaSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
 
         auto* hal_display = getHalDisplay(parent);
-        tt_assert(hal_display != nullptr);
+        assert(hal_display != nullptr);
 
         if (!hal_display->supportsBacklightDuty()) {
             lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);

@@ -188,8 +188,8 @@ bool registerElfApp(const std::string& filePath) {
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {
     TT_LOG_I(TAG, "createElfApp");
-    tt_assert(manifest != nullptr);
-    tt_assert(manifest->location.isExternal());
+    assert(manifest != nullptr);
+    assert(manifest->location.isExternal());
     return std::make_shared<ElfApp>(manifest->location.getPath());
 }
 

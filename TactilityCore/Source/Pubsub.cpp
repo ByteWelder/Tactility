@@ -20,8 +20,8 @@ PubSubSubscription* tt_pubsub_subscribe(std::shared_ptr<PubSub> pubsub, PubSubCa
 }
 
 void tt_pubsub_unsubscribe(std::shared_ptr<PubSub> pubsub, PubSubSubscription* pubsub_subscription) {
-    tt_assert(pubsub);
-    tt_assert(pubsub_subscription);
+    assert(pubsub);
+    assert(pubsub_subscription);
 
     tt_check(pubsub->mutex.acquire(TtWaitForever) == TtStatusOk);
     bool result = false;

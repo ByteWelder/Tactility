@@ -14,6 +14,7 @@
 - M5Stack Core only shows 4MB of SPIRAM in use
 
 # TODOs
+- Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
 - Refactor ServiceManifest into C++ class-based design like the App class
 - Experiment with what happens when using C++ code in an external app (without using standard library!)

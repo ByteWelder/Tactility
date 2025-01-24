@@ -12,7 +12,7 @@ void tt_app_register(
     const ExternalAppManifest* manifest
 ) {
 #ifdef ESP_PLATFORM
-    tt_assert((manifest->createData == nullptr) == (manifest->destroyData == nullptr));
+    assert((manifest->createData == nullptr) == (manifest->destroyData == nullptr));
     tt::app::setElfAppManifest(
         manifest->name,
         manifest->icon,

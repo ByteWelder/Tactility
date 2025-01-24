@@ -5,13 +5,13 @@
 namespace tt {
 
 MessageQueue::MessageQueue(uint32_t capacity, uint32_t msg_size) {
-    tt_assert(!TT_IS_ISR() && (capacity > 0U) && (msg_size > 0U));
+    assert(!TT_IS_ISR() && (capacity > 0U) && (msg_size > 0U));
     queue_handle = xQueueCreate(capacity, msg_size);
     tt_check(queue_handle);
 }
 
 MessageQueue::~MessageQueue() {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
     vQueueDelete(queue_handle);
 }
 

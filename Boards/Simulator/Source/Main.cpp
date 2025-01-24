@@ -33,7 +33,7 @@ void freertosMain() {
         nullptr
     );
 
-    tt_assert(task_result == pdTRUE);
+    assert(task_result == pdTRUE);
 
     // Blocks forever
     vTaskStartScheduler();

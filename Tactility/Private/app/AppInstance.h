@@ -41,7 +41,7 @@ private:
         const std::shared_ptr<app::AppManifest>& manifest
     ) {
         if (manifest->location.isInternal()) {
-            tt_assert(manifest->createApp != nullptr);
+            assert(manifest->createApp != nullptr);
             return manifest->createApp();
         } else if (manifest->location.isExternal()) {
             if (manifest->createApp != nullptr) {

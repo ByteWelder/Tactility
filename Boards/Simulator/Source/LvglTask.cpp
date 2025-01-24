@@ -69,7 +69,7 @@ void lvgl_task_start() {
         nullptr
     );
 
-    tt_assert(task_result == pdTRUE);
+    assert(task_result == pdTRUE);
 }
 
 lv_disp_t* displayHandle = nullptr;
