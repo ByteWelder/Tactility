@@ -34,12 +34,6 @@ private:
      * Do not mutate after app creation.
      */
     std::shared_ptr<const tt::Bundle> _Nullable parameters;
-    /** @brief @brief Contextual data related to the running app's instance
-     * The app can attach its data to this.
-     * The lifecycle is determined by the on_start and on_stop methods in the AppManifest.
-     * These manifest methods can optionally allocate/free data that is attached here.
-     */
-    std::shared_ptr<void> _Nullable data;
 
     std::shared_ptr<App> app;
 

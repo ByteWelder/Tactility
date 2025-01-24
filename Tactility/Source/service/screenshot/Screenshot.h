@@ -1,11 +1,12 @@
 #pragma once
 
-#include "Mutex.h"
-#include "ScreenshotTask.h"
 #include "TactilityConfig.h"
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
+#include "Mutex.h"
+#include "ScreenshotTask.h"
+#include "service/Service.h"
 #include <cstdint>
 
 namespace tt::service::screenshot {
@@ -16,7 +17,7 @@ enum class Mode {
     Apps
 };
 
-class ScreenshotService {
+class ScreenshotService final : public Service {
 
 private:
 

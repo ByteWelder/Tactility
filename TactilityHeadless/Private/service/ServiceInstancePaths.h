@@ -8,11 +8,11 @@ class ServiceInstancePaths final : public Paths {
 
 private:
 
-    const ServiceManifest& manifest;
+    std::shared_ptr<const ServiceManifest> manifest;
 
 public:
 
-    explicit ServiceInstancePaths(const ServiceManifest& manifest) : manifest(manifest) {}
+    explicit ServiceInstancePaths(std::shared_ptr<const ServiceManifest> manifest) : manifest(std::move(manifest)) {}
     ~ServiceInstancePaths() final = default;
 
     std::string getDataDirectory() const final;

@@ -1,20 +1,20 @@
 #pragma once
 
 #include "service/ServiceManifest.h"
+#include "service/Service.h"
+#include <memory>
 
 namespace tt::service {
-
-void initRegistry();
 
 /** Register a service.
  * @param[in] the service manifest
  */
-void addService(const ServiceManifest* manifest);
+void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart = true);
 
-/** Unregister a service.
+/** Register a service.
  * @param[in] the service manifest
  */
-void removeService(const ServiceManifest* manifest);
+void addService(const ServiceManifest& manifest, bool autoStart = true);
 
 /** Start a service.
  * @param[in] the service id as defined in its manifest
@@ -32,12 +32,27 @@ bool stopService(const std::string& id);
  * @param[in] id the id as defined in the manifest
  * @return the matching manifest or nullptr when it wasn't found
  */
-const ServiceManifest* _Nullable findManifestId(const std::string& id);
+std::shared_ptr<const ServiceManifest> _Nullable findManifestId(const std::string& id);
 
-/** Find a service by its manifest id.
+/** Find a ServiceContext by its manifest id.
  * @param[in] id the id as defined in the manifest
  * @return the service context or nullptr when it wasn't found
  */
-ServiceContext* _Nullable findServiceById(const std::string& id);
+std::shared_ptr<ServiceContext> _Nullable findServiceContextById(const std::string& id);
+
+/** Find a Service by its manifest id.
+ * @param[in] id the id as defined in the manifest
+ * @return the service context or nullptr when it wasn't found
+ */
+std::shared_ptr<Service> _Nullable findServiceById(const std::string& id);
+
+/** Find a Service by its manifest id.
+ * @param[in] id the id as defined in the manifest
+ * @return the service context or nullptr when it wasn't found
+ */
+template <typename T>
+std::shared_ptr<T> _Nullable findServiceById(const std::string& id) {
+    return std::static_pointer_cast<T>(findServiceById(id));
+}
 
 } // namespace

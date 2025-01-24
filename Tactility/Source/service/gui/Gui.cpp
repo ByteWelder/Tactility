@@ -142,30 +142,36 @@ static int32_t guiMain(TT_UNUSED void* p) {
 
 // region AppManifest
 
-static void start(TT_UNUSED ServiceContext& service) {
-    gui = gui_alloc();
+class GuiService : public Service {
 
-    gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
-    gui->thread->start();
-}
+public:
 
-static void stop(TT_UNUSED ServiceContext& service) {
-    lock();
+    void onStart(TT_UNUSED ServiceContext& service) override {
+        tt_assert(gui == nullptr);
+        gui = gui_alloc();
 
-    ThreadId thread_id = gui->thread->getId();
-    thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
-    gui->thread->join();
-    delete gui->thread;
+        gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
+        gui->thread->start();
+    }
 
-    unlock();
+    void onStop(TT_UNUSED ServiceContext& service) override {
+        tt_assert(gui != nullptr);
+        lock();
 
-    gui_free(gui);
-}
+        ThreadId thread_id = gui->thread->getId();
+        thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+        gui->thread->join();
+        delete gui->thread;
+
+        unlock();
+
+        gui_free(gui);
+    }
+};
 
 extern const ServiceManifest manifest = {
     .id = "Gui",
-    .onStart = &start,
-    .onStop = &stop
+    .createService = create<GuiService>
 };
 
 // endregion
