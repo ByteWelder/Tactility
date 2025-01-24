@@ -1,7 +1,7 @@
 name: Tests
 on:
-  - push
-  - pull_request:
+  push:
+  pull_request:
     types: [opened, synchronize, reopened]
 jobs:
   Run:

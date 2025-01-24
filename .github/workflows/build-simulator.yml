@@ -1,8 +1,8 @@
 # Disabled because of issue: https://github.com/libsdl-org/setup-sdl/issues/23
 name: Build Simulator
 on:
-  - push
-  - pull_request:
+  push:
+  pull_request:
     types: [opened, synchronize, reopened]
 jobs:
   Build-Simulator-Linux:

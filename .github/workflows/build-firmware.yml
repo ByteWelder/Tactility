@@ -1,7 +1,7 @@
 name: Build Firmware
 on:
-  - push
-  - pull_request:
+  push:
+  pull_request:
     types: [opened, synchronize, reopened]
 
 permissions: read-all
