@@ -44,7 +44,7 @@ static void publish_event_simple(Wifi* wifi, EventType type) {
 // region Public functions
 
 std::shared_ptr<PubSub> getPubsub() {
-    tt_assert(wifi);
+    assert(wifi);
     return wifi->pubsub;
 }
 
@@ -57,26 +57,26 @@ std::string getConnectionTarget() {
 }
 
 void scan() {
-    tt_assert(wifi);
+    assert(wifi);
     wifi->scan_active = false; // TODO: enable and then later disable automatically
 }
 
 bool isScanning() {
-    tt_assert(wifi);
+    assert(wifi);
     return wifi->scan_active;
 }
 
 void connect(const settings::WifiApSettings* ap, bool remember) {
-    tt_assert(wifi);
+    assert(wifi);
     // TODO: implement
 }
 
 void disconnect() {
-    tt_assert(wifi);
+    assert(wifi);
 }
 
 void setScanRecords(uint16_t records) {
-    tt_assert(wifi);
+    assert(wifi);
     // TODO: implement
 }
 
@@ -114,7 +114,7 @@ std::vector<ApRecord> getScanResults() {
 }
 
 void setEnabled(bool enabled) {
-    tt_assert(wifi != nullptr);
+    assert(wifi != nullptr);
     if (enabled) {
         wifi->radio_state = RadioState::On;
         wifi->secure_connection = true;

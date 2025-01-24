@@ -35,18 +35,18 @@ Mutex::Mutex(Type type) : type(type) {
             tt_crash("Mutex type unknown/corrupted");
     }
 
-    tt_assert(semaphore != nullptr);
+    assert(semaphore != nullptr);
 }
 
 Mutex::~Mutex() {
-    tt_assert(!TT_IS_IRQ_MODE());
+    assert(!TT_IS_IRQ_MODE());
     vSemaphoreDelete(semaphore);
     semaphore = nullptr; // If the mutex is used after release, this might help debugging
 }
 
 TtStatus Mutex::acquire(TickType_t timeout) const {
-    tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert(semaphore != nullptr);
+    assert(!TT_IS_IRQ_MODE());
+    assert(semaphore != nullptr);
 
     tt_mutex_info(mutex, "acquire");
 
@@ -78,7 +78,7 @@ TtStatus Mutex::acquire(TickType_t timeout) const {
 
 TtStatus Mutex::release() const {
     assert(!TT_IS_IRQ_MODE());
-    tt_assert(semaphore);
+    assert(semaphore);
     tt_mutex_info(mutex, "release");
 
     switch (type) {
@@ -101,8 +101,8 @@ TtStatus Mutex::release() const {
 }
 
 ThreadId Mutex::getOwner() const {
-    tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert(semaphore);
+    assert(!TT_IS_IRQ_MODE());
+    assert(semaphore);
     return (ThreadId)xSemaphoreGetMutexHolder(semaphore);
 }
 

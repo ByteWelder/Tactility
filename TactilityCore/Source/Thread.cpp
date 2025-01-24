@@ -42,17 +42,17 @@ __attribute__((__noreturn__)) void thread_catch() { //-V1082
 
 
 static void thread_body(void* context) {
-    tt_assert(context);
+    assert(context);
     auto* data = static_cast<Thread::Data*>(context);
 
     // Store thread data instance to thread local storage
-    tt_assert(pvTaskGetThreadLocalStoragePointer(nullptr, 0) == nullptr);
+    assert(pvTaskGetThreadLocalStoragePointer(nullptr, 0) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, 0, data->thread);
 
-    tt_assert(data->state == Thread::State::Starting);
+    assert(data->state == Thread::State::Starting);
     setState(data, Thread::State::Running);
     data->callbackResult = data->callback(data->callbackContext);
-    tt_assert(data->state == Thread::State::Running);
+    assert(data->state == Thread::State::Running);
 
     setState(data, Thread::State::Stopped);
 
@@ -102,36 +102,36 @@ Thread::Thread(
 
 Thread::~Thread() {
     // Ensure that use join before free
-    tt_assert(data.state == State::Stopped);
-    tt_assert(data.taskHandle == nullptr);
+    assert(data.state == State::Stopped);
+    assert(data.taskHandle == nullptr);
 }
 
 void Thread::setName(const std::string& newName) {
-    tt_assert(data.state == State::Stopped);
+    assert(data.state == State::Stopped);
     data.name = newName;
 }
 
 void Thread::setStackSize(size_t stackSize) {
-    tt_assert(data.state == State::Stopped);
-    tt_assert(stackSize % 4 == 0);
+    assert(data.state == State::Stopped);
+    assert(stackSize % 4 == 0);
     data.stackSize = stackSize;
 }
 
 void Thread::setCallback(Callback callback, _Nullable void* callbackContext) {
-    tt_assert(data.state == State::Stopped);
+    assert(data.state == State::Stopped);
     data.callback = callback;
     data.callbackContext = callbackContext;
 }
 
 
 void Thread::setPriority(Priority priority) {
-    tt_assert(data.state == State::Stopped);
+    assert(data.state == State::Stopped);
     data.priority = priority;
 }
 
 
 void Thread::setStateCallback(StateCallback callback, _Nullable void* callbackContext) {
-    tt_assert(data.state == State::Stopped);
+    assert(data.state == State::Stopped);
     data.stateCallback = callback;
     data.stateCallbackContext = callbackContext;
 }
@@ -141,9 +141,9 @@ Thread::State Thread::getState() const {
 }
 
 void Thread::start() {
-    tt_assert(data.callback);
-    tt_assert(data.state == State::Stopped);
-    tt_assert(data.stackSize > 0U && data.stackSize < (UINT16_MAX * sizeof(StackType_t)));
+    assert(data.callback);
+    assert(data.state == State::Stopped);
+    assert(data.stackSize > 0U && data.stackSize < (UINT16_MAX * sizeof(StackType_t)));
 
     setState(&data, State::Starting);
 
@@ -210,7 +210,7 @@ ThreadId Thread::getId() const {
 }
 
 int32_t Thread::getReturnCode() const {
-    tt_assert(data.state == State::Stopped);
+    assert(data.state == State::Stopped);
     return data.callbackResult;
 }
 
@@ -232,7 +232,7 @@ Thread::Priority thread_get_current_priority() {
 }
 
 void thread_yield() {
-    tt_assert(!TT_IS_IRQ_MODE());
+    assert(!TT_IS_IRQ_MODE());
     taskYIELD();
 }
 

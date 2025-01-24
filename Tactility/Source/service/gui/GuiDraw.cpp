@@ -27,7 +27,7 @@ static lv_obj_t* createAppViews(Gui* gui, lv_obj_t* parent) {
 }
 
 void redraw(Gui* gui) {
-    tt_assert(gui);
+    assert(gui);
 
     // Lock GUI and LVGL
     lock();

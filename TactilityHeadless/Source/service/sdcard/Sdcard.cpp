@@ -29,7 +29,7 @@ private:
 
     void update() {
         auto sdcard = tt::hal::getConfiguration()->sdcard;
-        tt_assert(sdcard);
+        assert(sdcard);
 
         if (lock(50)) {
             auto new_state = sdcard->getState();

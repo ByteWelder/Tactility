@@ -160,7 +160,7 @@ void I2cScannerApp::onScanTimerCallback(TT_UNUSED std::shared_ptr<void> context)
 bool I2cScannerApp::getPort(i2c_port_t* outPort) {
     if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         *outPort = this->port;
-        tt_assert(mutex.release() == TtStatusOk);
+        assert(mutex.release() == TtStatusOk);
         return true;
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "getPort");
@@ -171,7 +171,7 @@ bool I2cScannerApp::getPort(i2c_port_t* outPort) {
 bool I2cScannerApp::addAddressToList(uint8_t address) {
     if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
         scannedAddresses.push_back(address);
-        tt_assert(mutex.release() == TtStatusOk);
+        assert(mutex.release() == TtStatusOk);
         return true;
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "addAddressToList");
@@ -257,7 +257,7 @@ void I2cScannerApp::startScanning() {
 }
 void I2cScannerApp::stopScanning() {
     if (mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
-        tt_assert(scanTimer != nullptr);
+        assert(scanTimer != nullptr);
         scanState = ScanStateStopped;
         tt_check(mutex.release() == TtStatusOk);
     } else {

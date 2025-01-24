@@ -5,8 +5,8 @@
 namespace tt {
 
 Semaphore::Semaphore(uint32_t maxCount, uint32_t initialCount) {
-    tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert((maxCount > 0U) && (initialCount <= maxCount));
+    assert(!TT_IS_IRQ_MODE());
+    assert((maxCount > 0U) && (initialCount <= maxCount));
 
     if (maxCount == 1U) {
         handle = xSemaphoreCreateBinary();
@@ -24,7 +24,7 @@ Semaphore::Semaphore(uint32_t maxCount, uint32_t initialCount) {
 }
 
 Semaphore::~Semaphore() {
-    tt_assert(!TT_IS_IRQ_MODE());
+    assert(!TT_IS_IRQ_MODE());
     vSemaphoreDelete(handle);
 }
 

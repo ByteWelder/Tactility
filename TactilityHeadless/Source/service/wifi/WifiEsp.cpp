@@ -312,7 +312,7 @@ bool isConnectionSecure() {
 }
 
 int getRssi() {
-    tt_assert(wifi_singleton);
+    assert(wifi_singleton);
     static int rssi = 0;
     if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
         return rssi;
@@ -326,7 +326,7 @@ int getRssi() {
 static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
     if (lockable->lock(TtWaitForever)) {
-        tt_assert(wifi->scan_list == nullptr);
+        assert(wifi->scan_list == nullptr);
         wifi->scan_list = static_cast<wifi_ap_record_t*>(malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit));
         wifi->scan_list_count = 0;
     }
@@ -344,7 +344,7 @@ static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
 static void scan_list_free(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
     if (lockable->lock(TtWaitForever)) {
-        tt_assert(wifi->scan_list != nullptr);
+        assert(wifi->scan_list != nullptr);
         free(wifi->scan_list);
         wifi->scan_list = nullptr;
         wifi->scan_list_count = 0;
@@ -643,7 +643,7 @@ static void dispatchDisable(std::shared_ptr<void> context) {
         TT_LOG_E(TAG, "Failed to deinit");
     }
 
-    tt_assert(wifi->netif != nullptr);
+    assert(wifi->netif != nullptr);
     esp_netif_destroy(wifi->netif);
     wifi->netif = nullptr;
     wifi->setScanActive(false);
@@ -941,7 +941,7 @@ class WifiService final : public Service {
 public:
 
     void onStart(ServiceContext& service) override {
-        tt_assert(wifi_singleton == nullptr);
+        assert(wifi_singleton == nullptr);
         wifi_singleton = std::make_shared<Wifi>();
 
         wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
@@ -956,7 +956,7 @@ public:
 
     void onStop(ServiceContext& service) override {
         auto wifi = wifi_singleton;
-        tt_assert(wifi != nullptr);
+        assert(wifi != nullptr);
 
         RadioState state = wifi->getRadioState();
         if (state != RadioState::Off) {

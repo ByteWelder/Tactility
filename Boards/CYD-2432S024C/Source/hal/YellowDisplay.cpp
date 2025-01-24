@@ -140,7 +140,7 @@ bool YellowDisplay::start() {
 }
 
 bool YellowDisplay::stop() {
-    tt_assert(displayHandle != nullptr);
+    assert(displayHandle != nullptr);
 
     lvgl_port_remove_disp(displayHandle);
 

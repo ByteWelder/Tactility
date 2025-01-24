@@ -21,7 +21,7 @@ bool initDisplay(const hal::Configuration& config) {
     }
 
     lv_display_t* lvgl_display = display->getLvglDisplay();
-    tt_assert(lvgl_display);
+    assert(lvgl_display);
 
     if (display->supportsBacklightDuty()) {
         display->setBacklightDuty(0);
@@ -30,7 +30,7 @@ bool initDisplay(const hal::Configuration& config) {
     void* existing_display_user_data = lv_display_get_user_data(lvgl_display);
     // esp_lvgl_port users user_data by default, so we have to modify the source
     // this is a check for when we upgrade esp_lvgl_port and forget to modify it again
-    tt_assert(existing_display_user_data == nullptr);
+    assert(existing_display_user_data == nullptr);
     lv_display_set_user_data(lvgl_display, display);
 
     lv_display_rotation_t rotation = app::display::getRotation();
@@ -43,8 +43,8 @@ bool initDisplay(const hal::Configuration& config) {
 
 bool initTouch(hal::Display* display, hal::Touch* touch) {
     TT_LOG_I(TAG, "Touch init");
-    tt_assert(display);
-    tt_assert(touch);
+    assert(display);
+    assert(touch);
     if (touch->start(display->getLvglDisplay())) {
         return true;
     } else {
@@ -55,8 +55,8 @@ bool initTouch(hal::Display* display, hal::Touch* touch) {
 
 bool initKeyboard(hal::Display* display, hal::Keyboard* keyboard) {
     TT_LOG_I(TAG, "Keyboard init");
-    tt_assert(display);
-    tt_assert(keyboard);
+    assert(display);
+    assert(keyboard);
     if (keyboard->isAttached()) {
         if (keyboard->start(display->getLvglDisplay())) {
             lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
