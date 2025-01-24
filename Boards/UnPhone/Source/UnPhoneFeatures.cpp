@@ -283,13 +283,11 @@ bool UnPhoneFeatures::setShipping(bool on) const {
     if (on) {
         TT_LOG_W(TAG, "setShipping: on");
         batteryManagement.setWatchDogTimer(Bq24295::WatchDogTimer::Disabled);
-        // Set bit 5 to disable
-        batteryManagement.setOperationControlBitOn(1 << 5);
+        batteryManagement.setBatFetOn(false);
     } else {
         TT_LOG_W(TAG, "setShipping: off");
         batteryManagement.setWatchDogTimer(Bq24295::WatchDogTimer::Enabled40s);
-        // Clear bit 5 to enable
-        batteryManagement.setOperationControlBitOff(1 << 5);
+        batteryManagement.setBatFetOn(true);
     }
     return true;
 }

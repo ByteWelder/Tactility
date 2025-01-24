@@ -60,18 +60,16 @@ bool Bq24295::setWatchDogTimer(WatchDogTimer in) const {
 
 // endregoin
 
-// region Operation Control
+// region Operation Control (REG07)
 
-bool Bq24295::getOperationControl(uint8_t value) const {
-    return readRegister8(registers::OPERATION_CONTROL, value);
-}
-
-bool Bq24295::setOperationControlBitOn(uint8_t mask) const {
-    return bitOn(registers::OPERATION_CONTROL, mask);
-}
-
-bool Bq24295::setOperationControlBitOff(uint8_t mask) const {
-    return bitOff(registers::OPERATION_CONTROL, mask);
+bool Bq24295::setBatFetOn(bool on) const {
+    if (on) {
+        // bit 5 low means bat fet is on
+        return bitOff(registers::OPERATION_CONTROL, BIT(5));
+    } else {
+        // bit 5 high means bat fet is off
+        return bitOn(registers::OPERATION_CONTROL, BIT(5));
+    }
 }
 
 // endregion
