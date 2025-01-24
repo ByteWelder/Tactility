@@ -79,12 +79,12 @@ void gui_free(Gui* instance) {
 
 void lock() {
     tt_assert(gui);
-    tt_check(gui->mutex.acquire(configTICK_RATE_HZ) == TtStatusOk);
+    tt_check(gui->mutex.lock(configTICK_RATE_HZ));
 }
 
 void unlock() {
     tt_assert(gui);
-    tt_check(gui->mutex.release() == TtStatusOk);
+    tt_check(gui->mutex.unlock());
 }
 
 void requestDraw() {
