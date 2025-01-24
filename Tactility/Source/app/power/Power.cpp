@@ -112,7 +112,7 @@ private:
         lv_label_set_text_fmt(chargeStateLabel, "Charging: %s", charge_state);
 
         if (battery_voltage_set) {
-            lv_label_set_text_fmt(batteryVoltageLabel, "Battery voltage: %lu mV", battery_voltage);
+            lv_label_set_text_fmt(batteryVoltageLabel, "Battery voltage: %u mV", battery_voltage);
         } else {
             lv_label_set_text_fmt(batteryVoltageLabel, "Battery voltage: N/A");
         }
@@ -124,7 +124,7 @@ private:
         }
 
         if (current_set) {
-            lv_label_set_text_fmt(currentLabel, "Current: %ld mAh", current);
+            lv_label_set_text_fmt(currentLabel, "Current: %d mAh", current);
         } else {
             lv_label_set_text_fmt(currentLabel, "Current: N/A");
         }
