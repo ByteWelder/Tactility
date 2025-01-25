@@ -2,6 +2,7 @@
 
 #include "CoreTypes.h"
 #include "RtosCompatEventGroups.h"
+#include <memory>
 
 namespace tt {
 
@@ -10,7 +11,15 @@ namespace tt {
  */
 class EventFlag {
 private:
-    EventGroupHandle_t handle;
+
+    struct EventGroupHandleDeleter {
+        void operator()(EventGroupHandle_t handleToDelete) {
+            vEventGroupDelete(handleToDelete);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<EventGroupHandle_t>, EventGroupHandleDeleter> handle;
+
 public:
     EventFlag();
     ~EventFlag();
@@ -20,7 +29,7 @@ public:
     uint32_t wait(
         uint32_t flags,
         uint32_t options = TtFlagWaitAny,
-        uint32_t timeout = TtWaitForever
+        uint32_t timeout = portMAX_DELAY
     ) const;
 };
 

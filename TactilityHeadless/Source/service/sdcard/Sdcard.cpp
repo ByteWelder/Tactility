@@ -20,11 +20,11 @@ private:
     hal::SdCard::State lastState = hal::SdCard::State::Unmounted;
 
     bool lock(TickType_t timeout) const {
-        return mutex.acquire(timeout) == TtStatusOk;
+        return mutex.lock(timeout);
     }
 
     void unlock() const {
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     }
 
     void update() {

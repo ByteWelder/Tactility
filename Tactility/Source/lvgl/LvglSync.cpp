@@ -6,11 +6,11 @@ namespace tt::lvgl {
 static Mutex lockMutex;
 
 static bool defaultLock(uint32_t timeoutMillis) {
-    return lockMutex.acquire(timeoutMillis) == TtStatusOk;
+    return lockMutex.lock(timeoutMillis);
 }
 
 static void defaultUnlock() {
-    lockMutex.release();
+    lockMutex.unlock();
 }
 
 static LvglLock lock_singleton = defaultLock;

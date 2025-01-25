@@ -72,7 +72,7 @@ public:
      * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for space to become available if the stream buffer is full.
      * Will return immediately if timeout is zero.
-     * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
+     * Setting timeout to portMAX_DELAY will cause the task to wait indefinitely.
      * Ignored if called from ISR.
      * @return The number of bytes actually written to the stream buffer.
      */
@@ -92,7 +92,7 @@ public:
      * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for data to become available if the stream buffer is empty.
      * Will return immediately if timeout is zero.
-     * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
+     * Setting timeout to portMAX_DELAY will cause the task to wait indefinitely.
      * Ignored if called from ISR.
      * @return The number of bytes read from the stream buffer, if any.
      */

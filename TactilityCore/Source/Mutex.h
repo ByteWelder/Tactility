@@ -17,7 +17,7 @@ namespace tt {
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Cannot be used in IRQ mode (within ISR context)
  */
-class Mutex : public Lockable {
+class Mutex final : public Lockable {
 
 public:
 
@@ -41,29 +41,23 @@ private:
 public:
 
     explicit Mutex(Type type = Type::Normal);
-    ~Mutex() override;
-
-    /** Attempt to lock the mutex. Blocks until timeout passes or lock is acquired.
-     * @param[in] timeout
-     * @return status result
-     */
-    TtStatus acquire(TickType_t timeout) const;
-
-    /** Attempt to unlock the mutex.
-     * @return status result
-     */
-    TtStatus release() const;
+    ~Mutex() override = default;
 
     /** Attempt to lock the mutex. Blocks until timeout passes or lock is acquired.
      * @param[in] timeout
      * @return success result
      */
-    bool lock(TickType_t timeout) const override { return acquire(timeout) == TtStatusOk; }
+    bool lock(TickType_t timeout) const override;
+
+    /** Attempt to lock the mutex. Blocks until lock is acquired, without timeout.
+     * @return success result
+     */
+    bool lock() const override { return lock(portMAX_DELAY); }
 
     /** Attempt to unlock the mutex.
      * @return success result
      */
-    bool unlock() const override { return release() == TtStatusOk; }
+    bool unlock() const override;
 
     /** @return the owner of the thread */
     ThreadId getOwner() const;

@@ -138,11 +138,11 @@ private:
     std::unique_ptr<service::Paths> paths;
 
     void lock() const {
-        tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+        mutex.lock();
     }
 
     void unlock() const {
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     }
 
     void updateWifiIcon() {

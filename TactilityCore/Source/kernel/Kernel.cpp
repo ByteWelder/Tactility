@@ -116,13 +116,11 @@ void delayTicks(TickType_t ticks) {
     }
 }
 
-TtStatus delayUntilTick(TickType_t tick) {
+bool delayUntilTick(TickType_t tick) {
     assert(!TT_IS_ISR());
 
     TickType_t tcnt, delay;
-    TtStatus stat;
 
-    stat = TtStatusOk;
     tcnt = xTaskGetTickCount();
 
     /* Determine remaining number of tick to delay */
@@ -130,17 +128,12 @@ TtStatus delayUntilTick(TickType_t tick) {
 
     /* Check if target tick has not expired */
     if ((delay != 0U) && (0 == (delay >> (8 * sizeof(TickType_t) - 1)))) {
-        if (xTaskDelayUntil(&tcnt, delay) == pdFALSE) {
-            /* Did not delay */
-            stat = TtStatusError;
+        if (xTaskDelayUntil(&tcnt, delay) == pdPASS) {
+            return true;
         }
-    } else {
-        /* No delay or already expired */
-        stat = TtStatusErrorParameter;
     }
 
-    /* Return execution status */
-    return (stat);
+    return false;
 }
 
 TickType_t getTicks() {

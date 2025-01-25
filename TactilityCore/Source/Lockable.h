@@ -3,6 +3,8 @@
 #include "Check.h"
 #include "RtosCompat.h"
 #include <memory>
+#include <functional>
+#include <algorithm>
 
 namespace tt {
 
@@ -14,6 +16,8 @@ public:
     virtual ~Lockable() = default;
 
     virtual bool lock(TickType_t timeoutTicks) const = 0;
+
+    virtual bool lock() const { return lock(portMAX_DELAY); }
 
     virtual bool unlock() const = 0;
 
@@ -42,6 +46,8 @@ public:
     bool lock(TickType_t timeout) const override {
         return lockable.lock(timeout);
     }
+
+    bool lock() const override { return lock(portMAX_DELAY); }
 
     bool unlock() const override {
         return lockable.unlock();

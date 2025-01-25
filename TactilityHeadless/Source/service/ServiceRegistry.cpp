@@ -25,7 +25,7 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart)
 
     TT_LOG_I(TAG, "Adding %s", id.c_str());
 
-    manifest_mutex.lock(TtWaitForever);
+    manifest_mutex.lock();
     if (service_manifest_map[id] == nullptr) {
         service_manifest_map[id] = std::move(manifest);
     } else {
@@ -43,18 +43,18 @@ void addService(const ServiceManifest& manifest, bool autoStart) {
 }
 
 std::shared_ptr<const ServiceManifest> _Nullable findManifestId(const std::string& id) {
-    manifest_mutex.acquire(TtWaitForever);
+    manifest_mutex.lock();
     auto iterator = service_manifest_map.find(id);
     auto manifest = iterator != service_manifest_map.end() ? iterator->second : nullptr;
-    manifest_mutex.release();
+    manifest_mutex.unlock();
     return manifest;
 }
 
 static std::shared_ptr<ServiceInstance> _Nullable findServiceInstanceById(const std::string& id) {
-    manifest_mutex.acquire(TtWaitForever);
+    manifest_mutex.lock();
     auto iterator = service_instance_map.find(id);
     auto service = iterator != service_instance_map.end() ? iterator->second : nullptr;
-    manifest_mutex.release();
+    manifest_mutex.unlock();
     return service;
 }
 
@@ -70,9 +70,9 @@ bool startService(const std::string& id) {
     auto service_instance = std::make_shared<ServiceInstance>(manifest);
 
     // Register first, so that a service can retrieve itself during onStart()
-    instance_mutex.acquire(TtWaitForever);
+    instance_mutex.lock();
     service_instance_map[manifest->id] = service_instance;
-    instance_mutex.release();
+    instance_mutex.unlock();
 
     service_instance->getService()->onStart(*service_instance);
 
@@ -100,9 +100,9 @@ bool stopService(const std::string& id) {
 
     service_instance->getService()->onStop(*service_instance);
 
-    instance_mutex.acquire(TtWaitForever);
+    instance_mutex.lock();
     service_instance_map.erase(id);
-    instance_mutex.release();
+    instance_mutex.unlock();
 
     if (service_instance.use_count() > 1) {
         TT_LOG_W(TAG, "Possible memory leak: service %s still has %ld references", service_instance->getManifest().id.c_str(), service_instance.use_count() - 1);

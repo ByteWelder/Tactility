@@ -19,12 +19,12 @@ static bool task_running = false;
 
 static void lvgl_task(void* arg);
 
-static bool task_lock(int timeout_ticks) {
-    return task_mutex.acquire(timeout_ticks) == tt::TtStatusOk;
+static bool task_lock(TickType_t timeout) {
+    return task_mutex.lock(timeout);
 }
 
 static void task_unlock() {
-    task_mutex.release();
+    task_mutex.unlock();
 }
 
 static void task_set_running(bool running) {
@@ -41,15 +41,15 @@ bool lvgl_task_is_running() {
 }
 
 static bool lvgl_lock(uint32_t timeoutMillis) {
-    return lvgl_mutex.acquire(pdMS_TO_TICKS(timeoutMillis)) == tt::TtStatusOk;
+    return lvgl_mutex.lock(pdMS_TO_TICKS(timeoutMillis));
 }
 
 static void lvgl_unlock() {
-    lvgl_mutex.release();
+    lvgl_mutex.unlock();
 }
 
 void lvgl_task_interrupt() {
-    tt_check(task_lock(tt::TtWaitForever));
+    tt_check(task_lock(portMAX_DELAY));
     task_set_running(false); // interrupt task with boolean as flag
     task_unlock();
 }

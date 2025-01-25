@@ -4,13 +4,13 @@
 namespace tt {
 
 PubSub::SubscriptionHandle PubSub::subscribe(PubSubCallback callback, void* callbackParameter) {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     items.push_back({
         .id = (++lastId),
         .callback = callback,
         .callbackParameter = callbackParameter});
 
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 
     return (Subscription*)lastId;
 }
@@ -18,7 +18,7 @@ PubSub::SubscriptionHandle PubSub::subscribe(PubSubCallback callback, void* call
 void PubSub::unsubscribe(SubscriptionHandle subscription) {
     assert(subscription);
 
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     bool result = false;
     auto id = (uint64_t)subscription;
     for (auto it = items.begin(); it != items.end(); it++) {
@@ -29,19 +29,19 @@ void PubSub::unsubscribe(SubscriptionHandle subscription) {
         }
     }
 
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
     tt_check(result);
 }
 
 void PubSub::publish(void* message) {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
 
     // Iterate over subscribers
     for (auto& it : items) {
         it.callback(message, it.callbackParameter);
     }
 
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 } // namespace

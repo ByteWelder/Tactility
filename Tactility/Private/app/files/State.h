@@ -42,7 +42,7 @@ public:
     bool setEntriesForPath(const std::string& path);
 
     const std::vector<dirent>& lockEntries() const {
-        mutex.lock(TtWaitForever);
+        mutex.lock();
         return dir_entries;
     }
 

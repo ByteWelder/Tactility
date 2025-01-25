@@ -64,11 +64,11 @@ WifiManage::WifiManage() {
 }
 
 void WifiManage::lock() {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
 }
 
 void WifiManage::unlock() {
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void WifiManage::requestViewUpdate() {

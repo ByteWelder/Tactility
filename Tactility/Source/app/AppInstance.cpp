@@ -6,15 +6,15 @@ namespace tt::app {
 #define TAG "app"
 
 void AppInstance::setState(State newState) {
-    mutex.acquire(TtWaitForever);
+    mutex.lock();
     state = newState;
-    mutex.release();
+    mutex.unlock();
 }
 
 State AppInstance::getState() const {
-    mutex.acquire(TtWaitForever);
+    mutex.lock();
     auto result = state;
-    mutex.release();
+    mutex.unlock();
     return result;
 }
 
@@ -30,22 +30,22 @@ const AppManifest& AppInstance::getManifest() const {
 }
 
 Flags AppInstance::getFlags() const {
-    mutex.acquire(TtWaitForever);
+    mutex.lock();
     auto result = flags;
-    mutex.release();
+    mutex.unlock();
     return result;
 }
 
 void AppInstance::setFlags(Flags newFlags) {
-    mutex.acquire(TtWaitForever);
+    mutex.lock();
     flags = newFlags;
-    mutex.release();
+    mutex.unlock();
 }
 
 std::shared_ptr<const Bundle> AppInstance::getParameters() const {
-    mutex.acquire(TtWaitForever);
+    mutex.lock();
     std::shared_ptr<const Bundle> result = parameters;
-    mutex.release();
+    mutex.unlock();
     return result;
 }
 

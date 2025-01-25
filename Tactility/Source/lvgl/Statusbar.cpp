@@ -46,7 +46,7 @@ typedef struct {
     PubSub::SubscriptionHandle pubsub_subscription;
 } Statusbar;
 
-static bool statusbar_lock(uint32_t timeoutTicks) {
+static bool statusbar_lock(uint32_t timeoutTicks = portMAX_DELAY) {
     return statusbar_data.mutex.lock(timeoutTicks);
 }
 
@@ -181,7 +181,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_lock(TtWaitForever);
+    statusbar_lock(portMAX_DELAY);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
@@ -233,7 +233,7 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
 }
 
 int8_t statusbar_icon_add(const std::string& image) {
-    statusbar_lock(TtWaitForever);
+    statusbar_lock();
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
@@ -257,7 +257,7 @@ int8_t statusbar_icon_add() {
 void statusbar_icon_remove(int8_t id) {
     TT_LOG_I(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_lock(TtWaitForever);
+    statusbar_lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];
     icon->claimed = false;
     icon->visible = false;

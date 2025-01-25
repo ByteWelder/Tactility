@@ -41,7 +41,7 @@ bool ScreenshotTask::isFinished() {
 
 void ScreenshotTask::setFinished() {
     auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock(TtWaitForever);
+    scoped_lockable->lock();
     finished = true;
 }
 

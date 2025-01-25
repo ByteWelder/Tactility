@@ -5,11 +5,6 @@
 
 namespace tt {
 
-[[deprecated("Using this is poor software design in most scenarios")]]
-typedef enum {
-    TtWaitForever = 0xFFFFFFFFU,
-} TtWait;
-
 [[deprecated("Define flags as needed")]]
 typedef enum {
     TtFlagWaitAny = 0x00000000U, ///< Wait for any flag (default).
@@ -26,17 +21,11 @@ typedef enum {
 
 [[deprecated("Use bool or specific type")]]
 typedef enum {
-    TtStatusOk = 0, ///< Operation completed successfully.
-    TtStatusError =
-        -1,                        ///< Unspecified RTOS error: run-time error but no other error message fits.
+    TtStatusError = -1,                        ///< Unspecified RTOS error: run-time error but no other error message fits.
     TtStatusErrorTimeout = -2,   ///< Operation not completed within the timeout period.
     TtStatusErrorResource = -3,  ///< Resource not available.
     TtStatusErrorParameter = -4, ///< Parameter error.
-    TtStatusErrorNoMemory =
-        -5, ///< System is out of memory: it was impossible to allocate or reserve memory for the operation.
-    TtStatusErrorISR =
-        -6,                         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
-    TtStatusReserved = 0x7FFFFFFF ///< Prevents enum down-size compiler optimization.
+    TtStatusErrorISR = -6,                         ///< Not allowed in ISR context: the function cannot be called from interrupt service routines.
 } TtStatus;
 
 } // namespace

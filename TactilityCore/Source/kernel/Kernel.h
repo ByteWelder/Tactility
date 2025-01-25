@@ -57,9 +57,9 @@ void delayTicks(TickType_t ticks);
 /** Delay until tick
  * @warning don't call from ISR context
  * @param[in] ticks  The tick until which kerel should delay task execution
- * @return the status
+ * @return true on success
  */
-TtStatus delayUntilTick(TickType_t tick);
+bool delayUntilTick(TickType_t tick);
 
 /** Convert milliseconds to ticks
  *

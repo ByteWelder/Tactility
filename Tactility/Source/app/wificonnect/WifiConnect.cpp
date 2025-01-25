@@ -68,11 +68,11 @@ WifiConnect::~WifiConnect() {
 }
 
 void WifiConnect::lock() {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
 }
 
 void WifiConnect::unlock() {
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void WifiConnect::requestViewUpdate() {

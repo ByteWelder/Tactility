@@ -26,11 +26,11 @@ private:
 public:
 
     void lock() const {
-        tt_check(mutex.acquire(1000) == TtStatusOk);
+        tt_check(mutex.lock(1000));
     }
 
     void unlock() const {
-        tt_check(mutex.release() == TtStatusOk);
+        tt_check(mutex.unlock());
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override;
