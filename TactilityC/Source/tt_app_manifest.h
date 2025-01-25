@@ -14,16 +14,16 @@ typedef enum {
     AppResultError = 2
 } Result;
 
-typedef void* AppContextHandle;
+typedef void* AppHandle;
 
 /** Important: These function types must map to t::app types exactly */
 typedef void* (*AppCreateData)();
 typedef void (*AppDestroyData)(void* data);
-typedef void (*AppOnStart)(AppContextHandle app, void* _Nullable data);
-typedef void (*AppOnStop)(AppContextHandle app, void* _Nullable data);
-typedef void (*AppOnShow)(AppContextHandle app, void* _Nullable data, lv_obj_t* parent);
-typedef void (*AppOnHide)(AppContextHandle app, void* _Nullable data);
-typedef void (*AppOnResult)(AppContextHandle app, void* _Nullable data, Result result, BundleHandle resultData);
+typedef void (*AppOnStart)(AppHandle app, void* _Nullable data);
+typedef void (*AppOnStop)(AppHandle app, void* _Nullable data);
+typedef void (*AppOnShow)(AppHandle app, void* _Nullable data, lv_obj_t* parent);
+typedef void (*AppOnHide)(AppHandle app, void* _Nullable data);
+typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, Result result, BundleHandle resultData);
 
 typedef struct {
     /** The application's human-readable name */

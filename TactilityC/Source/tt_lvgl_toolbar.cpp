@@ -3,7 +3,7 @@
 
 extern "C" {
 
-lv_obj_t* tt_lvgl_toolbar_create(lv_obj_t* parent, AppContextHandle context) {
+lv_obj_t* tt_lvgl_toolbar_create(lv_obj_t* parent, AppHandle context) {
     return tt::lvgl::toolbar_create(parent, *(tt::app::AppContext*)context);
 }
 
