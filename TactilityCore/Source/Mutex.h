@@ -4,7 +4,6 @@
  */
 #pragma once
 
-#include "CoreTypes.h"
 #include "Thread.h"
 #include "RtosCompatSemaphore.h"
 #include "Check.h"

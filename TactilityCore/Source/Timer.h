@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreTypes.h"
-
 #include "RtosCompatTimers.h"
 #include "Thread.h"
 #include <memory>

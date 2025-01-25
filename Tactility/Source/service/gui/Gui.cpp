@@ -122,7 +122,7 @@ static int32_t guiMain(TT_UNUSED void* p) {
     while (true) {
         uint32_t flags = Thread::awaitFlags(
             GUI_THREAD_FLAG_ALL,
-            TtFlagWaitAny,
+            EventFlag::WaitAny,
             portMAX_DELAY
         );
         // Process and dispatch draw call

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "CoreDefines.h"
-#include "CoreTypes.h"
 
 #include <string>
 #include <memory>

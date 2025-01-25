@@ -2,7 +2,6 @@
 
 #include "Check.h"
 #include "CoreDefines.h"
-#include "CoreTypes.h"
 
 namespace tt {
 

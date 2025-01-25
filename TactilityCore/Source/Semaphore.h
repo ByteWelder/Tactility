@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CoreTypes.h"
 #include "Thread.h"
 #include <cassert>
 #include <memory>

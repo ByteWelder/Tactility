@@ -7,7 +7,6 @@
  */
 #pragma once
 
-#include "CoreTypes.h"
 #include <memory>
 
 #ifdef ESP_PLATFORM

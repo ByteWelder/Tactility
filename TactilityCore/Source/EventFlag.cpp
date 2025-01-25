@@ -29,7 +29,7 @@ uint32_t EventFlag::set(uint32_t flags) const {
     if (TT_IS_IRQ_MODE()) {
         yield = pdFALSE;
         if (xEventGroupSetBitsFromISR(handle.get(), (EventBits_t)flags, &yield) == pdFAIL) {
-            rflags = (uint32_t)TtFlagErrorResource;
+            rflags = (uint32_t)ErrorResource;
         } else {
             rflags = flags;
             portYIELD_FROM_ISR(yield);
@@ -51,7 +51,7 @@ uint32_t EventFlag::clear(uint32_t flags) const {
         rflags = xEventGroupGetBitsFromISR(handle.get());
 
         if (xEventGroupClearBitsFromISR(handle.get(), (EventBits_t)flags) == pdFAIL) {
-            rflags = (uint32_t)TtStatusErrorResource;
+            rflags = (uint32_t)ErrorResource;
         } else {
             /* xEventGroupClearBitsFromISR only registers clear operation in the timer command queue. */
             /* Yield is required here otherwise clear operation might not execute in the right order. */
@@ -91,13 +91,13 @@ uint32_t EventFlag::wait(
     BaseType_t exit_clear;
     uint32_t rflags;
 
-    if (options & TtFlagWaitAll) {
+    if (options & WaitAll) {
         wait_all = pdTRUE;
     } else {
         wait_all = pdFAIL;
     }
 
-    if (options & TtFlagNoClear) {
+    if (options & NoClear) {
         exit_clear = pdFAIL;
     } else {
         exit_clear = pdTRUE;
@@ -111,20 +111,20 @@ uint32_t EventFlag::wait(
         (TickType_t)timeout
     );
 
-    if (options & TtFlagWaitAll) {
+    if (options & WaitAll) {
         if ((flags & rflags) != flags) {
             if (timeout > 0U) {
-                rflags = (uint32_t)TtStatusErrorTimeout;
+                rflags = (uint32_t)ErrorTimeout;
             } else {
-                rflags = (uint32_t)TtStatusErrorResource;
+                rflags = (uint32_t)ErrorResource;
             }
         }
     } else {
         if ((flags & rflags) == 0U) {
             if (timeout > 0U) {
-                rflags = (uint32_t)TtStatusErrorTimeout;
+                rflags = (uint32_t)ErrorTimeout;
             } else {
-                rflags = (uint32_t)TtStatusErrorResource;
+                rflags = (uint32_t)ErrorResource;
             }
         }
     }

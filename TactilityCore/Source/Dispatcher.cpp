@@ -33,7 +33,7 @@ void Dispatcher::dispatch(Function function, std::shared_ptr<void> context) {
 uint32_t Dispatcher::consume(TickType_t timeout) {
     // Wait for signal and clear
     TickType_t start_ticks = kernel::getTicks();
-    if (eventFlag.wait(WAIT_FLAG, TtFlagWaitAny, timeout)) {
+    if (eventFlag.wait(WAIT_FLAG, EventFlag::WaitAny, timeout)) {
         eventFlag.clear(WAIT_FLAG);
     } else {
         return 0;

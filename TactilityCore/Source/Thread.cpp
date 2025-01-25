@@ -1,10 +1,13 @@
 #include "Thread.h"
-#include <string>
 
 #include "Check.h"
 #include "CoreDefines.h"
+#include "EventFlag.h"
 #include "kernel/Kernel.h"
 #include "Log.h"
+#include "TactilityCoreConfig.h"
+
+#include <string>
 
 namespace tt {
 
@@ -199,9 +202,9 @@ uint32_t Thread::setFlags(ThreadId threadId, uint32_t flags) {
     BaseType_t yield;
 
     if ((hTask == nullptr) || ((flags & THREAD_FLAGS_INVALID_BITS) != 0U)) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
-        rflags = (uint32_t)TtStatusError;
+        rflags = (uint32_t)EventFlag::Error;
 
         if (TT_IS_IRQ_MODE()) {
             yield = pdFALSE;
@@ -226,9 +229,9 @@ uint32_t Thread::clearFlags(uint32_t flags) {
     uint32_t rflags, cflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
         hTask = xTaskGetCurrentTaskHandle();
 
@@ -239,10 +242,10 @@ uint32_t Thread::clearFlags(uint32_t flags) {
 
             if (xTaskNotifyIndexed(hTask, THREAD_NOTIFY_INDEX, cflags, eSetValueWithOverwrite) !=
                 pdPASS) {
-                rflags = (uint32_t)TtStatusError;
+                rflags = (uint32_t)EventFlag::Error;
             }
         } else {
-            rflags = (uint32_t)TtStatusError;
+            rflags = (uint32_t)EventFlag::Error;
         }
     }
 
@@ -255,13 +258,13 @@ uint32_t Thread::getFlags() {
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else {
         hTask = xTaskGetCurrentTaskHandle();
 
         if (xTaskNotifyAndQueryIndexed(hTask, THREAD_NOTIFY_INDEX, 0, eNoAction, &rflags) !=
             pdPASS) {
-            rflags = (uint32_t)TtStatusError;
+            rflags = (uint32_t)EventFlag::Error;
         }
     }
 
@@ -275,11 +278,11 @@ uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) 
     BaseType_t rval;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
-        if ((options & TtFlagNoClear) == TtFlagNoClear) {
+        if ((options & EventFlag::NoClear) == EventFlag::NoClear) {
             clear = 0U;
         } else {
             clear = flags;
@@ -296,12 +299,12 @@ uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) 
                 rflags &= flags;
                 rflags |= nval;
 
-                if ((options & TtFlagWaitAll) == TtFlagWaitAll) {
+                if ((options & EventFlag::WaitAll) == EventFlag::WaitAll) {
                     if ((flags & rflags) == flags) {
                         break;
                     } else {
                         if (timeout == 0U) {
-                            rflags = (uint32_t)TtStatusErrorResource;
+                            rflags = (uint32_t)EventFlag::ErrorResource;
                             break;
                         }
                     }
@@ -310,7 +313,7 @@ uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) 
                         break;
                     } else {
                         if (timeout == 0U) {
-                            rflags = (uint32_t)TtStatusErrorResource;
+                            rflags = (uint32_t)EventFlag::ErrorResource;
                             break;
                         }
                     }
@@ -326,9 +329,9 @@ uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) 
                 }
             } else {
                 if (timeout == 0) {
-                    rflags = (uint32_t)TtStatusErrorResource;
+                    rflags = (uint32_t)EventFlag::ErrorResource;
                 } else {
-                    rflags = (uint32_t)TtStatusErrorTimeout;
+                    rflags = (uint32_t)EventFlag::ErrorTimeout;
                 }
             }
         } while (rval != pdFAIL);
