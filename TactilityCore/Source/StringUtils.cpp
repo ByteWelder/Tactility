@@ -1,6 +1,7 @@
 #include "StringUtils.h"
 #include <cstring>
 #include <sstream>
+#include <regex>
 
 namespace tt::string {
 
@@ -85,6 +86,11 @@ std::string removeFileExtension(const std::string& input) {
     } else {
         return input;
     }
+}
+
+std::string removeEscapeCodes(const std::string& input) {
+    std::regex escRegex("\x1B\\[[0-9;]*[A-Za-z]");
+    return std::regex_replace(input, escRegex, "");
 }
 
 } // namespace

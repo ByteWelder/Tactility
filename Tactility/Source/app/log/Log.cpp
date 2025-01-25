@@ -6,6 +6,7 @@
 #include "app/selectiondialog/SelectionDialog.h"
 #include "service/loader/Loader.h"
 #include "lvgl/LvglSync.h"
+#include <StringUtils.h>
 
 #define TAG "text_viewer"
 
@@ -33,13 +34,13 @@ private:
         if (entries != nullptr) {
             for (unsigned int i = index; i < TT_LOG_ENTRY_COUNT; ++i) {
                 if (shouldShowLog(filterLevel, entries[i].level)) {
-                    buffer << entries[i].message;
+                    buffer << tt::string::removeEscapeCodes(entries[i].message);
                 }
             }
             if (index != 0) {
                 for (unsigned int i = 0; i < index; ++i) {
                     if (shouldShowLog(filterLevel, entries[i].level)) {
-                        buffer << entries[i].message;
+                        buffer << tt::string::removeEscapeCodes(entries[i].message);
                     }
                 }
             }

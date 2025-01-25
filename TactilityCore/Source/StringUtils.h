@@ -71,4 +71,9 @@ std::basic_string<T> lowercase(const std::basic_string<T>& input) {
  */
 std::string removeFileExtension(const std::string& input);
 
+/**
+ * @return the string without ESC codes.
+ */
+std::string removeEscapeCodes(const std::string& input);
+
 } // namespace
