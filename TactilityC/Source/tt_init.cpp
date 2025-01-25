@@ -23,7 +23,7 @@ extern "C" {
 const struct esp_elfsym elf_symbols[] {
     // Tactility
     ESP_ELFSYM_EXPORT(tt_app_register),
-    ESP_ELFSYM_EXPORT(tt_app_context_get_parameters),
+    ESP_ELFSYM_EXPORT(tt_app_get_parameters),
     ESP_ELFSYM_EXPORT(tt_app_set_result),
     ESP_ELFSYM_EXPORT(tt_app_has_result),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),

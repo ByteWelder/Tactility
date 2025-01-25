@@ -6,7 +6,7 @@ extern "C" {
 
 #define HANDLE_AS_APP_CONTEXT(handle) ((tt::app::AppContext*)(handle))
 
-BundleHandle _Nullable tt_app_context_get_parameters(AppHandle handle) {
+BundleHandle _Nullable tt_app_get_parameters(AppHandle handle) {
     return (BundleHandle)HANDLE_AS_APP_CONTEXT(handle)->getParameters().get();
 }
 

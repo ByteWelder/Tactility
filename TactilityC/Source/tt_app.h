@@ -8,8 +8,8 @@ extern "C" {
 
 typedef void* AppHandle;
 
-/** @return the bundle that belongs to this application, or null */
-BundleHandle _Nullable tt_app_context_get_parameters(AppHandle handle);
+/** @return the bundle that belongs to this application, or null if it wasn't started with parameters. */
+BundleHandle _Nullable tt_app_get_parameters(AppHandle handle);
 
 /**
  * Set the result before closing an app.
