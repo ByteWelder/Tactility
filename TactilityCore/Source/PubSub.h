@@ -20,11 +20,11 @@ private:
     struct Subscription {
         uint64_t id;
         PubSubCallback callback;
-        void* callback_context;
+        void* callbackParameter;
     };
 
     typedef std::list<Subscription> Subscriptions;
-    uint64_t last_id = 0;
+    uint64_t lastId = 0;
     Subscriptions items;
     Mutex mutex;
 
@@ -40,10 +40,10 @@ public:
 
     /** Start receiving messages at the specified handle (Threadsafe, Re-entrable)
      * @param[in] callback
-     * @param[in] callbackContext the data to pass to the callback
+     * @param[in] callbackParameter the data to pass to the callback
      * @return subscription instance
      */
-    SubscriptionHandle subscribe(PubSubCallback callback, void* callbackContext);
+    SubscriptionHandle subscribe(PubSubCallback callback, void* callbackParameter);
 
     /** Stop receiving messages at the specified handle (Threadsafe, Re-entrable.)
      * No use of `tt_pubsub_subscription` allowed after call of this method

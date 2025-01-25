@@ -3,17 +3,16 @@
 
 namespace tt {
 
-PubSub::SubscriptionHandle PubSub::subscribe(PubSubCallback callback, void* callbackContext) {
+PubSub::SubscriptionHandle PubSub::subscribe(PubSubCallback callback, void* callbackParameter) {
     tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
     items.push_back({
-        .id = (++last_id),
+        .id = (++lastId),
         .callback = callback,
-        .callback_context = callbackContext
-    });
+        .callbackParameter = callbackParameter});
 
     tt_check(mutex.release() == TtStatusOk);
 
-    return (Subscription*)last_id;
+    return (Subscription*)lastId;
 }
 
 void PubSub::unsubscribe(SubscriptionHandle subscription) {
@@ -39,7 +38,7 @@ void PubSub::publish(void* message) {
 
     // Iterate over subscribers
     for (auto& it : items) {
-        it.callback(message, it.callback_context);
+        it.callback(message, it.callbackParameter);
     }
 
     tt_check(mutex.release() == TtStatusOk);
