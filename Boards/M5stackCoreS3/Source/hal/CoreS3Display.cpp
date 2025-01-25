@@ -119,7 +119,7 @@ bool CoreS3Display::start() {
 }
 
 bool CoreS3Display::stop() {
-    tt_assert(displayHandle != nullptr);
+    assert(displayHandle != nullptr);
 
     lvgl_port_remove_disp(displayHandle);
 

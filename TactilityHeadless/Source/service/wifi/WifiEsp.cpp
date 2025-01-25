@@ -312,7 +312,7 @@ bool isConnectionSecure() {
 }
 
 int getRssi() {
-    tt_assert(wifi_singleton);
+    assert(wifi_singleton);
     static int rssi = 0;
     if (esp_wifi_sta_get_rssi(&rssi) == ESP_OK) {
         return rssi;
@@ -326,7 +326,7 @@ int getRssi() {
 static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
     if (lockable->lock(TtWaitForever)) {
-        tt_assert(wifi->scan_list == nullptr);
+        assert(wifi->scan_list == nullptr);
         wifi->scan_list = static_cast<wifi_ap_record_t*>(malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit));
         wifi->scan_list_count = 0;
     }
@@ -344,7 +344,7 @@ static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
 static void scan_list_free(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
     if (lockable->lock(TtWaitForever)) {
-        tt_assert(wifi->scan_list != nullptr);
+        assert(wifi->scan_list != nullptr);
         free(wifi->scan_list);
         wifi->scan_list = nullptr;
         wifi->scan_list_count = 0;
@@ -643,7 +643,7 @@ static void dispatchDisable(std::shared_ptr<void> context) {
         TT_LOG_E(TAG, "Failed to deinit");
     }
 
-    tt_assert(wifi->netif != nullptr);
+    assert(wifi->netif != nullptr);
     esp_netif_destroy(wifi->netif);
     wifi->netif = nullptr;
     wifi->setScanActive(false);
@@ -936,52 +936,54 @@ void onAutoConnectTimer(std::shared_ptr<void> context) {
     }
 }
 
-static void onStart(ServiceContext& service) {
-    tt_assert(wifi_singleton == nullptr);
-    wifi_singleton = std::make_shared<Wifi>();
+class WifiService final : public Service {
 
-    service.setData(wifi_singleton);
+public:
 
-    wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
-    // We want to try and scan more often in case of startup or scan lock failure
-    wifi_singleton->autoConnectTimer->start(TT_MIN(2000, AUTO_SCAN_INTERVAL));
+    void onStart(ServiceContext& service) override {
+        assert(wifi_singleton == nullptr);
+        wifi_singleton = std::make_shared<Wifi>();
 
-    if (settings::shouldEnableOnBoot()) {
-        TT_LOG_I(TAG, "Auto-enabling due to setting");
-        getMainDispatcher().dispatch(dispatchEnable, wifi_singleton);
-    }
-}
+        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
+        // We want to try and scan more often in case of startup or scan lock failure
+        wifi_singleton->autoConnectTimer->start(TT_MIN(2000, AUTO_SCAN_INTERVAL));
 
-static void onStop(ServiceContext& service) {
-    auto wifi = wifi_singleton;
-    tt_assert(wifi != nullptr);
-
-    RadioState state = wifi->getRadioState();
-    if (state != RadioState::Off) {
-        dispatchDisable(wifi);
+        if (settings::shouldEnableOnBoot()) {
+            TT_LOG_I(TAG, "Auto-enabling due to setting");
+            getMainDispatcher().dispatch(dispatchEnable, wifi_singleton);
+        }
     }
 
-    wifi->autoConnectTimer->stop();
-    wifi->autoConnectTimer = nullptr; // Must release as it holds a reference to this Wifi instance
+    void onStop(ServiceContext& service) override {
+        auto wifi = wifi_singleton;
+        assert(wifi != nullptr);
 
-    // Acquire all mutexes
-    wifi->dataMutex.acquire(TtWaitForever);
-    wifi->radioMutex.acquire(TtWaitForever);
+        RadioState state = wifi->getRadioState();
+        if (state != RadioState::Off) {
+            dispatchDisable(wifi);
+        }
 
-    // Detach
-    wifi_singleton = nullptr;
+        wifi->autoConnectTimer->stop();
+        wifi->autoConnectTimer = nullptr; // Must release as it holds a reference to this Wifi instance
 
-    // Release mutexes
-    wifi->dataMutex.release();
-    wifi->radioMutex.release();
+        // Acquire all mutexes
+        wifi->dataMutex.acquire(TtWaitForever);
+        wifi->radioMutex.acquire(TtWaitForever);
 
-    // Release (hopefully) last Wifi instance by scope
-}
+        // Detach
+        wifi_singleton = nullptr;
+
+        // Release mutexes
+        wifi->dataMutex.release();
+        wifi->radioMutex.release();
+
+        // Release (hopefully) last Wifi instance by scope
+    }
+};
 
 extern const ServiceManifest manifest = {
     .id = "Wifi",
-    .onStart = onStart,
-    .onStop = onStop
+    .createService = create<WifiService>
 };
 
 } // namespace

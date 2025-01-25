@@ -36,9 +36,9 @@ private:
         kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
 
         auto* lvgl_display = lv_display_get_default();
-        tt_assert(lvgl_display != nullptr);
+        assert(lvgl_display != nullptr);
         auto* hal_display = (hal::Display*)lv_display_get_user_data(lvgl_display);
-        tt_assert(hal_display != nullptr);
+        assert(hal_display != nullptr);
         if (hal_display->supportsBacklightDuty()) {
             int32_t backlight_duty = app::display::getBacklightDuty();
             hal_display->setBacklightDuty(backlight_duty);

@@ -9,19 +9,19 @@
 namespace tt {
 
 EventFlag::EventFlag() {
-    tt_assert(!TT_IS_IRQ_MODE());
+    assert(!TT_IS_IRQ_MODE());
     handle = xEventGroupCreate();
     tt_check(handle);
 }
 
 EventFlag::~EventFlag() {
-    tt_assert(!TT_IS_IRQ_MODE());
+    assert(!TT_IS_IRQ_MODE());
     vEventGroupDelete(handle);
 }
 
 uint32_t EventFlag::set(uint32_t flags) const {
-    tt_assert(handle);
-    tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
+    assert(handle);
+    assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
     uint32_t rflags;
     BaseType_t yield;
@@ -43,7 +43,7 @@ uint32_t EventFlag::set(uint32_t flags) const {
 }
 
 uint32_t EventFlag::clear(uint32_t flags) const {
-    tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
+    assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
     uint32_t rflags;
 
@@ -84,8 +84,8 @@ uint32_t EventFlag::wait(
     uint32_t options,
     uint32_t timeout
 ) const {
-    tt_assert(!TT_IS_IRQ_MODE());
-    tt_assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
+    assert(!TT_IS_IRQ_MODE());
+    assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
     BaseType_t wait_all;
     BaseType_t exit_clear;

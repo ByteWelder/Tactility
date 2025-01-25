@@ -17,7 +17,7 @@ bool isRunning() {
 }
 
 int32_t lock() {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
 
     int32_t lock;
 
@@ -42,7 +42,7 @@ int32_t lock() {
 }
 
 int32_t unlock() {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
 
     int32_t lock;
 
@@ -72,7 +72,7 @@ int32_t unlock() {
 }
 
 int32_t restoreLock(int32_t lock) {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
@@ -108,7 +108,7 @@ uint32_t getTickFrequency() {
 }
 
 void delayTicks(TickType_t ticks) {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
     if (ticks == 0U) {
         taskYIELD();
     } else {
@@ -117,7 +117,7 @@ void delayTicks(TickType_t ticks) {
 }
 
 TtStatus delayUntilTick(TickType_t tick) {
-    tt_assert(!TT_IS_ISR());
+    assert(!TT_IS_ISR());
 
     TickType_t tcnt, delay;
     TtStatus stat;

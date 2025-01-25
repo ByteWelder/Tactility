@@ -1,7 +1,7 @@
 /**
  * @file check.h
  * 
- * Tactility crash and assert functions.
+ * Tactility crash and check functions.
  * 
  * The main problem with crashing is that you can't do anything without disturbing registers,
  * and if you disturb registers, you won't be able to see the correct register values in the debugger.
@@ -65,30 +65,3 @@ namespace tt {
  */
 
 #define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); tt::_crash(); }
-
-/** Only in debug build: Assert condition and crash if assert failed  */
-#ifdef TT_DEBUG
-#define tt_assert_internal(__e, __m)               \
-    do {                                    \
-        if (!(__e)) {                       \
-            TT_LOG_E("assert", "%s", #__e); \
-            if (__m) {                      \
-                __tt_crash(#__m);           \
-            } else {                        \
-                __tt_crash("");             \
-            }                               \
-        }                                   \
-    } while (0)
-#else
-#define __tt_assert(__e, __m) \
-    do {                      \
-        ((void)(__e));        \
-        ((void)(__m));        \
-    } while (0)
-#endif
-
-/** Assert condition and crash if failed
- * @warning only will do check if firmware compiled in debug mode
- * @param[in] condition to check
- */
-#define tt_assert(expression) assert(expression)

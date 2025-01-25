@@ -1,6 +1,7 @@
 #pragma once
 
 #include "service/ServiceContext.h"
+#include "service/Service.h"
 
 namespace tt::service {
 
@@ -9,19 +10,21 @@ class ServiceInstance : public ServiceContext {
 private:
 
     Mutex mutex = Mutex(Mutex::Type::Normal);
-    const service::ServiceManifest& manifest;
-    std::shared_ptr<void> data = nullptr;
+    std::shared_ptr<const ServiceManifest> manifest;
+    std::shared_ptr<Service> service;
 
 public:
 
-    explicit ServiceInstance(const service::ServiceManifest& manifest);
+    explicit ServiceInstance(std::shared_ptr<const service::ServiceManifest> manifest);
     ~ServiceInstance() override = default;
 
+    /** @return a reference ot the service's manifest */
     const service::ServiceManifest& getManifest() const override;
-    std::shared_ptr<void> getData() const override;
-    void setData(std::shared_ptr<void> newData) override;
 
+    /** Retrieve the paths that are relevant to this service */
     std::unique_ptr<Paths> getPaths() const override;
+
+    std::shared_ptr<Service> getService() const { return service; }
 };
 
 }

@@ -101,7 +101,7 @@ void GpioApp::onTimer(TT_UNUSED std::shared_ptr<void> context) {
 
 void GpioApp::startTask() {
     lock();
-    tt_assert(timer == nullptr);
+    assert(timer == nullptr);
     timer = std::make_unique<Timer>(
         Timer::Type::Periodic,
         &onTimer
@@ -111,7 +111,7 @@ void GpioApp::startTask() {
 }
 
 void GpioApp::stopTask() {
-    tt_assert(timer);
+    assert(timer);
 
     timer->stop();
     timer = nullptr;

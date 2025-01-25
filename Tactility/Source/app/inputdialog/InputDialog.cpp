@@ -57,7 +57,7 @@ private:
 
     static void onButtonClickedCallback(lv_event_t* e) {
         auto appContext = service::loader::getCurrentAppContext();
-        tt_assert(appContext != nullptr);
+        assert(appContext != nullptr);
         auto app = std::static_pointer_cast<InputDialogApp>(appContext->getApp());
         app->onButtonClicked(e);
     }

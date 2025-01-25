@@ -56,7 +56,7 @@ bool UnPhoneDisplay::start() {
 }
 
 bool UnPhoneDisplay::stop() {
-    tt_assert(displayHandle != nullptr);
+    assert(displayHandle != nullptr);
 
     lv_display_delete(displayHandle);
     displayHandle = nullptr;

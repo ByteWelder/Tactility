@@ -66,7 +66,7 @@ Gui* gui_alloc() {
 }
 
 void gui_free(Gui* instance) {
-    tt_assert(instance != nullptr);
+    assert(instance != nullptr);
     delete instance->thread;
 
     lv_group_delete(instance->keyboardGroup);
@@ -78,17 +78,17 @@ void gui_free(Gui* instance) {
 }
 
 void lock() {
-    tt_assert(gui);
-    tt_check(gui->mutex.acquire(configTICK_RATE_HZ) == TtStatusOk);
+    assert(gui);
+    tt_check(gui->mutex.lock(configTICK_RATE_HZ));
 }
 
 void unlock() {
-    tt_assert(gui);
-    tt_check(gui->mutex.release() == TtStatusOk);
+    assert(gui);
+    tt_check(gui->mutex.unlock());
 }
 
 void requestDraw() {
-    tt_assert(gui);
+    assert(gui);
     ThreadId thread_id = gui->thread->getId();
     thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
 }
@@ -142,30 +142,36 @@ static int32_t guiMain(TT_UNUSED void* p) {
 
 // region AppManifest
 
-static void start(TT_UNUSED ServiceContext& service) {
-    gui = gui_alloc();
+class GuiService : public Service {
 
-    gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
-    gui->thread->start();
-}
+public:
 
-static void stop(TT_UNUSED ServiceContext& service) {
-    lock();
+    void onStart(TT_UNUSED ServiceContext& service) override {
+        assert(gui == nullptr);
+        gui = gui_alloc();
 
-    ThreadId thread_id = gui->thread->getId();
-    thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
-    gui->thread->join();
-    delete gui->thread;
+        gui->thread->setPriority(THREAD_PRIORITY_SERVICE);
+        gui->thread->start();
+    }
 
-    unlock();
+    void onStop(TT_UNUSED ServiceContext& service) override {
+        assert(gui != nullptr);
+        lock();
 
-    gui_free(gui);
-}
+        ThreadId thread_id = gui->thread->getId();
+        thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+        gui->thread->join();
+        delete gui->thread;
+
+        unlock();
+
+        gui_free(gui);
+    }
+};
 
 extern const ServiceManifest manifest = {
     .id = "Gui",
-    .onStart = &start,
-    .onStop = &stop
+    .createService = create<GuiService>
 };
 
 // endregion

@@ -26,9 +26,7 @@ public:
 
     bool isUsbPowerConnected() const;
 
-    bool getOperationControl(uint8_t value) const;
-    bool setOperationControlBitOn(uint8_t mask) const;
-    bool setOperationControlBitOff(uint8_t mask) const;
+    bool setBatFetOn(bool on) const;
 
     bool getStatus(uint8_t& value) const;
     bool getVersion(uint8_t& value) const;

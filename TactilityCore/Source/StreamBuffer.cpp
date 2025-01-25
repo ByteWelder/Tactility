@@ -7,7 +7,7 @@
 namespace tt {
 
 StreamBuffer::StreamBuffer(size_t size, size_t triggerLevel) {
-    tt_assert(size != 0);
+    assert(size != 0);
     handle = xStreamBufferCreate(size, triggerLevel);
     tt_check(handle);
 };

@@ -1,5 +1,8 @@
 name: Tests
-on: [push]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
 jobs:
   Run:
     runs-on: ubuntu-latest

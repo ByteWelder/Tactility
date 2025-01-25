@@ -1,5 +1,8 @@
 name: Build SDK
-on: [push]
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions: read-all
 

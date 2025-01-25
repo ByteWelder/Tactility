@@ -25,7 +25,7 @@ State AppInstance::getState() const {
  * Consider not exposing bundle, but expose `app_get_bundle_int(key)` methods with locking in it.
  */
 const AppManifest& AppInstance::getManifest() const {
-    tt_assert(manifest != nullptr);
+    assert(manifest != nullptr);
     return *manifest;
 }
 
@@ -50,7 +50,7 @@ std::shared_ptr<const Bundle> AppInstance::getParameters() const {
 }
 
 std::unique_ptr<Paths> AppInstance::getPaths() const {
-    tt_assert(manifest != nullptr);
+    assert(manifest != nullptr);
     return std::make_unique<AppInstancePaths>(*manifest);
 }
 

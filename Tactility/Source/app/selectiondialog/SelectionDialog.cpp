@@ -47,7 +47,7 @@ private:
 
     static void onListItemSelectedCallback(lv_event_t* e) {
         auto appContext = service::loader::getCurrentAppContext();
-        tt_assert(appContext != nullptr);
+        assert(appContext != nullptr);
         auto app = std::static_pointer_cast<SelectionDialogApp>(appContext->getApp());
         app->onListItemSelected(e);
     }
