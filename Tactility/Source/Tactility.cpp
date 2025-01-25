@@ -163,7 +163,7 @@ void run(const Configuration& config) {
 
     TT_LOG_I(TAG, "Processing main dispatcher");
     while (true) {
-        getMainDispatcher().consume(TtWaitForever);
+        getMainDispatcher().consume();
     }
 }
 

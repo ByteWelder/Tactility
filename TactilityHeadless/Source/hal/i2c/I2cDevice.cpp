@@ -1,4 +1,5 @@
 #include "I2cDevice.h"
+#include <cstdint>
 
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};

@@ -43,7 +43,7 @@ private:
 
 public:
 
-    explicit Dispatcher();
+    explicit Dispatcher() = default;
     ~Dispatcher();
 
     /**
@@ -58,7 +58,7 @@ public:
      * @param[in] timeout the ticks to wait for a message
      * @return the amount of messages that were consumed
      */
-    uint32_t consume(TickType_t timeout);
+    uint32_t consume(TickType_t timeout = portMAX_DELAY);
 };
 
 } // namespace

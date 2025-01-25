@@ -4,28 +4,30 @@
 
 namespace tt {
 
-Semaphore::Semaphore(uint32_t maxCount, uint32_t initialCount) {
-    assert(!TT_IS_IRQ_MODE());
+static inline struct QueueDefinition* createHandle(uint32_t maxCount, uint32_t initialCount) {
     assert((maxCount > 0U) && (initialCount <= maxCount));
 
     if (maxCount == 1U) {
-        handle = xSemaphoreCreateBinary();
+        auto handle = xSemaphoreCreateBinary();
         if ((handle != nullptr) && (initialCount != 0U)) {
             if (xSemaphoreGive(handle) != pdPASS) {
                 vSemaphoreDelete(handle);
                 handle = nullptr;
             }
         }
+        return handle;
     } else {
-        handle = xSemaphoreCreateCounting(maxCount, initialCount);
+        return xSemaphoreCreateCounting(maxCount, initialCount);
     }
+}
 
-    tt_check(handle);
+Semaphore::Semaphore(uint32_t maxCount, uint32_t initialCount) : handle(createHandle(maxCount, initialCount)){
+    assert(!TT_IS_IRQ_MODE());
+    tt_check(handle != nullptr);
 }
 
 Semaphore::~Semaphore() {
     assert(!TT_IS_IRQ_MODE());
-    vSemaphoreDelete(handle);
 }
 
 bool Semaphore::acquire(uint32_t timeout) const {
@@ -35,7 +37,7 @@ bool Semaphore::acquire(uint32_t timeout) const {
         } else {
             BaseType_t yield = pdFALSE;
 
-            if (xSemaphoreTakeFromISR(handle, &yield) != pdPASS) {
+            if (xSemaphoreTakeFromISR(handle.get(), &yield) != pdPASS) {
                 return false;
             } else {
                 portYIELD_FROM_ISR(yield);
@@ -43,21 +45,21 @@ bool Semaphore::acquire(uint32_t timeout) const {
             }
         }
     } else {
-        return xSemaphoreTake(handle, (TickType_t)timeout) == pdPASS;
+        return xSemaphoreTake(handle.get(), (TickType_t)timeout) == pdPASS;
     }
 }
 
 bool Semaphore::release() const {
     if (TT_IS_IRQ_MODE()) {
         BaseType_t yield = pdFALSE;
-        if (xSemaphoreGiveFromISR(handle, &yield) != pdTRUE) {
+        if (xSemaphoreGiveFromISR(handle.get(), &yield) != pdTRUE) {
             return false;
         } else {
             portYIELD_FROM_ISR(yield);
             return true;
         }
     } else {
-        return xSemaphoreGive(handle) == pdPASS;
+        return xSemaphoreGive(handle.get()) == pdPASS;
     }
 }
 
@@ -65,12 +67,12 @@ uint32_t Semaphore::getCount() const {
     if (TT_IS_IRQ_MODE()) {
         // TODO: uxSemaphoreGetCountFromISR is not supported on esp-idf 5.1.2 - perhaps later on?
 #ifdef uxSemaphoreGetCountFromISR
-        return uxSemaphoreGetCountFromISR(handle);
+        return uxSemaphoreGetCountFromISR(handle.get());
 #else
         return uxQueueMessagesWaitingFromISR((QueueHandle_t)hSemaphore);
 #endif
     } else {
-        return uxSemaphoreGetCount(handle);
+        return uxSemaphoreGetCount(handle.get());
     }
 }
 

@@ -125,13 +125,13 @@ static void transitionAppToState(std::shared_ptr<app::AppInstance> app, app::Sta
             break;
         case app::StateShowing: {
             LoaderEvent event_showing = { .type = LoaderEventTypeApplicationShowing };
-            tt_pubsub_publish(loader_singleton->pubsubExternal, &event_showing);
+            loader_singleton->pubsubExternal->publish(&event_showing);
             app->setState(app::StateShowing);
             break;
         }
         case app::StateHiding: {
             LoaderEvent event_hiding = { .type = LoaderEventTypeApplicationHiding };
-            tt_pubsub_publish(loader_singleton->pubsubExternal, &event_hiding);
+            loader_singleton->pubsubExternal->publish(&event_hiding);
             app->setState(app::StateHiding);
             break;
         }
@@ -174,7 +174,7 @@ static LoaderStatus startAppWithManifestInternal(
     transitionAppToState(new_app, app::StateShowing);
 
     LoaderEvent event_external = { .type = LoaderEventTypeApplicationStarted };
-    tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
+    loader_singleton->pubsubExternal->publish(&event_external);
 
     return LoaderStatus::Ok;
 }
@@ -265,7 +265,7 @@ static void stopAppInternal() {
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
 
     LoaderEvent event_external = { .type = LoaderEventTypeApplicationStopped };
-    tt_pubsub_publish(loader_singleton->pubsubExternal, &event_external);
+    loader_singleton->pubsubExternal->publish(&event_external);
 
     if (instance_to_resume != nullptr) {
         if (result_set) {

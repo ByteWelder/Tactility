@@ -1,22 +1,9 @@
-# Issues
-- WiFi bug: when pressing disconnect while between `WIFI_EVENT_STA_START` and `IP_EVENT_STA_GOT_IP`, then auto-connect becomes active again.
-- ESP32 (CYD) memory issues (or any device without PSRAM):
-  - Boot app doesn't show logo 
-  - WiFi is on and navigating back to Desktop makes desktop icons disappear
-  - WiFi might fail quietly when trying to enable it: this shows no feedback (force it by increasing LVGL buffers to 100kB)
-  Possible mitigations: 
-  - When no PSRAM is available, use simplified desktop buttons
-  - Add statusbar icon for memory pressure.
-  - Show error in WiFi screen (e.g. AlertDialog when SPI is not enabled and available memory is below a certain amount)
-- Clean up static_cast when casting to base class.
-- EventFlag: Fix return value of set/get/wait (the errors are weirdly mixed in)
-- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
-- M5Stack Core only shows 4MB of SPIRAM in use
-
 # TODOs
+- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
+- Clean up static_cast when casting to base class.
+- Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
-- Refactor ServiceManifest into C++ class-based design like the App class
 - Experiment with what happens when using C++ code in an external app (without using standard library!)
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
 - We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:

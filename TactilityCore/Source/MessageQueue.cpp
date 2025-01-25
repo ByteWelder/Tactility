@@ -4,63 +4,64 @@
 
 namespace tt {
 
-MessageQueue::MessageQueue(uint32_t capacity, uint32_t msg_size) {
-    assert(!TT_IS_ISR() && (capacity > 0U) && (msg_size > 0U));
-    queue_handle = xQueueCreate(capacity, msg_size);
-    tt_check(queue_handle);
+static inline QueueHandle_t createQueue(uint32_t capacity, uint32_t messageSize) {
+    assert(!TT_IS_ISR() && (capacity > 0U) && (messageSize > 0U));
+    return xQueueCreate(capacity, messageSize);
+}
+
+MessageQueue::MessageQueue(uint32_t capacity, uint32_t messageSize) : handle(createQueue(capacity, messageSize)) {
+    tt_check(handle != nullptr);
 }
 
 MessageQueue::~MessageQueue() {
     assert(!TT_IS_ISR());
-    vQueueDelete(queue_handle);
 }
 
-bool MessageQueue::put(const void* message, uint32_t timeout) {
+bool MessageQueue::put(const void* message, TickType_t timeout) {
     bool result = true;
     BaseType_t yield;
 
     if (TT_IS_ISR()) {
-        if ((queue_handle == nullptr) || (message == nullptr) || (timeout != 0U)) {
+        if ((handle == nullptr) || (message == nullptr) || (timeout != 0U)) {
             result = false;
         } else {
             yield = pdFALSE;
 
-            if (xQueueSendToBackFromISR(queue_handle, message, &yield) != pdTRUE) {
+            if (xQueueSendToBackFromISR(handle.get(), message, &yield) != pdTRUE) {
                 result = false;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
-    } else if ((queue_handle == nullptr) || (message == nullptr)) {
+    } else if ((handle == nullptr) || (message == nullptr)) {
         result = false;
-    } else if (xQueueSendToBack(queue_handle, message, (TickType_t)timeout) != pdPASS) {
+    } else if (xQueueSendToBack(handle.get(), message, (TickType_t)timeout) != pdPASS) {
         result = false;
     }
 
     return result;
 }
 
-bool MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
+bool MessageQueue::get(void* msg_ptr, TickType_t timeout) {
     bool result = true;
     BaseType_t yield;
 
-
     if (TT_IS_ISR()) {
-        if ((queue_handle == nullptr) || (msg_ptr == nullptr) || (timeout_ticks != 0U)) {
+        if ((handle == nullptr) || (msg_ptr == nullptr) || (timeout != 0U)) {
             result = false;
         } else {
             yield = pdFALSE;
 
-            if (xQueueReceiveFromISR(queue_handle, msg_ptr, &yield) != pdPASS) {
+            if (xQueueReceiveFromISR(handle.get(), msg_ptr, &yield) != pdPASS) {
                 result = false;
             } else {
                 portYIELD_FROM_ISR(yield);
             }
         }
     } else {
-        if ((queue_handle == nullptr) || (msg_ptr == nullptr)) {
+        if ((handle == nullptr) || (msg_ptr == nullptr)) {
             result = false;
-        } else if (xQueueReceive(queue_handle, msg_ptr, (TickType_t)timeout_ticks) != pdPASS) {
+        } else if (xQueueReceive(handle.get(), msg_ptr, (TickType_t)timeout) != pdPASS) {
             result = false;
         }
     }
@@ -69,7 +70,7 @@ bool MessageQueue::get(void* msg_ptr, uint32_t timeout_ticks) {
 }
 
 uint32_t MessageQueue::getCapacity() const {
-    auto* mq = (StaticQueue_t*)(queue_handle);
+    auto* mq = (StaticQueue_t*)(handle.get());
     if (mq == nullptr) {
         return 0U;
     } else {
@@ -78,7 +79,7 @@ uint32_t MessageQueue::getCapacity() const {
 }
 
 uint32_t MessageQueue::getMessageSize() const {
-    auto* mq = (StaticQueue_t*)(queue_handle);
+    auto* mq = (StaticQueue_t*)(handle.get());
     if (mq == nullptr) {
         return 0U;
     } else {
@@ -89,12 +90,12 @@ uint32_t MessageQueue::getMessageSize() const {
 uint32_t MessageQueue::getCount() const {
     UBaseType_t count;
 
-    if (queue_handle == nullptr) {
+    if (handle == nullptr) {
         count = 0U;
     } else if (TT_IS_ISR()) {
-        count = uxQueueMessagesWaitingFromISR(queue_handle);
+        count = uxQueueMessagesWaitingFromISR(handle.get());
     } else {
-        count = uxQueueMessagesWaiting(queue_handle);
+        count = uxQueueMessagesWaiting(handle.get());
     }
 
     /* Return number of queued messages */
@@ -102,7 +103,7 @@ uint32_t MessageQueue::getCount() const {
 }
 
 uint32_t MessageQueue::getSpace() const {
-    auto* mq = (StaticQueue_t*)(queue_handle);
+    auto* mq = (StaticQueue_t*)(handle.get());
     uint32_t space;
     uint32_t isrm;
 
@@ -124,10 +125,10 @@ uint32_t MessageQueue::getSpace() const {
 
 bool MessageQueue::reset() {
     tt_check(!TT_IS_ISR());
-    if (queue_handle == nullptr) {
+    if (handle == nullptr) {
         return false;
     } else {
-        xQueueReset(queue_handle);
+        xQueueReset(handle.get());
         return true;
     }
 }

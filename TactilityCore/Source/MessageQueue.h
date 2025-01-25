@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#include "CoreTypes.h"
+#include <memory>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -25,7 +25,14 @@ namespace tt {
  */
 class MessageQueue {
 private:
-    QueueHandle_t queue_handle;
+
+    struct QueueHandleDeleter {
+        void operator()(QueueHandle_t handleToDelete) {
+            vQueueDelete(handleToDelete);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, QueueHandleDeleter> handle;
 
 public:
     /** Allocate message queue
@@ -39,17 +46,17 @@ public:
     /** Post a message to the queue.
      * The message is queued by copy, not by reference.
      * @param[in] message A pointer to a message. The message will be copied into a buffer.
-     * @param[in] timeoutTicks
+     * @param[in] timeout
      * @return success result
      */
-    bool put(const void* message, uint32_t timeoutTicks);
+    bool put(const void* message, TickType_t timeout);
 
     /** Get message from queue
      * @param[out] message A pointer to an already allocated message object
-     * @param[in] timeoutTicks
+     * @param[in] timeout
      * @return success result
      */
-    bool get(void* message, uint32_t timeoutTicks);
+    bool get(void* message, TickType_t timeout);
 
     /**
      * @return The maximum amount of messages that can be in the queue at any given time.

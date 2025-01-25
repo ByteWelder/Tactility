@@ -1,63 +1,61 @@
-#include <Check.h>
 #include "app/wifimanage/WifiManagePrivate.h"
 
 namespace tt::app::wifimanage {
 
 void State::setScanning(bool isScanning) {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     scanning = isScanning;
     scannedAfterRadioOn |= isScanning;
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void State::setRadioState(service::wifi::RadioState state) {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     radioState = state;
     if (radioState == service::wifi::RadioState::Off) {
         scannedAfterRadioOn = false;
     }
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 service::wifi::RadioState State::getRadioState() const {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     auto result = radioState;
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
     return result;
 }
 
 bool State::isScanning() const {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     bool result = scanning;
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
     return result;
 }
 
 const std::vector<service::wifi::ApRecord>& State::lockApRecords() const {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     return apRecords;
 }
 
 void State::unlockApRecords() const {
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void State::updateApRecords() {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     apRecords = service::wifi::getScanResults();
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void State::setConnectSsid(const std::string& ssid) {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     connectSsid = ssid;
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 std::string State::getConnectSsid() const {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
     auto result = connectSsid;
-    tt_check(mutex.release() == TtStatusOk);
     return result;
 }
 

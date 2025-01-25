@@ -35,7 +35,7 @@ Gui* gui_alloc() {
         &guiMain,
         nullptr
     );
-    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &onLoaderMessage, instance);
+    instance->loader_pubsub_subscription = loader::getPubsub()->subscribe(&onLoaderMessage, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     instance->keyboardGroup = lv_group_create();
     auto* screen_root = lv_scr_act();
@@ -90,7 +90,7 @@ void unlock() {
 void requestDraw() {
     assert(gui);
     ThreadId thread_id = gui->thread->getId();
-    thread_flags_set(thread_id, GUI_THREAD_FLAG_DRAW);
+    Thread::setFlags(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
 void showApp(std::shared_ptr<app::AppContext> app) {
@@ -120,19 +120,19 @@ static int32_t guiMain(TT_UNUSED void* p) {
     Gui* local_gui = gui;
 
     while (true) {
-        uint32_t flags = thread_flags_wait(
+        uint32_t flags = Thread::awaitFlags(
             GUI_THREAD_FLAG_ALL,
-            TtFlagWaitAny,
-            TtWaitForever
+            EventFlag::WaitAny,
+            portMAX_DELAY
         );
         // Process and dispatch draw call
         if (flags & GUI_THREAD_FLAG_DRAW) {
-            thread_flags_clear(GUI_THREAD_FLAG_DRAW);
+            Thread::clearFlags(GUI_THREAD_FLAG_DRAW);
             redraw(local_gui);
         }
 
         if (flags & GUI_THREAD_FLAG_EXIT) {
-            thread_flags_clear(GUI_THREAD_FLAG_EXIT);
+            Thread::clearFlags(GUI_THREAD_FLAG_EXIT);
             break;
         }
     }
@@ -159,7 +159,7 @@ public:
         lock();
 
         ThreadId thread_id = gui->thread->getId();
-        thread_flags_set(thread_id, GUI_THREAD_FLAG_EXIT);
+        Thread::setFlags(thread_id, GUI_THREAD_FLAG_EXIT);
         gui->thread->join();
         delete gui->thread;
 

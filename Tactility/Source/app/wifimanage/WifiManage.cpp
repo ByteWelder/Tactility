@@ -64,11 +64,11 @@ WifiManage::WifiManage() {
 }
 
 void WifiManage::lock() {
-    tt_check(mutex.acquire(TtWaitForever) == TtStatusOk);
+    mutex.lock();
 }
 
 void WifiManage::unlock() {
-    tt_check(mutex.release() == TtStatusOk);
+    mutex.unlock();
 }
 
 void WifiManage::requestViewUpdate() {
@@ -111,8 +111,7 @@ static void wifiManageEventCallback(const void* message, void* context) {
 }
 
 void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
-    auto wifi_pubsub = service::wifi::getPubsub();
-    wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &wifiManageEventCallback, this);
+    wifiSubscription = service::wifi::getPubsub()->subscribe(&wifiManageEventCallback, this);
 
     // State update (it has its own locking)
     state.setRadioState(service::wifi::getRadioState());
@@ -139,8 +138,7 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
 
 void WifiManage::onHide(TT_UNUSED AppContext& app) {
     lock();
-    auto wifi_pubsub = service::wifi::getPubsub();
-    tt_pubsub_unsubscribe(wifi_pubsub, wifiSubscription);
+    service::wifi::getPubsub()->unsubscribe(wifiSubscription);
     wifiSubscription = nullptr;
     isViewEnabled = false;
     unlock();

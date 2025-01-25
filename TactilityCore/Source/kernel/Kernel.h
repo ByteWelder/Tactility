@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreTypes.h"
-
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
 #else
@@ -23,22 +21,22 @@ bool isRunning();
 
 /** Lock kernel, pause process scheduling
  * @warning don't call from ISR context
- * @return previous lock state(0 - unlocked, 1 - locked)
+ * @return true on success
  */
-int32_t lock();
+bool lock();
 
 /** Unlock kernel, resume process scheduling
  * @warning don't call from ISR context
- * @return previous lock state(0 - unlocked, 1 - locked)
+ * @return true on success
  */
-int32_t unlock();
+bool unlock();
 
 /** Restore kernel lock state
  * @warning don't call from ISR context
  * @param[in] lock  The lock state
- * @return new lock state or error
+ * @return true on success
  */
-int32_t restoreLock(int32_t lock);
+bool restoreLock(bool lock);
 
 /** Get kernel systick frequency
  * @return systick counts per second
@@ -57,9 +55,9 @@ void delayTicks(TickType_t ticks);
 /** Delay until tick
  * @warning don't call from ISR context
  * @param[in] ticks  The tick until which kerel should delay task execution
- * @return the status
+ * @return true on success
  */
-TtStatus delayUntilTick(TickType_t tick);
+bool delayUntilTick(TickType_t tick);
 
 /** Convert milliseconds to ticks
  *

@@ -5,17 +5,13 @@
 namespace tt {
 
 #define TAG "dispatcher"
-#define BACKPRESSURE_WARNING_COUNT 100
-#define WAIT_FLAG 1
-
-Dispatcher::Dispatcher() :
-    mutex(Mutex::Type::Normal)
-{}
+#define BACKPRESSURE_WARNING_COUNT ((EventBits_t)100)
+#define WAIT_FLAG ((EventBits_t)1)
 
 Dispatcher::~Dispatcher() {
     // Wait for Mutex usage
-    mutex.acquire(TtWaitForever);
-    mutex.release();
+    mutex.lock();
+    mutex.unlock();
 }
 
 void Dispatcher::dispatch(Function function, std::shared_ptr<void> context) {
@@ -37,7 +33,7 @@ void Dispatcher::dispatch(Function function, std::shared_ptr<void> context) {
 uint32_t Dispatcher::consume(TickType_t timeout) {
     // Wait for signal and clear
     TickType_t start_ticks = kernel::getTicks();
-    if (eventFlag.wait(WAIT_FLAG, TtFlagWaitAny, timeout) == WAIT_FLAG) {
+    if (eventFlag.wait(WAIT_FLAG, EventFlag::WaitAny, timeout)) {
         eventFlag.clear(WAIT_FLAG);
     } else {
         return 0;

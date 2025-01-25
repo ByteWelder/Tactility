@@ -1,7 +1,6 @@
 #pragma once
 
 #include "I2cCompat.h"
-#include "CoreTypes.h"
 #include "RtosCompat.h"
 #include <climits>
 #include <string>
@@ -29,10 +28,10 @@ struct Configuration {
     i2c_config_t config;
 };
 
-enum Status {
-    STARTED,
-    STOPPED,
-    UNKNOWN
+enum class Status {
+    Started,
+    Stopped,
+    Unknown
 };
 
 bool init(const std::vector<i2c::Configuration>& configurations);

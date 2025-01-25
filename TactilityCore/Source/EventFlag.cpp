@@ -8,15 +8,15 @@
 
 namespace tt {
 
-EventFlag::EventFlag() {
+EventFlag::EventFlag() :
+    handle(xEventGroupCreate())
+{
     assert(!TT_IS_IRQ_MODE());
-    handle = xEventGroupCreate();
     tt_check(handle);
 }
 
 EventFlag::~EventFlag() {
     assert(!TT_IS_IRQ_MODE());
-    vEventGroupDelete(handle);
 }
 
 uint32_t EventFlag::set(uint32_t flags) const {
@@ -28,14 +28,14 @@ uint32_t EventFlag::set(uint32_t flags) const {
 
     if (TT_IS_IRQ_MODE()) {
         yield = pdFALSE;
-        if (xEventGroupSetBitsFromISR(handle, (EventBits_t)flags, &yield) == pdFAIL) {
-            rflags = (uint32_t)TtFlagErrorResource;
+        if (xEventGroupSetBitsFromISR(handle.get(), (EventBits_t)flags, &yield) == pdFAIL) {
+            rflags = (uint32_t)ErrorResource;
         } else {
             rflags = flags;
             portYIELD_FROM_ISR(yield);
         }
     } else {
-        rflags = xEventGroupSetBits(handle, (EventBits_t)flags);
+        rflags = xEventGroupSetBits(handle.get(), (EventBits_t)flags);
     }
 
     /* Return event flags after setting */
@@ -48,10 +48,10 @@ uint32_t EventFlag::clear(uint32_t flags) const {
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = xEventGroupGetBitsFromISR(handle);
+        rflags = xEventGroupGetBitsFromISR(handle.get());
 
-        if (xEventGroupClearBitsFromISR(handle, (EventBits_t)flags) == pdFAIL) {
-            rflags = (uint32_t)TtStatusErrorResource;
+        if (xEventGroupClearBitsFromISR(handle.get(), (EventBits_t)flags) == pdFAIL) {
+            rflags = (uint32_t)ErrorResource;
         } else {
             /* xEventGroupClearBitsFromISR only registers clear operation in the timer command queue. */
             /* Yield is required here otherwise clear operation might not execute in the right order. */
@@ -59,7 +59,7 @@ uint32_t EventFlag::clear(uint32_t flags) const {
             portYIELD_FROM_ISR(pdTRUE);
         }
     } else {
-        rflags = xEventGroupClearBits(handle, (EventBits_t)flags);
+        rflags = xEventGroupClearBits(handle.get(), (EventBits_t)flags);
     }
 
     /* Return event flags before clearing */
@@ -70,9 +70,9 @@ uint32_t EventFlag::get() const {
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = xEventGroupGetBitsFromISR(handle);
+        rflags = xEventGroupGetBitsFromISR(handle.get());
     } else {
-        rflags = xEventGroupGetBits(handle);
+        rflags = xEventGroupGetBits(handle.get());
     }
 
     /* Return current event flags */
@@ -91,40 +91,40 @@ uint32_t EventFlag::wait(
     BaseType_t exit_clear;
     uint32_t rflags;
 
-    if (options & TtFlagWaitAll) {
+    if (options & WaitAll) {
         wait_all = pdTRUE;
     } else {
         wait_all = pdFAIL;
     }
 
-    if (options & TtFlagNoClear) {
+    if (options & NoClear) {
         exit_clear = pdFAIL;
     } else {
         exit_clear = pdTRUE;
     }
 
     rflags = xEventGroupWaitBits(
-        handle,
+        handle.get(),
         (EventBits_t)flags,
         exit_clear,
         wait_all,
         (TickType_t)timeout
     );
 
-    if (options & TtFlagWaitAll) {
+    if (options & WaitAll) {
         if ((flags & rflags) != flags) {
             if (timeout > 0U) {
-                rflags = (uint32_t)TtStatusErrorTimeout;
+                rflags = (uint32_t)ErrorTimeout;
             } else {
-                rflags = (uint32_t)TtStatusErrorResource;
+                rflags = (uint32_t)ErrorResource;
             }
         }
     } else {
         if ((flags & rflags) == 0U) {
             if (timeout > 0U) {
-                rflags = (uint32_t)TtStatusErrorTimeout;
+                rflags = (uint32_t)ErrorTimeout;
             } else {
-                rflags = (uint32_t)TtStatusErrorResource;
+                rflags = (uint32_t)ErrorResource;
             }
         }
     }

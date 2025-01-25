@@ -1,47 +1,46 @@
 #include "app/wificonnect/State.h"
-#include "Check.h"
 #include <cstring>
 
 namespace tt::app::wificonnect {
 
 void State::setConnectionError(bool error) {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     connectionError = error;
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
 }
 
 bool State::hasConnectionError() const {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     auto result = connectionError;
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
     return result;
 }
 
 void State::setApSettings(const service::wifi::settings::WifiApSettings* newSettings) {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     memcpy(&this->apSettings, newSettings, sizeof(service::wifi::settings::WifiApSettings));
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
 }
 
 const service::wifi::settings::WifiApSettings& State::lockApSettings() {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     return apSettings;
 }
 
 void State::unlockApSettings() {
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
 }
 
 void State::setConnecting(bool isConnecting) {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     connecting = isConnecting;
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
 }
 
 bool State::isConnecting() const {
-    tt_check(lock.acquire(TtWaitForever) == TtStatusOk);
+    lock.lock();
     auto result = connecting;
-    tt_check(lock.release() == TtStatusOk);
+    lock.unlock();
     return result;
 }
 

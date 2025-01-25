@@ -1,16 +1,16 @@
 #pragma once
 
-#include "app/AppManifest.h"
-#include "app/AppInstance.h"
 #include "EventFlag.h"
 #include "MessageQueue.h"
-#include "Pubsub.h"
-#include "Thread.h"
-#include "service/loader/Loader.h"
+#include "PubSub.h"
 #include "RtosCompatSemaphore.h"
+#include "Thread.h"
+#include "app/AppInstance.h"
+#include "app/AppManifest.h"
+#include "service/loader/Loader.h"
+#include <DispatcherThread.h>
 #include <stack>
 #include <utility>
-#include <DispatcherThread.h>
 
 namespace tt::service::loader {
 

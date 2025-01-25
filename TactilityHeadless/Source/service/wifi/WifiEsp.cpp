@@ -73,53 +73,53 @@ public:
 
     RadioState getRadioState() const {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         // TODO: Handle lock failure
         return radio_state;
     }
 
     void setRadioState(RadioState newState) {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         // TODO: Handle lock failure
         radio_state = newState;
     }
 
     bool isScanning() const {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         // TODO: Handle lock failure
         return scan_active;
     }
 
     void setScanning(bool newState) {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         // TODO: Handle lock failure
         scan_active = newState;
     }
 
     bool isScanActive() const {
         auto lcokable = dataMutex.scoped();
-        lcokable->lock(TtWaitForever);
+        lcokable->lock();
         return scan_active;
     }
 
     void setScanActive(bool newState) {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         scan_active = newState;
     }
 
     bool isSecureConnection() const {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         return secure_connection;
     }
 
     void setSecureConnection(bool newState) {
         auto lockable = dataMutex.scoped();
-        lockable->lock(TtWaitForever);
+        lockable->lock();
         secure_connection = newState;
     }
 };
@@ -325,7 +325,7 @@ int getRssi() {
 
 static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock(TtWaitForever)) {
+    if (lockable->lock()) {
         assert(wifi->scan_list == nullptr);
         wifi->scan_list = static_cast<wifi_ap_record_t*>(malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit));
         wifi->scan_list_count = 0;
@@ -334,7 +334,7 @@ static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
 
 static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock(TtWaitForever)) {
+    if (lockable->lock()) {
         if (wifi->scan_list == nullptr) {
             scan_list_alloc(wifi);
         }
@@ -343,7 +343,7 @@ static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
 
 static void scan_list_free(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock(TtWaitForever)) {
+    if (lockable->lock()) {
         assert(wifi->scan_list != nullptr);
         free(wifi->scan_list);
         wifi->scan_list = nullptr;
@@ -353,7 +353,7 @@ static void scan_list_free(std::shared_ptr<Wifi> wifi) {
 
 static void scan_list_free_safely(std::shared_ptr<Wifi> wifi) {
     auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock(TtWaitForever)) {
+    if (lockable->lock()) {
         if (wifi->scan_list != nullptr) {
             scan_list_free(wifi);
         }
@@ -362,9 +362,9 @@ static void scan_list_free_safely(std::shared_ptr<Wifi> wifi) {
 
 static void publish_event_simple(std::shared_ptr<Wifi> wifi, EventType type) {
     auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock(TtWaitForever)) {
+    if (lockable->lock()) {
         Event turning_on_event = {.type = type};
-        tt_pubsub_publish(wifi->pubsub, &turning_on_event);
+        wifi->pubsub->publish(&turning_on_event);
     }
 }
 
@@ -379,7 +379,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     }
 
     auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(TtWaitForever)) {
+    if (!lockable->lock()) {
         return false;
     }
 
@@ -449,7 +449,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
     if (event_base == WIFI_EVENT) {
         TT_LOG_I(TAG, "eventHandler: WIFI_EVENT (%ld)", event_id);
     } else if (event_base == IP_EVENT) {
-        TT_LOG_W(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
+        TT_LOG_I(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
     }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
@@ -967,15 +967,15 @@ public:
         wifi->autoConnectTimer = nullptr; // Must release as it holds a reference to this Wifi instance
 
         // Acquire all mutexes
-        wifi->dataMutex.acquire(TtWaitForever);
-        wifi->radioMutex.acquire(TtWaitForever);
+        wifi->dataMutex.lock();
+        wifi->radioMutex.lock();
 
         // Detach
         wifi_singleton = nullptr;
 
         // Release mutexes
-        wifi->dataMutex.release();
-        wifi->radioMutex.release();
+        wifi->dataMutex.unlock();
+        wifi->radioMutex.unlock();
 
         // Release (hopefully) last Wifi instance by scope
     }

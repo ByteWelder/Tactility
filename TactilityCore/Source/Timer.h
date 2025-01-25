@@ -1,7 +1,5 @@
 #pragma once
 
-#include "CoreTypes.h"
-
 #include "RtosCompatTimers.h"
 #include "Thread.h"
 #include <memory>
@@ -9,15 +7,27 @@
 namespace tt {
 
 class Timer {
-private:
-    TimerHandle_t timerHandle;
+
 public:
 
     typedef void (*Callback)(std::shared_ptr<void> context);
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
+private:
+
+    struct TimerHandleDeleter {
+        void operator()(TimerHandle_t handleToDelete) {
+            xTimerDelete(handleToDelete, portMAX_DELAY);
+        }
+    };
+
     Callback callback;
     std::shared_ptr<void> callbackContext;
+    std::unique_ptr<std::remove_pointer_t<TimerHandle_t>, TimerHandleDeleter> handle;
+
+    static void onCallback(TimerHandle_t hTimer);
+
+public:
 
     enum class Type {
         Once = 0,    ///< One-shot timer.

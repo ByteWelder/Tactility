@@ -1,10 +1,13 @@
 #include "Thread.h"
-#include <string>
 
 #include "Check.h"
 #include "CoreDefines.h"
+#include "EventFlag.h"
 #include "kernel/Kernel.h"
 #include "Log.h"
+#include "TactilityCoreConfig.h"
+
+#include <string>
 
 namespace tt {
 
@@ -22,180 +25,155 @@ namespace tt {
 static_assert(static_cast<UBaseType_t>(Thread::Priority::Critical) <= TT_CONFIG_THREAD_MAX_PRIORITIES, "highest thread priority is higher than max priority");
 static_assert(TT_CONFIG_THREAD_MAX_PRIORITIES <= configMAX_PRIORITIES, "highest tactility priority is higher than max FreeRTOS priority");
 
-void setState(Thread::Data* data, Thread::State state) {
-    data->state = state;
-    if (data->stateCallback) {
-        data->stateCallback(state, data->stateCallbackContext);
+void Thread::setState(Thread::State newState) {
+    state = newState;
+    if (stateCallback) {
+        stateCallback(state, stateCallbackContext);
     }
 }
 
 static_assert(configSUPPORT_DYNAMIC_ALLOCATION == 1);
 
 /** Catch threads that are trying to exit wrong way */
-__attribute__((__noreturn__)) void thread_catch() { //-V1082
-    // If you're here it means you're probably doing something wrong
-    // with critical sections or with scheduler state
-    asm volatile("nop");                // extra magic
-    tt_crash("You are doing it wrong"); //-V779
+__attribute__((__noreturn__)) void threadCatch() { //-V1082
+    // If you're here it means you're probably doing something wrong with critical sections or with scheduler state
+    asm volatile("nop");
+    tt_crash();
     __builtin_unreachable();
 }
 
-
-static void thread_body(void* context) {
-    assert(context);
-    auto* data = static_cast<Thread::Data*>(context);
+void Thread::mainBody(void* context) {
+    assert(context != nullptr);
+    auto* thread = static_cast<Thread*>(context);
 
     // Store thread data instance to thread local storage
     assert(pvTaskGetThreadLocalStoragePointer(nullptr, 0) == nullptr);
-    vTaskSetThreadLocalStoragePointer(nullptr, 0, data->thread);
+    vTaskSetThreadLocalStoragePointer(nullptr, 0, thread);
 
-    assert(data->state == Thread::State::Starting);
-    setState(data, Thread::State::Running);
-    data->callbackResult = data->callback(data->callbackContext);
-    assert(data->state == Thread::State::Running);
+    assert(thread->state == Thread::State::Starting);
+    thread->setState(Thread::State::Running);
+    thread->callbackResult = thread->callback(thread->callbackContext);
+    assert(thread->state == Thread::State::Running);
 
-    setState(data, Thread::State::Stopped);
+    thread->setState(Thread::State::Stopped);
 
     vTaskSetThreadLocalStoragePointer(nullptr, 0, nullptr);
-    data->taskHandle = nullptr;
+    thread->taskHandle = nullptr;
 
     vTaskDelete(nullptr);
-    thread_catch();
+    threadCatch();
 }
 
-Thread::Thread() :
-    data({
-        .thread = nullptr,
-        .taskHandle = nullptr,
-        .state = State::Stopped,
-        .callback = nullptr,
-        .callbackContext = nullptr,
-        .callbackResult = 0,
-        .stateCallback = nullptr,
-        .stateCallbackContext = nullptr,
-        .name = std::string(),
-        .priority = Priority::Normal,
-        .stackSize = 0,
-    }) { }
-
 Thread::Thread(
-    const std::string& name,
+    std::string name,
     configSTACK_DEPTH_TYPE stackSize,
     Callback callback,
     _Nullable void* callbackContext,
     portBASE_TYPE affinity
 ) :
-    data({
-        .thread = nullptr,
-        .taskHandle = nullptr,
-        .state = State::Stopped,
-        .callback = callback,
-        .callbackContext = callbackContext,
-        .callbackResult = 0,
-        .stateCallback = nullptr,
-        .stateCallbackContext = nullptr,
-        .name = name,
-        .priority = Priority::Normal,
-        .stackSize = stackSize,
-        .affinity = affinity
-    }) { }
+    callback(callback),
+    callbackContext(callbackContext),
+    name(std::move(name)),
+    stackSize(stackSize),
+    affinity(affinity)
+{}
 
 Thread::~Thread() {
     // Ensure that use join before free
-    assert(data.state == State::Stopped);
-    assert(data.taskHandle == nullptr);
+    assert(state == State::Stopped);
+    assert(taskHandle == nullptr);
 }
 
-void Thread::setName(const std::string& newName) {
-    assert(data.state == State::Stopped);
-    data.name = newName;
+void Thread::setName(std::string newName) {
+    assert(state == State::Stopped);
+    name = std::move(newName);
 }
 
-void Thread::setStackSize(size_t stackSize) {
-    assert(data.state == State::Stopped);
+void Thread::setStackSize(size_t newStackSize) {
+    assert(state == State::Stopped);
     assert(stackSize % 4 == 0);
-    data.stackSize = stackSize;
+    stackSize = newStackSize;
 }
 
-void Thread::setCallback(Callback callback, _Nullable void* callbackContext) {
-    assert(data.state == State::Stopped);
-    data.callback = callback;
-    data.callbackContext = callbackContext;
+void Thread::setCallback(Callback newCallback, _Nullable void* newCallbackContext) {
+    assert(state == State::Stopped);
+    callback = newCallback;
+    callbackContext = newCallbackContext;
 }
 
 
-void Thread::setPriority(Priority priority) {
-    assert(data.state == State::Stopped);
-    data.priority = priority;
+void Thread::setPriority(Priority newPriority) {
+    assert(state == State::Stopped);
+    priority = newPriority;
 }
 
 
 void Thread::setStateCallback(StateCallback callback, _Nullable void* callbackContext) {
-    assert(data.state == State::Stopped);
-    data.stateCallback = callback;
-    data.stateCallbackContext = callbackContext;
+    assert(state == State::Stopped);
+    stateCallback = callback;
+    stateCallbackContext = callbackContext;
 }
 
 Thread::State Thread::getState() const {
-    return data.state;
+    return state;
 }
 
 void Thread::start() {
-    assert(data.callback);
-    assert(data.state == State::Stopped);
-    assert(data.stackSize > 0U && data.stackSize < (UINT16_MAX * sizeof(StackType_t)));
+    assert(callback);
+    assert(state == State::Stopped);
+    assert(stackSize > 0U && stackSize < (UINT16_MAX * sizeof(StackType_t)));
 
-    setState(&data, State::Starting);
+    setState(State::Starting);
 
-    uint32_t stack_depth = data.stackSize / sizeof(StackType_t);
+    uint32_t stack_depth = stackSize / sizeof(StackType_t);
 
     BaseType_t result;
-    if (data.affinity != -1) {
+    if (affinity != -1) {
 #ifdef ESP_PLATFORM
         result = xTaskCreatePinnedToCore(
-            thread_body,
-            data.name.c_str(),
+            mainBody,
+            name.c_str(),
             stack_depth,
             this,
-            static_cast<UBaseType_t>(data.priority),
-            &(data.taskHandle),
-            data.affinity
+            static_cast<UBaseType_t>(priority),
+            &taskHandle,
+            affinity
         );
 #else
         TT_LOG_W(TAG, "Pinned tasks are not supported by current FreeRTOS platform - creating regular one");
         result = xTaskCreate(
-            thread_body,
-            data.name.c_str(),
+            mainBody,
+            name.c_str(),
             stack_depth,
             this,
-            static_cast<UBaseType_t>(data.priority),
-            &(data.taskHandle)
+            static_cast<UBaseType_t>(priority),
+            &taskHandle
         );
 #endif
     } else {
         result = xTaskCreate(
-            thread_body,
-            data.name.c_str(),
+            mainBody,
+            name.c_str(),
             stack_depth,
             this,
-            static_cast<UBaseType_t>(data.priority),
-            &(data.taskHandle)
+            static_cast<UBaseType_t>(priority),
+            &taskHandle
         );
     }
 
     tt_check(result == pdPASS);
-    tt_check(data.state == State::Stopped || data.taskHandle);
+    tt_check(state == State::Stopped || taskHandle);
 }
 
 bool Thread::join(TickType_t timeout, TickType_t pollInterval) {
-    tt_check(thread_get_current() != this);
+    tt_check(getCurrent() != this);
 
     // !!! IMPORTANT NOTICE !!!
     //
     // If your thread exited, but your app stuck here: some other thread uses
     // all cpu time, which delays kernel from releasing task handle
     TickType_t start_ticks = kernel::getTicks();
-    while (data.taskHandle) {
+    while (taskHandle) {
         kernel::delayTicks(pollInterval);
         if ((kernel::getTicks() - start_ticks) > timeout) {
             return false;
@@ -206,45 +184,27 @@ bool Thread::join(TickType_t timeout, TickType_t pollInterval) {
 }
 
 ThreadId Thread::getId() const {
-    return data.taskHandle;
+    return taskHandle;
 }
 
 int32_t Thread::getReturnCode() const {
-    assert(data.state == State::Stopped);
-    return data.callbackResult;
+    assert(state == State::Stopped);
+    return callbackResult;
 }
 
-ThreadId thread_get_current_id() {
-    return xTaskGetCurrentTaskHandle();
+Thread* Thread::getCurrent() {
+    return static_cast<Thread*>(pvTaskGetThreadLocalStoragePointer(nullptr, 0));
 }
 
-Thread* thread_get_current() {
-    auto* thread = static_cast<Thread*>(pvTaskGetThreadLocalStoragePointer(nullptr, 0));
-    return thread;
-}
-
-void thread_set_current_priority(Thread::Priority priority) {
-    vTaskPrioritySet(nullptr, static_cast<UBaseType_t>(priority));
-}
-
-Thread::Priority thread_get_current_priority() {
-    return (Thread::Priority)uxTaskPriorityGet(nullptr);
-}
-
-void thread_yield() {
-    assert(!TT_IS_IRQ_MODE());
-    taskYIELD();
-}
-
-uint32_t thread_flags_set(ThreadId thread_id, uint32_t flags) {
-    auto hTask = (TaskHandle_t)thread_id;
+uint32_t Thread::setFlags(ThreadId threadId, uint32_t flags) {
+    auto hTask = (TaskHandle_t)threadId;
     uint32_t rflags;
     BaseType_t yield;
 
     if ((hTask == nullptr) || ((flags & THREAD_FLAGS_INVALID_BITS) != 0U)) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
-        rflags = (uint32_t)TtStatusError;
+        rflags = (uint32_t)EventFlag::Error;
 
         if (TT_IS_IRQ_MODE()) {
             yield = pdFALSE;
@@ -264,14 +224,14 @@ uint32_t thread_flags_set(ThreadId thread_id, uint32_t flags) {
     return (rflags);
 }
 
-uint32_t thread_flags_clear(uint32_t flags) {
+uint32_t Thread::clearFlags(uint32_t flags) {
     TaskHandle_t hTask;
     uint32_t rflags, cflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
         hTask = xTaskGetCurrentTaskHandle();
 
@@ -282,10 +242,10 @@ uint32_t thread_flags_clear(uint32_t flags) {
 
             if (xTaskNotifyIndexed(hTask, THREAD_NOTIFY_INDEX, cflags, eSetValueWithOverwrite) !=
                 pdPASS) {
-                rflags = (uint32_t)TtStatusError;
+                rflags = (uint32_t)EventFlag::Error;
             }
         } else {
-            rflags = (uint32_t)TtStatusError;
+            rflags = (uint32_t)EventFlag::Error;
         }
     }
 
@@ -293,36 +253,36 @@ uint32_t thread_flags_clear(uint32_t flags) {
     return (rflags);
 }
 
-uint32_t thread_flags_get() {
+uint32_t Thread::getFlags() {
     TaskHandle_t hTask;
     uint32_t rflags;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else {
         hTask = xTaskGetCurrentTaskHandle();
 
         if (xTaskNotifyAndQueryIndexed(hTask, THREAD_NOTIFY_INDEX, 0, eNoAction, &rflags) !=
             pdPASS) {
-            rflags = (uint32_t)TtStatusError;
+            rflags = (uint32_t)EventFlag::Error;
         }
     }
 
     return (rflags);
 }
 
-uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
+uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) {
     uint32_t rflags, nval;
     uint32_t clear;
     TickType_t t0, td, tout;
     BaseType_t rval;
 
     if (TT_IS_IRQ_MODE()) {
-        rflags = (uint32_t)TtStatusErrorISR;
+        rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
-        rflags = (uint32_t)TtStatusErrorParameter;
+        rflags = (uint32_t)EventFlag::ErrorParameter;
     } else {
-        if ((options & TtFlagNoClear) == TtFlagNoClear) {
+        if ((options & EventFlag::NoClear) == EventFlag::NoClear) {
             clear = 0U;
         } else {
             clear = flags;
@@ -339,12 +299,12 @@ uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
                 rflags &= flags;
                 rflags |= nval;
 
-                if ((options & TtFlagWaitAll) == TtFlagWaitAll) {
+                if ((options & EventFlag::WaitAll) == EventFlag::WaitAll) {
                     if ((flags & rflags) == flags) {
                         break;
                     } else {
                         if (timeout == 0U) {
-                            rflags = (uint32_t)TtStatusErrorResource;
+                            rflags = (uint32_t)EventFlag::ErrorResource;
                             break;
                         }
                     }
@@ -353,7 +313,7 @@ uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
                         break;
                     } else {
                         if (timeout == 0U) {
-                            rflags = (uint32_t)TtStatusErrorResource;
+                            rflags = (uint32_t)EventFlag::ErrorResource;
                             break;
                         }
                     }
@@ -369,9 +329,9 @@ uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
                 }
             } else {
                 if (timeout == 0) {
-                    rflags = (uint32_t)TtStatusErrorResource;
+                    rflags = (uint32_t)EventFlag::ErrorResource;
                 } else {
-                    rflags = (uint32_t)TtStatusErrorTimeout;
+                    rflags = (uint32_t)EventFlag::ErrorTimeout;
                 }
             }
         } while (rval != pdFAIL);
@@ -381,21 +341,8 @@ uint32_t thread_flags_wait(uint32_t flags, uint32_t options, uint32_t timeout) {
     return (rflags);
 }
 
-const char* thread_get_name(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
-    const char* name;
-
-    if (TT_IS_IRQ_MODE() || (hTask == nullptr)) {
-        name = nullptr;
-    } else {
-        name = pcTaskGetName(hTask);
-    }
-
-    return (name);
-}
-
-uint32_t thread_get_stack_space(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
+uint32_t Thread::getStackSpace(ThreadId threadId) {
+    auto hTask = (TaskHandle_t)threadId;
     uint32_t sz;
 
     if (TT_IS_IRQ_MODE() || (hTask == nullptr)) {
@@ -407,13 +354,13 @@ uint32_t thread_get_stack_space(ThreadId thread_id) {
     return (sz);
 }
 
-void thread_suspend(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
+void Thread::suspend(ThreadId threadId) {
+    auto hTask = (TaskHandle_t)threadId;
     vTaskSuspend(hTask);
 }
 
-void thread_resume(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
+void Thread::resume(ThreadId threadId) {
+    auto hTask = (TaskHandle_t)threadId;
     if (TT_IS_IRQ_MODE()) {
         xTaskResumeFromISR(hTask);
     } else {
@@ -421,8 +368,8 @@ void thread_resume(ThreadId thread_id) {
     }
 }
 
-bool thread_is_suspended(ThreadId thread_id) {
-    auto hTask = (TaskHandle_t)thread_id;
+bool Thread::isSuspended(ThreadId threadId) {
+    auto hTask = (TaskHandle_t)threadId;
     return eTaskGetState(hTask) == eSuspended;
 }
 

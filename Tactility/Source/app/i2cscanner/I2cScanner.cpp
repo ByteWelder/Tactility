@@ -115,12 +115,12 @@ void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
 
 void I2cScannerApp::onHide(AppContext& app) {
     bool isRunning = false;
-    if (mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(250 / portTICK_PERIOD_MS)) {
         auto* timer = scanTimer.get();
         if (timer != nullptr) {
             isRunning = timer->isRunning();
         }
-        mutex.release();
+        mutex.unlock();
     } else {
         return;
     }
@@ -158,9 +158,9 @@ void I2cScannerApp::onScanTimerCallback(TT_UNUSED std::shared_ptr<void> context)
 // endregion Callbacks
 
 bool I2cScannerApp::getPort(i2c_port_t* outPort) {
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         *outPort = this->port;
-        assert(mutex.release() == TtStatusOk);
+        mutex.unlock();
         return true;
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "getPort");
@@ -169,9 +169,9 @@ bool I2cScannerApp::getPort(i2c_port_t* outPort) {
 }
 
 bool I2cScannerApp::addAddressToList(uint8_t address) {
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         scannedAddresses.push_back(address);
-        assert(mutex.release() == TtStatusOk);
+        mutex.unlock();
         return true;
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "addAddressToList");
@@ -180,9 +180,9 @@ bool I2cScannerApp::addAddressToList(uint8_t address) {
 }
 
 bool I2cScannerApp::shouldStopScanTimer() {
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         bool is_scanning = scanState == ScanStateScanning;
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
         return !is_scanning;
     } else {
         return true;
@@ -222,9 +222,9 @@ void I2cScannerApp::onScanTimer() {
 
 bool I2cScannerApp::hasScanThread() {
     bool has_thread;
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         has_thread = scanTimer != nullptr;
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
         return has_thread;
     } else {
         // Unsafe way
@@ -238,7 +238,7 @@ void I2cScannerApp::startScanning() {
         stopScanning();
     }
 
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         scannedAddresses.clear();
 
         lv_obj_add_flag(scanListWidget, LV_OBJ_FLAG_HIDDEN);
@@ -250,16 +250,16 @@ void I2cScannerApp::startScanning() {
             onScanTimerCallback
         );
         scanTimer->start(10);
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "startScanning");
     }
 }
 void I2cScannerApp::stopScanning() {
-    if (mutex.acquire(250 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(250 / portTICK_PERIOD_MS)) {
         assert(scanTimer != nullptr);
         scanState = ScanStateStopped;
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     } else {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
@@ -271,11 +271,11 @@ void I2cScannerApp::onSelectBus(lv_event_t* event) {
     auto i2c_devices = tt::getConfiguration()->hardware->i2c;
     assert(selected < i2c_devices.size());
 
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         scannedAddresses.clear();
         port = i2c_devices[selected].port;
         scanState = ScanStateInitial;
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
 
         updateViews();
     }
@@ -293,7 +293,7 @@ void I2cScannerApp::onPressScan(TT_UNUSED lv_event_t* event) {
 }
 
 void I2cScannerApp::updateViews() {
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (scanState == ScanStateScanning) {
             lv_label_set_text(scanButtonLabelWidget, STOP_SCAN_TEXT);
             lv_obj_remove_flag(portDropdownWidget, LV_OBJ_FLAG_CLICKABLE);
@@ -317,7 +317,7 @@ void I2cScannerApp::updateViews() {
             lv_obj_add_flag(scanListWidget, LV_OBJ_FLAG_HIDDEN);
         }
 
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViews");
     }
@@ -333,12 +333,12 @@ void I2cScannerApp::updateViewsSafely() {
 }
 
 void I2cScannerApp::onScanTimerFinished() {
-    if (mutex.acquire(100 / portTICK_PERIOD_MS) == TtStatusOk) {
+    if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (scanState == ScanStateScanning) {
             scanState = ScanStateStopped;
             updateViewsSafely();
         }
-        tt_check(mutex.release() == TtStatusOk);
+        mutex.unlock();
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimerFinished");
     }

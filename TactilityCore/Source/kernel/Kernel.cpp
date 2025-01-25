@@ -1,12 +1,11 @@
 #include "kernel/Kernel.h"
-#include "Check.h"
 #include "CoreDefines.h"
-#include "CoreTypes.h"
 #include "RtosCompatTask.h"
 
 #ifdef ESP_PLATFORM
 #include "rom/ets_sys.h"
 #else
+#include <cassert>
 #include <unistd.h>
 #endif
 
@@ -16,90 +15,72 @@ bool isRunning() {
     return xTaskGetSchedulerState() != taskSCHEDULER_RUNNING;
 }
 
-int32_t lock() {
+bool lock() {
     assert(!TT_IS_ISR());
 
     int32_t lock;
 
     switch (xTaskGetSchedulerState()) {
+        // Already suspended
         case taskSCHEDULER_SUSPENDED:
-            lock = 1;
-            break;
+            return true;
 
         case taskSCHEDULER_RUNNING:
             vTaskSuspendAll();
-            lock = 0;
-            break;
+            return true;
 
         case taskSCHEDULER_NOT_STARTED:
         default:
-            lock = (int32_t)TtStatusError;
-            break;
+            return false;
     }
 
     /* Return previous lock state */
     return (lock);
 }
 
-int32_t unlock() {
+bool unlock() {
     assert(!TT_IS_ISR());
-
-    int32_t lock;
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
-            lock = 1;
-
             if (xTaskResumeAll() != pdTRUE) {
                 if (xTaskGetSchedulerState() == taskSCHEDULER_SUSPENDED) {
-                    lock = (int32_t)TtStatusError;
+                    return false;
                 }
             }
-            break;
+            return true;
 
         case taskSCHEDULER_RUNNING:
-            lock = 0;
-            break;
+            return true;
 
         case taskSCHEDULER_NOT_STARTED:
         default:
-            lock = (int32_t)TtStatusError;
-            break;
+            return false;
     }
-
-    /* Return previous lock state */
-    return (lock);
 }
 
-int32_t restoreLock(int32_t lock) {
+bool restoreLock(bool lock) {
     assert(!TT_IS_ISR());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
         case taskSCHEDULER_RUNNING:
-            if (lock == 1) {
+            if (lock) {
                 vTaskSuspendAll();
+                return true;
             } else {
-                if (lock != 0) {
-                    lock = (int32_t)TtStatusError;
-                } else {
-                    if (xTaskResumeAll() != pdTRUE) {
-                        if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING) {
-                            lock = (int32_t)TtStatusError;
-                        }
+                if (xTaskResumeAll() != pdTRUE) {
+                    if (xTaskGetSchedulerState() != taskSCHEDULER_RUNNING) {
+                        return false;
                     }
                 }
+                return true;
             }
-            break;
 
         case taskSCHEDULER_NOT_STARTED:
         default:
-            lock = (int32_t)TtStatusError;
-            break;
+            return false;
     }
-
-    /* Return new lock state */
-    return (lock);
 }
 
 uint32_t getTickFrequency() {
@@ -116,13 +97,11 @@ void delayTicks(TickType_t ticks) {
     }
 }
 
-TtStatus delayUntilTick(TickType_t tick) {
+bool delayUntilTick(TickType_t tick) {
     assert(!TT_IS_ISR());
 
     TickType_t tcnt, delay;
-    TtStatus stat;
 
-    stat = TtStatusOk;
     tcnt = xTaskGetTickCount();
 
     /* Determine remaining number of tick to delay */
@@ -130,29 +109,20 @@ TtStatus delayUntilTick(TickType_t tick) {
 
     /* Check if target tick has not expired */
     if ((delay != 0U) && (0 == (delay >> (8 * sizeof(TickType_t) - 1)))) {
-        if (xTaskDelayUntil(&tcnt, delay) == pdFALSE) {
-            /* Did not delay */
-            stat = TtStatusError;
+        if (xTaskDelayUntil(&tcnt, delay) == pdPASS) {
+            return true;
         }
-    } else {
-        /* No delay or already expired */
-        stat = TtStatusErrorParameter;
     }
 
-    /* Return execution status */
-    return (stat);
+    return false;
 }
 
 TickType_t getTicks() {
-    TickType_t ticks;
-
     if (TT_IS_ISR() != 0U) {
-        ticks = xTaskGetTickCountFromISR();
+        return xTaskGetTickCountFromISR();
     } else {
-        ticks = xTaskGetTickCount();
+        return xTaskGetTickCount();
     }
-
-    return ticks;
 }
 
 TickType_t millisToTicks(uint32_t milliseconds) {

@@ -1,8 +1,6 @@
 #pragma once
 
-#include "CoreTypes.h"
-#include <cstddef>
-#include <cstdint>
+#include <memory>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -25,8 +23,16 @@ namespace tt {
  * interrupt that will read from the buffer (the reader).
  */
 class StreamBuffer {
+
 private:
-    StreamBufferHandle_t handle;
+
+    struct StreamBufferHandleDeleter {
+        void operator()(StreamBufferHandle_t handleToDelete) {
+            vStreamBufferDelete(handleToDelete);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<StreamBufferHandle_t>, StreamBufferHandleDeleter> handle;
 
 public:
 
@@ -42,7 +48,7 @@ public:
      */
     StreamBuffer(size_t size, size_t triggerLevel);
 
-    ~StreamBuffer();
+    ~StreamBuffer() = default;
 
     /**
      * @brief Set trigger level for stream buffer.
@@ -65,7 +71,7 @@ public:
      * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for space to become available if the stream buffer is full.
      * Will return immediately if timeout is zero.
-     * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
+     * Setting timeout to portMAX_DELAY will cause the task to wait indefinitely.
      * Ignored if called from ISR.
      * @return The number of bytes actually written to the stream buffer.
      */
@@ -85,7 +91,7 @@ public:
      * @param[in] timeout The maximum amount of time the task should remain in the
      * Blocked state to wait for data to become available if the stream buffer is empty.
      * Will return immediately if timeout is zero.
-     * Setting timeout to TtWaitForever will cause the task to wait indefinitely.
+     * Setting timeout to portMAX_DELAY will cause the task to wait indefinitely.
      * Ignored if called from ISR.
      * @return The number of bytes read from the stream buffer, if any.
      */
