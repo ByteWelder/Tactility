@@ -28,7 +28,7 @@ class MessageQueue {
 private:
 
     struct QueueHandleDeleter {
-        static void operator()(QueueHandle_t handle) {
+        void operator()(QueueHandle_t handle) {
             vQueueDelete(handle);
         }
     };

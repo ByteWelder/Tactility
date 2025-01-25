@@ -24,7 +24,7 @@ class Semaphore {
 private:
 
     struct SemaphoreHandleDeleter {
-        static void operator()(QueueHandle_t handle) {
+        void operator()(QueueHandle_t handle) {
             assert(!TT_IS_IRQ_MODE());
             vSemaphoreDelete(handle);
         }

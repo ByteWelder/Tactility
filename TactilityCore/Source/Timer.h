@@ -18,7 +18,7 @@ public:
 private:
 
     struct TimerHandleDeleter {
-        static void operator()(TimerHandle_t handle) {
+        void operator()(TimerHandle_t handle) {
             xTimerDelete(handle, portMAX_DELAY);
         }
     };

@@ -29,7 +29,7 @@ public:
 private:
 
     struct SemaphoreHandleDeleter {
-        static void operator()(QueueHandle_t semaphore) {
+        void operator()(QueueHandle_t semaphore) {
             assert(!TT_IS_IRQ_MODE());
             vSemaphoreDelete(semaphore);
         }
