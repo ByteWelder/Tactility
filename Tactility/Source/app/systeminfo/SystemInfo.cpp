@@ -62,7 +62,11 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_
     lv_bar_set_value(bar, (int32_t)used, LV_ANIM_OFF);
 
     lv_obj_t* bottom_label = lv_label_create(parent);
+#ifdef ESP_PLATFORM
+    lv_label_set_text_fmt(bottom_label, "%u / %u kB", (used / 1024), (total / 1024));
+#else
     lv_label_set_text_fmt(bottom_label, "%lu / %lu kB", (used / 1024), (total / 1024));
+#endif
     lv_obj_set_width(bottom_label, LV_PCT(100));
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
 }
