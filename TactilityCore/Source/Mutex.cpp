@@ -22,37 +22,34 @@ namespace tt {
 #define tt_mutex_info(mutex, text)
 #endif
 
-Mutex::Mutex(Type type) : type(type) {
-    tt_mutex_info(data, "alloc");
+static inline SemaphoreHandle_t createSemaphoreHandle(Mutex::Type type) {
     switch (type) {
-        case Type::Normal:
-            semaphore = xSemaphoreCreateMutex();
-            break;
-        case Type::Recursive:
-            semaphore = xSemaphoreCreateRecursiveMutex();
-            break;
+        case Mutex::Type::Normal:
+            return xSemaphoreCreateMutex();
+        case Mutex::Type::Recursive:
+            return xSemaphoreCreateRecursiveMutex();
         default:
             tt_crash("Mutex type unknown/corrupted");
     }
+}
 
-    assert(semaphore != nullptr);
+Mutex::Mutex(Type type) : handle(createSemaphoreHandle(type)), type(type) {
+    tt_mutex_info(data, "alloc");
+    assert(handle != nullptr);
 }
 
 Mutex::~Mutex() {
-    assert(!TT_IS_IRQ_MODE());
-    vSemaphoreDelete(semaphore);
-    semaphore = nullptr; // If the mutex is used after release, this might help debugging
+    handle = nullptr; // If the mutex is used after release, this might help debugging
 }
 
 TtStatus Mutex::acquire(TickType_t timeout) const {
     assert(!TT_IS_IRQ_MODE());
-    assert(semaphore != nullptr);
-
+    assert(handle != nullptr);
     tt_mutex_info(mutex, "acquire");
 
     switch (type) {
         case Type::Normal:
-            if (xSemaphoreTake(semaphore, timeout) != pdPASS) {
+            if (xSemaphoreTake(handle.get(), timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
                 } else {
@@ -62,7 +59,7 @@ TtStatus Mutex::acquire(TickType_t timeout) const {
                 return TtStatusOk;
             }
         case Type::Recursive:
-            if (xSemaphoreTakeRecursive(semaphore, timeout) != pdPASS) {
+            if (xSemaphoreTakeRecursive(handle.get(), timeout) != pdPASS) {
                 if (timeout != 0U) {
                     return TtStatusErrorTimeout;
                 } else {
@@ -78,19 +75,19 @@ TtStatus Mutex::acquire(TickType_t timeout) const {
 
 TtStatus Mutex::release() const {
     assert(!TT_IS_IRQ_MODE());
-    assert(semaphore);
+    assert(handle != nullptr);
     tt_mutex_info(mutex, "release");
 
     switch (type) {
         case Type::Normal: {
-            if (xSemaphoreGive(semaphore) != pdPASS) {
+            if (xSemaphoreGive(handle.get()) != pdPASS) {
                 return TtStatusErrorResource;
             } else {
                 return TtStatusOk;
             }
         }
         case Type::Recursive:
-            if (xSemaphoreGiveRecursive(semaphore) != pdPASS) {
+            if (xSemaphoreGiveRecursive(handle.get()) != pdPASS) {
                 return TtStatusErrorResource;
             } else {
                 return TtStatusOk;
@@ -102,8 +99,8 @@ TtStatus Mutex::release() const {
 
 ThreadId Mutex::getOwner() const {
     assert(!TT_IS_IRQ_MODE());
-    assert(semaphore);
-    return (ThreadId)xSemaphoreGetMutexHolder(semaphore);
+    assert(handle != nullptr);
+    return (ThreadId)xSemaphoreGetMutexHolder(handle.get());
 }
 
 } // namespace

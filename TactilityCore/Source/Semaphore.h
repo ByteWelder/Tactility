@@ -2,6 +2,8 @@
 
 #include "CoreTypes.h"
 #include "Thread.h"
+#include <cassert>
+#include <memory>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -18,8 +20,18 @@ namespace tt {
  * Can be used from IRQ/ISR mode, but cannot be created/destroyed from such a context.
  */
 class Semaphore {
+
 private:
-    SemaphoreHandle_t handle;
+
+    struct SemaphoreHandleDeleter {
+        static void operator()(QueueHandle_t handle) {
+            assert(!TT_IS_IRQ_MODE());
+            vSemaphoreDelete(handle);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter> handle;
+
 public:
     /**
      * Cannot be called from IRQ/ISR mode.

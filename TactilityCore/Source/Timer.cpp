@@ -6,7 +6,7 @@
 
 namespace tt {
 
-static void timer_callback(TimerHandle_t hTimer) {
+void Timer::onCallback(TimerHandle_t hTimer) {
     auto* timer = static_cast<Timer*>(pvTimerGetTimerID(hTimer));
 
     if (timer != nullptr) {
@@ -14,54 +14,59 @@ static void timer_callback(TimerHandle_t hTimer) {
     }
 }
 
-Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) {
-    assert((!TT_IS_ISR()) && (callback != nullptr));
-
-    this->callback = callback;
-    this->callbackContext = std::move(callbackContext);
+static inline TimerHandle_t createTimer(Timer::Type type, void* timerId, TimerCallbackFunction_t callback) {
+    assert(timerId != nullptr);
+    assert(callback != nullptr);
 
     UBaseType_t reload;
-    if (type == Type::Once) {
+    if (type == Timer::Type::Once) {
         reload = pdFALSE;
     } else {
         reload = pdTRUE;
     }
 
-    this->timerHandle = xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, this, timer_callback);
-    assert(this->timerHandle);
+    return xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, timerId, callback);
+}
+
+Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) :
+    callback(callback),
+    callbackContext(std::move(callbackContext)),
+    handle(createTimer(type, this, onCallback))
+{
+    assert(!TT_IS_ISR());
+    assert(handle != nullptr);
 }
 
 Timer::~Timer() {
     assert(!TT_IS_ISR());
-    tt_check(xTimerDelete(timerHandle, portMAX_DELAY) == pdPASS);
 }
 
 bool Timer::start(TickType_t interval) {
     assert(!TT_IS_ISR());
     assert(interval < portMAX_DELAY);
-    return xTimerChangePeriod(timerHandle, interval, portMAX_DELAY) == pdPASS;
+    return xTimerChangePeriod(handle.get(), interval, portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::restart(TickType_t interval) {
     assert(!TT_IS_ISR());
     assert(interval < portMAX_DELAY);
-    return xTimerChangePeriod(timerHandle, interval, portMAX_DELAY) == pdPASS &&
-        xTimerReset(timerHandle, portMAX_DELAY) == pdPASS;
+    return xTimerChangePeriod(handle.get(), interval, portMAX_DELAY) == pdPASS &&
+        xTimerReset(handle.get(), portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::stop() {
     assert(!TT_IS_ISR());
-    return xTimerStop(timerHandle, portMAX_DELAY) == pdPASS;
+    return xTimerStop(handle.get(), portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::isRunning() {
     assert(!TT_IS_ISR());
-    return xTimerIsTimerActive(timerHandle) == pdTRUE;
+    return xTimerIsTimerActive(handle.get()) == pdTRUE;
 }
 
 TickType_t Timer::getExpireTime() {
     assert(!TT_IS_ISR());
-    return xTimerGetExpiryTime(timerHandle);
+    return xTimerGetExpiryTime(handle.get());
 }
 
 bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout) {

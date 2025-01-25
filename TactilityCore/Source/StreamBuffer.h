@@ -1,8 +1,7 @@
 #pragma once
 
 #include "CoreTypes.h"
-#include <cstddef>
-#include <cstdint>
+#include <memory>
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
@@ -25,8 +24,16 @@ namespace tt {
  * interrupt that will read from the buffer (the reader).
  */
 class StreamBuffer {
+
 private:
-    StreamBufferHandle_t handle;
+
+    struct StreamBufferHandleDeleter {
+        static void operator()(StreamBufferHandle_t handle) {
+            vStreamBufferDelete(handle);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<StreamBufferHandle_t>, StreamBufferHandleDeleter> handle;
 
 public:
 
@@ -42,7 +49,7 @@ public:
      */
     StreamBuffer(size_t size, size_t triggerLevel);
 
-    ~StreamBuffer();
+    ~StreamBuffer() = default;
 
     /**
      * @brief Set trigger level for stream buffer.

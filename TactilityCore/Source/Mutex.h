@@ -15,7 +15,7 @@ namespace tt {
 
 /**
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
- * Can be used in IRQ mode (within ISR context)
+ * Cannot be used in IRQ mode (within ISR context)
  */
 class Mutex : public Lockable {
 
@@ -28,7 +28,14 @@ public:
 
 private:
 
-    SemaphoreHandle_t semaphore;
+    struct SemaphoreHandleDeleter {
+        static void operator()(QueueHandle_t semaphore) {
+            assert(!TT_IS_IRQ_MODE());
+            vSemaphoreDelete(semaphore);
+        }
+    };
+
+    std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter> handle;
     Type type;
 
 public:

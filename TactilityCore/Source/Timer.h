@@ -9,15 +9,27 @@
 namespace tt {
 
 class Timer {
-private:
-    TimerHandle_t timerHandle;
+
 public:
 
     typedef void (*Callback)(std::shared_ptr<void> context);
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
+private:
+
+    struct TimerHandleDeleter {
+        static void operator()(TimerHandle_t handle) {
+            xTimerDelete(handle, portMAX_DELAY);
+        }
+    };
+
     Callback callback;
     std::shared_ptr<void> callbackContext;
+    std::unique_ptr<std::remove_pointer_t<TimerHandle_t>, TimerHandleDeleter> handle;
+
+    static void onCallback(TimerHandle_t hTimer);
+
+public:
 
     enum class Type {
         Once = 0,    ///< One-shot timer.
