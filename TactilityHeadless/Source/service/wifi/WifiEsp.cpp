@@ -449,7 +449,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
     if (event_base == WIFI_EVENT) {
         TT_LOG_I(TAG, "eventHandler: WIFI_EVENT (%ld)", event_id);
     } else if (event_base == IP_EVENT) {
-        TT_LOG_W(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
+        TT_LOG_I(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
     }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {

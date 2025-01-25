@@ -14,7 +14,6 @@
 - M5Stack Core only shows 4MB of SPIRAM in use
 
 # TODOs
-- Warning log should be info log: TT_LOG_W(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
