@@ -1,7 +1,7 @@
 #pragma once
 
+#include "tt_app.h"
 #include "tt_bundle.h"
-#include "tt_app_context.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -26,7 +26,7 @@ void tt_service_loader_stop_app();
 /**
  * Get the context handle of the app that is currently shown on the screen.
  */
-AppContextHandle tt_service_loader_get_current_app();
+AppHandle tt_service_loader_get_current_app();
 
 #ifdef __cplusplus
 }

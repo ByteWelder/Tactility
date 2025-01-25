@@ -13,7 +13,7 @@ void tt_service_loader_stop_app() {
     tt::service::loader::stopApp();
 }
 
-AppContextHandle tt_service_loader_get_current_app() {
+AppHandle tt_service_loader_get_current_app() {
     return tt::service::loader::getCurrentAppContext().get();
 }
 
