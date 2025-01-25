@@ -16,7 +16,6 @@
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
-- Refactor ServiceManifest into C++ class-based design like the App class
 - Experiment with what happens when using C++ code in an external app (without using standard library!)
 - Boards' CMakeLists.txt manually declare each source folder. Update them all to do a recursive search of all folders.
 - We currently build all boards for a given platform (e.g. ESP32S3), but it's better to filter all irrelevant ones based on the Kconfig board settings:
