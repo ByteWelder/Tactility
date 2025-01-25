@@ -364,7 +364,7 @@ static void publish_event_simple(std::shared_ptr<Wifi> wifi, EventType type) {
     auto lockable = wifi->dataMutex.scoped();
     if (lockable->lock(TtWaitForever)) {
         Event turning_on_event = {.type = type};
-        tt_pubsub_publish(wifi->pubsub, &turning_on_event);
+        wifi->pubsub->publish(&turning_on_event);
     }
 }
 
