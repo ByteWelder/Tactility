@@ -6,7 +6,7 @@
 #include "Log.h"
 #include "MessageQueue.h"
 #include "Mutex.h"
-#include "Pubsub.h"
+#include "PubSub.h"
 #include "service/ServiceContext.h"
 
 namespace tt::service::wifi {
@@ -36,7 +36,7 @@ static Wifi* wifi = nullptr;
 
 static void publish_event_simple(Wifi* wifi, EventType type) {
     Event turning_on_event = { .type = type };
-    tt_pubsub_publish(wifi->pubsub, &turning_on_event);
+    wifi->pubsub->publish(&turning_on_event);
 }
 
 // endregion Static

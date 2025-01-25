@@ -1,8 +1,8 @@
 #pragma once
 
-#include "app/AppManifest.h"
 #include "Bundle.h"
-#include "Pubsub.h"
+#include "PubSub.h"
+#include "app/AppManifest.h"
 #include "service/ServiceManifest.h"
 #include <memory>
 

@@ -17,7 +17,6 @@
 - Refactor Pubsub to class
 - Warning log should be info log: TT_LOG_W(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
-- Mutex should be a C++ BasicLockable, so we can use `std::lock_guard` and get rid of `ScopedLockable`
 - Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
 - Refactor ServiceManifest into C++ class-based design like the App class

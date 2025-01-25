@@ -21,7 +21,7 @@ private:
         .onConnectSsidContext = nullptr
     };
     View view = View(&bindings, &state);
-    PubSubSubscription* wifiSubscription;
+    PubSub::SubscriptionHandle wifiSubscription;
     bool view_enabled = false;
 
 public:

@@ -35,7 +35,7 @@ Gui* gui_alloc() {
         &guiMain,
         nullptr
     );
-    instance->loader_pubsub_subscription = tt_pubsub_subscribe(loader::getPubsub(), &onLoaderMessage, instance);
+    instance->loader_pubsub_subscription = loader::getPubsub()->subscribe(&onLoaderMessage, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     instance->keyboardGroup = lv_group_create();
     auto* screen_root = lv_scr_act();

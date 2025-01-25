@@ -12,7 +12,7 @@ class WifiManage : public App {
 
 private:
 
-    PubSubSubscription* wifiSubscription = nullptr;
+    PubSub::SubscriptionHandle wifiSubscription = nullptr;
     Mutex mutex;
     Bindings bindings = { };
     State state;

@@ -4,7 +4,7 @@
 #include "Statusbar.h"
 
 #include "Mutex.h"
-#include "Pubsub.h"
+#include "PubSub.h"
 #include "TactilityCore.h"
 #include "lvgl/Style.h"
 
@@ -43,7 +43,7 @@ typedef struct {
     lv_obj_t* time;
     lv_obj_t* icons[STATUSBAR_ICON_LIMIT];
     lv_obj_t* battery_icon;
-    PubSubSubscription* pubsub_subscription;
+    PubSub::SubscriptionHandle pubsub_subscription;
 } Statusbar;
 
 static bool statusbar_lock(uint32_t timeoutTicks) {
@@ -83,7 +83,7 @@ static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context) {
             statusbar_data.time_update_timer->start(getNextUpdateTime());
 
             // Notify widget
-            tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+            statusbar_data.pubsub->publish(nullptr);
         } else {
             statusbar_data.time_update_timer->start(pdMS_TO_TICKS(60000U));
         }
@@ -132,7 +132,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     LV_TRACE_OBJ_CREATE("finished");
     auto* statusbar = (Statusbar*)obj;
-    statusbar->pubsub_subscription = tt_pubsub_subscribe(statusbar_data.pubsub, &statusbar_pubsub_event, statusbar);
+    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe(&statusbar_pubsub_event, statusbar);
 
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
@@ -145,7 +145,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
 
 static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj_t* obj) {
     auto* statusbar = (Statusbar*)obj;
-    tt_pubsub_unsubscribe(statusbar_data.pubsub, statusbar->pubsub_subscription);
+    statusbar_data.pubsub->unsubscribe(statusbar->pubsub_subscription);
 }
 
 static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
@@ -245,7 +245,7 @@ int8_t statusbar_icon_add(const std::string& image) {
             break;
         }
     }
-    tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+    statusbar_data.pubsub->publish(nullptr);
     statusbar_unlock();
     return result;
 }
@@ -262,7 +262,7 @@ void statusbar_icon_remove(int8_t id) {
     icon->claimed = false;
     icon->visible = false;
     icon->image = "";
-    tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+    statusbar_data.pubsub->publish(nullptr);
     statusbar_unlock();
 }
 
@@ -273,7 +273,7 @@ void statusbar_icon_set_image(int8_t id, const std::string& image) {
         StatusbarIcon* icon = &statusbar_data.icons[id];
         tt_check(icon->claimed);
         icon->image = image;
-        tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+        statusbar_data.pubsub->publish(nullptr);
         statusbar_unlock();
     }
 }
@@ -285,7 +285,7 @@ void statusbar_icon_set_visibility(int8_t id, bool visible) {
         StatusbarIcon* icon = &statusbar_data.icons[id];
         tt_check(icon->claimed);
         icon->visible = visible;
-        tt_pubsub_publish(statusbar_data.pubsub, nullptr);
+        statusbar_data.pubsub->publish(nullptr);
         statusbar_unlock();
     }
 }

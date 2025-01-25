@@ -2,7 +2,7 @@
 
 #include "MessageQueue.h"
 #include "Mutex.h"
-#include "Pubsub.h"
+#include "PubSub.h"
 #include "service/gui/Gui.h"
 #include <cstdio>
 #include <lvgl.h>
@@ -19,7 +19,7 @@ struct Gui {
     // Thread and lock
     Thread* thread = nullptr;
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    PubSubSubscription* loader_pubsub_subscription = nullptr;
+    PubSub::SubscriptionHandle loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas
     lv_obj_t* appRootWidget = nullptr;

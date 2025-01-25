@@ -56,8 +56,7 @@ static void onConnect(const service::wifi::settings::WifiApSettings* ap_settings
 }
 
 WifiConnect::WifiConnect() {
-    auto wifi_pubsub = service::wifi::getPubsub();
-    wifiSubscription = tt_pubsub_subscribe(wifi_pubsub, &eventCallback, this);
+    wifiSubscription = service::wifi::getPubsub()->subscribe(&eventCallback, this);
     bindings = (Bindings) {
         .onConnectSsid = onConnect,
         .onConnectSsidContext = this,
@@ -65,8 +64,7 @@ WifiConnect::WifiConnect() {
 }
 
 WifiConnect::~WifiConnect() {
-    auto pubsub = service::wifi::getPubsub();
-    tt_pubsub_unsubscribe(pubsub, wifiSubscription);
+    service::wifi::getPubsub()->unsubscribe(wifiSubscription);
 }
 
 void WifiConnect::lock() {
