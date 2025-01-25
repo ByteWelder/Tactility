@@ -29,9 +29,9 @@ public:
 private:
 
     struct SemaphoreHandleDeleter {
-        void operator()(QueueHandle_t semaphore) {
+        void operator()(QueueHandle_t handleToDelete) {
             assert(!TT_IS_IRQ_MODE());
-            vSemaphoreDelete(semaphore);
+            vSemaphoreDelete(handleToDelete);
         }
     };
 

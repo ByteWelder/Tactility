@@ -28,8 +28,8 @@ class StreamBuffer {
 private:
 
     struct StreamBufferHandleDeleter {
-        void operator()(StreamBufferHandle_t handle) {
-            vStreamBufferDelete(handle);
+        void operator()(StreamBufferHandle_t handleToDelete) {
+            vStreamBufferDelete(handleToDelete);
         }
     };
 
