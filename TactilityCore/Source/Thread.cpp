@@ -32,14 +32,12 @@ void Thread::setState(Thread::State newState) {
 static_assert(configSUPPORT_DYNAMIC_ALLOCATION == 1);
 
 /** Catch threads that are trying to exit wrong way */
-__attribute__((__noreturn__)) void thread_catch() { //-V1082
-    // If you're here it means you're probably doing something wrong
-    // with critical sections or with scheduler state
-    asm volatile("nop");                // extra magic
-    tt_crash("You are doing it wrong"); //-V779
+__attribute__((__noreturn__)) void threadCatch() { //-V1082
+    // If you're here it means you're probably doing something wrong with critical sections or with scheduler state
+    asm volatile("nop");
+    tt_crash();
     __builtin_unreachable();
 }
-
 
 void Thread::mainBody(void* context) {
     assert(context != nullptr);
@@ -60,7 +58,7 @@ void Thread::mainBody(void* context) {
     thread->taskHandle = nullptr;
 
     vTaskDelete(nullptr);
-    thread_catch();
+    threadCatch();
 }
 
 Thread::Thread(
