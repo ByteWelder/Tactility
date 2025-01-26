@@ -20,7 +20,7 @@ runs:
     - name: 'Build'
       uses: espressif/esp-idf-ci-action@main
       with:
-        esp_idf_version: v5.3.2
+        esp_idf_version: v5.4
         target: ${{ inputs.arch }}
         path: './'
     - name: 'Release'

@@ -738,6 +738,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
             .threshold = {
                 .rssi = 0,
                 .authmode = WIFI_AUTH_OPEN,
+                .rssi_5g_adjustment = 0
             },
             .pmf_cfg = {
                 .capable = false,
@@ -854,6 +855,7 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
             .threshold = {
                 .rssi = 0,
                 .authmode = WIFI_AUTH_OPEN,
+                .rssi_5g_adjustment = 0
             },
             .pmf_cfg = {
                 .capable = false,

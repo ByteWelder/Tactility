@@ -64,13 +64,10 @@ void stopApp() {
 
 std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext() {
     assert(loader_singleton);
-    if (loader_singleton->mutex.lock(10 / portTICK_PERIOD_MS)) {
-        auto app = loader_singleton->appStack.top();
-        loader_singleton->mutex.unlock();
-        return std::move(app);
-    } else {
-        return nullptr;
-    }
+    loader_singleton->mutex.lock();
+    auto app = loader_singleton->appStack.top();
+    loader_singleton->mutex.unlock();
+    return app;
 }
 
 std::shared_ptr<app::App> _Nullable getCurrentApp() {

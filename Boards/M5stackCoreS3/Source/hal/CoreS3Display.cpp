@@ -29,6 +29,8 @@ bool CoreS3Display::start() {
         .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
         .flags = {
             .dc_high_on_cmd = 0,
             .dc_low_on_data = 0,

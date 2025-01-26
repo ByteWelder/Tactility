@@ -40,7 +40,7 @@ If you implemented a board yourself, I'm willing to refer to your implementation
 
 ### Anything that doesn't fall in the above categories?
 
-Please [contact me](https://tactility.one/#/support)a me first!
+Please [contact me](https://tactility.one/#/support) me first!
 
 ## Pull Requests
 

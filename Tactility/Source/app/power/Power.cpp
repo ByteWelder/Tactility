@@ -13,7 +13,6 @@ namespace tt::app::power {
 #define TAG "power"
 
 extern const AppManifest manifest;
-static void onTimer(TT_UNUSED std::shared_ptr<void> context);
 
 class PowerApp;
 

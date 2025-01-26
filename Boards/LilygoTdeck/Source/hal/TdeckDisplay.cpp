@@ -45,6 +45,7 @@ static bool setBacklight(uint8_t duty) {
         .timer_sel = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
         .duty = duty,
         .hpoint = 0,
+        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
         .flags = {
             .output_invert = 0
         }
@@ -68,6 +69,8 @@ bool TdeckDisplay::start() {
         .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
         .flags = {
             .dc_high_on_cmd = 0,
             .dc_low_on_data = 0,
@@ -134,6 +137,7 @@ bool TdeckDisplay::start() {
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
+        .control_handle = nullptr,
         .buffer_size = TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_DRAW_BUFFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8),
         .double_buffer = true, // Disable to free up SPIRAM
         .trans_size = 0,
@@ -145,12 +149,15 @@ bool TdeckDisplay::start() {
             .mirror_x = true,
             .mirror_y = false,
         },
+        .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
             .buff_dma = false,
             .buff_spiram = true,
             .sw_rotate = false,
-            .swap_bytes = false
-        },
+            .swap_bytes = false,
+            .full_refresh = false,
+            .direct_mode = false
+        }
     };
 
     displayHandle = lvgl_port_add_disp(&disp_cfg);

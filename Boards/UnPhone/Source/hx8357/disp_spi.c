@@ -87,7 +87,7 @@
 /**********************
  *  STATIC PROTOTYPES
  **********************/
-static void IRAM_ATTR spi_ready (spi_transaction_t *trans);
+static void spi_ready(spi_transaction_t*trans);
 
 /**********************
  *  STATIC VARIABLES

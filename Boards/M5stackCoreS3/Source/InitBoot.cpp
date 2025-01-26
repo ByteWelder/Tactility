@@ -1,6 +1,6 @@
 #include <driver/i2c.h>
 #include <driver/spi_master.h>
-#include <intr_types.h>
+#include <esp_intr_types.h>
 #include "Log.h"
 #include "hal/CoreS3DisplayConstants.h"
 #include "kernel/Kernel.h"
@@ -28,9 +28,10 @@ static bool initSpi3() {
         .data5_io_num = GPIO_NUM_NC,
         .data6_io_num = GPIO_NUM_NC,
         .data7_io_num = GPIO_NUM_NC,
+        .data_io_default_level = false,
         .max_transfer_sz = CORES3_LCD_DRAW_BUFFER_SIZE,
         .flags = 0,
-        .isr_cpu_id = INTR_CPU_ID_AUTO,
+        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
         .intr_flags = 0
     };
 

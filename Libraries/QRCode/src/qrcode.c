@@ -848,20 +848,10 @@ int8_t qrcode_initText(QRCode *qrcode, uint8_t *modules, uint8_t version, uint8_
 }
 
 bool qrcode_getModule(QRCode *qrcode, uint8_t x, uint8_t y) {
-    if (x < 0 || x >= qrcode->size || y < 0 || y >= qrcode->size) {
+    if (x >= qrcode->size || y >= qrcode->size) {
         return false;
     }
 
     uint32_t offset = y * qrcode->size + x;
     return (qrcode->modules[offset >> 3] & (1 << (7 - (offset & 0x07)))) != 0;
 }
-
-/*
-uint8_t qrcode_getHexLength(QRCode *qrcode) {
-    return ((qrcode->size * qrcode->size) + 7) / 4;
-}
-
-void qrcode_getHex(QRCode *qrcode, char *result) {
-    
-}
-*/

@@ -2,6 +2,6 @@
 
 namespace tt::app::textviewer {
 
-void start(const std::string&file);
+void start(const std::string& file);
 
 }

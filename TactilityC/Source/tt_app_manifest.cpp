@@ -2,7 +2,6 @@
 
 #include <Check.h>
 #include <app/ElfApp.h>
-#include <app/AppCompatC.h>
 
 #define TAG "tt_app"
 
