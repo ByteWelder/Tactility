@@ -44,6 +44,7 @@ static bool setBacklight(uint8_t duty) {
         .timer_sel = TWODOTFOUR_LCD_BACKLIGHT_LEDC_TIMER,
         .duty = duty,
         .hpoint = 0,
+        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
         .flags = {
             .output_invert = false
         }

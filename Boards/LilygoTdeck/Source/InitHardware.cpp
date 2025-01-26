@@ -31,6 +31,7 @@ static bool init_spi() {
         .data5_io_num = 0,
         .data6_io_num = 0,
         .data7_io_num = 0,
+        .data_io_default_level = false,
         .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
         .flags = 0,
         .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,

@@ -28,6 +28,7 @@ static bool initSpi3() {
         .data5_io_num = GPIO_NUM_NC,
         .data6_io_num = GPIO_NUM_NC,
         .data7_io_num = GPIO_NUM_NC,
+        .data_io_default_level = false,
         .max_transfer_sz = CORES3_LCD_DRAW_BUFFER_SIZE,
         .flags = 0,
         .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,

@@ -45,6 +45,7 @@ static bool setBacklight(uint8_t duty) {
         .timer_sel = TDECK_LCD_BACKLIGHT_LEDC_TIMER,
         .duty = duty,
         .hpoint = 0,
+        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
         .flags = {
             .output_invert = 0
         }
@@ -68,6 +69,8 @@ bool TdeckDisplay::start() {
         .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
         .flags = {
             .dc_high_on_cmd = 0,
             .dc_low_on_data = 0,
