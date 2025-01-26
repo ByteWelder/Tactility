@@ -9,6 +9,7 @@
 #include "service/loader/Loader.h"
 
 #include <string>
+#include <utility>
 
 namespace tt::app {
 
@@ -19,13 +20,13 @@ struct ElfManifest {
     std::string name;
     /** Optional icon. */
     std::string icon;
-    CreateData _Nullable createData;
-    DestroyData _Nullable destroyData;
-    OnStart _Nullable onStart;
-    OnStop _Nullable onStop;
-    OnShow _Nullable onShow;
-    OnHide _Nullable onHide;
-    OnResult _Nullable onResult;
+    CreateData _Nullable createData = nullptr;
+    DestroyData _Nullable destroyData = nullptr;
+    OnStart _Nullable onStart = nullptr;
+    OnStop _Nullable onStop = nullptr;
+    OnShow _Nullable onShow = nullptr;
+    OnHide _Nullable onHide = nullptr;
+    OnResult _Nullable onResult = nullptr;
 };
 
 static size_t elfManifestSetCount = 0;
@@ -88,7 +89,7 @@ private:
 
 public:
 
-    explicit ElfApp(const std::string& filePath) : filePath(filePath) {}
+    explicit ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
 
     void onStart(AppContext& appContext) override {
         auto initial_count = elfManifestSetCount;
@@ -101,7 +102,7 @@ public:
                 }
 
                 if (manifest->onStart != nullptr) {
-                    manifest->onStart(appContext, data);
+                    manifest->onStart(&appContext, data);
                 }
             }
         } else {
@@ -113,7 +114,7 @@ public:
         TT_LOG_I(TAG, "Cleaning up app");
         if (manifest != nullptr) {
             if (manifest->onStop != nullptr) {
-                manifest->onStop(appContext, data);
+                manifest->onStop(&appContext, data);
             }
 
             if (manifest->destroyData != nullptr && data != nullptr) {
@@ -127,19 +128,19 @@ public:
 
     void onShow(AppContext& appContext, lv_obj_t* parent) override {
         if (manifest != nullptr && manifest->onShow != nullptr) {
-            manifest->onShow(appContext, data, parent);
+            manifest->onShow(&appContext, data, parent);
         }
     }
 
     void onHide(AppContext& appContext) override {
         if (manifest != nullptr && manifest->onHide != nullptr) {
-            manifest->onHide(appContext, data);
+            manifest->onHide(&appContext, data);
         }
     }
 
     void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> resultBundle) override {
         if (manifest != nullptr && manifest->onResult != nullptr) {
-            manifest->onResult(appContext, data, result, std::move(resultBundle));
+            manifest->onResult(&appContext, data, result, resultBundle.get());
         }
     }
 };

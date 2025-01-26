@@ -1,11 +1,18 @@
 #pragma once
 
-#include "AppCompatC.h"
 #include "AppManifest.h"
 
 #ifdef ESP_PLATFORM
 
 namespace tt::app {
+
+typedef void* (*CreateData)();
+typedef void (*DestroyData)(void* data);
+typedef void (*OnStart)(void* appContext, void* _Nullable data);
+typedef void (*OnStop)(void* appContext, void* _Nullable data);
+typedef void (*OnShow)(void* appContext, void* _Nullable data, lv_obj_t* parent);
+typedef void (*OnHide)(void* appContext, void* _Nullable data);
+typedef void (*OnResult)(void* appContext, void* _Nullable data, Result result, Bundle* resultData);
 
 void setElfAppManifest(
     const char* name,
