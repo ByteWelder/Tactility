@@ -41,7 +41,7 @@ uint32_t Dispatcher::consume(TickType_t timeout) {
 
     TickType_t ticks_remaining = TT_MAX(timeout - (kernel::getTicks() - start_ticks), 0);
 
-    TT_LOG_I(TAG, "Dispatcher continuing (%d ticks)", (int)ticks_remaining);
+    TT_LOG_D(TAG, "Dispatcher continuing (%d ticks)", (int)ticks_remaining);
 
     // Mutate
     bool processing = true;
