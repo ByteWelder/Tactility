@@ -4,10 +4,8 @@
 
 #include "ScreenshotTask.h"
 #include "lv_screenshot.h"
-#include <cstring>
 #include <format>
 
-#include "app/AppContext.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "lvgl/LvglSync.h"
