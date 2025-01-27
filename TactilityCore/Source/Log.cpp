@@ -34,7 +34,7 @@ static void storeLog(LogLevel level, const char* format, va_list args) {
     }
 }
 
-std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(size_t& outIndex) {
+std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(std::size_t& outIndex) {
     std::array<LogEntry, TT_LOG_ENTRY_COUNT> copy;
     if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
         copy = logEntries;

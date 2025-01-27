@@ -39,7 +39,7 @@ struct LogEntry {
  * The array size is TT_LOG_ENTRY_COUNT
  * @param[out] outIndex the write index for the next log entry.
  */
-std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(size_t& outIndex);
+std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(std::size_t& outIndex);
 
 } // namespace tt
 

@@ -12,13 +12,13 @@ namespace tt {
  */
 struct Configuration {
     /** HAL configuration (drivers) */
-    const hal::Configuration* hardware;
+    const hal::Configuration* hardware = nullptr;
     /** List of user applications */
     const std::vector<const app::AppManifest*> apps = {};
     /** List of user services */
     const std::vector<const service::ServiceManifest*> services = {};
     /** Optional app to start automatically after the splash screen. */
-    std::string autoStartAppId;
+    std::string autoStartAppId = {};
 };
 
 /**

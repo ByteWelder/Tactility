@@ -27,7 +27,7 @@ private:
     }
 
     void updateLogEntries() {
-        size_t index;
+        std::size_t index;
         auto entries = copyLogEntries(index);
         std::stringstream buffer;
         for (unsigned int i = index; i < TT_LOG_ENTRY_COUNT; ++i) {
