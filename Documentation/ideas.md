@@ -1,4 +1,5 @@
 # TODOs
+- See if a `noexcept` compiler flag exists
 - `app/files/State.h` `lockEntries()` should work with a lambda to return the data (and lock internally)
 - `app/wifimanage/State.h` `lockApRecords()` should work with a lambda to return the data (and lock internally)
 - `app/wificonnect/State.h` `lockApSettings()` should work with a lambda to return the data (and lock internally)

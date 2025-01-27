@@ -13,15 +13,13 @@ namespace tt::service::screenshot {
 #define TASK_WORK_TYPE_DELAY 1
 #define TASK_WORK_TYPE_APPS 2
 
-#define SCREENSHOT_PATH_LIMIT 128
-
 class ScreenshotTask {
 
     struct ScreenshotTaskWork {
         int type = TASK_WORK_TYPE_DELAY ;
         uint8_t delay_in_seconds = 0;
         uint8_t amount = 0;
-        char path[SCREENSHOT_PATH_LIMIT] = { 0 };
+        std::string path;
     };
 
     Thread* thread = nullptr;
@@ -39,12 +37,12 @@ public:
      * @param[in] delayInSeconds the delay before starting (and between successive screenshots)
      * @param[in] amount 0 = indefinite, >0 for a specific
      */
-    void startTimed(const char* path, uint8_t delayInSeconds, uint8_t amount);
+    void startTimed(const std::string& path, uint8_t delayInSeconds, uint8_t amount);
 
     /** @brief Start taking screenshot whenever an app is started
      * @param[in] path the path to store the screenshots at
      */
-    void startApps(const char* path);
+    void startApps(const std::string& path);
 
     /** @brief Stop taking screenshots */
     void stop();

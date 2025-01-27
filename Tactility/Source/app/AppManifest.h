@@ -67,7 +67,7 @@ struct AppManifest {
     std::string name;
 
     /** Optional icon. */
-    std::string icon = {};
+    std::string icon;
 
     /** App type affects launch behaviour. */
     Type type = Type::User;
