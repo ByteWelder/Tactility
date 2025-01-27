@@ -13,7 +13,6 @@
 
 namespace tt {
 
-
 /**
  * A thread-safe way to defer code execution.
  * Generally, one task would dispatch the execution,

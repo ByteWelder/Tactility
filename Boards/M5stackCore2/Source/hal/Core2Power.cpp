@@ -24,7 +24,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
         case MetricType::BatteryVoltage: {
             float voltage;
             if (axp192_read(&axpDevice, AXP192_BATTERY_VOLTAGE, &voltage) == ESP_OK) {
-                data.valueAsUint32 = (uint32_t)TT_MAX((voltage * 1000.f), 0.0f);
+                data.valueAsUint32 = (uint32_t)std::max((voltage * 1000.f), 0.0f);
                 return true;
             } else {
                 return false;

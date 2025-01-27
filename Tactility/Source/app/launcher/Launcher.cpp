@@ -64,7 +64,7 @@ class LauncherApp : public App {
         }
 
         int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * 80);
-        int32_t padding = is_landscape_display ? TT_MIN(available_width / 4, 64) : 0;
+        int32_t padding = is_landscape_display ? std::min(available_width / 4, 64) : 0;
 
         auto paths = app.getPaths();
         auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");

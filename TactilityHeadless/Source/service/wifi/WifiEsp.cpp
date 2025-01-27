@@ -389,7 +389,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     uint16_t record_count = wifi->scan_list_limit;
     esp_err_t scan_result = esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list);
     if (scan_result == ESP_OK) {
-        uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
+        uint16_t safe_record_count = std::min(wifi->scan_list_limit, record_count);
         wifi->scan_list_count = safe_record_count;
         TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
@@ -948,7 +948,7 @@ public:
 
         wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
         // We want to try and scan more often in case of startup or scan lock failure
-        wifi_singleton->autoConnectTimer->start(TT_MIN(2000, AUTO_SCAN_INTERVAL));
+        wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
 
         if (settings::shouldEnableOnBoot()) {
             TT_LOG_I(TAG, "Auto-enabling due to setting");
