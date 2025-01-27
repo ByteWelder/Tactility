@@ -130,16 +130,17 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
 }
 
 void View::updateConnectToHidden() {
+    using enum service::wifi::RadioState;
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive:
+        case On:
+        case ConnectionPending:
+        case ConnectionActive:
             lv_obj_remove_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case service::wifi::RadioState::OnPending:
-        case service::wifi::RadioState::OffPending:
-        case service::wifi::RadioState::Off:
+        case OnPending:
+        case OffPending:
+        case Off:
             lv_obj_add_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
     }
@@ -149,10 +150,11 @@ void View::updateNetworkList() {
     lv_obj_clean(networks_list);
 
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::OnPending:
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive: {
+        using enum service::wifi::RadioState;
+        case OnPending:
+        case On:
+        case ConnectionPending:
+        case ConnectionActive: {
 
             std::string connection_target = service::wifi::getConnectionTarget();
 
@@ -200,8 +202,8 @@ void View::updateNetworkList() {
 
             break;
         }
-        case service::wifi::RadioState::OffPending:
-        case service::wifi::RadioState::Off: {
+        case OffPending:
+        case Off: {
             lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             break;
         }
@@ -219,18 +221,19 @@ void View::updateScanning() {
 void View::updateWifiToggle() {
     lv_obj_clear_state(enable_switch, LV_STATE_ANY);
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive:
+        using enum service::wifi::RadioState;
+        case On:
+        case ConnectionPending:
+        case ConnectionActive:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED);
             break;
-        case service::wifi::RadioState::OnPending:
+        case OnPending:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::RadioState::Off:
+        case Off:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::RadioState::OffPending:
+        case OffPending:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED);
             lv_obj_add_state(enable_switch, LV_STATE_DISABLED);
             break;

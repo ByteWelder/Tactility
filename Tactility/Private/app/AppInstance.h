@@ -10,13 +10,13 @@
 
 namespace tt::app {
 
-typedef enum {
-    StateInitial, // App is being activated in loader
-    StateStarted, // App is in memory
-    StateShowing, // App view is created
-    StateHiding,  // App view is destroyed
-    StateStopped  // App is not in memory
-} State;
+enum class State {
+    Initial, // App is being activated in loader
+    Started, // App is in memory
+    Showing, // App view is created
+    Hiding,  // App view is destroyed
+    Stopped  // App is not in memory
+};
 
 /**
  * Thread-safe app instance.
@@ -27,7 +27,7 @@ private:
 
     Mutex mutex = Mutex(Mutex::Type::Normal);
     const std::shared_ptr<AppManifest> manifest;
-    State state = StateInitial;
+    State state = State::Initial;
     Flags flags = { .showStatusbar = true };
     /** @brief Optional parameters to start the app with
      * When these are stored in the app struct, the struct takes ownership.

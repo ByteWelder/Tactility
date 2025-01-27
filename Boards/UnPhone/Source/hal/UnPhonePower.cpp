@@ -18,8 +18,9 @@ static uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) {
 
 bool UnPhonePower::supportsMetric(MetricType type) const {
     switch (type) {
-        case MetricType::BatteryVoltage:
-        case MetricType::ChargeLevel:
+        using enum MetricType;
+        case BatteryVoltage:
+        case ChargeLevel:
             return true;
         default:
             return false;
@@ -28,9 +29,10 @@ bool UnPhonePower::supportsMetric(MetricType type) const {
 
 bool UnPhonePower::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case MetricType::BatteryVoltage:
+        using enum MetricType;
+        case BatteryVoltage:
             return readBatteryVoltageSampled(data.valueAsUint32);
-        case MetricType::ChargeLevel: {
+        case ChargeLevel: {
             uint32_t milli_volt;
             if (readBatteryVoltageSampled(milli_volt)) {
                 data.valueAsUint8 = estimateChargeLevelFromVoltage(milli_volt);
