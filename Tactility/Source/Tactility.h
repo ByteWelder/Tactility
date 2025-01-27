@@ -18,7 +18,7 @@ struct Configuration {
     /** List of user services */
     const std::vector<const service::ServiceManifest*> services = {};
     /** Optional app to start automatically after the splash screen. */
-    std::string autoStartAppId = {};
+    const std::string autoStartAppId = {};
 };
 
 /**
