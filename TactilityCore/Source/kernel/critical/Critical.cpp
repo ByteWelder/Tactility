@@ -11,8 +11,8 @@ static portMUX_TYPE critical_mutex;
 
 namespace tt::kernel::critical {
 
-TtCriticalInfo enter() {
-    TtCriticalInfo info = {
+    CriticalInfo enter() {
+        CriticalInfo info = {
         .isrm = 0,
         .fromIsr = TT_IS_ISR(),
         .kernelRunning = (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
@@ -29,7 +29,7 @@ TtCriticalInfo enter() {
     return info;
 }
 
-void exit(TtCriticalInfo info) {
+void exit(CriticalInfo info) {
     if (info.fromIsr) {
         taskEXIT_CRITICAL_FROM_ISR(info.isrm);
     } else if (info.kernelRunning) {

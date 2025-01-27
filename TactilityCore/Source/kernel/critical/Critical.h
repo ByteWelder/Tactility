@@ -4,21 +4,21 @@
 
 namespace tt::kernel::critical {
 
-typedef struct {
+struct CriticalInfo {
     uint32_t isrm;
     bool fromIsr;
     bool kernelRunning;
-} TtCriticalInfo;
+};
 
 /** Enter a critical section
  * @return info on the status
  */
-TtCriticalInfo enter();
+CriticalInfo enter();
 
 /**
  * Exit a critical section
  * @param[in] info the info from when the critical section was started
  */
-void exit(TtCriticalInfo info);
+void exit(CriticalInfo info);
 
 } // namespace
