@@ -23,7 +23,7 @@ static Dispatcher mainDispatcher;
 
 static const hal::Configuration* hardwareConfig = nullptr;
 
-static void register_and_start_system_services() {
+static void registerAndStartSystemServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::sdcard::manifest);
     addService(service::wifi::manifest);
@@ -38,7 +38,7 @@ void initHeadless(const hal::Configuration& config) {
     time::init();
     hal::init(config);
     network::ntp::init();
-    register_and_start_system_services();
+    registerAndStartSystemServices();
 }
 
 
