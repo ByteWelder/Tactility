@@ -1,8 +1,5 @@
 # TODOs
 - See if a `noexcept` compiler flag exists
-- `app/files/State.h` `lockEntries()` should work with a lambda to return the data (and lock internally)
-- `app/wifimanage/State.h` `lockApRecords()` should work with a lambda to return the data (and lock internally)
-- `app/wificonnect/State.h` `lockApSettings()` should work with a lambda to return the data (and lock internally)
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Where using `switch` with `enum class`, use `using enum EnumType;` inside the `switch`
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.

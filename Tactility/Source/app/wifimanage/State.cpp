@@ -32,15 +32,6 @@ bool State::isScanning() const {
     return result;
 }
 
-const std::vector<service::wifi::ApRecord>& State::lockApRecords() const {
-    mutex.lock();
-    return apRecords;
-}
-
-void State::unlockApRecords() const {
-    mutex.unlock();
-}
-
 void State::updateApRecords() {
     mutex.lock();
     apRecords = service::wifi::getScanResults();

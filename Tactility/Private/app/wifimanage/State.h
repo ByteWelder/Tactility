@@ -30,8 +30,11 @@ public:
 
     void updateApRecords();
 
-    const std::vector<service::wifi::ApRecord>& lockApRecords() const;
-    void unlockApRecords() const;
+    void withApRecords(const std::function<void(const std::vector<service::wifi::ApRecord>&)>& onApRecords) const {
+        mutex.withLock([&]() {
+            onApRecords(apRecords);
+        });
+    }
 
     void setConnectSsid(const std::string& ssid);
     std::string getConnectSsid() const;
