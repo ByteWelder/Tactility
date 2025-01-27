@@ -4,8 +4,8 @@
 
 namespace tt {
 
-static LogEntry* logEntries = nullptr;
-static unsigned int nextLogEntryIndex;
+static std::array<LogEntry, TT_LOG_ENTRY_COUNT> logEntries;
+static size_t nextLogEntryIndex;
 
 /**
  * This used to be a simple static value, but that crashes on device boot where early logging happens.
@@ -20,18 +20,8 @@ Mutex& getLogMutex() {
     return *logMutex;
 }
 
-static void ensureLogEntriesExist() {
-    if (logEntries == nullptr) {
-        logEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
-        assert(logEntries != nullptr);
-        nextLogEntryIndex = 0;
-    }
-}
-
 static void storeLog(LogLevel level, const char* format, va_list args) {
     if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
-        ensureLogEntriesExist();
-
         logEntries[nextLogEntryIndex].level = level;
         vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
 
@@ -44,18 +34,15 @@ static void storeLog(LogLevel level, const char* format, va_list args) {
     }
 }
 
-LogEntry* copyLogEntries(unsigned int& outIndex) {
+std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(size_t& outIndex) {
+    std::array<LogEntry, TT_LOG_ENTRY_COUNT> copy;
     if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
-        auto* newEntries = new LogEntry[TT_LOG_ENTRY_COUNT];
-        assert(newEntries != nullptr);
-        for (int i = 0; i < TT_LOG_ENTRY_COUNT; ++i) {
-            memcpy(&newEntries[i], &logEntries[i], sizeof(LogEntry));
-        }
-        outIndex = nextLogEntryIndex;
+        copy = logEntries;
         getLogMutex().unlock();
-        return newEntries;
+        outIndex = nextLogEntryIndex;
+        return copy;
     } else {
-        return nullptr;
+        return copy;
     }
 }
 

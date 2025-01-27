@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LogMessages.h"
+#include <array>
 
 #ifdef ESP_PLATFORM
 #include <esp_log.h>
@@ -38,7 +39,7 @@ struct LogEntry {
  * The array size is TT_LOG_ENTRY_COUNT
  * @param[out] outIndex the write index for the next log entry.
  */
-LogEntry* copyLogEntries(unsigned int& outIndex);
+std::array<LogEntry, TT_LOG_ENTRY_COUNT> copyLogEntries(size_t& outIndex);
 
 } // namespace tt
 

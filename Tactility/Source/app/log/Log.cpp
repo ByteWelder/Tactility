@@ -27,30 +27,25 @@ private:
     }
 
     void updateLogEntries() {
-        unsigned int index;
-        auto* entries = copyLogEntries(index);
+        size_t index;
+        auto entries = copyLogEntries(index);
         std::stringstream buffer;
-        if (entries != nullptr) {
-            for (unsigned int i = index; i < TT_LOG_ENTRY_COUNT; ++i) {
+        for (unsigned int i = index; i < TT_LOG_ENTRY_COUNT; ++i) {
+            if (shouldShowLog(filterLevel, entries[i].level)) {
+                buffer << entries[i].message;
+            }
+        }
+        if (index != 0) {
+            for (unsigned int i = 0; i < index; ++i) {
                 if (shouldShowLog(filterLevel, entries[i].level)) {
                     buffer << entries[i].message;
                 }
             }
-            if (index != 0) {
-                for (unsigned int i = 0; i < index; ++i) {
-                    if (shouldShowLog(filterLevel, entries[i].level)) {
-                        buffer << entries[i].message;
-                    }
-                }
-            }
-            delete entries;
-            if (!buffer.str().empty()) {
-                lv_label_set_text(labelWidget, buffer.str().c_str());
-            } else {
-                lv_label_set_text(labelWidget, "No logs for the selected log level");
-            }
+        }
+        if (!buffer.str().empty()) {
+            lv_label_set_text(labelWidget, buffer.str().c_str());
         } else {
-            lv_label_set_text(labelWidget, "Failed to load log");
+            lv_label_set_text(labelWidget, "No logs for the selected log level");
         }
     }
 
