@@ -11,8 +11,8 @@ static portMUX_TYPE critical_mutex;
 
 namespace tt::kernel::critical {
 
-    CriticalInfo enter() {
-        CriticalInfo info = {
+CriticalInfo enter() {
+    CriticalInfo info = {
         .isrm = 0,
         .fromIsr = TT_IS_ISR(),
         .kernelRunning = (xTaskGetSchedulerState() == taskSCHEDULER_RUNNING)
