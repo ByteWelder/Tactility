@@ -41,13 +41,10 @@ public:
     bool setEntriesForChildPath(const std::string& child_path);
     bool setEntriesForPath(const std::string& path);
 
-    const std::vector<dirent>& lockEntries() const {
-        mutex.lock();
-        return dir_entries;
-    }
-
-    void unlockEntries() {
-        mutex.unlock();
+    void withEntries(const std::function<void(const std::vector<dirent>&)>& onEntries) const {
+        mutex.withLock([&]() {
+            onEntries(dir_entries);
+        });
     }
 
     bool getDirent(uint32_t index, dirent& dirent);
