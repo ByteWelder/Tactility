@@ -7,6 +7,8 @@
 
 namespace tt {
 
+namespace app::launcher { extern const app::AppManifest manifest; }
+
 /** @brief The configuration for the operating system
  * It contains the hardware configuration, apps and services
  */
@@ -17,6 +19,8 @@ struct Configuration {
     const std::vector<const app::AppManifest*> apps = {};
     /** List of user services */
     const std::vector<const service::ServiceManifest*> services = {};
+    /** Optional app to start automatically after the splash screen. */
+    const std::string launcherAppId = app::launcher::manifest.id;
     /** Optional app to start automatically after the splash screen. */
     const std::string autoStartAppId = {};
 };

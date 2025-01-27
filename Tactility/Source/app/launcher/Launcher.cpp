@@ -1,8 +1,11 @@
+#include "Check.h"
+#include "Tactility.h"
 #include "app/AppContext.h"
 #include "app/ManifestRegistry.h"
-#include "Check.h"
 #include "lvgl.h"
 #include "service/loader/Loader.h"
+
+#define TAG "launcher"
 
 namespace tt::app::launcher {
 
@@ -43,6 +46,14 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 }
 
 class LauncherApp : public App {
+
+    void onStart(TT_UNUSED AppContext& app) override {
+        auto* config = tt::getConfiguration();
+        if (!config->autoStartAppId.empty()) {
+            TT_LOG_I(TAG, "auto-starting %s", config->autoStartAppId.c_str());
+            tt::service::loader::startApp(config->autoStartAppId);
+        }
+    }
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
         auto* wrapper = lv_obj_create(parent);
