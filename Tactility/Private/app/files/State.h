@@ -41,9 +41,10 @@ public:
     bool setEntriesForChildPath(const std::string& child_path);
     bool setEntriesForPath(const std::string& path);
 
-    void withEntries(const std::function<void(const std::vector<dirent>&)>& onEntries) const {
+    template <std::invocable<const std::vector<dirent> &> Func>
+    void withEntries(Func&& onEntries) const {
         mutex.withLock([&]() {
-            onEntries(dir_entries);
+            std::invoke(std::forward<Func>(onEntries), dir_entries);
         });
     }
 

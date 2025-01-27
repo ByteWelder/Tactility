@@ -30,9 +30,10 @@ public:
 
     void updateApRecords();
 
-    void withApRecords(const std::function<void(const std::vector<service::wifi::ApRecord>&)>& onApRecords) const {
+    template <std::invocable<const std::vector<service::wifi::ApRecord>&> Func>
+    void withApRecords(Func&& onApRecords) const {
         mutex.withLock([&]() {
-            onApRecords(apRecords);
+            std::invoke(std::forward<Func>(onApRecords), apRecords);
         });
     }
 
