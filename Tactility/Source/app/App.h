@@ -38,8 +38,8 @@ public:
     App() = default;
     virtual ~App() = default;
 
-    virtual void onStart(AppContext& appContext) {}
-    virtual void onStop(AppContext& appContext) {}
+    virtual void onCreate(AppContext& appContext) {}
+    virtual void onDestroy(AppContext& appContext) {}
     virtual void onShow(AppContext& appContext, lv_obj_t* parent) {}
     virtual void onHide(AppContext& appContext) {}
     virtual void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> _Nullable resultData) {}

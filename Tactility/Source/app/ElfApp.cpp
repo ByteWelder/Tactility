@@ -22,8 +22,8 @@ struct ElfManifest {
     std::string icon;
     CreateData _Nullable createData = nullptr;
     DestroyData _Nullable destroyData = nullptr;
-    OnStart _Nullable onStart = nullptr;
-    OnStop _Nullable onStop = nullptr;
+    OnCreate _Nullable onCreate = nullptr;
+    OnDestroy _Nullable onDestroy = nullptr;
     OnShow _Nullable onShow = nullptr;
     OnHide _Nullable onHide = nullptr;
     OnResult _Nullable onResult = nullptr;
@@ -91,7 +91,7 @@ public:
 
     explicit ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
 
-    void onStart(AppContext& appContext) override {
+    void onCreate(AppContext& appContext) override {
         auto initial_count = elfManifestSetCount;
         if (startElf()) {
             if (elfManifestSetCount > initial_count) {
@@ -101,8 +101,8 @@ public:
                     data = manifest->createData();
                 }
 
-                if (manifest->onStart != nullptr) {
-                    manifest->onStart(&appContext, data);
+                if (manifest->onCreate != nullptr) {
+                    manifest->onCreate(&appContext, data);
                 }
             }
         } else {
@@ -110,11 +110,11 @@ public:
         }
     }
 
-    void onStop(AppContext& appContext) override {
+    void onDestroy(AppContext& appContext) override {
         TT_LOG_I(TAG, "Cleaning up app");
         if (manifest != nullptr) {
-            if (manifest->onStop != nullptr) {
-                manifest->onStop(&appContext, data);
+            if (manifest->onDestroy != nullptr) {
+                manifest->onDestroy(&appContext, data);
             }
 
             if (manifest->destroyData != nullptr && data != nullptr) {
@@ -150,8 +150,8 @@ void setElfAppManifest(
     const char* _Nullable icon,
     CreateData _Nullable createData,
     DestroyData _Nullable destroyData,
-    OnStart _Nullable onStart,
-    OnStop _Nullable onStop,
+    OnCreate _Nullable onCreate,
+    OnDestroy _Nullable onDestroy,
     OnShow _Nullable onShow,
     OnHide _Nullable onHide,
     OnResult _Nullable onResult
@@ -161,8 +161,8 @@ void setElfAppManifest(
         .icon = icon ? icon : "",
         .createData = createData,
         .destroyData = destroyData,
-        .onStart = onStart,
-        .onStop = onStop,
+        .onCreate = onCreate,
+        .onDestroy = onDestroy,
         .onShow = onShow,
         .onHide = onHide,
         .onResult = onResult
