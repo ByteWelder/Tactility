@@ -231,7 +231,7 @@ public:
         listWidget = list;
     }
 
-    void onStart(AppContext& app) override {
+    void onCreate(AppContext& app) override {
         updateTimer = std::make_unique<Timer>(Timer::Type::Once, updateTimerCallback, nullptr);
     }
 };

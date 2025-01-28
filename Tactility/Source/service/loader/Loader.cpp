@@ -118,7 +118,7 @@ static void transitionAppToState(std::shared_ptr<app::AppInstance> app, app::Sta
         case Initial:
             break;
         case Started:
-            app->getApp()->onStart(*app);
+            app->getApp()->onCreate(*app);
             break;
         case Showing: {
             LoaderEvent event_showing = { .type = LoaderEventTypeApplicationShowing };
@@ -132,7 +132,7 @@ static void transitionAppToState(std::shared_ptr<app::AppInstance> app, app::Sta
         }
         case Stopped:
             // TODO: Verify manifest
-            app->getApp()->onStop(*app);
+            app->getApp()->onDestroy(*app);
             break;
     }
 

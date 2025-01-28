@@ -19,8 +19,8 @@ typedef void* AppHandle;
 /** Important: These function types must map to t::app types exactly */
 typedef void* (*AppCreateData)();
 typedef void (*AppDestroyData)(void* data);
-typedef void (*AppOnStart)(AppHandle app, void* _Nullable data);
-typedef void (*AppOnStop)(AppHandle app, void* _Nullable data);
+typedef void (*AppOnCreate)(AppHandle app, void* _Nullable data);
+typedef void (*AppOnDestroy)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnShow)(AppHandle app, void* _Nullable data, lv_obj_t* parent);
 typedef void (*AppOnHide)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, Result result, BundleHandle resultData);
@@ -35,9 +35,9 @@ typedef struct {
     /** If createData is specified, this one must be specified too */
     AppDestroyData _Nullable destroyData;
     /** Called when the app is launched (started) */
-    AppOnStart _Nullable onStart;
+    AppOnCreate _Nullable onCreate;
     /** Called when the app is exited (stopped) */
-    AppOnStop _Nullable onStop;
+    AppOnDestroy _Nullable onDestroy;
     /** Called when the app is about to be shown to the user (app becomes visible) */
     AppOnShow _Nullable onShow;
     /** Called when the app is about to be invisible to the user (e.g. other app was launched by this app, and this app goes to the background) */

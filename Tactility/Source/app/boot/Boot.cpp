@@ -97,7 +97,7 @@ public:
         }
     }
 
-    void onStop(AppContext& app) override {
+    void onDestroy(AppContext& app) override {
         thread.join();
     }
 };

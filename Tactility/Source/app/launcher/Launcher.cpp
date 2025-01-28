@@ -47,7 +47,7 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 
 class LauncherApp : public App {
 
-    void onStart(TT_UNUSED AppContext& app) override {
+    void onCreate(TT_UNUSED AppContext& app) override {
         auto* config = tt::getConfiguration();
         if (!config->autoStartAppId.empty()) {
             TT_LOG_I(TAG, "auto-starting %s", config->autoStartAppId.c_str());

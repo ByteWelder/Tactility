@@ -17,14 +17,14 @@ void tt_app_register(
         manifest->icon,
         (tt::app::CreateData)manifest->createData,
         (tt::app::DestroyData)manifest->destroyData,
-        (tt::app::OnStart)manifest->onStart,
-        (tt::app::OnStop)manifest->onStop,
+        (tt::app::OnCreate)manifest->onCreate,
+        (tt::app::OnDestroy)manifest->onDestroy,
         (tt::app::OnShow)manifest->onShow,
         (tt::app::OnHide)manifest->onHide,
         (tt::app::OnResult)manifest->onResult
     );
 #else
-    tt_crash("TactilityC is intended for PC/Simulator");
+    tt_crash("TactilityC is not intended for PC/Simulator");
 #endif
 }
 
