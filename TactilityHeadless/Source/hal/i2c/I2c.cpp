@@ -23,11 +23,12 @@ static Data dataArray[I2C_NUM_MAX];
 
 const char* initModeToString(InitMode mode) {
     switch (mode) {
-        case InitMode::ByTactility:
+        using enum InitMode;
+        case ByTactility:
             return TT_STRINGIFY(InitMode::ByTactility);
-        case InitMode::ByExternal:
+        case ByExternal:
             return TT_STRINGIFY(InitMode::ByExternal);
-        case InitMode::Disabled:
+        case Disabled:
             return TT_STRINGIFY(InitMode::Disabled);
     }
     tt_crash("not implemented");

@@ -22,7 +22,7 @@ bool tt_semaphore_release(SemaphoreHandle handle) {
 }
 
 uint32_t tt_semaphore_get_count(SemaphoreHandle handle) {
-    return HANDLE_AS_SEMAPHORE(handle)->getCount();
+    return HANDLE_AS_SEMAPHORE(handle)->getAvailable();
 }
 
 }

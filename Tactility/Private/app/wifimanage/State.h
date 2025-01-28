@@ -30,8 +30,12 @@ public:
 
     void updateApRecords();
 
-    const std::vector<service::wifi::ApRecord>& lockApRecords() const;
-    void unlockApRecords() const;
+    template <std::invocable<const std::vector<service::wifi::ApRecord>&> Func>
+    void withApRecords(Func&& onApRecords) const {
+        mutex.withLock([&]() {
+            std::invoke(std::forward<Func>(onApRecords), apRecords);
+        });
+    }
 
     void setConnectSsid(const std::string& ssid);
     std::string getConnectSsid() const;

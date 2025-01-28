@@ -69,7 +69,7 @@ public:
         TT_LOG_I(TAG, "Create canvas");
         int32_t available_height = parent_height - top_label_height - bottom_label_height;
         int32_t available_width = lv_display_get_horizontal_resolution(display);
-        int32_t smallest_size = TT_MIN(available_height, available_width);
+        int32_t smallest_size = std::min(available_height, available_width);
         int32_t pixel_size;
         if (qrcode.size * 2 <= smallest_size) {
             pixel_size = 2;

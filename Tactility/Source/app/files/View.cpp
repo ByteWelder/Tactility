@@ -229,12 +229,13 @@ void View::update() {
     auto scoped_lockable = lvgl::getLvglSyncLockable()->scoped();
     if (scoped_lockable->lock(100 / portTICK_PERIOD_MS)) {
         lv_obj_clean(dir_entry_list);
-        auto entries = state->lockEntries();
-        for (auto entry : entries) {
-            TT_LOG_D(TAG, "Entry: %s %d", entry.d_name, entry.d_type);
-            createDirEntryWidget(dir_entry_list, entry);
-        }
-        state->unlockEntries();
+
+        state->withEntries([this](const std::vector<dirent>& entries) {
+            for (auto entry : entries) {
+                TT_LOG_D(TAG, "Entry: %s %d", entry.d_name, entry.d_type);
+                createDirEntryWidget(dir_entry_list, entry);
+            }
+        });
 
         if (state->getCurrentPath() == "/") {
             lv_obj_add_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);

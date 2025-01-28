@@ -54,14 +54,15 @@ const char* getWifiStatusIconForRssi(int rssi) {
 static const char* getWifiStatusIcon(wifi::RadioState state, bool secure) {
     int rssi;
     switch (state) {
-        case wifi::RadioState::On:
-        case wifi::RadioState::OnPending:
-        case wifi::RadioState::ConnectionPending:
+        using enum wifi::RadioState;
+        case On:
+        case OnPending:
+        case ConnectionPending:
             return STATUSBAR_ICON_WIFI_SCAN_WHITE;
-        case wifi::RadioState::OffPending:
-        case wifi::RadioState::Off:
+        case OffPending:
+        case Off:
             return STATUSBAR_ICON_WIFI_OFF_WHITE;
-        case wifi::RadioState::ConnectionActive:
+        case ConnectionActive:
             rssi = wifi::getRssi();
             return getWifiStatusIconForRssi(rssi);
         default:
@@ -71,11 +72,12 @@ static const char* getWifiStatusIcon(wifi::RadioState state, bool secure) {
 
 static const char* getSdCardStatusIcon(hal::SdCard::State state) {
     switch (state) {
-        case hal::SdCard::State::Mounted:
+        using enum hal::SdCard::State;
+        case Mounted:
             return STATUSBAR_ICON_SDCARD;
-        case hal::SdCard::State::Error:
-        case hal::SdCard::State::Unmounted:
-        case hal::SdCard::State::Unknown:
+        case Error:
+        case Unmounted:
+        case Unknown:
             return STATUSBAR_ICON_SDCARD_ALERT;
         default:
             tt_crash("Unhandled SdCard state");

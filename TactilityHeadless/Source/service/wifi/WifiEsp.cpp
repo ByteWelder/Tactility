@@ -268,6 +268,7 @@ std::vector<ApRecord> getScanResults() {
             records.push_back((ApRecord) {
                 .ssid = (const char*)wifi->scan_list[i].ssid,
                 .rssi = wifi->scan_list[i].rssi,
+                .channel = wifi->scan_list[i].primary,
                 .auth_mode = wifi->scan_list[i].authmode
             });
         }
@@ -389,7 +390,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     uint16_t record_count = wifi->scan_list_limit;
     esp_err_t scan_result = esp_wifi_scan_get_ap_records(&record_count, wifi->scan_list);
     if (scan_result == ESP_OK) {
-        uint16_t safe_record_count = TT_MIN(wifi->scan_list_limit, record_count);
+        uint16_t safe_record_count = std::min(wifi->scan_list_limit, record_count);
         wifi->scan_list_count = safe_record_count;
         TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
@@ -720,65 +721,24 @@ static void dispatchConnect(std::shared_ptr<void> context) {
 
     publish_event_simple(wifi, EventType::ConnectionPending);
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            /* Authmode threshold resets to WPA2 as default if password matches WPA2 standards (pasword len => 8).
-             * If you want to connect the device to deprecated WEP/WPA networks, Please set the threshold value
-             * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
-             * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
-             */
-            .ssid = {0},
-            .password = {0},
-            .scan_method = WIFI_ALL_CHANNEL_SCAN,
-            .bssid_set = false,
-            .bssid = { 0 },
-            .channel = 0,
-            .listen_interval = 0,
-            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
-            .threshold = {
-                .rssi = 0,
-                .authmode = WIFI_AUTH_OPEN,
-                .rssi_5g_adjustment = 0
-            },
-            .pmf_cfg = {
-                .capable = false,
-                .required = false
-            },
-            .rm_enabled = 0,
-            .btm_enabled = 0,
-            .mbo_enabled = 0,
-            .ft_enabled = 0,
-            .owe_enabled = 0,
-            .transition_disable = 0,
-            .reserved = 0,
-            .sae_pwe_h2e = WPA3_SAE_PWE_BOTH,
-            .sae_pk_mode = WPA3_SAE_PK_MODE_AUTOMATIC,
-            .failure_retry_cnt = 1,
-            .he_dcm_set = 0,
-            .he_dcm_max_constellation_tx = 0,
-            .he_dcm_max_constellation_rx = 0,
-            .he_mcs9_enabled = 0,
-            .he_su_beamformee_disabled = 0,
-            .he_trig_su_bmforming_feedback_disabled = 0,
-            .he_trig_mu_bmforming_partial_feedback_disabled = 0,
-            .he_trig_cqi_feedback_disabled = 0,
-            .he_reserved = 0,
-            .sae_h2e_identifier = {0},
-        }
-    };
+    wifi_config_t config;
+    memset(&config, 0, sizeof(wifi_config_t));
+    config.sta.channel = wifi_singleton->connection_target.channel;
+    config.sta.scan_method = WIFI_FAST_SCAN;
+    config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+    config.sta.threshold.rssi = -127;
+    config.sta.pmf_cfg.capable = true;
 
-    static_assert(sizeof(wifi_config.sta.ssid) == (sizeof(wifi_singleton->connection_target.ssid)-1), "SSID size mismatch");
-    memcpy(wifi_config.sta.ssid, wifi_singleton->connection_target.ssid, sizeof(wifi_config.sta.ssid));
-    memcpy(wifi_config.sta.password, wifi_singleton->connection_target.password, sizeof(wifi_config.sta.password));
+    static_assert(sizeof(config.sta.ssid) == (sizeof(wifi_singleton->connection_target.ssid)-1), "SSID size mismatch");
+    memcpy(config.sta.ssid, wifi_singleton->connection_target.ssid, sizeof(config.sta.ssid));
 
-    if (wifi_singleton->connection_target.password[0] != 0x00U) {
-        wifi_config.sta.threshold.authmode = WIFI_AUTH_WPA2_WPA3_PSK;
-    } else {
-        wifi_config.sta.threshold.authmode = WIFI_AUTH_OPEN;
+    if (wifi_singleton->connection_target.password[0] != 0x00) {
+        memcpy(config.sta.password, wifi_singleton->connection_target.password, sizeof(config.sta.password));
+        config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     }
 
     TT_LOG_I(TAG, "esp_wifi_set_config()");
-    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &config);
     if (set_config_result != ESP_OK) {
         wifi->setRadioState(RadioState::On);
         TT_LOG_E(TAG, "Failed to set wifi config (%s)", esp_err_to_name(set_config_result));
@@ -802,7 +762,7 @@ static void dispatchConnect(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "Waiting for EventFlag by event_handler()");
 
     if (bits & WIFI_CONNECTED_BIT) {
-        wifi->setSecureConnection(wifi_config.sta.password[0] != 0x00U);
+        wifi->setSecureConnection(config.sta.password[0] != 0x00U);
         wifi->setRadioState(RadioState::ConnectionActive);
         publish_event_simple(wifi, EventType::ConnectionSuccess);
         TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid);
@@ -842,49 +802,15 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
         return;
     }
 
-    wifi_config_t wifi_config = {
-        .sta = {
-            .ssid = {0},
-            .password = {0},
-            .scan_method = WIFI_ALL_CHANNEL_SCAN,
-            .bssid_set = false,
-            .bssid = { 0 },
-            .channel = 0,
-            .listen_interval = 0,
-            .sort_method = WIFI_CONNECT_AP_BY_SIGNAL,
-            .threshold = {
-                .rssi = 0,
-                .authmode = WIFI_AUTH_OPEN,
-                .rssi_5g_adjustment = 0
-            },
-            .pmf_cfg = {
-                .capable = false,
-                .required = false,
-            },
-            .rm_enabled = false,
-            .btm_enabled = false,
-            .mbo_enabled = false,
-            .ft_enabled = false,
-            .owe_enabled = false,
-            .transition_disable = false,
-            .reserved = 0,
-            .sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED,
-            .sae_pk_mode = WPA3_SAE_PK_MODE_AUTOMATIC,
-            .failure_retry_cnt = 0,
-            .he_dcm_set = false,
-            .he_dcm_max_constellation_tx = false,
-            .he_dcm_max_constellation_rx = false,
-            .he_mcs9_enabled = false,
-            .he_su_beamformee_disabled = false,
-            .he_trig_su_bmforming_feedback_disabled = false,
-            .he_trig_mu_bmforming_partial_feedback_disabled = false,
-            .he_trig_cqi_feedback_disabled = false,
-            .he_reserved = 0,
-            .sae_h2e_identifier = {0},
-        },
-    };
+    wifi_config_t config;
+    memset(&config, 0, sizeof(wifi_config_t));
+    config.sta.channel = wifi_singleton->connection_target.channel;
+    config.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+    config.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+    config.sta.threshold.rssi = -127;
+    config.sta.pmf_cfg.capable = true;
 
-    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &config);
     if (set_config_result != ESP_OK) {
         // TODO: disable radio, because radio state is in limbo between off and on
         wifi->setRadioState(RadioState::Off);
@@ -948,7 +874,7 @@ public:
 
         wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
         // We want to try and scan more often in case of startup or scan lock failure
-        wifi_singleton->autoConnectTimer->start(TT_MIN(2000, AUTO_SCAN_INTERVAL));
+        wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
 
         if (settings::shouldEnableOnBoot()) {
             TT_LOG_I(TAG, "Auto-enabling due to setting");

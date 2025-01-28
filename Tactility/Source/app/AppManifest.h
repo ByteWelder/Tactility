@@ -61,10 +61,10 @@ typedef std::shared_ptr<App>(*CreateApp)();
 
 struct AppManifest {
     /** The identifier by which the app is launched by the system and other apps. */
-    std::string id;
+    std::string id = {};
 
     /** The user-readable name of the app. Used in UI. */
-    std::string name;
+    std::string name = {};
 
     /** Optional icon. */
     std::string icon = {};

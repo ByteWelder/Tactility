@@ -4,18 +4,19 @@ namespace tt::service::wifi {
 
 const char* radioStateToString(RadioState state) {
     switch (state) {
-        case RadioState::OnPending:
-            return TT_STRINGIFY(RadioState::OnPending);
-        case RadioState::On:
-            return TT_STRINGIFY(RadioState::On);
-        case RadioState::ConnectionPending:
-            return TT_STRINGIFY(RadioState::ConnectionPending);
-        case RadioState::ConnectionActive:
-            return TT_STRINGIFY(RadioState::ConnectionActive);
-        case RadioState::OffPending:
-            return TT_STRINGIFY(RadioState::OnPending);
-        case RadioState::Off:
-            return TT_STRINGIFY(RadioState::Off);
+        using enum RadioState;
+        case OnPending:
+            return TT_STRINGIFY(OnPending);
+        case On:
+            return TT_STRINGIFY(On);
+        case ConnectionPending:
+            return TT_STRINGIFY(ConnectionPending);
+        case ConnectionActive:
+            return TT_STRINGIFY(ConnectionActive);
+        case OffPending:
+            return TT_STRINGIFY(OnPending);
+        case Off:
+            return TT_STRINGIFY(Off);
     }
     tt_crash("not implemented");
 }

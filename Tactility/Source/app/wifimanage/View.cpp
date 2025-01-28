@@ -130,16 +130,17 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
 }
 
 void View::updateConnectToHidden() {
+    using enum service::wifi::RadioState;
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive:
+        case On:
+        case ConnectionPending:
+        case ConnectionActive:
             lv_obj_remove_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
 
-        case service::wifi::RadioState::OnPending:
-        case service::wifi::RadioState::OffPending:
-        case service::wifi::RadioState::Off:
+        case OnPending:
+        case OffPending:
+        case Off:
             lv_obj_add_flag(connect_to_hidden, LV_OBJ_FLAG_HIDDEN);
             break;
     }
@@ -149,20 +150,20 @@ void View::updateNetworkList() {
     lv_obj_clean(networks_list);
 
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::OnPending:
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive: {
+        using enum service::wifi::RadioState;
+        case OnPending:
+        case On:
+        case ConnectionPending:
+        case ConnectionActive: {
 
             std::string connection_target = service::wifi::getConnectionTarget();
-            auto& ap_records = state->lockApRecords();
 
-            bool is_connected = !connection_target.empty() &&
-                state->getRadioState() == service::wifi::RadioState::ConnectionActive;
-            bool added_connected = false;
-            if (is_connected) {
-                if (!ap_records.empty()) {
-                    for (auto &record : ap_records) {
+            state->withApRecords([this, &connection_target](const std::vector<service::wifi::ApRecord>& apRecords){
+                bool is_connected = !connection_target.empty() &&
+                    state->getRadioState() == service::wifi::RadioState::ConnectionActive;
+                bool added_connected = false;
+                if (is_connected && !apRecords.empty()) {
+                    for (auto &record : apRecords) {
                         if (record.ssid == connection_target) {
                             lv_list_add_text(networks_list, "Connected");
                             createSsidListItem(record, false);
@@ -171,38 +172,38 @@ void View::updateNetworkList() {
                         }
                     }
                 }
-            }
 
-            lv_list_add_text(networks_list, "Other networks");
-            std::set<std::string> used_ssids;
-            if (!ap_records.empty()) {
-                for (auto& record : ap_records) {
-                    if (used_ssids.find(record.ssid) == used_ssids.end()) {
-                        bool connection_target_match = (record.ssid == connection_target);
-                        bool is_connecting = connection_target_match
-                                             && state->getRadioState() == service::wifi::RadioState::ConnectionPending &&
-                                             !connection_target.empty();
-                        bool skip = connection_target_match && added_connected;
-                        if (!skip) {
-                            createSsidListItem(record, is_connecting);
+                lv_list_add_text(networks_list, "Other networks");
+                std::set<std::string> used_ssids;
+                if (!apRecords.empty()) {
+                    for (auto& record : apRecords) {
+                        if (used_ssids.find(record.ssid) == used_ssids.end()) {
+                            bool connection_target_match = (record.ssid == connection_target);
+                            bool is_connecting = connection_target_match
+                                && state->getRadioState() == service::wifi::RadioState::ConnectionPending &&
+                                !connection_target.empty();
+                            bool skip = connection_target_match && added_connected;
+                            if (!skip) {
+                                createSsidListItem(record, is_connecting);
+                            }
+                            used_ssids.insert(record.ssid);
                         }
-                        used_ssids.insert(record.ssid);
                     }
+                    lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
+                } else if (!state->hasScannedAfterRadioOn() || state->isScanning()) {
+                    // hasScannedAfterRadioOn() prevents briefly showing "No networks found" when turning radio on.
+                    lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
+                } else {
+                    lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
+                    lv_obj_t* label = lv_label_create(networks_list);
+                    lv_label_set_text(label, "No networks found.");
                 }
-                lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-            } else if (!state->hasScannedAfterRadioOn() || state->isScanning()) {
-                // hasScannedAfterRadioOn() prevents briefly showing "No networks found" when turning radio on.
-                lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-            } else {
-                lv_obj_clear_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
-                lv_obj_t* label = lv_label_create(networks_list);
-                lv_label_set_text(label, "No networks found.");
-            }
-            state->unlockApRecords();
+            });
+
             break;
         }
-        case service::wifi::RadioState::OffPending:
-        case service::wifi::RadioState::Off: {
+        case OffPending:
+        case Off: {
             lv_obj_add_flag(networks_list, LV_OBJ_FLAG_HIDDEN);
             break;
         }
@@ -220,18 +221,19 @@ void View::updateScanning() {
 void View::updateWifiToggle() {
     lv_obj_clear_state(enable_switch, LV_STATE_ANY);
     switch (state->getRadioState()) {
-        case service::wifi::RadioState::On:
-        case service::wifi::RadioState::ConnectionPending:
-        case service::wifi::RadioState::ConnectionActive:
+        using enum service::wifi::RadioState;
+        case On:
+        case ConnectionPending:
+        case ConnectionActive:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED);
             break;
-        case service::wifi::RadioState::OnPending:
+        case OnPending:
             lv_obj_add_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::RadioState::Off:
+        case Off:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED | LV_STATE_DISABLED);
             break;
-        case service::wifi::RadioState::OffPending:
+        case OffPending:
             lv_obj_remove_state(enable_switch, LV_STATE_CHECKED);
             lv_obj_add_state(enable_switch, LV_STATE_DISABLED);
             break;

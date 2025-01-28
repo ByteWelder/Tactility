@@ -91,14 +91,15 @@ static void wifiManageEventCallback(const void* message, void* context) {
     TT_LOG_I(TAG, "Update with state %s", service::wifi::radioStateToString(radio_state));
     wifi->getState().setRadioState(radio_state);
     switch (event->type) {
-        case tt::service::wifi::EventType::ScanStarted:
+        using enum tt::service::wifi::EventType;
+        case ScanStarted:
             wifi->getState().setScanning(true);
             break;
-        case tt::service::wifi::EventType::ScanFinished:
+        case ScanFinished:
             wifi->getState().setScanning(false);
             wifi->getState().updateApRecords();
             break;
-        case tt::service::wifi::EventType::RadioStateOn:
+        case RadioStateOn:
             if (!service::wifi::isScanning()) {
                 service::wifi::scan();
             }

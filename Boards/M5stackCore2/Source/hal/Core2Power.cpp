@@ -8,11 +8,12 @@ extern axp192_t axpDevice;
 
 bool Core2Power::supportsMetric(MetricType type) const {
     switch (type) {
-        case MetricType::BatteryVoltage:
-        case MetricType::ChargeLevel:
-        case MetricType::IsCharging:
+        using enum MetricType;
+        case BatteryVoltage:
+        case ChargeLevel:
+        case IsCharging:
             return true;
-        case MetricType::Current:
+        default:
             return false;
     }
 
@@ -21,16 +22,17 @@ bool Core2Power::supportsMetric(MetricType type) const {
 
 bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case MetricType::BatteryVoltage: {
+        using enum MetricType;
+        case BatteryVoltage: {
             float voltage;
             if (axp192_read(&axpDevice, AXP192_BATTERY_VOLTAGE, &voltage) == ESP_OK) {
-                data.valueAsUint32 = (uint32_t)TT_MAX((voltage * 1000.f), 0.0f);
+                data.valueAsUint32 = (uint32_t)std::max((voltage * 1000.f), 0.0f);
                 return true;
             } else {
                 return false;
             }
         }
-        case MetricType::ChargeLevel: {
+        case ChargeLevel: {
             float vbat, charge_current;
             if (
                 axp192_read(&axpDevice, AXP192_BATTERY_VOLTAGE, &vbat) == ESP_OK &&
@@ -51,7 +53,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case MetricType::IsCharging: {
+        case IsCharging: {
             float charge_current;
             if (axp192_read(&axpDevice, AXP192_CHARGE_CURRENT, &charge_current) == ESP_OK) {
                 data.valueAsBool = charge_current > 0.001f;
@@ -60,7 +62,7 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case MetricType::Current: {
+        case Current: {
             float charge_current, discharge_current;
             if (
                 axp192_read(&axpDevice, AXP192_CHARGE_CURRENT, &charge_current) == ESP_OK &&
@@ -76,9 +78,9 @@ bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
+        default:
+            return false;
     }
-
-    return false; // Safety guard for when new enum values are introduced
 }
 
 bool Core2Power::isAllowedToCharge() const {

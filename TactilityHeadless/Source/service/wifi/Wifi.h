@@ -69,6 +69,7 @@ struct Event {
 struct ApRecord {
     std::string ssid;
     int8_t rssi;
+    int32_t channel;
     wifi_auth_mode_t auth_mode;
 };
 

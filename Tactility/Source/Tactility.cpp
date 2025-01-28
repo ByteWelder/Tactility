@@ -62,51 +62,46 @@ namespace app {
 #ifndef ESP_PLATFORM
 #endif
 
-static const std::vector<const app::AppManifest*> system_apps = {
-    &app::alertdialog::manifest,
-    &app::applist::manifest,
-    &app::boot::manifest,
-    &app::display::manifest,
-    &app::files::manifest,
-    &app::gpio::manifest,
-    &app::i2cscanner::manifest,
-    &app::i2csettings::manifest,
-    &app::imageviewer::manifest,
-    &app::inputdialog::manifest,
-    &app::launcher::manifest,
-    &app::log::manifest,
-    &app::settings::manifest,
-    &app::selectiondialog::manifest,
-    &app::systeminfo::manifest,
-    &app::textviewer::manifest,
-    &app::timedatesettings::manifest,
-    &app::timezone::manifest,
-    &app::usbsettings::manifest,
-    &app::wifiapsettings::manifest,
-    &app::wificonnect::manifest,
-    &app::wifimanage::manifest,
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    &app::screenshot::manifest,
-#endif
-#ifdef ESP_PLATFORM
-    &app::crashdiagnostics::manifest
-#endif
-};
-
 // endregion
 
-static void register_system_apps() {
-    TT_LOG_I(TAG, "Registering default apps");
-    for (const auto* app_manifest: system_apps) {
-        addApp(*app_manifest);
-    }
+static void registerSystemApps() {
+    addApp(app::alertdialog::manifest);
+    addApp(app::applist::manifest);
+    addApp(app::boot::manifest);
+    addApp(app::display::manifest);
+    addApp(app::files::manifest);
+    addApp(app::gpio::manifest);
+    addApp(app::i2cscanner::manifest);
+    addApp(app::i2csettings::manifest);
+    addApp(app::imageviewer::manifest);
+    addApp(app::inputdialog::manifest);
+    addApp(app::launcher::manifest);
+    addApp(app::log::manifest);
+    addApp(app::settings::manifest);
+    addApp(app::selectiondialog::manifest);
+    addApp(app::systeminfo::manifest);
+    addApp(app::textviewer::manifest);
+    addApp(app::timedatesettings::manifest);
+    addApp(app::timezone::manifest);
+    addApp(app::usbsettings::manifest);
+    addApp(app::wifiapsettings::manifest);
+    addApp(app::wificonnect::manifest);
+    addApp(app::wifimanage::manifest);
+
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    addApp(app::screenshot::manifest);
+#endif
+
+#ifdef ESP_PLATFORM
+    addApp(app::crashdiagnostics::manifest);
+#endif
 
     if (getConfiguration()->hardware->power != nullptr) {
         addApp(app::power::manifest);
     }
 }
 
-static void register_user_apps(const std::vector<const app::AppManifest*>& apps) {
+static void registerUserApps(const std::vector<const app::AppManifest*>& apps) {
     TT_LOG_I(TAG, "Registering user apps");
     for (auto* manifest : apps) {
         assert(manifest != nullptr);
@@ -114,7 +109,7 @@ static void register_user_apps(const std::vector<const app::AppManifest*>& apps)
     }
 }
 
-static void register_and_start_system_services() {
+static void registerAndStartSystemServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::loader::manifest);
     addService(service::gui::manifest);
@@ -124,7 +119,7 @@ static void register_and_start_system_services() {
 #endif
 }
 
-static void register_and_start_user_services(const std::vector<const service::ServiceManifest*>& manifests) {
+static void registerAndStartUserServices(const std::vector<const service::ServiceManifest*>& manifests) {
     TT_LOG_I(TAG, "Registering and starting user services");
     for (auto* manifest : manifests) {
         assert(manifest != nullptr);
@@ -147,14 +142,14 @@ void run(const Configuration& config) {
 
     // Note: the order of starting apps and services is critical!
     // System services are registered first so the apps below can find them if needed
-    register_and_start_system_services();
+    registerAndStartSystemServices();
     // Then we register system apps. They are not used/started yet.
-    register_system_apps();
+    registerSystemApps();
     // Then we register and start user services. They are started after system app
     // registration just in case they want to figure out which system apps are installed.
-    register_and_start_user_services(config.services);
+    registerAndStartUserServices(config.services);
     // Now we register the user apps, as they might rely on the user services.
-    register_user_apps(config.apps);
+    registerUserApps(config.apps);
 
     TT_LOG_I(TAG, "init starting desktop app");
     service::loader::startApp(app::boot::manifest.id);

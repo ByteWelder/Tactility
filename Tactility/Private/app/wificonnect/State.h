@@ -20,9 +20,6 @@ public:
     void setConnectionError(bool error);
     bool hasConnectionError() const;
 
-    const service::wifi::settings::WifiApSettings& lockApSettings();
-    void unlockApSettings();
-
     void setApSettings(const service::wifi::settings::WifiApSettings* newSettings);
 
     void setConnecting(bool isConnecting);

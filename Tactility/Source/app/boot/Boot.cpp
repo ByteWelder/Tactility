@@ -73,12 +73,8 @@ private:
 #endif
 
         auto* config = tt::getConfiguration();
-        if (config->autoStartAppId) {
-            TT_LOG_I(TAG, "init auto-starting %s", config->autoStartAppId);
-            tt::service::loader::startApp(config->autoStartAppId);
-        } else {
-            app::launcher::start();
-        }
+        assert(!config->launcherAppId.empty());
+        tt::service::loader::startApp(config->launcherAppId);
     }
 
 public:

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WifiGlobals.h"
+#include <cstdint>
 
 namespace tt::service::wifi::settings {
 
@@ -13,6 +14,7 @@ namespace tt::service::wifi::settings {
 struct WifiApSettings {
     char ssid[TT_WIFI_SSID_LIMIT + 1] = { 0 };
     char password[TT_WIFI_CREDENTIALS_PASSWORD_LIMIT + 1] = { 0 };
+    int32_t channel = 0;
     bool auto_connect = true;
 };
 

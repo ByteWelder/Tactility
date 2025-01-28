@@ -55,6 +55,7 @@ static void onConnect(TT_UNUSED lv_event_t* event) {
     service::wifi::settings::WifiApSettings settings;
     strcpy((char*)settings.password, password);
     strcpy((char*)settings.ssid, ssid);
+    settings.channel = 0;
     settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
 
     auto* bindings = &wifi->getBindings();

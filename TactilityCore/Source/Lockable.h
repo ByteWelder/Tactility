@@ -12,17 +12,40 @@ class ScopedLockableUsage;
 
 /** Represents a lock/mutex */
 class Lockable {
+
 public:
+
     virtual ~Lockable() = default;
 
-    virtual bool lock(TickType_t timeoutTicks) const = 0;
+    virtual bool lock(TickType_t timeout) const = 0;
 
-    virtual bool lock() const { return lock(portMAX_DELAY); }
+    bool lock() const { return lock(portMAX_DELAY); }
 
     virtual bool unlock() const = 0;
 
+    void withLock(TickType_t timeout, const std::function<void()>& onLockAcquired) const {
+        if (lock(timeout)) {
+            onLockAcquired();
+            unlock();
+        }
+    }
+
+    void withLock(TickType_t timeout, const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailure) const {
+        if (lock(timeout)) {
+            onLockAcquired();
+            unlock();
+        } else {
+            onLockFailure();
+        }
+    }
+
+    void withLock(const std::function<void()>& onLockAcquired) const { withLock(portMAX_DELAY, onLockAcquired); }
+
+    void withLock(const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailed) const { withLock(portMAX_DELAY, onLockAcquired, onLockFailed); }
+
     std::unique_ptr<ScopedLockableUsage> scoped() const;
 };
+
 
 /**
  * Represents a lockable instance that is scoped to a specific lifecycle.
@@ -37,6 +60,8 @@ class ScopedLockableUsage final : public Lockable {
 
 public:
 
+    using Lockable::lock;
+
     explicit ScopedLockableUsage(const Lockable& lockable) : lockable(lockable) {}
 
     ~ScopedLockableUsage() final {
@@ -46,8 +71,6 @@ public:
     bool lock(TickType_t timeout) const override {
         return lockable.lock(timeout);
     }
-
-    bool lock() const override { return lock(portMAX_DELAY); }
 
     bool unlock() const override {
         return lockable.unlock();

@@ -35,14 +35,14 @@ public:
     /** @brief Start taking screenshot whenever an app is started
      * @param[in] path the path to store the screenshots at
      */
-    void startApps(const char* path);
+    void startApps(const std::string& path);
 
     /** @brief Start taking screenshots after a certain delay
      * @param[in] path the path to store the screenshots at
      * @param[in] delayInSeconds the delay before starting (and between successive screenshots)
      * @param[in] amount 0 = indefinite, >0 for a specific
      */
-    void startTimed(const char* path, uint8_t delayInSeconds, uint8_t amount);
+    void startTimed(const std::string& path, uint8_t delayInSeconds, uint8_t amount);
 
     /** @brief Stop taking screenshots */
     void stop();

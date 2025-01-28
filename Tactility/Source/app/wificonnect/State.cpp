@@ -22,15 +22,6 @@ void State::setApSettings(const service::wifi::settings::WifiApSettings* newSett
     lock.unlock();
 }
 
-const service::wifi::settings::WifiApSettings& State::lockApSettings() {
-    lock.lock();
-    return apSettings;
-}
-
-void State::unlockApSettings() {
-    lock.unlock();
-}
-
 void State::setConnecting(bool isConnecting) {
     lock.lock();
     connecting = isConnecting;

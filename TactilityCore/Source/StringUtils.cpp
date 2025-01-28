@@ -1,21 +1,13 @@
 #include "StringUtils.h"
 #include <cstring>
 #include <sstream>
+#include <string>
 
 namespace tt::string {
 
-int findLastIndex(const char* text, size_t from_index, char find) {
-    for (int i = (int)from_index; i >= 0; i--) {
-        if (text[i] == find) {
-            return (int)i;
-        }
-    }
-    return -1;
-}
-
 bool getPathParent(const std::string& path, std::string& output) {
-    int index = findLastIndex(path.c_str(), path.length() - 1, '/');
-    if (index == -1) {
+    auto index = path.find_last_of('/');
+    if (index == std::string::npos) {
         return false;
     } else if (index == 0) {
         output = "/";

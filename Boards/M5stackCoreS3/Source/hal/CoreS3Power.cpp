@@ -5,11 +5,12 @@
 
 bool CoreS3Power::supportsMetric(MetricType type) const {
     switch (type) {
-        case MetricType::BatteryVoltage:
-        case MetricType::IsCharging:
-        case MetricType::ChargeLevel:
+        using enum MetricType;
+        case BatteryVoltage:
+        case IsCharging:
+        case ChargeLevel:
             return true;
-        case MetricType::Current:
+        default:
             return false;
     }
 
@@ -18,7 +19,8 @@ bool CoreS3Power::supportsMetric(MetricType type) const {
 
 bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case MetricType::BatteryVoltage: {
+        using enum MetricType;
+        case BatteryVoltage: {
             float milliVolt;
             if (axpDevice.getBatteryVoltage(milliVolt)) {
                 data.valueAsUint32 = (uint32_t)milliVolt;
@@ -27,7 +29,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case MetricType::ChargeLevel: {
+        case ChargeLevel: {
             float vbatMillis;
             if (axpDevice.getBatteryVoltage(vbatMillis)) {
                 float vbat = vbatMillis / 1000.f;
@@ -44,7 +46,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case MetricType::IsCharging: {
+        case IsCharging: {
             Axp2101::ChargeStatus status;
             if (axpDevice.getChargeStatus(status)) {
                 data.valueAsBool = (status == Axp2101::CHARGE_STATUS_CHARGING);
@@ -53,11 +55,9 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
                 return false;
             }
         }
-        case MetricType::Current:
+        default:
             return false;
     }
-
-    return false; // Safety guard for when new enum values are introduced
 }
 
 bool CoreS3Power::isAllowedToCharge() const {

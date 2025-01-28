@@ -8,9 +8,9 @@
 #define BATTERY_VOLTAGE_MAX 4.2f
 
 static uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) {
-    float volts = TT_MIN((float)milliVolt / 1000.f, BATTERY_VOLTAGE_MAX);
+    float volts = std::min((float)milliVolt / 1000.f, BATTERY_VOLTAGE_MAX);
     float voltage_percentage = (volts - BATTERY_VOLTAGE_MIN) / (BATTERY_VOLTAGE_MAX - BATTERY_VOLTAGE_MIN);
-    float voltage_factor = TT_MIN(1.0f, voltage_percentage);
+    float voltage_factor = std::min(1.0f, voltage_percentage);
     auto charge_level = (uint8_t) (voltage_factor * 100.f);
     TT_LOG_V(TAG, "mV = %lu, scaled = %.2f, factor = %.2f, result = %d", milliVolt, volts, voltage_factor, charge_level);
     return charge_level;
@@ -18,8 +18,9 @@ static uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) {
 
 bool UnPhonePower::supportsMetric(MetricType type) const {
     switch (type) {
-        case MetricType::BatteryVoltage:
-        case MetricType::ChargeLevel:
+        using enum MetricType;
+        case BatteryVoltage:
+        case ChargeLevel:
             return true;
         default:
             return false;
@@ -28,9 +29,10 @@ bool UnPhonePower::supportsMetric(MetricType type) const {
 
 bool UnPhonePower::getMetric(Power::MetricType type, Power::MetricData& data) {
     switch (type) {
-        case MetricType::BatteryVoltage:
+        using enum MetricType;
+        case BatteryVoltage:
             return readBatteryVoltageSampled(data.valueAsUint32);
-        case MetricType::ChargeLevel: {
+        case ChargeLevel: {
             uint32_t milli_volt;
             if (readBatteryVoltageSampled(milli_volt)) {
                 data.valueAsUint8 = estimateChargeLevelFromVoltage(milli_volt);

@@ -39,24 +39,21 @@ private:
 
 public:
 
+    using Lockable::lock;
+
     explicit Mutex(Type type = Type::Normal);
-    ~Mutex() override = default;
+    ~Mutex() final = default;
 
     /** Attempt to lock the mutex. Blocks until timeout passes or lock is acquired.
      * @param[in] timeout
      * @return success result
      */
-    bool lock(TickType_t timeout) const override;
-
-    /** Attempt to lock the mutex. Blocks until lock is acquired, without timeout.
-     * @return success result
-     */
-    bool lock() const override { return lock(portMAX_DELAY); }
+    bool lock(TickType_t timeout) const final;
 
     /** Attempt to unlock the mutex.
      * @return success result
      */
-    bool unlock() const override;
+    bool unlock() const final;
 
     /** @return the owner of the thread */
     ThreadId getOwner() const;

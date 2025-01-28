@@ -19,26 +19,27 @@ static std::list<SubscriptionData> subscriptions;
 
 static const char* getEventName(SystemEvent event) {
     switch (event) {
-        case SystemEvent::BootInitHalBegin:
-            return TT_STRINGIFY(SystemEvent::BootInitHalBegin);
-        case SystemEvent::BootInitHalEnd:
-            return TT_STRINGIFY(SystemEvent::BootInitHalEnd);
-        case SystemEvent::BootInitI2cBegin:
-            return TT_STRINGIFY(SystemEvent::BootInitI2cBegin);
-        case SystemEvent::BootInitI2cEnd:
-            return TT_STRINGIFY(SystemEvent::BootInitI2cEnd);
-        case SystemEvent::BootInitLvglBegin:
-            return TT_STRINGIFY(SystemEvent::BootInitLvglBegin);
-        case SystemEvent::BootInitLvglEnd:
-            return TT_STRINGIFY(SystemEvent::BootInitLvglEnd);
-        case SystemEvent::BootSplash:
-            return TT_STRINGIFY(SystemEvent::BootSplash);
-        case SystemEvent::NetworkConnected:
-            return TT_STRINGIFY(SystemEvent::NetworkConnected);
-        case SystemEvent::NetworkDisconnected:
-            return TT_STRINGIFY(SystemEvent::NetworkDisconnected);
-        case SystemEvent::Time:
-            return TT_STRINGIFY(SystemEvent::Time);
+        using enum SystemEvent;
+        case BootInitHalBegin:
+            return TT_STRINGIFY(BootInitHalBegin);
+        case BootInitHalEnd:
+            return TT_STRINGIFY(BootInitHalEnd);
+        case BootInitI2cBegin:
+            return TT_STRINGIFY(BootInitI2cBegin);
+        case BootInitI2cEnd:
+            return TT_STRINGIFY(BootInitI2cEnd);
+        case BootInitLvglBegin:
+            return TT_STRINGIFY(BootInitLvglBegin);
+        case BootInitLvglEnd:
+            return TT_STRINGIFY(BootInitLvglEnd);
+        case BootSplash:
+            return TT_STRINGIFY(BootSplash);
+        case NetworkConnected:
+            return TT_STRINGIFY(NetworkConnected);
+        case NetworkDisconnected:
+            return TT_STRINGIFY(NetworkDisconnected);
+        case Time:
+            return TT_STRINGIFY(Time);
     }
 
     tt_crash(); // Missing case above

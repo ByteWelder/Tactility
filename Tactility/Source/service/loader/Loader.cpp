@@ -85,15 +85,16 @@ std::shared_ptr<PubSub> getPubsub() {
 
 static const char* appStateToString(app::State state) {
     switch (state) {
-        case app::StateInitial:
+        using enum app::State;
+        case Initial:
             return "initial";
-        case app::StateStarted:
+        case Started:
             return "started";
-        case app::StateShowing:
+        case Showing:
             return "showing";
-        case app::StateHiding:
+        case Hiding:
             return "hiding";
-        case app::StateStopped:
+        case Stopped:
             return "stopped";
         default:
             return "?";
@@ -113,31 +114,29 @@ static void transitionAppToState(std::shared_ptr<app::AppInstance> app, app::Sta
     );
 
     switch (state) {
-        case app::StateInitial:
-            app->setState(app::StateInitial);
+        using enum app::State;
+        case Initial:
             break;
-        case app::StateStarted:
+        case Started:
             app->getApp()->onStart(*app);
-            app->setState(app::StateStarted);
             break;
-        case app::StateShowing: {
+        case Showing: {
             LoaderEvent event_showing = { .type = LoaderEventTypeApplicationShowing };
             loader_singleton->pubsubExternal->publish(&event_showing);
-            app->setState(app::StateShowing);
             break;
         }
-        case app::StateHiding: {
+        case Hiding: {
             LoaderEvent event_hiding = { .type = LoaderEventTypeApplicationHiding };
             loader_singleton->pubsubExternal->publish(&event_hiding);
-            app->setState(app::StateHiding);
             break;
         }
-        case app::StateStopped:
+        case Stopped:
             // TODO: Verify manifest
             app->getApp()->onStop(*app);
-            app->setState(app::StateStopped);
             break;
     }
+
+    app->setState(state);
 }
 
 static LoaderStatus startAppWithManifestInternal(
@@ -160,15 +159,15 @@ static LoaderStatus startAppWithManifestInternal(
     new_app->mutableFlags().showStatusbar = (manifest->type != app::Type::Boot);
 
     loader_singleton->appStack.push(new_app);
-    transitionAppToState(new_app, app::StateInitial);
-    transitionAppToState(new_app, app::StateStarted);
+    transitionAppToState(new_app, app::State::Initial);
+    transitionAppToState(new_app, app::State::Started);
 
     // We might have to hide the previous app first
     if (previous_app != nullptr) {
-        transitionAppToState(previous_app, app::StateHiding);
+        transitionAppToState(previous_app, app::State::Hiding);
     }
 
-    transitionAppToState(new_app, app::StateShowing);
+    transitionAppToState(new_app, app::State::Showing);
 
     LoaderEvent event_external = { .type = LoaderEventTypeApplicationStarted };
     loader_singleton->pubsubExternal->publish(&event_external);
@@ -230,8 +229,8 @@ static void stopAppInternal() {
         result_set = true;
     }
 
-    transitionAppToState(app_to_stop, app::StateHiding);
-    transitionAppToState(app_to_stop, app::StateStopped);
+    transitionAppToState(app_to_stop, app::State::Hiding);
+    transitionAppToState(app_to_stop, app::State::Stopped);
 
     loader_singleton->appStack.pop();
 
@@ -254,7 +253,7 @@ static void stopAppInternal() {
     if (!loader_singleton->appStack.empty()) {
         instance_to_resume = loader_singleton->appStack.top();
         assert(instance_to_resume);
-        transitionAppToState(instance_to_resume, app::StateShowing);
+        transitionAppToState(instance_to_resume, app::State::Showing);
     }
 
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
