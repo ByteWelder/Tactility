@@ -18,6 +18,7 @@ jobs:
         with:
           board_id: cyd-2432S024c
           arch: esp32
+          release: true
   lilygo-tdeck:
     runs-on: ubuntu-latest
     steps:
@@ -27,6 +28,7 @@ jobs:
         with:
           board_id: lilygo-tdeck
           arch: esp32s3
+          release: true
   m5stack-core2:
     runs-on: ubuntu-latest
     steps:
@@ -36,6 +38,7 @@ jobs:
         with:
           board_id: m5stack-core2
           arch: esp32
+          release: true
   m5stack-cores3:
     runs-on: ubuntu-latest
     steps:
@@ -45,6 +48,7 @@ jobs:
         with:
           board_id: m5stack-cores3
           arch: esp32s3
+          release: true
   unphone:
     runs-on: ubuntu-latest
     steps:
@@ -54,3 +58,26 @@ jobs:
         with:
           board_id: unphone
           arch: esp32s3
+          release: true
+  # Ensure ESP32 builds on macOS work
+  cyd-2432S024c-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: cyd-2432S024c
+          arch: esp32
+          release: false
+  # Ensure ESP32S3 builds on macOS work
+  lilygo-tdeck-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: lilygo-tdeck
+          arch: esp32s3
+          release: false
