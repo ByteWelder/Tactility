@@ -18,13 +18,11 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     endif()
 else()
     file(GLOB_RECURSE SOURCES "Source/*.c**")
-    file(GLOB_RECURSE HEADERS "Include/*.h**")
 
     add_library(TactilityC OBJECT)
 
     target_sources(TactilityC
         PRIVATE ${SOURCES}
-        PUBLIC ${HEADERS}
     )
 
     target_include_directories(TactilityC
