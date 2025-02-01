@@ -43,7 +43,7 @@ public:
     uint32_t wait(
         uint32_t flags,
         uint32_t options = WaitAny,
-        uint32_t timeout = portMAX_DELAY
+        uint32_t timeout = (uint32_t)portMAX_DELAY
     ) const;
 };
 

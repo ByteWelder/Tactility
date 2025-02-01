@@ -1,4 +1,5 @@
-#include "DisplaySettings.h"
+#include "app/display/DisplaySettings.h"
+
 #include "Preferences.h"
 
 namespace tt::app::display {

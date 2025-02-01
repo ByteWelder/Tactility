@@ -1,7 +1,7 @@
 #pragma once
 
-#include "View.h"
-#include "State.h"
+#include "app/files/View.h"
+#include "app/files/State.h"
 #include "app/AppManifest.h"
 
 #include <lvgl.h>

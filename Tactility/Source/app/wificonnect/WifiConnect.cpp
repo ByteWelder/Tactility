@@ -1,7 +1,6 @@
-#include "app/wificonnect/WifiConnectPrivate.h"
+#include "app/wificonnect/WifiConnect.h"
 
 #include "app/AppContext.h"
-#include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/Wifi.h"
 #include "lvgl/LvglSync.h"

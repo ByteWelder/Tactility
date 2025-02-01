@@ -1,9 +1,11 @@
-#include "AlertDialog.h"
-#include "lvgl.h"
+#include "app/alertdialog/AlertDialog.h"
+
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include <StringUtils.h>
 #include <TactilityCore.h>
+
+#include <lvgl.h>
 
 namespace tt::app::alertdialog {
 

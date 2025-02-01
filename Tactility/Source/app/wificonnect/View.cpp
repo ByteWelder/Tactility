@@ -1,6 +1,5 @@
 #include "app/wificonnect/View.h"
-#include "app/wificonnect/WifiConnectPrivate.h"
-#include "WifiConnect.h"
+#include "app/wificonnect/WifiConnect.h"
 
 #include "lvgl.h"
 #include "service/gui/Gui.h"

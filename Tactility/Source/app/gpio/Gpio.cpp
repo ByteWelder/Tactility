@@ -3,7 +3,7 @@
 #include "service/loader/Loader.h"
 #include "lvgl/Toolbar.h"
 
-#include "GpioHal.h"
+#include "app/gpio/GpioHal.h"
 #include "lvgl/LvglSync.h"
 #include "Timer.h"
 

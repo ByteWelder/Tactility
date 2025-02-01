@@ -1,10 +1,10 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "Toolbar.h"
+#include "lvgl/Toolbar.h"
 
 #include "service/loader/Loader.h"
 #include "lvgl/Style.h"
-#include "Spinner.h"
+#include "lvgl/Spinner.h"
 
 namespace tt::lvgl {
 

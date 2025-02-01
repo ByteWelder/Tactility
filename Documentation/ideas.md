@@ -1,4 +1,5 @@
 # TODOs
+- Create a base `Driver` object for drives, and a `DriverManager` to find devices
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - Clean up static_cast when casting to base class.
@@ -46,6 +47,10 @@
 - On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
  
 # App Ideas
+- Map widget:
+  https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/application/ui/ui_geomap.cpp
+  https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/tools/generate_world_map.bin.py
+  https://github.com/portapack-mayhem/mayhem-firmware/releases
 - Weather app: https://lab.flipper.net/apps/flip_weather
 - wget app: https://lab.flipper.net/apps/web_crawler (add profiles for known public APIs?)
 - USB implementation to make device act as mass storage device.

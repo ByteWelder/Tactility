@@ -1,12 +1,14 @@
-#include "WifiApSettings.h"
+#include "app/wifiapsettings/WifiApSettings.h"
+
 #include "TactilityCore.h"
 #include "app/AppContext.h"
 #include "app/alertdialog/AlertDialog.h"
-#include "lvgl.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include "service/wifi/WifiSettings.h"
+
+#include <lvgl.h>
 
 namespace tt::app::wifiapsettings {
 

@@ -2,11 +2,12 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "Screenshot.h"
-#include <memory>
+#include "service/screenshot/Screenshot.h"
 
 #include "service/ServiceContext.h"
 #include "service/ServiceRegistry.h"
+
+#include <memory>
 
 namespace tt::service::screenshot {
 

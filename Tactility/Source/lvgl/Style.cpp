@@ -1,4 +1,4 @@
-#include "Style.h"
+#include "lvgl/Style.h"
 
 namespace tt::lvgl {
 

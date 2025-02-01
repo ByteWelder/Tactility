@@ -1,17 +1,18 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
 #include <Timer.h>
-#include "Statusbar.h"
+#include "lvgl/Statusbar.h"
 
 #include "Mutex.h"
 #include "PubSub.h"
 #include "TactilityCore.h"
 #include "lvgl/Style.h"
 
-#include "LvglSync.h"
-#include "lvgl.h"
+#include "lvgl/LvglSync.h"
 #include "kernel/SystemEvents.h"
 #include "time/Time.h"
+
+#include <lvgl.h>
 
 namespace tt::lvgl {
 
@@ -46,7 +47,7 @@ typedef struct {
     PubSub::SubscriptionHandle pubsub_subscription;
 } Statusbar;
 
-static bool statusbar_lock(uint32_t timeoutTicks = portMAX_DELAY) {
+static bool statusbar_lock(TickType_t timeoutTicks = portMAX_DELAY) {
     return statusbar_data.mutex.lock(timeoutTicks);
 }
 

@@ -1,5 +1,5 @@
 #include <Mutex.h>
-#include "LvglSync.h"
+#include "lvgl/LvglSync.h"
 
 namespace tt::lvgl {
 

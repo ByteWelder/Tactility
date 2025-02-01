@@ -2,13 +2,14 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "ScreenshotTask.h"
-#include "lv_screenshot.h"
-#include <format>
+#include "service/screenshot/ScreenshotTask.h"
 
+#include "lv_screenshot.h"
 #include "TactilityCore.h"
 #include "service/loader/Loader.h"
 #include "lvgl/LvglSync.h"
+
+#include <format>
 
 namespace tt::service::screenshot {
 

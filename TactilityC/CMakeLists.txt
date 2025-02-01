@@ -13,8 +13,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         PRIV_REQUIRES Tactility TactilityCore TactilityHeadless elf_loader
     )
 
-    add_definitions(-DESP_PLATFORM)
-
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-unused-variable)
     endif()

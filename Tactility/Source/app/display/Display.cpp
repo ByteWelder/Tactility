@@ -1,10 +1,10 @@
-#include "app/AppContext.h"
 #include "Assets.h"
-#include "DisplaySettings.h"
+#include "app/display/DisplaySettings.h"
 #include "Tactility.h"
 #include "lvgl/Toolbar.h"
-#include "lvgl.h"
 #include "hal/Display.h"
+
+#include <lvgl.h>
 
 namespace tt::app::display {
 
@@ -13,7 +13,6 @@ namespace tt::app::display {
 static bool backlight_duty_set = false;
 static uint8_t backlight_duty = 255;
 
-static bool gamma_set = false;
 static uint8_t gamma = 255;
 
 #define ROTATION_DEFAULT 0
@@ -49,7 +48,6 @@ static void onGammaSliderEvent(lv_event_t* event) {
         int32_t slider_value = lv_slider_get_value(slider);
 
         gamma = (uint8_t)slider_value;
-        gamma_set = true;
 
         hal_display->setGammaCurve(gamma);
     }

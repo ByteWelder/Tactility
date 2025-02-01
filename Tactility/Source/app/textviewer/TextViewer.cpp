@@ -1,10 +1,10 @@
 #include <TactilityCore.h>
-#include "TextViewer.h"
-#include "lvgl.h"
 #include "lvgl/LabelUtils.h"
 #include "lvgl/Style.h"
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
+
+#include <lvgl.h>
 
 #define TAG "text_viewer"
 #define TEXT_VIEWER_FILE_ARGUMENT "file"

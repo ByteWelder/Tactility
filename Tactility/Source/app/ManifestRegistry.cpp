@@ -1,6 +1,6 @@
-#include "ManifestRegistry.h"
 #include "Mutex.h"
-#include "AppManifest.h"
+#include "app/ManifestRegistry.h"
+#include "app/AppManifest.h"
 #include <unordered_map>
 
 #define TAG "app"

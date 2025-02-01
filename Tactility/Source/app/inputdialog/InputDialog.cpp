@@ -1,10 +1,12 @@
-#include "InputDialog.h"
-#include "lvgl.h"
+#include "app/inputdialog/InputDialog.h"
+
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include "service/gui/Gui.h"
 #include <StringUtils.h>
 #include <TactilityCore.h>
+
+#include <lvgl.h>
 
 namespace tt::app::inputdialog {
 

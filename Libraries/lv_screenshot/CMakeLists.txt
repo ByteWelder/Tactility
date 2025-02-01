@@ -12,7 +12,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         REQUIRES lvgl
     )
 
-    add_definitions(-DESP_PLATFORM)
 else()
     file(GLOB SOURCES "Source/*.c*")
     file(GLOB HEADERS "Source/*.h*")

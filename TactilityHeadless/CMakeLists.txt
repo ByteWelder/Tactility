@@ -25,8 +25,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         fatfs_create_spiflash_image(data "${CMAKE_CURRENT_SOURCE_DIR}/../Data/data" FLASH_IN_PROJECT PRESERVE_TIME)
     endif()
 
-    add_definitions(-DESP_PLATFORM)
-
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-unused-variable)
     endif()

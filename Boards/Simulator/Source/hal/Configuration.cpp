@@ -1,4 +1,3 @@
-#include "Tactility.h"
 #include "hal/Configuration.h"
 #include "hal/SimulatorPower.h"
 #include "LvglTask.h"

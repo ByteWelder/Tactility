@@ -1,9 +1,11 @@
-#include "SelectionDialog.h"
-#include "lvgl.h"
+#include "app/selectiondialog/SelectionDialog.h"
+
 #include "lvgl/Toolbar.h"
 #include "service/loader/Loader.h"
 #include <StringUtils.h>
 #include <TactilityCore.h>
+
+#include <lvgl.h>
 
 namespace tt::app::selectiondialog {
 
