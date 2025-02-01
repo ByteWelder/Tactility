@@ -47,6 +47,7 @@ else()
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
+
     target_link_libraries(TactilityHeadless
         PUBLIC TactilityCore
         PUBLIC freertos_kernel
