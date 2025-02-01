@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include "MessageQueue.h"
+#include <Tactility/MessageQueue.h>
 
 using namespace tt;
 

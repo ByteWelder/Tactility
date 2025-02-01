@@ -1,6 +1,6 @@
 #include "doctest.h"
-#include "TactilityCore.h"
-#include "Thread.h"
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Thread.h>
 
 using namespace tt;
 

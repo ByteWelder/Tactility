@@ -1,7 +1,7 @@
-#include "Lockable.h"
-#include "Semaphore.h"
 #include "doctest.h"
-#include <Mutex.h>
+#include <Tactility/Lockable.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/Semaphore.h>
 
 using namespace tt;
 
