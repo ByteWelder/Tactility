@@ -1,8 +1,9 @@
-#include "ServiceRegistry.h"
+#include "service/ServiceRegistry.h"
 
 #include "Mutex.h"
 #include "service/ServiceInstance.h"
 #include "service/ServiceManifest.h"
+
 #include <string>
 #include <unordered_map>
 

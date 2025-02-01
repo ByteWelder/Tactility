@@ -13,7 +13,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
-        INCLUDE_DIRS "Source/"
+        INCLUDE_DIRS "Include/"
         PRIV_INCLUDE_DIRS "Private/"
         REQUIRES ${REQUIRES_LIST}
     )
@@ -30,20 +30,19 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     endif()
 else()
     file(GLOB_RECURSE SOURCES "Source/*.c*")
-    file(GLOB_RECURSE HEADERS "Source/*.h*")
 
     add_library(TactilityHeadless OBJECT)
     target_sources(TactilityHeadless
         PRIVATE ${SOURCES}
-        PUBLIC ${HEADERS}
     )
 
     include_directories(
         Private/
+        Include/
     )
 
     target_include_directories(TactilityHeadless
-        PUBLIC Source/
+        PUBLIC Include/
     )
 
     add_definitions(-D_Nullable=)

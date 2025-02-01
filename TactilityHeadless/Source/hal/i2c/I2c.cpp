@@ -1,6 +1,7 @@
 #ifdef ESP_PLATFORM
 
-#include "I2c.h"
+#include "hal/i2c/I2c.h"
+
 #include "Log.h"
 #include "Mutex.h"
 

@@ -1,4 +1,4 @@
-#include "./Wifi.h"
+#include "service/wifi/Wifi.h"
 
 namespace tt::service::wifi {
 

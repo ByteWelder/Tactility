@@ -1,10 +1,9 @@
-#include "Wifi.h"
+#include "service/wifi/Wifi.h"
 
 #ifndef ESP_PLATFORM
 
 #include "Check.h"
 #include "Log.h"
-#include "MessageQueue.h"
 #include "Mutex.h"
 #include "PubSub.h"
 #include "service/ServiceContext.h"

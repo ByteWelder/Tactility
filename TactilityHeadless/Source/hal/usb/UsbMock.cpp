@@ -1,6 +1,6 @@
 #ifndef ESP_PLATFORM
 
-#include "Usb.h"
+#include "hal/usb/Usb.h"
 
 #define TAG "usb"
 

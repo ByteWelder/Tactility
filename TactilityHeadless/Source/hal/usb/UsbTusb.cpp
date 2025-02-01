@@ -1,7 +1,8 @@
 #ifdef ESP_PLATFORM
 
-#include "UsbTusb.h"
-#include "sdkconfig.h"
+#include "hal/usb/UsbTusb.h"
+
+#include <sdkconfig.h>
 
 #if CONFIG_TINYUSB_MSC_ENABLED == 1
 

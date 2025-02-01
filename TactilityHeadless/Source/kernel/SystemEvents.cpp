@@ -1,6 +1,8 @@
-#include "SystemEvents.h"
+#include "kernel/SystemEvents.h"
+
 #include "Mutex.h"
 #include "CoreExtraDefines.h"
+
 #include <list>
 
 #define TAG "system_event"
