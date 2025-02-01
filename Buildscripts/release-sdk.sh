@@ -21,8 +21,7 @@ mkdir -p $tactility_library_path/Binary
 cp build/esp-idf/TactilityC/libTactilityC.a $tactility_library_path/Binary/
 mkdir -p $tactility_library_path/Include
 find_target_dir=$build_dir/$tactility_library_path/Include/
-cd TactilityC/Source
-find -name '*.h' | cpio -pdm $find_target_dir
+cp TactilityC/Include/* $find_target_dir
 cd -
 cp Documentation/license-tactilitysdk.md $build_dir/$tactility_library_path/LICENSE.md
 
