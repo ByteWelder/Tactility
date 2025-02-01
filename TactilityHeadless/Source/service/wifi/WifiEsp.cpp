@@ -1,13 +1,14 @@
 #ifdef ESP_PLATFORM
 
-#include "Wifi.h"
+#include "Tactility/service/wifi/Wifi.h"
 
-#include "TactilityHeadless.h"
-#include "Timer.h"
-#include "service/ServiceContext.h"
-#include "WifiSettings.h"
+#include "Tactility/TactilityHeadless.h"
+#include "Tactility/service/ServiceContext.h"
+#include "Tactility/service/wifi/WifiSettings.h"
 
-#include "freertos/FreeRTOS.h"
+#include <Tactility/Timer.h>
+
+#include <freertos/FreeRTOS.h>
 
 #include <atomic>
 #include <cstring>

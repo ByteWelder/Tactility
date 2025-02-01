@@ -1,7 +1,7 @@
 #pragma once
 
 #include "lvgl.h"
-#include "hal/Display.h"
+#include <Tactility/hal/Display.h>
 #include "esp_lcd_panel_io.h"
 
 extern lv_disp_t* displayHandle;

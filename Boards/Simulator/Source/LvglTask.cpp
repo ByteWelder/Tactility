@@ -1,11 +1,11 @@
 #include "LvglTask.h"
 
-#include "lvgl.h"
-#include "Log.h"
-#include "Thread.h"
-#include "lvgl/LvglSync.h"
+#include <Tactility/Log.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/Thread.h>
 
-#include "Mutex.h"
+#include <lvgl.h>
 
 #define TAG "lvgl_task"
 

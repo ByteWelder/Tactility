@@ -1,9 +1,11 @@
-#include <TactilityCore.h>
-#include "lvgl.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "StringUtils.h"
-#include "service/loader/Loader.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/TactilityCore.h>
+#include <Tactility/StringUtils.h>
+
+#include <lvgl.h>
 
 namespace tt::app::imageviewer {
 

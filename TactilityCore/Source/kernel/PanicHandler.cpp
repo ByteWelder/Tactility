@@ -1,6 +1,6 @@
 #ifdef ESP_PLATFORM
 
-#include "PanicHandler.h"
+#include "Tactility/kernel/PanicHandler.h"
 
 #include <esp_debug_helpers.h>
 #include <esp_attr.h>

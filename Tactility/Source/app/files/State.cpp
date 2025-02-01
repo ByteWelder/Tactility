@@ -1,11 +1,11 @@
-#include "app/files/State.h"
-#include "app/files/FileUtils.h"
+#include "Tactility/app/files/State.h"
+#include "Tactility/app/files/FileUtils.h"
 
-#include "Log.h"
-#include "Partitions.h"
-#include "TactilityHeadless.h"
-#include "hal/SdCard.h"
-#include "kernel/Kernel.h"
+#include <Tactility/Log.h>
+#include <Tactility/Partitions.h>
+#include <Tactility/TactilityHeadless.h>
+#include <Tactility/hal/SdCard.h>
+#include <Tactility/kernel/Kernel.h>
 
 #include <unistd.h>
 

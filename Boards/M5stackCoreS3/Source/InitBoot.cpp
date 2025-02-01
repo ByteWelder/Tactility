@@ -1,11 +1,12 @@
+#include "hal/CoreS3DisplayConstants.h"
+#include "Axp2101/Axp2101.h"
+#include "Aw9523/Aw9523.h"
+
+#include <Tactility/Log.h>
+#include <Tactility/kernel/Kernel.h>
 #include <driver/i2c.h>
 #include <driver/spi_master.h>
 #include <esp_intr_types.h>
-#include "Log.h"
-#include "hal/CoreS3DisplayConstants.h"
-#include "kernel/Kernel.h"
-#include "Axp2101/Axp2101.h"
-#include "Aw9523/Aw9523.h"
 
 #define TAG "core2"
 

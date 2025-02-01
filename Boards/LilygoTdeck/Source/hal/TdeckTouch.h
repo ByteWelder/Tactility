@@ -1,9 +1,9 @@
 #pragma once
 
-#include "hal/Touch.h"
-#include "TactilityCore.h"
-#include "esp_lcd_panel_io_interface.h"
-#include "esp_lcd_touch.h"
+#include <Tactility/hal/Touch.h>
+#include <Tactility/TactilityCore.h>
+#include <esp_lcd_panel_io_interface.h>
+#include <esp_lcd_touch.h>
 
 class TdeckTouch : public tt::hal::Touch {
 private:

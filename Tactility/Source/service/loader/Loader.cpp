@@ -1,17 +1,17 @@
-#include "app/AppManifest.h"
-#include "app/ManifestRegistry.h"
-#include "service/ServiceManifest.h"
-#include "service/gui/Gui.h"
-#include "service/loader/Loader_i.h"
-#include "RtosCompat.h"
+#include "Tactility/app/AppManifest.h"
+#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/service/gui/Gui.h"
+#include "Tactility/service/loader/Loader_i.h"
+
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/RtosCompat.h>
 
 #ifdef ESP_PLATFORM
-#include "TactilityHeadless.h"
-#include "app/ElfApp.h"
-#include "esp_heap_caps.h"
-
+#include "Tactility/app/ElfApp.h"
+#include <Tactility/TactilityHeadless.h>
+#include <esp_heap_caps.h>
 #else
-#include "lvgl/LvglSync.h"
+#include "Tactility/lvgl/LvglSync.h"
 #endif
 
 namespace tt::service::loader {

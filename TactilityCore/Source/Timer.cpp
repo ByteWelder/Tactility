@@ -1,8 +1,9 @@
-#include "Timer.h"
+#include "Tactility/Timer.h"
+
+#include "Tactility/Check.h"
+#include "Tactility/RtosCompat.h"
 
 #include <utility>
-#include "Check.h"
-#include "RtosCompat.h"
 
 namespace tt {
 

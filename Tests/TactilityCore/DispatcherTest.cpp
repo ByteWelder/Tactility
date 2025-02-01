@@ -1,6 +1,6 @@
 #include "doctest.h"
-#include "TactilityCore.h"
-#include "Dispatcher.h"
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Dispatcher.h>
 
 using namespace tt;
 

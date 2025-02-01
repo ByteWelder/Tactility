@@ -1,5 +1,5 @@
 #include "Boards.h"
-#include "Tactility.h"
+#include <Tactility/Tactility.h>
 
 #ifdef ESP_PLATFORM
 #include "tt_init.h"

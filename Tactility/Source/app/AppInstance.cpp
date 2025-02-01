@@ -1,5 +1,5 @@
-#include "app/AppInstance.h"
-#include "app/AppInstancePaths.h"
+#include "Tactility/app/AppInstance.h"
+#include "Tactility/app/AppInstancePaths.h"
 
 namespace tt::app {
 

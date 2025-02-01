@@ -8,32 +8,29 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
-        INCLUDE_DIRS "Source/"
+        INCLUDE_DIRS "Include/"
         REQUIRES mbedtls nvs_flash esp_rom
     )
-
-    add_definitions(-DESP_PLATFORM)
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-unused-variable)
     endif()
 else()
     file(GLOB_RECURSE SOURCES "Source/*.c*")
-    file(GLOB_RECURSE HEADERS "Source/*.h*")
 
     add_library(TactilityCore OBJECT)
 
     target_sources(TactilityCore
         PRIVATE ${SOURCES}
-        PUBLIC ${HEADERS}
     )
 
     target_include_directories(TactilityCore SYSTEM
-        PUBLIC Source/
+        PUBLIC Include/
     )
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
+
     target_link_libraries(TactilityCore
         PUBLIC mbedtls
         PUBLIC freertos_kernel

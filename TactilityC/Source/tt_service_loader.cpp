@@ -1,6 +1,6 @@
 #include "tt_service_loader.h"
-#include <Bundle.h>
-#include <service/loader/Loader.h>
+#include <Tactility/Bundle.h>
+#include <Tactility/service/loader/Loader.h>
 
 extern "C" {
 

@@ -1,12 +1,13 @@
-#include "app/display/DisplaySettings.h"
-#include "lvgl.h"
-#include "hal/Configuration.h"
-#include "hal/Display.h"
-#include "hal/Touch.h"
-#include "hal/Keyboard.h"
-#include "lvgl/LvglKeypad.h"
-#include "lvgl/LvglDisplay.h"
-#include "kernel/SystemEvents.h"
+#include "Tactility/app/display/DisplaySettings.h"
+#include "Tactility/lvgl/LvglKeypad.h"
+#include "Tactility/lvgl/LvglDisplay.h"
+
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/hal/Keyboard.h>
+#include <Tactility/hal/Touch.h>
+#include <Tactility/kernel/SystemEvents.h>
+
+#include <lvgl.h>
 
 namespace tt::lvgl {
 

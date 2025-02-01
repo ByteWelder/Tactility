@@ -1,7 +1,6 @@
 #include "TdeckPower.h"
 
-#include "Log.h"
-#include "CoreDefines.h"
+#include <Tactility/Log.h>
 
 #define TAG "power"
 

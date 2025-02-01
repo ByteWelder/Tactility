@@ -1,10 +1,9 @@
 #include "TdeckSdCard.h"
 
-#include "lvgl/LvglSync.h"
-#include "hal/SpiSdCard.h"
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/hal/SpiSdCard.h>
 
 #include <esp_vfs_fat.h>
-#include <sdmmc_cmd.h>
 
 #define TDECK_SDCARD_PIN_CS GPIO_NUM_39
 #define TDECK_LCD_PIN_CS GPIO_NUM_12

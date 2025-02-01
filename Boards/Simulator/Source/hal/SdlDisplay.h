@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SdlTouch.h"
-#include "hal/Display.h"
+#include <Tactility/hal/Display.h>
 
 extern lv_disp_t* displayHandle;
 

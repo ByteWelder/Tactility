@@ -1,5 +1,5 @@
 #include "tt_thread.h"
-#include <Thread.h>
+#include <Tactility/Thread.h>
 
 extern "C" {
 

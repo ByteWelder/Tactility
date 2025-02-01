@@ -1,10 +1,12 @@
-#include "InputDialog.h"
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
-#include "service/gui/Gui.h"
-#include <StringUtils.h>
-#include <TactilityCore.h>
+#include "Tactility/app/inputdialog/InputDialog.h"
+
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/service/gui/Gui.h"
+
+#include <Tactility/TactilityCore.h>
+
+#include <lvgl.h>
 
 namespace tt::app::inputdialog {
 

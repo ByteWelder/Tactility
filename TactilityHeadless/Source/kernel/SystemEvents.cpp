@@ -1,6 +1,8 @@
-#include "SystemEvents.h"
-#include "Mutex.h"
-#include "CoreExtraDefines.h"
+#include "Tactility/kernel/SystemEvents.h"
+
+#include <Tactility/Mutex.h>
+#include <Tactility/CoreExtraDefines.h>
+
 #include <list>
 
 #define TAG "system_event"

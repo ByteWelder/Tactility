@@ -1,6 +1,7 @@
-#include <kernel/Kernel.h>
-#include "Dispatcher.h"
-#include "Check.h"
+#include "Tactility/Dispatcher.h"
+
+#include "Tactility/Check.h"
+#include "Tactility/kernel/Kernel.h"
 
 namespace tt {
 

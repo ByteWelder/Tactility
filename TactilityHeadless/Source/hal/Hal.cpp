@@ -1,6 +1,7 @@
-#include "hal/Hal_i.h"
-#include "hal/i2c/I2c.h"
-#include "kernel/SystemEvents.h"
+#include "Tactility/hal/Hal_i.h"
+#include "Tactility/hal/i2c/I2c.h"
+
+#include <Tactility/kernel/SystemEvents.h>
 
 #define TAG "hal"
 

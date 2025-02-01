@@ -1,5 +1,5 @@
 #include "tt_lvgl_spinner.h"
-#include "lvgl/Spinner.h"
+#include <Tactility/lvgl/Spinner.h>
 
 extern "C" {
 

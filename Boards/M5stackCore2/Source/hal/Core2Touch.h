@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hal/Touch.h"
-#include "TactilityCore.h"
+#include <Tactility/hal/Touch.h>
+#include <Tactility/TactilityCore.h>
 #include "ft6x36/FT6X36.h"
 
 class Core2Touch : public tt::hal::Touch {

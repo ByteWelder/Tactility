@@ -1,14 +1,16 @@
-#include "TactilityConfig.h"
+#include "Tactility/TactilityConfig.h"
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "ScreenshotTask.h"
-#include "lv_screenshot.h"
-#include <format>
+#include "Tactility/service/screenshot/ScreenshotTask.h"
 
-#include "TactilityCore.h"
-#include "service/loader/Loader.h"
-#include "lvgl/LvglSync.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/LvglSync.h"
+
+#include <lv_screenshot.h>
+#include <Tactility/TactilityCore.h>
+
+#include <format>
 
 namespace tt::service::screenshot {
 

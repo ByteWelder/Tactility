@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hal/Power.h"
+#include <Tactility/hal/Power.h>
 #include <memory>
 
 using namespace tt::hal;

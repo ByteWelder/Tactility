@@ -1,11 +1,11 @@
-#include "Mutex.h"
-#include "Thread.h"
-#include "service/loader/Loader.h"
-#include "lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/Toolbar.h"
 
-#include "GpioHal.h"
-#include "lvgl/LvglSync.h"
-#include "Timer.h"
+#include <Tactility/app/gpio/GpioHal.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/Thread.h>
+#include <Tactility/Timer.h>
 
 namespace tt::app::gpio {
 

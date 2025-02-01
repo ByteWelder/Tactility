@@ -1,8 +1,8 @@
 #include "UnPhoneFeatures.h"
-#include "hal/Configuration.h"
 #include "hal/UnPhoneDisplay.h"
 #include "hal/UnPhonePower.h"
 #include "hal/UnPhoneSdCard.h"
+#include <Tactility/hal/Configuration.h>
 
 bool unPhoneInitPower();
 bool unPhoneInitHardware();

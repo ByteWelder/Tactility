@@ -1,5 +1,6 @@
-#include <Mutex.h>
-#include "LvglSync.h"
+#include "Tactility/lvgl/LvglSync.h"
+
+#include <Tactility/Mutex.h>
 
 namespace tt::lvgl {
 

@@ -1,12 +1,13 @@
 #ifdef ESP_PLATFORM
 
-#include "app/crashdiagnostics/QrHelpers.h"
-#include "app/crashdiagnostics/QrUrl.h"
-#include "app/launcher/Launcher.h"
-#include "lvgl.h"
-#include "lvgl/Statusbar.h"
-#include "qrcode.h"
-#include "service/loader/Loader.h"
+#include "Tactility/app/crashdiagnostics/QrHelpers.h"
+#include "Tactility/app/crashdiagnostics/QrUrl.h"
+#include "Tactility/app/launcher/Launcher.h"
+#include "Tactility/lvgl/Statusbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <lvgl.h>
+#include <qrcode.h>
 
 #define TAG "crash_diagnostics"
 

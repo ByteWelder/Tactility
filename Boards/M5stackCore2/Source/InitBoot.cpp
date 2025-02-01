@@ -1,11 +1,13 @@
+#include "hal/Core2DisplayConstants.h"
+#include "axp192/axp192.h"
+
+#include <Tactility/Log.h>
+#include <Tactility/hal/i2c/I2c.h>
+#include <Tactility/CoreDefines.h>
+
 #include <driver/i2c.h>
 #include <driver/spi_master.h>
 #include <esp_intr_types.h>
-#include "Log.h"
-#include "hal/Core2DisplayConstants.h"
-#include "axp192/axp192.h"
-#include "hal/i2c/I2c.h"
-#include "CoreDefines.h"
 
 #define TAG "core2"
 

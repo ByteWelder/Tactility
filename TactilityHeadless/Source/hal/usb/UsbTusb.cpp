@@ -1,13 +1,14 @@
 #ifdef ESP_PLATFORM
 
-#include "UsbTusb.h"
-#include "sdkconfig.h"
+#include "Tactility/hal/usb/UsbTusb.h"
+
+#include <sdkconfig.h>
 
 #if CONFIG_TINYUSB_MSC_ENABLED == 1
 
-#include "Log.h"
-#include "tinyusb.h"
-#include "tusb_msc_storage.h"
+#include <Tactility/Log.h>
+#include <tinyusb.h>
+#include <tusb_msc_storage.h>
 
 #define TAG "usb"
 #define EPNUM_MSC 1

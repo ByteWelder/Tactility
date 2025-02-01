@@ -1,5 +1,5 @@
 #include "tt_app_selectiondialog.h"
-#include <app/selectiondialog/SelectionDialog.h>
+#include <Tactility/app/selectiondialog/SelectionDialog.h>
 
 extern "C" {
 

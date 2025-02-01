@@ -1,9 +1,11 @@
-#include "Assets.h"
-#include "hal/i2c/I2c.h"
-#include "Tactility.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "lvgl.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/hal/i2c/I2c.h>
+#include <Tactility/Tactility.h>
+
+#include <lvgl.h>
 
 namespace tt::app::i2csettings {
 

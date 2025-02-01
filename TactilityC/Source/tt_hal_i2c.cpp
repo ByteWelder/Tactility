@@ -1,5 +1,5 @@
 #include "tt_hal_i2c.h"
-#include "hal/i2c/I2c.h"
+#include <Tactility/hal/i2c/I2c.h>
 
 extern "C" {
 

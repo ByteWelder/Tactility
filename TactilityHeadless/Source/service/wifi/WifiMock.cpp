@@ -1,13 +1,13 @@
-#include "Wifi.h"
+#include "Tactility/service/wifi/Wifi.h"
 
 #ifndef ESP_PLATFORM
 
-#include "Check.h"
-#include "Log.h"
-#include "MessageQueue.h"
-#include "Mutex.h"
-#include "PubSub.h"
-#include "service/ServiceContext.h"
+#include "Tactility/service/ServiceContext.h"
+
+#include <Tactility/Check.h>
+#include <Tactility/Log.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/PubSub.h>
 
 namespace tt::service::wifi {
 

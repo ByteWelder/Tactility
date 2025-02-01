@@ -1,7 +1,8 @@
 #pragma once
 
-#include "hal/Power.h"
 #include "Axp2101/Axp2101.h"
+
+#include <Tactility/hal/Power.h>
 #include <memory>
 
 using namespace tt::hal;

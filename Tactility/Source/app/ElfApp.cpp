@@ -1,12 +1,13 @@
 #ifdef ESP_PLATFORM
 
-#include "ElfApp.h"
-#include "Log.h"
-#include "StringUtils.h"
-#include "TactilityCore.h"
+#include "Tactility/app/ElfApp.h"
+#include "Tactility/file/File.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Log.h>
+#include <Tactility/StringUtils.h>
+
 #include "esp_elf.h"
-#include "file/File.h"
-#include "service/loader/Loader.h"
 
 #include <string>
 #include <utility>

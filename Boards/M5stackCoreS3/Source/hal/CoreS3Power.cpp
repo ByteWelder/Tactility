@@ -1,5 +1,5 @@
 #include "CoreS3Power.h"
-#include "TactilityCore.h"
+#include <Tactility/TactilityCore.h>
 
 #define TAG "core2_power"
 

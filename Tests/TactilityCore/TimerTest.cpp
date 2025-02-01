@@ -1,6 +1,6 @@
 #include "doctest.h"
-#include "TactilityCore.h"
-#include "Timer.h"
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Timer.h>
 
 #include <utility>
 

@@ -1,9 +1,11 @@
-#include "CoreDefines.h"
-#include "app/App.h"
-#include "app/AppManifest.h"
-#include "hal/usb/Usb.h"
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
+#include "Tactility/app/App.h"
+#include "Tactility/app/AppManifest.h"
+#include "Tactility/lvgl/Toolbar.h"
+
+#include <Tactility/CoreDefines.h>
+#include <Tactility/hal/usb/Usb.h>
+
+#include <lvgl.h>
 
 #define TAG "usb_settings"
 

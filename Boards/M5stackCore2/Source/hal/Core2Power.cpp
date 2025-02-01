@@ -1,5 +1,5 @@
 #include "Core2Power.h"
-#include "TactilityCore.h"
+#include <Tactility/TactilityCore.h>
 #include "axp192/axp192.h"
 
 #define TAG "core2_power"

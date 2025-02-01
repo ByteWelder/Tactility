@@ -1,5 +1,5 @@
-#include "TactilityCore.h"
 #include "hal/TdeckDisplayConstants.h"
+#include <Tactility/TactilityCore.h>
 #include <driver/spi_common.h>
 #include <soc/gpio_num.h>
 

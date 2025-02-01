@@ -1,9 +1,8 @@
 #ifdef ESP_PLATFORM
 
-#include "app/crashdiagnostics/QrUrl.h"
+#include "Tactility/app/crashdiagnostics/QrUrl.h"
 
-#include "kernel/PanicHandler.h"
-#include "Log.h"
+#include <Tactility/kernel/PanicHandler.h>
 
 #include <sstream>
 #include <esp_cpu_utils.h>

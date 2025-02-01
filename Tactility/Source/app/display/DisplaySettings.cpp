@@ -1,5 +1,6 @@
-#include "DisplaySettings.h"
-#include "Preferences.h"
+#include "Tactility/app/display/DisplaySettings.h"
+
+#include <Tactility/Preferences.h>
 
 namespace tt::app::display {
 

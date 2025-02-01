@@ -8,8 +8,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         INCLUDE_DIRS "src/"
     )
 
-    add_definitions(-DESP_PLATFORM)
-
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-unknown-pragmas)
     endif()

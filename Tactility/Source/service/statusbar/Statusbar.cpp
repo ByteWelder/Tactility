@@ -1,15 +1,15 @@
-#include "Mutex.h"
-#include "Timer.h"
-#include "Tactility.h"
+#include "Tactility/lvgl/Statusbar.h"
+#include "Tactility/lvgl/LvglSync.h"
 
-#include "hal/Power.h"
-#include "hal/SdCard.h"
-#include "lvgl/Statusbar.h"
-#include "service/ServiceContext.h"
-#include "service/wifi/Wifi.h"
-#include "service/ServiceRegistry.h"
-#include "TactilityHeadless.h"
-#include "lvgl/LvglSync.h"
+#include <Tactility/Mutex.h>
+#include <Tactility/Timer.h>
+#include <Tactility/hal/Power.h>
+#include <Tactility/hal/SdCard.h>
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/TactilityHeadless.h>
 
 namespace tt::service::statusbar {
 

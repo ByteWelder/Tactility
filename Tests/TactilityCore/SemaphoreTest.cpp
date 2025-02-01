@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include "Semaphore.h"
+#include <Tactility/Semaphore.h>
 
 using namespace tt;
 

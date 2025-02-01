@@ -1,7 +1,7 @@
 #include "tt_app_manifest.h"
 
-#include <Check.h>
-#include <app/ElfApp.h>
+#include <Tactility/Check.h>
+#include <Tactility/app/ElfApp.h>
 
 #define TAG "tt_app"
 

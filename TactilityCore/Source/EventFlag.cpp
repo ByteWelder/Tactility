@@ -1,7 +1,7 @@
-#include "EventFlag.h"
+#include "Tactility/EventFlag.h"
 
-#include "Check.h"
-#include "CoreDefines.h"
+#include "Tactility/Check.h"
+#include "Tactility/CoreDefines.h"
 
 #define TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS 24U
 #define TT_EVENT_FLAG_INVALID_BITS (~((1UL << TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS) - 1U))

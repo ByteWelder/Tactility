@@ -1,7 +1,7 @@
 #include "Core2SdCard.h"
 
-#include "lvgl/LvglSync.h"
-#include "hal/SpiSdCard.h"
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/hal/SpiSdCard.h>
 
 #include <esp_vfs_fat.h>
 

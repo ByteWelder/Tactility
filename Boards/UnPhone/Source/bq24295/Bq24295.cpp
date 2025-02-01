@@ -1,5 +1,5 @@
 #include "Bq24295.h"
-#include "Log.h"
+#include <Tactility/Log.h>
 
 #define TAG "bq24295"
 

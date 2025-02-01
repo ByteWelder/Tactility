@@ -1,11 +1,11 @@
-#include <StringUtils.h>
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
-#include "app/timezone/TimeZone.h"
-#include "Assets.h"
-#include "time/Time.h"
-#include "lvgl/LvglSync.h"
+#include "Tactility/app/timezone/TimeZone.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/LvglSync.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/time/Time.h>
+#include <lvgl.h>
 
 #define TAG "text_viewer"
 

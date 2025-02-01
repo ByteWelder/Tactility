@@ -1,6 +1,6 @@
 #include "YellowTouch.h"
 #include "YellowTouchConstants.h"
-#include "Log.h"
+#include <Tactility/Log.h>
 #include "driver/i2c.h"
 #include "esp_err.h"
 #include "esp_lcd_touch_cst816s.h"

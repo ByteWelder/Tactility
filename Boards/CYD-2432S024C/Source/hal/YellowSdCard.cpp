@@ -2,8 +2,8 @@
 
 #define TAG "twodotfour_sdcard"
 
-#include "lvgl/LvglSync.h"
-#include "hal/SpiSdCard.h"
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/hal/SpiSdCard.h>
 
 #define SDCARD_SPI_HOST SPI3_HOST
 #define SDCARD_PIN_CS GPIO_NUM_5

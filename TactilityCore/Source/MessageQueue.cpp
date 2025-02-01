@@ -1,6 +1,6 @@
-#include "MessageQueue.h"
-#include "Check.h"
-#include "kernel/Kernel.h"
+#include "Tactility/MessageQueue.h"
+#include "Tactility/Check.h"
+#include "Tactility/kernel/Kernel.h"
 
 namespace tt {
 

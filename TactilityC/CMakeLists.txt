@@ -8,29 +8,25 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
-        INCLUDE_DIRS "Source/"
+        INCLUDE_DIRS "Include/"
         REQUIRES lvgl
         PRIV_REQUIRES Tactility TactilityCore TactilityHeadless elf_loader
     )
-
-    add_definitions(-DESP_PLATFORM)
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(${COMPONENT_LIB} PUBLIC -Wno-unused-variable)
     endif()
 else()
     file(GLOB_RECURSE SOURCES "Source/*.c**")
-    file(GLOB_RECURSE HEADERS "Source/*.h**")
 
     add_library(TactilityC OBJECT)
 
     target_sources(TactilityC
         PRIVATE ${SOURCES}
-        PUBLIC ${HEADERS}
     )
 
     target_include_directories(TactilityC
-        PUBLIC Source/
+        PUBLIC Include/
     )
 
     add_definitions(-D_Nullable=)

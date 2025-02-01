@@ -1,9 +1,11 @@
-#include "Check.h"
-#include "Tactility.h"
-#include "app/AppContext.h"
-#include "app/ManifestRegistry.h"
-#include "lvgl.h"
-#include "service/loader/Loader.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Check.h>
+#include <Tactility/Tactility.h>
+
+#include <lvgl.h>
 
 #define TAG "launcher"
 

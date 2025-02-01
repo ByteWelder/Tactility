@@ -1,7 +1,10 @@
+#include "Tactility/time/Time.h"
+#include "Tactility/kernel/SystemEvents.h"
+
+#ifdef ESP_PLATFORM
 #include <ctime>
-#include "Time.h"
-#include "Preferences.h"
-#include "kernel/SystemEvents.h"
+#include "Tactility/Preferences.h"
+#endif
 
 namespace tt::time {
 

@@ -1,9 +1,12 @@
-#include "SelectionDialog.h"
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
-#include <StringUtils.h>
-#include <TactilityCore.h>
+#include "Tactility/app/selectiondialog/SelectionDialog.h"
+
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/StringUtils.h>
+#include <Tactility/TactilityCore.h>
+
+#include <lvgl.h>
 
 namespace tt::app::selectiondialog {
 

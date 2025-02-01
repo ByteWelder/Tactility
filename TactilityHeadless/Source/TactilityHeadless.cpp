@@ -1,15 +1,15 @@
-#include <Dispatcher.h>
-#include "TactilityHeadless.h"
-#include "hal/Configuration.h"
-#include "hal/Hal_i.h"
-#include "service/ServiceManifest.h"
-#include "service/ServiceRegistry.h"
-#include "kernel/SystemEvents.h"
-#include "network/NtpPrivate.h"
-#include "time/TimePrivate.h"
+#include "Tactility/TactilityHeadless.h"
+#include "Tactility/hal/Configuration.h"
+#include "Tactility/hal/Hal_i.h"
+#include "Tactility/network/NtpPrivate.h"
+#include "Tactility/service/ServiceManifest.h"
+#include "Tactility/service/ServiceRegistry.h"
+
+#include <Tactility/Dispatcher.h>
+#include <Tactility/time/TimePrivate.h>
 
 #ifdef ESP_PLATFORM
-#include "EspInit.h"
+#include "Tactility/InitEsp.h"
 #endif
 
 namespace tt {

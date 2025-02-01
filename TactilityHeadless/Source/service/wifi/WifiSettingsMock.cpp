@@ -1,7 +1,6 @@
 #ifndef ESP_PLATFORM
 
-#include "WifiSettings.h"
-#include "Log.h"
+#include "Tactility/service/wifi/WifiSettings.h"
 
 namespace tt::service::wifi::settings {
 

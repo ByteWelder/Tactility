@@ -1,13 +1,14 @@
-#include "lvgl.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "app/selectiondialog/SelectionDialog.h"
-#include "service/loader/Loader.h"
-#include "lvgl/LvglSync.h"
+#include "Tactility/app/selectiondialog/SelectionDialog.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/service/loader/Loader.h"
 
 #include <sstream>
 #include <vector>
 #include <ranges>
+
+#include <lvgl.h>
 
 #define TAG "text_viewer"
 
