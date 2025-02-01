@@ -8,7 +8,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     idf_component_register(
         SRCS ${SOURCE_FILES}
-        INCLUDE_DIRS "Source/"
+        INCLUDE_DIRS "Include/"
         REQUIRES lvgl
         PRIV_REQUIRES Tactility TactilityCore TactilityHeadless elf_loader
     )
@@ -18,7 +18,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     endif()
 else()
     file(GLOB_RECURSE SOURCES "Source/*.c**")
-    file(GLOB_RECURSE HEADERS "Source/*.h**")
+    file(GLOB_RECURSE HEADERS "Include/*.h**")
 
     add_library(TactilityC OBJECT)
 
@@ -28,7 +28,7 @@ else()
     )
 
     target_include_directories(TactilityC
-        PUBLIC Source/
+        PUBLIC Include/
     )
 
     add_definitions(-D_Nullable=)
