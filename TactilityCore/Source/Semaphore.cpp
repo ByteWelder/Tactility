@@ -1,6 +1,6 @@
-#include "Semaphore.h"
-#include "Check.h"
-#include "CoreDefines.h"
+#include "Tactility/Semaphore.h"
+#include "Tactility/Check.h"
+#include "Tactility/CoreDefines.h"
 
 namespace tt {
 

@@ -1,8 +1,9 @@
-#include "app/files/FileUtils.h"
+#include "Tactility/app/files/FileUtils.h"
 
-#include "TactilityCore.h"
+#include <Tactility/StringUtils.h>
+#include <Tactility/TactilityCore.h>
+
 #include <cstring>
-#include <StringUtils.h>
 
 namespace tt::app::files {
 

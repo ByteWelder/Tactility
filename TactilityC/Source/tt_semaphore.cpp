@@ -1,5 +1,5 @@
 #include "tt_semaphore.h"
-#include "Semaphore.h"
+#include <Tactility/Semaphore.h>
 
 extern "C" {
 

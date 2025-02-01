@@ -1,5 +1,6 @@
-#include "lvgl/LvglDisplay.h"
-#include "Check.h"
+#include "Tactility/lvgl/LvglDisplay.h"
+
+#include <Tactility/Check.h>
 
 namespace tt::lvgl {
 

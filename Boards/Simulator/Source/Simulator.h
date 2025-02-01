@@ -1,7 +1,7 @@
 #pragma once
 
-#include "hal/Configuration.h"
 #include "Main.h"
+#include <Tactility/hal/Configuration.h>
 
 namespace simulator {
     /** Set the function pointer of the real app_main() */

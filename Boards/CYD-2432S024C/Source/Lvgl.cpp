@@ -1,7 +1,7 @@
 #include "esp_lvgl_port.h"
-#include "Log.h"
-#include "lvgl/LvglSync.h"
-#include "Thread.h"
+#include <Tactility/Log.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Thread.h>
 
 #define TAG "twodotfour_lvgl"
 

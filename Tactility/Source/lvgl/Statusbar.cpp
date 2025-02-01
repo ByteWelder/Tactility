@@ -1,16 +1,16 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Timer.h>
-#include "lvgl/Statusbar.h"
+#include "Tactility/lvgl/Statusbar.h"
 
-#include "Mutex.h"
-#include "PubSub.h"
-#include "TactilityCore.h"
-#include "lvgl/Style.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/LvglSync.h"
 
-#include "lvgl/LvglSync.h"
-#include "kernel/SystemEvents.h"
-#include "time/Time.h"
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/PubSub.h>
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Timer.h>
+#include <Tactility/time/Time.h>
 
 #include <lvgl.h>
 

@@ -1,12 +1,14 @@
-#include "app/AppContext.h"
-#include "Assets.h"
-#include "lvgl.h"
-#include "Tactility.h"
-#include "Timer.h"
-#include "lvgl/LvglSync.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/Timer.h>
+
+#include <lvgl.h>
 
 namespace tt::app::power {
 

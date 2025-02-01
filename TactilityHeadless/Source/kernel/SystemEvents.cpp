@@ -1,7 +1,7 @@
-#include "kernel/SystemEvents.h"
+#include "Tactility/kernel/SystemEvents.h"
 
-#include "Mutex.h"
-#include "CoreExtraDefines.h"
+#include <Tactility/Mutex.h>
+#include <Tactility/CoreExtraDefines.h>
 
 #include <list>
 

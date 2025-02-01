@@ -1,11 +1,11 @@
 #ifdef ESP_PLATFORM
 
-#include "service/wifi/WifiGlobals.h"
-#include "service/wifi/WifiSettings.h"
+#include "Tactility/service/wifi/WifiGlobals.h"
+#include "Tactility/service/wifi/WifiSettings.h"
 
-#include "Log.h"
-#include "crypt/Hash.h"
-#include "crypt/Crypt.h"
+#include <Tactility/Log.h>
+#include <Tactility/crypt/Hash.h>
+#include <Tactility/crypt/Crypt.h>
 
 #include <nvs_flash.h>
 #include <cstring>

@@ -1,13 +1,15 @@
-#include "app/wificonnect/View.h"
-#include "app/wificonnect/WifiConnect.h"
+#include "Tactility/app/wificonnect/View.h"
+#include "Tactility/app/wificonnect/WifiConnect.h"
 
-#include "lvgl.h"
-#include "service/gui/Gui.h"
-#include "service/wifi/WifiSettings.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "lvgl/Spinner.h"
-#include <TactilityCore.h>
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/Spinner.h"
+#include "Tactility/service/gui/Gui.h"
+
+#include <Tactility/TactilityCore.h>
+#include <Tactility/service/wifi/WifiSettings.h>
+
+#include <lvgl.h>
 #include <cstring>
 
 namespace tt::app::wificonnect {

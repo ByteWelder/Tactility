@@ -1,11 +1,11 @@
-#include "TactilityConfig.h"
+#include <Tactility/TactilityConfig.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "service/screenshot/Screenshot.h"
+#include "Tactility/service/screenshot/Screenshot.h"
 
-#include "service/ServiceContext.h"
-#include "service/ServiceRegistry.h"
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServiceRegistry.h>
 
 #include <memory>
 

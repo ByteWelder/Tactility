@@ -1,9 +1,9 @@
-#include "app/wificonnect/WifiConnect.h"
+#include "Tactility/app/wificonnect/WifiConnect.h"
 
-#include "app/AppContext.h"
-#include "service/loader/Loader.h"
-#include "service/wifi/Wifi.h"
-#include "lvgl/LvglSync.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/service/wifi/Wifi.h"
+#include "Tactility/lvgl/LvglSync.h"
 
 namespace tt::app::wificonnect {
 

@@ -1,17 +1,17 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
 #include "YellowTouch.h"
-#include "Log.h"
 
-#include <TactilityCore.h>
+#include <Tactility/Log.h>
+#include <Tactility/TactilityCore.h>
 #include <esp_lcd_panel_commands.h>
 
-#include "driver/gpio.h"
-#include "driver/ledc.h"
-#include "esp_err.h"
-#include "esp_lcd_ili9341.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lvgl_port.h"
+#include <driver/gpio.h>
+#include <driver/ledc.h>
+#include <esp_err.h>
+#include <esp_lcd_ili9341.h>
+#include <esp_lcd_panel_ops.h>
+#include <esp_lvgl_port.h>
 
 #define TAG "yellow_display"
 

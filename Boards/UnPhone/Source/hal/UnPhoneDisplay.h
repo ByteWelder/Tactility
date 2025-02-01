@@ -1,8 +1,8 @@
 #pragma once
 
 #include <esp_lcd_types.h>
-#include "lvgl.h"
-#include "hal/Display.h"
+#include <lvgl.h>
+#include <Tactility/hal/Display.h>
 
 extern lv_disp_t* displayHandle;
 

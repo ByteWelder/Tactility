@@ -1,5 +1,5 @@
 #include "tt_app_alertdialog.h"
-#include <app/alertdialog/AlertDialog.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
 
 extern "C" {
 

@@ -1,12 +1,13 @@
-#include "app/wifiapsettings/WifiApSettings.h"
+#include "Tactility/app/wifiapsettings/WifiApSettings.h"
 
-#include "TactilityCore.h"
-#include "app/AppContext.h"
-#include "app/alertdialog/AlertDialog.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
-#include "service/wifi/WifiSettings.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/app/alertdialog/AlertDialog.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/TactilityCore.h>
+#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <lvgl.h>
 

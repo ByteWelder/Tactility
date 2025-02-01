@@ -1,8 +1,7 @@
 #pragma once
 
-#include "hal/Keyboard.h"
-
-#include <TactilityCore.h>
+#include <Tactility/hal/Keyboard.h>
+#include <Tactility/TactilityCore.h>
 
 class SdlKeyboard : public tt::hal::Keyboard {
 private:

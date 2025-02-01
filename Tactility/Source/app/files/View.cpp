@@ -1,20 +1,22 @@
-#include "app/files/FileUtils.h"
-#include "app/files/View.h"
+#include "Tactility/app/files/FileUtils.h"
+#include "Tactility/app/files/View.h"
 
-#include "app/alertdialog/AlertDialog.h"
-#include "app/imageviewer/ImageViewer.h"
-#include "app/inputdialog/InputDialog.h"
-#include "app/textviewer/TextViewer.h"
-#include "app/ElfApp.h"
-#include "lvgl/Toolbar.h"
-#include "lvgl/LvglSync.h"
-#include "Tactility.h"
-#include "StringUtils.h"
+#include "Tactility/app/alertdialog/AlertDialog.h"
+#include "Tactility/app/imageviewer/ImageViewer.h"
+#include "Tactility/app/inputdialog/InputDialog.h"
+#include "Tactility/app/textviewer/TextViewer.h"
+#include "Tactility/app/ElfApp.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/LvglSync.h"
+
+#include <Tactility/Tactility.h>
+#include <Tactility/StringUtils.h>
+
 #include <cstring>
 #include <unistd.h>
 
 #ifdef ESP_PLATFORM
-#include "service/loader/Loader.h"
+#include "Tactility/service/loader/Loader.h"
 #endif
 
 #define TAG "files_app"

@@ -1,6 +1,6 @@
-#include <cstring>
 #include "tt_bundle.h"
-#include "Bundle.h"
+#include <Tactility/Bundle.h>
+#include <cstring>
 
 #define HANDLE_AS_BUNDLE(handle) ((tt::Bundle*)(handle))
 

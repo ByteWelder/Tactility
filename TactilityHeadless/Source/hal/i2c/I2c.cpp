@@ -1,9 +1,9 @@
 #ifdef ESP_PLATFORM
 
-#include "hal/i2c/I2c.h"
+#include "Tactility/hal/i2c/I2c.h"
 
-#include "Log.h"
-#include "Mutex.h"
+#include <Tactility/Log.h>
+#include <Tactility/Mutex.h>
 
 #include <esp_check.h>
 

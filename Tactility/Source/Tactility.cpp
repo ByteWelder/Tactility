@@ -1,10 +1,12 @@
-#include "Tactility.h"
+#include "Tactility/Tactility.h"
 
-#include "app/ManifestRegistry.h"
-#include "service/ServiceRegistry.h"
-#include "service/loader/Loader.h"
-#include "TactilityHeadless.h"
-#include "lvgl/Init_i.h"
+#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/lvgl/Init_i.h"
+#include "Tactility/service/ServiceManifest.h"
+
+#include <Tactility/TactilityHeadless.h>
+#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/loader/Loader.h>
 
 namespace tt {
 

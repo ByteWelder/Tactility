@@ -1,8 +1,10 @@
-#include "Assets.h"
-#include "app/display/DisplaySettings.h"
-#include "Tactility.h"
-#include "lvgl/Toolbar.h"
-#include "hal/Display.h"
+#include "Tactility/app/display/DisplaySettings.h"
+
+#include "Tactility/hal/Display.h"
+#include "Tactility/lvgl/Toolbar.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 

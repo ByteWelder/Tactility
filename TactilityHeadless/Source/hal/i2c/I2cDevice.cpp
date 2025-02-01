@@ -1,4 +1,5 @@
-#include "hal/i2c/I2cDevice.h"
+#include "Tactility/hal/i2c/I2cDevice.h"
+
 #include <cstdint>
 
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {

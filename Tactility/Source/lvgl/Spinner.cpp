@@ -1,9 +1,10 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "Assets.h"
-#include "CoreDefines.h"
-#include "Log.h"
-#include "lvgl.h"
+#include <Tactility/Assets.h>
+#include <Tactility/CoreDefines.h>
+#include <Tactility/Log.h>
+
+#include <lvgl.h>
 
 namespace tt::lvgl {
 

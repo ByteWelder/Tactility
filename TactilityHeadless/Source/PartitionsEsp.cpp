@@ -1,7 +1,8 @@
 #ifdef ESP_PLATFORM
 
-#include "EspPartitions_i.h"
-#include "Log.h"
+#include "Tactility/PartitionsEsp.h"
+
+#include <Tactility/Log.h>
 
 #include <esp_vfs_fat.h>
 #include <nvs_flash.h>

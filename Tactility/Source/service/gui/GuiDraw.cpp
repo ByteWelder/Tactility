@@ -1,9 +1,10 @@
-#include "Check.h"
-#include "Log.h"
-#include "service/gui/Gui_i.h"
-#include "lvgl/LvglSync.h"
-#include "lvgl/Statusbar.h"
-#include "lvgl/Style.h"
+#include "Tactility/service/gui/Gui_i.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/lvgl/Statusbar.h"
+#include "Tactility/lvgl/Style.h"
+
+#include <Tactility/Check.h>
+#include <Tactility/Log.h>
 
 namespace tt::service::gui {
 

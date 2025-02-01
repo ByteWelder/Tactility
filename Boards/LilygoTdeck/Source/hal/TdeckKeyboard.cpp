@@ -1,5 +1,5 @@
 #include "TdeckKeyboard.h"
-#include "hal/i2c/I2c.h"
+#include <Tactility/hal/i2c/I2c.h>
 #include <driver/i2c.h>
 
 #define TAG "tdeck_keyboard"

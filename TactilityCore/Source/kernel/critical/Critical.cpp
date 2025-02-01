@@ -1,7 +1,7 @@
-#include "kernel/critical/Critical.h"
+#include "Tactility/kernel/critical/Critical.h"
 
-#include "CoreDefines.h"
-#include "RtosCompatTask.h"
+#include "Tactility/CoreDefines.h"
+#include "Tactility/RtosCompatTask.h"
 
 #ifdef ESP_PLATFORM
 static portMUX_TYPE critical_mutex;

@@ -1,5 +1,5 @@
 #include "tt_message_queue.h"
-#include <MessageQueue.h>
+#include <Tactility/MessageQueue.h>
 
 #define HANDLE_TO_MESSAGE_QUEUE(handle) ((tt::MessageQueue*)(handle))
 

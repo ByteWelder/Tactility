@@ -1,11 +1,12 @@
-#include "app/wifimanage/View.h"
-#include "app/wifimanage/WifiManagePrivate.h"
+#include "Tactility/app/wifimanage/View.h"
+#include "Tactility/app/wifimanage/WifiManagePrivate.h"
 
-#include "Log.h"
-#include "service/wifi/Wifi.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "lvgl/Spinner.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/Spinner.h"
+
+#include <Tactility/Log.h>
+#include <Tactility/service/wifi/Wifi.h>
 
 #include <string>
 #include <set>

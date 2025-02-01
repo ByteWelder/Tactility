@@ -1,10 +1,10 @@
 #include "UnPhoneTouch.h"
 
-#include "Log.h"
+#include <Tactility/Log.h>
 #include "esp_err.h"
 #include "esp_lcd_touch_xpt2046.h"
 #include "esp_lvgl_port.h"
-#include "lvgl/LvglSync.h"
+#include <Tactility/lvgl/LvglSync.h>
 
 #define TAG "unphone_touch"
 

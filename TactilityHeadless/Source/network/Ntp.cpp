@@ -1,8 +1,8 @@
-#include "network/NtpPrivate.h"
+#include "Tactility/network/NtpPrivate.h"
 
 #ifdef ESP_PLATFORM
-#include "kernel/SystemEvents.h"
-#include "TactilityCore.h"
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/TactilityCore.h>
 #include <esp_netif_sntp.h>
 #include <esp_sntp.h>
 #endif

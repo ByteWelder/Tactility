@@ -1,14 +1,12 @@
-#include "app/wifimanage/WifiManagePrivate.h"
-#include "app/wifimanage/View.h"
-#include "app/wifimanage/State.h"
+#include "Tactility/app/wifimanage/WifiManagePrivate.h"
+#include "Tactility/app/wifimanage/View.h"
 
-#include "app/AppContext.h"
-#include "app/wifiapsettings/WifiApSettings.h"
-#include "TactilityCore.h"
-#include "service/loader/Loader.h"
-#include "service/wifi/WifiSettings.h"
-#include "lvgl/LvglSync.h"
-#include "app/wificonnect/WifiConnect.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/app/wifiapsettings/WifiApSettings.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/service/wifi/WifiSettings.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/app/wificonnect/WifiConnect.h"
 
 namespace tt::app::wifimanage {
 

@@ -1,6 +1,6 @@
-#include "kernel/Kernel.h"
-#include "CoreDefines.h"
-#include "RtosCompatTask.h"
+#include "Tactility/kernel/Kernel.h"
+#include "Tactility/CoreDefines.h"
+#include "Tactility/RtosCompatTask.h"
 
 #ifdef ESP_PLATFORM
 #include "rom/ets_sys.h"

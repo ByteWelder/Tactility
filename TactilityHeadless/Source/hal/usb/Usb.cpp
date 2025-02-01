@@ -1,11 +1,11 @@
 #ifdef ESP_PLATFORM
 
-#include "hal/usb/Usb.h"
-#include "hal/usb/UsbTusb.h"
-#include "hal/SpiSdCard.h"
-#include "TactilityHeadless.h"
+#include "Tactility/hal/usb/Usb.h"
+#include "Tactility/hal/usb/UsbTusb.h"
+#include "Tactility/hal/SpiSdCard.h"
+#include "Tactility/TactilityHeadless.h"
 
-#include <Log.h>
+#include <Tactility/Log.h>
 
 namespace tt::hal::usb {
 

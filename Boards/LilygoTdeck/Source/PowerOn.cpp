@@ -1,5 +1,5 @@
 #include <driver/gpio.h>
-#include "TactilityCore.h"
+#include <Tactility/TactilityCore.h>
 
 #define TAG "tdeck"
 

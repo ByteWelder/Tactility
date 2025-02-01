@@ -1,8 +1,7 @@
 #pragma once
 
-#include "hal/Touch.h"
-
-#include <TactilityCore.h>
+#include <Tactility/hal/Touch.h>
+#include <Tactility/TactilityCore.h>
 
 class SdlTouch : public tt::hal::Touch {
 private:

@@ -1,4 +1,5 @@
-#include "app/crashdiagnostics/QrHelpers.h"
+#include "Tactility/app/crashdiagnostics/QrHelpers.h"
+
 #include <cstdint>
 
 /**

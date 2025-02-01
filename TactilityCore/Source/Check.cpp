@@ -1,7 +1,7 @@
-#include "Check.h"
+#include "Tactility/Check.h"
 
-#include "Log.h"
-#include "RtosCompatTask.h"
+#include "Tactility/Log.h"
+#include "Tactility/RtosCompatTask.h"
 
 #define TAG "kernel"
 

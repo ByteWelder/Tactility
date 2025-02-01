@@ -1,9 +1,9 @@
-#include "Mutex.h"
-#include "Timer.h"
+#include "Tactility/service/ServiceContext.h"
+#include "Tactility/TactilityHeadless.h"
+#include "Tactility/service/ServiceRegistry.h"
 
-#include "service/ServiceContext.h"
-#include "TactilityHeadless.h"
-#include "service/ServiceRegistry.h"
+#include <Tactility/Mutex.h>
+#include <Tactility/Timer.h>
 
 #define TAG "sdcard_service"
 

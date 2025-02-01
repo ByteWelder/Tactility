@@ -1,10 +1,11 @@
-#include "Tactility.h"
-#include "service/gui/Gui_i.h"
-#include "service/loader/Loader_i.h"
-#include "lvgl/LvglSync.h"
-#include "RtosCompat.h"
-#include "lvgl/Style.h"
-#include "lvgl/Statusbar.h"
+#include "Tactility/service/gui/Gui_i.h"
+#include "Tactility/service/loader/Loader_i.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Statusbar.h"
+
+#include <Tactility/Tactility.h>
+#include <Tactility/RtosCompat.h>
 
 namespace tt::service::gui {
 

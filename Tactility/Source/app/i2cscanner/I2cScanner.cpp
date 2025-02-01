@@ -1,13 +1,15 @@
-#include "app/i2cscanner/I2cScannerPrivate.h"
-#include "app/i2cscanner/I2cScannerThread.h"
-#include "app/i2cscanner/I2cHelpers.h"
+#include "Tactility/app/i2cscanner/I2cScannerPrivate.h"
+#include "Tactility/app/i2cscanner/I2cScannerThread.h"
+#include "Tactility/app/i2cscanner/I2cHelpers.h"
 
-#include "Assets.h"
-#include "Tactility.h"
-#include "app/AppContext.h"
-#include "lvgl/LvglSync.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/Timer.h>
 
 #define START_SCAN_TEXT "Scan"
 #define STOP_SCAN_TEXT "Stop scan"

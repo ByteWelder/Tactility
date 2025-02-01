@@ -1,8 +1,10 @@
-#include "Log.h"
-#include "Thread.h"
-#include "lvgl/LvglSync.h"
-#include "esp_lvgl_port.h"
 #include "hal/TdeckDisplay.h"
+
+#include <Tactility/Log.h>
+#include <Tactility/Thread.h>
+#include <Tactility/lvgl/LvglSync.h>
+
+#include <esp_lvgl_port.h>
 
 #define TAG "tdeck_lvgl"
 

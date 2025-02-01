@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef ESP_PLATFORM
-#include "sdkconfig.h"
+#include <sdkconfig.h>
 
 // Supported hardware:
 #if defined(CONFIG_TT_BOARD_LILYGO_TDECK)

@@ -1,9 +1,9 @@
-#include "app/files/View.h"
-#include "app/files/State.h"
+#include "Tactility/app/files/View.h"
+#include "Tactility/app/files/State.h"
+#include "Tactility/app/AppContext.h"
 
-#include "app/AppContext.h"
-#include "Assets.h"
-#include "service/loader/Loader.h"
+#include <Tactility/Assets.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <memory>
 

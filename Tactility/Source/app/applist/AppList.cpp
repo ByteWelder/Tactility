@@ -1,10 +1,12 @@
-#include "app/ManifestRegistry.h"
-#include "Assets.h"
-#include "Check.h"
-#include "lvgl.h"
+#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/Toolbar.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/Check.h>
+
+#include <lvgl.h>
 #include <algorithm>
-#include "service/loader/Loader.h"
-#include "lvgl/Toolbar.h"
 
 namespace tt::app::applist {
 

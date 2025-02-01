@@ -1,16 +1,15 @@
 #include "CoreS3Display.h"
 #include "CoreS3DisplayConstants.h"
-#include "Log.h"
+#include <Tactility/Log.h>
 
-#include <TactilityCore.h>
+#include <Tactility/hal/i2c/I2c.h>
 #include <esp_lcd_panel_commands.h>
 
-#include "driver/gpio.h"
-#include "esp_err.h"
-#include "esp_lcd_ili9341.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lvgl_port.h"
-#include "hal/i2c/I2c.h"
+#include <driver/gpio.h>
+#include <esp_err.h>
+#include <esp_lcd_ili9341.h>
+#include <esp_lcd_panel_ops.h>
+#include <esp_lvgl_port.h>
 #include "CoreS3Constants.h"
 #include "CoreS3Touch.h"
 

@@ -1,9 +1,9 @@
 #include "UnPhoneDisplay.h"
 #include "UnPhoneDisplayConstants.h"
 #include "UnPhoneTouch.h"
-#include "Log.h"
+#include <Tactility/Log.h>
 
-#include <TactilityCore.h>
+#include <Tactility/TactilityCore.h>
 
 #include "UnPhoneFeatures.h"
 #include "esp_err.h"

@@ -1,4 +1,5 @@
-#include "Mutex.h"
+#include "Tactility/Mutex.h"
+
 #include <cstring>
 #include <sstream>
 
@@ -49,7 +50,7 @@ std::unique_ptr<std::array<LogEntry, TT_LOG_ENTRY_COUNT>> copyLogEntries(std::si
 
 #ifndef ESP_PLATFORM
 
-#include "Log.h"
+#include "Tactility/Log.h"
 
 #include <cstdint>
 #include <sys/time.h>

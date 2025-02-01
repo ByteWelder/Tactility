@@ -1,8 +1,9 @@
-#include "hal/Configuration.h"
 #include "hal/TdeckDisplay.h"
 #include "hal/TdeckKeyboard.h"
 #include "hal/TdeckPower.h"
 #include "hal/TdeckSdCard.h"
+
+#include <Tactility/hal/Configuration.h>
 
 bool tdeck_init_power();
 bool tdeck_init_hardware();

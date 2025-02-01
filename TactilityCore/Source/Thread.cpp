@@ -1,11 +1,11 @@
-#include "Thread.h"
+#include "Tactility/Thread.h"
 
-#include "Check.h"
-#include "CoreDefines.h"
-#include "EventFlag.h"
-#include "kernel/Kernel.h"
-#include "Log.h"
-#include "TactilityCoreConfig.h"
+#include "Tactility/Check.h"
+#include "Tactility/CoreDefines.h"
+#include "Tactility/EventFlag.h"
+#include "Tactility/kernel/Kernel.h"
+#include "Tactility/Log.h"
+#include "Tactility/TactilityCoreConfig.h"
 
 #include <string>
 

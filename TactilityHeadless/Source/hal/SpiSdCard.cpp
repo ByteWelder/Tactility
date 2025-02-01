@@ -1,8 +1,8 @@
 #ifdef ESP_PLATFORM
 
-#include "hal/SpiSdCard.h"
+#include "Tactility/hal/SpiSdCard.h"
 
-#include "Log.h"
+#include <Tactility/Log.h>
 
 #include <driver/gpio.h>
 #include <esp_vfs_fat.h>

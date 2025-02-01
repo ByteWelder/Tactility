@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Thread.h"
 #include "bq24295/Bq24295.h"
+#include <Tactility/Thread.h>
 #include <esp_io_expander_tca95xx_16bit.h>
 
 /**

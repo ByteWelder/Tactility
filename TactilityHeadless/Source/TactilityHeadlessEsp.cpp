@@ -1,7 +1,7 @@
 #ifdef ESP_PLATFORM
 
-#include "TactilityCore.h"
-#include "EspPartitions_i.h"
+#include "Tactility/PartitionsEsp.h"
+#include "Tactility/TactilityCore.h"
 
 #include "esp_event.h"
 #include "esp_netif.h"

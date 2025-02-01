@@ -1,6 +1,8 @@
-#include "app/i2cscanner/I2cHelpers.h"
-#include "Tactility.h"
-#include "StringUtils.h"
+#include "Tactility/app/i2cscanner/I2cHelpers.h"
+
+#include <Tactility/Tactility.h>
+#include <Tactility/StringUtils.h>
+
 #include <iomanip>
 #include <vector>
 #include <sstream>

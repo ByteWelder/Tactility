@@ -1,16 +1,14 @@
 #include "Core2Display.h"
 #include "Core2DisplayConstants.h"
-#include "Log.h"
-
-#include <TactilityCore.h>
-#include <esp_lcd_panel_commands.h>
-
-#include "driver/gpio.h"
-#include "esp_err.h"
-#include "esp_lcd_ili9341.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lvgl_port.h"
 #include "Core2Touch.h"
+
+#include <driver/gpio.h>
+#include <esp_lcd_panel_commands.h>
+#include <esp_err.h>
+#include <esp_lcd_ili9341.h>
+#include <esp_lcd_panel_ops.h>
+#include <esp_lvgl_port.h>
+#include <Tactility/Log.h>
 
 #define TAG "core2_display"
 

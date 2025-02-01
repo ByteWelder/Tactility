@@ -1,8 +1,9 @@
-#include <TactilityCore.h>
-#include "lvgl/LabelUtils.h"
-#include "lvgl/Style.h"
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
+#include "Tactility/lvgl/LabelUtils.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/TactilityCore.h>
 
 #include <lvgl.h>
 

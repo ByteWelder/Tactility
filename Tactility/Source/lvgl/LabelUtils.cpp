@@ -1,5 +1,5 @@
-#include "lvgl/LabelUtils.h"
-#include "file/File.h"
+#include <Tactility/lvgl/LabelUtils.h>
+#include <Tactility/file/File.h>
 
 namespace tt::lvgl {
 

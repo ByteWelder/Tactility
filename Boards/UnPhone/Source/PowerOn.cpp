@@ -1,6 +1,6 @@
-#include "Preferences.h"
-#include "TactilityCore.h"
 #include "UnPhoneFeatures.h"
+#include <Tactility/Preferences.h>
+#include <Tactility/TactilityCore.h>
 #include <esp_sleep.h>
 
 #define TAG "unphone"

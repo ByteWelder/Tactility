@@ -1,6 +1,6 @@
-#include "app/AppManifest.h"
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <lvgl.h>
 
 using namespace tt::app;
 

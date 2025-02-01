@@ -1,7 +1,7 @@
-#include "StreamBuffer.h"
+#include "Tactility/StreamBuffer.h"
 
-#include "Check.h"
-#include "CoreDefines.h"
+#include "Tactility/Check.h"
+#include "Tactility/CoreDefines.h"
 
 namespace tt {
 

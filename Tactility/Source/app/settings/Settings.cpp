@@ -1,9 +1,11 @@
-#include "app/ManifestRegistry.h"
-#include "Assets.h"
-#include "Check.h"
-#include "service/loader/Loader.h"
-#include "lvgl/Toolbar.h"
-#include "lvgl.h"
+#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Assets.h>
+#include <Tactility/Check.h>
+#include <lvgl.h>
+
 #include <algorithm>
 
 namespace tt::app::settings {

@@ -1,17 +1,17 @@
 #include "TdeckDisplay.h"
 #include "TdeckDisplayConstants.h"
 #include "TdeckTouch.h"
-#include "Log.h"
 
-#include <TactilityCore.h>
+#include <Tactility/Log.h>
+#include <Tactility/TactilityCore.h>
+
 #include <esp_lcd_panel_commands.h>
-
-#include "driver/ledc.h"
-#include "driver/spi_master.h"
-#include "esp_err.h"
-#include "esp_lcd_panel_ops.h"
-#include "esp_lcd_panel_vendor.h"
-#include "esp_lvgl_port.h"
+#include <driver/ledc.h>
+#include <driver/spi_master.h>
+#include <esp_err.h>
+#include <esp_lcd_panel_ops.h>
+#include <esp_lcd_panel_vendor.h>
+#include <esp_lvgl_port.h>
 
 #define TAG "tdeck_display"
 

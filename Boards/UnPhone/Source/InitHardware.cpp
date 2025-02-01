@@ -1,6 +1,6 @@
-#include "TactilityCore.h"
 #include "hal/UnPhoneDisplayConstants.h"
 #include "hx8357/disp_spi.h"
+#include <Tactility/TactilityCore.h>
 #include <driver/spi_common.h>
 #include <soc/gpio_num.h>
 #include <lvgl.h>

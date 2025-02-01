@@ -1,15 +1,17 @@
-#include "app/timezone/TimeZone.h"
-#include "app/AppManifest.h"
-#include "app/AppContext.h"
-#include "service/loader/Loader.h"
-#include "lvgl.h"
-#include "lvgl/Toolbar.h"
-#include "Partitions.h"
-#include "lvgl/LvglSync.h"
-#include "service/gui/Gui.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/app/AppManifest.h"
+#include "Tactility/app/timezone/TimeZone.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/service/gui/Gui.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/Partitions.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/Timer.h>
+
+#include <lvgl.h>
 #include <memory>
-#include <StringUtils.h>
-#include <Timer.h>
 
 namespace tt::app::timezone {
 

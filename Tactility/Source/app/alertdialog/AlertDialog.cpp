@@ -1,9 +1,10 @@
-#include "app/alertdialog/AlertDialog.h"
+#include "Tactility/app/alertdialog/AlertDialog.h"
 
-#include "lvgl/Toolbar.h"
-#include "service/loader/Loader.h"
-#include <StringUtils.h>
-#include <TactilityCore.h>
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/loader/Loader.h"
+
+#include <Tactility/StringUtils.h>
+#include <Tactility/TactilityCore.h>
 
 #include <lvgl.h>
 

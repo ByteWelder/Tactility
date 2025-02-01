@@ -1,21 +1,22 @@
-#include "TactilityCore.h"
+#include "Tactility/TactilityCore.h"
 
-#include "app/AppContext.h"
-#include "app/display/DisplaySettings.h"
-#include "app/launcher/Launcher.h"
-#include "hal/Display.h"
-#include "service/loader/Loader.h"
-#include "lvgl/Style.h"
+#include "Tactility/app/AppContext.h"
+#include "Tactility/app/display/DisplaySettings.h"
+#include "Tactility/app/launcher/Launcher.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/Style.h"
 
-#include "lvgl.h"
-#include "Tactility.h"
-#include "hal/usb/Usb.h"
-#include "kernel/SystemEvents.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/hal/Display.h>
+#include <Tactility/hal/usb/Usb.h>
+#include <Tactility/kernel/SystemEvents.h>
+
+#include <lvgl.h>
 
 #ifdef ESP_PLATFORM
-#include "kernel/PanicHandler.h"
-#include "sdkconfig.h"
-#include "app/crashdiagnostics/CrashDiagnostics.h"
+#include "Tactility/app/crashdiagnostics/CrashDiagnostics.h"
+#include <Tactility/kernel/PanicHandler.h>
+#include <sdkconfig.h>
 #else
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif

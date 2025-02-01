@@ -1,10 +1,10 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "lvgl/Toolbar.h"
+#include "Tactility/lvgl/Toolbar.h"
 
-#include "service/loader/Loader.h"
-#include "lvgl/Style.h"
-#include "lvgl/Spinner.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/lvgl/Style.h"
+#include "Tactility/lvgl/Spinner.h"
 
 namespace tt::lvgl {
 

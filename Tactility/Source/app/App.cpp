@@ -1,5 +1,6 @@
-#include "app/App.h"
-#include "service/loader/Loader.h"
+#include "Tactility/app/App.h"
+
+#include <Tactility/service/loader/Loader.h>
 
 namespace tt::app {
 
