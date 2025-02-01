@@ -1,4 +1,5 @@
-#include "Critical.h"
+#include "kernel/critical/Critical.h"
+
 #include "CoreDefines.h"
 #include "RtosCompatTask.h"
 
