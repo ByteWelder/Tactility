@@ -13,7 +13,7 @@
 #define TAG "unphone_display"
 #define BUFFER_SIZE (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8)
 
-extern UnPhoneFeatures unPhoneFeatures;
+extern std::shared_ptr<UnPhoneFeatures> unPhoneFeatures;
 
 bool UnPhoneDisplay::start() {
     TT_LOG_I(TAG, "Starting");
@@ -47,7 +47,7 @@ bool UnPhoneDisplay::start() {
 
     if (displayHandle != nullptr) {
         TT_LOG_I(TAG, "Finished");
-        unPhoneFeatures.setBacklightPower(true);
+        unPhoneFeatures->setBacklightPower(true);
         return true;
     } else {
         TT_LOG_I(TAG, "Failed");

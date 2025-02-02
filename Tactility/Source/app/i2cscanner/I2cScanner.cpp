@@ -4,6 +4,7 @@
 
 #include "Tactility/Preferences.h"
 #include "Tactility/app/AppContext.h"
+#include "Tactility/hal/i2c/I2cDevice.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
@@ -11,6 +12,9 @@
 #include <Tactility/Assets.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
+
+#include <format>
+#include <ranges>
 
 #define START_SCAN_TEXT "Scan"
 #define STOP_SCAN_TEXT "Stop scan"
@@ -328,6 +332,16 @@ void I2cScannerApp::onPressScan(TT_UNUSED lv_event_t* event) {
     updateViews();
 }
 
+static bool findDeviceName(const std::vector<std::shared_ptr<hal::i2c::I2cDevice>>& devices, i2c_port_t port, uint8_t address, std::string& outName) {
+    for (auto& device : devices) {
+        if (device->getPort() == port && device->getAddress() == address) {
+            outName = device->getName();
+            return true;
+        }
+    }
+    return false;
+}
+
 void I2cScannerApp::updateViews() {
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (scanState == ScanStateScanning) {
@@ -341,10 +355,19 @@ void I2cScannerApp::updateViews() {
         lv_obj_clean(scanListWidget);
         if (scanState == ScanStateStopped) {
             lv_obj_remove_flag(scanListWidget, LV_OBJ_FLAG_HIDDEN);
+
+            auto devices = hal::findDevices<hal::i2c::I2cDevice>(hal::Device::Type::I2c);
+
             if (!scannedAddresses.empty()) {
                 for (auto address: scannedAddresses) {
                     std::string address_text = getAddressText(address);
-                    lv_list_add_text(scanListWidget, address_text.c_str());
+                    std::string device_name;
+                    if (findDeviceName(devices, port, address, device_name)) {
+                        auto text = std::format("{} - {}", address_text, device_name);
+                        lv_list_add_text(scanListWidget, text.c_str());
+                    } else {
+                        lv_list_add_text(scanListWidget, address_text.c_str());
+                    }
                 }
             } else {
                 lv_list_add_text(scanListWidget, "No devices found");
@@ -360,7 +383,7 @@ void I2cScannerApp::updateViews() {
 }
 
 void I2cScannerApp::updateViewsSafely() {
-    if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
+    if (lvgl::lock(200 / portTICK_PERIOD_MS)) {
         updateViews();
         lvgl::unlock();
     } else {
@@ -372,9 +395,10 @@ void I2cScannerApp::onScanTimerFinished() {
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (scanState == ScanStateScanning) {
             scanState = ScanStateStopped;
-            updateViewsSafely();
         }
         mutex.unlock();
+
+        updateViewsSafely();
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimerFinished");
     }

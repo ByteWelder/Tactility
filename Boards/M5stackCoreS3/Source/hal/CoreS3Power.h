@@ -4,16 +4,17 @@
 
 #include <Tactility/hal/Power.h>
 #include <memory>
+#include <utility>
 
 using namespace tt::hal;
 
-class CoreS3Power : public Power {
+class CoreS3Power final : public Power {
 
-    Axp2101 axpDevice = Axp2101(I2C_NUM_0);
+    std::shared_ptr<Axp2101> axpDevice;
 
 public:
 
-    CoreS3Power() = default;
+    explicit CoreS3Power(std::shared_ptr<Axp2101> axp) : axpDevice(std::move(axp)) {}
     ~CoreS3Power() override = default;
 
     std::string getName() const final { return "AXP2101 Power"; }

@@ -1,6 +1,5 @@
 #include "Tactility/hal/Device.h"
 
-#include <ranges>
 #include <Tactility/Mutex.h>
 
 namespace tt::hal {
@@ -58,7 +57,7 @@ std::vector<std::shared_ptr<Device>> findDevices(const std::function<bool(const 
     return {};
 }
 
-static std::shared_ptr<Device> _Nullable findDevice(const std::function<bool(const std::shared_ptr<Device>&)>& filterFunction) {
+std::shared_ptr<Device> _Nullable findDevice(const std::function<bool(const std::shared_ptr<Device>&)>& filterFunction) {
     auto scoped_mutex = mutex.scoped();
     if (scoped_mutex->lock()) {
         auto result_set = devices | std::views::filter([&filterFunction](auto& device) {
