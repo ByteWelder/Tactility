@@ -31,7 +31,7 @@ void registerDevice(const std::shared_ptr<Device>& device) {
     }
 }
 
-void unregisterDevice(const std::shared_ptr<Device>& device) {
+void deregisterDevice(const std::shared_ptr<Device>& device) {
     auto scoped_mutex = mutex.scoped();
     auto id_to_remove = device->getId();
     if (scoped_mutex->lock()) {

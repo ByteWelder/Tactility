@@ -50,12 +50,12 @@ public:
 
 /**
  * Adds a device to the registry.
- * @warning This will leak memory if you want to destroy a device and don't call unregisterDevice()!
+ * @warning This will leak memory if you want to destroy a device and don't call deregisterDevice()!
  */
 void registerDevice(const std::shared_ptr<Device>& device);
 
 /** Remove a device from the registry. */
-void unregisterDevice(const std::shared_ptr<Device>& device);
+void deregisterDevice(const std::shared_ptr<Device>& device);
 
 /** Find a device in the registry by its name. */
 std::shared_ptr<Device> _Nullable findDevice(std::string name);
