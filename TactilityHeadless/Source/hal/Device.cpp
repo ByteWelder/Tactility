@@ -38,7 +38,12 @@ void deregisterDevice(const std::shared_ptr<Device>& device) {
         auto remove_iterator = std::remove_if(devices.begin(), devices.end(), [id_to_remove](const auto& device) {
             return device->getId() == id_to_remove;
         });
-        devices.erase(remove_iterator);
+        if (remove_iterator != devices.end()) {
+            TT_LOG_I(TAG, "Deregistering %s with id %lu", device->getName().c_str(), device->getId());
+            devices.erase(remove_iterator);
+        } else {
+            TT_LOG_W(TAG, "Deregistering %s with id %lu failed: not found", device->getName().c_str(), device->getId());
+        }
     }
 }
 

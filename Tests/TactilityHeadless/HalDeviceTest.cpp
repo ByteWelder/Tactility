@@ -89,7 +89,7 @@ TEST_CASE("find device by type") {
     auto unexpected_display = hal::findFirstDevice<TestDevice>(hal::Device::Type::Display);
     CHECK_EQ(unexpected_display, nullptr);
 
-    auto device = std::make_shared<TestDevice>(hal::Device::Type::Display, "", "");
+    auto device = std::make_shared<TestDevice>(hal::Device::Type::Display, "DisplayMock", "");
     DeviceAutoRegistration auto_registration(device);
 
     auto found_device = hal::findFirstDevice<TestDevice>(hal::Device::Type::Display);
