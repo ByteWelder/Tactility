@@ -5,8 +5,7 @@
 
 #define TAG "unphone"
 
-extern UnPhoneFeatures unPhoneFeatures;
-
+std::shared_ptr<UnPhoneFeatures> unPhoneFeatures;
 static std::unique_ptr<tt::Thread> powerThread;
 
 static const char* bootCountKey = "boot_count";
@@ -89,13 +88,13 @@ static void powerInfoBuzz(uint8_t count) {
 static void updatePowerSwitch() {
     static PowerState last_state = PowerState::Initial;
 
-    if (!unPhoneFeatures.isPowerSwitchOn()) {
+    if (!unPhoneFeatures->isPowerSwitchOn()) {
         if (last_state != PowerState::Off) {
             last_state = PowerState::Off;
             TT_LOG_W(TAG, "Power off");
         }
 
-        if (!unPhoneFeatures.isUsbPowerConnected()) { // and usb unplugged we go into shipping mode
+        if (!unPhoneFeatures->isUsbPowerConnected()) { // and usb unplugged we go into shipping mode
             TT_LOG_W(TAG, "Shipping mode until USB connects");
 
 #if DEBUG_POWER_STATES
@@ -104,11 +103,11 @@ static void updatePowerSwitch() {
             unPhoneFeatures.setExpanderPower(false);
 #endif
 
-            unPhoneFeatures.turnPeripheralsOff();
+            unPhoneFeatures->turnPeripheralsOff();
 
             bootStats.notifyPowerOff();
 
-            unPhoneFeatures.setShipping(true); // tell BM to stop supplying power until USB connects
+            unPhoneFeatures->setShipping(true); // tell BM to stop supplying power until USB connects
         } else { // When power switch is off, but USB is plugged in, we wait (deep sleep) until USB is unplugged.
             TT_LOG_W(TAG, "Waiting for USB disconnect to power off");
 
@@ -116,13 +115,13 @@ static void updatePowerSwitch() {
             powerInfoBuzz(2);
 #endif
 
-            unPhoneFeatures.turnPeripheralsOff();
+            unPhoneFeatures->turnPeripheralsOff();
 
             bootStats.notifyPowerSleep();
 
             // Deep sleep for 1 minute, then awaken to check power state again
             // GPIO trigger from power switch also awakens the device
-            unPhoneFeatures.wakeOnPowerSwitch();
+            unPhoneFeatures->wakeOnPowerSwitch();
             esp_sleep_enable_timer_wakeup(60000000);
             esp_deep_sleep_start();
         }
@@ -155,23 +154,29 @@ static void startPowerSwitchThread() {
     powerThread->start();
 }
 
+std::shared_ptr<Bq24295> bq24295;
+
 static bool unPhonePowerOn() {
     // Print early, in case of early crash (info will be from previous boot)
     bootStats.printInfo();
-
     bootStats.notifyBootStart();
 
-    if (!unPhoneFeatures.init()) {
+    bq24295 = std::make_shared<Bq24295>(I2C_NUM_0);
+    tt::hal::registerDevice(bq24295);
+
+    unPhoneFeatures = std::make_shared<UnPhoneFeatures>(bq24295);
+
+    if (!unPhoneFeatures->init()) {
         TT_LOG_E(TAG, "UnPhoneFeatures init failed");
         return false;
     }
 
-    unPhoneFeatures.printInfo();
+    unPhoneFeatures->printInfo();
 
-    unPhoneFeatures.setBacklightPower(false);
-    unPhoneFeatures.setVibePower(false);
-    unPhoneFeatures.setIrPower(false);
-    unPhoneFeatures.setExpanderPower(false);
+    unPhoneFeatures->setBacklightPower(false);
+    unPhoneFeatures->setVibePower(false);
+    unPhoneFeatures->setIrPower(false);
+    unPhoneFeatures->setExpanderPower(false);
 
     // Turn off the device if power switch is on off state,
     // instead of waiting for the Thread to start and continue booting

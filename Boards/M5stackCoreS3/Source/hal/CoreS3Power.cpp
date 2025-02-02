@@ -21,7 +21,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
         using enum MetricType;
         case BatteryVoltage: {
             float milliVolt;
-            if (axpDevice.getBatteryVoltage(milliVolt)) {
+            if (axpDevice->getBatteryVoltage(milliVolt)) {
                 data.valueAsUint32 = (uint32_t)milliVolt;
                 return true;
             } else {
@@ -30,7 +30,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
         }
         case ChargeLevel: {
             float vbatMillis;
-            if (axpDevice.getBatteryVoltage(vbatMillis)) {
+            if (axpDevice->getBatteryVoltage(vbatMillis)) {
                 float vbat = vbatMillis / 1000.f;
                 float max_voltage = 4.20f;
                 float min_voltage = 2.69f; // From M5Unified
@@ -47,7 +47,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
         }
         case IsCharging: {
             Axp2101::ChargeStatus status;
-            if (axpDevice.getChargeStatus(status)) {
+            if (axpDevice->getChargeStatus(status)) {
                 data.valueAsBool = (status == Axp2101::CHARGE_STATUS_CHARGING);
                 return true;
             } else {
@@ -61,7 +61,7 @@ bool CoreS3Power::getMetric(Power::MetricType type, Power::MetricData& data) {
 
 bool CoreS3Power::isAllowedToCharge() const {
     bool enabled;
-    if (axpDevice.isChargingEnabled(enabled)) {
+    if (axpDevice->isChargingEnabled(enabled)) {
         return enabled;
     } else {
         return false;
@@ -69,14 +69,16 @@ bool CoreS3Power::isAllowedToCharge() const {
 }
 
 void CoreS3Power::setAllowedToCharge(bool canCharge) {
-    axpDevice.setChargingEnabled(canCharge);
+    axpDevice->setChargingEnabled(canCharge);
 }
 
 static std::shared_ptr<Power> power;
+extern std::shared_ptr<Axp2101> axp2101;
 
 std::shared_ptr<Power> createPower() {
     if (power == nullptr) {
-        power = std::make_shared<CoreS3Power>();
+        power = std::make_shared<CoreS3Power>(axp2101);
     }
+
     return power;
 }

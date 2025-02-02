@@ -20,8 +20,6 @@ protected:
 
     static constexpr TickType_t DEFAULT_TIMEOUT = 1000 / portTICK_PERIOD_MS;
 
-    Type getType() const override { return Type::I2c; }
-
     bool readRegister8(uint8_t reg, uint8_t& result) const;
     bool writeRegister8(uint8_t reg, uint8_t value) const;
     bool readRegister12(uint8_t reg, float& out) const;
@@ -35,6 +33,12 @@ protected:
 public:
 
     explicit I2cDevice(i2c_port_t port, uint32_t address) : port(port), address(address) {}
+
+    Type getType() const override { return Type::I2c; }
+
+    i2c_port_t getPort() const { return port; }
+
+    uint8_t getAddress() const { return address; }
 };
 
 }

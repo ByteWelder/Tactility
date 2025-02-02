@@ -8,9 +8,6 @@ bool unPhoneInitPower();
 bool unPhoneInitHardware();
 bool unPhoneInitLvgl();
 
-// Shared object, used in PowerOn and UnPhoneDisplay
-UnPhoneFeatures unPhoneFeatures;
-
 extern const tt::hal::Configuration unPhone = {
     .initBoot = unPhoneInitPower,
     .initHardware = unPhoneInitHardware,
