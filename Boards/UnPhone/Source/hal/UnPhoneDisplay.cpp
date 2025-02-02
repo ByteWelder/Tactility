@@ -30,8 +30,8 @@ bool UnPhoneDisplay::start() {
     lv_display_set_color_format(displayHandle, LV_COLOR_FORMAT_NATIVE);
 
     // TODO malloc to use SPIRAM
-    static auto* buffer1 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    static auto* buffer2 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    buffer1 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    buffer2 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
     assert(buffer1 != nullptr);
     assert(buffer2 != nullptr);
 
@@ -61,13 +61,18 @@ bool UnPhoneDisplay::stop() {
     lv_display_delete(displayHandle);
     displayHandle = nullptr;
 
+    heap_caps_free(buffer1);
+    heap_caps_free(buffer2);
+    buffer1 = nullptr;
+    buffer2 = nullptr;
+
     return true;
 }
 
-tt::hal::Touch* _Nullable UnPhoneDisplay::createTouch() {
-    return static_cast<tt::hal::Touch*>(new UnPhoneTouch());
+std::shared_ptr<tt::hal::Touch> _Nullable UnPhoneDisplay::createTouch() {
+    return std::make_shared<UnPhoneTouch>();
 }
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new UnPhoneDisplay());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<UnPhoneDisplay>();
 }

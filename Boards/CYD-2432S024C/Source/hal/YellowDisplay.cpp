@@ -205,10 +205,10 @@ void YellowDisplay::setGammaCurve(uint8_t index) {
     }
 }
 
-tt::hal::Touch* _Nullable YellowDisplay::createTouch() {
-    return static_cast<tt::hal::Touch*>(new YellowTouch());
+std::shared_ptr<tt::hal::Touch> _Nullable YellowDisplay::createTouch() {
+    return std::make_shared<YellowTouch>();
 }
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new YellowDisplay());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<YellowDisplay>();
 }

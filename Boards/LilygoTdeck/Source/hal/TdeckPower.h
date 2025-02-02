@@ -15,6 +15,9 @@ public:
     TdeckPower();
     ~TdeckPower();
 
+    std::string getName() const final { return "ADC Power Measurement"; }
+    std::string getDescription() const final { return "Power measurement interface via ADC pin"; }
+
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
 

@@ -17,6 +17,9 @@ private:
 
 public:
 
+    std::string getName() const final { return "ST7780"; }
+    std::string getDescription() const final { return "SPI display"; }
+
     bool start() override;
 
     bool stop() override;
@@ -25,7 +28,7 @@ public:
     bool isPoweredOn() const override { return poweredOn; };
     bool supportsPowerControl() const override { return true; }
 
-    tt::hal::Touch* _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::Touch> _Nullable createTouch() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
     bool supportsBacklightDuty() const override { return true; }
@@ -40,4 +43,4 @@ private:
     static bool startBacklight();
 };
 
-tt::hal::Display* createDisplay();
+std::shared_ptr<tt::hal::Display> createDisplay();

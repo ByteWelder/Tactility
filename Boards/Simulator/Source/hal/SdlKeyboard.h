@@ -3,11 +3,15 @@
 #include <Tactility/hal/Keyboard.h>
 #include <Tactility/TactilityCore.h>
 
-class SdlKeyboard : public tt::hal::Keyboard {
+class SdlKeyboard final : public tt::hal::Keyboard {
 private:
     lv_indev_t* _Nullable handle = nullptr;
 
 public:
+
+    std::string getName() const final { return "SDL Keyboard"; }
+    std::string getDescription() const final { return "SDL keyboard device"; }
+
     bool start(lv_display_t* display) override {
         handle = lv_sdl_keyboard_create();
         return handle != nullptr;
@@ -20,6 +24,6 @@ public:
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
 };
 
-tt::hal::Keyboard* createKeyboard() {
-    return static_cast<tt::hal::Keyboard*>(new SdlKeyboard());
+std::shared_ptr<tt::hal::Keyboard> createKeyboard() {
+    return std::make_shared<SdlKeyboard>();
 }

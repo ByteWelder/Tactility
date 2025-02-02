@@ -153,10 +153,10 @@ void Core2Display::setGammaCurve(uint8_t index) {
     }
 }
 
-tt::hal::Touch* _Nullable Core2Display::createTouch() {
-    return static_cast<tt::hal::Touch*>(new Core2Touch());
+std::shared_ptr<tt::hal::Touch> _Nullable Core2Display::createTouch() {
+    return std::make_shared<Core2Touch>();
 }
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new Core2Display());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<Core2Display>();
 }

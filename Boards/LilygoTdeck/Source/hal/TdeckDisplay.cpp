@@ -191,8 +191,8 @@ void TdeckDisplay::setPowerOn(bool turnOn) {
     }
 }
 
-tt::hal::Touch* _Nullable TdeckDisplay::createTouch() {
-    return static_cast<tt::hal::Touch*>(new TdeckTouch());
+std::shared_ptr<tt::hal::Touch> _Nullable TdeckDisplay::createTouch() {
+    return std::make_shared<TdeckTouch>();
 }
 
 void TdeckDisplay::setBacklightDuty(uint8_t backlightDuty) {
@@ -233,6 +233,6 @@ void TdeckDisplay::setGammaCurve(uint8_t index) {
     }
 }
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new TdeckDisplay());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<TdeckDisplay>();
 }

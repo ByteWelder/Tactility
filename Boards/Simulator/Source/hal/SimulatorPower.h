@@ -5,7 +5,7 @@
 
 using namespace tt::hal;
 
-class SimulatorPower : public Power {
+class SimulatorPower final : public Power {
 
     bool allowedToCharge = false;
 
@@ -13,6 +13,9 @@ public:
 
     SimulatorPower() = default;
     ~SimulatorPower() override = default;
+
+    std::string getName() const final { return "Power Mock"; }
+    std::string getDescription() const final { return ""; }
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;

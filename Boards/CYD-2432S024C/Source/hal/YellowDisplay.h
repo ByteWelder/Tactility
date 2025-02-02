@@ -16,11 +16,14 @@ private:
 
 public:
 
+    std::string getName() const final { return "ILI9341"; }
+    std::string getDescription() const final { return "SPI display"; }
+
     bool start() override;
 
     bool stop() override;
 
-    tt::hal::Touch* _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::Touch> _Nullable createTouch() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
     bool supportsBacklightDuty() const override { return true; }
@@ -31,4 +34,4 @@ public:
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
 
-tt::hal::Display* createDisplay();
+std::shared_ptr<tt::hal::Display> createDisplay();

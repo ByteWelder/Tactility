@@ -2,23 +2,28 @@
 
 #include "SdlTouch.h"
 #include <Tactility/hal/Display.h>
+#include <memory>
 
 extern lv_disp_t* displayHandle;
 
-class SdlDisplay : public tt::hal::Display {
+class SdlDisplay final : public tt::hal::Display {
 public:
+
+    std::string getName() const final { return "SDL Display"; }
+    std::string getDescription() const final { return ""; }
+
     bool start() override {
         return displayHandle != nullptr;
     }
 
     bool stop() override { tt_crash("Not supported"); }
 
-    tt::hal::Touch* _Nullable createTouch() override { return dynamic_cast<tt::hal::Touch*>(new SdlTouch()); }
+    std::shared_ptr<tt::hal::Touch> _Nullable createTouch() override { return std::make_shared<SdlTouch>(); }
 
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new SdlDisplay());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<SdlDisplay>();
 }
 

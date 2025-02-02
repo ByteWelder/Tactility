@@ -70,6 +70,9 @@ public:
         config(std::move(config))
     {}
 
+    std::string getName() const final { return "SD Card"; }
+    std::string getDescription() const final { return "SD card via SPI interface"; }
+
     bool mount(const char* mountPath) override;
     bool unmount() override;
     State getState() const override;

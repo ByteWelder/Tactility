@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+namespace tt::hal::i2c {
+
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
     if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
@@ -59,3 +61,5 @@ bool I2cDevice::bitOff(uint8_t reg, uint8_t bitmask) const {
         return false;
     }
 }
+
+} // namespace

@@ -12,6 +12,9 @@ public:
     Core2Power() = default;
     ~Core2Power() override = default;
 
+    std::string getName() const final { return "AXP192 Power"; }
+    std::string getDescription() const final { return "Power management via I2C"; }
+
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
 
