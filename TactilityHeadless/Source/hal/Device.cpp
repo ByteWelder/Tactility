@@ -13,10 +13,10 @@ static Device::Id nextId = 0;
 
 Device::Device() : id(nextId++) {}
 
-template <std::ranges::range R>
-auto toVector(R&& r) {
-    auto r_common = r | std::views::common;
-    return std::vector(r_common.begin(), r_common.end());
+template <std::ranges::range RangeType>
+auto toVector(RangeType&& range) {
+    auto view = range | std::views::common;
+    return std::vector(view.begin(), view.end());
 }
 
 void registerDevice(const std::shared_ptr<Device>& device) {
