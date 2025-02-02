@@ -8,8 +8,8 @@
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
 
+#include <format>
 #include <string>
-#include <sstream>
 #include <set>
 
 namespace tt::app::wifimanage {
