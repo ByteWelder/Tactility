@@ -2,6 +2,7 @@
 #include "Tactility/app/i2cscanner/I2cScannerThread.h"
 #include "Tactility/app/i2cscanner/I2cHelpers.h"
 
+#include "Tactility/Preferences.h"
 #include "Tactility/app/AppContext.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Toolbar.h"
@@ -33,6 +34,11 @@ private:
     lv_obj_t* scanButtonLabelWidget = nullptr;
     lv_obj_t* portDropdownWidget = nullptr;
     lv_obj_t* scanListWidget = nullptr;
+
+    static void setLastBusIndex(int32_t index);
+    static int32_t getLastBusIndex();
+
+    void selectBus(int32_t selected);
 
     static void onSelectBusCallback(lv_event_t* event);
     static void onPressScanCallback(lv_event_t* event);
@@ -70,49 +76,70 @@ std::shared_ptr<I2cScannerApp> _Nullable optApp() {
     }
 }
 
-// region Lifecycle
+#define PREFERENCES_BUS_INDEX_KEY "bus"
 
+void I2cScannerApp::setLastBusIndex(int32_t index) {
+    auto prefs = Preferences("i2c_scanner");
+    prefs.putInt32(PREFERENCES_BUS_INDEX_KEY, index);
+}
+
+int32_t I2cScannerApp::getLastBusIndex() {
+    auto prefs = Preferences("i2c_scanner");
+    int32_t index = 0;
+    prefs.optInt32(PREFERENCES_BUS_INDEX_KEY, index);
+    return index;
+}
+
+// region Lifecycle
 
 void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
     lvgl::toolbar_create(parent, app);
 
-    lv_obj_t* main_wrapper = lv_obj_create(parent);
+    auto* main_wrapper = lv_obj_create(parent);
     lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(main_wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(main_wrapper, 1);
 
-    lv_obj_t* wrapper = lv_obj_create(main_wrapper);
+    auto* wrapper = lv_obj_create(main_wrapper);
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_height(wrapper, LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
 
-    lv_obj_t* scan_button = lv_button_create(wrapper);
+    auto* scan_button = lv_button_create(wrapper);
     lv_obj_set_width(scan_button, LV_PCT(48));
     lv_obj_align(scan_button, LV_ALIGN_TOP_LEFT, 0, 1); // Shift 1 pixel to align with selection box
     lv_obj_add_event_cb(scan_button, onPressScanCallback, LV_EVENT_SHORT_CLICKED, this);
-    lv_obj_t* scan_button_label = lv_label_create(scan_button);
+    auto* scan_button_label = lv_label_create(scan_button);
     lv_obj_align(scan_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(scan_button_label, START_SCAN_TEXT);
     scanButtonLabelWidget = scan_button_label;
 
-    lv_obj_t* port_dropdown = lv_dropdown_create(wrapper);
+    auto* port_dropdown = lv_dropdown_create(wrapper);
     std::string dropdown_items = getPortNamesForDropdown();
     lv_dropdown_set_options(port_dropdown, dropdown_items.c_str());
     lv_obj_set_width(port_dropdown, LV_PCT(48));
     lv_obj_align(port_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_obj_add_event_cb(port_dropdown, onSelectBusCallback, LV_EVENT_VALUE_CHANGED, this);
-    lv_dropdown_set_selected(port_dropdown, 0);
+    auto selected_bus = getLastBusIndex();
+    lv_dropdown_set_selected(port_dropdown, selected_bus);
     portDropdownWidget = port_dropdown;
 
-    lv_obj_t* scan_list = lv_list_create(main_wrapper);
+    auto* scan_list = lv_list_create(main_wrapper);
     lv_obj_set_style_margin_top(scan_list, 8, 0);
     lv_obj_set_width(scan_list, LV_PCT(100));
     lv_obj_set_height(scan_list, LV_SIZE_CONTENT);
     lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
     scanListWidget = scan_list;
+
+    auto i2c_devices = tt::getConfiguration()->hardware->i2c;
+    if (selected_bus )
+    assert(selected_bus < i2c_devices.size());
+    port = i2c_devices[selected_bus].port;
+
+    selectBus(selected_bus);
 }
 
 void I2cScannerApp::onHide(AppContext& app) {
@@ -270,6 +297,10 @@ void I2cScannerApp::stopScanning() {
 void I2cScannerApp::onSelectBus(lv_event_t* event) {
     auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
     uint32_t selected = lv_dropdown_get_selected(dropdown);
+    selectBus(selected);
+}
+
+void I2cScannerApp::selectBus(int32_t selected) {
     auto i2c_devices = tt::getConfiguration()->hardware->i2c;
     assert(selected < i2c_devices.size());
 
@@ -278,11 +309,14 @@ void I2cScannerApp::onSelectBus(lv_event_t* event) {
         port = i2c_devices[selected].port;
         scanState = ScanStateInitial;
         mutex.unlock();
-
-        updateViews();
     }
 
     TT_LOG_I(TAG, "Selected %ld", selected);
+    setLastBusIndex((int32_t)selected);
+
+    startScanning();
+
+    updateViews();
 }
 
 void I2cScannerApp::onPressScan(TT_UNUSED lv_event_t* event) {
