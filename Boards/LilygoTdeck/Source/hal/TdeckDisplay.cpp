@@ -138,8 +138,8 @@ bool TdeckDisplay::start() {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_DRAW_BUFFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8),
-        .double_buffer = true, // Disable to free up SPIRAM
+        .buffer_size = TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_DRAW_BUFFER_HEIGHT,
+        .double_buffer = false, // Disable to free up memory
         .trans_size = 0,
         .hres = TDECK_LCD_HORIZONTAL_RESOLUTION,
         .vres = TDECK_LCD_VERTICAL_RESOLUTION,
@@ -151,8 +151,8 @@ bool TdeckDisplay::start() {
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
-            .buff_dma = false,
-            .buff_spiram = true,
+            .buff_dma = true,
+            .buff_spiram = false,
             .sw_rotate = false,
             .swap_bytes = false,
             .full_refresh = false,

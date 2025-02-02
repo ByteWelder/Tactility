@@ -3,8 +3,6 @@
 #include "UnPhoneTouch.h"
 #include <Tactility/Log.h>
 
-#include <Tactility/TactilityCore.h>
-
 #include "UnPhoneFeatures.h"
 #include "esp_err.h"
 #include "hx8357/disp_spi.h"
@@ -30,15 +28,13 @@ bool UnPhoneDisplay::start() {
     lv_display_set_color_format(displayHandle, LV_COLOR_FORMAT_NATIVE);
 
     // TODO malloc to use SPIRAM
-    buffer1 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    buffer2 = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    assert(buffer1 != nullptr);
-    assert(buffer2 != nullptr);
+    buffer = (uint8_t*)heap_caps_malloc(BUFFER_SIZE, MALLOC_CAP_DMA);
+    assert(buffer != nullptr);
 
     lv_display_set_buffers(
         displayHandle,
-        buffer1,
-        buffer2,
+        buffer,
+        nullptr,
         BUFFER_SIZE,
         LV_DISPLAY_RENDER_MODE_PARTIAL
     );
@@ -61,10 +57,8 @@ bool UnPhoneDisplay::stop() {
     lv_display_delete(displayHandle);
     displayHandle = nullptr;
 
-    heap_caps_free(buffer1);
-    heap_caps_free(buffer2);
-    buffer1 = nullptr;
-    buffer2 = nullptr;
+    heap_caps_free(buffer);
+    buffer = nullptr;
 
     return true;
 }

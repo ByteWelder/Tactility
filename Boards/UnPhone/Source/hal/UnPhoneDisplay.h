@@ -11,8 +11,7 @@ class UnPhoneDisplay : public tt::hal::Display {
 private:
 
     lv_display_t* displayHandle = nullptr;
-    uint8_t* buffer1 = nullptr;
-    uint8_t* buffer2 = nullptr;
+    uint8_t* buffer = nullptr;
 
 public:
 
