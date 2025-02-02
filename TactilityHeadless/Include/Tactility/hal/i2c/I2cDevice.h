@@ -1,6 +1,9 @@
 #pragma once
 
-#include "./I2c.h"
+#include "I2c.h"
+#include "../Device.h"
+
+namespace tt::hal::i2c {
 
 /**
  * Represents an I2C peripheral at a specific port and address.
@@ -8,7 +11,7 @@
  *
  * All read and write calls are thread-safe.
  */
-class I2cDevice {
+class I2cDevice : public Device {
 
 protected:
 
@@ -16,6 +19,8 @@ protected:
     uint8_t address;
 
     static constexpr TickType_t DEFAULT_TIMEOUT = 1000 / portTICK_PERIOD_MS;
+
+    Type getType() const override { return Type::I2c; }
 
     bool readRegister8(uint8_t reg, uint8_t& result) const;
     bool writeRegister8(uint8_t reg, uint8_t value) const;
@@ -26,7 +31,10 @@ protected:
     bool bitOff(uint8_t reg, uint8_t bitmask) const;
     bool bitOnByIndex(uint8_t reg, uint8_t index) const { return bitOn(reg, 1 << index); }
     bool bitOffByIndex(uint8_t reg, uint8_t index) const { return bitOff(reg, 1 << index); }
+
 public:
 
     explicit I2cDevice(i2c_port_t port, uint32_t address) : port(port), address(address) {}
 };
+
+}

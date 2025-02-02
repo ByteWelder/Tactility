@@ -22,8 +22,10 @@ static uint8_t gamma = 255;
 #define ROTATION_270 2
 #define ROTATION_90 3
 
+
 static void onBacklightSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
+
     auto* lvgl_display = lv_display_get_default();
     assert(lvgl_display != nullptr);
     auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
@@ -55,12 +57,8 @@ static void onGammaSliderEvent(lv_event_t* event) {
     }
 }
 
-static tt::hal::Display* getHalDisplay(lv_obj_t* widget) {
-    auto* lvgl_display = lv_obj_get_display(widget);
-    assert(lvgl_display != nullptr);
-    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
-    assert(hal_display != nullptr);
-    return hal_display;
+static std::shared_ptr<tt::hal::Display> getHalDisplay() {
+    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
 }
 
 static lv_display_rotation_t orientationSettingToDisplayRotation(uint32_t setting) {
@@ -103,6 +101,9 @@ class DisplayApp : public App {
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
+        auto hal_display = getHalDisplay();
+        assert(hal_display != nullptr);
+
         lvgl::toolbar_create(parent, app);
 
         lv_obj_t* main_wrapper = lv_obj_create(parent);
@@ -131,11 +132,8 @@ class DisplayApp : public App {
         lv_obj_t* gamma_slider = lv_slider_create(wrapper);
         lv_obj_set_width(gamma_slider, LV_PCT(50));
         lv_obj_align(gamma_slider, LV_ALIGN_TOP_RIGHT, -8, 40);
-        lv_slider_set_range(gamma_slider, 0, getHalDisplay(parent)->getGammaCurveCount());
+        lv_slider_set_range(gamma_slider, 0, hal_display->getGammaCurveCount());
         lv_obj_add_event_cb(gamma_slider, onGammaSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
-
-        auto* hal_display = getHalDisplay(parent);
-        assert(hal_display != nullptr);
 
         if (!hal_display->supportsBacklightDuty()) {
             lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);

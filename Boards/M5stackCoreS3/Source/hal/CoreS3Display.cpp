@@ -181,10 +181,10 @@ void CoreS3Display::setBacklightDuty(uint8_t backlightDuty) {
     }
 }
 
-tt::hal::Touch* _Nullable CoreS3Display::createTouch() {
-    return static_cast<tt::hal::Touch*>(new CoreS3Touch());
+std::shared_ptr<tt::hal::Touch> _Nullable CoreS3Display::createTouch() {
+    return std::make_shared<CoreS3Touch>();
 }
 
-tt::hal::Display* createDisplay() {
-    return static_cast<tt::hal::Display*>(new CoreS3Display());
+std::shared_ptr<tt::hal::Display> createDisplay() {
+    return std::make_shared<CoreS3Display>();
 }

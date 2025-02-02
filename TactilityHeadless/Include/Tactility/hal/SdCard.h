@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Device.h"
+
 #include <Tactility/TactilityCore.h>
 
 namespace tt::hal {
@@ -7,8 +9,10 @@ namespace tt::hal {
 #define TT_SDCARD_MOUNT_NAME "sdcard"
 #define TT_SDCARD_MOUNT_POINT "/sdcard"
 
-class SdCard {
+class SdCard : public Device {
+
 public:
+
     enum class State {
         Mounted,
         Unmounted,
@@ -22,11 +26,15 @@ public:
     };
 
 private:
+
     MountBehaviour mountBehaviour;
 
 public:
+
     explicit SdCard(MountBehaviour mountBehaviour) : mountBehaviour(mountBehaviour) {}
-    virtual ~SdCard() = default;
+    virtual ~SdCard() override = default;
+
+    Type getType() const final { return Type::SdCard; };
 
     virtual bool mount(const char* mountPath) = 0;
     virtual bool unmount() = 0;

@@ -62,6 +62,6 @@ bool TdeckKeyboard::isAttached() const {
     return tt::hal::i2c::masterHasDeviceAtAddress(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, 100);
 }
 
-tt::hal::Keyboard* createKeyboard() {
-    return dynamic_cast<tt::hal::Keyboard*>(new TdeckKeyboard());
+std::shared_ptr<tt::hal::Keyboard> createKeyboard() {
+    return std::make_shared<TdeckKeyboard>();
 }

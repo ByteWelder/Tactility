@@ -9,7 +9,7 @@
  * - https://github.com/m5stack/M5Unified/blob/master/src/utility/AXP2101_Class.cpp
  * - http://file.whycan.com/files/members/6736/AXP2101_Datasheet_V1.0_en_3832.pdf
  */
-class Axp2101 : I2cDevice {
+class Axp2101 final : public tt::hal::i2c::I2cDevice {
 
 public:
 
@@ -20,6 +20,9 @@ public:
     };
 
     explicit Axp2101(i2c_port_t port) : I2cDevice(port, AXP2101_ADDRESS) {}
+
+    std::string getName() const final { return "AXP2101"; }
+    std::string getDescription() const final { return "Power management with I2C interface."; }
 
     bool setRegisters(uint8_t* bytePairs, size_t bytePairsSize) const;
 

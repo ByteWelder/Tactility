@@ -18,6 +18,9 @@ private:
 
 public:
 
+    std::string getName() const final { return "XPT2046"; }
+    std::string getDescription() const final { return "I2C touch driver"; }
+
     bool start(lv_display_t* display) override;
     bool stop() override;
     lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }

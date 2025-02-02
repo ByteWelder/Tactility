@@ -1,6 +1,7 @@
 #include "Tactility/lvgl/Toolbar.h"
 
 #include <Tactility/Assets.h>
+#include <Tactility/hal/Device.h>
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
@@ -42,17 +43,17 @@ static size_t getSpiTotal() {
 }
 
 static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_t total) {
-    lv_obj_t* container = lv_obj_create(parent);
+    auto* container = lv_obj_create(parent);
     lv_obj_set_size(container, LV_PCT(100), LV_SIZE_CONTENT);
     lv_obj_set_style_pad_all(container, 0, 0);
     lv_obj_set_style_border_width(container, 0, 0);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
 
-    lv_obj_t* left_label = lv_label_create(container);
+    auto* left_label = lv_label_create(container);
     lv_label_set_text(left_label, label);
     lv_obj_set_width(left_label, 60);
 
-    lv_obj_t* bar = lv_bar_create(container);
+    auto* bar = lv_bar_create(container);
     lv_obj_set_flex_grow(bar, 1);
 
     if (total > 0) {
@@ -63,7 +64,7 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, size_t used, size_
 
     lv_bar_set_value(bar, (int32_t)used, LV_ANIM_OFF);
 
-    lv_obj_t* bottom_label = lv_label_create(parent);
+    auto* bottom_label = lv_label_create(parent);
     lv_label_set_text_fmt(bottom_label, "%u / %u kB", (used / 1024), (total / 1024));
     lv_obj_set_width(bottom_label, LV_PCT(100));
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
@@ -90,25 +91,36 @@ static const char* getTaskState(const TaskStatus_t& task) {
 }
 
 static void addRtosTask(lv_obj_t* parent, const TaskStatus_t& task) {
-    lv_obj_t* label = lv_label_create(parent);
+    auto* label = lv_label_create(parent);
     const char* name = (task.pcTaskName == nullptr || task.pcTaskName[0] == 0) ? "(unnamed)" : task.pcTaskName;
     lv_label_set_text_fmt(label, "%s (%s)", name, getTaskState(task));
 }
 
 static void addRtosTasks(lv_obj_t* parent) {
     UBaseType_t count = uxTaskGetNumberOfTasks();
-    TaskStatus_t* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
+    auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
     uint32_t totalRuntime = 0;
     UBaseType_t actual = uxTaskGetSystemState(tasks, count, &totalRuntime);
     for (int i = 0; i < actual; ++i) {
         const TaskStatus_t& task = tasks[i];
-        TT_LOG_I(TAG, "Task: %s", task.pcTaskName);
         addRtosTask(parent, task);
     }
     free(tasks);
 }
 
 #endif
+
+static void addDevice(lv_obj_t* parent, const std::shared_ptr<hal::Device>& device) {
+    auto* label = lv_label_create(parent);
+    lv_label_set_text(label, device->getName().c_str());
+}
+
+static void addDevices(lv_obj_t* parent) {
+    auto devices = hal::getDevices();
+    for (const auto& device: devices) {
+        addDevice(parent, device);
+    }
+}
 
 class SystemInfoApp : public App {
 
@@ -117,16 +129,16 @@ class SystemInfoApp : public App {
         lvgl::toolbar_create(parent, app);
 
         // This wrapper automatically has its children added vertically underneath eachother
-        lv_obj_t* wrapper = lv_obj_create(parent);
+        auto* wrapper = lv_obj_create(parent);
         lv_obj_set_style_border_width(wrapper, 0, 0);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
 
         // Wrapper for the memory usage bars
-        lv_obj_t* memory_label = lv_label_create(wrapper);
+        auto* memory_label = lv_label_create(wrapper);
         lv_label_set_text(memory_label, "Memory usage");
-        lv_obj_t* memory_wrapper = lv_obj_create(wrapper);
+        auto* memory_wrapper = lv_obj_create(wrapper);
         lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
@@ -134,23 +146,29 @@ class SystemInfoApp : public App {
         addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
 
 #if configUSE_TRACE_FACILITY
-        lv_obj_t* tasks_label = lv_label_create(wrapper);
+        auto* tasks_label = lv_label_create(wrapper);
         lv_label_set_text(tasks_label, "Tasks");
-        lv_obj_t* tasks_wrapper = lv_obj_create(wrapper);
+        auto* tasks_wrapper = lv_obj_create(wrapper);
         lv_obj_set_flex_flow(tasks_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_size(tasks_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         addRtosTasks(tasks_wrapper);
 #endif
+        auto* devices_label = lv_label_create(wrapper);
+        lv_label_set_text(devices_label, "Devices");
+        auto* devices_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_flex_flow(devices_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_size(devices_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        addDevices(devices_wrapper);
 
 #ifdef ESP_PLATFORM
         // Build info
-        lv_obj_t* build_info_label = lv_label_create(wrapper);
+        auto* build_info_label = lv_label_create(wrapper);
         lv_label_set_text(build_info_label, "Build info");
-        lv_obj_t* build_info_wrapper = lv_obj_create(wrapper);
+        auto* build_info_wrapper = lv_obj_create(wrapper);
         lv_obj_set_flex_flow(build_info_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_size(build_info_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
-        lv_obj_t* esp_idf_version = lv_label_create(build_info_wrapper);
+        auto* esp_idf_version = lv_label_create(build_info_wrapper);
         lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
     }

@@ -4,6 +4,7 @@
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
 
+#include <Tactility/hal/Device.h>
 #include <Tactility/Assets.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
@@ -33,7 +34,9 @@ class PowerApp : public App {
 private:
 
     Timer update_timer = Timer(Timer::Type::Periodic, &onTimer, nullptr);
-    std::shared_ptr<tt::hal::Power> power = getConfiguration()->hardware->power();
+
+    std::shared_ptr<hal::Power> power;
+
     lv_obj_t* enableLabel = nullptr;
     lv_obj_t* enableSwitch = nullptr;
     lv_obj_t* batteryVoltageLabel = nullptr;
@@ -135,10 +138,18 @@ private:
 
 public:
 
+    void onCreate(AppContext& app) override {
+        power = hal::findFirstDevice<hal::Power>(hal::Device::Type::Power);
+    }
+
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
         lvgl::toolbar_create(parent, app);
+
+        if (power == nullptr) {
+            return;
+        }
 
         lv_obj_t* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));

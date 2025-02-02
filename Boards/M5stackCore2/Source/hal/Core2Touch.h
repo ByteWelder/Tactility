@@ -23,6 +23,9 @@ public:
 
     Core2Touch();
 
+    std::string getName() const final { return "FT6336U"; }
+    std::string getDescription() const final { return "I2C touch driver"; }
+
     bool start(lv_display_t* display) override;
     bool stop() override;
 

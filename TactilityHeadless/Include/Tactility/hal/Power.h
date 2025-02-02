@@ -1,15 +1,18 @@
 #pragma once
 
+#include "Device.h"
 #include <cstdint>
 
 namespace tt::hal {
 
-class Power{
+class Power : public Device {
 
 public:
 
     Power() = default;
-    virtual ~Power() = default;
+    ~Power() override = default;
+
+    Type getType() const override { return Type::Power; }
 
     enum class MetricType {
         IsCharging, // bool

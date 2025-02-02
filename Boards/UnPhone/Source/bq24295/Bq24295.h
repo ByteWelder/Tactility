@@ -4,13 +4,17 @@
 
 #define BQ24295_ADDRESS 0x6BU
 
-class Bq24295 : I2cDevice {
+class Bq24295 final : public tt::hal::i2c::I2cDevice {
 
 private:
 
     bool readChargeTermination(uint8_t& out) const;
 
 public:
+
+    std::string getName() const final { return "BQ24295"; }
+
+    std::string getDescription() const final { return "I2C-controlled single cell USB charger"; }
 
     enum class WatchDogTimer {
         Disabled = 0b000000,

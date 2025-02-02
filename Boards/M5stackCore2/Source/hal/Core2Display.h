@@ -17,11 +17,14 @@ private:
 
 public:
 
+    std::string getName() const final { return "ILI9342C"; }
+    std::string getDescription() const final { return "Display (ILI9342C with an ILI9341 driver)"; }
+
     bool start() override;
 
     bool stop() override;
 
-    tt::hal::Touch* _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::Touch> _Nullable createTouch() override;
 
     bool supportsBacklightDuty() const override { return false; }
 
@@ -31,4 +34,4 @@ public:
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
 
-tt::hal::Display* createDisplay();
+std::shared_ptr<tt::hal::Display> createDisplay();

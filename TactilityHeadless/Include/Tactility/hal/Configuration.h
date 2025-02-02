@@ -12,8 +12,8 @@ typedef bool (*InitLvgl)();
 
 class Display;
 class Keyboard;
-typedef Display* (*CreateDisplay)();
-typedef Keyboard* (*CreateKeyboard)();
+typedef std::shared_ptr<Display> (*CreateDisplay)();
+typedef std::shared_ptr<Keyboard> (*CreateKeyboard)();
 typedef std::shared_ptr<Power> (*CreatePower)();
 
 struct Configuration {

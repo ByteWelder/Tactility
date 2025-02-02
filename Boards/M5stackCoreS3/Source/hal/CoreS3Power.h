@@ -16,6 +16,9 @@ public:
     CoreS3Power() = default;
     ~CoreS3Power() override = default;
 
+    std::string getName() const final { return "AXP2101 Power"; }
+    std::string getDescription() const final { return "Power management via I2C"; }
+
     bool supportsMetric(MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
 
