@@ -8,6 +8,7 @@
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
 
+#include <format>
 #include <string>
 #include <set>
 
@@ -17,14 +18,16 @@ namespace tt::app::wifimanage {
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
 
-const char* getWifiStatusIconForRssi(int rssi) {
-    if (rssi >= -60) {
-        return "signal_strong.png";
-    } else if (rssi >= -70) {
-        return "signal_medium.png";
-    } else {
-        return "signal_weak.png";
+uint8_t mapRssiToPercentage(int rssi) {
+    auto abs_rssi = std::abs(rssi);
+    if (abs_rssi < 30U) {
+        abs_rssi = 30U;
+    } else if (abs_rssi > 90U) {
+        abs_rssi = 90U;
     }
+
+    auto percentage = (float)(90U - abs_rssi) / 60.f * 100.f;
+    return (uint8_t)percentage;
 }
 
 static void on_enable_switch_changed(lv_event_t* event) {
@@ -115,18 +118,19 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
         lv_obj_t* connecting_spinner = tt::lvgl::spinner_create(wrapper);
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
-        const char* icon = getWifiStatusIconForRssi(record.rssi);
-        auto icon_path = paths->getSystemPathLvgl(icon);
-        lv_obj_t* rssi_image = lv_image_create(wrapper);
-        lv_image_set_src(rssi_image, icon_path.c_str());
-        lv_obj_align(rssi_image, LV_ALIGN_RIGHT_MID, -42, 0);
+        auto percentage = mapRssiToPercentage(record.rssi);
 
-        if (record.auth_mode != WIFI_AUTH_OPEN) {
-            lv_obj_t* lock_image = lv_image_create(wrapper);
-            auto lock = paths->getSystemPathLvgl("lock.png");
-            lv_image_set_src(lock_image, lock.c_str());
-            lv_obj_align(lock_image, LV_ALIGN_RIGHT_MID, -62, 0);
+        std::string auth_info;
+        if (record.auth_mode == WIFI_AUTH_OPEN) {
+            auth_info = "(open) ";
+        } else {
+            auth_info = "";
         }
+
+        std::string info = std::format("{}{}%", auth_info, percentage);
+        lv_obj_t* open_label = lv_label_create(wrapper);
+        lv_label_set_text(open_label, info.c_str());
+        lv_obj_align(open_label, LV_ALIGN_RIGHT_MID, -42, 0);
     }
 }
 
