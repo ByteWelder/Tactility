@@ -93,8 +93,8 @@ public:
     }
 
     void onResult(AppContext& app, Result result, std::unique_ptr<Bundle> bundle) override {
-        auto resultIndex = selectiondialog::getResultIndex(*bundle);
-        if (result == Result::Ok) {
+        if (result == Result::Ok && bundle != nullptr) {
+            auto resultIndex = selectiondialog::getResultIndex(*bundle);
             switch (resultIndex) {
                 case 0:
                     filterLevel = LogLevel::Verbose;
@@ -114,9 +114,9 @@ public:
                 default:
                     break;
             }
-        }
 
-        updateViews();
+            updateViews();
+        }
     }
 };
 
