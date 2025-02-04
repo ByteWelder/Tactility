@@ -81,7 +81,7 @@ class WifiApSettings : public App {
 
         // Wrappers
 
-        lv_obj_t* wrapper = lv_obj_create(parent);
+        auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
@@ -89,24 +89,24 @@ class WifiApSettings : public App {
 
         // Auto-connect toggle
 
-        lv_obj_t* auto_connect_wrapper = lv_obj_create(wrapper);
+        auto* auto_connect_wrapper = lv_obj_create(wrapper);
         lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         lvgl::obj_set_style_no_padding(auto_connect_wrapper);
         lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
 
-        lv_obj_t* auto_connect_label = lv_label_create(auto_connect_wrapper);
+        auto* auto_connect_label = lv_label_create(auto_connect_wrapper);
         lv_label_set_text(auto_connect_label, "Auto-connect");
         lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
-        lv_obj_t* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
+        auto* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
         lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
         lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-        lv_obj_t* forget_button = lv_button_create(wrapper);
+        auto* forget_button = lv_button_create(wrapper);
         lv_obj_set_width(forget_button, LV_PCT(100));
         lv_obj_align_to(forget_button, auto_connect_wrapper, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
         lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_SHORT_CLICKED, nullptr);
-        lv_obj_t* forget_button_label = lv_label_create(forget_button);
+        auto* forget_button_label = lv_label_create(forget_button);
         lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(forget_button_label, "Forget");
 

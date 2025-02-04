@@ -29,19 +29,19 @@ static void onSwitchToggled(lv_event_t* event) {
 }
 
 static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration) {
-    lv_obj_t* card = lv_obj_create(parent);
+    auto* card = lv_obj_create(parent);
     lv_obj_set_height(card, LV_SIZE_CONTENT);
     lv_obj_set_style_margin_hor(card, 16, 0);
     lv_obj_set_style_margin_bottom(card, 16, 0);
     lv_obj_set_width(card, LV_PCT(100));
-    lv_obj_t* port_label = lv_label_create(card);
+    auto* port_label = lv_label_create(card);
     const char* name = configuration.name.empty() ? "Unnamed" : configuration.name.c_str();
     lv_label_set_text_fmt(port_label, "%s (port %d)", name, configuration.port);
 
     // On-off switch
 
     if (configuration.canReinit) {
-        lv_obj_t* state_switch = lv_switch_create(card);
+        auto* state_switch = lv_switch_create(card);
         lv_obj_align(state_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
         if (hal::i2c::isStarted(configuration.port)) {
@@ -52,20 +52,20 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
     }
 
     // SDA label
-    lv_obj_t* sda_pin_label = lv_label_create(card);
+    auto* sda_pin_label = lv_label_create(card);
     const char* sda_pullup_text = configuration.config.sda_pullup_en ? "yes" : "no";
     lv_label_set_text_fmt(sda_pin_label, "SDA: pin %d, pullup: %s", configuration.config.sda_io_num, sda_pullup_text );
     lv_obj_align_to(sda_pin_label, port_label, LV_ALIGN_OUT_BOTTOM_LEFT, 16, 8);
 
     // SCL label
-    lv_obj_t* scl_pin_label = lv_label_create(card);
+    auto* scl_pin_label = lv_label_create(card);
     const char* scl_pullup_text = configuration.config.scl_pullup_en ? "yes" : "no";
     lv_label_set_text_fmt(scl_pin_label, "SCL: pin %d, pullup: %s", configuration.config.scl_io_num, scl_pullup_text);
     lv_obj_align_to(scl_pin_label, sda_pin_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 
     // Frequency:
     if (configuration.config.mode == I2C_MODE_MASTER) {
-        lv_obj_t* frequency_label = lv_label_create(card);
+        auto* frequency_label = lv_label_create(card);
         lv_label_set_text_fmt(frequency_label, "Frequency: %lu Hz", configuration.config.master.clk_speed);
         lv_obj_align_to(frequency_label, scl_pin_label, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
     }
@@ -77,11 +77,12 @@ class I2cSettingsApp : public App {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lvgl::toolbar_create(parent, app);
 
-        lv_obj_t* wrapper = lv_obj_create(parent);
+        auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-        lvgl::obj_set_style_no_padding(wrapper);
+        lv_obj_set_style_pad_all(wrapper, LV_STATE_DEFAULT, 0);
+        lv_obj_set_style_pad_gap(wrapper, LV_STATE_DEFAULT, 0);
         lvgl::obj_set_style_bg_invisible(wrapper);
 
         for (const auto& configuration: getConfiguration()->hardware->i2c) {

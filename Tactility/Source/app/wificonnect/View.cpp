@@ -84,7 +84,7 @@ void View::setLoading(bool loading) {
 }
 
 void View::createBottomButtons(lv_obj_t* parent) {
-    lv_obj_t* button_container = lv_obj_create(parent);
+    auto* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
     lv_obj_set_height(button_container, LV_SIZE_CONTENT);
     lvgl::obj_set_style_no_padding(button_container);
@@ -94,7 +94,7 @@ void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_add_state(remember_switch, LV_STATE_CHECKED);
     lv_obj_align(remember_switch, LV_ALIGN_LEFT_MID, 0, 0);
 
-    lv_obj_t* remember_label = lv_label_create(button_container);
+    auto* remember_label = lv_label_create(button_container);
     lv_label_set_text(remember_label, "Remember");
     lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align_to(remember_label, remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
@@ -104,7 +104,7 @@ void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_add_flag(connecting_spinner, LV_OBJ_FLAG_HIDDEN);
 
     connect_button = lv_btn_create(button_container);
-    lv_obj_t* connect_label = lv_label_create(connect_button);
+    auto* connect_label = lv_label_create(connect_button);
     lv_label_set_text(connect_label, "Connect");
     lv_obj_align(connect_button, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(connect_button, &onConnect, LV_EVENT_SHORT_CLICKED, nullptr);
@@ -116,20 +116,20 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lvgl::toolbar_create(parent, app);
 
-    lv_obj_t* wrapper = lv_obj_create(parent);
+    auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
 
     // SSID
 
-    lv_obj_t* ssid_wrapper = lv_obj_create(wrapper);
+    auto* ssid_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(ssid_wrapper, LV_PCT(100));
     lv_obj_set_height(ssid_wrapper, LV_SIZE_CONTENT);
     lvgl::obj_set_style_no_padding(ssid_wrapper);
     lv_obj_set_style_border_width(ssid_wrapper, 0, 0);
 
-    lv_obj_t* ssid_label_wrapper = lv_obj_create(ssid_wrapper);
+    auto* ssid_label_wrapper = lv_obj_create(ssid_wrapper);
     lv_obj_set_width(ssid_label_wrapper, LV_PCT(50));
     lv_obj_set_height(ssid_label_wrapper, LV_SIZE_CONTENT);
     lv_obj_align(ssid_label_wrapper, LV_ALIGN_LEFT_MID, 0, 0);
@@ -137,7 +137,7 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_style_pad_left(ssid_label_wrapper, 0, 0);
     lv_obj_set_style_pad_right(ssid_label_wrapper, 0, 0);
 
-    lv_obj_t* ssid_label = lv_label_create(ssid_label_wrapper);
+    auto* ssid_label = lv_label_create(ssid_label_wrapper);
     lv_label_set_text(ssid_label, "Network:");
 
     ssid_textarea = lv_textarea_create(ssid_wrapper);
@@ -151,13 +151,13 @@ void View::init(AppContext& app, lv_obj_t* parent) {
 
     // Password
 
-    lv_obj_t* password_wrapper = lv_obj_create(wrapper);
+    auto* password_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(password_wrapper, LV_PCT(100));
     lv_obj_set_height(password_wrapper, LV_SIZE_CONTENT);
     lvgl::obj_set_style_no_padding(password_wrapper);
     lv_obj_set_style_border_width(password_wrapper, 0, 0);
 
-    lv_obj_t* password_label_wrapper = lv_obj_create(password_wrapper);
+    auto* password_label_wrapper = lv_obj_create(password_wrapper);
     lv_obj_set_width(password_label_wrapper, LV_PCT(50));
     lv_obj_set_height(password_label_wrapper, LV_SIZE_CONTENT);
     lv_obj_align_to(password_label_wrapper, password_wrapper, LV_ALIGN_LEFT_MID, 0, 0);
@@ -165,7 +165,7 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_style_pad_left(password_label_wrapper, 0, 0);
     lv_obj_set_style_pad_right(password_label_wrapper, 0, 0);
 
-    lv_obj_t* password_label = lv_label_create(password_label_wrapper);
+    auto* password_label = lv_label_create(password_label_wrapper);
     lv_label_set_text(password_label, "Password:");
 
     password_textarea = lv_textarea_create(password_wrapper);
