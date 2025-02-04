@@ -1,8 +1,8 @@
 #include "Tactility/app/display/DisplaySettings.h"
 #include "Tactility/lvgl/LvglKeypad.h"
-#include "Tactility/lvgl/LvglDisplay.h"
 
 #include <Tactility/hal/Configuration.h>
+#include <Tactility/hal/Display.h>
 #include <Tactility/hal/Keyboard.h>
 #include <Tactility/hal/Touch.h>
 #include <Tactility/kernel/SystemEvents.h>

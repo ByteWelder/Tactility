@@ -60,9 +60,9 @@ static void onConnectToHiddenClicked(lv_event_t* event) {
 // region Secondary updates
 
 static void connect(lv_event_t* event) {
-    lv_obj_t* wrapper = lv_event_get_current_target_obj(event);
+    auto* wrapper = lv_event_get_current_target_obj(event);
     // Assumes that the second child of the button is a label ... risky
-    lv_obj_t* label = lv_obj_get_child(wrapper, 0);
+    auto* label = lv_obj_get_child(wrapper, 0);
     // We get the SSID from the button label because it's safer than alloc'ing
     // our own and passing it as the event data
     const char* ssid = lv_label_get_text(label);
@@ -74,16 +74,16 @@ static void connect(lv_event_t* event) {
 }
 
 static void showDetails(lv_event_t* event) {
-    lv_obj_t* wrapper = lv_event_get_current_target_obj(event);
+    auto* wrapper = lv_event_get_current_target_obj(event);
     // Hack: Get the hidden label with the ssid
-    lv_obj_t* ssid_label = lv_obj_get_child(wrapper, 1);
+    auto* ssid_label = lv_obj_get_child(wrapper, 1);
     const char* ssid = lv_label_get_text(ssid_label);
     auto* bindings = (Bindings*)lv_event_get_user_data(event);
     bindings->onShowApSettings(ssid);
 }
 
 void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting) {
-    lv_obj_t* wrapper = lv_obj_create(networks_list);
+    auto* wrapper = lv_obj_create(networks_list);
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
     lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
@@ -91,13 +91,13 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
     lv_obj_set_style_margin_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
 
-    lv_obj_t* label = lv_label_create(wrapper);
+    auto* label = lv_label_create(wrapper);
     lv_obj_align(label, LV_ALIGN_LEFT_MID, 0, 0);
     lv_label_set_text(label, record.ssid.c_str());
     lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(label, LV_PCT(70));
 
-    lv_obj_t* info_wrapper = lv_obj_create(wrapper);
+    auto* info_wrapper = lv_obj_create(wrapper);
     lv_obj_set_style_pad_all(info_wrapper, 0, 0);
     lv_obj_set_style_margin_all(info_wrapper, 0, 0);
     lv_obj_set_size(info_wrapper, 36, 36);
@@ -105,17 +105,17 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
     lv_obj_add_event_cb(info_wrapper, &showDetails, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
 
-    lv_obj_t* info_label = lv_label_create(info_wrapper);
+    auto* info_label = lv_label_create(info_wrapper);
     lv_label_set_text(info_label, "i");
     // Hack: Create a hidden label to store data and pass it to the callback
-    lv_obj_t* ssid_label = lv_label_create(info_wrapper);
+    auto* ssid_label = lv_label_create(info_wrapper);
     lv_label_set_text(ssid_label, record.ssid.c_str());
     lv_obj_add_flag(ssid_label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_text_color(info_label, lv_theme_get_color_primary(info_wrapper), 0);
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     if (isConnecting) {
-        lv_obj_t* connecting_spinner = tt::lvgl::spinner_create(wrapper);
+        auto* connecting_spinner = tt::lvgl::spinner_create(wrapper);
         lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
     } else {
         auto percentage = mapRssiToPercentage(record.rssi);
@@ -127,8 +127,8 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
             auth_info = "";
         }
 
-        std::string info = std::format("{}{}%", auth_info, percentage);
-        lv_obj_t* open_label = lv_label_create(wrapper);
+        auto info = std::format("{}{}%", auth_info, percentage);
+        auto* open_label = lv_label_create(wrapper);
         lv_label_set_text(open_label, info.c_str());
         lv_obj_align(open_label, LV_ALIGN_RIGHT_MID, -42, 0);
     }

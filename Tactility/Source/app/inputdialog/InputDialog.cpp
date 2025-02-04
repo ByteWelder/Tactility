@@ -81,6 +81,7 @@ private:
     }
 
 public:
+
     void onShow(AppContext& app, lv_obj_t* parent) override {
         auto parameters = app.getParameters();
         tt_check(parameters != nullptr, "Parameters missing");

@@ -115,7 +115,7 @@ private:
     }
 
     static void createListItem(lv_obj_t* list, const std::string& title, size_t index) {
-        lv_obj_t* btn = lv_list_add_button(list, nullptr, title.c_str());
+        auto* btn = lv_list_add_button(list, nullptr, title.c_str());
         lv_obj_add_event_cb(btn, &onListItemSelectedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
     }
 

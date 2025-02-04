@@ -25,14 +25,6 @@ private:
 
 public:
 
-    void lock() const {
-        tt_check(mutex.lock(1000));
-    }
-
-    void unlock() const {
-        tt_check(mutex.unlock());
-    }
-
     void onShow(AppContext& app, lv_obj_t* parent) override;
     void onHide(AppContext& app) override;
 
@@ -44,7 +36,7 @@ public:
 };
 
 void GpioApp::updatePinStates() {
-    lock();
+    mutex.lock();
     // Update pin states
     for (int i = 0; i < GPIO_NUM_MAX; ++i) {
 #ifdef ESP_PLATFORM
@@ -53,12 +45,13 @@ void GpioApp::updatePinStates() {
         pinStates[i] = gpio_get_level(i);
 #endif
     }
-    unlock();
+    mutex.unlock();
 }
 
 void GpioApp::updatePinWidgets() {
-    if (lvgl::lock(100)) {
-        lock();
+    auto scoped_lvgl_lock = lvgl::getLvglSyncLockable()->scoped();
+    auto scoped_gpio_lock = mutex.scoped();
+    if (scoped_gpio_lock->lock() && scoped_lvgl_lock->lock(100)) {
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
             int level = pinStates[j];
             lv_obj_t* label = lvPins[j];
@@ -73,8 +66,6 @@ void GpioApp::updatePinWidgets() {
                 }
             }
         }
-        lvgl::unlock();
-        unlock();
     }
 }
 
@@ -100,14 +91,14 @@ void GpioApp::onTimer(TT_UNUSED std::shared_ptr<void> context) {
 }
 
 void GpioApp::startTask() {
-    lock();
+    mutex.lock();
     assert(timer == nullptr);
     timer = std::make_unique<Timer>(
         Timer::Type::Periodic,
         &onTimer
     );
     timer->start(100 / portTICK_PERIOD_MS);
-    unlock();
+    mutex.unlock();
 }
 
 void GpioApp::stopTask() {
@@ -122,11 +113,11 @@ void GpioApp::stopTask() {
 
 void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
-    lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
+    auto* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     // Main content wrapper, enables scrolling content without scrolling the toolbar
-    lv_obj_t* wrapper = lv_obj_create(parent);
+    auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(wrapper, 1);
     lv_obj_set_style_border_width(wrapper, 0, 0);
@@ -140,20 +131,20 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     uint8_t column = 0;
     uint8_t column_limit = is_landscape_display ? 10 : 5;
 
-    lv_obj_t* row_wrapper = createGpioRowWrapper(wrapper);
+    auto* row_wrapper = createGpioRowWrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
 
-    lock();
+    mutex.lock();
     for (int i = GPIO_NUM_MIN; i < GPIO_NUM_MAX; ++i) {
 
         // Add the GPIO number before the first item on a row
         if (column == 0) {
-            lv_obj_t* prefix = lv_label_create(row_wrapper);
+            auto* prefix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(prefix, "%02d", i);
         }
 
         // Add a new GPIO status indicator
-        lv_obj_t* status_label = lv_label_create(row_wrapper);
+        auto* status_label = lv_label_create(row_wrapper);
         lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing), 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
         lvPins[i] = status_label;
@@ -162,19 +153,19 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
         if (column >= column_limit) {
             // Add the GPIO number after the last item on a row
-            lv_obj_t* postfix = lv_label_create(row_wrapper);
+            auto* postfix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(postfix, "%02d", i);
             lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing), 0);
 
             // Add a new row wrapper underneath the last one
-            lv_obj_t* new_row_wrapper = createGpioRowWrapper(wrapper);
+            auto* new_row_wrapper = createGpioRowWrapper(wrapper);
             lv_obj_align_to(new_row_wrapper, row_wrapper, LV_ALIGN_BOTTOM_LEFT, 0, 4);
             row_wrapper = new_row_wrapper;
 
             column = 0;
         }
     }
-    unlock();
+    mutex.unlock();
 
     startTask();
 }

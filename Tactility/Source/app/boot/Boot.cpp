@@ -2,7 +2,6 @@
 
 #include "Tactility/app/AppContext.h"
 #include "Tactility/app/display/DisplaySettings.h"
-#include "Tactility/app/launcher/Launcher.h"
 #include "Tactility/service/loader/Loader.h"
 #include "Tactility/lvgl/Style.h"
 

@@ -56,7 +56,7 @@ private:
     }
 
     void onListItemSelected(lv_event_t* e) {
-        size_t index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
+        auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
         TT_LOG_I(TAG, "Selected item at index %d", index);
         auto bundle = std::make_unique<Bundle>();
         bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);
@@ -77,7 +77,7 @@ public:
         std::string title = getTitleParameter(app.getParameters());
         lvgl::toolbar_create(parent, title);
 
-        lv_obj_t* list = lv_list_create(parent);
+        auto* list = lv_list_create(parent);
         lv_obj_set_width(list, LV_PCT(100));
         lv_obj_set_flex_grow(list, 1);
 
