@@ -21,7 +21,7 @@ namespace tt::app::screenshot {
 
 extern const AppManifest manifest;
 
-class ScreenshotApp : public App {
+class ScreenshotApp final : public App {
 
     lv_obj_t* modeDropdown = nullptr;
     lv_obj_t* pathTextArea = nullptr;
@@ -39,7 +39,7 @@ class ScreenshotApp : public App {
 public:
 
     ScreenshotApp();
-    ~ScreenshotApp();
+    ~ScreenshotApp() final;
 
     void onShow(AppContext& app, lv_obj_t* parent) override;
     void onStartPressed();
@@ -50,7 +50,7 @@ public:
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<ScreenshotApp> _Nullable optApp() {
-    auto appContext = service::loader::getCurrentAppContext();
+    auto appContext = getCurrentAppContext();
     if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
         return std::static_pointer_cast<ScreenshotApp>(appContext->getApp());
     } else {

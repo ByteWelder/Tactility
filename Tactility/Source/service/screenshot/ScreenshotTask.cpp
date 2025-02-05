@@ -87,7 +87,7 @@ void ScreenshotTask::taskMain() {
                 }
             }
         } else if (work.type == TASK_WORK_TYPE_APPS) {
-            auto appContext = loader::getCurrentAppContext();
+            auto appContext = app::getCurrentAppContext();
             if (appContext != nullptr) {
                 const app::AppManifest& manifest = appContext->getManifest();
                 if (manifest.id != last_app_id) {

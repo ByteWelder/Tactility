@@ -36,7 +36,7 @@ static void on_enable_switch_changed(lv_event_t* event) {
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
 
-        auto wifi = optWifiManage();
+        auto wifi = std::static_pointer_cast<WifiManage>(getCurrentApp());
         auto bindings = wifi->getBindings();
 
         bindings.onWifiToggled(is_on);

@@ -72,7 +72,7 @@ public:
 
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<I2cScannerApp> _Nullable optApp() {
-    auto appContext = service::loader::getCurrentAppContext();
+    auto appContext = getCurrentAppContext();
     if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
         return std::static_pointer_cast<I2cScannerApp>(appContext->getApp());
     } else {

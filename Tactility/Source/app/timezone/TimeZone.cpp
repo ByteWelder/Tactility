@@ -93,11 +93,9 @@ private:
 
     static void onListItemSelectedCallback(lv_event_t* e) {
         auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        auto appContext = service::loader::getCurrentAppContext();
-        if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
-            auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
-            app->onListItemSelected(index);
-        }
+        auto app = std::static_pointer_cast<TimeZoneApp>(getCurrentApp());
+        assert(app != nullptr);
+        app->onListItemSelected(index);
     }
 
     void onListItemSelected(std::size_t index) {
@@ -120,7 +118,7 @@ private:
     }
 
     static void updateTimerCallback(std::shared_ptr<void> context) {
-        auto appContext = service::loader::getCurrentAppContext();
+        auto appContext = getCurrentAppContext();
         if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
             auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
             app->updateList();
