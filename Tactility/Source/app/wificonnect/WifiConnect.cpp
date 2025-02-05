@@ -13,16 +13,6 @@ namespace tt::app::wificonnect {
 
 extern const AppManifest manifest;
 
-/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
-std::shared_ptr<WifiConnect> _Nullable optWifiConnect() {
-    auto appContext = service::loader::getCurrentAppContext();
-    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
-        return std::static_pointer_cast<WifiConnect>(appContext->getApp());
-    } else {
-        return nullptr;
-    }
-}
-
 static void eventCallback(const void* message, void* context) {
     auto* event = static_cast<const service::wifi::Event*>(message);
     auto* wifi = static_cast<WifiConnect*>(context);

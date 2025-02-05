@@ -1,10 +1,11 @@
 #include "Tactility/app/wifiapsettings/WifiApSettings.h"
 
+#include "Tactility/app/App.h"
 #include "Tactility/app/AppContext.h"
+#include "Tactility/app/AppManifest.h"
 #include "Tactility/app/alertdialog/AlertDialog.h"
 #include "Tactility/lvgl/Style.h"
 #include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/TactilityCore.h>
 #include <Tactility/service/wifi/WifiSettings.h>
@@ -17,20 +18,10 @@ namespace tt::app::wifiapsettings {
 
 extern const AppManifest manifest;
 
-/** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
-const std::shared_ptr<AppContext> _Nullable optWifiApSettingsApp() {
-    auto app = service::loader::getCurrentAppContext();
-    if (app != nullptr && app->getManifest().id == manifest.id) {
-        return app;
-    } else {
-        return nullptr;
-    }
-}
-
 void start(const std::string& ssid) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString("ssid", ssid);
-    service::loader::startApp(manifest.id, bundle);
+    app::start(manifest.id, bundle);
 }
 
 static void onPressForget(TT_UNUSED lv_event_t* event) {
@@ -44,11 +35,7 @@ static void onPressForget(TT_UNUSED lv_event_t* event) {
 static void onToggleAutoConnect(lv_event_t* event) {
     lv_event_code_t code = lv_event_get_code(event);
 
-    auto app = optWifiApSettingsApp();
-    if (app == nullptr) {
-        return;
-    }
-
+    auto app = getCurrentAppContext();
     auto parameters = app->getParameters();
     tt_check(parameters != nullptr, "Parameters missing");
 
@@ -125,31 +112,28 @@ class WifiApSettings : public App {
     }
 
     void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, std::unique_ptr<Bundle> bundle) override {
-        auto index = alertdialog::getResultIndex(*bundle);
-        if (index == 0) { // Yes
-            auto app = optWifiApSettingsApp();
-            if (app == nullptr) {
-                return;
-            }
+        if (result == Result::Ok && bundle != nullptr) {
+            auto index = alertdialog::getResultIndex(*bundle);
+            if (index == 0) { // Yes
+                auto parameters = appContext.getParameters();
+                tt_check(parameters != nullptr, "Parameters missing");
 
-            auto parameters = app->getParameters();
-            tt_check(parameters != nullptr, "Parameters missing");
+                std::string ssid = parameters->getString("ssid");
+                if (service::wifi::settings::remove(ssid.c_str())) {
+                    TT_LOG_I(TAG, "Removed SSID");
 
-            std::string ssid = parameters->getString("ssid");
-            if (service::wifi::settings::remove(ssid.c_str())) {
-                TT_LOG_I(TAG, "Removed SSID");
+                    if (
+                        service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
+                        service::wifi::getConnectionTarget() == ssid
+                    ) {
+                        service::wifi::disconnect();
+                    }
 
-                if (
-                    service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
-                    service::wifi::getConnectionTarget() == ssid
-                ) {
-                    service::wifi::disconnect();
+                    // Stop self
+                    app::stop();
+                } else {
+                    TT_LOG_E(TAG, "Failed to remove SSID");
                 }
-
-                // Stop self
-                service::loader::stopApp();
-            } else {
-                TT_LOG_E(TAG, "Failed to remove SSID");
             }
         }
     }

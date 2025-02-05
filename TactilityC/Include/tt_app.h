@@ -29,6 +29,9 @@ bool tt_app_has_result(AppHandle handle);
  */
 void tt_app_start(const char* appId);
 
+/** Stop the currently running app */
+void tt_app_stop();
+
 /**
  * Start an app by id and bundle.
  * @param[in] appId the app manifest id

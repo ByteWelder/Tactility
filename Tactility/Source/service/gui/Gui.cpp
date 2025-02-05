@@ -20,7 +20,7 @@ Gui* gui = nullptr;
 void onLoaderMessage(const void* message, TT_UNUSED void* context) {
     auto* event = static_cast<const loader::LoaderEvent*>(message);
     if (event->type == loader::LoaderEventTypeApplicationShowing) {
-        auto app_instance = service::loader::getCurrentAppContext();
+        auto app_instance = app::getCurrentAppContext();
         showApp(app_instance);
     } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
         hideApp();

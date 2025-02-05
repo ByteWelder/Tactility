@@ -66,7 +66,7 @@ static TickType_t getNextUpdateTime() {
     time_t now = ::time(nullptr);
     struct tm* tm_struct = localtime(&now);
     uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
-    TT_LOG_I(TAG, "Update in %lu s", seconds_to_wait);
+    TT_LOG_D(TAG, "Update in %lu s", seconds_to_wait);
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
 }
 
@@ -109,7 +109,7 @@ static const lv_obj_class_t statusbar_class = {
 };
 
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
-    TT_LOG_I(TAG, "event");
+    TT_LOG_D(TAG, "event");
     auto* statusbar = static_cast<Statusbar*>(obj);
     if (lock(kernel::millisToTicks(100))) {
         update_main(statusbar);
@@ -167,7 +167,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
     lv_obj_set_width(obj, LV_PCT(100));
     lv_obj_set_height(obj, STATUSBAR_HEIGHT);
-    obj_set_style_no_padding(obj);
+    lv_obj_set_style_pad_all(obj, 0, 0);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -186,7 +186,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
-        obj_set_style_no_padding(image);
+        lv_obj_set_style_pad_all(image, 0, 0);
         obj_set_style_bg_blacken(image);
         statusbar->icons[i] = image;
 
@@ -242,7 +242,7 @@ int8_t statusbar_icon_add(const std::string& image) {
             statusbar_data.icons[i].visible = !image.empty();
             statusbar_data.icons[i].image = image;
             result = i;
-            TT_LOG_I(TAG, "id %d: added", i);
+            TT_LOG_D(TAG, "id %d: added", i);
             break;
         }
     }
@@ -256,7 +256,7 @@ int8_t statusbar_icon_add() {
 }
 
 void statusbar_icon_remove(int8_t id) {
-    TT_LOG_I(TAG, "id %d: remove", id);
+    TT_LOG_D(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -268,7 +268,7 @@ void statusbar_icon_remove(int8_t id) {
 }
 
 void statusbar_icon_set_image(int8_t id, const std::string& image) {
-    TT_LOG_I(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
+    TT_LOG_D(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
         StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -280,7 +280,7 @@ void statusbar_icon_set_image(int8_t id, const std::string& image) {
 }
 
 void statusbar_icon_set_visibility(int8_t id, bool visible) {
-    TT_LOG_I(TAG, "id %d: set visibility %d", id, visible);
+    TT_LOG_D(TAG, "id %d: set visibility %d", id, visible);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
         StatusbarIcon* icon = &statusbar_data.icons[id];

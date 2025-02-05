@@ -80,7 +80,7 @@ lv_obj_t* GpioApp::createGpioRowWrapper(lv_obj_t* parent) {
 // region Task
 
 void GpioApp::onTimer(TT_UNUSED std::shared_ptr<void> context) {
-    auto appContext = service::loader::getCurrentAppContext();
+    auto appContext = getCurrentAppContext();
     if (appContext->getManifest().id == manifest.id) {
         auto app = std::static_pointer_cast<GpioApp>(appContext->getApp());
         if (app != nullptr) {

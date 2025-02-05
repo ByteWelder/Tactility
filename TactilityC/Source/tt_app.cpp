@@ -27,4 +27,8 @@ void tt_app_start_with_bundle(const char* appId, BundleHandle parameters) {
     tt::app::start(appId, std::shared_ptr<tt::Bundle>((tt::Bundle*)parameters));
 }
 
+void tt_app_stop() {
+    tt::app::stop();
+}
+
 }

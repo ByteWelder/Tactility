@@ -25,7 +25,7 @@ void View::resetErrors() {
 }
 
 static void onConnect(TT_UNUSED lv_event_t* event) {
-    auto wifi = optWifiConnect();
+    auto wifi = std::static_pointer_cast<WifiConnect>(getCurrentApp());
     auto& view = wifi->getView();
 
     wifi->getState().setConnectionError(false);
