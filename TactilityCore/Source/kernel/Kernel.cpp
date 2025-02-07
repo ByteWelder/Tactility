@@ -16,7 +16,7 @@ bool isRunning() {
 }
 
 bool lock() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 
     int32_t lock;
 
@@ -39,7 +39,7 @@ bool lock() {
 }
 
 bool unlock() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
@@ -60,7 +60,7 @@ bool unlock() {
 }
 
 bool restoreLock(bool lock) {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 
     switch (xTaskGetSchedulerState()) {
         case taskSCHEDULER_SUSPENDED:
@@ -89,7 +89,7 @@ uint32_t getTickFrequency() {
 }
 
 void delayTicks(TickType_t ticks) {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     if (ticks == 0U) {
         taskYIELD();
     } else {
@@ -98,7 +98,7 @@ void delayTicks(TickType_t ticks) {
 }
 
 bool delayUntilTick(TickType_t tick) {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 
     TickType_t tcnt, delay;
 
@@ -118,7 +118,7 @@ bool delayUntilTick(TickType_t tick) {
 }
 
 TickType_t getTicks() {
-    if (TT_IS_ISR() != 0U) {
+    if (kernel::isIsr() != 0U) {
         return xTaskGetTickCountFromISR();
     } else {
         return xTaskGetTickCount();

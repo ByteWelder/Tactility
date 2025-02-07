@@ -206,7 +206,7 @@ uint32_t Thread::setFlags(ThreadId threadId, uint32_t flags) {
     } else {
         rflags = (uint32_t)EventFlag::Error;
 
-        if (TT_IS_IRQ_MODE()) {
+        if (kernel::isIsr()) {
             yield = pdFALSE;
 
             (void)xTaskNotifyIndexedFromISR(hTask, THREAD_NOTIFY_INDEX, flags, eSetBits, &yield);
@@ -228,7 +228,7 @@ uint32_t Thread::clearFlags(uint32_t flags) {
     TaskHandle_t hTask;
     uint32_t rflags, cflags;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
         rflags = (uint32_t)EventFlag::ErrorParameter;
@@ -257,7 +257,7 @@ uint32_t Thread::getFlags() {
     TaskHandle_t hTask;
     uint32_t rflags;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         rflags = (uint32_t)EventFlag::ErrorISR;
     } else {
         hTask = xTaskGetCurrentTaskHandle();
@@ -277,7 +277,7 @@ uint32_t Thread::awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout) 
     TickType_t t0, td, tout;
     BaseType_t rval;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         rflags = (uint32_t)EventFlag::ErrorISR;
     } else if ((flags & THREAD_FLAGS_INVALID_BITS) != 0U) {
         rflags = (uint32_t)EventFlag::ErrorParameter;
@@ -345,7 +345,7 @@ uint32_t Thread::getStackSpace(ThreadId threadId) {
     auto hTask = (TaskHandle_t)threadId;
     uint32_t sz;
 
-    if (TT_IS_IRQ_MODE() || (hTask == nullptr)) {
+    if (kernel::isIsr() || (hTask == nullptr)) {
         sz = 0U;
     } else {
         sz = (uint32_t)(uxTaskGetStackHighWaterMark(hTask) * sizeof(StackType_t));
@@ -361,7 +361,7 @@ void Thread::suspend(ThreadId threadId) {
 
 void Thread::resume(ThreadId threadId) {
     auto hTask = (TaskHandle_t)threadId;
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         xTaskResumeFromISR(hTask);
     } else {
         vTaskResume(hTask);

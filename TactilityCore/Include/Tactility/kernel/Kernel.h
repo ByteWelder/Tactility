@@ -14,6 +14,13 @@ typedef enum {
     PlatformSimulator
 } Platform;
 
+/** Return true when called from an Interrupt Service Routine (~IRQ mode) */
+#ifdef ESP_PLATFORM
+inline constexpr bool isIsr() { return (xPortInIsrContext() == pdTRUE); }
+#else
+inline constexpr bool isIsr() { return false; }
+#endif
+
 /** Check if kernel is running
  * @return true if the FreeRTOS kernel is running, false otherwise
  */

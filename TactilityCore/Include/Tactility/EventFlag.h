@@ -37,13 +37,24 @@ public:
         ErrorISR = 0xFFFFFFFAU,       ///< TtStatusErrorISR (-6).
     };
 
+    /** Set the bitmask for 1 or more flags that we might be waiting for */
     uint32_t set(uint32_t flags) const;
+
+    /** Clear the specified flags */
     uint32_t clear(uint32_t flags) const;
+
+    /** Get the currently set flags */
     uint32_t get() const;
+
+    /** Await for flags to be set
+     * @param[in] flags the bitmask of the flags that we want to wait for
+     * @param[in] options the trigger behaviour: WaitAny, WaitAll, NoClear (NoClear can be combined with either WaitAny or WaitAll)
+     * @param[in] timeoutTicks the maximum amount of ticks to wait
+     */
     uint32_t wait(
         uint32_t flags,
         uint32_t options = WaitAny,
-        uint32_t timeout = (uint32_t)portMAX_DELAY
+        uint32_t timeoutTicks = (uint32_t)portMAX_DELAY
     ) const;
 };
 

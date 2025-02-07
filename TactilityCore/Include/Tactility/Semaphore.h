@@ -1,5 +1,6 @@
 #pragma once
 
+#include "kernel/Kernel.h"
 #include "Lockable.h"
 #include <cassert>
 #include <memory>
@@ -24,7 +25,7 @@ private:
 
     struct SemaphoreHandleDeleter {
         void operator()(QueueHandle_t handleToDelete) {
-            assert(!TT_IS_IRQ_MODE());
+            assert(!kernel::isIsr());
             vSemaphoreDelete(handleToDelete);
         }
     };
