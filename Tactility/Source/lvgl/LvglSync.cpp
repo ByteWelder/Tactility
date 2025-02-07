@@ -18,8 +18,14 @@ static LvglLock lock_singleton = defaultLock;
 static LvglUnlock unlock_singleton = defaultUnlock;
 
 void syncSet(LvglLock lock, LvglUnlock unlock) {
+    auto old_lock = lock_singleton;
+    auto old_unlock = unlock_singleton;
+
+    // Ensure the old lock is not engaged when changing locks
+    old_lock(portMAX_DELAY);
     lock_singleton = lock;
     unlock_singleton = unlock;
+    old_unlock();
 }
 
 bool lock(TickType_t timeout) {
