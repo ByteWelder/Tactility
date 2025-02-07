@@ -7,22 +7,21 @@
 
 #include <esp_check.h>
 
+#define TAG "i2c"
+
 namespace tt::hal::i2c {
 
-static const uint8_t ACK_CHECK_EN = 1;
-
-typedef struct Data {
+struct Data {
     Mutex mutex;
     bool isConfigured = false;
     bool isStarted = false;
     Configuration configuration;
-} Data;
+};
 
+static const uint8_t ACK_CHECK_EN = 1;
 static Data dataArray[I2C_NUM_MAX];
 
-#define TAG "i2c"
-
-const char* initModeToString(InitMode mode) {
+static const char* initModeToString(InitMode mode) {
     switch (mode) {
         using enum InitMode;
         case ByTactility:
@@ -35,7 +34,7 @@ const char* initModeToString(InitMode mode) {
     tt_crash("not implemented");
 }
 
-void printInfo(const Data& data) {
+static void printInfo(const Data& data) {
     TT_LOG_V(TAG, "I2C info for port %d", data.configuration.port);
     TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
     TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
@@ -76,13 +75,13 @@ static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) 
     Data& data = dataArray[port];
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
-        return ESP_ERR_INVALID_STATE;
+        return false;
     } else if (!data.configuration.hasMutableConfiguration) {
         TT_LOG_E(TAG, "(%d) Mutation not allowed by original configuration", port);
-        return ESP_ERR_NOT_ALLOWED;
+        return false;
     } else {
         data.configuration.config = configuration;
-        return ESP_OK;
+        return true;
     }
 }
 

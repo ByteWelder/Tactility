@@ -5,47 +5,11 @@
 #include <Tactility/Log.h>
 #include <Tactility/kernel/Kernel.h>
 #include <driver/i2c.h>
-#include <driver/spi_master.h>
-#include <esp_intr_types.h>
 
 #define TAG "core2"
 
-#define CORES3_SPI2_PIN_SCLK GPIO_NUM_36
-#define CORES3_SPI2_PIN_MOSI GPIO_NUM_37
-#define CORES3_SPI2_PIN_MISO GPIO_NUM_35
-
 std::shared_ptr<Axp2101> axp2101;
 std::shared_ptr<Aw9523> aw9523;
-
-/**
- * For details see https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/m5stack_core_s3.c
- */
-static bool initSpi3() {
-    TT_LOG_I(TAG, LOG_MESSAGE_SPI_INIT_START_FMT, SPI3_HOST);
-    const spi_bus_config_t bus_config = {
-        .mosi_io_num = CORES3_SPI2_PIN_MOSI,
-        .miso_io_num = CORES3_SPI2_PIN_MISO,
-        .sclk_io_num = CORES3_SPI2_PIN_SCLK,
-        .data2_io_num = GPIO_NUM_NC,
-        .data3_io_num = GPIO_NUM_NC,
-        .data4_io_num = GPIO_NUM_NC,
-        .data5_io_num = GPIO_NUM_NC,
-        .data6_io_num = GPIO_NUM_NC,
-        .data7_io_num = GPIO_NUM_NC,
-        .data_io_default_level = false,
-        .max_transfer_sz = CORES3_LCD_DRAW_BUFFER_SIZE,
-        .flags = 0,
-        .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
-        .intr_flags = 0
-    };
-
-    if (spi_bus_initialize(SPI3_HOST, &bus_config, SPI_DMA_CH_AUTO) != ESP_OK) {
-        TT_LOG_E(TAG, LOG_MESSAGE_SPI_INIT_FAILED_FMT, SPI3_HOST);
-        return false;
-    }
-
-    return true;
-}
 
 /**
  * For details see https://github.com/espressif/esp-bsp/blob/master/bsp/m5stack_core_s3/m5stack_core_s3.c
@@ -184,7 +148,5 @@ bool initBoot() {
     aw9523 = std::make_shared<Aw9523>(I2C_NUM_0);
     tt::hal::registerDevice(aw9523);
 
-    return initPowerControl() &&
-        initGpioExpander() &&
-        initSpi3();
+    return initPowerControl() && initGpioExpander();
 }

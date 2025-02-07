@@ -30,6 +30,10 @@ static const char* getEventName(SystemEvent event) {
             return TT_STRINGIFY(BootInitI2cBegin);
         case BootInitI2cEnd:
             return TT_STRINGIFY(BootInitI2cEnd);
+        case BootInitSpiBegin:
+            return TT_STRINGIFY(BootInitSpiBegin);
+        case BootInitSpiEnd:
+            return TT_STRINGIFY(BootInitSpiEnd);
         case BootInitLvglBegin:
             return TT_STRINGIFY(BootInitLvglBegin);
         case BootInitLvglEnd:
