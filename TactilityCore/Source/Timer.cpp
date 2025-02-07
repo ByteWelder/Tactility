@@ -2,6 +2,7 @@
 
 #include "Tactility/Check.h"
 #include "Tactility/RtosCompat.h"
+#include "Tactility/kernel/Kernel.h"
 
 #include <utility>
 
@@ -34,44 +35,44 @@ Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext
     callbackContext(std::move(callbackContext)),
     handle(createTimer(type, this, onCallback))
 {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     assert(handle != nullptr);
 }
 
 Timer::~Timer() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 }
 
 bool Timer::start(TickType_t interval) {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     assert(interval < portMAX_DELAY);
     return xTimerChangePeriod(handle.get(), interval, portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::restart(TickType_t interval) {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     assert(interval < portMAX_DELAY);
     return xTimerChangePeriod(handle.get(), interval, portMAX_DELAY) == pdPASS &&
         xTimerReset(handle.get(), portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::stop() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     return xTimerStop(handle.get(), portMAX_DELAY) == pdPASS;
 }
 
 bool Timer::isRunning() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     return xTimerIsTimerActive(handle.get()) == pdTRUE;
 }
 
 TickType_t Timer::getExpireTime() {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
     return xTimerGetExpiryTime(handle.get());
 }
 
 bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeout) {
-    if (TT_IS_ISR()) {
+    if (kernel::isIsr()) {
         assert(timeout == 0);
         return xTimerPendFunctionCallFromISR(callback, callbackContext, callbackArg, nullptr) == pdPASS;
     } else {
@@ -80,7 +81,7 @@ bool Timer::setPendingCallback(PendingCallback callback, void* callbackContext, 
 }
 
 void Timer::setThreadPriority(Thread::Priority priority)  {
-    assert(!TT_IS_ISR());
+    assert(!kernel::isIsr());
 
     TaskHandle_t task_handle = xTimerGetTimerDaemonTaskHandle();
     assert(task_handle); // Don't call this method before timer task start

@@ -38,6 +38,7 @@ enum class Status {
 
 bool init(const std::vector<i2c::Configuration>& configurations);
 
+bool configure(i2c_port_t port, const i2c_config_t& configuration);
 bool start(i2c_port_t port);
 bool stop(i2c_port_t port);
 bool isStarted(i2c_port_t port);

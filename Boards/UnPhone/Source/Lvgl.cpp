@@ -1,5 +1,3 @@
-#include "hal/UnPhoneDisplay.h"
-
 #include <Tactility/Log.h>
 #include <Tactility/Thread.h>
 #include <Tactility/lvgl/LvglSync.h>

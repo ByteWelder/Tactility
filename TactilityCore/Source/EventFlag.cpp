@@ -1,7 +1,7 @@
 #include "Tactility/EventFlag.h"
 
 #include "Tactility/Check.h"
-#include "Tactility/CoreDefines.h"
+#include "Tactility/kernel/Kernel.h"
 
 #define TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS 24U
 #define TT_EVENT_FLAG_INVALID_BITS (~((1UL << TT_EVENT_FLAG_MAX_BITS_EVENT_GROUPS) - 1U))
@@ -11,12 +11,12 @@ namespace tt {
 EventFlag::EventFlag() :
     handle(xEventGroupCreate())
 {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     tt_check(handle);
 }
 
 EventFlag::~EventFlag() {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
 }
 
 uint32_t EventFlag::set(uint32_t flags) const {
@@ -26,7 +26,7 @@ uint32_t EventFlag::set(uint32_t flags) const {
     uint32_t rflags;
     BaseType_t yield;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         yield = pdFALSE;
         if (xEventGroupSetBitsFromISR(handle.get(), (EventBits_t)flags, &yield) == pdFAIL) {
             rflags = (uint32_t)ErrorResource;
@@ -47,7 +47,7 @@ uint32_t EventFlag::clear(uint32_t flags) const {
 
     uint32_t rflags;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         rflags = xEventGroupGetBitsFromISR(handle.get());
 
         if (xEventGroupClearBitsFromISR(handle.get(), (EventBits_t)flags) == pdFAIL) {
@@ -69,7 +69,7 @@ uint32_t EventFlag::clear(uint32_t flags) const {
 uint32_t EventFlag::get() const {
     uint32_t rflags;
 
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         rflags = xEventGroupGetBitsFromISR(handle.get());
     } else {
         rflags = xEventGroupGetBits(handle.get());
@@ -82,9 +82,9 @@ uint32_t EventFlag::get() const {
 uint32_t EventFlag::wait(
     uint32_t flags,
     uint32_t options,
-    uint32_t timeout
+    uint32_t timeoutTicksw
 ) const {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     assert((flags & TT_EVENT_FLAG_INVALID_BITS) == 0U);
 
     BaseType_t wait_all;
@@ -94,11 +94,11 @@ uint32_t EventFlag::wait(
     if (options & WaitAll) {
         wait_all = pdTRUE;
     } else {
-        wait_all = pdFAIL;
+        wait_all = pdFALSE;
     }
 
     if (options & NoClear) {
-        exit_clear = pdFAIL;
+        exit_clear = pdFALSE;
     } else {
         exit_clear = pdTRUE;
     }
@@ -108,12 +108,12 @@ uint32_t EventFlag::wait(
         (EventBits_t)flags,
         exit_clear,
         wait_all,
-        (TickType_t)timeout
+        (TickType_t)timeoutTicksw
     );
 
     if (options & WaitAll) {
         if ((flags & rflags) != flags) {
-            if (timeout > 0U) {
+            if (timeoutTicksw > 0U) {
                 rflags = (uint32_t)ErrorTimeout;
             } else {
                 rflags = (uint32_t)ErrorResource;
@@ -121,7 +121,7 @@ uint32_t EventFlag::wait(
         }
     } else {
         if ((flags & rflags) == 0U) {
-            if (timeout > 0U) {
+            if (timeoutTicksw > 0U) {
                 rflags = (uint32_t)ErrorTimeout;
             } else {
                 rflags = (uint32_t)ErrorResource;

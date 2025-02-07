@@ -52,7 +52,7 @@ static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) 
     }
 }
 
-esp_err_t configure(i2c_port_t port, const i2c_config_t& configuration) {
+bool configure(i2c_port_t port, const i2c_config_t& configuration) {
     lock(port);
     bool result = configureLocked(port, configuration);
     unlock(port);

@@ -1,17 +1,19 @@
+#include "Tactility/lvgl/LvglSync.h"
 #include "hal/TdeckDisplay.h"
+#include "hal/TdeckDisplayConstants.h"
 #include "hal/TdeckKeyboard.h"
 #include "hal/TdeckPower.h"
 #include "hal/TdeckSdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
+#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8))
+
 bool tdeck_init_power();
-bool tdeck_init_hardware();
 bool tdeck_init_lvgl();
 
 extern const tt::hal::Configuration lilygo_tdeck = {
     .initBoot = tdeck_init_power,
-    .initHardware = tdeck_init_hardware,
     .initLvgl = tdeck_init_lvgl,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
@@ -53,6 +55,32 @@ extern const tt::hal::Configuration lilygo_tdeck = {
                 },
                 .clk_flags = 0
             }
+        }
+    },
+    .spi {
+        tt::hal::spi::Configuration {
+            .device = SPI2_HOST,
+            .dma = SPI_DMA_CH_AUTO,
+            .config = {
+                .mosi_io_num = GPIO_NUM_41,
+                .miso_io_num = GPIO_NUM_38,
+                .sclk_io_num = GPIO_NUM_40,
+                .quadwp_io_num = -1, // Quad SPI LCD driver is not yet supported
+                .quadhd_io_num = -1, // Quad SPI LCD driver is not yet supported
+                .data4_io_num = 0,
+                .data5_io_num = 0,
+                .data6_io_num = 0,
+                .data7_io_num = 0,
+                .data_io_default_level = false,
+                .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+                .flags = 0,
+                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
+                .intr_flags = 0
+            },
+            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .canReinit = false,
+            .hasMutableConfiguration = false,
+            .lock = tt::lvgl::getLvglSyncLockable() // esp_lvgl_port owns the lock for the display
         }
     }
 };

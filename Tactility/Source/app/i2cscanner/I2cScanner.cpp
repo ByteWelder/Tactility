@@ -14,7 +14,6 @@
 #include <Tactility/Timer.h>
 
 #include <format>
-#include <ranges>
 
 #define START_SCAN_TEXT "Scan"
 #define STOP_SCAN_TEXT "Stop scan"
@@ -225,20 +224,27 @@ bool I2cScannerApp::shouldStopScanTimer() {
 void I2cScannerApp::onScanTimer() {
     TT_LOG_I(TAG, "Scan thread started");
 
+    i2c_port_t safe_port;
+    if (!getPort(&safe_port)) {
+        TT_LOG_E(TAG, "Failed to get I2C port");
+        onScanTimerFinished();
+        return;
+    }
+
+    if (!hal::i2c::isStarted(safe_port)) {
+        TT_LOG_E(TAG, "I2C port not started");
+        onScanTimerFinished();
+        return;
+    }
+
     for (uint8_t address = 0; address < 128; ++address) {
-        i2c_port_t safe_port;
-        if (getPort(&safe_port)) {
-            if (hal::i2c::masterHasDeviceAtAddress(port, address, 10 / portTICK_PERIOD_MS)) {
-                TT_LOG_I(TAG, "Found device at address %d", address);
-                if (!shouldStopScanTimer()) {
-                    addAddressToList(address);
-                } else {
-                    break;
-                }
+        if (hal::i2c::masterHasDeviceAtAddress(port, address, 10 / portTICK_PERIOD_MS)) {
+            TT_LOG_I(TAG, "Found device at address %d", address);
+            if (!shouldStopScanTimer()) {
+                addAddressToList(address);
+            } else {
+                break;
             }
-        } else {
-            TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimer");
-            break;
         }
 
         if (shouldStopScanTimer()) {

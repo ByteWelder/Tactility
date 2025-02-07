@@ -1,7 +1,7 @@
 #include "Tactility/StreamBuffer.h"
 
 #include "Tactility/Check.h"
-#include "Tactility/CoreDefines.h"
+#include "Tactility/kernel/Kernel.h"
 
 namespace tt {
 
@@ -23,7 +23,7 @@ size_t StreamBuffer::send(
     size_t length,
     uint32_t timeout
 ) const {
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         BaseType_t yield;
         size_t result = xStreamBufferSendFromISR(handle.get(), data, length, &yield);
         portYIELD_FROM_ISR(yield);
@@ -38,7 +38,7 @@ size_t StreamBuffer::receive(
     size_t length,
     uint32_t timeout
 ) const {
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         BaseType_t yield;
         size_t result = xStreamBufferReceiveFromISR(handle.get(), data, length, &yield);
         portYIELD_FROM_ISR(yield);

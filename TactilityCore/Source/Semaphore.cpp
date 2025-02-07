@@ -22,16 +22,16 @@ static inline QueueHandle_t createHandle(uint32_t maxCount, uint32_t initialCoun
 }
 
 Semaphore::Semaphore(uint32_t maxAvailable, uint32_t initialAvailable) : handle(createHandle(maxAvailable, initialAvailable)) {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     tt_check(handle != nullptr);
 }
 
 Semaphore::~Semaphore() {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
 }
 
 bool Semaphore::acquire(TickType_t timeout) const {
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         if (timeout != 0U) {
             return false;
         } else {
@@ -50,7 +50,7 @@ bool Semaphore::acquire(TickType_t timeout) const {
 }
 
 bool Semaphore::release() const {
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         BaseType_t yield = pdFALSE;
         if (xSemaphoreGiveFromISR(handle.get(), &yield) != pdTRUE) {
             return false;
@@ -64,7 +64,7 @@ bool Semaphore::release() const {
 }
 
 uint32_t Semaphore::getAvailable() const {
-    if (TT_IS_IRQ_MODE()) {
+    if (kernel::isIsr()) {
         // TODO: uxSemaphoreGetCountFromISR is not supported on esp-idf 5.1.2 - perhaps later on?
 #ifdef uxSemaphoreGetCountFromISR
         return uxSemaphoreGetCountFromISR(handle.get());

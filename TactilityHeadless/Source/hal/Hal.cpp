@@ -1,6 +1,7 @@
 #include "Tactility/hal/Device.h"
 #include "Tactility/hal/Hal_i.h"
 #include "Tactility/hal/i2c/I2c.h"
+#include "Tactility/hal/spi/Spi.h"
 
 #include <Tactility/kernel/SystemEvents.h>
 
@@ -13,11 +14,11 @@ void init(const Configuration& configuration) {
 
     kernel::systemEventPublish(kernel::SystemEvent::BootInitI2cBegin);
     tt_check(i2c::init(configuration.i2c), "I2C init failed");
-    if (configuration.initHardware != nullptr) {
-        TT_LOG_I(TAG, "Init hardware");
-        tt_check(configuration.initHardware(), "Hardware init failed");
-    }
     kernel::systemEventPublish(kernel::SystemEvent::BootInitI2cEnd);
+
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitSpiBegin);
+    tt_check(spi::init(configuration.spi), "SPI init failed");
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitSpiEnd);
 
     if (configuration.initBoot != nullptr) {
         TT_LOG_I(TAG, "Init power");

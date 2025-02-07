@@ -42,6 +42,7 @@ std::string join(const std::vector<std::string>& input, const std::string& delim
 
 /**
  * Returns the lowercase value of a string.
+ * @warning This only works for strings with 1 byte per character
  * @param[in] the string with lower and/or uppercase characters
  * @return a string with only lowercase characters
  */

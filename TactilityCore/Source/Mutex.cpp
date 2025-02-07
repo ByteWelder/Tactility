@@ -39,7 +39,7 @@ Mutex::Mutex(Type type) : handle(createSemaphoreHandle(type)), type(type) {
 }
 
 bool Mutex::lock(TickType_t timeout) const {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     assert(handle != nullptr);
     tt_mutex_info(mutex, "acquire");
 
@@ -54,7 +54,7 @@ bool Mutex::lock(TickType_t timeout) const {
 }
 
 bool Mutex::unlock() const {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     assert(handle != nullptr);
     tt_mutex_info(mutex, "release");
 
@@ -69,7 +69,7 @@ bool Mutex::unlock() const {
 }
 
 ThreadId Mutex::getOwner() const {
-    assert(!TT_IS_IRQ_MODE());
+    assert(!kernel::isIsr());
     assert(handle != nullptr);
     return (ThreadId)xSemaphoreGetMutexHolder(handle.get());
 }

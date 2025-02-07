@@ -22,6 +22,6 @@ void log(LogLevel level, const char* tag, const char* format, ...);
 #define TT_LOG_D(tag, format, ...) \
     tt::log(tt::LogLevel::Debug, tag, format, ##__VA_ARGS__)
 #define TT_LOG_V(tag, format, ...) \
-    tt::log(tt::LogLevel::Trace, tag, format, ##__VA_ARGS__)
+    tt::log(tt::LogLevel::Verbose, tag, format, ##__VA_ARGS__)
 
 #endif // ESP_PLATFORM
