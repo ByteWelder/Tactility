@@ -17,6 +17,8 @@ static uint32_t task_max_sleep_ms = 10;
 // Mutex for LVGL task state (to modify task_running state)
 static bool task_running = false;
 
+lv_disp_t* displayHandle = nullptr;
+
 static void lvgl_task(void* arg);
 
 static bool task_lock(TickType_t timeout) {
@@ -71,8 +73,6 @@ void lvgl_task_start() {
 
     assert(task_result == pdTRUE);
 }
-
-lv_disp_t* displayHandle = nullptr;
 
 static void lvgl_task(TT_UNUSED void* arg) {
     TT_LOG_I(TAG, "lvgl task started");

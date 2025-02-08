@@ -4,7 +4,11 @@
 #include <Tactility/hal/Display.h>
 #include <memory>
 
+/** Hack: variable comes from LvglTask.cpp */
+extern lv_disp_t* displayHandle;
+
 class SdlDisplay final : public tt::hal::Display {
+
 public:
 
     std::string getName() const final { return "SDL Display"; }
