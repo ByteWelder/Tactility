@@ -3,6 +3,7 @@
 #include <Tactility/RtosCompat.h>
 
 #include "UartCompat.h"
+#include "../Gpio.h"
 
 #include <vector>
 #include <memory>
