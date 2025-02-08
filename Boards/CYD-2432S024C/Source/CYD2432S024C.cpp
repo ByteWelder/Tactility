@@ -9,7 +9,6 @@
 bool twodotfour_lvgl_init();
 
 const tt::hal::Configuration cyd_2432S024c_config = {
-    .initLvgl = &twodotfour_lvgl_init,
     .createDisplay = createDisplay,
     .sdcard = createYellowSdCard(),
     .power = nullptr,

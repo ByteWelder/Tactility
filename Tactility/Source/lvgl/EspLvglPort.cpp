@@ -1,19 +1,19 @@
-#include "hal/TdeckDisplay.h"
+#ifdef ESP_PLATFORM
 
-#include <Tactility/Log.h>
-#include <Tactility/Thread.h>
 #include <Tactility/lvgl/LvglSync.h>
-
 #include <esp_lvgl_port.h>
-
-#define TAG "tdeck_lvgl"
+#include <Tactility/Mutex.h>
 
 // LVGL
 // The minimum task stack seems to be about 3500, but that crashes the wifi app in some scenarios
 // At 8192, it sometimes crashes when wifi-auto enables and is busy connecting and then you open WifiManage
 #define TDECK_LVGL_TASK_STACK_DEPTH 9216
+#define TAG "lvgl"
 
-bool tdeck_init_lvgl() {
+namespace tt::lvgl {
+
+bool initEspLvglPort() {
+    TT_LOG_D(TAG, "Port init");
     static lv_disp_t* display = nullptr;
     const lvgl_port_cfg_t lvgl_cfg = {
         .task_priority = static_cast<UBaseType_t>(tt::THREAD_PRIORITY_RENDER),
@@ -23,9 +23,8 @@ bool tdeck_init_lvgl() {
         .timer_period_ms = 5
     };
 
-    TT_LOG_D(TAG, "LVGL port init");
     if (lvgl_port_init(&lvgl_cfg) != ESP_OK) {
-        TT_LOG_E(TAG, "LVGL port init failed");
+        TT_LOG_E(TAG, "Port init failed");
         return false;
     }
 
@@ -33,3 +32,7 @@ bool tdeck_init_lvgl() {
 
     return true;
 }
+
+} // namespace tt::lvgl
+
+#endif

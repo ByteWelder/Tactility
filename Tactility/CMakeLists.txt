@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Include/"
         PRIV_INCLUDE_DIRS "Private/"
-        REQUIRES TactilityHeadless lvgl driver elf_loader lv_screenshot QRCode
+        REQUIRES TactilityHeadless lvgl driver elf_loader lv_screenshot QRCode esp_lvgl_port
     )
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

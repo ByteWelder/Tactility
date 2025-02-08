@@ -1,6 +1,5 @@
 #include "M5stackCore2.h"
 #include "InitBoot.h"
-#include "InitLvgl.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "hal/Core2Display.h"
 #include "hal/Core2DisplayConstants.h"
@@ -11,7 +10,6 @@
 
 extern const tt::hal::Configuration m5stack_core2 = {
     .initBoot = initBoot,
-    .initLvgl = initLvgl,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .power = createPower,

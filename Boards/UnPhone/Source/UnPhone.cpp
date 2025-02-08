@@ -9,11 +9,9 @@
 #define UNPHONE_SPI_TRANSFER_SIZE_LIMIT (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_SPI_TRANSFER_HEIGHT * LV_COLOR_DEPTH / 8)
 
 bool unPhoneInitPower();
-bool unPhoneInitLvgl();
 
 extern const tt::hal::Configuration unPhone = {
     .initBoot = unPhoneInitPower,
-    .initLvgl = unPhoneInitLvgl,
     .createDisplay = createDisplay,
     .sdcard = createUnPhoneSdCard(),
     .power = unPhoneGetPower,
