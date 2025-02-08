@@ -1,7 +1,8 @@
+#include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
-#include "Tactility/hal/Hal_i.h"
 #include "Tactility/hal/i2c/I2c.h"
 #include "Tactility/hal/spi/Spi.h"
+#include "Tactility/hal/uart/Uart.h"
 #include "Tactility/hal/Power.h"
 
 #include <Tactility/kernel/SystemEvents.h>
@@ -20,6 +21,10 @@ void init(const Configuration& configuration) {
     kernel::systemEventPublish(kernel::SystemEvent::BootInitSpiBegin);
     tt_check(spi::init(configuration.spi), "SPI init failed");
     kernel::systemEventPublish(kernel::SystemEvent::BootInitSpiEnd);
+
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitUartBegin);
+    tt_check(uart::init(configuration.uart), "UART init failed");
+    kernel::systemEventPublish(kernel::SystemEvent::BootInitUartEnd);
 
     if (configuration.initBoot != nullptr) {
         TT_LOG_I(TAG, "Init power");

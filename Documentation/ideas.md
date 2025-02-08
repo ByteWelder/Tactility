@@ -1,4 +1,6 @@
 # TODOs
+- Start using non_null (either via MS GSL, or custom)
+- `hal/Configuration.h` defines C function types: Use C++ std::function instead
 - Fix system time to not be 1980 (use build year as minimum)
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.

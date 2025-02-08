@@ -34,6 +34,10 @@ static const char* getEventName(SystemEvent event) {
             return TT_STRINGIFY(BootInitSpiBegin);
         case BootInitSpiEnd:
             return TT_STRINGIFY(BootInitSpiEnd);
+        case BootInitUartBegin:
+            return TT_STRINGIFY(BootInitUartBegin);
+        case BootInitUartEnd:
+            return TT_STRINGIFY(BootInitUartEnd);
         case BootInitLvglBegin:
             return TT_STRINGIFY(BootInitLvglBegin);
         case BootInitLvglEnd:
