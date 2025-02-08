@@ -1,7 +1,6 @@
 #pragma once
 
-#include "Axp2101/Axp2101.h"
-
+#include <Axp2101.h>
 #include <Tactility/hal/Power.h>
 #include <memory>
 #include <utility>

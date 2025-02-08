@@ -1,9 +1,8 @@
-#include "Axp2101/Axp2101.h"
-#include "Aw9523/Aw9523.h"
+#include <Axp2101.h>
+#include <Aw9523.h>
 
 #include <Tactility/Log.h>
 #include <Tactility/kernel/Kernel.h>
-#include <driver/i2c.h>
 
 #define TAG "cores3"
 
