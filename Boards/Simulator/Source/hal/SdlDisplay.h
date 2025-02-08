@@ -4,8 +4,6 @@
 #include <Tactility/hal/Display.h>
 #include <memory>
 
-extern lv_disp_t* displayHandle;
-
 class SdlDisplay final : public tt::hal::Display {
 public:
 

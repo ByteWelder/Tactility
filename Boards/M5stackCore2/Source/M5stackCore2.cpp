@@ -1,10 +1,11 @@
 #include "M5stackCore2.h"
 #include "InitBoot.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "hal/Core2Display.h"
-#include "hal/Core2DisplayConstants.h"
 #include "hal/Core2Power.h"
 #include "hal/Core2SdCard.h"
+
+#include <lvgl.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #define CORE2_SPI_TRANSFER_SIZE_LIMIT (CORE2_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 

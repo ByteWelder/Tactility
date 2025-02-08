@@ -1,4 +1,3 @@
-#include "hal/CoreS3DisplayConstants.h"
 #include "Axp2101/Axp2101.h"
 #include "Aw9523/Aw9523.h"
 
@@ -6,7 +5,7 @@
 #include <Tactility/kernel/Kernel.h>
 #include <driver/i2c.h>
 
-#define TAG "core2"
+#define TAG "cores3"
 
 std::shared_ptr<Axp2101> axp2101;
 std::shared_ptr<Aw9523> aw9523;

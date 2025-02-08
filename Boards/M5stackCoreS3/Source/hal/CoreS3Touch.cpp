@@ -6,10 +6,10 @@
 #include "esp_lcd_touch.h"
 #include "esp_lvgl_port.h"
 
-#define TAG "cores3_touch"
+#define TAG "cores3"
 
 bool CoreS3Touch::start(lv_display_t* display) {
-    TT_LOG_I(TAG, "Starting");
+    TT_LOG_I(TAG, "Touch start");
 
     esp_lcd_panel_io_i2c_config_t touch_io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
 
@@ -39,7 +39,7 @@ bool CoreS3Touch::start(lv_display_t* display) {
     };
 
     if (esp_lcd_touch_new_i2c_ft5x06(ioHandle, &config, &touchHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Driver init failed");
+        TT_LOG_E(TAG, "Touch driver init failed");
         cleanup();
         return false;
     }
@@ -51,7 +51,7 @@ bool CoreS3Touch::start(lv_display_t* display) {
 
     deviceHandle = lvgl_port_add_touch(&touch_cfg);
     if (deviceHandle == nullptr) {
-        TT_LOG_E(TAG, "Adding touch failed");
+        TT_LOG_E(TAG, "Touch lvgl port failure");
         cleanup();
         return false;
     }
