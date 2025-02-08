@@ -3,6 +3,7 @@
 #include "./SdCard.h"
 #include "./i2c/I2c.h"
 #include "Tactility/hal/spi/Spi.h"
+#include "Tactility/hal/uart/Uart.h"
 
 namespace tt::hal {
 
@@ -47,6 +48,9 @@ struct Configuration {
 
     /** A list of SPI interfaces */
     const std::vector<spi::Configuration> spi = {};
+
+    /** A list of UART interfaces */
+    const std::vector<uart::Configuration> uart = {};
 };
 
 } // namespace

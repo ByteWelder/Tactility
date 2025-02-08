@@ -41,7 +41,7 @@ ContinuationIndentWidth: 4
 EmptyLineBeforeAccessModifier: Always
 EmptyLineAfterAccessModifier: Always
 IndentCaseLabels: true
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 IndentWidth: 4
 KeepEmptyLinesAtTheStartOfBlocks: true
 MaxEmptyLinesToKeep: 2

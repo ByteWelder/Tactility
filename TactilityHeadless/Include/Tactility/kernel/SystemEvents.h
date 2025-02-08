@@ -11,6 +11,8 @@ enum class SystemEvent {
     BootInitI2cEnd,
     BootInitSpiBegin,
     BootInitSpiEnd,
+    BootInitUartBegin,
+    BootInitUartEnd,
     BootInitLvglBegin,
     BootInitLvglEnd,
     BootSplash,
