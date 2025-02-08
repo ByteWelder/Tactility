@@ -1,5 +1,7 @@
+file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
+
 idf_component_register(
-    SRC_DIRS "Source" "Source/hal" "Source/ft6x36" "Source/axp192"
+    SRCS ${SOURCE_FILES}
     INCLUDE_DIRS "Source"
     REQUIRES Tactility esp_lvgl_port esp_lcd ILI934x driver vfs fatfs
 )
