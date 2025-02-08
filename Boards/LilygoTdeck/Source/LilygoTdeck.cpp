@@ -83,7 +83,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     },
     .uart {
         tt::hal::uart::Configuration {
-            .port = UART_NUM_0,
+            .port = UART_NUM_1,
             .initMode = tt::hal::uart::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
