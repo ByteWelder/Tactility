@@ -1,10 +1,11 @@
-#include <Tactility/hal/Configuration.h>
-#include "hal/SimulatorPower.h"
 #include "LvglTask.h"
-#include "src/lv_init.h"
-#include "SdlDisplay.h"
-#include "SdlKeyboard.h"
-#include "SimulatorSdCard.h"
+#include "hal/SdlDisplay.h"
+#include "hal/SdlKeyboard.h"
+#include "hal/SimulatorPower.h"
+#include "hal/SimulatorSdCard.h"
+
+#include <src/lv_init.h> // LVGL
+#include <Tactility/hal/Configuration.h>
 
 #define TAG "hardware"
 

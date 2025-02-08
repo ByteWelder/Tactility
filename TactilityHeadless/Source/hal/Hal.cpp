@@ -2,6 +2,7 @@
 #include "Tactility/hal/Hal_i.h"
 #include "Tactility/hal/i2c/I2c.h"
 #include "Tactility/hal/spi/Spi.h"
+#include "Tactility/hal/Power.h"
 
 #include <Tactility/kernel/SystemEvents.h>
 

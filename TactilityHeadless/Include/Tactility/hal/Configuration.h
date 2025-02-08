@@ -1,6 +1,5 @@
 #pragma once
 
-#include "./Power.h"
 #include "./SdCard.h"
 #include "./i2c/I2c.h"
 #include "Tactility/hal/spi/Spi.h"
@@ -8,14 +7,18 @@
 namespace tt::hal {
 
 typedef bool (*InitBoot)();
-typedef bool (*InitHardware)();
-typedef bool (*InitLvgl)();
 
 class Display;
 class Keyboard;
+class Power;
 typedef std::shared_ptr<Display> (*CreateDisplay)();
 typedef std::shared_ptr<Keyboard> (*CreateKeyboard)();
 typedef std::shared_ptr<Power> (*CreatePower)();
+
+enum class LvglInit {
+    Default,
+    None
+};
 
 struct Configuration {
     /**
@@ -24,13 +27,13 @@ struct Configuration {
      */
     const InitBoot _Nullable initBoot = nullptr;
 
-    /** Create and initialize all LVGL devices. (e.g. display, touch, keyboard) */
-    const InitLvgl _Nullable initLvgl = nullptr;
+    /** Init behaviour: default (esp_lvgl_port for ESP32, nothing for PC) or None (nothing on any platform). Only used in Tactility, not in TactilityHeadless. */
+    const LvglInit lvglInit = LvglInit::Default;
 
     /** Display HAL functionality. */
     const CreateDisplay _Nullable createDisplay = nullptr;
 
-    /** Display HAL functionality. */
+    /** Keyboard HAL functionality. */
     const CreateKeyboard _Nullable createKeyboard = nullptr;
 
     /** An optional SD card interface. */

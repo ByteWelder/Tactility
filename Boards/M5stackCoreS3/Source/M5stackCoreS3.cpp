@@ -1,6 +1,5 @@
 #include "M5stackCoreS3.h"
 #include "InitBoot.h"
-#include "InitLvgl.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "hal/CoreS3Display.h"
 #include "hal/CoreS3DisplayConstants.h"
@@ -11,7 +10,6 @@
 
 const tt::hal::Configuration m5stack_cores3 = {
     .initBoot = initBoot,
-    .initLvgl = initLvgl,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .power = createPower,

@@ -5,8 +5,8 @@
 #include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/hal/Device.h>
+#include <Tactility/hal/Power.h>
 #include <Tactility/Assets.h>
-#include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 
 #include <lvgl.h>

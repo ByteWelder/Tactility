@@ -10,11 +10,9 @@
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8))
 
 bool tdeck_init_power();
-bool tdeck_init_lvgl();
 
 extern const tt::hal::Configuration lilygo_tdeck = {
     .initBoot = tdeck_init_power,
-    .initLvgl = tdeck_init_lvgl,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = createTdeckSdCard(),

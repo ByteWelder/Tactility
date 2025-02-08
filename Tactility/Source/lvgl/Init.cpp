@@ -7,6 +7,10 @@
 #include <Tactility/hal/Touch.h>
 #include <Tactility/kernel/SystemEvents.h>
 
+#ifdef ESP_PLATFORM
+#include "Tactility/lvgl/EspLvglPort.h"
+#endif
+
 #include <lvgl.h>
 
 namespace tt::lvgl {
@@ -82,10 +86,11 @@ void init(const hal::Configuration& config) {
 
     kernel::systemEventPublish(kernel::SystemEvent::BootInitLvglBegin);
 
-    if (config.initLvgl != nullptr && !config.initLvgl()) {
-        TT_LOG_E(TAG, "LVGL init failed");
+#ifdef ESP_PLATFORM
+    if (config.lvglInit == hal::LvglInit::Default && !initEspLvglPort()) {
         return;
     }
+#endif
 
     auto display = initDisplay(config);
     if (display == nullptr) {
