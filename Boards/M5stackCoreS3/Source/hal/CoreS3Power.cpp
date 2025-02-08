@@ -1,7 +1,5 @@
 #include "CoreS3Power.h"
 
-#define TAG "core2_power"
-
 bool CoreS3Power::supportsMetric(MetricType type) const {
     switch (type) {
         using enum MetricType;

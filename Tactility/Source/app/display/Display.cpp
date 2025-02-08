@@ -22,13 +22,14 @@ static uint8_t gamma = 255;
 #define ROTATION_270 2
 #define ROTATION_90 3
 
+static std::shared_ptr<tt::hal::Display> getHalDisplay() {
+    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
+}
 
 static void onBacklightSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
 
-    auto* lvgl_display = lv_display_get_default();
-    assert(lvgl_display != nullptr);
-    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    auto hal_display = getHalDisplay();
     assert(hal_display != nullptr);
 
     if (hal_display->supportsBacklightDuty()) {
@@ -55,10 +56,6 @@ static void onGammaSliderEvent(lv_event_t* event) {
 
         hal_display->setGammaCurve(gamma);
     }
-}
-
-static std::shared_ptr<tt::hal::Display> getHalDisplay() {
-    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
 }
 
 static lv_display_rotation_t orientationSettingToDisplayRotation(uint32_t setting) {

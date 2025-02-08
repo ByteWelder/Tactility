@@ -4,8 +4,6 @@
 #include <lvgl.h>
 #include <Tactility/hal/Display.h>
 
-extern lv_disp_t* displayHandle;
-
 class UnPhoneDisplay : public tt::hal::Display {
 
 private:

@@ -24,6 +24,10 @@
 
 namespace tt::app::boot {
 
+static std::shared_ptr<tt::hal::Display> getHalDisplay() {
+    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
+}
+
 class BootApp : public App {
 
 private:
@@ -35,9 +39,7 @@ private:
 
         kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
 
-        auto* lvgl_display = lv_display_get_default();
-        assert(lvgl_display != nullptr);
-        auto* hal_display = (hal::Display*)lv_display_get_user_data(lvgl_display);
+        auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);
         if (hal_display->supportsBacklightDuty()) {
             int32_t backlight_duty = app::display::getBacklightDuty();

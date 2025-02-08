@@ -17,8 +17,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
-        "Boards"
         "App"
+        "Boards"
+        "Drivers"
         "Tactility"
         "TactilityC"
         "TactilityCore"
