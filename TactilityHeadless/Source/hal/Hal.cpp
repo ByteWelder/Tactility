@@ -9,6 +9,8 @@
 
 #define TAG "hal"
 
+#define TT_SDCARD_MOUNT_POINT "/sdcard"
+
 namespace tt::hal {
 
 void init(const Configuration& configuration) {

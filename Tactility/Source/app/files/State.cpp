@@ -3,10 +3,10 @@
 
 #include <Tactility/Log.h>
 #include <Tactility/Partitions.h>
-#include <Tactility/TactilityHeadless.h>
 #include <Tactility/hal/SdCard.h>
 #include <Tactility/kernel/Kernel.h>
 
+#include <cstring>
 #include <unistd.h>
 
 #define TAG "files_app"
@@ -44,11 +44,7 @@ bool State::setEntriesForPath(const std::string& path) {
      * ESP32 does not have a root directory, so we have to create it manually.
      * We'll add the NVS Flash partitions and the binding for the sdcard.
      */
-#if TT_SCREENSHOT_MODE
-    bool show_custom_root = true;
-#else
     bool show_custom_root = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
-#endif
     if (show_custom_root) {
         TT_LOG_I(TAG, "Setting custom root");
         dir_entries.clear();
@@ -63,21 +59,21 @@ bool State::setEntriesForPath(const std::string& path) {
             .d_name = DATA_PARTITION_NAME
         });
 
-#ifndef TT_SCREENSHOT_MODE
-        auto sdcard = tt::hal::getConfiguration()->sdcard;
-        if (sdcard != nullptr) {
+        auto sdcards = tt::hal::findDevices<hal::SdCard>(hal::Device::Type::SdCard);
+        for (auto& sdcard : sdcards) {
             auto state = sdcard->getState();
             if (state == hal::SdCard::State::Mounted) {
-#endif
-                dir_entries.push_back({
+                auto mount_name = sdcard->getMountPath().substr(1);
+                auto dir_entry = dirent {
                     .d_ino = 2,
                     .d_type = TT_DT_DIR,
-                    .d_name = TT_SDCARD_MOUNT_NAME
-                });
-#ifndef TT_SCREENSHOT_MODE
+                    .d_name = { 0 }
+                };
+                assert(mount_name.length() < sizeof(dirent::d_name));
+                strcpy(dir_entry.d_name, mount_name.c_str());
+                dir_entries.push_back(dir_entry);
             }
         }
-#endif
 
         current_path = path;
         selected_child_entry = "";

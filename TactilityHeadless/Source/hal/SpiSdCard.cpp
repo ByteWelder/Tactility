@@ -50,8 +50,8 @@ bool SpiSdCard::applyGpioWorkAround() {
     return true;
 }
 
-bool SpiSdCard::mountInternal(const char* mountPoint) {
-    TT_LOG_I(TAG, "Mounting %s", mountPoint);
+bool SpiSdCard::mountInternal(const std::string& newMountPath) {
+    TT_LOG_I(TAG, "Mounting %s", newMountPath.c_str());
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = config->formatOnMountFailed,
@@ -76,7 +76,7 @@ bool SpiSdCard::mountInternal(const char* mountPoint) {
     host.max_freq_khz = config->spiFrequencyKhz;
     host.slot = config->spiHost;
 
-    esp_err_t result = esp_vfs_fat_sdspi_mount(mountPoint, &host, &slot_config, &mount_config, &card);
+    esp_err_t result = esp_vfs_fat_sdspi_mount(newMountPath.c_str(), &host, &slot_config, &mount_config, &card);
 
     if (result != ESP_OK) {
         if (result == ESP_FAIL) {
@@ -87,22 +87,22 @@ bool SpiSdCard::mountInternal(const char* mountPoint) {
         return false;
     }
 
-    this->mountPoint = mountPoint;
+    mountPath = newMountPath;
 
     return true;
 }
 
-bool SpiSdCard::mount(const char* mount_point) {
+bool SpiSdCard::mount(const std::string& newMountPath) {
     if (!applyGpioWorkAround()) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
         return false;
     }
 
-    if (mountInternal(mount_point)) {
+    if (mountInternal(newMountPath)) {
         sdmmc_card_print_info(stdout, card);
         return true;
     } else {
-        TT_LOG_E(TAG, "Mount failed for %s", mount_point);
+        TT_LOG_E(TAG, "Mount failed for %s", newMountPath.c_str());
         return false;
     }
 }
@@ -113,12 +113,12 @@ bool SpiSdCard::unmount() {
         return false;
     }
 
-    if (esp_vfs_fat_sdcard_unmount(mountPoint.c_str(), card) == ESP_OK) {
-        mountPoint = "";
+    if (esp_vfs_fat_sdcard_unmount(mountPath.c_str(), card) == ESP_OK) {
+        mountPath = "";
         card = nullptr;
         return true;
     } else {
-        TT_LOG_E(TAG, "Unmount failed for %s", mountPoint.c_str());
+        TT_LOG_E(TAG, "Unmount failed for %s", mountPath.c_str());
         return false;
     }
 }

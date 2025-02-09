@@ -69,7 +69,6 @@ namespace app {
 static void registerSystemApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
-    addApp(app::boot::manifest);
     addApp(app::display::manifest);
     addApp(app::files::manifest);
     addApp(app::gpio::manifest);
@@ -129,6 +128,17 @@ static void registerAndStartUserServices(const std::vector<const service::Servic
     }
 }
 
+void initFromBootApp() {
+    auto configuration = getConfiguration();
+    // Then we register system apps. They are not used/started yet.
+    registerSystemApps();
+    // Then we register and start user services. They are started after system app
+    // registration just in case they want to figure out which system apps are installed.
+    registerAndStartUserServices(configuration->services);
+    // Now we register the user apps, as they might rely on the user services.
+    registerUserApps(configuration->apps);
+}
+
 void run(const Configuration& config) {
     TT_LOG_D(TAG, "run");
 
@@ -142,18 +152,11 @@ void run(const Configuration& config) {
 
     lvgl::init(hardware);
 
-    // Note: the order of starting apps and services is critical!
-    // System services are registered first so the apps below can find them if needed
     registerAndStartSystemServices();
-    // Then we register system apps. They are not used/started yet.
-    registerSystemApps();
-    // Then we register and start user services. They are started after system app
-    // registration just in case they want to figure out which system apps are installed.
-    registerAndStartUserServices(config.services);
-    // Now we register the user apps, as they might rely on the user services.
-    registerUserApps(config.apps);
 
-    TT_LOG_I(TAG, "init starting desktop app");
+    TT_LOG_I(TAG, "starting boot app");
+    // The boot app takes care of registering system apps, user services and user apps
+    addApp(app::boot::manifest);
     service::loader::startApp(app::boot::manifest.id);
 
     TT_LOG_I(TAG, "init complete");

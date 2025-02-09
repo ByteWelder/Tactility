@@ -1,4 +1,5 @@
 # TODOs
+- Split up boot stages, so the last stage can be done from the splash screen
 - Start using non_null (either via MS GSL, or custom)
 - `hal/Configuration.h` defines C function types: Use C++ std::function instead
 - Fix system time to not be 1980 (use build year as minimum)
