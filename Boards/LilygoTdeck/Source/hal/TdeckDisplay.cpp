@@ -191,7 +191,7 @@ void TdeckDisplay::setPowerOn(bool turnOn) {
     }
 }
 
-std::shared_ptr<tt::hal::Touch> _Nullable TdeckDisplay::createTouch() {
+std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable TdeckDisplay::createTouch() {
     return std::make_shared<TdeckTouch>();
 }
 
@@ -233,6 +233,6 @@ void TdeckDisplay::setGammaCurve(uint8_t index) {
     }
 }
 
-std::shared_ptr<tt::hal::Display> createDisplay() {
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     return std::make_shared<TdeckDisplay>();
 }

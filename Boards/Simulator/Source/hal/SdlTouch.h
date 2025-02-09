@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Tactility/hal/Touch.h>
+#include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/TactilityCore.h>
 
-class SdlTouch final : public tt::hal::Touch {
+class SdlTouch final : public tt::hal::touch::TouchDevice {
 private:
     lv_indev_t* _Nullable handle = nullptr;
 

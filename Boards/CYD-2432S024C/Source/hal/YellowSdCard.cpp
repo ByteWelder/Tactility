@@ -2,28 +2,30 @@
 
 #define TAG "twodotfour_sdcard"
 
+#include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/hal/SpiSdCard.h>
 
 #define SDCARD_SPI_HOST SPI3_HOST
 #define SDCARD_PIN_CS GPIO_NUM_5
 
-std::shared_ptr<SdCard> createYellowSdCard() {
-    auto* configuration = new tt::hal::SpiSdCard::Config(
+using tt::hal::sdcard::SpiSdCardDevice;
+
+std::shared_ptr<SdCardDevice> createYellowSdCard() {
+    auto* configuration = new SpiSdCardDevice::Config(
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
-        SdCard::MountBehaviour::AtBoot,
+        SdCardDevice::MountBehaviour::AtBoot,
         std::make_shared<tt::Mutex>(),
         std::vector<gpio_num_t>(),
         SDCARD_SPI_HOST
     );
 
-    auto* sdcard = (SdCard*) new SpiSdCard(
-        std::unique_ptr<SpiSdCard::Config>(configuration)
+    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
+        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
     );
 
-    return std::shared_ptr<SdCard>(sdcard);
+    return std::shared_ptr<SdCardDevice>(sdcard);
 }
 

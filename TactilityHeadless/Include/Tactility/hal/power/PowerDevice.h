@@ -1,16 +1,16 @@
 #pragma once
 
-#include "Device.h"
+#include "../Device.h"
 #include <cstdint>
 
-namespace tt::hal {
+namespace tt::hal::power {
 
-class Power : public Device {
+class PowerDevice : public Device {
 
 public:
 
-    Power() = default;
-    ~Power() override = default;
+    PowerDevice() = default;
+    ~PowerDevice() override = default;
 
     Type getType() const override { return Type::Power; }
 
@@ -34,7 +34,7 @@ public:
     /**
      * @return false when metric is not supported or (temporarily) not available.
      */
-    virtual bool getMetric(Power::MetricType type, MetricData& data) = 0;
+    virtual bool getMetric(MetricType type, MetricData& data) = 0;
 
     virtual bool supportsChargeControl() const { return false; }
     virtual bool isAllowedToCharge() const { return false; }

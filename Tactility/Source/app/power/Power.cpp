@@ -4,10 +4,10 @@
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
 
-#include <Tactility/hal/Device.h>
-#include <Tactility/hal/Power.h>
+#include "Tactility/hal/power/PowerDevice.h"
 #include <Tactility/Assets.h>
 #include <Tactility/Timer.h>
+#include <Tactility/hal/Device.h>
 
 #include <lvgl.h>
 
@@ -35,7 +35,7 @@ private:
 
     Timer update_timer = Timer(Timer::Type::Periodic, &onTimer, nullptr);
 
-    std::shared_ptr<hal::Power> power;
+    std::shared_ptr<hal::power::PowerDevice> power;
 
     lv_obj_t* enableLabel = nullptr;
     lv_obj_t* enableSwitch = nullptr;
@@ -71,8 +71,8 @@ private:
 
     void updateUi() {
         const char* charge_state;
-        hal::Power::MetricData metric_data;
-        if (power->getMetric(hal::Power::MetricType::IsCharging, metric_data)) {
+        hal::power::PowerDevice::MetricData metric_data;
+        if (power->getMetric(hal::power::PowerDevice::MetricType::IsCharging, metric_data)) {
             charge_state = metric_data.valueAsBool ? "yes" : "no";
         } else {
             charge_state = "N/A";
@@ -80,7 +80,7 @@ private:
 
         uint8_t charge_level;
         bool charge_level_scaled_set = false;
-        if (power->getMetric(hal::Power::MetricType::ChargeLevel, metric_data)) {
+        if (power->getMetric(hal::power::PowerDevice::MetricType::ChargeLevel, metric_data)) {
             charge_level = metric_data.valueAsUint8;
             charge_level_scaled_set = true;
         }
@@ -90,14 +90,14 @@ private:
 
         int32_t current;
         bool current_set = false;
-        if (power->getMetric(hal::Power::MetricType::Current, metric_data)) {
+        if (power->getMetric(hal::power::PowerDevice::MetricType::Current, metric_data)) {
             current = metric_data.valueAsInt32;
             current_set = true;
         }
 
         uint32_t battery_voltage;
         bool battery_voltage_set = false;
-        if (power->getMetric(hal::Power::MetricType::BatteryVoltage, metric_data)) {
+        if (power->getMetric(hal::power::PowerDevice::MetricType::BatteryVoltage, metric_data)) {
             battery_voltage = metric_data.valueAsUint32;
             battery_voltage_set = true;
         }
@@ -139,7 +139,7 @@ private:
 public:
 
     void onCreate(AppContext& app) override {
-        power = hal::findFirstDevice<hal::Power>(hal::Device::Type::Power);
+        power = hal::findFirstDevice<hal::power::PowerDevice>(hal::Device::Type::Power);
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {

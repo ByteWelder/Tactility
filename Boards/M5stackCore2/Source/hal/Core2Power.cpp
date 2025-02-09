@@ -20,7 +20,7 @@ bool Core2Power::supportsMetric(MetricType type) const {
     return false; // Safety guard for when new enum values are introduced
 }
 
-bool Core2Power::getMetric(Power::MetricType type, Power::MetricData& data) {
+bool Core2Power::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage: {
@@ -100,9 +100,9 @@ void Core2Power::setAllowedToCharge(bool canCharge) {
     }
 }
 
-static std::shared_ptr<Power> power;
+static std::shared_ptr<PowerDevice> power;
 
-std::shared_ptr<Power> createPower() {
+std::shared_ptr<PowerDevice> createPower() {
     if (power == nullptr) {
         power = std::make_shared<Core2Power>();
     }

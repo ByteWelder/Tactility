@@ -1,12 +1,12 @@
 #pragma once
 
-#include <Tactility/hal/Power.h>
+#include "Tactility/hal/power/PowerDevice.h"
 #include <esp_adc/adc_oneshot.h>
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::power::PowerDevice;
 
-class TdeckPower : public Power {
+class TdeckPower : public PowerDevice {
 
     adc_oneshot_unit_handle_t adcHandle = nullptr;
 
@@ -19,7 +19,7 @@ public:
     std::string getDescription() const final { return "Power measurement interface via ADC pin"; }
 
     bool supportsMetric(MetricType type) const override;
-    bool getMetric(Power::MetricType type, Power::MetricData& data) override;
+    bool getMetric(MetricType type, MetricData& data) override;
 
 private:
 
@@ -27,4 +27,4 @@ private:
     bool readBatteryVoltageOnce(uint32_t& output);
 };
 
-std::shared_ptr<Power> tdeck_get_power();
+std::shared_ptr<PowerDevice> tdeck_get_power();

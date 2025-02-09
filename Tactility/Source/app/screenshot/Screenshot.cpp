@@ -205,9 +205,13 @@ void ScreenshotApp::createFilePathWidgets(lv_obj_t* parent) {
     lv_textarea_set_one_line(pathTextArea, true);
     lv_obj_set_flex_grow(pathTextArea, 1);
     if (kernel::getPlatform() == kernel::PlatformEsp) {
-        auto sdcard = tt::hal::getConfiguration()->sdcard;
-        if (sdcard != nullptr && sdcard->getState() == hal::SdCard::State::Mounted) {
-            lv_textarea_set_text(pathTextArea, "A:/sdcard");
+        auto sdcard_devices = tt::hal::findDevices<tt::hal::sdcard::SdCardDevice>(tt::hal::Device::Type::SdCard);
+        if (sdcard_devices.size() > 1) {
+            TT_LOG_W(TAG, "Found multiple SD card devices - picking first");
+        }
+        if (!sdcard_devices.empty() && sdcard_devices.front()->isMounted()) {
+            std::string lvgl_mount_path = "A:" + sdcard_devices.front()->getMountPath();
+            lv_textarea_set_text(pathTextArea, lvgl_mount_path.c_str());
         } else {
             lv_textarea_set_text(pathTextArea, "Error: no SD card");
         }

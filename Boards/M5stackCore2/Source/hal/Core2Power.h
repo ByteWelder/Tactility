@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Tactility/hal/Power.h>
+#include "Tactility/hal/power/PowerDevice.h"
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::power::PowerDevice;
 
-class Core2Power : public Power {
+class Core2Power : public PowerDevice {
 
 public:
 
@@ -16,11 +16,11 @@ public:
     std::string getDescription() const final { return "Power management via I2C"; }
 
     bool supportsMetric(MetricType type) const override;
-    bool getMetric(Power::MetricType type, Power::MetricData& data) override;
+    bool getMetric(MetricType type, MetricData& data) override;
 
     bool supportsChargeControl() const override { return true; }
     bool isAllowedToCharge() const override;
     void setAllowedToCharge(bool canCharge) override;
 };
 
-std::shared_ptr<Power> createPower();
+std::shared_ptr<PowerDevice> createPower();

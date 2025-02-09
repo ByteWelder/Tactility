@@ -66,7 +66,7 @@ bool TdeckPower::supportsMetric(MetricType type) const {
     return false; // Safety guard for when new enum values are introduced
 }
 
-bool TdeckPower::getMetric(Power::MetricType type, Power::MetricData& data) {
+bool TdeckPower::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -119,9 +119,9 @@ bool TdeckPower::readBatteryVoltageSampled(uint32_t& output) {
     }
 }
 
-static std::shared_ptr<Power> power;
+static std::shared_ptr<PowerDevice> power;
 
-std::shared_ptr<Power> tdeck_get_power() {
+std::shared_ptr<PowerDevice> tdeck_get_power() {
     if (power == nullptr) {
         power = std::make_shared<TdeckPower>();
     }

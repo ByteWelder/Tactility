@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/hal/Display.h>
+#include "Tactility/hal/display/DisplayDevice.h"
 #include <memory>
 
 #define CORE2_LCD_SPI_HOST SPI2_HOST
@@ -11,4 +11,4 @@
 #define CORE2_LCD_DRAW_BUFFER_HEIGHT (CORE2_LCD_VERTICAL_RESOLUTION / 10)
 #define CORE2_LCD_DRAW_BUFFER_SIZE (CORE2_LCD_HORIZONTAL_RESOLUTION * CORE2_LCD_DRAW_BUFFER_HEIGHT)
 
-std::shared_ptr<tt::hal::Display> createDisplay();
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

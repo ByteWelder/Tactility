@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Tactility/hal/SdCard.h"
+#include "SdCardDevice.h"
 
 #include <sd_protocol_types.h>
 #include <utility>
@@ -10,13 +10,15 @@
 #include <hal/spi_types.h>
 #include <soc/gpio_num.h>
 
-namespace tt::hal {
+namespace tt::hal::sdcard {
 
 /**
  * SD card interface at the default SPI interface
  */
-class SpiSdCard final : public tt::hal::SdCard {
+class SpiSdCardDevice final : public SdCardDevice {
+
 public:
+
     struct Config {
         Config(
             gpio_num_t spiPinCs,
@@ -46,7 +48,7 @@ public:
         gpio_num_t spiPinCd; // Card detect
         gpio_num_t spiPinWp; // Write-protect
         gpio_num_t spiPinInt; // Interrupt
-        SdCard::MountBehaviour mountBehaviourAtBoot;
+        SdCardDevice::MountBehaviour mountBehaviourAtBoot;
         std::shared_ptr<Lockable> _Nullable lockable;
         std::vector<gpio_num_t> csPinWorkAround;
         spi_host_device_t spiHost;
@@ -67,8 +69,7 @@ private:
 
 public:
 
-    explicit SpiSdCard(std::unique_ptr<Config> config) :
-        SdCard(config->mountBehaviourAtBoot),
+    explicit SpiSdCardDevice(std::unique_ptr<Config> config) : SdCardDevice(config->mountBehaviourAtBoot),
         config(std::move(config))
     {}
 

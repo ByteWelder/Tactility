@@ -63,10 +63,10 @@ bool UnPhoneDisplay::stop() {
     return true;
 }
 
-std::shared_ptr<tt::hal::Touch> _Nullable UnPhoneDisplay::createTouch() {
+std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable UnPhoneDisplay::createTouch() {
     return std::make_shared<UnPhoneTouch>();
 }
 
-std::shared_ptr<tt::hal::Display> createDisplay() {
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     return std::make_shared<UnPhoneDisplay>();
 }

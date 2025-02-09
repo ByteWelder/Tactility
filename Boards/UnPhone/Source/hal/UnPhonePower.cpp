@@ -27,7 +27,7 @@ bool UnPhonePower::supportsMetric(MetricType type) const {
     }
 }
 
-bool UnPhonePower::getMetric(Power::MetricType type, Power::MetricData& data) {
+bool UnPhonePower::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -83,9 +83,9 @@ bool UnPhonePower::readBatteryVoltageSampled(uint32_t& output) const {
     }
 }
 
-static std::shared_ptr<Power> power;
+static std::shared_ptr<PowerDevice> power;
 
-std::shared_ptr<Power> unPhoneGetPower() {
+std::shared_ptr<PowerDevice> unPhoneGetPower() {
     if (power == nullptr) {
         power = std::make_shared<UnPhonePower>();
     }

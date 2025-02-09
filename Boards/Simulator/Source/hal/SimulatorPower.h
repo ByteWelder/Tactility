@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Tactility/hal/Power.h>
+#include "Tactility/hal/power/PowerDevice.h"
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::power::PowerDevice;
 
-class SimulatorPower final : public Power {
+class SimulatorPower final : public PowerDevice {
 
     bool allowedToCharge = false;
 
@@ -18,11 +18,11 @@ public:
     std::string getDescription() const final { return ""; }
 
     bool supportsMetric(MetricType type) const override;
-    bool getMetric(Power::MetricType type, Power::MetricData& data) override;
+    bool getMetric(MetricType type, MetricData& data) override;
 
     bool supportsChargeControl() const override { return true; }
     bool isAllowedToCharge() const override { return allowedToCharge; }
     void setAllowedToCharge(bool canCharge) override { allowedToCharge = canCharge; }
 };
 
-std::shared_ptr<Power> simulatorPower();
+std::shared_ptr<PowerDevice> simulatorPower();

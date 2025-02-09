@@ -15,7 +15,7 @@ bool SimulatorPower::supportsMetric(MetricType type) const {
     return false; // Safety guard for when new enum values are introduced
 }
 
-bool SimulatorPower::getMetric(Power::MetricType type, Power::MetricData& data) {
+bool SimulatorPower::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case IsCharging:
@@ -35,9 +35,9 @@ bool SimulatorPower::getMetric(Power::MetricType type, Power::MetricData& data) 
     return false; // Safety guard for when new enum values are introduced
 }
 
-static std::shared_ptr<Power> power;
+static std::shared_ptr<PowerDevice> power;
 
-std::shared_ptr<Power> simulatorPower() {
+std::shared_ptr<PowerDevice> simulatorPower() {
     if (power == nullptr) {
         power = std::make_shared<SimulatorPower>();
     }

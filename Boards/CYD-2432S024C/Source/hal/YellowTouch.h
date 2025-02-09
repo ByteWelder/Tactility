@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Tactility/hal/Touch.h>
+#include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/TactilityCore.h>
 #include <esp_lcd_touch.h>
 
-class YellowTouch : public tt::hal::Touch {
+class YellowTouch : public tt::hal::touch::TouchDevice {
 
 private:
 
