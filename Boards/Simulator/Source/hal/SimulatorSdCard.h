@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Tactility/hal/SdCard.h>
+#include <Tactility/hal/sdcard/SdCard.h>
 #include <Tactility/Mutex.h>
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::sdcard::SdCard;
 
 class SimulatorSdCard final : public SdCard {
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Device.h"
+#include "../Device.h"
 #include <cstdint>
 
-namespace tt::hal {
+namespace tt::hal::power {
 
 class Power : public Device {
 

@@ -3,8 +3,8 @@
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
-#include <Tactility/hal/Power.h>
-#include <Tactility/hal/SdCard.h>
+#include <Tactility/hal/power/Power.h>
+#include <Tactility/hal/sdcard/SdCard.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/service/ServiceRegistry.h>
@@ -70,9 +70,9 @@ static const char* getWifiStatusIcon(wifi::RadioState state, bool secure) {
     }
 }
 
-static const char* getSdCardStatusIcon(hal::SdCard::State state) {
+static const char* getSdCardStatusIcon(hal::sdcard::SdCard::State state) {
     switch (state) {
-        using enum hal::SdCard::State;
+        using enum hal::sdcard::SdCard::State;
         case Mounted:
             return STATUSBAR_ICON_SDCARD;
         case Error:
@@ -92,8 +92,8 @@ static _Nullable const char* getPowerStatusIcon() {
 
     auto power = get_power();
 
-    hal::Power::MetricData charge_level;
-    if (!power->getMetric(hal::Power::MetricType::ChargeLevel, charge_level)) {
+    hal::power::Power::MetricData charge_level;
+    if (!power->getMetric(hal::power::Power::MetricType::ChargeLevel, charge_level)) {
         return nullptr;
     }
 
@@ -181,7 +181,7 @@ private:
         auto sdcard = tt::hal::getConfiguration()->sdcard;
         if (sdcard != nullptr) {
             auto state = sdcard->getState();
-            if (state != hal::SdCard::State::Unknown) {
+            if (state != hal::sdcard::SdCard::State::Unknown) {
                 auto* desired_icon = getSdCardStatusIcon(state);
                 if (sdcard_last_icon != desired_icon) {
                     auto icon_path = paths->getSystemPathLvgl(desired_icon);

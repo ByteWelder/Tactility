@@ -6,7 +6,7 @@
 #include "Tactility/lvgl/Style.h"
 
 #include <Tactility/TactilityPrivate.h>
-#include <Tactility/hal/Display.h>
+#include <Tactility/hal/display/Display.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/kernel/SystemEvents.h>
 
@@ -24,8 +24,8 @@
 
 namespace tt::app::boot {
 
-static std::shared_ptr<tt::hal::Display> getHalDisplay() {
-    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
+static std::shared_ptr<tt::hal::display::Display> getHalDisplay() {
+    return hal::findFirstDevice<hal::display::Display>(hal::Device::Type::Display);
 }
 
 class BootApp : public App {

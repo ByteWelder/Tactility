@@ -1,6 +1,6 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/SpiSdCard.h"
+#include "Tactility/hal/sdcard/SpiSdCard.h"
 
 #include <Tactility/Log.h>
 
@@ -10,7 +10,7 @@
 
 #define TAG "spi_sdcard"
 
-namespace tt::hal {
+namespace tt::hal::sdcard {
 
 /**
  * Before we can initialize the sdcard's SPI communications, we have to set all
@@ -124,7 +124,7 @@ bool SpiSdCard::unmount() {
 }
 
 // TODO: Refactor to "bool getStatus(Status* status)" method so that it can fail when the lvgl lock fails
-tt::hal::SdCard::State SpiSdCard::getState() const {
+SdCard::State SpiSdCard::getState() const {
     if (card == nullptr) {
         return State::Unmounted;
     }

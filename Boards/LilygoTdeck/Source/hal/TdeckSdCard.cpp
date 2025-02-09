@@ -1,16 +1,18 @@
 #include "TdeckSdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/hal/SpiSdCard.h>
+#include <Tactility/hal/sdcard/SpiSdCard.h>
 
 #include <esp_vfs_fat.h>
+
+using tt::hal::sdcard::SpiSdCard;
 
 #define TDECK_SDCARD_PIN_CS GPIO_NUM_39
 #define TDECK_LCD_PIN_CS GPIO_NUM_12
 #define TDECK_RADIO_PIN_CS GPIO_NUM_9
 
 std::shared_ptr<SdCard> createTdeckSdCard() {
-    auto* configuration = new tt::hal::SpiSdCard::Config(
+    auto* configuration = new SpiSdCard::Config(
         TDECK_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,

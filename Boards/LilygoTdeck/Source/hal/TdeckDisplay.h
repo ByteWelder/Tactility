@@ -2,9 +2,9 @@
 
 #include <esp_lcd_types.h>
 #include <lvgl.h>
-#include <Tactility/hal/Display.h>
+#include <Tactility/hal/display/Display.h>
 
-class TdeckDisplay : public tt::hal::Display {
+class TdeckDisplay : public tt::hal::display::Display {
 
 private:
 
@@ -26,7 +26,7 @@ public:
     bool isPoweredOn() const override { return poweredOn; };
     bool supportsPowerControl() const override { return true; }
 
-    std::shared_ptr<tt::hal::Touch> _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::touch::Touch> _Nullable createTouch() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
     bool supportsBacklightDuty() const override { return true; }
@@ -41,4 +41,4 @@ private:
     static bool startBacklight();
 };
 
-std::shared_ptr<tt::hal::Display> createDisplay();
+std::shared_ptr<tt::hal::display::Display> createDisplay();

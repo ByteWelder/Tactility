@@ -3,13 +3,15 @@
 #define TAG "twodotfour_sdcard"
 
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/hal/SpiSdCard.h>
+#include <Tactility/hal/sdcard/SpiSdCard.h>
 
 #define SDCARD_SPI_HOST SPI3_HOST
 #define SDCARD_PIN_CS GPIO_NUM_5
 
+using tt::hal::sdcard::SpiSdCard;
+
 std::shared_ptr<SdCard> createYellowSdCard() {
-    auto* configuration = new tt::hal::SpiSdCard::Config(
+    auto* configuration = new SpiSdCard::Config(
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,

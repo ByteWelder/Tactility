@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Tactility/hal/Power.h>
+#include <Tactility/hal/power/Power.h>
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::power::Power;
 
 class SimulatorPower final : public Power {
 

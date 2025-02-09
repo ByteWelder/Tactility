@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Device.h"
+#include "../Device.h"
 
 #include <lvgl.h>
 
-namespace tt::hal {
+namespace tt::hal::keyboard {
 
 class Display;
 

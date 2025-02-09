@@ -3,7 +3,7 @@
 
 #include <Ili934xDisplay.h>
 
-std::shared_ptr<tt::hal::Display> createDisplay() {
+std::shared_ptr<tt::hal::display::Display> createDisplay() {
     auto touch = std::make_shared<Core2Touch>();
 
     auto configuration = std::make_unique<Ili934xDisplay::Configuration>(

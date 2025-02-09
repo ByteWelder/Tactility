@@ -1,7 +1,7 @@
 #include "UnPhoneSdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/hal/SpiSdCard.h>
+#include <Tactility/hal/sdcard/SpiSdCard.h>
 
 #include <esp_vfs_fat.h>
 
@@ -10,8 +10,10 @@
 #define UNPHONE_LORA_PIN_CS GPIO_NUM_44
 #define UNPHONE_TOUCH_PIN_CS GPIO_NUM_38
 
+using tt::hal::sdcard::SpiSdCard;
+
 std::shared_ptr<SdCard> createUnPhoneSdCard() {
-    auto* configuration = new tt::hal::SpiSdCard::Config(
+    auto* configuration = new SpiSdCard::Config(
         UNPHONE_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,

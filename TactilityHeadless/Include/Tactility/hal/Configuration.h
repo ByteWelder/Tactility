@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./SdCard.h"
-#include "./i2c/I2c.h"
+#include "sdcard/SdCard.h"
+#include "i2c/I2c.h"
 #include "Tactility/hal/spi/Spi.h"
 #include "Tactility/hal/uart/Uart.h"
 
@@ -9,12 +9,13 @@ namespace tt::hal {
 
 typedef bool (*InitBoot)();
 
-class Display;
-class Keyboard;
-class Power;
-typedef std::shared_ptr<Display> (*CreateDisplay)();
-typedef std::shared_ptr<Keyboard> (*CreateKeyboard)();
-typedef std::shared_ptr<Power> (*CreatePower)();
+namespace display { class Display; }
+namespace keyboard { class Keyboard; }
+namespace power { class Power; }
+
+typedef std::shared_ptr<display::Display> (*CreateDisplay)();
+typedef std::shared_ptr<keyboard::Keyboard> (*CreateKeyboard)();
+typedef std::shared_ptr<power::Power> (*CreatePower)();
 
 enum class LvglInit {
     Default,
@@ -38,7 +39,7 @@ struct Configuration {
     const CreateKeyboard _Nullable createKeyboard = nullptr;
 
     /** An optional SD card interface. */
-    const std::shared_ptr<SdCard> _Nullable sdcard = nullptr;
+    const std::shared_ptr<sdcard::SdCard> _Nullable sdcard = nullptr;
 
     /** An optional power interface for battery or other power delivery. */
     const CreatePower _Nullable power = nullptr;

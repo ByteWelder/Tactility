@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Tactility/hal/SdCard.h"
+#include "SdCard.h"
 
 #include <sd_protocol_types.h>
 #include <utility>
@@ -10,13 +10,15 @@
 #include <hal/spi_types.h>
 #include <soc/gpio_num.h>
 
-namespace tt::hal {
+namespace tt::hal::sdcard {
 
 /**
  * SD card interface at the default SPI interface
  */
-class SpiSdCard final : public tt::hal::SdCard {
+class SpiSdCard final : public SdCard {
+
 public:
+
     struct Config {
         Config(
             gpio_num_t spiPinCs,

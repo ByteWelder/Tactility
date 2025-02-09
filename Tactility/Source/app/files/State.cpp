@@ -3,7 +3,7 @@
 
 #include <Tactility/Log.h>
 #include <Tactility/Partitions.h>
-#include <Tactility/hal/SdCard.h>
+#include <Tactility/hal/sdcard/SdCard.h>
 #include <Tactility/kernel/Kernel.h>
 
 #include <cstring>
@@ -59,10 +59,10 @@ bool State::setEntriesForPath(const std::string& path) {
             .d_name = DATA_PARTITION_NAME
         });
 
-        auto sdcards = tt::hal::findDevices<hal::SdCard>(hal::Device::Type::SdCard);
+        auto sdcards = tt::hal::findDevices<hal::sdcard::SdCard>(hal::Device::Type::SdCard);
         for (auto& sdcard : sdcards) {
             auto state = sdcard->getState();
-            if (state == hal::SdCard::State::Mounted) {
+            if (state == hal::sdcard::SdCard::State::Mounted) {
                 auto mount_name = sdcard->getMountPath().substr(1);
                 auto dir_entry = dirent {
                     .d_ino = 2,

@@ -1,11 +1,11 @@
 #pragma once
 
 #include <Axp2101.h>
-#include <Tactility/hal/Power.h>
+#include <Tactility/hal/power/Power.h>
 #include <memory>
 #include <utility>
 
-using namespace tt::hal;
+using tt::hal::power::Power;
 
 class CoreS3Power final : public Power {
 

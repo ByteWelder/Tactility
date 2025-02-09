@@ -17,7 +17,7 @@ private:
 
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
-    hal::SdCard::State lastState = hal::SdCard::State::Unmounted;
+    hal::sdcard::SdCard::State lastState = hal::sdcard::SdCard::State::Unmounted;
 
     bool lock(TickType_t timeout) const {
         return mutex.lock(timeout);
@@ -34,7 +34,7 @@ private:
         if (lock(50)) {
             auto new_state = sdcard->getState();
 
-            if (new_state == hal::SdCard::State::Error) {
+            if (new_state == hal::sdcard::SdCard::State::Error) {
                 TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
                 sdcard->unmount();
             }

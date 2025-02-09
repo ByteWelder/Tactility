@@ -206,7 +206,7 @@ void ScreenshotApp::createFilePathWidgets(lv_obj_t* parent) {
     lv_obj_set_flex_grow(pathTextArea, 1);
     if (kernel::getPlatform() == kernel::PlatformEsp) {
         auto sdcard = tt::hal::getConfiguration()->sdcard;
-        if (sdcard != nullptr && sdcard->getState() == hal::SdCard::State::Mounted) {
+        if (sdcard != nullptr && sdcard->getState() == hal::sdcard::SdCard::State::Mounted) {
             lv_textarea_set_text(pathTextArea, "A:/sdcard");
         } else {
             lv_textarea_set_text(pathTextArea, "Error: no SD card");

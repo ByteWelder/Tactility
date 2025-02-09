@@ -1,5 +1,5 @@
 #pragma once
 
-#include <Tactility/hal/Display.h>
+#include <Tactility/hal/display/Display.h>
 
-std::shared_ptr<tt::hal::Display> createDisplay();
+std::shared_ptr<tt::hal::display::Display> createDisplay();

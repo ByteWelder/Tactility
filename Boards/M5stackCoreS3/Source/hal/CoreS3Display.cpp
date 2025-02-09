@@ -18,7 +18,7 @@ void setBacklightDuty(uint8_t backlightDuty) {
     }
 }
 
-std::shared_ptr<tt::hal::Display> createDisplay() {
+std::shared_ptr<tt::hal::display::Display> createDisplay() {
     auto touch = std::make_shared<CoreS3Touch>();
 
     auto configuration = std::make_unique<Ili934xDisplay::Configuration>(

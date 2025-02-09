@@ -1,6 +1,6 @@
 #include "Tactility/app/display/DisplaySettings.h"
 
-#include "Tactility/hal/Display.h"
+#include "Tactility/hal/display/Display.h"
 #include "Tactility/lvgl/Toolbar.h"
 
 #include <Tactility/Assets.h>
@@ -22,8 +22,8 @@ static uint8_t gamma = 255;
 #define ROTATION_270 2
 #define ROTATION_90 3
 
-static std::shared_ptr<tt::hal::Display> getHalDisplay() {
-    return hal::findFirstDevice<hal::Display>(hal::Device::Type::Display);
+static std::shared_ptr<tt::hal::display::Display> getHalDisplay() {
+    return hal::findFirstDevice<hal::display::Display>(hal::Device::Type::Display);
 }
 
 static void onBacklightSliderEvent(lv_event_t* event) {
@@ -46,7 +46,7 @@ static void onGammaSliderEvent(lv_event_t* event) {
     auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
     auto* lvgl_display = lv_display_get_default();
     assert(lvgl_display != nullptr);
-    auto* hal_display = (tt::hal::Display*)lv_display_get_user_data(lvgl_display);
+    auto* hal_display = (tt::hal::display::Display*)lv_display_get_user_data(lvgl_display);
     assert(hal_display != nullptr);
 
     if (hal_display->getGammaCurveCount() > 0) {

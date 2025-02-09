@@ -1,12 +1,14 @@
 #pragma once
 
-#include "Device.h"
+#include "../Device.h"
 
 #include <lvgl.h>
 
-namespace tt::hal {
-
+namespace tt::hal::touch {
 class Touch;
+}
+
+namespace tt::hal::display {
 
 class Display : public Device {
 
@@ -21,7 +23,7 @@ public:
     virtual bool isPoweredOn() const { return true; }
     virtual bool supportsPowerControl() const { return false; }
 
-    virtual std::shared_ptr<Touch> _Nullable createTouch() = 0;
+    virtual std::shared_ptr<touch::Touch> _Nullable createTouch() = 0;
 
     /** Set a value in the range [0, 255] */
     virtual void setBacklightDuty(uint8_t backlightDuty) { /* NO-OP */ }
@@ -35,4 +37,4 @@ public:
     virtual lv_display_t* _Nullable getLvglDisplay() const = 0;
 };
 
-}
+} // namespace tt::hal::display

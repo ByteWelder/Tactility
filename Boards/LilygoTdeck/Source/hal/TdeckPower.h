@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Tactility/hal/Power.h>
+#include <Tactility/hal/power/Power.h>
 #include <esp_adc/adc_oneshot.h>
 #include <memory>
 
-using namespace tt::hal;
+using tt::hal::power::Power;
 
 class TdeckPower : public Power {
 
@@ -18,7 +18,7 @@ public:
     std::string getName() const final { return "ADC Power Measurement"; }
     std::string getDescription() const final { return "Power measurement interface via ADC pin"; }
 
-    bool supportsMetric(MetricType type) const override;
+    bool supportsMetric(Power::MetricType type) const override;
     bool getMetric(Power::MetricType type, Power::MetricData& data) override;
 
 private:

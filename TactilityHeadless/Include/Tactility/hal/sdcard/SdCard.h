@@ -1,10 +1,10 @@
 #pragma once
 
-#include "Device.h"
+#include "../Device.h"
 
 #include <Tactility/TactilityCore.h>
 
-namespace tt::hal {
+namespace tt::hal::sdcard {
 
 class SdCard : public Device {
 
@@ -46,7 +46,7 @@ public:
 };
 
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
-std::shared_ptr<SdCard> _Nullable findSdCard(const std::string& path);
+std::shared_ptr<SdCard> _Nullable find(const std::string& path);
 
 /**
  * Acquires an SD card lock if the path is an SD card path.
@@ -54,7 +54,7 @@ std::shared_ptr<SdCard> _Nullable findSdCard(const std::string& path);
  */
 template<typename ReturnType>
 inline ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
-    auto sdcard = hal::findSdCard(path);
+    auto sdcard = find(path);
     std::unique_ptr<ScopedLockableUsage> scoped_lockable;
     if (sdcard != nullptr) {
         scoped_lockable = sdcard->getLockable()->scoped();

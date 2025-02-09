@@ -1,15 +1,17 @@
 #include "CoreS3SdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/hal/SpiSdCard.h>
+#include <Tactility/hal/sdcard/SpiSdCard.h>
 
 #include <esp_vfs_fat.h>
 
 #define CORES3_SDCARD_PIN_CS GPIO_NUM_4
 #define CORES3_LCD_PIN_CS GPIO_NUM_3
 
+using tt::hal::sdcard::SpiSdCard;
+
 std::shared_ptr<SdCard> createSdCard() {
-    auto* configuration = new tt::hal::SpiSdCard::Config(
+    auto* configuration = new SpiSdCard::Config(
         CORES3_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
