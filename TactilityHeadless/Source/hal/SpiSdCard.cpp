@@ -50,7 +50,7 @@ bool SpiSdCard::applyGpioWorkAround() {
     return true;
 }
 
-bool SpiSdCard::mountInternal(std::string newMountPath) {
+bool SpiSdCard::mountInternal(const std::string& newMountPath) {
     TT_LOG_I(TAG, "Mounting %s", newMountPath.c_str());
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
@@ -92,7 +92,7 @@ bool SpiSdCard::mountInternal(std::string newMountPath) {
     return true;
 }
 
-bool SpiSdCard::mount(std::string newMountPath) {
+bool SpiSdCard::mount(const std::string& newMountPath) {
     if (!applyGpioWorkAround()) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
         return false;

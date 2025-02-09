@@ -63,7 +63,7 @@ private:
     std::shared_ptr<Config> config;
 
     bool applyGpioWorkAround();
-    bool mountInternal(std::string mountPath);
+    bool mountInternal(const std::string& mountPath);
 
 public:
 
@@ -75,7 +75,7 @@ public:
     std::string getName() const final { return "SD Card"; }
     std::string getDescription() const final { return "SD card via SPI interface"; }
 
-    bool mount(std::string mountPath) final;
+    bool mount(const std::string& mountPath) final;
     bool unmount() final;
     std::string getMountPath() const final { return mountPath; }
 

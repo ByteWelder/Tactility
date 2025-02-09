@@ -33,7 +33,7 @@ public:
 
     Type getType() const final { return Type::SdCard; };
 
-    virtual bool mount(std::string mountPath) = 0;
+    virtual bool mount(const std::string& mountPath) = 0;
     virtual bool unmount() = 0;
     virtual State getState() const = 0;
     /** Return empty string when not mounted or the mount path if mounted */

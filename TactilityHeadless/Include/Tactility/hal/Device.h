@@ -5,6 +5,7 @@
 #include <ranges>
 #include <string>
 #include <vector>
+#include <cassert>
 
 namespace tt::hal {
 
