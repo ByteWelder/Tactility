@@ -1,9 +1,9 @@
 #ifdef ESP_PLATFORM
 
 #include "Tactility/hal/usb/Usb.h"
-#include "Tactility/hal/usb/UsbTusb.h"
-#include "Tactility/hal/sdcard/SpiSdCard.h"
 #include "Tactility/TactilityHeadless.h"
+#include "Tactility/hal/sdcard/SpiSdCardDevice.h"
+#include "Tactility/hal/usb/UsbTusb.h"
 
 #include <Tactility/Log.h>
 
@@ -32,7 +32,7 @@ sdmmc_card_t* _Nullable getCard() {
         return nullptr;
     }
 
-    auto spi_sdcard = std::static_pointer_cast<sdcard::SpiSdCard>(sdcard);
+    auto spi_sdcard = std::static_pointer_cast<sdcard::SpiSdCardDevice>(sdcard);
     if (spi_sdcard == nullptr) {
         TT_LOG_W(TAG, "SD card interface is not supported (must be SpiSdCard)");
         return nullptr;

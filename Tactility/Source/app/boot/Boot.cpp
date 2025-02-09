@@ -5,8 +5,8 @@
 #include "Tactility/service/loader/Loader.h"
 #include "Tactility/lvgl/Style.h"
 
+#include "Tactility/hal/display/DisplayDevice.h"
 #include <Tactility/TactilityPrivate.h>
-#include <Tactility/hal/display/Display.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/kernel/SystemEvents.h>
 
@@ -24,8 +24,8 @@
 
 namespace tt::app::boot {
 
-static std::shared_ptr<tt::hal::display::Display> getHalDisplay() {
-    return hal::findFirstDevice<hal::display::Display>(hal::Device::Type::Display);
+static std::shared_ptr<tt::hal::display::DisplayDevice> getHalDisplay() {
+    return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
 }
 
 class BootApp : public App {
@@ -57,7 +57,6 @@ private:
             TickType_t ticks_passed = end_time - start_time;
             TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
             if (minimum_ticks > ticks_passed) {
-                TT_LOG_I(TAG, "Remaining delay: %lu", minimum_ticks - ticks_passed);
                 kernel::delayTicks(minimum_ticks - ticks_passed);
             }
 

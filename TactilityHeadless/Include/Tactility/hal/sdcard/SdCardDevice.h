@@ -6,7 +6,7 @@
 
 namespace tt::hal::sdcard {
 
-class SdCard : public Device {
+class SdCardDevice : public Device {
 
 public:
 
@@ -28,8 +28,8 @@ private:
 
 public:
 
-    explicit SdCard(MountBehaviour mountBehaviour) : mountBehaviour(mountBehaviour) {}
-    virtual ~SdCard() override = default;
+    explicit SdCardDevice(MountBehaviour mountBehaviour) : mountBehaviour(mountBehaviour) {}
+    virtual ~SdCardDevice() override = default;
 
     Type getType() const final { return Type::SdCard; };
 
@@ -46,7 +46,7 @@ public:
 };
 
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
-std::shared_ptr<SdCard> _Nullable find(const std::string& path);
+std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
 
 /**
  * Acquires an SD card lock if the path is an SD card path.

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Tactility/hal/sdcard/SdCard.h>
+#include "Tactility/hal/sdcard/SdCardDevice.h"
 
-using tt::hal::sdcard::SdCard;
+using tt::hal::sdcard::SdCardDevice;
 
-std::shared_ptr<SdCard> createSdCard();
+std::shared_ptr<SdCardDevice> createSdCard();

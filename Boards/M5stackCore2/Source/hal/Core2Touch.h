@@ -1,10 +1,10 @@
 #pragma once
 
-#include <Tactility/hal/touch/Touch.h>
-#include <Tactility/TactilityCore.h>
+#include "Tactility/hal/touch/TouchDevice.h"
 #include "ft6x36/FT6X36.h"
+#include <Tactility/TactilityCore.h>
 
-class Core2Touch : public tt::hal::touch::Touch {
+class Core2Touch : public tt::hal::touch::TouchDevice {
 
 private:
 

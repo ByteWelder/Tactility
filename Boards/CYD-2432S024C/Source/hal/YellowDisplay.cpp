@@ -71,7 +71,7 @@ void setBacklightDuty(uint8_t backlightDuty) {
 }
 
 
-std::shared_ptr<tt::hal::display::Display> createDisplay() {
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
 
     auto touch = std::make_shared<YellowTouch>();
 

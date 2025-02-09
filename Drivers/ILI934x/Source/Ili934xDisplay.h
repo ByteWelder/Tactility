@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/hal/display/Display.h>
+#include "Tactility/hal/display/DisplayDevice.h"
 
 #include <driver/spi_common.h>
 #include <driver/gpio.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <lvgl.h>
 
-class Ili934xDisplay final : public tt::hal::display::Display {
+class Ili934xDisplay final : public tt::hal::display::DisplayDevice {
 
 public:
 
@@ -23,7 +23,7 @@ public:
             gpio_num_t dcPin,
             unsigned int horizontalResolution,
             unsigned int verticalResolution,
-            std::shared_ptr<tt::hal::touch::Touch> touch
+            std::shared_ptr<tt::hal::touch::TouchDevice> touch
         ) : spiBusHandle(spi_bus_handle),
             csPin(csPin),
             dcPin(dcPin),
@@ -44,7 +44,7 @@ public:
         bool mirrorY = false;
         bool invertColor = true;
         uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is 1/10 of the screen size
-        std::shared_ptr<tt::hal::touch::Touch> touch;
+        std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;
     };
 
@@ -68,7 +68,7 @@ public:
 
     bool stop() final;
 
-    std::shared_ptr<tt::hal::touch::Touch> _Nullable createTouch() final { return configuration->touch; }
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { return configuration->touch; }
 
     void setBacklightDuty(uint8_t backlightDuty) final {
         if (configuration->backlightDutyFunction != nullptr) {
@@ -84,4 +84,4 @@ public:
     lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
 };
 
-std::shared_ptr<tt::hal::display::Display> createDisplay();
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

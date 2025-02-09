@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Tactility/hal/keyboard/Keyboard.h>
+#include <Tactility/hal/keyboard/KeyboardDevice.h>
 #include <Tactility/TactilityCore.h>
 
-class SdlKeyboard final : public tt::hal::keyboard::Keyboard {
+class SdlKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 private:
     lv_indev_t* _Nullable handle = nullptr;
 
@@ -24,6 +24,6 @@ public:
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
 };
 
-std::shared_ptr<tt::hal::keyboard::Keyboard> createKeyboard() {
+std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard() {
     return std::make_shared<SdlKeyboard>();
 }

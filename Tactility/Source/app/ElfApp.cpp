@@ -4,9 +4,9 @@
 #include "Tactility/file/File.h"
 #include "Tactility/service/loader/Loader.h"
 
+#include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Log.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/hal/sdcard/SdCard.h>
 
 #include "esp_elf.h"
 

@@ -1,7 +1,7 @@
 #include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
 #include "Tactility/hal/i2c/I2c.h"
-#include "Tactility/hal/power/Power.h"
+#include "Tactility/hal/power/PowerDevice.h"
 #include "Tactility/hal/spi/Spi.h"
 #include "Tactility/hal/uart/Uart.h"
 
@@ -42,7 +42,7 @@ void init(const Configuration& configuration) {
     }
 
     if (configuration.power != nullptr) {
-        std::shared_ptr<tt::hal::power::Power> power = configuration.power();
+        std::shared_ptr<tt::hal::power::PowerDevice> power = configuration.power();
         hal::registerDevice(power);
     }
 

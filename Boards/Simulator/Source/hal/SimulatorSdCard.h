@@ -1,12 +1,12 @@
 #pragma once
 
-#include <Tactility/hal/sdcard/SdCard.h>
+#include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Mutex.h>
 #include <memory>
 
-using tt::hal::sdcard::SdCard;
+using tt::hal::sdcard::SdCardDevice;
 
-class SimulatorSdCard final : public SdCard {
+class SimulatorSdCard final : public SdCardDevice {
 
 private:
 
@@ -16,7 +16,7 @@ private:
 
 public:
 
-    SimulatorSdCard() : SdCard(MountBehaviour::AtBoot),
+    SimulatorSdCard() : SdCardDevice(MountBehaviour::AtBoot),
         state(State::Unmounted),
         lockable(std::make_shared<tt::Mutex>())
     {}

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Tactility/hal/display/DisplayDevice.h"
 #include <esp_lcd_types.h>
 #include <lvgl.h>
-#include <Tactility/hal/display/Display.h>
 
-class UnPhoneDisplay : public tt::hal::display::Display {
+class UnPhoneDisplay : public tt::hal::display::DisplayDevice {
 
 private:
 
@@ -20,9 +20,9 @@ public:
 
     bool stop() override;
 
-    std::shared_ptr<tt::hal::touch::Touch> _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override;
 
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
 
-std::shared_ptr<tt::hal::display::Display> createDisplay();
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Tactility/hal/keyboard/Keyboard.h>
+#include <Tactility/hal/keyboard/KeyboardDevice.h>
 #include <Tactility/TactilityCore.h>
 #include <esp_lcd_panel_io_interface.h>
 #include <esp_lcd_touch.h>
 
-class TdeckKeyboard : public tt::hal::keyboard::Keyboard {
+class TdeckKeyboard : public tt::hal::keyboard::KeyboardDevice {
 
 private:
 
@@ -22,4 +22,4 @@ public:
     lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }
 };
 
-std::shared_ptr<tt::hal::keyboard::Keyboard> createKeyboard();
+std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard();

@@ -1,10 +1,10 @@
 #include "Tactility/app/display/DisplaySettings.h"
 #include "Tactility/lvgl/LvglKeypad.h"
 
+#include "Tactility/hal/display/DisplayDevice.h"
+#include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/hal/Configuration.h>
-#include <Tactility/hal/display/Display.h>
-#include <Tactility/hal/keyboard/Keyboard.h>
-#include <Tactility/hal/touch/Touch.h>
+#include <Tactility/hal/keyboard/KeyboardDevice.h>
 #include <Tactility/kernel/SystemEvents.h>
 
 #ifdef ESP_PLATFORM
@@ -17,7 +17,7 @@ namespace tt::lvgl {
 
 #define TAG "lvgl_init"
 
-static std::shared_ptr<tt::hal::display::Display> initDisplay(const hal::Configuration& config) {
+static std::shared_ptr<tt::hal::display::DisplayDevice> initDisplay(const hal::Configuration& config) {
     assert(config.createDisplay);
     auto display = config.createDisplay();
     assert(display != nullptr);
@@ -48,7 +48,7 @@ static std::shared_ptr<tt::hal::display::Display> initDisplay(const hal::Configu
     return display;
 }
 
-static bool initTouch(const std::shared_ptr<hal::display::Display>& display, const std::shared_ptr<hal::touch::Touch>& touch) {
+static bool initTouch(const std::shared_ptr<hal::display::DisplayDevice>& display, const std::shared_ptr<hal::touch::TouchDevice>& touch) {
     TT_LOG_I(TAG, "Touch init");
     assert(display);
     assert(touch);
@@ -60,7 +60,7 @@ static bool initTouch(const std::shared_ptr<hal::display::Display>& display, con
     }
 }
 
-static bool initKeyboard(const std::shared_ptr<hal::display::Display>& display, const std::shared_ptr<hal::keyboard::Keyboard>& keyboard) {
+static bool initKeyboard(const std::shared_ptr<hal::display::DisplayDevice>& display, const std::shared_ptr<hal::keyboard::KeyboardDevice>& keyboard) {
     TT_LOG_I(TAG, "Keyboard init");
     assert(display);
     assert(keyboard);

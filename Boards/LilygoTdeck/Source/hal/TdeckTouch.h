@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Tactility/hal/touch/Touch.h>
+#include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/TactilityCore.h>
 #include <esp_lcd_panel_io_interface.h>
 #include <esp_lcd_touch.h>
 
-class TdeckTouch : public tt::hal::touch::Touch {
+class TdeckTouch : public tt::hal::touch::TouchDevice {
 
 private:
 

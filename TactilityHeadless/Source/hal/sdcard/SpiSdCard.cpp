@@ -1,6 +1,6 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/sdcard/SpiSdCard.h"
+#include "Tactility/hal/sdcard/SpiSdCardDevice.h"
 
 #include <Tactility/Log.h>
 
@@ -19,7 +19,7 @@ namespace tt::hal::sdcard {
  * See https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/UnitTest/UnitTest.ino
  * @return success result
  */
-bool SpiSdCard::applyGpioWorkAround() {
+bool SpiSdCardDevice::applyGpioWorkAround() {
     TT_LOG_D(TAG, "init");
 
     uint64_t pin_bit_mask = BIT64(config->spiPinCs);
@@ -50,7 +50,7 @@ bool SpiSdCard::applyGpioWorkAround() {
     return true;
 }
 
-bool SpiSdCard::mountInternal(const std::string& newMountPath) {
+bool SpiSdCardDevice::mountInternal(const std::string& newMountPath) {
     TT_LOG_I(TAG, "Mounting %s", newMountPath.c_str());
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
@@ -92,7 +92,7 @@ bool SpiSdCard::mountInternal(const std::string& newMountPath) {
     return true;
 }
 
-bool SpiSdCard::mount(const std::string& newMountPath) {
+bool SpiSdCardDevice::mount(const std::string& newMountPath) {
     if (!applyGpioWorkAround()) {
         TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
         return false;
@@ -107,7 +107,7 @@ bool SpiSdCard::mount(const std::string& newMountPath) {
     }
 }
 
-bool SpiSdCard::unmount() {
+bool SpiSdCardDevice::unmount() {
     if (card == nullptr) {
         TT_LOG_E(TAG, "Can't unmount: not mounted");
         return false;
@@ -124,7 +124,7 @@ bool SpiSdCard::unmount() {
 }
 
 // TODO: Refactor to "bool getStatus(Status* status)" method so that it can fail when the lvgl lock fails
-SdCard::State SpiSdCard::getState() const {
+SdCardDevice::State SpiSdCardDevice::getState() const {
     if (card == nullptr) {
         return State::Unmounted;
     }
