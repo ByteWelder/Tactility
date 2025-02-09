@@ -6,9 +6,6 @@
 
 namespace tt::hal {
 
-#define TT_SDCARD_MOUNT_NAME "sdcard"
-#define TT_SDCARD_MOUNT_POINT "/sdcard"
-
 class SdCard : public Device {
 
 public:
@@ -36,12 +33,35 @@ public:
 
     Type getType() const final { return Type::SdCard; };
 
-    virtual bool mount(const char* mountPath) = 0;
+    virtual bool mount(std::string mountPath) = 0;
     virtual bool unmount() = 0;
     virtual State getState() const = 0;
+    /** Return empty string when not mounted or the mount path if mounted */
+    virtual std::string getMountPath() const = 0;
+
+    virtual std::shared_ptr<Lockable> getLockable() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
     bool isMounted() const { return getState() == State::Mounted; }
 };
 
-} // namespace
+/** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
+std::shared_ptr<SdCard> _Nullable findSdCard(const std::string& path);
+
+/**
+ * Acquires an SD card lock if the path is an SD card path.
+ * Always calls the function, but doesn't lock if the path is not an SD card path.
+ */
+template<typename ReturnType>
+inline ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
+    auto sdcard = hal::findSdCard(path);
+    std::unique_ptr<ScopedLockableUsage> scoped_lockable;
+    if (sdcard != nullptr) {
+        scoped_lockable = sdcard->getLockable()->scoped();
+        scoped_lockable->lock(portMAX_DELAY);
+    }
+
+    return fn();
+}
+
+} // namespace tt::hal

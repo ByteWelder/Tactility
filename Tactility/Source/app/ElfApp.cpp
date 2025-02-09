@@ -6,6 +6,7 @@
 
 #include <Tactility/Log.h>
 #include <Tactility/StringUtils.h>
+#include <Tactility/hal/SdCard.h>
 
 #include "esp_elf.h"
 
@@ -49,7 +50,10 @@ private:
         assert(elfFileData == nullptr);
 
         size_t size = 0;
-        elfFileData = file::readBinary(filePath, size);
+        hal::withSdCardLock<void>(filePath, [this, &size](){
+            elfFileData = file::readBinary(filePath, size);
+        });
+
         if (elfFileData == nullptr) {
             return false;
         }

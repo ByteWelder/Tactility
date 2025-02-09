@@ -7,6 +7,7 @@
 #include <Tactility/hal/SdCard.h>
 #include <Tactility/kernel/Kernel.h>
 
+#include <cstring>
 #include <unistd.h>
 
 #define TAG "files_app"
@@ -69,11 +70,15 @@ bool State::setEntriesForPath(const std::string& path) {
             auto state = sdcard->getState();
             if (state == hal::SdCard::State::Mounted) {
 #endif
-                dir_entries.push_back({
+                auto mount_name = sdcard->getMountPath().substr(1);
+                auto dir_entry = dirent {
                     .d_ino = 2,
                     .d_type = TT_DT_DIR,
-                    .d_name = TT_SDCARD_MOUNT_NAME
-                });
+                    .d_name = { 0 }
+                };
+                assert(mount_name.length() < sizeof(dirent::d_name));
+                strcpy(dir_entry.d_name, mount_name.c_str());
+                dir_entries.push_back(dir_entry);
 #ifndef TT_SCREENSHOT_MODE
             }
         }

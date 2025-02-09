@@ -15,7 +15,7 @@ namespace tt::hal {
 /**
  * SD card interface at the default SPI interface
  */
-class SpiSdCard : public tt::hal::SdCard {
+class SpiSdCard final : public tt::hal::SdCard {
 public:
     struct Config {
         Config(
@@ -24,7 +24,7 @@ public:
             gpio_num_t spiPinWp,
             gpio_num_t spiPinInt,
             MountBehaviour mountBehaviourAtBoot,
-            std::shared_ptr<Lockable> lockable = nullptr,
+            std::shared_ptr<Lockable> lockable = std::make_shared<Mutex>(),
             std::vector<gpio_num_t> csPinWorkAround = std::vector<gpio_num_t>(),
             spi_host_device_t spiHost = SPI2_HOST,
             int spiFrequencyKhz = SDMMC_FREQ_DEFAULT
@@ -37,7 +37,9 @@ public:
             lockable(std::move(lockable)),
             csPinWorkAround(std::move(csPinWorkAround)),
             spiHost(spiHost)
-        {}
+        {
+            assert(this->lockable != nullptr);
+        }
 
         int spiFrequencyKhz;
         gpio_num_t spiPinCs; // Clock
@@ -56,12 +58,12 @@ public:
 
 private:
 
-    std::string mountPoint;
+    std::string mountPath;
     sdmmc_card_t* card = nullptr;
     std::shared_ptr<Config> config;
 
     bool applyGpioWorkAround();
-    bool mountInternal(const char* mount_point);
+    bool mountInternal(std::string mountPath);
 
 public:
 
@@ -73,8 +75,12 @@ public:
     std::string getName() const final { return "SD Card"; }
     std::string getDescription() const final { return "SD card via SPI interface"; }
 
-    bool mount(const char* mountPath) override;
-    bool unmount() override;
+    bool mount(std::string mountPath) final;
+    bool unmount() final;
+    std::string getMountPath() const final { return mountPath; }
+
+    std::shared_ptr<Lockable> getLockable() const final { return config->lockable; }
+
     State getState() const override;
 
     sdmmc_card_t* _Nullable getCard() { return card; }
