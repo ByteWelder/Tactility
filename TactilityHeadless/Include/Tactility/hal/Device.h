@@ -22,7 +22,8 @@ public:
         Touch,
         SdCard,
         Keyboard,
-        Power
+        Power,
+        Gps
     };
 
     typedef uint32_t Id;

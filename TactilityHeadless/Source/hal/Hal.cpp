@@ -1,5 +1,6 @@
 #include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
+#include "Tactility/hal/gps/Gps.h"
 #include "Tactility/hal/i2c/I2c.h"
 #include "Tactility/hal/power/PowerDevice.h"
 #include "Tactility/hal/spi/Spi.h"
@@ -27,6 +28,8 @@ void init(const Configuration& configuration) {
     kernel::systemEventPublish(kernel::SystemEvent::BootInitUartBegin);
     tt_check(uart::init(configuration.uart), "UART init failed");
     kernel::systemEventPublish(kernel::SystemEvent::BootInitUartEnd);
+
+    tt_check(gps::init(configuration.gps), "GPS init failed");
 
     if (configuration.initBoot != nullptr) {
         TT_LOG_I(TAG, "Init power");

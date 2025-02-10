@@ -39,6 +39,12 @@ Website: https://github.com/nayarsystems/posix_tz_db
 
 License: [MIT](https://github.com/nayarsystems/posix_tz_db/blob/master/LICENSE)
 
+### Minmea
+
+Website: https://github.com/kosma/minmea
+
+License: [WTFPL](https://github.com/kosma/minmea/blob/master/LICENSE.grants), [LGPL 3.0](https://github.com/kosma/minmea/blob/master/LICENSE.LGPL-3.0), [MIT](https://github.com/kosma/minmea/blob/master/LICENSE.MIT)
+
 ### Other Components
 
 See `/components` for the respective projects and their licenses.

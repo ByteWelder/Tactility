@@ -9,10 +9,10 @@
 
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (TDECK_LCD_BITS_PER_PIXEL / 8))
 
-bool tdeck_init_power();
+bool tdeckInit();
 
 extern const tt::hal::Configuration lilygo_tdeck = {
-    .initBoot = tdeck_init_power,
+    .initBoot = tdeckInit,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = createTdeckSdCard(),
@@ -39,7 +39,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
         tt::hal::i2c::Configuration {
             .name = "External",
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = tt::hal::i2c::InitMode::Disabled,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {
@@ -84,7 +84,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
     .uart {
         tt::hal::uart::Configuration {
             .port = UART_NUM_1,
-            .initMode = tt::hal::uart::InitMode::ByTactility,
+            .initMode = tt::hal::uart::InitMode::Disabled, // Let GPS driver control this interface
             .canReinit = false,
             .hasMutableConfiguration = false,
             .rxPin = GPIO_NUM_44,
@@ -93,6 +93,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
             .txBufferSize = 1024,
+            .baudRate = 38400,
             .config = {
                 .baud_rate = 9600,
                 .data_bits = UART_DATA_8_BITS,
@@ -106,6 +107,12 @@ extern const tt::hal::Configuration lilygo_tdeck = {
                     .backup_before_sleep = 0,
                 }
             }
+        }
+    },
+    .gps = {
+        tt::hal::gps::GpsDevice::Configuration {
+            .name = "Internal",
+            .uartPort = UART_NUM_1
         }
     }
 };

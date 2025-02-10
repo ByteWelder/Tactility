@@ -6,7 +6,7 @@
 // Power on
 #define TDECK_POWERON_GPIO GPIO_NUM_10
 
-static bool tdeck_power_on() {
+static bool powerOn() {
     gpio_config_t device_power_signal_config = {
         .pin_bit_mask = BIT64(TDECK_POWERON_GPIO),
         .mode = GPIO_MODE_OUTPUT,
@@ -26,9 +26,9 @@ static bool tdeck_power_on() {
     return true;
 }
 
-bool tdeck_init_power() {
+bool tdeckInit() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
-    if (!tdeck_power_on()) {
+    if (!powerOn()) {
         TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
         return false;
     }

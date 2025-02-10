@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if (DEFINED ENV{ESP_IDF_VERSION})
     file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 
-    list(APPEND REQUIRES_LIST TactilityCore esp_wifi nvs_flash driver spiffs vfs fatfs lwip)
+    list(APPEND REQUIRES_LIST TactilityCore minmea esp_wifi nvs_flash driver spiffs vfs fatfs lwip)
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         list(APPEND REQUIRES_LIST esp_tinyusb)
     endif()
@@ -51,5 +51,6 @@ else()
     target_link_libraries(TactilityHeadless
         PUBLIC TactilityCore
         PUBLIC freertos_kernel
+        PUBLIC minmea
     )
 endif()

@@ -4,6 +4,8 @@
 #include <Tactility/LogMessages.h>
 #include <Tactility/Mutex.h>
 
+#include <sstream>
+
 #ifdef ESP_PLATFORM
 #include <esp_check.h>
 #endif
@@ -35,16 +37,16 @@ static const char* initModeToString(InitMode mode) {
 }
 
 static void printInfo(const Data& data) {
-    TT_LOG_V(TAG, "UART info for port %d", data.configuration.port);
-    TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
-    TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %s", initModeToString(data.configuration.initMode));
-    TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
-    TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
-    TT_LOG_V(TAG, "  RX pin: %d", data.configuration.rxPin);
-    TT_LOG_V(TAG, "  TX pin: %d", data.configuration.txPin);
-    TT_LOG_V(TAG, "  RTS pin: %d", data.configuration.rtsPin);
-    TT_LOG_V(TAG, "  CTS pin: %d", data.configuration.ctsPin);
+    TT_LOG_D(TAG, "UART info for port %d", data.configuration.port);
+    TT_LOG_D(TAG, "  isStarted: %d", data.isStarted);
+    TT_LOG_D(TAG, "  isConfigured: %d", data.isConfigured);
+    TT_LOG_D(TAG, "  initMode: %s", initModeToString(data.configuration.initMode));
+    TT_LOG_D(TAG, "  canReinit: %d", data.configuration.canReinit);
+    TT_LOG_D(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
+    TT_LOG_D(TAG, "  RX pin: %d", data.configuration.rxPin);
+    TT_LOG_D(TAG, "  TX pin: %d", data.configuration.txPin);
+    TT_LOG_D(TAG, "  RTS pin: %d", data.configuration.rtsPin);
+    TT_LOG_D(TAG, "  CTS pin: %d", data.configuration.ctsPin);
 }
 
 bool init(const std::vector<uart::Configuration>& configurations) {
@@ -118,6 +120,7 @@ static bool startLocked(uart_port_t port) {
 #else
     intr_alloc_flags = 0;
 #endif
+
     esp_err_t result = uart_param_config(config.port, &config.config);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "(%d) Starting: Failed to configure: %s", port, esp_err_to_name(result));
@@ -130,10 +133,20 @@ static bool startLocked(uart_port_t port) {
         return false;
     }
 
+    result = uart_set_baudrate(config.port, config.baudRate);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "(%d) Starting: Failed to set baud rate to %d: %s", port, config.baudRate, esp_err_to_name(result));
+    }
+
     result = uart_driver_install(config.port, (int)config.rxBufferSize, (int)config.txBufferSize, 0, nullptr, intr_alloc_flags);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "(%d) Starting: Failed to install driver: %s", port, esp_err_to_name(result));
         return false;
+    }
+
+    result = uart_set_baudrate(config.port, config.baudRate);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "(%d) Starting: Failed to set baud rate to %d: %s", port, config.baudRate, esp_err_to_name(result));
     }
 
 #endif // ESP_PLATFORM
@@ -174,12 +187,10 @@ static bool stopLocked(uart_port_t port) {
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "(%d) Stopping: Failed to delete driver: %s", port, esp_err_to_name(result));
         return false;
-    } else {
-        data.isStarted = false;
     }
-#else
-    data.isStarted = true;
 #endif // ESP_PLATFORM
+
+    data.isStarted = true;
 
     TT_LOG_I(TAG, "(%d) Stopped", port);
     return true;
@@ -231,6 +242,10 @@ size_t read(uart_port_t port, uint8_t* buffer, size_t bufferSize, TickType_t tim
     return 0;
 }
 
+bool readByte(uart_port_t port, uint8_t* output, TickType_t timeout) {
+    return read(port, output, 1, timeout) == 1;
+}
+
 size_t write(uart_port_t port, const uint8_t* buffer, size_t bufferSize, TickType_t timeout) {
 #ifdef ESP_PLATFORM
     if (lock(port, timeout)) {
@@ -242,6 +257,108 @@ size_t write(uart_port_t port, const uint8_t* buffer, size_t bufferSize, TickTyp
     }
 #endif // ESP_PLATFORM
     return 0;
+}
+
+bool writeString(uart_port_t port, const char* buffer, TickType_t timeout) {
+    while (*buffer != 0) {
+        if (write(port, (const uint8_t*)buffer, 1, timeout)) {
+            buffer++;
+        } else {
+            TT_LOG_E(TAG, "Failed to write - breaking off");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+size_t available(uart_port_t port, TickType_t timeout) {
+#ifdef ESP_PLATFORM
+    size_t size = 0;
+    if (lock(port, timeout)) {
+        uart_get_buffered_data_len(port, &size);
+        unlock(port);
+        return size;
+    } else {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "write()");
+    }
+#endif // ESP_PLATFORM
+    return 0;
+}
+
+void flush(uart_port_t port, TickType_t timeout) {
+#ifdef ESP_PLATFORM
+    size_t size = 0;
+    if (lock(port, timeout)) {
+        uart_flush(port);
+        unlock(port);
+    } else {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "write()");
+    }
+#endif // ESP_PLATFORM
+}
+
+void flushInput(uart_port_t port, TickType_t timeout) {
+#ifdef ESP_PLATFORM
+    size_t size = 0;
+    if (lock(port, timeout)) {
+        uart_flush_input(port);
+        unlock(port);
+    } else {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "write()");
+    }
+#endif // ESP_PLATFORM
+}
+
+
+bool setBaudRate(uart_port_t port, int baudRate, TickType_t timeout) {
+#ifdef ESP_PLATFORM
+    size_t size = 0;
+    if (lock(port, timeout)) {
+        uart_set_baudrate(port, baudRate);
+        unlock(port);
+    } else {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "write()");
+    }
+#endif // ESP_PLATFORM
+    return true;
+}
+
+bool readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout) {
+    bool success = false;
+    size_t index = 0;
+    size_t index_limit = bufferSize - 1;
+    while (readByte(port, buffer, timeout) && index < index_limit) {
+        if (*buffer == untilByte) {
+            success = true;
+            // We have the extra space because index < index_limit
+            if (buffer++) {
+                *buffer = 0;
+            }
+            break;
+        }
+        buffer++;
+    }
+    return success;
+}
+
+std::string readStringUntil(uart_port_t port, char untilChar, TickType_t timeout) {
+    std::stringstream output;
+    char buffer;
+    bool success = false;
+    while (readByte(port, (uint8_t*)&buffer, timeout)) {
+        if (buffer == untilChar) {
+            success = true;
+            break;
+        }
+        output << buffer;
+    }
+
+    if (success) {
+        return output.str();
+    } else {
+        return {};
+    }
 }
 
 } // namespace tt::hal::uart
