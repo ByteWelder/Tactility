@@ -15,6 +15,11 @@ int32_t GpsDevice::threadMainStatic(void* parameter) {
 int32_t GpsDevice::threadMain() {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
 
+    if (!uart::setBaudRate(configuration.uartPort, (int)configuration.baudRate)) {
+        TT_LOG_E(TAG, "Failed to set baud rate to %lu", configuration.baudRate);
+        return -1;
+    }
+
     if (!configuration.initFunction(configuration.uartPort)) {
         TT_LOG_E(TAG, "Failed to init");
         return -1;
@@ -28,6 +33,9 @@ int32_t GpsDevice::threadMain() {
                 case MINMEA_SENTENCE_RMC:
                     minmea_sentence_rmc frame;
                     if (minmea_parse_rmc(&frame, (char*)buffer)) {
+                        for (auto& subscription : locationSubscriptions) {
+                            (*subscription.onData)(getId(), frame);
+                        }
                         TT_LOG_D(TAG, "RX RMC %f lat, %f lon, %f m/s", minmea_tocoord(&frame.latitude), minmea_tocoord(&frame.longitude), minmea_tofloat(&frame.speed));
                     } else {
                         TT_LOG_W(TAG, "RX RMC parse error: %s", buffer);
@@ -46,7 +54,9 @@ int32_t GpsDevice::threadMain() {
                     if (minmea_parse_gsv(&gsv_frame, (char*)buffer)) {
                         for (auto& sat : gsv_frame.sats) {
                             if (sat.nr != 0 && sat.elevation != 0 && sat.snr != 0) {
-                                satelliteStorage.notify(sat);
+                                for (auto& subscription : satelliteSubscriptions) {
+                                    (*subscription.onData)(getId(), sat);
+                                }
                             }
                             TT_LOG_D(TAG, "Satellite: id %d, elevation %d, azimuth %d, snr %d", sat.nr, sat.elevation, sat.azimuth, sat.snr);
                         }

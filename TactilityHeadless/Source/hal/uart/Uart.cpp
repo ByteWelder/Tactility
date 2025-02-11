@@ -133,20 +133,10 @@ static bool startLocked(uart_port_t port) {
         return false;
     }
 
-    result = uart_set_baudrate(config.port, config.baudRate);
-    if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to set baud rate to %d: %s", port, config.baudRate, esp_err_to_name(result));
-    }
-
     result = uart_driver_install(config.port, (int)config.rxBufferSize, (int)config.txBufferSize, 0, nullptr, intr_alloc_flags);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "(%d) Starting: Failed to install driver: %s", port, esp_err_to_name(result));
         return false;
-    }
-
-    result = uart_set_baudrate(config.port, config.baudRate);
-    if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to set baud rate to %d: %s", port, config.baudRate, esp_err_to_name(result));
     }
 
 #endif // ESP_PLATFORM
@@ -190,7 +180,7 @@ static bool stopLocked(uart_port_t port) {
     }
 #endif // ESP_PLATFORM
 
-    data.isStarted = true;
+    data.isStarted = false;
 
     TT_LOG_I(TAG, "(%d) Stopped", port);
     return true;
@@ -310,10 +300,18 @@ void flushInput(uart_port_t port, TickType_t timeout) {
 #endif // ESP_PLATFORM
 }
 
-
-bool setBaudRate(uart_port_t port, int baudRate, TickType_t timeout) {
+uint32_t getBaudRate(uart_port_t port) {
 #ifdef ESP_PLATFORM
-    size_t size = 0;
+    uint32_t baud_rate = 0;
+    uart_get_baudrate(port, &baud_rate);
+    return baud_rate;
+#else
+    return 0;
+#endif
+}
+
+bool setBaudRate(uart_port_t port, uint32_t baudRate, TickType_t timeout) {
+#ifdef ESP_PLATFORM
     if (lock(port, timeout)) {
         uart_set_baudrate(port, baudRate);
         unlock(port);

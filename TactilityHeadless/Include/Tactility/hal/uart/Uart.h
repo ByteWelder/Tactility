@@ -36,8 +36,6 @@ struct Configuration {
     unsigned int rxBufferSize;
     /** Transmit buffer size in bytes */
     unsigned int txBufferSize;
-    /** Communication speed */
-    unsigned int baudRate;
     /** Native configuration */
     uart_config_t config;
 };
@@ -64,7 +62,8 @@ bool writeString(uart_port_t port, const char* buffer, TickType_t timeout = 10 /
 
 size_t available(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
 
-bool setBaudRate(uart_port_t port, int baudRate, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+bool setBaudRate(uart_port_t port, uint32_t baudRate, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+uint32_t getBaudRate(uart_port_t port);
 
 void flush(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
 void flushInput(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);

@@ -1,6 +1,6 @@
 #include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
-#include "Tactility/hal/gps/Gps.h"
+#include "Tactility/hal/gps/GpsInit.h"
 #include "Tactility/hal/i2c/I2c.h"
 #include "Tactility/hal/power/PowerDevice.h"
 #include "Tactility/hal/spi/Spi.h"

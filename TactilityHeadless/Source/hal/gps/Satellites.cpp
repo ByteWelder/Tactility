@@ -6,8 +6,8 @@
 
 namespace tt::hal::gps {
 
-constexpr inline bool isExpired(TickType_t now, TickType_t timeToCheck, TickType_t expireTimeInTicks) {
-    return (expireTimeInTicks < now) && ((now - expireTimeInTicks) > timeToCheck);
+constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
+    return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
 }
 
 SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecord(int number) {
@@ -50,7 +50,7 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
     TickType_t now = kernel::getTicks();
     for (int i = 0; i < records.size(); ++i) {
         // First try to find a record that is "old enough"
-        if (isExpired(now, records[i].lastUpdated, expire_duration)) {
+        if (hasTimeElapsed(now, records[i].lastUpdated, expire_duration)) {
             TT_LOG_D(TAG, "! [%d] %lu < %lu", i, records[i].lastUpdated, expire_duration);
             candidate_index = i;
             break;
@@ -105,7 +105,7 @@ void SatelliteStorage::getRecords(const std::function<void(const minmea_sat_info
     TickType_t now = kernel::getTicks();
 
     for (auto& record: records) {
-        if (record.inUse && !isExpired(now, record.lastUpdated, expire_duration)) {
+        if (record.inUse && !hasTimeElapsed(now, record.lastUpdated, expire_duration)) {
             onRecord(record.data);
         }
     }

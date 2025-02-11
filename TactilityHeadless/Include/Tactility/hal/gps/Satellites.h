@@ -19,7 +19,6 @@ public:
 
 private:
 
-
     struct SatelliteRecord {
         minmea_sat_info data {
             .nr = 0,
@@ -55,20 +54,6 @@ public:
     void notify(const minmea_sat_info& info);
 
     void getRecords(const std::function<void(const minmea_sat_info&)>& onRecord) const;
-
 };
 
-/** Read-only variant of SatelliteStorage */
-class SatelliteRecords {
-
-    std::shared_ptr<SatelliteStorage> storage;
-
-public:
-
-    explicit SatelliteRecords(std::shared_ptr<SatelliteStorage> storage) : storage(std::move(storage)) {}
-
-    void getRecords(const std::function<void(const minmea_sat_info&)>& onRecord) const { storage->getRecords(onRecord); }
-    size_t getRecordLimit() const { return storage->recordCount; }
-};
-
-}
+} // namespace tt::hal::gps

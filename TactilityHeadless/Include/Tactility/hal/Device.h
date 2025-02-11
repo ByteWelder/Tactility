@@ -37,7 +37,7 @@ public:
     Device();
     virtual ~Device() = default;
 
-    Id getId() const { return id; }
+    inline Id getId() const { return id; }
 
     /** The type of device. */
     virtual Type getType() const = 0;

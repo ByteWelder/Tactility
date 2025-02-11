@@ -1,6 +1,6 @@
-#include <Tactility/kernel/Kernel.h>
-#include <Tactility/hal/uart/Uart.h>
 #include <Tactility/Log.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/kernel/Kernel.h>
 
 #define TAG "gps"
 #define GPS_UART_BUFFER_SIZE 256
@@ -87,8 +87,10 @@ static bool configureGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         kernel::delayMillis(5U);
         // Get version information
         startTimeout = kernel::getMillis() + 1000;
+
+        TT_LOG_I(TAG, "Manual flushing of input");
 #ifdef ESP_PLATFORM
-        esp_rom_printf("Try to init L76K. Wait stop.");
+        esp_rom_printf("Waiting...");
 #endif
         while (uart::available(port)) {
 #ifdef ESP_PLATFORM
@@ -96,7 +98,7 @@ static bool configureGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
 #endif
             uart::readUntil(port, buffer, bufferSize, '\n');
             if (kernel::getMillis() > startTimeout) {
-                TT_LOG_E(TAG, "Wait L76K stop NMEA timeout!");
+                TT_LOG_E(TAG, "NMEA timeout");
                 return false;
             }
         };
@@ -113,13 +115,13 @@ static bool configureGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         startTimeout = kernel::getMillis() + 500;
         while (!uart::available(port)) {
             if (kernel::getMillis() > startTimeout) {
-                TT_LOG_E(TAG, "Get L76K timeout!");
+                TT_LOG_E(TAG, "L76K timeout");
                 return false;
             }
         }
         auto ver = uart::readStringUntil(port, '\n');
         if (ver.starts_with("$GPTXT,01,01,02")) {
-            TT_LOG_I(TAG, "L76K GNSS init succeeded, using L76K GNSS Module\n");
+            TT_LOG_I(TAG, "L76K GNSS init success");
             result = true;
             break;
         }
@@ -147,7 +149,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         TT_LOG_E(TAG, "Failed to send ack 1");
     }
 
-    if ( ackGps( port, buffer, bufferSize, 0x05, 0x01 )) {
+    if (ackGps(port, buffer, bufferSize, 0x05, 0x01)) {
         TT_LOG_I(TAG, "Ack 1");
     } else {
         TT_LOG_W(TAG, "Ack 1 failed");
@@ -158,7 +160,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         TT_LOG_E(TAG, "Failed to send ack 2");
     }
 
-    if ( ackGps( port, buffer, bufferSize, 0x05, 0x01 )) {
+    if (ackGps(port, buffer, bufferSize, 0x05, 0x01)) {
         TT_LOG_I(TAG, "Ack 2");
     } else {
         TT_LOG_W(TAG, "Ack 2 failed");
@@ -169,7 +171,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         return false;
     }
 
-    if ( ackGps( port, buffer, bufferSize, 0x05, 0x01 )) {
+    if (ackGps(port, buffer, bufferSize, 0x05, 0x01)) {
         TT_LOG_I(TAG, "Ack 3");
     } else {
         TT_LOG_W(TAG, "Ack 3 failed");
@@ -178,7 +180,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
     // UBX-CFG-RATE, Size 8, 'Navigation/measurement rate settings'
     uint8_t cfg_rate[] = {0xB5, 0x62, 0x06, 0x08, 0x00, 0x00, 0x0E, 0x30};
     uart::write(port, cfg_rate, sizeof(cfg_rate));
-    if ( ackGps( port, buffer, bufferSize, 0x06, 0x08 )) {
+    if (ackGps(port, buffer, bufferSize, 0x06, 0x08)) {
         TT_LOG_I(TAG, "Ack completed");
     } else {
         return false;
@@ -188,18 +190,19 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
 
 bool initGpsDefault(uart_port_t port) {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
-    if (!configureGps( port, buffer, GPS_UART_BUFFER_SIZE )) {
-        if (!recoverGps( port, buffer, GPS_UART_BUFFER_SIZE )) {
-            uart::setBaudRate(port, 9600);
-            if (!recoverGps( port, buffer, GPS_UART_BUFFER_SIZE )) {
+    if (!configureGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
+        if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
+            uint32_t initial_baud_rate = std::max(uart::getBaudRate(port), (uint32_t)9600U);
+            uart::setBaudRate(port, 9600U);
+            if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
                 TT_LOG_E(TAG, "Recovery repeatedly failed");
                 return false;
             } else {
-                TT_LOG_I(TAG, "Recovery complete");
+                TT_LOG_I(TAG, "Recovery 2 complete");
             }
-            uart::setBaudRate(port, 38400);
+            uart::setBaudRate(port, initial_baud_rate);
         } else {
-            TT_LOG_I(TAG, "Recovery complete");
+            TT_LOG_I(TAG, "Recovery 1 complete");
         }
     }
 
@@ -208,4 +211,4 @@ bool initGpsDefault(uart_port_t port) {
     return true;
 }
 
-}
+} // namespace tt::hal::gps
