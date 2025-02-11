@@ -52,6 +52,8 @@ uint32_t getTickFrequency();
 
 TickType_t getTicks();
 
+inline size_t getMillis() { return getTicks() / portTICK_PERIOD_MS; }
+
 /** Delay execution
  * @warning don't call from ISR context
  * Also keep in mind delay is aliased to scheduler timer intervals.
@@ -65,6 +67,14 @@ void delayTicks(TickType_t ticks);
  * @return true on success
  */
 bool delayUntilTick(TickType_t tick);
+
+constexpr inline TickType_t secondsToTicks(uint32_t seconds) {
+    return (TickType_t)seconds * 1000U / portTICK_PERIOD_MS;
+}
+
+constexpr inline TickType_t minutesToTicks(uint32_t minutes) {
+    return secondsToTicks(minutes * 60U);
+}
 
 /** Convert milliseconds to ticks
  *

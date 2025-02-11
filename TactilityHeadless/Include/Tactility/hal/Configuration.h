@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/sdcard/SdCardDevice.h"
 #include "Tactility/hal/spi/Spi.h"
 #include "Tactility/hal/uart/Uart.h"
@@ -44,14 +45,17 @@ struct Configuration {
     /** An optional power interface for battery or other power delivery. */
     const CreatePower _Nullable power = nullptr;
 
-    /** A list of I2C interfaces */
+    /** A list of I2C interface configurations */
     const std::vector<i2c::Configuration> i2c = {};
 
-    /** A list of SPI interfaces */
+    /** A list of SPI interface configurations */
     const std::vector<spi::Configuration> spi = {};
 
-    /** A list of UART interfaces */
+    /** A list of UART interface configurations */
     const std::vector<uart::Configuration> uart = {};
+
+    /** A list of GPS device configurations */
+    const std::vector<gps::GpsDevice::Configuration> gps = {};
 };
 
 } // namespace

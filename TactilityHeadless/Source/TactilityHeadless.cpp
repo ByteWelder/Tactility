@@ -16,6 +16,7 @@ namespace tt {
 
 #define TAG "tactility"
 
+namespace service::gps { extern const ServiceManifest manifest; }
 namespace service::wifi { extern const ServiceManifest manifest; }
 namespace service::sdcard { extern const ServiceManifest manifest; }
 
@@ -25,6 +26,7 @@ static const hal::Configuration* hardwareConfig = nullptr;
 
 static void registerAndStartSystemServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
+    addService(service::gps::manifest);
     addService(service::sdcard::manifest);
     addService(service::wifi::manifest);
 }

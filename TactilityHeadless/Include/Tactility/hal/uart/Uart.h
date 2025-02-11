@@ -56,6 +56,19 @@ bool lock(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
 bool unlock(uart_port_t port);
 
 size_t read(uart_port_t port, uint8_t* buffer, size_t bufferSize, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+bool readByte(uart_port_t port, uint8_t* output, TickType_t timeout = 10 / portTICK_PERIOD_MS);
 size_t write(uart_port_t port, const uint8_t* buffer, size_t bufferSize, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+bool writeString(uart_port_t port, const char* buffer, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+
+size_t available(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+
+bool setBaudRate(uart_port_t port, uint32_t baudRate, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+uint32_t getBaudRate(uart_port_t port);
+
+void flush(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+void flushInput(uart_port_t port, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+
+std::string readStringUntil(uart_port_t port, char untilChar, TickType_t timeout = 10 / portTICK_PERIOD_MS);
+bool readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = 10 / portTICK_PERIOD_MS);
 
 } // namespace tt::hal::uart
