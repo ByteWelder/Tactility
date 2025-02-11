@@ -28,7 +28,7 @@ menu "Tactility App"
 
     config TT_SPLASH_DURATION
         int "Splash Duration (ms)"
-        default 1500
+        default 1000
         range 0 3000
         help
             The minimum time to show the splash screen in milliseconds.
