@@ -23,8 +23,8 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecord(int number) {
 }
 
 SatelliteStorage::SatelliteRecord* SatelliteStorage::findUnusedRecord() {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     auto result = records | std::views::filter([](auto& record) {
         return !record.inUse;
@@ -41,8 +41,8 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findUnusedRecord() {
 }
 
 SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     int candidate_index = -1;
     auto candidate_age = portMAX_DELAY;
@@ -72,8 +72,8 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
 }
 
 SatelliteStorage::SatelliteRecord* SatelliteStorage::findWithFallback(int number) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     if (auto* found_record = findRecord(number)) {
         return found_record;
@@ -85,8 +85,8 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findWithFallback(int number
 }
 
 void SatelliteStorage::notify(const minmea_sat_info& data) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     auto* record = findWithFallback(data.nr);
     if (record != nullptr) {
@@ -98,8 +98,8 @@ void SatelliteStorage::notify(const minmea_sat_info& data) {
 }
 
 void SatelliteStorage::getRecords(const std::function<void(const minmea_sat_info&)>& onRecord) const {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     TickType_t expire_duration = kernel::secondsToTicks(recentTimeSeconds);
     TickType_t now = kernel::getTicks();

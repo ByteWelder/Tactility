@@ -18,7 +18,7 @@ add_test(NAME TactilityCoreTests
     COMMAND TactilityCoreTests
 )
 
-target_link_libraries(TactilityCoreTests
-    PUBLIC TactilityCore
-        freertos_kernel
+target_link_libraries(TactilityCoreTests PUBLIC
+    TactilityCore
+    freertos_kernel
 )

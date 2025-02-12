@@ -20,8 +20,8 @@ std::shared_ptr<ScreenshotService> _Nullable optScreenshotService() {
 }
 
 void ScreenshotService::startApps(const std::string& path) {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -36,8 +36,8 @@ void ScreenshotService::startApps(const std::string& path) {
 }
 
 void ScreenshotService::startTimed(const std::string& path, uint8_t delayInSeconds, uint8_t amount) {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -52,8 +52,8 @@ void ScreenshotService::startTimed(const std::string& path, uint8_t delayInSecon
 }
 
 void ScreenshotService::stop() {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -67,8 +67,8 @@ void ScreenshotService::stop() {
 }
 
 Mode ScreenshotService::getMode() const {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return Mode::None;
     }

@@ -73,54 +73,54 @@ public:
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
 
     RadioState getRadioState() const {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         // TODO: Handle lock failure
         return radio_state;
     }
 
     void setRadioState(RadioState newState) {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         // TODO: Handle lock failure
         radio_state = newState;
     }
 
     bool isScanning() const {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         // TODO: Handle lock failure
         return scan_active;
     }
 
     void setScanning(bool newState) {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         // TODO: Handle lock failure
         scan_active = newState;
     }
 
     bool isScanActive() const {
-        auto lcokable = dataMutex.scoped();
-        lcokable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         return scan_active;
     }
 
     void setScanActive(bool newState) {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         scan_active = newState;
     }
 
     bool isSecureConnection() const {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         return secure_connection;
     }
 
     void setSecureConnection(bool newState) {
-        auto lockable = dataMutex.scoped();
-        lockable->lock();
+        auto lock = dataMutex.asScopedLock();
+        lock.lock();
         secure_connection = newState;
     }
 };
@@ -191,8 +191,8 @@ void connect(const settings::WifiApSettings* ap, bool remember) {
         return;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return;
     }
 
@@ -215,8 +215,8 @@ void disconnect() {
         return;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return;
     }
 
@@ -237,8 +237,8 @@ void setScanRecords(uint16_t records) {
         return;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return;
     }
 
@@ -258,8 +258,8 @@ std::vector<ApRecord> getScanResults() {
         return records;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return records;
     }
 
@@ -285,8 +285,8 @@ void setEnabled(bool enabled) {
         return;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return;
     }
 
@@ -305,8 +305,8 @@ bool isConnectionSecure() {
         return false;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         return false;
     }
 
@@ -326,8 +326,8 @@ int getRssi() {
 // endregion Public functions
 
 static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
-    auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         assert(wifi->scan_list == nullptr);
         wifi->scan_list = static_cast<wifi_ap_record_t*>(malloc(sizeof(wifi_ap_record_t) * wifi->scan_list_limit));
         wifi->scan_list_count = 0;
@@ -335,8 +335,8 @@ static void scan_list_alloc(std::shared_ptr<Wifi> wifi) {
 }
 
 static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
-    auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         if (wifi->scan_list == nullptr) {
             scan_list_alloc(wifi);
         }
@@ -344,8 +344,8 @@ static void scan_list_alloc_safely(std::shared_ptr<Wifi> wifi) {
 }
 
 static void scan_list_free(std::shared_ptr<Wifi> wifi) {
-    auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         assert(wifi->scan_list != nullptr);
         free(wifi->scan_list);
         wifi->scan_list = nullptr;
@@ -354,8 +354,8 @@ static void scan_list_free(std::shared_ptr<Wifi> wifi) {
 }
 
 static void scan_list_free_safely(std::shared_ptr<Wifi> wifi) {
-    auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         if (wifi->scan_list != nullptr) {
             scan_list_free(wifi);
         }
@@ -363,8 +363,8 @@ static void scan_list_free_safely(std::shared_ptr<Wifi> wifi) {
 }
 
 static void publish_event_simple(std::shared_ptr<Wifi> wifi, EventType type) {
-    auto lockable = wifi->dataMutex.scoped();
-    if (lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         Event turning_on_event = {.type = type};
         wifi->pubsub->publish(&turning_on_event);
     }
@@ -380,8 +380,8 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
         return false;
     }
 
-    auto lockable = wifi->dataMutex.scoped();
-    if (!lockable->lock()) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (lock.lock()) {
         return false;
     }
 
@@ -407,9 +407,9 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
 
 static bool find_auto_connect_ap(std::shared_ptr<void> context, settings::WifiApSettings& settings) {
     auto wifi = std::static_pointer_cast<Wifi>(context);
-    auto lockable = wifi->dataMutex.scoped();
+    auto lock = wifi->dataMutex.asScopedLock();
 
-    if (lockable->lock(10 / portTICK_PERIOD_MS)) {
+    if (lock.lock(10 / portTICK_PERIOD_MS)) {
         TT_LOG_I(TAG, "auto_connect()");
         for (int i = 0; i < wifi->scan_list_count; ++i) {
             auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
@@ -512,9 +512,8 @@ static void dispatchEnable(std::shared_ptr<void> context) {
         return;
     }
 
-    auto lockable = wifi->radioMutex.scoped();
-
-    if (lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = wifi->radioMutex.asScopedLock();
+    if (lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_I(TAG, "Enabling");
         wifi->setRadioState(RadioState::OnPending);
         publish_event_simple(wifi, EventType::RadioStateOnPending);
@@ -590,9 +589,9 @@ static void dispatchEnable(std::shared_ptr<void> context) {
 static void dispatchDisable(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "dispatchDisable()");
     auto wifi = std::static_pointer_cast<Wifi>(context);
-    auto lockable = wifi->radioMutex.scoped();
+    auto lock = wifi->radioMutex.asScopedLock();
 
-    if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "disable()");
         return;
     }
@@ -657,9 +656,9 @@ static void dispatchDisable(std::shared_ptr<void> context) {
 static void dispatchScan(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "dispatchScan()");
     auto wifi = std::static_pointer_cast<Wifi>(context);
-    auto lockable = wifi->radioMutex.scoped();
+    auto lock = wifi->radioMutex.asScopedLock();
 
-    if (!lockable->lock(10 / portTICK_PERIOD_MS)) {
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -691,9 +690,9 @@ static void dispatchScan(std::shared_ptr<void> context) {
 static void dispatchConnect(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "dispatchConnect()");
     auto wifi = std::static_pointer_cast<Wifi>(context);
-    auto lockable = wifi->radioMutex.scoped();
+    auto lock = wifi->radioMutex.asScopedLock();
 
-    if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "dispatchConnect()");
         return;
     }
@@ -790,9 +789,9 @@ static void dispatchConnect(std::shared_ptr<void> context) {
 static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "dispatchDisconnectButKeepActive()");
     auto wifi = std::static_pointer_cast<Wifi>(context);
-    auto lockable = wifi->radioMutex.scoped();
+    auto lock = wifi->radioMutex.asScopedLock();
 
-    if (!lockable->lock(50 / portTICK_PERIOD_MS)) {
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -835,9 +834,8 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
 }
 
 static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
-    auto lockable = wifi->dataMutex.scoped();
-
-    if (!lockable->lock(100)) {
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(100)) {
         return false;
     }
 

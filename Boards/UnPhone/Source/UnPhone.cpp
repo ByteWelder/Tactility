@@ -76,7 +76,7 @@ extern const tt::hal::Configuration unPhone = {
             .initMode = tt::hal::spi::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
-            .lock = tt::lvgl::getLvglSyncLockable() // esp_lvgl_port owns the lock for the display
+            .lock = tt::lvgl::getLvglSyncLock() // esp_lvgl_port owns the lock for the display
         }
     }
 };

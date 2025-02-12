@@ -73,7 +73,7 @@ const tt::hal::Configuration cyd_2432S024c_config = {
             .initMode = tt::hal::spi::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
-            .lock = tt::lvgl::getLvglSyncLockable() // esp_lvgl_port owns the lock for the display
+            .lock = tt::lvgl::getLvglSyncLock() // esp_lvgl_port owns the lock for the display
         },
         tt::hal::spi::Configuration {
             .device = SPI3_HOST,

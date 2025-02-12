@@ -1,7 +1,7 @@
 #pragma once
 
 #include "./I2cCompat.h"
-#include "Tactility/Lockable.h"
+#include "Tactility/Lock.h"
 
 #include <Tactility/RtosCompat.h>
 
@@ -89,6 +89,6 @@ bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeo
  * The lock for the specified bus.
  * This can be used when calling native I2C functionality outside of Tactility.
  */
-Lockable& getLock(i2c_port_t port);
+Lock& getLock(i2c_port_t port);
 
 } // namespace

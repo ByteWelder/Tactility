@@ -8,8 +8,8 @@ using tt::hal::gps::GpsDevice;
 namespace tt::service::gps {
 
 GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shared_ptr<GpsDevice>& device) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     auto result = std::views::filter(deviceRecords, [&device](auto& record){
         return record.device.get() == device.get();
@@ -22,8 +22,8 @@ GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shar
 }
 
 void GpsService::addGpsDevice(const std::shared_ptr<GpsDevice>& device) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     GpsDeviceRecord record = { .device = device };
 
@@ -35,8 +35,8 @@ void GpsService::addGpsDevice(const std::shared_ptr<GpsDevice>& device) {
 }
 
 void GpsService::removeGpsDevice(const std::shared_ptr<GpsDevice>& device) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     GpsDeviceRecord* record = findGpsRecord(device);
 
@@ -50,8 +50,8 @@ void GpsService::removeGpsDevice(const std::shared_ptr<GpsDevice>& device) {
 }
 
 void GpsService::onStart(tt::service::ServiceContext &serviceContext) {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     deviceRecords.clear();
 
@@ -71,8 +71,8 @@ void GpsService::onStop(tt::service::ServiceContext &serviceContext) {
 bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
     TT_LOG_I(TAG, "[device %lu] starting", record.device->getId());
 
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     auto device = record.device;
 
@@ -114,8 +114,8 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
 bool GpsService::startReceiving() {
     TT_LOG_I(TAG, "Start receiving");
 
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     bool started_one_or_more = false;
 
@@ -131,8 +131,8 @@ bool GpsService::startReceiving() {
 void GpsService::stopReceiving() {
     TT_LOG_I(TAG, "Stop receiving");
 
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     for (auto& record : deviceRecords) {
         stopGpsDevice(record);
@@ -142,8 +142,8 @@ void GpsService::stopReceiving() {
 }
 
 bool GpsService::isReceiving() {
-    auto lockable = mutex.scoped();
-    lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
     return receiving;
 }
 

@@ -29,7 +29,7 @@ private:
 public:
 
     explicit SdCardDevice(MountBehaviour mountBehaviour) : mountBehaviour(mountBehaviour) {}
-    virtual ~SdCardDevice() override = default;
+    ~SdCardDevice() override = default;
 
     Type getType() const final { return Type::SdCard; };
 
@@ -39,7 +39,7 @@ public:
     /** Return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
 
-    virtual std::shared_ptr<Lockable> getLockable() const = 0;
+    virtual Lock& getLock() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
     bool isMounted() const { return getState() == State::Mounted; }
@@ -55,10 +55,9 @@ std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
 template<typename ReturnType>
 inline ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
     auto sdcard = find(path);
-    std::unique_ptr<ScopedLockableUsage> scoped_lockable;
     if (sdcard != nullptr) {
-        scoped_lockable = sdcard->getLockable()->scoped();
-        scoped_lockable->lock(portMAX_DELAY);
+        auto scoped_lockable = sdcard->getLock().asScopedLock();
+        scoped_lockable.lock(portMAX_DELAY);
     }
 
     return fn();

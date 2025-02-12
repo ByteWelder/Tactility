@@ -147,8 +147,8 @@ static LoaderStatus startAppWithManifestInternal(
 
     TT_LOG_I(TAG, "Start with manifest %s", manifest->id.c_str());
 
-    auto scoped_lock = loader_singleton->mutex.scoped();
-    if (!scoped_lock->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = loader_singleton->mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         return LoaderStatus::ErrorInternal;
     }
 
@@ -202,8 +202,8 @@ static LoaderStatus startAppInternal(
 static void stopAppInternal() {
     tt_check(loader_singleton != nullptr);
 
-    auto scoped_lock = loader_singleton->mutex.scoped();
-    if (!scoped_lock->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = loader_singleton->mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         return;
     }
 
@@ -257,7 +257,7 @@ static void stopAppInternal() {
     }
 
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
-    scoped_lock->unlock();
+    lock.unlock();
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
 
     LoaderEvent event_external = { .type = LoaderEventTypeApplicationStopped };

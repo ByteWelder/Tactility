@@ -75,8 +75,8 @@ int32_t GpsDevice::threadMain() {
 }
 
 bool GpsDevice::start() {
-    auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock(portMAX_DELAY);
+    auto lock = mutex.asScopedLock();
+    lock.lock();
 
     if (thread != nullptr && thread->getState() != Thread::State::Stopped) {
         TT_LOG_W(TAG, "Already started");
@@ -108,8 +108,8 @@ bool GpsDevice::start() {
 }
 
 bool GpsDevice::stop() {
-    auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock(portMAX_DELAY);
 
     if (thread != nullptr) {
         threadInterrupted = true;
@@ -119,11 +119,11 @@ bool GpsDevice::stop() {
 
         if (old_thread->getState() != Thread::State::Stopped) {
             // Unlock so thread can lock
-            scoped_lockable->unlock();
+            lock.unlock();
             // Wait for thread to finish
             old_thread->join();
             // Re-lock to continue logic below
-            scoped_lockable->lock();
+            lock.lock();
         }
     }
 
@@ -138,14 +138,14 @@ bool GpsDevice::stop() {
 }
 
 bool GpsDevice::isStarted() const {
-    auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock(portMAX_DELAY);
+    auto lock = mutex.asScopedLock();
+    lock.lock();
     return thread != nullptr && thread->getState() != Thread::State::Stopped;
 }
 
 bool GpsDevice::isThreadInterrupted() const {
-    auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock(portMAX_DELAY);
+    auto lock = mutex.asScopedLock();
+    lock.lock(portMAX_DELAY);
     return threadInterrupted;
 }
 

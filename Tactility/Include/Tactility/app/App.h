@@ -51,8 +51,8 @@ public:
     bool hasResult() const { return resultHolder != nullptr; }
 
     void setResult(Result result, std::unique_ptr<Bundle> resultData = nullptr) {
-        auto lockable = getMutex().scoped();
-        lockable->lock(portMAX_DELAY);
+        auto lock = getMutex().asScopedLock();
+        lock.lock();
         resultHolder = std::make_unique<ResultHolder>(result, std::move(resultData));
     }
 
@@ -61,8 +61,8 @@ public:
      * Note that this removes the data from the class!
      */
     bool moveResult(Result& outResult, std::unique_ptr<Bundle>& outBundle) {
-        auto lockable = getMutex().scoped();
-        lockable->lock(portMAX_DELAY);
+        auto lock = getMutex().asScopedLock();
+        lock.lock();
 
         if (resultHolder != nullptr) {
             outResult = resultHolder->result;
