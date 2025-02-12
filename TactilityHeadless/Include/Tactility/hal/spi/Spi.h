@@ -5,10 +5,9 @@
 #include <Tactility/Lockable.h>
 #include <Tactility/RtosCompat.h>
 
-#include <vector>
-#include <memory>
-
 namespace tt::hal::spi {
+
+constexpr TickType_t defaultTimeout = 10 / portTICK_PERIOD_MS;
 
 enum class InitMode {
     ByTactility, // Tactility will initialize it in the correct bootup phase
@@ -36,13 +35,16 @@ enum class Status {
     Unknown
 };
 
-bool init(const std::vector<spi::Configuration>& configurations);
-
+/** Start communications */
 bool start(spi_host_device_t device);
+
+/** Stop communications */
 bool stop(spi_host_device_t device);
+
+/** @return true if communications were started successfully */
 bool isStarted(spi_host_device_t device);
 
-bool lock(spi_host_device_t device, TickType_t timeout = 10 / portTICK_PERIOD_MS);
-bool unlock(spi_host_device_t device);
+/** @return the lock that represents the specified device. Can be used with third party SPI implementations or native API calls (e.g. ESP-IDF). */
+Lockable& getLock(spi_host_device_t device);
 
 } // namespace tt::hal::spi

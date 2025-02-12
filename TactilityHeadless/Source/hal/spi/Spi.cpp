@@ -15,7 +15,7 @@ struct Data {
 
 static Data dataArray[SPI_HOST_MAX];
 
-static const char* initModeToString(InitMode mode) {
+static const char* toString(InitMode mode) {
     switch (mode) {
         using enum InitMode;
         case ByTactility:
@@ -32,7 +32,7 @@ static void printInfo(const Data& data) {
     TT_LOG_V(TAG, "SPI info for device %d", data.configuration.device);
     TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
     TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %s", initModeToString(data.configuration.initMode));
+    TT_LOG_V(TAG, "  initMode: %s", toString(data.configuration.initMode));
     TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
     TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
     TT_LOG_V(TAG, "  MISO pin: %d", data.configuration.config.miso_io_num);
@@ -67,7 +67,10 @@ bool init(const std::vector<spi::Configuration>& configurations) {
     return true;
 }
 
-static bool configureLocked(spi_host_device_t device, const spi_bus_config_t& configuration) {
+bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) {
+    auto lock = getLock(device).asScopedLock();
+    lock.lock();
+
     Data& data = dataArray[device];
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", device);
@@ -81,18 +84,10 @@ static bool configureLocked(spi_host_device_t device, const spi_bus_config_t& co
     }
 }
 
-bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) {
-    if (lock(device)) {
-        bool result = configureLocked(device, configuration);
-        unlock(device);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", device);
-        return false;
-    }
-}
+bool start(spi_host_device_t device) {
+    auto lock = getLock(device).asScopedLock();
+    lock.lock();
 
-static bool startLocked(spi_host_device_t device) {
     Data& data = dataArray[device];
     printInfo(data);
 
@@ -106,7 +101,7 @@ static bool startLocked(spi_host_device_t device) {
         return false;
     }
 
-    #ifdef ESP_PLATFORM
+#ifdef ESP_PLATFORM
 
     Configuration& config = data.configuration;
     auto result = spi_bus_initialize(device, &data.configuration.config, data.configuration.dma);
@@ -117,28 +112,20 @@ static bool startLocked(spi_host_device_t device) {
         data.isStarted = true;
     }
 
-    #else
+#else
 
     data.isStarted = true;
 
-    #endif
+#endif
 
     TT_LOG_I(TAG, "(%d) Started", device);
     return true;
 }
 
-bool start(spi_host_device_t device) {
-    if (lock(device)) {
-        bool result = startLocked(device);
-        unlock(device);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", device);
-        return false;
-    }
-}
+bool stop(spi_host_device_t device) {
+    auto lock = getLock(device).asScopedLock();
+    lock.lock();
 
-static bool stopLocked(spi_host_device_t device) {
     Data& data = dataArray[device];
     Configuration& config = data.configuration;
 
@@ -152,7 +139,7 @@ static bool stopLocked(spi_host_device_t device) {
         return false;
     }
 
-    #ifdef ESP_PLATFORM
+#ifdef ESP_PLATFORM
 
     auto result = spi_bus_free(device);
     if (result != ESP_OK) {
@@ -162,44 +149,28 @@ static bool stopLocked(spi_host_device_t device) {
         data.isStarted = false;
     }
 
-    #else
+#else
 
     data.isStarted = false;
 
-    #endif
+#endif
 
     TT_LOG_I(TAG, "(%d) Stopped", device);
     return true;
 }
 
-bool stop(spi_host_device_t device) {
-    if (lock(device)) {
-        bool result = stopLocked(device);
-        unlock(device);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", device);
-        return false;
-    }
-}
-
 bool isStarted(spi_host_device_t device) {
-    if (lock(device, 50 / portTICK_PERIOD_MS)) {
-        bool started = dataArray[device].isStarted;
-        unlock(device);
-        return started;
-    } else {
-        // If we can't get a lock, we assume the device is busy and thus has started
-        return true;
-    }
+    auto lock = getLock(device).asScopedLock();
+    lock.lock();
+
+    Data& data = dataArray[device];
+    Configuration& config = data.configuration;
+
+    return dataArray[device].isStarted;
 }
 
-bool lock(spi_host_device_t device, TickType_t timeout) {
-    return dataArray[device].lock->lock(timeout);
-}
-
-bool unlock(spi_host_device_t device) {
-    return dataArray[device].lock->unlock();
+Lockable& getLock(spi_host_device_t device) {
+    return *dataArray[device].lock;
 }
 
 }

@@ -40,11 +40,11 @@ bool tt_hal_i2c_master_has_device_at_address(i2c_port_t port, uint8_t address, T
 }
 
 bool tt_hal_i2c_lock(i2c_port_t port, TickType_t timeout) {
-    return tt::hal::i2c::lock(port, timeout);
+    return tt::hal::i2c::getLock(port).lock(timeout);
 }
 
 bool tt_hal_i2c_unlock(i2c_port_t port) {
-    return tt::hal::i2c::unlock(port);
+    return tt::hal::i2c::getLock(port).unlock();
 }
 
 }

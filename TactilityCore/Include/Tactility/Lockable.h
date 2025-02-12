@@ -43,7 +43,10 @@ public:
 
     void withLock(const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailed) const { withLock(portMAX_DELAY, onLockAcquired, onLockFailed); }
 
+    [[deprecated("use asScopedLock()")]]
     std::unique_ptr<ScopedLockableUsage> scoped() const;
+
+    ScopedLockableUsage asScopedLock() const;
 };
 
 

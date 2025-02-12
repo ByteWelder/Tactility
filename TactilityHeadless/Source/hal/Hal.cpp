@@ -1,10 +1,10 @@
 #include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
 #include "Tactility/hal/gps/GpsInit.h"
-#include "Tactility/hal/i2c/I2c.h"
+#include "Tactility/hal/i2c/I2cInit.h"
 #include "Tactility/hal/power/PowerDevice.h"
-#include "Tactility/hal/spi/Spi.h"
-#include "Tactility/hal/uart/Uart.h"
+#include "Tactility/hal/spi/SpiInit.h"
+#include "Tactility/hal/uart/UartInit.h"
 
 #include <Tactility/kernel/SystemEvents.h>
 

@@ -21,7 +21,7 @@ struct Data {
 static const uint8_t ACK_CHECK_EN = 1;
 static Data dataArray[I2C_NUM_MAX];
 
-static const char* initModeToString(InitMode mode) {
+static const char* toString(InitMode mode) {
     switch (mode) {
         using enum InitMode;
         case ByTactility:
@@ -38,7 +38,7 @@ static void printInfo(const Data& data) {
     TT_LOG_V(TAG, "I2C info for port %d", data.configuration.port);
     TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
     TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %s", initModeToString(data.configuration.initMode));
+    TT_LOG_V(TAG, "  initMode: %s", toString(data.configuration.initMode));
     TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
     TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
 #ifdef ESP_PLATFORM
@@ -75,7 +75,10 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
    return true;
 }
 
-static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) {
+bool configure(i2c_port_t port, const i2c_config_t& configuration) {
+    auto lockable = getLock(port).asScopedLock();
+    lockable.lock();
+
     Data& data = dataArray[port];
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
@@ -89,18 +92,10 @@ static bool configureLocked(i2c_port_t port, const i2c_config_t& configuration) 
     }
 }
 
-bool configure(i2c_port_t port, const i2c_config_t& configuration) {
-    if (lock(port)) {
-        bool result = configureLocked(port, configuration);
-        unlock(port);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
-        return false;
-    }
-}
+bool start(i2c_port_t port) {
+    auto lockable = getLock(port).asScopedLock();
+    lockable.lock();
 
-static bool startLocked(i2c_port_t port) {
     Data& data = dataArray[port];
     printInfo(data);
     Configuration& config = data.configuration;
@@ -135,18 +130,10 @@ static bool startLocked(i2c_port_t port) {
     return true;
 }
 
-bool start(i2c_port_t port) {
-    if (lock(port)) {
-        bool result = startLocked(port);
-        unlock(port);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
-        return false;
-    }
-}
+bool stop(i2c_port_t port) {
+    auto lockable = getLock(port).asScopedLock();
+    lockable.lock();
 
-static bool stopLocked(i2c_port_t port) {
     Data& data = dataArray[port];
     Configuration& config = data.configuration;
 
@@ -174,51 +161,36 @@ static bool stopLocked(i2c_port_t port) {
     return true;
 }
 
-bool stop(i2c_port_t port) {
-    if (lock(port)) {
-        bool result = stopLocked(port);
-        unlock(port);
-        return result;
-    } else {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
-        return false;
-    }
-}
-
 bool isStarted(i2c_port_t port) {
-    if (lock(port, 50 / portTICK_PERIOD_MS)) {
-        bool started = dataArray[port].isStarted;
-        unlock(port);
-        return started;
-    } else {
-        // If we can't get a lock, we assume the device is busy and thus has started
-        return true;
-    }
+    auto lockable = getLock(port).asScopedLock();
+    lockable.lock();
+    return dataArray[port].isStarted;
 }
 
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
-#ifdef ESP_PLATFORM
-    if (lock(port)) {
-        // TODO: We're passing an inaccurate timeout value as we already lost time with locking and previous writes in this loop
-        esp_err_t result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
-        unlock(port);
-        return result == ESP_OK;
-    } else {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
+
+#ifdef ESP_PLATFORM
+    auto result = i2c_master_read_from_device(port, address, data, dataSize, timeout);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+    return result == ESP_OK;
 #else
     return false;
 #endif // ESP_PLATFORM
 }
 
 bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
-#ifdef ESP_PLATFORM
-    if (!lock(port)) {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
 
+#ifdef ESP_PLATFORM
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     // Set address pointer
     i2c_master_start(cmd);
@@ -236,9 +208,6 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
-    unlock(port);
-
-    ESP_LOG_BUFFER_HEX_LEVEL(TAG, data, dataSize, ESP_LOG_DEBUG);
     ESP_ERROR_CHECK_WITHOUT_ABORT(result);
 
     return result == ESP_OK;
@@ -248,29 +217,31 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
 }
 
 bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
-#ifdef ESP_PLATFORM
-    if (lock(port)) {
-        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
-        esp_err_t result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
-        unlock(port);
-        return result == ESP_OK;
-    } else {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
+
+#ifdef ESP_PLATFORM
+    auto result = i2c_master_write_to_device(port, address, data, dataSize, timeout);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+    return result == ESP_OK;
 #else
     return false;
 #endif // ESP_PLATFORM
 }
 
 bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
-#ifdef ESP_PLATFORM
     tt_check(reg != 0);
 
-    if (!lock(port)) {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
+
+#ifdef ESP_PLATFORM
 
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -282,10 +253,7 @@ bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const ui
     esp_err_t result = i2c_master_cmd_begin(port, cmd, timeout);
     i2c_cmd_link_delete(cmd);
 
-    unlock(port);
-
     ESP_ERROR_CHECK_WITHOUT_ABORT(result);
-
     return result == ESP_OK;
 #else
     return false;
@@ -309,44 +277,39 @@ bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* d
 }
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
-#ifdef ESP_PLATFORM
-    if (lock(port)) {
-        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
-        esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
-        unlock(port);
-        return result == ESP_OK;
-    } else {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
+
+#ifdef ESP_PLATFORM
+    esp_err_t result = i2c_master_write_read_device(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(result);
+    return result == ESP_OK;
 #else
     return false;
 #endif // ESP_PLATFORM
 }
 
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
-#ifdef ESP_PLATFORM
-    if (lock(port)) {
-        uint8_t message[2] = { 0, 0 };
-        // TODO: We're passing an inaccurate timeout value as we already lost time with locking
-        esp_err_t result = i2c_master_write_to_device(port, address, message, 2, timeout);
-        unlock(port);
-        return result == ESP_OK;
-    } else {
+    auto lockable = getLock(port).asScopedLock();
+    if (!lockable.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
+
+#ifdef ESP_PLATFORM
+    uint8_t message[2] = { 0, 0 };
+    // TODO: We're passing an inaccurate timeout value as we already lost time with locking
+    return i2c_master_write_to_device(port, address, message, 2, timeout) == ESP_OK;
 #else
     return false;
 #endif // ESP_PLATFORM
 }
 
-bool lock(i2c_port_t port, TickType_t timeout) {
-    return dataArray[port].mutex.lock(timeout);
-}
-
-bool unlock(i2c_port_t port) {
-    return dataArray[port].mutex.unlock();
+Lockable& getLock(i2c_port_t port) {
+    return dataArray[port].mutex;
 }
 
 } // namespace
