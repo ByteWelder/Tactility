@@ -9,9 +9,7 @@
 
 namespace tt::hal {
 
-/**
- * Base class for HAL-related devices.
- */
+/** Base class for HAL-related devices. */
 class Device {
 
 public:
@@ -37,9 +35,10 @@ public:
     Device();
     virtual ~Device() = default;
 
+    /** Unique identifier */
     inline Id getId() const { return id; }
 
-    /** The type of device. */
+    /** The type of device */
     virtual Type getType() const = 0;
 
     /** The part number or hardware name e.g. TdeckTouch, TdeckDisplay, BQ24295, etc. */

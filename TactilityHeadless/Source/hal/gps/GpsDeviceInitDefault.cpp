@@ -59,7 +59,7 @@ static int ackGps(uart_port_t port, uint8_t* buffer, uint16_t size, uint8_t requ
                         ubxFrameCounter = 0;
                         break;
                     }
-                    if (uart::read(port, buffer, needRead) != needRead) {
+                    if (uart::readBytes(port, buffer, needRead) != needRead) {
                         ubxFrameCounter = 0;
                     } else {
                         return needRead;
@@ -105,7 +105,7 @@ static bool configureGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
 #ifdef ESP_PLATFORM
         esp_rom_printf("\n");
 #endif
-        uart::flush(port);
+        uart::flushInput(port);
         kernel::delayMillis(200);
 
         if (!uart::writeString(port, "$PCAS06,0*1B\r\n")) {
@@ -144,7 +144,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
     uint8_t cfg_clear2[] = {0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x1B, 0xA1};
     uint8_t cfg_clear3[] = {0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x03, 0x1D, 0xB3};
 
-    if (!uart::write(port, cfg_clear1, sizeof(cfg_clear1), 10)) {
+    if (!uart::writeBytes(port, cfg_clear1, sizeof(cfg_clear1), 10)) {
         return false;
         TT_LOG_E(TAG, "Failed to send ack 1");
     }
@@ -155,7 +155,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         TT_LOG_W(TAG, "Ack 1 failed");
     }
 
-    if (!uart::write(port, cfg_clear2, sizeof(cfg_clear2))) {
+    if (!uart::writeBytes(port, cfg_clear2, sizeof(cfg_clear2))) {
         return false;
         TT_LOG_E(TAG, "Failed to send ack 2");
     }
@@ -166,7 +166,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
         TT_LOG_W(TAG, "Ack 2 failed");
     }
 
-    if (!uart::write(port, cfg_clear3, sizeof(cfg_clear3))) {
+    if (!uart::writeBytes(port, cfg_clear3, sizeof(cfg_clear3))) {
         TT_LOG_E(TAG, "Failed to send ack 3");
         return false;
     }
@@ -179,7 +179,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
 
     // UBX-CFG-RATE, Size 8, 'Navigation/measurement rate settings'
     uint8_t cfg_rate[] = {0xB5, 0x62, 0x06, 0x08, 0x00, 0x00, 0x0E, 0x30};
-    uart::write(port, cfg_rate, sizeof(cfg_rate));
+    uart::writeBytes(port, cfg_rate, sizeof(cfg_rate));
     if (ackGps(port, buffer, bufferSize, 0x06, 0x08)) {
         TT_LOG_I(TAG, "Ack completed");
     } else {
