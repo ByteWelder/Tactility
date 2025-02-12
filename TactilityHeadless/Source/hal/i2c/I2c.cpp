@@ -308,14 +308,6 @@ bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeo
 #endif // ESP_PLATFORM
 }
 
-bool lock(i2c_port_t port, TickType_t timeout) {
-    return dataArray[port].mutex.lock(timeout);
-}
-
-bool unlock(i2c_port_t port) {
-    return dataArray[port].mutex.unlock();
-}
-
 Lockable& getLock(i2c_port_t port) {
     return dataArray[port].mutex;
 }
