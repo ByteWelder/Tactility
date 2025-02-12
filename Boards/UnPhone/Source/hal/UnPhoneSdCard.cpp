@@ -19,7 +19,7 @@ std::shared_ptr<SdCardDevice> createUnPhoneSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        tt::lvgl::getLvglSyncLockable(),
+        tt::lvgl::getLvglSyncLock(),
         {
             UNPHONE_LORA_PIN_CS,
             UNPHONE_LCD_PIN_CS,

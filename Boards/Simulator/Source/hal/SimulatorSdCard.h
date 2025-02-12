@@ -11,14 +11,14 @@ class SimulatorSdCard final : public SdCardDevice {
 private:
 
     State state;
-    std::shared_ptr<tt::Lockable> lockable;
+    std::shared_ptr<tt::Lock> lock;
     std::string mountPath;
 
 public:
 
     SimulatorSdCard() : SdCardDevice(MountBehaviour::AtBoot),
         state(State::Unmounted),
-        lockable(std::make_shared<tt::Mutex>())
+        lock(std::make_shared<tt::Mutex>())
     {}
 
     std::string getName() const final { return "Mock SD Card"; }
@@ -38,8 +38,7 @@ public:
 
     std::string getMountPath() const final { return mountPath; };
 
-    std::shared_ptr<tt::Lockable> getLockable() const final { return lockable; }
+    tt::Lock& getLock() const final { return *lock; }
 
     State getState() const override { return state; }
 };
-

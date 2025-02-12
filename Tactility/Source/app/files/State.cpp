@@ -32,8 +32,8 @@ std::string State::getSelectedChildPath() const {
 }
 
 bool State::setEntriesForPath(const std::string& path) {
-    auto scoped_lock = mutex.scoped();
-    if (!scoped_lock->lock(100)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(100)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "setEntriesForPath");
         return false;
     }
@@ -102,8 +102,8 @@ bool State::setEntriesForChildPath(const std::string& child_path) {
 }
 
 bool State::getDirent(uint32_t index, dirent& dirent) {
-    auto scoped_mutex = mutex.scoped();
-    if (!scoped_mutex->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         return false;
     }
 

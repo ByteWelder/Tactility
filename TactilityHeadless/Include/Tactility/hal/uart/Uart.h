@@ -3,7 +3,7 @@
 #include <Tactility/RtosCompat.h>
 
 #include "../Gpio.h"
-#include "Tactility/Lockable.h"
+#include "Tactility/Lock.h"
 #include "UartCompat.h"
 
 #include <memory>
@@ -59,7 +59,7 @@ bool stop(uart_port_t port);
 bool isStarted(uart_port_t port);
 
 /** @return a lock that is usable for using ESP-IDF directly, or for use with third party APIs */
-Lockable& getLock(uart_port_t port);
+Lock& getLock(uart_port_t port);
 
 /**
  * Read up to a specified amount of bytes

@@ -7,7 +7,7 @@
 namespace tt::hal::spi {
 
 struct Data {
-    std::shared_ptr<Lockable> lock;
+    std::shared_ptr<Lock> lock;
     bool isConfigured = false;
     bool isStarted = false;
     Configuration configuration;
@@ -169,7 +169,7 @@ bool isStarted(spi_host_device_t device) {
     return dataArray[device].isStarted;
 }
 
-Lockable& getLock(spi_host_device_t device) {
+Lock& getLock(spi_host_device_t device) {
     return *dataArray[device].lock;
 }
 

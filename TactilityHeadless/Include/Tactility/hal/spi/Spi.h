@@ -2,7 +2,7 @@
 
 #include "SpiCompat.h"
 
-#include <Tactility/Lockable.h>
+#include <Tactility/Lock.h>
 #include <Tactility/RtosCompat.h>
 
 namespace tt::hal::spi {
@@ -26,7 +26,7 @@ struct Configuration {
     /** Whether configuration can be changed. */
     bool hasMutableConfiguration;
     /** Optional custom lock */
-    std::shared_ptr<Lockable> _Nullable lock;
+    std::shared_ptr<Lock> _Nullable lock;
 };
 
 enum class Status {
@@ -45,6 +45,6 @@ bool stop(spi_host_device_t device);
 bool isStarted(spi_host_device_t device);
 
 /** @return the lock that represents the specified device. Can be used with third party SPI implementations or native API calls (e.g. ESP-IDF). */
-Lockable& getLock(spi_host_device_t device);
+Lock& getLock(spi_host_device_t device);
 
 } // namespace tt::hal::spi

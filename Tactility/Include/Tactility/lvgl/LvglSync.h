@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/Lockable.h>
+#include <Tactility/Lock.h>
 
 #include <memory>
 
@@ -25,6 +25,6 @@ void syncSet(LvglLock lock, LvglUnlock unlock);
 bool lock(TickType_t timeout);
 void unlock();
 
-std::shared_ptr<Lockable> getLvglSyncLockable();
+std::shared_ptr<Lock> getLvglSyncLock();
 
 } // namespace

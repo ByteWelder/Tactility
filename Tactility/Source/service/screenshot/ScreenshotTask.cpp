@@ -23,8 +23,8 @@ ScreenshotTask::~ScreenshotTask() {
 }
 
 bool ScreenshotTask::isInterrupted() {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return true;
     }
@@ -32,8 +32,8 @@ bool ScreenshotTask::isInterrupted() {
 }
 
 bool ScreenshotTask::isFinished() {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return false;
     }
@@ -41,8 +41,8 @@ bool ScreenshotTask::isFinished() {
 }
 
 void ScreenshotTask::setFinished() {
-    auto scoped_lockable = mutex.scoped();
-    scoped_lockable->lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
     finished = true;
 }
 
@@ -106,8 +106,8 @@ void ScreenshotTask::taskMain() {
 }
 
 void ScreenshotTask::taskStart() {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -123,8 +123,8 @@ void ScreenshotTask::taskStart() {
 }
 
 void ScreenshotTask::startApps(const std::string& path) {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
@@ -140,8 +140,8 @@ void ScreenshotTask::startApps(const std::string& path) {
 }
 
 void ScreenshotTask::startTimed(const std::string& path, uint8_t delay_in_seconds, uint8_t amount) {
-    auto scoped_lockable = mutex.scoped();
-    if (!scoped_lockable->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(50 / portTICK_PERIOD_MS)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }

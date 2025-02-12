@@ -76,8 +76,8 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
 }
 
 bool configure(i2c_port_t port, const i2c_config_t& configuration) {
-    auto lockable = getLock(port).asScopedLock();
-    lockable.lock();
+    auto lock = getLock(port).asScopedLock();
+    lock.lock();
 
     Data& data = dataArray[port];
     if (data.isStarted) {
@@ -93,8 +93,8 @@ bool configure(i2c_port_t port, const i2c_config_t& configuration) {
 }
 
 bool start(i2c_port_t port) {
-    auto lockable = getLock(port).asScopedLock();
-    lockable.lock();
+    auto lock = getLock(port).asScopedLock();
+    lock.lock();
 
     Data& data = dataArray[port];
     printInfo(data);
@@ -131,8 +131,8 @@ bool start(i2c_port_t port) {
 }
 
 bool stop(i2c_port_t port) {
-    auto lockable = getLock(port).asScopedLock();
-    lockable.lock();
+    auto lock = getLock(port).asScopedLock();
+    lock.lock();
 
     Data& data = dataArray[port];
     Configuration& config = data.configuration;
@@ -162,14 +162,14 @@ bool stop(i2c_port_t port) {
 }
 
 bool isStarted(i2c_port_t port) {
-    auto lockable = getLock(port).asScopedLock();
-    lockable.lock();
+    auto lock = getLock(port).asScopedLock();
+    lock.lock();
     return dataArray[port].isStarted;
 }
 
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -184,8 +184,8 @@ bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize
 }
 
 bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -217,8 +217,8 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
 }
 
 bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -235,8 +235,8 @@ bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t
 bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     tt_check(reg != 0);
 
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -277,8 +277,8 @@ bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* d
 }
 
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -293,8 +293,8 @@ bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData,
 }
 
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
-    auto lockable = getLock(port).asScopedLock();
-    if (!lockable.lock(timeout)) {
+    auto lock = getLock(port).asScopedLock();
+    if (!lock.lock(timeout)) {
         TT_LOG_E(TAG, "(%d) Mutex timeout", port);
         return false;
     }
@@ -308,7 +308,7 @@ bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeo
 #endif // ESP_PLATFORM
 }
 
-Lockable& getLock(i2c_port_t port) {
+Lock& getLock(i2c_port_t port) {
     return dataArray[port].mutex;
 }
 

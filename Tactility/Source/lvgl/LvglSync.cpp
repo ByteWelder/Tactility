@@ -36,7 +36,7 @@ void unlock() {
     unlock_singleton();
 }
 
-class LvglSync : public Lockable {
+class LvglSync : public Lock {
 public:
     ~LvglSync() override = default;
 
@@ -50,9 +50,9 @@ public:
     }
 };
 
-static std::shared_ptr<Lockable> lvglSync = std::make_shared<LvglSync>();
+static std::shared_ptr<Lock> lvglSync = std::make_shared<LvglSync>();
 
-std::shared_ptr<Lockable> getLvglSyncLockable() {
+std::shared_ptr<Lock> getLvglSyncLock() {
     return lvglSync;
 }
 

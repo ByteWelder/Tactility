@@ -49,9 +49,9 @@ void GpioApp::updatePinStates() {
 }
 
 void GpioApp::updatePinWidgets() {
-    auto scoped_lvgl_lock = lvgl::getLvglSyncLockable()->scoped();
-    auto scoped_gpio_lock = mutex.scoped();
-    if (scoped_gpio_lock->lock() && scoped_lvgl_lock->lock(100)) {
+    auto scoped_lvgl_lock = lvgl::getLvglSyncLock()->scoped();
+    auto scoped_gpio_lock = mutex.asScopedLock();
+    if (scoped_gpio_lock.lock() && scoped_lvgl_lock->lock(100)) {
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
             int level = pinStates[j];
             lv_obj_t* label = lvPins[j];

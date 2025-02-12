@@ -8,14 +8,14 @@
 
 namespace tt {
 
-class ScopedLockableUsage;
+class ScopedLock;
 
 /** Represents a lock/mutex */
-class Lockable {
+class Lock {
 
 public:
 
-    virtual ~Lockable() = default;
+    virtual ~Lock() = default;
 
     virtual bool lock(TickType_t timeout) const = 0;
 
@@ -44,30 +44,29 @@ public:
     void withLock(const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailed) const { withLock(portMAX_DELAY, onLockAcquired, onLockFailed); }
 
     [[deprecated("use asScopedLock()")]]
-    std::unique_ptr<ScopedLockableUsage> scoped() const;
+    std::unique_ptr<ScopedLock> scoped() const;
 
-    ScopedLockableUsage asScopedLock() const;
+    ScopedLock asScopedLock() const;
 };
-
 
 /**
  * Represents a lockable instance that is scoped to a specific lifecycle.
- * Once the ScopedLockableUsage is destroyed, unlock() is called automatically.
+ * Once the ScopedLock is destroyed, unlock() is called automatically.
  *
  * In other words:
  * You have to lock() this object manually, but unlock() happens automatically on destruction.
  */
-class ScopedLockableUsage final : public Lockable {
+class ScopedLock final : public Lock {
 
-    const Lockable& lockable;
+    const Lock& lockable;
 
 public:
 
-    using Lockable::lock;
+    using Lock::lock;
 
-    explicit ScopedLockableUsage(const Lockable& lockable) : lockable(lockable) {}
+    explicit ScopedLock(const Lock& lockable) : lockable(lockable) {}
 
-    ~ScopedLockableUsage() final {
+    ~ScopedLock() final {
         lockable.unlock(); // We don't care whether it succeeded or not
     }
 

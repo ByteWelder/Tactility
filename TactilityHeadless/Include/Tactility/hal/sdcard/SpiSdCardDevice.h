@@ -26,7 +26,7 @@ public:
             gpio_num_t spiPinWp,
             gpio_num_t spiPinInt,
             MountBehaviour mountBehaviourAtBoot,
-            std::shared_ptr<Lockable> lockable = std::make_shared<Mutex>(),
+            std::shared_ptr<Lock> lockable = std::make_shared<Mutex>(),
             std::vector<gpio_num_t> csPinWorkAround = std::vector<gpio_num_t>(),
             spi_host_device_t spiHost = SPI2_HOST,
             int spiFrequencyKhz = SDMMC_FREQ_DEFAULT
@@ -49,7 +49,7 @@ public:
         gpio_num_t spiPinWp; // Write-protect
         gpio_num_t spiPinInt; // Interrupt
         SdCardDevice::MountBehaviour mountBehaviourAtBoot;
-        std::shared_ptr<Lockable> _Nullable lockable;
+        std::shared_ptr<Lock> _Nullable lockable;
         std::vector<gpio_num_t> csPinWorkAround;
         spi_host_device_t spiHost;
         bool formatOnMountFailed = false;
@@ -80,7 +80,7 @@ public:
     bool unmount() final;
     std::string getMountPath() const final { return mountPath; }
 
-    std::shared_ptr<Lockable> getLockable() const final { return config->lockable; }
+    Lock& getLock() const final { return *config->lockable; }
 
     State getState() const override;
 

@@ -4,10 +4,10 @@
  */
 #pragma once
 
-#include "Thread.h"
-#include "RtosCompatSemaphore.h"
 #include "Check.h"
-#include "Lockable.h"
+#include "Lock.h"
+#include "RtosCompatSemaphore.h"
+#include "Thread.h"
 #include "kernel/Kernel.h"
 #include <memory>
 
@@ -17,7 +17,7 @@ namespace tt {
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Cannot be used in IRQ mode (within ISR context)
  */
-class Mutex final : public Lockable {
+class Mutex final : public Lock {
 
 public:
 
@@ -40,7 +40,7 @@ private:
 
 public:
 
-    using Lockable::lock;
+    using Lock::lock;
 
     explicit Mutex(Type type = Type::Normal);
     ~Mutex() final = default;

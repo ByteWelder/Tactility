@@ -180,7 +180,7 @@ bool isStarted(uart_port_t port) {
     return dataArray[port].isStarted;
 }
 
-Lockable& getLock(uart_port_t port) {
+Lock& getLock(uart_port_t port) {
     return dataArray[port].mutex;
 }
 

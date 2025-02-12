@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include <Tactility/Lockable.h>
+#include <Tactility/Lock.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/Semaphore.h>
 

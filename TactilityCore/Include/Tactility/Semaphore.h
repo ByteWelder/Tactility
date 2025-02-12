@@ -1,7 +1,7 @@
 #pragma once
 
+#include "Lock.h"
 #include "kernel/Kernel.h"
-#include "Lockable.h"
 #include <cassert>
 #include <memory>
 
@@ -19,7 +19,7 @@ namespace tt {
  * Wrapper for xSemaphoreCreateBinary (max count == 1) and xSemaphoreCreateCounting (max count > 1)
  * Can be used from IRQ/ISR mode, but cannot be created/destroyed from such a context.
  */
-class Semaphore final : public Lockable {
+class Semaphore final : public Lock {
 
 private:
 
@@ -34,7 +34,7 @@ private:
 
 public:
 
-    using Lockable::lock;
+    using Lock::lock;
 
     /**
      * Cannot be called from IRQ/ISR mode.
