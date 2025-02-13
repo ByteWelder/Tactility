@@ -52,7 +52,7 @@ public:
 
 static std::shared_ptr<Lock> lvglSync = std::make_shared<LvglSync>();
 
-std::shared_ptr<Lock> getLvglSyncLock() {
+std::shared_ptr<Lock> getSyncLock() {
     return lvglSync;
 }
 

@@ -90,7 +90,7 @@ ScreenshotApp::~ScreenshotApp() {
 }
 
 void ScreenshotApp::onTimerTick() {
-    auto lvgl_lock = lvgl::getLvglSyncLock()->scoped();
+    auto lvgl_lock = lvgl::getSyncLock()->scoped();
     if (lvgl_lock->lock(50 / portTICK_PERIOD_MS)) {
         updateScreenshotMode();
     }

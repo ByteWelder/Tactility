@@ -49,7 +49,7 @@ void GpioApp::updatePinStates() {
 }
 
 void GpioApp::updatePinWidgets() {
-    auto scoped_lvgl_lock = lvgl::getLvglSyncLock()->scoped();
+    auto scoped_lvgl_lock = lvgl::getSyncLock()->scoped();
     auto scoped_gpio_lock = mutex.asScopedLock();
     if (scoped_gpio_lock.lock() && scoped_lvgl_lock->lock(100)) {
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {

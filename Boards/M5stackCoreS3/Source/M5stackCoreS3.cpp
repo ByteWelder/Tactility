@@ -74,7 +74,7 @@ const tt::hal::Configuration m5stack_cores3 = {
             .initMode = tt::hal::spi::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
-            .lock = tt::lvgl::getLvglSyncLock() // esp_lvgl_port owns the lock for the display
+            .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         }
     }
 };
