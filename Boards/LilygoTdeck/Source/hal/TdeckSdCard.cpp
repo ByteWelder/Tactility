@@ -18,7 +18,7 @@ std::shared_ptr<SdCardDevice> createTdeckSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        tt::lvgl::getLvglSyncLock(),
+        tt::lvgl::getSyncLock(),
         {
             TDECK_RADIO_PIN_CS,
             TDECK_LCD_PIN_CS

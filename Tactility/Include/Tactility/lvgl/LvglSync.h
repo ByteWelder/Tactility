@@ -25,6 +25,6 @@ void syncSet(LvglLock lock, LvglUnlock unlock);
 bool lock(TickType_t timeout);
 void unlock();
 
-std::shared_ptr<Lock> getLvglSyncLock();
+std::shared_ptr<Lock> getSyncLock();
 
 } // namespace
