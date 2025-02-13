@@ -20,6 +20,7 @@ private:
     std::unique_ptr<Timer> timer;
     std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
     lv_obj_t* statusLabelWidget = nullptr;
+    lv_obj_t* toggleWidget = nullptr;
 
     static void onUpdateCallback(std::shared_ptr<void> context) {
         auto appPtr = std::static_pointer_cast<GpsSettingsApp*>(context);
@@ -53,8 +54,12 @@ private:
                     lv_label_set_text(statusLabelWidget, "Acquiring GPS lock...");
                 }
                 lv_obj_remove_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
+
+                lv_obj_add_state(toggleWidget, LV_STATE_CHECKED);
             } else {
                 lv_obj_add_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
+
+                lv_obj_remove_state(toggleWidget, LV_STATE_CHECKED);
             }
         }
     }
@@ -106,18 +111,14 @@ public:
         auto* toggle_label = lv_label_create(top_wrapper);
         lv_label_set_text(toggle_label, "GPS receiver");
 
-        auto* toggle_switch = lv_switch_create(top_wrapper);
-        lv_obj_align(toggle_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
+        toggleWidget = lv_switch_create(top_wrapper);
+        lv_obj_align(toggleWidget, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_add_event_cb(toggleWidget, onGpsToggledCallback, LV_EVENT_VALUE_CHANGED, this);
 
         statusLabelWidget = lv_label_create(top_wrapper);
         lv_obj_align(statusLabelWidget, LV_ALIGN_TOP_LEFT, 0, 20);
-        lv_obj_add_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
 
-        if (service::gps::isReceiving()) {
-            lv_obj_add_state(toggle_switch, LV_STATE_CHECKED);
-        }
-
-        lv_obj_add_event_cb(toggle_switch, onGpsToggledCallback, LV_EVENT_VALUE_CHANGED, this);
+        updateViews();
     }
 };
 
