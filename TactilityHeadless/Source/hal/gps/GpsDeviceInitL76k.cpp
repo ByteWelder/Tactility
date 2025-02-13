@@ -124,7 +124,10 @@ static bool configureGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
             TT_LOG_I(TAG, "L76K GNSS init success");
             result = true;
             break;
+        } else {
+            TT_LOG_E(TAG, "Init failure: %s", ver.c_str());
         }
+
         kernel::delayMillis(500);
     }
     // Initialize the L76K Chip, use GPS + GLONASS
@@ -188,7 +191,7 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
     return true;
 }
 
-bool initGpsDefault(uart_port_t port) {
+bool initGpsL76k(uart_port_t port) {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
     if (!configureGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
         if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {

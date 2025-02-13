@@ -7,6 +7,10 @@ using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
 
+constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
+    return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
+}
+
 GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shared_ptr<GpsDevice>& device) {
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -82,11 +86,19 @@ bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
     }
 
     record.satelliteSubscriptionId = device->subscribeSatellites([this](hal::Device::Id deviceId, auto& record) {
+        mutex.lock();
         onSatelliteInfo(deviceId, record);
+        mutex.unlock();
     });
 
     record.locationSubscriptionId = device->subscribeLocations([this](hal::Device::Id deviceId, auto& record) {
+        mutex.lock();
+        if (record.longitude.value != 0 && record.longitude.scale != 0) {
+            rmcRecord = record;
+            rmcTime = kernel::getTicks();
+        }
         onRmcSentence(deviceId, record);
+        mutex.unlock();
     });
 
     return true;
@@ -124,6 +136,7 @@ bool GpsService::startReceiving() {
     }
 
     receiving = started_one_or_more;
+    rmcTime = 0;
 
     return receiving;
 }
@@ -138,13 +151,8 @@ void GpsService::stopReceiving() {
         stopGpsDevice(record);
     }
 
+    rmcTime = 0;
     receiving = false;
-}
-
-bool GpsService::isReceiving() {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    return receiving;
 }
 
 void GpsService::onSatelliteInfo(hal::Device::Id deviceId, const minmea_sat_info& info) {
@@ -153,6 +161,27 @@ void GpsService::onSatelliteInfo(hal::Device::Id deviceId, const minmea_sat_info
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
     TT_LOG_I(TAG, "[device %lu] coordinates %f %f", deviceId, minmea_tofloat(&rmc.longitude), minmea_tofloat(&rmc.latitude));
+}
+
+bool GpsService::isReceiving() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return receiving;
+}
+
+bool GpsService::hasCoordinates() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return isReceiving() && rmcTime != 0 && !hasTimeElapsed(kernel::getTicks(), rmcTime, kernel::secondsToTicks(10));
+}
+
+bool GpsService::getCoordinates(minmea_sentence_rmc& rmc) const {
+    if (hasCoordinates()) {
+        rmc = rmcRecord;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 extern const ServiceManifest manifest = {

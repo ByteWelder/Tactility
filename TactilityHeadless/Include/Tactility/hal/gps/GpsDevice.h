@@ -2,7 +2,7 @@
 
 #include "../Device.h"
 #include "../uart/Uart.h"
-#include "GpsDeviceInitDefault.h"
+#include "GpsDeviceInitL76k.h"
 #include "Satellites.h"
 
 #include <Tactility/Mutex.h>
@@ -24,7 +24,7 @@ public:
         std::string name;
         uart_port_t uartPort;
         uint32_t baudRate;
-        std::function<bool(uart_port_t)> initFunction = initGpsDefault;
+        std::function<bool(uart_port_t)> initFunction = initGpsL76k;
     };
 
 private:

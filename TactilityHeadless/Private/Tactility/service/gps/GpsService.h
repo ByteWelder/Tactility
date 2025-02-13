@@ -16,6 +16,9 @@ private:
         hal::gps::GpsDevice::LocationSubscriptionId locationSubscriptionId = -1;
     };
 
+    minmea_sentence_rmc rmcRecord;
+    TickType_t rmcTime = 0;
+
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::vector<GpsDeviceRecord> deviceRecords;
     bool receiving = false;
@@ -38,7 +41,10 @@ public:
 
     bool startReceiving();
     void stopReceiving();
-    bool isReceiving();
+    bool isReceiving() const;
+
+    bool hasCoordinates() const;
+    bool getCoordinates(minmea_sentence_rmc& rmc) const;
 };
 
 } // tt::hal::gps
