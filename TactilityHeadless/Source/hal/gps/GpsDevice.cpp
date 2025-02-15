@@ -28,7 +28,14 @@ int32_t GpsDevice::threadMain() {
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     while (!isThreadInterrupted()) {
         if (uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS) > 0) {
+
+            // Thread might've been interrupted in the meanwhile
+            if (isThreadInterrupted()) {
+                break;
+            }
+
             TT_LOG_D(TAG, "RX: %s", buffer);
+
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:
                     minmea_sentence_rmc frame;
