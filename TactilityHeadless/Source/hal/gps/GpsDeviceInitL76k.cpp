@@ -194,19 +194,19 @@ static bool recoverGps(uart_port_t port, uint8_t* buffer, size_t bufferSize) {
 bool initGpsL76k(uart_port_t port) {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
     if (!configureGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
-        if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
-            uint32_t initial_baud_rate = std::max(uart::getBaudRate(port), (uint32_t)9600U);
-            uart::setBaudRate(port, 9600U);
-            if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
-                TT_LOG_E(TAG, "Recovery repeatedly failed");
-                return false;
-            } else {
-                TT_LOG_I(TAG, "Recovery 2 complete");
-            }
-            uart::setBaudRate(port, initial_baud_rate);
-        } else {
-            TT_LOG_I(TAG, "Recovery 1 complete");
-        }
+//        if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
+//            uint32_t initial_baud_rate = std::max(uart::getBaudRate(port), (uint32_t)9600U);
+//            uart::setBaudRate(port, 9600U);
+//            if (!recoverGps(port, buffer, GPS_UART_BUFFER_SIZE)) {
+//                TT_LOG_E(TAG, "Recovery repeatedly failed");
+//                return false;
+//            } else {
+//                TT_LOG_I(TAG, "Recovery 2 complete");
+//            }
+//            uart::setBaudRate(port, initial_baud_rate);
+//        } else {
+//            TT_LOG_I(TAG, "Recovery 1 complete");
+//        }
     }
 
     TT_LOG_I(TAG, "Init complete");

@@ -156,11 +156,11 @@ void GpsService::stopReceiving() {
 }
 
 void GpsService::onSatelliteInfo(hal::Device::Id deviceId, const minmea_sat_info& info) {
-    TT_LOG_I(TAG, "[device %lu] satellite %d", deviceId, info.nr);
+    TT_LOG_I(TAG, "[device %lu] Satellite %d", deviceId, info.nr);
 }
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
-    TT_LOG_I(TAG, "[device %lu] coordinates %f %f", deviceId, minmea_tofloat(&rmc.longitude), minmea_tofloat(&rmc.latitude));
+    TT_LOG_I(TAG, "[device %lu] LAT %f LON %f", deviceId, minmea_tofloat(&rmc.latitude), minmea_tofloat(&rmc.longitude));
 }
 
 bool GpsService::isReceiving() const {

@@ -2,6 +2,7 @@
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/gps/GpsUtil.h"
 #include "Tactility/service/loader/Loader.h"
 #include <Tactility/service/gps/Gps.h>
 
@@ -45,11 +46,14 @@ private:
 
     void updateViews() {
         auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (lock.lock(50 / portTICK_PERIOD_MS)) {
+        if (lock.lock(100 / portTICK_PERIOD_MS)) {
             if (service::gps::isReceiving()) {
                 minmea_sentence_rmc rmc;
                 if (service::gps::getCoordinates(rmc)) {
-                    lv_label_set_text_fmt(statusLabelWidget, "LAT %ld.%ld\nLON %ld.%ld", rmc.latitude.value, rmc.latitude.scale, rmc.longitude.value, rmc.longitude.scale);
+                    minmea_float latitude = { rmc.latitude.value, rmc.latitude.scale };
+                    minmea_float longitude = { rmc.longitude.value, rmc.longitude.scale };
+                    auto label_text = std::format("LAT {}\nLON {}", minmea_tocoord(&latitude), minmea_tocoord(&longitude));
+                    lv_label_set_text(statusLabelWidget, label_text.c_str());
                 } else {
                     lv_label_set_text(statusLabelWidget, "Acquiring GPS lock...");
                 }
@@ -64,26 +68,37 @@ private:
         }
     }
 
+    /** @return true if the views were updated */
+    bool updateTimerState() {
+        bool is_receiving = service::gps::isReceiving();
+        if (is_receiving && !timer->isRunning()) {
+            startReceivingUpdates();
+            return true;
+        } else if (!is_receiving && timer->isRunning()) {
+            stopReceivingUpdates();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     void onGpsToggled(lv_event_t* event) {
-        auto* widget = lv_event_get_target_obj(event);
-        bool wants_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
+        bool wants_on = lv_obj_has_state(toggleWidget, LV_STATE_CHECKED);
         bool is_on = service::gps::isReceiving();
 
         if (wants_on != is_on) {
             if (wants_on) {
                 if (!service::gps::startReceiving()) {
                     TT_LOG_E(TAG, "Failed to toggle GPS on");
-                    lv_obj_remove_state(widget, LV_STATE_CHECKED);
-                } else {
-                    startReceivingUpdates();
                 }
             } else {
-                stopReceivingUpdates();
                 service::gps::stopReceiving();
             }
         }
 
-        updateViews();
+        if (!updateTimerState()) {
+            updateViews();
+        }
     }
 
 public:
@@ -118,6 +133,7 @@ public:
         statusLabelWidget = lv_label_create(top_wrapper);
         lv_obj_align(statusLabelWidget, LV_ALIGN_TOP_LEFT, 0, 20);
 
+        updateTimerState();
         updateViews();
     }
 };
