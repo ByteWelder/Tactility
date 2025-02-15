@@ -6,6 +6,7 @@
 #include "Tactility/service/loader/Loader.h"
 #include <Tactility/service/gps/Gps.h>
 
+#include <format>
 #include <lvgl.h>
 
 #define TAG "text_viewer"
@@ -55,7 +56,7 @@ private:
                     auto label_text = std::format("LAT {}\nLON {}", minmea_tocoord(&latitude), minmea_tocoord(&longitude));
                     lv_label_set_text(statusLabelWidget, label_text.c_str());
                 } else {
-                    lv_label_set_text(statusLabelWidget, "Acquiring GPS lock...");
+                    lv_label_set_text(statusLabelWidget, "Acquiring lock...");
                 }
                 lv_obj_remove_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
 
