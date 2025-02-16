@@ -19,4 +19,8 @@ void stopReceiving();
 /** @return true when GPS receiver is on and 1 or more devices are active */
 bool isReceiving();
 
+bool hasCoordinates();
+
+bool getCoordinates(minmea_sentence_rmc& rmc);
+
 }

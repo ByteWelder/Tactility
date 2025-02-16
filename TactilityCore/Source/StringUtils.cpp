@@ -1,6 +1,7 @@
 #include "Tactility/StringUtils.h"
 
 #include <cstring>
+#include <ranges>
 #include <sstream>
 #include <string>
 
@@ -78,6 +79,21 @@ std::string removeFileExtension(const std::string& input) {
     } else {
         return input;
     }
+}
+
+bool isAsciiHexString(const std::string& input) {
+    // Find invalid characters
+    return std::ranges::views::filter(input, [](char character){
+        if (
+           (('0' <= character) && ('9' >= character)) ||
+           (('a' <= character) && ('f' >= character)) ||
+           (('A' <= character) && ('F' >= character))
+        ) {
+            return false;
+        } else {
+            return true;
+        }
+    }).empty();
 }
 
 } // namespace

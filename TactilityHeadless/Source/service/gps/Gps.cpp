@@ -35,4 +35,12 @@ bool isReceiving() {
     return findGpsService()->isReceiving();
 }
 
+bool hasCoordinates() {
+    return findGpsService()->hasCoordinates();
+}
+
+bool getCoordinates(minmea_sentence_rmc& rmc) {
+    return findGpsService()->getCoordinates(rmc);
+}
+
 } // namespace tt::service::gps

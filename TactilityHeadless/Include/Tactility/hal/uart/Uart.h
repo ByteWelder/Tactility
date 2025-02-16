@@ -111,7 +111,10 @@ void flushInput(uart_port_t port);
  */
 std::string readStringUntil(uart_port_t port, char untilChar, TickType_t timeout = defaultTimeout);
 
-/** Read a buffer as a byte array until the specified character (the "untilChar" is included in the result) */
-bool readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = defaultTimeout);
+/**
+ * Read a buffer as a byte array until the specified character (the "untilChar" is included in the result)
+ * @return the amount of bytes read from UART
+ */
+size_t readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = defaultTimeout, bool addNullTerminator = true);
 
 } // namespace tt::hal::uart
