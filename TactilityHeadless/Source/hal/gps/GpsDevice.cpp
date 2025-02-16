@@ -20,21 +20,34 @@ int32_t GpsDevice::threadMain() {
         return -1;
     }
 
-    if (!configuration.initFunction(configuration.uartPort)) {
+
+    GpsInfo init_info;
+    if (!configuration.initFunction(configuration.uartPort, init_info)) {
         TT_LOG_E(TAG, "Failed to init");
         return -1;
     }
 
+    mutex.lock();
+    this->info = init_info;
+    mutex.unlock();
+
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     while (!isThreadInterrupted()) {
-        if (uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS) > 0) {
+        size_t bytes_read = uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS);
+        if (bytes_read > 0U) {
+
+            // Cut out \r\n from the end
+            // This makes logging neater, and we generally don't care about it anyway
+            if (bytes_read > 1U) {
+                buffer[bytes_read - 2] = 0x00U;
+            }
 
             // Thread might've been interrupted in the meanwhile
             if (isThreadInterrupted()) {
                 break;
             }
 
-            TT_LOG_D(TAG, "RX: %s", buffer);
+            TT_LOG_D(TAG, "%s", buffer);
 
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:
@@ -155,5 +168,26 @@ bool GpsDevice::isThreadInterrupted() const {
     lock.lock(portMAX_DELAY);
     return threadInterrupted;
 }
+
+GpsInfo GpsDevice::getInfo() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return info; // Make copy because of thread safety
+}
+
+// region GpsInfo
+
+void GpsInfo::log() const {
+    TT_LOG_I(TAG, "Software: %s", software.c_str());
+    TT_LOG_I(TAG, "Hardware: %s", hardware.c_str());
+    TT_LOG_I(TAG, "Firmware version: %s", firmwareVersion.c_str());
+    TT_LOG_I(TAG, "Protocol version: %s", protocolVersion.c_str());
+    TT_LOG_I(TAG, "Module: %s", module.c_str());
+    for (auto& item : additional) {
+        TT_LOG_I(TAG, "Additional: %s", item.c_str());
+    }
+}
+
+// endregion GpsInfo
 
 } // namespace tt::hal::gps

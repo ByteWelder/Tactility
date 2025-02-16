@@ -4,6 +4,8 @@
 
 namespace tt::hal::gps {
 
-bool initGpsL76k(uart_port_t port);
+struct GpsInfo;
+
+bool initGpsM10Q(uart_port_t port, GpsInfo& info);
 
 }

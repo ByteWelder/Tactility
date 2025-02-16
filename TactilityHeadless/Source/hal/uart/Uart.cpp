@@ -286,39 +286,60 @@ bool setBaudRate(uart_port_t port, uint32_t baudRate, TickType_t timeout) {
 #endif // ESP_PLATFORM
 }
 
-bool readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout) {
-    bool success = false;
-    size_t index = 0;
-    size_t index_limit = bufferSize - 1;
-    while (readByte(port, buffer, timeout) && index < index_limit) {
-        if (*buffer == untilByte) {
-            success = true;
-            // We have the extra space because index < index_limit
-            buffer++;
-            *buffer = 0;
-            break;
-        }
-        buffer++;
-    }
-    return success;
-}
+// #define DEBUG_READ_UNTIL
 
-std::string readStringUntil(uart_port_t port, char untilChar, TickType_t timeout) {
-    std::stringstream output;
-    char buffer;
-    bool success = false;
-    while (readByte(port, (uint8_t*)&buffer, timeout)) {
-        if (buffer == untilChar) {
-            success = true;
-            break;
+size_t readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout, bool addNullTerminator) {
+    TickType_t start_time = kernel::getTicks();
+    uint8_t* buffer_write_ptr = buffer;
+    uint8_t* buffer_limit = buffer + bufferSize - 1; // Keep 1 extra char as mull terminator
+    TickType_t timeout_left = timeout;
+    while (readByte(port, buffer_write_ptr, timeout_left) && buffer_write_ptr < buffer_limit) {
+#ifdef DEBUG_READ_UNTIL
+        // If first successful read and we're not receiving an empty response
+        if (buffer_write_ptr == buffer && *buffer_write_ptr != 0x00U && *buffer_write_ptr != untilByte) {
+            printf(">>");
         }
-        output << buffer;
+#endif
+
+        if (*buffer_write_ptr == untilByte) {
+            // TODO: Fix when untilByte is null terminator char already
+            if (addNullTerminator) {
+                buffer_write_ptr++;
+                *buffer_write_ptr = 0x00U;
+            }
+            break;
+//        } else if (*buffer_write_ptr == 0x00U) {
+//            break;
+        }
+
+#ifdef DEBUG_READ_UNTIL
+        printf("%c", *buffer_write_ptr);
+#endif
+
+        buffer_write_ptr++;
+
+        TickType_t now = kernel::getTicks();
+        if (now > (start_time + timeout)) {
+#ifdef DEBUG_READ_UNTIL
+            TT_LOG_W(TAG, "readUntil() timeout");
+#endif
+            break;
+        } else {
+            timeout_left = timeout - (now - start_time);
+        }
     }
 
-    if (success) {
-        return output.str();
+#ifdef DEBUG_READ_UNTIL
+    // If we read data and it's not an empty response
+    if (buffer_write_ptr != buffer && *buffer != 0x00U && *buffer != untilByte) {
+        printf("\n");
+    }
+#endif
+
+    if (addNullTerminator && (buffer_write_ptr > buffer)) {
+        return (uint32_t)buffer_write_ptr - (uint32_t)buffer - 1UL;
     } else {
-        return {};
+        return (uint32_t)buffer_write_ptr - (uint32_t)buffer;
     }
 }
 

@@ -2,7 +2,7 @@
 
 #include "../Device.h"
 #include "../uart/Uart.h"
-#include "GpsDeviceInitL76k.h"
+#include "GpsDeviceInitM10Q.h"
 #include "Satellites.h"
 
 #include <Tactility/Mutex.h>
@@ -12,6 +12,28 @@
 #include <utility>
 
 namespace tt::hal::gps {
+
+struct GpsInfo {
+    std::string software;
+    std::string hardware;
+    std::string firmwareVersion;
+    std::string protocolVersion;
+    std::string module;
+    std::vector<std::string> additional;
+
+    /** @return true if any of the std::string properties is set to a non-empty value (ignores "additional" property) */
+    inline bool hasAnyData() const {
+        return !software.empty() || !hardware.empty() || !firmwareVersion.empty() || !protocolVersion.empty() || !module.empty();
+    }
+
+    /** @return true if all of the std::string properties are set to a non-empty value (ignores "additional" property) */
+    inline bool hasAllData() const {
+        return !software.empty() && !hardware.empty() && !firmwareVersion.empty() && !protocolVersion.empty() && !module.empty();
+    }
+
+    /** Output all values to the log */
+    void log() const;
+};
 
 class GpsDevice : public Device {
 
@@ -24,7 +46,7 @@ public:
         std::string name;
         uart_port_t uartPort;
         uint32_t baudRate;
-        std::function<bool(uart_port_t)> initFunction = initGpsL76k;
+        std::function<bool(uart_port_t, GpsInfo&)> initFunction = initGpsM10Q;
     };
 
 private:
@@ -47,6 +69,7 @@ private:
     std::vector<LocationSubscription> locationSubscriptions;
     SatelliteSubscriptionId lastSatelliteSubscriptionId = 0;
     LocationSubscriptionId lastLocationSubscriptionId = 0;
+    GpsInfo info;
 
     static int32_t threadMainStatic(void* parameter);
     int32_t threadMain();
@@ -94,6 +117,8 @@ public:
     void unsubscribeLocations(SatelliteSubscriptionId subscriptionId) {
         std::erase_if(locationSubscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
     }
+
+    GpsInfo getInfo() const;
 };
 
 }

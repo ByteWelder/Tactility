@@ -45,6 +45,14 @@ Website: https://github.com/kosma/minmea
 
 License: [WTFPL](https://github.com/kosma/minmea/blob/master/LICENSE.grants), [LGPL 3.0](https://github.com/kosma/minmea/blob/master/LICENSE.LGPL-3.0), [MIT](https://github.com/kosma/minmea/blob/master/LICENSE.MIT)
 
+### Meshtastic Firmware
+
+Parts of the Meshtastic firmware for GPS logic were copied and adapted.
+
+Website: https://github.com/meshtastic/firmware
+
+License: [GPL v3.0](https://github.com/meshtastic/firmware/blob/master/LICENSE)
+
 ### Other Components
 
 See `/components` for the respective projects and their licenses.

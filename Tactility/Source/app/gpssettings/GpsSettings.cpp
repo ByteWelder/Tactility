@@ -7,6 +7,7 @@
 #include <Tactility/service/gps/Gps.h>
 
 #include <format>
+#include <ranges>
 #include <lvgl.h>
 
 #define TAG "text_viewer"
@@ -22,7 +23,9 @@ private:
     std::unique_ptr<Timer> timer;
     std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
     lv_obj_t* statusLabelWidget = nullptr;
-    lv_obj_t* toggleWidget = nullptr;
+    lv_obj_t* switchWidget = nullptr;
+    lv_obj_t* infoContainerWidget = nullptr;
+    bool hasSetInfo = false;
 
     static void onUpdateCallback(std::shared_ptr<void> context) {
         auto appPtr = std::static_pointer_cast<GpsSettingsApp*>(context);
@@ -45,10 +48,33 @@ private:
         updateViews();
     }
 
+    void createInfoView(const hal::gps::GpsInfo& info) {
+        auto* label = lv_label_create(infoContainerWidget);
+        lv_label_set_text_fmt(
+            label,
+            "Module: %s\nFirmware version: %s\nProtocol version: %s",
+            info.module.c_str(),
+            info.firmwareVersion.c_str(),
+            info.protocolVersion.c_str()
+        );
+    }
+
     void updateViews() {
         auto lock = lvgl::getSyncLock()->asScopedLock();
         if (lock.lock(100 / portTICK_PERIOD_MS)) {
             if (service::gps::isReceiving()) {
+                if (!hasSetInfo) {
+                    auto devices = hal::findDevices<hal::gps::GpsDevice>(hal::Device::Type::Gps);
+                    auto devices_with_info = std::ranges::views::filter(devices, [](auto& device){
+                      return device->getInfo().hasAnyData();
+                    });
+
+                    for (auto& device : devices_with_info) {
+                        createInfoView(device->getInfo());
+                        hasSetInfo = true;
+                    }
+                }
+
                 minmea_sentence_rmc rmc;
                 if (service::gps::getCoordinates(rmc)) {
                     minmea_float latitude = { rmc.latitude.value, rmc.latitude.scale };
@@ -60,11 +86,16 @@ private:
                 }
                 lv_obj_remove_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
 
-                lv_obj_add_state(toggleWidget, LV_STATE_CHECKED);
+                lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
             } else {
+                if (hasSetInfo) {
+                    lv_obj_clean(infoContainerWidget);
+                    hasSetInfo = false;
+                }
+
                 lv_obj_add_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
 
-                lv_obj_remove_state(toggleWidget, LV_STATE_CHECKED);
+                lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
             }
         }
     }
@@ -84,7 +115,7 @@ private:
     }
 
     void onGpsToggled(lv_event_t* event) {
-        bool wants_on = lv_obj_has_state(toggleWidget, LV_STATE_CHECKED);
+        bool wants_on = lv_obj_has_state(switchWidget, LV_STATE_CHECKED);
         bool is_on = service::gps::isReceiving();
 
         if (wants_on != is_on) {
@@ -111,12 +142,16 @@ public:
     void onShow(AppContext& app, lv_obj_t* parent) final {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-        lvgl::toolbar_create(parent, app);
+        auto* toolbar = lvgl::toolbar_create(parent, app);
+        switchWidget = lvgl::toolbar_add_switch_action(toolbar);
+        lv_obj_add_event_cb(switchWidget, onGpsToggledCallback, LV_EVENT_VALUE_CHANGED, this);
 
         auto* main_wrapper = lv_obj_create(parent);
         lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_width(main_wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(main_wrapper, 1);
+        lv_obj_set_style_border_width(main_wrapper, 0, 0);
+        lv_obj_set_style_pad_all(main_wrapper, 0, 0);
 
         auto* top_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_width(top_wrapper, LV_PCT(100));
@@ -124,15 +159,16 @@ public:
         lv_obj_set_style_pad_all(top_wrapper, 0, 0);
         lv_obj_set_style_border_width(top_wrapper, 0, 0);
 
-        auto* toggle_label = lv_label_create(top_wrapper);
-        lv_label_set_text(toggle_label, "GPS receiver");
-
-        toggleWidget = lv_switch_create(top_wrapper);
-        lv_obj_align(toggleWidget, LV_ALIGN_TOP_RIGHT, 0, 0);
-        lv_obj_add_event_cb(toggleWidget, onGpsToggledCallback, LV_EVENT_VALUE_CHANGED, this);
-
         statusLabelWidget = lv_label_create(top_wrapper);
-        lv_obj_align(statusLabelWidget, LV_ALIGN_TOP_LEFT, 0, 20);
+        lv_obj_align(statusLabelWidget, LV_ALIGN_TOP_LEFT, 0, 0);
+
+        infoContainerWidget = lv_obj_create(top_wrapper);
+        lv_obj_align_to(infoContainerWidget, statusLabelWidget, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 20);
+        lv_obj_set_size(infoContainerWidget, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(infoContainerWidget, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_border_width(infoContainerWidget, 0, 0);
+        lv_obj_set_style_pad_all(infoContainerWidget, 0, 0);
+        hasSetInfo = false;
 
         updateTimerState();
         updateViews();

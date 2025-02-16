@@ -59,6 +59,11 @@ std::basic_string<T> lowercase(const std::basic_string<T>& input) {
 }
 
 /**
+ * @return true when input only has hex characters: [a-z], [A-Z], [0-9]
+ */
+bool isAsciiHexString(const std::string& input);
+
+/**
  * @return the first part of a file name right up (and excluding) the first period character.
  */
 std::string removeFileExtension(const std::string& input);
