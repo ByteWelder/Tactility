@@ -308,8 +308,6 @@ size_t readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t u
                 *buffer_write_ptr = 0x00U;
             }
             break;
-//        } else if (*buffer_write_ptr == 0x00U) {
-//            break;
         }
 
 #ifdef DEBUG_READ_UNTIL
@@ -337,9 +335,9 @@ size_t readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t u
 #endif
 
     if (addNullTerminator && (buffer_write_ptr > buffer)) {
-        return (uint32_t)buffer_write_ptr - (uint32_t)buffer - 1UL;
+        return reinterpret_cast<size_t>(buffer_write_ptr) - reinterpret_cast<size_t>(buffer) - 1UL;
     } else {
-        return (uint32_t)buffer_write_ptr - (uint32_t)buffer;
+        return reinterpret_cast<size_t>(buffer_write_ptr) - reinterpret_cast<size_t>(buffer);
     }
 }
 
