@@ -11,4 +11,9 @@ namespace tt::hal::gps {
  */
 bool init(const std::vector<GpsDevice::Configuration>& configurations);
 
+/**
+ * Init sequence on UART for a specific GPS model.
+ */
+bool init(uart_port_t port, GpsModel type);
+
 }

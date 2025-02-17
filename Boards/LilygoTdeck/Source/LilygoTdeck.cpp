@@ -11,17 +11,19 @@
 
 bool tdeckInit();
 
-extern const tt::hal::Configuration lilygo_tdeck = {
+using namespace tt::hal;
+
+extern const Configuration lilygo_tdeck = {
     .initBoot = tdeckInit,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = createTdeckSdCard(),
     .power = tdeck_get_power,
     .i2c = {
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
             .config = (i2c_config_t) {
@@ -36,10 +38,10 @@ extern const tt::hal::Configuration lilygo_tdeck = {
                 .clk_flags = 0
             }
         },
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "External",
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitMode::Disabled,
+            .initMode = i2c::InitMode::Disabled,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {
@@ -56,7 +58,7 @@ extern const tt::hal::Configuration lilygo_tdeck = {
         }
     },
     .spi {
-        tt::hal::spi::Configuration {
+        spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
@@ -75,16 +77,16 @@ extern const tt::hal::Configuration lilygo_tdeck = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         }
     },
     .uart {
-        tt::hal::uart::Configuration {
+        uart::Configuration {
             .port = UART_NUM_1,
-            .initMode = tt::hal::uart::InitMode::Disabled, // Let GPS driver control this interface
+            .initMode = uart::InitMode::Disabled, // Let GPS driver control this interface
             .canReinit = true,
             .hasMutableConfiguration = false,
             .rxPin = GPIO_NUM_44,
@@ -109,10 +111,11 @@ extern const tt::hal::Configuration lilygo_tdeck = {
         }
     },
     .gps = {
-        tt::hal::gps::GpsDevice::Configuration {
+        gps::GpsDevice::Configuration {
             .name = "Internal",
             .uartPort = UART_NUM_1,
-            .baudRate = 38400
+            .baudRate = 38400,
+            .model = gps::GpsModel::UNKNOWN
         }
     }
 };

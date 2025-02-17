@@ -2,7 +2,6 @@
 
 #include "../Device.h"
 #include "../uart/Uart.h"
-#include "GpsDeviceInitM10Q.h"
 #include "Satellites.h"
 
 #include <Tactility/Mutex.h>
@@ -13,7 +12,34 @@
 
 namespace tt::hal::gps {
 
+struct GpsInfo;
+
+typedef enum {
+    GNSS_RESPONSE_NONE,
+    GNSS_RESPONSE_NAK,
+    GNSS_RESPONSE_FRAME_ERRORS,
+    GNSS_RESPONSE_OK,
+} GPS_RESPONSE;
+
+enum class GpsModel {
+    UNKNOWN = 0,
+    AG3335,
+    AG3352,
+    ATGM336H,
+    LS20031,
+    MTK,
+    MTK_L76B,
+    MTK_PA1616S,
+    UBLOX6,
+    UBLOX7,
+    UBLOX8,
+    UBLOX9,
+    UBLOX10,
+    UC6580,
+};
+
 struct GpsInfo {
+    GpsModel model;
     std::string software;
     std::string hardware;
     std::string firmwareVersion;
@@ -46,7 +72,7 @@ public:
         std::string name;
         uart_port_t uartPort;
         uint32_t baudRate;
-        std::function<bool(uart_port_t, GpsInfo&)> initFunction = initGpsM10Q;
+        GpsModel model;
     };
 
 private:
@@ -78,9 +104,7 @@ private:
 
 public:
 
-    explicit GpsDevice(Configuration configuration) : configuration(std::move(configuration)) {
-        assert(this->configuration.initFunction != nullptr);
-    }
+    explicit GpsDevice(Configuration configuration) : configuration(std::move(configuration)) {}
 
     ~GpsDevice() override = default;
 

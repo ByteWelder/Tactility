@@ -1,6 +1,8 @@
 #include "Tactility/hal/gps/GpsDevice.h"
-#include <minmea.h>
+#include "Tactility/hal/gps/GpsInit.h"
+#include "Tactility/hal/gps/Probe.h"
 #include <cstring>
+#include <minmea.h>
 
 #define TAG "gps"
 #define GPS_UART_BUFFER_SIZE 256
@@ -21,26 +23,29 @@ int32_t GpsDevice::threadMain() {
     }
 
 
-    GpsInfo init_info;
-    if (!configuration.initFunction(configuration.uartPort, init_info)) {
-        TT_LOG_E(TAG, "Failed to init");
-        return -1;
+    GpsModel model = configuration.model;
+
+    if (configuration.model == GpsModel::UNKNOWN) {
+        model = probe(configuration.uartPort);
+        if (model == GpsModel::UNKNOWN) {
+            TT_LOG_E(TAG, "Probe failed");
+            return -1;
+        }
     }
 
     mutex.lock();
-    this->info = init_info;
+    info.model = model;
     mutex.unlock();
+
+    if (!init(configuration.uartPort, model)) {
+        TT_LOG_E(TAG, "Init failed");
+        return -1;
+    }
 
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     while (!isThreadInterrupted()) {
         size_t bytes_read = uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS);
         if (bytes_read > 0U) {
-
-            // Cut out \r\n from the end
-            // This makes logging neater, and we generally don't care about it anyway
-            if (bytes_read > 1U) {
-                buffer[bytes_read - 2] = 0x00U;
-            }
 
             // Thread might've been interrupted in the meanwhile
             if (isThreadInterrupted()) {
@@ -64,22 +69,6 @@ int32_t GpsDevice::threadMain() {
                 case MINMEA_SENTENCE_GGA:
                     minmea_sentence_gga gga_frame;
                     if (minmea_parse_gga(&gga_frame, (char*)buffer)) {
-                        TT_LOG_D(TAG, "RX GGA %f lat, %f lon", minmea_tocoord(&gga_frame.latitude), minmea_tocoord(&gga_frame.longitude));
-                    } else {
-                        TT_LOG_W(TAG, "RX GGA parse error: %s", buffer);
-                    }
-                    break;
-                case MINMEA_SENTENCE_GSV:
-                    minmea_sentence_gsv gsv_frame;
-                    if (minmea_parse_gsv(&gsv_frame, (char*)buffer)) {
-                        for (auto& sat : gsv_frame.sats) {
-                            if (sat.nr != 0 && sat.elevation != 0 && sat.snr != 0) {
-                                for (auto& subscription : satelliteSubscriptions) {
-                                    (*subscription.onData)(getId(), sat);
-                                }
-                            }
-                            TT_LOG_D(TAG, "Satellite: id %d, elevation %d, azimuth %d, snr %d", sat.nr, sat.elevation, sat.azimuth, sat.snr);
-                        }
                         TT_LOG_D(TAG, "RX GGA %f lat, %f lon", minmea_tocoord(&gga_frame.latitude), minmea_tocoord(&gga_frame.longitude));
                     } else {
                         TT_LOG_W(TAG, "RX GGA parse error: %s", buffer);
