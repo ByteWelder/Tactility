@@ -166,11 +166,11 @@ void GpsService::stopReceiving() {
 }
 
 void GpsService::onGgaSentence(hal::Device::Id deviceId, const minmea_sentence_gga& gga) {
-    TT_LOG_I(TAG, "[device %lu] LAT %f LON %f, satellites: %d", deviceId, minmea_tocoord(&gga.latitude), minmea_tocoord(&gga.longitude), gga.satellites_tracked);
+    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, satellites: %d", deviceId, minmea_tocoord(&gga.latitude), minmea_tocoord(&gga.longitude), gga.satellites_tracked);
 }
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
-    TT_LOG_I(TAG, "[device %lu] LAT %f LON %f, speed: %.2f", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
+    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, speed: %.2f", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
 }
 
 State GpsService::getState() const {
