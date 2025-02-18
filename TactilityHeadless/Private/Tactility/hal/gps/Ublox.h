@@ -22,6 +22,6 @@ inline void sendPacket(uart_port_t port, uint8_t type, uint8_t id, uint8_t data[
 
 GpsModel probe(uart_port_t port);
 
-bool init(uart_port_t port, GpsModel type);
+bool init(uart_port_t port, GpsModel model);
 
 } // namespace tt::service::gps

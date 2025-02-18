@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Tactility/hal/gps/GpsDevice.h"
+#include "GpsState.h"
+
+#include <Tactility/PubSub.h>
 
 namespace tt::service::gps {
 
@@ -16,11 +19,13 @@ bool startReceiving();
 /** Turn GPS receiving off */
 void stopReceiving();
 
-/** @return true when GPS receiver is on and 1 or more devices are active */
-bool isReceiving();
-
 bool hasCoordinates();
 
 bool getCoordinates(minmea_sentence_rmc& rmc);
+
+State getState();
+
+/** @return GPS service pubsub that broadcasts State* objects */
+std::shared_ptr<PubSub> getStatePubsub();
 
 }

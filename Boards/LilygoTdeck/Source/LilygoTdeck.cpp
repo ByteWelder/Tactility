@@ -115,7 +115,7 @@ extern const Configuration lilygo_tdeck = {
             .name = "Internal",
             .uartPort = UART_NUM_1,
             .baudRate = 38400,
-            .model = gps::GpsModel::UNKNOWN
+            .model = gps::GpsModel::UBLOX10
         }
     }
 };

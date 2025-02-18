@@ -39,7 +39,7 @@ char* strnstr(const char* s, const char* find, size_t slen) {
 /**
  * From: https://github.com/meshtastic/firmware/blob/f81d3b045dd1b7e3ca7870af3da915ff4399ea98/src/gps/GPS.cpp
  */
-GPS_RESPONSE getAck(uart_port_t port, const char* message, uint32_t waitMillis) {
+GpsResponse getAck(uart_port_t port, const char* message, uint32_t waitMillis) {
     uint8_t buffer[768] = {0};
     uint8_t b;
     int bytesRead = 0;
@@ -61,7 +61,7 @@ GPS_RESPONSE getAck(uart_port_t port, const char* message, uint32_t waitMillis) 
 #ifdef GPS_DEBUG
                     LOG_DEBUG("Found: %s", message); // Log the found message
 #endif
-                    return GNSS_RESPONSE_OK;
+                    return GpsResponse::Ok;
                 } else {
                     bytesRead = 0;
 #ifdef GPS_DEBUG
@@ -71,7 +71,7 @@ GPS_RESPONSE getAck(uart_port_t port, const char* message, uint32_t waitMillis) 
             }
         }
     }
-    return GNSS_RESPONSE_NONE;
+    return GpsResponse::None;
 }
 
 /**
@@ -82,7 +82,7 @@ GPS_RESPONSE getAck(uart_port_t port, const char* message, uint32_t waitMillis) 
         TT_LOG_I(TAG, "Probing for %s (%s)", CHIP, TOWRITE);              \
         uart::flushInput(PORT);                                           \
         uart::writeString(PORT, TOWRITE "\r\n", TIMEOUT);                 \
-        if (getAck(PORT, RESPONSE, TIMEOUT) == GNSS_RESPONSE_OK) {        \
+        if (getAck(PORT, RESPONSE, TIMEOUT) == GpsResponse::Ok) {        \
             TT_LOG_I(TAG, "Probe detected %s %s", CHIP, #DRIVER);         \
             return DRIVER;                                                \
         }                                                                 \
@@ -129,11 +129,11 @@ GpsModel probe(uart_port_t port) {
     PROBE_SIMPLE(port, "PA1616S", "$PMTK605*31", "1616S", GpsModel::MTK_PA1616S, 500);
 
     auto ublox_result = ublox::probe(port);
-    if (ublox_result != GpsModel::UNKNOWN) {
+    if (ublox_result != GpsModel::Unknown) {
         return ublox_result;
     } else {
         TT_LOG_W(TAG, "No GNSS Module (baudrate %lu)", uart::getBaudRate(port));
-        return GpsModel::UNKNOWN;
+        return GpsModel::Unknown;
     }
 }
 

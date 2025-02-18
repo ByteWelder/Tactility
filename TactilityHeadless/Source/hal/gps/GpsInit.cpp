@@ -70,7 +70,7 @@ static uint8_t makeCASPacket(uint8_t* buffer, uint8_t class_id, uint8_t msg_id, 
     return (payload_size + 10);
 }
 
-GPS_RESPONSE getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
+GpsResponse getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
 {
     uint32_t startTime = kernel::getMillis();
     uint8_t buffer[CAS_ACK_NACK_MSG_SIZE] = {0};
@@ -111,7 +111,7 @@ GPS_RESPONSE getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint3
 #ifdef GPS_DEBUG
                 LOG_INFO("Got ACK for class %02X message %02X in %dms", class_id, msg_id, millis() - startTime);
 #endif
-                return GNSS_RESPONSE_OK;
+                return GpsResponse::Ok;
             }
 
             // Check for an ACK-NACK for the specified class and message id
@@ -119,7 +119,7 @@ GPS_RESPONSE getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint3
 #ifdef GPS_DEBUG
                 LOG_WARN("Got NACK for class %02X message %02X in %dms", class_id, msg_id, millis() - startTime);
 #endif
-                return GNSS_RESPONSE_NAK;
+                return GpsResponse::NotAck;
             }
 
             // This isn't the frame we are looking for, clear the buffer
@@ -128,7 +128,7 @@ GPS_RESPONSE getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint3
             bufferPos = 0;
         }
     }
-    return GNSS_RESPONSE_NONE;
+    return GpsResponse::None;
 }
 
 // endregion
@@ -146,7 +146,7 @@ bool init(const std::vector<GpsDevice::Configuration>& configurations) {
 
 bool init(uart_port_t port, GpsModel type) {
     switch (type) {
-        case GpsModel::UNKNOWN:
+        case GpsModel::Unknown:
             tt_crash();
         case GpsModel::AG3335:
         case GpsModel::AG3352:
@@ -220,14 +220,14 @@ bool initAtgm336h(uart_port_t port) {
     // Set the intial configuration of the device - these _should_ work for most AT6558 devices
     int msglen = makeCASPacket(buffer, 0x06, 0x07, sizeof(_message_CAS_CFG_NAVX_CONF), _message_CAS_CFG_NAVX_CONF);
     uart::writeBytes(port, buffer, msglen);
-    if (getACKCas(port, 0x06, 0x07, 250) != GNSS_RESPONSE_OK) {
+    if (getACKCas(port, 0x06, 0x07, 250) != GpsResponse::Ok) {
         TT_LOG_W(TAG, "ATGM336H: Could not set Config");
     }
 
     // Set the update frequence to 1Hz
     msglen = makeCASPacket(buffer, 0x06, 0x04, sizeof(_message_CAS_CFG_RATE_1HZ), _message_CAS_CFG_RATE_1HZ);
     uart::writeBytes(port, buffer, msglen);
-    if (getACKCas(port, 0x06, 0x04, 250) != GNSS_RESPONSE_OK) {
+    if (getACKCas(port, 0x06, 0x04, 250) != GpsResponse::Ok) {
         TT_LOG_W(TAG, "ATGM336H: Could not set Update Frequency");
     }
 
@@ -239,7 +239,7 @@ bool initAtgm336h(uart_port_t port) {
         uint8_t cas_cfg_msg_packet[] = {0x4e, fields[i], 0x01, 0x00};
         msglen = makeCASPacket(buffer, 0x06, 0x01, sizeof(cas_cfg_msg_packet), cas_cfg_msg_packet);
         uart::writeBytes(port, buffer, msglen);
-        if (getACKCas(port, 0x06, 0x01, 250) != GNSS_RESPONSE_OK) {
+        if (getACKCas(port, 0x06, 0x01, 250) != GpsResponse::Ok) {
             TT_LOG_W(TAG, "ATGM336H: Could not enable NMEA MSG: %d", fields[i]);
         }
     }

@@ -12,17 +12,16 @@
 
 namespace tt::hal::gps {
 
-struct GpsInfo;
 
-typedef enum {
-    GNSS_RESPONSE_NONE,
-    GNSS_RESPONSE_NAK,
-    GNSS_RESPONSE_FRAME_ERRORS,
-    GNSS_RESPONSE_OK,
-} GPS_RESPONSE;
+enum class GpsResponse {
+    None,
+    NotAck,
+    FrameErrors,
+    Ok,
+};
 
 enum class GpsModel {
-    UNKNOWN = 0,
+    Unknown = 0,
     AG3335,
     AG3352,
     ATGM336H,
@@ -38,35 +37,14 @@ enum class GpsModel {
     UC6580,
 };
 
-struct GpsInfo {
-    GpsModel model;
-    std::string software;
-    std::string hardware;
-    std::string firmwareVersion;
-    std::string protocolVersion;
-    std::string module;
-    std::vector<std::string> additional;
-
-    /** @return true if any of the std::string properties is set to a non-empty value (ignores "additional" property) */
-    inline bool hasAnyData() const {
-        return !software.empty() || !hardware.empty() || !firmwareVersion.empty() || !protocolVersion.empty() || !module.empty();
-    }
-
-    /** @return true if all of the std::string properties are set to a non-empty value (ignores "additional" property) */
-    inline bool hasAllData() const {
-        return !software.empty() && !hardware.empty() && !firmwareVersion.empty() && !protocolVersion.empty() && !module.empty();
-    }
-
-    /** Output all values to the log */
-    void log() const;
-};
+const char* toString(GpsModel model);
 
 class GpsDevice : public Device {
 
 public:
 
-    typedef int SatelliteSubscriptionId;
-    typedef int LocationSubscriptionId;
+    typedef int GgaSubscriptionId;
+    typedef int RmcSubscriptionId;
 
     struct Configuration {
         std::string name;
@@ -75,32 +53,43 @@ public:
         GpsModel model;
     };
 
-private:
-
-    struct SatelliteSubscription {
-        SatelliteSubscriptionId id;
-        std::shared_ptr<std::function<void(Device::Id id, const minmea_sat_info&)>> onData;
+    enum class State {
+        PendingOn,
+        On,
+        Error,
+        PendingOff,
+        Off
     };
 
-    struct LocationSubscription {
-        LocationSubscriptionId id;
+private:
+
+    struct GgaSubscription {
+        GgaSubscriptionId id;
+        std::shared_ptr<std::function<void(Device::Id id, const minmea_sentence_gga&)>> onData;
+    };
+
+    struct RmcSubscription {
+        RmcSubscriptionId id;
         std::shared_ptr<std::function<void(Device::Id id, const minmea_sentence_rmc&)>> onData;
     };
 
     const Configuration configuration;
-    Mutex mutex;
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::unique_ptr<Thread> thread;
     bool threadInterrupted = false;
-    std::vector<SatelliteSubscription> satelliteSubscriptions;
-    std::vector<LocationSubscription> locationSubscriptions;
-    SatelliteSubscriptionId lastSatelliteSubscriptionId = 0;
-    LocationSubscriptionId lastLocationSubscriptionId = 0;
-    GpsInfo info;
+    std::vector<GgaSubscription> ggaSubscriptions;
+    std::vector<RmcSubscription> rmcSubscriptions;
+    GgaSubscriptionId lastSatelliteSubscriptionId = 0;
+    RmcSubscriptionId lastRmcSubscriptionId = 0;
+    GpsModel model = GpsModel::Unknown;
+    State state = State::Off;
 
     static int32_t threadMainStatic(void* parameter);
     int32_t threadMain();
 
     bool isThreadInterrupted() const;
+
+    void setState(State newState);
 
 public:
 
@@ -116,33 +105,41 @@ public:
     bool start();
     bool stop();
 
-    bool isStarted() const;
-
-    SatelliteSubscriptionId subscribeSatellites(const std::function<void(Device::Id deviceId, const minmea_sat_info&)>& onData) {
-        satelliteSubscriptions.push_back({
+    GgaSubscriptionId subscribeGga(const std::function<void(Device::Id deviceId, const minmea_sentence_gga&)>& onData) {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+        ggaSubscriptions.push_back({
             .id = ++lastSatelliteSubscriptionId,
-            .onData = std::make_shared<std::function<void(Device::Id, const minmea_sat_info&)>>(onData)
+            .onData = std::make_shared<std::function<void(Device::Id, const minmea_sentence_gga&)>>(onData)
         });
         return lastSatelliteSubscriptionId;
     }
 
-    void unsubscribeSatellites(SatelliteSubscriptionId subscriptionId) {
-        std::erase_if(satelliteSubscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
+    void unsubscribeGga(GgaSubscriptionId subscriptionId) {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+        std::erase_if(ggaSubscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
     }
 
-    LocationSubscriptionId subscribeLocations(const std::function<void(Device::Id deviceId, const minmea_sentence_rmc&)>& onData) {
-        locationSubscriptions.push_back({
-            .id = ++lastLocationSubscriptionId,
+    RmcSubscriptionId subscribeRmc(const std::function<void(Device::Id deviceId, const minmea_sentence_rmc&)>& onData) {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+        rmcSubscriptions.push_back({
+            .id = ++lastRmcSubscriptionId,
             .onData = std::make_shared<std::function<void(Device::Id, const minmea_sentence_rmc&)>>(onData)
         });
-        return lastLocationSubscriptionId;
+        return lastRmcSubscriptionId;
     }
 
-    void unsubscribeLocations(SatelliteSubscriptionId subscriptionId) {
-        std::erase_if(locationSubscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
+    void unsubscribeRmc(GgaSubscriptionId subscriptionId) {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+        std::erase_if(rmcSubscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
     }
 
-    GpsInfo getInfo() const;
+    GpsModel getModel() const;
+
+    State getState() const;
 };
 
 }
