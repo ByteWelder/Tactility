@@ -4,7 +4,7 @@
 #include <esp_lcd_types.h>
 #include <lvgl.h>
 
-class TdeckDisplay : public tt::hal::display::DisplayDevice {
+class CrowPanelDisplay : public tt::hal::display::DisplayDevice {
 
 private:
 

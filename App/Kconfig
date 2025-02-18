@@ -13,6 +13,14 @@ menu "Tactility App"
             bool "Custom"
         config TT_BOARD_CYD_2432S024C
             bool "CYD 2432S024C"
+        config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_28
+            bool "Elecrow CrowPanel Advance 2.8"
+        config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_35
+            bool "Elecrow CrowPanel Advance 3.5"
+        config TT_BOARD_ELECROW_CROWPANEL_BASIC_28
+            bool "Elecrow CrowPanel Basic 2.8"
+        config TT_BOARD_ELECROW_CROWPANEL_BASIC_35
+            bool "Elecrow CrowPanel Basic 3.5"
         config TT_BOARD_LILYGO_TDECK
             bool "LilyGo T-Deck"
         config TT_BOARD_M5STACK_CORE2
