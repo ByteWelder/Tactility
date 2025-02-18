@@ -3,6 +3,7 @@
 
 #include "Tactility/hal/power/PowerDevice.h"
 #include "Tactility/hal/sdcard/SdCardDevice.h"
+#include "Tactility/service/gps/Gps.h"
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityHeadless.h>
@@ -38,6 +39,9 @@ namespace tt::service::statusbar {
 #define STATUSBAR_ICON_POWER_80 "power_80.png"
 #define STATUSBAR_ICON_POWER_90 "power_90.png"
 #define STATUSBAR_ICON_POWER_100 "power_100.png"
+
+// GPS
+#define STATUSBAR_ICON_GPS "location.png"
 
 extern const ServiceManifest manifest;
 
@@ -130,6 +134,8 @@ private:
 
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
+    int8_t gps_icon_id = lvgl::statusbar_icon_add();
+    bool gps_last_state = false;
     int8_t wifi_icon_id = lvgl::statusbar_icon_add();
     const char* wifi_last_icon = nullptr;
     int8_t sdcard_icon_id = lvgl::statusbar_icon_add();
@@ -145,6 +151,21 @@ private:
 
     void unlock() const {
         mutex.unlock();
+    }
+
+    void updateGpsIcon() {
+        auto gps_state = gps::getState();
+        bool show_icon = (gps_state == gps::State::OnPending) || (gps_state == gps::State::On);
+        if (gps_last_state != show_icon) {
+            if (show_icon) {
+                auto icon_path = paths->getSystemPathLvgl(STATUSBAR_ICON_GPS);
+                lvgl::statusbar_icon_set_image(gps_icon_id, icon_path);
+                lvgl::statusbar_icon_set_visibility(gps_icon_id, true);
+            } else {
+                lvgl::statusbar_icon_set_visibility(gps_icon_id, false);
+            }
+            gps_last_state = show_icon;
+        }
     }
 
     void updateWifiIcon() {
@@ -196,6 +217,7 @@ private:
 
     void update() {
         // TODO: Make thread-safe for LVGL
+        updateGpsIcon();
         updateWifiIcon();
         updateSdCardIcon();
         updatePowerStatusIcon();

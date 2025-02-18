@@ -76,7 +76,7 @@ struct ApRecord {
 };
 
 /**
- * @brief Get wifi pubsub
+ * @brief Get wifi pubsub that broadcasts Event objects
  * @return PubSub
  */
 std::shared_ptr<PubSub> getPubsub();

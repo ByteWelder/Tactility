@@ -1,8 +1,10 @@
 #pragma once
 
 #include "Tactility/Mutex.h"
-#include "Tactility/service/Service.h"
+#include "Tactility/PubSub.h"
 #include "Tactility/hal/gps/GpsDevice.h"
+#include "Tactility/service/Service.h"
+#include "Tactility/service/gps/GpsState.h"
 
 namespace tt::service::gps {
 
@@ -12,21 +14,28 @@ private:
 
     struct GpsDeviceRecord {
         std::shared_ptr<hal::gps::GpsDevice> device = nullptr;
-        hal::gps::GpsDevice::SatelliteSubscriptionId satelliteSubscriptionId = -1;
-        hal::gps::GpsDevice::LocationSubscriptionId locationSubscriptionId = -1;
+        hal::gps::GpsDevice::GgaSubscriptionId satelliteSubscriptionId = -1;
+        hal::gps::GpsDevice::RmcSubscriptionId rmcSubscriptionId = -1;
     };
 
+    minmea_sentence_rmc rmcRecord;
+    TickType_t rmcTime = 0;
+
     Mutex mutex = Mutex(Mutex::Type::Recursive);
+    Mutex stateMutex;
     std::vector<GpsDeviceRecord> deviceRecords;
-    bool receiving = false;
+    std::shared_ptr<PubSub> statePubSub = std::make_shared<PubSub>();
+    State state = State::Off;
 
     bool startGpsDevice(GpsDeviceRecord& deviceRecord);
     static bool stopGpsDevice(GpsDeviceRecord& deviceRecord);
 
     GpsDeviceRecord* _Nullable findGpsRecord(const std::shared_ptr<hal::gps::GpsDevice>& record);
 
-    void onSatelliteInfo(hal::Device::Id deviceId, const minmea_sat_info& info);
+    void onGgaSentence(hal::Device::Id deviceId, const minmea_sentence_gga& gga);
     void onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc);
+
+    void setState(State newState);
 
 public:
 
@@ -38,7 +47,13 @@ public:
 
     bool startReceiving();
     void stopReceiving();
-    bool isReceiving();
+    State getState() const;
+
+    bool hasCoordinates() const;
+    bool getCoordinates(minmea_sentence_rmc& rmc) const;
+
+    /** @return GPS service pubsub that broadcasts State* objects */
+    std::shared_ptr<PubSub> getStatePubsub() const { return statePubSub; }
 };
 
 } // tt::hal::gps

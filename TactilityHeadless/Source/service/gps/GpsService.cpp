@@ -7,6 +7,10 @@ using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
 
+constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
+    return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
+}
+
 GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shared_ptr<GpsDevice>& device) {
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -27,7 +31,7 @@ void GpsService::addGpsDevice(const std::shared_ptr<GpsDevice>& device) {
 
     GpsDeviceRecord record = { .device = device };
 
-    if (isReceiving()) {
+    if (getState() == State::On) { // Ignore during OnPending due to risk of data corruptiohn
         startGpsDevice(record);
     }
 
@@ -40,7 +44,7 @@ void GpsService::removeGpsDevice(const std::shared_ptr<GpsDevice>& device) {
 
     GpsDeviceRecord* record = findGpsRecord(device);
 
-    if (isReceiving()) {
+    if (getState() == State::On) { // Ignore during OnPending due to risk of data corruptiohn
         stopGpsDevice(*record);
     }
 
@@ -63,7 +67,7 @@ void GpsService::onStart(tt::service::ServiceContext &serviceContext) {
 }
 
 void GpsService::onStop(tt::service::ServiceContext &serviceContext) {
-    if (isReceiving()) {
+    if (getState() == State::On) {
         stopReceiving();
     }
 }
@@ -81,12 +85,20 @@ bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
         return false;
     }
 
-    record.satelliteSubscriptionId = device->subscribeSatellites([this](hal::Device::Id deviceId, auto& record) {
-        onSatelliteInfo(deviceId, record);
+    record.satelliteSubscriptionId = device->subscribeGga([this](hal::Device::Id deviceId, auto& record) {
+        mutex.lock();
+        onGgaSentence(deviceId, record);
+        mutex.unlock();
     });
 
-    record.locationSubscriptionId = device->subscribeLocations([this](hal::Device::Id deviceId, auto& record) {
+    record.rmcSubscriptionId = device->subscribeRmc([this](hal::Device::Id deviceId, auto& record) {
+        mutex.lock();
+        if (record.longitude.value != 0 && record.longitude.scale != 0) {
+            rmcRecord = record;
+            rmcTime = kernel::getTicks();
+        }
         onRmcSentence(deviceId, record);
+        mutex.unlock();
     });
 
     return true;
@@ -97,22 +109,24 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
 
     auto device = record.device;
 
+    device->unsubscribeGga(record.satelliteSubscriptionId);
+    device->unsubscribeRmc(record.rmcSubscriptionId);
+
+    record.satelliteSubscriptionId = -1;
+    record.rmcSubscriptionId = -1;
+
     if (!device->stop()) {
         TT_LOG_E(TAG, "[device %lu] stopping failed", record.device->getId());
         return false;
     }
-
-    device->unsubscribeSatellites(record.satelliteSubscriptionId);
-    device->unsubscribeLocations(record.locationSubscriptionId);
-
-    record.satelliteSubscriptionId = -1;
-    record.locationSubscriptionId = -1;
 
     return true;
 }
 
 bool GpsService::startReceiving() {
     TT_LOG_I(TAG, "Start receiving");
+
+    setState(State::OnPending);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -123,13 +137,21 @@ bool GpsService::startReceiving() {
         started_one_or_more |= startGpsDevice(record);
     }
 
-    receiving = started_one_or_more;
+    rmcTime = 0;
 
-    return receiving;
+    if (started_one_or_more) {
+        setState(State::On);
+        return true;
+    } else {
+        setState(State::Off);
+        return false;
+    }
 }
 
 void GpsService::stopReceiving() {
     TT_LOG_I(TAG, "Stop receiving");
+
+    setState(State::OffPending);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -138,21 +160,46 @@ void GpsService::stopReceiving() {
         stopGpsDevice(record);
     }
 
-    receiving = false;
+    rmcTime = 0;
+
+    setState(State::Off);
 }
 
-bool GpsService::isReceiving() {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    return receiving;
-}
-
-void GpsService::onSatelliteInfo(hal::Device::Id deviceId, const minmea_sat_info& info) {
-    TT_LOG_I(TAG, "[device %lu] satellite %d", deviceId, info.nr);
+void GpsService::onGgaSentence(hal::Device::Id deviceId, const minmea_sentence_gga& gga) {
+    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, satellites: %d", deviceId, minmea_tocoord(&gga.latitude), minmea_tocoord(&gga.longitude), gga.satellites_tracked);
 }
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
-    TT_LOG_I(TAG, "[device %lu] coordinates %f %f", deviceId, minmea_tofloat(&rmc.longitude), minmea_tofloat(&rmc.latitude));
+    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, speed: %.2f", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
+}
+
+State GpsService::getState() const {
+    auto lock = stateMutex.asScopedLock();
+    lock.lock();
+    return state;
+}
+
+void GpsService::setState(State newState) {
+    auto lock = stateMutex.asScopedLock();
+    lock.lock();
+    state = newState;
+    lock.unlock();
+    statePubSub->publish(&state);
+}
+
+bool GpsService::hasCoordinates() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return getState() == State::On && rmcTime != 0 && !hasTimeElapsed(kernel::getTicks(), rmcTime, kernel::secondsToTicks(10));
+}
+
+bool GpsService::getCoordinates(minmea_sentence_rmc& rmc) const {
+    if (hasCoordinates()) {
+        rmc = rmcRecord;
+        return true;
+    } else {
+        return false;
+    }
 }
 
 extern const ServiceManifest manifest = {

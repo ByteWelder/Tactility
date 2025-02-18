@@ -1,11 +1,47 @@
 #include "Tactility/hal/gps/GpsDevice.h"
-#include <minmea.h>
+#include "Tactility/hal/gps/GpsInit.h"
+#include "Tactility/hal/gps/Probe.h"
 #include <cstring>
+#include <minmea.h>
 
 #define TAG "gps"
 #define GPS_UART_BUFFER_SIZE 256
 
 namespace tt::hal::gps {
+
+const char* toString(GpsModel model) {
+    using enum GpsModel;
+    switch (model) {
+        case AG3335:
+            return TT_STRINGIFY(AG3335);
+        case AG3352:
+            return TT_STRINGIFY(AG3352);
+        case ATGM336H:
+            return TT_STRINGIFY(ATGM336H);
+        case LS20031:
+            return TT_STRINGIFY(LS20031);
+        case MTK:
+            return TT_STRINGIFY(MTK);
+        case MTK_L76B:
+            return TT_STRINGIFY(MTK_L76B);
+        case MTK_PA1616S:
+            return TT_STRINGIFY(MTK_PA1616S);
+        case UBLOX6:
+            return TT_STRINGIFY(UBLOX6);
+        case UBLOX7:
+            return TT_STRINGIFY(UBLOX7);
+        case UBLOX8:
+            return TT_STRINGIFY(UBLOX8);
+        case UBLOX9:
+            return TT_STRINGIFY(UBLOX9);
+        case UBLOX10:
+            return TT_STRINGIFY(UBLOX10);
+        case UC6580:
+            return TT_STRINGIFY(UC6580);
+        default:
+            return TT_STRINGIFY(Unknown);
+    }
+}
 
 int32_t GpsDevice::threadMainStatic(void* parameter) {
     auto* gps_device = (GpsDevice*)parameter;
@@ -20,49 +56,66 @@ int32_t GpsDevice::threadMain() {
         return -1;
     }
 
-    if (!configuration.initFunction(configuration.uartPort)) {
-        TT_LOG_E(TAG, "Failed to init");
+
+    GpsModel model = configuration.model;
+    if (model == GpsModel::Unknown) {
+        model = probe(configuration.uartPort);
+        if (model == GpsModel::Unknown) {
+            TT_LOG_E(TAG, "Probe failed");
+            setState(State::Error);
+            return -1;
+        }
+    }
+
+    mutex.lock();
+    this->model = model;
+    mutex.unlock();
+
+    if (!init(configuration.uartPort, model)) {
+        TT_LOG_E(TAG, "Init failed");
+        setState(State::Error);
         return -1;
     }
 
+    setState(State::On);
+
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     while (!isThreadInterrupted()) {
-        if (uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS) > 0) {
-            TT_LOG_D(TAG, "RX: %s", buffer);
+        size_t bytes_read = uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS);
+        if (bytes_read > 0U) {
+
+            // Thread might've been interrupted in the meanwhile
+            if (isThreadInterrupted()) {
+                break;
+            }
+
+            TT_LOG_D(TAG, "%s", buffer);
+
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:
-                    minmea_sentence_rmc frame;
-                    if (minmea_parse_rmc(&frame, (char*)buffer)) {
-                        for (auto& subscription : locationSubscriptions) {
-                            (*subscription.onData)(getId(), frame);
+                    minmea_sentence_rmc rmc_frame;
+                    if (minmea_parse_rmc(&rmc_frame, (char*)buffer)) {
+                        mutex.lock();
+                        for (auto& subscription : rmcSubscriptions) {
+                            (*subscription.onData)(getId(), rmc_frame);
                         }
-                        TT_LOG_D(TAG, "RX RMC %f lat, %f lon, %f m/s", minmea_tocoord(&frame.latitude), minmea_tocoord(&frame.longitude), minmea_tofloat(&frame.speed));
+                        mutex.unlock();
+                        TT_LOG_D(TAG, "RMC %f lat, %f lon, %f m/s", minmea_tocoord(&rmc_frame.latitude), minmea_tocoord(&rmc_frame.longitude), minmea_tofloat(&rmc_frame.speed));
                     } else {
-                        TT_LOG_W(TAG, "RX RMC parse error: %s", buffer);
+                        TT_LOG_W(TAG, "RMC parse error: %s", buffer);
                     }
                     break;
                 case MINMEA_SENTENCE_GGA:
                     minmea_sentence_gga gga_frame;
                     if (minmea_parse_gga(&gga_frame, (char*)buffer)) {
-                        TT_LOG_D(TAG, "RX GGA %f lat, %f lon", minmea_tocoord(&gga_frame.latitude), minmea_tocoord(&gga_frame.longitude));
-                    } else {
-                        TT_LOG_W(TAG, "RX GGA parse error: %s", buffer);
-                    }
-                    break;
-                case MINMEA_SENTENCE_GSV:
-                    minmea_sentence_gsv gsv_frame;
-                    if (minmea_parse_gsv(&gsv_frame, (char*)buffer)) {
-                        for (auto& sat : gsv_frame.sats) {
-                            if (sat.nr != 0 && sat.elevation != 0 && sat.snr != 0) {
-                                for (auto& subscription : satelliteSubscriptions) {
-                                    (*subscription.onData)(getId(), sat);
-                                }
-                            }
-                            TT_LOG_D(TAG, "Satellite: id %d, elevation %d, azimuth %d, snr %d", sat.nr, sat.elevation, sat.azimuth, sat.snr);
+                        mutex.lock();
+                        for (auto& subscription : ggaSubscriptions) {
+                            (*subscription.onData)(getId(), gga_frame);
                         }
-                        TT_LOG_D(TAG, "RX GGA %f lat, %f lon", minmea_tocoord(&gga_frame.latitude), minmea_tocoord(&gga_frame.longitude));
+                        mutex.unlock();
+                        TT_LOG_D(TAG, "GGA %f lat, %f lon", minmea_tocoord(&gga_frame.latitude), minmea_tocoord(&gga_frame.longitude));
                     } else {
-                        TT_LOG_W(TAG, "RX GGA parse error: %s", buffer);
+                        TT_LOG_W(TAG, "GGA parse error: %s", buffer);
                     }
                     break;
                 default:
@@ -95,6 +148,9 @@ bool GpsDevice::start() {
 
     threadInterrupted = false;
 
+    TT_LOG_I(TAG, "Starting thread");
+    setState(State::PendingOn);
+
     thread = std::make_unique<Thread>(
         "gps",
         4096,
@@ -104,12 +160,15 @@ bool GpsDevice::start() {
     thread->setPriority(tt::Thread::Priority::High);
     thread->start();
 
+    TT_LOG_I(TAG, "Starting finished");
     return true;
 }
 
 bool GpsDevice::stop() {
     auto lock = mutex.asScopedLock();
-    lock.lock(portMAX_DELAY);
+    lock.lock();
+
+    setState(State::PendingOff);
 
     if (thread != nullptr) {
         threadInterrupted = true;
@@ -130,23 +189,38 @@ bool GpsDevice::stop() {
     if (uart::isStarted(configuration.uartPort)) {
         if (!uart::stop(configuration.uartPort)) {
             TT_LOG_E(TAG, "UART %d failed to stop", configuration.uartPort);
+            setState(State::Error);
             return false;
         }
     }
 
-    return true;
-}
+    setState(State::Off);
 
-bool GpsDevice::isStarted() const {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    return thread != nullptr && thread->getState() != Thread::State::Stopped;
+    return true;
 }
 
 bool GpsDevice::isThreadInterrupted() const {
     auto lock = mutex.asScopedLock();
-    lock.lock(portMAX_DELAY);
+    lock.lock();
     return threadInterrupted;
+}
+
+GpsModel GpsDevice::getModel() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return model; // Make copy because of thread safety
+}
+
+GpsDevice::State GpsDevice::getState() const {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    return state; // Make copy because of thread safety
+}
+
+void GpsDevice::setState(State newState) {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+    state = newState;
 }
 
 } // namespace tt::hal::gps
