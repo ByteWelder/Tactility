@@ -47,7 +47,7 @@ License: [WTFPL](https://github.com/kosma/minmea/blob/master/LICENSE.grants), [L
 
 ### Meshtastic Firmware
 
-Parts of the Meshtastic firmware for GPS logic were copied and adapted.
+Parts of the Meshtastic firmware were copied and modified for Tactility.
 
 Website: https://github.com/meshtastic/firmware
 
