@@ -3,5 +3,5 @@ file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 idf_component_register(
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS "Source"
-    REQUIRES Tactility esp_lvgl_port esp_lcd esp_lcd_touch_gt911 driver esp_adc
+    REQUIRES Tactility esp_lvgl_port esp_lcd esp_lcd_touch_ft5x06 driver esp_adc
 )

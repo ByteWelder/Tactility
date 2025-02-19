@@ -192,8 +192,7 @@ void CrowPanelDisplay::setPowerOn(bool turnOn) {
 }
 
 std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable CrowPanelDisplay::createTouch() {
-//    return std::make_shared<CrowPanelTouch>();
-return nullptr;
+    return std::make_shared<CrowPanelTouch>();
 }
 
 void CrowPanelDisplay::setBacklightDuty(uint8_t backlightDuty) {
