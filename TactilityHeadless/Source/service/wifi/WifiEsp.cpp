@@ -381,7 +381,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     }
 
     auto lock = wifi->dataMutex.asScopedLock();
-    if (lock.lock()) {
+    if (!lock.lock()) {
         return false;
     }
 

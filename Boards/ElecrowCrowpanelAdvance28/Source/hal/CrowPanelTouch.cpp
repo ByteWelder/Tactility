@@ -1,30 +1,30 @@
-#include "TdeckTouch.h"
+#include "CrowPanelTouch.h"
+#include "esp_lcd_touch_ft5x06.h"
 
-#include <esp_err.h>
-#include <esp_lcd_touch_gt911.h>
 #include <Tactility/Log.h>
+#include <esp_err.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "tdeck_touch"
+#define TAG "crowpanel_touch"
 
 // Touch (GT911)
-#define TDECK_TOUCH_I2C_BUS_HANDLE I2C_NUM_0
-#define TDECK_TOUCH_X_MAX 240
-#define TDECK_TOUCH_Y_MAX 320
+#define CROWPANEL_TOUCH_I2C_BUS_HANDLE I2C_NUM_0
+#define CROWPANEL_TOUCH_X_MAX 240
+#define CROWPANEL_TOUCH_Y_MAX 320
 
-bool TdeckTouch::start(lv_display_t* display) {
-    const esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+bool CrowPanelTouch::start(lv_display_t* display) {
+    esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();
 
-    if (esp_lcd_new_panel_io_i2c(TDECK_TOUCH_I2C_BUS_HANDLE, &io_config, &ioHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_i2c(CROWPANEL_TOUCH_I2C_BUS_HANDLE, &io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "touch io i2c creation failed");
         return false;
     }
 
     esp_lcd_touch_config_t config = {
-        .x_max = TDECK_TOUCH_X_MAX,
-        .y_max = TDECK_TOUCH_Y_MAX,
-        .rst_gpio_num = GPIO_NUM_NC,
-        .int_gpio_num = GPIO_NUM_NC, // There is no reset pin for touch on the T-Deck, leading to a bug in esp_lvgl_port firing multiple click events when tapping the screen
+        .x_max = CROWPANEL_TOUCH_X_MAX,
+        .y_max = CROWPANEL_TOUCH_Y_MAX,
+        .rst_gpio_num = GPIO_NUM_NC, // GPIO_NUM_48,
+        .int_gpio_num = GPIO_NUM_NC, // GPIO_NUM_47,
         .levels = {
             .reset = 0,
             .interrupt = 0,
@@ -40,7 +40,7 @@ bool TdeckTouch::start(lv_display_t* display) {
         .driver_data = nullptr
     };
 
-    if (esp_lcd_touch_new_i2c_gt911(ioHandle, &config, &touchHandle) != ESP_OK) {
+    if (esp_lcd_touch_new_i2c_ft5x06(ioHandle, &config, &touchHandle) != ESP_OK) {
         TT_LOG_E(TAG, "GT911 driver init failed");
         cleanup();
         return false;
@@ -62,12 +62,12 @@ bool TdeckTouch::start(lv_display_t* display) {
     return true;
 }
 
-bool TdeckTouch::stop() {
+bool CrowPanelTouch::stop() {
     cleanup();
     return true;
 }
 
-void TdeckTouch::cleanup() {
+void CrowPanelTouch::cleanup() {
     if (deviceHandle != nullptr) {
         lv_indev_delete(deviceHandle);
         deviceHandle = nullptr;

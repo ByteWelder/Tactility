@@ -1,21 +1,21 @@
-#include "TdeckDisplay.h"
-#include "TdeckDisplayConstants.h"
-#include "TdeckTouch.h"
+#include "CrowPanelDisplay.h"
+#include "CrowPanelDisplayConstants.h"
+#include "CrowPanelTouch.h"
 
-#include <PwmBacklight.h>
 #include <St7789Display.h>
+#include <PwmBacklight.h>
 
-#include <driver/spi_master.h>
+#include <Tactility/Log.h>
 
-#define TAG "tdeck_display"
+#define TAG "crowpanel_display"
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = std::make_shared<TdeckTouch>();
+    auto touch = std::make_shared<CrowPanelTouch>();
 
     auto configuration = std::make_unique<St7789Display::Configuration>(
-        TDECK_LCD_SPI_HOST,
-        TDECK_LCD_PIN_CS,
-        TDECK_LCD_PIN_DC,
+        CROWPANEL_LCD_SPI_HOST,
+        CROWPANEL_LCD_PIN_CS,
+        CROWPANEL_LCD_PIN_DC,
         320,
         240,
         touch

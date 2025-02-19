@@ -14,6 +14,9 @@ function releaseSdk() {
 
 SECONDS=0
 
+build elecrow-crowpanel-advance-28
+release elecrow-crowpanel-advance-28
+
 build lilygo-tdeck
 release lilygo-tdeck
 
