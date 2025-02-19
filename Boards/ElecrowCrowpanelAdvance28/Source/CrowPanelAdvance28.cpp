@@ -13,8 +13,10 @@ extern const Configuration crowpanel_advance_28 = {
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .i2c = {
+        // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)
+        // Note: You could repurpose 1 or more UART interfaces as I2C interfaces
         i2c::Configuration {
-            .name = "Internal",
+            .name = "Main",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
             .canReinit = false,
@@ -25,24 +27,6 @@ extern const Configuration crowpanel_advance_28 = {
                 .scl_io_num = GPIO_NUM_16,
                 .sda_pullup_en = true,
                 .scl_pullup_en = true,
-                .master = {
-                    .clk_speed = 400000
-                },
-                .clk_flags = 0
-            }
-        },
-        i2c::Configuration {
-            .name = "External",
-            .port = I2C_NUM_1,
-            .initMode = i2c::InitMode::Disabled,
-            .canReinit = true,
-            .hasMutableConfiguration = true,
-            .config = (i2c_config_t) {
-                .mode = I2C_MODE_MASTER,
-                .sda_io_num = GPIO_NUM_NC,
-                .scl_io_num = GPIO_NUM_NC,
-                .sda_pullup_en = false,
-                .scl_pullup_en = false,
                 .master = {
                     .clk_speed = 400000
                 },
@@ -102,6 +86,59 @@ extern const Configuration crowpanel_advance_28 = {
             .lock = nullptr // No custom lock needed
         }
     },
-    .uart {},
+    .uart {
+        // "UART0-IN"
+        uart::Configuration {
+            .port = UART_NUM_1,
+            .initMode = uart::InitMode::Disabled, // Manual init
+            .canReinit = true,
+            .hasMutableConfiguration = false,
+            .rxPin = GPIO_NUM_44,
+            .txPin = GPIO_NUM_43,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        },
+        // "UART1-OUT"
+        uart::Configuration {
+            .port = UART_NUM_1,
+            .initMode = uart::InitMode::Disabled, // Manual init
+            .canReinit = true,
+            .hasMutableConfiguration = false,
+            .rxPin = GPIO_NUM_18,
+            .txPin = GPIO_NUM_17,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        }
+    },
     .gps = {}
 };
