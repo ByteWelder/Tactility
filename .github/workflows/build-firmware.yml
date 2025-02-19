@@ -35,7 +35,7 @@ jobs:
         uses: ./.github/actions/build-firmware
         with:
           board_id: elecrow-crowpanel-basic-28
-          arch: esp32s3
+          arch: esp32
   lilygo-tdeck:
     runs-on: ubuntu-latest
     steps:
