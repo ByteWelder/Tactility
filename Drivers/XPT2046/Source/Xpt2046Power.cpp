@@ -1,8 +1,9 @@
-#include "UnPhonePower.h"
-#include "UnPhoneTouch.h"
+#include "Xpt2046Power.h"
+#include "Xpt2046Touch.h"
+
 #include <Tactility/Log.h>
 
-#define TAG "unphone_power"
+#define TAG "xpt2046_power"
 
 #define BATTERY_VOLTAGE_MIN 3.2f
 #define BATTERY_VOLTAGE_MAX 4.2f
@@ -16,7 +17,7 @@ static uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) {
     return charge_level;
 }
 
-bool UnPhonePower::supportsMetric(MetricType type) const {
+bool Xpt2046Power::supportsMetric(MetricType type) const {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -27,7 +28,7 @@ bool UnPhonePower::supportsMetric(MetricType type) const {
     }
 }
 
-bool UnPhonePower::getMetric(MetricType type, MetricData& data) {
+bool Xpt2046Power::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -46,8 +47,9 @@ bool UnPhonePower::getMetric(MetricType type, MetricData& data) {
     }
 }
 
-bool UnPhonePower::readBatteryVoltageOnce(uint32_t& output) const {
-    auto* touch = UnPhoneTouch::getInstance();
+bool Xpt2046Power::readBatteryVoltageOnce(uint32_t& output) const {
+    // Make a safe copy
+    auto touch = Xpt2046Touch::getInstance();
     if (touch != nullptr) {
         float vbat;
         if (touch->getVBat(vbat)) {
@@ -63,7 +65,7 @@ bool UnPhonePower::readBatteryVoltageOnce(uint32_t& output) const {
 
 #define MAX_VOLTAGE_SAMPLES 15
 
-bool UnPhonePower::readBatteryVoltageSampled(uint32_t& output) const {
+bool Xpt2046Power::readBatteryVoltageSampled(uint32_t& output) const {
     size_t samples_read = 0;
     uint32_t sample_accumulator = 0;
     uint32_t sample_read_buffer;
@@ -85,9 +87,9 @@ bool UnPhonePower::readBatteryVoltageSampled(uint32_t& output) const {
 
 static std::shared_ptr<PowerDevice> power;
 
-std::shared_ptr<PowerDevice> unPhoneGetPower() {
+std::shared_ptr<PowerDevice> getOrCreatePower() {
     if (power == nullptr) {
-        power = std::make_shared<UnPhonePower>();
+        power = std::make_shared<Xpt2046Power>();
     }
     return power;
 }

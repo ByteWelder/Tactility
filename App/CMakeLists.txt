@@ -6,6 +6,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     if("${IDF_TARGET}" STREQUAL "esp32")
         list(APPEND BOARD_COMPONENTS
             CYD-2432S024C
+            ElecrowCrowpanelBasic28
             M5stackCore2
         )
     endif()

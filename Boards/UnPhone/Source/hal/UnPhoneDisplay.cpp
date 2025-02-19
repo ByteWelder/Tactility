@@ -1,12 +1,13 @@
 #include "UnPhoneDisplay.h"
 #include "UnPhoneDisplayConstants.h"
 #include "UnPhoneTouch.h"
+#include "UnPhoneFeatures.h"
+
 #include <Tactility/Log.h>
 
-#include "UnPhoneFeatures.h"
-#include "esp_err.h"
-#include "hx8357/disp_spi.h"
-#include "hx8357/hx8357.h"
+#include <esp_err.h>
+#include <hx8357/disp_spi.h>
+#include <hx8357/hx8357.h>
 
 #define TAG "unphone_display"
 #define BUFFER_SIZE (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8)
@@ -64,7 +65,7 @@ bool UnPhoneDisplay::stop() {
 }
 
 std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable UnPhoneDisplay::createTouch() {
-    return std::make_shared<UnPhoneTouch>();
+    return ::createTouch();
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
