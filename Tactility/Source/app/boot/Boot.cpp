@@ -43,7 +43,11 @@ private:
         assert(hal_display != nullptr);
         if (hal_display->supportsBacklightDuty()) {
             int32_t backlight_duty = app::display::getBacklightDuty();
+            TT_LOG_I(TAG, "backlight %ld", backlight_duty);
             hal_display->setBacklightDuty(backlight_duty);
+        } else {
+
+            TT_LOG_I(TAG, "no backlight");
         }
 
         if (hal::usb::isUsbBootMode()) {

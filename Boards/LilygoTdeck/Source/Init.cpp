@@ -1,4 +1,5 @@
-#include <driver/gpio.h>
+#include "PwmBacklight.h"
+
 #include <Tactility/TactilityCore.h>
 
 #define TAG "tdeck"
@@ -30,6 +31,11 @@ bool tdeckInit() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
     if (!powerOn()) {
         TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
+        return false;
+    }
+
+    if (!driver::pwmbacklight::init(GPIO_NUM_42)) {
+        TT_LOG_E(TAG, "Backlight init failed");
         return false;
     }
 

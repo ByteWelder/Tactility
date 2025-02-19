@@ -1,3 +1,4 @@
+#include "PwmBacklight.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "hal/CrowPanelDisplay.h"
 #include "hal/CrowPanelDisplayConstants.h"
@@ -9,7 +10,12 @@
 
 using namespace tt::hal;
 
+bool initBoot() {
+    return driver::pwmbacklight::init(GPIO_NUM_38);
+}
+
 extern const Configuration crowpanel_advance_28 = {
+    .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .i2c = {
