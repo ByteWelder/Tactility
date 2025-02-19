@@ -37,6 +37,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     # Non-ESP32 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32")
         set(EXCLUDE_COMPONENTS "CYD-2432S024C")
+        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
     endif()
 

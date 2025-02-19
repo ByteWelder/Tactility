@@ -15,5 +15,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         touch
     );
 
+    configuration->mirrorX = true;
+
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }

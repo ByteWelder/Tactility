@@ -42,7 +42,7 @@ public:
         unsigned int verticalResolution;
         bool mirrorX = false;
         bool mirrorY = false;
-        bool invertColor = true;
+        bool invertColor = false;
         uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is 1/10 of the screen size
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;

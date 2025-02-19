@@ -85,7 +85,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     );
 
     configuration->mirrorX = true;
-    configuration->invertColor = false;
     configuration->backlightDutyFunction = ::setBacklightDuty;
 
     return std::make_shared<Ili934xDisplay>(std::move(configuration));

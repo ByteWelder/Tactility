@@ -7,7 +7,6 @@
 
 #define TAG "crowpanel_touch"
 
-// Touch (GT911)
 #define CROWPANEL_TOUCH_I2C_BUS_HANDLE I2C_NUM_0
 #define CROWPANEL_TOUCH_X_MAX 240
 #define CROWPANEL_TOUCH_Y_MAX 320

@@ -1,16 +1,20 @@
 #pragma once
 
-#include "Tactility/hal/power/PowerDevice.h"
+#include <Tactility/hal/power/PowerDevice.h>
 #include <memory>
 
 using tt::hal::power::PowerDevice;
 
-class UnPhonePower : public PowerDevice {
+/**
+ * Power management based on the voltage measurement at the LCD panel.
+ * This estimates the battery power left.
+ */
+class Xpt2046Power : public PowerDevice {
 
 public:
 
-    UnPhonePower() = default;
-    ~UnPhonePower() = default;
+    Xpt2046Power() = default;
+    ~Xpt2046Power() = default;
 
     std::string getName() const final { return "XPT2046 Power Measurement"; }
     std::string getDescription() const final { return "Power interface via XPT2046 voltage measurement"; }
@@ -24,4 +28,4 @@ private:
     bool readBatteryVoltageSampled(uint32_t& output) const;
 };
 
-std::shared_ptr<PowerDevice> unPhoneGetPower();
+std::shared_ptr<PowerDevice> getOrCreatePower();

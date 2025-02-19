@@ -1,8 +1,8 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "UnPhoneFeatures.h"
-#include "hal/UnPhoneDisplayConstants.h"
+#include "Xpt2046Power.h"
 #include "hal/UnPhoneDisplay.h"
-#include "hal/UnPhonePower.h"
+#include "hal/UnPhoneDisplayConstants.h"
 #include "hal/UnPhoneSdCard.h"
 #include <Tactility/hal/Configuration.h>
 
@@ -14,7 +14,7 @@ extern const tt::hal::Configuration unPhone = {
     .initBoot = unPhoneInitPower,
     .createDisplay = createDisplay,
     .sdcard = createUnPhoneSdCard(),
-    .power = unPhoneGetPower,
+    .power = getOrCreatePower,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
