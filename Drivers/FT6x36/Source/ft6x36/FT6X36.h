@@ -1,10 +1,10 @@
-#include <stdint.h>
+#include <cstdio>
 #include <cstdlib>
+
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
-#include <stdio.h>
 #include "esp_log.h"
 #include "driver/i2c.h"
 #include "sdkconfig.h"

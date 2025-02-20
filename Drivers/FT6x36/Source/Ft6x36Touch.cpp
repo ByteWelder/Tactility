@@ -1,24 +1,35 @@
-#include "Core2Touch.h"
+#include "Ft6x36Touch.h"
+
+#include <Tactility/Log.h>
+
+#include <esp_err.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "core2_touch"
+#define TAG "ft6x36"
 
 static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
-    auto* touch = (Core2Touch*)lv_indev_get_driver_data(indev);
+    auto* touch = (Ft6x36Touch*)lv_indev_get_driver_data(indev);
     touch->readLast(data);
 }
 
 static int32_t threadCallback(void* context) {
-    auto* touch = (Core2Touch*)context;
+    auto* touch = (Ft6x36Touch*)context;
     touch->driverThreadMain();
     return 0;
 }
 
-Core2Touch::Core2Touch() :
-    driverThread(tt::Thread("core2_touch", 4096, threadCallback, this))
-{ }
+Ft6x36Touch::Ft6x36Touch(std::unique_ptr<Configuration> inConfiguration) :
+    configuration(std::move(inConfiguration)),
+    driverThread(tt::Thread("ft6x36", 4096, threadCallback, this))
+{}
 
-void Core2Touch::driverThreadMain() {
+Ft6x36Touch::~Ft6x36Touch() {
+    if (driverThread.getState() != tt::Thread::State::Stopped) {
+        stop();
+    }
+}
+
+void Ft6x36Touch::driverThreadMain() {
     TPoint point = { .x = 0, .y = 0 };
     TEvent event = TEvent::None;
 
@@ -51,7 +62,7 @@ void Core2Touch::driverThreadMain() {
     }
 }
 
-bool Core2Touch::shouldInterruptDriverThread() {
+bool Ft6x36Touch::shouldInterruptDriverThread() {
     bool interrupt = false;
     if (mutex.lock(50 / portTICK_PERIOD_MS)) {
         interrupt = interruptDriverThread;
@@ -60,7 +71,7 @@ bool Core2Touch::shouldInterruptDriverThread() {
     return interrupt;
 }
 
-bool Core2Touch::start(lv_display_t* display) {
+bool Ft6x36Touch::start(lv_display_t* display) {
     TT_LOG_I(TAG, "start");
 
     driverThread.start();
@@ -81,14 +92,14 @@ bool Core2Touch::start(lv_display_t* display) {
     return true;
 }
 
-bool Core2Touch::stop() {
+bool Ft6x36Touch::stop() {
     lv_indev_delete(deviceHandle);
     interruptDriverThread = true;
     driverThread.join();
     return true;
 }
 
-void Core2Touch::readLast(lv_indev_data_t* data) {
+void Ft6x36Touch::readLast(lv_indev_data_t* data) {
     data->point = lastPoint;
     data->state = lastState;
 }

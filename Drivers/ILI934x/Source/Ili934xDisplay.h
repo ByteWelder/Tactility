@@ -23,12 +23,22 @@ public:
             gpio_num_t dcPin,
             unsigned int horizontalResolution,
             unsigned int verticalResolution,
-            std::shared_ptr<tt::hal::touch::TouchDevice> touch
+            std::shared_ptr<tt::hal::touch::TouchDevice> touch,
+            bool swapXY = false,
+            bool mirrorX = false,
+            bool mirrorY = false,
+            bool invertColor = false,
+            uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/10 of the screen size
         ) : spiBusHandle(spi_bus_handle),
             csPin(csPin),
             dcPin(dcPin),
             horizontalResolution(horizontalResolution),
             verticalResolution(verticalResolution),
+            swapXY(swapXY),
+            mirrorX(mirrorX),
+            mirrorY(mirrorY),
+            invertColor(invertColor),
+            bufferSize(bufferSize),
             touch(std::move(touch))
         {}
 
@@ -40,6 +50,7 @@ public:
         size_t transactionQueueDepth = 10;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
+        bool swapXY = false;
         bool mirrorX = false;
         bool mirrorY = false;
         bool invertColor = false;
