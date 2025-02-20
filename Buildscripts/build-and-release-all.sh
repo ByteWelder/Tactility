@@ -17,6 +17,9 @@ SECONDS=0
 build elecrow-crowpanel-advance-28
 release elecrow-crowpanel-advance-28
 
+build elecrow-crowpanel-basic-28
+release elecrow-crowpanel-basic-28
+
 build lilygo-tdeck
 release lilygo-tdeck
 
