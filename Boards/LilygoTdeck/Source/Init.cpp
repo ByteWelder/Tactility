@@ -34,7 +34,10 @@ bool tdeckInit() {
         return false;
     }
 
-    if (!driver::pwmbacklight::init(GPIO_NUM_42)) {
+    /* 32 Khz and higher gives an issue where the screen starts dimming again above 80% brightness
+     * when moving the brightness slider rapidly from a lower setting to 100%.
+     * This is not a slider bug (data was debug-traced) */
+    if (!driver::pwmbacklight::init(GPIO_NUM_42, 30000)) {
         TT_LOG_E(TAG, "Backlight init failed");
         return false;
     }
