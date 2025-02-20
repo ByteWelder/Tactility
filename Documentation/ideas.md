@@ -32,6 +32,7 @@
 - External app loading: Check version of Tactility and check ESP target hardware, to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - Support hot-plugging SD card
+- All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 
 # Nice-to-haves
 - CoreS3 has a hardware issue that prevents mounting SD cards while using the display too: allow USB Mass Storage to use `/data` instead? Perhaps give the USB settings app a drop down to select the root filesystem to attach.

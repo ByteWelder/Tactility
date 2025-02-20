@@ -1,13 +1,24 @@
 #include "CrowPanelDisplay.h"
 #include "CrowPanelDisplayConstants.h"
-#include "CrowPanelTouch.h"
-#include "Ili934xDisplay.h"
+
+#include <Ili934xDisplay.h>
+#include <Xpt2046Touch.h>
 
 #include <PwmBacklight.h>
 
-#include <Tactility/Log.h>
+std::shared_ptr<Xpt2046Touch> createTouch() {
+    auto configuration = std::make_unique<Xpt2046Touch::Configuration>(
+        CROWPANEL_LCD_SPI_HOST,
+        CROWPANEL_TOUCH_PIN_CS,
+        240,
+        320,
+        false,
+        true,
+        false
+    );
 
-#define TAG "crowpanel_display"
+    return std::make_shared<Xpt2046Touch>(std::move(configuration));
+}
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto touch = createTouch();

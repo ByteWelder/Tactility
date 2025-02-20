@@ -8,7 +8,6 @@
 
 #define TAG "ili934x"
 
-
 bool Ili934xDisplay::start() {
     TT_LOG_I(TAG, "Starting");
 
@@ -67,6 +66,11 @@ bool Ili934xDisplay::start() {
         return false;
     }
 
+    if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to swap XY ");
+        return false;
+    }
+
     if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set panel to mirror");
         return false;
@@ -81,6 +85,7 @@ bool Ili934xDisplay::start() {
         TT_LOG_E(TAG, "Failed to turn display on");
         return false;
     }
+
     uint32_t buffer_size;
     if (configuration->bufferSize == 0) {
         buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
@@ -99,7 +104,7 @@ bool Ili934xDisplay::start() {
         .vres = configuration->verticalResolution,
         .monochrome = false,
         .rotation = {
-            .swap_xy = false,
+            .swap_xy = configuration->swapXY,
             .mirror_x = configuration->mirrorX,
             .mirror_y = configuration->mirrorY,
         },
@@ -115,6 +120,7 @@ bool Ili934xDisplay::start() {
     };
 
     displayHandle = lvgl_port_add_disp(&disp_cfg);
+
     TT_LOG_I(TAG, "Finished");
     return displayHandle != nullptr;
 }
