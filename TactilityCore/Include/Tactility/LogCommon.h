@@ -4,7 +4,6 @@ namespace tt {
 
 /** Used for log output filtering */
 enum class LogLevel : int {
-    None = 0, /*!< No log output */
     Error, /*!< Critical errors, software module can not recover on its own */
     Warning, /*!< Error conditions from which recovery measures have been taken */
     Info, /*!< Information messages which describe normal flow of events */

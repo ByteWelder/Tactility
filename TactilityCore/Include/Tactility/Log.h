@@ -23,7 +23,7 @@
 namespace tt {
 
 struct LogEntry {
-    LogLevel level = LogLevel::None;
+    LogLevel level = LogLevel::Verbose;
     char message[TT_LOG_MESSAGE_SIZE] = { 0 };
 };
 

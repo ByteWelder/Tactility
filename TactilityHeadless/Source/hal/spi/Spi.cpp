@@ -29,15 +29,15 @@ static const char* toString(InitMode mode) {
 }
 
 static void printInfo(const Data& data) {
-    TT_LOG_V(TAG, "SPI info for device %d", data.configuration.device);
-    TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
-    TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %s", toString(data.configuration.initMode));
-    TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
-    TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
-    TT_LOG_V(TAG, "  MISO pin: %d", data.configuration.config.miso_io_num);
-    TT_LOG_V(TAG, "  MOSI pin: %d", data.configuration.config.mosi_io_num);
-    TT_LOG_V(TAG, "  SCLK pin: %d", data.configuration.config.sclk_io_num);
+    TT_LOG_D(TAG, "SPI info for device %d", data.configuration.device);
+    TT_LOG_D(TAG, "  isStarted: %d", data.isStarted);
+    TT_LOG_D(TAG, "  isConfigured: %d", data.isConfigured);
+    TT_LOG_D(TAG, "  initMode: %s", toString(data.configuration.initMode));
+    TT_LOG_D(TAG, "  canReinit: %d", data.configuration.canReinit);
+    TT_LOG_D(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
+    TT_LOG_D(TAG, "  MISO pin: %d", data.configuration.config.miso_io_num);
+    TT_LOG_D(TAG, "  MOSI pin: %d", data.configuration.config.mosi_io_num);
+    TT_LOG_D(TAG, "  SCLK pin: %d", data.configuration.config.sclk_io_num);
 }
 
 bool init(const std::vector<spi::Configuration>& configurations) {
@@ -162,9 +162,6 @@ bool stop(spi_host_device_t device) {
 bool isStarted(spi_host_device_t device) {
     auto lock = getLock(device).asScopedLock();
     lock.lock();
-
-    Data& data = dataArray[device];
-    Configuration& config = data.configuration;
 
     return dataArray[device].isStarted;
 }

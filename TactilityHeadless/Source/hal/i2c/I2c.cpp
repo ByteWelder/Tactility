@@ -35,12 +35,12 @@ static const char* toString(InitMode mode) {
 }
 
 static void printInfo(const Data& data) {
-    TT_LOG_V(TAG, "I2C info for port %d", data.configuration.port);
-    TT_LOG_V(TAG, "  isStarted: %d", data.isStarted);
-    TT_LOG_V(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_V(TAG, "  initMode: %s", toString(data.configuration.initMode));
-    TT_LOG_V(TAG, "  canReinit: %d", data.configuration.canReinit);
-    TT_LOG_V(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
+    TT_LOG_D(TAG, "I2C info for port %d", data.configuration.port);
+    TT_LOG_D(TAG, "  isStarted: %d", data.isStarted);
+    TT_LOG_D(TAG, "  isConfigured: %d", data.isConfigured);
+    TT_LOG_D(TAG, "  initMode: %s", toString(data.configuration.initMode));
+    TT_LOG_D(TAG, "  canReinit: %d", data.configuration.canReinit);
+    TT_LOG_D(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
 #ifdef ESP_PLATFORM
     TT_LOG_V(TAG, "  SDA pin: %d", data.configuration.config.sda_io_num);
     TT_LOG_V(TAG, "  SCL pin: %d", data.configuration.config.scl_io_num);
