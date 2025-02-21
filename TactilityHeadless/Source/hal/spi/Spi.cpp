@@ -163,9 +163,6 @@ bool isStarted(spi_host_device_t device) {
     auto lock = getLock(device).asScopedLock();
     lock.lock();
 
-    Data& data = dataArray[device];
-    Configuration& config = data.configuration;
-
     return dataArray[device].isStarted;
 }
 
