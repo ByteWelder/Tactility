@@ -22,9 +22,7 @@ private:
     lv_obj_t* labelWidget = nullptr;
 
     static inline bool shouldShowLog(LogLevel filterLevel, LogLevel logLevel) {
-        return (filterLevel != LogLevel::None) &&
-            (logLevel != LogLevel::None) &&
-            filterLevel >= logLevel;
+        return filterLevel >= logLevel;
     }
 
     void updateLogEntries() {

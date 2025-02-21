@@ -3,8 +3,9 @@
 #include "Tactility/Log.h"
 
 #include <cstdint>
-#include <sys/time.h>
+#include <iomanip>
 #include <sstream>
+#include <sys/time.h>
 
 namespace tt {
 
@@ -22,23 +23,21 @@ static char toPrefix(LogLevel level) {
         case Debug:
             return 'D';
         case Verbose:
-            return 'T';
-        default:
-            return '?';
+            return 'V';
     }
 }
 
-static const char* toColour(LogLevel level) {
+static const char* toTagColour(LogLevel level) {
     using enum LogLevel;
     switch (level) {
         case Error:
             return "\033[1;31m";
         case Warning:
-            return "\033[33m";
+            return "\033[1;33m";
         case Info:
             return "\033[32m";
         case Debug:
-            return "\033[1;37m";
+            return "\033[36m";
         case Verbose:
             return "\033[37m";
         default:
@@ -46,6 +45,21 @@ static const char* toColour(LogLevel level) {
     }
 }
 
+static const char* toMessageColour(LogLevel level) {
+    using enum LogLevel;
+    switch (level) {
+        case Error:
+            return "\033[1;31m";
+        case Warning:
+            return "\033[1;33m";
+        case Info:
+        case Debug:
+        case Verbose:
+            return "\033[0m";
+        default:
+            return "";
+    }
+}
 static uint64_t getLogTimestamp() {
     static uint64_t base = 0U;
     struct timeval time {};
@@ -59,7 +73,7 @@ static uint64_t getLogTimestamp() {
 
 void log(LogLevel level, const char* tag, const char* format, ...) {
     std::stringstream buffer;
-    buffer << toColour(level) << toPrefix(level) << " (" << getLogTimestamp() << ") " << tag << ": " << format << "\033[0m\n";
+    buffer << getLogTimestamp() << " [" << toTagColour(level) << toPrefix(level) << "\033[0m" << "] [" << tag << "] " << toMessageColour(level) << format  << "\033[0m\n";
 
     va_list args;
     va_start(args, format);

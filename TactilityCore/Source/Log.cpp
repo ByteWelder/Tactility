@@ -46,4 +46,5 @@ std::unique_ptr<std::array<LogEntry, TT_LOG_ENTRY_COUNT>> copyLogEntries(std::si
     }
 }
 
+
 } // namespace tt
