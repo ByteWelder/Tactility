@@ -1,38 +1,34 @@
-#include "TdeckTouch.h"
+#include "Gt911Touch.h"
 
-#include <esp_err.h>
-#include <esp_lcd_touch_gt911.h>
 #include <Tactility/Log.h>
+
+#include <esp_lcd_touch_gt911.h>
+#include <esp_err.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "tdeck_touch"
+#define TAG "GT911"
 
-// Touch (GT911)
-#define TDECK_TOUCH_I2C_BUS_HANDLE I2C_NUM_0
-#define TDECK_TOUCH_X_MAX 240
-#define TDECK_TOUCH_Y_MAX 320
-
-bool TdeckTouch::start(lv_display_t* display) {
+bool Gt911Touch::start(lv_display_t* display) {
     const esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
 
-    if (esp_lcd_new_panel_io_i2c(TDECK_TOUCH_I2C_BUS_HANDLE, &io_config, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "touch io i2c creation failed");
+    if (esp_lcd_new_panel_io_i2c(configuration->port, &io_config, &ioHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Touch IO I2C creation failed");
         return false;
     }
 
     esp_lcd_touch_config_t config = {
-        .x_max = TDECK_TOUCH_X_MAX,
-        .y_max = TDECK_TOUCH_Y_MAX,
-        .rst_gpio_num = GPIO_NUM_NC,
-        .int_gpio_num = GPIO_NUM_NC, // There is no reset pin for touch on the T-Deck, leading to a bug in esp_lvgl_port firing multiple click events when tapping the screen
+        .x_max = configuration->xMax,
+        .y_max = configuration->yMax,
+        .rst_gpio_num = configuration->pinReset,
+        .int_gpio_num = configuration->pinInterrupt,
         .levels = {
-            .reset = 0,
-            .interrupt = 0,
+            .reset = configuration->pinResetLevel,
+            .interrupt = configuration->pinInterruptLevel,
         },
         .flags = {
-            .swap_xy = 1,
-            .mirror_x = 1,
-            .mirror_y = 0,
+            .swap_xy = configuration->swapXy,
+            .mirror_x = configuration->mirrorX,
+            .mirror_y = configuration->mirrorY,
         },
         .process_coordinates = nullptr,
         .interrupt_callback = nullptr,
@@ -41,7 +37,7 @@ bool TdeckTouch::start(lv_display_t* display) {
     };
 
     if (esp_lcd_touch_new_i2c_gt911(ioHandle, &config, &touchHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "GT911 driver init failed");
+        TT_LOG_E(TAG, "Driver init failed");
         cleanup();
         return false;
     }
@@ -62,12 +58,12 @@ bool TdeckTouch::start(lv_display_t* display) {
     return true;
 }
 
-bool TdeckTouch::stop() {
+bool Gt911Touch::stop() {
     cleanup();
     return true;
 }
 
-void TdeckTouch::cleanup() {
+void Gt911Touch::cleanup() {
     if (deviceHandle != nullptr) {
         lv_indev_delete(deviceHandle);
         deviceHandle = nullptr;

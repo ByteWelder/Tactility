@@ -14,6 +14,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         list(APPEND BOARD_COMPONENTS
             ElecrowCrowpanelAdvance28
+            ElecrowCrowpanelAdvance35
             LilygoTdeck
             M5stackCoreS3
             UnPhone

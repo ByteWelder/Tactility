@@ -1,23 +1,18 @@
-#include "TdeckDisplay.h"
-#include "TdeckDisplayConstants.h"
+#include "CrowPanelDisplay.h"
+#include "CrowPanelDisplayConstants.h"
 
 #include <Gt911Touch.h>
 #include <PwmBacklight.h>
-#include <St7789Display.h>
+#include <Ili9488Display.h>
 
-#include <driver/spi_master.h>
-
-#define TAG "tdeck_display"
+#define TAG "crowpanel_display"
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
     auto configuration = std::make_unique<Gt911Touch::Configuration>(
         I2C_NUM_0,
-        240,
         320,
-        true,
-        true,
-        false
+        480
     );
 
     return std::make_shared<Gt911Touch>(std::move(configuration));
@@ -26,20 +21,20 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto touch = createTouch();
 
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        TDECK_LCD_SPI_HOST,
-        TDECK_LCD_PIN_CS,
-        TDECK_LCD_PIN_DC,
-        320,
-        240,
+    auto configuration = std::make_unique<Ili9488Display::Configuration>(
+        CROWPANEL_LCD_SPI_HOST,
+        CROWPANEL_LCD_PIN_CS,
+        CROWPANEL_LCD_PIN_DC,
+        CROWPANEL_LCD_HORIZONTAL_RESOLUTION,
+        CROWPANEL_LCD_VERTICAL_RESOLUTION,
         touch,
-        true,
-        true,
+        false,
+        false,
         false,
         true
     );
 
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
 
-    return std::make_shared<St7789Display>(std::move(configuration));
+    return std::make_shared<Ili9488Display>(std::move(configuration));
 }
