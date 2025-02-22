@@ -44,6 +44,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     # Non-ESP32-S3 boards
     if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance28")
+        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance35")
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
         set(EXCLUDE_COMPONENTS "UnPhone")

@@ -40,6 +40,7 @@ Gui* gui_alloc() {
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     instance->keyboardGroup = lv_group_create();
     auto* screen_root = lv_scr_act();
+    assert(screen_root != nullptr);
 
     lvgl::obj_set_style_bg_blacken(screen_root);
 
