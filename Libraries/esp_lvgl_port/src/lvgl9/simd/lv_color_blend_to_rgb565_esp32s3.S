@@ -31,8 +31,7 @@
 
 lv_color_blend_to_rgb565_esp:
 
-    entry      a1,    32
-    ee.zero.q  q0                               // dummy TIE instruction, to enable the TIE
+    entry    a1,    32
 
     l32i.n   a3,    a2,    4                    // a3 - dest_buff
     l32i.n   a4,    a2,    8                    // a4 - dest_w                in uint16_t

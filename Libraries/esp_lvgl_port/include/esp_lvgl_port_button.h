@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -32,10 +32,16 @@ extern "C" {
  * @brief Configuration of the navigation buttons structure
  */
 typedef struct {
-    lv_display_t *disp;                /*!< LVGL display handle (returned from lvgl_port_add_disp) */
+    lv_display_t    *disp;                /*!< LVGL display handle (returned from lvgl_port_add_disp) */
+#if BUTTON_VER_MAJOR < 4
     const button_config_t *button_prev;   /*!< Navigation button for previous */
     const button_config_t *button_next;   /*!< Navigation button for next */
     const button_config_t *button_enter;  /*!< Navigation button for enter */
+#else
+    button_handle_t button_prev;   /*!< Handle for navigation button for previous */
+    button_handle_t button_next;   /*!< Handle for navigation button for next */
+    button_handle_t button_enter;  /*!< Handle for navigation button for enter */
+#endif
 } lvgl_port_nav_btns_cfg_t;
 
 /**

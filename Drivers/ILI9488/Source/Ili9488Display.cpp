@@ -53,7 +53,7 @@ bool Ili9488Display::start() {
 
     uint32_t buffer_size;
     if (configuration->bufferSize == 0) {
-        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
+        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 20;
     } else {
         buffer_size = configuration->bufferSize;
     }
@@ -121,8 +121,8 @@ bool Ili9488Display::start() {
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
-            .buff_dma = false,
-            .buff_spiram = true,
+            .buff_dma = true,
+            .buff_spiram = false,
             .sw_rotate = false,
             .swap_bytes = false,
             .full_refresh = false,

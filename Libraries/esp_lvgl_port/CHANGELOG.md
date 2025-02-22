@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.5.0
+
+### Features (Functional change for button v4 users)
+- Updated LVGL port for using IoT button component v4 (LVGL port not anymore creating button, need to be created in app and included handle to LVGL port)
+
+### Fixes
+- Fixed buffer size by selected color format
+
+## 2.4.4
+
+### Features
+- Changed queue to event group in main LVGL task for speed up https://github.com/espressif/esp-bsp/issues/492
+- Reworked handling encoder (knob) https://github.com/espressif/esp-bsp/pull/450
+
+### Fixes
+- Fixed a crash when esp_lvgl_port was initialized from high priority task https://github.com/espressif/esp-bsp/issues/455
+- Allow to swap bytes when used SW rotation https://github.com/espressif/esp-bsp/issues/497
+
 ## 2.4.3
 
 ### Fixes

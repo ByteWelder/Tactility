@@ -113,35 +113,35 @@ Add touch input to the LVGL. It can be called more times for adding more touch i
 Add buttons input to the LVGL. It can be called more times for adding more buttons inputs for different displays. This feature is available only when the component `espressif/button` was added into the project.
 ``` c
     /* Buttons configuration structure */
-    const button_config_t bsp_button_config[] = {
+    const button_gpio_config_t bsp_button_config[] = {
         {
-            .type = BUTTON_TYPE_ADC,
-            .adc_button_config.adc_channel = ADC_CHANNEL_0, // ADC1 channel 0 is GPIO1
-            .adc_button_config.button_index = 0,
-            .adc_button_config.min = 2310, // middle is 2410mV
-            .adc_button_config.max = 2510
+            .gpio_num = GPIO_NUM_37,
+            .active_level = 0,
         },
         {
-            .type = BUTTON_TYPE_ADC,
-            .adc_button_config.adc_channel = ADC_CHANNEL_0, // ADC1 channel 0 is GPIO1
-            .adc_button_config.button_index = 1,
-            .adc_button_config.min = 1880, // middle is 1980mV
-            .adc_button_config.max = 2080
+            .gpio_num = GPIO_NUM_38,
+            .active_level = 0,
         },
         {
-            .type = BUTTON_TYPE_ADC,
-            .adc_button_config.adc_channel = ADC_CHANNEL_0, // ADC1 channel 0 is GPIO1
-            .adc_button_config.button_index = 2,
-            .adc_button_config.min = 720, // middle is 820mV
-            .adc_button_config.max = 920
+            .gpio_num = GPIO_NUM_39,
+            .active_level = 0,
         },
     };
 
+
+    const button_config_t btn_cfg = {0};
+    button_handle_t prev_btn_handle = NULL;
+    button_handle_t next_btn_handle = NULL;
+    button_handle_t enter_btn_handle = NULL;
+    iot_button_new_gpio_device(&btn_cfg, &bsp_button_config[0], &prev_btn_handle);
+    iot_button_new_gpio_device(&btn_cfg, &bsp_button_config[1], &next_btn_handle);
+    iot_button_new_gpio_device(&btn_cfg, &bsp_button_config[2], &enter_btn_handle);
+
     const lvgl_port_nav_btns_cfg_t btns = {
         .disp = disp_handle,
-        .button_prev = &bsp_button_config[0],
-        .button_next = &bsp_button_config[1],
-        .button_enter = &bsp_button_config[2]
+        .button_prev = prev_btn_handle,
+        .button_next = next_btn_handle,
+        .button_enter = enter_btn_handle
     };
 
     /* Add buttons input (for selected screen) */
@@ -160,10 +160,9 @@ Add buttons input to the LVGL. It can be called more times for adding more butto
 Add encoder input to the LVGL. It can be called more times for adding more encoder inputs for different displays. This feature is available only when the component `espressif/knob` was added into the project.
 ``` c
 
-    const button_config_t encoder_btn_config = {
-        .type = BUTTON_TYPE_GPIO,
-        .gpio_button_config.active_level = false,
-        .gpio_button_config.gpio_num = GPIO_BTN_PRESS,
+    static const button_gpio_config_t encoder_btn_config = {
+        .gpio_num = GPIO_BTN_PRESS,
+        .active_level = 0,
     };
 
     const knob_config_t encoder_a_b_config = {
@@ -172,11 +171,15 @@ Add encoder input to the LVGL. It can be called more times for adding more encod
         .gpio_encoder_b = GPIO_ENCODER_B,
     };
 
+    const button_config_t btn_cfg = {0};
+    button_handle_t encoder_btn_handle = NULL;
+    BSP_ERROR_CHECK_RETURN_NULL(iot_button_new_gpio_device(&btn_cfg, &encoder_btn_config, &encoder_btn_handle));
+
     /* Encoder configuration structure */
     const lvgl_port_encoder_cfg_t encoder = {
         .disp = disp_handle,
         .encoder_a_b = &encoder_a_b_config,
-        .encoder_enter = &encoder_btn_config
+        .encoder_enter = encoder_btn_handle
     };
 
     /* Add encoder input (for selected screen) */

@@ -3,5 +3,5 @@ file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 idf_component_register(
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS "Source"
-    REQUIRES Tactility esp_lvgl_port FT5x06 ILI9488 PwmBacklight driver
+    REQUIRES Tactility esp_lvgl_port FT6x36 ILI9488 PwmBacklight driver
 )

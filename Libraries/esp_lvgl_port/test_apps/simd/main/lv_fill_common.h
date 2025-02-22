@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -42,7 +42,8 @@ typedef struct {
         void *p_asm_alloc;                                  // pointer to the beginning of the memory allocated for ASM test buf, used in free()
         void *p_ansi_alloc;                                 // pointer to the beginning of the memory allocated for ANSI test buf, used in free()
     } buf;
-    void (*blend_api_func)(_lv_draw_sw_blend_fill_dsc_t *); // pointer to LVGL API function
+    void (*blend_api_func)(_lv_draw_sw_blend_fill_dsc_t *);              // pointer to LVGL API function
+    void (*blend_api_px_func)(_lv_draw_sw_blend_fill_dsc_t *, uint32_t); // pointer to LVGL API function with dest_px_size argument
     lv_color_format_t color_format;                         // LV color format
     size_t data_type_size;                                  // Used data type size, eg sizeof()
     size_t active_buf_len;                                  // Length of buffer, where the actual data are stored (not including Canary bytes)
@@ -64,8 +65,9 @@ typedef struct {
     unsigned int cc_width;                                  // Corner case test array width
     unsigned int benchmark_cycles;                          // Count of benchmark cycles
     void *array_align16;                                    // test array with 16 byte alignment - testing most ideal case
-    void *array_align1;                                     // test array with 1 byte alignment - testing wort case
-    void (*blend_api_func)(_lv_draw_sw_blend_fill_dsc_t *); // pointer to LVGL API function
+    void *array_align1;                                     // test array with 1 byte alignment - testing worst case
+    void (*blend_api_func)(_lv_draw_sw_blend_fill_dsc_t *);              // pointer to LVGL API function
+    void (*blend_api_px_func)(_lv_draw_sw_blend_fill_dsc_t *, uint32_t); // pointer to LVGL API function with dest_px_size argument
 } bench_test_case_params_t;
 
 #ifdef __cplusplus

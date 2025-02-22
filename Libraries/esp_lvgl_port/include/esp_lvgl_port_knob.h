@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -36,9 +36,13 @@ extern "C" {
  * @brief Configuration of the encoder structure
  */
 typedef struct {
-    lv_display_t *disp;    /*!< LVGL display handle (returned from lvgl_port_add_disp) */
-    const knob_config_t *encoder_a_b;
+    lv_display_t        *disp;          /*!< LVGL display handle (returned from lvgl_port_add_disp) */
+    const knob_config_t *encoder_a_b;   /*!< Encoder knob configuration */
+#if BUTTON_VER_MAJOR < 4
     const button_config_t *encoder_enter;  /*!< Navigation button for enter */
+#else
+    button_handle_t       encoder_enter;   /*!< Handle for enter button */
+#endif
 } lvgl_port_encoder_cfg_t;
 
 /**

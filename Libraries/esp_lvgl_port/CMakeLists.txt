@@ -85,6 +85,10 @@ if((lvgl_ver VERSION_GREATER_EQUAL "9.1.0") AND (lvgl_ver VERSION_LESS "9.2.0"))
         else()
             file(GLOB_RECURSE ASM_SRCS ${PORT_PATH}/simd/*_esp32.S)      # Select only esp32 related files
         endif()
+
+        # Explicitly add all assembly macro files
+        file(GLOB_RECURSE ASM_MACROS ${PORT_PATH}/simd/lv_macro_*.S)
+        list(APPEND ADD_SRCS ${ASM_MACROS})
         list(APPEND ADD_SRCS ${ASM_SRCS})
 
         # Include component libraries, so lvgl component would see lvgl_port includes
@@ -94,6 +98,8 @@ if((lvgl_ver VERSION_GREATER_EQUAL "9.1.0") AND (lvgl_ver VERSION_LESS "9.2.0"))
         # Force link .S files
         set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_color_blend_to_argb8888_esp")
         set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_color_blend_to_rgb565_esp")
+        set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_color_blend_to_rgb888_esp")
+        set_property(TARGET ${COMPONENT_LIB} APPEND PROPERTY INTERFACE_LINK_LIBRARIES "-u lv_rgb565_blend_normal_to_rgb565_esp")
     endif()
 endif()
 

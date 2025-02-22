@@ -4,7 +4,7 @@ Test app accommodates two types of tests: [`functionality test`](#Functionality-
 
 Assembly source files could be found in the [`lvgl_port`](../../src/lvgl9/simd/) component. Header file with the assembly function prototypes is provided into the LVGL using Kconfig option `LV_DRAW_SW_ASM_CUSTOM_INCLUDE` and can be found in the [`lvgl_port/include`](../../include/esp_lvgl_port_lv_blend.h)
 
-## Benchmark results
+## Benchmark results for LV Fill functions (memset)
 
 | Color format | Matrix size | Memory alignment |  ASM version   | ANSI C version |
 | :----------- | :---------- | :--------------- | :------------- | :------------- |
@@ -12,8 +12,19 @@ Assembly source files could be found in the [`lvgl_port`](../../src/lvgl9/simd/)
 |              | 127x127     |      1 byte      |     0.488      |     1.597      |
 | RGB565       | 128x128     |     16 byte      |     0.196      |     1.146      |
 |              | 127x127     |      1 byte      |     0.497      |     1.124      |
+| RGB888       | 128x128     |     16 byte      |     0.608      |     4.062      |
+|              | 127x127     |      1 byte      |     0.818      |     3.969      |
 * this data was obtained by running [benchmark tests](#benchmark-test) on 128x128 16 byte aligned matrix (ideal case) and 127x127 1 byte aligned matrix (worst case)
 * the values represent cycles per sample to perform simple fill of the matrix on esp32s3
+
+## Benchmark results for LV Image functions (memcpy)
+
+| Color format | Matrix size | Memory alignment |  ASM version   | ANSI C version |
+| :----------- | :---------- | :--------------- | :------------- | :------------- |
+| RGB565       | 128x128     |     16 byte      |     0.352      |     3.437      |
+|              | 127x128     |      1 byte      |     0.866      |     5.978      |
+* this data was obtained by running [benchmark tests](#benchmark-test) on 128x128 16 byte aligned matrix (ideal case) and 127x128 1 byte aligned matrix (worst case)
+* the values represent cycles per sample to perform memory copy between two matrices on esp32s3
 
 ## Functionality test
 * Tests, whether the HW accelerated assembly version of an LVGL function provides the same results as the ANSI version
@@ -62,6 +73,8 @@ Here's the test menu, pick your combo:
 (2)	"Test fill functionality RGB565" [fill][functionality][RGB565]
 (3)	"LV Fill benchmark ARGB8888" [fill][benchmark][ARGB8888]
 (4)	"LV Fill benchmark RGB565" [fill][benchmark][RGB565]
+(5)	"LV Image functionality RGB565 blend to RGB565" [image][functionality][RGB565]
+(6)	"LV Image benchmark RGB565 blend to RGB565" [image][benchmark][RGB565]
 
 Enter test for running.
 ```
