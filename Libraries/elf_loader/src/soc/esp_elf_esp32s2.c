@@ -16,7 +16,7 @@
 #include "soc/mmu.h"
 #include "private/elf_platform.h"
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0) 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #define PSRAM_VADDR_START   0x3f800000
 #else
 #define PSRAM_VADDR_START   (DRAM0_CACHE_ADDRESS_HIGH - esp_spiram_get_size())
@@ -25,6 +25,12 @@
 #define MMU_INVALID         BIT(14)
 #define MMU_UNIT_SIZE       0x10000
 #define MMU_REG             ((volatile uint32_t *)DR_REG_MMU_TABLE)
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#define IRAM0_ADDRESS_LOW   SOC_IRAM0_ADDRESS_LOW
+#define IRAM0_ADDRESS_HIGH  SOC_IRAM0_ADDRESS_HIGH
+#define MMU_ACCESS_SPIRAM   SOC_MMU_ACCESS_SPIRAM
+#endif
 
 #define ESP_MMU_IBUS_BASE   IRAM0_ADDRESS_LOW
 #define ESP_MMU_IBUS_MAX    ((IRAM0_ADDRESS_HIGH - IRAM0_ADDRESS_LOW) / \

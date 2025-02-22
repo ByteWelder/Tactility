@@ -1,7 +1,5 @@
 #ifdef ESP_PLATFORM
 
-#include "elf_symbol.h"
-
 #include "tt_app.h"
 #include "tt_app_alertdialog.h"
 #include "tt_app_manifest.h"
@@ -15,6 +13,8 @@
 #include "tt_semaphore.h"
 #include "tt_thread.h"
 #include "tt_timer.h"
+
+#include <private/elf_symbol.h>
 
 #include <lvgl.h>
 

@@ -11,6 +11,8 @@ This ELF loader supports following SoCs:
 - ESP32
 - ESP32-S2, support running ELF in PSRAM
 - ESP32-S3, support running ELF in PSRAM
+- ESP32-P4, support running ELF in PSRAM
+- ESP32-C6
 
 ### Usage
 
@@ -20,7 +22,7 @@ Add a dependency on this component in your component or project's idf_component.
 
     ```yml
     dependencies:
-      espressif/elf_loader: "0.*"
+      espressif/elf_loader: "1.*"
     ```
 
 Enable ELF loader in the menuconfig:
