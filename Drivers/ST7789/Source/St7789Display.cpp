@@ -67,17 +67,17 @@ bool St7789Display::start() {
         return false;
     }
 
-    if (esp_lcd_panel_invert_color(panelHandle, true) != ESP_OK) {
+    if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set panel to invert");
         return false;
     }
 
-    if (esp_lcd_panel_swap_xy(panelHandle, true) != ESP_OK) {
+    if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to swap XY ");
         return false;
     }
 
-    if (esp_lcd_panel_mirror(panelHandle, true, false) != ESP_OK) {
+    if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set panel to mirror");
         return false;
     }
@@ -104,9 +104,9 @@ bool St7789Display::start() {
         .vres = configuration->verticalResolution,
         .monochrome = false,
         .rotation = {
-            .swap_xy = true,
-            .mirror_x = true,
-            .mirror_y = false,
+            .swap_xy = configuration->swapXY,
+            .mirror_x = configuration->mirrorX,
+            .mirror_y = configuration->mirrorY,
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
