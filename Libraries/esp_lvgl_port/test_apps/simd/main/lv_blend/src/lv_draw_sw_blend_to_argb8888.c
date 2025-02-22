@@ -23,7 +23,7 @@
 #include "lv_draw_sw_blend.h"
 #include "lv_math.h"
 #include "lv_color.h"
-#include "string.h"
+#include "lv_string.h"
 
 #include "esp_lvgl_port_lv_blend.h"
 
@@ -628,7 +628,7 @@ static void LV_ATTRIBUTE_FAST_MEM rgb888_image_blend(_lv_draw_sw_blend_image_dsc
                 if (src_px_size == 4) {
                     uint32_t line_in_bytes = w * 4;
                     for (y = 0; y < h; y++) {
-                        memcpy(dest_buf_c32, src_buf, line_in_bytes);   // lv_memcpy
+                        lv_memcpy(dest_buf_c32, src_buf, line_in_bytes);
                         dest_buf_c32 = drawbuf_next_row(dest_buf_c32, dest_stride);
                         src_buf = drawbuf_next_row(src_buf, src_stride);
                     }
@@ -870,9 +870,9 @@ static inline lv_color32_t LV_ATTRIBUTE_FAST_MEM lv_color_32_32_mix(lv_color32_t
 
 void lv_color_mix_with_alpha_cache_init(lv_color_mix_alpha_cache_t *cache)
 {
-    memset(&cache->fg_saved, 0x00, sizeof(lv_color32_t));   //lv_memzero
-    memset(&cache->bg_saved, 0x00, sizeof(lv_color32_t));   //lv_memzero
-    memset(&cache->res_saved, 0x00, sizeof(lv_color32_t));  //lv_memzero
+    lv_memset(&cache->fg_saved, 0x00, sizeof(lv_color32_t));   //lv_memzero
+    lv_memset(&cache->bg_saved, 0x00, sizeof(lv_color32_t));   //lv_memzero
+    lv_memset(&cache->res_saved, 0x00, sizeof(lv_color32_t));  //lv_memzero
     cache->res_alpha_saved = 255;
     cache->ratio_saved = 255;
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -13,6 +13,7 @@
 #include "lv_draw_sw_blend.h"
 #include "lv_draw_sw_blend_to_argb8888.h"
 #include "lv_draw_sw_blend_to_rgb565.h"
+#include "lv_draw_sw_blend_to_rgb888.h"
 
 // ------------------------------------------------- Defines -----------------------------------------------------------
 
@@ -47,14 +48,14 @@ static lv_color_t test_color = {
  * - generate functionality test combinations, based on the provided test_matrix struct
  *
  * @param[in] test_matrix Pointer to structure defining test matrix - all the test combinations
- * @param[in] test_case Pointer ot structure defining functionality test case
+ * @param[in] test_case Pointer to structure defining functionality test case
  */
 static void functionality_test_matrix(test_matrix_params_t *test_matrix, func_test_case_params_t *test_case);
 
 /**
  * @brief Fill test buffers for functionality test
  *
- * @param[in] test_case Pointer ot structure defining functionality test case
+ * @param[in] test_case Pointer to structure defining functionality test case
  */
 static void fill_test_bufs(func_test_case_params_t *test_case);
 
@@ -63,23 +64,30 @@ static void fill_test_bufs(func_test_case_params_t *test_case);
  *
  * - function prepares structures for functionality testing and runs the LVGL API
  *
- * @param[in] test_case Pointer ot structure defining functionality test case
+ * @param[in] test_case Pointer to structure defining functionality test case
  */
 static void lv_fill_functionality(func_test_case_params_t *test_case);
 
 /**
  * @brief Evaluate results for 32bit data length
  *
- * @param[in] test_case Pointer ot structure defining functionality test case
+ * @param[in] test_case Pointer to structure defining functionality test case
  */
 static void test_eval_32bit_data(func_test_case_params_t *test_case);
 
 /**
  * @brief Evaluate results for 16bit data length
  *
- * @param[in] test_case Pointer ot structure defining functionality test case
+ * @param[in] test_case Pointer to structure defining functionality test case
  */
 static void test_eval_16bit_data(func_test_case_params_t *test_case);
+
+/**
+ * @brief Evaluate results for 24bit data length
+ *
+ * @param[in] test_case Pointer to structure defining functionality test case
+ */
+static void test_eval_24bit_data(func_test_case_params_t *test_case);
 
 // ------------------------------------------------ Test cases ---------------------------------------------------------
 
@@ -147,6 +155,29 @@ TEST_CASE("Test fill functionality RGB565", "[fill][functionality][RGB565]")
     functionality_test_matrix(&test_matrix, &test_case);
 }
 
+TEST_CASE("Test fill functionality RGB888", "[fill][functionality][RGB888]")
+{
+    test_matrix_params_t test_matrix = {
+        .min_w = 12,             // 12 is the lower limit for the esp32s3 asm implementation, otherwise esp32 is executed
+        .min_h = 1,
+        .max_w = 32,
+        .max_h = 3,
+        .min_unalign_byte = 0,
+        .max_unalign_byte = 16,
+        .unalign_step = 1,
+        .dest_stride_step = 1,
+        .test_combinations_count = 0,
+    };
+
+    func_test_case_params_t test_case = {
+        .blend_api_px_func = &lv_draw_sw_blend_color_to_rgb888,
+        .color_format = LV_COLOR_FORMAT_RGB888,
+        .data_type_size = sizeof(uint8_t) * 3,   // 24-bit data length
+    };
+
+    ESP_LOGI(TAG_LV_FILL_FUNC, "running test for RGB888 color format");
+    functionality_test_matrix(&test_matrix, &test_case);
+}
 // ------------------------------------------------ Static test functions ----------------------------------------------
 
 static void functionality_test_matrix(test_matrix_params_t *test_matrix, func_test_case_params_t *test_case)
@@ -195,8 +226,13 @@ static void lv_fill_functionality(func_test_case_params_t *test_case)
     dsc_ansi.dest_buf = test_case->buf.p_ansi;
     dsc_ansi.use_asm = false;
 
-    test_case->blend_api_func(&dsc_asm);    // Call the LVGL API with Assembly code
-    test_case->blend_api_func(&dsc_ansi);   // Call the LVGL API with ANSI code
+    if (test_case->blend_api_func != NULL) {
+        test_case->blend_api_func(&dsc_asm);    // Call the LVGL API with Assembly code
+        test_case->blend_api_func(&dsc_ansi);   // Call the LVGL API with ANSI code
+    } else if (test_case->blend_api_px_func != NULL) {
+        test_case->blend_api_px_func(&dsc_asm, 3);    // Call the LVGL API with Assembly code with set pixel size
+        test_case->blend_api_px_func(&dsc_ansi, 3);   // Call the LVGL API with ANSI code with set pixel size
+    }
 
     // Shift array pointers by Canary Bytes amount back
     test_case->buf.p_asm -= CANARY_BYTES * test_case->data_type_size;
@@ -213,6 +249,11 @@ static void lv_fill_functionality(func_test_case_params_t *test_case)
 
     case LV_COLOR_FORMAT_RGB565: {
         test_eval_16bit_data(test_case);
+        break;
+    }
+
+    case LV_COLOR_FORMAT_RGB888: {
+        test_eval_24bit_data(test_case);
         break;
     }
 
@@ -308,4 +349,35 @@ static void test_eval_16bit_data(func_test_case_params_t *test_case)
     // Canary bytes area must stay 0
     TEST_ASSERT_EACH_EQUAL_UINT16_MESSAGE(0, (uint16_t *)test_case->buf.p_ansi + (test_case->total_buf_len - CANARY_BYTES), CANARY_BYTES, test_msg_buf);
     TEST_ASSERT_EACH_EQUAL_UINT16_MESSAGE(0, (uint16_t *)test_case->buf.p_asm + (test_case->total_buf_len - CANARY_BYTES), CANARY_BYTES, test_msg_buf);
+}
+
+static void test_eval_24bit_data(func_test_case_params_t *test_case)
+{
+    // Print results, 24bit data
+#if DBG_PRINT_OUTPUT
+    size_t data_type_size = test_case->data_type_size;
+    for (uint32_t i = 0; i < test_case->total_buf_len; i++) {
+        uint32_t ansi_value = ((uint8_t *)test_case->buf.p_ansi)[i * data_type_size]
+                              | (((uint8_t *)test_case->buf.p_ansi)[i * data_type_size + 1] << 8)
+                              | (((uint8_t *)test_case->buf.p_ansi)[i * data_type_size + 2] << 16);
+        uint32_t asm_value  = ((uint8_t *)test_case->buf.p_asm)[i * data_type_size]
+                              | (((uint8_t *)test_case->buf.p_asm)[i * data_type_size + 1] << 8)
+                              | (((uint8_t *)test_case->buf.p_asm)[i * data_type_size + 2] << 16);
+        printf("dest_buf[%"PRIi32"] %s ansi = %8"PRIx32" \t asm = %8"PRIx32" \n", i, ((i < 10) ? (" ") : ("")), ansi_value, asm_value);
+    }
+    printf("\n");
+#endif
+
+    const int canary_bytes_area = CANARY_BYTES * test_case->data_type_size;
+
+    // Canary bytes area must stay 0
+    TEST_ASSERT_EACH_EQUAL_UINT8_MESSAGE(0, (uint8_t *)test_case->buf.p_ansi, canary_bytes_area, test_msg_buf);
+    TEST_ASSERT_EACH_EQUAL_UINT8_MESSAGE(0, (uint8_t *)test_case->buf.p_asm, canary_bytes_area, test_msg_buf);
+
+    // dest_buf_asm and dest_buf_ansi must be equal
+    TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE((uint8_t *)test_case->buf.p_asm + canary_bytes_area, (uint8_t *)test_case->buf.p_ansi + canary_bytes_area, test_case->active_buf_len * test_case->data_type_size, test_msg_buf);
+
+    // Canary bytes area must stay 0
+    TEST_ASSERT_EACH_EQUAL_UINT8_MESSAGE(0, (uint8_t *)test_case->buf.p_ansi + (test_case->total_buf_len - CANARY_BYTES) * test_case->data_type_size, canary_bytes_area, test_msg_buf);
+    TEST_ASSERT_EACH_EQUAL_UINT8_MESSAGE(0, (uint8_t *)test_case->buf.p_asm + (test_case->total_buf_len - CANARY_BYTES) * test_case->data_type_size, canary_bytes_area, test_msg_buf);
 }

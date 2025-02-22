@@ -57,6 +57,7 @@ typedef struct {
     lv_color_format_t src_color_format;
     lv_opa_t opa;
     lv_blend_mode_t blend_mode;
+    bool use_asm;
 } _lv_draw_sw_blend_image_dsc_t;
 
 /**********************

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -15,6 +15,7 @@
 #include "lv_draw_sw_blend.h"
 #include "lv_draw_sw_blend_to_argb8888.h"
 #include "lv_draw_sw_blend_to_rgb565.h"
+#include "lv_draw_sw_blend_to_rgb888.h"
 
 #define WIDTH 128
 #define HEIGHT 128
@@ -115,6 +116,31 @@ TEST_CASE("LV Fill benchmark RGB565", "[fill][benchmark][RGB565]")
     lv_fill_benchmark_init(&test_params);
     free(dest_array_align16);
 }
+
+TEST_CASE("LV Fill benchmark RGB888", "[fill][benchmark][RGB888]")
+{
+    uint8_t *dest_array_align16  = (uint8_t *)memalign(16, STRIDE * HEIGHT * sizeof(uint8_t) * 3 + UNALIGN_BYTES);
+    TEST_ASSERT_NOT_EQUAL(NULL, dest_array_align16);
+
+    // Apply byte unalignment for the worst-case test scenario
+    uint8_t *dest_array_align1 = dest_array_align16 + UNALIGN_BYTES;
+
+    bench_test_case_params_t test_params = {
+        .height = HEIGHT,
+        .width = WIDTH,
+        .stride = STRIDE * 3,
+        .cc_height = HEIGHT - 1,
+        .cc_width = WIDTH - 1,
+        .benchmark_cycles = BENCHMARK_CYCLES,
+        .array_align16 = (void *)dest_array_align16,
+        .array_align1 = (void *)dest_array_align1,
+        .blend_api_px_func = &lv_draw_sw_blend_color_to_rgb888,
+    };
+
+    ESP_LOGI(TAG_LV_FILL_BENCH, "running test for RGB888 color format");
+    lv_fill_benchmark_init(&test_params);
+    free(dest_array_align16);
+}
 // ------------------------------------------------ Static test functions ----------------------------------------------
 
 static void lv_fill_benchmark_init(bench_test_case_params_t *test_params)
@@ -162,11 +188,21 @@ static void lv_fill_benchmark_init(bench_test_case_params_t *test_params)
 static float lv_fill_benchmark_run(bench_test_case_params_t *test_params, _lv_draw_sw_blend_fill_dsc_t *dsc)
 {
     // Call the DUT function for the first time to init the benchmark test
-    test_params->blend_api_func(dsc);
+    if (test_params->blend_api_func != NULL) {
+        test_params->blend_api_func(dsc);
+    } else if (test_params->blend_api_px_func != NULL) {
+        test_params->blend_api_px_func(dsc, 3);
+    }
 
     const unsigned int start_b = xthal_get_ccount();
-    for (int i = 0; i < test_params->benchmark_cycles; i++) {
-        test_params->blend_api_func(dsc);
+    if (test_params->blend_api_func != NULL) {
+        for (int i = 0; i < test_params->benchmark_cycles; i++) {
+            test_params->blend_api_func(dsc);
+        }
+    } else if (test_params->blend_api_px_func != NULL) {
+        for (int i = 0; i < test_params->benchmark_cycles; i++) {
+            test_params->blend_api_px_func(dsc, 3);
+        }
     }
     const unsigned int end_b = xthal_get_ccount();
 
