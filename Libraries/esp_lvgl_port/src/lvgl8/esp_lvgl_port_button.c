@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2024 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2025 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -56,6 +56,7 @@ lv_indev_t *lvgl_port_add_navigation_buttons(const lvgl_port_nav_btns_cfg_t *but
         return NULL;
     }
 
+#if BUTTON_VER_MAJOR < 4
     /* Previous button */
     if (buttons_cfg->button_prev != NULL) {
         buttons_ctx->btn[LVGL_PORT_NAV_BTN_PREV] = iot_button_create(buttons_cfg->button_prev);
@@ -73,11 +74,23 @@ lv_indev_t *lvgl_port_add_navigation_buttons(const lvgl_port_nav_btns_cfg_t *but
         buttons_ctx->btn[LVGL_PORT_NAV_BTN_ENTER] = iot_button_create(buttons_cfg->button_enter);
         ESP_GOTO_ON_FALSE(buttons_ctx->btn[LVGL_PORT_NAV_BTN_ENTER], ESP_ERR_NO_MEM, err, TAG, "Not enough memory for button create!");
     }
+#else
+    ESP_GOTO_ON_FALSE(buttons_cfg->button_prev && buttons_cfg->button_next && buttons_cfg->button_enter, ESP_ERR_INVALID_ARG, err, TAG, "Invalid some button handler!");
+
+    buttons_ctx->btn[LVGL_PORT_NAV_BTN_PREV] = buttons_cfg->button_prev;
+    buttons_ctx->btn[LVGL_PORT_NAV_BTN_NEXT] = buttons_cfg->button_next;
+    buttons_ctx->btn[LVGL_PORT_NAV_BTN_ENTER] = buttons_cfg->button_enter;
+#endif
 
     /* Button handlers */
     for (int i = 0; i < LVGL_PORT_NAV_BTN_CNT; i++) {
+#if BUTTON_VER_MAJOR < 4
         ESP_ERROR_CHECK(iot_button_register_cb(buttons_ctx->btn[i], BUTTON_PRESS_DOWN, lvgl_port_btn_down_handler, buttons_ctx));
         ESP_ERROR_CHECK(iot_button_register_cb(buttons_ctx->btn[i], BUTTON_PRESS_UP, lvgl_port_btn_up_handler, buttons_ctx));
+#else
+        ESP_ERROR_CHECK(iot_button_register_cb(buttons_ctx->btn[i], BUTTON_PRESS_DOWN, NULL, lvgl_port_btn_down_handler, buttons_ctx));
+        ESP_ERROR_CHECK(iot_button_register_cb(buttons_ctx->btn[i], BUTTON_PRESS_UP, NULL, lvgl_port_btn_up_handler, buttons_ctx));
+#endif
     }
 
     buttons_ctx->btn_prev = false;
