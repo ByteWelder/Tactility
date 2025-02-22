@@ -50,7 +50,7 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_i2c_lock),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_unlock),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_simple),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
     ESP_ELFSYM_EXPORT(tt_message_queue_free),
     ESP_ELFSYM_EXPORT(tt_message_queue_put),
@@ -92,6 +92,15 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
+    // lv_event
+    ESP_ELFSYM_EXPORT(lv_event_get_code),
+    ESP_ELFSYM_EXPORT(lv_event_get_indev),
+    ESP_ELFSYM_EXPORT(lv_event_get_key),
+    ESP_ELFSYM_EXPORT(lv_event_get_param),
+    ESP_ELFSYM_EXPORT(lv_event_get_scroll_anim),
+    ESP_ELFSYM_EXPORT(lv_event_get_user_data),
+    ESP_ELFSYM_EXPORT(lv_event_get_target_obj),
+    ESP_ELFSYM_EXPORT(lv_event_get_target),
     // lv_obj
     ESP_ELFSYM_EXPORT(lv_obj_add_event_cb),
     ESP_ELFSYM_EXPORT(lv_obj_align),
