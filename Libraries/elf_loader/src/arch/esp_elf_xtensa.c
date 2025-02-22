@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: 2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2023-2024 Espressif Systems (Shanghai) CO LTD
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -69,8 +69,8 @@ static const char *TAG = "elf_arch";
  * @param rela - Relocated symbol data
  * @param sym  - ELF symbol table
  * @param addr - Jumping target address
- * 
- * @return ESP_OK if sucess or other if failed.
+ *
+ * @return ESP_OK if success or other if failed.
  */
 int esp_elf_arch_relocate(esp_elf_t *elf, const elf32_rela_t *rela,
                           const elf32_sym_t *sym, uint32_t addr)
@@ -82,7 +82,8 @@ int esp_elf_arch_relocate(esp_elf_t *elf, const elf32_rela_t *rela,
 
     where = (uint32_t *)esp_elf_map_sym(elf, rela->offset);
 
-    ESP_LOGD(TAG, "where=%p addr=%x offset=%x\n", where, (int)addr, (int)rela->offset);
+    ESP_LOGD(TAG, "type: %d, where=%p addr=0x%x offset=0x%x\n",
+             ELF_R_TYPE(rela->info), where, (int)addr, (int)rela->offset);
 
     switch (ELF_R_TYPE(rela->info)) {
     case R_XTENSA_RELATIVE:

@@ -12,19 +12,17 @@
 extern "C" {
 #endif
 
-#ifndef ELF_ALIGN_SIZE
-#define ELF_ALIGN_SIZE 4
-#endif
+/* Notes: align_size needs to be a power of 2 */
 
-#define ELF_ALIGN(_a)   (((_a) + (ELF_ALIGN_SIZE - 1)) & \
-                         (~(ELF_ALIGN_SIZE - 1)))
+#define ELF_ALIGN(_a, align_size) (((_a) + (align_size - 1)) & \
+                                   ~(align_size - 1))
 
 /**
  * @brief Allocate block of memory.
  *
  * @param n - Memory size in byte
  * @param exec - True: memory can run executable code; False: memory can R/W data
- * 
+ *
  * @return Memory pointer if success or NULL if failed.
  */
 void *esp_elf_malloc(uint32_t n, bool exec);
@@ -33,7 +31,7 @@ void *esp_elf_malloc(uint32_t n, bool exec);
  * @brief Free block of memory.
  *
  * @param ptr - memory block pointer allocated by "esp_elf_malloc"
- * 
+ *
  * @return None
  */
 void esp_elf_free(void *ptr);
@@ -45,18 +43,18 @@ void esp_elf_free(void *ptr);
  * @param rela - Relocated symbol data
  * @param sym  - ELF symbol table
  * @param addr - Jumping target address
- * 
- * @return ESP_OK if sucess or other if failed.
+ *
+ * @return ESP_OK if success or other if failed.
  */
 int esp_elf_arch_relocate(esp_elf_t *elf, const elf32_rela_t *rela,
                           const elf32_sym_t *sym, uint32_t addr);
 
 /**
- * @brief Remap symbol from ".data" to ".text" section. 
+ * @brief Remap symbol from ".data" to ".text" section.
  *
  * @param elf  - ELF object pointer
  * @param sym  - ELF symbol table
- * 
+ *
  * @return Remapped symbol value
  */
 #ifdef CONFIG_ELF_LOADER_CACHE_OFFSET
@@ -67,7 +65,7 @@ uintptr_t elf_remap_text(esp_elf_t *elf, uintptr_t sym);
  * @brief Flush data from cache to external RAM.
  *
  * @param None
- * 
+ *
  * @return None
  */
 #ifdef CONFIG_ELF_LOADER_LOAD_PSRAM

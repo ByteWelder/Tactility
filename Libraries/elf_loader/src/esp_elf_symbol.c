@@ -19,14 +19,20 @@
 
 #include "rom/ets_sys.h"
 
-#include "elf_symbol.h"
+#include "private/elf_symbol.h"
 
+extern int __ltdf2(double a, double b);
+extern unsigned int __fixunsdfsi(double a);
+extern int __gtdf2(double a, double b);
+extern double __floatunsidf(unsigned int i);
+extern double __divdf3(double a, double b);
 
-extern int __ltdf2 (double a, double b);
-extern unsigned int __fixunsdfsi (double a);
-extern int __gtdf2 (double a, double b);
-extern double __floatunsidf (unsigned int i);
-extern double __divdf3 (double a, double b);
+// Tactility custom -->
+static const struct esp_elfsym* custom_symbols = NULL;
+void elf_set_custom_symbols(const struct esp_elfsym* symbols) {
+    custom_symbols = symbols;
+}
+// <-- Tactility custom
 
 /** @brief Libc public functions symbols look-up table */
 
@@ -150,19 +156,11 @@ static const struct esp_elfsym g_esp_espidf_elfsyms[] = {
     ESP_ELFSYM_END
 };
 
-
-#ifdef CONFIG_ELF_LOADER_CUSTOMER_SYMBOLS
-static const struct esp_elfsym* custom_symbols = NULL;
-void elf_set_custom_symbols(const struct esp_elfsym* symbols) {
-    custom_symbols = symbols;
-}
-#endif
-
 /**
  * @brief Find symbol address by name.
  *
  * @param sym_name - Symbol name
- * 
+ *
  * @return Symbol address if success or 0 if failed.
  */
 uintptr_t elf_find_sym(const char *sym_name)
@@ -198,19 +196,28 @@ uintptr_t elf_find_sym(const char *sym_name)
 #endif
 
 #ifdef CONFIG_ELF_LOADER_CUSTOMER_SYMBOLS
-    syms = custom_symbols;
-    if (syms != NULL) {
-        while (syms->name) {
-            if (!strcmp(syms->name, sym_name)) {
-                return (uintptr_t)syms->sym;
-            }
+    extern const struct esp_elfsym g_customer_elfsyms[];
 
-            syms++;
+    syms = g_customer_elfsyms;
+    while (syms->name) {
+        if (!strcmp(syms->name, sym_name)) {
+            return (uintptr_t)syms->sym;
         }
-    }
 
+        syms++;
+    }
 #endif
+
+// Tactility custom -->
+    syms = custom_symbols;
+    while (syms->name) {
+        if (!strcmp(syms->name, sym_name)) {
+            return (uintptr_t)syms->sym;
+        }
+
+        syms++;
+    }
+// <-- Tactility custom
 
     return 0;
 }
-

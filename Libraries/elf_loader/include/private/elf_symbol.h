@@ -6,14 +6,15 @@
 
 #pragma once
 
-#include "private/elf_types.h"
-#include "elf_symbol.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define ESP_ELFSYM_EXPORT(_sym)     { #_sym, (void*)&_sym }
+// Tactility custom -->
+#define ESP_ELFSYM_EXPORT(_sym)     { #_sym, (const void*)&_sym }
+// <-- Tactility custom
 #define ESP_ELFSYM_END              { NULL,  NULL }
 
 /** @brief Function symbol description */
@@ -27,14 +28,14 @@ struct esp_elfsym {
  * @brief Find symbol address by name.
  *
  * @param sym_name - Symbol name
- * 
+ *
  * @return Symbol address if success or 0 if failed.
  */
 uintptr_t elf_find_sym(const char *sym_name);
 
-#ifdef CONFIG_ELF_LOADER_CUSTOMER_SYMBOLS
+// Tactility custom -->
 void elf_set_custom_symbols(const struct esp_elfsym* symbols);
-#endif
+// <-- Tactility custom
 
 #ifdef __cplusplus
 }
