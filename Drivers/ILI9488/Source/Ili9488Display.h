@@ -89,9 +89,6 @@ public:
 
     bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
 
-    void setGammaCurve(uint8_t index) final;
-    uint8_t getGammaCurveCount() const final { return 4; };
-
     lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
 };
 

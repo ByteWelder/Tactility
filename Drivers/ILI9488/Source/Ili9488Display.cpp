@@ -42,7 +42,7 @@ bool Ili9488Display::start() {
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = 18,
         .flags = {
@@ -58,18 +58,7 @@ bool Ili9488Display::start() {
         buffer_size = configuration->bufferSize;
     }
 
-    /**
-     * HACK: The ILI9488 has a work-around to convert 18 bits pixels (RGB666) to RGB565 (16 bits).
-     * This work-around assumes the input buffer is RGB565 and it assumes that the buffer has 2 bytes per pixel.
-     * The problem is that esp_lvgl_port always has 3 bytes per pixel.
-     * (see buffer allocation in esp_lvgl_port_disp.c @ lvgl_port_add_disp_priv)
-     * Because the buffer allocation is 3 bytes per pixel for 16bit pixel format, the rendering algorithm
-     * doesn't render 1/10th of the buffer height but 50% more!at
-     * The work-around is to artificially increase the ili9488 driver buffer by 50%.
-     */
-    auto hack_buffer_size = buffer_size / 2 * 3;
-
-    if (esp_lcd_new_panel_ili9488(ioHandle, &panel_config, hack_buffer_size, &panelHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_ili9488(ioHandle, &panel_config, buffer_size, &panelHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }
@@ -151,41 +140,4 @@ bool Ili9488Display::stop() {
 
     displayHandle = nullptr;
     return true;
-}
-
-/**
- * Note:
- * The datasheet implies this should work, but it doesn't:
- * https://www.digikey.com/htmldatasheets/production/1640716/0/0/1/ILI9341-Datasheet.pdf
- *
- * This repo claims it only has 1 curve:
- * https://github.com/brucemack/hello-ili9341
- *
- * I'm leaving it in as I'm not sure if it's just my hardware that's problematic.
- */
-void Ili9488Display::setGammaCurve(uint8_t index) {
-    uint8_t gamma_curve;
-    switch (index) {
-        case 0:
-            gamma_curve = 0x01;
-            break;
-        case 1:
-            gamma_curve = 0x04;
-            break;
-        case 2:
-            gamma_curve = 0x02;
-            break;
-        case 3:
-            gamma_curve = 0x08;
-            break;
-        default:
-            return;
-    }
-    const uint8_t param[] = {
-        gamma_curve
-    };
-
-    if (esp_lcd_panel_io_tx_param(ioHandle , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to set gamma");
-    }
 }

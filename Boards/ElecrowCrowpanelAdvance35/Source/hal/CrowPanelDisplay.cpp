@@ -1,7 +1,7 @@
 #include "CrowPanelDisplay.h"
 #include "CrowPanelDisplayConstants.h"
 
-#include <Ft6x36Touch.h>
+#include <Gt911Touch.h>
 #include <PwmBacklight.h>
 #include <Ili9488Display.h>
 
@@ -9,16 +9,17 @@
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
-    auto configuration = std::make_unique<Ft6x36Touch::Configuration>(
+    auto configuration = std::make_unique<Gt911Touch::Configuration>(
         I2C_NUM_0,
-        GPIO_NUM_47
+        320,
+        480
     );
 
-    return std::make_shared<Ft6x36Touch>(std::move(configuration));
+    return std::make_shared<Gt911Touch>(std::move(configuration));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = nullptr;//createTouch();
+    auto touch = createTouch();
 
     auto configuration = std::make_unique<Ili9488Display::Configuration>(
         CROWPANEL_LCD_SPI_HOST,
