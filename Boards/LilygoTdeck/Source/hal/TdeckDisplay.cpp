@@ -18,7 +18,11 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         TDECK_LCD_PIN_DC,
         320,
         240,
-        touch
+        touch,
+        true,
+        true,
+        false,
+        true
     );
 
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
