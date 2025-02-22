@@ -45,6 +45,15 @@ jobs:
         with:
           board_id: elecrow-crowpanel-basic-28
           arch: esp32
+  elecrow-crowpanel-basic-35:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: elecrow-crowpanel-basic-35
+          arch: esp32
   lilygo-tdeck:
     runs-on: ubuntu-latest
     steps:
