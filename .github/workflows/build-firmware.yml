@@ -27,6 +27,15 @@ jobs:
         with:
           board_id: elecrow-crowpanel-advance-28
           arch: esp32s3
+  elecrow-crowpanel-advance-35:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: elecrow-crowpanel-advance-35
+          arch: esp32s3
   elecrow-crowpanel-basic-28:
     runs-on: ubuntu-latest
     steps:
