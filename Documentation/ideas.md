@@ -35,8 +35,7 @@
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 
 # Nice-to-haves
-- CoreS3 has a hardware issue that prevents mounting SD cards while using the display too: allow USB Mass Storage to use `/data` instead? Perhaps give the USB settings app a drop down to select the root filesystem to attach.
-- Give external app a different icon. Allow an external app update their id, icon, type and name once they are running(, and persist that info?). Loader will need to be able to find app by (external) location.
+- Give external app a different icon. Allow an external app update their id, icon, type and name once they are running(and persist that info?). Loader will need to be able to find app by (external) location.
 - Audio player app
 - Audio recording app
 - OTA updates

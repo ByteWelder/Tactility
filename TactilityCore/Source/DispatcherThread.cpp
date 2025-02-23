@@ -29,8 +29,8 @@ void DispatcherThread::_threadMain() {
     } while (!interruptThread);
 }
 
-void DispatcherThread::dispatch(Dispatcher::Function function, std::shared_ptr<void> context) {
-    dispatcher.dispatch(function, std::move(context));
+void DispatcherThread::dispatch(Dispatcher::Function function, std::shared_ptr<void> context, TickType_t timeout) {
+    dispatcher.dispatch(function, std::move(context), timeout);
 }
 
 void DispatcherThread::start() {
