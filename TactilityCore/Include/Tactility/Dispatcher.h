@@ -38,7 +38,7 @@ private:
     };
 
     Mutex mutex;
-    std::queue<std::shared_ptr<DispatcherMessage>> queue;
+    std::queue<std::shared_ptr<DispatcherMessage>> queue = {};
     EventFlag eventFlag;
 
 public:
