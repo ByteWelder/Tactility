@@ -19,7 +19,7 @@ public:
     /**
      * Dispatch a message.
      */
-    void dispatch(Dispatcher::Function function, std::shared_ptr<void> context);
+    void dispatch(Dispatcher::Function function, std::shared_ptr<void> context, TickType_t timeout = portMAX_DELAY);
 
     /** Start the thread (blocking). */
     void start();

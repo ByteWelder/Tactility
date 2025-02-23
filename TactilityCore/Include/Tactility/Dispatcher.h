@@ -38,7 +38,7 @@ private:
     };
 
     Mutex mutex;
-    std::queue<std::shared_ptr<DispatcherMessage>> queue;
+    std::queue<std::shared_ptr<DispatcherMessage>> queue = {};
     EventFlag eventFlag;
 
 public:
@@ -51,7 +51,7 @@ public:
      * @param[in] function the function to execute elsewhere
      * @param[in] context the data to pass onto the function
      */
-    void dispatch(Function function, std::shared_ptr<void> context);
+    void dispatch(Function function, std::shared_ptr<void> context, TickType_t timeout = portMAX_DELAY);
 
     /**
      * Consume 1 or more dispatched function (if any) until the queue is empty.
