@@ -35,7 +35,9 @@ public:
     PubSub() = default;
 
     ~PubSub() {
-        tt_check(items.empty());
+        if (!items.empty()) {
+            TT_LOG_W("Loader", "Destroying PubSub with %d active subscriptions", items.size());
+        }
     }
 
     /** Start receiving messages at the specified handle (Threadsafe, Re-entrable)

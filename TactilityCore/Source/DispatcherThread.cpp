@@ -25,7 +25,11 @@ DispatcherThread::~DispatcherThread() {
 
 void DispatcherThread::_threadMain() {
     do {
-        dispatcher.consume(1000 / portTICK_PERIOD_MS);
+        /**
+         * If this value is too high (e.g. 1 second) then the dispatcher destroys too slowly when the simulator exits.
+         * This causes the problems with other services doing an update (e.g. Statusbar) and calling into destroyed mutex in the global scope.
+         */
+        dispatcher.consume(100 / portTICK_PERIOD_MS);
     } while (!interruptThread);
 }
 

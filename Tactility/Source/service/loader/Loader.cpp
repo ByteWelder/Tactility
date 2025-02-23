@@ -4,13 +4,12 @@
 #include "Tactility/service/loader/Loader_i.h"
 
 #include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistry.h>
 #include <Tactility/RtosCompat.h>
 
 #ifdef ESP_PLATFORM
-#include "Tactility/service/ServiceRegistry.h"
 #include <Tactility/TactilityHeadless.h>
 #include <esp_heap_caps.h>
-
 #include <utility>
 #else
 #include "Tactility/lvgl/LvglSync.h"
