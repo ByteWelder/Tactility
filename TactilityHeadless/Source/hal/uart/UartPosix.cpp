@@ -31,7 +31,7 @@ bool UartPosix::start() {
     auto new_device = std::unique_ptr<FILE, AutoCloseFileDeleter>(file);
 
     struct termios tty;
-    if (tcgetattr(file->_fileno, &tty) < 0) {
+    if (tcgetattr(fileno(file), &tty) < 0) {
         printf("(%s) tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
         return false;
     }
@@ -61,7 +61,7 @@ bool UartPosix::start() {
     tty.c_cc[VMIN] = 1;
     tty.c_cc[VTIME] = 1;
 
-    if (tcsetattr(file->_fileno, TCSANOW, &tty) != 0) {
+    if (tcsetattr(fileno(file), TCSANOW, &tty) != 0) {
         printf("(%s) tcsetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
         return false;
     }
@@ -100,7 +100,7 @@ size_t UartPosix::readBytes(std::byte* buffer, size_t bufferSize, TickType_t tim
     }
 
     if (awaitAvailable(timeout)) {
-        return read(device->_fileno, buffer, bufferSize);
+        return read(fileno(device.get()), buffer, bufferSize);
     } else {
         return 0;
     }
@@ -108,7 +108,7 @@ size_t UartPosix::readBytes(std::byte* buffer, size_t bufferSize, TickType_t tim
 
 bool UartPosix::readByte(std::byte* output, TickType_t timeout) {
     if (awaitAvailable(timeout)) {
-        return read(device->_fileno, output, 1) == 1;
+        return read(fileno(device.get()), output, 1) == 1;
     } else {
         return false;
     }
@@ -119,7 +119,7 @@ size_t UartPosix::writeBytes(const std::byte* buffer, size_t bufferSize, TickTyp
         return false;
     }
 
-    return write(device->_fileno, buffer, bufferSize);
+    return write(fileno(device.get()), buffer, bufferSize);
 }
 
 size_t UartPosix::available(TickType_t timeout) {
@@ -129,7 +129,7 @@ size_t UartPosix::available(TickType_t timeout) {
     }
 
     uint32_t bytes_available = 0;
-    ioctl(device->_fileno, FIONREAD, bytes_available);
+    ioctl(fileno(device.get()), FIONREAD, bytes_available);
     return bytes_available;
 }
 
@@ -139,7 +139,7 @@ void UartPosix::flushInput() {
 
 uint32_t UartPosix::getBaudRate() {
     struct termios tty;
-    if (tcgetattr(device->_fileno, &tty) < 0) {
+    if (tcgetattr(fileno(device.get()), &tty) < 0) {
         printf("(%s) tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
         return false;
     } else {
@@ -154,7 +154,7 @@ bool UartPosix::setBaudRate(uint32_t baudRate, TickType_t timeout) {
     }
 
     struct termios tty;
-    if (tcgetattr(device->_fileno, &tty) < 0) {
+    if (tcgetattr(fileno(device.get()), &tty) < 0) {
         printf("(%s) tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
         return false;
     }

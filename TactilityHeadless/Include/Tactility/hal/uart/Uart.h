@@ -114,6 +114,11 @@ public:
     size_t readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = defaultTimeout, bool addNullTerminator = true);
 };
 
+/**
+ * Opens a UART.
+ * @param[in] name the UART name as specified in the board configuration.
+ * @return the UART when it was successfully opened, or nullptr when it is in use.
+ */
 std::unique_ptr<Uart> open(std::string name);
 
 } // namespace tt::hal::uart
