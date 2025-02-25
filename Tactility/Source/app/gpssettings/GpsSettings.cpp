@@ -77,25 +77,25 @@ private:
             // Update toolbar
             switch (state) {
                 case service::gps::State::OnPending:
-                    TT_LOG_I(TAG, "OnPending");
+                    TT_LOG_D(TAG, "OnPending");
                     lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
                     break;
                 case service::gps::State::On:
-                    TT_LOG_I(TAG, "On");
+                    TT_LOG_D(TAG, "On");
                     lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);
                     break;
                 case service::gps::State::OffPending:
-                    TT_LOG_I(TAG, "OffPending");
+                    TT_LOG_D(TAG, "OffPending");
                     lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
                     break;
                 case service::gps::State::Off:
-                    TT_LOG_I(TAG, "Off");
+                    TT_LOG_D(TAG, "Off");
                     lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);

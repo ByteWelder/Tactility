@@ -8,12 +8,12 @@
 
 namespace tt::hal::gps {
 
-bool initMtk(uart_port_t port);
-bool initMtkL76b(uart_port_t port);
-bool initMtkPa1616s(uart_port_t port);
-bool initAtgm336h(uart_port_t port);
-bool initUc6580(uart_port_t port);
-bool initAg33xx(uart_port_t port);
+bool initMtk(uart::Uart& uart);
+bool initMtkL76b(uart::Uart& uart);
+bool initMtkPa1616s(uart::Uart& uart);
+bool initAtgm336h(uart::Uart& uart);
+bool initUc6580(uart::Uart& uart);
+bool initAg33xx(uart::Uart& uart);
 
 // region CAS
 
@@ -70,7 +70,7 @@ static uint8_t makeCASPacket(uint8_t* buffer, uint8_t class_id, uint8_t msg_id, 
     return (payload_size + 10);
 }
 
-GpsResponse getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
+GpsResponse getACKCas(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32_t waitMillis)
 {
     uint32_t startTime = kernel::getMillis();
     uint8_t buffer[CAS_ACK_NACK_MSG_SIZE] = {0};
@@ -84,8 +84,8 @@ GpsResponse getACKCas(uart_port_t port, uint8_t class_id, uint8_t msg_id, uint32
     // ACK-ACK | 0xBA | 0xCE | 0x04 | 0x00 | 0x05 | 0x01 | 0xXX | 0xXX | 0x00 | 0x00 | 0xXX | 0xXX | 0xXX | 0xXX |
 
     while (kernel::getTicks() - startTime < waitMillis) {
-        if (uart::available(port)) {
-            uart::readByte(port, &buffer[bufferPos++]);
+        if (uart.available()) {
+            uart.readByte(&buffer[bufferPos++]);
 
             // keep looking at the first two bytes of buffer until
             // we have found the CAS frame header (0xBA, 0xCE), if not
@@ -144,90 +144,90 @@ bool init(const std::vector<GpsDevice::Configuration>& configurations) {
     return true;
 }
 
-bool init(uart_port_t port, GpsModel type) {
+bool init(uart::Uart& uart, GpsModel type) {
     switch (type) {
         case GpsModel::Unknown:
             tt_crash();
         case GpsModel::AG3335:
         case GpsModel::AG3352:
-            return initAg33xx(port);
+            return initAg33xx(uart);
         case GpsModel::ATGM336H:
-            return initAtgm336h(port);
+            return initAtgm336h(uart);
         case GpsModel::LS20031:
-            break;
+            return true;
         case GpsModel::MTK:
-            return initMtk(port);
+            return initMtk(uart);
         case GpsModel::MTK_L76B:
-            return initMtkL76b(port);
+            return initMtkL76b(uart);
         case GpsModel::MTK_PA1616S:
-            return initMtkPa1616s(port);
+            return initMtkPa1616s(uart);
         case GpsModel::UBLOX6:
         case GpsModel::UBLOX7:
         case GpsModel::UBLOX8:
         case GpsModel::UBLOX9:
         case GpsModel::UBLOX10:
-            return ublox::init(port, type);
+            return ublox::init(uart, type);
         case GpsModel::UC6580:
-            return initUc6580(port);
+            return initUc6580(uart);
     }
 
     TT_LOG_I(TAG, "Init not implemented %d", static_cast<int>(type));
     return false;
 }
 
-bool initAg33xx(uart_port_t port) {
-    uart::writeString(port, "$PAIR066,1,0,1,0,0,1*3B\r\n"); // Enable GPS+GALILEO+NAVIC
+bool initAg33xx(uart::Uart& uart) {
+    uart.writeString("$PAIR066,1,0,1,0,0,1*3B\r\n"); // Enable GPS+GALILEO+NAVIC
 
     // Configure NMEA (sentences will output once per fix)
-    uart::writeString(port, "$PAIR062,0,1*3F\r\n"); // GGA ON
-    uart::writeString(port, "$PAIR062,1,0*3F\r\n"); // GLL OFF
-    uart::writeString(port, "$PAIR062,2,0*3C\r\n"); // GSA OFF
-    uart::writeString(port, "$PAIR062,3,0*3D\r\n"); // GSV OFF
-    uart::writeString(port, "$PAIR062,4,1*3B\r\n"); // RMC ON
-    uart::writeString(port, "$PAIR062,5,0*3B\r\n"); // VTG OFF
-    uart::writeString(port, "$PAIR062,6,0*38\r\n"); // ZDA ON
+    uart.writeString("$PAIR062,0,1*3F\r\n"); // GGA ON
+    uart.writeString("$PAIR062,1,0*3F\r\n"); // GLL OFF
+    uart.writeString("$PAIR062,2,0*3C\r\n"); // GSA OFF
+    uart.writeString("$PAIR062,3,0*3D\r\n"); // GSV OFF
+    uart.writeString("$PAIR062,4,1*3B\r\n"); // RMC ON
+    uart.writeString("$PAIR062,5,0*3B\r\n"); // VTG OFF
+    uart.writeString("$PAIR062,6,0*38\r\n"); // ZDA ON
 
     kernel::delayMillis(250);
-    uart::writeString(port, "$PAIR513*3D\r\n"); // save configuration
+    uart.writeString("$PAIR513*3D\r\n"); // save configuration
     return true;
 }
 
-bool initUc6580(uart_port_t port) {
+bool initUc6580(uart::Uart& uart) {
     // The Unicore UC6580 can use a lot of sat systems, enable it to
     // use GPS L1 & L5 + BDS B1I & B2a + GLONASS L1 + GALILEO E1 & E5a + SBAS + QZSS
     // This will reset the receiver, so wait a bit afterwards
     // The paranoid will wait for the OK*04 confirmation response after each command.
-    uart::writeString(port, "$CFGSYS,h35155\r\n");
+    uart.writeString("$CFGSYS,h35155\r\n");
     kernel::delayMillis(750);
     // Must be done after the CFGSYS command
     // Turn off GSV messages, we don't really care about which and where the sats are, maybe someday.
-    uart::writeString(port, "$CFGMSG,0,3,0\r\n");
+    uart.writeString("$CFGMSG,0,3,0\r\n");
     kernel::delayMillis(250);
     // Turn off GSA messages, TinyGPS++ doesn't use this message.
-    uart::writeString(port, "$CFGMSG,0,2,0\r\n");
+    uart.writeString("$CFGMSG,0,2,0\r\n");
     kernel::delayMillis(250);
     // Turn off NOTICE __TXT messages, these may provide Unicore some info but we don't care.
-    uart::writeString(port, "$CFGMSG,6,0,0\r\n");
+    uart.writeString("$CFGMSG,6,0,0\r\n");
     kernel::delayMillis(250);
-    uart::writeString(port, "$CFGMSG,6,1,0\r\n");
+    uart.writeString("$CFGMSG,6,1,0\r\n");
     kernel::delayMillis(250);
     return true;
 }
 
-bool initAtgm336h(uart_port_t port) {
+bool initAtgm336h(uart::Uart& uart) {
     uint8_t buffer[256];
 
     // Set the intial configuration of the device - these _should_ work for most AT6558 devices
     int msglen = makeCASPacket(buffer, 0x06, 0x07, sizeof(_message_CAS_CFG_NAVX_CONF), _message_CAS_CFG_NAVX_CONF);
-    uart::writeBytes(port, buffer, msglen);
-    if (getACKCas(port, 0x06, 0x07, 250) != GpsResponse::Ok) {
+    uart.writeBytes(buffer, msglen);
+    if (getACKCas(uart, 0x06, 0x07, 250) != GpsResponse::Ok) {
         TT_LOG_W(TAG, "ATGM336H: Could not set Config");
     }
 
     // Set the update frequence to 1Hz
     msglen = makeCASPacket(buffer, 0x06, 0x04, sizeof(_message_CAS_CFG_RATE_1HZ), _message_CAS_CFG_RATE_1HZ);
-    uart::writeBytes(port, buffer, msglen);
-    if (getACKCas(port, 0x06, 0x04, 250) != GpsResponse::Ok) {
+    uart.writeBytes(buffer, msglen);
+    if (getACKCas(uart, 0x06, 0x04, 250) != GpsResponse::Ok) {
         TT_LOG_W(TAG, "ATGM336H: Could not set Update Frequency");
     }
 
@@ -238,61 +238,61 @@ bool initAtgm336h(uart_port_t port) {
         // Construct a CAS-CFG-MSG packet
         uint8_t cas_cfg_msg_packet[] = {0x4e, fields[i], 0x01, 0x00};
         msglen = makeCASPacket(buffer, 0x06, 0x01, sizeof(cas_cfg_msg_packet), cas_cfg_msg_packet);
-        uart::writeBytes(port, buffer, msglen);
-        if (getACKCas(port, 0x06, 0x01, 250) != GpsResponse::Ok) {
+        uart.writeBytes(buffer, msglen);
+        if (getACKCas(uart, 0x06, 0x01, 250) != GpsResponse::Ok) {
             TT_LOG_W(TAG, "ATGM336H: Could not enable NMEA MSG: %d", fields[i]);
         }
     }
     return true;
 }
 
-bool initMtkPa1616s(uart_port_t port) {
+bool initMtkPa1616s(uart::Uart& uart) {
     // PA1616S is used in some GPS breakout boards from Adafruit
     // PA1616S does not have GLONASS capability. PA1616D does, but is not implemented here.
-    uart::writeString(port, "$PMTK353,1,0,0,0,0*2A\r\n");
+    uart.writeString("$PMTK353,1,0,0,0,0*2A\r\n");
     // Above command will reset the GPS and takes longer before it will accept new commands
     kernel::delayMillis(1000);
     // Only ask for RMC and GGA (GNRMC and GNGGA)
-    uart::writeString(port, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
+    uart.writeString("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
     kernel::delayMillis(250);
     // Enable SBAS / WAAS
-    uart::writeString(port, "$PMTK301,2*2E\r\n");
+    uart.writeString("$PMTK301,2*2E\r\n");
     kernel::delayMillis(250);
     return true;
 }
 
-bool initMtkL76b(uart_port_t port) {
+bool initMtkL76b(uart::Uart& uart) {
     // Waveshare Pico-GPS hat uses the L76B with 9600 baud
     // Initialize the L76B Chip, use GPS + GLONASS
     // See note in L76_Series_GNSS_Protocol_Specification, chapter 3.29
-    uart::writeString(port, "$PMTK353,1,1,0,0,0*2B\r\n");
+    uart.writeString("$PMTK353,1,1,0,0,0*2B\r\n");
     // Above command will reset the GPS and takes longer before it will accept new commands
     kernel::delayMillis(1000);
     // only ask for RMC and GGA (GNRMC and GNGGA)
     // See note in L76_Series_GNSS_Protocol_Specification, chapter 2.1
-    uart::writeString(port, "$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
+    uart.writeString("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\r\n");
     kernel::delayMillis(250);
     // Enable SBAS
-    uart::writeString(port, "$PMTK301,2*2E\r\n");
+    uart.writeString("$PMTK301,2*2E\r\n");
     kernel::delayMillis(250);
     // Enable PPS for 2D/3D fix only
-    uart::writeString(port, "$PMTK285,3,100*3F\r\n");
+    uart.writeString("$PMTK285,3,100*3F\r\n");
     kernel::delayMillis(250);
     // Switch to Fitness Mode, for running and walking purpose with low speed (<5 m/s)
-    uart::writeString(port, "$PMTK886,1*29\r\n");
+    uart.writeString("$PMTK886,1*29\r\n");
     kernel::delayMillis(250);
     return true;
 }
 
-bool initMtk(uart_port_t port) {
+bool initMtk(uart::Uart& uart) {
     // Initialize the L76K Chip, use GPS + GLONASS + BEIDOU
-    uart::writeString(port, "$PCAS04,7*1E\r\n");
+    uart.writeString("$PCAS04,7*1E\r\n");
     kernel::delayMillis(250);
     // only ask for RMC and GGA
-    uart::writeString(port, "$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0*02\r\n");
+    uart.writeString("$PCAS03,1,0,0,0,1,0,0,0,0,0,,,0,0*02\r\n");
     kernel::delayMillis(250);
     // Switch to Vehicle Mode, since SoftRF enables Aviation < 2g
-    uart::writeString(port, "$PCAS11,3*1E\r\n");
+    uart.writeString("$PCAS11,3*1E\r\n");
     kernel::delayMillis(250);
     return true;
 }

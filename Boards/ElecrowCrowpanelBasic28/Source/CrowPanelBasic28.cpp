@@ -97,10 +97,8 @@ extern const Configuration crowpanel_basic_28 = {
     .uart {
         // "UART1"
         uart::Configuration {
+            .name = "UART1",
             .port = UART_NUM_1,
-            .initMode = uart::InitMode::Disabled, // Manual init
-            .canReinit = true,
-            .hasMutableConfiguration = false,
             .rxPin = GPIO_NUM_16,
             .txPin = GPIO_NUM_17,
             .rtsPin = GPIO_NUM_NC,

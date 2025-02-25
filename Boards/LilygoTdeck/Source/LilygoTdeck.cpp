@@ -85,10 +85,8 @@ extern const Configuration lilygo_tdeck = {
     },
     .uart {
         uart::Configuration {
+            .name = "Grove",
             .port = UART_NUM_1,
-            .initMode = uart::InitMode::Disabled, // Let GPS driver control this interface
-            .canReinit = true,
-            .hasMutableConfiguration = false,
             .rxPin = GPIO_NUM_44,
             .txPin = GPIO_NUM_43,
             .rtsPin = GPIO_NUM_NC,
@@ -113,7 +111,7 @@ extern const Configuration lilygo_tdeck = {
     .gps = {
         gps::GpsDevice::Configuration {
             .name = "Internal",
-            .uartPort = UART_NUM_1,
+            .uartName = "Grove",
             .baudRate = 38400,
             .model = gps::GpsModel::UBLOX10
         }

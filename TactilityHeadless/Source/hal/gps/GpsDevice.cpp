@@ -1,6 +1,7 @@
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/gps/GpsInit.h"
 #include "Tactility/hal/gps/Probe.h"
+#include "Tactility/hal/uart/Uart.h"
 #include <cstring>
 #include <minmea.h>
 
@@ -51,15 +52,25 @@ int32_t GpsDevice::threadMainStatic(void* parameter) {
 int32_t GpsDevice::threadMain() {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
 
-    if (!uart::setBaudRate(configuration.uartPort, (int)configuration.baudRate)) {
-        TT_LOG_E(TAG, "Failed to set baud rate to %lu", configuration.baudRate);
+    auto uart = uart::open(configuration.uartName);
+    if (uart == nullptr) {
+        TT_LOG_E(TAG, "Failed to open UART %s", configuration.uartName.c_str());
         return -1;
     }
 
+    if (!uart->start()) {
+        TT_LOG_E(TAG, "Failed to start UART %s", configuration.uartName.c_str());
+        return -1;
+    }
+
+    if (!uart->setBaudRate((int)configuration.baudRate)) {
+        TT_LOG_E(TAG, "Failed to set baud rate to %lu for UART %s", configuration.baudRate, configuration.uartName.c_str());
+        return -1;
+    }
 
     GpsModel model = configuration.model;
     if (model == GpsModel::Unknown) {
-        model = probe(configuration.uartPort);
+        model = probe(*uart);
         if (model == GpsModel::Unknown) {
             TT_LOG_E(TAG, "Probe failed");
             setState(State::Error);
@@ -71,7 +82,7 @@ int32_t GpsDevice::threadMain() {
     this->model = model;
     mutex.unlock();
 
-    if (!init(configuration.uartPort, model)) {
+    if (!init(*uart, model)) {
         TT_LOG_E(TAG, "Init failed");
         setState(State::Error);
         return -1;
@@ -81,15 +92,16 @@ int32_t GpsDevice::threadMain() {
 
     // Reference: https://gpsd.gitlab.io/gpsd/NMEA.html
     while (!isThreadInterrupted()) {
-        size_t bytes_read = uart::readUntil(configuration.uartPort, (uint8_t*)buffer, GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS);
+        size_t bytes_read = uart->readUntil(reinterpret_cast<std::byte*>(buffer), GPS_UART_BUFFER_SIZE, '\n', 100 / portTICK_PERIOD_MS);
+
+        // Thread might've been interrupted in the meanwhile
+        if (isThreadInterrupted()) {
+            break;
+        }
+
         if (bytes_read > 0U) {
 
-            // Thread might've been interrupted in the meanwhile
-            if (isThreadInterrupted()) {
-                break;
-            }
-
-            TT_LOG_D(TAG, "%s", buffer);
+            TT_LOG_I(TAG, "%s", buffer);
 
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:
@@ -124,6 +136,10 @@ int32_t GpsDevice::threadMain() {
         }
     }
 
+    if (uart->isStarted() && !uart->stop()) {
+        TT_LOG_W(TAG, "Failed to stop UART %s", configuration.uartName.c_str());
+    }
+
     return 0;
 }
 
@@ -134,16 +150,6 @@ bool GpsDevice::start() {
     if (thread != nullptr && thread->getState() != Thread::State::Stopped) {
         TT_LOG_W(TAG, "Already started");
         return true;
-    }
-
-    if (uart::isStarted(configuration.uartPort)) {
-        TT_LOG_E(TAG, "UART %d already in use", configuration.uartPort);
-        return false;
-    }
-
-    if (!uart::start(configuration.uartPort)) {
-        TT_LOG_E(TAG, "UART %d failed to start", configuration.uartPort);
-        return false;
     }
 
     threadInterrupted = false;
@@ -183,14 +189,6 @@ bool GpsDevice::stop() {
             old_thread->join();
             // Re-lock to continue logic below
             lock.lock();
-        }
-    }
-
-    if (uart::isStarted(configuration.uartPort)) {
-        if (!uart::stop(configuration.uartPort)) {
-            TT_LOG_E(TAG, "UART %d failed to stop", configuration.uartPort);
-            setState(State::Error);
-            return false;
         }
     }
 

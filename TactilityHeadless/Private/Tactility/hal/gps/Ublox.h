@@ -17,11 +17,11 @@ template<size_t DataSize>
 inline void sendPacket(uart_port_t port, uint8_t type, uint8_t id, uint8_t data[DataSize], const char* errorMessage, TickType_t timeout) {
     static uint8_t buffer[250] = {0};
     size_t length = makePacket(type, id, data, DataSize, buffer);
-    hal::uart::writeBytes(port, buffer, length);
+//    hal::uart::writeBytes(port, buffer, length);
 }
 
-GpsModel probe(uart_port_t port);
+GpsModel probe(uart::Uart& uart);
 
-bool init(uart_port_t port, GpsModel model);
+bool init(uart::Uart& uart, GpsModel model);
 
 } // namespace tt::service::gps
