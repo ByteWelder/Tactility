@@ -9,6 +9,8 @@
 
 #define TAG "hardware"
 
+using namespace tt::hal;
+
 static bool initBoot() {
     lv_init();
     lvgl_task_start();
@@ -26,17 +28,17 @@ TT_UNUSED static void deinitPower() {
 #endif
 }
 
-extern const tt::hal::Configuration hardware = {
+extern const Configuration hardware = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = std::make_shared<SimulatorSdCard>(),
     .power = simulatorPower,
     .i2c = {
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .canReinit = false,
             .hasMutableConfiguration = false,
             .config = (i2c_config_t) {
@@ -51,15 +53,15 @@ extern const tt::hal::Configuration hardware = {
                 .clk_flags = 0
             }
         },
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "External",
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .canReinit = true,
             .hasMutableConfiguration = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = 1,
+                .sda_io_num = 3,
                 .scl_io_num = 2,
                 .sda_pullup_en = false,
                 .scl_pullup_en = false,
@@ -68,6 +70,24 @@ extern const tt::hal::Configuration hardware = {
                 },
                 .clk_flags = 0
             }
+        }
+    },
+    .uart = {
+        uart::Configuration {
+            .name = "/dev/ttyUSB0",
+            .baudRate = 115200
+        },
+        uart::Configuration {
+            .name = "/dev/ttyACM0",
+            .baudRate = 115200
+        }
+    },
+    .gps = {
+        gps::GpsDevice::Configuration {
+            .name = "Internal",
+            .uartName = "/dev/ttyACM0",
+            .baudRate = 115200,
+            .model = gps::GpsModel::UBLOX10
         }
     }
 };

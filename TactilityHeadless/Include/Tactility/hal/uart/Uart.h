@@ -5,6 +5,7 @@
 #include "../Gpio.h"
 #include "Tactility/Lock.h"
 #include "UartCompat.h"
+#include "Tactility/hal/uart/Configuration.h"
 
 #include <memory>
 #include <vector>
@@ -19,102 +20,105 @@ enum class InitMode {
     Disabled // Not initialized by default
 };
 
-struct Configuration {
-    uart_port_t port;
-    /** Whether this bus should be initialized when device starts up */
-    InitMode initMode;
-    /** Whether this bus can stopped and re-started. */
-    bool canReinit;
-    /** Whether .config can be changed. */
-    bool hasMutableConfiguration;
-    /** Receive GPIO pin */
-    gpio_num_t rxPin;
-    /** Transmit GPIO pin */
-    gpio_num_t txPin;
-    /** Read-To-Send GPIO pin */
-    gpio_num_t rtsPin;
-    /** Clear-To-Send Send GPIO pin */
-    gpio_num_t ctsPin;
-    /** Receive buffer size in bytes */
-    unsigned int rxBufferSize;
-    /** Transmit buffer size in bytes */
-    unsigned int txBufferSize;
-    /** Native configuration */
-    uart_config_t config;
-};
-
 enum class Status {
     Started,
     Stopped,
     Unknown
 };
 
-/** Start communications */
-bool start(uart_port_t port);
+class Uart {
 
-/** Stop communications */
-bool stop(uart_port_t port);
+private:
 
-/** @return true when communications were successfully started */
-bool isStarted(uart_port_t port);
+    uint32_t id;
 
-/** @return a lock that is usable for using ESP-IDF directly, or for use with third party APIs */
-Lock& getLock(uart_port_t port);
+public:
+
+    Uart();
+    virtual ~Uart();
+
+    inline uint32_t getId() const { return id; }
+
+    virtual bool start() = 0;
+    virtual bool isStarted() const = 0;
+
+    virtual bool stop() = 0;
+
+    /**
+     * Read up to a specified amount of bytes
+     * @param[out] buffer
+     * @param[in] bufferSize
+     * @param[in] timeout
+     * @return the amount of bytes that were read
+     */
+    virtual size_t readBytes(std::byte* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) = 0;
+
+    size_t readBytes(std::uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) {
+        return readBytes(reinterpret_cast<std::byte*>(buffer), bufferSize, timeout);
+    }
+
+    /** Read a single byte */
+    virtual bool readByte(std::byte* output, TickType_t timeout = defaultTimeout) = 0;
+
+    inline bool readByte(char* output, TickType_t timeout = defaultTimeout) {
+        return readByte(reinterpret_cast<std::byte*>(output), timeout);
+    }
+
+    inline bool readByte(uint8_t* output, TickType_t timeout = defaultTimeout) {
+        return readByte(reinterpret_cast<std::byte*>(output), timeout);
+    }
+
+    /**
+     * Read up to a specified amount of bytes
+     * @param[in] buffer
+     * @param[in] bufferSize
+     * @param[in] timeout
+     * @return the amount of bytes that were read
+     */
+    virtual size_t writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) = 0;
+
+    inline size_t writeBytes(const std::uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) {
+        return writeBytes(reinterpret_cast<const std::byte*>(buffer), bufferSize, timeout);
+    }
+
+    /** @return the amount of bytes available for reading */
+    virtual size_t available(TickType_t timeout = defaultTimeout) = 0;
+
+    /** Set the baud rate for the specified port */
+    virtual bool setBaudRate(uint32_t baudRate, TickType_t timeout = defaultTimeout) = 0;
+
+    /** Get the baud rate for the specified port */
+    virtual uint32_t getBaudRate() = 0;
+
+    /** Flush input buffers */
+    virtual void flushInput() = 0;
+
+    /**
+     * Write a string (excluding null terminator character)
+     * @param[in] buffer
+     * @param[in] timeout
+     * @return the amount of bytes that were written
+     */
+    bool writeString(const char* buffer, TickType_t timeout = defaultTimeout);
+
+    /**
+     * Read a buffer as a string until the specified character (the "untilChar" is included in the result)
+     * @warning if the input data doesn't return "untilByte" then the device goes out of memory
+     */
+    std::string readStringUntil(char untilChar, TickType_t timeout = defaultTimeout);
+
+    /**
+     * Read a buffer as a byte array until the specified character (the "untilChar" is included in the result)
+     * @return the amount of bytes read from UART
+     */
+    size_t readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = defaultTimeout, bool addNullTerminator = true);
+};
 
 /**
- * Read up to a specified amount of bytes
- * @param[in] port
- * @param[out] buffer
- * @param[in] bufferSize
- * @param[in] timeout
- * @return the amount of bytes that were read
+ * Opens a UART.
+ * @param[in] name the UART name as specified in the board configuration.
+ * @return the UART when it was successfully opened, or nullptr when it is in use.
  */
-size_t readBytes(uart_port_t port, uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout);
-
-/** Read a single byte */
-bool readByte(uart_port_t port, uint8_t* output, TickType_t timeout = defaultTimeout);
-
-/**
- * Read up to a specified amount of bytes
- * @param[in] port
- * @param[in] buffer
- * @param[in] bufferSize
- * @param[in] timeout
- * @return the amount of bytes that were read
- */
-size_t writeBytes(uart_port_t port, const uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout);
-
-/**
- * Write a string (excluding null terminator character)
- * @param[in] port
- * @param[in] buffer
- * @param[in] timeout
- * @return the amount of bytes that were written
- */
-bool writeString(uart_port_t port, const char* buffer, TickType_t timeout = defaultTimeout);
-
-/** @return the amount of bytes available for reading */
-size_t available(uart_port_t port, TickType_t timeout = defaultTimeout);
-
-/** Set the baud rate for the specified port */
-bool setBaudRate(uart_port_t port, uint32_t baudRate, TickType_t timeout = defaultTimeout);
-
-/** Get the baud rate for the specified port */
-uint32_t getBaudRate(uart_port_t port);
-
-/** Flush input buffers */
-void flushInput(uart_port_t port);
-
-/**
- * Read a buffer as a string until the specified character (the "untilChar" is included in the result)
- * @warning if the input data doesn't return "untilByte" then the device goes out of memory
- */
-std::string readStringUntil(uart_port_t port, char untilChar, TickType_t timeout = defaultTimeout);
-
-/**
- * Read a buffer as a byte array until the specified character (the "untilChar" is included in the result)
- * @return the amount of bytes read from UART
- */
-size_t readUntil(uart_port_t port, uint8_t* buffer, size_t bufferSize, uint8_t untilByte, TickType_t timeout = defaultTimeout, bool addNullTerminator = true);
+std::unique_ptr<Uart> open(std::string name);
 
 } // namespace tt::hal::uart

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Device.h"
-#include "../uart/Uart.h"
 #include "Satellites.h"
 
 #include <Tactility/Mutex.h>
@@ -11,7 +10,6 @@
 #include <utility>
 
 namespace tt::hal::gps {
-
 
 enum class GpsResponse {
     None,
@@ -24,7 +22,7 @@ enum class GpsModel {
     Unknown = 0,
     AG3335,
     AG3352,
-    ATGM336H,
+    ATGM336H, // Casic (might work with AT6558, Neoway N58 LTE Cat.1, Neoway G2, Neoway G7A)
     LS20031,
     MTK,
     MTK_L76B,
@@ -48,7 +46,7 @@ public:
 
     struct Configuration {
         std::string name;
-        uart_port_t uartPort;
+        std::string uartName; // e.g. "Internal" or "/dev/ttyUSB0"
         uint32_t baudRate;
         GpsModel model;
     };
@@ -75,7 +73,7 @@ private:
 
     const Configuration configuration;
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    std::unique_ptr<Thread> thread;
+    std::unique_ptr<Thread> _Nullable thread;
     bool threadInterrupted = false;
     std::vector<GgaSubscription> ggaSubscriptions;
     std::vector<RmcSubscription> rmcSubscriptions;

@@ -5,8 +5,6 @@
 
 namespace tt::hal::gps {
 
-struct GpsInfo;
-
-GpsModel probe(uart_port_t port);
+GpsModel probe(uart::Uart& iart);
 
 }
