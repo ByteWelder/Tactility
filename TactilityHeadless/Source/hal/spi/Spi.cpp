@@ -15,31 +15,6 @@ struct Data {
 
 static Data dataArray[SPI_HOST_MAX];
 
-static const char* toString(InitMode mode) {
-    switch (mode) {
-        using enum InitMode;
-        case ByTactility:
-            return TT_STRINGIFY(InitMode::ByTactility);
-        case ByExternal:
-            return TT_STRINGIFY(InitMode::ByExternal);
-        case Disabled:
-            return TT_STRINGIFY(InitMode::Disabled);
-    }
-    tt_crash("not implemented");
-}
-
-static void printInfo(const Data& data) {
-    TT_LOG_D(TAG, "SPI info for device %d", data.configuration.device);
-    TT_LOG_D(TAG, "  isStarted: %d", data.isStarted);
-    TT_LOG_D(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_D(TAG, "  initMode: %s", toString(data.configuration.initMode));
-    TT_LOG_D(TAG, "  canReinit: %d", data.configuration.canReinit);
-    TT_LOG_D(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
-    TT_LOG_D(TAG, "  MISO pin: %d", data.configuration.config.miso_io_num);
-    TT_LOG_D(TAG, "  MOSI pin: %d", data.configuration.config.mosi_io_num);
-    TT_LOG_D(TAG, "  SCLK pin: %d", data.configuration.config.sclk_io_num);
-}
-
 bool init(const std::vector<spi::Configuration>& configurations) {
     TT_LOG_I(TAG, "Init");
     for (const auto& configuration: configurations) {
@@ -54,7 +29,6 @@ bool init(const std::vector<spi::Configuration>& configurations) {
     }
 
     for (const auto& config: configurations) {
-        printInfo(dataArray[config.device]);
         if (config.initMode == InitMode::ByTactility) {
             if (!start(config.device)) {
                 return false;
@@ -75,7 +49,7 @@ bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) 
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", device);
         return false;
-    } else if (!data.configuration.hasMutableConfiguration) {
+    } else if (!data.configuration.isMutable) {
         TT_LOG_E(TAG, "(%d) Mutation not allowed by original configuration", device);
         return false;
     } else {
@@ -89,7 +63,6 @@ bool start(spi_host_device_t device) {
     lock.lock();
 
     Data& data = dataArray[device];
-    printInfo(data);
 
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Starting: Already started", device);
@@ -129,8 +102,8 @@ bool stop(spi_host_device_t device) {
     Data& data = dataArray[device];
     Configuration& config = data.configuration;
 
-    if (!config.canReinit) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not allowed to re-init", device);
+    if (!config.isMutable) {
+        TT_LOG_E(TAG, "(%d) Stopping: Not allowed, immutable", device);
         return false;
     }
 

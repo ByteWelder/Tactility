@@ -18,8 +18,7 @@ const tt::hal::Configuration m5stack_cores3 = {
             .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_12,
@@ -36,8 +35,7 @@ const tt::hal::Configuration m5stack_cores3 = {
             .name = "External", // Grove
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
-            .canReinit = true,
-            .hasMutableConfiguration = true,
+            .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_2,
@@ -72,8 +70,7 @@ const tt::hal::Configuration m5stack_cores3 = {
                 .intr_flags = 0
             },
             .initMode = tt::hal::spi::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         }
     }

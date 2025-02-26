@@ -24,8 +24,7 @@ extern const Configuration lilygo_tdeck = {
             .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_18,
@@ -42,8 +41,7 @@ extern const Configuration lilygo_tdeck = {
             .name = "External",
             .port = I2C_NUM_1,
             .initMode = i2c::InitMode::Disabled,
-            .canReinit = true,
-            .hasMutableConfiguration = true,
+            .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_43,
@@ -78,8 +76,7 @@ extern const Configuration lilygo_tdeck = {
                 .intr_flags = 0
             },
             .initMode = spi::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         }
     },

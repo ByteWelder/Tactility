@@ -21,10 +21,8 @@ struct Configuration {
     spi_bus_config_t config;
     /** Whether this bus should be initialized when device starts up */
     InitMode initMode;
-    /** Whether this bus can stopped and re-started. */
-    bool canReinit;
     /** Whether configuration can be changed. */
-    bool hasMutableConfiguration;
+    bool isMutable;
     /** Optional custom lock */
     std::shared_ptr<Lock> _Nullable lock;
 };

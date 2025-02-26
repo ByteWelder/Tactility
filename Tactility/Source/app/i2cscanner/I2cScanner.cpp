@@ -239,7 +239,7 @@ void I2cScannerApp::onScanTimer() {
 
     for (uint8_t address = 0; address < 128; ++address) {
         if (hal::i2c::masterHasDeviceAtAddress(port, address, 10 / portTICK_PERIOD_MS)) {
-            TT_LOG_I(TAG, "Found device at address %d", address);
+            TT_LOG_I(TAG, "Found device at address 0x%02X", address);
             if (!shouldStopScanTimer()) {
                 addAddressToList(address);
             } else {

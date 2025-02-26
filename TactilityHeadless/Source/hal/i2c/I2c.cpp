@@ -21,32 +21,6 @@ struct Data {
 static const uint8_t ACK_CHECK_EN = 1;
 static Data dataArray[I2C_NUM_MAX];
 
-static const char* toString(InitMode mode) {
-    switch (mode) {
-        using enum InitMode;
-        case ByTactility:
-            return TT_STRINGIFY(InitMode::ByTactility);
-        case ByExternal:
-            return TT_STRINGIFY(InitMode::ByExternal);
-        case Disabled:
-            return TT_STRINGIFY(InitMode::Disabled);
-    }
-    tt_crash("not implemented");
-}
-
-static void printInfo(const Data& data) {
-    TT_LOG_D(TAG, "I2C info for port %d", data.configuration.port);
-    TT_LOG_D(TAG, "  isStarted: %d", data.isStarted);
-    TT_LOG_D(TAG, "  isConfigured: %d", data.isConfigured);
-    TT_LOG_D(TAG, "  initMode: %s", toString(data.configuration.initMode));
-    TT_LOG_D(TAG, "  canReinit: %d", data.configuration.canReinit);
-    TT_LOG_D(TAG, "  hasMutableConfiguration: %d", data.configuration.hasMutableConfiguration);
-#ifdef ESP_PLATFORM
-    TT_LOG_V(TAG, "  SDA pin: %d", data.configuration.config.sda_io_num);
-    TT_LOG_V(TAG, "  SCL pin: %d", data.configuration.config.scl_io_num);
-#endif // ESP_PLATFORM
-}
-
 bool init(const std::vector<i2c::Configuration>& configurations) {
    TT_LOG_I(TAG, "Init");
    for (const auto& configuration: configurations) {
@@ -62,7 +36,6 @@ bool init(const std::vector<i2c::Configuration>& configurations) {
    }
 
    for (const auto& config: configurations) {
-       printInfo(dataArray[config.port]);
        if (config.initMode == InitMode::ByTactility) {
            if (!start(config.port)) {
                return false;
@@ -83,8 +56,8 @@ bool configure(i2c_port_t port, const i2c_config_t& configuration) {
     if (data.isStarted) {
         TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
         return false;
-    } else if (!data.configuration.hasMutableConfiguration) {
-        TT_LOG_E(TAG, "(%d) Mutation not allowed by original configuration", port);
+    } else if (!data.configuration.isMutable) {
+        TT_LOG_E(TAG, "(%d) Mutation not allowed because configuration is immutable", port);
         return false;
     } else {
         data.configuration.config = configuration;
@@ -97,7 +70,6 @@ bool start(i2c_port_t port) {
     lock.lock();
 
     Data& data = dataArray[port];
-    printInfo(data);
     Configuration& config = data.configuration;
 
     if (data.isStarted) {
@@ -137,8 +109,8 @@ bool stop(i2c_port_t port) {
     Data& data = dataArray[port];
     Configuration& config = data.configuration;
 
-    if (!config.canReinit) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not allowed to re-init", port);
+    if (!config.isMutable) {
+        TT_LOG_E(TAG, "(%d) Stopping: Not allowed for immutable configuration", port);
         return false;
     }
 
