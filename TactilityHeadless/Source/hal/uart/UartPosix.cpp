@@ -8,6 +8,7 @@
 #include <cstring>
 #include <sstream>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 #define TAG "uart"
 
