@@ -6,6 +6,8 @@
 
 namespace tt::lvgl {
 
+constexpr TickType_t defaultLockTime = 500 / portTICK_PERIOD_MS;
+
 /**
  * LVGL locking function
  * @param[in] timeoutMillis timeout in milliseconds. waits forever when 0 is passed.
