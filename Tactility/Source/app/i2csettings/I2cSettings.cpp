@@ -40,7 +40,7 @@ static void show(lv_obj_t* parent, const hal::i2c::Configuration& configuration)
 
     // On-off switch
 
-    if (configuration.canReinit) {
+    if (configuration.isMutable) {
         auto* state_switch = lv_switch_create(card);
         lv_obj_align(state_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 

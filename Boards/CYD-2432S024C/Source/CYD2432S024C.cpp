@@ -22,8 +22,7 @@ const tt::hal::Configuration cyd_2432S024c_config = {
             .name = "First",
             .port = I2C_NUM_0,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
-            .canReinit = true,
-            .hasMutableConfiguration = true,
+            .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_33,
@@ -40,8 +39,7 @@ const tt::hal::Configuration cyd_2432S024c_config = {
             .name = "Second",
             .port = I2C_NUM_1,
             .initMode = tt::hal::i2c::InitMode::Disabled,
-            .canReinit = true,
-            .hasMutableConfiguration = true,
+            .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_NC,
@@ -76,8 +74,7 @@ const tt::hal::Configuration cyd_2432S024c_config = {
                 .intr_flags = 0
             },
             .initMode = tt::hal::spi::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         },
         tt::hal::spi::Configuration {
@@ -100,8 +97,7 @@ const tt::hal::Configuration cyd_2432S024c_config = {
                 .intr_flags = 0
             },
             .initMode = tt::hal::spi::InitMode::ByTactility,
-            .canReinit = false,
-            .hasMutableConfiguration = false,
+            .isMutable = false,
             .lock = nullptr
         },
     }
