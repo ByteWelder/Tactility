@@ -5,6 +5,8 @@
 
 #include <ranges>
 
+#include "Tactility/TactilityHeadless.h"
+
 #ifdef ESP_PLATFORM
 #include "Tactility/hal/uart/UartEsp.h"
 #include <esp_check.h>
