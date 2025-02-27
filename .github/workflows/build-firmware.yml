@@ -90,3 +90,30 @@ jobs:
         with:
           board_id: unphone
           arch: esp32s3
+  cyd-jc2432w328c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: cyd-jc2432w328c
+          arch: esp32
+  cyd-8048S043c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: cyd-8048S043c
+          arch: esp32s3
+  cyd-jc8048w550c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: cyd-jc8048w550c
+          arch: esp32s3
