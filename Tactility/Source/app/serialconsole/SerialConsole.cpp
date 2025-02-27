@@ -18,47 +18,46 @@ class SerialConsoleApp : public App {
 
 private:
 
-    enum class State {
-        Initial,
-        ShowConnectView,
-        ShowConsoleView
-    };
-
-    lv_obj_t* disconnectButtonWidget = nullptr;
+    lv_obj_t* disconnectButton = nullptr;
     lv_obj_t* wrapperWidget = nullptr;
     ConnectView connectView = ConnectView([this](auto uart){
+        showConsoleView(std::move(uart));
     });
     ConsoleView consoleView;
     View* activeView = nullptr;
-    std::unique_ptr<hal::uart::Uart> uart = nullptr;
-    State state = State::Initial;
 
-    void setState(State newState) {
-        if (newState != state) {
-            if (activeView != nullptr) {
-                activeView->onStop();
-            }
-
+    void stopActiveView() {
+        if (activeView != nullptr) {
+            activeView->onStop();
             lv_obj_clean(wrapperWidget);
-
-            switch (newState) {
-                case State::ShowConnectView:
-                    activeView = &connectView;
-                    break;
-                case State::ShowConsoleView:
-                    activeView = &consoleView;
-                    break;
-                default:
-                    tt_crash("Illegal state");
-            };
-            assert(activeView != nullptr);
-            state = newState;
-
-            activeView->onStart(wrapperWidget);
+            activeView = nullptr;
         }
     }
 
-    static void onDisconnectPressed(TT_UNUSED lv_event_t* event) {
+    void showConsoleView(std::unique_ptr<hal::uart::Uart> uart) {
+        stopActiveView();
+        activeView = &consoleView;
+        consoleView.onStart(wrapperWidget, std::move(uart));
+        lv_obj_remove_flag(disconnectButton, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    void showConnectView() {
+        stopActiveView();
+        activeView = &connectView;
+        connectView.onStart(wrapperWidget);
+        lv_obj_add_flag(disconnectButton, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    void onDisconnect() {
+        if (activeView == &consoleView) {
+            consoleView.onDisconnect();
+        }
+        showConnectView();
+    }
+
+    static void onDisconnectPressed(lv_event_t* event) {
+        auto* app = (SerialConsoleApp*)lv_event_get_user_data(event);
+        app->onDisconnect();
     }
 
 public:
@@ -68,8 +67,8 @@ public:
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        disconnectButtonWidget = lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_POWER, onDisconnectPressed, this);
-        lv_obj_add_flag(disconnectButtonWidget, LV_OBJ_FLAG_HIDDEN);
+        disconnectButton = lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_POWER, onDisconnectPressed, this);
+        lv_obj_add_flag(disconnectButton, LV_OBJ_FLAG_HIDDEN);
 
         wrapperWidget = lv_obj_create(parent);
         lv_obj_set_width(wrapperWidget, LV_PCT(100));
@@ -79,7 +78,7 @@ public:
         lv_obj_set_style_border_width(wrapperWidget, 0, 0);
         lvgl::obj_set_style_bg_invisible(wrapperWidget);
 
-        setState(State::ShowConnectView);
+        showConnectView();
     }
 };
 
