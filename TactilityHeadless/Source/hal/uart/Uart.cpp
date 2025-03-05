@@ -9,6 +9,7 @@
 
 #ifdef ESP_PLATFORM
 #include "Tactility/hal/uart/UartEsp.h"
+#include <cstring>
 #include <esp_check.h>
 #else
 #include "Tactility/hal/uart/UartPosix.h"
@@ -42,15 +43,8 @@ bool init(const std::vector<uart::Configuration>& configurations) {
 }
 
 bool Uart::writeString(const char* buffer, TickType_t timeout) {
-    while (*buffer != 0) {
-        if (writeBytes(reinterpret_cast<const std::byte*>(buffer), 1, timeout)) {
-            buffer++;
-        } else {
-            TT_LOG_E(TAG, "Failed to write - breaking off");
-            return false;
-        }
-    }
-
+    auto size = strlen(buffer);
+    writeBytes((std::byte*)buffer, size, timeout);
     return true;
 }
 
