@@ -14,7 +14,7 @@
 
 namespace tt::app::serialconsole {
 
-class SerialConsoleApp : public App {
+class SerialConsoleApp final : public App {
 
 private:
 
@@ -49,9 +49,7 @@ private:
     }
 
     void onDisconnect() {
-        if (activeView == &consoleView) {
-            consoleView.onDisconnect();
-        }
+        // Changing views (calling ConsoleView::stop()) also disconnects the UART
         showConnectView();
     }
 
@@ -64,7 +62,7 @@ public:
 
     SerialConsoleApp() = default;
 
-    void onShow(AppContext& app, lv_obj_t* parent) override {
+    void onShow(AppContext& app, lv_obj_t* parent) final {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         auto* toolbar = lvgl::toolbar_create(parent, app);
         disconnectButton = lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_POWER, onDisconnectPressed, this);
@@ -79,6 +77,10 @@ public:
         lvgl::obj_set_style_bg_invisible(wrapperWidget);
 
         showConnectView();
+    }
+
+    void onHide(AppContext& app) final {
+        stopActiveView();
     }
 };
 

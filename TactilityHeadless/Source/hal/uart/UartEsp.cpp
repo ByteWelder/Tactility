@@ -106,7 +106,8 @@ bool UartEsp::readByte(std::byte* output, TickType_t timeout) {
 }
 
 size_t UartEsp::writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout) {
-    if (!mutex.lock(timeout)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(timeout)) {
         return false;
     }
 

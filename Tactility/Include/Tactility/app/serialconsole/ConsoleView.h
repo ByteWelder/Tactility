@@ -28,6 +28,7 @@ private:
     uint8_t receiveBuffer[receiveBufferSize];
     uint8_t renderBuffer[renderBufferSize];
     size_t receiveBufferPosition = 0;
+    std::string terminatorString = "\n";
 
     bool isUartThreadInterrupted() const {
         auto lock = mutex.asScopedLock();
@@ -90,6 +91,7 @@ private:
         uint8_t byte;
 
         while (!isUartThreadInterrupted()) {
+            assert(uart != nullptr);
             bool success = uart->readByte(&byte, 50 / portTICK_PERIOD_MS);
 
             // Thread might've been interrupted in the meanwhile
@@ -126,24 +128,44 @@ private:
         view->onSendClicked();
     }
 
-    void onSendClicked() {
-        auto* to_send = lv_textarea_get_text(inputTextarea);
+    static void onTerminatorDropdownValueChangedCallback(lv_event_t* event) {
+        auto* view = (ConsoleView*)lv_event_get_user_data(event);
+        view->onTerminatorDropDownValueChanged(event);
+    }
 
+    void onTerminatorDropDownValueChanged(lv_event_t* event) {
+        auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
         mutex.lock();
-        auto* safe_uart = uart.get();
-        if (safe_uart != nullptr) {
-            if (!safe_uart->writeString(to_send, 100 / portTICK_PERIOD_MS)) {
-                TT_LOG_E(TAG, "Failed to send \"%s\"", to_send);
-            }
+        switch (lv_dropdown_get_selected(dropdown)) {
+            case 0:
+                terminatorString = "\n";
+                break;
+            case 1:
+                terminatorString = "\r\n";
+                break;
         }
         mutex.unlock();
+    }
+
+    void onSendClicked() {
+        mutex.lock();
+        std::string input_text = lv_textarea_get_text(inputTextarea);
+        std::string to_send = input_text + terminatorString;
+        mutex.unlock();
+
+        auto* safe_uart = uart.get();
+        if (safe_uart != nullptr) {
+            if (!safe_uart->writeString(to_send.c_str(), 100 / portTICK_PERIOD_MS)) {
+                TT_LOG_E(TAG, "Failed to send \"%s\"", input_text.c_str());
+            }
+        }
 
         lv_textarea_set_text(inputTextarea, "");
     }
 
 public:
 
-    void initLogic(std::unique_ptr<hal::uart::Uart> newUart) {
+    void startLogic(std::unique_ptr<hal::uart::Uart> newUart) {
         memset(receiveBuffer, 0, receiveBufferSize);
 
         assert(uartThread == nullptr);
@@ -162,7 +184,7 @@ public:
         uartThread->start();
     }
 
-    void initViews(lv_obj_t* parent) {
+    void startViews(lv_obj_t* parent) {
         this->parent = parent;
 
         lv_obj_set_style_pad_gap(parent, 2, 0);
@@ -189,6 +211,12 @@ public:
         lv_obj_set_flex_grow(inputTextarea, 1);
         service::gui::keyboardAddTextArea(inputTextarea);
 
+        auto* terminator_dropdown = lv_dropdown_create(input_wrapper);
+        lv_dropdown_set_options(terminator_dropdown, "\\n\n\\r\\n");
+        lv_obj_set_width(terminator_dropdown, 70);
+        lv_obj_add_event_cb(terminator_dropdown, onTerminatorDropdownValueChangedCallback, LV_EVENT_VALUE_CHANGED, this);
+
+
         auto* button = lv_button_create(input_wrapper);
         auto* button_label = lv_label_create(button);
         lv_label_set_text(button_label, "Send");
@@ -205,45 +233,42 @@ public:
         viewThread->start();
     }
 
-    void onStart(lv_obj_t* parent, std::unique_ptr<hal::uart::Uart> newUart) {
-        auto lock = mutex.asScopedLock();
-        lock.lock();
-
-        initLogic(std::move(newUart));
-        initViews(parent);
-    }
-
-    void onStop() final {
+    void stopLogic() {
         auto lock = mutex.asScopedLock();
         lock.lock();
 
         uartThreadInterrupted = true;
-        viewThreadInterrupted = true;
 
         // Detach thread, it will auto-delete when leaving the current scope
         auto old_uart_thread = std::move(uartThread);
+        // Unlock so thread can lock
+        lock.unlock();
 
         if (old_uart_thread->getState() != Thread::State::Stopped) {
-            // Unlock so thread can lock
-            lock.unlock();
             // Wait for thread to finish
             old_uart_thread->join();
         }
+    }
 
+    void stopViews() {
+        auto lock = mutex.asScopedLock();
         lock.lock();
+
+        viewThreadInterrupted = true;
 
         // Detach thread, it will auto-delete when leaving the current scope
         auto old_view_thread = std::move(viewThread);
 
+        // Unlock so thread can lock
+        lock.unlock();
+
         if (old_view_thread->getState() != Thread::State::Stopped) {
-            // Unlock so thread can lock
-            lock.unlock();
             // Wait for thread to finish
             old_view_thread->join();
         }
     }
 
-    void onDisconnect() {
+    void stopUart() {
         auto lock = mutex.asScopedLock();
         lock.lock();
 
@@ -251,6 +276,20 @@ public:
             uart->stop();
             uart = nullptr;
         }
+    }
+
+    void onStart(lv_obj_t* parent, std::unique_ptr<hal::uart::Uart> newUart) {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+
+        startLogic(std::move(newUart));
+        startViews(parent);
+    }
+
+    void onStop() final {
+        stopViews();
+        stopLogic();
+        stopUart();
     }
 };
 

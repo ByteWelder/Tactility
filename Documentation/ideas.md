@@ -34,6 +34,7 @@
 - Support hot-plugging SD card
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 - Use GPS time to set/update the current time
+- Investigate EEZ Studio
 
 # Nice-to-haves
 - Give external app a different icon. Allow an external app update their id, icon, type and name once they are running(and persist that info?). Loader will need to be able to find app by (external) location.
