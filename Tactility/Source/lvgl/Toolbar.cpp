@@ -53,13 +53,16 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
 
     auto* toolbar = (Toolbar*)obj;
 
-    obj_set_style_no_padding(obj);
+    lv_obj_set_style_pad_all(obj, 0, 0);
+    lv_obj_set_style_pad_gap(obj, 0, 0);
+
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
     toolbar->close_button = lv_button_create(obj);
     lv_obj_set_size(toolbar->close_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
-    obj_set_style_no_padding(toolbar->close_button);
+    lv_obj_set_style_pad_all(toolbar->close_button, 0, 0);
+    lv_obj_set_style_pad_gap(toolbar->close_button, 0, 0);
     toolbar->close_button_image = lv_image_create(toolbar->close_button);
     lv_obj_align(toolbar->close_button_image, LV_ALIGN_CENTER, 0, 0);
 

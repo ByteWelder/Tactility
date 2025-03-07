@@ -4,12 +4,11 @@
 #include <Tactility/Mutex.h>
 
 #include <ranges>
+#include <cstring>
 
-#include "Tactility/TactilityHeadless.h"
 
 #ifdef ESP_PLATFORM
 #include "Tactility/hal/uart/UartEsp.h"
-#include <cstring>
 #include <esp_check.h>
 #else
 #include "Tactility/hal/uart/UartPosix.h"
