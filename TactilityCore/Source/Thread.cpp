@@ -50,12 +50,14 @@ void Thread::mainBody(void* context) {
     assert(pvTaskGetThreadLocalStoragePointer(nullptr, 0) == nullptr);
     vTaskSetThreadLocalStoragePointer(nullptr, 0, thread);
 
+    TT_LOG_I(TAG, "Starting %s", thread->name.c_str());
     assert(thread->state == Thread::State::Starting);
     thread->setState(Thread::State::Running);
     thread->callbackResult = thread->callback(thread->callbackContext);
     assert(thread->state == Thread::State::Running);
 
     thread->setState(Thread::State::Stopped);
+    TT_LOG_I(TAG, "Stopped %s", thread->name.c_str());
 
     vTaskSetThreadLocalStoragePointer(nullptr, 0, nullptr);
     thread->taskHandle = nullptr;

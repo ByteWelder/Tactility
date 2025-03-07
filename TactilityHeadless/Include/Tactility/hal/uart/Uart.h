@@ -121,4 +121,6 @@ public:
  */
 std::unique_ptr<Uart> open(std::string name);
 
+std::vector<std::string> getNames();
+
 } // namespace tt::hal::uart

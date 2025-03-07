@@ -13,11 +13,13 @@
 namespace tt::hal::uart {
 
 bool UartEsp::start() {
+    TT_LOG_I(TAG, "[%s] Starting", configuration.name.c_str());
+
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (started) {
-        TT_LOG_E(TAG, "(%d) Starting: Already started", configuration.port);
+        TT_LOG_E(TAG, "[%s] Starting: Already started", configuration.name.c_str());
         return false;
     }
 
@@ -30,46 +32,53 @@ bool UartEsp::start() {
 
     esp_err_t result = uart_param_config(configuration.port, &configuration.config);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to configure: %s", configuration.port, esp_err_to_name(result));
+        TT_LOG_E(TAG, "[%s] Starting: Failed to configure: %s", configuration.name.c_str(), esp_err_to_name(result));
         return false;
+    }
+
+    if (uart_is_driver_installed(configuration.port)) {
+        TT_LOG_W(TAG, "[%s] Driver was still installed. You probably forgot to stop, or another system uses/used the driver.", configuration.name.c_str());
+        uart_driver_delete(configuration.port);
     }
 
     result = uart_set_pin(configuration.port, configuration.txPin, configuration.rxPin, configuration.rtsPin, configuration.ctsPin);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed set pins: %s", configuration.port, esp_err_to_name(result));
+        TT_LOG_E(TAG, "[%s] Starting: Failed set pins: %s", configuration.name.c_str(), esp_err_to_name(result));
         return false;
     }
 
     result = uart_driver_install(configuration.port, (int)configuration.rxBufferSize, (int)configuration.txBufferSize, 0, nullptr, intr_alloc_flags);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to install driver: %s", configuration.port, esp_err_to_name(result));
+        TT_LOG_E(TAG, "[%s] Starting: Failed to install driver: %s", configuration.name.c_str(), esp_err_to_name(result));
         return false;
     }
 
     started = true;
 
-    TT_LOG_I(TAG, "(%d) Started", configuration.port);
+    TT_LOG_I(TAG, "[%s] Started", configuration.name.c_str());
     return true;
 }
 
 bool UartEsp::stop() {
+    TT_LOG_I(TAG, "[%s] Stopping", configuration.name.c_str());
+
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (!started) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not started", configuration.port);
+        TT_LOG_E(TAG, "[%s] Stopping: Not started", configuration.name.c_str());
         return false;
     }
 
     esp_err_t result = uart_driver_delete(configuration.port);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Stopping: Failed to delete driver: %s", configuration.port, esp_err_to_name(result));
+        TT_LOG_E(TAG, "[%s] Stopping: Failed to delete driver: %s", configuration.name.c_str(), esp_err_to_name(result));
         return false;
     }
 
     started = false;
 
-    TT_LOG_I(TAG, "(%d) Stopped", configuration.port);
+    TT_LOG_I(TAG, "[%s] Stopped", configuration.name.c_str());
     return true;
 }
 
@@ -97,7 +106,8 @@ bool UartEsp::readByte(std::byte* output, TickType_t timeout) {
 }
 
 size_t UartEsp::writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout) {
-    if (!mutex.lock(timeout)) {
+    auto lock = mutex.asScopedLock();
+    if (!lock.lock(timeout)) {
         return false;
     }
 
