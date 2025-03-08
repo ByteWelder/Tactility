@@ -9,6 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
             ElecrowCrowpanelBasic28
             ElecrowCrowpanelBasic35
             M5stackCore2
+            CYD-JC2432W328C
         )
     endif()
 
@@ -19,6 +20,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
             LilygoTdeck
             M5stackCoreS3
             UnPhone
+            CYD-8048S043C
+            CYD-JC8048W550C
         )
     endif()
 
