@@ -4,12 +4,15 @@
 #include <Tactility/Mutex.h>
 
 #include <ranges>
+#include <cstring>
 
 #ifdef ESP_PLATFORM
-#include <esp_check.h>
+#include "Tactility/TactilityHeadless.h"
 #include "Tactility/hal/uart/UartEsp.h"
+#include <esp_check.h>
 #else
 #include "Tactility/hal/uart/UartPosix.h"
+#include <dirent.h>
 #endif
 
 #define TAG "uart"
@@ -39,15 +42,8 @@ bool init(const std::vector<uart::Configuration>& configurations) {
 }
 
 bool Uart::writeString(const char* buffer, TickType_t timeout) {
-    while (*buffer != 0) {
-        if (writeBytes(reinterpret_cast<const std::byte*>(buffer), 1, timeout)) {
-            buffer++;
-        } else {
-            TT_LOG_E(TAG, "Failed to write - breaking off");
-            return false;
-        }
-    }
-
+    auto size = strlen(buffer);
+    writeBytes((std::byte*)buffer, size, timeout);
     return true;
 }
 
@@ -105,6 +101,8 @@ size_t Uart::readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, 
 }
 
 std::unique_ptr<Uart> open(std::string name) {
+    TT_LOG_I(TAG, "Open %s", name.c_str());
+
     auto result = std::views::filter(uartEntries, [&name](auto& entry) {
         return entry.configuration.name == name;
     });
@@ -123,10 +121,12 @@ std::unique_ptr<Uart> open(std::string name) {
     auto uart = create(entry.configuration);
     assert(uart != nullptr);
     entry.usageId = uart->getId();
+    TT_LOG_I(TAG, "Opened %lu", entry.usageId);
     return uart;
 }
 
 void close(uint32_t uartId) {
+    TT_LOG_I(TAG, "Close %lu", uartId);
     auto result = std::views::filter(uartEntries, [&uartId](auto& entry) {
       return entry.usageId == uartId;
     });
@@ -137,6 +137,32 @@ void close(uint32_t uartId) {
     } else {
         TT_LOG_W(TAG, "Auto-closing UART, but can't find it");
     }
+}
+
+std::vector<std::string> getNames() {
+    std::vector<std::string> names;
+#ifdef ESP_PLATFORM
+    for (auto& config : getConfiguration()->uart) {
+        names.push_back(config.name);
+    }
+#else
+    DIR* dir = opendir("/dev");
+    if (dir == nullptr) {
+        TT_LOG_E(TAG, "Failed to read /dev");
+        return names;
+    }
+    struct dirent* current_entry;
+    while ((current_entry = readdir(dir)) != nullptr) {
+        auto name = std::string(current_entry->d_name);
+        if (name.starts_with("tty")) {
+            auto path = std::string("/dev/") + name;
+            names.push_back(path);
+        }
+    }
+
+    closedir(dir);
+#endif
+    return names;
 }
 
 Uart::Uart() : id(++lastUartId) {}

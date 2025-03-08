@@ -101,7 +101,7 @@ int32_t GpsDevice::threadMain() {
 
         if (bytes_read > 0U) {
 
-            TT_LOG_I(TAG, "%s", buffer);
+            TT_LOG_D(TAG, "%s", buffer);
 
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:

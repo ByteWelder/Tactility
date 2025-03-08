@@ -45,6 +45,7 @@ namespace app {
     namespace log { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
     namespace selectiondialog { extern const AppManifest manifest; }
+    namespace serialconsole { extern const AppManifest manifest; }
     namespace settings { extern const AppManifest manifest; }
     namespace systeminfo { extern const AppManifest manifest; }
     namespace textviewer { extern const AppManifest manifest; }
@@ -80,6 +81,7 @@ static void registerSystemApps() {
     addApp(app::inputdialog::manifest);
     addApp(app::launcher::manifest);
     addApp(app::log::manifest);
+    addApp(app::serialconsole::manifest);
     addApp(app::settings::manifest);
     addApp(app::selectiondialog::manifest);
     addApp(app::systeminfo::manifest);

@@ -31,6 +31,14 @@ void start(const std::string& title, const std::string& message, const std::vect
     service::loader::startApp(manifest.id, bundle);
 }
 
+void start(const std::string& title, const std::string& message) {
+    auto bundle = std::make_shared<Bundle>();
+    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
+    bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
+    bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, "OK");
+    service::loader::startApp(manifest.id, bundle);
+}
+
 int32_t getResultIndex(const Bundle& bundle) {
     int32_t index = -1;
     bundle.optInt32(RESULT_BUNDLE_KEY_INDEX, index);
@@ -76,6 +84,7 @@ private:
         lv_label_set_text(button_label, text.c_str());
         lv_obj_add_event_cb(button, onButtonClickedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
     }
+
 public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
@@ -89,6 +98,7 @@ public:
         lv_obj_t* message_label = lv_label_create(parent);
         lv_obj_align(message_label, LV_ALIGN_CENTER, 0, 0);
         lv_obj_set_width(message_label, LV_PCT(80));
+        lv_obj_set_style_text_align(message_label, LV_TEXT_ALIGN_CENTER, 0);
 
         std::string message;
         if (parameters->optString(PARAMETER_BUNDLE_KEY_MESSAGE, message)) {
@@ -107,21 +117,9 @@ public:
         std::string items_concatenated;
         if (parameters->optString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_concatenated)) {
             std::vector<std::string> labels = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
-            if (labels.empty() || labels.front().empty()) {
-                TT_LOG_E(TAG, "No items provided");
-                setResult(Result::Error);
-                service::loader::stopApp();
-            } else if (labels.size() == 1) {
-                auto result_bundle = std::make_unique<Bundle>();
-                result_bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, 0);
-                setResult(Result::Ok, std::move(result_bundle));
-                service::loader::stopApp();
-                TT_LOG_W(TAG, "Auto-selecting single item");
-            } else {
-                size_t index = 0;
-                for (const auto& label: labels) {
-                    createButton(button_wrapper, label, index++);
-                }
+            size_t index = 0;
+            for (const auto& label: labels) {
+                createButton(button_wrapper, label, index++);
             }
         }
     }

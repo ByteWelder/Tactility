@@ -47,13 +47,14 @@ Gui* gui_alloc() {
     lv_obj_t* vertical_container = lv_obj_create(screen_root);
     lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
-    lvgl::obj_set_style_no_padding(vertical_container);
+    lv_obj_set_style_pad_all(vertical_container, 0, 0);
+    lv_obj_set_style_pad_gap(vertical_container, 0, 0);
     lvgl::obj_set_style_bg_blacken(vertical_container);
 
     instance->statusbarWidget = lvgl::statusbar_create(vertical_container);
 
     auto* app_container = lv_obj_create(vertical_container);
-    lvgl::obj_set_style_no_padding(app_container);
+    lv_obj_set_style_pad_all(app_container, 0, 0);
     lv_obj_set_style_border_width(app_container, 0, 0);
     lvgl::obj_set_style_bg_blacken(app_container);
     lv_obj_set_width(app_container, LV_PCT(100));
