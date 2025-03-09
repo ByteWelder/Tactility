@@ -51,6 +51,7 @@
 - Display app: Add toggle to display performance measurement overlay (consider showing FPS in statusbar!)
 - Files app: copy/paste actions
 - On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
+- Support more than 1 hardware keyboard (see lvgl::hardware_keyboard_set_indev()). LVGL init currently calls keyboard init, but that part should probably be done from the KeyboardDevice base class.
  
 # App Ideas
 - Map widget:

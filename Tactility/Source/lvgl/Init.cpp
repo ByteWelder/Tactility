@@ -1,5 +1,5 @@
 #include "Tactility/app/display/DisplaySettings.h"
-#include "Tactility/lvgl/LvglKeypad.h"
+#include "Tactility/lvgl/Keyboard.h"
 
 #include "Tactility/hal/display/DisplayDevice.h"
 #include "Tactility/hal/touch/TouchDevice.h"
@@ -68,7 +68,7 @@ static bool initKeyboard(const std::shared_ptr<hal::display::DisplayDevice>& dis
         if (keyboard->start(display->getLvglDisplay())) {
             lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
             lv_indev_set_user_data(keyboard_indev, keyboard.get());
-            tt::lvgl::keypad_set_indev(keyboard_indev);
+            tt::lvgl::hardware_keyboard_set_indev(keyboard_indev);
             TT_LOG_I(TAG, "Keyboard started");
             return true;
         } else {
