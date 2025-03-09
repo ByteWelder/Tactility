@@ -6,6 +6,7 @@
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
 #include "tt_hal_i2c.h"
+#include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
 #include "tt_message_queue.h"
@@ -49,6 +50,14 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_i2c_master_has_device_at_address),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_lock),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_unlock),
+    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
+    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_hide),
+    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_is_enabled),
+    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_activate),
+    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_deactivate),
+    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_is_available),
+    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
+    ESP_ELFSYM_EXPORT(tt_lvgl_keyboard_add_textarea),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
