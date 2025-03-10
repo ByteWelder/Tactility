@@ -2,7 +2,7 @@
 #include "Cst816Touch.h"
 #include "YellowDisplayConstants.h"
 
-#include <ST7789Display.h>
+#include <St7789Display.h>
 #include <PwmBacklight.h>
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
