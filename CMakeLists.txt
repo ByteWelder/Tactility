@@ -40,6 +40,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic35")
         set(EXCLUDE_COMPONENTS "M5stackCore2")
+        set(EXCLUDE_COMPONENTS "CYD-JC2432W328C")
     endif()
 
     # Non-ESP32-S3 boards
@@ -49,6 +50,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
         set(EXCLUDE_COMPONENTS "UnPhone")
+        set(EXCLUDE_COMPONENTS "CYD-8048S043C")
+        set(EXCLUDE_COMPONENTS "CYD-JC8048W550C")
     endif()
 
     # LVGL
