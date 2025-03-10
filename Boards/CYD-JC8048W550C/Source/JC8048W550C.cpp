@@ -1,16 +1,19 @@
-#include "JC8048W550C.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "hal/BlackDisplay.h"
-#include "hal/BlackDisplayConstants.h"
-#include "hal/BlackSdCard.h"
+#include "PwmBacklight.h"
+#include "hal/CydDisplay.h"
+#include "hal/CydSdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
 using namespace tt::hal;
 
+bool initBoot() {
+    return driver::pwmbacklight::init(GPIO_NUM_2);
+}
+
 const Configuration cyd_jc8048w550c_config = {
+    .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = createBlackSdCard(),
+    .sdcard = createSdCard(),
     .power = nullptr,
     .i2c = {
         //Touch

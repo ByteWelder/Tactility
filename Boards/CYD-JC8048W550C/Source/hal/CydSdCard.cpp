@@ -1,4 +1,4 @@
-#include "BlackSdCard.h"
+#include "CydSdCard.h"
 
 #define TAG "jc8048w550c_sdcard"
 
@@ -10,7 +10,7 @@
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
-std::shared_ptr<SdCardDevice> createBlackSdCard() {
+std::shared_ptr<SdCardDevice> createSdCard() {
     auto* configuration = new SpiSdCardDevice::Config(
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
@@ -28,4 +28,3 @@ std::shared_ptr<SdCardDevice> createBlackSdCard() {
 
     return std::shared_ptr<SdCardDevice>(sdcard);
 }
-
