@@ -1,6 +1,7 @@
-#include "Tactility/service/gui/Gui_i.h"
+#include "Tactility/service/gui/Gui.h"
+
+#include "Tactility/app/AppInstance.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Statusbar.h"
 #include "Tactility/lvgl/Style.h"
 
 #include <Tactility/Check.h>
@@ -17,7 +18,7 @@ static lv_obj_t* createAppViews(Gui* gui, lv_obj_t* parent) {
     lv_obj_set_width(child_container, LV_PCT(100));
     lv_obj_set_flex_grow(child_container, 1);
 
-    if (keyboardIsEnabled()) {
+    if (softwareKeyboardIsEnabled()) {
         gui->keyboard = lv_keyboard_create(parent);
         lv_obj_add_flag(gui->keyboard, LV_OBJ_FLAG_HIDDEN);
     } else {
