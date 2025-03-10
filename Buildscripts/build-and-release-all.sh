@@ -31,8 +31,17 @@ release lilygo-tdeck
 
 releaseSdk release/TactilitySDK-esp32s3
 
-build yellow-board
-release yellow-board
+build cyd-2432s024c
+release cyd-2432s024c
+
+build cyd-8048s043c
+release cyd-8048s043c
+
+build cyd-jc2432w328c
+release cyd-jc2432w328c
+
+build cyd-jc8048w550c
+release cyd-jc8048w550c
 
 releaseSdk release/TactilitySDK-esp32
 
