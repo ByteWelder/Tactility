@@ -35,6 +35,8 @@ menu "Tactility App"
             bool "CYD 8048S043C"
         config TT_BOARD_CYD_JC8048W550C
             bool "CYD JC8048W550C"
+        config TT_BOARD_CYD_4848S040C
+            bool "CYD 4848S040C"
         help
             Select a board/hardware configuration.
             Use TT_BOARD_CUSTOM if you will manually configure the board in your project.

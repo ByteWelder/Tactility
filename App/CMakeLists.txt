@@ -22,6 +22,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
             UnPhone
             CYD-8048S043C
             CYD-JC8048W550C
+            CYD-4848S040C
         )
     endif()
 
