@@ -1,9 +1,7 @@
-#include "JC8048W550C.h" // Don't remove, or we get a linker error (GCC bug?)
+#include "JC8048W550C.h" // Don't remove, or we get a linker error ("undefined reference to `cyd_jc8048w550c_config'" - GCC bug?)
 #include "PwmBacklight.h"
 #include "hal/CydDisplay.h"
 #include "hal/CydSdCard.h"
-
-#include <Tactility/hal/Configuration.h>
 
 using namespace tt::hal;
 
