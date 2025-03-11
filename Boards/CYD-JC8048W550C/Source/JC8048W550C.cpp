@@ -1,3 +1,4 @@
+#include "JC8048W550C.h" // Don't remove, or we get a linker error (GCC bug?)
 #include "PwmBacklight.h"
 #include "hal/CydDisplay.h"
 #include "hal/CydSdCard.h"
