@@ -1,30 +1,25 @@
 #include "CydSdCard.h"
 
-#define TAG "jc8048w550c_sdcard"
-
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
-
-#define SDCARD_SPI_HOST SPI2_HOST
-#define SDCARD_PIN_CS GPIO_NUM_10
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
 std::shared_ptr<SdCardDevice> createSdCard() {
-    auto* configuration = new SpiSdCardDevice::Config(
-        SDCARD_PIN_CS,
+    auto config = std::make_unique<SpiSdCardDevice::Config>(
+        GPIO_NUM_10,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
         std::make_shared<tt::Mutex>(),
         std::vector<gpio_num_t>(),
-        SDCARD_SPI_HOST
+        SPI2_HOST
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    auto sdcard = std::make_shared<SpiSdCardDevice>(
+        std::move(config)
     );
 
-    return std::shared_ptr<SdCardDevice>(sdcard);
+    return std::static_pointer_cast<SdCardDevice>(sdcard);
 }

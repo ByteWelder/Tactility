@@ -34,24 +34,24 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(EXCLUDE_COMPONENTS "Simulator")
 
-    # Non-ESP32 boards
-    if(NOT "${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "CYD-2432S024C")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic35")
-        set(EXCLUDE_COMPONENTS "M5stackCore2")
-        set(EXCLUDE_COMPONENTS "CYD-JC2432W328C")
-    endif()
-
-    # Non-ESP32-S3 boards
-    if(NOT "${IDF_TARGET}" STREQUAL "esp32s3")
+    # ESP32 target should exclude ESP32-S3 boards
+    if("${IDF_TARGET}" STREQUAL "esp32")
+        set(EXCLUDE_COMPONENTS "CYD-8048S043C")
+        set(EXCLUDE_COMPONENTS "CYD-JC8048W550C")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance28")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance35")
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
         set(EXCLUDE_COMPONENTS "UnPhone")
-        set(EXCLUDE_COMPONENTS "CYD-8048S043C")
-        set(EXCLUDE_COMPONENTS "CYD-JC8048W550C")
+    endif()
+
+    # ESP32-S3 target should exclude ESP32 boards
+    if("${IDF_TARGET}" STREQUAL "esp32s3")
+        set(EXCLUDE_COMPONENTS "CYD-2432S024C")
+        set(EXCLUDE_COMPONENTS "CYD-JC2432W328C")
+        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
+        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic35")
+        set(EXCLUDE_COMPONENTS "M5stackCore2")
     endif()
 
     # LVGL
