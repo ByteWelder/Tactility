@@ -94,5 +94,3 @@ public:
 
     lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
 };
-
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

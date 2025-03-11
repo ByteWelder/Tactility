@@ -13,6 +13,12 @@ menu "Tactility App"
             bool "Custom"
         config TT_BOARD_CYD_2432S024C
             bool "CYD 2432S024C"
+        config TT_BOARD_CYD_8048S043C
+            bool "CYD 8048S043C"
+        config TT_BOARD_CYD_JC2432W328C
+            bool "CYD JC2432W328C"
+        config TT_BOARD_CYD_JC8048W550C
+            bool "CYD JC8048W550C"
         config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_28
             bool "Elecrow CrowPanel Advance 2.8"
         config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_35
