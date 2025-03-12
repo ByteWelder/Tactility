@@ -4,5 +4,4 @@
 
 using tt::hal::sdcard::SdCardDevice;
 
-std::shared_ptr<SdCardDevice> createYellowSdCard();
-
+std::shared_ptr<SdCardDevice> createSdCard();

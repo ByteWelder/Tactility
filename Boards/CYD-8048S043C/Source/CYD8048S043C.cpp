@@ -1,16 +1,18 @@
-#include "CYD8048S043C.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "hal/YellowDisplay.h"
-#include "hal/YellowDisplayConstants.h"
-#include "hal/YellowSdCard.h"
-
-#include <Tactility/hal/Configuration.h>
+#include "CYD8048S043C.h" // Don't remove, or we get a linker error ("undefined reference to `cyd_8048s043c_config'" - GCC bug?)
+#include "PwmBacklight.h"
+#include "hal/CydDisplay.h"
+#include "hal/CydSdCard.h"
 
 using namespace tt::hal;
 
+bool initBoot() {
+    return driver::pwmbacklight::init(GPIO_NUM_2);
+}
+
 const Configuration cyd_8048s043c_config = {
+    .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
+    .sdcard = createSdCard(),
     .power = nullptr,
     .i2c = {
         //Touch
