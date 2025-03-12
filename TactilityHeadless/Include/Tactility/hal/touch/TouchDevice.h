@@ -12,7 +12,7 @@ class TouchDevice : public Device {
 
 public:
 
-    Type getType() const override { return Type::SdCard; }
+    Type getType() const override { return Type::Touch; }
 
     virtual bool start(lv_display_t* display) = 0;
     virtual bool stop() = 0;

@@ -1,13 +1,17 @@
 #include "CYD4848S040C.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "hal/CydDisplay.h"
 #include "hal/CydSdCard.h"
 
-#include <Tactility/hal/Configuration.h>
+#include <PwmBacklight.h>
 
 using namespace tt::hal;
 
+bool initBoot() {
+    return driver::pwmbacklight::init(GPIO_NUM_38, 1000);
+}
+
 const Configuration cyd_4848s040c_config = {
+    .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .power = nullptr,
@@ -60,10 +64,10 @@ const Configuration cyd_4848s040c_config = {
                 .sclk_io_num = GPIO_NUM_48,
                 .quadwp_io_num = -1,
                 .quadhd_io_num = -1,
-                .data4_io_num = 0,
-                .data5_io_num = 0,
-                .data6_io_num = 0,
-                .data7_io_num = 0,
+                .data4_io_num = -1,
+                .data5_io_num = -1,
+                .data6_io_num = -1,
+                .data7_io_num = -1,
                 .data_io_default_level = false,
                 .max_transfer_sz = 8192,
                 .flags = 0,
