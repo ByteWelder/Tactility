@@ -6,7 +6,7 @@
 using namespace tt::hal;
 
 bool initBoot() {
-    return driver::pwmbacklight::init(GPIO_NUM_2);
+    return driver::pwmbacklight::init(GPIO_NUM_2, 200);
 }
 
 const Configuration cyd_8048s043c_config = {

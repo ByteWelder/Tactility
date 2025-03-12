@@ -1,12 +1,10 @@
 #include "CydDisplay.h"
+#include "PwmBacklight.h"
 
 #include <Gt911Touch.h>
 #include <Tactility/Log.h>
-#include <Tactility/TactilityCore.h>
-#include <esp_lcd_panel_commands.h>
 
 #include <driver/gpio.h>
-#include <driver/ledc.h>
 #include <esp_err.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lcd_panel_ops.h>
@@ -16,49 +14,6 @@
 #include <esp_lvgl_port.h>
 
 #define TAG "cyd_display"
-
-static bool isBacklightInitialized = false;
-
-static bool initBacklight() {
-    ledc_timer_config_t ledc_timer = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .timer_num = LEDC_TIMER_0,
-        .freq_hz = 1000,
-        .clk_cfg = LEDC_AUTO_CLK,
-        .deconfigure = false
-    };
-
-    if (ledc_timer_config(&ledc_timer) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight led timer config failed");
-        return false;
-    }
-
-    return true;
-}
-
-static bool setBacklight(uint8_t duty) {
-    ledc_channel_config_t ledc_channel = {
-        .gpio_num = GPIO_NUM_38,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LEDC_CHANNEL_0,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = LEDC_TIMER_0,
-        .duty = duty,
-        .hpoint = 0,
-        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
-        .flags = {
-            .output_invert = false
-        }
-    };
-
-    if (ledc_channel_config(&ledc_channel) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight init failed");
-        return false;
-    }
-
-    return true;
-}
 
 static const st7701_lcd_init_cmd_t st7701_lcd_init_cmds[] = {
     //  {cmd, { data }, data_size, delay_ms}
@@ -124,7 +79,6 @@ bool CydDisplay::start() {
             .pclk_hz = 16000000,
             .h_res = 480,
             .v_res = 480,
-
             .hsync_pulse_width = 10,
             .hsync_back_porch = 10,
             .hsync_front_porch = 20,
@@ -145,29 +99,28 @@ bool CydDisplay::start() {
         .bounce_buffer_size_px = 480 * 10,
         .sram_trans_align = 8,
         .psram_trans_align = 64,
-
         .hsync_gpio_num = GPIO_NUM_16,
         .vsync_gpio_num = GPIO_NUM_17,
         .de_gpio_num = GPIO_NUM_18,
         .pclk_gpio_num = GPIO_NUM_21,
         .disp_gpio_num = GPIO_NUM_NC,
         .data_gpio_nums = {
-            GPIO_NUM_4, //B1
-            GPIO_NUM_5, //B2
-            GPIO_NUM_6, //B3
-            GPIO_NUM_7, //B4
-            GPIO_NUM_15, //B5
-            GPIO_NUM_8, //G1
-            GPIO_NUM_20, //G2
-            GPIO_NUM_3, //G3
-            GPIO_NUM_46, //G4
-            GPIO_NUM_9, //G5
-            GPIO_NUM_10,//G6
-            GPIO_NUM_11, //R1
-            GPIO_NUM_12, //R2
-            GPIO_NUM_13, //R3
-            GPIO_NUM_14, //R4
-            GPIO_NUM_0 //R5
+            GPIO_NUM_4, // B1
+            GPIO_NUM_5, // B2
+            GPIO_NUM_6, // B3
+            GPIO_NUM_7, // B4
+            GPIO_NUM_15, // B5
+            GPIO_NUM_8, // G1
+            GPIO_NUM_20, // G2
+            GPIO_NUM_3, // G3
+            GPIO_NUM_46, // G4
+            GPIO_NUM_9, // G5
+            GPIO_NUM_10, // G6
+            GPIO_NUM_11, // R1
+            GPIO_NUM_12, // R2
+            GPIO_NUM_13, // R3
+            GPIO_NUM_14, // R4
+            GPIO_NUM_0 // R5
         },
         .flags = {
             .disp_active_low = false,
@@ -192,7 +145,7 @@ bool CydDisplay::start() {
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = 16,
         .flags = {
@@ -292,14 +245,7 @@ std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable CydDisplay::createTouch()
 }
 
 void CydDisplay::setBacklightDuty(uint8_t backlightDuty) {
-    if (!isBacklightInitialized) {
-        tt_check(initBacklight());
-        isBacklightInitialized = true;
-    }
-
-    if (!setBacklight(backlightDuty)) {
-        TT_LOG_E(TAG, "Failed to configure display backlight");
-    }
+    driver::pwmbacklight::setBacklightDuty(backlightDuty);
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
