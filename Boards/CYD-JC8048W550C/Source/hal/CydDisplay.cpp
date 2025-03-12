@@ -83,7 +83,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     };
 
     RgbDisplay::BufferConfiguration buffer_config = {
-        .size = bufferPixels,
+        .size = (800 * 480),
         .useSpi = true,
         .doubleBuffer = true,
         .bounceBufferMode = true,
