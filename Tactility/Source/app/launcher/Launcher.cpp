@@ -69,7 +69,7 @@ class LauncherApp : public App {
         auto* display = lv_obj_get_display(parent);
         auto horizontal_px = lv_display_get_horizontal_resolution(display);
         auto vertical_px = lv_display_get_vertical_resolution(display);
-        bool is_landscape_display = horizontal_px > vertical_px;
+        bool is_landscape_display = horizontal_px >= vertical_px;
         if (is_landscape_display) {
             lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
         } else {
