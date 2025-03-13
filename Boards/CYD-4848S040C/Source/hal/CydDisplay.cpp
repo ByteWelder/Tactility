@@ -76,7 +76,7 @@ bool CydDisplay::start() {
     const esp_lcd_rgb_panel_config_t rgb_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .timings = {
-            .pclk_hz = 16000000,
+            .pclk_hz = 14000000,
             .h_res = 480,
             .v_res = 480,
             .hsync_pulse_width = 10,

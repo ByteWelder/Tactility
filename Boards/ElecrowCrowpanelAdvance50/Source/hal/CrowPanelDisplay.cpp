@@ -24,8 +24,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     esp_lcd_rgb_panel_config_t rgb_panel_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .timings = {
-            .pclk_hz = 15000000,
-//            .pclk_hz = 21000000,
+            .pclk_hz = 15000000, // TODO: 21 MHz was too much and caused drift when opening wifi/SD/apps. Try something inbetween 15 and 21 MHz.
             .h_res = 800,
             .v_res = 480,
             .hsync_pulse_width = 4,
