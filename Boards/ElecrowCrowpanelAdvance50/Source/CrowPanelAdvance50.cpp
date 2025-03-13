@@ -1,21 +1,11 @@
-#include "PwmBacklight.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "hal/CrowPanelDisplay.h"
-#include "hal/CrowPanelDisplayConstants.h"
 #include "hal/CrowPanelSdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
-#define CROWPANEL_SPI_TRANSFER_SIZE_LIMIT (CROWPANEL_LCD_HORIZONTAL_RESOLUTION * CROWPANEL_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
-
 using namespace tt::hal;
 
-bool initBoot() {
-    return driver::pwmbacklight::init(GPIO_NUM_38);
-}
-
-extern const Configuration crowpanel_advance_35 = {
-    .initBoot = initBoot,
+extern const Configuration crowpanel_advance_50 = {
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .i2c = {
@@ -40,33 +30,9 @@ extern const Configuration crowpanel_advance_35 = {
         }
     },
     .spi {
-        // Display
-        spi::Configuration {
-            .device = SPI2_HOST,
-            .dma = SPI_DMA_DISABLED,
-            .config = {
-                .mosi_io_num = GPIO_NUM_39,
-                .miso_io_num = GPIO_NUM_NC,
-                .sclk_io_num = GPIO_NUM_42,
-                .quadwp_io_num = GPIO_NUM_NC,
-                .quadhd_io_num = GPIO_NUM_NC,
-                .data4_io_num = GPIO_NUM_NC,
-                .data5_io_num = GPIO_NUM_NC,
-                .data6_io_num = GPIO_NUM_NC,
-                .data7_io_num = GPIO_NUM_NC,
-                .data_io_default_level = false,
-                .max_transfer_sz = CROWPANEL_SPI_TRANSFER_SIZE_LIMIT,
-                .flags = 0,
-                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
-                .intr_flags = 0
-            },
-            .initMode = spi::InitMode::ByTactility,
-            .isMutable = false,
-            .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
-        },
         // SD card
         spi::Configuration {
-            .device = SPI3_HOST,
+            .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
                 .mosi_io_num = GPIO_NUM_6,
@@ -79,7 +45,7 @@ extern const Configuration crowpanel_advance_35 = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = 32768,
+                .max_transfer_sz = 8192,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
@@ -90,7 +56,7 @@ extern const Configuration crowpanel_advance_35 = {
         }
     },
     .uart {
-        // "UART0-IN"
+        // "UART0-OUT"
         uart::Configuration {
             .name = "UART0",
             .port = UART_NUM_1,
@@ -118,8 +84,8 @@ extern const Configuration crowpanel_advance_35 = {
         uart::Configuration {
             .name = "UART1",
             .port = UART_NUM_2,
-            .rxPin = GPIO_NUM_18,
-            .txPin = GPIO_NUM_17,
+            .rxPin = GPIO_NUM_19,
+            .txPin = GPIO_NUM_20,
             .rtsPin = GPIO_NUM_NC,
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,

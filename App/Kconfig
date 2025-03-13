@@ -25,10 +25,14 @@ menu "Tactility App"
             bool "Elecrow CrowPanel Advance 2.8"
         config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_35
             bool "Elecrow CrowPanel Advance 3.5"
+        config TT_BOARD_ELECROW_CROWPANEL_ADVANCE_50
+            bool "Elecrow CrowPanel Advance 5.0"
         config TT_BOARD_ELECROW_CROWPANEL_BASIC_28
             bool "Elecrow CrowPanel Basic 2.8"
         config TT_BOARD_ELECROW_CROWPANEL_BASIC_35
             bool "Elecrow CrowPanel Basic 3.5"
+        config TT_BOARD_ELECROW_CROWPANEL_BASIC_50
+            bool "Elecrow CrowPanel Basic 5.0"
         config TT_BOARD_LILYGO_TDECK
             bool "LilyGo T-Deck"
         config TT_BOARD_M5STACK_CORE2

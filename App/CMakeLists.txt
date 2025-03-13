@@ -17,6 +17,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         list(APPEND BOARD_COMPONENTS
             ElecrowCrowpanelAdvance28
             ElecrowCrowpanelAdvance35
+            ElecrowCrowpanelAdvance50
+            ElecrowCrowpanelBasic50
             LilygoTdeck
             M5stackCoreS3
             UnPhone

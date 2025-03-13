@@ -1,7 +1,6 @@
-#include "CydDisplay.h"
+#include "CrowPanelDisplay.h"
 
 #include <Gt911Touch.h>
-#include <PwmBacklight.h>
 #include <RgbDisplay.h>
 #include <Tactility/Log.h>
 
@@ -25,7 +24,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     esp_lcd_rgb_panel_config_t rgb_panel_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .timings = {
-            .pclk_hz = 16000000,
+            .pclk_hz = 15000000,
+//            .pclk_hz = 21000000,
             .h_res = 800,
             .v_res = 480,
             .hsync_pulse_width = 4,
@@ -48,28 +48,28 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .bounce_buffer_size_px = bufferPixels,
         .sram_trans_align = 8,
         .psram_trans_align = 64,
-        .hsync_gpio_num = GPIO_NUM_39,
+        .hsync_gpio_num = GPIO_NUM_40,
         .vsync_gpio_num = GPIO_NUM_41,
-        .de_gpio_num = GPIO_NUM_40 ,
-        .pclk_gpio_num = GPIO_NUM_42,
+        .de_gpio_num = GPIO_NUM_42 ,
+        .pclk_gpio_num = GPIO_NUM_39,
         .disp_gpio_num = GPIO_NUM_NC,
         .data_gpio_nums = {
-            GPIO_NUM_8, // B3
-            GPIO_NUM_3, // B4
-            GPIO_NUM_46, // B5
-            GPIO_NUM_9, // B6
-            GPIO_NUM_1, // B7
-            GPIO_NUM_5, // G2
-            GPIO_NUM_6, // G3
-            GPIO_NUM_7, // G4
-            GPIO_NUM_15, // G5
-            GPIO_NUM_16, // G6
-            GPIO_NUM_4, // G7
-            GPIO_NUM_45, // R3
-            GPIO_NUM_48, // R4
-            GPIO_NUM_47, // R5
-            GPIO_NUM_21, // R6
-            GPIO_NUM_14, // R7
+            GPIO_NUM_21, // B3
+            GPIO_NUM_47, // B4
+            GPIO_NUM_48, // B5
+            GPIO_NUM_45, // B6
+            GPIO_NUM_38, // B7
+            GPIO_NUM_9, // G2
+            GPIO_NUM_10, // G3
+            GPIO_NUM_11, // G4
+            GPIO_NUM_12, // G5
+            GPIO_NUM_13, // G6
+            GPIO_NUM_14, // G7
+            GPIO_NUM_7, // R3
+            GPIO_NUM_17, // R4
+            GPIO_NUM_18, // R5
+            GPIO_NUM_3, // R6
+            GPIO_NUM_46, // R7
         },
         .flags = {
             .disp_active_low = false,
@@ -97,8 +97,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         false,
         false,
         false,
-        false,
-        driver::pwmbacklight::setBacklightDuty
+        false
     );
 
     return std::make_shared<RgbDisplay>(std::move(configuration));
