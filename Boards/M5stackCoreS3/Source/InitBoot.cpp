@@ -57,6 +57,12 @@ bool initGpioExpander() {
     // Boost enable
     p1_state |= (1U << 7U);
 
+    /* AW9523 P0 is in push-pull mode */
+    if (!aw9523->writeCTL(0x10)) {
+        TT_LOG_E(TAG, "AW9523: Failed to set CTL");
+        return false;
+    }
+
     if (!aw9523->writeP0(p0_state)) {
         TT_LOG_E(TAG, "AW9523: Failed to set P0");
         return false;

@@ -15,9 +15,11 @@ public:
 
     bool readP0(uint8_t& output) const;
     bool readP1(uint8_t& output) const;
+    bool readCTL(uint8_t& output) const;
 
     bool writeP0(uint8_t value) const;
     bool writeP1(uint8_t value) const;
+    bool writeCTL(uint8_t value) const;
 
     bool bitOnP1(uint8_t bitmask) const;
 };
