@@ -31,20 +31,15 @@ Some examples of non-serious issues include:
 
 ### New board implementations
 
-I only support boards that I also own. If I don't own a board, I can't properly test the reliability of the firmware.
-If you wish to send me a board, please [contact me](https://tactility.one/#/support).
-
 Please open an [issue](https://github.com/ByteWelder/Tactility/issues/new) on GitHub to discuss new boards.
-
-If you implemented a board yourself, I'm willing to refer to your implementation on the main website. Please [contact me](https://tactility.one/#/support).
 
 ### Anything that doesn't fall in the above categories?
 
-Please [contact me](https://tactility.one/#/support) me first!
+Please [contact me](https://tactility.one/#/support) first!
 
 ## Pull Requests
 
-Pull requests should only contain a single set of changes that are related to eachother.
+Pull requests should only contain a single set of changes that are related to each other.
 That way, an approved set of changes will not be blocked by an unapproved set of changes.
 
 ## Code Style
