@@ -52,6 +52,9 @@
 #elif defined(CONFIG_TT_BOARD_CYD_4848S040C)
 #include "CYD4848S040C.h"
 #define TT_BOARD_HARDWARE &cyd_4848s040c_config
+#elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH_43)
+#include "WaveshareS3Touch43.h"
+#define TT_BOARD_HARDWARE &waveshare_s3_touch_43
 #else
 #define TT_BOARD_HARDWARE NULL
 #error Replace TT_BOARD_HARDWARE in main.c with your own. Or copy one of the ./sdkconfig.board.* files into ./sdkconfig.

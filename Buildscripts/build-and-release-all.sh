@@ -60,6 +60,9 @@ release m5stack-core2
 build m5stack-cores3
 release m5stack-cores3
 
+build waveshare-s3-touch-43
+release waveshare-s3-touch-43
+
 duration=$SECONDS
 
 echo "Finished in $((duration / 60)) minutes and $((duration % 60)) seconds."

@@ -45,6 +45,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic50")
         set(EXCLUDE_COMPONENTS "LilygoTdeck")
         set(EXCLUDE_COMPONENTS "M5stackCoreS3")
+        set(EXCLUDE_COMPONENTS "WaveshareEsp32S3TouchLcd43")
         set(EXCLUDE_COMPONENTS "UnPhone")
     endif()
 
