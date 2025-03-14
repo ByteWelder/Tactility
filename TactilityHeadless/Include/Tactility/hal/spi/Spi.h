@@ -43,6 +43,6 @@ bool stop(spi_host_device_t device);
 bool isStarted(spi_host_device_t device);
 
 /** @return the lock that represents the specified device. Can be used with third party SPI implementations or native API calls (e.g. ESP-IDF). */
-Lock& getLock(spi_host_device_t device);
+std::shared_ptr<Lock> getLock(spi_host_device_t device);
 
 } // namespace tt::hal::spi

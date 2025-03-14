@@ -4,6 +4,8 @@
 
 #include "SdCardDevice.h"
 
+#include <Tactility/hal/spi/Spi.h>
+
 #include <sd_protocol_types.h>
 #include <utility>
 #include <vector>
@@ -26,7 +28,8 @@ public:
             gpio_num_t spiPinWp,
             gpio_num_t spiPinInt,
             MountBehaviour mountBehaviourAtBoot,
-            std::shared_ptr<Lock> lock = std::make_shared<Mutex>(),
+            /** When custom lock is nullptr, use the SPI default one */
+            std::shared_ptr<Lock> _Nullable customLock = nullptr,
             std::vector<gpio_num_t> csPinWorkAround = std::vector<gpio_num_t>(),
             spi_host_device_t spiHost = SPI2_HOST,
             int spiFrequencyKhz = SDMMC_FREQ_DEFAULT
@@ -36,12 +39,10 @@ public:
             spiPinWp(spiPinWp),
             spiPinInt(spiPinInt),
             mountBehaviourAtBoot(mountBehaviourAtBoot),
-            lock(std::move(lock)),
+            customLock(customLock ? std::move(customLock) : nullptr),
             csPinWorkAround(std::move(csPinWorkAround)),
             spiHost(spiHost)
-        {
-            assert(this->lock != nullptr);
-        }
+        {}
 
         int spiFrequencyKhz;
         gpio_num_t spiPinCs; // Clock
@@ -49,7 +50,7 @@ public:
         gpio_num_t spiPinWp; // Write-protect
         gpio_num_t spiPinInt; // Interrupt
         SdCardDevice::MountBehaviour mountBehaviourAtBoot;
-        std::shared_ptr<Lock> _Nullable lock;
+        std::shared_ptr<Lock> _Nullable customLock;
         std::vector<gpio_num_t> csPinWorkAround;
         spi_host_device_t spiHost;
         bool formatOnMountFailed = false;
@@ -80,7 +81,13 @@ public:
     bool unmount() final;
     std::string getMountPath() const final { return mountPath; }
 
-    Lock& getLock() const final { return *config->lock; }
+    Lock& getLock() const final {
+        if (config->customLock) {
+            return *config->customLock;
+        } else {
+            return *spi::getLock(config->spiHost);
+        }
+    }
 
     State getState() const override;
 

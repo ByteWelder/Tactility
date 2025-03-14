@@ -1,9 +1,8 @@
-#include "RgbDisplay.h"
-
 #include "CydDisplay.h"
 
-#include <PwmBacklight.h>
 #include <Gt911Touch.h>
+#include <PwmBacklight.h>
+#include <RgbDisplay.h>
 #include <Tactility/Log.h>
 
 std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() {

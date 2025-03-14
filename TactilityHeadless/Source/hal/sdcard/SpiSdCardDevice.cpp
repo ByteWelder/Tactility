@@ -134,19 +134,14 @@ SdCardDevice::State SpiSdCardDevice::getState() const {
      * Writing and reading to the bus from 2 devices at the same time causes crashes.
      * This work-around ensures that this check is only happening when LVGL isn't rendering.
      */
-    if (config->lock) {
-        bool locked = config->lock->lock(50); // TODO: Refactor to a more reliable locking mechanism
-        if (!locked) {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-            return State::Unknown;
-        }
+    auto lock = getLock().asScopedLock();
+    bool locked = lock.lock(50); // TODO: Refactor to a more reliable locking mechanism
+    if (!locked) {
+        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+        return State::Unknown;
     }
 
     bool result = sdmmc_get_status(card) == ESP_OK;
-
-    if (config->lock) {
-        config->lock->unlock();
-    }
 
     if (result) {
         return State::Mounted;

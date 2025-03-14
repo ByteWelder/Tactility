@@ -6,23 +6,26 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     if("${IDF_TARGET}" STREQUAL "esp32")
         list(APPEND BOARD_COMPONENTS
             CYD-2432S024C
+            CYD-2432S032C
+            CYD-JC2432W328C
             ElecrowCrowpanelBasic28
             ElecrowCrowpanelBasic35
             M5stackCore2
-            CYD-JC2432W328C
         )
     endif()
 
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         list(APPEND BOARD_COMPONENTS
+            CYD-4848S040C
+            CYD-8048S043C
+            CYD-JC8048W550C
             ElecrowCrowpanelAdvance28
             ElecrowCrowpanelAdvance35
+            ElecrowCrowpanelAdvance50
+            ElecrowCrowpanelBasic50
             LilygoTdeck
             M5stackCoreS3
             UnPhone
-            CYD-8048S043C
-            CYD-JC8048W550C
-            CYD-4848S040C
         )
     endif()
 

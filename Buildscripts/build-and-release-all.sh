@@ -20,11 +20,17 @@ release elecrow-crowpanel-advance-28
 build elecrow-crowpanel-advance-35
 release elecrow-crowpanel-advance-35
 
+build elecrow-crowpanel-advance-50
+release elecrow-crowpanel-advance-50
+
 build elecrow-crowpanel-basic-28
 release elecrow-crowpanel-basic-28
 
 build elecrow-crowpanel-basic-35
 release elecrow-crowpanel-basic-35
+
+build elecrow-crowpanel-basic-50
+release elecrow-crowpanel-basic-50
 
 build lilygo-tdeck
 release lilygo-tdeck
@@ -33,6 +39,9 @@ releaseSdk release/TactilitySDK-esp32s3
 
 build cyd-2432s024c
 release cyd-2432s024c
+
+build cyd-2432s032c
+release cyd-2432s032c
 
 build cyd-8048s043c
 release cyd-8048s043c

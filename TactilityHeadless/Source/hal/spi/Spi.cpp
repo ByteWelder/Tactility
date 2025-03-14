@@ -42,7 +42,7 @@ bool init(const std::vector<spi::Configuration>& configurations) {
 }
 
 bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) {
-    auto lock = getLock(device).asScopedLock();
+    auto lock = getLock(device)->asScopedLock();
     lock.lock();
 
     Data& data = dataArray[device];
@@ -59,7 +59,7 @@ bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) 
 }
 
 bool start(spi_host_device_t device) {
-    auto lock = getLock(device).asScopedLock();
+    auto lock = getLock(device)->asScopedLock();
     lock.lock();
 
     Data& data = dataArray[device];
@@ -96,7 +96,7 @@ bool start(spi_host_device_t device) {
 }
 
 bool stop(spi_host_device_t device) {
-    auto lock = getLock(device).asScopedLock();
+    auto lock = getLock(device)->asScopedLock();
     lock.lock();
 
     Data& data = dataArray[device];
@@ -133,14 +133,14 @@ bool stop(spi_host_device_t device) {
 }
 
 bool isStarted(spi_host_device_t device) {
-    auto lock = getLock(device).asScopedLock();
+    auto lock = getLock(device)->asScopedLock();
     lock.lock();
 
     return dataArray[device].isStarted;
 }
 
-Lock& getLock(spi_host_device_t device) {
-    return *dataArray[device].lock;
+std::shared_ptr<Lock> getLock(spi_host_device_t device) {
+    return dataArray[device].lock;
 }
 
 }

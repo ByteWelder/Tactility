@@ -28,7 +28,8 @@ public:
             bool mirrorX = false,
             bool mirrorY = false,
             bool invertColor = false,
-            uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/10 of the screen size
+            uint32_t bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size,
+            lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
         ) : spiBusHandle(spi_bus_handle),
             csPin(csPin),
             dcPin(dcPin),
@@ -39,6 +40,7 @@ public:
             mirrorY(mirrorY),
             invertColor(invertColor),
             bufferSize(bufferSize),
+            rgbElementOrder(rgbElementOrder),
             touch(std::move(touch))
         {}
 
@@ -55,6 +57,7 @@ public:
         bool mirrorY = false;
         bool invertColor = false;
         uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is 1/10 of the screen size
+        lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;
     };
