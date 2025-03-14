@@ -51,6 +51,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     # ESP32-S3 target should exclude ESP32 boards
     if("${IDF_TARGET}" STREQUAL "esp32s3")
         set(EXCLUDE_COMPONENTS "CYD-2432S024C")
+        set(EXCLUDE_COMPONENTS "CYD-2432S032C")
         set(EXCLUDE_COMPONENTS "CYD-JC2432W328C")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
         set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic35")

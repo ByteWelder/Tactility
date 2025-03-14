@@ -10,6 +10,9 @@
 #elif defined(CONFIG_TT_BOARD_CYD_2432S024C)
 #include "CYD2432S024C.h"
 #define TT_BOARD_HARDWARE &cyd_2432S024c_config
+#elif defined(CONFIG_TT_BOARD_CYD_2432S032C)
+#include "CYD2432S032C.h"
+#define TT_BOARD_HARDWARE &cyd_2432S032c_config
 #elif (defined(CONFIG_TT_BOARD_ELECROW_CROWPANEL_ADVANCE_28))
 #define TT_BOARD_HARDWARE &crowpanel_advance_28
 #include "CrowPanelAdvance28.h"

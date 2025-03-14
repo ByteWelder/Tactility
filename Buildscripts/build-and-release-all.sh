@@ -40,6 +40,9 @@ releaseSdk release/TactilitySDK-esp32s3
 build cyd-2432s024c
 release cyd-2432s024c
 
+build cyd-2432s032c
+release cyd-2432s032c
+
 build cyd-8048s043c
 release cyd-8048s043c
 

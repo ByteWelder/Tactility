@@ -18,6 +18,15 @@ jobs:
         with:
           board_id: cyd-2432S024c
           arch: esp32
+  cyd-2432S032c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: cyd-2432S032c
+          arch: esp32
   cyd-jc2432w328c:
     runs-on: ubuntu-latest
     steps:
