@@ -103,13 +103,5 @@ const Configuration cyd_8048s043c_config = {
                 }
             }
         }
-    },
-    .gps = {
-        gps::GpsDevice::Configuration {
-            .name = "Internal",
-            .uartName = "UART1",
-            .baudRate = 9600,
-            .model = gps::GpsModel::ATGM336H
-        }
     }
 };
