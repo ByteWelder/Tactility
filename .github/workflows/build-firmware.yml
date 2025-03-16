@@ -9,7 +9,7 @@ on:
 permissions: read-all
 
 jobs:
-  cyd-2432S024c:
+  cyd-2432s024c:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,7 +18,7 @@ jobs:
         with:
           board_id: cyd-2432s024c
           arch: esp32
-  cyd-2432S032c:
+  cyd-2432s032c:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -36,7 +36,7 @@ jobs:
         with:
           board_id: cyd-jc2432w328c
           arch: esp32
-  cyd-8048S043c:
+  cyd-8048s043c:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
