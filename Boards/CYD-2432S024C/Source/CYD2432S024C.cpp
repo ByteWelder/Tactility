@@ -12,7 +12,7 @@ bool initBoot() {
     return driver::pwmbacklight::init(TWODOTFOUR_LCD_PIN_BACKLIGHT);
 }
 
-const tt::hal::Configuration cyd_2432S024c_config = {
+const tt::hal::Configuration cyd_2432s024c_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createYellowSdCard(),
