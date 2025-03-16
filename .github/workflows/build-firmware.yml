@@ -16,7 +16,7 @@ jobs:
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:
-          board_id: cyd-2432S024c
+          board_id: cyd-2432s024c
           arch: esp32
   cyd-2432S032c:
     runs-on: ubuntu-latest
@@ -25,7 +25,7 @@ jobs:
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:
-          board_id: cyd-2432S032c
+          board_id: cyd-2432s032c
           arch: esp32
   cyd-jc2432w328c:
     runs-on: ubuntu-latest
@@ -43,7 +43,7 @@ jobs:
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:
-          board_id: cyd-8048S043c
+          board_id: cyd-8048s043c
           arch: esp32s3
   cyd-jc8048w550c:
     runs-on: ubuntu-latest
