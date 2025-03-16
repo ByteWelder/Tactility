@@ -1,41 +1,18 @@
 cmake_minimum_required(VERSION 3.20)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    set(BOARD_COMPONENTS Tactility TactilityC)
-
-    if("${IDF_TARGET}" STREQUAL "esp32")
-        list(APPEND BOARD_COMPONENTS
-            CYD-2432S024C
-            CYD-2432S032C
-            CYD-JC2432W328C
-            ElecrowCrowpanelBasic28
-            ElecrowCrowpanelBasic35
-            M5stackCore2
-        )
-    endif()
-
-    if("${IDF_TARGET}" STREQUAL "esp32s3")
-        list(APPEND BOARD_COMPONENTS
-            CYD-4848S040C
-            CYD-8048S043C
-            CYD-JC8048W550C
-            ElecrowCrowpanelAdvance28
-            ElecrowCrowpanelAdvance35
-            ElecrowCrowpanelAdvance50
-            ElecrowCrowpanelBasic50
-            LilygoTdeck
-            M5stackCoreS3
-            UnPhone
-            WaveshareS3Touch43
-        )
-    endif()
+    # Read board id/project
+    include("../Buildscripts/board.cmake")
+    init_tactility_globals("../sdkconfig")
+    get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
 
     idf_component_register(
         SRC_DIRS "Source"
         "Source/HelloWorld"
         REQUIRES ${BOARD_COMPONENTS}
+        REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
-else()
+else ()
 
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
@@ -49,4 +26,4 @@ else()
 
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
-endif()
+endif ()

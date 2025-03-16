@@ -15,10 +15,14 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
+    include("Buildscripts/board.cmake")
+    init_tactility_globals("sdkconfig")
+    get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
+
     set(COMPONENTS App)
     set(EXTRA_COMPONENT_DIRS
         "App"
-        "Boards"
+        "Boards/${TACTILITY_BOARD_PROJECT}"
         "Drivers"
         "Tactility"
         "TactilityC"
@@ -33,31 +37,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     )
 
     set(EXCLUDE_COMPONENTS "Simulator")
-
-    # ESP32 target should exclude ESP32-S3 boards
-    if("${IDF_TARGET}" STREQUAL "esp32")
-        set(EXCLUDE_COMPONENTS "CYD-8048S043C")
-        set(EXCLUDE_COMPONENTS "CYD-JC8048W550C")
-        set(EXCLUDE_COMPONENTS "CYD-4848S040C")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance28")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance35")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelAdvance50")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic50")
-        set(EXCLUDE_COMPONENTS "LilygoTdeck")
-        set(EXCLUDE_COMPONENTS "M5stackCoreS3")
-        set(EXCLUDE_COMPONENTS "WaveshareEsp32S3TouchLcd43")
-        set(EXCLUDE_COMPONENTS "UnPhone")
-    endif()
-
-    # ESP32-S3 target should exclude ESP32 boards
-    if("${IDF_TARGET}" STREQUAL "esp32s3")
-        set(EXCLUDE_COMPONENTS "CYD-2432S024C")
-        set(EXCLUDE_COMPONENTS "CYD-2432S032C")
-        set(EXCLUDE_COMPONENTS "CYD-JC2432W328C")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic28")
-        set(EXCLUDE_COMPONENTS "ElecrowCrowpanelBasic35")
-        set(EXCLUDE_COMPONENTS "M5stackCore2")
-    endif()
 
     # LVGL
     get_filename_component(
