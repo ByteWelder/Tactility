@@ -1,6 +1,7 @@
 function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
+    get_filename_component(SDKCONFIG_FILE_ABS ${SDKCONFIG_FILE} ABSOLUTE)
     # Find the board identifier in the sdkconfig file
-    file(READ ${SDKCONFIG_FILE} sdkconfig_text)
+    file(READ ${SDKCONFIG_FILE_ABS} sdkconfig_text)
     string(REGEX MATCH "(CONFIG_TT_BOARD_ID\=\"[a-z0-9_\-]*\")" sdkconfig_board_id "${sdkconfig_text}")
     if (sdkconfig_board_id STREQUAL "")
         message(FATAL_ERROR "CONFIG_TT_BOARD_ID not found in sdkconfig:\nMake sure you copied one of the sdkconfig.board.* files into sdkconfig")
