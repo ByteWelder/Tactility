@@ -4,7 +4,7 @@
 #include <Tactility/lvgl/LvglSync.h>
 
 // Forward declaration of the display factory function
-std::shared_ptr<tt::hal::display::DisplayDevice> create_display();
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
 
 bool init_boot() {
     // No backlight PWM for this board (not specified in the schematic)
