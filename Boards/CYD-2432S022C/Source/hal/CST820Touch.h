@@ -2,6 +2,7 @@
 
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <memory>
+#include "CYD2432S022CConstants.h"
 
 std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch();
 
@@ -22,6 +23,5 @@ public:
     int get_height() const override { return config_->height; }
 
 private:
-    static constexpr uint8_t I2C_ADDR = 0x15;
     std::unique_ptr<Configuration> config_;
 };
