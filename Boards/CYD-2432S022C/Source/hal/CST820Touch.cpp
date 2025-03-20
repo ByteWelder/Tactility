@@ -3,10 +3,10 @@
 
 static const char *TAG = "Cst820Touch";
 
-Cst820Touch::Cst820Touch(std::unique_ptr<Configuration> config)
+CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
 
-bool Cst820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
+bool CST820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
     uint8_t touch_data[6];
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -39,12 +39,12 @@ bool Cst820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
     return false; // No more data to read
 }
 
-std::shared_ptr<tt::hal::touch::TouchDevice> create_cst820_touch() {
-    auto configuration = std::make_unique<Cst820Touch::Configuration>(
+std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
+    auto configuration = std::make_unique<CST820Touch::Configuration>(
         I2C_NUM_0,
         cyd_2432s022c::HORIZONTAL_RESOLUTION,
         cyd_2432s022c::VERTICAL_RESOLUTION
     );
 
-    return std::make_shared<Cst820Touch>(std::move(configuration));
+    return std::make_shared<CST820Touch>(std::move(configuration));
 }
