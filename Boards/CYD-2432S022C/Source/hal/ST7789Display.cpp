@@ -1,5 +1,6 @@
 #include "ST7789Display.h"
 #include "CST820Touch.h"
+#include "CYD2432S022CConstants.h"
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,38 +12,38 @@ ST7789Display::ST7789Display(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
 
 void ST7789Display::write_byte(uint8_t data) {
-    gpio_set_level(PIN_WR, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 0);
     for (int i = 0; i < 8; i++) {
-        gpio_set_level(PIN_D0 + i, (data >> i) & 1);
+        gpio_set_level(CYD_2432S022C_LCD_PIN_D0 + i, (data >> i) & 1);
     }
-    gpio_set_level(PIN_WR, 1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 1);
 }
 
 void ST7789Display::set_address_window(int x, int y, int w, int h) {
-    gpio_set_level(PIN_CS, 0);
-    gpio_set_level(PIN_RS, 0); // Command mode
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
 
     // Set column address
     write_byte(0x2A);
-    gpio_set_level(PIN_RS, 1); // Data mode
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
     write_byte((x >> 8) & 0xFF);
     write_byte(x & 0xFF);
     write_byte(((x + w - 1) >> 8) & 0xFF);
     write_byte((x + w - 1) & 0xFF);
 
     // Set row address
-    gpio_set_level(PIN_RS, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0);
     write_byte(0x2B);
-    gpio_set_level(PIN_RS, 1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1);
     write_byte((y >> 8) & 0xFF);
     write_byte(y & 0xFF);
     write_byte(((y + h - 1) >> 8) & 0xFF);
     write_byte((y + h - 1) & 0xFF);
 
     // Memory write
-    gpio_set_level(PIN_RS, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0);
     write_byte(0x2C);
-    gpio_set_level(PIN_RS, 1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1);
 }
 
 void ST7789Display::init() {
@@ -50,9 +51,12 @@ void ST7789Display::init() {
 
     // Configure GPIO pins
     gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << PIN_D0) | (1ULL << PIN_D1) | (1ULL << PIN_D2) | (1ULL << PIN_D3) |
-                        (1ULL << PIN_D4) | (1ULL << PIN_D5) | (1ULL << PIN_D6) | (1ULL << PIN_D7) |
-                        (1ULL << PIN_WR) | (1ULL << PIN_RD) | (1ULL << PIN_RS) | (1ULL << PIN_CS),
+        .pin_bit_mask = (1ULL << CYD_2432S022C_LCD_PIN_D0) | (1ULL << CYD_2432S022C_LCD_PIN_D1) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D2) | (1ULL << CYD_2432S022C_LCD_PIN_D3) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D4) | (1ULL << CYD_2432S022C_LCD_PIN_D5) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D6) | (1ULL << CYD_2432S022C_LCD_PIN_D7) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_WR) | (1ULL << CYD_2432S022C_LCD_PIN_RD) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_RS) | (1ULL << CYD_2432S022C_LCD_PIN_CS),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -61,12 +65,12 @@ void ST7789Display::init() {
     gpio_config(&io_conf);
 
     // Basic ST7789 initialization
-    gpio_set_level(PIN_CS, 0);
-    gpio_set_level(PIN_RS, 0); // Command mode
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
     write_byte(0x11); // Sleep out
     vTaskDelay(pdMS_TO_TICKS(120));
     write_byte(0x29); // Display on
-    gpio_set_level(PIN_CS, 1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
 }
 
 void ST7789Display::flush(const lv_area_t *area, const lv_color_t *color_p) {
@@ -82,16 +86,16 @@ void ST7789Display::flush(const lv_area_t *area, const lv_color_t *color_p) {
         write_byte(pixel & 0xFF);         // Low byte
     }
 
-    gpio_set_level(PIN_CS, 1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
     lv_disp_flush_ready(static_cast<lv_disp_drv_t*>(this->get_driver()));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = create_cst820_touch();
+    auto touch = createCST820Touch();
 
     auto configuration = std::make_unique<ST7789Display::Configuration>(
-        cyd_2432s022c::HORIZONTAL_RESOLUTION,
-        cyd_2432s022c::VERTICAL_RESOLUTION,
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         touch
     );
 
