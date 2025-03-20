@@ -3,7 +3,7 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <memory>
 
-std::shared_ptr<tt::hal::display::DisplayDevice> create_display();
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
 
 // Constants for the display
 namespace cyd_2432s022c {
