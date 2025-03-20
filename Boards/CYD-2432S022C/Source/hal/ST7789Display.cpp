@@ -13,8 +13,18 @@ ST7789Display::ST7789Display(std::unique_ptr<Configuration> config)
 
 void ST7789Display::write_byte(uint8_t data) {
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 0);
+    const gpio_num_t pins[8] = {
+        CYD_2432S022C_LCD_PIN_D0,
+        CYD_2432S022C_LCD_PIN_D1,
+        CYD_2432S022C_LCD_PIN_D2,
+        CYD_2432S022C_LCD_PIN_D3,
+        CYD_2432S022C_LCD_PIN_D4,
+        CYD_2432S022C_LCD_PIN_D5,
+        CYD_2432S022C_LCD_PIN_D6,
+        CYD_2432S022C_LCD_PIN_D7
+    };
     for (int i = 0; i < 8; i++) {
-        gpio_set_level(CYD_2432S022C_LCD_PIN_D0 + i, (data >> i) & 1);
+        gpio_set_level(pins[i], (data >> i) & 1);
     }
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 1);
 }
@@ -46,8 +56,8 @@ void ST7789Display::set_address_window(int x, int y, int w, int h) {
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1);
 }
 
-void ST7789Display::init() {
-    ESP_LOGI(TAG, "Initializing ST7789 display...");
+bool ST7789Display::start() {
+    ESP_LOGI(TAG, "Starting ST7789 display...");
 
     // Configure GPIO pins
     gpio_config_t io_conf = {
@@ -71,23 +81,40 @@ void ST7789Display::init() {
     vTaskDelay(pdMS_TO_TICKS(120));
     write_byte(0x29); // Display on
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
+
+    // Initialize LVGL display
+    display_ = lv_display_create(config_->width, config_->height);
+    lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, uint8_t* color_p) {
+        auto* display = static_cast<ST7789Display*>(lv_display_get_user_data(disp));
+        display->flush(disp, area, color_p);
+    });
+    lv_display_set_user_data(display_, this);
+    return true;
 }
 
-void ST7789Display::flush(const lv_area_t *area, const lv_color_t *color_p) {
+bool ST7789Display::stop() {
+    ESP_LOGI(TAG, "Stopping ST7789 display...");
+    if (display_) {
+        lv_display_delete(display_);
+        display_ = nullptr;
+    }
+    return true;
+}
+
+void ST7789Display::flush(lv_display_t* disp, const lv_area_t* area, uint8_t* color_p) {
     int w = (area->x2 - area->x1 + 1);
     int h = (area->y2 - area->y1 + 1);
 
     set_address_window(area->x1, area->y1, w, h);
 
-    // Write pixel data
-    for (int i = 0; i < w * h; i++) {
-        uint16_t pixel = color_p[i].full; // LVGL color in RGB565 format
-        write_byte((pixel >> 8) & 0xFF);  // High byte
-        write_byte(pixel & 0xFF);         // Low byte
+    // Write pixel data (color_p is a buffer of RGB565 pixels)
+    for (int i = 0; i < w * h * 2; i += 2) {
+        write_byte(color_p[i]);     // High byte
+        write_byte(color_p[i + 1]); // Low byte
     }
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
-    lv_disp_flush_ready(static_cast<lv_disp_drv_t*>(this->get_driver()));
+    lv_display_flush_ready(disp);
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
