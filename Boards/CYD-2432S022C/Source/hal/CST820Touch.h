@@ -2,7 +2,7 @@
 
 #include <Tactility/hal/touch/TouchDevice.h>
 #include "CYD2432S022CConstants.h"
-#include <lvgl.h> // Add LVGL header for lv_indev_t and lv_display_t
+#include <lvgl.h>
 #include <memory>
 #include <string>
 
@@ -26,12 +26,15 @@ public:
     // Methods from TouchDevice
     bool start(lv_display_t* display) override;
     bool stop() override;
-    void read(lv_indev_t* indev, lv_indev_data_t* data) override;
     lv_indev_t* getLvglIndev() override { return indev_; }
-    int get_width() const override { return config_->width; }
-    int get_height() const override { return config_->height; }
+
+    // Additional getters (not overrides)
+    int getWidth() const { return config_->width; }
+    int getHeight() const { return config_->height; }
 
 private:
+    bool read_input(lv_indev_data_t* data);
+
     std::unique_ptr<Configuration> config_;
-    lv_indev_t* indev_ = nullptr; // Store the LVGL input device
+    lv_indev_t* indev_ = nullptr;
 };
