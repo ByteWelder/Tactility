@@ -2,7 +2,7 @@
 
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <memory>
-#include "CYD2432C022CConstants.h"
+#include "CYD2432S022CConstants.h"
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
 
