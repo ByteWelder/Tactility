@@ -86,7 +86,7 @@ void ST7789Display::flush(const lv_area_t *area, const lv_color_t *color_p) {
     lv_disp_flush_ready(static_cast<lv_disp_drv_t*>(this->get_driver()));
 }
 
-std::shared_ptr<tt::hal::display::DisplayDevice> create_display() {
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto touch = create_cst820_touch();
 
     auto configuration = std::make_unique<ST7789Display::Configuration>(
