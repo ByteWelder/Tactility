@@ -13,7 +13,7 @@ bool init_boot() {
 
 const tt::hal::Configuration cyd_2432s022c_config = {
     .initBoot = init_boot,
-    .createDisplay = create_display,
+    .createDisplay = createDisplay,
     .sdcard = createYellowSDCard(),
     .power = nullptr,
     .i2c = {
