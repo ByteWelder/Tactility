@@ -1,6 +1,7 @@
 #include "CYD2432S022C.h"
 #include "hal/ST7789Display.h"
 #include "hal/YellowSDCard.h"
+#include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
 
 // Forward declaration of the display factory function
@@ -20,17 +21,17 @@ const tt::hal::Configuration cyd_2432s022c_config = {
         // I2C for CST820 touch
         tt::hal::i2c::Configuration {
             .name = "First",
-            .port = I2C_NUM_0,
+            .port = CYD_2432S022C_TOUCH_I2C_PORT,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
             .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = GPIO_NUM_21,  // From schematic
-                .scl_io_num = GPIO_NUM_22,  // From schematic
+                .sda_io_num = CYD_2432S022C_TOUCH_I2C_SDA,
+                .scl_io_num = CYD_2432S022C_TOUCH_I2C_SCL,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {
-                    .clk_speed = 400000
+                    .clk_speed = CYD_2432S022C_TOUCH_I2C_SPEED
                 },
                 .clk_flags = 0
             }
@@ -55,14 +56,14 @@ const tt::hal::Configuration cyd_2432s022c_config = {
         }
     },
     .spi = {
-        // SPI for SD card (no SPI for display since it's 8-bit parallel)
+        // SPI for SD card
         tt::hal::spi::Configuration {
-            .device = SPI3_HOST,
+            .device = CYD_2432S022C_SDCARD_SPI_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_23,  // From schematic
-                .miso_io_num = GPIO_NUM_19,  // From schematic
-                .sclk_io_num = GPIO_NUM_18,  // From schematic
+                .mosi_io_num = CYD_2432S022C_SDCARD_PIN_MOSI,
+                .miso_io_num = CYD_2432S022C_SDCARD_PIN_MISO,
+                .sclk_io_num = CYD_2432S022C_SDCARD_PIN_SCLK,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
@@ -70,7 +71,7 @@ const tt::hal::Configuration cyd_2432s022c_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = 8192,
+                .max_transfer_sz = CYD_2432S022C_SDCARD_SPI_MAX_TRANSFER_SIZE,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
