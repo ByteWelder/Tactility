@@ -7,7 +7,33 @@ static const char *TAG = "CST820Touch";
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
 
-bool CST820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
+bool CST820Touch::start(lv_display_t* display) {
+    ESP_LOGI(TAG, "Starting CST820 touch...");
+    // Initialize the touch device with LVGL
+    lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.disp = display;
+    indev_drv.read_cb = [](lv_indev_t* indev, lv_indev_data_t* data) {
+        auto* touch = static_cast<CST820Touch*>(indev->user_data);
+        touch->read(indev, data);
+    };
+    indev_drv.user_data = this;
+    indev_ = lv_indev_create();
+    lv_indev_set_driver(indev_, &indev_drv);
+    return true;
+}
+
+bool CST820Touch::stop() {
+    ESP_LOGI(TAG, "Stopping CST820 touch...");
+    if (indev_) {
+        lv_indev_delete(indev_);
+        indev_ = nullptr;
+    }
+    return true;
+}
+
+void CST820Touch::read(lv_indev_t* indev, lv_indev_data_t* data) {
     uint8_t touch_data[6];
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -22,8 +48,8 @@ bool CST820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
-        data->state = LV_INDEV_STATE_REL;
-        return false;
+        data->state = LV_INDEV_STATE_RELEASED;
+        return;
     }
 
     uint8_t finger_num = touch_data[1];
@@ -32,15 +58,13 @@ bool CST820Touch::read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) {
         uint16_t y = (touch_data[4] << 8) | touch_data[5];
         data->point.x = x;
         data->point.y = y;
-        data->state = LV_INDEV_STATE_PR;
+        data->state = LV_INDEV_STATE_PRESSED;
     } else {
-        data->state = LV_INDEV_STATE_REL;
+        data->state = LV_INDEV_STATE_RELEASED;
     }
-
-    return false; // No more data to read
 }
 
-std::shared_ptr<tt::hal::touch::TouchDevice> create_cst820_touch() {
+std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
     auto configuration = std::make_unique<CST820Touch::Configuration>(
         CYD_2432S022C_TOUCH_I2C_PORT,
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
