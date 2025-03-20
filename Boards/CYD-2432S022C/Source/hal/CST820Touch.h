@@ -3,9 +3,9 @@
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <memory>
 
-std::shared_ptr<tt::hal::touch::TouchDevice> create_cst820_touch();
+std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch();
 
-class Cst820Touch : public tt::hal::touch::TouchDevice {
+class CST820Touch : public tt::hal::touch::TouchDevice {
 public:
     struct Configuration {
         i2c_port_t i2c_port;
@@ -13,8 +13,8 @@ public:
         int height;
     };
 
-    Cst820Touch(std::unique_ptr<Configuration> config);
-    ~Cst820Touch() override = default;
+    CST820Touch(std::unique_ptr<Configuration> config);
+    ~CST820Touch() override = default;
 
     void init() override {}
     bool read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data) override;
