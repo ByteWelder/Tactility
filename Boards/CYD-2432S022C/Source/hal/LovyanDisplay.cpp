@@ -83,8 +83,23 @@ bool LovyanGFXDisplay::start() {
     lcd.writeCommand(0x29); // Display ON
     vTaskDelay(pdMS_TO_TICKS(50));
 
-    lcd.setBrightness(128);  // Half brightness for visibility
-    lcd.setRotation(0);      // Start in portrait
+    lcd.setBrightness(128);
+
+    // Test all rotations
+    ESP_LOGI(TAG, "Testing rotations...");
+    lcd.setRotation(0);
+    lcd.fillScreen(lgfx::color565(255, 0, 0));  // Red
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    lcd.setRotation(1);
+    lcd.fillScreen(lgfx::color565(0, 255, 0));  // Green
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    lcd.setRotation(2);
+    lcd.fillScreen(lgfx::color565(0, 0, 255));  // Blue
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    lcd.setRotation(3);
+    lcd.fillScreen(lgfx::color565(255, 255, 0));  // Yellow
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    lcd.setRotation(0);  // Back to portrait
 
     ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
     lvglDisplay = lv_display_create(configuration->width, configuration->height);  // 240x320
@@ -99,19 +114,18 @@ bool LovyanGFXDisplay::start() {
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
              heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
     static uint16_t* buf1 = nullptr;
-    static uint16_t* buf2 = nullptr;
+    buf2 = nullptr;  // Use single buffer for full mode
     buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    if (!buf1 || !buf2) {
-        ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
+    if (!buf1) {
+        ESP_LOGE(TAG, "Failed to allocate buffer! Size requested: %d bytes",
                  CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
         return false;
     }
-    ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
-             buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+    ESP_LOGI(TAG, "Allocated buffer: buf1=%p, size=%d bytes",
+             buf1, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
 
-    ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
-    lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    ESP_LOGI(TAG, "Setting LVGL buffers with render mode FULL");
+    lv_display_set_buffers(lvglDisplay, buf1, nullptr, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_FULL);
     ESP_LOGI(TAG, "LVGL buffers set successfully");
 
     ESP_LOGI(TAG, "Setting flush callback");
@@ -176,25 +190,25 @@ void LovyanGFXDisplay::setRotation(lv_display_rotation_t rotation) {
         case LV_DISPLAY_ROTATION_0:   // Portrait (240x320)
             lcd.setRotation(0);
             lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
-            lcd.fillScreen(lgfx::color565(255, 0, 0));  // Red for 0°
+            lcd.fillScreen(lgfx::color565(255, 0, 0));  // Red
             break;
         case LV_DISPLAY_ROTATION_90:  // Landscape (320x240)
             lcd.setRotation(1);
             lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
-            lcd.fillScreen(lgfx::color565(0, 255, 0));  // Green for 90°
+            lcd.fillScreen(lgfx::color565(0, 255, 0));  // Green
             break;
         case LV_DISPLAY_ROTATION_180: // Portrait upside-down (240x320)
             lcd.setRotation(2);
             lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
-            lcd.fillScreen(lgfx::color565(0, 0, 255));  // Blue for 180°
+            lcd.fillScreen(lgfx::color565(0, 0, 255));  // Blue
             break;
         case LV_DISPLAY_ROTATION_270: // Landscape opposite (320x240)
             lcd.setRotation(3);
             lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
-            lcd.fillScreen(lgfx::color565(255, 255, 0));  // Yellow for 270°
+            lcd.fillScreen(lgfx::color565(255, 255, 0));  // Yellow
             break;
     }
-    vTaskDelay(pdMS_TO_TICKS(500));  // Pause to see the fill
+    vTaskDelay(pdMS_TO_TICKS(500));
     ESP_LOGI(TAG, "Resolution set to %" PRId32 "x%" PRId32, lv_disp_get_hor_res(lvglDisplay), lv_disp_get_ver_res(lvglDisplay));
 
     if (configuration && configuration->touch) {
