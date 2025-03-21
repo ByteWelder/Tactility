@@ -15,7 +15,7 @@ ST7789Display::ST7789Display(std::unique_ptr<Configuration> config)
 bool ST7789Display::initialize_hardware() {
     ESP_LOGI(TAG, "Initializing ST7789 display hardware...");
 
-    // Configure GPIO pins
+    // Configure GPIO pins for the display
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << CYD_2432S022C_LCD_PIN_D0) | (1ULL << CYD_2432S022C_LCD_PIN_D1) |
                         (1ULL << CYD_2432S022C_LCD_PIN_D2) | (1ULL << CYD_2432S022C_LCD_PIN_D3) |
@@ -180,9 +180,9 @@ lv_display_t* ST7789Display::getLvglDisplay() const {
             return nullptr;
         }
 
-        // Set up the draw buffer (required for LVGL to render)
-        static lv_color_t buf[CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 10]; // Buffer for 10 rows
-        lv_display_set_buffers(display_, buf, nullptr, CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 10, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        // Set up the draw buffer (increased to 20 rows)
+        static lv_color_t buf[CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 20]; // Buffer for 20 rows
+        lv_display_set_buffers(display_, buf, nullptr, CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 20, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
         // Set the flush callback
         lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, unsigned char* color_p) {
@@ -230,9 +230,9 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
         uint8_t high = (rgb565 >> 8) & 0xFF;
         uint8_t low = rgb565 & 0xFF;
 
-        // Write to the display
-        write_byte(high);
+        // Write to the display (swapped byte order: low byte first, then high byte)
         write_byte(low);
+        write_byte(high);
     }
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
@@ -246,8 +246,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         touch,
-        false,  // invert: false
-        true   // rgb_order: true (RGB order, MADCTL bit 3 = 0)
+        false, // invert: false (inversion off, as tested)
+        true   // rgb_order: true (RGB order)
     );
 
     return std::make_shared<ST7789Display>(std::move(configuration));
