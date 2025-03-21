@@ -84,7 +84,7 @@ bool ST7789Display::start() {
 
     // Initialize LVGL display
     display_ = lv_display_create(config_->width, config_->height);
-    lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, lv_color_t* color_p) {
+    lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, unsigned char* color_p) {
         auto* display = static_cast<ST7789Display*>(lv_display_get_user_data(disp));
         display->flush(area, color_p);
     });
@@ -101,17 +101,16 @@ bool ST7789Display::stop() {
     return true;
 }
 
-void ST7789Display::flush(const lv_area_t* area, lv_color_t* color_p) {
+void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
     int w = (area->x2 - area->x1 + 1);
     int h = (area->y2 - area->y1 + 1);
 
     set_address_window(area->x1, area->y1, w, h);
 
-    // Write pixel data
-    for (int i = 0; i < w * h; i++) {
-        uint16_t pixel = lv_color_to16(color_p[i]); // Convert to RGB565
-        write_byte((pixel >> 8) & 0xFF);  // High byte
-        write_byte(pixel & 0xFF);         // Low byte
+    // Write pixel data (color_p is a buffer of RGB565 pixels, 2 bytes per pixel)
+    for (int i = 0; i < w * h * 2; i += 2) {
+        write_byte(color_p[i]);     // High byte
+        write_byte(color_p[i + 1]); // Low byte
     }
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
