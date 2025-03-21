@@ -27,18 +27,22 @@ public:
     bool start() override;
     bool stop() override;
     std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override { return config_->touch; }
-    lv_display_t* getLvglDisplay() const override { return display_; }
+    lv_display_t* getLvglDisplay() const override;
 
     // Additional getters (not overrides)
     int getWidth() const { return config_->width; }
     int getHeight() const { return config_->height; }
     std::shared_ptr<tt::hal::touch::TouchDevice> getTouch() const { return config_->touch; }
 
+    // Helper method for the framework to set as the flush callback
+    void flush(const lv_area_t* area, unsigned char* color_p);
+
 private:
-    void flush(const lv_area_t* area, unsigned char* color_p); // Updated signature
     void write_byte(uint8_t data);
     void set_address_window(int x, int y, int w, int h);
+    bool initialize_hardware();
 
     std::unique_ptr<Configuration> config_;
-    lv_display_t* display_ = nullptr;
+    mutable lv_display_t* display_ = nullptr; // Mutable to allow lazy initialization in const method
+    bool hardware_initialized_ = false;
 };
