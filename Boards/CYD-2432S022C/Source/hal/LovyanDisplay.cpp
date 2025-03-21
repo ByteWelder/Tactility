@@ -1,6 +1,5 @@
 #include "LovyanDisplay.h"
 #include "CYD2432S022CConstants.h"
-#include "hal/lv_conf.h"
 #include "CST820Touch.h"
 #include <PwmBacklight.h>
 #include <esp_log.h>
