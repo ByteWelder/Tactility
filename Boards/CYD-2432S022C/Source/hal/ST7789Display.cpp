@@ -162,7 +162,7 @@ bool ST7789Display::initialize_hardware() {
     ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
     write_byte(0x36);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
-    uint8_t madctl = 0x00; // Default orientation (worked in LovyanGFX)
+    uint8_t madctl = 0xC0; // Try 180° rotation
     if (!config_->rgb_order) { // If false, use BGR order
         madctl |= 0x08; // Set RGB/BGR bit to 1 for BGR order
         ESP_LOGI(TAG, "Using BGR order (MADCTL bit 3 set)");
