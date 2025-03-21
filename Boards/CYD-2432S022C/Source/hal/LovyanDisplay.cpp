@@ -111,7 +111,7 @@ public:
         lcd.writeCommand(0x29); // Display ON
         vTaskDelay(pdMS_TO_TICKS(50));
 
-        lcd.setBrightness(128);
+        lcd.setBrightness(0);  // Start with backlight off, let framework adjust
         lcd.setRotation(0);
 
         // Test fill: Red screen (remove after testing)
@@ -145,7 +145,7 @@ public:
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
                  buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
 
-        // Set buffers with partial rendering (matches buffer size)
+        // Set buffers with partial rendering
         ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "LVGL buffers set successfully");
@@ -164,12 +164,6 @@ public:
         });
 
         lv_display_set_user_data(lvglDisplay, this);
-
-        // Start touch if available
-        if (configuration->touch) {
-            ESP_LOGI(TAG, "Starting touch input");
-            configuration->touch->start(lvglDisplay);
-        }
 
         isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
