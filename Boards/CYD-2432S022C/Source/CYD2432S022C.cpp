@@ -1,5 +1,5 @@
 #include "CYD2432S022C.h"
-#include "hal/ST7789Display.h"
+#include "hal/LovyanDisplay.h"
 #include "hal/YellowSDCard.h"
 #include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
