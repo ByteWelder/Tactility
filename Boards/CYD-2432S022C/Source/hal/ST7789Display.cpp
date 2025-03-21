@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include <inttypes.h>
 
 static const char *TAG = "ST7789Display";
 
@@ -54,16 +55,28 @@ bool ST7789Display::initialize_hardware() {
     write_byte(0x55); // RGB565
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
 
-    // Memory access control (orientation)
+    // Memory access control (orientation and RGB/BGR order)
     ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
     write_byte(0x36);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
-    write_byte(0x00); // Normal orientation (adjust if needed: 0x60 for 90°, 0xC0 for 180°, 0xA0 for 270°)
+    uint8_t madctl = 0x00; // Default: normal orientation
+    if (!config_->rgb_order) { // If false, use BGR order
+        madctl |= 0x08; // Set RGB/BGR bit to 1 for BGR order
+        ESP_LOGI(TAG, "Using BGR order (MADCTL bit 3 set)");
+    } else {
+        ESP_LOGI(TAG, "Using RGB order (MADCTL bit 3 clear)");
+    }
+    write_byte(madctl); // Normal orientation (adjust if needed: 0x60 for 90°, 0xC0 for 180°, 0xA0 for 270°)
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
 
-    // Display inversion on (optional, depends on your display)
-    ESP_LOGI(TAG, "Enabling display inversion (INVON)");
-    write_byte(0x21);
+    // Display inversion
+    if (config_->invert) {
+        ESP_LOGI(TAG, "Enabling display inversion (INVON)");
+        write_byte(0x21); // Inversion on
+    } else {
+        ESP_LOGI(TAG, "Disabling display inversion (INVOFF)");
+        write_byte(0x20); // Inversion off
+    }
 
     // Normal display mode on
     ESP_LOGI(TAG, "Setting normal display mode (NORON)");
@@ -191,7 +204,8 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
         return;
     }
 
-    ESP_LOGI(TAG, "Flushing area x1=%d, y1=%d, x2=%d, y2=%d", area->x1, area->y1, area->x2, area->y2);
+    ESP_LOGI(TAG, "Flushing area x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
+             area->x1, area->y1, area->x2, area->y2);
 
     int w = (area->x2 - area->x1 + 1);
     int h = (area->y2 - area->y1 + 1);
@@ -199,7 +213,7 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
     set_address_window(area->x1, area->y1, w, h);
 
     // Convert ARGB8888 (32-bit) to RGB565 (16-bit) manually
-    ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", w * h, w, h);
+    ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", (int)(w * h), w, h);
     for (int i = 0; i < w * h; i++) {
         // Assuming color_p is in ARGB8888 format (4 bytes per pixel: A, R, G, B)
         uint8_t r = color_p[i * 4 + 1]; // Red
@@ -236,7 +250,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto configuration = std::make_unique<ST7789Display::Configuration>(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
-        touch
+        touch,
+        true,  // invert: true (inversion on, matches 0x21 command)
+        true   // rgb_order: true (RGB order, MADCTL bit 3 = 0)
     );
 
     return std::make_shared<ST7789Display>(std::move(configuration));
