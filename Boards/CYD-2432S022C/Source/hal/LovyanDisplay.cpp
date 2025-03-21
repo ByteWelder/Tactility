@@ -114,11 +114,6 @@ public:
         lcd.setBrightness(0);  // Start with backlight off, let framework adjust
         lcd.setRotation(0);
 
-        // Test fill: Red screen (remove after testing)
-        ESP_LOGI(TAG, "Filling screen with red to test display");
-        lcd.fillScreen(lcd.color565(255, 0, 0));
-        vTaskDelay(pdMS_TO_TICKS(1000));
-
         // Initialize LVGL display
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
         lvglDisplay = lv_display_create(configuration->width, configuration->height);
@@ -162,8 +157,6 @@ public:
             display->lcd.endWrite();
             lv_display_flush_ready(disp);
         });
-
-        lv_display_set_user_data(lvglDisplay, this);
 
         isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
