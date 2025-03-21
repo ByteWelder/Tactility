@@ -348,7 +348,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Double-check configuration after move
     ESP_LOGI(TAG, "Verifying configuration after move");
     auto created_display = display.get();
-    auto config_after_move = created_display->createCST820Touch();
+    auto config_after_move = created_display->createTouch();
     ESP_LOGI(TAG, "Configuration touch after move: %p", config_after_move.get());
 
     ESP_LOGI(TAG, "Returning new LovyanGFXDisplay: %p", display.get());
