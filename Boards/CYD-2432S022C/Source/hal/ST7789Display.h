@@ -14,7 +14,7 @@ public:
         int width;
         int height;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        bool invert = true; // Added: default to true (inversion on) for CYD-2432S022C
+        bool invert = false; // Added: default to true (inversion on) for CYD-2432S022C
         bool rgb_order = true; // Added: true for RGB, false for BGR
     };
 
