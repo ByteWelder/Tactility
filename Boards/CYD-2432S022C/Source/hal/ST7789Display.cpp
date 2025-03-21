@@ -49,6 +49,12 @@ bool ST7789Display::initialize_hardware() {
     }
     gpio_set_level(BACKLIGHT_PIN, 1); // Turn on backlight
     ESP_LOGI(TAG, "Backlight turned on");
+    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait 1 second
+    gpio_set_level(BACKLIGHT_PIN, 0); // Turn off backlight
+    ESP_LOGI(TAG, "Backlight turned off");
+    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait 1 second
+    gpio_set_level(BACKLIGHT_PIN, 1); // Turn on backlight again
+    ESP_LOGI(TAG, "Backlight turned on again");
 
     // ST7789 initialization sequence
     ESP_LOGI(TAG, "Starting ST7789 display initialization");
@@ -213,10 +219,7 @@ void ST7789Display::write_byte(uint8_t data) {
     for (int i = 0; i < 8; i++) {
         gpio_set_level(pins[i], (data >> i) & 1);
     }
-    // Add a 1us delay using a busy-wait loop
-    for (volatile int j = 0; j < 100; j++); // Adjust the loop count based on your CPU frequency
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 1);
-    for (volatile int j = 0; j < 100; j++); // Adjust the loop count based on your CPU frequency
 }
 
 void ST7789Display::set_address_window(int x, int y, int w, int h) {
