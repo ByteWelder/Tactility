@@ -99,17 +99,19 @@ bool LovyanGFXDisplay::start() {
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
              heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
     static uint16_t* buf1 = nullptr;
+    static uint16_t* buf2 = nullptr;
     buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-    if (!buf1) {
-        ESP_LOGE(TAG, "Failed to allocate buffer! Size requested: %d bytes",
+    buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    if (!buf1 || !buf2) {
+        ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
                  CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
         return false;
     }
-    ESP_LOGI(TAG, "Allocated buffer: buf1=%p, size=%d bytes",
-             buf1, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+    ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
+             buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
 
-    ESP_LOGI(TAG, "Setting LVGL buffers with render mode FULL");
-    lv_display_set_buffers(lvglDisplay, buf1, nullptr, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_FULL);
+    ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
+    lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
     ESP_LOGI(TAG, "LVGL buffers set successfully");
 
     ESP_LOGI(TAG, "Setting flush callback");
