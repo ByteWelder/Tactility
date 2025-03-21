@@ -108,19 +108,41 @@ bool ST7789Display::stop() {
     return true;
 }
 
-lv_display_t* ST7789Display::getLvglDisplay() const {
+lv_display_t* ST7789Display::getLvglDisplay() {
     if (!hardware_initialized_) {
         ESP_LOGE(TAG, "Cannot get LVGL display: hardware not initialized");
         return nullptr;
     }
 
     if (!display_) {
+        // Remove the default display created by initEspLvglPort
+        lv_display_t* default_disp = lv_disp_get_default();
+        if (default_disp) {
+            lv_display_delete(default_disp);
+            ESP_LOGI(TAG, "Removed default display created by initEspLvglPort");
+        }
+
+        // Create our own display
         display_ = lv_display_create(config_->width, config_->height);
         if (!display_) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
             return nullptr;
         }
-        lv_display_set_user_data(display_, const_cast<ST7789Display*>(this)); // Cast away const
+
+        // Set the flush callback
+        lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, unsigned char* color_p) {
+            // The user data will be set by initDisplay to the DisplayDevice pointer
+            auto* display_device = static_cast<ST7789Display*>(lv_display_get_user_data(disp));
+            if (display_device) {
+                display_device->flush(area, color_p);
+            } else {
+                ESP_LOGE(TAG, "Failed to get ST7789Display from user data");
+                lv_display_flush_ready(disp);
+            }
+        });
+
+        // Do NOT set user data; let initDisplay handle it
+        // This ensures the assertion in initDisplay passes
     }
     return display_;
 }
