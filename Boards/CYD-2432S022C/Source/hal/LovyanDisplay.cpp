@@ -67,14 +67,14 @@ public:
             cfg.dummy_read_bits = 1;
             cfg.readable = true;
             cfg.invert = false;
-            cfg.rgb_order = true;  // BGR
+            cfg.rgb_order = true;  // RGB order
             cfg.dlen_16bit = false;
             cfg.bus_shared = true;
             _panel_instance.config(cfg);
             ESP_LOGI(TAG, "LCD panel configuration applied successfully");
         }
 
-        // Backlight configuration
+        // Backlight configuration (using GPIO 0 as confirmed working)
         {
             ESP_LOGI(TAG, "Entering backlight configuration block");
             auto cfg = _light_instance.config();
@@ -158,7 +158,7 @@ public:
         ESP_LOGI(TAG, "Backlight on, screen should be visible");
         ESP_LOGI(TAG, "Setting rotation to 0");
         lcd.setRotation(0);
-        ESP_LOGI(TAG, "Display initialized with brightness=128 and rotation=1");
+        ESP_LOGI(TAG, "Display initialized with brightness=128 and rotation=0");
 
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d",
                  CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION, CYD_2432S022C_LCD_VERTICAL_RESOLUTION);
@@ -237,8 +237,9 @@ public:
 
         ESP_LOGI(TAG, "Re-enabling task watchdog");
         esp_task_wdt_config_t wdt_config = {
-            .timeout_ms = 20000, // 20 seconds timeout
-            .trigger_panic = true
+            .timeout_ms = 20000,        // 20 seconds timeout
+            .idle_core_mask = 0,        // No specific core mask
+            .trigger_panic = true       // Panic on timeout
         };
         esp_err_t err = esp_task_wdt_init(&wdt_config);
         if (err != ESP_OK) {
@@ -291,7 +292,7 @@ public:
         return lvglDisplay;
     }
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() override {
+    std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override {
         ESP_LOGI(TAG, "Creating touch device from configuration");
         return configuration ? configuration->touch : nullptr;
     }
@@ -315,7 +316,7 @@ private:
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI(TAG, "Creating display");
-    auto touch = tt::hal::touch::createCST820Touch();
+    auto touch = createCST820Touch(); // Remove tt::hal::touch:: prefix
     ESP_LOGI(TAG, "Touch created: %p", touch.get());
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch device!");
@@ -347,7 +348,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Double-check configuration after move
     ESP_LOGI(TAG, "Verifying configuration after move");
     auto created_display = display.get();
-    auto config_after_move = created_display->createCST820Touch(); // Indirectly checks configuration
+    auto config_after_move = created_display->createCST820Touch();
     ESP_LOGI(TAG, "Configuration touch after move: %p", config_after_move.get());
 
     ESP_LOGI(TAG, "Returning new LovyanGFXDisplay: %p", display.get());
