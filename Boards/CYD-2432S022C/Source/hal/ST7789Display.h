@@ -14,6 +14,8 @@ public:
         int width;
         int height;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
+        bool invert = true; // Added: default to true (inversion on) for CYD-2432S022C
+        bool rgb_order = true; // Added: true for RGB, false for BGR
     };
 
     ST7789Display(std::unique_ptr<Configuration> config);
@@ -43,6 +45,6 @@ private:
     bool initialize_hardware();
 
     std::unique_ptr<Configuration> config_;
-    mutable lv_display_t* display_ = nullptr;  // Added 'mutable' to allow modification in const method
+    mutable lv_display_t* display_ = nullptr;
     bool hardware_initialized_ = false;
 };
