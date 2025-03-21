@@ -112,11 +112,11 @@ public:
         vTaskDelay(pdMS_TO_TICKS(50));
 
         lcd.setBrightness(0);  // Start with backlight off, let framework adjust
-        lcd.setRotation(0);
+        lcd.setRotation(0);    // landscape (320x240)
 
         // Initialize LVGL display
-        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
-        lvglDisplay = lv_display_create(configuration->width, configuration->height);
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->height, configuration->width);
+        lvglDisplay = lv_display_create(configuration->height, configuration->width);  // 320x240
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
             return false;
@@ -202,8 +202,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     }
 
     auto config = std::make_unique<LovyanGFXDisplay::Configuration>(
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
         touch
     );
     return std::make_shared<LovyanGFXDisplay>(std::move(config));
