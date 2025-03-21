@@ -11,6 +11,38 @@ static const char *TAG = "ST7789Display";
 ST7789Display::ST7789Display(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
 
+bool ST7789Display::initialize_hardware() {
+    ESP_LOGI(TAG, "Initializing ST7789 display hardware...");
+
+    // Configure GPIO pins
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << CYD_2432S022C_LCD_PIN_D0) | (1ULL << CYD_2432S022C_LCD_PIN_D1) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D2) | (1ULL << CYD_2432S022C_LCD_PIN_D3) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D4) | (1ULL << CYD_2432S022C_LCD_PIN_D5) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_D6) | (1ULL << CYD_2432S022C_LCD_PIN_D7) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_WR) | (1ULL << CYD_2432S022C_LCD_PIN_RD) |
+                        (1ULL << CYD_2432S022C_LCD_PIN_RS) | (1ULL << CYD_2432S022C_LCD_PIN_CS),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    if (gpio_config(&io_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure GPIO pins");
+        return false;
+    }
+
+    // Basic ST7789 initialization
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+    write_byte(0x11); // Sleep out
+    vTaskDelay(pdMS_TO_TICKS(120));
+    write_byte(0x29); // Display on
+    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
+
+    return true;
+}
+
 void ST7789Display::write_byte(uint8_t data) {
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 0);
     const gpio_num_t pins[8] = {
@@ -58,37 +90,11 @@ void ST7789Display::set_address_window(int x, int y, int w, int h) {
 
 bool ST7789Display::start() {
     ESP_LOGI(TAG, "Starting ST7789 display...");
-
-    // Configure GPIO pins
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << CYD_2432S022C_LCD_PIN_D0) | (1ULL << CYD_2432S022C_LCD_PIN_D1) |
-                        (1ULL << CYD_2432S022C_LCD_PIN_D2) | (1ULL << CYD_2432S022C_LCD_PIN_D3) |
-                        (1ULL << CYD_2432S022C_LCD_PIN_D4) | (1ULL << CYD_2432S022C_LCD_PIN_D5) |
-                        (1ULL << CYD_2432S022C_LCD_PIN_D6) | (1ULL << CYD_2432S022C_LCD_PIN_D7) |
-                        (1ULL << CYD_2432S022C_LCD_PIN_WR) | (1ULL << CYD_2432S022C_LCD_PIN_RD) |
-                        (1ULL << CYD_2432S022C_LCD_PIN_RS) | (1ULL << CYD_2432S022C_LCD_PIN_CS),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&io_conf);
-
-    // Basic ST7789 initialization
-    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
-    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
-    write_byte(0x11); // Sleep out
-    vTaskDelay(pdMS_TO_TICKS(120));
-    write_byte(0x29); // Display on
-    gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
-
-    // Initialize LVGL display
-    display_ = lv_display_create(config_->width, config_->height);
-    lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, unsigned char* color_p) {
-        auto* display = static_cast<ST7789Display*>(lv_display_get_user_data(disp));
-        display->flush(area, color_p);
-    });
-    lv_display_set_user_data(display_, this);
+    if (!initialize_hardware()) {
+        ESP_LOGE(TAG, "Failed to initialize ST7789 display hardware");
+        return false;
+    }
+    hardware_initialized_ = true;
     return true;
 }
 
@@ -98,10 +104,33 @@ bool ST7789Display::stop() {
         lv_display_delete(display_);
         display_ = nullptr;
     }
+    hardware_initialized_ = false;
     return true;
 }
 
+lv_display_t* ST7789Display::getLvglDisplay() const {
+    if (!hardware_initialized_) {
+        ESP_LOGE(TAG, "Cannot get LVGL display: hardware not initialized");
+        return nullptr;
+    }
+
+    if (!display_) {
+        display_ = lv_display_create(config_->width, config_->height);
+        if (!display_) {
+            ESP_LOGE(TAG, "Failed to create LVGL display");
+            return nullptr;
+        }
+        lv_display_set_user_data(display_, this);
+    }
+    return display_;
+}
+
 void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
+    if (!hardware_initialized_ || !display_) {
+        ESP_LOGE(TAG, "Cannot flush: display not initialized");
+        return;
+    }
+
     int w = (area->x2 - area->x1 + 1);
     int h = (area->y2 - area->y1 + 1);
 
