@@ -3,14 +3,10 @@
 #include "CST820Touch.h"
 #include <esp_log.h>
 #include <LovyanGFX.h>
-#include <inttypes.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <esp_heap_caps.h>
 
 static const char* TAG = "LovyanDisplay";
 
-// Define a custom LovyanGFX class for the CYD-2432S022C board
+// Simplified LovyanGFX class for CYD-2432S022C
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
 public:
     lgfx::Panel_ST7789 _panel_instance;
@@ -19,7 +15,7 @@ public:
 
     LGFX_CYD_2432S022C() {
         ESP_LOGI(TAG, "Initializing LGFX_CYD_2432S022C display class");
-        
+
         // Bus configuration
         {
             auto cfg = _bus_instance.config();
@@ -38,7 +34,7 @@ public:
             _panel_instance.setBus(&_bus_instance);
         }
 
-        // Panel configuration
+        // Panel configuration (simplified, with offset fix)
         {
             auto cfg = _panel_instance.config();
             cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
@@ -46,16 +42,9 @@ public:
             cfg.pin_busy = -1;
             cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;  // 240
             cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;    // 320
-            cfg.offset_x = 0;
-            cfg.offset_y = 0;
-            cfg.offset_rotation = 0;
-            cfg.dummy_read_pixel = 8;
-            cfg.dummy_read_bits = 1;
-            cfg.readable = true;
-            cfg.invert = false;
-            cfg.rgb_order = false;  // BGR order for correct colors
-            cfg.dlen_16bit = false;
-            cfg.bus_shared = true;
+            cfg.offset_x = 0;  // Adjust if shifted
+            cfg.offset_y = 0;  // Adjust if shifted
+            cfg.rgb_order = false;  // BGR order
             _panel_instance.config(cfg);
         }
 
@@ -103,18 +92,10 @@ public:
         }
 
         ESP_LOGI(TAG, "Starting LovyanGFX display");
-        lcd.init();
-        lcd.writeCommand(0x11); // Sleep Out
-        vTaskDelay(pdMS_TO_TICKS(120));
-        lcd.writeCommand(0x3A); // Color Mode
-        lcd.writeData(0x05);    // RGB565
-        lcd.writeCommand(0x29); // Display ON
-        vTaskDelay(pdMS_TO_TICKS(50));
+        lcd.init();  // LovyanGFX handles ST7789 init (Sleep Out, Color Mode, Display ON)
+        lcd.setBrightness(0);  // Framework adjusts later
 
-        lcd.setBrightness(0);  // Start with backlight off, let framework adjust
-        // No lcd.setRotation() - default portrait (240x320), framework rotates
-
-        // Initialize LVGL display with native portrait resolution
+        // LVGL setup with native portrait resolution
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);  // 240x320
         lvglDisplay = lv_display_create(configuration->width, configuration->height);
         if (!lvglDisplay) {
@@ -124,37 +105,27 @@ public:
 
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
 
-        // Allocate buffers
-        ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
-                 heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
-                 heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+        // Allocate buffers (keeping custom for now)
+        size_t buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t);
         static uint16_t* buf1 = nullptr;
         static uint16_t* buf2 = nullptr;
-        buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-        buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf1 = (uint16_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf2 = (uint16_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         if (!buf1 || !buf2) {
-            ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
-                     CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+            ESP_LOGE(TAG, "Failed to allocate buffers! Size: %d bytes", buffer_size);
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
             return false;
         }
-        ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
-                 buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+        ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes", buf1, buf2, buffer_size);
 
-        // Set buffers with partial rendering
-        ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-        ESP_LOGI(TAG, "LVGL buffers set successfully");
 
-        // Set flush callback
-        ESP_LOGI(TAG, "Setting flush callback");
+        // Flush callback using LovyanGFX
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
-            ESP_LOGI(TAG, "Flush callback: x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
-                     area->x1, area->y1, area->x2, area->y2);
-            display->lcd.startWrite();
-            display->lcd.setAddrWindow(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
-            display->lcd.writePixels((lgfx::rgb565_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
-            display->lcd.endWrite();
+            display->lcd.setWindow(area->x1, area->y1, area->x2, area->y2);
+            display->lcd.pushPixels((uint16_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
             lv_display_flush_ready(disp);
         });
 
