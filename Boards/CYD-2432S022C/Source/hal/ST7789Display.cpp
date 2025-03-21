@@ -120,7 +120,7 @@ lv_display_t* ST7789Display::getLvglDisplay() const {
             ESP_LOGE(TAG, "Failed to create LVGL display");
             return nullptr;
         }
-        lv_display_set_user_data(display_, this);
+        lv_display_set_user_data(display_, const_cast<ST7789Display*>(this)); // Cast away const
     }
     return display_;
 }
