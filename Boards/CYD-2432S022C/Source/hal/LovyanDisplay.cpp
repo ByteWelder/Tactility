@@ -112,7 +112,7 @@ public:
         vTaskDelay(pdMS_TO_TICKS(50));
 
         lcd.setBrightness(0);  // Start with backlight off, let framework adjust
-        lcd.setRotation(0);    // landscape (320x240)
+        lcd.setRotation(1);    // landscape (maybe) (320x240)
 
         // Initialize LVGL display
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->height, configuration->width);
