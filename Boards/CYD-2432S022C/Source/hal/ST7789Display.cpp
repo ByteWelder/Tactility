@@ -212,25 +212,18 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
 
     set_address_window(area->x1, area->y1, w, h);
 
-    // Convert ARGB8888 (32-bit) to RGB565 (16-bit) manually
+    // Assuming color_p is in RGB565 format (2 bytes per pixel)
     ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", (int)(w * h), w, h);
     for (int i = 0; i < w * h; i++) {
-        // Assuming color_p is in ARGB8888 format (4 bytes per pixel: A, R, G, B)
-        uint8_t r = color_p[i * 4 + 1]; // Red
-        uint8_t g = color_p[i * 4 + 2]; // Green
-        uint8_t b = color_p[i * 4 + 3]; // Blue
+        uint8_t high = color_p[i * 2];     // High byte
+        uint8_t low = color_p[i * 2 + 1];  // Low byte
 
-        // Convert to RGB565
-        uint16_t r5 = (r >> 3) & 0x1F; // 5 bits for red
-        uint16_t g6 = (g >> 2) & 0x3F; // 6 bits for green
-        uint16_t b5 = (b >> 3) & 0x1F; // 5 bits for blue
-        uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+        // Log the first few pixels for debugging
+        if (i < 4) {
+            ESP_LOGI(TAG, "Pixel %d: RGB565 high=%02x, low=%02x", i, high, low);
+        }
 
-        // Split into high and low bytes
-        uint8_t high = (rgb565 >> 8) & 0xFF;
-        uint8_t low = rgb565 & 0xFF;
-
-        // Write to the display (swapped byte order: low byte first, then high byte)
+        // Write to the display (low byte first, then high byte)
         write_byte(low);
         write_byte(high);
     }
