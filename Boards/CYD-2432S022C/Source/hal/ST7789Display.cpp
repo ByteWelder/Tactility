@@ -230,11 +230,6 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
         uint8_t high = (rgb565 >> 8) & 0xFF;
         uint8_t low = rgb565 & 0xFF;
 
-        // Log the first few pixels for debugging
-        if (i < 4) {
-            ESP_LOGI(TAG, "Pixel %d: R=%02x, G=%02x, B=%02x -> RGB565 high=%02x, low=%02x", i, r, g, b, high, low);
-        }
-
         // Write to the display
         write_byte(high);
         write_byte(low);
@@ -251,7 +246,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         touch,
-        true,  // invert: true (inversion on, matches 0x21 command)
+        false,  // invert: false
         true   // rgb_order: true (RGB order, MADCTL bit 3 = 0)
     );
 
