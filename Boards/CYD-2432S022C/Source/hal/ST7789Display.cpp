@@ -34,7 +34,7 @@ bool ST7789Display::initialize_hardware() {
     }
 
     // Configure backlight pin (GPIO 0, as per OpenHASP configs)
-    #define BACKLIGHT_PIN 0
+    #define BACKLIGHT_PIN GPIO_NUM_0
     ESP_LOGI(TAG, "Configuring backlight pin (GPIO %d)", BACKLIGHT_PIN);
     gpio_config_t backlight_conf = {
         .pin_bit_mask = (1ULL << BACKLIGHT_PIN),
