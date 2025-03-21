@@ -65,6 +65,92 @@ bool ST7789Display::initialize_hardware() {
     write_byte(0x11);
     vTaskDelay(pdMS_TO_TICKS(200)); // Increased delay
 
+    // Frame rate control (FRMCTR1)
+    ESP_LOGI(TAG, "Setting frame rate control (FRMCTR1)");
+    write_byte(0xB1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x05); // Frame rate control parameters (adjust as needed)
+    write_byte(0x3C);
+    write_byte(0x3C);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Frame rate control (FRMCTR2)
+    ESP_LOGI(TAG, "Setting frame rate control (FRMCTR2)");
+    write_byte(0xB2);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x05);
+    write_byte(0x3C);
+    write_byte(0x3C);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Porch control (PORCTRL)
+    ESP_LOGI(TAG, "Setting porch control (PORCTRL)");
+    write_byte(0xB2);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x0C);
+    write_byte(0x0C);
+    write_byte(0x00);
+    write_byte(0x33);
+    write_byte(0x33);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Gate control (GCTRL)
+    ESP_LOGI(TAG, "Setting gate control (GCTRL)");
+    write_byte(0xB7);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x35);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // VCOM setting (VCOMS)
+    ESP_LOGI(TAG, "Setting VCOM (VCOMS)");
+    write_byte(0xBB);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x20);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // LCM control (LCMCTRL)
+    ESP_LOGI(TAG, "Setting LCM control (LCMCTRL)");
+    write_byte(0xC0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x2C);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // VDV/VRH command enable (VDVVRHEN)
+    ESP_LOGI(TAG, "Setting VDV/VRH command enable (VDVVRHEN)");
+    write_byte(0xC2);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x01);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // VRH set (VRHS)
+    ESP_LOGI(TAG, "Setting VRH (VRHS)");
+    write_byte(0xC3);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x12);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // VDV set (VDVS)
+    ESP_LOGI(TAG, "Setting VDV (VDVS)");
+    write_byte(0xC4);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x20);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Frame rate control in idle mode (FRCTRL2)
+    ESP_LOGI(TAG, "Setting frame rate control in idle mode (FRCTRL2)");
+    write_byte(0xC6);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x0F);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Power control 1 (PWCTRL1)
+    ESP_LOGI(TAG, "Setting power control 1 (PWCTRL1)");
+    write_byte(0xD0);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0xA4);
+    write_byte(0xA1);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
     // Color mode: 16-bit RGB565
     ESP_LOGI(TAG, "Setting color mode to RGB565 (COLMOD)");
     write_byte(0x3A);
