@@ -14,6 +14,8 @@ public:
         i2c_port_t i2c_port;
         int width;
         int height;
+        Configuration(i2c_port_t i2c_port, int width, int height)
+            : i2c_port(i2c_port), width(width), height(height) {}
     };
 
     CST820Touch(std::unique_ptr<Configuration> config);
@@ -32,9 +34,13 @@ public:
     int getWidth() const { return config_->width; }
     int getHeight() const { return config_->height; }
 
+    // Add rotation setter for dynamic updates
+    void setRotation(lv_display_rotation_t rotation) { currentRotation = rotation; }
+
 private:
     bool read_input(lv_indev_data_t* data);
 
     std::unique_ptr<Configuration> config_;
     lv_indev_t* indev_ = nullptr;
+    lv_display_rotation_t currentRotation = LV_DISPLAY_ROTATION_0;  // Track rotation
 };
