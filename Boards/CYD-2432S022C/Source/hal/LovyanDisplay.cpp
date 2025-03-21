@@ -172,8 +172,8 @@ public:
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
                  buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
 
-        ESP_LOGI(TAG, "Setting LVGL buffers with render mode FULL");
-        lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_FULL);
+        ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "LVGL buffers set successfully");
 
         ESP_LOGI(TAG, "Setting flush callback");
