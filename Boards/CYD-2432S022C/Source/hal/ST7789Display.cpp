@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "ets_sys.h" // Added for ets_delay_us
 #include <inttypes.h>
 
 static const char *TAG = "ST7789Display";
@@ -162,7 +163,7 @@ bool ST7789Display::initialize_hardware() {
     ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
     write_byte(0x36);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
-    uint8_t madctl = 0xC0; // Try 180° rotation
+    uint8_t madctl = 0xA0; // Try 270° rotation
     if (!config_->rgb_order) { // If false, use BGR order
         madctl |= 0x08; // Set RGB/BGR bit to 1 for BGR order
         ESP_LOGI(TAG, "Using BGR order (MADCTL bit 3 set)");
@@ -171,6 +172,7 @@ bool ST7789Display::initialize_hardware() {
     }
     write_byte(madctl);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
 
     // Display inversion
     if (config_->invert) {
@@ -212,7 +214,9 @@ void ST7789Display::write_byte(uint8_t data) {
     for (int i = 0; i < 8; i++) {
         gpio_set_level(pins[i], (data >> i) & 1);
     }
+    ets_delay_us(1); // Add a 1us delay to ensure signal stability
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 1);
+    ets_delay_us(1); // Add a 1us delay after WR high
 }
 
 void ST7789Display::set_address_window(int x, int y, int w, int h) {
