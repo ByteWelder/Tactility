@@ -17,7 +17,9 @@ bool CST820Touch::start(lv_display_t* display) {
     });
     lv_indev_set_user_data(indev_, this);
     lv_indev_set_display(indev_, display);
-    currentRotation = lv_disp_get_rotation(display);  // Sync with display
+    // Sync rotation with display at startup
+    currentRotation = lv_disp_get_rotation(display);
+    ESP_LOGI(TAG, "Touch started with rotation: %d", currentRotation);
     return true;
 }
 
@@ -30,7 +32,7 @@ bool CST820Touch::stop() {
     return true;
 }
 
-void CST820Touch::read_input(lv_indev_data_t* data) {
+bool CST820Touch::read_input(lv_indev_data_t* data) {
     uint8_t touch_data[6];
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
@@ -46,7 +48,7 @@ void CST820Touch::read_input(lv_indev_data_t* data) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
         data->state = LV_INDEV_STATE_RELEASED;
-        return;
+        return false;
     }
 
     uint8_t finger_num = touch_data[1];
@@ -55,21 +57,21 @@ void CST820Touch::read_input(lv_indev_data_t* data) {
         uint16_t raw_y = (touch_data[4] << 8) | touch_data[5];  // 0-320
         uint16_t x, y;
 
-        // Transform based on rotation
+        // Transform coordinates based on current rotation
         switch (currentRotation) {
             case LV_DISPLAY_ROTATION_0:  // Portrait (240x320)
                 x = raw_x;
                 y = raw_y;
                 break;
             case LV_DISPLAY_ROTATION_90:  // Landscape (320x240)
-                x = raw_y;              // 0-320
-                y = config_->width - raw_x;  // 240 - x
+                x = raw_y;                  // Map 0-320 to X
+                y = config_->width - raw_x; // Map 0-240 to Y, inverted
                 break;
-            case LV_DISPLAY_ROTATION_180:  // Portrait upside-down
+            case LV_DISPLAY_ROTATION_180:  // Portrait upside-down (240x320)
                 x = config_->width - raw_x;
                 y = config_->height - raw_y;
                 break;
-            case LV_DISPLAY_ROTATION_270:  // Landscape opposite
+            case LV_DISPLAY_ROTATION_270:  // Landscape opposite (320x240)
                 x = config_->height - raw_y;
                 y = raw_x;
                 break;
@@ -78,9 +80,13 @@ void CST820Touch::read_input(lv_indev_data_t* data) {
         data->point.x = x;
         data->point.y = y;
         data->state = LV_INDEV_STATE_PRESSED;
+        // Optional: Log for debugging
+        // ESP_LOGI(TAG, "Touch: raw_x=%d, raw_y=%d, mapped_x=%d, mapped_y=%d", raw_x, raw_y, x, y);
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
+
+    return false; // No more data to read
 }
 
 std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
