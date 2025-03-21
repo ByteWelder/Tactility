@@ -111,8 +111,8 @@ public:
         lcd.writeCommand(0x29); // Display ON
         vTaskDelay(pdMS_TO_TICKS(50));
 
-        lcd.setBrightness(0);  // Start with backlight off, let framework adjust
-        lcd.setRotation(1);    // landscape (maybe) (320x240)
+        lcd.setBrightness(0);  // Start with backlight off
+        lcd.setRotation(1);    // Initial landscape (90°)
 
         // Initialize LVGL display
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->height, configuration->width);
@@ -160,6 +160,11 @@ public:
 
         isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
+
+        // Sync with framework's initial rotation
+        lv_display_rotation_t currentRotation = lv_disp_get_rotation(lvglDisplay);
+        setRotation(currentRotation);
+
         return true;
     }
 
@@ -186,6 +191,33 @@ public:
 
     std::string getName() const override { return "CYD-2432S022C Display"; }
     std::string getDescription() const override { return "LovyanGFX-based display for CYD-2432S022C board"; }
+
+    void setRotation(lv_display_rotation_t rotation) {
+        if (!isStarted) {
+            ESP_LOGW(TAG, "Cannot set rotation: display not started");
+            return;
+        }
+
+        ESP_LOGI(TAG, "Setting rotation to %d", rotation);
+        switch (rotation) {
+            case LV_DISPLAY_ROTATION_0:   // Portrait (240x320)
+                lcd.setRotation(0);
+                lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
+                break;
+            case LV_DISPLAY_ROTATION_90:  // Landscape (320x240)
+                lcd.setRotation(1);
+                lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
+                break;
+            case LV_DISPLAY_ROTATION_180: // Portrait upside-down (240x320)
+                lcd.setRotation(2);
+                lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
+                break;
+            case LV_DISPLAY_ROTATION_270: // Landscape opposite (320x240)
+                lcd.setRotation(3);
+                lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
+                break;
+        }
+    }
 
 private:
     std::unique_ptr<Configuration> configuration;
