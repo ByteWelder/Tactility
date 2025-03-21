@@ -29,8 +29,6 @@ void init(const Configuration& configuration) {
     tt_check(uart::init(configuration.uart), "UART init failed");
     kernel::systemEventPublish(kernel::SystemEvent::BootInitUartEnd);
 
-    tt_check(gps::init(configuration.gps), "GPS init failed");
-
     if (configuration.initBoot != nullptr) {
         TT_LOG_I(TAG, "Init power");
         tt_check(configuration.initBoot(), "Init power failed");

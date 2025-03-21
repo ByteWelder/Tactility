@@ -77,7 +77,6 @@ int32_t GpsDevice::threadMain() {
             return -1;
         }
     }
-
     mutex.lock();
     this->model = model;
     mutex.unlock();
@@ -101,7 +100,7 @@ int32_t GpsDevice::threadMain() {
 
         if (bytes_read > 0U) {
 
-            TT_LOG_D(TAG, "%s", buffer);
+            TT_LOG_I(TAG, "[%ul] %s", bytes_read, buffer);
 
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:

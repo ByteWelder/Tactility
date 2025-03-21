@@ -14,6 +14,11 @@
 
 namespace tt::app::gpssettings {
 
+
+void createView(lv_obj_t* parent) {
+    auto* wrapper = lv_obj_create(parent);
+}
+
 extern const AppManifest manifest;
 
 class GpsSettingsApp final : public App {

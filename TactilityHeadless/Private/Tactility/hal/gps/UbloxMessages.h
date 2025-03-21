@@ -11,6 +11,8 @@ constexpr uint8_t _message_PMREQ[] = {
     0x02, 0x00, 0x00, 0x00 // Bitfield, set backup = 1
 };
 
+// Used for sleep mode
+// See https://github.com/meshtastic/firmware/blob/af8b64e84ee60175d7a0e43c6c3458e3a3558708/src/gps/GPS.cpp#L939
 constexpr uint8_t _message_PMREQ_10[] = {
     0x00, // version (0 for this version)
     0x00, 0x00, 0x00, // Reserved 1

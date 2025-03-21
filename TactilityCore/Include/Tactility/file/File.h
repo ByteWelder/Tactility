@@ -6,6 +6,14 @@
 
 namespace tt::file {
 
+struct FileCloser {
+    void operator()(FILE* file) {
+        if (file != nullptr) {
+            fclose(file);
+        }
+    }
+};
+
 long getSize(FILE* file);
 
 /** Read a file and return its data.
