@@ -291,7 +291,7 @@ public:
         return lvglDisplay;
     }
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override {
+    std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() override {
         ESP_LOGI(TAG, "Creating touch device from configuration");
         return configuration ? configuration->touch : nullptr;
     }
@@ -315,7 +315,7 @@ private:
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI(TAG, "Creating display");
-    auto touch = tt::hal::touch::createTouch();
+    auto touch = tt::hal::touch::createCST820Touch();
     ESP_LOGI(TAG, "Touch created: %p", touch.get());
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch device!");
@@ -347,7 +347,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Double-check configuration after move
     ESP_LOGI(TAG, "Verifying configuration after move");
     auto created_display = display.get();
-    auto config_after_move = created_display->createTouch(); // Indirectly checks configuration
+    auto config_after_move = created_display->createCST820Touch(); // Indirectly checks configuration
     ESP_LOGI(TAG, "Configuration touch after move: %p", config_after_move.get());
 
     ESP_LOGI(TAG, "Returning new LovyanGFXDisplay: %p", display.get());
