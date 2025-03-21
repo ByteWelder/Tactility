@@ -84,22 +84,7 @@ bool LovyanGFXDisplay::start() {
     vTaskDelay(pdMS_TO_TICKS(50));
 
     lcd.setBrightness(128);
-
-    // Test all rotations
-    ESP_LOGI(TAG, "Testing rotations...");
-    lcd.setRotation(0);
-    lcd.fillScreen(lgfx::color565(255, 0, 0));  // Red
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    lcd.setRotation(1);
-    lcd.fillScreen(lgfx::color565(0, 255, 0));  // Green
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    lcd.setRotation(2);
-    lcd.fillScreen(lgfx::color565(0, 0, 255));  // Blue
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    lcd.setRotation(3);
-    lcd.fillScreen(lgfx::color565(255, 255, 0));  // Yellow
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    lcd.setRotation(0);  // Back to portrait
+    lcd.setRotation(0);  // Start in portrait
 
     ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
     lvglDisplay = lv_display_create(configuration->width, configuration->height);  // 240x320
