@@ -13,55 +13,46 @@ static const char* TAG = "LovyanDisplay";
 LovyanGFXDisplay::LGFX_CYD_2432S022C::LGFX_CYD_2432S022C() {
     ESP_LOGI(TAG, "Initializing LGFX_CYD_2432S022C display class");
     
-    // Bus configuration
-    {
-        auto cfg = _bus_instance.config();
-        cfg.pin_wr = CYD_2432S022C_LCD_PIN_WR;
-        cfg.pin_rd = CYD_2432S022C_LCD_PIN_RD;
-        cfg.pin_rs = CYD_2432S022C_LCD_PIN_DC;
-        cfg.pin_d0 = CYD_2432S022C_LCD_PIN_D0;
-        cfg.pin_d1 = CYD_2432S022C_LCD_PIN_D1;
-        cfg.pin_d2 = CYD_2432S022C_LCD_PIN_D2;
-        cfg.pin_d3 = CYD_2432S022C_LCD_PIN_D3;
-        cfg.pin_d4 = CYD_2432S022C_LCD_PIN_D4;
-        cfg.pin_d5 = CYD_2432S022C_LCD_PIN_D5;
-        cfg.pin_d6 = CYD_2432S022C_LCD_PIN_D6;
-        cfg.pin_d7 = CYD_2432S022C_LCD_PIN_D7;
-        _bus_instance.config(cfg);
-        _panel_instance.setBus(&_bus_instance);
-    }
+    auto cfg = _bus_instance.config();
+    cfg.pin_wr = CYD_2432S022C_LCD_PIN_WR;
+    cfg.pin_rd = CYD_2432S022C_LCD_PIN_RD;
+    cfg.pin_rs = CYD_2432S022C_LCD_PIN_DC;
+    cfg.pin_d0 = CYD_2432S022C_LCD_PIN_D0;
+    cfg.pin_d1 = CYD_2432S022C_LCD_PIN_D1;
+    cfg.pin_d2 = CYD_2432S022C_LCD_PIN_D2;
+    cfg.pin_d3 = CYD_2432S022C_LCD_PIN_D3;
+    cfg.pin_d4 = CYD_2432S022C_LCD_PIN_D4;
+    cfg.pin_d5 = CYD_2432S022C_LCD_PIN_D5;
+    cfg.pin_d6 = CYD_2432S022C_LCD_PIN_D6;
+    cfg.pin_d7 = CYD_2432S022C_LCD_PIN_D7;
+    _bus_instance.config(cfg);
+    _panel_instance.setBus(&_bus_instance);
 
-    // Panel configuration
-    {
-        auto cfg = _panel_instance.config();
-        cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
-        cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;
-        cfg.pin_busy = -1;
-        cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
-        cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
-        cfg.offset_x = 0;
-        cfg.offset_y = 0;
-        cfg.offset_rotation = 0;
-        cfg.dummy_read_pixel = 8;
-        cfg.dummy_read_bits = 1;
-        cfg.readable = true;
-        cfg.invert = false;
-        cfg.rgb_order = false;
-        cfg.dlen_16bit = false;
-        cfg.bus_shared = true;
-        _panel_instance.config(cfg);
-    }
+    auto pcfg = _panel_instance.config();
+    pcfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
+    pcfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;
+    pcfg.pin_busy = -1;
+    pcfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
+    pcfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
+    pcfg.offset_x = 0;
+    pcfg.offset_y = 0;
+    pcfg.offset_rotation = 0;
+    pcfg.dummy_read_pixel = 8;
+    pcfg.dummy_read_bits = 1;
+    pcfg.readable = true;
+    pcfg.invert = false;
+    pcfg.rgb_order = false;
+    pcfg.dlen_16bit = false;
+    pcfg.bus_shared = true;
+    _panel_instance.config(pcfg);
 
-    // Backlight configuration
-    {
-        auto cfg = _light_instance.config();
-        cfg.pin_bl = GPIO_NUM_0;
-        cfg.invert = false;
-        cfg.freq = 44100;
-        cfg.pwm_channel = 7;
-        _light_instance.config(cfg);
-        _panel_instance.setLight(&_light_instance);
-    }
+    auto lcfg = _light_instance.config();
+    lcfg.pin_bl = GPIO_NUM_0;
+    lcfg.invert = false;
+    lcfg.freq = 44100;
+    lcfg.pwm_channel = 7;
+    _light_instance.config(lcfg);
+    _panel_instance.setLight(&_light_instance);
 
     setPanel(&_panel_instance);
     ESP_LOGI(TAG, "LGFX_CYD_2432S022C initialization complete");
@@ -94,10 +85,10 @@ bool LovyanGFXDisplay::start() {
     vTaskDelay(pdMS_TO_TICKS(50));
 
     lcd.setBrightness(0);
-    lcd.setRotation(1);  // Initial landscape
+    lcd.setRotation(0);  // Start with portrait per Init.cpp
 
-    ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->height, configuration->width);
-    lvglDisplay = lv_display_create(configuration->height, configuration->width);  // 320x240
+    ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
+    lvglDisplay = lv_display_create(configuration->width, configuration->height);  // 240x320
     if (!lvglDisplay) {
         ESP_LOGE(TAG, "Failed to create LVGL display");
         return false;
@@ -127,6 +118,11 @@ bool LovyanGFXDisplay::start() {
     ESP_LOGI(TAG, "Setting flush callback");
     lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
         auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
+        if (!display) {
+            ESP_LOGE(TAG, "Flush callback: display is null!");
+            lv_display_flush_ready(disp);
+            return;
+        }
         ESP_LOGI(TAG, "Flush callback: x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
                  area->x1, area->y1, area->x2, area->y2);
         display->lcd.startWrite();
@@ -194,6 +190,10 @@ void LovyanGFXDisplay::setRotation(lv_display_rotation_t rotation) {
             lcd.setRotation(3);
             lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
             break;
+    }
+
+    if (configuration && configuration->touch) {
+        static_cast<CST820Touch*>(configuration->touch.get())->setRotation(rotation);
     }
 }
 
