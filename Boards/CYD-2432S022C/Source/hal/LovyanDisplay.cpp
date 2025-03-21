@@ -195,7 +195,7 @@ void LovyanGFXDisplay::setRotation(lv_display_rotation_t rotation) {
             break;
     }
     vTaskDelay(pdMS_TO_TICKS(500));  // Pause to see the fill
-    ESP_LOGI(TAG, "Resolution set to %dx%d", lv_disp_get_hor_res(lvglDisplay), lv_disp_get_ver_res(lvglDisplay));
+    ESP_LOGI(TAG, "Resolution set to %" PRId32 "x%" PRId32, lv_disp_get_hor_res(lvglDisplay), lv_disp_get_ver_res(lvglDisplay));
 
     if (configuration && configuration->touch) {
         static_cast<CST820Touch*>(configuration->touch.get())->setRotation(rotation);
