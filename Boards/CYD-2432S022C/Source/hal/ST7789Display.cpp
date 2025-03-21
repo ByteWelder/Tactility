@@ -41,12 +41,12 @@ bool ST7789Display::initialize_hardware() {
     // Software reset
     ESP_LOGI(TAG, "Sending software reset (SWRESET)");
     write_byte(0x01);
-    vTaskDelay(pdMS_TO_TICKS(150));
+    vTaskDelay(pdMS_TO_TICKS(200));
 
     // Sleep out
     ESP_LOGI(TAG, "Sending sleep out (SLPOUT)");
     write_byte(0x11);
-    vTaskDelay(pdMS_TO_TICKS(120));
+    vTaskDelay(pdMS_TO_TICKS(200));
 
     // Color mode: 16-bit RGB565
     ESP_LOGI(TAG, "Setting color mode to RGB565 (COLMOD)");
@@ -59,7 +59,7 @@ bool ST7789Display::initialize_hardware() {
     ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
     write_byte(0x36);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
-    uint8_t madctl = 0x00; // Default: normal orientation
+    uint8_t madctl = 0x60; // 90-degree rotation
     if (!config_->rgb_order) { // If false, use BGR order
         madctl |= 0x08; // Set RGB/BGR bit to 1 for BGR order
         ESP_LOGI(TAG, "Using BGR order (MADCTL bit 3 set)");
