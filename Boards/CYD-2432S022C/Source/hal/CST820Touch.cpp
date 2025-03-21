@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
 
-static const char* TAG = "CST820Touch";
+static const char *TAG = "CST820Touch";
 
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
@@ -17,9 +17,6 @@ bool CST820Touch::start(lv_display_t* display) {
     });
     lv_indev_set_user_data(indev_, this);
     lv_indev_set_display(indev_, display);
-    // Sync rotation with display at startup
-    currentRotation = lv_disp_get_rotation(display);
-    ESP_LOGI(TAG, "Touch started with rotation: %d", currentRotation);
     return true;
 }
 
@@ -53,35 +50,11 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
-        uint16_t raw_x = (touch_data[2] << 8) | touch_data[3];  // 0-240
-        uint16_t raw_y = (touch_data[4] << 8) | touch_data[5];  // 0-320
-        uint16_t x = 0, y = 0;  // Initialize to silence compiler
-
-        // Transform coordinates based on current rotation
-        switch (currentRotation) {
-            case LV_DISPLAY_ROTATION_0:  // Portrait (240x320)
-                x = raw_x;
-                y = raw_y;
-                break;
-            case LV_DISPLAY_ROTATION_90:  // Landscape (320x240)
-                x = raw_y;                  // Map 0-320 to X
-                y = config_->width - raw_x; // Map 0-240 to Y, inverted
-                break;
-            case LV_DISPLAY_ROTATION_180:  // Portrait upside-down (240x320)
-                x = config_->width - raw_x;
-                y = config_->height - raw_y;
-                break;
-            case LV_DISPLAY_ROTATION_270:  // Landscape opposite (320x240)
-                x = config_->height - raw_y;
-                y = raw_x;
-                break;
-        }
-
+        uint16_t x = (touch_data[2] << 8) | touch_data[3];
+        uint16_t y = (touch_data[4] << 8) | touch_data[5];
         data->point.x = x;
         data->point.y = y;
         data->state = LV_INDEV_STATE_PRESSED;
-        // Optional: Log for debugging
-        // ESP_LOGI(TAG, "Touch: raw_x=%d, raw_y=%d, mapped_x=%d, mapped_y=%d", raw_x, raw_y, x, y);
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
@@ -95,5 +68,6 @@ std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION
     );
+
     return std::make_shared<CST820Touch>(std::move(configuration));
 }
