@@ -5,7 +5,6 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
-#include "ets_sys.h" // Added for ets_delay_us
 #include <inttypes.h>
 
 static const char *TAG = "ST7789Display";
@@ -214,9 +213,10 @@ void ST7789Display::write_byte(uint8_t data) {
     for (int i = 0; i < 8; i++) {
         gpio_set_level(pins[i], (data >> i) & 1);
     }
-    ets_delay_us(1); // Add a 1us delay to ensure signal stability
+    // Add a 1us delay using a busy-wait loop
+    for (volatile int j = 0; j < 100; j++); // Adjust the loop count based on your CPU frequency
     gpio_set_level(CYD_2432S022C_LCD_PIN_WR, 1);
-    ets_delay_us(1); // Add a 1us delay after WR high
+    for (volatile int j = 0; j < 100; j++); // Adjust the loop count based on your CPU frequency
 }
 
 void ST7789Display::set_address_window(int x, int y, int w, int h) {
