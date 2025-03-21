@@ -108,7 +108,7 @@ bool ST7789Display::stop() {
     return true;
 }
 
-lv_display_t* ST7789Display::getLvglDisplay() {
+lv_display_t* ST7789Display::getLvglDisplay() const {  // Added 'const' to match the declaration
     if (!hardware_initialized_) {
         ESP_LOGE(TAG, "Cannot get LVGL display: hardware not initialized");
         return nullptr;
