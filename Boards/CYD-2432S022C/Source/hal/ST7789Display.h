@@ -34,7 +34,7 @@ public:
     int getHeight() const { return config_->height; }
     std::shared_ptr<tt::hal::touch::TouchDevice> getTouch() const { return config_->touch; }
 
-    // Helper method for the framework to set as the flush callback
+    // Helper method for the framework to call (e.g., from its flush callback)
     void flush(const lv_area_t* area, unsigned char* color_p);
 
 private:
@@ -43,6 +43,6 @@ private:
     bool initialize_hardware();
 
     std::unique_ptr<Configuration> config_;
-    mutable lv_display_t* display_ = nullptr; // Mutable to allow lazy initialization in const method
+    mutable lv_display_t* display_ = nullptr;  // Added 'mutable' to allow modification in const method
     bool hardware_initialized_ = false;
 };
