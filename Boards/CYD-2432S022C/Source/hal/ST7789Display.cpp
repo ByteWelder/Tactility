@@ -32,13 +32,51 @@ bool ST7789Display::initialize_hardware() {
         return false;
     }
 
-    // Basic ST7789 initialization
+    // ST7789 initialization sequence
+    ESP_LOGI(TAG, "Starting ST7789 display initialization");
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
-    write_byte(0x11); // Sleep out
+
+    // Software reset
+    ESP_LOGI(TAG, "Sending software reset (SWRESET)");
+    write_byte(0x01);
+    vTaskDelay(pdMS_TO_TICKS(150));
+
+    // Sleep out
+    ESP_LOGI(TAG, "Sending sleep out (SLPOUT)");
+    write_byte(0x11);
     vTaskDelay(pdMS_TO_TICKS(120));
-    write_byte(0x29); // Display on
+
+    // Color mode: 16-bit RGB565
+    ESP_LOGI(TAG, "Setting color mode to RGB565 (COLMOD)");
+    write_byte(0x3A);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x55); // RGB565
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Memory access control (orientation)
+    ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
+    write_byte(0x36);
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
+    write_byte(0x00); // Normal orientation (adjust if needed: 0x60 for 90°, 0xC0 for 180°, 0xA0 for 270°)
+    gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
+
+    // Display inversion on (optional, depends on your display)
+    ESP_LOGI(TAG, "Enabling display inversion (INVON)");
+    write_byte(0x21);
+
+    // Normal display mode on
+    ESP_LOGI(TAG, "Setting normal display mode (NORON)");
+    write_byte(0x13);
+
+    // Display on
+    ESP_LOGI(TAG, "Turning display on (DISPON)");
+    write_byte(0x29);
+    ESP_LOGI(TAG, "Display on, delaying 10ms");
+    vTaskDelay(pdMS_TO_TICKS(10));
+
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
+    ESP_LOGI(TAG, "ST7789 initialization complete");
 
     return true;
 }
@@ -108,7 +146,7 @@ bool ST7789Display::stop() {
     return true;
 }
 
-lv_display_t* ST7789Display::getLvglDisplay() const {  // Added 'const' to match the declaration
+lv_display_t* ST7789Display::getLvglDisplay() const {
     if (!hardware_initialized_) {
         ESP_LOGE(TAG, "Cannot get LVGL display: hardware not initialized");
         return nullptr;
@@ -129,9 +167,12 @@ lv_display_t* ST7789Display::getLvglDisplay() const {  // Added 'const' to match
             return nullptr;
         }
 
+        // Set up the draw buffer (required for LVGL to render)
+        static lv_color_t buf[CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 10]; // Buffer for 10 rows
+        lv_display_set_buffers(display_, buf, nullptr, CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * 10, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
         // Set the flush callback
         lv_display_set_flush_cb(display_, [](lv_display_t* disp, const lv_area_t* area, unsigned char* color_p) {
-            // The user data will be set by initDisplay to the DisplayDevice pointer
             auto* display_device = static_cast<ST7789Display*>(lv_display_get_user_data(disp));
             if (display_device) {
                 display_device->flush(area, color_p);
@@ -140,9 +181,6 @@ lv_display_t* ST7789Display::getLvglDisplay() const {  // Added 'const' to match
                 lv_display_flush_ready(disp);
             }
         });
-
-        // Do NOT set user data; let initDisplay handle it
-        // This ensures the assertion in initDisplay passes
     }
     return display_;
 }
@@ -153,15 +191,39 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
         return;
     }
 
+    ESP_LOGI(TAG, "Flushing area x1=%d, y1=%d, x2=%d, y2=%d", area->x1, area->y1, area->x2, area->y2);
+
     int w = (area->x2 - area->x1 + 1);
     int h = (area->y2 - area->y1 + 1);
 
     set_address_window(area->x1, area->y1, w, h);
 
-    // Write pixel data (color_p is a buffer of RGB565 pixels, 2 bytes per pixel)
-    for (int i = 0; i < w * h * 2; i += 2) {
-        write_byte(color_p[i]);     // High byte
-        write_byte(color_p[i + 1]); // Low byte
+    // Convert ARGB8888 (32-bit) to RGB565 (16-bit) manually
+    ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", w * h, w, h);
+    for (int i = 0; i < w * h; i++) {
+        // Assuming color_p is in ARGB8888 format (4 bytes per pixel: A, R, G, B)
+        uint8_t r = color_p[i * 4 + 1]; // Red
+        uint8_t g = color_p[i * 4 + 2]; // Green
+        uint8_t b = color_p[i * 4 + 3]; // Blue
+
+        // Convert to RGB565
+        uint16_t r5 = (r >> 3) & 0x1F; // 5 bits for red
+        uint16_t g6 = (g >> 2) & 0x3F; // 6 bits for green
+        uint16_t b5 = (b >> 3) & 0x1F; // 5 bits for blue
+        uint16_t rgb565 = (r5 << 11) | (g6 << 5) | b5;
+
+        // Split into high and low bytes
+        uint8_t high = (rgb565 >> 8) & 0xFF;
+        uint8_t low = rgb565 & 0xFF;
+
+        // Log the first few pixels for debugging
+        if (i < 4) {
+            ESP_LOGI(TAG, "Pixel %d: R=%02x, G=%02x, B=%02x -> RGB565 high=%02x, low=%02x", i, r, g, b, high, low);
+        }
+
+        // Write to the display
+        write_byte(high);
+        write_byte(low);
     }
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
