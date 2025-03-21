@@ -324,9 +324,9 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
 
     ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", (int)(w * h), w, h);
     for (int i = 0; i < w * h; i++) {
-        uint16_t rgb565 = 0x07E0; // Green in RGB565: R=0x00, G=0x3F, B=0x00
-        uint8_t high = (rgb565 >> 8) & 0xFF; // 0x07
-        uint8_t low = rgb565 & 0xFF;         // 0xE0
+        uint16_t rgb565 = 0xF800; // Red in RGB565: R=0x1F, G=0x00, B=0x00
+        uint8_t high = (rgb565 >> 8) & 0xFF; // 0xF8
+        uint8_t low = rgb565 & 0xFF;         // 0x00
 
         if (i < 4) {
             ESP_LOGI(TAG, "Pixel %d: RGB565 high=%02x, low=%02x", i, high, low);
@@ -334,6 +334,11 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
 
         write_byte(low);
         write_byte(high);
+
+        // Yield to the scheduler every 1000 pixels to prevent watchdog timeout
+        if (i % 1000 == 0) {
+            vTaskDelay(1); // Delay for 1 tick (typically 1 ms)
+        }
     }
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
