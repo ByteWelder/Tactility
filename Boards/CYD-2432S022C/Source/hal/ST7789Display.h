@@ -35,7 +35,7 @@ public:
     std::shared_ptr<tt::hal::touch::TouchDevice> getTouch() const { return config_->touch; }
 
 private:
-    void flush(const lv_area_t* area, lv_color_t* color_p);
+    void flush(const lv_area_t* area, unsigned char* color_p); // Updated signature
     void write_byte(uint8_t data);
     void set_address_window(int x, int y, int w, int h);
 
