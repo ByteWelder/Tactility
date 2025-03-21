@@ -55,7 +55,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
     if (finger_num > 0) {
         uint16_t raw_x = (touch_data[2] << 8) | touch_data[3];  // 0-240
         uint16_t raw_y = (touch_data[4] << 8) | touch_data[5];  // 0-320
-        uint16_t x, y;
+        uint16_t x = 0, y = 0;  // Initialize to silence compiler
 
         // Transform coordinates based on current rotation
         switch (currentRotation) {
