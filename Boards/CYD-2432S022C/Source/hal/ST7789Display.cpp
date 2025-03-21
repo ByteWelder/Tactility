@@ -33,6 +33,23 @@ bool ST7789Display::initialize_hardware() {
         return false;
     }
 
+    // Configure backlight pin (GPIO 0, as per OpenHASP configs)
+    #define BACKLIGHT_PIN 0
+    ESP_LOGI(TAG, "Configuring backlight pin (GPIO %d)", BACKLIGHT_PIN);
+    gpio_config_t backlight_conf = {
+        .pin_bit_mask = (1ULL << BACKLIGHT_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    if (gpio_config(&backlight_conf) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure backlight pin");
+        return false;
+    }
+    gpio_set_level(BACKLIGHT_PIN, 1); // Turn on backlight
+    ESP_LOGI(TAG, "Backlight turned on");
+
     // ST7789 initialization sequence
     ESP_LOGI(TAG, "Starting ST7789 display initialization");
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 0);
@@ -41,12 +58,12 @@ bool ST7789Display::initialize_hardware() {
     // Software reset
     ESP_LOGI(TAG, "Sending software reset (SWRESET)");
     write_byte(0x01);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(200)); // Increased delay as per online research
 
     // Sleep out
     ESP_LOGI(TAG, "Sending sleep out (SLPOUT)");
     write_byte(0x11);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(200)); // Increased delay
 
     // Color mode: 16-bit RGB565
     ESP_LOGI(TAG, "Setting color mode to RGB565 (COLMOD)");
@@ -59,14 +76,14 @@ bool ST7789Display::initialize_hardware() {
     ESP_LOGI(TAG, "Setting memory access control (MADCTL)");
     write_byte(0x36);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 1); // Data mode
-    uint8_t madctl = 0x60; // 90-degree rotation
+    uint8_t madctl = 0x00; // Default orientation (worked in LovyanGFX)
     if (!config_->rgb_order) { // If false, use BGR order
         madctl |= 0x08; // Set RGB/BGR bit to 1 for BGR order
         ESP_LOGI(TAG, "Using BGR order (MADCTL bit 3 set)");
     } else {
         ESP_LOGI(TAG, "Using RGB order (MADCTL bit 3 clear)");
     }
-    write_byte(madctl); // Normal orientation (adjust if needed: 0x60 for 90°, 0xC0 for 180°, 0xA0 for 270°)
+    write_byte(madctl);
     gpio_set_level(CYD_2432S022C_LCD_PIN_RS, 0); // Command mode
 
     // Display inversion
@@ -85,8 +102,8 @@ bool ST7789Display::initialize_hardware() {
     // Display on
     ESP_LOGI(TAG, "Turning display on (DISPON)");
     write_byte(0x29);
-    ESP_LOGI(TAG, "Display on, delaying 10ms");
-    vTaskDelay(pdMS_TO_TICKS(10));
+    ESP_LOGI(TAG, "Display on, delaying 50ms");
+    vTaskDelay(pdMS_TO_TICKS(50)); // Match LovyanGFX delay
 
     gpio_set_level(CYD_2432S022C_LCD_PIN_CS, 1);
     ESP_LOGI(TAG, "ST7789 initialization complete");
