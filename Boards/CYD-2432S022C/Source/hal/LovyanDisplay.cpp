@@ -4,6 +4,9 @@
 #include <esp_log.h>
 #include <LovyanGFX.h>
 #include <inttypes.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <esp_heap_caps.h>
 
 static const char* TAG = "LovyanDisplay";
 
@@ -111,10 +114,62 @@ public:
         lcd.setBrightness(128);
         lcd.setRotation(0);
 
-        // Optional: Test fill to verify colors (remove after testing)
+        // Test fill: Red screen (remove after testing)
         ESP_LOGI(TAG, "Filling screen with red to test display");
         lcd.fillScreen(lcd.color565(255, 0, 0));
         vTaskDelay(pdMS_TO_TICKS(1000));
+
+        // Initialize LVGL display
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
+        lvglDisplay = lv_display_create(configuration->width, configuration->height);
+        if (!lvglDisplay) {
+            ESP_LOGE(TAG, "Failed to create LVGL display");
+            return false;
+        }
+
+        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
+
+        // Allocate buffers
+        ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
+                 heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
+                 heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+        static uint16_t* buf1 = nullptr;
+        static uint16_t* buf2 = nullptr;
+        buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        if (!buf1 || !buf2) {
+            ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
+                     CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+            return false;
+        }
+        ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
+                 buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+
+        // Set buffers with partial rendering (matches buffer size)
+        ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        ESP_LOGI(TAG, "LVGL buffers set successfully");
+
+        // Set flush callback
+        ESP_LOGI(TAG, "Setting flush callback");
+        lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
+            auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
+            ESP_LOGI(TAG, "Flush callback: x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
+                     area->x1, area->y1, area->x2, area->y2);
+            display->lcd.startWrite();
+            display->lcd.setAddrWindow(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
+            display->lcd.writePixels((lgfx::rgb565_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
+            display->lcd.endWrite();
+            lv_display_flush_ready(disp);
+        });
+
+        lv_display_set_user_data(lvglDisplay, this);
+
+        // Start touch if available
+        if (configuration->touch) {
+            ESP_LOGI(TAG, "Starting touch input");
+            configuration->touch->start(lvglDisplay);
+        }
 
         isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
@@ -144,21 +199,6 @@ public:
 
     std::string getName() const override { return "CYD-2432S022C Display"; }
     std::string getDescription() const override { return "LovyanGFX-based display for CYD-2432S022C board"; }
-
-    // Public flush method for framework to use
-    void flush(const lv_area_t* area, unsigned char* color_p) {
-        ESP_LOGI(TAG, "Flush: x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
-                 area->x1, area->y1, area->x2, area->y2);
-        lcd.startWrite();
-        lcd.setAddrWindow(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
-        lcd.writePixels((lgfx::rgb565_t*)color_p, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
-        lcd.endWrite();
-    }
-
-    // Setter for LVGL display (called by framework)
-    void setLvglDisplay(lv_display_t* disp) {
-        lvglDisplay = disp;
-    }
 
 private:
     std::unique_ptr<Configuration> configuration;
