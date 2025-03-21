@@ -58,7 +58,6 @@ LovyanGFXDisplay::LGFX_CYD_2432S022C::LGFX_CYD_2432S022C() {
     ESP_LOGI(TAG, "LGFX_CYD_2432S022C initialization complete");
 }
 
-// LovyanGFXDisplay methods
 LovyanGFXDisplay::LovyanGFXDisplay(std::unique_ptr<Configuration> config)
     : configuration(std::move(config)) {
     ESP_LOGI(TAG, "LovyanGFXDisplay constructor called with width=%d, height=%d",
@@ -84,8 +83,8 @@ bool LovyanGFXDisplay::start() {
     lcd.writeCommand(0x29); // Display ON
     vTaskDelay(pdMS_TO_TICKS(50));
 
-    lcd.setBrightness(0);
-    lcd.setRotation(0);  // Start with portrait per Init.cpp
+    lcd.setBrightness(128);  // Half brightness for visibility
+    lcd.setRotation(0);      // Start in portrait
 
     ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
     lvglDisplay = lv_display_create(configuration->width, configuration->height);  // 240x320
@@ -177,20 +176,26 @@ void LovyanGFXDisplay::setRotation(lv_display_rotation_t rotation) {
         case LV_DISPLAY_ROTATION_0:   // Portrait (240x320)
             lcd.setRotation(0);
             lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
+            lcd.fillScreen(lgfx::color565(255, 0, 0));  // Red for 0°
             break;
         case LV_DISPLAY_ROTATION_90:  // Landscape (320x240)
             lcd.setRotation(1);
             lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
+            lcd.fillScreen(lgfx::color565(0, 255, 0));  // Green for 90°
             break;
         case LV_DISPLAY_ROTATION_180: // Portrait upside-down (240x320)
             lcd.setRotation(2);
             lv_display_set_resolution(lvglDisplay, configuration->width, configuration->height);  // 240x320
+            lcd.fillScreen(lgfx::color565(0, 0, 255));  // Blue for 180°
             break;
         case LV_DISPLAY_ROTATION_270: // Landscape opposite (320x240)
             lcd.setRotation(3);
             lv_display_set_resolution(lvglDisplay, configuration->height, configuration->width);  // 320x240
+            lcd.fillScreen(lgfx::color565(255, 255, 0));  // Yellow for 270°
             break;
     }
+    vTaskDelay(pdMS_TO_TICKS(500));  // Pause to see the fill
+    ESP_LOGI(TAG, "Resolution set to %dx%d", lv_disp_get_hor_res(lvglDisplay), lv_disp_get_ver_res(lvglDisplay));
 
     if (configuration && configuration->touch) {
         static_cast<CST820Touch*>(configuration->touch.get())->setRotation(rotation);
