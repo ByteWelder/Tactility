@@ -229,18 +229,16 @@ void ST7789Display::flush(const lv_area_t* area, unsigned char* color_p) {
 
     set_address_window(area->x1, area->y1, w, h);
 
-    // Assuming color_p is in RGB565 format (2 bytes per pixel)
     ESP_LOGI(TAG, "Writing %d pixels (w=%d, h=%d)", (int)(w * h), w, h);
     for (int i = 0; i < w * h; i++) {
-        uint8_t high = color_p[i * 2];     // High byte
-        uint8_t low = color_p[i * 2 + 1];  // Low byte
+        uint16_t rgb565 = 0x07E0; // Green in RGB565: R=0x00, G=0x3F, B=0x00
+        uint8_t high = (rgb565 >> 8) & 0xFF; // 0x07
+        uint8_t low = rgb565 & 0xFF;         // 0xE0
 
-        // Log the first few pixels for debugging
         if (i < 4) {
             ESP_LOGI(TAG, "Pixel %d: RGB565 high=%02x, low=%02x", i, high, low);
         }
 
-        // Write to the display (low byte first, then high byte)
         write_byte(low);
         write_byte(high);
     }
