@@ -114,7 +114,6 @@ bool LovyanGFXDisplay::start() {
              heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
              heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
     static uint16_t* buf1 = nullptr;
-    buf2 = nullptr;  // Use single buffer for full mode
     buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
     if (!buf1) {
         ESP_LOGE(TAG, "Failed to allocate buffer! Size requested: %d bytes",
