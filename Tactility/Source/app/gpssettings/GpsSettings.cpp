@@ -10,10 +10,13 @@
 #include <format>
 #include <lvgl.h>
 
-#define TAG "gps_settings"
+namespace tt::app::addgps {
+extern AppManifest manifest;
+}
 
 namespace tt::app::gpssettings {
 
+constexpr const char* TAG = "GpsSettings";
 
 void createView(lv_obj_t* parent) {
     auto* wrapper = lv_obj_create(parent);
@@ -57,6 +60,15 @@ private:
     static void onGpsToggledCallback(lv_event_t* event) {
         auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
         app->onGpsToggled(event);
+    }
+
+    static void onAddGpsCallback(lv_event_t* event) {
+        auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
+        app->onAddGps();
+    }
+
+    void onAddGps() {
+        app::start(addgps::manifest.id);
     }
 
     void startReceivingUpdates() {
@@ -216,6 +228,17 @@ public:
         updateViews();
 
         serviceStateSubscription = service::gps::getStatePubsub()->subscribe(onServiceStateChangedCallback, this);
+
+        auto* add_gps_wrapper = lv_obj_create(main_wrapper);
+        lv_obj_set_size(add_gps_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(add_gps_wrapper, 0, 0);
+        lv_obj_set_style_pad_all(add_gps_wrapper, 0, 0);
+
+        auto* add_gps_button = lv_button_create(add_gps_wrapper);
+        auto* add_gps_label = lv_label_create(add_gps_button);
+        lv_label_set_text(add_gps_label, "Add GPS");
+        lv_obj_add_event_cb(add_gps_button, onAddGpsCallback, LV_EVENT_SHORT_CLICKED, this);
+        lv_obj_align(add_gps_button, LV_ALIGN_TOP_MID, 0, 0);
     }
 
     void onHide(AppContext& app) final {
@@ -233,7 +256,7 @@ extern const AppManifest manifest = {
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    app::start(manifest.id);
 }
 
 } // namespace

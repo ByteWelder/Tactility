@@ -44,6 +44,14 @@ const char* toString(GpsModel model) {
     }
 }
 
+std::vector<std::string> getModels() {
+    std::vector<std::string> result;
+    for (GpsModel model = GpsModel::Unknown; model <= GpsModel::UC6580; ++(int&)model) {
+        result.push_back(toString(model));
+    }
+    return result;
+}
+
 int32_t GpsDevice::threadMainStatic(void* parameter) {
     auto* gps_device = (GpsDevice*)parameter;
     return gps_device->threadMain();

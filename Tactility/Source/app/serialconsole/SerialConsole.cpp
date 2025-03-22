@@ -1,7 +1,6 @@
 #include "Tactility/app/serialconsole/ConnectView.h"
 #include "Tactility/app/serialconsole/ConsoleView.h"
 
-#include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Style.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
@@ -9,8 +8,6 @@
 #include <Tactility/hal/uart/Uart.h>
 
 #include <lvgl.h>
-
-#define TAG "text_viewer"
 
 namespace tt::app::serialconsole {
 

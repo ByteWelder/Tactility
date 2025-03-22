@@ -41,7 +41,7 @@ bool ObjectFileReader::open() {
     }
 
     if (file_header.version != OBJECT_FILE_VERSION) {
-        TT_LOG_E(TAG, "Unknown version for %s: %d", filePath.c_str(), file_header.identifier);
+        TT_LOG_E(TAG, "Unknown version for %s: %lu", filePath.c_str(), file_header.identifier);
         return false;
     }
 
@@ -52,7 +52,7 @@ bool ObjectFileReader::open() {
     }
 
     if (recordSize != content_header.recordSize) {
-        TT_LOG_E(TAG, "Record size mismatch for %s: expected %d, got %d", filePath.c_str(), recordSize, content_header.recordSize);
+        TT_LOG_E(TAG, "Record size mismatch for %s: expected %lu, got %lu", filePath.c_str(), recordSize, content_header.recordSize);
         return false;
     }
 

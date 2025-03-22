@@ -37,6 +37,8 @@ enum class GpsModel {
 
 const char* toString(GpsModel model);
 
+std::vector<std::string> getModels();
+
 class GpsDevice : public Device {
 
 public:
