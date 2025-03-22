@@ -104,7 +104,10 @@ public:
         }
 
         ESP_LOGI(TAG, "Starting LovyanGFX display");
-        lcd.init();
+        if (!lcd.init()) {
+            ESP_LOGE(TAG, "Failed to initialize LovyanGFX display");
+            return false;
+        }
         lcd.writeCommand(0x11); // Sleep Out
         vTaskDelay(pdMS_TO_TICKS(120));
         lcd.writeCommand(0x3A); // Color Mode
@@ -125,55 +128,51 @@ public:
         ESP_LOGI(TAG, "Setting initial display rotation to %d", configuration->rotation);
         lv_disp_set_rotation(lvglDisplay, configuration->rotation);
 
-        // Allocate larger buffers for rotated width (320 pixels)
-        const size_t buffer_width = configuration->rotation == LV_DISPLAY_ROTATION_90 || configuration->rotation == LV_DISPLAY_ROTATION_270
+        // Calculate buffer size dynamically based on rotation
+        const size_t buffer_width = (configuration->rotation == LV_DISPLAY_ROTATION_90 || configuration->rotation == LV_DISPLAY_ROTATION_270)
                                     ? configuration->height  // 320
                                     : configuration->width;  // 240
-        const size_t buffer_height = 64;  // Same as before, enough for partial rendering
-        const size_t buffer_size = buffer_width * buffer_height;  // 320 * 64 = 20480 pixels
+        const size_t buffer_height = 64;  // Partial rendering height
+        bufferSize = buffer_width * buffer_height;  // e.g., 320 * 64 = 20480 pixels
 
         ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
                  heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                  heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
-        static uint16_t* buf1 = nullptr;
-        static uint16_t* buf2 = nullptr;
-        buf1 = (uint16_t*)heap_caps_malloc(buffer_size * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-        buf2 = (uint16_t*)heap_caps_malloc(buffer_size * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf1 = (uint16_t*)heap_caps_malloc(bufferSize * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf2 = (uint16_t*)heap_caps_malloc(bufferSize * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         if (!buf1 || !buf2) {
             ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
-                     buffer_size * sizeof(uint16_t));
+                     bufferSize * sizeof(uint16_t));
             return false;
         }
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
-                 buf1, buf2, buffer_size * sizeof(uint16_t));
+                 buf1, buf2, bufferSize * sizeof(uint16_t));
 
         // Set buffers with partial rendering
         ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
-        lv_display_set_buffers(lvglDisplay, buf1, buf2, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "LVGL buffers set successfully");
 
-        // Set flush callback with rotation handling
+        // Set flush callback
         ESP_LOGI(TAG, "Setting flush callback");
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
             int32_t x1 = area->x1, y1 = area->y1, x2 = area->x2, y2 = area->y2;
 
             // Transform coordinates based on rotation
-            lv_display_rotation_t rotation = lv_disp_get_rotation(disp);
+            lv_display_rotation_t current_rotation = lv_disp_get_rotation(disp);
             int32_t hw_x1, hw_y1, hw_x2, hw_y2;
-            int32_t hw_width = x2 - x1 + 1;
-            int32_t hw_height = y2 - y1 + 1;
-            if (rotation == LV_DISPLAY_ROTATION_90) {
+            if (current_rotation == LV_DISPLAY_ROTATION_90) {
                 hw_x1 = y1;
                 hw_y1 = 320 - x2 - 1;
                 hw_x2 = y2;
                 hw_y2 = 320 - x1 - 1;
-            } else if (rotation == LV_DISPLAY_ROTATION_270) {
+            } else if (current_rotation == LV_DISPLAY_ROTATION_270) {
                 hw_x1 = 240 - y2 - 1;
                 hw_y1 = x1;
                 hw_x2 = 240 - y1 - 1;
                 hw_y2 = x2;
-            } else if (rotation == LV_DISPLAY_ROTATION_180) {
+            } else if (current_rotation == LV_DISPLAY_ROTATION_180) {
                 hw_x1 = 240 - x2 - 1;
                 hw_y1 = 320 - y2 - 1;
                 hw_x2 = 240 - x1 - 1;
@@ -191,7 +190,7 @@ public:
 
             display->lcd.startWrite();
             display->lcd.setAddrWindow(hw_x1, hw_y1, hw_x2 - hw_x1 + 1, hw_y2 - hw_y1 + 1);
-            display->lcd.writePixels((lgfx::rgb565_t*)data, hw_width * hw_height);
+            display->lcd.writePixels((lgfx::rgb565_t*)data, (x2 - x1 + 1) * (y2 - y1 + 1));
             display->lcd.endWrite();
             lv_display_flush_ready(disp);
         });
@@ -206,6 +205,10 @@ public:
         if (configuration && configuration->touch) configuration->touch->stop();
         if (lvglDisplay) lv_display_delete(lvglDisplay);
         lvglDisplay = nullptr;
+        if (buf1) heap_caps_free(buf1);
+        if (buf2) heap_caps_free(buf2);
+        buf1 = nullptr;
+        buf2 = nullptr;
         isStarted = false;
         return true;
     }
@@ -230,6 +233,9 @@ private:
     LGFX_CYD_2432S022C lcd;
     lv_display_t* lvglDisplay = nullptr;
     bool isStarted = false;
+    uint16_t* buf1 = nullptr;
+    uint16_t* buf2 = nullptr;
+    size_t bufferSize = 0;
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -239,10 +245,14 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         return nullptr;
     }
 
+    // Get the Tactility orientation dynamically
+    lv_display_rotation_t tactility_orientation = tt::app::display::getRotation();
+    ESP_LOGI(TAG, "Creating display with Tactility orientation: %d", tactility_orientation);
+
     auto config = std::make_unique<LovyanGFXDisplay::Configuration>(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
-        LV_DISPLAY_ROTATION_90,                   // Landscape
+        tactility_orientation,                     // Use Tactility orientation
         touch
     );
     return std::make_shared<LovyanGFXDisplay>(std::move(config));
