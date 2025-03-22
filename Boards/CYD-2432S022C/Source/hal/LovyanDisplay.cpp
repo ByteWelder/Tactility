@@ -59,7 +59,7 @@ public:
         ESP_LOGI("LovyanDisplay", "Starting, DRAM free: %u", heap_caps_get_free_size(MALLOC_CAP_DMA));
         lcd.init();
         ESP_LOGI("LovyanDisplay", "LCD init done");
-        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);  // 240x320
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", config->width, config->height);  // 240x320
         lvglDisplay = lv_display_create(config->width, config->height);
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
@@ -87,7 +87,6 @@ public:
             lv_display_flush_ready(disp);
         });
 
-        isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
         return true;
     }
