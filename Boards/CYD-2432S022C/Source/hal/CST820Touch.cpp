@@ -65,22 +65,22 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
 
         switch (rotation) {
-            case LV_DISPLAY_ROTATION_90:
-                logical_x = 320 - y - 1;
-                logical_y = x;
-                break;
-            case LV_DISPLAY_ROTATION_270:
-                logical_x = y;
-                logical_y = 240 - x - 1;
-                break;
-            case LV_DISPLAY_ROTATION_180:
-                logical_x = 320 - x - 1;
-                logical_y = 240 - y - 1;
-                break;
             case LV_DISPLAY_ROTATION_0:
             default:
                 logical_x = x;
                 logical_y = y;
+                break;
+            case LV_DISPLAY_ROTATION_90:
+                logical_x = 320 - x - 1;
+                logical_y = y;
+                break;
+            case LV_DISPLAY_ROTATION_180:
+                logical_x = 320 - y - 1;
+                logical_y = 240 - x - 1;
+                break;
+            case LV_DISPLAY_ROTATION_270:
+                logical_x = x;
+                logical_y = 240 - y - 1;
                 break;
         }
 
