@@ -6,9 +6,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
-static const char* TAG = "RgbDisplay";
+static const char* TAG = "YellowDisplay";  // Updated TAG to match filename
 
-// Backlight PWM setup (reusing LovyanGFX’s approach)
+// Backlight PWM setup (unchanged)
 static void backlight_init(gpio_num_t pin) {
     esp_rom_gpio_pad_select_gpio(pin);
     gpio_set_direction(pin, GPIO_MODE_OUTPUT);
@@ -39,20 +39,29 @@ static void backlight_set_duty(uint8_t duty) {
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
 }
 
-bool RgbDisplay::start() {
+// Inherit from RgbDisplay but use YellowDisplay as the implementation name
+class YellowDisplay : public RgbDisplay {
+public:
+    explicit YellowDisplay(std::unique_ptr<Configuration> config) : RgbDisplay(std::move(config)) {}
+
+    std::string getName() const override { return "Yellow Display"; }
+    std::string getDescription() const override { return "ST7789 8-bit parallel display for CYD-2432S022C"; }
+};
+
+bool YellowDisplay::start() {
     if (displayHandle) {
         ESP_LOGW(TAG, "Display already started");
         return true;
     }
 
-    ESP_LOGI(TAG, "Starting RGB display");
+    ESP_LOGI(TAG, "Starting Yellow display");
 
     // Initialize panel
     ESP_ERROR_CHECK(esp_lcd_panel_rgb_init(&configuration->panelConfig, &panelHandle));
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panelHandle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panelHandle));
 
-    // Backlight (if configured)
+    // Backlight
     if (configuration->backlightDutyFunction) {
         configuration->backlightDutyFunction(0);  // Start off
     }
@@ -71,7 +80,7 @@ bool RgbDisplay::start() {
 
     // Buffers
     size_t buffer_size = configuration->bufferConfiguration.size;
-    if (buffer_size == 0) buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE;  // Default
+    if (buffer_size == 0) buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE;  // 9600
     void* buf1 = nullptr;
     void* buf2 = nullptr;
 
@@ -99,16 +108,16 @@ bool RgbDisplay::start() {
 
     // Flush callback
     lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-        auto* display = static_cast<RgbDisplay*>(lv_display_get_user_data(disp));
+        auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
         esp_lcd_panel_draw_bitmap(display->panelHandle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
         lv_display_flush_ready(disp);
     });
 
-    ESP_LOGI(TAG, "RGB display started successfully");
+    ESP_LOGI(TAG, "Yellow display started successfully");
     return true;
 }
 
-bool RgbDisplay::stop() {
+bool YellowDisplay::stop() {
     if (!displayHandle) return true;
 
     if (configuration && configuration->touch) configuration->touch->stop();
@@ -126,11 +135,11 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         return nullptr;
     }
 
-    // ST7789 timing (approximate, tweak if needed)
+    // ST7789 timing and pin config from PlatformIO
     esp_lcd_rgb_panel_config_t panel_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .clk_src = LCD_CLK_SRC_PLL160M,
         .timings = {
-            .pclk_hz = 9000000,  // 9 MHz, adjust for refresh rate
+            .pclk_hz = 12000000,
             .h_res = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
             .v_res = CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
             .hsync_pulse_width = 10,
@@ -147,24 +156,24 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
                 .pclk_idle_high = 0
             }
         },
-        .data_width = 8,  // 8-bit parallel
-        .bits_per_pixel = 16,  // RGB565
+        .data_width = 8,
+        .bits_per_pixel = 16,
         .num_fbs = 1,
         .bounce_buffer_size_px = 0,
-        .sram_trans_align = 0,
-        .psram_trans_align = 0,
-        .hsync_gpio_num = -1,  // Not used for parallel
+        .sram_trans_align = 4,
+        .psram_trans_align = 64,
+        .hsync_gpio_num = -1,
         .vsync_gpio_num = -1,
         .de_gpio_num = -1,
-        .pclk_gpio_num = CYD_2432S022C_LCD_PIN_WR,  // WR as clock
+        .pclk_gpio_num = CYD_2432S022C_LCD_PIN_WR,  // GPIO_NUM_4
         .disp_gpio_num = -1,
         .data_gpio_nums = {
             CYD_2432S022C_LCD_PIN_D0, CYD_2432S022C_LCD_PIN_D1, CYD_2432S022C_LCD_PIN_D2, CYD_2432S022C_LCD_PIN_D3,
             CYD_2432S022C_LCD_PIN_D4, CYD_2432S022C_LCD_PIN_D5, CYD_2432S022C_LCD_PIN_D6, CYD_2432S022C_LCD_PIN_D7
         },
-        .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
-        .rd_gpio_num = CYD_2432S022C_LCD_PIN_RD,
-        .wr_gpio_num = CYD_2432S022C_LCD_PIN_WR,
+        .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,  // GPIO_NUM_17
+        .rd_gpio_num = CYD_2432S022C_LCD_PIN_RD,  // GPIO_NUM_2
+        .wr_gpio_num = CYD_2432S022C_LCD_PIN_WR,  // GPIO_NUM_4
         .flags = {
             .disp_active_low = 0,
             .refresh_on_demand = 0,
@@ -176,26 +185,26 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     };
 
     RgbDisplay::BufferConfiguration buffer_config = {
-        .size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE,  // 7680 pixels
-        .useSpi = false,  // DMA for speed
+        .size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE,  // 9600
+        .useSpi = false,
         .doubleBuffer = true,
         .bounceBufferMode = false,
         .avoidTearing = false
     };
 
-    backlight_init(GPIO_NUM_0);  // PWM on GPIO 0
+    backlight_init(CYD_2432S022C_LCD_PIN_BACKLIGHT);  // GPIO_NUM_0
 
     auto config = std::make_unique<RgbDisplay::Configuration>(
         panel_config,
         buffer_config,
         touch,
         LV_COLOR_FORMAT_RGB565,
-        true,  // swapXY for landscape
-        false, // mirrorX
-        false, // mirrorY
-        false, // invertColor
-        [](uint8_t duty) { backlight_set_duty(duty); }  // Backlight callback
+        false,  // Portrait by default
+        false,
+        false,
+        false,
+        [](uint8_t duty) { backlight_set_duty(duty); }
     );
 
-    return std::make_shared<RgbDisplay>(std::move(config));
+    return std::make_shared<YellowDisplay>(std::move(config));
 }
