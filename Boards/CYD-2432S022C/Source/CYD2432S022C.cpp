@@ -6,12 +6,10 @@
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
 
-bool init_boot() {
-    return true;
-}
+bool cyd22_init();
 
 const tt::hal::Configuration cyd_2432s022c_config = {
-    .initBoot = init_boot,
+    .initBoot = cyd22_init,
     .createDisplay = createDisplay,
     .sdcard = createYellowSDCard(),
     .power = nullptr,
