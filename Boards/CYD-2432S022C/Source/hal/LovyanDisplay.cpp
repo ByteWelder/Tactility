@@ -125,36 +125,73 @@ public:
         ESP_LOGI(TAG, "Setting initial display rotation to %d", configuration->rotation);
         lv_disp_set_rotation(lvglDisplay, configuration->rotation);
 
-        // Allocate buffers
+        // Allocate larger buffers for rotated width (320 pixels)
+        const size_t buffer_width = configuration->rotation == LV_DISPLAY_ROTATION_90 || configuration->rotation == LV_DISPLAY_ROTATION_270
+                                    ? configuration->height  // 320
+                                    : configuration->width;  // 240
+        const size_t buffer_height = 64;  // Same as before, enough for partial rendering
+        const size_t buffer_size = buffer_width * buffer_height;  // 320 * 64 = 20480 pixels
+
         ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
                  heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                  heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
         static uint16_t* buf1 = nullptr;
         static uint16_t* buf2 = nullptr;
-        buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-        buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf1 = (uint16_t*)heap_caps_malloc(buffer_size * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf2 = (uint16_t*)heap_caps_malloc(buffer_size * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         if (!buf1 || !buf2) {
             ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
-                     CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+                     buffer_size * sizeof(uint16_t));
             return false;
         }
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
-                 buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t));
+                 buf1, buf2, buffer_size * sizeof(uint16_t));
 
         // Set buffers with partial rendering
         ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
-        lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "LVGL buffers set successfully");
 
-        // Set flush callback
+        // Set flush callback with rotation handling
         ESP_LOGI(TAG, "Setting flush callback");
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
-            ESP_LOGI(TAG, "Flush callback: x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32,
-                     area->x1, area->y1, area->x2, area->y2);
+            int32_t x1 = area->x1, y1 = area->y1, x2 = area->x2, y2 = area->y2;
+
+            // Transform coordinates based on rotation
+            lv_display_rotation_t rotation = lv_disp_get_rotation(disp);
+            int32_t hw_x1, hw_y1, hw_x2, hw_y2;
+            int32_t hw_width = x2 - x1 + 1;
+            int32_t hw_height = y2 - y1 + 1;
+            if (rotation == LV_DISPLAY_ROTATION_90) {
+                hw_x1 = y1;
+                hw_y1 = 320 - x2 - 1;
+                hw_x2 = y2;
+                hw_y2 = 320 - x1 - 1;
+            } else if (rotation == LV_DISPLAY_ROTATION_270) {
+                hw_x1 = 240 - y2 - 1;
+                hw_y1 = x1;
+                hw_x2 = 240 - y1 - 1;
+                hw_y2 = x2;
+            } else if (rotation == LV_DISPLAY_ROTATION_180) {
+                hw_x1 = 240 - x2 - 1;
+                hw_y1 = 320 - y2 - 1;
+                hw_x2 = 240 - x1 - 1;
+                hw_y2 = 320 - y1 - 1;
+            } else {  // LV_DISPLAY_ROTATION_0
+                hw_x1 = x1;
+                hw_y1 = y1;
+                hw_x2 = x2;
+                hw_y2 = y2;
+            }
+
+            ESP_LOGI(TAG, "Flush callback: rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
+                          " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32,
+                     x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2);
+
             display->lcd.startWrite();
-            display->lcd.setAddrWindow(area->x1, area->y1, area->x2 - area->x1 + 1, area->y2 - area->y1 + 1);
-            display->lcd.writePixels((lgfx::rgb565_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
+            display->lcd.setAddrWindow(hw_x1, hw_y1, hw_x2 - hw_x1 + 1, hw_y2 - hw_y1 + 1);
+            display->lcd.writePixels((lgfx::rgb565_t*)data, hw_width * hw_height);
             display->lcd.endWrite();
             lv_display_flush_ready(disp);
         });
