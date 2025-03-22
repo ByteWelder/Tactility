@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
 #include <LovyanGFX.h>
-#include <lvgl.h>
+#include "lvgl.h"
 
 
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
