@@ -81,15 +81,16 @@ public:
     struct Configuration {
         uint16_t width;
         uint16_t height;
+        lv_display_rotation_t rotation;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        Configuration(uint16_t width, uint16_t height, std::shared_ptr<tt::hal::touch::TouchDevice> touch)
-            : width(width), height(height), touch(std::move(touch)) {}
+        Configuration(uint16_t width, uint16_t height, lv_display_rotation_t rotation, std::shared_ptr<tt::hal::touch::TouchDevice> touch)
+            : width(width), height(height), rotation(rotation), touch(std::move(touch)) {}
     };
 
     explicit LovyanGFXDisplay(std::unique_ptr<Configuration> config)
         : configuration(std::move(config)) {
-        ESP_LOGI(TAG, "LovyanGFXDisplay constructor called with width=%d, height=%d",
-                 configuration->width, configuration->height);
+        ESP_LOGI(TAG, "LovyanGFXDisplay constructor called with width=%d, height=%d, rotation=%d",
+                 configuration->width, configuration->height, configuration->rotation);
     }
 
     ~LovyanGFXDisplay() override {
@@ -111,10 +112,8 @@ public:
         lcd.writeCommand(0x29); // Display ON
         vTaskDelay(pdMS_TO_TICKS(50));
 
-        lcd.setBrightness(0);  // Start with backlight off, let framework adjust
-        lcd.setRotation(0);
+        lcd.setBrightness(0);  // Start with backlight off
 
-        // Initialize LVGL display
         ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
         lvglDisplay = lv_display_create(configuration->width, configuration->height);
         if (!lvglDisplay) {
@@ -123,6 +122,8 @@ public:
         }
 
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
+        ESP_LOGI(TAG, "Setting initial display rotation to %d", configuration->rotation);
+        lv_disp_set_rotation(lvglDisplay, configuration->rotation);
 
         // Allocate buffers
         ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
@@ -202,8 +203,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     }
 
     auto config = std::make_unique<LovyanGFXDisplay::Configuration>(
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
+        LV_DISPLAY_ROTATION_90,                   // Landscape
         touch
     );
     return std::make_shared<LovyanGFXDisplay>(std::move(config));
