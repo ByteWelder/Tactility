@@ -1,11 +1,12 @@
 #include "LovyanDisplay.h"
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
-#include <LovyanGFX.h>
 #include <esp_log.h>
+#include <LovyanGFX.h>
 
 static const char* TAG = "LovyanDisplay";
 
+// Simplified LovyanGFX class for CYD-2432S022C
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
 public:
     lgfx::Panel_ST7789 _panel_instance;
@@ -13,58 +14,97 @@ public:
     lgfx::Light_PWM _light_instance;
 
     LGFX_CYD_2432S022C() {
-        auto bus_cfg = _bus_instance.config();
-        bus_cfg.pin_wr = CYD_2432S022C_LCD_PIN_WR;
-        bus_cfg.pin_rd = CYD_2432S022C_LCD_PIN_RD;
-        bus_cfg.pin_rs = CYD_2432S022C_LCD_PIN_DC;
-        bus_cfg.pin_d0 = CYD_2432S022C_LCD_PIN_D0;
-        bus_cfg.pin_d1 = CYD_2432S022C_LCD_PIN_D1;
-        bus_cfg.pin_d2 = CYD_2432S022C_LCD_PIN_D2;
-        bus_cfg.pin_d3 = CYD_2432S022C_LCD_PIN_D3;
-        bus_cfg.pin_d4 = CYD_2432S022C_LCD_PIN_D4;
-        bus_cfg.pin_d5 = CYD_2432S022C_LCD_PIN_D5;
-        bus_cfg.pin_d6 = CYD_2432S022C_LCD_PIN_D6;
-        bus_cfg.pin_d7 = CYD_2432S022C_LCD_PIN_D7;
-        _bus_instance.config(bus_cfg);
-        _panel_instance.setBus(&_bus_instance);
+        ESP_LOGI(TAG, "Initializing LGFX_CYD_2432S022C display class");
 
-        auto panel_cfg = _panel_instance.config();
-        panel_cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
-        panel_cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;
-        panel_cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
-        panel_cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
-        _panel_instance.config(panel_cfg);
+        // Bus configuration
+        {
+            auto cfg = _bus_instance.config();
+            cfg.pin_wr = CYD_2432S022C_LCD_PIN_WR;
+            cfg.pin_rd = CYD_2432S022C_LCD_PIN_RD;
+            cfg.pin_rs = CYD_2432S022C_LCD_PIN_DC;
+            cfg.pin_d0 = CYD_2432S022C_LCD_PIN_D0;
+            cfg.pin_d1 = CYD_2432S022C_LCD_PIN_D1;
+            cfg.pin_d2 = CYD_2432S022C_LCD_PIN_D2;
+            cfg.pin_d3 = CYD_2432S022C_LCD_PIN_D3;
+            cfg.pin_d4 = CYD_2432S022C_LCD_PIN_D4;
+            cfg.pin_d5 = CYD_2432S022C_LCD_PIN_D5;
+            cfg.pin_d6 = CYD_2432S022C_LCD_PIN_D6;
+            cfg.pin_d7 = CYD_2432S022C_LCD_PIN_D7;
+            _bus_instance.config(cfg);
+            _panel_instance.setBus(&_bus_instance);
+        }
 
-        auto light_cfg = _light_instance.config();
-        light_cfg.pin_bl = GPIO_NUM_0;
-        _light_instance.config(light_cfg);
-        _panel_instance.setLight(&_light_instance);
+        // Panel configuration (simplified, with offset fix)
+        {
+            auto cfg = _panel_instance.config();
+            cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
+            cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;
+            cfg.pin_busy = -1;
+            cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;  // 240
+            cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;    // 320
+            cfg.offset_x = 0;  // Adjust if shifted
+            cfg.offset_y = 0;  // Adjust if shifted
+            cfg.rgb_order = false;  // BGR order
+            _panel_instance.config(cfg);
+        }
+
+        // Backlight configuration
+        {
+            auto cfg = _light_instance.config();
+            cfg.pin_bl = GPIO_NUM_0;
+            cfg.invert = false;
+            cfg.freq = 44100;
+            cfg.pwm_channel = 7;
+            _light_instance.config(cfg);
+            _panel_instance.setLight(&_light_instance);
+        }
 
         setPanel(&_panel_instance);
+        ESP_LOGI(TAG, "LGFX_CYD_2432S022C initialization complete");
     }
 };
 
+// LovyanGFX display device implementation for Tactility
 class LovyanGFXDisplay : public tt::hal::display::DisplayDevice {
 public:
     struct Configuration {
-        uint16_t width, height;
+        uint16_t width;
+        uint16_t height;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        Configuration(uint16_t w, uint16_t h, std::shared_ptr<tt::hal::touch::TouchDevice> t) : width(w), height(h), touch(t) {}
+        Configuration(uint16_t width, uint16_t height, std::shared_ptr<tt::hal::touch::TouchDevice> touch)
+            : width(width), height(height), touch(std::move(touch)) {}
     };
 
-    LovyanGFXDisplay(std::unique_ptr<Configuration> config) : config(std::move(config)) {}
-    ~LovyanGFXDisplay() override { stop(); }
+    explicit LovyanGFXDisplay(std::unique_ptr<Configuration> config)
+        : configuration(std::move(config)) {
+        ESP_LOGI(TAG, "LovyanGFXDisplay constructor called with width=%d, height=%d",
+                 configuration->width, configuration->height);
+    }
 
-   bool start() override {
-        ESP_LOGI("LovyanDisplay", "Starting, DRAM free: %u", heap_caps_get_free_size(MALLOC_CAP_DMA));
-        lcd.init();
-        ESP_LOGI("LovyanDisplay", "LCD init done");
-        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", config->width, config->height);  // 240x320
-        lvglDisplay = lv_display_create(config->width, config->height);
+    ~LovyanGFXDisplay() override {
+        stop();
+    }
+
+    bool start() override {
+        if (isStarted) {
+            ESP_LOGW(TAG, "Display already started");
+            return true;
+        }
+
+        ESP_LOGI(TAG, "Starting LovyanGFX display");
+        lcd.init();  // LovyanGFX handles ST7789 init (Sleep Out, Color Mode, Display ON)
+
+        // LVGL setup with native portrait resolution
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);  // 240x320
+        lvglDisplay = lv_display_create(configuration->width, configuration->height);
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
             return false;
         }
+
+        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
+
+        // Allocate buffers (keeping custom for now)
         size_t buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t);
         static uint16_t* buf1 = nullptr;
         static uint16_t* buf2 = nullptr;
@@ -79,6 +119,7 @@ public:
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes", buf1, buf2, buffer_size);
 
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
         // Flush callback using LovyanGFX
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
@@ -87,30 +128,53 @@ public:
             lv_display_flush_ready(disp);
         });
 
+        isStarted = true;
         ESP_LOGI(TAG, "LovyanGFX display started successfully");
         return true;
     }
 
-    bool stop() override { if (lvglDisplay) lv_display_delete(lvglDisplay); lvglDisplay = nullptr; return true; }
-    void setBacklightDuty(uint8_t duty) override { lcd.setBrightness(duty); }
+    bool stop() override {
+        if (!isStarted) return true;
+        if (configuration && configuration->touch) configuration->touch->stop();
+        if (lvglDisplay) lv_display_delete(lvglDisplay);
+        lvglDisplay = nullptr;
+        isStarted = false;
+        return true;
+    }
+
+    void setBacklightDuty(uint8_t backlightDuty) override {
+        if (isStarted) lcd.setBrightness(backlightDuty);
+    }
+
     bool supportsBacklightDuty() const override { return true; }
+
     lv_display_t* getLvglDisplay() const override { return lvglDisplay; }
-    std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override { return config->touch; }
-    std::string getName() const override { return "CYD-2432S022C"; }
-    std::string getDescription() const override { return "LovyanGFX"; }
+
+    std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override {
+        return configuration ? configuration->touch : nullptr;
+    }
+
+    std::string getName() const override { return "CYD-2432S022C Display"; }
+    std::string getDescription() const override { return "LovyanGFX-based display for CYD-2432S022C board"; }
 
 private:
-    std::unique_ptr<Configuration> config;
+    std::unique_ptr<Configuration> configuration;
     LGFX_CYD_2432S022C lcd;
     lv_display_t* lvglDisplay = nullptr;
+    bool isStarted = false;
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto touch = createCST820Touch();
-    if (!touch) return nullptr;
-    return std::make_shared<LovyanGFXDisplay>(std::make_unique<LovyanGFXDisplay::Configuration>(
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
+    if (!touch) {
+        ESP_LOGE(TAG, "Failed to create touch device!");
+        return nullptr;
+    }
+
+    auto config = std::make_unique<LovyanGFXDisplay::Configuration>(
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
         touch
-    ));
+    );
+    return std::make_shared<LovyanGFXDisplay>(std::move(config));
 }
