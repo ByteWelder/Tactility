@@ -1,5 +1,5 @@
 #include <driver/gpio.h>
-#include "CYD2432S022CConstants.h"
+#include "hal/CYD2432S022CConstants.h"
 
 #define TAG "CYD2432S022C"
 
