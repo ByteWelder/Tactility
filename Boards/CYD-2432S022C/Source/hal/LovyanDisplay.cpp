@@ -1,6 +1,7 @@
 #include "LovyanDisplay.h"
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
+#include "Tactility/app/display/DisplaySettings.h"  // Add this include
 #include <esp_log.h>
 #include <LovyanGFX.h>
 #include <inttypes.h>
