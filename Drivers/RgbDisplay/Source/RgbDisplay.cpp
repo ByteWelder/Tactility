@@ -3,7 +3,7 @@
 #include <Tactility/Log.h>
 
 #include <esp_err.h>
-#include <esp_lcd_panel_rgb.h>
+#include "/opt/esp/idf/components/esp_lcd/rgb/include/esp_lcd_panel_rgb.h"
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port.h>
 
