@@ -37,4 +37,5 @@ private:
 
     std::unique_ptr<Configuration> config_;
     lv_indev_t* indev_ = nullptr;
+    lv_display_t* display_ = nullptr;  // Store display for rotation
 };
