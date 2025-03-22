@@ -7,7 +7,7 @@
 #include <Tactility/kernel/SystemEvents.h>
 
 #ifdef ESP_PLATFORM
-#include "Tactility/lvgl/EspLvglPort.h"
+#include "../../../Tactility/Private/Tactility/lvgl/EspLvglPort.h"
 #endif
 
 #include <lvgl.h>
