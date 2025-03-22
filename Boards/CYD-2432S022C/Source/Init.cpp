@@ -14,7 +14,7 @@
 
 namespace tt::lvgl {
 
-#define TAG "lvgl_init"
+#define TAG "cyd22_init"
 
 static std::shared_ptr<tt::hal::display::DisplayDevice> initDisplay(const hal::Configuration& config) {
     assert(config.createDisplay);
