@@ -62,7 +62,9 @@ public:
         if (!buf1 || !buf2) return false;
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-            static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp))->lcd.pushPixels((uint16_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
+            auto* d = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
+            d->lcd.setWindow(area->x1, area->y1, area->x2, area->y2);
+            d->lcd.pushPixels((uint16_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
             lv_display_flush_ready(disp);
         });
         return true;
