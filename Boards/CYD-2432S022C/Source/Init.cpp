@@ -1,7 +1,7 @@
-#include "../../Tactility/app/display/DisplaySettings.h"
-#include "../../Tactility/lvgl/Keyboard.h"
-#include "../../Tactility/hal/display/DisplayDevice.h"
-#include "../../Tactility/hal/touch/TouchDevice.h"
+#include "../../../Tactility/Include/Tactility/app/display/DisplaySettings.h"
+#include "../../../Tactility/Include/Tactility/lvgl/Keyboard.h"
+#include "../../../TactilityHeadless/Include/Tactility/hal/display/DisplayDevice.h"
+#include "../../../TactilityHeadless/Include/Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
 #include <Tactility/kernel/SystemEvents.h>
