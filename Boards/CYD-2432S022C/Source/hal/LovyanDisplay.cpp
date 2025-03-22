@@ -49,7 +49,7 @@ public:
         Configuration(uint16_t w, uint16_t h, std::shared_ptr<tt::hal::touch::TouchDevice> t) : width(w), height(h), touch(t) {}
     };
 
-    LovyanGFXDisplay(std::unique_ptr<Configuration> c) : config(std::move(c)) {}
+    LovyanGFXDisplay(std::unique_ptr<Configuration> config) : config(std::move(config)) {}
     ~LovyanGFXDisplay() override { stop(); }
 
     bool start() override {
@@ -81,3 +81,13 @@ private:
     LGFX_CYD_2432S022C lcd;
     lv_display_t* lvglDisplay = nullptr;
 };
+
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
+    auto touch = createCST820Touch();
+    if (!touch) return nullptr;
+    return std::make_shared<LovyanGFXDisplay>(std::make_unique<LovyanGFXDisplay::Configuration>(
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
+        touch
+    ));
+}
