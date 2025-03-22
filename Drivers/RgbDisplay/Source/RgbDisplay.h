@@ -2,7 +2,7 @@
 
 #include "Tactility/hal/display/DisplayDevice.h"
 
-#include <esp_lcd_panel_rgb.h>
+#include "/opt/esp/idf/components/esp_lcd/rgb/include/esp_lcd_panel_rgb.h"
 #include <esp_lcd_types.h>
 #include <lvgl.h>
 
