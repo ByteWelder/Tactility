@@ -66,13 +66,12 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Current transformation
-                logical_x = y;
-                logical_y = 240 - x - 1;
-                break;
-            case LV_DISPLAY_ROTATION_270:
                 logical_x = 320 - y - 1;
                 logical_y = x;
+                break;
+            case LV_DISPLAY_ROTATION_270:
+                logical_x = y;
+                logical_y = 240 - x - 1;
                 break;
             case LV_DISPLAY_ROTATION_180:
                 logical_x = 320 - x - 1;
