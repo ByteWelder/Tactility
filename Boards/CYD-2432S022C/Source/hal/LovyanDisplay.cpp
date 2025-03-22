@@ -43,7 +43,7 @@ public:
         {
             auto cfg = _panel_instance.config();
             cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
-            cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;  // No reset pin
+            cfg.pin_rst = -1;  // No reset pin
             cfg.pin_busy = -1;
             cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
             cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
@@ -229,17 +229,48 @@ public:
                 hw_y2 = y2;
             }
 
-            int32_t width = x2 - x1 + 1;
-            int32_t height = y2 - y1 + 1;
+            int32_t logical_width = x2 - x1 + 1;
+            int32_t logical_height = y2 - y1 + 1;
+            int32_t hw_width = hw_x2 - hw_x1 + 1;
+            int32_t hw_height = hw_y2 - hw_y1 + 1;
             ESP_LOGI(TAG, "Flush callback: data=%p, rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
                           " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32
                           ", writing %" PRId32 " pixels",
-                     data, x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2, width * height);
+                     data, x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2, logical_width * logical_height);
+
+            // Allocate a temporary buffer for rotated pixel data
+            uint16_t* rotated_data = (uint16_t*)heap_caps_malloc(logical_width * logical_height * sizeof(uint16_t), MALLOC_CAP_DEFAULT);
+            if (!rotated_data) {
+                ESP_LOGE(TAG, "Failed to allocate rotated_data buffer!");
+                lv_display_flush_ready(disp);
+                return;
+            }
+
+            // Rotate the pixel data for 90° rotation
+            if (current_rotation == LV_DISPLAY_ROTATION_90) {
+                for (int32_t y = 0; y < logical_height; y++) {
+                    for (int32_t x = 0; x < logical_width; x++) {
+                        // Logical (x, y) in data buffer -> Hardware (y, 320 - x - 1)
+                        int32_t src_idx = y * logical_width + x;
+                        int32_t dst_x = y;
+                        int32_t dst_y = logical_width - x - 1;
+                        int32_t dst_idx = dst_y * hw_width + dst_x;
+                        rotated_data[dst_idx] = ((uint16_t*)data)[src_idx];
+                    }
+                }
+            } else {
+                // For other rotations, copy directly (or add similar transformations)
+                memcpy(rotated_data, data, logical_width * logical_height * sizeof(uint16_t));
+            }
 
             display->lcd.startWrite();
-            display->lcd.setAddrWindow(hw_x1, hw_y1, hw_x2 - hw_x1 + 1, hw_y2 - hw_y1 + 1);
-            display->lcd.writePixels((lgfx::rgb565_t*)data, width * height);
+            display->lcd.setAddrWindow(hw_x1, hw_y1, hw_width, hw_height);
+            display->lcd.writePixels((lgfx::rgb565_t*)rotated_data, logical_width * logical_height);
             display->lcd.endWrite();
+
+            // Free the temporary buffer
+            heap_caps_free(rotated_data);
+
             lv_display_flush_ready(disp);
         });
 
