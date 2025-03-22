@@ -57,15 +57,36 @@ public:
         ESP_LOGI("LovyanDisplay", "Starting, DRAM free: %u", heap_caps_get_free_size(MALLOC_CAP_DMA));
         lcd.init();
         ESP_LOGI("LovyanDisplay", "LCD init done");
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);  // 240x320
         lvglDisplay = lv_display_create(config->width, config->height);
-        if (!lvglDisplay) { ESP_LOGE("LovyanDisplay", "LVGL create failed"); return false; }
-        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
-        static uint16_t* buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA);
-        static uint16_t* buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA);
-        if (!buf1 || !buf2) { ESP_LOGE("LovyanDisplay", "Buffer alloc failed: buf1=%p, buf2=%p", buf1, buf2); return false; }
-        ESP_LOGI("LovyanDisplay", "Buffers allocated");
+        if (!lvglDisplay) {
+            ESP_LOGE(TAG, "Failed to create LVGL display");
+            return false;
+        }
+        size_t buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t);
+        static uint16_t* buf1 = nullptr;
+        static uint16_t* buf2 = nullptr;
+        buf1 = (uint16_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        buf2 = (uint16_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+        if (!buf1 || !buf2) {
+            ESP_LOGE(TAG, "Failed to allocate buffers! Size: %d bytes", buffer_size);
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
+            return false;
+        }
+        ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes", buf1, buf2, buffer_size);
+
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
-        ESP_LOGI("LovyanDisplay", "Display started");
+        // Flush callback using LovyanGFX
+        lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
+            auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
+            display->lcd.setWindow(area->x1, area->y1, area->x2, area->y2);
+            display->lcd.pushPixels((uint16_t*)data, (area->x2 - area->x1 + 1) * (area->y2 - area->y1 + 1));
+            lv_display_flush_ready(disp);
+        });
+
+        isStarted = true;
+        ESP_LOGI(TAG, "LovyanGFX display started successfully");
         return true;
     }
 
