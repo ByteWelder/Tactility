@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
 #include <LovyanGFX.h>
-
+#include <esp_log.h>
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
 public:
     lgfx::Panel_ST7789 _panel_instance;
