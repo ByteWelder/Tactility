@@ -2,8 +2,8 @@
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
 #include <esp_log.h>
+#include <driver/ledc.h>  // Added for LEDC types and functions
 
-// Static TAG for logging
 static const char* TAG = "YellowDisplay";
 
 // Backlight PWM setup
@@ -37,12 +37,10 @@ static void backlight_set_duty(uint8_t duty) {
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0));
 }
 
-// Thin wrapper around RgbDisplay
+// Thin wrapper around RgbDisplay (no overrides for final methods)
 class YellowDisplay : public RgbDisplay {
 public:
     explicit YellowDisplay(std::unique_ptr<Configuration> config) : RgbDisplay(std::move(config)) {}
-    std::string getName() const override { return "Yellow Display"; }
-    std::string getDescription() const override { return "ST7789 8-bit parallel display for CYD-2432S022C"; }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -109,7 +107,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .avoidTearing = false
     };
 
-    // Initialize backlight and provide callback
     backlight_init(CYD_2432S022C_LCD_PIN_BACKLIGHT);  // GPIO_NUM_0
 
     auto config = std::make_unique<RgbDisplay::Configuration>(
@@ -121,7 +118,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         false,
         false,
         false,
-        [](uint8_t duty) { backlight_set_duty(duty); }  // Backlight callback
+        [](uint8_t duty) { backlight_set_duty(duty); }
     );
 
     return std::make_shared<YellowDisplay>(std::move(config));
