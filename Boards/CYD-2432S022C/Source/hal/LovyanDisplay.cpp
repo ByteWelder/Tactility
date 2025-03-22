@@ -118,17 +118,6 @@ public:
 
         lcd.setBrightness(0);  // Start with backlight off
 
-        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
-        lvglDisplay = lv_display_create(configuration->width, configuration->height);
-        if (!lvglDisplay) {
-            ESP_LOGE(TAG, "Failed to create LVGL display");
-            return false;
-        }
-
-        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
-        ESP_LOGI(TAG, "Setting initial display rotation to %d", configuration->rotation);
-        lv_disp_set_rotation(lvglDisplay, configuration->rotation);
-
         // Calculate buffer size dynamically based on rotation
         const size_t buffer_width = (configuration->rotation == LV_DISPLAY_ROTATION_90 || configuration->rotation == LV_DISPLAY_ROTATION_270)
                                     ? configuration->height  // 320
@@ -136,6 +125,7 @@ public:
         const size_t buffer_height = 64;  // Partial rendering height
         bufferSize = buffer_width * buffer_height;  // e.g., 320 * 64 = 20480 pixels
 
+        // Allocate and check buffers first
         ESP_LOGI(TAG, "Heap free before buffer allocation: %d bytes (DMA: %d bytes)",
                  heap_caps_get_free_size(MALLOC_CAP_DEFAULT),
                  heap_caps_get_free_size(MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
@@ -144,15 +134,57 @@ public:
         if (!buf1 || !buf2) {
             ESP_LOGE(TAG, "Failed to allocate buffers! Size requested: %d bytes",
                      bufferSize * sizeof(uint16_t));
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
+            buf1 = nullptr;
+            buf2 = nullptr;
             return false;
         }
         ESP_LOGI(TAG, "Allocated buffers: buf1=%p, buf2=%p, size=%d bytes",
                  buf1, buf2, bufferSize * sizeof(uint16_t));
 
+        // Check buffers before creating display
+        if (!buf1 || !buf2 || bufferSize == 0) {
+            ESP_LOGE(TAG, "Invalid buffers: buf1=%p, buf2=%p, bufferSize=%d",
+                     buf1, buf2, bufferSize);
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
+            buf1 = nullptr;
+            buf2 = nullptr;
+            return false;
+        }
+
+        // Now create the LVGL display
+        ESP_LOGI(TAG, "Creating LVGL display: %dx%d", configuration->width, configuration->height);
+        lvglDisplay = lv_display_create(configuration->width, configuration->height);
+        if (!lvglDisplay) {
+            ESP_LOGE(TAG, "Failed to create LVGL display");
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
+            buf1 = nullptr;
+            buf2 = nullptr;
+            return false;
+        }
+
+        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
+        ESP_LOGI(TAG, "Setting initial display rotation to %d", configuration->rotation);
+        lv_disp_set_rotation(lvglDisplay, configuration->rotation);
+
         // Set buffers with partial rendering
         ESP_LOGI(TAG, "Setting LVGL buffers with render mode PARTIAL");
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "LVGL buffers set successfully");
+
+        // Check display and buffers before setting flush callback
+        if (!lvglDisplay || !buf1 || !buf2) {
+            ESP_LOGE(TAG, "Cannot set flush callback: display=%p, buf1=%p, buf2=%p",
+                     lvglDisplay, buf1, buf2);
+            if (buf1) heap_caps_free(buf1);
+            if (buf2) heap_caps_free(buf2);
+            buf1 = nullptr;
+            buf2 = nullptr;
+            return false;
+        }
 
         // Set flush callback
         ESP_LOGI(TAG, "Setting flush callback");
@@ -201,7 +233,7 @@ public:
             int32_t height = y2 - y1 + 1;
             ESP_LOGI(TAG, "Flush callback: data=%p, rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
                           " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32
-                          ", writing %d pixels",
+                          ", writing %" PRId32 " pixels",
                      data, x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2, width * height);
 
             display->lcd.startWrite();
