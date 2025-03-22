@@ -53,13 +53,16 @@ public:
     ~LovyanGFXDisplay() override { stop(); }
 
     bool start() override {
+        ESP_LOGI("LovyanDisplay", "Starting");
         lcd.init();
+        ESP_LOGI("LovyanDisplay", "LCD init done");
         lcd.setBrightness(0);
         lvglDisplay = lv_display_create(config->width, config->height);
+        if (!lvglDisplay) { ESP_LOGE("LovyanDisplay", "LVGL create failed"); return false; }
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         static uint16_t* buf1 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         static uint16_t* buf2 = (uint16_t*)heap_caps_malloc(CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
-        if (!buf1 || !buf2) return false;
+        if (!buf1 || !buf2) { ESP_LOGE("LovyanDisplay", "Buffer alloc failed"); return false; }
         lv_display_set_buffers(lvglDisplay, buf1, buf2, CYD_2432S022C_LCD_DRAW_BUFFER_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* d = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
