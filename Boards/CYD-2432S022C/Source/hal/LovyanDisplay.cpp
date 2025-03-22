@@ -116,6 +116,17 @@ public:
         lcd.writeCommand(0x29); // Display ON
         vTaskDelay(pdMS_TO_TICKS(50));
 
+        // Set rotation in LovyanGFX to match LVGL
+        uint8_t lovyan_rotation = 0;
+        switch (configuration->rotation) {
+            case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;
+            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 1; break;
+            case LV_DISPLAY_ROTATION_180: lovyan_rotation = 2; break;
+            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 3; break;
+        }
+        lcd.setRotation(lovyan_rotation);
+        ESP_LOGI(TAG, "Set LovyanGFX rotation to %d", lovyan_rotation);
+
         lcd.setBrightness(0);  // Start with backlight off
 
         // Calculate buffer size dynamically based on rotation
@@ -203,73 +214,18 @@ public:
             }
 
             int32_t x1 = area->x1, y1 = area->y1, x2 = area->x2, y2 = area->y2;
-            lv_display_rotation_t current_rotation = lv_disp_get_rotation(disp);
+            int32_t width = x2 - x1 + 1;
+            int32_t height = y2 - y1 + 1;
 
-            // Transform coordinates based on rotation
-            int32_t hw_x1, hw_y1, hw_x2, hw_y2;
-            if (current_rotation == LV_DISPLAY_ROTATION_90) {
-                hw_x1 = y1;
-                hw_y1 = 320 - x2 - 1;
-                hw_x2 = y2;
-                hw_y2 = 320 - x1 - 1;
-            } else if (current_rotation == LV_DISPLAY_ROTATION_270) {
-                hw_x1 = 240 - y2 - 1;
-                hw_y1 = x1;
-                hw_x2 = 240 - y1 - 1;
-                hw_y2 = x2;
-            } else if (current_rotation == LV_DISPLAY_ROTATION_180) {
-                hw_x1 = 240 - x2 - 1;
-                hw_y1 = 320 - y2 - 1;
-                hw_x2 = 240 - x1 - 1;
-                hw_y2 = 320 - y1 - 1;
-            } else {  // LV_DISPLAY_ROTATION_0
-                hw_x1 = x1;
-                hw_y1 = y1;
-                hw_x2 = x2;
-                hw_y2 = y2;
-            }
-
-            int32_t logical_width = x2 - x1 + 1;
-            int32_t logical_height = y2 - y1 + 1;
-            int32_t hw_width = hw_x2 - hw_x1 + 1;
-            int32_t hw_height = hw_y2 - hw_y1 + 1;
-            ESP_LOGI(TAG, "Flush callback: data=%p, rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
-                          " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32
+            ESP_LOGI(TAG, "Flush callback: data=%p, x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
                           ", writing %" PRId32 " pixels",
-                     data, x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2, logical_width * logical_height);
+                     data, x1, y1, x2, y2, width * height);
 
-            // Allocate a temporary buffer for rotated pixel data
-            uint16_t* rotated_data = (uint16_t*)heap_caps_malloc(logical_width * logical_height * sizeof(uint16_t), MALLOC_CAP_DEFAULT);
-            if (!rotated_data) {
-                ESP_LOGE(TAG, "Failed to allocate rotated_data buffer!");
-                lv_display_flush_ready(disp);
-                return;
-            }
-
-            // Rotate the pixel data for 90° rotation
-            if (current_rotation == LV_DISPLAY_ROTATION_90) {
-                for (int32_t y = 0; y < logical_height; y++) {
-                    for (int32_t x = 0; x < logical_width; x++) {
-                        // Logical (x, y) in data buffer -> Hardware (y, 320 - x - 1)
-                        int32_t src_idx = y * logical_width + x;
-                        int32_t dst_x = y;
-                        int32_t dst_y = logical_width - x - 1;
-                        int32_t dst_idx = dst_y * hw_width + dst_x;
-                        rotated_data[dst_idx] = ((uint16_t*)data)[src_idx];
-                    }
-                }
-            } else {
-                // For other rotations, copy directly (or add similar transformations)
-                memcpy(rotated_data, data, logical_width * logical_height * sizeof(uint16_t));
-            }
-
+            // Since LovyanGFX handles rotation, use the logical coordinates directly
             display->lcd.startWrite();
-            display->lcd.setAddrWindow(hw_x1, hw_y1, hw_width, hw_height);
-            display->lcd.writePixels((lgfx::rgb565_t*)rotated_data, logical_width * logical_height);
+            display->lcd.setAddrWindow(x1, y1, width, height);
+            display->lcd.writePixels((lgfx::rgb565_t*)data, width * height);
             display->lcd.endWrite();
-
-            // Free the temporary buffer
-            heap_caps_free(rotated_data);
 
             lv_display_flush_ready(disp);
         });
