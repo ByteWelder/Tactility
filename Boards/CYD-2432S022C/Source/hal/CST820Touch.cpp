@@ -65,30 +65,32 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
 
         switch (rotation) {
-            case LV_DISPLAY_ROTATION_0:
-            default:
-                logical_x = x;
-                logical_y = y;
-                break;
             case LV_DISPLAY_ROTATION_90:
-                logical_x = 320 - x - 1;
-                logical_y = y;
-                break;
-            case LV_DISPLAY_ROTATION_180:
-                logical_x = 320 - y - 1;
-                logical_y = 240 - x - 1;
+                logical_x = 320 - y - 1;  // Logical width is 320 (landscape)
+                logical_y = x;            // Logical height is 240
                 break;
             case LV_DISPLAY_ROTATION_270:
-                logical_x = x;
-                logical_y = 240 - y - 1;
+                logical_x = y;            // Logical width is 320 (landscape)
+                logical_y = 240 - x - 1;  // Logical height is 240
+                break;
+            case LV_DISPLAY_ROTATION_180:
+                logical_x = 240 - x - 1;  // Logical width is 240 (portrait)
+                logical_y = 320 - y - 1;  // Logical height is 320
+                break;
+            case LV_DISPLAY_ROTATION_0:
+            default:
+                logical_x = x;            // Logical width is 240 (portrait)
+                logical_y = y;            // Logical height is 320
                 break;
         }
 
-        // Clamp coordinates to logical display bounds (320x240)
+        // Clamp coordinates to logical display bounds
+        int32_t max_x = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 319 : 239;
+        int32_t max_y = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 239 : 319;
         if (logical_x < 0) logical_x = 0;
-        if (logical_x > 319) logical_x = 319;
+        if (logical_x > max_x) logical_x = max_x;
         if (logical_y < 0) logical_y = 0;
-        if (logical_y > 239) logical_y = 239;
+        if (logical_y > max_y) logical_y = max_y;
 
         ESP_LOGI(TAG, "Transformed touch: logical x=%" PRId32 ", y=%" PRId32, logical_x, logical_y);
 
