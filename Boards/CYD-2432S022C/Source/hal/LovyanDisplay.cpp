@@ -1,7 +1,7 @@
 #include "LovyanDisplay.h"
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
-#include "Tactility/app/display/DisplaySettings.h"  // Add this include
+#include "Tactility/app/display/DisplaySettings.h"
 #include <esp_log.h>
 #include <LovyanGFX.h>
 #include <inttypes.h>
@@ -43,7 +43,7 @@ public:
         {
             auto cfg = _panel_instance.config();
             cfg.pin_cs = CYD_2432S022C_LCD_PIN_CS;
-            cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;
+            cfg.pin_rst = CYD_2432S022C_LCD_PIN_RST;  // No reset pin
             cfg.pin_busy = -1;
             cfg.panel_width = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
             cfg.panel_height = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
@@ -157,11 +157,23 @@ public:
         // Set flush callback
         ESP_LOGI(TAG, "Setting flush callback");
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
+            // Since Tactility sets the user data, retrieve it
             auto* display = static_cast<LovyanGFXDisplay*>(lv_display_get_user_data(disp));
+            if (!display) {
+                ESP_LOGE(TAG, "Flush callback: Display pointer is null!");
+                lv_display_flush_ready(disp);
+                return;
+            }
+            if (!data) {
+                ESP_LOGE(TAG, "Flush callback: Data pointer is null!");
+                lv_display_flush_ready(disp);
+                return;
+            }
+
             int32_t x1 = area->x1, y1 = area->y1, x2 = area->x2, y2 = area->y2;
+            lv_display_rotation_t current_rotation = lv_disp_get_rotation(disp);
 
             // Transform coordinates based on rotation
-            lv_display_rotation_t current_rotation = lv_disp_get_rotation(disp);
             int32_t hw_x1, hw_y1, hw_x2, hw_y2;
             if (current_rotation == LV_DISPLAY_ROTATION_90) {
                 hw_x1 = y1;
@@ -185,13 +197,16 @@ public:
                 hw_y2 = y2;
             }
 
-            ESP_LOGI(TAG, "Flush callback: rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
-                          " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32,
-                     x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2);
+            int32_t width = x2 - x1 + 1;
+            int32_t height = y2 - y1 + 1;
+            ESP_LOGI(TAG, "Flush callback: data=%p, rotated x1=%" PRId32 ", y1=%" PRId32 ", x2=%" PRId32 ", y2=%" PRId32
+                          " -> hw_x1=%" PRId32 ", hw_y1=%" PRId32 ", hw_x2=%" PRId32 ", hw_y2=%" PRId32
+                          ", writing %d pixels",
+                     data, x1, y1, x2, y2, hw_x1, hw_y1, hw_x2, hw_y2, width * height);
 
             display->lcd.startWrite();
             display->lcd.setAddrWindow(hw_x1, hw_y1, hw_x2 - hw_x1 + 1, hw_y2 - hw_y1 + 1);
-            display->lcd.writePixels((lgfx::rgb565_t*)data, (x2 - x1 + 1) * (y2 - y1 + 1));
+            display->lcd.writePixels((lgfx::rgb565_t*)data, width * height);
             display->lcd.endWrite();
             lv_display_flush_ready(disp);
         });
