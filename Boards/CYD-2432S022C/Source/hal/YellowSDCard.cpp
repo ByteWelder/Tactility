@@ -4,7 +4,7 @@
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
-std::shared_ptr<SdCardDevice> createYellowSdCard() {
+std::shared_ptr<SdCardDevice> createYellowSDCard() {
     auto* configuration = new SpiSdCardDevice::Config(
         CYD_2432S022C_SDCARD_PIN_CS,
         GPIO_NUM_NC,
