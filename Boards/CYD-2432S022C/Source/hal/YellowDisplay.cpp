@@ -2,7 +2,6 @@
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
 #include <esp_log.h>
-#include <esp_lcd_panel_rgb.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
