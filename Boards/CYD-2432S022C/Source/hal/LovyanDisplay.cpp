@@ -4,6 +4,8 @@
 #include <LovyanGFX.h>
 #include <esp_log.h>
 
+static const char* TAG = "LovyanDisplay";
+
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
 public:
     lgfx::Panel_ST7789 _panel_instance;
