@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
 #include <lvgl.h>
-#include <inttypes.h>  // Added for PRI macros
+#include <inttypes.h>
 
 static const char *TAG = "CST820Touch";
 
@@ -62,8 +62,11 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
         int32_t logical_x, logical_y;
 
+        ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
+
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
+                // Current transformation
                 logical_x = y;
                 logical_y = 240 - x - 1;
                 break;
@@ -82,7 +85,14 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
                 break;
         }
 
-        ESP_LOGD(TAG, "Touch: raw x=%" PRIu16 ", y=%" PRIu16 " -> logical x=%" PRId32 ", y=%" PRId32, x, y, logical_x, logical_y);
+        // Clamp coordinates to logical display bounds (320x240)
+        if (logical_x < 0) logical_x = 0;
+        if (logical_x > 319) logical_x = 319;
+        if (logical_y < 0) logical_y = 0;
+        if (logical_y > 239) logical_y = 239;
+
+        ESP_LOGI(TAG, "Transformed touch: logical x=%" PRId32 ", y=%" PRId32, logical_x, logical_y);
+
         data->point.x = logical_x;
         data->point.y = logical_y;
         data->state = LV_INDEV_STATE_PRESSED;
