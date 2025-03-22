@@ -2,6 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
 #include <lvgl.h>
+#include <inttypes.h>  // Added for PRI macros
 
 static const char *TAG = "CST820Touch";
 
@@ -81,7 +82,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
                 break;
         }
 
-        ESP_LOGD(TAG, "Touch: raw x=%d, y=%d -> logical x=%d, y=%d", x, y, logical_x, logical_y);
+        ESP_LOGD(TAG, "Touch: raw x=%" PRIu16 ", y=%" PRIu16 " -> logical x=%" PRId32 ", y=%" PRId32, x, y, logical_x, logical_y);
         data->point.x = logical_x;
         data->point.y = logical_y;
         data->state = LV_INDEV_STATE_PRESSED;
