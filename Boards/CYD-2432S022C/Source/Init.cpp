@@ -2,6 +2,8 @@
 #include "hal/CYD2432S022CConstants.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include <esp_log.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 #define TAG "CYD2432S022C"
 
@@ -15,7 +17,19 @@
 // Default orientation if not set in NVS
 #define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_90
 
+// Semaphore to signal initialization completion
+static SemaphoreHandle_t init_semaphore = nullptr;
+
 bool cyd22_init() {
+    // Create the semaphore if not already created
+    if (!init_semaphore) {
+        init_semaphore = xSemaphoreCreateBinary();
+        if (!init_semaphore) {
+            ESP_LOGE(TAG, "Failed to create init semaphore");
+            return false;
+        }
+    }
+
     ESP_LOGI(TAG, "Running cyd22_init");
 
     // Step 1: Configure backlight pin (LovyanGFX will handle PWM later)
@@ -27,9 +41,13 @@ bool cyd22_init() {
     io_conf.intr_type = GPIO_INTR_DISABLE;
     if (gpio_config(&io_conf) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure backlight pin");
+        xSemaphoreGive(init_semaphore);  // Signal completion even on failure
         return false;
     }
-    if (gpio_set_level(GPIO_NUM_0, 0) != ESP_OK) return false;  // Backlight off initially
+    if (gpio_set_level(GPIO_NUM_0, 0) != ESP_OK) {
+        xSemaphoreGive(init_semaphore);
+        return false;  // Backlight off initially
+    }
 
     // Step 2: Get Tactility orientation and set default if needed
     lv_display_rotation_t tactility_orientation = tt::app::display::getRotation();
@@ -55,5 +73,23 @@ bool cyd22_init() {
     ESP_LOGI(TAG, "Expected buffer size: %d pixels (%d bytes) for %dx%d",
              buffer_size, buffer_size * sizeof(uint16_t), buffer_width, BUFFER_HEIGHT);
 
+    // Signal that initialization is complete
+    xSemaphoreGive(init_semaphore);
+    return true;
+}
+
+// Function to wait for cyd22_init to complete (like "await")
+bool await_cyd22_init(TickType_t timeout) {
+    if (!init_semaphore) {
+        ESP_LOGE(TAG, "Init semaphore not created");
+        return false;
+    }
+
+    if (xSemaphoreTake(init_semaphore, timeout) != pdTRUE) {
+        ESP_LOGE(TAG, "Timed out waiting for cyd22_init to complete");
+        return false;
+    }
+
+    // Semaphore was taken, meaning init is complete
     return true;
 }
