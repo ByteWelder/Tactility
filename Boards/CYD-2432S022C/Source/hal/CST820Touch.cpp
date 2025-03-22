@@ -1,6 +1,7 @@
 #include "CST820Touch.h"
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
+#include <lvgl.h>
 
 static const char *TAG = "CST820Touch";
 
@@ -17,6 +18,7 @@ bool CST820Touch::start(lv_display_t* display) {
     });
     lv_indev_set_user_data(indev_, this);
     lv_indev_set_display(indev_, display);
+    display_ = display;  // Store the display pointer for rotation
     return true;
 }
 
@@ -26,6 +28,7 @@ bool CST820Touch::stop() {
         lv_indev_delete(indev_);
         indev_ = nullptr;
     }
+    display_ = nullptr;
     return true;
 }
 
@@ -50,10 +53,37 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
+        // Raw hardware coordinates (240x320)
         uint16_t x = (touch_data[2] << 8) | touch_data[3];
         uint16_t y = (touch_data[4] << 8) | touch_data[5];
-        data->point.x = x;
-        data->point.y = y;
+
+        // Transform coordinates based on display rotation
+        lv_display_rotation_t rotation = lv_display_get_rotation(display_);
+        int32_t logical_x, logical_y;
+
+        switch (rotation) {
+            case LV_DISPLAY_ROTATION_90:
+                logical_x = y;
+                logical_y = 240 - x - 1;
+                break;
+            case LV_DISPLAY_ROTATION_270:
+                logical_x = 320 - y - 1;
+                logical_y = x;
+                break;
+            case LV_DISPLAY_ROTATION_180:
+                logical_x = 320 - x - 1;
+                logical_y = 240 - y - 1;
+                break;
+            case LV_DISPLAY_ROTATION_0:
+            default:
+                logical_x = x;
+                logical_y = y;
+                break;
+        }
+
+        ESP_LOGD(TAG, "Touch: raw x=%d, y=%d -> logical x=%d, y=%d", x, y, logical_x, logical_y);
+        data->point.x = logical_x;
+        data->point.y = logical_y;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
