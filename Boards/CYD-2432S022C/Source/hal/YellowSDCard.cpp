@@ -11,7 +11,7 @@ std::shared_ptr<SdCardDevice> createYellowSDCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        std::make_shared<tt::Mutex>(),
+        nullptr,
         std::vector<gpio_num_t>(),
         CYD_2432S022C_SDCARD_SPI_HOST
     );
