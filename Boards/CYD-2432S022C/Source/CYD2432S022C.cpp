@@ -1,3 +1,4 @@
+#include "Init.cpp"
 #include "CYD2432S022C.h"
 #include "hal/LovyanDisplay.h"
 #include "hal/YellowSDCard.h"
