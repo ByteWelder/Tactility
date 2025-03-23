@@ -1,6 +1,6 @@
 #include "CST820Touch.h"
 #include "CYD2432S022CConstants.h"
-#include "touch_calibration_data.h"
+#include "TouchCalibrationData.h"
 #include "esp_log.h"
 #include <lvgl.h>
 #include <inttypes.h>
