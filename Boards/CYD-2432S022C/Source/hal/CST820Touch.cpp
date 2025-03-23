@@ -105,7 +105,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
             int32_t delta_x = logical_x - last_x_;
             int32_t delta_y = logical_y - last_y_;
             int32_t distance = delta_x * delta_x + delta_y * delta_y;  // Approximate distance squared
-            if (distance > 625) {  // Threshold: ~25 pixels
+            if (distance > 900) {  // Increased threshold: ~30 pixels
                 last_x_ = logical_x;
                 last_y_ = logical_y;
             } else {
