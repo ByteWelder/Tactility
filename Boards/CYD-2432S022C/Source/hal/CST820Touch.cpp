@@ -70,7 +70,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
             case LV_DISPLAY_ROTATION_90:
                 // Align touch with display rendering: (0, 0) top-left, (319, 239) bottom-right
                 logical_x = 319 - (x * 319) / 239;  // Scale to logical width of 320 and invert
-                logical_y = 239 - (y * 239) / 319 - 20;  // Scale to logical height of 240, invert, add offset
+                logical_y = 239 - (y * 239) / 319 - 40;  // Scale to logical height of 240, invert, adjust offset
                 break;
             case LV_DISPLAY_ROTATION_270:
                 // Align touch with display rendering: (0, 0) top-right, (319, 239) bottom-left
@@ -78,8 +78,12 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
                 logical_y = (y * 239) / 319;        // Scale to logical height of 240
                 break;
             case LV_DISPLAY_ROTATION_180:
-                logical_x = y;
-                logical_y = x;
+                // Align touch with display rendering: (0, 0) bottom-left, (239, 319) top-right
+                // Apply a 90-degree shift to the touch transformation
+                int32_t temp_x = 239 - x;
+                int32_t temp_y = 319 - y;
+                logical_x = temp_y;
+                logical_y = 239 - temp_x;
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
