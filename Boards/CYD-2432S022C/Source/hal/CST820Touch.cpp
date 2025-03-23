@@ -66,25 +66,25 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Landscape, USB on right
-                logical_x = 319 - y;  // Logical width is 320 (landscape)
-                logical_y = 239 - x;  // Logical height is 240
+                // Adjusted to match your mapping: (0, 0) top-right, (319, 239) bottom-left
+                logical_x = 239 - x;      // Logical width is 320 (landscape)
+                logical_y = (y * 239) / 319;  // Scale to logical height of 240
                 break;
             case LV_DISPLAY_ROTATION_270:
-                // Landscape, USB on left
-                logical_x = y;        // Logical width is 320 (landscape)
-                logical_y = x;        // Logical height is 240
+                // Use the transformation for 0 degrees
+                logical_x = 239 - x;      // Logical width is 320 (landscape)
+                logical_y = y;            // Logical height is 240
                 break;
             case LV_DISPLAY_ROTATION_180:
-                // Portrait, USB at top
-                logical_x = x;        // Logical width is 240 (portrait)
-                logical_y = 319 - y;  // Logical height is 320
+                // Use the transformation for 270 degrees
+                logical_x = y;            // Logical width is 240 (portrait)
+                logical_y = x;            // Logical height is 320
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
-                // Portrait, USB at bottom
-                logical_x = 239 - x;  // Logical width is 240 (portrait)
-                logical_y = y;        // Logical height is 320
+                // Use the transformation for 90 degrees
+                logical_x = 319 - y;      // Logical width is 240 (portrait)
+                logical_y = 239 - x;      // Logical height is 320
                 break;
         }
 
