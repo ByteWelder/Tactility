@@ -43,4 +43,5 @@ private:
     int32_t last_x_ = 0;
     int32_t last_y_ = 0;
     bool is_pressed_ = false;
+    uint32_t touch_start_time_ = 0;  // Timestamp of touch start (in milliseconds)
 };
