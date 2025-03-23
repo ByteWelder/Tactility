@@ -1,7 +1,7 @@
 #include "TouchCalibrationApp.h"
 #include "CST820Touch.h"  // For touch_offsets
 #include <Tactility/lvgl/Toolbar.h>
-#include <TactilityCore/TactilityCore.h>  // For tt::core::display
+#include "TactilityCore/TactilityCore.h"  // For tt::core::display
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <inttypes.h>  // For PRId32
