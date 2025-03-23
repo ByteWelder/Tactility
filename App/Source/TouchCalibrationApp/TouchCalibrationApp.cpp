@@ -4,6 +4,7 @@
 #include <Tactility/Core.h>  // For tt::core::display
 #include <esp_log.h>
 #include <nvs_flash.h>
+#include <inttypes.h>  // For PRId32
 
 static const char *TAG = "TouchCalibrationApp";
 
@@ -141,7 +142,7 @@ void TouchCalibrationApp::calculate_offsets() {
     x_offset /= 4;
     y_offset /= 4;
 
-    ESP_LOGI(TAG, "Rotation %d: X offset = %d, Y offset = %d", current_rotation_, x_offset, y_offset);
+    ESP_LOGI(TAG, "Rotation %d: X offset = %" PRId32 ", Y offset = %" PRId32, current_rotation_, x_offset, y_offset);
 
     // Store offsets in the global array
     touch_offsets[current_rotation_][0] = x_offset;
