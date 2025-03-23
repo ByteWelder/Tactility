@@ -14,6 +14,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "../TactilityCore/Include/Tactility"
         "../Libraries/lvgl/src"      # Add this to include lv_event.h
         "../Libraries/lvgl/src/core" # Add this to include lv_event.h directly
+        "../Libraries/lvgl/src/misc"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
