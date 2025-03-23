@@ -76,21 +76,25 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                logical_x = y;            // X is now the vertical axis
-                logical_y = 239 - x;      // Y is mapped to the horizontal axis
+                // 90 degrees rotation: X becomes Y, Y becomes 240-X (mirrored)
+                logical_x = y;            // X is now the vertical axis (320)
+                logical_y = 239 - x;      // Y is mapped to the horizontal axis (240)
                 break;
             case LV_DISPLAY_ROTATION_270:
-                logical_x = 239 - y;      // X is now the vertical axis
-                logical_y = x;            // Y is mapped to the horizontal axis
+                // 270 degrees rotation: X becomes 240-Y, Y becomes X
+                logical_x = 239 - y;      // X is now the vertical axis (320)
+                logical_y = x;            // Y is mapped to the horizontal axis (240)
                 break;
             case LV_DISPLAY_ROTATION_180:
-                logical_x = 239 - x;      // Inverted coordinates
-                logical_y = 319 - y;
+                // 180 degrees rotation: both axes inverted
+                logical_x = 239 - x;      // Inverted X axis
+                logical_y = 319 - y;      // Inverted Y axis
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
-                logical_x = 320 - y - 1;  // Default portrait mode, inverted y-axis
-                logical_y = x;
+                // 0 degrees rotation: default portrait orientation
+                logical_x = 320 - y - 1;  // X is inverted, mapped to the horizontal axis (320)
+                logical_y = x;            // Y remains as is (240)
                 break;
         }
 
@@ -113,6 +117,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     return false; // No more data to read
 }
+
 
 
 
