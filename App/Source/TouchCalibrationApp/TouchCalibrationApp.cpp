@@ -1,5 +1,5 @@
 #include "TouchCalibrationApp.h"
-#include "CST820Touch.h"  // For touch_offsets
+#include "TouchCalibrationData.h"  // For touch_offsets
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/app/display/DisplaySettings.h>  // Updated include for setRotation
