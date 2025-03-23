@@ -17,6 +17,14 @@ void TouchCalibrationApp::onShow(AppContext& context, lv_obj_t* parent) {
     lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
+    // Add a "Reset Calibration" button to the toolbar
+    lv_obj_t* reset_btn = lv_btn_create(toolbar);
+    lv_obj_t* reset_label = lv_label_create(reset_btn);
+    lv_label_set_text(reset_label, "Reset");
+    lv_obj_center(reset_label);
+    lv_obj_add_event_cb(reset_btn, reset_button_cb, LV_EVENT_CLICKED, this);
+    lv_obj_align_to(reset_btn, nullptr, LV_ALIGN_TOP_RIGHT, -10, 5);
+
     // Create label for instructions
     label_ = lv_label_create(parent);
     lv_obj_align(label_, LV_ALIGN_CENTER, 0, -20);
@@ -91,6 +99,11 @@ void TouchCalibrationApp::touch_event_cb(lv_event_t* event) {
             lv_obj_align(app->crosshair_, LV_ALIGN_CENTER, 0, 0);
         }
     }
+}
+
+void TouchCalibrationApp::reset_button_cb(lv_event_t* event) {
+    auto* app = static_cast<TouchCalibrationApp*>(event->user_data);
+    app->reset_calibration();
 }
 
 void TouchCalibrationApp::next_calibration_point() {
@@ -174,6 +187,50 @@ void TouchCalibrationApp::save_offsets() {
     }
     nvs_close(handle);
     ESP_LOGI(TAG, "Offsets saved to NVS");
+}
+
+void TouchCalibrationApp::reset_calibration() {
+    // Initialize NVS if not already initialized
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition needs to be erased");
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // Clear NVS data
+    nvs_handle_t handle;
+    err = nvs_open("touch_calib", NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS: %s", esp_err_to_name(err));
+        return;
+    }
+    err = nvs_erase_all(handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase NVS: %s", esp_err_to_name(err));
+    }
+    err = nvs_commit(handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to commit NVS: %s", esp_err_to_name(err));
+    }
+    nvs_close(handle);
+
+    // Reset the global touch_offsets array
+    for (int i = 0; i < 4; i++) {
+        touch_offsets[i][0] = 0;
+        touch_offsets[i][1] = 0;
+    }
+
+    ESP_LOGI(TAG, "Calibration data reset");
+
+    // Restart the calibration process
+    current_rotation_ = LV_DISPLAY_ROTATION_0;
+    current_point_ = 0;
+    next_calibration_point();
 }
 
 }  // namespace tt::app
