@@ -7,7 +7,7 @@
 static const char *TAG = "CST820Touch";
 
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
-    : config_(std::move(config)) {}
+    : config_(std::move(config)), last_x_(0), last_y_(0), is_pressed_(false) {}
 
 bool CST820Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Starting CST820 touch...");
@@ -49,6 +49,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
         data->state = LV_INDEV_STATE_RELEASED;
+        is_pressed_ = false;
         return false;
     }
 
@@ -66,25 +67,22 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Adjusted to match your mapping: (0, 0) top-right, (319, 239) bottom-left
-                logical_x = 239 - x;      // Logical width is 320 (landscape)
+                // Fixed left-right inversion to match mapping: (0, 0) top-right, (319, 239) bottom-left
+                logical_x = (x * 319) / 239;  // Scale to logical width of 320
                 logical_y = (y * 239) / 319;  // Scale to logical height of 240
                 break;
             case LV_DISPLAY_ROTATION_270:
-                // Use the transformation for 0 degrees
-                logical_x = 239 - x;      // Logical width is 320 (landscape)
-                logical_y = y;            // Logical height is 240
+                logical_x = 239 - x;
+                logical_y = y;
                 break;
             case LV_DISPLAY_ROTATION_180:
-                // Use the transformation for 270 degrees
-                logical_x = y;            // Logical width is 240 (portrait)
-                logical_y = x;            // Logical height is 320
+                logical_x = y;
+                logical_y = x;
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
-                // Use the transformation for 90 degrees
-                logical_x = 319 - y;      // Logical width is 240 (portrait)
-                logical_y = 239 - x;      // Logical height is 320
+                logical_x = 319 - y;
+                logical_y = 239 - x;
                 break;
         }
 
@@ -96,6 +94,27 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         if (logical_y < 0) logical_y = 0;
         if (logical_y > max_y) logical_y = max_y;
 
+        // Click filtering: Only update coordinates if movement is significant
+        if (!is_pressed_) {
+            // First press, store initial coordinates
+            last_x_ = logical_x;
+            last_y_ = logical_y;
+            is_pressed_ = true;
+        } else {
+            // Check movement distance
+            int32_t delta_x = logical_x - last_x_;
+            int32_t delta_y = logical_y - last_y_;
+            int32_t distance = delta_x * delta_x + delta_y * delta_y;  // Approximate distance squared
+            if (distance > 100) {  // Threshold: ~10 pixels (adjust as needed)
+                last_x_ = logical_x;
+                last_y_ = logical_y;
+            } else {
+                // Movement too small, keep last coordinates to prevent scrolling
+                logical_x = last_x_;
+                logical_y = last_y_;
+            }
+        }
+
         ESP_LOGI(TAG, "Transformed touch: logical x=%" PRId32 ", y=%" PRId32, logical_x, logical_y);
 
         data->point.x = logical_x;
@@ -103,6 +122,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
+        is_pressed_ = false;
     }
 
     return false; // No more data to read
