@@ -38,4 +38,9 @@ private:
     std::unique_ptr<Configuration> config_;
     lv_indev_t* indev_ = nullptr;
     lv_display_t* display_ = nullptr;  // Store display for rotation
+
+    // Click filtering variables
+    int32_t last_x_ = 0;
+    int32_t last_y_ = 0;
+    bool is_pressed_ = false;
 };
