@@ -9,11 +9,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRC_DIRS "Source"
         "Source/HelloWorld"
-        "Source/TouchCalibrationApp"
-        INCLUDE_DIRS "../TactilityCore/Include/Tactility"
-        "../Libraries/lvgl/src"
-        "../Libraries/lvgl/src/core"
-        "../Libraries/lvgl/src/misc"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
