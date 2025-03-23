@@ -54,21 +54,30 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
-        // Raw hardware coordinates (240x320)
-        uint16_t x = (touch_data[2] << 8) | touch_data[3];
-        uint16_t y = (touch_data[4] << 8) | touch_data[5];
+        // Log raw touch data for debugging
+        ESP_LOGI(TAG, "Raw touch data: %02x %02x %02x %02x %02x %02x",
+                 touch_data[0], touch_data[1], touch_data[2], touch_data[3],
+                 touch_data[4], touch_data[5]);
+
+        // Raw hardware coordinates (should be 12-bit values, 0-4095)
+        uint16_t raw_x = ((touch_data[2] & 0x0F) << 8) | touch_data[3];
+        uint16_t raw_y = ((touch_data[4] & 0x0F) << 8) | touch_data[5];
+
+        // Scale to hardware resolution (240x320)
+        uint16_t x = (raw_x * 240) / 4096;
+        uint16_t y = (raw_y * 320) / 4096;
 
         // Transform coordinates based on display rotation
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
         int32_t logical_x, logical_y;
 
-        ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
+        ESP_LOGI(TAG, "Scaled touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Corrected transformation
-                logical_x = x * 319 / 239;        // Scale x to logical width (0 to 319)
-                logical_y = y * 239 / 319;        // Scale y to logical height (0 to 239)
+                // Corrected transformation with inversion
+                logical_x = 319 - (x * 319 / 239);  // Invert x axis
+                logical_y = 239 - (y * 239 / 319);  // Invert y axis
                 break;
             case LV_DISPLAY_ROTATION_270:
                 logical_x = x;
