@@ -67,9 +67,9 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Fixed top-bottom inversion and added offset: (0, 0) top-right, (319, 239) bottom-left
-                logical_x = (x * 319) / 239;        // Scale to logical width of 320
-                logical_y = (y * 239) / 319 + 20;   // Scale to logical height of 240, undo inversion, add offset
+                // Fixed left-right and top-bottom: (0, 0) top-right, (319, 239) bottom-left
+                logical_x = 319 - (x * 319) / 239;  // Scale to logical width of 320 and invert
+                logical_y = 239 - (y * 239) / 319 + 20;  // Scale to logical height of 240, invert, add offset
                 break;
             case LV_DISPLAY_ROTATION_270:
                 logical_x = 239 - x;
@@ -105,7 +105,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
             int32_t delta_x = logical_x - last_x_;
             int32_t delta_y = logical_y - last_y_;
             int32_t distance = delta_x * delta_x + delta_y * delta_y;  // Approximate distance squared
-            if (distance > 400) {  // Increased threshold: ~20 pixels (adjust as needed)
+            if (distance > 625) {  // Increased threshold: ~25 pixels (adjust as needed)
                 last_x_ = logical_x;
                 last_y_ = logical_y;
             } else {
