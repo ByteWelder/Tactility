@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
 #include <lvgl.h>
-#include <inttypes.h>
+#include <inttypes.h>  // For PRId32
 #include <esp_timer.h>  // For esp_timer_get_time()
 #include <nvs_flash.h>
 
@@ -50,7 +50,7 @@ bool CST820Touch::start(lv_display_t* display) {
                     ESP_LOGW(TAG, "Failed to read %s: %s", key, esp_err_to_name(err));
                     touch_offsets[i][1] = 0;  // Default to 0 if not found
                 }
-                ESP_LOGI(TAG, "Loaded offsets for rotation %d: x=%d, y=%d", i, touch_offsets[i][0], touch_offsets[i][1]);
+                ESP_LOGI(TAG, "Loaded offsets for rotation %d: x=%" PRId32 ", y=%" PRId32, i, touch_offsets[i][0], touch_offsets[i][1]);
             }
             nvs_close(handle);
         } else {
