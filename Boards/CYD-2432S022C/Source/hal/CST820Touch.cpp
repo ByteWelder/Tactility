@@ -1,20 +1,13 @@
 #include "CST820Touch.h"
 #include "CYD2432S022CConstants.h"
+#include "touch_calibration_data.h"
 #include "esp_log.h"
 #include <lvgl.h>
-#include <inttypes.h>  // For PRId32
-#include <esp_timer.h>  // For esp_timer_get_time()
+#include <inttypes.h>
+#include <esp_timer.h>
 #include <nvs_flash.h>
 
 static const char *TAG = "CST820Touch";
-
-// Define the global touch offsets array
-int32_t touch_offsets[4][2] = {
-    {0, 0},  // LV_DISPLAY_ROTATION_0
-    {0, 0},  // LV_DISPLAY_ROTATION_90
-    {0, 0},  // LV_DISPLAY_ROTATION_180
-    {0, 0}   // LV_DISPLAY_ROTATION_270
-};
 
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
@@ -22,7 +15,6 @@ CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
 bool CST820Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Starting CST820 touch...");
 
-    // Initialize NVS if not already initialized
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_LOGW(TAG, "NVS partition needs to be erased");
@@ -32,7 +24,6 @@ bool CST820Touch::start(lv_display_t* display) {
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
     } else {
-        // Load offsets from NVS
         nvs_handle_t handle;
         err = nvs_open("touch_calib", NVS_READONLY, &handle);
         if (err == ESP_OK) {
@@ -42,13 +33,13 @@ bool CST820Touch::start(lv_display_t* display) {
                 err = nvs_get_i32(handle, key, &touch_offsets[i][0]);
                 if (err != ESP_OK) {
                     ESP_LOGW(TAG, "Failed to read %s: %s", key, esp_err_to_name(err));
-                    touch_offsets[i][0] = 0;  // Default to 0 if not found
+                    touch_offsets[i][0] = 0;
                 }
                 snprintf(key, sizeof(key), "y_offset_%d", i);
                 err = nvs_get_i32(handle, key, &touch_offsets[i][1]);
                 if (err != ESP_OK) {
                     ESP_LOGW(TAG, "Failed to read %s: %s", key, esp_err_to_name(err));
-                    touch_offsets[i][1] = 0;  // Default to 0 if not found
+                    touch_offsets[i][1] = 0;
                 }
                 ESP_LOGI(TAG, "Loaded offsets for rotation %d: x=%" PRId32 ", y=%" PRId32, i, touch_offsets[i][0], touch_offsets[i][1]);
             }
@@ -66,7 +57,7 @@ bool CST820Touch::start(lv_display_t* display) {
     });
     lv_indev_set_user_data(indev_, this);
     lv_indev_set_display(indev_, display);
-    display_ = display;  // Store the display pointer for rotation
+    display_ = display;
     return true;
 }
 
