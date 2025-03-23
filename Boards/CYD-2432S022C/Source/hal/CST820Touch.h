@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tactility/hal/touch/TouchDevice.h>
+#include "TouchCalibrationData.h"
 #include "CYD2432S022CConstants.h"
 #include <lvgl.h>
 #include <memory>
@@ -45,6 +46,3 @@ private:
     bool is_pressed_ = false;
     uint32_t touch_start_time_ = 0;  // Timestamp of touch start (in milliseconds)
 };
-
-// Global array to store touch offsets for each rotation [rotation][x_offset, y_offset]
-extern int32_t touch_offsets[4][2];
