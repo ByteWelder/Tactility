@@ -13,7 +13,10 @@
 #define BUFFER_HEIGHT 64
 
 // Default orientation if not set in NVS
-#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_1
+#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_0
+
+// Fixed display rotation for debugging
+#define FIXED_DISPLAY_ROTATION LV_DISPLAY_ROTATION_1  // Set your desired rotation here
 
 bool cyd22_init() {
     ESP_LOGI(TAG, "Running cyd22_init");
@@ -31,15 +34,10 @@ bool cyd22_init() {
     }
     if (gpio_set_level(GPIO_NUM_0, 0) != ESP_OK) return false;  // Backlight off initially
 
-    // Step 2: Get Tactility orientation and set default if needed
-    lv_display_rotation_t tactility_orientation = tt::app::display::getRotation();
-    if (tactility_orientation == LV_DISPLAY_ROTATION_0) {
-        ESP_LOGI(TAG, "No orientation set in NVS. Setting default orientation: %d", DEFAULT_ORIENTATION);
-        tt::app::display::setRotation(DEFAULT_ORIENTATION);
-        tactility_orientation = DEFAULT_ORIENTATION;
-    } else {
-        ESP_LOGI(TAG, "Tactility orientation from NVS: %d", tactility_orientation);
-    }
+    // Step 2: Set fixed orientation for debugging
+    lv_display_rotation_t tactility_orientation = FIXED_DISPLAY_ROTATION;
+    ESP_LOGI(TAG, "Setting fixed orientation for debugging: %d", FIXED_DISPLAY_ROTATION);
+    tt::app::display::setRotation(FIXED_DISPLAY_ROTATION);
 
     // Step 3: Calculate logical resolution and buffer size based on orientation
     uint16_t logical_width = (tactility_orientation == LV_DISPLAY_ROTATION_90 || tactility_orientation == LV_DISPLAY_ROTATION_270)
