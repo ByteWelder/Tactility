@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include <lvgl.h>
 #include <inttypes.h>
+#include <algorithm>  // For std::max and std::min
 
 static const char *TAG = "CST820Touch";
 
@@ -35,16 +36,16 @@ bool CST820Touch::stop() {
 
 bool CST820Touch::read_input(lv_indev_data_t* data) {
     uint8_t touch_data[6];
-    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (CYD_2432S022C_TOUCH_I2C_ADDRESS << 1) | I2C_MASTER_WRITE, true);
-    i2c_master_write_byte(cmd, 0x01, true);
-    i2c_master_start(cmd);
-    i2c_master_write_byte(cmd, (CYD_2432S022C_TOUCH_I2C_ADDRESS << 1) | I2C_MASTER_READ, true);
-    i2c_master_read(cmd, touch_data, 6, I2C_MASTER_LAST_NACK);
-    i2c_master_stop(cmd);
-    esp_err_t err = i2c_master_cmd_begin(config_->i2c_port, cmd, pdMS_TO_TICKS(100));
-    i2c_cmd_link_delete(cmd);
+    uint8_t reg_addr = 0x01;  // Register address to read from
+
+    // Simplified I2C read using i2c_master_write_read_device
+    esp_err_t err = i2c_master_write_read_device(
+        config_->i2c_port,
+        CYD_2432S022C_TOUCH_I2C_ADDRESS,
+        &reg_addr, 1,  // Write register address
+        touch_data, 6,  // Read 6 bytes of touch data
+        pdMS_TO_TICKS(100)
+    );
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "I2C read failed: %s", esp_err_to_name(err));
@@ -54,18 +55,20 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
-        // Log raw touch data for debugging
+        #ifdef CONFIG_DEBUG_ENABLED
         ESP_LOGD(TAG, "Raw touch data: %02x %02x %02x %02x %02x %02x",
                  touch_data[0], touch_data[1], touch_data[2], touch_data[3],
                  touch_data[4], touch_data[5]);
+        #endif
+
 
         // Raw hardware coordinates (12-bit values, 0-4095)
         uint16_t raw_x = ((touch_data[2] & 0x0F) << 8) | touch_data[3];
         uint16_t raw_y = ((touch_data[4] & 0x0F) << 8) | touch_data[5];
 
-        // Scale to hardware resolution (240x320)
-        uint16_t x = (raw_x * 240) / 4096;
-        uint16_t y = (raw_y * 320) / 4096;
+        // Scale to hardware resolution (240x320) with floating-point precision
+        uint16_t x = static_cast<uint16_t>((raw_x / 4095.0f) * 239);
+        uint16_t y = static_cast<uint16_t>((raw_y / 4095.0f) * 319);
 
         // Transform coordinates based on display rotation
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
@@ -94,13 +97,11 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
                 break;
         }
 
-        // Clamp coordinates to logical display bounds
+        // Clamp coordinates to logical display bounds using std::max and std::min
         int32_t max_x = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 319 : 239;
         int32_t max_y = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 239 : 319;
-        if (logical_x < 0) logical_x = 0;
-        if (logical_x > max_x) logical_x = max_x;
-        if (logical_y < 0) logical_y = 0;
-        if (logical_y > max_y) logical_y = max_y;
+        logical_x = std::max(0, std::min(logical_x, max_x));
+        logical_y = std::max(0, std::min(logical_y, max_y));
 
         ESP_LOGI(TAG, "Transformed touch: logical x=%" PRId32 ", y=%" PRId32, logical_x, logical_y);
 
