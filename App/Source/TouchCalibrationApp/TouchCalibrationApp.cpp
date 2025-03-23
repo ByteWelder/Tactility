@@ -2,9 +2,9 @@
 #include "CST820Touch.h"  // For touch_offsets
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include "Tactility/app/display/DisplaySettings.h"
+#include <Tactility/app/display/DisplaySettings.h>  // Updated include for setRotation
 #include <lvgl.h>  // For lvgl types
-#include "lv_event.h"  // For lv_event_t definition
+#include <lvgl/src/misc/lv_event.h>  // For lv_event_t definition
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <inttypes.h>  // For PRId32
@@ -83,17 +83,17 @@ void TouchCalibrationApp::touch_event_cb(lv_event_t* event) {
         if (app->current_rotation_ == LV_DISPLAY_ROTATION_0) {
             app->current_rotation_ = LV_DISPLAY_ROTATION_90;
             app->current_point_ = 0;
-            tt::display::set_rotation(app->current_rotation_);  // Updated namespace
+            tt::app::display::setRotation(app->current_rotation_);  // Updated namespace
             app->next_calibration_point();
         } else if (app->current_rotation_ == LV_DISPLAY_ROTATION_90) {
             app->current_rotation_ = LV_DISPLAY_ROTATION_180;
             app->current_point_ = 0;
-            tt::display::set_rotation(app->current_rotation_);  // Updated namespace
+            tt::app::display::setRotation(app->current_rotation_);  // Updated namespace
             app->next_calibration_point();
         } else if (app->current_rotation_ == LV_DISPLAY_ROTATION_180) {
             app->current_rotation_ = LV_DISPLAY_ROTATION_270;
             app->current_point_ = 0;
-            tt::display::set_rotation(app->current_rotation_);  // Updated namespace
+            tt::app::display::setRotation(app->current_rotation_);  // Updated namespace
             app->next_calibration_point();
         } else {
             // All rotations done, save offsets and finish
@@ -242,5 +242,5 @@ void TouchCalibrationApp::reset_calibration() {
 extern const tt::app::AppManifest touch_calibration_app = {
     .id = "TouchCalibration",
     .name = "Touch Calibration",
-    .createApp = create<TouchCalibrationApp>
-};
+    .createApp = tt::app::create<tt::app::TouchCalibrationApp>
+};  // Added semicolon
