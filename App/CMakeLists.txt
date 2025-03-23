@@ -11,6 +11,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/HelloWorld"
         "Source/TouchCalibrationApp"
         INCLUDE_DIRS "../Boards/CYD-2432S022C/Source/hal"
+        "../TactilityCore/Include/Tactility"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
