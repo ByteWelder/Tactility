@@ -13,7 +13,7 @@
 #define BUFFER_HEIGHT 64
 
 // Default orientation if not set in NVS
-#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_90
+#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_0
 
 
 bool cyd22_init() {
