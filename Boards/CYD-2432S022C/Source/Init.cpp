@@ -13,7 +13,7 @@
 #define BUFFER_HEIGHT 64
 
 // Default orientation if not set in NVS
-#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_0
+#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_1
 
 bool cyd22_init() {
     ESP_LOGI(TAG, "Running cyd22_init");
