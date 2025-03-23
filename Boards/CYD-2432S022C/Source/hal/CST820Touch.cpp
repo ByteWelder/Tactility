@@ -3,7 +3,6 @@
 #include "esp_log.h"
 #include <lvgl.h>
 #include <inttypes.h>
-#include <algorithm>  // For std::max and std::min
 
 static const char *TAG = "CST820Touch";
 
@@ -55,46 +54,37 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
-        // Log raw touch data for debugging
-        ESP_LOGD(TAG, "Raw touch data: %02x %02x %02x %02x %02x %02x",
-                 touch_data[0], touch_data[1], touch_data[2], touch_data[3],
-                 touch_data[4], touch_data[5]);
-
-        // Raw hardware coordinates (12-bit values, 0-4095)
-        uint16_t raw_x = ((touch_data[2] & 0x0F) << 8) | touch_data[3];
-        uint16_t raw_y = ((touch_data[4] & 0x0F) << 8) | touch_data[5];
-
-        // Scale to hardware resolution (240x320)
-        uint16_t x = (raw_x * 240) / 4096;
-        uint16_t y = (raw_y * 320) / 4096;
+        // Raw hardware coordinates (240x320)
+        uint16_t x = (touch_data[2] << 8) | touch_data[3];
+        uint16_t y = (touch_data[4] << 8) | touch_data[5];
 
         // Transform coordinates based on display rotation
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
         int32_t logical_x, logical_y;
 
-        ESP_LOGI(TAG, "Scaled touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
+        ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // 90 degrees rotation: X becomes Y, Y becomes 240-X (mirrored)
-                logical_x = y;            // X is now the vertical axis (320)
-                logical_y = 239 - x;      // Y is mapped to the horizontal axis (240)
+                // Landscape, USB on right
+                logical_x = 319 - y;  // Logical width is 320 (landscape)
+                logical_y = 239 - x;  // Logical height is 240
                 break;
             case LV_DISPLAY_ROTATION_270:
-                // 270 degrees rotation: X becomes 240-Y, Y becomes X
-                logical_x = 239 - y;      // X is now the vertical axis (320)
-                logical_y = x;            // Y is mapped to the horizontal axis (240)
+                // Landscape, USB on left
+                logical_x = y;        // Logical width is 320 (landscape)
+                logical_y = x;        // Logical height is 240
                 break;
             case LV_DISPLAY_ROTATION_180:
-                // 180 degrees rotation: both axes inverted
-                logical_x = 239 - x;      // Inverted X axis
-                logical_y = 319 - y;      // Inverted Y axis
+                // Portrait, USB at top
+                logical_x = x;        // Logical width is 240 (portrait)
+                logical_y = 319 - y;  // Logical height is 320
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
-                // 0 degrees rotation: default portrait orientation
-                logical_x = 320 - y - 1;  // X is inverted, mapped to the horizontal axis (320)
-                logical_y = x;            // Y remains as is (240)
+                // Portrait, USB at bottom
+                logical_x = 239 - x;  // Logical width is 240 (portrait)
+                logical_y = y;        // Logical height is 320
                 break;
         }
 
@@ -117,9 +107,6 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     return false; // No more data to read
 }
-
-
-
 
 std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
     auto configuration = std::make_unique<CST820Touch::Configuration>(
