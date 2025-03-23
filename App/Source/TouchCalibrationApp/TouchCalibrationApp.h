@@ -8,7 +8,7 @@ namespace tt::app {
 class TouchCalibrationApp : public App {
 public:
     void onShow(AppContext& context, lv_obj_t* parent) override;
-    void onHide() override;
+    void onHide(AppContext& appContext) override;  // Updated signature
 
 private:
     static void touch_event_cb(lv_event_t* event);
