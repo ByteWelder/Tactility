@@ -2,7 +2,6 @@
 #include "CYD2432S022CConstants.h"
 #include "CST820Touch.h"
 #include "Tactility/app/display/DisplaySettings.h"
-#include <driver/gpio.h>  // Added for backlight pin configuration
 #include <esp_log.h>
 #include <LovyanGFX.h>
 #include <inttypes.h>
@@ -11,43 +10,6 @@
 #include <esp_heap_caps.h>
 
 static const char* TAG = "LovyanDisplay";
-
-// Hardware resolution
-#define HARDWARE_WIDTH 240
-#define HARDWARE_HEIGHT 320
-
-// Default orientation if not set in NVS
-#define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_0  // Portrait, USB at bottom
-
-// cyd22_init() function
-static bool cyd22_init() {
-    ESP_LOGI(TAG, "Running cyd22_init");
-
-    // Step 1: Configure backlight pin (LovyanGFX will handle PWM later)
-    gpio_config_t io_conf = {};
-    io_conf.pin_bit_mask = (1ULL << GPIO_NUM_0);  // Backlight pin
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    if (gpio_config(&io_conf) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure backlight pin");
-        return false;
-    }
-    if (gpio_set_level(GPIO_NUM_0, 0) != ESP_OK) return false;  // Backlight off initially
-
-    // Step 2: Get Tactility orientation and set default if needed
-    lv_display_rotation_t tactility_orientation = tt::app::display::getRotation();
-    if (tactility_orientation == LV_DISPLAY_ROTATION_0) {
-        ESP_LOGI(TAG, "No orientation set in NVS. Setting default orientation: %d", DEFAULT_ORIENTATION);
-        tt::app::display::setRotation(DEFAULT_ORIENTATION);
-        tactility_orientation = DEFAULT_ORIENTATION;
-    } else {
-        ESP_LOGI(TAG, "Tactility orientation from NVS: %d", tactility_orientation);
-    }
-
-    return true;
-}
 
 // Define a custom LovyanGFX class for the CYD-2432S022C board
 class LGFX_CYD_2432S022C : public lgfx::LGFX_Device {
@@ -142,12 +104,6 @@ public:
             return true;
         }
 
-        // Call cyd22_init() at the very beginning
-        if (!cyd22_init()) {
-            ESP_LOGE(TAG, "Failed to run cyd22_init");
-            return false;
-        }
-
         ESP_LOGI(TAG, "Starting LovyanGFX display");
         if (!lcd.init()) {
             ESP_LOGE(TAG, "Failed to initialize LovyanGFX display");
@@ -163,14 +119,13 @@ public:
         // Set rotation in LovyanGFX to match LVGL
         uint8_t lovyan_rotation = 0;
         switch (configuration->rotation) {
-            case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 1; break;  // Portrait, USB at bottom
-            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 0; break;  // Landscape, USB on right
-            case LV_DISPLAY_ROTATION_180: lovyan_rotation = 3; break;  // Portrait, USB at top
-            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 2; break;  // Landscape, USB on left
+            case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;  // Portrait, USB at bottom
+            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 1; break;  // Landscape, USB on right
+            case LV_DISPLAY_ROTATION_180: lovyan_rotation = 2; break;  // Portrait, USB at top
+            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 3; break;  // Landscape, USB on left
         }
         lcd.setRotation(lovyan_rotation);
         ESP_LOGI(TAG, "Set LovyanGFX rotation to %d", lovyan_rotation);
-
         lcd.setBrightness(0);  // Start with backlight off
 
         // Calculate buffer size dynamically based on rotation
