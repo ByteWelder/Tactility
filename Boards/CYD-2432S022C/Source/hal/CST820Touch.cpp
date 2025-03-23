@@ -3,6 +3,7 @@
 #include "esp_log.h"
 #include <lvgl.h>
 #include <inttypes.h>
+#include <esp_timer.h>  // For esp_timer_get_time()
 
 static const char *TAG = "CST820Touch";
 
@@ -69,7 +70,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
             case LV_DISPLAY_ROTATION_90:
                 // Align touch with display rendering: (0, 0) top-left, (319, 239) bottom-right
                 logical_x = 319 - (x * 319) / 239;  // Scale to logical width of 320 and invert
-                logical_y = 239 - (y * 239) / 319 + 20;  // Scale to logical height of 240, invert, add offset
+                logical_y = 239 - (y * 239) / 319;  // Scale to logical height of 240, invert, offset removed
                 break;
             case LV_DISPLAY_ROTATION_270:
                 logical_x = 239 - x;
@@ -94,24 +95,35 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         if (logical_y < 0) logical_y = 0;
         if (logical_y > max_y) logical_y = max_y;
 
-        // Click filtering: Only update coordinates if movement is significant
+        // Click filtering with time-based logic
         if (!is_pressed_) {
-            // First press, store initial coordinates
+            // First press, store initial coordinates and timestamp
             last_x_ = logical_x;
             last_y_ = logical_y;
+            touch_start_time_ = esp_timer_get_time() / 1000;  // Convert microseconds to milliseconds
             is_pressed_ = true;
         } else {
-            // Check movement distance
-            int32_t delta_x = logical_x - last_x_;
-            int32_t delta_y = logical_y - last_y_;
-            int32_t distance = delta_x * delta_x + delta_y * delta_y;  // Approximate distance squared
-            if (distance > 900) {  // Increased threshold: ~30 pixels
-                last_x_ = logical_x;
-                last_y_ = logical_y;
-            } else {
-                // Movement too small, keep last coordinates to prevent scrolling
+            // Check elapsed time since touch start
+            uint32_t current_time = esp_timer_get_time() / 1000;  // Convert microseconds to milliseconds
+            uint32_t touch_duration = current_time - touch_start_time_;
+
+            if (touch_duration < 200) {  // 200ms threshold for a tap
+                // Within tap duration, keep coordinates fixed to ensure a click
                 logical_x = last_x_;
                 logical_y = last_y_;
+            } else {
+                // After tap duration, allow dragging if movement is significant
+                int32_t delta_x = logical_x - last_x_;
+                int32_t delta_y = logical_y - last_y_;
+                int32_t distance = delta_x * delta_x + delta_y * delta_y;  // Approximate distance squared
+                if (distance > 625) {  // Threshold: ~25 pixels (reverted to previous value)
+                    last_x_ = logical_x;
+                    last_y_ = logical_y;
+                } else {
+                    // Movement too small, keep last coordinates to prevent scrolling
+                    logical_x = last_x_;
+                    logical_y = last_y_;
+                }
             }
         }
 
