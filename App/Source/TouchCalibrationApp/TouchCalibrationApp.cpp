@@ -4,7 +4,6 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/app/display/DisplaySettings.h>  // Updated include for setRotation
 #include <lvgl.h>  // For lvgl types
-#include <lvgl/src/misc/lv_event.h>  // For lv_event_t definition
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <inttypes.h>  // For PRId32
@@ -57,7 +56,7 @@ void TouchCalibrationApp::onHide(AppContext& appContext) {
 }
 
 void TouchCalibrationApp::touch_event_cb(lv_event_t* event) {
-    auto* app = static_cast<TouchCalibrationApp*>(event->user_data);
+    auto* app = static_cast<TouchCalibrationApp*>(lv_event_get_user_data(event));
     lv_point_t point;
     lv_indev_get_point(lv_indev_get_act(), &point);
 
@@ -106,7 +105,7 @@ void TouchCalibrationApp::touch_event_cb(lv_event_t* event) {
 }
 
 void TouchCalibrationApp::reset_button_cb(lv_event_t* event) {
-    auto* app = static_cast<TouchCalibrationApp*>(event->user_data);
+    auto* app = static_cast<TouchCalibrationApp*>(lv_event_get_user_data(event));
     app->reset_calibration();
 }
 
@@ -243,4 +242,4 @@ extern const tt::app::AppManifest touch_calibration_app = {
     .id = "TouchCalibration",
     .name = "Touch Calibration",
     .createApp = tt::app::create<tt::app::TouchCalibrationApp>
-};  // Added semicolon
+};
