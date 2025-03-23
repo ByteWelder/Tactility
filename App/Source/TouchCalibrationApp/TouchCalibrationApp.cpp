@@ -1,10 +1,9 @@
 #include "TouchCalibrationApp.h"
+#include "CST820Touch.h"  // For touch_offsets
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/app/AppManifest.h>
 #include <Tactility/Core.h>  // For tt::core::display
 #include <esp_log.h>
 #include <nvs_flash.h>
-
 
 static const char *TAG = "TouchCalibrationApp";
 
@@ -131,15 +130,27 @@ void TouchCalibrationApp::calculate_offsets() {
 
     ESP_LOGI(TAG, "Rotation %d: X offset = %d, Y offset = %d", current_rotation_, x_offset, y_offset);
 
-    // Store offsets in a global array (for simplicity; could use NVS in production)
-    static int32_t touch_offsets[4][2];  // [rotation][x_offset, y_offset]
+    // Store offsets in the global array
     touch_offsets[current_rotation_][0] = x_offset;
     touch_offsets[current_rotation_][1] = y_offset;
 }
 
 void TouchCalibrationApp::save_offsets() {
+    // Initialize NVS if not already initialized
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition needs to be erased");
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
+        return;
+    }
+
+    // Save offsets to NVS
     nvs_handle_t handle;
-    esp_err_t err = nvs_open("touch_calib", NVS_READWRITE, &handle);
+    err = nvs_open("touch_calib", NVS_READWRITE, &handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to open NVS: %s", esp_err_to_name(err));
         return;
@@ -147,11 +158,20 @@ void TouchCalibrationApp::save_offsets() {
     for (int i = 0; i < 4; i++) {
         char key[16];
         snprintf(key, sizeof(key), "x_offset_%d", i);
-        nvs_set_i32(handle, key, touch_offsets[i][0]);
+        err = nvs_set_i32(handle, key, touch_offsets[i][0]);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to write %s: %s", key, esp_err_to_name(err));
+        }
         snprintf(key, sizeof(key), "y_offset_%d", i);
-        nvs_set_i32(handle, key, touch_offsets[i][1]);
+        err = nvs_set_i32(handle, key, touch_offsets[i][1]);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to write %s: %s", key, esp_err_to_name(err));
+        }
     }
-    nvs_commit(handle);
+    err = nvs_commit(handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to commit NVS: %s", esp_err_to_name(err));
+    }
     nvs_close(handle);
     ESP_LOGI(TAG, "Offsets saved to NVS");
 }
