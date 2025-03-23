@@ -62,7 +62,7 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         // Transform coordinates based on display rotation
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
-        int32_t logical_x, logical_y;
+        int32_t logical_x = 0, logical_y = 0;  // Initialize to 0 to avoid uninitialized use
 
         ESP_LOGI(TAG, "Raw touch: x=%" PRIu16 ", y=%" PRIu16 ", rotation=%d", x, y, rotation);
 
