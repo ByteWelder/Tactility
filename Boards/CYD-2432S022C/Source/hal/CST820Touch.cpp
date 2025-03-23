@@ -7,7 +7,7 @@
 static const char *TAG = "CST820Touch";
 
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
-    : config_(std::move(config)), last_x_(0), last_y_(0), is_pressed_(false) {}
+    : config_(std::move(config)) {}
 
 bool CST820Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Starting CST820 touch...");
