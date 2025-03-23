@@ -4,23 +4,60 @@
 #include <lvgl.h>
 #include <inttypes.h>
 #include <esp_timer.h>  // For esp_timer_get_time()
+#include <nvs_flash.h>
 
 static const char *TAG = "CST820Touch";
 
-CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
-    : config_(std::move(config)) {}
-
-// Global array to store touch offsets for each rotation [rotation][x_offset, y_offset]
-static int32_t touch_offsets[4][2] = {
+// Define the global touch offsets array
+int32_t touch_offsets[4][2] = {
     {0, 0},  // LV_DISPLAY_ROTATION_0
-    {0, 0},  // LV_DISPLAY_ROTATION_90 (preserve existing offset)
+    {0, 0},  // LV_DISPLAY_ROTATION_90
     {0, 0},  // LV_DISPLAY_ROTATION_180
     {0, 0}   // LV_DISPLAY_ROTATION_270
 };
 
+CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
+    : config_(std::move(config)) {}
 
 bool CST820Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Starting CST820 touch...");
+
+    // Initialize NVS if not already initialized
+    esp_err_t err = nvs_flash_init();
+    if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_LOGW(TAG, "NVS partition needs to be erased");
+        nvs_flash_erase();
+        err = nvs_flash_init();
+    }
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
+    } else {
+        // Load offsets from NVS
+        nvs_handle_t handle;
+        err = nvs_open("touch_calib", NVS_READONLY, &handle);
+        if (err == ESP_OK) {
+            for (int i = 0; i < 4; i++) {
+                char key[16];
+                snprintf(key, sizeof(key), "x_offset_%d", i);
+                err = nvs_get_i32(handle, key, &touch_offsets[i][0]);
+                if (err != ESP_OK) {
+                    ESP_LOGW(TAG, "Failed to read %s: %s", key, esp_err_to_name(err));
+                    touch_offsets[i][0] = 0;  // Default to 0 if not found
+                }
+                snprintf(key, sizeof(key), "y_offset_%d", i);
+                err = nvs_get_i32(handle, key, &touch_offsets[i][1]);
+                if (err != ESP_OK) {
+                    ESP_LOGW(TAG, "Failed to read %s: %s", key, esp_err_to_name(err));
+                    touch_offsets[i][1] = 0;  // Default to 0 if not found
+                }
+                ESP_LOGI(TAG, "Loaded offsets for rotation %d: x=%d, y=%d", i, touch_offsets[i][0], touch_offsets[i][1]);
+            }
+            nvs_close(handle);
+        } else {
+            ESP_LOGW(TAG, "No calibration data found in NVS, using defaults");
+        }
+    }
+
     indev_ = lv_indev_create();
     lv_indev_set_type(indev_, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev_, [](lv_indev_t* indev, lv_indev_data_t* data) {
