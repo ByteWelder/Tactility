@@ -12,9 +12,11 @@ public:
 
 private:
     static void touch_event_cb(lv_event_t* event);
+    static void reset_button_cb(lv_event_t* event);  // Callback for reset button
     void next_calibration_point();
     void calculate_offsets();
     void save_offsets();
+    void reset_calibration();  // Method to reset calibration data
 
     AppContext* context_ = nullptr;
     lv_obj_t* parent_ = nullptr;
