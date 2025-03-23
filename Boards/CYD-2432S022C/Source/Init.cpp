@@ -1,4 +1,3 @@
-wait. would integrating the below code (init.cpp btw) cause errors while setting the buffers, rotation, etc if you add it at the very beginning of the display stuff before the display is init?
 #include <driver/gpio.h>
 #include "hal/CYD2432S022CConstants.h"
 #include "Tactility/app/display/DisplaySettings.h"
