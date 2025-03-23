@@ -64,11 +64,13 @@ void TouchCalibrationApp::touch_event_cb(lv_event_t* event) {
     app->points_[app->current_point_].actual_x = point.x;
     app->points_[app->current_point_].actual_y = point.y;
 
-    ESP_LOGI(TAG, "Calibration point %d: Expected (%d, %d), Actual (%d, %d)",
-             app->current_point_,
+    // Updated logging statement using PRId32 for all integers
+    ESP_LOGI(TAG, "Calibration point %" PRId32 ": Expected (%" PRId32 ", %" PRId32 "), Actual (%" PRId32 ", %" PRId32 ")",
+             static_cast<int32_t>(app->current_point_),
              app->points_[app->current_point_].expected_x,
              app->points_[app->current_point_].expected_y,
-             point.x, point.y);
+             point.x,
+             point.y);
 
     // Move to the next point
     app->current_point_++;
