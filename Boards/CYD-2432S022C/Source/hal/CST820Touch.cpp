@@ -10,6 +10,15 @@ static const char *TAG = "CST820Touch";
 CST820Touch::CST820Touch(std::unique_ptr<Configuration> config)
     : config_(std::move(config)) {}
 
+// Global array to store touch offsets for each rotation [rotation][x_offset, y_offset]
+static int32_t touch_offsets[4][2] = {
+    {0, 0},  // LV_DISPLAY_ROTATION_0
+    {0, 0},  // LV_DISPLAY_ROTATION_90 (preserve existing offset)
+    {0, 0},  // LV_DISPLAY_ROTATION_180
+    {0, 0}   // LV_DISPLAY_ROTATION_270
+};
+
+
 bool CST820Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Starting CST820 touch...");
     indev_ = lv_indev_create();
@@ -68,29 +77,33 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                // Align touch with display rendering: (0, 0) top-left, (319, 239) bottom-right
+                // Landscape, USB on Right: (0, 0) top-left, (319, 239) bottom-right
                 logical_x = 319 - (x * 319) / 239;  // Scale to logical width of 320 and invert
-                logical_y = 239 - (y * 239) / 319;  // Scale to logical height of 240, invert, adjust offset
+                logical_y = 239 - (y * 239) / 319;  // Scale to logical height of 240, invert
                 break;
 
             case LV_DISPLAY_ROTATION_270:
-                // Align touch with display rendering: (0, 0) top-right, (319, 239) bottom-left
+                // Landscape Flipped, USB on Left: (0, 0) top-right, (319, 239) bottom-left
                 logical_x = (x * 319) / 239;              // Scale to logical width of 320
                 logical_y = 239 - (y * 239) / 319;        // Scale to logical height of 240 and invert
                 break;
 
             case LV_DISPLAY_ROTATION_180:
-                // Align touch with display rendering: (0, 0) bottom-left, (239, 319) top-right
+                // Portrait Flipped, USB on Top: (0, 0) bottom-left, (239, 319) top-right
                 logical_x = 239 - x;  // Invert x to match display
                 logical_y = 319 - y;  // Invert y to match display
                 break;
 
             case LV_DISPLAY_ROTATION_0:
-                // Align touch with display rendering: (0, 0) top-left, (239, 319) bottom-right
+                // Portrait, USB on Bottom: (0, 0) top-left, (239, 319) bottom-right
                 logical_x = 239 - x;  // Invert x to match display
                 logical_y = y;        // y matches directly
                 break;
         }
+
+        // Apply calibration offsets
+        logical_x += touch_offsets[rotation][0];
+        logical_y += touch_offsets[rotation][1];
 
         // Clamp coordinates to logical display bounds
         int32_t max_x = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 319 : 239;
