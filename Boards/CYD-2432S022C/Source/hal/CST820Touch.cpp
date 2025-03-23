@@ -91,8 +91,9 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
             }
 
             case LV_DISPLAY_ROTATION_0:
-                logical_x = 319 - y;
-                logical_y = 239 - x;
+                // Align touch with display rendering: (0, 0) top-left, (239, 319) bottom-right
+                logical_x = 239 - x;  // Invert x to match display
+                logical_y = y;        // y matches directly
                 break;
         }
 
