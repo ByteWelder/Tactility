@@ -3,7 +3,7 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include "Tactility/app/display/DisplaySettings.h"
 #include <lvgl.h>  // For lvgl types
-#include <lv_event.h>  // For lv_event_t definition
+#include "lv_event.h"  // For lv_event_t definition
 #include <esp_log.h>
 #include <nvs_flash.h>
 #include <inttypes.h>  // For PRId32
