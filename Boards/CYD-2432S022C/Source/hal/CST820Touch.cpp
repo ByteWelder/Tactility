@@ -55,16 +55,20 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
     uint8_t finger_num = touch_data[1];
     if (finger_num > 0) {
+        // Log raw touch data for debugging
         ESP_LOGD(TAG, "Raw touch data: %02x %02x %02x %02x %02x %02x",
                  touch_data[0], touch_data[1], touch_data[2], touch_data[3],
                  touch_data[4], touch_data[5]);
 
+        // Raw hardware coordinates (12-bit values, 0-4095)
         uint16_t raw_x = ((touch_data[2] & 0x0F) << 8) | touch_data[3];
         uint16_t raw_y = ((touch_data[4] & 0x0F) << 8) | touch_data[5];
 
+        // Scale to hardware resolution (240x320)
         uint16_t x = (raw_x * 240) / 4096;
         uint16_t y = (raw_y * 320) / 4096;
 
+        // Transform coordinates based on display rotation
         lv_display_rotation_t rotation = lv_display_get_rotation(display_);
         int32_t logical_x, logical_y;
 
@@ -72,27 +76,27 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
 
         switch (rotation) {
             case LV_DISPLAY_ROTATION_90:
-                logical_x = y;               // Map y to x in landscape
-                logical_y = 239 - x;         // Reverse x to y in landscape
+                logical_x = y;            // X is now the vertical axis
+                logical_y = 239 - x;      // Y is mapped to the horizontal axis
                 break;
             case LV_DISPLAY_ROTATION_270:
-                logical_x = 239 - y;         // Reverse y to x in landscape
-                logical_y = x;               // Map x to y in landscape
+                logical_x = 239 - y;      // X is now the vertical axis
+                logical_y = x;            // Y is mapped to the horizontal axis
                 break;
             case LV_DISPLAY_ROTATION_180:
-                logical_x = 239 - x;         // Reverse x for rotation 180
-                logical_y = 319 - y;         // Reverse y for rotation 180
+                logical_x = 239 - x;      // Inverted coordinates
+                logical_y = 319 - y;
                 break;
             case LV_DISPLAY_ROTATION_0:
             default:
-                logical_x = 239 - y;         // Reverse y to x in portrait
-                logical_y = x;               // Map x to y in portrait
+                logical_x = 320 - y - 1;  // Default portrait mode, inverted y-axis
+                logical_y = x;
                 break;
         }
 
-        int32_t max_x = 239;
-        int32_t max_y = 319;
-
+        // Clamp coordinates to logical display bounds
+        int32_t max_x = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 319 : 239;
+        int32_t max_y = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270) ? 239 : 319;
         if (logical_x < 0) logical_x = 0;
         if (logical_x > max_x) logical_x = max_x;
         if (logical_y < 0) logical_y = 0;
@@ -107,8 +111,9 @@ bool CST820Touch::read_input(lv_indev_data_t* data) {
         data->state = LV_INDEV_STATE_RELEASED;
     }
 
-    return false;
+    return false; // No more data to read
 }
+
 
 
 std::shared_ptr<tt::hal::touch::TouchDevice> createCST820Touch() {
