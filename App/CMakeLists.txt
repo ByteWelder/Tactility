@@ -10,10 +10,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRC_DIRS "Source"
         "Source/HelloWorld"
         "Source/TouchCalibrationApp"
-        INCLUDE_DIRS "../Boards/CYD-2432S022C/Source/hal"
-        "../TactilityCore/Include/Tactility"
-        "../Libraries/lvgl/src"      # Add this to include lv_event.h
-        "../Libraries/lvgl/src/core" # Add this to include lv_event.h directly
+        INCLUDE_DIRS "../TactilityCore/Include/Tactility"
+        "../Libraries/lvgl/src"
+        "../Libraries/lvgl/src/core"
         "../Libraries/lvgl/src/misc"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
