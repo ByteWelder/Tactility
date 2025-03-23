@@ -118,7 +118,7 @@ public:
 
         // Set rotation in LovyanGFX to match LVGL
         // In LovyanGFXDisplay::start(), replace the rotation mapping with:
-        uint8_t lovyan_rotation = 1;  // Hardcode to test LovyanGFX rotation 
+        uint8_t lovyan_rotation = 2;  // Hardcode to test LovyanGFX rotation 
         // uint8_t lovyan_rotation = 0;
         // switch (configuration->rotation) {
         //     case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;
