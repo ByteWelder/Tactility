@@ -117,16 +117,17 @@ public:
         vTaskDelay(pdMS_TO_TICKS(50));
 
         // Set rotation in LovyanGFX to match LVGL
-        uint8_t lovyan_rotation = 0;
-        switch (configuration->rotation) {
-            case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;
-            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 1; break;
-            case LV_DISPLAY_ROTATION_180: lovyan_rotation = 2; break;
-            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 3; break;
-        }
+        // In LovyanGFXDisplay::start(), replace the rotation mapping with:
+        uint8_t lovyan_rotation = 0;  // Hardcode to test LovyanGFX rotation 0
+        // uint8_t lovyan_rotation = 0;
+        // switch (configuration->rotation) {
+        //     case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;
+        //     case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 1; break;
+        //     case LV_DISPLAY_ROTATION_180: lovyan_rotation = 2; break;
+        //     case LV_DISPLAY_ROTATION_270: lovyan_rotation = 3; break;
+        // }
         lcd.setRotation(lovyan_rotation);
-        ESP_LOGI(TAG, "Set LovyanGFX rotation to %d", lovyan_rotation);
-
+        ESP_LOGI(TAG, "Set LovyanGFX rotation to %d (HARDCODED FOR TESTING)", lovyan_rotation);
         lcd.setBrightness(0);  // Start with backlight off
 
         // Calculate buffer size dynamically based on rotation
