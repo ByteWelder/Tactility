@@ -3,6 +3,8 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/Core.h>  // For tt::core::display
 #include <esp_log.h>
+#include <nvs_flash.h>
+
 
 static const char *TAG = "TouchCalibrationApp";
 
@@ -136,8 +138,22 @@ void TouchCalibrationApp::calculate_offsets() {
 }
 
 void TouchCalibrationApp::save_offsets() {
-    // In a production app, save to NVS here
-    ESP_LOGI(TAG, "Offsets saved (placeholder for NVS storage)");
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open("touch_calib", NVS_READWRITE, &handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to open NVS: %s", esp_err_to_name(err));
+        return;
+    }
+    for (int i = 0; i < 4; i++) {
+        char key[16];
+        snprintf(key, sizeof(key), "x_offset_%d", i);
+        nvs_set_i32(handle, key, touch_offsets[i][0]);
+        snprintf(key, sizeof(key), "y_offset_%d", i);
+        nvs_set_i32(handle, key, touch_offsets[i][1]);
+    }
+    nvs_commit(handle);
+    nvs_close(handle);
+    ESP_LOGI(TAG, "Offsets saved to NVS");
 }
 
 }  // namespace tt::app
