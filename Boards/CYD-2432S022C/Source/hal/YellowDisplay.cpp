@@ -29,7 +29,8 @@ public:
     };
 
     explicit YellowDisplay(std::unique_ptr<Configuration> config) : config(std::move(config)) {
-        ESP_LOGI(TAG, "YellowDisplay constructor: %dx%d, rotation=%d", config->width, config->height, config->rotation);
+        ESP_LOGI(TAG, "YellowDisplay constructor: %dx%d, rotation=%d, touch=%p", 
+                 config->width, config->height, config->rotation, config->touch.get());
     }
 
     ~YellowDisplay() override { stop(); }
@@ -168,7 +169,8 @@ public:
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
             if (!display || !data || !display->panel_handle) {
-                ESP_LOGE(TAG, "Flush callback failed: display=%p, data=%p, panel_handle=%p", display, data, display ? display->panel_handle : nullptr);
+                ESP_LOGE(TAG, "Flush callback failed: display=%p, data=%p, panel_handle=%p", 
+                         display, data, display ? display->panel_handle : nullptr);
                 lv_display_flush_ready(disp);
                 return;
             }
@@ -178,6 +180,7 @@ public:
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
+        vTaskDelay(pdMS_TO_TICKS(100)); // Delay to ensure logs flush
         return true;
     }
 
@@ -239,11 +242,13 @@ private:
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
+    ESP_LOGI(TAG, "Creating display");
     auto touch = createYellowTouch();
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch device");
-        return nullptr;
+        return nullptr; // Return nullptr to prevent further init
     }
+    ESP_LOGI(TAG, "Touch created: %p", touch.get());
     lv_display_rotation_t rotation = tt::app::display::getRotation();
     auto config = std::make_unique<YellowDisplay::Configuration>(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
@@ -251,5 +256,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         rotation,
         touch
     );
-    return std::make_shared<YellowDisplay>(std::move(config));
+    auto display = std::make_shared<YellowDisplay>(std::move(config));
+    ESP_LOGI(TAG, "Display object created: %p", display.get());
+    return display;
 }
