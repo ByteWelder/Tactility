@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Tactility/hal/Configuration.h>
+#include "hal/YellowTouch.h"
+
 
 bool cyd22_init();
 
