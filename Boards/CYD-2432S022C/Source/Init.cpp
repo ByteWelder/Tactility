@@ -48,7 +48,7 @@ bool cyd22_init() {
     uint16_t logical_height = (tactility_orientation == LV_DISPLAY_ROTATION_90 || tactility_orientation == LV_DISPLAY_ROTATION_270)
                               ? HARDWARE_WIDTH : HARDWARE_HEIGHT;  // 240 or 320
     size_t buffer_width = logical_width;  // Buffer needs to handle the rotated width
-    size_t buffer_size = buffer_width * BUFFER_HEIGHT;  // e.g., 320 * 64 = 20480 pixels
+    size_t buffer_size = buffer_width * BUFFER_HEIGHT;  // e.g., 320 * 32 = 10240 pixels
 
     // Step 4: Log expected settings for validation in LovyanDisplay.cpp
     ESP_LOGI(TAG, "Hardware resolution: %dx%d", HARDWARE_WIDTH, HARDWARE_HEIGHT);
