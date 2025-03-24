@@ -6,8 +6,8 @@
 #define TAG "CYD2432S022C"
 
 // Hardware resolution (fixed)
-#define HARDWARE_WIDTH 240
-#define HARDWARE_HEIGHT 320
+#define HARDWARE_WIDTH 320
+#define HARDWARE_HEIGHT 240
 
 // Buffer height for partial rendering (fixed)
 #define BUFFER_HEIGHT 64
