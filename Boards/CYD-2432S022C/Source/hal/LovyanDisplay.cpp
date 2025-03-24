@@ -1,6 +1,6 @@
 #include "LovyanDisplay.h"
 #include "CYD2432S022CConstants.h"
-#include "CST820Touch.h"
+#include "YellowTouch.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include <esp_log.h>
 #include <LovyanGFX.h>
@@ -273,20 +273,17 @@ private:
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createCST820Touch();
+    auto touch = createYellowTouch();  // Use new function
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch device!");
         return nullptr;
     }
-
-    // Get the Tactility orientation dynamically
     lv_display_rotation_t tactility_orientation = tt::app::display::getRotation();
     ESP_LOGI(TAG, "Creating display with Tactility orientation: %d", tactility_orientation);
-
     auto config = std::make_unique<LovyanGFXDisplay::Configuration>(
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,  // 240
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,    // 320
-        tactility_orientation,                     // Use Tactility orientation
+        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
+        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
+        tactility_orientation,
         touch
     );
     return std::make_shared<LovyanGFXDisplay>(std::move(config));
