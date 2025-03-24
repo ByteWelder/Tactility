@@ -1,7 +1,6 @@
 #include "Tactility/hal/gps/Cas.h"
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/gps/Ublox.h"
-#include "Tactility/service/Service.h"
 #include <cstring>
 
 #define TAG "gps"

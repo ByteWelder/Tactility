@@ -46,16 +46,18 @@ private:
     const std::string filePath;
     const uint32_t recordSize;
     const uint32_t recordVersion;
+    const bool append;
 
     std::unique_ptr<FILE, FileCloser> file;
     uint32_t recordsWritten = 0;
 
 public:
 
-    ObjectFileWriter(std::string filePath, uint32_t recordSize, uint32_t recordVersion = 1) :
+    ObjectFileWriter(std::string filePath, uint32_t recordSize, uint32_t recordVersion = 1, bool append = false) :
         filePath(std::move(filePath)),
         recordSize(recordSize),
-        recordVersion(recordVersion)
+        recordVersion(recordVersion),
+        append(append)
     {}
 
 

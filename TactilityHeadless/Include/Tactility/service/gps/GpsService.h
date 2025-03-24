@@ -37,13 +37,13 @@ private:
 
     void setState(State newState);
 
+    void addGpsDevice(const std::shared_ptr<hal::gps::GpsDevice>& device);
+    void removeGpsDevice(const std::shared_ptr<hal::gps::GpsDevice>& device);
+
 public:
 
     void onStart(tt::service::ServiceContext &serviceContext) final;
     void onStop(tt::service::ServiceContext &serviceContext) final;
-
-    void addGpsDevice(const std::shared_ptr<hal::gps::GpsDevice>& device);
-    void removeGpsDevice(const std::shared_ptr<hal::gps::GpsDevice>& device);
 
     bool startReceiving();
     void stopReceiving();
@@ -56,4 +56,6 @@ public:
     std::shared_ptr<PubSub> getStatePubsub() const { return statePubSub; }
 };
 
-} // tt::hal::gps
+std::shared_ptr<GpsService> findGpsService();
+
+} // tt::service::gps

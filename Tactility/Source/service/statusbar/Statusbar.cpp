@@ -3,7 +3,7 @@
 
 #include "Tactility/hal/power/PowerDevice.h"
 #include "Tactility/hal/sdcard/SdCardDevice.h"
-#include "Tactility/service/gps/Gps.h"
+#include "Tactility/service/gps/GpsService.h"
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityHeadless.h>
@@ -154,7 +154,7 @@ private:
     }
 
     void updateGpsIcon() {
-        auto gps_state = gps::getState();
+        auto gps_state = service::gps::findGpsService()->getState();
         bool show_icon = (gps_state == gps::State::OnPending) || (gps_state == gps::State::On);
         if (gps_last_state != show_icon) {
             if (show_icon) {

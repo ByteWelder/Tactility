@@ -5,7 +5,7 @@
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/gps/GpsUtil.h"
 #include "Tactility/service/loader/Loader.h"
-#include <Tactility/service/gps/Gps.h>
+#include <Tactility/service/gps/GpsService.h>
 
 #include <format>
 #include <lvgl.h>
@@ -36,6 +36,7 @@ private:
     lv_obj_t* infoContainerWidget = nullptr;
     bool hasSetInfo = false;
     PubSub::SubscriptionHandle serviceStateSubscription = nullptr;
+    std::shared_ptr<service::gps::GpsService> service;
 
     static void onUpdateCallback(TT_UNUSED std::shared_ptr<void> context) {
         auto appPtr = std::static_pointer_cast<GpsSettingsApp*>(context);
@@ -89,7 +90,7 @@ private:
     void updateViews() {
         auto lock = lvgl::getSyncLock()->asScopedLock();
         if (lock.lock(100 / portTICK_PERIOD_MS)) {
-            auto state = service::gps::getState();
+            auto state = service->getState();
 
             // Update toolbar
             switch (state) {
@@ -130,7 +131,7 @@ private:
                 }
 
                 minmea_sentence_rmc rmc;
-                if (service::gps::getCoordinates(rmc)) {
+                if (service->getCoordinates(rmc)) {
                     minmea_float latitude = { rmc.latitude.value, rmc.latitude.scale };
                     minmea_float longitude = { rmc.longitude.value, rmc.longitude.scale };
                     auto label_text = std::format("LAT {}\nLON {}", minmea_tocoord(&latitude), minmea_tocoord(&longitude));
@@ -152,7 +153,7 @@ private:
 
     /** @return true if the views were updated */
     bool updateTimerState() {
-        bool is_on = service::gps::getState() == service::gps::State::On;
+        bool is_on = service->getState() == service::gps::State::On;
         if (is_on && !timer->isRunning()) {
             startReceivingUpdates();
             return true;
@@ -166,19 +167,19 @@ private:
 
     void onGpsToggled(TT_UNUSED lv_event_t* event) {
         bool wants_on = lv_obj_has_state(switchWidget, LV_STATE_CHECKED);
-        auto state = service::gps::getState();
+        auto state = service->getState();
         bool is_on = (state == service::gps::State::On) || (state == service::gps::State::OnPending);
 
         if (wants_on != is_on) {
             // start/stop are potentially blocking calls, so we use a dispatcher to not block the UI
             if (wants_on) {
-                getMainDispatcher().dispatch([](TT_UNUSED auto _) {
-                    service::gps::startReceiving();
-                }, nullptr);
+                getMainDispatcher().dispatch([](auto service) {
+                    std::static_pointer_cast<service::gps::GpsService>(service)->startReceiving();
+                }, service);
             } else {
-                getMainDispatcher().dispatch([](TT_UNUSED auto _) {
-                    service::gps::stopReceiving();
-                }, nullptr);
+                getMainDispatcher().dispatch([](auto service) {
+                    std::static_pointer_cast<service::gps::GpsService>(service)->stopReceiving();
+                }, service);
             }
         }
     }
@@ -187,6 +188,7 @@ public:
 
     GpsSettingsApp() {
         timer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdateCallback, appReference);
+        service = service::gps::findGpsService();
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) final {
@@ -227,7 +229,7 @@ public:
         updateTimerState();
         updateViews();
 
-        serviceStateSubscription = service::gps::getStatePubsub()->subscribe(onServiceStateChangedCallback, this);
+        serviceStateSubscription = service->getStatePubsub()->subscribe(onServiceStateChangedCallback, this);
 
         auto* add_gps_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_size(add_gps_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
@@ -242,7 +244,7 @@ public:
     }
 
     void onHide(AppContext& app) final {
-        service::gps::getStatePubsub()->unsubscribe(serviceStateSubscription);
+        service->getStatePubsub()->unsubscribe(serviceStateSubscription);
         serviceStateSubscription = nullptr;
     }
 };

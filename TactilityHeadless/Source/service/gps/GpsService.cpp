@@ -1,11 +1,13 @@
 #include "Tactility/service/gps/GpsService.h"
 #include "Tactility/service/ServiceManifest.h"
-
-#define TAG "gps_service"
+#include "Tactility/service/ServiceRegistry.h"
 
 using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
+
+constexpr const char* TAG = "GpsService";
+extern const ServiceManifest manifest;
 
 constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
     return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
@@ -200,6 +202,12 @@ bool GpsService::getCoordinates(minmea_sentence_rmc& rmc) const {
     } else {
         return false;
     }
+}
+
+std::shared_ptr<GpsService> findGpsService() {
+    auto service = findServiceById(manifest.id);
+    assert(service != nullptr);
+    return std::static_pointer_cast<GpsService>(service);
 }
 
 extern const ServiceManifest manifest = {

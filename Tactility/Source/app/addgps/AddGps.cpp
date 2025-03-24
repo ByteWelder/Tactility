@@ -1,5 +1,6 @@
 #include "Tactility/StringUtils.h"
 #include "Tactility/app/AppManifest.h"
+#include "Tactility/app/alertdialog/AlertDialog.h"
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/uart/Uart.h"
 #include "Tactility/lvgl/Style.h"
@@ -15,8 +16,36 @@ class AddGpsApp final : public App {
 
 private:
 
-    lv_obj_t* busDropdown = nullptr;
+    lv_obj_t* uartDropdown = nullptr;
     lv_obj_t* modelDropdown = nullptr;
+    lv_obj_t* baudDropdown = nullptr;
+
+    // Store as string instead of int, so app startup doesn't require parsing all entries.
+    // We only need to parse back to int when adding the new GPS entry
+    std::array<uint32_t, 6> baudRates = { 9600, 19200, 28800, 38400, 57600, 115200 };
+    const char* baudRatesDropdownValues = "9600\n19200\n28800\n38400\n57600\n115200";
+
+    static void onAddGpsCallback(lv_event_t* event) {
+        auto* app = (AddGpsApp*)lv_event_get_user_data(event);
+        app->onAddGps();
+    }
+
+    void onAddGps() {
+        char selected_uart[64] = { 0x00 };
+        lv_dropdown_get_selected_str(uartDropdown, selected_uart, sizeof(selected_uart));
+        if (selected_uart[0] == 0x00) {
+            alertdialog::start("Error", "You must select a bus/uart.");
+            return;
+        }
+
+        // Warning: This assumes that the enum is a regularly indexed one that starts at 0
+        auto selected_model = (hal::gps::GpsModel)lv_dropdown_get_selected(modelDropdown);
+
+        auto selected_baud_index = lv_dropdown_get_selected(baudDropdown);
+        auto baud = baudRates[selected_baud_index];
+
+        TT_LOG_I(TAG, "Saving: uart=%s, model=%lu, baud=%lu", selected_uart, (uint32_t)selected_model, baud);
+    }
 
 public:
 
@@ -41,14 +70,14 @@ public:
         lv_obj_set_style_border_width(uart_wrapper, 0, 0);
         lvgl::obj_set_style_bg_invisible(uart_wrapper);
 
-        busDropdown = lv_dropdown_create(uart_wrapper);
+        uartDropdown = lv_dropdown_create(uart_wrapper);
 
         auto uart_names = hal::uart::getNames();
         uart_names.insert(uart_names.begin(), "");
         auto uart_options = string::join(uart_names, "\n");
-        lv_dropdown_set_options(busDropdown, uart_options.c_str());
-        lv_obj_align(busDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-        lv_obj_set_width(busDropdown, LV_PCT(50));
+        lv_dropdown_set_options(uartDropdown, uart_options.c_str());
+        lv_obj_align(uartDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_set_width(uartDropdown, LV_PCT(50));
 
         auto* uart_label = lv_label_create(uart_wrapper);
         lv_obj_align(uart_label, LV_ALIGN_TOP_LEFT, 0, 10);
@@ -83,10 +112,10 @@ public:
         lv_obj_set_style_border_width(baud_wrapper, 0, 0);
         lvgl::obj_set_style_bg_invisible(baud_wrapper);
 
-        auto* baud_dropdown = lv_dropdown_create(baud_wrapper);
-        lv_dropdown_set_options(baud_dropdown, "9600\n19200\n28800\n38400\n57600\n115200");
-        lv_obj_align(baud_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
-        lv_obj_set_width(baud_dropdown, LV_PCT(50));
+        baudDropdown = lv_dropdown_create(baud_wrapper);
+        lv_dropdown_set_options(baudDropdown, baudRatesDropdownValues);
+        lv_obj_align(baudDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_set_width(baudDropdown, LV_PCT(50));
 
         auto* baud_rate_label = lv_label_create(baud_wrapper);
         lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 10);
@@ -106,6 +135,7 @@ public:
         lv_obj_align(add_button, LV_ALIGN_TOP_MID, 0, 0);
         auto* add_label = lv_label_create(add_button);
         lv_label_set_text(add_label, "Add");
+        lv_obj_add_event_cb(add_button, onAddGpsCallback, LV_EVENT_SHORT_CLICKED, this);
 
         // endregion
     }

@@ -91,19 +91,68 @@ bool ObjectFileReader::readNext(void* output) {
 // region Writer
 
 bool ObjectFileWriter::open() {
-    auto opening_file = std::unique_ptr<FILE, FileCloser>(fopen(filePath.c_str(), "w"));
+    // If file exists
+    bool edit_existing = append && access(filePath.c_str(), F_OK) == 0;
+
+    auto* mode = edit_existing ? "r+" : "w";
+    auto opening_file = std::unique_ptr<FILE, FileCloser>(fopen(filePath.c_str(), mode));
     if (opening_file == nullptr) {
         TT_LOG_E(TAG, "Failed to open file %s", filePath.c_str());
         return false;
     }
 
-    FileHeader file_header;
-    if (fwrite(&file_header, sizeof(FileHeader), 1, opening_file.get()) != 1) {
-        TT_LOG_E(TAG, "Failed to write file header for %s", filePath.c_str());
-        return false;
+    auto file_size = getSize(opening_file.get());
+    if (file_size > 0 && edit_existing) {
+
+        // Read and parse file header
+
+        FileHeader file_header;
+        if (fread(&file_header, sizeof(FileHeader), 1, opening_file.get()) != 1) {
+            TT_LOG_E(TAG, "Failed to read file header from %s", filePath.c_str());
+            return false;
+        }
+
+        if (file_header.identifier != OBJECT_FILE_IDENTIFIER) {
+            TT_LOG_E(TAG, "Invalid file type for %s", filePath.c_str());
+            return false;
+        }
+
+        if (file_header.version != OBJECT_FILE_VERSION) {
+            TT_LOG_E(TAG, "Unknown version for %s: %lu", filePath.c_str(), file_header.identifier);
+            return false;
+        }
+
+        // Read and parse content header
+
+        ContentHeader content_header;
+        if (fread(&content_header, sizeof(ContentHeader), 1, opening_file.get()) != 1) {
+            TT_LOG_E(TAG, "Failed to read content header from %s", filePath.c_str());
+            return false;
+        }
+
+        if (recordSize != content_header.recordSize) {
+            TT_LOG_E(TAG, "Record size mismatch for %s: expected %lu, got %lu", filePath.c_str(), recordSize, content_header.recordSize);
+            return false;
+        }
+
+        if (recordVersion != content_header.recordVersion) {
+            TT_LOG_E(TAG, "Version mismatch for %s: expected %lu, got %lu", filePath.c_str(), recordVersion, content_header.recordVersion);
+            return false;
+        }
+
+        recordsWritten = content_header.recordCount;
+        fseek(opening_file.get(), 0, SEEK_END);
+    } else {
+        FileHeader file_header;
+        if (fwrite(&file_header, sizeof(FileHeader), 1, opening_file.get()) != 1) {
+            TT_LOG_E(TAG, "Failed to write file header for %s", filePath.c_str());
+            return false;
+        }
+
+        // Seek forward (skip ContentHeader that will be written later)
+        fseek(opening_file.get(), sizeof(ContentHeader), SEEK_CUR);
     }
 
-    fseek(opening_file.get(), sizeof(ContentHeader), SEEK_CUR);
 
     file = std::move(opening_file);
     return true;
@@ -115,7 +164,10 @@ void ObjectFileWriter::close() {
         return;
     }
 
-    fseek(file.get(), sizeof(FileHeader), SEEK_SET);
+    if (fseek(file.get(), sizeof(FileHeader), SEEK_SET) != 0) {
+        TT_LOG_E(TAG, "File seek failed: %s", filePath.c_str());
+        return;
+    }
 
     ContentHeader content_header = {
         .recordVersion = this->recordVersion,
