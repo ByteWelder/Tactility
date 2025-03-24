@@ -29,6 +29,10 @@ public:
     };
 
     explicit YellowDisplay(std::unique_ptr<Configuration> config) : config(std::move(config)) {
+        if (!this->config) {
+            ESP_LOGE(TAG, "Constructor: config is null");
+            return;
+        }
         ESP_LOGI(TAG, "YellowDisplay constructor: %dx%d, rotation=%d, touch=%p", 
                  config->width, config->height, config->rotation, config->touch.get());
     }
@@ -39,6 +43,10 @@ public:
         if (isStarted) {
             ESP_LOGW(TAG, "Display already started");
             return true;
+        }
+        if (!config) {
+            ESP_LOGE(TAG, "start: config is null");
+            return false;
         }
 
         ESP_LOGI(TAG, "Starting ESP-IDF i80 display for CYD-2432S022C");
@@ -180,7 +188,7 @@ public:
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
-        vTaskDelay(pdMS_TO_TICKS(100)); // Delay to ensure logs flush
+        vTaskDelay(pdMS_TO_TICKS(100));
         return true;
     }
 
@@ -246,17 +254,27 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto touch = createYellowTouch();
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch device");
-        return nullptr; // Return nullptr to prevent further init
+        return nullptr;
     }
     ESP_LOGI(TAG, "Touch created: %p", touch.get());
     lv_display_rotation_t rotation = tt::app::display::getRotation();
+    ESP_LOGI(TAG, "Rotation retrieved: %d", rotation);
     auto config = std::make_unique<YellowDisplay::Configuration>(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         rotation,
         touch
     );
+    if (!config) {
+        ESP_LOGE(TAG, "Failed to create config");
+        return nullptr;
+    }
+    ESP_LOGI(TAG, "Config created: %p", config.get());
     auto display = std::make_shared<YellowDisplay>(std::move(config));
+    if (!display) {
+        ESP_LOGE(TAG, "Failed to create display object");
+        return nullptr;
+    }
     ESP_LOGI(TAG, "Display object created: %p", display.get());
     return display;
 }
