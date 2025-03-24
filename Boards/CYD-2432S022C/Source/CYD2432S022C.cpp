@@ -18,7 +18,7 @@ const tt::hal::Configuration cyd_2432s022c_config = {
     .power = nullptr,
     .i2c = {
         tt::hal::i2c::Configuration {
-            .name = "First",
+            .name = "Touch",
             .port = CYD_2432S022C_TOUCH_I2C_PORT,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
             .isMutable = true,
@@ -62,7 +62,7 @@ const tt::hal::Configuration cyd_2432s022c_config = {
     },
     .uart = {
         // UART0 - USB-to-Serial (IN?)
-        uart::Configuration {
+        tt::hal::uart::Configuration {
             .name = "UART0",
             .port = UART_NUM_0,          // Use UART0
             .rxPin = GPIO_NUM_3,         // RX on GPIO3 (U0RXD)
