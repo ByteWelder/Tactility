@@ -10,7 +10,7 @@
 #define HARDWARE_HEIGHT 240
 
 // Buffer height for partial rendering (fixed)
-#define BUFFER_HEIGHT 64
+#define BUFFER_HEIGHT 32
 
 // Default orientation if not set in NVS
 #define DEFAULT_ORIENTATION LV_DISPLAY_ROTATION_0
