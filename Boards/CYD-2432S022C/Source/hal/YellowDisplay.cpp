@@ -28,13 +28,16 @@ public:
             : width(width), height(height), rotation(rotation), touch(std::move(touch)) {}
     };
 
-    explicit YellowDisplay(std::unique_ptr<Configuration> config) : config(std::move(config)) {
-        if (!this->config) {
+    // Take Configuration by raw pointer instead of unique_ptr
+    explicit YellowDisplay(Configuration* config) {
+        ESP_LOGI(TAG, "Constructor entry: this=%p, config=%p", this, config);
+        if (!config) {
             ESP_LOGE(TAG, "Constructor: config is null");
             return;
         }
+        this->config = std::make_unique<Configuration>(config->width, config->height, config->rotation, config->touch);
         ESP_LOGI(TAG, "YellowDisplay constructor: %dx%d, rotation=%d, touch=%p", 
-                 config->width, config->height, config->rotation, config->touch.get());
+                 this->config->width, this->config->height, this->config->rotation, this->config->touch.get());
     }
 
     ~YellowDisplay() override { stop(); }
@@ -259,18 +262,18 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI(TAG, "Touch created: %p", touch.get());
     lv_display_rotation_t rotation = tt::app::display::getRotation();
     ESP_LOGI(TAG, "Rotation retrieved: %d", rotation);
-    auto config = std::make_unique<YellowDisplay::Configuration>(
+
+    // Create Configuration on stack first
+    Configuration temp_config(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         rotation,
         touch
     );
-    if (!config) {
-        ESP_LOGE(TAG, "Failed to create config");
-        return nullptr;
-    }
-    ESP_LOGI(TAG, "Config created: %p", config.get());
-    auto display = std::make_shared<YellowDisplay>(std::move(config));
+    ESP_LOGI(TAG, "Temp config created: width=%d, height=%d, rotation=%d, touch=%p", 
+             temp_config.width, temp_config.height, temp_config.rotation, temp_config.touch.get());
+
+    auto display = std::make_shared<YellowDisplay>(&temp_config);
     if (!display) {
         ESP_LOGE(TAG, "Failed to create display object");
         return nullptr;
