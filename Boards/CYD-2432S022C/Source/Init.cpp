@@ -21,7 +21,7 @@ bool cyd22_init() {
 
     // Step 1: Configure backlight pin (LovyanGFX will handle PWM later)
     gpio_config_t io_conf = {};
-    io_conf.pin_bit_mask = (1ULL << GPIO_NUM_0);  // Backlight pin
+    io_conf.pin_bit_mask = (1ULL << CYD_2432S022C_LCD_PIN_BACKLIGHT);  // Backlight pin
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
