@@ -120,9 +120,9 @@ public:
         uint8_t lovyan_rotation = 0;
         switch (configuration->rotation) {
             case LV_DISPLAY_ROTATION_0:   lovyan_rotation = 0; break;  // Portrait, USB at bottom
-            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 3; break;  // Landscape, USB on right
+            case LV_DISPLAY_ROTATION_90:  lovyan_rotation = 1; break;  // Landscape, USB on right
             case LV_DISPLAY_ROTATION_180: lovyan_rotation = 2; break;  // Portrait, USB at top
-            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 1; break;  // Landscape, USB on left
+            case LV_DISPLAY_ROTATION_270: lovyan_rotation = 3; break;  // Landscape, USB on left
         }
         lcd.setRotation(lovyan_rotation);
         ESP_LOGI(TAG, "Set LovyanGFX rotation to %d", lovyan_rotation);
