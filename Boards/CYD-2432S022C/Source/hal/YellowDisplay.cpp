@@ -57,8 +57,8 @@ public:
         // 2. Configure ST7789 panel
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
-            .pclk_hz = 10 * 1000 * 1000,
-            .trans_descriptor_num = 10,
+            .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,
+            .trans_descriptor_num = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
             .dc_levels = {.dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1},
             .lcd_cmd_bits = 8,
             .lcd_param_bits = 8
@@ -77,23 +77,23 @@ public:
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
         ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, false));
         ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 0));
-        setRotation(config->rotation); // Moved before buffer setup
+        setRotation(config->rotation);
 
         // 4. Backlight setup (LEDC PWM)
         ledc_timer_config_t ledc_timer = {
             .speed_mode = LEDC_LOW_SPEED_MODE,
-            .duty_resolution = LEDC_TIMER_8_BIT,
-            .timer_num = LEDC_TIMER_0,
-            .freq_hz = 44100,
+            .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
+            .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
             .clk_cfg = LEDC_AUTO_CLK
         };
         ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
         ledc_channel_config_t ledc_channel = {
             .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
             .speed_mode = LEDC_LOW_SPEED_MODE,
-            .channel = LEDC_CHANNEL_0,
+            .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = LEDC_TIMER_0,
+            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
             .hpoint = 0
         };
@@ -138,7 +138,7 @@ public:
         if (panel_io) esp_lcd_panel_io_del(panel_io);
         if (buf1) heap_caps_free(buf1);
         if (buf2) heap_caps_free(buf2);
-        ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+        ledc_stop(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, 0);
         lvglDisplay = nullptr;
         panel_handle = nullptr;
         panel_io = nullptr;
@@ -149,7 +149,7 @@ public:
     }
 
     void setBacklightDuty(uint8_t duty) override {
-        if (isStarted) ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty);
+        if (isStarted) ledc_set_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, duty);
     }
 
     bool supportsBacklightDuty() const override { return true; }
