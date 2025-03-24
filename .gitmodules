@@ -10,7 +10,3 @@
 [submodule "Libraries/SDL"]
 	path = Libraries/SDL
 	url = https://github.com/libsdl-org/SDL.git
-[submodule "Libraries/i80-Controller"]
-	path = Libraries/i80-Controller
-	url = https://github.com/espressif/esp-idf/tree/master/examples/peripherals/lcd/i80_controller.git
-
