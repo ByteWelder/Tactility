@@ -59,5 +59,31 @@ const tt::hal::Configuration cyd_2432s022c_config = {
             .isMutable = false,
             .lock = nullptr
         }
+    },
+    .uart = {
+        // UART0 - USB-to-Serial (IN?)
+        uart::Configuration {
+            .name = "UART0",
+            .port = UART_NUM_0,          // Use UART0
+            .rxPin = GPIO_NUM_3,         // RX on GPIO3 (U0RXD)
+            .txPin = GPIO_NUM_1,         // TX on GPIO1 (U0TXD)
+            .rtsPin = GPIO_NUM_NC,       // No RTS pin
+            .ctsPin = GPIO_NUM_NC,       // No CTS pin
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,        
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        }
     }
 };
