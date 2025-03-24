@@ -1,5 +1,5 @@
 #include "CYD2432S022C.h"
-#include "hal/LovyanDisplay.h"
+#include "hal/YellowDisplay.h"
 #include "hal/YellowSDCard.h"
 #include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
@@ -7,12 +7,12 @@
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
 
 
-bool cyd22_init();
-
-
+bool init_boot() {
+    return true;
+}
 
 const tt::hal::Configuration cyd_2432s022c_config = {
-    .initBoot = cyd22_init,
+    .initBoot = init_boot,
     .createDisplay = createDisplay,
     .sdcard = createYellowSDCard(),
     .power = nullptr,
