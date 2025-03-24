@@ -49,7 +49,7 @@ public:
             },
             .bus_width = 8,
             .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
-            .psram_trans_align = 64,
+            .psram_trans_align = 0, // No PSRAM on this board
             .sram_trans_align = 4
         };
         ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus));
