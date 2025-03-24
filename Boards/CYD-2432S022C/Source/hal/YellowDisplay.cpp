@@ -48,7 +48,7 @@ public:
                 CYD_2432S022C_LCD_PIN_D4, CYD_2432S022C_LCD_PIN_D5, CYD_2432S022C_LCD_PIN_D6, CYD_2432S022C_LCD_PIN_D7
             },
             .bus_width = 8,
-            .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2, // RGB565 = 2 bytes/pixel
+            .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
             .psram_trans_align = 64,
             .sram_trans_align = 4
         };
@@ -57,7 +57,7 @@ public:
         // 2. Configure ST7789 panel
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
-            .pclk_hz = 10 * 1000 * 1000, // 10 MHz, adjust as needed
+            .pclk_hz = 10 * 1000 * 1000,
             .trans_descriptor_num = 10,
             .dc_levels = {.dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1},
             .lcd_cmd_bits = 8,
@@ -68,7 +68,7 @@ public:
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
             .rgb_endian = LCD_RGB_ENDIAN_RGB,
-            .bits_per_pixel = 16 // RGB565
+            .bits_per_pixel = 16
         };
         ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel_handle));
 
@@ -77,8 +77,7 @@ public:
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
         ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, false));
         ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 0));
-        ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, false, false));
-        setRotation(config->rotation);
+        setRotation(config->rotation); // Moved before buffer setup
 
         // 4. Backlight setup (LEDC PWM)
         ledc_timer_config_t ledc_timer = {
@@ -91,12 +90,11 @@ public:
         ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
         ledc_channel_config_t ledc_channel = {
             .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
-            .speed_mode = LE
-DC_LOW_SPEED_MODE,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
             .channel = LEDC_CHANNEL_0,
             .intr_type = LEDC_INTR_DISABLE,
             .timer_sel = LEDC_TIMER_0,
-            .duty = 0, // Start off
+            .duty = 0,
             .hpoint = 0
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
@@ -123,8 +121,6 @@ DC_LOW_SPEED_MODE,
                 lv_display_flush_ready(disp);
                 return;
             }
-            int32_t width = area->x2 - area->x1 + 1;
-            int32_t height = area->y2 - area->y1 + 1;
             esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
             lv_display_flush_ready(disp);
         });
@@ -169,14 +165,11 @@ DC_LOW_SPEED_MODE,
 
 private:
     void setRotation(lv_display_rotation_t rotation) {
-        uint8_t madctl = 0;
-        switch (rotation) {
-            case LV_DISPLAY_ROTATION_0:   madctl = 0x00; break; // Portrait, USB bottom
-            case LV_DISPLAY_ROTATION_90:  madctl = 0x60; break; // Landscape, USB right
-            case LV_DISPLAY_ROTATION_180: madctl = 0xC0; break; // Portrait, USB top
-            case LV_DISPLAY_ROTATION_270: madctl = 0xA0; break; // Landscape, USB left
-        }
-        esp_lcd_panel_io_tx_param(panel_io, 0x36, &madctl, 1); // MADCTL
+        bool swapXY = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270);
+        bool mirrorX = (rotation == LV_DISPLAY_ROTATION_270);
+        bool mirrorY = (rotation == LV_DISPLAY_ROTATION_90);
+        ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, swapXY));
+        ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, mirrorX, mirrorY));
         lv_disp_set_rotation(lvglDisplay, rotation);
     }
 
