@@ -1,6 +1,9 @@
 // YellowDisplay.cpp
 #include "CYD2432S022CConstants.h"
 #include "Tactility/app/display/DisplaySettings.h"
+#include "Tactility/hal/display/DisplayDevice.h" // For tt::hal::display::DisplayDevice
+#include <memory>    // For std::shared_ptr, std::unique_ptr
+#include <string>    // For std::string
 #include <driver/gpio.h>
 #include <driver/ledc.h>
 #include <esp_lcd_panel_io.h>
@@ -49,8 +52,9 @@ public:
             },
             .bus_width = 8,
             .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
-            .psram_trans_align = 0, // No PSRAM on this board
-            .sram_trans_align = 4
+            .psram_trans_align = 0, // No PSRAM
+            .sram_trans_align = 4,
+            .clk_src = LCD_CLK_SRC_DEFAULT // IDF v5.4 requires this
         };
         ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus));
 
@@ -58,8 +62,8 @@ public:
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
             .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,
-            .trans_descriptor_num = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
             .dc_levels = {.dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1},
+            .flags = {0}, // Zero out flags
             .lcd_cmd_bits = 8,
             .lcd_param_bits = 8
         };
@@ -68,7 +72,9 @@ public:
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
             .rgb_endian = LCD_RGB_ENDIAN_RGB,
-            .bits_per_pixel = 16
+            .bits_per_pixel = 16,
+            .flags = {0}, // Zero out flags
+            .vendor_config = nullptr
         };
         ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel_handle));
 
@@ -85,7 +91,8 @@ public:
             .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
             .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
-            .clk_cfg = LEDC_AUTO_CLK
+            .clk_cfg = LEDC_AUTO_CLK,
+            .deconfigure = false // IDF v5.4 requires this
         };
         ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
         ledc_channel_config_t ledc_channel = {
@@ -95,7 +102,8 @@ public:
             .intr_type = LEDC_INTR_DISABLE,
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
-            .hpoint = 0
+            .hpoint = 0,
+            .flags = { .output_invert = 0 } // Zero out flags
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
@@ -114,7 +122,8 @@ public:
         // 6. LVGL display setup
         lvglDisplay = lv_display_create(config->width, config->height);
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
-        lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL); // Size in bytes
+        lv_display_set_user_data(lvglDisplay, this); // Set user data for flush callback
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
             if (!display || !data) {
@@ -149,7 +158,10 @@ public:
     }
 
     void setBacklightDuty(uint8_t duty) override {
-        if (isStarted) ledc_set_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, duty);
+        if (isStarted) {
+            ledc_set_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, duty);
+            ledc_update_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL); // Apply duty
+        }
     }
 
     bool supportsBacklightDuty() const override { return true; }
@@ -170,7 +182,7 @@ private:
         bool mirrorY = (rotation == LV_DISPLAY_ROTATION_90);
         ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, swapXY));
         ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, mirrorX, mirrorY));
-        lv_disp_set_rotation(lvglDisplay, rotation);
+        lv_display_set_rotation(lvglDisplay, rotation);
     }
 
     std::unique_ptr<Configuration> config;
