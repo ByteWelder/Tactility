@@ -1,7 +1,7 @@
 // YellowTouch.cpp
 #include "YellowTouch.h"
 #include "CYD2432S022CConstants.h"
-#include "Cst816sTouch.h"
+#include "Cst816Touch.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include <esp_log.h>
 #include <memory>
