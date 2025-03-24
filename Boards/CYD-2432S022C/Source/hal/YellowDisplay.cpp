@@ -2,7 +2,7 @@
 #include "CYD2432S022CConstants.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "Tactility/hal/display/DisplayDevice.h"
-#include "YellowTouch.h" // Include for createYellowTouch()
+#include "YellowTouch.h"
 #include <memory>
 #include <string>
 #include <driver/gpio.h>
@@ -47,15 +47,15 @@ public:
         esp_lcd_i80_bus_config_t bus_config = {
             .dc_gpio_num = CYD_2432S022C_LCD_PIN_DC,
             .wr_gpio_num = CYD_2432S022C_LCD_PIN_WR,
-            .clk_src = LCD_CLK_SRC_DEFAULT, // Must come before alignments
+            .clk_src = LCD_CLK_SRC_DEFAULT,
             .data_gpio_nums = {
                 CYD_2432S022C_LCD_PIN_D0, CYD_2432S022C_LCD_PIN_D1, CYD_2432S022C_LCD_PIN_D2, CYD_2432S022C_LCD_PIN_D3,
                 CYD_2432S022C_LCD_PIN_D4, CYD_2432S022C_LCD_PIN_D5, CYD_2432S022C_LCD_PIN_D6, CYD_2432S022C_LCD_PIN_D7
             },
             .bus_width = 8,
             .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
-            .psram_trans_align = 0,
-            .sram_trans_align = 4
+            .dma_burst_size = 64, // Replaces deprecated psram_trans_align; 64 is a safe default
+            .sram_trans_align = 4  // Deprecated but harmless; can be removed in future IDF versions
         };
         ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus));
 
@@ -63,22 +63,31 @@ public:
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
             .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,
-            .trans_queue_depth = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM, // IDF v5.4 uses this
-            .dc_levels = {.dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1},
+            .trans_queue_depth = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
+            .on_color_trans_done = nullptr,
+            .user_ctx = nullptr,
+            .lcd_cmd_bits = 8,
+            .lcd_param_bits = 8,
+            .dc_levels = {
+                .dc_idle_level = 0,
+                .dc_cmd_level = 0,
+                .dc_dummy_level = 0,
+                .dc_data_level = 1
+            },
             .flags = {
+                .cs_active_high = 0,
                 .reverse_color_bits = 0,
                 .swap_color_bytes = 0,
                 .pclk_active_neg = 0,
                 .pclk_idle_low = 0
-            },
-            .lcd_cmd_bits = 8,
-            .lcd_param_bits = 8
+            }
         };
         ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus, &io_config, &panel_io));
 
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
             .rgb_endian = LCD_RGB_ENDIAN_RGB,
+            .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
             .bits_per_pixel = 16,
             .flags = { .reset_active_high = 0 },
             .vendor_config = nullptr
