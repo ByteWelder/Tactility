@@ -1,10 +1,15 @@
+// YellowTouch.cpp
 #include "YellowTouch.h"
 #include "CYD2432S022CConstants.h"
-#include "Cst816Touch.h" // From Drivers/CST816S/
+#include "Cst816sTouch.h"
 #include "Tactility/app/display/DisplaySettings.h"
+#include <esp_log.h>
 #include <memory>
 
+#define TAG "YellowTouch"
+
 std::shared_ptr<tt::hal::touch::TouchDevice> createYellowTouch() {
+    ESP_LOGI(TAG, "Creating YellowTouch");
     lv_display_rotation_t rotation = tt::app::display::getRotation();
     bool swapXY = (rotation == LV_DISPLAY_ROTATION_90 || rotation == LV_DISPLAY_ROTATION_270);
     bool mirrorX = (rotation == LV_DISPLAY_ROTATION_270);
@@ -17,5 +22,11 @@ std::shared_ptr<tt::hal::touch::TouchDevice> createYellowTouch() {
         mirrorX,
         mirrorY
     );
-    return std::make_shared<Cst816sTouch>(std::move(configuration));
+    auto touch = std::make_shared<Cst816sTouch>(std::move(configuration));
+    if (!touch) {
+        ESP_LOGE(TAG, "Failed to create Cst816sTouch");
+        return nullptr;
+    }
+    ESP_LOGI(TAG, "YellowTouch created: %p", touch.get());
+    return touch;
 }
