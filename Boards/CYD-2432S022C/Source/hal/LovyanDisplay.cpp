@@ -132,7 +132,7 @@ public:
         const size_t buffer_width = (configuration->rotation == LV_DISPLAY_ROTATION_90 || configuration->rotation == LV_DISPLAY_ROTATION_270)
                                     ? configuration->height  // 320
                                     : configuration->width;  // 240
-        const size_t buffer_height = 64;  // Partial rendering height
+        const size_t buffer_height = CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT;  // Partial rendering height
         bufferSize = buffer_width * buffer_height;  // e.g., 320 * 64 = 20480 pixels
 
         // Allocate and check buffers first
