@@ -54,10 +54,15 @@ public:
             },
             .bus_width = 8,
             .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
-            .dma_burst_size = 64, // Replaces deprecated psram_trans_align; 64 is a safe default
-            .sram_trans_align = 4  // Deprecated but harmless; can be removed in future IDF versions
+            .dma_burst_size = 64,
+            .sram_trans_align = 4
         };
-        ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus));
+        esp_err_t err = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
+        if (err != ESP_OK || i80_bus == nullptr) {
+            ESP_LOGE(TAG, "Failed to create i80 bus: %s", esp_err_to_name(err));
+            return false;
+        }
+        ESP_LOGI(TAG, "i80 bus created: %p", i80_bus);
 
         // 2. Configure ST7789 panel
         esp_lcd_panel_io_i80_config_t io_config = {
@@ -82,7 +87,13 @@ public:
                 .pclk_idle_low = 0
             }
         };
-        ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus, &io_config, &panel_io));
+        err = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &panel_io);
+        if (err != ESP_OK || panel_io == nullptr) {
+            ESP_LOGE(TAG, "Failed to create panel IO: %s", esp_err_to_name(err));
+            esp_lcd_del_i80_bus(i80_bus);
+            return false;
+        }
+        ESP_LOGI(TAG, "Panel IO created: %p", panel_io);
 
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
@@ -92,7 +103,14 @@ public:
             .flags = { .reset_active_high = 0 },
             .vendor_config = nullptr
         };
-        ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel_handle));
+        err = esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel_handle);
+        if (err != ESP_OK || panel_handle == nullptr) {
+            ESP_LOGE(TAG, "Failed to create ST7789 panel: %s", esp_err_to_name(err));
+            esp_lcd_panel_io_del(panel_io);
+            esp_lcd_del_i80_bus(i80_bus);
+            return false;
+        }
+        ESP_LOGI(TAG, "Panel handle created: %p", panel_handle);
 
         // 3. Initialize panel
         ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
@@ -134,15 +152,23 @@ public:
             stop();
             return false;
         }
+        ESP_LOGI(TAG, "Buffers allocated: buf1=%p, buf2=%p, size=%d", buf1, buf2, bufferSize * 2);
 
         // 6. LVGL display setup
         lvglDisplay = lv_display_create(config->width, config->height);
+        if (!lvglDisplay) {
+            ESP_LOGE(TAG, "Failed to create LVGL display");
+            stop();
+            return false;
+        }
+        ESP_LOGI(TAG, "LVGL display created: %p", lvglDisplay);
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_user_data(lvglDisplay, this);
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
             auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
-            if (!display || !data) {
+            if (!display || !data || !display->panel_handle) {
+                ESP_LOGE(TAG, "Flush callback failed: display=%p, data=%p, panel_handle=%p", display, data, display ? display->panel_handle : nullptr);
                 lv_display_flush_ready(disp);
                 return;
             }
@@ -170,6 +196,7 @@ public:
         buf1 = nullptr;
         buf2 = nullptr;
         isStarted = false;
+        ESP_LOGI(TAG, "YellowDisplay stopped");
         return true;
     }
 
