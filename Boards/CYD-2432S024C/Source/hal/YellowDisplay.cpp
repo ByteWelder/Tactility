@@ -1,6 +1,5 @@
-#include "CYD2432S022CConstants.h"
 #include "YellowDisplay.h"
-#include "Cst820Touch.h"
+#include "CYD2432S022CConstants.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
 #include "esp_lcd_panel_ops.h"
@@ -138,20 +137,14 @@ void YellowDisplay::initialize() {
         return;
     }
 
+    // Store this object as user data for flush callback
+    lvglDisplay->user_data = this;
+
     ESP_LOGI(TAG, "YellowDisplay initialized successfully");
 }
 
-static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    auto configuration = std::make_unique<Cst820Touch::Configuration>(
-        CYD_2432S022C_TOUCH_I2C_PORT,
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION
-    );
-    return std::make_shared<Cst820Touch>(std::move(configuration));
-}
-
 std::shared_ptr<DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    auto touch = createYellowTouch();
 
     auto configuration = std::make_unique<YellowDisplay::Configuration>(
         YellowDisplay::Configuration{
@@ -173,8 +166,8 @@ std::shared_ptr<DisplayDevice> createDisplay() {
         }
     );
 
-    // Optional initial configuration
-    configuration->swapXY = false;  // Default orientation
+    // Set initial orientation (matches createYellowTouch defaults)
+    configuration->swapXY = false;
     configuration->mirrorX = false;
     configuration->mirrorY = false;
 
