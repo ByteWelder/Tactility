@@ -143,13 +143,6 @@ void YellowDisplay::initialize() {
         },
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
-        .flags = {
-            .cs_active_high = 0,
-            .reverse_color_bits = 0,
-            .swap_color_bytes = 0,
-            .pclk_active_neg = 0,
-            .pclk_idle_low = 0
-        }
     };
     esp_lcd_panel_io_handle_t io_handle = nullptr;
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
