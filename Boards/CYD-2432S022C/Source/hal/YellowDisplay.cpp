@@ -176,8 +176,9 @@ public:
         ESP_LOGI(TAG, "LVGL display created: %p", lvglDisplay);
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
-        lv_display_set_user_data(lvglDisplay, this);
+        // Removed: lv_display_set_user_data(lvglDisplay, this) - Tactility sets this itself
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
+            // Use Tactility's user data to get the DisplayDevice instance
             auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
             if (!display || !data || !display->panel_handle) {
                 ESP_LOGE(TAG, "Flush callback failed: display=%p, data=%p, panel_handle=%p", 
