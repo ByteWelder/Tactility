@@ -7,27 +7,78 @@
 #include "driver/gpio.h"
 #include "lvgl.h"
 #include "esp_log.h"
+#include "Tactility/app/display/DisplaySettings.h"
 
 #define TAG "YellowDisplay"
 
 namespace tt::hal::display {
 
 YellowDisplay::YellowDisplay(std::unique_ptr<Configuration> config)
-    : config(std::move(config)), panelHandle(nullptr), lvglDisplay(nullptr) {
-    initialize();
+    : config(std::move(config)), panelHandle(nullptr), lvglDisplay(nullptr), isStarted(false) {
+    // Initialization deferred to start()
 }
 
 YellowDisplay::~YellowDisplay() {
-    if (lvglDisplay) {
-        lv_display_delete(lvglDisplay);
+    if (isStarted) {
+        stop();
     }
-    if (panelHandle) {
-        esp_lcd_panel_del(panelHandle);
+}
+
+bool YellowDisplay::start() {
+    if (isStarted) {
+        ESP_LOGW(TAG, "Display already started");
+        return true;
     }
+
+    initialize();
+    if (!lvglDisplay) {
+        ESP_LOGE(TAG, "Failed to initialize display");
+        deinitialize();
+        return false;
+    }
+
+    isStarted = true;
+    ESP_LOGI(TAG, "Display started successfully");
+
+    // Apply initial backlight duty from preferences
+    setBacklightDuty(tt::app::display::getBacklightDuty());
+
+    // Apply initial rotation from preferences
+    setRotation(tt::app::display::getRotation());
+
+    return true;
+}
+
+bool YellowDisplay::stop() {
+    if (!isStarted) {
+        ESP_LOGW(TAG, "Display not started");
+        return true;
+    }
+
+    deinitialize();
+    isStarted = false;
+    ESP_LOGI(TAG, "Display stopped successfully");
+    return true;
+}
+
+std::shared_ptr<tt::hal::touch::TouchDevice> YellowDisplay::createTouch() {
+    return createYellowTouch();  // Delegates to YellowTouch.cpp
 }
 
 lv_display_t* YellowDisplay::getLvglDisplay() const {
     return lvglDisplay;
+}
+
+void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
+    if (!isStarted || !panelHandle) {
+        ESP_LOGE(TAG, "setBacklightDuty: Display not initialized");
+        return;
+    }
+
+    // Map 0-255 to GPIO level (0 = off, 255 = on)
+    bool level = (backlightDuty > 127) ? CYD_2432S022C_LCD_BACKLIGHT_ON_LEVEL : !CYD_2432S022C_LCD_BACKLIGHT_ON_LEVEL;
+    gpio_set_level(config->backlightPin, level);
+    ESP_LOGI(TAG, "Backlight duty set to %u (GPIO level: %d)", backlightDuty, level);
 }
 
 void YellowDisplay::setRotation(lv_display_rotation_t rotation) {
@@ -120,13 +171,12 @@ void YellowDisplay::initialize() {
     // Turn on display
     esp_lcd_panel_disp_on_off(panelHandle, true);
 
-    // Initialize backlight
+    // Initialize backlight GPIO
     gpio_config_t bk_gpio_config = {
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = 1ULL << config->backlightPin,
     };
     gpio_config(&bk_gpio_config);
-    gpio_set_level(config->backlightPin, CYD_2432S022C_LCD_BACKLIGHT_ON_LEVEL);
 
     // Create LVGL display
     lvglDisplay = lv_display_create(config->horizontalResolution, config->verticalResolution);
@@ -141,6 +191,17 @@ void YellowDisplay::initialize() {
     lvglDisplay->user_data = this;
 
     ESP_LOGI(TAG, "YellowDisplay initialized successfully");
+}
+
+void YellowDisplay::deinitialize() {
+    if (lvglDisplay) {
+        lv_display_delete(lvglDisplay);
+        lvglDisplay = nullptr;
+    }
+    if (panelHandle) {
+        esp_lcd_panel_del(panelHandle);
+        panelHandle = nullptr;
+    }
 }
 
 std::shared_ptr<DisplayDevice> createDisplay() {
@@ -166,7 +227,7 @@ std::shared_ptr<DisplayDevice> createDisplay() {
         }
     );
 
-    // Set initial orientation (matches createYellowTouch defaults)
+    // Set initial orientation (will be overridden by start())
     configuration->swapXY = false;
     configuration->mirrorX = false;
     configuration->mirrorY = false;
