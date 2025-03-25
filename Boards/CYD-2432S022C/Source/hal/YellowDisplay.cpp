@@ -110,10 +110,34 @@ public:
         esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x29, nullptr, 0); // DISPON
-        vTaskDelay(pdMS_TO_TICKS(5));
+        vTaskDelay(pdMS_TO_TICKS(100));  // Longer delay for ST7789 wake-up
         ESP_LOGI(TAG, "ST7789 extra init done");
 
         setRotation(config->rotation);
+
+        // Backlight setup (earlier, before buffers)
+        ledc_timer_config_t ledc_timer = {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
+            .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
+            .clk_cfg = LEDC_AUTO_CLK,
+            .deconfigure = false
+        };
+        ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+        ledc_channel_config_t ledc_channel = {
+            .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
+            .intr_type = LEDC_INTR_DISABLE,
+            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .duty = 0,
+            .hpoint = 0,
+            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
+            .flags = {.output_invert = 0}
+        };
+        ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+        setBacklightDuty(200);
 
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
@@ -139,7 +163,7 @@ public:
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_flush_cb(lvglDisplay, flush_callback);
-        s_display = this;  // Set static pointer for flush_callback
+        s_display = this;
 
         flush_sem = xSemaphoreCreateBinary();
         if (!flush_sem) {
@@ -156,7 +180,7 @@ public:
         for (size_t i = 0; i < 240 * 16; i++) {
             buf1[i] = 0xF800;  // RGB565 Red
         }
-        esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1);  // 3,840 bytes
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1);
         ESP_LOGI(TAG, "Test flush sent (240x16)");
         if (xSemaphoreTake(flush_sem, pdMS_TO_TICKS(1000)) == pdTRUE) {
             ESP_LOGI(TAG, "Test flush completed");
@@ -164,30 +188,6 @@ public:
             ESP_LOGE(TAG, "Test flush timed out");
         }
         xSemaphoreGive(flush_sem);
-
-        // Backlight setup (after test flush)
-        ledc_timer_config_t ledc_timer = {
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
-            .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
-            .clk_cfg = LEDC_AUTO_CLK,
-            .deconfigure = false
-        };
-        ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
-        ledc_channel_config_t ledc_channel = {
-            .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
-            .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .duty = 0,
-            .hpoint = 0,
-            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
-            .flags = {.output_invert = 0}
-        };
-        ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-        setBacklightDuty(200);
 
         return true;
     }
@@ -208,7 +208,7 @@ public:
         buf1 = nullptr;
         buf2 = nullptr;
         flush_sem = nullptr;
-        s_display = nullptr;  // Clear on stop
+        s_display = nullptr;
         isStarted = false;
         ESP_LOGI(TAG, "YellowDisplay stopped");
         return true;
@@ -229,7 +229,7 @@ public:
     std::string getDescription() const override { return "ESP-IDF i80-based display"; }
 
 private:
-    static YellowDisplay* s_display;  // Static pointer to active instance
+    static YellowDisplay* s_display;
 
     static void flush_callback(lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
         if (!s_display || !s_display->panel_handle) {
@@ -242,8 +242,8 @@ private:
             lv_display_flush_ready(disp);
             return;
         }
-        ESP_LOGD(TAG, "Flush: [%ld,%ld,%ld,%ld]", 
-                 (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
+        ESP_LOGI(TAG, "Flush: [%ld,%ld,%ld,%ld], data=%p",  // Bump to INFO for visibility
+                 (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, data);
         esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
     }
 
@@ -277,7 +277,6 @@ private:
     bool isStarted = false;
 };
 
-// Define static member
 YellowDisplay* YellowDisplay::s_display = nullptr;
 
 static std::shared_ptr<YellowDisplay> globalDisplay;
