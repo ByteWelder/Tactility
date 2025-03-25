@@ -61,7 +61,7 @@ public:
             .data_gpio_nums = {CYD_2432S022C_LCD_PIN_D0, CYD_2432S022C_LCD_PIN_D1, CYD_2432S022C_LCD_PIN_D2, CYD_2432S022C_LCD_PIN_D3,
                                CYD_2432S022C_LCD_PIN_D4, CYD_2432S022C_LCD_PIN_D5, CYD_2432S022C_LCD_PIN_D6, CYD_2432S022C_LCD_PIN_D7},
             .bus_width = 8,
-            .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,
+            .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * 2,  // 15,360
             .dma_burst_size = 64,
             .sram_trans_align = 4
         };
@@ -71,7 +71,7 @@ public:
         // Panel IO setup
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
-            .pclk_hz = 15000000,  // 15 MHz
+            .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,  // 12 MHz
             .trans_queue_depth = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
             .on_color_trans_done = flush_ready_callback,
             .user_ctx = this,
@@ -142,7 +142,7 @@ public:
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
                                     ? config->height : config->width;
-        bufferSize = buffer_width * CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT;
+        bufferSize = buffer_width * CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT;  // 240x32 = 7,680
         buf1 = (uint16_t*)heap_caps_malloc(bufferSize * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         buf2 = (uint16_t*)heap_caps_malloc(bufferSize * 2, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
         if (!buf1 || !buf2) {
@@ -152,7 +152,7 @@ public:
         }
         ESP_LOGI(TAG, "Buffers: buf1=%p, buf2=%p, size=%d", buf1, buf2, bufferSize * 2);
 
-        // LVGL setup (v8, no user data)
+        // LVGL setup (v8, partial mode)
         lvglDisplay = lv_display_create(config->width, config->height);
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
@@ -175,12 +175,12 @@ public:
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
 
-        // Test flush: Raw red screen, wait for DMA
-        for (size_t i = 0; i < bufferSize; i++) {
+        // Test flush: 240x16 red strip
+        for (size_t i = 0; i < 240 * 16; i++) {
             buf1[i] = 0xF800;  // RGB565 Red
         }
-        esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, config->width, config->height, buf1);
-        ESP_LOGI(TAG, "Test flush sent");
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1);  // 3,840 bytes
+        ESP_LOGI(TAG, "Test flush sent (240x16)");
         if (xSemaphoreTake(flush_sem, pdMS_TO_TICKS(1000)) == pdTRUE) {
             ESP_LOGI(TAG, "Test flush completed");
         } else {
