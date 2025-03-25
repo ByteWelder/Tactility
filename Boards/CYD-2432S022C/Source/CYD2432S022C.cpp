@@ -4,6 +4,7 @@
 #include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
+#include "esp_lcd_panel_ops.h"
 
 #define TAG "CYD2432S022C"
 
@@ -16,18 +17,16 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
 }
 
 bool init_boot() {
-    // Create and start the display
     auto display = createDisplay();
     if (!display || !display->start()) {
         ESP_LOGE(TAG, "Failed to start display during boot");
         return false;
     }
 
-    // Set LVGL flush callback
     lv_display_t* lvglDisp = display->getLvglDisplay();
     if (lvglDisp) {
         lv_display_set_flush_cb(lvglDisp, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
-            auto* yellowDisp = static_cast<tt::hal::display::YellowDisplay*>(disp->user_data);
+            auto* yellowDisp = static_cast<tt::hal::display::YellowDisplay*>(lv_display_get_user_data(disp));
             esp_lcd_panel_draw_bitmap(yellowDisp->panelHandle, area->x1, area->y1, 
                                       area->x2 + 1, area->y2 + 1, px_map);
             lv_display_flush_ready(disp);
