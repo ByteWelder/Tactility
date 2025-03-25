@@ -141,8 +141,6 @@ void YellowDisplay::initialize() {
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
-        .on_color_trans_done = nullptr,
-        .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
         .flags = {
@@ -214,7 +212,7 @@ void YellowDisplay::initialize() {
                                                  CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT,
                                                  LV_COLOR_FORMAT_RGB565,
                                                  buffer_size,
-                                                 LV_DRAW_BUF_STRIDE_ALIGN_DEFAULT);
+                                                 LV_DRAW_BUF_ALIGN);
     if (!draw_buf) {
         ESP_LOGE(TAG, "Failed to create LVGL draw buffer");
         heap_caps_free(drawBuffer);
@@ -226,7 +224,7 @@ void YellowDisplay::initialize() {
     }
 
     // Initialize the draw buffer with the allocated memory
-    draw_buf->data = drawBuffer;
+    draw_buf->data = static_cast<uint8_t*>(drawBuffer);
     lv_display_set_draw_buffers(lvglDisplay, draw_buf, nullptr);  // Single buffering
 
     // Step 8: Set the flush callback
