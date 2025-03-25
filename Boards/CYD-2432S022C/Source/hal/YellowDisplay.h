@@ -3,8 +3,8 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <memory>
 #include "esp_err.h"
-#include "esp_lcd_types.h"  // For esp_lcd_panel_handle_t
-#include "driver/gpio.h"    // For gpio_num_t
+#include "esp_lcd_types.h"
+#include "driver/gpio.h"
 #include "lvgl.h"
 #include "YellowTouch.h"
 
@@ -42,6 +42,12 @@ public:
     bool supportsBacklightDuty() const override { return true; }
 
     void setRotation(lv_display_rotation_t rotation);  // Custom method for rotation
+
+    std::string getName() const override { return "YellowDisplay"; }
+    std::string getDescription() const override { return "ST7789 display for CYD-2432S022C"; }
+
+    // Public accessor for panelHandle (for flush callback)
+    esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
 
 private:
     std::unique_ptr<Configuration> config;
