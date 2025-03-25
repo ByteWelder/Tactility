@@ -86,7 +86,7 @@ public:
         // ST7789 panel setup
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
-            .rgb_endian = LCD_RGB_ENDIAN_RGB,
+            .rgb_endian = LCD_RGB_ENDIAN_BGR,  // Try BGR—might fix colors
             .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
             .bits_per_pixel = 16,
             .flags = {.reset_active_high = 0},
@@ -104,18 +104,18 @@ public:
         esp_lcd_panel_io_tx_param(panel_io, 0x11, nullptr, 0); // SLPOUT
         vTaskDelay(pdMS_TO_TICKS(5));
         esp_lcd_panel_io_tx_param(panel_io, 0x3A, (uint8_t[]){0x55}, 1); // COLMOD: RGB565
-        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL
+        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL: Normal (240x320)
         esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x29, nullptr, 0); // DISPON
-        vTaskDelay(pdMS_TO_TICKS(100));  // Longer delay for ST7789 wake-up
+        vTaskDelay(pdMS_TO_TICKS(100));
         ESP_LOGI(TAG, "ST7789 extra init done");
 
         setRotation(config->rotation);
 
-        // Backlight setup (earlier, before buffers)
+        // Backlight setup
         ledc_timer_config_t ledc_timer = {
             .speed_mode = LEDC_LOW_SPEED_MODE,
             .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
@@ -131,13 +131,13 @@ public:
             .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .intr_type = LEDC_INTR_DISABLE,
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .duty = 0,
+            .duty = 200,  // Start at 200, no 0
             .hpoint = 0,
             .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
             .flags = {.output_invert = 0}
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-        setBacklightDuty(200);
+        ESP_LOGI(TAG, "Backlight duty: 200");
 
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
@@ -188,6 +188,7 @@ public:
             ESP_LOGE(TAG, "Test flush timed out");
         }
         xSemaphoreGive(flush_sem);
+        vTaskDelay(pdMS_TO_TICKS(500));  // Hold red for 500ms—debug visibility
 
         return true;
     }
@@ -242,7 +243,7 @@ private:
             lv_display_flush_ready(disp);
             return;
         }
-        ESP_LOGI(TAG, "Flush: [%ld,%ld,%ld,%ld], data=%p",  // Bump to INFO for visibility
+        ESP_LOGI(TAG, "Flush: [%ld,%ld,%ld,%ld], data=%p", 
                  (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, data);
         esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
     }
