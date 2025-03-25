@@ -16,7 +16,6 @@ namespace tt::hal::display {
 
 YellowDisplay::YellowDisplay(std::unique_ptr<Configuration> config)
     : config(std::move(config)), panelHandle(nullptr), lvglDisplay(nullptr), isStarted(false) {
-    // Initialization deferred to start()
 }
 
 YellowDisplay::~YellowDisplay() {
@@ -38,7 +37,6 @@ bool YellowDisplay::start() {
         return false;
     }
 
-    // Initialize PWM backlight
     if (!driver::pwmbacklight::init(config->backlightPin)) {
         ESP_LOGE(TAG, "Failed to initialize PWM backlight");
         deinitialize();
@@ -48,10 +46,7 @@ bool YellowDisplay::start() {
     isStarted = true;
     ESP_LOGI(TAG, "Display started successfully");
 
-    // Apply initial backlight duty from preferences
     setBacklightDuty(tt::app::display::getBacklightDuty());
-
-    // Apply initial rotation from preferences
     setRotation(tt::app::display::getRotation());
 
     return true;
@@ -112,10 +107,7 @@ void YellowDisplay::setRotation(lv_display_rotation_t rotation) {
 void YellowDisplay::initialize() {
     esp_err_t ret;
 
-    // Initialize i80 bus
-    esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     esp_lcd_i80_bus_config_t bus_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = config->dcPin,
         .wr_gpio_num = config->wrPin,
         .data_gpio_nums = {
@@ -124,18 +116,18 @@ void YellowDisplay::initialize() {
         },
         .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
         .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
+        .clk_src = LCD_CLK_SRC_DEFAULT,
     };
+    esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize i80 bus: %s", esp_err_to_name(ret));
         return;
     }
 
-    // Initialize panel IO
-    esp_lcd_panel_io_handle_t io_handle = nullptr;
     esp_lcd_panel_io_i80_config_t io_config = {
         .cs_gpio_num = config->csPin,
-        .pclk_hz = config->pclkHz,
+        .pclk_hz = static_cast<uint32_t>(config->pclkHz),  // Fix narrowing
         .trans_queue_depth = 10,
         .dc_levels = {
             .dc_idle_level = 0,
@@ -143,19 +135,19 @@ void YellowDisplay::initialize() {
             .dc_dummy_level = 0,
             .dc_data_level = 1,
         },
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
         .flags = {
             .cs_active_high = 0,  // CS is active low
         },
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
     };
+    esp_lcd_panel_io_handle_t io_handle = nullptr;
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize panel IO: %s", esp_err_to_name(ret));
         return;
     }
 
-    // Initialize ST7789 panel
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
@@ -167,20 +159,15 @@ void YellowDisplay::initialize() {
         return;
     }
 
-    // Reset and initialize the panel
     if (config->rstPin != GPIO_NUM_NC) {
         esp_lcd_panel_reset(panelHandle);
     }
     esp_lcd_panel_init(panelHandle);
 
-    // Apply initial orientation from config
     esp_lcd_panel_swap_xy(panelHandle, config->swapXY);
     esp_lcd_panel_mirror(panelHandle, config->mirrorX, config->mirrorY);
-
-    // Turn on display
     esp_lcd_panel_disp_on_off(panelHandle, true);
 
-    // Create LVGL display
     lvglDisplay = lv_display_create(config->horizontalResolution, config->verticalResolution);
     if (!lvglDisplay) {
         ESP_LOGE(TAG, "Failed to create LVGL display");
@@ -188,8 +175,6 @@ void YellowDisplay::initialize() {
         panelHandle = nullptr;
         return;
     }
-
-    // Tactility will set user_data, so we don’t touch it here
 
     ESP_LOGI(TAG, "YellowDisplay initialized successfully");
 }
