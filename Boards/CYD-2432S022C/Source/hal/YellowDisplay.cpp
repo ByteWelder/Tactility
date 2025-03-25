@@ -9,13 +9,14 @@
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "PwmBacklight.h"
+#include "esp_heap_caps.h"  // For MALLOC_CAP_DMA
 
 #define TAG "YellowDisplay"
 
 namespace tt::hal::display {
 
 YellowDisplay::YellowDisplay(std::unique_ptr<Configuration> config)
-    : config(std::move(config)), panelHandle(nullptr), lvglDisplay(nullptr), isStarted(false) {
+    : config(std::move(config)), panelHandle(nullptr), lvglDisplay(nullptr), isStarted(false), drawBuffer(nullptr) {
 }
 
 YellowDisplay::~YellowDisplay() {
@@ -109,17 +110,17 @@ void YellowDisplay::initialize() {
 
     // Step 1: Configure and initialize the I80 bus
     esp_lcd_i80_bus_config_t bus_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,                        // Clock source
-        .dc_gpio_num = config->dcPin,                          // DC line GPIO
-        .wr_gpio_num = config->wrPin,                          // WR line GPIO
-        .data_gpio_nums = {                                    // Data line GPIOs (16 elements)
+        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .dc_gpio_num = config->dcPin,
+        .wr_gpio_num = config->wrPin,
+        .data_gpio_nums = {
             config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
             config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
-            -1, -1, -1, -1, -1, -1, -1, -1                    // Unused pins set to -1
+            -1, -1, -1, -1, -1, -1, -1, -1
         },
-        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,              // Bus width (e.g., 8)
+        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
         .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
-        .dma_burst_size = 64,                                  // DMA burst size (e.g., 64 bytes)
+        .dma_burst_size = 64,
     };
     esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
@@ -130,20 +131,20 @@ void YellowDisplay::initialize() {
 
     // Step 2: Configure and initialize the panel IO
     esp_lcd_panel_io_i80_config_t io_config = {
-        .cs_gpio_num = config->csPin,                          // CS line GPIO
-        .pclk_hz = static_cast<uint32_t>(config->pclkHz),      // Pixel clock frequency
-        .trans_queue_depth = 10,                               // Transaction queue depth
-        .dc_levels = {                                         // DC signal levels
+        .cs_gpio_num = config->csPin,
+        .pclk_hz = static_cast<uint32_t>(config->pclkHz),
+        .trans_queue_depth = 10,
+        .dc_levels = {
             .dc_idle_level = 0,
             .dc_cmd_level = 0,
             .dc_dummy_level = 0,
-            .dc_data_level = 1
+            .dc_data_level = 1,
         },
-        .on_color_trans_done = nullptr,                        // No callback
-        .user_ctx = nullptr,                                   // No user context
-        .lcd_cmd_bits = 8,                                     // 8-bit commands
-        .lcd_param_bits = 8,                                   // 8-bit parameters
-        .flags = {                                             // Fully initialize flags
+        .on_color_trans_done = nullptr,
+        .user_ctx = nullptr,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
+        .flags = {
             .cs_active_high = 0,
             .reverse_color_bits = 0,
             .swap_color_bytes = 0,
@@ -155,7 +156,7 @@ void YellowDisplay::initialize() {
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize panel IO: %s", esp_err_to_name(ret));
-        esp_lcd_del_i80_bus(i80_bus);  // Clean up bus on failure
+        esp_lcd_del_i80_bus(i80_bus);
         return;
     }
 
@@ -163,15 +164,15 @@ void YellowDisplay::initialize() {
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .bits_per_pixel = 16,                                  // RGB565
-        .data_endian = LCD_DATA_ENDIAN_BIG,                    // Assuming big-endian data
-        .flags = { .reset_active_high = 0 },                   // Reset is active low
+        .bits_per_pixel = 16,
+        .data_endian = LCD_DATA_ENDIAN_BIG,
+        .flags = { .reset_active_high = 0 },
         .vendor_config = nullptr
     };
     ret = esp_lcd_new_panel_st7789(io_handle, &panel_config, &panelHandle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize ST7789 panel: %s", esp_err_to_name(ret));
-        esp_lcd_del_i80_bus(i80_bus);  // Clean up bus on failure
+        esp_lcd_del_i80_bus(i80_bus);
         return;
     }
 
@@ -184,8 +185,19 @@ void YellowDisplay::initialize() {
     esp_lcd_panel_mirror(panelHandle, config->mirrorX, config->mirrorY);
     esp_lcd_panel_disp_on_off(panelHandle, true);
 
-    // Step 5: Integrate with LVGL
-    lvglDisplay = lv_display_create(config->horizontalResolution, config->verticalResolution);
+    // Step 5: Allocate DMA-optimized draw buffer
+    size_t buffer_size = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(lv_color_t);  // 7680 pixels * 2 bytes
+    drawBuffer = esp_lcd_i80_alloc_draw_buffer(io_handle, buffer_size, MALLOC_CAP_DMA);
+    if (!drawBuffer) {
+        ESP_LOGE(TAG, "Failed to allocate draw buffer");
+        esp_lcd_panel_del(panelHandle);
+        panelHandle = nullptr;
+        esp_lcd_del_i80_bus(i80_bus);
+        return;
+    }
+
+    // Step 6: Create LVGL display
+    lvglDisplay = lv_display_create(CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION, CYD_2432S022C_LCD_VERTICAL_RESOLUTION);
     if (!lvglDisplay) {
         ESP_LOGE(TAG, "Failed to create LVGL display");
         esp_lcd_panel_del(panelHandle);
@@ -193,6 +205,19 @@ void YellowDisplay::initialize() {
         esp_lcd_del_i80_bus(i80_bus);
         return;
     }
+
+    // Set the draw buffer and render mode to partial
+    lv_display_set_draw_buffers(lvglDisplay, drawBuffer, nullptr, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    // Set the flush callback
+    lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+        auto* yellowDisp = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
+        esp_lcd_panel_draw_bitmap(yellowDisp->getPanelHandle(), area->x1, area->y1, area->x2 + 1, area->y2 + 1, px_map);
+        lv_display_flush_ready(disp);
+    });
+
+    // Set user data for the flush callback
+    lv_display_set_user_data(lvglDisplay, this);
 
     ESP_LOGI(TAG, "YellowDisplay initialized successfully");
 }
@@ -205,6 +230,10 @@ void YellowDisplay::deinitialize() {
     if (panelHandle) {
         esp_lcd_panel_del(panelHandle);
         panelHandle = nullptr;
+    }
+    if (drawBuffer) {
+        heap_caps_free(drawBuffer);  // Assuming drawBuffer was allocated with heap_caps_malloc or similar
+        drawBuffer = nullptr;
     }
 }
 
