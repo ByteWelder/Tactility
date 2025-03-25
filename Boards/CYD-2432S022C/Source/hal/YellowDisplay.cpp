@@ -208,11 +208,11 @@ void YellowDisplay::initialize() {
     }
 
     // Step 7: Create and set draw buffer for LVGL
+    uint32_t stride = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION * sizeof(lv_color_t);  // Calculate stride
     lv_draw_buf_t* draw_buf = lv_draw_buf_create(CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
                                                  CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT,
                                                  LV_COLOR_FORMAT_RGB565,
-                                                 buffer_size,
-                                                 LV_DRAW_BUF_ALIGN);
+                                                 stride);
     if (!draw_buf) {
         ESP_LOGE(TAG, "Failed to create LVGL draw buffer");
         heap_caps_free(drawBuffer);
