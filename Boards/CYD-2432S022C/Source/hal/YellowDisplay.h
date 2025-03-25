@@ -54,6 +54,7 @@ private:
     esp_lcd_panel_handle_t panelHandle;
     lv_display_t* lvglDisplay;
     bool isStarted;
+    void* drawBuffer = nullptr;
 
     void initialize();
     void deinitialize();
