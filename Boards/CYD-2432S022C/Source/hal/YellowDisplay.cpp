@@ -17,8 +17,6 @@
 
 #define TAG "YellowDisplay"
 
-static std::shared_ptr<YellowDisplay> globalDisplay;
-
 class YellowDisplay : public tt::hal::display::DisplayDevice {
 public:
     struct Configuration {
@@ -183,24 +181,22 @@ public:
             auto* display = static_cast<YellowDisplay*>(user_data);
             ESP_LOGD(TAG, "Flush: disp=%p, user_data=%p, display=%p, data=%p", disp, user_data, display, data);
             if (!display || !display->panel_handle) {
-                ESP_LOGE(TAG, "Flush failed: display=%p, panel_handle=%p, area=[%d,%d,%d,%d]", 
+                ESP_LOGE(TAG, "Flush failed: display=%p, panel_handle=%p, area=[%ld,%ld,%ld,%ld]", 
                          display, display ? display->panel_handle : nullptr, 
-                         area->x1, area->y1, area->x2, area->y2);
+                         (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
                 lv_display_flush_ready(disp);
                 return;
             }
-            ESP_LOGD(TAG, "Flushing: x1=%d, y1=%d, x2=%d, y2=%d, data=%p", 
-                     area->x1, area->y1, area->x2, area->y2, data);
+            ESP_LOGD(TAG, "Flushing: x1=%ld, y1=%ld, x2=%ld, y2=%ld, data=%p", 
+                     (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, data);
             esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
             lv_display_flush_ready(disp);
         });
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
-        // Log user data after setup, before Tactility sets it (should be null)
         ESP_LOGI(TAG, "User data before Tactility: %p", lv_display_get_user_data(lvglDisplay));
         vTaskDelay(pdMS_TO_TICKS(100));
-        // Log user data after delay, Tactility should have set it
         ESP_LOGI(TAG, "User data after Tactility: %p", lv_display_get_user_data(lvglDisplay));
         return true;
     }
@@ -262,6 +258,9 @@ private:
     size_t bufferSize = 0;
     bool isStarted = false;
 };
+
+// Moved after class definition
+static std::shared_ptr<YellowDisplay> globalDisplay;
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI(TAG, "Creating display");
