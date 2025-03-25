@@ -11,8 +11,6 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <freertos/semphr.h>
-#include <esp_heap_caps.h>
 
 #define TAG "YellowDisplay"
 
@@ -51,6 +49,11 @@ public:
         }
 
         ESP_LOGI(TAG, "Starting ESP-IDF i80 display");
+
+        // RD pin setup
+        gpio_set_direction(CYD_2432S022C_LCD_PIN_RD, GPIO_MODE_OUTPUT);
+        gpio_set_level(CYD_2432S022C_LCD_PIN_RD, 1);
+        ESP_LOGI(TAG, "RD pin %d set high", CYD_2432S022C_LCD_PIN_RD);
 
         // i80 bus setup
         esp_lcd_i80_bus_handle_t i80_bus = nullptr;
@@ -99,20 +102,7 @@ public:
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
         ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, false));
         ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 0));
-
-        // Lovyan-style ST7789 init
-        esp_lcd_panel_io_tx_param(panel_io, 0x11, nullptr, 0); // SLPOUT
-        vTaskDelay(pdMS_TO_TICKS(120));  // Longer delay—ST7789 spec
-        esp_lcd_panel_io_tx_param(panel_io, 0x3A, (uint8_t[]){0x55}, 1); // COLMOD: RGB565
-        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL: Normal
-        esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON
-        vTaskDelay(pdMS_TO_TICKS(10));
-        esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
-        vTaskDelay(pdMS_TO_TICKS(10));
-        esp_lcd_panel_io_tx_param(panel_io, 0x29, nullptr, 0); // DISPON
-        vTaskDelay(pdMS_TO_TICKS(120));
-        ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
-        ESP_LOGI(TAG, "ST7789 extra init done");
+        ESP_LOGI(TAG, "ST7789 init done");
 
         setRotation(config->rotation);
 
@@ -153,7 +143,7 @@ public:
         }
         ESP_LOGI(TAG, "Buffers: buf1=%p, buf2=%p, size=%d", buf1, buf2, bufferSize * 2);
 
-        // LVGL setup (v8, partial mode)
+        // LVGL setup
         lvglDisplay = lv_display_create(config->width, config->height);
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
@@ -166,14 +156,6 @@ public:
         lv_display_set_flush_cb(lvglDisplay, flush_callback);
         s_display = this;
 
-        flush_sem = xSemaphoreCreateBinary();
-        if (!flush_sem) {
-            ESP_LOGE(TAG, "Failed to create flush semaphore");
-            stop();
-            return false;
-        }
-        xSemaphoreGive(flush_sem);
-
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
 
@@ -184,13 +166,7 @@ public:
         ESP_LOGI(TAG, "Data sample: %04x", buf1[0]);
         esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1);
         ESP_LOGI(TAG, "Test flush sent (240x16 blue)");
-        if (xSemaphoreTake(flush_sem, pdMS_TO_TICKS(1000)) == pdTRUE) {
-            ESP_LOGI(TAG, "Test flush completed");
-        } else {
-            ESP_LOGE(TAG, "Test flush timed out");
-        }
-        xSemaphoreGive(flush_sem);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(1000));  // Hold 1s
 
         return true;
     }
@@ -203,14 +179,12 @@ public:
         if (panel_io) esp_lcd_panel_io_del(panel_io);
         if (buf1) heap_caps_free(buf1);
         if (buf2) heap_caps_free(buf2);
-        if (flush_sem) vSemaphoreDelete(flush_sem);
         ledc_stop(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, 0);
         lvglDisplay = nullptr;
         panel_handle = nullptr;
         panel_io = nullptr;
         buf1 = nullptr;
         buf2 = nullptr;
-        flush_sem = nullptr;
         s_display = nullptr;
         isStarted = false;
         ESP_LOGI(TAG, "YellowDisplay stopped");
@@ -245,19 +219,20 @@ private:
             lv_display_flush_ready(disp);
             return;
         }
+        // Swap RGB565 bytes (per esp32-smartdisplay)
+        uint16_t* p = (uint16_t*)data;
+        uint32_t pixels = lv_area_get_size(area);
+        for (uint32_t i = 0; i < pixels; i++) {
+            p[i] = (p[i] >> 8) | (p[i] << 8);
+        }
         ESP_LOGI(TAG, "Flush: [%ld,%ld,%ld,%ld], data=%p", 
                  (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, data);
-        esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
+        ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data));
+        lv_display_flush_ready(disp);  // No semaphore needed
     }
 
     static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
-        auto* display = static_cast<YellowDisplay*>(user_ctx);
-        if (display && display->lvglDisplay && display->flush_sem) {
-            ESP_LOGD(TAG, "DMA transfer done");
-            xSemaphoreGiveFromISR(display->flush_sem, nullptr);
-            lv_display_flush_ready(display->lvglDisplay);
-        }
-        return false;
+        return false;  // Handled in flush_callback
     }
 
     void setRotation(lv_display_rotation_t rotation) {
@@ -276,7 +251,6 @@ private:
     uint16_t* buf1 = nullptr;
     uint16_t* buf2 = nullptr;
     size_t bufferSize = 0;
-    SemaphoreHandle_t flush_sem = nullptr;
     bool isStarted = false;
 };
 
