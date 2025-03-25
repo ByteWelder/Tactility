@@ -148,8 +148,8 @@ public:
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
             .hpoint = 0,
-            .flags = { .output_invert = 0 },
-            .sleep_mode = 0 // Disable sleep mode (active mode)
+            .sleep_mode = 0, // Disable sleep mode (before flags)
+            .flags = { .output_invert = 0 }
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
