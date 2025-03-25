@@ -297,8 +297,11 @@ private:
             ESP_LOGI(TAG, "flush_callback: Exiting (data null)");
             return;
         }
-        if (xPortGetCoreID() == CONFIG_FREERTOS_INTERRUPT_CORE) {
+        if (xPortInIsrContext()) {
             ESP_LOGE(TAG, "flush_callback: Called from ISR!");
+            lv_display_flush_ready(disp);
+            ESP_LOGI(TAG, "flush_callback: Exiting (ISR detected)");
+            return;  // Bail out, no mutex in ISR
         }
         uint16_t* p = (uint16_t*)data;
         uint32_t pixels = lv_area_get_size(area);
