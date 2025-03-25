@@ -116,7 +116,7 @@ public:
             .speed_mode = LEDC_LOW_SPEED_MODE,
             .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
+            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
             .hpoint = 0,
             .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
