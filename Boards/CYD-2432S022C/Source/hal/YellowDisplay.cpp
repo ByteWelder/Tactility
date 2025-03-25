@@ -11,7 +11,7 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <inttypes.h>  // For PRIu32
+#include <inttypes.h>
 
 #define TAG "YellowDisplay"
 
@@ -187,16 +187,16 @@ public:
         isStarted = true;
         ESP_LOGI(TAG, "start: YellowDisplay started");
 
-        // Test flush: 240x16 blue strip
+        // Test flush: 240x16 blue strip (moved after LVGL)
         ESP_LOGI(TAG, "start: Preparing test flush");
         for (size_t i = 0; i < 240 * 16; i++) {
             buf1[i] = 0x001F;  // RGB565 Blue
         }
-        ESP_LOGI(TAG, "start: Data sample pre-swap: %04x", buf1[0]);
+        ESP_LOGI(TAG, "start: Data samples - [0]=%04x, [1]=%04x, [3839]=%04x", buf1[0], buf1[1], buf1[3839]);
         ESP_LOGI(TAG, "start: Sending test flush (240x16 blue)");
         ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1));
         ESP_LOGI(TAG, "start: Test flush sent");
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(2000));  // Longer delay to see it
 
         ESP_LOGI(TAG, "start: Exiting");
         return true;
@@ -297,13 +297,18 @@ private:
             ESP_LOGI(TAG, "flush_callback: Exiting (data null)");
             return;
         }
+        if (xPortGetCoreID() == CONFIG_FREERTOS_INTERRUPT_CORE) {
+            ESP_LOGE(TAG, "flush_callback: Called from ISR!");
+        }
         uint16_t* p = (uint16_t*)data;
         uint32_t pixels = lv_area_get_size(area);
-        ESP_LOGI(TAG, "flush_callback: Pre-swap sample: %04x, pixels=%" PRIu32, p[0], pixels);
+        ESP_LOGI(TAG, "flush_callback: Pre-swap samples - [0]=%04x, [1]=%04x, [last]=%04x, pixels=%" PRIu32,
+                 p[0], p[1], p[pixels - 1], pixels);
         for (uint32_t i = 0; i < pixels; i++) {
             p[i] = (p[i] >> 8) | (p[i] << 8);
         }
-        ESP_LOGI(TAG, "flush_callback: Post-swap sample: %04x", p[0]);
+        ESP_LOGI(TAG, "flush_callback: Post-swap samples - [0]=%04x, [1]=%04x, [last]=%04x",
+                 p[0], p[1], p[pixels - 1]);
         ESP_LOGI(TAG, "flush_callback: Drawing bitmap");
         esp_err_t err = esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
         if (err != ESP_OK) {
@@ -316,7 +321,7 @@ private:
 
     static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
         ESP_LOGI(TAG, "flush_ready_callback: DMA transfer done");
-        return false;
+        return false;  // Don’t trigger LVGL flush here
     }
 
     void setRotation(lv_display_rotation_t rotation) {
