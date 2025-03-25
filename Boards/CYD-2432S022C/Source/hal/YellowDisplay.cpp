@@ -11,7 +11,6 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <freertos/queue.h>
 #include <inttypes.h>
 
 #define TAG "YellowDisplay"
@@ -36,15 +35,9 @@ public:
         this->config = std::make_unique<Configuration>(config->width, config->height, config->rotation, config->touch);
         ESP_LOGI(TAG, "YellowDisplay: %dx%d, rotation=%d, touch=%p", 
                  config->width, config->height, config->rotation, config->touch.get());
-        flush_queue = xQueueCreate(1, sizeof(lv_display_t*));
     }
 
-    ~YellowDisplay() override { 
-        stop(); 
-        if (flush_queue) {
-            vQueueDelete(flush_queue);
-        }
-    }
+    ~YellowDisplay() override { stop(); }
 
     bool start() override {
         ESP_LOGI(TAG, "start: Entering");
@@ -93,7 +86,7 @@ public:
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
             .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,
             .trans_queue_depth = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
-            .on_color_trans_done = flush_ready_callback,
+            .on_color_trans_done = nullptr,  // No callback, sync manually
             .user_ctx = this,
             .lcd_cmd_bits = 8,
             .lcd_param_bits = 8,
@@ -189,11 +182,14 @@ public:
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
         ESP_LOGI(TAG, "start: Setting flush callback");
         lv_display_set_flush_cb(lvglDisplay, flush_callback);
-        lv_display_set_user_data(lvglDisplay, this);
         s_display = this;
 
         isStarted = true;
         ESP_LOGI(TAG, "start: YellowDisplay started");
+
+        // Delay LVGL flush
+        ESP_LOGI(TAG, "start: Delaying LVGL flush");
+        vTaskDelay(pdMS_TO_TICKS(100));
 
         // Test flush: 240x16 blue strip
         ESP_LOGI(TAG, "start: Preparing test flush");
@@ -203,7 +199,9 @@ public:
         ESP_LOGI(TAG, "start: Data samples - [0]=%04x, [1]=%04x, [3839]=%04x", buf1[0], buf1[1], buf1[3839]);
         ESP_LOGI(TAG, "start: Sending test flush (240x16 blue)");
         ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, 240, 16, buf1));
+        vTaskDelay(pdMS_TO_TICKS(50));  // Wait for DMA
         ESP_LOGI(TAG, "start: Test flush sent");
+
         vTaskDelay(pdMS_TO_TICKS(2000));  // See blue
 
         ESP_LOGI(TAG, "start: Exiting");
@@ -289,21 +287,19 @@ public:
 
 private:
     static YellowDisplay* s_display;
-    QueueHandle_t flush_queue;
 
     static void flush_callback(lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-        YellowDisplay* display = (YellowDisplay*)lv_display_get_user_data(disp);
         ESP_LOGI(TAG, "flush_callback: Entering, disp=%p, area=[%ld,%ld,%ld,%ld], data=%p",
                  disp, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, data);
-        if (!display || !display->panel_handle) {
+        if (!s_display || !s_display->panel_handle) {
             ESP_LOGE(TAG, "flush_callback: Display or panel_handle is null");
-            if (display->flush_queue) xQueueSend(display->flush_queue, &disp, 0);
+            lv_display_flush_ready(disp);
             ESP_LOGI(TAG, "flush_callback: Exiting (null check)");
             return;
         }
         if (!data) {
             ESP_LOGE(TAG, "flush_callback: Data is null");
-            if (display->flush_queue) xQueueSend(display->flush_queue, &disp, 0);
+            lv_display_flush_ready(disp);
             ESP_LOGI(TAG, "flush_callback: Exiting (data null)");
             return;
         }
@@ -317,28 +313,14 @@ private:
         ESP_LOGI(TAG, "flush_callback: Post-swap samples - [0]=%04x, [1]=%04x, [last]=%04x",
                  p[0], p[1], p[pixels - 1]);
         ESP_LOGI(TAG, "flush_callback: Drawing bitmap");
-        esp_err_t err = esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
+        esp_err_t err = esp_lcd_panel_draw_bitmap(s_display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "flush_callback: Draw bitmap failed: %d", err);
         }
-        ESP_LOGI(TAG, "flush_callback: Queueing flush ready");
-        if (display->flush_queue) {
-            xQueueSend(display->flush_queue, &disp, portMAX_DELAY);
-        }
+        vTaskDelay(pdMS_TO_TICKS(10));  // Wait for DMA
+        ESP_LOGI(TAG, "flush_callback: Flush ready");
+        lv_display_flush_ready(disp);
         ESP_LOGI(TAG, "flush_callback: Exiting");
-    }
-
-    static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
-        YellowDisplay* display = (YellowDisplay*)user_ctx;
-        ESP_LOGI(TAG, "flush_ready_callback: DMA transfer done");
-        lv_display_t* disp = nullptr;
-        if (display->flush_queue && xQueueReceive(display->flush_queue, &disp, pdMS_TO_TICKS(1000))) {
-            ESP_LOGI(TAG, "flush_ready_callback: Completing flush for disp=%p", disp);
-            lv_display_flush_ready(disp);
-        } else {
-            ESP_LOGE(TAG, "flush_ready_callback: Queue timeout or null");
-        }
-        return false;
     }
 
     void setRotation(lv_display_rotation_t rotation) {
