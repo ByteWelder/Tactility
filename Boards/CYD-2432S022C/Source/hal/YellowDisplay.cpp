@@ -1,6 +1,7 @@
 #include "CYD2432S022CConstants.h"
 #include "Tactility/hal/display/DisplayDevice.h"
 #include "YellowTouch.h"
+#include "Tactility/app/display/DisplaySettings.h"  // For tt::app::display
 #include <memory>
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -136,21 +137,20 @@ public:
         }
         ESP_LOGI(TAG, "Buffers: buf1=%p, buf2=%p, size=%d", buf1, buf2, bufferSize * 2);
 
-        // LVGL driver setup
-        lv_disp_draw_buf_init(&draw_buf, buf1, buf2, bufferSize);
-        lv_disp_drv_init(&disp_drv);
-        disp_drv.hor_res = config->width;
-        disp_drv.ver_res = config->height;
-        disp_drv.flush_cb = flush_callback;
-        disp_drv.draw_buf = &draw_buf;
-        disp_drv.user_data = this;
-        lvglDisplay = lv_disp_drv_register(&disp_drv);
+        // LVGL setup (v8)
+        lvglDisplay = lv_display_create(config->width, config->height);
         if (!lvglDisplay) {
-            ESP_LOGE(TAG, "Failed to register LVGL display");
+            ESP_LOGE(TAG, "Failed to create LVGL display");
             stop();
             return false;
         }
-        ESP_LOGI(TAG, "LVGL display: %p, user_data=%p", lvglDisplay, lv_disp_get_user_data(lvglDisplay));
+        ESP_LOGI(TAG, "LVGL display: %p", lvglDisplay);
+        lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
+        lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
+        lv_display_set_user_data(lvglDisplay, this);
+        ESP_LOGI(TAG, "Set user_data: %p", lv_display_get_user_data(lvglDisplay));
+
+        lv_display_set_flush_cb(lvglDisplay, flush_callback);
 
         flush_sem = xSemaphoreCreateBinary();
         if (!flush_sem) {
@@ -201,17 +201,22 @@ public:
     std::string getDescription() const override { return "ESP-IDF i80-based display"; }
 
 private:
-    static void flush_callback(lv_disp_drv_t* drv, const lv_area_t* area, lv_color_t* color_map) {
-        auto* display = static_cast<YellowDisplay*>(drv->user_data);
+    static void flush_callback(lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
+        auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
         if (!display) {
             ESP_LOGE(TAG, "Flush: display is null");
-            lv_disp_flush_ready(drv);
+            lv_display_flush_ready(disp);
+            return;
+        }
+        if (!data) {
+            ESP_LOGE(TAG, "Flush: data is null");
+            lv_display_flush_ready(disp);
             return;
         }
         ESP_LOGD(TAG, "Flush: [%ld,%ld,%ld,%ld]", 
                  (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-        esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, color_map);
-        // Wait for flush completion in callback
+        esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
+        // Wait for flush_ready_callback to signal completion
     }
 
     static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
@@ -236,8 +241,6 @@ private:
     esp_lcd_panel_io_handle_t panel_io = nullptr;
     esp_lcd_panel_handle_t panel_handle = nullptr;
     lv_display_t* lvglDisplay = nullptr;
-    lv_disp_draw_buf_t draw_buf;
-    lv_disp_drv_t disp_drv;
     uint16_t* buf1 = nullptr;
     uint16_t* buf2 = nullptr;
     size_t bufferSize = 0;
