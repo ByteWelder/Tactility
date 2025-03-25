@@ -73,6 +73,10 @@ lv_display_t* YellowDisplay::getLvglDisplay() const {
     return lvglDisplay;
 }
 
+esp_lcd_panel_handle_t YellowDisplay::getPanelHandle() const {
+    return panelHandle;
+}
+
 void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
     if (!isStarted) {
         ESP_LOGE(TAG, "setBacklightDuty: Display not started");
@@ -110,17 +114,18 @@ void YellowDisplay::initialize() {
 
     // Step 1: Configure and initialize the I80 bus
     esp_lcd_i80_bus_config_t bus_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = config->dcPin,
         .wr_gpio_num = config->wrPin,
+        .clk_src = LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums = {
             config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
             config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
-            -1, -1, -1, -1, -1, -1, -1, -1
+            -1, -1, -1, -1, -1, -1, -1, -1  // Fill remaining pins with -1
         },
         .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
         .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
         .dma_burst_size = 64,
+        .sram_trans_align = 0  // Deprecated field, set to 0
     };
     esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
@@ -138,7 +143,7 @@ void YellowDisplay::initialize() {
             .dc_idle_level = 0,
             .dc_cmd_level = 0,
             .dc_dummy_level = 0,
-            .dc_data_level = 1,
+            .dc_data_level = 1
         },
         .on_color_trans_done = nullptr,
         .user_ctx = nullptr,
@@ -165,7 +170,7 @@ void YellowDisplay::initialize() {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
-        .data_endian = LCD_DATA_ENDIAN_BIG,
+        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,  // Corrected from LCD_DATA_ENDIAN_BIG
         .flags = { .reset_active_high = 0 },
         .vendor_config = nullptr
     };
@@ -200,6 +205,8 @@ void YellowDisplay::initialize() {
     lvglDisplay = lv_display_create(CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION, CYD_2432S022C_LCD_VERTICAL_RESOLUTION);
     if (!lvglDisplay) {
         ESP_LOGE(TAG, "Failed to create LVGL display");
+        heap_caps_free(drawBuffer);
+        drawBuffer = nullptr;
         esp_lcd_panel_del(panelHandle);
         panelHandle = nullptr;
         esp_lcd_del_i80_bus(i80_bus);
@@ -232,7 +239,7 @@ void YellowDisplay::deinitialize() {
         panelHandle = nullptr;
     }
     if (drawBuffer) {
-        heap_caps_free(drawBuffer);  // Assuming drawBuffer was allocated with heap_caps_malloc or similar
+        heap_caps_free(drawBuffer);  // Free the DMA-allocated buffer
         drawBuffer = nullptr;
     }
 }
