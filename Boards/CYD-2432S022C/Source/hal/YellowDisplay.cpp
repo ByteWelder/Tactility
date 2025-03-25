@@ -73,10 +73,6 @@ lv_display_t* YellowDisplay::getLvglDisplay() const {
     return lvglDisplay;
 }
 
-esp_lcd_panel_handle_t YellowDisplay::getPanelHandle() const {
-    return panelHandle;
-}
-
 void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
     if (!isStarted) {
         ESP_LOGE(TAG, "setBacklightDuty: Display not started");
@@ -170,7 +166,7 @@ void YellowDisplay::initialize() {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
-        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,  // Corrected from LCD_DATA_ENDIAN_BIG
+        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
         .flags = { .reset_active_high = 0 },
         .vendor_config = nullptr
     };
@@ -213,10 +209,24 @@ void YellowDisplay::initialize() {
         return;
     }
 
-    // Set the draw buffer and render mode to partial
-    lv_display_set_draw_buffers(lvglDisplay, drawBuffer, nullptr, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    // Step 7: Create and set draw buffer for LVGL
+    lv_draw_buf_t* draw_buf = lv_draw_buf_create_from_data(CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
+                                                           CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT,
+                                                           LV_COLOR_FORMAT_RGB565,
+                                                           drawBuffer,
+                                                           buffer_size);
+    if (!draw_buf) {
+        ESP_LOGE(TAG, "Failed to create LVGL draw buffer");
+        heap_caps_free(drawBuffer);
+        drawBuffer = nullptr;
+        esp_lcd_panel_del(panelHandle);
+        panelHandle = nullptr;
+        esp_lcd_del_i80_bus(i80_bus);
+        return;
+    }
+    lv_display_set_draw_buffers(lvglDisplay, draw_buf, nullptr);  // Single buffering
 
-    // Set the flush callback
+    // Step 8: Set the flush callback
     lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
         auto* yellowDisp = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
         esp_lcd_panel_draw_bitmap(yellowDisp->getPanelHandle(), area->x1, area->y1, area->x2 + 1, area->y2 + 1, px_map);
