@@ -141,8 +141,6 @@ void YellowDisplay::initialize() {
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
-        .on_color_trans_done = nullptr,
-        .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
         .flags = {
@@ -166,9 +164,6 @@ void YellowDisplay::initialize() {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
-        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
-        .flags = { .reset_active_high = 0 },
-        .vendor_config = nullptr
     };
     ret = esp_lcd_new_panel_st7789(io_handle, &panel_config, &panelHandle);
     if (ret != ESP_OK) {
@@ -210,21 +205,8 @@ void YellowDisplay::initialize() {
     }
 
     // Step 7: Create and set draw buffer for LVGL
-    lv_draw_buf_t* draw_buf = lv_draw_buf_create_from_data(CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-                                                           CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT,
-                                                           LV_COLOR_FORMAT_RGB565,
-                                                           drawBuffer,
-                                                           buffer_size);
-    if (!draw_buf) {
-        ESP_LOGE(TAG, "Failed to create LVGL draw buffer");
-        heap_caps_free(drawBuffer);
-        drawBuffer = nullptr;
-        esp_lcd_panel_del(panelHandle);
-        panelHandle = nullptr;
-        esp_lcd_del_i80_bus(i80_bus);
-        return;
-    }
-    lv_display_set_draw_buffers(lvglDisplay, draw_buf, nullptr);  // Single buffering
+    lv_display_set_buffers(lvglDisplay, drawBuffer, nullptr, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
+
 
     // Step 8: Set the flush callback
     lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
