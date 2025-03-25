@@ -17,7 +17,6 @@
 
 #define TAG "YellowDisplay"
 
-// Static shared_ptr to ensure the display object persists
 static std::shared_ptr<YellowDisplay> globalDisplay;
 
 class YellowDisplay : public tt::hal::display::DisplayDevice {
@@ -180,14 +179,13 @@ public:
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-            auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
-            if (!display) {
-                ESP_LOGE(TAG, "Flush failed: display is null, disp=%p, data=%p", disp, data);
-                lv_display_flush_ready(disp);
-                return;
-            }
-            if (!display->panel_handle) {
-                ESP_LOGE(TAG, "Flush failed: panel_handle is null, display=%p, data=%p", display, data);
+            void* user_data = lv_display_get_user_data(disp);
+            auto* display = static_cast<YellowDisplay*>(user_data);
+            ESP_LOGD(TAG, "Flush: disp=%p, user_data=%p, display=%p, data=%p", disp, user_data, display, data);
+            if (!display || !display->panel_handle) {
+                ESP_LOGE(TAG, "Flush failed: display=%p, panel_handle=%p, area=[%d,%d,%d,%d]", 
+                         display, display ? display->panel_handle : nullptr, 
+                         area->x1, area->y1, area->x2, area->y2);
                 lv_display_flush_ready(disp);
                 return;
             }
@@ -197,12 +195,13 @@ public:
             lv_display_flush_ready(disp);
         });
 
-        // Log user data after Tactility sets it (for debugging)
-        ESP_LOGI(TAG, "User data after setup: %p", lv_display_get_user_data(lvglDisplay));
-
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
+        // Log user data after setup, before Tactility sets it (should be null)
+        ESP_LOGI(TAG, "User data before Tactility: %p", lv_display_get_user_data(lvglDisplay));
         vTaskDelay(pdMS_TO_TICKS(100));
+        // Log user data after delay, Tactility should have set it
+        ESP_LOGI(TAG, "User data after Tactility: %p", lv_display_get_user_data(lvglDisplay));
         return true;
     }
 
