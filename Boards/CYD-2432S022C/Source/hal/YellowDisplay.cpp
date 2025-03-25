@@ -71,7 +71,7 @@ public:
         // Panel IO setup
         esp_lcd_panel_io_i80_config_t io_config = {
             .cs_gpio_num = CYD_2432S022C_LCD_PIN_CS,
-            .pclk_hz = CYD_2432S022C_LCD_PCLK_HZ,
+            .pclk_hz = 15000000,  // 15 MHz
             .trans_queue_depth = CYD_2432S022C_LCD_TRANS_DESCRIPTOR_NUM,
             .on_color_trans_done = flush_ready_callback,
             .user_ctx = this,
@@ -105,7 +105,7 @@ public:
         vTaskDelay(pdMS_TO_TICKS(5));
         esp_lcd_panel_io_tx_param(panel_io, 0x3A, (uint8_t[]){0x55}, 1); // COLMOD: RGB565
         esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL
-        esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON (optional)
+        esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
         vTaskDelay(pdMS_TO_TICKS(1));
@@ -115,7 +115,7 @@ public:
 
         setRotation(config->rotation);
 
-        // Backlight setup (GPIO 0)
+        // Backlight setup
         ledc_timer_config_t ledc_timer = {
             .speed_mode = LEDC_LOW_SPEED_MODE,
             .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
@@ -137,7 +137,7 @@ public:
             .flags = {.output_invert = 0}
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-        setBacklightDuty(200);  // Early backlight
+        setBacklightDuty(200);
 
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
@@ -170,18 +170,24 @@ public:
             stop();
             return false;
         }
-        xSemaphoreGive(flush_sem);  // Initially free
-
-        // Test flush: Fill buf1 with red
-        for (size_t i = 0; i < bufferSize; i++) {
-            buf1[i] = 0xF800;  // RGB565 Red
-        }
-        lv_area_t area = {0, 0, config->width - 1, config->height - 1};
-        flush_callback(lvglDisplay, &area, (uint8_t*)buf1);
-        ESP_LOGI(TAG, "Test flush sent");
+        xSemaphoreGive(flush_sem);
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
+
+        // Test flush: Raw red screen, wait for DMA
+        for (size_t i = 0; i < bufferSize; i++) {
+            buf1[i] = 0xF800;  // RGB565 Red
+        }
+        esp_lcd_panel_draw_bitmap(panel_handle, 0, 0, config->width, config->height, buf1);
+        ESP_LOGI(TAG, "Test flush sent");
+        if (xSemaphoreTake(flush_sem, pdMS_TO_TICKS(1000)) == pdTRUE) {
+            ESP_LOGI(TAG, "Test flush completed");
+        } else {
+            ESP_LOGE(TAG, "Test flush timed out");
+        }
+        xSemaphoreGive(flush_sem);
+
         return true;
     }
 
