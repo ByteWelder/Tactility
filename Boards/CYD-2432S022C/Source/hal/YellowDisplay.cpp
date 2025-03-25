@@ -17,6 +17,9 @@
 
 #define TAG "YellowDisplay"
 
+// Static shared_ptr to ensure the display object persists
+static std::shared_ptr<YellowDisplay> globalDisplay;
+
 class YellowDisplay : public tt::hal::display::DisplayDevice {
 public:
     struct Configuration {
@@ -148,7 +151,7 @@ public:
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
             .hpoint = 0,
-            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD, // Default mode: no sleep, no power-down
+            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
             .flags = { .output_invert = 0 }
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
@@ -176,19 +179,26 @@ public:
         ESP_LOGI(TAG, "LVGL display created: %p", lvglDisplay);
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
-        // Removed: lv_display_set_user_data(lvglDisplay, this) - Tactility sets this itself
         lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-            // Use Tactility's user data to get the DisplayDevice instance
             auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
-            if (!display || !data || !display->panel_handle) {
-                ESP_LOGE(TAG, "Flush callback failed: display=%p, data=%p, panel_handle=%p", 
-                         display, data, display ? display->panel_handle : nullptr);
+            if (!display) {
+                ESP_LOGE(TAG, "Flush failed: display is null, disp=%p, data=%p", disp, data);
                 lv_display_flush_ready(disp);
                 return;
             }
+            if (!display->panel_handle) {
+                ESP_LOGE(TAG, "Flush failed: panel_handle is null, display=%p, data=%p", display, data);
+                lv_display_flush_ready(disp);
+                return;
+            }
+            ESP_LOGD(TAG, "Flushing: x1=%d, y1=%d, x2=%d, y2=%d, data=%p", 
+                     area->x1, area->y1, area->x2, area->y2, data);
             esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
             lv_display_flush_ready(disp);
         });
+
+        // Log user data after Tactility sets it (for debugging)
+        ESP_LOGI(TAG, "User data after setup: %p", lv_display_get_user_data(lvglDisplay));
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
@@ -217,6 +227,7 @@ public:
 
     void setBacklightDuty(uint8_t duty) override {
         if (isStarted) {
+            ESP_LOGI(TAG, "Setting backlight duty to %d", duty);
             ledc_set_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, duty);
             ledc_update_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL);
         }
@@ -273,11 +284,11 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI(TAG, "Temp config created: width=%d, height=%d, rotation=%d, touch=%p", 
              temp_config.width, temp_config.height, temp_config.rotation, temp_config.touch.get());
 
-    auto display = std::make_shared<YellowDisplay>(&temp_config);
-    if (!display) {
+    globalDisplay = std::make_shared<YellowDisplay>(&temp_config);
+    if (!globalDisplay) {
         ESP_LOGE(TAG, "Failed to create display object");
         return nullptr;
     }
-    ESP_LOGI(TAG, "Display object created: %p", display.get());
-    return display;
+    ESP_LOGI(TAG, "Display object created: %p", globalDisplay.get());
+    return globalDisplay;
 }
