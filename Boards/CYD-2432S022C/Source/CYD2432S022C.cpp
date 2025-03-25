@@ -27,7 +27,7 @@ bool init_boot() {
     if (lvglDisp) {
         lv_display_set_flush_cb(lvglDisp, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
             auto* yellowDisp = static_cast<tt::hal::display::YellowDisplay*>(lv_display_get_user_data(disp));
-            esp_lcd_panel_draw_bitmap(yellowDisp->panelHandle, area->x1, area->y1, 
+            esp_lcd_panel_draw_bitmap(yellowDisp->getPanelHandle(), area->x1, area->y1, 
                                       area->x2 + 1, area->y2 + 1, px_map);
             lv_display_flush_ready(disp);
         });
