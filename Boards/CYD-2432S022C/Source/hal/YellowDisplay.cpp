@@ -107,16 +107,19 @@ void YellowDisplay::setRotation(lv_display_rotation_t rotation) {
 void YellowDisplay::initialize() {
     esp_err_t ret;
 
+    // Step 1: Configure and initialize the I80 bus
     esp_lcd_i80_bus_config_t bus_config = {
-        .dc_gpio_num = config->dcPin,
-        .wr_gpio_num = config->wrPin,
-        .data_gpio_nums = {
+        .clk_src = LCD_CLK_SRC_DEFAULT,                        // Clock source
+        .dc_gpio_num = config->dcPin,                          // DC line GPIO
+        .wr_gpio_num = config->wrPin,                          // WR line GPIO
+        .data_gpio_nums = {                                    // Data line GPIOs (16 elements)
             config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
             config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
+            -1, -1, -1, -1, -1, -1, -1, -1                    // Unused pins set to -1
         },
-        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
+        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,              // Bus width (e.g., 8)
         .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
-        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .dma_burst_size = 64,                                  // DMA burst size (e.g., 64 bytes)
     };
     esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
@@ -125,54 +128,69 @@ void YellowDisplay::initialize() {
         return;
     }
 
+    // Step 2: Configure and initialize the panel IO
     esp_lcd_panel_io_i80_config_t io_config = {
-        .cs_gpio_num = config->csPin,
-        .pclk_hz = static_cast<uint32_t>(config->pclkHz),  // Fix narrowing
-        .trans_queue_depth = 10,
-        .dc_levels = {
+        .cs_gpio_num = config->csPin,                          // CS line GPIO
+        .pclk_hz = static_cast<uint32_t>(config->pclkHz),      // Pixel clock frequency
+        .trans_queue_depth = 10,                               // Transaction queue depth
+        .dc_levels = {                                         // DC signal levels
             .dc_idle_level = 0,
             .dc_cmd_level = 0,
             .dc_dummy_level = 0,
-            .dc_data_level = 1,
+            .dc_data_level = 1
         },
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
-        .flags = {
-            .cs_active_high = 0,  // CS is active low
-        },
+        .on_color_trans_done = nullptr,                        // No callback
+        .user_ctx = nullptr,                                   // No user context
+        .lcd_cmd_bits = 8,                                     // 8-bit commands
+        .lcd_param_bits = 8,                                   // 8-bit parameters
+        .flags = {                                             // Fully initialize flags
+            .cs_active_high = 0,
+            .reverse_color_bits = 0,
+            .swap_color_bytes = 0,
+            .pclk_active_neg = 0,
+            .pclk_idle_low = 0
+        }
     };
     esp_lcd_panel_io_handle_t io_handle = nullptr;
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize panel IO: %s", esp_err_to_name(ret));
+        esp_lcd_del_i80_bus(i80_bus);  // Clean up bus on failure
         return;
     }
 
+    // Step 3: Initialize the LCD panel (e.g., ST7789)
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .bits_per_pixel = 16,  // RGB565
+        .bits_per_pixel = 16,                                  // RGB565
+        .data_endian = LCD_DATA_ENDIAN_BIG,                    // Assuming big-endian data
+        .flags = { .reset_active_high = 0 },                   // Reset is active low
+        .vendor_config = nullptr
     };
     ret = esp_lcd_new_panel_st7789(io_handle, &panel_config, &panelHandle);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "Failed to initialize ST7789 panel: %s", esp_err_to_name(ret));
+        esp_lcd_del_i80_bus(i80_bus);  // Clean up bus on failure
         return;
     }
 
+    // Step 4: Configure and enable the panel
     if (config->rstPin != GPIO_NUM_NC) {
         esp_lcd_panel_reset(panelHandle);
     }
     esp_lcd_panel_init(panelHandle);
-
     esp_lcd_panel_swap_xy(panelHandle, config->swapXY);
     esp_lcd_panel_mirror(panelHandle, config->mirrorX, config->mirrorY);
     esp_lcd_panel_disp_on_off(panelHandle, true);
 
+    // Step 5: Integrate with LVGL
     lvglDisplay = lv_display_create(config->horizontalResolution, config->verticalResolution);
     if (!lvglDisplay) {
         ESP_LOGE(TAG, "Failed to create LVGL display");
         esp_lcd_panel_del(panelHandle);
         panelHandle = nullptr;
+        esp_lcd_del_i80_bus(i80_bus);
         return;
     }
 
