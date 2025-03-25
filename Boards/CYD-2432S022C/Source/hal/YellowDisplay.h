@@ -3,6 +3,8 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <memory>
 #include "esp_err.h"
+#include "esp_lcd_types.h"  // For esp_lcd_panel_handle_t
+#include "driver/gpio.h"    // For gpio_num_t
 #include "lvgl.h"
 #include "YellowTouch.h"
 
@@ -16,7 +18,7 @@ public:
         gpio_num_t dcPin;               // Data/Command
         gpio_num_t wrPin;               // Write strobe for i80
         gpio_num_t rstPin;              // Reset pin (optional)
-        gpio_num_t backlightPin;        // Backlight control pin
+        gpio_num_t backlightPin;        // Backlight control pin (PWM)
         gpio_num_t dataPins[8];         // 8-bit parallel data pins
         int horizontalResolution;       // Display width
         int verticalResolution;         // Display height
