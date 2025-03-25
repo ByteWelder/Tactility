@@ -99,6 +99,20 @@ public:
         ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
         ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, false));
         ESP_ERROR_CHECK(esp_lcd_panel_set_gap(panel_handle, 0, 0));
+
+        // Lovyan-style ST7789 init
+        esp_lcd_panel_io_tx_param(panel_io, 0x11, nullptr, 0); // SLPOUT
+        vTaskDelay(pdMS_TO_TICKS(5));
+        esp_lcd_panel_io_tx_param(panel_io, 0x3A, (uint8_t[]){0x55}, 1); // COLMOD: RGB565
+        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL
+        esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON (optional)
+        vTaskDelay(pdMS_TO_TICKS(1));
+        esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
+        vTaskDelay(pdMS_TO_TICKS(1));
+        esp_lcd_panel_io_tx_param(panel_io, 0x29, nullptr, 0); // DISPON
+        vTaskDelay(pdMS_TO_TICKS(5));
+        ESP_LOGI(TAG, "ST7789 extra init done");
+
         setRotation(config->rotation);
 
         // Backlight setup (GPIO 0)
@@ -158,7 +172,7 @@ public:
         }
         xSemaphoreGive(flush_sem);  // Initially free
 
-        // Test flush: Fill buf1 with red, flush full screen
+        // Test flush: Fill buf1 with red
         for (size_t i = 0; i < bufferSize; i++) {
             buf1[i] = 0xF800;  // RGB565 Red
         }
