@@ -116,13 +116,14 @@ public:
             .speed_mode = LEDC_LOW_SPEED_MODE,
             .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .duty = 0,
             .hpoint = 0,
             .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
             .flags = {.output_invert = 0}
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+        setBacklightDuty(200);  // Early backlight
 
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
@@ -156,6 +157,14 @@ public:
             return false;
         }
         xSemaphoreGive(flush_sem);  // Initially free
+
+        // Test flush: Fill buf1 with red, flush full screen
+        for (size_t i = 0; i < bufferSize; i++) {
+            buf1[i] = 0xF800;  // RGB565 Red
+        }
+        lv_area_t area = {0, 0, config->width - 1, config->height - 1};
+        flush_callback(lvglDisplay, &area, (uint8_t*)buf1);
+        ESP_LOGI(TAG, "Test flush sent");
 
         isStarted = true;
         ESP_LOGI(TAG, "YellowDisplay started");
@@ -213,12 +222,12 @@ private:
         ESP_LOGD(TAG, "Flush: [%ld,%ld,%ld,%ld]", 
                  (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
         esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
-        // Wait for flush_ready_callback to signal completion
     }
 
     static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
         auto* display = static_cast<YellowDisplay*>(user_ctx);
         if (display && display->lvglDisplay && display->flush_sem) {
+            ESP_LOGD(TAG, "DMA transfer done");
             xSemaphoreGiveFromISR(display->flush_sem, nullptr);
             lv_display_flush_ready(display->lvglDisplay);
         }
