@@ -149,7 +149,7 @@ public:
             .duty = 0,
             .hpoint = 0,
             .flags = { .output_invert = 0 },
-            .sleep_mode = LEDC_SLEEP_MODE_DISABLE // Added for ESP-IDF v5.4
+            .sleep_mode = 0 // Disable sleep mode (active mode)
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
@@ -263,7 +263,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     lv_display_rotation_t rotation = tt::app::display::getRotation();
     ESP_LOGI(TAG, "Rotation retrieved: %d", rotation);
 
-    // Use fully qualified name
     YellowDisplay::Configuration temp_config(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
