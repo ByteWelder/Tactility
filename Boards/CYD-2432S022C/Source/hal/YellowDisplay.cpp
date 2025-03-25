@@ -8,6 +8,7 @@
 #include "lvgl.h"
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
+#include "PwmBacklight.h"
 
 #define TAG "YellowDisplay"
 
@@ -37,6 +38,13 @@ bool YellowDisplay::start() {
         return false;
     }
 
+    // Initialize PWM backlight
+    if (!driver::pwmbacklight::init(config->backlightPin)) {
+        ESP_LOGE(TAG, "Failed to initialize PWM backlight");
+        deinitialize();
+        return false;
+    }
+
     isStarted = true;
     ESP_LOGI(TAG, "Display started successfully");
 
@@ -62,7 +70,7 @@ bool YellowDisplay::stop() {
 }
 
 std::shared_ptr<tt::hal::touch::TouchDevice> YellowDisplay::createTouch() {
-    return createYellowTouch();  // Delegates to YellowTouch.cpp
+    return createYellowTouch();
 }
 
 lv_display_t* YellowDisplay::getLvglDisplay() const {
@@ -70,15 +78,16 @@ lv_display_t* YellowDisplay::getLvglDisplay() const {
 }
 
 void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
-    if (!isStarted || !panelHandle) {
-        ESP_LOGE(TAG, "setBacklightDuty: Display not initialized");
+    if (!isStarted) {
+        ESP_LOGE(TAG, "setBacklightDuty: Display not started");
         return;
     }
 
-    // Map 0-255 to GPIO level (0 = off, 255 = on)
-    bool level = (backlightDuty > 127) ? CYD_2432S022C_LCD_BACKLIGHT_ON_LEVEL : !CYD_2432S022C_LCD_BACKLIGHT_ON_LEVEL;
-    gpio_set_level(config->backlightPin, level);
-    ESP_LOGI(TAG, "Backlight duty set to %u (GPIO level: %d)", backlightDuty, level);
+    if (!driver::pwmbacklight::setBacklightDuty(backlightDuty)) {
+        ESP_LOGE(TAG, "Failed to set backlight duty to %u", backlightDuty);
+    } else {
+        ESP_LOGI(TAG, "Backlight duty set to %u", backlightDuty);
+    }
 }
 
 void YellowDisplay::setRotation(lv_display_rotation_t rotation) {
@@ -171,13 +180,6 @@ void YellowDisplay::initialize() {
     // Turn on display
     esp_lcd_panel_disp_on_off(panelHandle, true);
 
-    // Initialize backlight GPIO
-    gpio_config_t bk_gpio_config = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = 1ULL << config->backlightPin,
-    };
-    gpio_config(&bk_gpio_config);
-
     // Create LVGL display
     lvglDisplay = lv_display_create(config->horizontalResolution, config->verticalResolution);
     if (!lvglDisplay) {
@@ -187,8 +189,7 @@ void YellowDisplay::initialize() {
         return;
     }
 
-    // Store this object as user data for flush callback
-    lvglDisplay->user_data = this;
+    // Tactility will set user_data, so we don’t touch it here
 
     ESP_LOGI(TAG, "YellowDisplay initialized successfully");
 }
@@ -227,7 +228,6 @@ std::shared_ptr<DisplayDevice> createDisplay() {
         }
     );
 
-    // Set initial orientation (will be overridden by start())
     configuration->swapXY = false;
     configuration->mirrorX = false;
     configuration->mirrorY = false;
