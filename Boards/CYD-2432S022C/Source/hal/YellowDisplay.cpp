@@ -28,7 +28,6 @@ public:
             : width(width), height(height), rotation(rotation), touch(std::move(touch)) {}
     };
 
-    // Take Configuration by raw pointer instead of unique_ptr
     explicit YellowDisplay(Configuration* config) {
         ESP_LOGI(TAG, "Constructor entry: this=%p, config=%p", this, config);
         if (!config) {
@@ -149,7 +148,8 @@ public:
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
             .duty = 0,
             .hpoint = 0,
-            .flags = { .output_invert = 0 }
+            .flags = { .output_invert = 0 },
+            .sleep_mode = LEDC_SLEEP_MODE_DISABLE // Added for ESP-IDF v5.4
         };
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
 
@@ -263,8 +263,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     lv_display_rotation_t rotation = tt::app::display::getRotation();
     ESP_LOGI(TAG, "Rotation retrieved: %d", rotation);
 
-    // Create Configuration on stack first
-    Configuration temp_config(
+    // Use fully qualified name
+    YellowDisplay::Configuration temp_config(
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
         CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
         rotation,
