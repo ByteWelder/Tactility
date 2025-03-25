@@ -11,6 +11,7 @@
 #include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <inttypes.h>  // For PRIu32
 
 #define TAG "YellowDisplay"
 
@@ -92,7 +93,7 @@ public:
             .dc_levels = {.dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1},
             .flags = {.cs_active_high = 0, .reverse_color_bits = 0, .swap_color_bytes = 0, .pclk_active_neg = 0, .pclk_idle_low = 0}
         };
-        ESP_LOGI(TAG, "start: IO config - CS=%d, PCLK=%d, queue_depth=%d",
+        ESP_LOGI(TAG, "start: IO config - CS=%d, PCLK=%" PRIu32 ", queue_depth=%d",
                  io_config.cs_gpio_num, io_config.pclk_hz, io_config.trans_queue_depth);
         ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus, &io_config, &panel_io));
         ESP_LOGI(TAG, "start: Panel IO created: %p", panel_io);
@@ -107,7 +108,7 @@ public:
             .flags = {.reset_active_high = 0},
             .vendor_config = nullptr
         };
-        ESP_LOGI(TAG, "start: Panel config - RST=%d, RGB=%d, bits=%d",
+        ESP_LOGI(TAG, "start: Panel config - RST=%d, RGB=%d, bits=%" PRIu32,
                  panel_config.reset_gpio_num, panel_config.rgb_endian, panel_config.bits_per_pixel);
         ESP_ERROR_CHECK(esp_lcd_new_panel_st7789(panel_io, &panel_config, &panel_handle));
         ESP_LOGI(TAG, "start: Panel handle created: %p", panel_handle);
@@ -147,7 +148,7 @@ public:
             .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
             .flags = {.output_invert = 0}
         };
-        ESP_LOGI(TAG, "start: Backlight config - GPIO=%d, duty=%d",
+        ESP_LOGI(TAG, "start: Backlight config - GPIO=%d, duty=%" PRIu32,
                  ledc_channel.gpio_num, ledc_channel.duty);
         ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
         ESP_LOGI(TAG, "start: Backlight duty set: 200");
@@ -246,9 +247,9 @@ public:
     }
 
     void setBacklightDuty(uint8_t duty) override {
-        ESP_LOGI(TAG, "setBacklightDuty: Entering, duty=%d", duty);
+        ESP_LOGI(TAG, "setBacklightDuty: Entering, duty=%" PRIu32, (uint32_t)duty);
         if (isStarted) {
-            ESP_LOGI(TAG, "setBacklightDuty: Setting duty to %d", duty);
+            ESP_LOGI(TAG, "setBacklightDuty: Setting duty to %" PRIu32, (uint32_t)duty);
             ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL, duty));
             ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL));
         } else {
@@ -298,7 +299,7 @@ private:
         }
         uint16_t* p = (uint16_t*)data;
         uint32_t pixels = lv_area_get_size(area);
-        ESP_LOGI(TAG, "flush_callback: Pre-swap sample: %04x, pixels=%lu", p[0], (unsigned long)pixels);
+        ESP_LOGI(TAG, "flush_callback: Pre-swap sample: %04x, pixels=%" PRIu32, p[0], pixels);
         for (uint32_t i = 0; i < pixels; i++) {
             p[i] = (p[i] >> 8) | (p[i] << 8);
         }
