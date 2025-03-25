@@ -1,7 +1,7 @@
 #include "CYD2432S022CConstants.h"
 #include "Tactility/hal/display/DisplayDevice.h"
 #include "YellowTouch.h"
-#include "Tactility/app/display/DisplaySettings.h"  // For tt::app::display
+#include "Tactility/app/display/DisplaySettings.h"
 #include <memory>
 #include <driver/gpio.h>
 #include <driver/ledc.h>
@@ -137,7 +137,7 @@ public:
         }
         ESP_LOGI(TAG, "Buffers: buf1=%p, buf2=%p, size=%d", buf1, buf2, bufferSize * 2);
 
-        // LVGL setup (v8)
+        // LVGL setup (v8, no user data)
         lvglDisplay = lv_display_create(config->width, config->height);
         if (!lvglDisplay) {
             ESP_LOGE(TAG, "Failed to create LVGL display");
@@ -147,9 +147,6 @@ public:
         ESP_LOGI(TAG, "LVGL display: %p", lvglDisplay);
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
-        lv_display_set_user_data(lvglDisplay, this);
-        ESP_LOGI(TAG, "Set user_data: %p", lv_display_get_user_data(lvglDisplay));
-
         lv_display_set_flush_cb(lvglDisplay, flush_callback);
 
         flush_sem = xSemaphoreCreateBinary();
