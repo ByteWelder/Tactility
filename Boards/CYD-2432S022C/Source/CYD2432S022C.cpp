@@ -3,11 +3,42 @@
 #include "hal/YellowSDCard.h"
 #include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
+#include "esp_log.h"
 
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
+#define TAG "CYD2432S022C"
 
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
+    auto display = tt::hal::display::createDisplay();
+    if (!display) {
+        ESP_LOGE(TAG, "Failed to create display");
+    }
+    return display;
+}
 
 bool init_boot() {
+    // Create and start the display
+    auto display = createDisplay();
+    if (!display || !display->start()) {
+        ESP_LOGE(TAG, "Failed to start display during boot");
+        return false;
+    }
+
+    // Set LVGL flush callback
+    lv_display_t* lvglDisp = display->getLvglDisplay();
+    if (lvglDisp) {
+        lv_display_set_flush_cb(lvglDisp, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+            auto* yellowDisp = static_cast<tt::hal::display::YellowDisplay*>(disp->user_data);
+            esp_lcd_panel_draw_bitmap(yellowDisp->panelHandle, area->x1, area->y1, 
+                                      area->x2 + 1, area->y2 + 1, px_map);
+            lv_display_flush_ready(disp);
+        });
+        ESP_LOGI(TAG, "LVGL flush callback set during boot");
+    } else {
+        ESP_LOGE(TAG, "Failed to get LVGL display handle during boot");
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Boot initialization completed successfully");
     return true;
 }
 
@@ -61,16 +92,15 @@ const tt::hal::Configuration cyd_2432s022c_config = {
         }
     },
     .uart = {
-        // UART0 - USB-to-Serial (IN?)
         tt::hal::uart::Configuration {
             .name = "UART0",
-            .port = UART_NUM_0,          // Use UART0
-            .rxPin = GPIO_NUM_3,         // RX on GPIO3 (U0RXD)
-            .txPin = GPIO_NUM_1,         // TX on GPIO1 (U0TXD)
-            .rtsPin = GPIO_NUM_NC,       // No RTS pin
-            .ctsPin = GPIO_NUM_NC,       // No CTS pin
+            .port = UART_NUM_0,
+            .rxPin = GPIO_NUM_3,
+            .txPin = GPIO_NUM_1,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
-            .txBufferSize = 1024,        
+            .txBufferSize = 1024,
             .config = {
                 .baud_rate = 115200,
                 .data_bits = UART_DATA_8_BITS,
