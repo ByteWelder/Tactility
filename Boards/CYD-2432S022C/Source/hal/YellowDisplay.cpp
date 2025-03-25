@@ -86,7 +86,7 @@ public:
         // ST7789 panel setup
         esp_lcd_panel_dev_config_t panel_config = {
             .reset_gpio_num = CYD_2432S022C_LCD_PIN_RST,
-            .rgb_endian = LCD_RGB_ENDIAN_BGR,  // Try BGR—might fix colors
+            .rgb_endian = LCD_RGB_ENDIAN_RGB,  // Back to RGB—test this
             .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
             .bits_per_pixel = 16,
             .flags = {.reset_active_high = 0},
@@ -104,13 +104,14 @@ public:
         esp_lcd_panel_io_tx_param(panel_io, 0x11, nullptr, 0); // SLPOUT
         vTaskDelay(pdMS_TO_TICKS(5));
         esp_lcd_panel_io_tx_param(panel_io, 0x3A, (uint8_t[]){0x55}, 1); // COLMOD: RGB565
-        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL: Normal (240x320)
+        esp_lcd_panel_io_tx_param(panel_io, 0x36, (uint8_t[]){0x00}, 1); // MADCTL: Normal
         esp_lcd_panel_io_tx_param(panel_io, 0x21, nullptr, 0); // INVON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x13, nullptr, 0); // NORON
         vTaskDelay(pdMS_TO_TICKS(1));
         esp_lcd_panel_io_tx_param(panel_io, 0x29, nullptr, 0); // DISPON
         vTaskDelay(pdMS_TO_TICKS(100));
+        ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));  // Reset post-DISPON
         ESP_LOGI(TAG, "ST7789 extra init done");
 
         setRotation(config->rotation);
@@ -131,7 +132,7 @@ public:
             .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
             .intr_type = LEDC_INTR_DISABLE,
             .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .duty = 200,  // Start at 200, no 0
+            .duty = 200,  // Start at 200
             .hpoint = 0,
             .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
             .flags = {.output_invert = 0}
@@ -188,7 +189,7 @@ public:
             ESP_LOGE(TAG, "Test flush timed out");
         }
         xSemaphoreGive(flush_sem);
-        vTaskDelay(pdMS_TO_TICKS(500));  // Hold red for 500ms—debug visibility
+        vTaskDelay(pdMS_TO_TICKS(1000));  // Hold red 1s—see it?
 
         return true;
     }
