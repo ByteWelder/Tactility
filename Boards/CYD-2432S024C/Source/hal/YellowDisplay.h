@@ -31,30 +31,21 @@ public:
     explicit YellowDisplay(std::unique_ptr<Configuration> config);
     ~YellowDisplay() override;
 
-    // Required DisplayDevice methods
     bool start() override;
     bool stop() override;
     std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() override;
     lv_display_t* getLvglDisplay() const override;
 
-    // Optional DisplayDevice methods
-    void setPowerOn(bool turnOn) override;
-    bool isPoweredOn() const override;
-    bool supportsPowerControl() const override { return true; }
     void setBacklightDuty(uint8_t backlightDuty) override;
     bool supportsBacklightDuty() const override { return true; }
-    void setGammaCurve(uint8_t index) override {}  // Not supported
-    uint8_t getGammaCurveCount() const override { return 0; }
 
-    // Custom method for rotation
-    void setRotation(lv_display_rotation_t rotation);
+    void setRotation(lv_display_rotation_t rotation);  // Custom method for rotation
 
 private:
     std::unique_ptr<Configuration> config;
     esp_lcd_panel_handle_t panelHandle;
     lv_display_t* lvglDisplay;
     bool isStarted;
-    bool isPowered;
 
     void initialize();
     void deinitialize();
