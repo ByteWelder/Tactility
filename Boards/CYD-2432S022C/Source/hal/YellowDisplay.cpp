@@ -115,30 +115,6 @@ public:
 
         setRotation(config->rotation);
 
-        // Backlight setup
-        ledc_timer_config_t ledc_timer = {
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
-            .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
-            .clk_cfg = LEDC_AUTO_CLK,
-            .deconfigure = false
-        };
-        ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
-        ledc_channel_config_t ledc_channel = {
-            .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
-            .speed_mode = LEDC_LOW_SPEED_MODE,
-            .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
-            .intr_type = LEDC_INTR_DISABLE,
-            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
-            .duty = 0,
-            .hpoint = 0,
-            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
-            .flags = {.output_invert = 0}
-        };
-        ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
-        setBacklightDuty(200);
-
         // Buffer setup
         const size_t buffer_width = (config->rotation == LV_DISPLAY_ROTATION_90 || config->rotation == LV_DISPLAY_ROTATION_270)
                                     ? config->height : config->width;
@@ -163,6 +139,7 @@ public:
         lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_RGB565);
         lv_display_set_buffers(lvglDisplay, buf1, buf2, bufferSize * 2, LV_DISPLAY_RENDER_MODE_PARTIAL);
         lv_display_set_flush_cb(lvglDisplay, flush_callback);
+        // No lv_display_set_user_data—let Tactility handle it
 
         flush_sem = xSemaphoreCreateBinary();
         if (!flush_sem) {
@@ -187,6 +164,30 @@ public:
             ESP_LOGE(TAG, "Test flush timed out");
         }
         xSemaphoreGive(flush_sem);
+
+        // Backlight setup (after test flush)
+        ledc_timer_config_t ledc_timer = {
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .duty_resolution = CYD_2432S022C_LCD_BACKLIGHT_DUTY_RES,
+            .timer_num = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .freq_hz = CYD_2432S022C_LCD_BACKLIGHT_PWM_FREQ_HZ,
+            .clk_cfg = LEDC_AUTO_CLK,
+            .deconfigure = false
+        };
+        ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
+        ledc_channel_config_t ledc_channel = {
+            .gpio_num = CYD_2432S022C_LCD_PIN_BACKLIGHT,
+            .speed_mode = LEDC_LOW_SPEED_MODE,
+            .channel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_CHANNEL,
+            .intr_type = LEDC_INTR_DISABLE,
+            .timer_sel = CYD_2432S022C_LCD_BACKLIGHT_LEDC_TIMER,
+            .duty = 0,
+            .hpoint = 0,
+            .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
+            .flags = {.output_invert = 0}
+        };
+        ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel));
+        setBacklightDuty(200);
 
         return true;
     }
@@ -228,9 +229,9 @@ public:
 
 private:
     static void flush_callback(lv_display_t* disp, const lv_area_t* area, uint8_t* data) {
-        auto* display = static_cast<YellowDisplay*>(lv_display_get_user_data(disp));
-        if (!display) {
-            ESP_LOGE(TAG, "Flush: display is null");
+        // Use global handle or pass via closure—here, we’ll assume panel_handle is accessible
+        if (!globalDisplay || !globalDisplay->panel_handle) {
+            ESP_LOGE(TAG, "Flush: display or panel_handle is null");
             lv_display_flush_ready(disp);
             return;
         }
@@ -241,7 +242,7 @@ private:
         }
         ESP_LOGD(TAG, "Flush: [%ld,%ld,%ld,%ld]", 
                  (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-        esp_lcd_panel_draw_bitmap(display->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
+        esp_lcd_panel_draw_bitmap(globalDisplay->panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, data);
     }
 
     static bool flush_ready_callback(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t* edata, void* user_ctx) {
