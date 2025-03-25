@@ -4,24 +4,25 @@
 #include <memory>
 #include "esp_err.h"
 #include "lvgl.h"
+#include "YellowTouch.h"
 
 namespace tt::hal::display {
 
 class YellowDisplay : public DisplayDevice {
 public:
     struct Configuration {
-        int pclkHz;
-        gpio_num_t csPin;
-        gpio_num_t dcPin;
-        gpio_num_t wrPin;
-        gpio_num_t rstPin;
-        gpio_num_t backlightPin;
-        gpio_num_t dataPins[8];
-        int horizontalResolution;
-        int verticalResolution;
-        std::shared_ptr<tt::hal::touch::TouchDevice> touch;
+        int pclkHz;                     // Pixel clock frequency
+        gpio_num_t csPin;               // Chip Select
+        gpio_num_t dcPin;               // Data/Command
+        gpio_num_t wrPin;               // Write strobe for i80
+        gpio_num_t rstPin;              // Reset pin (optional)
+        gpio_num_t backlightPin;        // Backlight control pin
+        gpio_num_t dataPins[8];         // 8-bit parallel data pins
+        int horizontalResolution;       // Display width
+        int verticalResolution;         // Display height
+        std::shared_ptr<tt::hal::touch::TouchDevice> touch;  // Touch device
 
-        // Optional settings
+        // Optional initial orientation settings
         bool mirrorX = false;
         bool mirrorY = false;
         bool swapXY = false;
