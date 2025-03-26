@@ -166,8 +166,8 @@ void YellowDisplay::initialize() {
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .bits_per_pixel = 16,
         .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
+        .bits_per_pixel = 16,
         .flags = { .reset_active_high = 0 },
         .vendor_config = nullptr
     };
