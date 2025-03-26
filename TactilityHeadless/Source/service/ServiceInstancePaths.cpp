@@ -2,11 +2,12 @@
 
 #include "Tactility/Partitions.h"
 
-#define LVGL_PATH_PREFIX std::string("A:/")
+constexpr std::string LVGL_PATH_PREFIX = std::string("A:/");
+
 #ifdef ESP_PLATFORM
-#define PARTITION_PREFIX std::string("/")
+constexpr std::string PARTITION_PREFIX = std::string("/");
 #else
-#define PARTITION_PREFIX std::string("")
+constexpr std::string PARTITION_PREFIX = std::string("");
 #endif
 
 namespace tt::service {

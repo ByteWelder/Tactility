@@ -2,20 +2,20 @@
 
 namespace tt {
 
-#define SYSTEM_PARTITION_NAME "system"
+constexpr const char* SYSTEM_PARTITION_NAME = "system";
 
 #ifdef ESP_PLATFORM
-#define MOUNT_POINT_SYSTEM "/system"
+constexpr const char* MOUNT_POINT_SYSTEM = "/system";
 #else
-#define MOUNT_POINT_SYSTEM "system"
+constexpr const char* MOUNT_POINT_SYSTEM = "system";
 #endif
 
-#define DATA_PARTITION_NAME "data"
+constexpr const char* DATA_PARTITION_NAME = "data";
 
 #ifdef ESP_PLATFORM
-#define MOUNT_POINT_DATA "/data"
+constexpr const char* MOUNT_POINT_DATA = "/data";
 #else
-#define MOUNT_POINT_DATA "data"
+constexpr const char* MOUNT_POINT_DATA = "data";
 #endif
 
 } // namespace

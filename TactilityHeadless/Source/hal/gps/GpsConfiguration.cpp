@@ -1,4 +1,5 @@
 #include "Tactility/hal/gps/GpsConfiguration.h"
+#include "Tactility/service/gps/GpsService.h"
 
 #include <Tactility/TactilityCore.h>
 #include <Tactility/file/ObjectFile.h>
