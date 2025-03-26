@@ -109,6 +109,27 @@ void YellowDisplay::initialize() {
     esp_err_t ret;
 
     // Step 1: Configure and initialize the I80 bus
+    esp_lcd_i80_bus_config_t bus_config = {
+        .dc_gpio_num = config->dcPin,
+        .wr_gpio_num = config->wrPin,
+        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .data_gpio_nums = {
+            config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
+            config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
+            -1, -1, -1, -1, -1, -1, -1, -1  // Fill remaining pins with -1
+        },
+        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
+        .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
+        .dma_burst_size = 64,
+        .sram_trans_align = 0  // Deprecated field, set to 0
+    };
+    esp_lcd_i80_bus_handle_t i80_bus = nullptr;
+    ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize i80 bus: %s", esp_err_to_name(ret));
+        return;
+    }
+
     // Step 2: Configure and initialize the panel IO
     esp_lcd_panel_io_i80_config_t io_config = {
         .cs_gpio_num = config->csPin,
@@ -132,27 +153,7 @@ void YellowDisplay::initialize() {
             .pclk_idle_low = 0
         }
     };
-    esp_lcd_i80_bus_handle_t i80_bus = nullptr;
-    ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize i80 bus: %s", esp_err_to_name(ret));
-        return;
-    }
 
-    // Step 2: Configure and initialize the panel IO
-    esp_lcd_panel_io_i80_config_t io_config = {
-        .cs_gpio_num = config->csPin,
-        .pclk_hz = static_cast<uint32_t>(config->pclkHz),
-        .lcd_cmd_bits = 8,  // Moved to correct position
-        .lcd_param_bits = 8, // Moved to correct position
-        .trans_queue_depth = 10,
-        .dc_levels = {
-            .dc_idle_level = 0,
-            .dc_cmd_level = 0,
-            .dc_dummy_level = 0,
-            .dc_data_level = 1
-        }
-    };
     esp_lcd_panel_io_handle_t io_handle = nullptr;
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
     if (ret != ESP_OK) {
@@ -166,6 +167,9 @@ void YellowDisplay::initialize() {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .bits_per_pixel = 16,
+        .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
+        .flags = { .reset_active_high = 0 },
+        .vendor_config = nullptr
     };
     ret = esp_lcd_new_panel_st7789(io_handle, &panel_config, &panelHandle);
     if (ret != ESP_OK) {
@@ -206,9 +210,8 @@ void YellowDisplay::initialize() {
         return;
     }
 
-    // Step 7: Create and set draw buffer for LVGL
+    // Step 7: Set draw buffer for LVGL (single buffer, partial rendering)
     lv_display_set_buffers(lvglDisplay, drawBuffer, nullptr, buffer_size, LV_DISPLAY_RENDER_MODE_PARTIAL);
-
 
     // Step 8: Set the flush callback
     lv_display_set_flush_cb(lvglDisplay, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
