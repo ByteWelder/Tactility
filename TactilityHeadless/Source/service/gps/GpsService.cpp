@@ -2,6 +2,8 @@
 #include "Tactility/service/ServiceManifest.h"
 #include "Tactility/service/ServiceRegistry.h"
 
+#include <Tactility/Log.h>
+
 using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
@@ -17,7 +19,7 @@ GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shar
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    auto result = std::views::filter(deviceRecords, [&device](auto& record){
+    auto result = std::views::filter(deviceRecords, [&device](auto& record) {
         return record.device.get() == device.get();
     });
     if (!result.empty()) {
@@ -31,7 +33,7 @@ void GpsService::addGpsDevice(const std::shared_ptr<GpsDevice>& device) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    GpsDeviceRecord record = { .device = device };
+    GpsDeviceRecord record = {.device = device};
 
     if (getState() == State::On) { // Ignore during OnPending due to risk of data corruptiohn
         startGpsDevice(record);
@@ -50,25 +52,25 @@ void GpsService::removeGpsDevice(const std::shared_ptr<GpsDevice>& device) {
         stopGpsDevice(*record);
     }
 
-    std::erase_if(deviceRecords, [&device](auto& reference){
+    std::erase_if(deviceRecords, [&device](auto& reference) {
         return reference.device.get() == device.get();
     });
 }
 
-void GpsService::onStart(tt::service::ServiceContext &serviceContext) {
+void GpsService::onStart(tt::service::ServiceContext& serviceContext) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     deviceRecords.clear();
 
     auto devices = hal::findDevices<GpsDevice>(hal::Device::Type::Gps);
-    for (auto& device : devices) {
+    for (auto& device: devices) {
         TT_LOG_I(TAG, "[device %lu] added", device->getId());
         addGpsDevice(device);
     }
 }
 
-void GpsService::onStop(tt::service::ServiceContext &serviceContext) {
+void GpsService::onStop(tt::service::ServiceContext& serviceContext) {
     if (getState() == State::On) {
         stopReceiving();
     }
@@ -135,7 +137,7 @@ bool GpsService::startReceiving() {
 
     bool started_one_or_more = false;
 
-    for (auto& record : deviceRecords) {
+    for (auto& record: deviceRecords) {
         started_one_or_more |= startGpsDevice(record);
     }
 
@@ -158,7 +160,7 @@ void GpsService::stopReceiving() {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    for (auto& record : deviceRecords) {
+    for (auto& record: deviceRecords) {
         stopGpsDevice(record);
     }
 
@@ -215,4 +217,4 @@ extern const ServiceManifest manifest = {
     .createService = create<GpsService>
 };
 
-} // tt::hal::gps
+} // namespace tt::service::gps
