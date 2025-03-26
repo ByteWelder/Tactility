@@ -11,7 +11,7 @@ struct TestStruct {
 };
 
 TEST_CASE("Writing and reading multiple records to a file") {
-    ObjectFileWriter writer = ObjectFileWriter(TEMP_FILE, sizeof(TestStruct), 1);
+    ObjectFileWriter writer = ObjectFileWriter(TEMP_FILE, sizeof(TestStruct), 1, false);
 
     TestStruct record_out_1 = { .value = 0xAAAAAAAA };
     TestStruct record_out_2 = { .value = 0xBBBBBBBB };
@@ -37,7 +37,7 @@ TEST_CASE("Writing and reading multiple records to a file") {
 TEST_CASE("Appending records to a file") {
     remove(TEMP_FILE);
 
-    ObjectFileWriter writer = ObjectFileWriter(TEMP_FILE, sizeof(TestStruct), 1);
+    ObjectFileWriter writer = ObjectFileWriter(TEMP_FILE, sizeof(TestStruct), 1, false);
 
     TestStruct record_out_1 = { .value = 0xAAAAAAAA };
     TestStruct record_out_2 = { .value = 0xBBBBBBBB };

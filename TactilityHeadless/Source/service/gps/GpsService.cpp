@@ -3,6 +3,7 @@
 #include "Tactility/service/ServiceRegistry.h"
 
 #include <Tactility/Log.h>
+#include <Tactility/file/File.h>
 
 using tt::hal::gps::GpsDevice;
 
@@ -61,6 +62,7 @@ void GpsService::onStart(tt::service::ServiceContext& serviceContext) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
+    paths = serviceContext.getPaths();
     deviceRecords.clear();
 
     auto devices = hal::findDevices<GpsDevice>(hal::Device::Type::Gps);

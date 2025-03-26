@@ -3,8 +3,15 @@
 #include "Tactility/TactilityCore.h"
 
 #include <cstdio>
+#include <sys/stat.h>
 
 namespace tt::file {
+
+#ifdef _WIN32
+constexpr char SEPARATOR = '\\';
+#else
+constexpr char SEPARATOR = '/';
+#endif
 
 struct FileCloser {
     void operator()(FILE* file) {
@@ -28,5 +35,12 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
  * @return null on error, or an array of bytes in case of success. Empty string returns as a single 0 character.
  */
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath);
+
+/** Ensure a directory path exists.
+ * @param[in] path the directory path to find, or to create recursively
+ * @param[in] mode the mode to use when creating directories
+ * @return true when the specified path was found, or otherwise creates the directories recursively with the specified mode.
+ */
+bool findOrCreateDirectory(std::string path, mode_t mode);
 
 }

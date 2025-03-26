@@ -53,7 +53,7 @@ private:
 
 public:
 
-    ObjectFileWriter(std::string filePath, uint32_t recordSize, uint32_t recordVersion = 1, bool append = false) :
+    ObjectFileWriter(std::string filePath, uint32_t recordSize, uint32_t recordVersion, bool append) :
         filePath(std::move(filePath)),
         recordSize(recordSize),
         recordVersion(recordVersion),
