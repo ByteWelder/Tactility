@@ -109,19 +109,28 @@ void YellowDisplay::initialize() {
     esp_err_t ret;
 
     // Step 1: Configure and initialize the I80 bus
-    esp_lcd_i80_bus_config_t bus_config = {
-        .dc_gpio_num = config->dcPin,
-        .wr_gpio_num = config->wrPin,
-        .clk_src = LCD_CLK_SRC_DEFAULT,
-        .data_gpio_nums = {
-            config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
-            config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
-            -1, -1, -1, -1, -1, -1, -1, -1  // Fill remaining pins with -1
+    // Step 2: Configure and initialize the panel IO
+    esp_lcd_panel_io_i80_config_t io_config = {
+        .cs_gpio_num = config->csPin,
+        .pclk_hz = static_cast<uint32_t>(config->pclkHz),
+        .trans_queue_depth = 10, // Moved up to match struct order
+        .on_color_trans_done = NULL, // Must be explicitly set
+        .user_ctx = NULL, // Must be explicitly set
+        .lcd_cmd_bits = 8,  
+        .lcd_param_bits = 8, 
+        .dc_levels = {
+            .dc_idle_level = 0,
+            .dc_cmd_level = 0,
+            .dc_dummy_level = 0,
+            .dc_data_level = 1
         },
-        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
-        .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
-        .dma_burst_size = 64,
-        .sram_trans_align = 0  // Deprecated field, set to 0
+        .flags = { // Ensure flags struct is initialized, even if empty
+            .cs_active_high = 0,
+            .reverse_color_bits = 0,
+            .swap_color_bytes = 0,
+            .pclk_active_neg = 0,
+            .pclk_idle_low = 0
+        }
     };
     esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
