@@ -1,6 +1,7 @@
 #pragma once
-
+#
 #include "Tactility/hal/display/DisplayDevice.h"
+#include "YellowTouch.h"
 #include <i80Display.h>
 #include <memory>
 #include "driver/gpio.h"
