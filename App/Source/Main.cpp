@@ -6,6 +6,7 @@
 #endif
 
 extern const tt::app::AppManifest hello_world_app;
+extern const tt::app::AppManifest clock_app;
 
 extern "C" {
 
