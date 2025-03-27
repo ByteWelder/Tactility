@@ -3,7 +3,8 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/time/Time.h>
 #include <Tactility/Preferences.h>
-#include <lvgl.h>  // Should include timer functions
+#include <lvgl.h>
+#include <lvgl/src/core/lv_timer.h>  // For lv_timer_t
 #include <ctime>
 #include <cmath>
 #include <esp_sntp.h>
@@ -23,7 +24,7 @@ private:
     lv_obj_t* wifi_button;
     lv_timer_t* timer;
     bool is_analog;
-    AppContext* context;       // Store context for Wi-Fi button
+    AppContext* context;       // Still store for toolbar, but not used for Wi-Fi
 
     static void timer_callback(lv_timer_t* timer) {
         ClockApp* app = static_cast<ClockApp*>(timer->user_data);
@@ -36,8 +37,7 @@ private:
     }
 
     static void wifi_connect_cb(lv_event_t* e) {
-        AppContext* context = static_cast<AppContext*>(lv_event_get_user_data(e));
-        context->start("WifiManage");
+        tt::app::start("WifiManage");  // Static call, no context needed
     }
 
     void load_mode() {
