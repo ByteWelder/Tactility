@@ -3,6 +3,7 @@
 #include "Tactility/hal/display/DisplayDevice.h"
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
+#include <esp_lcd_panel_st7789.h>
 #include <esp_lcd_types.h>
 #include <lvgl.h>
 #include <functional>
