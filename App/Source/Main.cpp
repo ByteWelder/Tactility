@@ -18,6 +18,7 @@ void app_main() {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
+            &clock_app,
         }
     };
 
