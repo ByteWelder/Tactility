@@ -140,7 +140,7 @@ public:
 extern const AppManifest manifest = {
     .id = "Chat",
     .name = "Chat",
-    .createApp = []() -> std::shared_ptr<App> { return std::make_shared<ChatApp>(); }
+    .createApp = create<ChatApp>
 };
 
 }
