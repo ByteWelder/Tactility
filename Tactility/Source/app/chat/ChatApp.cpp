@@ -14,6 +14,7 @@ namespace tt::app::chat {
 class ChatApp : public App {
 
     lv_obj_t* msg_list = nullptr;
+    lv_obj_t* input_field = nullptr;
 
     static void send_quick_msg(lv_event_t* e) {
         ChatApp* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
@@ -33,8 +34,7 @@ class ChatApp : public App {
 
     static void send_message(lv_event_t* e) {
         ChatApp* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
-        lv_obj_t* ta = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        const char* msg = lv_textarea_get_text(ta);
+        const char* msg = lv_textarea_get_text(self->input_field);
 
         if (self->msg_list && msg && strlen(msg) > 0) {
             lv_obj_t* msg_label = lv_label_create(self->msg_list);
@@ -44,7 +44,7 @@ class ChatApp : public App {
             lv_obj_set_style_text_align(msg_label, LV_TEXT_ALIGN_LEFT, 0);
             lv_obj_set_style_pad_all(msg_label, 2, 0);
             lv_obj_scroll_to_y(self->msg_list, lv_obj_get_scroll_y(self->msg_list) + 20, LV_ANIM_ON);
-            lv_textarea_set_text(ta, "");
+            lv_textarea_set_text(self->input_field, "");
         }
     }
 
@@ -114,7 +114,7 @@ public:
         lv_obj_set_style_pad_all(input_panel, 5, 0);
 
         // Input field
-        lv_obj_t* input_field = lv_textarea_create(input_panel);
+        input_field = lv_textarea_create(input_panel);
         lv_obj_set_flex_grow(input_field, 1);
         lv_obj_set_height(input_field, LV_PCT(100));
         lv_textarea_set_placeholder_text(input_field, "Type a message...");
