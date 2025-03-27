@@ -29,7 +29,6 @@ bool I80Display::start() {
         .bus_width = configuration->busWidth,
         .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2, // Full screen in RGB565
         .dma_burst_size = 64,
-        .psram_trans_align = 0,
         .sram_trans_align = 0,
     };
     if (esp_lcd_new_i80_bus(&bus_config, &i80Bus) != ESP_OK) {
@@ -42,7 +41,7 @@ bool I80Display::start() {
         .cs_gpio_num = configuration->csPin,
         .pclk_hz = configuration->pixelClockFrequency,
         .trans_queue_depth = configuration->transactionQueueDepth,
-    `   .on_color_trans_done = nullptr,
+        .on_color_trans_done = nullptr,
         .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
