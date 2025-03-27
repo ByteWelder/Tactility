@@ -4,6 +4,7 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_vendor.h>
 #include <esp_lvgl_port.h>
+#include <esp_lcd_panel_st7789.h>
 #include <esp_heap_caps.h>
 
 #define TAG "i80display"
