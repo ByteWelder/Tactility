@@ -30,7 +30,7 @@ public:
             unsigned int verticalResolution,
             std::shared_ptr<tt::hal::touch::TouchDevice> touch,
             PanelType panelType = PanelType::ST7789,
-            int busWidth = 8,
+            unsigned int busWidth = 8,  // Changed to unsigned int
             bool swapXY = false,
             bool mirrorX = false,
             bool mirrorY = false,
@@ -68,7 +68,7 @@ public:
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
         PanelType panelType;
-        int busWidth; // 8 or 16
+        unsigned int busWidth; // Changed to unsigned int
         bool swapXY;
         bool mirrorX;
         bool mirrorY;
