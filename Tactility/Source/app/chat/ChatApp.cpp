@@ -2,16 +2,11 @@
 
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/espnow/EspNow.h>
+
 #include <lvgl.h>
 #include <cstdio>
 #include <cstring>
-
-// ESPnow specific imports
-#include "esp_wifi.h"
-#include "esp_now.h"
-#include "esp_log.h"
-#include "nvs_flash.h"
-#include "freertos/task.h"
 
 namespace tt::app::chat {
 
@@ -19,51 +14,17 @@ class ChatApp : public App {
 
 
     void initialize_espnow() {
-        // 2. Cooperative WiFi initialization
-        esp_err_t ret;
-        for (int attempt = 0; attempt < 3; attempt++) {
-            // 2a. Reset WiFi state
-            ret = esp_wifi_stop();
-            if (ret != ESP_OK && ret != ESP_ERR_WIFI_NOT_INIT) {
-                vTaskDelay(10);
-                continue;
-            }
+         static const uint8_t key[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
-            // 2b. Feed watchdog between operations
-            vTaskDelay(5);
+         auto config = service::espnow::EspNowConfig(
+            (uint8_t*)key,
+            service::espnow::Mode::Station,
+            1,
+            false,
+            false
+        );
 
-            // 2c. Initialize with minimal config
-            wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-            cfg.nvs_enable = false;
-            cfg.wifi_task_core_id = 1;  // Isolate to core 1
-
-            ret = esp_wifi_init(&cfg);
-            if (ret != ESP_OK) {
-                vTaskDelay(10);
-                continue;
-            }
-
-            // 2d. Configure WiFi
-            esp_wifi_set_storage(WIFI_STORAGE_RAM);
-            esp_wifi_set_mode(WIFI_MODE_STA);
-
-            // 2e. Start with periodic watchdog feeding
-            for (int start_attempt = 0; start_attempt < 3; start_attempt++) {
-                ret = esp_wifi_start();
-                if (ret == ESP_OK) break;
-                vTaskDelay(20 * (start_attempt + 1));
-            }
-
-            // 2f. Initialize ESP-NOW
-            if (esp_now_init() == ESP_OK) {
-                return;  // Success
-            }
-
-            // Cleanup if failed
-            esp_wifi_stop();
-            esp_wifi_deinit();
-            vTaskDelay(50);
-        }
+        service::espnow::enable(config);
     }
 
     lv_obj_t* msg_list = nullptr;
@@ -103,7 +64,6 @@ class ChatApp : public App {
 
 public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
-
 
         // initialize the ESPnow
         initialize_espnow();

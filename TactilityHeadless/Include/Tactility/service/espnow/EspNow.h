@@ -2,6 +2,7 @@
 #ifdef ESP_PLATFORM
 
 #include <cstdint>
+#include <cstring>
 #include <esp_now.h>
 #include <functional>
 
@@ -22,7 +23,15 @@ struct EspNowConfig {
     bool longRange;
     bool encrypt;
 
-    EspNowConfig(Mode mode, uint8_t channel, bool longRange) : mode(mode), channel(channel), longRange(longRange) {}
+    EspNowConfig(
+        uint8_t masterKey[16],
+        Mode mode,
+        uint8_t channel,
+        bool longRange,
+        bool encrypt
+    ) : mode(mode), channel(channel), longRange(longRange), encrypt(encrypt) {
+        memcpy((void*)this->masterKey, (void*)masterKey, 16);
+    }
 };
 
 // TODO: Update
