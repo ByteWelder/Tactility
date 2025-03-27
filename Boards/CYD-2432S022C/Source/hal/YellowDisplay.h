@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Tactility/hal/display/DisplayDevice.h"
-#include "I80Display.h"
+#include <I80Display.h>
 #include <memory>
 #include "driver/gpio.h"
 #include "lvgl.h"
