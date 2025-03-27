@@ -17,9 +17,9 @@ bool I80Display::start() {
 
     // Step 1: Initialize I80 bus
     esp_lcd_i80_bus_config_t bus_config = {
+        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = configuration->dcPin,
         .wr_gpio_num = configuration->wrPin,
-        .clk_src = LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums = {
             configuration->dataPins[0], configuration->dataPins[1], configuration->dataPins[2], configuration->dataPins[3],
             configuration->dataPins[4], configuration->dataPins[5], configuration->dataPins[6], configuration->dataPins[7],
@@ -28,8 +28,9 @@ bool I80Display::start() {
         },
         .bus_width = configuration->busWidth,
         .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2, // Full screen in RGB565
+        .psram_trans_align = 0,
+        .sram_trans_align = 0,
         .dma_burst_size = 64,
-        .sram_trans_align = 0
     };
     if (esp_lcd_new_i80_bus(&bus_config, &i80Bus) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create I80 bus");
@@ -41,13 +42,23 @@ bool I80Display::start() {
         .cs_gpio_num = configuration->csPin,
         .pclk_hz = configuration->pixelClockFrequency,
         .trans_queue_depth = configuration->transactionQueueDepth,
-        .dc_levels = { .dc_idle_level = 0, .dc_cmd_level = 0, .dc_dummy_level = 0, .dc_data_level = 1 },
+        .dc_levels = { 
+            .dc_idle_level = 0, 
+            .dc_cmd_level = 0, 
+            .dc_dummy_level = 0, 
+            .dc_data_level = 1 
+        },
+        .flags = { 
+            .cs_active_high = 0, 
+            .reverse_color_bits = 0, 
+            .swap_color_bytes = 0,
+            .pclk_active_neg = 0, 
+            .pclk_idle_low = 0 
+        },
         .on_color_trans_done = nullptr,
         .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
-        .flags = { .cs_active_high = 0, .reverse_color_bits = 0, .swap_color_bytes = 0,
-                   .pclk_active_neg = 0, .pclk_idle_low = 0 }
     };
     if (esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel IO");
@@ -157,7 +168,7 @@ bool I80Display::stop() {
     }
     panelHandle = nullptr;
 
-    if (esp_lcd_del_panel_io(ioHandle) != ESP_OK) {
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {  // Fixed function name
         TT_LOG_E(TAG, "Failed to delete panel IO");
         return false;
     }
