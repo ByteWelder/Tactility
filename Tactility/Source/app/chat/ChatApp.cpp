@@ -11,6 +11,9 @@
 
 namespace tt::app::chat {
 
+constexpr const char* TAG = "ChatApp";
+constexpr uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
 class ChatApp : public App {
 
     lv_obj_t* msg_list = nullptr;
@@ -35,8 +38,9 @@ class ChatApp : public App {
     static void send_message(lv_event_t* e) {
         ChatApp* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
         const char* msg = lv_textarea_get_text(self->input_field);
+        size_t msg_len = strlen(msg);
 
-        if (self->msg_list && msg && strlen(msg) > 0) {
+        if (self->msg_list && msg && msg_len) {
             lv_obj_t* msg_label = lv_label_create(self->msg_list);
             lv_label_set_text(msg_label, msg);
             lv_obj_set_width(msg_label, lv_pct(100));
@@ -46,8 +50,9 @@ class ChatApp : public App {
             lv_obj_scroll_to_y(self->msg_list, lv_obj_get_scroll_y(self->msg_list) + 20, LV_ANIM_ON);
             lv_textarea_set_text(self->input_field, "");
 
-            // TODO
-//            service::espnow::send();
+            if (!service::espnow::send(BROADCAST_ADDRESS, (const uint8_t*)msg, msg_len)) {
+                TT_LOG_E(TAG, "Failed to send message");
+            }
         }
     }
 
