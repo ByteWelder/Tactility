@@ -19,7 +19,7 @@ private:
 
     struct ReceiverSubscriptionData {
         ReceiverSubscription id;
-        std::function<void(const uint8_t* buffer, size_t bufferSize)> onReceive;
+        std::function<void(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length)> onReceive;
     };
 
     struct SendCallback {
@@ -50,10 +50,9 @@ private:
 
     MessageQueue queue = MessageQueue(QUEUE_SIZE, sizeof(EspNowEvent));
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    std::unique_ptr<Thread> thread;
-    bool threadInterruptRequested = false;
     std::vector<ReceiverSubscriptionData> subscriptions;
     ReceiverSubscription lastSubscriptionId = 0;
+    bool enabled = false;
 
     // Dispatcher calls this and forwards to non-static function
     static void enableFromDispatcher(std::shared_ptr<void> context);
@@ -67,15 +66,6 @@ private:
 
     void onSend(const uint8_t* macAddress, esp_now_send_status_t status);
     void onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length);
-
-    static int32_t threadMainCallback(void* context);
-    int32_t threadMain();
-
-    bool isThreadInterruptRequested() const {
-        auto lock = mutex.asScopedLock();
-        lock.lock();
-        return threadInterruptRequested;
-    }
 
 public:
 
@@ -96,7 +86,7 @@ public:
 
     bool send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength);
 
-    ReceiverSubscription subscribeReceiver(std::function<void(const uint8_t* buffer, size_t bufferSize)> onReceive);
+    ReceiverSubscription subscribeReceiver(std::function<void(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length)> onReceive);
 
     void unsubscribeReceiver(ReceiverSubscription subscription);
 

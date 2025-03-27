@@ -46,7 +46,7 @@ bool send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength) {
     }
 }
 
-ReceiverSubscription subscribeReceiver(std::function<void(const uint8_t* buffer, size_t bufferLength)> onReceive) {
+ReceiverSubscription subscribeReceiver(std::function<void(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length)> onReceive) {
     auto service = findService();
     if (service != nullptr) {
         return service->subscribeReceiver(onReceive);

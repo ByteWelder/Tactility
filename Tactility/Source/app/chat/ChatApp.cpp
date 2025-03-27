@@ -45,6 +45,9 @@ class ChatApp : public App {
             lv_obj_set_style_pad_all(msg_label, 2, 0);
             lv_obj_scroll_to_y(self->msg_list, lv_obj_get_scroll_y(self->msg_list) + 20, LV_ANIM_ON);
             lv_textarea_set_text(self->input_field, "");
+
+            // TODO
+//            service::espnow::send();
         }
     }
 

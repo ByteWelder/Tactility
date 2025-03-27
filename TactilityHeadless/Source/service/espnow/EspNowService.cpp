@@ -35,25 +35,6 @@ void EspNowService::onStop(ServiceContext& service) {
     }
 }
 
-int32_t EspNowService::threadMainCallback(void* context) {
-    auto* service = (EspNowService*)context;
-    return service->threadMain();
-}
-
-int32_t EspNowService::threadMain() {
-    EspNowEvent event;
-
-    while (!isThreadInterruptRequested()) {
-        if (queue.get(&event, 50 / portTICK_PERIOD_MS)) {
-            TT_LOG_I(TAG, "Queue: event %d processed", (int)event.id);
-            // TODO: Send events to subscribers
-        }
-    }
-
-    TT_LOG_I(TAG, "Thread finished");
-    return 0;
-}
-
 // region Enable
 
 void EspNowService::enable(const EspNowConfig& config) {
@@ -76,6 +57,10 @@ void EspNowService::enableFromDispatcher(std::shared_ptr<void> context) {
 void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
     auto lock = mutex.asScopedLock();
     lock.lock();
+
+    if (enabled) {
+        return;
+    }
 
     if (!initWifi(config)) {
         TT_LOG_E(TAG, "initWifi() failed");
@@ -129,14 +114,7 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
     }
     free(peer);
 
-    thread = std::make_unique<Thread>(
-        "EspNow",
-        4096,
-        threadMainCallback,
-        this
-    );
-
-    thread->start();
+    enabled = true;
 }
 
 // endregion Enable
@@ -159,13 +137,11 @@ void EspNowService::disableFromDispatcher(TT_UNUSED std::shared_ptr<void> contex
 
 void EspNowService::disableFromDispatcher() {
     auto lock = mutex.asScopedLock();
-
     lock.lock();
-    threadInterruptRequested = true;
-    lock.unlock();
 
-    thread->join();
-    lock.lock();
+    if (!enabled) {
+        return;
+    }
 
     if (esp_now_deinit() != ESP_OK) {
         TT_LOG_E(TAG, "esp_now_deinit() failed");
@@ -174,6 +150,8 @@ void EspNowService::disableFromDispatcher() {
     if (!deinitWifi()) {
         TT_LOG_E(TAG, "deinitWifi() failed");
     }
+
+    enabled = false;
 }
 
 // region Disable
@@ -223,40 +201,8 @@ void EspNowService::onReceive(const esp_now_recv_info_t* receiveInfo, const uint
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    EspNowEvent event;
-    ReceiveCallback* callback = &event.info.receiveCallback;
-    uint8_t* source_address = receiveInfo->src_addr;
-    uint8_t* destination_address = receiveInfo->des_addr;
-
-    if (source_address == nullptr || data == nullptr || length <= 0) {
-        TT_LOG_E(TAG, "Receive callback argument error");
-        return;
-    }
-
-    if (isBroadcastAddress(destination_address)) {
-        /* If added a peer with encryption before, the receive packets may be
-         * encrypted as peer-to-peer message or unencrypted over the broadcast channel.
-         * Users can check the destination address to distinguish it.
-         */
-        TT_LOG_D(TAG, "Receive broadcast ESPNOW data");
-    } else {
-        TT_LOG_D(TAG, "Receive unicast ESPNOW data");
-    }
-
-    event.id = EventId::ReceiveCallback;
-    memcpy(callback->macAddress, source_address, ESP_NOW_ETH_ALEN);
-    callback->data = (uint8_t*)malloc(length);
-    if (callback->data == nullptr) {
-        TT_LOG_E(TAG, "Malloc receive data fail");
-        return;
-    }
-
-    memcpy(callback->data, data, length);
-    callback->dataLength = length;
-
-    if (!queue.put(&event, MAX_DELAY)) {
-        TT_LOG_W(TAG, "Send receive queue fail");
-        free(callback->data);
+    for (const auto& item: subscriptions) {
+        item.onReceive(receiveInfo, data, length);
     }
 }
 
@@ -265,7 +211,7 @@ void EspNowService::onReceive(const esp_now_recv_info_t* receiveInfo, const uint
 bool EspNowService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
-    return thread != nullptr;
+    return enabled;
 }
 
 bool EspNowService::send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength) {
@@ -279,7 +225,7 @@ bool EspNowService::send(const uint8_t* address, const uint8_t* buffer, size_t b
     }
 }
 
-ReceiverSubscription EspNowService::subscribeReceiver(std::function<void(const uint8_t* buffer, size_t bufferSize)> onReceive) {
+ReceiverSubscription EspNowService::subscribeReceiver(std::function<void(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length)> onReceive) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
