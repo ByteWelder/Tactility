@@ -169,7 +169,7 @@ public:
     }
 };
 
-const AppManifest clock_app = {
+extern const AppManifest clock_app = {
     .id = "Clock",
     .name = "Clock",
     .createApp = create<ClockApp>
