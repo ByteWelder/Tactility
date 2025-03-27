@@ -22,23 +22,23 @@ private:
         std::function<void(const uint8_t* buffer, size_t bufferSize)> onReceive;
     };
 
-    typedef struct SendCallback {
+    struct SendCallback {
         uint8_t macAddress[ESP_NOW_ETH_ALEN];
         bool success;
     };
 
-    typedef struct ReceiveCallback {
+    struct ReceiveCallback {
         uint8_t macAddress[ESP_NOW_ETH_ALEN];
         uint8_t* data;
         uint16_t dataLength;
     };
 
-    typedef enum class EventId {
+    enum class EventId {
         SendCallback,
         ReceiveCallback,
     };
 
-    typedef union EventInfo {
+    union EventInfo {
         SendCallback sendCallback;
         ReceiveCallback receiveCallback;
     };

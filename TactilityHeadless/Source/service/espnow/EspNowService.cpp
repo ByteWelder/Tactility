@@ -45,12 +45,12 @@ int32_t EspNowService::threadMain() {
 
     while (!isThreadInterruptRequested()) {
         if (queue.get(&event, 50 / portTICK_PERIOD_MS)) {
-            TT_LOG_E(TAG, "Queue: event %d processed", (int)event.id);
+            TT_LOG_I(TAG, "Queue: event %d processed", (int)event.id);
             // TODO: Send events to subscribers
         }
     }
 
-    TT_LOG_E(TAG, "Thread finished");
+    TT_LOG_I(TAG, "Thread finished");
     return 0;
 }
 

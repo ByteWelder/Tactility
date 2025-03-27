@@ -4,28 +4,14 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/espnow/EspNow.h>
 
-#include <lvgl.h>
+#include "Tactility/service/gui/Gui.h"
 #include <cstdio>
 #include <cstring>
+#include <lvgl.h>
 
 namespace tt::app::chat {
 
 class ChatApp : public App {
-
-
-    void initialize_espnow() {
-         static const uint8_t key[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-         auto config = service::espnow::EspNowConfig(
-            (uint8_t*)key,
-            service::espnow::Mode::Station,
-            1,
-            false,
-            false
-        );
-
-        service::espnow::enable(config);
-    }
 
     lv_obj_t* msg_list = nullptr;
 
@@ -63,10 +49,28 @@ class ChatApp : public App {
     }
 
 public:
-    void onShow(AppContext& context, lv_obj_t* parent) override {
 
-        // initialize the ESPnow
-        initialize_espnow();
+    void onCreate(AppContext& appContext) override {
+        // TODO: Move this to a configuration screen/app
+        static const uint8_t key[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        static auto config = service::espnow::EspNowConfig(
+            (uint8_t*)key,
+            service::espnow::Mode::Station,
+            1,
+            false,
+            false
+        );
+
+        service::espnow::enable(config);
+    }
+
+    void onDestroy(AppContext& appContext) override {
+        if (service::espnow::isEnabled()) {
+            service::espnow::disable();
+        }
+    }
+
+    void onShow(AppContext& context, lv_obj_t* parent) override {
 
         // Create toolbar
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
@@ -115,6 +119,7 @@ public:
         lv_obj_set_height(input_field, LV_PCT(100));
         lv_textarea_set_placeholder_text(input_field, "Type a message...");
         lv_textarea_set_one_line(input_field, true);
+        service::gui::keyboardAddTextArea(input_field);
 
         // Send button
         lv_obj_t* send_btn = lv_btn_create(input_panel);
