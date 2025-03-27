@@ -1,4 +1,4 @@
-#include "Clock.h"
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/time/Time.h>
@@ -9,7 +9,7 @@
 #include <cmath>
 #include <esp_sntp.h>
 
-namespace tt::app {
+using namespace tt::app;
 
 class ClockApp : public App {
 private:
@@ -175,5 +175,3 @@ const AppManifest clock_app = {
     .name = "Clock",
     .createApp = create<ClockApp>
 };
-
-} // namespace tt::app
