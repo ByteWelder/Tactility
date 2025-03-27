@@ -32,6 +32,7 @@ namespace service {
 namespace app {
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
+    namespace chat { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
@@ -71,6 +72,7 @@ namespace app {
 static void registerSystemApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
+    addApp(app::chat::manifest);
     addApp(app::display::manifest);
     addApp(app::files::manifest);
     addApp(app::gpio::manifest);
