@@ -25,12 +25,18 @@ bool YellowDisplay::start() {
         return true;
     }
 
+    // Copy gpio_num_t[8] to int[8] to match I80Display::Configuration
+    int dataPins[8];
+    for (int i = 0; i < 8; i++) {
+        dataPins[i] = static_cast<int>(config->dataPins[i]);
+    }
+
     // Configure I80Display
     I80Display::Configuration i80_config(
         config->csPin,
         config->dcPin,
         config->wrPin,
-        static_cast<const int*>(config->dataPins),  // Cast to const int*
+        dataPins,  // Pass the int array
         config->horizontalResolution,
         config->verticalResolution,
         config->touch,
