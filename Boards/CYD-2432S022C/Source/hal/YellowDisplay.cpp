@@ -1,4 +1,5 @@
 #include "YellowDisplay.h"
+#include "YellowTouch.h"
 #include "CYD2432S022CConstants.h"
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
