@@ -133,8 +133,7 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
         "EspNow",
         4096,
         threadMainCallback,
-        this,
-        (int)Thread::Priority::Higher
+        this
     );
 
     thread->start();
