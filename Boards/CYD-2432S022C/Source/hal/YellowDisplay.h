@@ -1,12 +1,10 @@
 #pragma once
 
-#include <Tactility/hal/display/DisplayDevice.h>
+#include "Tactility/hal/display/DisplayDevice.h"
+#include "I80Display.h"
 #include <memory>
-#include "esp_err.h"
-#include "esp_lcd_types.h"
 #include "driver/gpio.h"
 #include "lvgl.h"
-#include "YellowTouch.h"
 
 namespace tt::hal::display {
 
@@ -22,9 +20,10 @@ public:
         gpio_num_t dataPins[8];         // 8-bit parallel data pins
         int horizontalResolution;       // Display width
         int verticalResolution;         // Display height
-        std::shared_ptr<tt::hal::touch::TouchDevice> touch;  // Touch device
+        uint32_t bufferSize;            // Buffer size in pixels (0 for default)
+        std::shared_ptr<tt::hal::touch::TouchDevice> touch;
 
-        // Optional initial orientation settings
+        // Initial orientation settings (set at start, no runtime changes)
         bool mirrorX = false;
         bool mirrorY = false;
         bool swapXY = false;
@@ -41,23 +40,13 @@ public:
     void setBacklightDuty(uint8_t backlightDuty) override;
     bool supportsBacklightDuty() const override { return true; }
 
-    void setRotation(lv_display_rotation_t rotation);  // Custom method for rotation
-
     std::string getName() const override { return "YellowDisplay"; }
     std::string getDescription() const override { return "ST7789 display for CYD-2432S022C"; }
 
-    // Public accessor for panelHandle (for flush callback)
-    esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
-
 private:
     std::unique_ptr<Configuration> config;
-    esp_lcd_panel_handle_t panelHandle;
-    lv_display_t* lvglDisplay;
+    std::unique_ptr<I80Display> i80Display;
     bool isStarted;
-    void* drawBuffer = nullptr;
-
-    void initialize();
-    void deinitialize();
 };
 
 std::shared_ptr<DisplayDevice> createDisplay();
