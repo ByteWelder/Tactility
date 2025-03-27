@@ -24,10 +24,10 @@ private:
     lv_obj_t* wifi_button;
     lv_timer_t* timer;
     bool is_analog;
-    AppContext* context;       // Still store for toolbar, but not used for Wi-Fi
+    AppContext* context;       // Store context for Wi-Fi button
 
     static void timer_callback(lv_timer_t* timer) {
-        ClockApp* app = static_cast<ClockApp*>(timer->user_data);
+        ClockApp* app = static_cast<ClockApp*>(lv_timer_get_user_data(timer));
         app->update_time();
     }
 
