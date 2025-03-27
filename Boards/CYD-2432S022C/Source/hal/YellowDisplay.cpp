@@ -112,16 +112,16 @@ void YellowDisplay::initialize() {
     esp_lcd_i80_bus_config_t bus_config = {
         .dc_gpio_num = config->dcPin,
         .wr_gpio_num = config->wrPin,
-        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .clk_src = LCD_CLK_SRC_DEFAULT,  // PLL160M in v5.4
         .data_gpio_nums = {
             config->dataPins[0], config->dataPins[1], config->dataPins[2], config->dataPins[3],
             config->dataPins[4], config->dataPins[5], config->dataPins[6], config->dataPins[7],
-            -1, -1, -1, -1, -1, -1, -1, -1  // Fill remaining pins with -1
+            -1, -1, -1, -1, -1, -1, -1, -1  // 8-bit bus, remaining pins unused
         },
-        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,
+        .bus_width = CYD_2432S022C_LCD_BUS_WIDTH,  // Should be 8
         .max_transfer_bytes = CYD_2432S022C_LCD_DRAW_BUFFER_SIZE * sizeof(uint16_t),
         .dma_burst_size = 64,
-        .sram_trans_align = 0  // Deprecated field, set to 0
+        .sram_trans_align = 0  // Deprecated, ignored in v5.4
     };
     esp_lcd_i80_bus_handle_t i80_bus = nullptr;
     ret = esp_lcd_new_i80_bus(&bus_config, &i80_bus);
@@ -134,18 +134,18 @@ void YellowDisplay::initialize() {
     esp_lcd_panel_io_i80_config_t io_config = {
         .cs_gpio_num = config->csPin,
         .pclk_hz = static_cast<uint32_t>(config->pclkHz),
-        .trans_queue_depth = 10, // Moved up to match struct order
+        .trans_queue_depth = 10,
         .on_color_trans_done = NULL, // Must be explicitly set
         .user_ctx = NULL, // Must be explicitly set
         .lcd_cmd_bits = 8,  
-        .lcd_param_bits = 8, 
+        .lcd_param_bits = 8,
         .dc_levels = {
             .dc_idle_level = 0,
             .dc_cmd_level = 0,
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
-        .flags = { // Ensure flags struct is initialized, even if empty
+        .flags = {
             .cs_active_high = 0,
             .reverse_color_bits = 0,
             .swap_color_bytes = 0,
@@ -153,7 +153,6 @@ void YellowDisplay::initialize() {
             .pclk_idle_low = 0
         }
     };
-
     esp_lcd_panel_io_handle_t io_handle = nullptr;
     ret = esp_lcd_new_panel_io_i80(i80_bus, &io_config, &io_handle);
     if (ret != ESP_OK) {
@@ -162,12 +161,12 @@ void YellowDisplay::initialize() {
         return;
     }
 
-    // Step 3: Initialize the LCD panel (e.g., ST7789)
+    // Step 3: Initialize the LCD panel (ST7789)
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = config->rstPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_BIG,
-        .bits_per_pixel = 16,
+        .bits_per_pixel = 16,  // RGB565   
         .flags = { .reset_active_high = 0 },
         .vendor_config = nullptr
     };
