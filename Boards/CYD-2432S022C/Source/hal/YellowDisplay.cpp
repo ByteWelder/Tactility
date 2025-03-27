@@ -30,7 +30,7 @@ bool YellowDisplay::start() {
         config->csPin,
         config->dcPin,
         config->wrPin,
-        config->dataPins,
+        static_cast<const int*>(config->dataPins),  // Cast to const int*
         config->horizontalResolution,
         config->verticalResolution,
         config->touch,
@@ -47,7 +47,7 @@ bool YellowDisplay::start() {
 
     i80Display = std::make_unique<I80Display>(std::make_unique<I80Display::Configuration>(i80_config));
     if (!i80Display->start()) {
-        ESP_LOGE(TAG, "Failed to initialize I80 display");
+        ESP_LOGE(TAG, "Failed to initialize i80 display");
         i80Display.reset();
         return false;
     }
