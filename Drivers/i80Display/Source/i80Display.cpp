@@ -1,4 +1,4 @@
-#include "I80Display.h"
+#include "i80Display.h"
 #include "Tactility/Log.h"
 #include <esp_lcd_panel_commands.h>
 #include <esp_lcd_panel_io.h>
