@@ -1,13 +1,17 @@
-#include <Tactility/app/AppManifest.h>
+#include "Clock.h"
+#include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/time/Time.h>
 #include <Tactility/Preferences.h>
 #include <lvgl.h>
+#include <lv_timer.h>  // For lv_timer_t
 #include <ctime>
 #include <cmath>
-#include <esp_netif_sntp.h>
+#include <esp_sntp.h>
 
-class ClockApp : public tt::app::App {
+namespace tt::app {
+
+class ClockApp : public App {
 private:
     lv_obj_t* toolbar;
     lv_obj_t* clock_container;
@@ -20,6 +24,7 @@ private:
     lv_obj_t* wifi_button;
     lv_timer_t* timer;
     bool is_analog;
+    AppContext* context;       // Store context for Wi-Fi button
 
     static void timer_callback(lv_timer_t* timer) {
         ClockApp* app = static_cast<ClockApp*>(timer->user_data);
@@ -32,18 +37,18 @@ private:
     }
 
     static void wifi_connect_cb(lv_event_t* e) {
-        tt::app::AppContext* context = static_cast<tt::app::AppContext*>(lv_event_get_user_data(e));
-        context->startBundle("WifiManage");
+        AppContext* context = static_cast<AppContext*>(lv_event_get_user_data(e));
+        context->start("WifiManage");  // Matches WifiManage.cpp
     }
 
     void load_mode() {
-        Preferences prefs("clock_settings");
+        tt::Preferences prefs("clock_settings");
         is_analog = false; // Default digital
         prefs.optBool("is_analog", is_analog);
     }
 
     void save_mode() {
-        Preferences prefs("clock_settings");
+        tt::Preferences prefs("clock_settings");
         prefs.putBool("is_analog", is_analog);
     }
 
@@ -54,7 +59,7 @@ private:
     }
 
     bool is_time_synced() {
-        return esp_netif_sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
+        return sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
     }
 
     void update_time() {
@@ -72,9 +77,14 @@ private:
             float hour_angle = (timeinfo.tm_hour % 12 + timeinfo.tm_min / 60.0f) * 30.0f - 90;
             float minute_angle = timeinfo.tm_min * 6.0f - 90;
             float second_angle = timeinfo.tm_sec * 6.0f - 90;
-            lv_line_set_points(hour_hand,   {{0, 0}, {static_cast<lv_coord_t>(50 * cos(hour_angle * M_PI / 180)), static_cast<lv_coord_t>(50 * sin(hour_angle * M_PI / 180))}}, 2);
-            lv_line_set_points(minute_hand, {{0, 0}, {static_cast<lv_coord_t>(70 * cos(minute_angle * M_PI / 180)), static_cast<lv_coord_t>(70 * sin(minute_angle * M_PI / 180))}}, 2);
-            lv_line_set_points(second_hand, {{0, 0}, {static_cast<lv_coord_t>(80 * cos(second_angle * M_PI / 180)), static_cast<lv_coord_t>(80 * sin(second_angle * M_PI / 180))}}, 2);
+
+            lv_point_precise_t hour_points[] = {{0, 0}, {static_cast<lv_coord_t>(50 * cos(hour_angle * M_PI / 180)), static_cast<lv_coord_t>(50 * sin(hour_angle * M_PI / 180))}};
+            lv_point_precise_t minute_points[] = {{0, 0}, {static_cast<lv_coord_t>(70 * cos(minute_angle * M_PI / 180)), static_cast<lv_coord_t>(70 * sin(minute_angle * M_PI / 180))}};
+            lv_point_precise_t second_points[] = {{0, 0}, {static_cast<lv_coord_t>(80 * cos(second_angle * M_PI / 180)), static_cast<lv_coord_t>(80 * sin(second_angle * M_PI / 180))}};
+
+            lv_line_set_points(hour_hand, hour_points, 2);
+            lv_line_set_points(minute_hand, minute_points, 2);
+            lv_line_set_points(second_hand, second_points, 2);
         } else {
             char time_str[16];
             if (tt::time::isTimeFormat24Hour()) {
@@ -103,7 +113,7 @@ private:
             lv_label_set_text(btn_label, "Connect to Wi-Fi");
             lv_obj_center(btn_label);
             lv_obj_align(wifi_button, LV_ALIGN_CENTER, 0, 20);
-            lv_obj_add_event_cb(wifi_button, wifi_connect_cb, LV_EVENT_CLICKED, &context);
+            lv_obj_add_event_cb(wifi_button, wifi_connect_cb, LV_EVENT_CLICKED, context);
             return;
         }
 
@@ -121,7 +131,7 @@ private:
             lv_obj_set_style_line_width(hour_hand, 4, 0);
             lv_obj_set_style_line_width(minute_hand, 3, 0);
             lv_obj_set_style_line_width(second_hand, 1, 0);
-            lv_obj_set_style_line_color(second_hand, lv_color_red(), 0);
+            lv_obj_set_style_line_color(second_hand, lv_palette_main(LV_PALETTE_RED), 0);
         } else {
             time_label = lv_label_create(clock_container);
             lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);
@@ -130,8 +140,9 @@ private:
     }
 
 public:
-    void onShow(AppContext& context, lv_obj_t* parent) override {
-        toolbar = tt::lvgl::toolbar_create(parent, context);
+    void onShow(AppContext& app_context, lv_obj_t* parent) override {
+        context = &app_context;  // Store context
+        toolbar = tt::lvgl::toolbar_create(parent, app_context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         lv_obj_t* toggle_btn = lv_btn_create(toolbar);
@@ -151,7 +162,7 @@ public:
         timer = lv_timer_create(timer_callback, 1000, this);
     }
 
-    void onHide() override {
+    void onHide(AppContext& app_context) override {
         if (timer) {
             lv_timer_del(timer);
             timer = nullptr;
@@ -159,8 +170,10 @@ public:
     }
 };
 
-extern const tt::app::AppManifest clock_app = {
+const AppManifest clock_app = {
     .id = "Clock",
     .name = "Clock",
-    .createApp = tt::app::create<ClockApp>
+    .createApp = create<ClockApp>
 };
+
+} // namespace tt::app
