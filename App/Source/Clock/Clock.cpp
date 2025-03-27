@@ -3,8 +3,7 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/time/Time.h>
 #include <Tactility/Preferences.h>
-#include <lvgl.h>
-#include <lv_timer.h>  // For lv_timer_t
+#include <lvgl.h>  // Should include timer functions
 #include <ctime>
 #include <cmath>
 #include <esp_sntp.h>
@@ -38,7 +37,7 @@ private:
 
     static void wifi_connect_cb(lv_event_t* e) {
         AppContext* context = static_cast<AppContext*>(lv_event_get_user_data(e));
-        context->start("WifiManage");  // Matches WifiManage.cpp
+        context->start("WifiManage");
     }
 
     void load_mode() {
@@ -141,7 +140,7 @@ private:
 
 public:
     void onShow(AppContext& app_context, lv_obj_t* parent) override {
-        context = &app_context;  // Store context
+        context = &app_context;
         toolbar = tt::lvgl::toolbar_create(parent, app_context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
