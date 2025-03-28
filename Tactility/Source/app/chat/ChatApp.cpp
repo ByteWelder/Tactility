@@ -33,7 +33,7 @@ class ChatApp : public App {
         lv_obj_scroll_to_y(msg_list, lv_obj_get_scroll_y(msg_list) + 20, LV_ANIM_ON);
     }
 
-    static void send_quick_msg(lv_event_t* e) {
+    static void onQuickSendClicked(lv_event_t* e) {
         auto* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
         auto* btn = static_cast<lv_obj_t*>(lv_event_get_target(e));
         const char* message = lv_label_get_text(lv_obj_get_child(btn, 0));
@@ -46,7 +46,7 @@ class ChatApp : public App {
         }
     }
 
-    static void send_message(lv_event_t* e) {
+    static void onSendClicked(lv_event_t* e) {
         auto* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
         auto* msg = lv_textarea_get_text(self->input_field);
         auto msg_len = strlen(msg);
@@ -62,24 +62,17 @@ class ChatApp : public App {
         }
     }
 
-    static bool initChatPeer(esp_now_peer_info_t& peer, const uint8_t address[ESP_NOW_ETH_ALEN]) {
-        memset(&peer, 0, sizeof(peer));
-        memcpy(peer.peer_addr, address, ESP_NOW_ETH_ALEN);
-        peer.channel = 1;
-        peer.ifidx = WIFI_IF_STA;
-        return true;
-    }
-
     void onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
-        auto lock = tt::lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
         // Append \0 to make it a string
         char* buffer = (char*)malloc(length + 1);
         memcpy(buffer, data, length);
         buffer[length] = 0x00;
         std::string message_prefixed = std::string("Received: ") + buffer;
+
+        tt::lvgl::getSyncLock()->lock();
         addMessage(message_prefixed.c_str());
+        tt::lvgl::getSyncLock()->unlock();
+
         free(buffer);
     }
 
@@ -139,7 +132,7 @@ public:
         for (size_t i = 0; i < sizeof(quick_msgs)/sizeof(quick_msgs[0]); i++) {
             lv_obj_t* btn = lv_btn_create(quick_panel);
             lv_obj_set_size(btn, lv_pct(75), 25);
-            lv_obj_add_event_cb(btn, send_quick_msg, LV_EVENT_CLICKED, this);
+            lv_obj_add_event_cb(btn, onQuickSendClicked, LV_EVENT_CLICKED, this);
 
             lv_obj_t* label = lv_label_create(btn);
             lv_label_set_text(label, quick_msgs[i]);
@@ -165,7 +158,7 @@ public:
         // Send button
         auto* send_btn = lv_btn_create(input_panel);
         lv_obj_set_size(send_btn, 80, LV_PCT(100));
-        lv_obj_add_event_cb(send_btn, send_message, LV_EVENT_CLICKED, this);
+        lv_obj_add_event_cb(send_btn, onSendClicked, LV_EVENT_CLICKED, this);
 
         auto* btn_label = lv_label_create(send_btn);
         lv_label_set_text(btn_label, "Send");

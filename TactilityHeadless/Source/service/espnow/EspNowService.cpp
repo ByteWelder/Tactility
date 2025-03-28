@@ -150,7 +150,7 @@ void EspNowService::onReceive(const esp_now_recv_info_t* receiveInfo, const uint
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    TT_LOG_I(TAG, "Received %d bytes", length);
+    TT_LOG_D(TAG, "Received %d bytes", length);
 
     for (const auto& item: subscriptions) {
         item.onReceive(receiveInfo, data, length);
