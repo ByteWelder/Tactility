@@ -36,6 +36,16 @@ bool isEnabled() {
     }
 }
 
+bool addPeer(const esp_now_peer_info_t& peer) {
+    auto service = findService();
+    if (service != nullptr) {
+        return service->addPeer(peer);
+    } else {
+        TT_LOG_E(TAG, "Service not found");
+        return false;
+    }
+}
+
 bool send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength) {
     auto service = findService();
     if (service != nullptr) {

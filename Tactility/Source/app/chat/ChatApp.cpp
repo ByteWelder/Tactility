@@ -5,63 +5,90 @@
 #include <Tactility/service/espnow/EspNow.h>
 
 #include "Tactility/service/gui/Gui.h"
+#include "Tactility/lvgl/LvglSync.h"
+
 #include <cstdio>
 #include <cstring>
+#include <esp_wifi.h>
 #include <lvgl.h>
 
 namespace tt::app::chat {
 
 constexpr const char* TAG = "ChatApp";
-constexpr uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+constexpr const uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 class ChatApp : public App {
 
     lv_obj_t* msg_list = nullptr;
     lv_obj_t* input_field = nullptr;
+    service::espnow::ReceiverSubscription receiveSubscription;
+
+    void addMessage(const char* message) {
+        lv_obj_t* msg_label = lv_label_create(msg_list);
+        lv_label_set_text(msg_label, message);
+        lv_obj_set_width(msg_label, lv_pct(100));
+        lv_label_set_long_mode(msg_label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_align(msg_label, LV_TEXT_ALIGN_LEFT, 0);
+        lv_obj_set_style_pad_all(msg_label, 2, 0);
+        lv_obj_scroll_to_y(msg_list, lv_obj_get_scroll_y(msg_list) + 20, LV_ANIM_ON);
+    }
 
     static void send_quick_msg(lv_event_t* e) {
-        ChatApp* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
-        lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_target(e));
-        const char* msg = lv_label_get_text(lv_obj_get_child(btn, 0));
+        auto* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
+        auto* btn = static_cast<lv_obj_t*>(lv_event_get_target(e));
+        const char* message = lv_label_get_text(lv_obj_get_child(btn, 0));
 
-        if (self->msg_list && msg) {
-            lv_obj_t* msg_label = lv_label_create(self->msg_list);
-            lv_label_set_text(msg_label, msg);
-            lv_obj_set_width(msg_label, lv_pct(100));
-            lv_label_set_long_mode(msg_label, LV_LABEL_LONG_WRAP);
-            lv_obj_set_style_text_align(msg_label, LV_TEXT_ALIGN_LEFT, 0);
-            lv_obj_set_style_pad_all(msg_label, 2, 0);
-            lv_obj_scroll_to_y(self->msg_list, lv_obj_get_scroll_y(self->msg_list) + 20, LV_ANIM_ON);
+        if (message) {
+            self->addMessage(message);
+            if (!service::espnow::send(BROADCAST_ADDRESS, (const uint8_t*)message, strlen(message))) {
+                TT_LOG_E(TAG, "Failed to send message");
+            }
         }
     }
 
     static void send_message(lv_event_t* e) {
-        ChatApp* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
-        const char* msg = lv_textarea_get_text(self->input_field);
-        size_t msg_len = strlen(msg);
+        auto* self = static_cast<ChatApp*>(lv_event_get_user_data(e));
+        auto* msg = lv_textarea_get_text(self->input_field);
+        auto msg_len = strlen(msg);
 
         if (self->msg_list && msg && msg_len) {
-            lv_obj_t* msg_label = lv_label_create(self->msg_list);
-            lv_label_set_text(msg_label, msg);
-            lv_obj_set_width(msg_label, lv_pct(100));
-            lv_label_set_long_mode(msg_label, LV_LABEL_LONG_WRAP);
-            lv_obj_set_style_text_align(msg_label, LV_TEXT_ALIGN_LEFT, 0);
-            lv_obj_set_style_pad_all(msg_label, 2, 0);
-            lv_obj_scroll_to_y(self->msg_list, lv_obj_get_scroll_y(self->msg_list) + 20, LV_ANIM_ON);
-            lv_textarea_set_text(self->input_field, "");
+            self->addMessage(msg);
 
             if (!service::espnow::send(BROADCAST_ADDRESS, (const uint8_t*)msg, msg_len)) {
                 TT_LOG_E(TAG, "Failed to send message");
             }
+
+            lv_textarea_set_text(self->input_field, "");
         }
+    }
+
+    static bool initChatPeer(esp_now_peer_info_t& peer, const uint8_t address[ESP_NOW_ETH_ALEN]) {
+        memset(&peer, 0, sizeof(peer));
+        memcpy(peer.peer_addr, address, ESP_NOW_ETH_ALEN);
+        peer.channel = 1;
+        peer.ifidx = WIFI_IF_STA;
+        return true;
+    }
+
+    void onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
+        auto lock = tt::lvgl::getSyncLock()->asScopedLock();
+        lock.lock();
+
+        // Append \0 to make it a string
+        char* buffer = (char*)malloc(length + 1);
+        memcpy(buffer, data, length);
+        buffer[length] = 0x00;
+        std::string message_prefixed = std::string("Received: ") + buffer;
+        addMessage(message_prefixed.c_str());
+        free(buffer);
     }
 
 public:
 
     void onCreate(AppContext& appContext) override {
         // TODO: Move this to a configuration screen/app
-        static const uint8_t key[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-        static auto config = service::espnow::EspNowConfig(
+        static const uint8_t key[ESP_NOW_KEY_LEN] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+        auto config = service::espnow::EspNowConfig(
             (uint8_t*)key,
             service::espnow::Mode::Station,
             1,
@@ -70,9 +97,15 @@ public:
         );
 
         service::espnow::enable(config);
+
+        receiveSubscription = service::espnow::subscribeReceiver([this](const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
+            onReceive(receiveInfo, data, length);
+        });
     }
 
     void onDestroy(AppContext& appContext) override {
+        service::espnow::unsubscribeReceiver(receiveSubscription);
+
         if (service::espnow::isEnabled()) {
             service::espnow::disable();
         }
@@ -81,7 +114,7 @@ public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
 
         // Create toolbar
-        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        auto* toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
         const int toolbar_height = lv_obj_get_height(toolbar);
 
@@ -94,7 +127,7 @@ public:
         lv_obj_set_style_pad_all(msg_list, 5, 0);
 
         // Quick message panel
-        lv_obj_t* quick_panel = lv_obj_create(parent);
+        auto* quick_panel = lv_obj_create(parent);
         lv_obj_set_size(quick_panel, lv_pct(20), lv_pct(58));
         lv_obj_align(quick_panel, LV_ALIGN_TOP_RIGHT, -5, toolbar_height + 15);  // Adjusted to match
         lv_obj_set_flex_flow(quick_panel, LV_FLEX_FLOW_COLUMN);
@@ -114,7 +147,7 @@ public:
         }
 
         // Input panel
-        lv_obj_t* input_panel = lv_obj_create(parent);
+        auto* input_panel = lv_obj_create(parent);
         lv_obj_set_size(input_panel, lv_pct(95), 60);
         lv_obj_align(input_panel, LV_ALIGN_BOTTOM_MID, 0, -5);
         lv_obj_set_flex_flow(input_panel, LV_FLEX_FLOW_ROW);
@@ -130,11 +163,11 @@ public:
         service::gui::keyboardAddTextArea(input_field);
 
         // Send button
-        lv_obj_t* send_btn = lv_btn_create(input_panel);
+        auto* send_btn = lv_btn_create(input_panel);
         lv_obj_set_size(send_btn, 80, LV_PCT(100));
         lv_obj_add_event_cb(send_btn, send_message, LV_EVENT_CLICKED, this);
 
-        lv_obj_t* btn_label = lv_label_create(send_btn);
+        auto* btn_label = lv_label_create(send_btn);
         lv_label_set_text(btn_label, "Send");
         lv_obj_center(btn_label);
     }

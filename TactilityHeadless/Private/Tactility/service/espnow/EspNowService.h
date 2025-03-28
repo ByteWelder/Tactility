@@ -11,8 +11,6 @@
 
 namespace tt::service::espnow {
 
-constexpr uint32_t QUEUE_SIZE = 6;
-
 class EspNowService final : public Service {
 
 private:
@@ -27,28 +25,6 @@ private:
         bool success;
     };
 
-    struct ReceiveCallback {
-        uint8_t macAddress[ESP_NOW_ETH_ALEN];
-        uint8_t* data;
-        uint16_t dataLength;
-    };
-
-    enum class EventId {
-        SendCallback,
-        ReceiveCallback,
-    };
-
-    union EventInfo {
-        SendCallback sendCallback;
-        ReceiveCallback receiveCallback;
-    };
-
-    struct EspNowEvent {
-        EventId id;
-        EventInfo info;
-    };
-
-    MessageQueue queue = MessageQueue(QUEUE_SIZE, sizeof(EspNowEvent));
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::vector<ReceiverSubscriptionData> subscriptions;
     ReceiverSubscription lastSubscriptionId = 0;
@@ -61,10 +37,7 @@ private:
     static void disableFromDispatcher(std::shared_ptr<void> context);
     void disableFromDispatcher();
 
-    static void sendCallback(const uint8_t* macAddress, esp_now_send_status_t status);
     static void receiveCallback(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length);
-
-    void onSend(const uint8_t* macAddress, esp_now_send_status_t status);
     void onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length);
 
 public:
@@ -83,6 +56,8 @@ public:
     void disable();
 
     bool isEnabled() const;
+
+    bool addPeer(const esp_now_peer_info_t& peer);
 
     bool send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength);
 

@@ -72,11 +72,6 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
         return;
     }
 
-    if (esp_now_register_send_cb(sendCallback) != ESP_OK) {
-        TT_LOG_E(TAG, "esp_now_register_send_cb() failed");
-        return;
-    }
-
     if (esp_now_register_recv_cb(receiveCallback) != ESP_OK) {
         TT_LOG_E(TAG, "esp_now_register_recv_cb() failed");
         return;
@@ -92,27 +87,11 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
         return;
     }
 
-    // Add broadcast peer information to peer list
-    auto* peer = (esp_now_peer_info_t*)malloc(sizeof(esp_now_peer_info_t));
-    if (peer == nullptr) {
-        TT_LOG_E(TAG, "Out of memory");
-        esp_now_deinit();
-        return;
-    }
-
-    memset(peer, 0, sizeof(esp_now_peer_info_t));
-    peer->channel = config.channel;
-    if (config.mode == Mode::Station) {
-        peer->ifidx = WIFI_IF_STA;
-    } else {
-        peer->ifidx = WIFI_IF_AP;
-    }
-    peer->encrypt = config.encrypt;
-    memcpy(peer->peer_addr, BROADCAST_MAC, ESP_NOW_ETH_ALEN);
-    if (esp_now_add_peer(peer) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to add peer");
-    }
-    free(peer);
+    // Add default unencrypted broadcast peer
+    esp_now_peer_info_t broadcast_peer;
+    memset(&broadcast_peer, 0, sizeof(esp_now_peer_info_t));
+    memcpy(broadcast_peer.peer_addr, BROADCAST_MAC, sizeof(BROADCAST_MAC));
+    service::espnow::addPeer(broadcast_peer);
 
     enabled = true;
 }
@@ -158,15 +137,6 @@ void EspNowService::disableFromDispatcher() {
 
 // region Callbacks
 
-void EspNowService::sendCallback(const uint8_t* macAddress, esp_now_send_status_t status) {
-    auto service = findService();
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not running");
-        return;
-    }
-    service->onSend(macAddress, status);
-}
-
 void EspNowService::receiveCallback(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
     auto service = findService();
     if (service == nullptr) {
@@ -176,30 +146,11 @@ void EspNowService::receiveCallback(const esp_now_recv_info_t* receiveInfo, cons
     service->onReceive(receiveInfo, data, length);
 }
 
-void EspNowService::onSend(const uint8_t* macAddress, esp_now_send_status_t status) {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-
-    EspNowEvent event;
-    SendCallback* callback = &event.info.sendCallback;
-
-    if (macAddress == nullptr) {
-        ESP_LOGE(TAG, "Send cb arg error");
-        return;
-    }
-
-    event.id = EventId::SendCallback;
-    memcpy(callback->macAddress, macAddress, ESP_NOW_ETH_ALEN);
-    callback->success = (status == ESP_NOW_SEND_SUCCESS);
-
-    if (!queue.put(&event, MAX_DELAY)) {
-        TT_LOG_E(TAG, "Failed to queue onSend() data");
-    }
-}
-
 void EspNowService::onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
     auto lock = mutex.asScopedLock();
     lock.lock();
+
+    TT_LOG_I(TAG, "Received %d bytes", length);
 
     for (const auto& item: subscriptions) {
         item.onReceive(receiveInfo, data, length);
@@ -212,6 +163,16 @@ bool EspNowService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
     return enabled;
+}
+
+bool EspNowService::addPeer(const esp_now_peer_info_t& peer) {
+    if (esp_now_add_peer(&peer) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to add peer");
+        return false;
+    } else {
+        TT_LOG_I(TAG, "Peer added");
+        return true;
+    }
 }
 
 bool EspNowService::send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength) {

@@ -17,7 +17,8 @@ enum class Mode {
 };
 
 struct EspNowConfig {
-    uint8_t masterKey[16];
+    uint8_t masterKey[ESP_NOW_KEY_LEN];
+    uint8_t address[ESP_NOW_ETH_ALEN];
     Mode mode;
     uint8_t channel;
     bool longRange;
@@ -39,6 +40,8 @@ void enable(const EspNowConfig& config);
 void disable();
 
 bool isEnabled();
+
+bool addPeer(const esp_now_peer_info_t& peer);
 
 bool send(const uint8_t* address, const uint8_t* buffer, size_t bufferLength);
 
