@@ -72,7 +72,6 @@ namespace app {
 static void registerSystemApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
-    addApp(app::chat::manifest);
     addApp(app::display::manifest);
     addApp(app::files::manifest);
     addApp(app::gpio::manifest);
@@ -100,6 +99,7 @@ static void registerSystemApps() {
 #endif
 
 #ifdef ESP_PLATFORM
+    addApp(app::chat::manifest);
     addApp(app::crashdiagnostics::manifest);
 #endif
 
