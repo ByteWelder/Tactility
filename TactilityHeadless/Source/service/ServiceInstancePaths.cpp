@@ -5,9 +5,9 @@
 constexpr std::string LVGL_PATH_PREFIX = std::string("A:/");
 
 #ifdef ESP_PLATFORM
-constexpr std::string PARTITION_PREFIX = std::string("/");
+#define PARTITION_PREFIX std::string("/")
 #else
-constexpr std::string PARTITION_PREFIX = std::string("");
+#define PARTITION_PREFIX std::string("")
 #endif
 
 namespace tt::service {
