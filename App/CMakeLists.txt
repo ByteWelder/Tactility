@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.20)
 if (DEFINED ENV{ESP_IDF_VERSION})
     # Read board id/project
     include("../Buildscripts/board.cmake")
-    include_directories(${CMAKE_SOURCE_DIR}/lvgl/src/misc)
     init_tactility_globals("../sdkconfig")
     get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
 
@@ -18,9 +17,6 @@ else ()
 
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
-    
-    # Add include directory for lvgl
-    include_directories(${CMAKE_SOURCE_DIR}/lvgl/src/misc)
 
     target_link_libraries(AppSim
         PRIVATE Tactility
