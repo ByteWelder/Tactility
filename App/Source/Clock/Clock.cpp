@@ -9,6 +9,8 @@
 #include <lvgl.h>
 #include <ctime>
 #include <cmath>
+
+#ifdef ESP_PLATFORM
 #include "esp_sntp.h"
 
 using namespace tt::app;
@@ -176,3 +178,7 @@ extern const AppManifest clock_app = {
     .name = "Clock",
     .createApp = create<ClockApp>
 };
+
+
+#endif
+
