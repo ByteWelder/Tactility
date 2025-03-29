@@ -90,6 +90,18 @@ bool GpsService::removeGpsConfiguration(hal::gps::GpsConfiguration configuration
             item.model == configuration.model;
     });
 
+    auto writer = file::ObjectFileWriter(path, sizeof(hal::gps::GpsConfiguration), 1, false);
+    if (!writer.open()) {
+        TT_LOG_E(TAG, "Failed to open configuration file");
+        return false;
+    }
+
+    for (auto& configuration : configurations) {
+        writer.write(&configuration);
+    }
+
+    writer.close();
+
     return count > 0;
 }
 

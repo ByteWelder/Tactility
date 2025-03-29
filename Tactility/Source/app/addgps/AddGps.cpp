@@ -5,7 +5,9 @@
 #include "Tactility/hal/uart/Uart.h"
 #include "Tactility/lvgl/Style.h"
 #include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/service/gps/GpsService.h"
 
+#include <cstring>
 #include <lvgl.h>
 
 namespace tt::app::addgps {
@@ -31,20 +33,41 @@ private:
     }
 
     void onAddGps() {
-        char selected_uart[64] = { 0x00 };
-        lv_dropdown_get_selected_str(uartDropdown, selected_uart, sizeof(selected_uart));
-        if (selected_uart[0] == 0x00) {
+        auto selected_baud_index = lv_dropdown_get_selected(baudDropdown);
+
+        auto new_configuration = hal::gps::GpsConfiguration {
+            .uartName = { 0x00 },
+            .baudRate = baudRates[selected_baud_index],
+            // Warning: This assumes that the enum is a regularly indexed one that starts at 0
+            .model = (hal::gps::GpsModel)lv_dropdown_get_selected(modelDropdown)
+        };
+
+        lv_dropdown_get_selected_str(uartDropdown, new_configuration.uartName, sizeof(new_configuration.uartName));
+        if (new_configuration.uartName[0] == 0x00) {
             alertdialog::start("Error", "You must select a bus/uart.");
             return;
         }
 
-        // Warning: This assumes that the enum is a regularly indexed one that starts at 0
-        auto selected_model = (hal::gps::GpsModel)lv_dropdown_get_selected(modelDropdown);
+        TT_LOG_I(TAG, "Saving: uart=%s, model=%lu, baud=%lu", new_configuration.uartName, (uint32_t)new_configuration.model, new_configuration.baudRate);
 
-        auto selected_baud_index = lv_dropdown_get_selected(baudDropdown);
-        auto baud = baudRates[selected_baud_index];
+        auto service = service::gps::findGpsService();
+        std::vector<tt::hal::gps::GpsConfiguration> configurations;
+        if (service != nullptr) {
+            service->getGpsConfigurations(configurations);
+            for (auto& stored_configuration: configurations) {
+                if (strcmp(stored_configuration.uartName, new_configuration.uartName) == 0) {
+                    std::string message = std::format("Bus \"{}\" is already in use in another configuration", new_configuration.uartName);
+                    app::alertdialog::start("Error", message.c_str());
+                    return;
+                }
+            }
 
-        TT_LOG_I(TAG, "Saving: uart=%s, model=%lu, baud=%lu", selected_uart, (uint32_t)selected_model, baud);
+            if (!service->addGpsConfiguration(new_configuration)) {
+                app::alertdialog::start("Error", "Failed to add configuration");
+            } else {
+                stop();
+            }
+        }
     }
 
 public:
