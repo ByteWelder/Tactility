@@ -7,7 +7,6 @@
 #include <Tactility/time/Time.h>
 #include <Tactility/Preferences.h>
 #include <lvgl.h>
-#include <lvgl/src/misc/lv_timer.h>  // For lv_timer_t
 #include <ctime>
 #include <cmath>
 #include <esp_sntp.h>
