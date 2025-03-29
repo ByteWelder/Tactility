@@ -17,6 +17,10 @@ else ()
 
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
+    
+    # Add include directory for lvgl
+    include_directories(${CMAKE_SOURCE_DIR}/lvgl/src/misc)
+
     target_link_libraries(AppSim
         PRIVATE Tactility
         PRIVATE TactilityCore
