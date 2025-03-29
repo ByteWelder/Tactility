@@ -1,6 +1,7 @@
 #include "Tactility/file/ObjectFile.h"
 
 #include <Tactility/Log.h>
+#include <unistd.h>
 
 namespace tt::file {
 
