@@ -12,6 +12,8 @@
 
 #ifdef ESP_PLATFORM
 #include "esp_sntp.h"
+#endif
+
 
 using namespace tt::app;
 
@@ -61,9 +63,16 @@ private:
         redraw_clock();
     }
 
+    #ifdef ESP_PLATFORM
     bool is_time_synced() {
         return sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
     }
+    #else
+    bool is_time_synced() {
+        return true;
+    }
+    #endif
+
 
     void update_time() {
         if (!is_time_synced()) {
