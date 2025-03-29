@@ -1,3 +1,6 @@
+#define LV_USE_PRIVATE_API 1
+
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
