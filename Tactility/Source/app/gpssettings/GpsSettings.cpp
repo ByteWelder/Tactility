@@ -8,6 +8,7 @@
 #include "Tactility/service/loader/Loader.h"
 #include <Tactility/service/gps/GpsService.h>
 
+#include <cstring>
 #include <format>
 #include <lvgl.h>
 
@@ -95,7 +96,10 @@ private:
         auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
 
         auto* button = lv_event_get_target_obj(event);
-        auto index = (int)lv_obj_get_user_data(button); // config index
+        auto index_as_voidptr = lv_obj_get_user_data(button); // config index
+        int index;
+        // TODO: Find a better way to cast void* to int, or find a different way to pass the index
+        memcpy(&index, &index_as_voidptr, sizeof(int));
 
         std::vector<tt::hal::gps::GpsConfiguration> configurations;
         auto gps_service = tt::service::gps::findGpsService();
@@ -149,7 +153,7 @@ private:
 
         auto* delete_button = lv_button_create(right_wrapper);
         lv_obj_add_event_cb(delete_button, onDeleteConfiguration, LV_EVENT_SHORT_CLICKED, this);
-        lv_obj_set_user_data(delete_button, (void*)index);
+        lv_obj_set_user_data(delete_button, reinterpret_cast<void*>(index));
         auto* delete_label = lv_label_create(delete_button);
         lv_label_set_text_fmt(delete_label, LV_SYMBOL_TRASH);
     }
