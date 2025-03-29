@@ -80,6 +80,5 @@ extern const Configuration waveshare_s3_touch_43 = {
                 }
             }
         }
-    },
-    .gps = {}
+    }
 };
