@@ -19,6 +19,9 @@ namespace tt {
 namespace service::gps { extern const ServiceManifest manifest; }
 namespace service::wifi { extern const ServiceManifest manifest; }
 namespace service::sdcard { extern const ServiceManifest manifest; }
+#ifdef ESP_PLATFORM
+namespace service::espnow { extern const ServiceManifest manifest; }
+#endif
 
 static Dispatcher mainDispatcher;
 
@@ -29,6 +32,9 @@ static void registerAndStartSystemServices() {
     addService(service::gps::manifest);
     addService(service::sdcard::manifest);
     addService(service::wifi::manifest);
+#ifdef ESP_PLATFORM
+    addService(service::espnow::manifest);
+#endif
 }
 
 void initHeadless(const hal::Configuration& config) {

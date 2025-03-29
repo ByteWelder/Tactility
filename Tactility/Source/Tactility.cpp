@@ -32,6 +32,7 @@ namespace service {
 namespace app {
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
+    namespace chat { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
@@ -98,6 +99,7 @@ static void registerSystemApps() {
 #endif
 
 #ifdef ESP_PLATFORM
+    addApp(app::chat::manifest);
     addApp(app::crashdiagnostics::manifest);
 #endif
 
