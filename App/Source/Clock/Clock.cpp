@@ -187,7 +187,3 @@ extern const AppManifest clock_app = {
     .name = "Clock",
     .createApp = create<ClockApp>
 };
-
-
-#endif
-
