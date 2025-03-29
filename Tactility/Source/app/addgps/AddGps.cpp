@@ -56,7 +56,7 @@ private:
             service->getGpsConfigurations(configurations);
             for (auto& stored_configuration: configurations) {
                 if (strcmp(stored_configuration.uartName, new_configuration.uartName) == 0) {
-                    std::string message = std::format("Bus \"{}\" is already in use in another configuration", new_configuration.uartName);
+                    auto message = std::string("Bus \"{}\" is already in use in another configuration", (const char*)new_configuration.uartName);
                     app::alertdialog::start("Error", message.c_str());
                     return;
                 }
