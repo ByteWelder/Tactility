@@ -12,6 +12,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/Clock"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
+        REQUIRES lwip
     )
 else ()
 
