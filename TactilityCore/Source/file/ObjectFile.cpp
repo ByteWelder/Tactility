@@ -61,6 +61,9 @@ bool ObjectFileReader::open() {
 
     file = std::move(opening_file);
 
+    TT_LOG_D(TAG, "File version: %lu", file_header.version);
+    TT_LOG_D(TAG, "Content: version = %lu, size = %lu bytes, count = %lu", content_header.recordVersion, content_header.recordSize, content_header.recordCount);
+
     return true;
 }
 

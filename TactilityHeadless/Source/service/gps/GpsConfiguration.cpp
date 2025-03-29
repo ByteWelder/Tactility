@@ -24,7 +24,7 @@ bool GpsService::getConfigurationFilePath(std::string& output) const {
     return true;
 }
 
-bool GpsService::getGpsConfigurations(std::vector<hal::gps::GpsConfiguration> configurations) const {
+bool GpsService::getGpsConfigurations(std::vector<hal::gps::GpsConfiguration>& configurations) const {
     std::string path;
     if (!getConfigurationFilePath(path)) {
         return false;

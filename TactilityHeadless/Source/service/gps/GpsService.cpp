@@ -63,13 +63,6 @@ void GpsService::onStart(tt::service::ServiceContext& serviceContext) {
     lock.lock();
 
     paths = serviceContext.getPaths();
-    deviceRecords.clear();
-
-    auto devices = hal::findDevices<GpsDevice>(hal::Device::Type::Gps);
-    for (auto& device: devices) {
-        TT_LOG_I(TAG, "[device %lu] added", device->getId());
-        addGpsDevice(device);
-    }
 }
 
 void GpsService::onStop(tt::service::ServiceContext& serviceContext) {
@@ -132,10 +125,35 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
 bool GpsService::startReceiving() {
     TT_LOG_I(TAG, "Start receiving");
 
+    if (getState() != State::Off) {
+        TT_LOG_E(TAG, "Already receiving");
+        return false;
+    }
+
     setState(State::OnPending);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
+
+    deviceRecords.clear();
+
+    std::vector<hal::gps::GpsConfiguration> configurations;
+    if (!getGpsConfigurations(configurations)) {
+        TT_LOG_E(TAG, "Failed to get GPS configurations");
+        setState(State::Off);
+        return false;
+    }
+
+    if (configurations.empty()) {
+        TT_LOG_E(TAG, "No GPS configurations");
+        setState(State::Off);
+        return false;
+    }
+
+    for (const auto& configuration: configurations) {
+        auto device = std::make_shared<GpsDevice>(configuration);
+        addGpsDevice(device);
+    }
 
     bool started_one_or_more = false;
 

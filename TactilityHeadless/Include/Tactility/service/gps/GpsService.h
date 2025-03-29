@@ -51,7 +51,7 @@ public:
 
     bool addGpsConfiguration(hal::gps::GpsConfiguration configuration);
     bool removeGpsConfiguration(hal::gps::GpsConfiguration configuration);
-    bool getGpsConfigurations(std::vector<hal::gps::GpsConfiguration> configurations) const;
+    bool getGpsConfigurations(std::vector<hal::gps::GpsConfiguration>& configurations) const;
 
     bool startReceiving();
     void stopReceiving();

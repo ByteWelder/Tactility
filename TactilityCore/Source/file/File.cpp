@@ -113,16 +113,22 @@ bool findOrCreateDirectory(std::string path, mode_t mode) {
     if (path.empty()) {
         return true;
     }
+    TT_LOG_D(TAG, "findOrCreate: %s %lu", path.c_str(), mode);
 
-    const char separator_to_find[] = { SEPARATOR, 0x00 };
+    const char separator_to_find[] = {SEPARATOR, 0x00};
     auto first_index = path[0] == SEPARATOR ? 1 : 0;
     auto separator_index = path.find(separator_to_find, first_index);
 
-    while (separator_index != std::string::npos) {
-        auto to_create = path.substr(0, separator_index);
+    bool should_break = false;
+    while (!should_break) {
+        bool is_last_segment = (separator_index == std::string::npos);
+        auto to_create = is_last_segment ? path : path.substr(0, separator_index);
+        should_break = is_last_segment;
         if (!findOrCreateDirectoryInternal(to_create, mode)) {
             TT_LOG_E(TAG, "Failed to create %s", to_create.c_str());
             return false;
+        } else {
+            TT_LOG_D(TAG, "  - got: %s", to_create.c_str());
         }
 
         // Find next file separator index
