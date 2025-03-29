@@ -9,7 +9,7 @@
 #include <lvgl.h>
 #include <ctime>
 #include <cmath>
-#include <esp_sntp.h>
+#include "esp_sntp.h"
 
 using namespace tt::app;
 
