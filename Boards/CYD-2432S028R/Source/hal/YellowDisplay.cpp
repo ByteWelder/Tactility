@@ -8,13 +8,13 @@
 
 std::shared_ptr<Xpt2046Touch> createTouch() {
     auto configuration = std::make_unique<Xpt2046Touch::Configuration>(
-        YELLOW_LCD_SPI_HOST,
+        SPI1_HOST,
         YELLOW_TOUCH_PIN_CS,
-        240,
-        320,
-        false,
-        true,
-        false
+        YELLOW_LCD_HORIZONTAL_RESOLUTION,  // 240
+        YELLOW_LCD_VERTICAL_RESOLUTION,    // 320
+        false,  // swapXY
+        true,   // mirrorX
+        false   // mirrorY
     );
 
     return std::make_shared<Xpt2046Touch>(std::move(configuration));
@@ -27,8 +27,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         YELLOW_LCD_SPI_HOST,
         YELLOW_LCD_PIN_CS,
         YELLOW_LCD_PIN_DC,
-        240,
-        320,
+        YELLOW_LCD_HORIZONTAL_RESOLUTION,  // 240
+        YELLOW_LCD_VERTICAL_RESOLUTION,    // 320
         touch
     );
 
