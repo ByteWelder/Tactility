@@ -182,13 +182,5 @@ const Configuration m5stack_cores3 = {
                 }
             }
         }
-    },
-    .gps = {
-        gps::GpsDevice::Configuration {
-            .name = "Port A",
-            .uartName = "Port A",
-            .baudRate = 9600,
-            .model = gps::GpsModel::Unknown
-        }
     }
 };
