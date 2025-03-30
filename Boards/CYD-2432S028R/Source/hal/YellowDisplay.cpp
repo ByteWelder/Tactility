@@ -19,7 +19,6 @@ std::shared_ptr<Xpt2046Touch> createTouch() {
         true,   // MIRROR_X
         false   // MIRROR_Y
     );
-    configuration->irqPin = GPIO_NUM_36;  // Added IRQ for CYD
     auto touch = std::make_shared<Xpt2046Touch>(std::move(configuration));
     ESP_LOGI(TAG, "Touch created");
     return touch;
@@ -38,8 +37,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         touch
     );
     configuration->mirrorX = true;  // Matches PlatformIO DISPLAY_MIRROR_X
-    configuration->colorSpace = ESP_LCD_COLOR_SPACE_BGR;  // Matches PlatformIO
-    configuration->bitsPerPixel = 16;  // Matches PlatformIO
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
     ESP_LOGI(TAG, "Display created");
