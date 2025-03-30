@@ -15,7 +15,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     target_link_libraries(Simulator
         PRIVATE Tactility
         PRIVATE TactilityCore
-        PRIVATE TactilityHeadless
         PRIVATE lvgl
         PRIVATE SDL2-static
     )

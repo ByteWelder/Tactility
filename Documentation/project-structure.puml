@@ -3,8 +3,6 @@ skinparam componentStyle uml1
 
 [Tactility] as t
 note right of t : to build and use graphical apps
-[TactilityHeadless] as theadless
-note right of theadless : to build and use background services
 [TactilityCore] as tcore
 note right of tcore : defines, data types, logging, async, etc.
 
@@ -13,7 +11,6 @@ note right of tcore : defines, data types, logging, async, etc.
 note right of app : App depends on the board \n projects for configuration
 
 [app] ..> [t]
-[t] ..> [theadless]
-[theadless] ..> [tcore]
+[t] ..> [tcore]
 
 @enduml

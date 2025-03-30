@@ -27,7 +27,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Tactility"
         "TactilityC"
         "TactilityCore"
-        "TactilityHeadless"
         "Libraries/esp_lvgl_port"
         "Libraries/elf_loader"
         "Libraries/lvgl"
@@ -58,7 +57,6 @@ project(Tactility)
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
     add_subdirectory(TactilityCore)
-    add_subdirectory(TactilityHeadless)
     add_subdirectory(Boards/Simulator)
 endif()
 
