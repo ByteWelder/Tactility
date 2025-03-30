@@ -22,4 +22,4 @@ jobs:
       - name: "Run TactilityCore Tests"
         run: build/Tests/TactilityCore/TactilityCoreTests --exit
       - name: "Run TactilityHeadless Tests"
-        run: build/Tests/TactilityHeadless/TactilityHeadlessTests --exit
+        run: build/Tests/Tactility/TactilityTests --exit
