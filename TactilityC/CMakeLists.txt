@@ -10,7 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Include/"
         REQUIRES lvgl
-        PRIV_REQUIRES Tactility TactilityCore TactilityHeadless elf_loader
+        PRIV_REQUIRES Tactility TactilityCore elf_loader
     )
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -34,7 +34,6 @@ else()
     target_link_libraries(TactilityC
         PRIVATE Tactility
         PRIVATE TactilityCore
-        PRIVATE TactilityHeadless
         PUBLIC lvgl
     )
 endif()

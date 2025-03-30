@@ -19,7 +19,6 @@ else ()
     target_link_libraries(AppSim
         PRIVATE Tactility
         PRIVATE TactilityCore
-        PRIVATE TactilityHeadless
         PRIVATE Simulator
         PRIVATE SDL2::SDL2-static SDL2-static
     )
