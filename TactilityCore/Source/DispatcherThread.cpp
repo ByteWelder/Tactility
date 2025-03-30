@@ -30,8 +30,8 @@ int32_t DispatcherThread::threadMain() {
     return 0;
 }
 
-void DispatcherThread::dispatch(Dispatcher::Function function, std::shared_ptr<void> context, TickType_t timeout) {
-    dispatcher.dispatch(function, std::move(context), timeout);
+void DispatcherThread::dispatch(Dispatcher::Function function, TickType_t timeout) {
+    dispatcher.dispatch(function, timeout);
 }
 
 void DispatcherThread::start() {
