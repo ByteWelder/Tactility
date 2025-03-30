@@ -45,17 +45,13 @@ bool tdeckInit() {
         return false;
     }
 
-    tt::kernel::systemEventAddListener(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event){
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
         auto gps_service = tt::service::gps::findGpsService();
         if (gps_service != nullptr) {
             std::vector<tt::hal::gps::GpsConfiguration> gps_configurations;
             gps_service->getGpsConfigurations(gps_configurations);
             if (gps_configurations.empty()) {
-                if (gps_service->addGpsConfiguration(tt::hal::gps::GpsConfiguration {
-                    .uartName = "Grove",
-                    .baudRate = 38400,
-                    .model = tt::hal::gps::GpsModel::UBLOX10
-                })) {
+                if (gps_service->addGpsConfiguration(tt::hal::gps::GpsConfiguration {.uartName = "Grove", .baudRate = 38400, .model = tt::hal::gps::GpsModel::UBLOX10})) {
                     TT_LOG_I(TAG, "Configured internal GPS");
                 } else {
                     TT_LOG_E(TAG, "Failed to configure internal GPS");

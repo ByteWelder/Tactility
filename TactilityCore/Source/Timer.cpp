@@ -4,15 +4,12 @@
 #include "Tactility/RtosCompat.h"
 #include "Tactility/kernel/Kernel.h"
 
-#include <utility>
-
 namespace tt {
 
 void Timer::onCallback(TimerHandle_t hTimer) {
     auto* timer = static_cast<Timer*>(pvTimerGetTimerID(hTimer));
-
     if (timer != nullptr) {
-        timer->callback(timer->callbackContext);
+        timer->callback();
     }
 }
 
@@ -30,9 +27,8 @@ static inline TimerHandle_t createTimer(Timer::Type type, void* timerId, TimerCa
     return xTimerCreate(nullptr, portMAX_DELAY, (BaseType_t)reload, timerId, callback);
 }
 
-Timer::Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext) :
+Timer::Timer(Type type, Callback callback) :
     callback(callback),
-    callbackContext(std::move(callbackContext)),
     handle(createTimer(type, this, onCallback))
 {
     assert(!kernel::isIsr());

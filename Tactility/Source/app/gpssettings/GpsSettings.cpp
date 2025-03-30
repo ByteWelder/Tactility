@@ -39,12 +39,6 @@ private:
     PubSub::SubscriptionHandle serviceStateSubscription = nullptr;
     std::shared_ptr<service::gps::GpsService> service;
 
-    static void onUpdateCallback(TT_UNUSED std::shared_ptr<void> context) {
-        auto appPtr = std::static_pointer_cast<GpsSettingsApp*>(context);
-        auto app = *appPtr;
-        app->updateViews();
-    }
-
     static void onServiceStateChangedCallback(const void* data, void* context) {
         auto* app = (GpsSettingsApp*)context;
         app->onServiceStateChanged();
@@ -280,7 +274,9 @@ private:
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdateCallback, appReference);
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+            updateViews();
+        });
         service = service::gps::findGpsService();
     }
 

@@ -854,7 +854,7 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
     return scan_time_has_looped || no_recent_scan;
 }
 
-void onAutoConnectTimer(std::shared_ptr<void> context) {
+void onAutoConnectTimer() {
     auto wifi = std::static_pointer_cast<Wifi>(wifi_singleton);
     // Automatic scanning is done so we can automatically connect to access points
     bool should_auto_scan = shouldScanForAutoConnect(wifi);
@@ -871,7 +871,7 @@ public:
         assert(wifi_singleton == nullptr);
         wifi_singleton = std::make_shared<Wifi>();
 
-        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, onAutoConnectTimer, wifi_singleton);
+        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, []() { onAutoConnectTimer(); });
         // We want to try and scan more often in case of startup or scan lock failure
         wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
 

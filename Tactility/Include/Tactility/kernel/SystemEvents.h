@@ -29,10 +29,10 @@ typedef uint32_t SystemEventSubscription;
 
 typedef std::function<void(SystemEvent)> OnSystemEvent;
 
-void systemEventPublish(SystemEvent event);
+void publishSystemEvent(SystemEvent event);
 
-SystemEventSubscription systemEventAddListener(SystemEvent event, OnSystemEvent handler);
+SystemEventSubscription subscribeSystemEvent(SystemEvent event, OnSystemEvent handler);
 
-void systemEventRemoveListener(SystemEventSubscription subscription);
+void unsubscribeSystemEvent(SystemEventSubscription subscription);
 
 }

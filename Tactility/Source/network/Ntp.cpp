@@ -15,7 +15,7 @@ namespace tt::network::ntp {
 
 static void onTimeSynced(struct timeval* tv) {
     TT_LOG_I(TAG, "Time synced (%llu)", tv->tv_sec);
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 void init() {
