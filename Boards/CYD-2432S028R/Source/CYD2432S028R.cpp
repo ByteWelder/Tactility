@@ -42,7 +42,7 @@ extern const Configuration cyd_2432s028r_config = {
             },
             .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
-            .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
+            .lock = tt::lvgl::getSyncLock()
         },
         // Touch (XPT2046 on SPI1_HOST)
         spi::Configuration {
@@ -59,14 +59,14 @@ extern const Configuration cyd_2432s028r_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = 4096,  // Smaller size for touch, adjustable
+                .max_transfer_sz = 4096,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
             .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
-            .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
+            .lock = tt::lvgl::getSyncLock()
         },
         // SD Card (SPI3_HOST)
         spi::Configuration {
@@ -90,16 +90,16 @@ extern const Configuration cyd_2432s028r_config = {
             },
             .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
-            .lock = nullptr // No custom lock needed
+            .lock = nullptr
         }
     },
     .uart {
-        // "UART1" (optional, adjust if GPIO 16/17 conflict with RGB LEDs)
+        // UART0 (corrected for CYD's USB serial)
         uart::Configuration {
-            .name = "UART1",
-            .port = UART_NUM_1,
-            .rxPin = GPIO_NUM_16,
-            .txPin = GPIO_NUM_17,
+            .name = "UART0",
+            .port = UART_NUM_0,
+            .rxPin = GPIO_NUM_3,
+            .txPin = GPIO_NUM_1,
             .rtsPin = GPIO_NUM_NC,
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
@@ -119,4 +119,33 @@ extern const Configuration cyd_2432s028r_config = {
             }
         }
     }
+    /*
+    // Optional: RGB LED (uncomment to enable)
+    .gpio = {
+        { GPIO_NUM_4, GPIO_MODE_OUTPUT, false },  // Red
+        { GPIO_NUM_16, GPIO_MODE_OUTPUT, false }, // Green
+        { GPIO_NUM_17, GPIO_MODE_OUTPUT, false }, // Blue
+        { GPIO_NUM_27, GPIO_MODE_INPUT, true },   // Extended GPIO (CN1)
+        { GPIO_NUM_35, GPIO_MODE_INPUT, true },   // Extended GPIO (P3)
+        { GPIO_NUM_22, GPIO_MODE_INPUT, true }    // Extended GPIO (P3)
+    },
+    // Optional: CDS Light Sensor (uncomment to enable)
+    .adc = {
+        adc::Configuration {
+            .unit = ADC_UNIT_1,
+            .channel = ADC1_CHANNEL_6,  // GPIO 34
+            .atten = ADC_ATTEN_DB_11,
+            .bitwidth = ADC_WIDTH_BIT_12
+        }
+    },
+    // Optional: Speaker PWM (uncomment to enable)
+    .pwm = {
+        pwm::Configuration {
+            .channel = LEDC_CHANNEL_0,
+            .pin = GPIO_NUM_26,
+            .freq_hz = 1000,
+            .timer = LEDC_TIMER_0
+        }
+    }
+    */
 };
