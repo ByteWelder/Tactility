@@ -1,24 +1,22 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
+#include "SoftXpt2046Touch.h"
 #include <Ili934xDisplay.h>
-#include <Xpt2046Touch.h>
 #include <PwmBacklight.h>
 #include "esp_log.h"
 
-static const char* TAG = "XPT2046";
+static const char* TAG = "YellowDisplay";
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    ESP_LOGI(TAG, "Initializing touch with CS=%d, IRQ=%d", CYD_TOUCH_PIN_CS, CYD_TOUCH_PIN_IRQ);
-    auto configuration = std::make_unique<Xpt2046Touch::Configuration>(
-        CYD_TOUCH_SPI_HOST,
-        CYD_TOUCH_PIN_CS,
-        CYD_TOUCH_PIN_IRQ,
+    ESP_LOGI(TAG, "Creating software SPI touch");
+    auto config = std::make_unique<SoftXpt2046Touch::Configuration>(
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,
-        CYD_DISPLAY_VERTICAL_RESOLUTION
+        CYD_DISPLAY_VERTICAL_RESOLUTION,
+        false,  // swapXy
+        true,   // mirrorX
+        false   // mirrorY
     );
-    auto touch = std::make_shared<Xpt2046Touch>(std::move(configuration));
-    ESP_LOGI(TAG, "Touch initialized");
-    return touch;
+    return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
