@@ -39,7 +39,7 @@ private:
 
     static void timer_callback(std::shared_ptr<void> appWrapper) {
         auto* app = std::static_pointer_cast<AppWrapper>(appWrapper)->app;
-        TT_LOG_I("Clock", "Timer fired"); // Debug log
+        TT_LOG_I("Clock", "Timer fired");
         app->update_time();
     }
 
@@ -158,10 +158,10 @@ private:
             lv_obj_set_style_line_width(minute_hand, 3, 0);
             lv_obj_set_style_line_width(second_hand, 1, 0);
             lv_obj_set_style_line_color(second_hand, lv_palette_main(LV_PALETTE_RED), 0);
-            update_time(); // Ensure initial draw
+            update_time();
         } else {
             time_label = lv_label_create(clock_container);
-            lv_label_set_text(time_label, "Loading..."); // Debug fallback
+            lv_label_set_text(time_label, "Loading...");
             lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);
             update_time();
         }
@@ -187,7 +187,9 @@ public:
         load_mode();
         redraw_clock();
 
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, timer_callback, std::make_shared<AppWrapper>(this));
+        // Lambda captures AppWrapper and calls timer_callback
+        auto wrapper = std::make_shared<AppWrapper>(this);
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, [wrapper]() { timer_callback(wrapper); });
         timer->start(1000);
         TT_LOG_I("Clock", "Timer started in onShow");
     }
