@@ -1,6 +1,5 @@
 #define LV_USE_PRIVATE_API 1
 
-
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
@@ -11,29 +10,36 @@
 #include <cmath>
 
 #ifdef ESP_PLATFORM
+#include "Tactility/Timer.h"
+#include "Tactility/lvgl/LvglSync.h"
 #include "esp_sntp.h"
 #endif
 
-
-using namespace tt::app;
+namespace tt::app::clock {
 
 class ClockApp : public App {
 private:
+    struct AppWrapper {
+        ClockApp* app;
+        AppWrapper(ClockApp* app) : app(app) {}
+    };
+
     lv_obj_t* toolbar;
     lv_obj_t* clock_container;
-    lv_obj_t* time_label;      // Digital
-    lv_obj_t* clock_face;      // Analog
+    lv_obj_t* time_label; // Digital
+    lv_obj_t* clock_face; // Analog
     lv_obj_t* hour_hand;
     lv_obj_t* minute_hand;
     lv_obj_t* second_hand;
     lv_obj_t* wifi_label;
     lv_obj_t* wifi_button;
-    lv_timer_t* timer;
+    std::unique_ptr<Timer> timer;
     bool is_analog;
-    AppContext* context;       // Store context for Wi-Fi button
+    AppContext* context;
 
-    static void timer_callback(lv_timer_t* timer) {
-        ClockApp* app = static_cast<ClockApp*>(lv_timer_get_user_data(timer));
+    static void timer_callback(std::shared_ptr<void> appWrapper) {
+        auto* app = std::static_pointer_cast<AppWrapper>(appWrapper)->app;
+        TT_LOG_I("Clock", "Timer fired"); // Debug log
         app->update_time();
     }
 
@@ -43,12 +49,12 @@ private:
     }
 
     static void wifi_connect_cb(lv_event_t* e) {
-        tt::app::start("WifiManage");  // Static call, no context needed
+        tt::app::start("WifiManage");
     }
 
     void load_mode() {
         tt::Preferences prefs("clock_settings");
-        is_analog = false; // Default digital
+        is_analog = false;
         prefs.optBool("is_analog", is_analog);
     }
 
@@ -63,18 +69,23 @@ private:
         redraw_clock();
     }
 
-    #ifdef ESP_PLATFORM
+#ifdef ESP_PLATFORM
     bool is_time_synced() {
         return sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
     }
-    #else
+#else
     bool is_time_synced() {
         return true;
     }
-    #endif
-
+#endif
 
     void update_time() {
+        auto lock = lvgl::getSyncLock()->asScopedLock();
+        if (!lock.lock(lvgl::defaultLockTime)) {
+            TT_LOG_E("Clock", "LVGL lock failed in update_time");
+            return;
+        }
+
         if (!is_time_synced()) {
             if (wifi_label) lv_label_set_text(wifi_label, "No Wi-Fi - Time not synced");
             return;
@@ -82,7 +93,7 @@ private:
 
         time_t now;
         struct tm timeinfo;
-        time(&now);
+        ::time(&now);
         localtime_r(&now, &timeinfo);
 
         if (is_analog) {
@@ -109,6 +120,12 @@ private:
     }
 
     void redraw_clock() {
+        auto lock = lvgl::getSyncLock()->asScopedLock();
+        if (!lock.lock(lvgl::defaultLockTime)) {
+            TT_LOG_E("Clock", "LVGL lock failed in redraw_clock");
+            return;
+        }
+
         lv_obj_clean(clock_container);
         time_label = nullptr;
         clock_face = hour_hand = minute_hand = second_hand = nullptr;
@@ -126,10 +143,7 @@ private:
             lv_obj_center(btn_label);
             lv_obj_align(wifi_button, LV_ALIGN_CENTER, 0, 20);
             lv_obj_add_event_cb(wifi_button, wifi_connect_cb, LV_EVENT_CLICKED, context);
-            return;
-        }
-
-        if (is_analog) {
+        } else if (is_analog) {
             clock_face = lv_arc_create(clock_container);
             lv_arc_set_range(clock_face, 0, 360);
             lv_arc_set_bg_angles(clock_face, 0, 360);
@@ -144,11 +158,13 @@ private:
             lv_obj_set_style_line_width(minute_hand, 3, 0);
             lv_obj_set_style_line_width(second_hand, 1, 0);
             lv_obj_set_style_line_color(second_hand, lv_palette_main(LV_PALETTE_RED), 0);
+            update_time(); // Ensure initial draw
         } else {
             time_label = lv_label_create(clock_container);
+            lv_label_set_text(time_label, "Loading..."); // Debug fallback
             lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);
+            update_time();
         }
-        update_time();
     }
 
 public:
@@ -171,19 +187,21 @@ public:
         load_mode();
         redraw_clock();
 
-        timer = lv_timer_create(timer_callback, 1000, this);
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, timer_callback, std::make_shared<AppWrapper>(this));
+        timer->start(1000);
+        TT_LOG_I("Clock", "Timer started in onShow");
     }
 
     void onHide(AppContext& app_context) override {
-        if (timer) {
-            lv_timer_del(timer);
-            timer = nullptr;
-        }
+        timer->stop();
+        TT_LOG_I("Clock", "Timer stopped in onHide");
     }
 };
 
-extern const AppManifest clock_app = {
+extern const AppManifest manifest = {
     .id = "Clock",
     .name = "Clock",
     .createApp = create<ClockApp>
 };
+
+} // namespace tt::app::clock
