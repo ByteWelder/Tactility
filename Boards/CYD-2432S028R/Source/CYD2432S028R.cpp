@@ -27,7 +27,7 @@ extern const Configuration cyd_2432s028r_config = {
     .spi {
         // Display (ILI9341 on SPI2_HOST)
         spi::Configuration {
-            .device = SPI2_HOST,  // Fixed from SPI1_HOST
+            .device = SPI2_HOST,
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_13,
@@ -45,18 +45,18 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByDriver,  // Let LVGL/esp32_drivers handle SPI2 init
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
         // Touch (XPT2046 on SPI1_HOST)
         spi::Configuration {
-            .device = SPI1_HOST,  // Fixed from SPI2_HOST
+            .device = SPI1_HOST,
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_32,
                 .miso_io_num = GPIO_NUM_39,
-                .sclk_io_num = GPIO_NUM_25,
+                .sclk_io_num = GPIO_NUM_33,  // Updated from 25
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
@@ -69,7 +69,7 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,  // Tactility handles SPI1
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
@@ -93,17 +93,17 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,  // Tactility handles SPI3
             .isMutable = false,
             .lock = nullptr
         }
     },
     .uart {
         uart::Configuration {
-            .name = "UART1",  // Changed to UART1, moved from UART0 to avoid USB conflict
+            .name = "UART1",
             .port = UART_NUM_1,
-            .rxPin = GPIO_NUM_26,  // Moved from GPIO 3 (USB) to avoid RGB LED conflict
-            .txPin = GPIO_NUM_27,  // Moved from GPIO 1 (USB) to avoid RGB LED conflict
+            .rxPin = GPIO_NUM_26,
+            .txPin = GPIO_NUM_27,
             .rtsPin = GPIO_NUM_NC,
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
@@ -123,33 +123,4 @@ extern const Configuration cyd_2432s028r_config = {
             }
         }
     }
-    /*
-    // Optional: RGB LED (uncomment to enable)
-    .gpio = {
-        { GPIO_NUM_4, GPIO_MODE_OUTPUT, false },  // Red
-        { GPIO_NUM_16, GPIO_MODE_OUTPUT, false }, // Green
-        { GPIO_NUM_17, GPIO_MODE_OUTPUT, false }, // Blue
-        { GPIO_NUM_22, GPIO_MODE_INPUT, true },   // Extended GPIO (P3)
-        { GPIO_NUM_34, GPIO_MODE_INPUT, true },   // Extended GPIO (CDS if not ADC)
-        { GPIO_NUM_35, GPIO_MODE_INPUT, true }    // Extended GPIO (P3)
-    },
-    // Optional: CDS Light Sensor (uncomment to enable)
-    .adc = {
-        adc::Configuration {
-            .unit = ADC_UNIT_1,
-            .channel = ADC1_CHANNEL_6,  // GPIO 34
-            .atten = ADC_ATTEN_DB_11,
-            .bitwidth = ADC_WIDTH_BIT_12
-        }
-    },
-    // Optional: Speaker PWM (uncomment to enable)
-    .pwm = {
-        pwm::Configuration {
-            .channel = LEDC_CHANNEL_0,
-            .pin = GPIO_NUM_26,
-            .freq_hz = 1000,
-            .timer = LEDC_TIMER_0
-        }
-    }
-    */
 };
