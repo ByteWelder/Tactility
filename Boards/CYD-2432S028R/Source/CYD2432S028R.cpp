@@ -5,10 +5,10 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 
-#define CYD_SPI_TRANSFER_SIZE_LIMIT (240 * 320 / 4 * 2) // Matches LVGL buffer size
+#define CYD_SPI_TRANSFER_SIZE_LIMIT (240 * 320 / 4 * 2)
 
 bool initBoot() {
-    return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN); // Initialize backlight
+    return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN);
 }
 
 const tt::hal::Configuration cyd_2432s028r_config = {
@@ -16,9 +16,9 @@ const tt::hal::Configuration cyd_2432s028r_config = {
     .createDisplay = createDisplay,
     .sdcard = createYellowSdCard(),
     .power = nullptr,
-    .i2c = {}, // No I2C devices specified
+    .i2c = {},
     .spi = {
-        // SPI2_HOST for display and touch
+        // SPI2_HOST for display
         tt::hal::spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -42,7 +42,7 @@ const tt::hal::Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        // SPI3_HOST for SD card
+        // SPI3_HOST for SD card and touch (adjusted from JSON)
         tt::hal::spi::Configuration {
             .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
