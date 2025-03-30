@@ -49,17 +49,14 @@ private:
         }
     }
 
-    static void onUpdate(std::shared_ptr<void> context) {
-        auto service = std::static_pointer_cast<SdCardService>(context);
-        service->update();
-    }
-
 public:
 
     void onStart(ServiceContext& serviceContext) final {
         if (hal::getConfiguration()->sdcard != nullptr) {
-            auto service = findServiceById(manifest.id);
-            updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, service);
+            auto service = findServiceById<SdCardService>(manifest.id);
+            updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
+                service->update();
+            });
             // We want to try and scan more often in case of startup or scan lock failure
             updateTimer->start(1000);
         } else {

@@ -55,7 +55,7 @@ static const char* getEventName(SystemEvent event) {
     tt_crash(); // Missing case above
 }
 
-void systemEventPublish(SystemEvent event) {
+void publishSystemEvent(SystemEvent event) {
     TT_LOG_I(TAG, "%s", getEventName(event));
 
     if (mutex.lock(portMAX_DELAY)) {
@@ -69,7 +69,7 @@ void systemEventPublish(SystemEvent event) {
     }
 }
 
-SystemEventSubscription systemEventAddListener(SystemEvent event, std::function<void(SystemEvent)> handler) {
+SystemEventSubscription subscribeSystemEvent(SystemEvent event, OnSystemEvent handler) {
     if (mutex.lock(portMAX_DELAY)) {
         auto id = ++subscriptionCounter;
 
@@ -86,7 +86,7 @@ SystemEventSubscription systemEventAddListener(SystemEvent event, std::function<
     }
 }
 
-void systemEventRemoveListener(SystemEventSubscription subscription) {
+void unsubscribeSystemEvent(SystemEventSubscription subscription) {
     if (mutex.lock(portMAX_DELAY)) {
         std::erase_if(subscriptions, [subscription](auto& item) {
             return (item.id == subscription);

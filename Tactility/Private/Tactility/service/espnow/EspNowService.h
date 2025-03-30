@@ -31,10 +31,8 @@ private:
     bool enabled = false;
 
     // Dispatcher calls this and forwards to non-static function
-    static void enableFromDispatcher(std::shared_ptr<void> context);
     void enableFromDispatcher(const EspNowConfig& config);
 
-    static void disableFromDispatcher(std::shared_ptr<void> context);
     void disableFromDispatcher();
 
     static void receiveCallback(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length);

@@ -117,7 +117,7 @@ private:
         lv_obj_add_event_cb(btn, &onListItemSelectedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
     }
 
-    static void updateTimerCallback(std::shared_ptr<void> context) {
+    static void updateTimerCallback() {
         auto appContext = getCurrentAppContext();
         if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
             auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
@@ -231,7 +231,7 @@ public:
     }
 
     void onCreate(AppContext& app) override {
-        updateTimer = std::make_unique<Timer>(Timer::Type::Once, updateTimerCallback, nullptr);
+        updateTimer = std::make_unique<Timer>(Timer::Type::Once, []() { updateTimerCallback(); });
     }
 };
 

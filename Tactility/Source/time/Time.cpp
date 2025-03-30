@@ -32,7 +32,7 @@ void setTimeZone(const std::string& name, const std::string& code) {
     setenv("TZ", code.c_str(), 1);
     tzset();
 
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 std::string getTimeZoneName() {
@@ -65,7 +65,7 @@ bool isTimeFormat24Hour() {
 void setTimeFormat24Hour(bool show24Hour) {
     Preferences preferences(TIME_SETTINGS_NAMESPACE);
     preferences.putBool(TIMEZONE_PREFERENCES_KEY_TIME24, show24Hour);
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 #else
@@ -79,7 +79,7 @@ void init() {}
 void setTimeZone(const std::string& name, const std::string& code) {
     timeZoneName = name;
     timeZoneCode = code;
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 std::string getTimeZoneName() {
@@ -96,7 +96,7 @@ bool isTimeFormat24Hour() {
 
 void setTimeFormat24Hour(bool enabled) {
     show24Hour = enabled;
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 #endif

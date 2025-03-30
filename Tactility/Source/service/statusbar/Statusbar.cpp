@@ -223,8 +223,7 @@ private:
         updatePowerStatusIcon();
     }
 
-    static void onUpdate(std::shared_ptr<void> parameter) {
-        auto service = std::static_pointer_cast<StatusbarService>(parameter);
+    static void onUpdate(const std::shared_ptr<StatusbarService>& service) {
         service->update();
     }
 
@@ -242,11 +241,14 @@ public:
         // TODO: Make thread-safe for LVGL
         lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
 
-        auto service = findServiceById(manifest.id);
+        auto service = findServiceById<StatusbarService>(manifest.id);
         assert(service);
         onUpdate(service);
 
-        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdate, service);
+        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
+            onUpdate(service);
+        });
+
         // We want to try and scan more often in case of startup or scan lock failure
         updateTimer->start(1000);
     }

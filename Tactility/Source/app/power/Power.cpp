@@ -33,7 +33,7 @@ class PowerApp : public App {
 
 private:
 
-    Timer update_timer = Timer(Timer::Type::Periodic, &onTimer, nullptr);
+    Timer update_timer = Timer(Timer::Type::Periodic, []() { onTimer(); });
 
     std::shared_ptr<hal::power::PowerDevice> power;
 
@@ -44,7 +44,7 @@ private:
     lv_obj_t* chargeLevelLabel = nullptr;
     lv_obj_t* currentLabel = nullptr;
 
-    static void onTimer(TT_UNUSED std::shared_ptr<void> context) {
+    static void onTimer() {
         auto app = optApp();
         if (app != nullptr) {
             app->updateUi();

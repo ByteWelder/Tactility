@@ -45,7 +45,7 @@ private:
 
     static void onSelectBusCallback(lv_event_t* event);
     static void onPressScanCallback(lv_event_t* event);
-    static void onScanTimerCallback(std::shared_ptr<void> context);
+    static void onScanTimerCallback();
 
     void onSelectBus(lv_event_t* event);
     void onPressScan(lv_event_t* event);
@@ -180,7 +180,7 @@ void I2cScannerApp::onPressScanCallback(lv_event_t* event) {
     }
 }
 
-void I2cScannerApp::onScanTimerCallback(TT_UNUSED std::shared_ptr<void> context) {
+void I2cScannerApp::onScanTimerCallback() {
     auto app = optApp();
     if (app != nullptr) {
         app->onScanTimer();
@@ -284,10 +284,9 @@ void I2cScannerApp::startScanning() {
         lv_obj_clean(scanListWidget);
 
         scanState = ScanStateScanning;
-        scanTimer = std::make_unique<Timer>(
-            Timer::Type::Once,
-            onScanTimerCallback
-        );
+        scanTimer = std::make_unique<Timer>(Timer::Type::Once, [](){
+            onScanTimerCallback();
+        });
         scanTimer->start(10);
         mutex.unlock();
     } else {

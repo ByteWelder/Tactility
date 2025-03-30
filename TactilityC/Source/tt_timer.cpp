@@ -3,23 +3,14 @@
 
 struct TimerWrapper {
     std::unique_ptr<tt::Timer> timer;
-    TimerCallback callback;
-    void* _Nullable callbackContext;
 };
 
 extern "C" {
 
 
-static void callbackWrapper(std::shared_ptr<void> wrapper) {
-    auto timer_wrapper = (TimerWrapper*)wrapper.get();
-    timer_wrapper->callback(timer_wrapper->callbackContext);
-}
-
 TimerHandle tt_timer_alloc(TimerType type, TimerCallback callback, void* callbackContext) {
     auto wrapper = std::make_shared<TimerWrapper>();
-    wrapper->callback = callback;
-    wrapper->callbackContext = callbackContext;
-    wrapper->timer = std::make_unique<tt::Timer>((tt::Timer::Type)type, callbackWrapper, wrapper);
+    wrapper->timer = std::make_unique<tt::Timer>((tt::Timer::Type)type, [callback, callbackContext](){ callback(callbackContext); });
     return wrapper.get();
 }
 

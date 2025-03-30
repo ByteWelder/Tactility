@@ -11,6 +11,8 @@ class DispatcherThread {
     std::unique_ptr<Thread> thread;
     bool interruptThread = false;
 
+    int32_t threadMain();
+
 public:
 
     explicit DispatcherThread(const std::string& threadName, size_t threadStackSize = 4096);
@@ -19,16 +21,13 @@ public:
     /**
      * Dispatch a message.
      */
-    void dispatch(Dispatcher::Function function, std::shared_ptr<void> context, TickType_t timeout = portMAX_DELAY);
+    void dispatch(Dispatcher::Function function, TickType_t timeout = portMAX_DELAY);
 
     /** Start the thread (blocking). */
     void start();
 
     /** Stop the thread (blocking). */
     void stop();
-
-    /** Internal method */
-    void _threadMain();
 };
 
 }
