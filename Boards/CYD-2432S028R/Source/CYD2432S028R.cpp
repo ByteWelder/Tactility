@@ -5,13 +5,18 @@
 #include "hal/YellowSDCard.h"
 
 #include <Tactility/hal/Configuration.h>
+#include <esp_log.h>
 
 #define YELLOW_SPI_TRANSFER_SIZE_LIMIT (YELLOW_LCD_HORIZONTAL_RESOLUTION * YELLOW_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
 using namespace tt::hal;
 
+static const char* TAG = "cyd_config";
+
 bool initBoot() {
-    return driver::pwmbacklight::init(GPIO_NUM_21);
+    bool success = driver::pwmbacklight::init(GPIO_NUM_21);
+    ESP_LOGI(TAG, "Backlight init: %s", success ? "success" : "failed");
+    return success;
 }
 
 extern const Configuration cyd_2432s028r_config = {
@@ -40,7 +45,7 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByExternal,  // SPI2 initialized by ILI9341 driver
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
@@ -94,7 +99,6 @@ extern const Configuration cyd_2432s028r_config = {
         }
     },
     .uart {
-        // UART0 (corrected for CYD's USB serial)
         uart::Configuration {
             .name = "UART0",
             .port = UART_NUM_0,
@@ -107,7 +111,7 @@ extern const Configuration cyd_2432s028r_config = {
             .config = {
                 .baud_rate = 115200,
                 .data_bits = UART_DATA_8_BITS,
-                .parity    = UART_PARITY_DISABLE,
+                .parity = UART_PARITY_DISABLE,
                 .stop_bits = UART_STOP_BITS_1,
                 .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
                 .rx_flow_ctrl_thresh = 0,
