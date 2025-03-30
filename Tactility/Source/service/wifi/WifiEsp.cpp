@@ -437,6 +437,9 @@ static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
     if (find_auto_connect_ap(wifi, settings)) {
         TT_LOG_I(TAG, "Auto-connecting to %s", settings.ssid);
         connect(&settings, false);
+        // TODO: We currently have to manually reset it because connect() sets it.
+        // connect() assumes it's only being called by the user and not internally, so it disables auto-connect
+        wifi->pause_auto_connect = false;
     }
 }
 
