@@ -42,14 +42,14 @@ const tt::hal::Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        // SPI3_HOST for SD card and touch (adjusted from JSON)
+        // SPI3_HOST for SD card and touch
         tt::hal::spi::Configuration {
             .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_23,
-                .miso_io_num = GPIO_NUM_19,
-                .sclk_io_num = GPIO_NUM_18,
+                .mosi_io_num = GPIO_NUM_32,  // Touch-specific pins from JSON
+                .miso_io_num = GPIO_NUM_39,
+                .sclk_io_num = GPIO_NUM_25,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
