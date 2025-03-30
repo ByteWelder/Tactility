@@ -10,7 +10,7 @@ using tt::hal::sdcard::SpiSdCardDevice;
 std::shared_ptr<SdCardDevice> createSdCard() {
     ESP_LOGI("sdcard", "Creating SD card on SPI3_HOST");
     auto* configuration = new SpiSdCardDevice::Config(
-        GPIO_NUM_5,
+        GPIO_NUM_5,  // CS pin for CYD
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
