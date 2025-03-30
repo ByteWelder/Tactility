@@ -2,5 +2,5 @@
 
 #include <Tactility/hal/Configuration.h>
 
-// Capacitive touch version of the 2.8" yellow board
+// Configuration for the ESP32-2432S028R (Cheap Yellow Display)
 extern const tt::hal::Configuration cyd_2432s028r_config;
