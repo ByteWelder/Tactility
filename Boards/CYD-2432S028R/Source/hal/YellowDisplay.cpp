@@ -12,6 +12,14 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,
         CYD_DISPLAY_VERTICAL_RESOLUTION
     );
+    configuration->spi_config = {  // Add custom SPI settings
+        .mosi_io_num = GPIO_NUM_32,
+        .miso_io_num = GPIO_NUM_39,
+        .sclk_io_num = GPIO_NUM_25,
+        .max_transfer_sz = 4096,
+        .spi_mode = SPI_MODE0,
+        .pclk_hz = 2000000  // JSON’s 2MHz
+    };
     return std::make_shared<Xpt2046Touch>(std::move(configuration));
 }
 
@@ -25,9 +33,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD_DISPLAY_VERTICAL_RESOLUTION,
         touch
     );
-
-    configuration->mirrorX = true; // Per JSON: DISPLAY_MIRROR_X=true
+    configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }
