@@ -88,4 +88,54 @@ std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     }
 }
 
+static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
+    struct stat dir_stat;
+    if (mkdir(path.c_str(), mode) == 0) {
+        return true;
+    }
+
+    if (errno != EEXIST) {
+        return false;
+    }
+
+    if (stat(path.c_str(), &dir_stat) != 0) {
+        return false;
+    }
+
+    if (!S_ISDIR(dir_stat.st_mode)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool findOrCreateDirectory(std::string path, mode_t mode) {
+    if (path.empty()) {
+        return true;
+    }
+    TT_LOG_D(TAG, "findOrCreate: %s %lu", path.c_str(), mode);
+
+    const char separator_to_find[] = {SEPARATOR, 0x00};
+    auto first_index = path[0] == SEPARATOR ? 1 : 0;
+    auto separator_index = path.find(separator_to_find, first_index);
+
+    bool should_break = false;
+    while (!should_break) {
+        bool is_last_segment = (separator_index == std::string::npos);
+        auto to_create = is_last_segment ? path : path.substr(0, separator_index);
+        should_break = is_last_segment;
+        if (!findOrCreateDirectoryInternal(to_create, mode)) {
+            TT_LOG_E(TAG, "Failed to create %s", to_create.c_str());
+            return false;
+        } else {
+            TT_LOG_D(TAG, "  - got: %s", to_create.c_str());
+        }
+
+        // Find next file separator index
+        separator_index = path.find(separator_to_find, separator_index + 1);
+    }
+
+    return true;
+}
+
 }

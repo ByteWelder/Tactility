@@ -79,13 +79,13 @@ bool isSupportedImageFile(const std::string& filename) {
 bool isSupportedTextFile(const std::string& filename) {
     std::string filename_lower = string::lowercase(filename);
     return filename_lower.ends_with(".txt") ||
-           filename_lower.ends_with(".ini") ||
-           filename_lower.ends_with(".json") ||
-           filename_lower.ends_with(".yaml") ||
-           filename_lower.ends_with(".yml") ||
-           filename_lower.ends_with(".lua") ||
-           filename_lower.ends_with(".js") ||
-           filename_lower.ends_with(".properties");
+        filename_lower.ends_with(".ini") ||
+        filename_lower.ends_with(".json") ||
+        filename_lower.ends_with(".yaml") ||
+        filename_lower.ends_with(".yml") ||
+        filename_lower.ends_with(".lua") ||
+        filename_lower.ends_with(".js") ||
+        filename_lower.ends_with(".properties");
 }
 
-}
+} // namespace tt::app::files

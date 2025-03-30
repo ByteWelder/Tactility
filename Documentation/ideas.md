@@ -1,4 +1,5 @@
 # TODOs
+- rename kernel::systemEventAddListener() etc to subscribe/unsubscribe
 - Split up boot stages, so the last stage can be done from the splash screen
 - Start using non_null (either via MS GSL, or custom)
 - `hal/Configuration.h` defines C function types: Use C++ std::function instead

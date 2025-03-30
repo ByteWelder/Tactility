@@ -1,7 +1,6 @@
 #include "Tactility/hal/gps/Cas.h"
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/gps/Ublox.h"
-#include "Tactility/service/Service.h"
 #include <cstring>
 
 #define TAG "gps"
@@ -132,17 +131,6 @@ GpsResponse getACKCas(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32
 }
 
 // endregion
-
-
-/** Initialize the HAL with the provided configuration */
-bool init(const std::vector<GpsDevice::Configuration>& configurations) {
-    for (auto& configuration : configurations) {
-        auto device = std::make_shared<GpsDevice>(configuration);
-        hal::registerDevice(std::move(device));
-    }
-
-    return true;
-}
 
 bool init(uart::Uart& uart, GpsModel type) {
     switch (type) {

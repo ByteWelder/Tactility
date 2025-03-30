@@ -79,13 +79,5 @@ extern const Configuration hardware = {
             .name = "/dev/ttyACM0",
             .baudRate = 115200
         }
-    },
-    .gps = {
-        gps::GpsDevice::Configuration {
-            .name = "Internal",
-            .uartName = "/dev/ttyACM0",
-            .baudRate = 115200,
-            .model = gps::GpsModel::UBLOX10
-        }
     }
 };

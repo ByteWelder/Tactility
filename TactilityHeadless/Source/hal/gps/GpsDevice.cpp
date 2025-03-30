@@ -5,44 +5,10 @@
 #include <cstring>
 #include <minmea.h>
 
-#define TAG "gps"
-#define GPS_UART_BUFFER_SIZE 256
-
 namespace tt::hal::gps {
 
-const char* toString(GpsModel model) {
-    using enum GpsModel;
-    switch (model) {
-        case AG3335:
-            return TT_STRINGIFY(AG3335);
-        case AG3352:
-            return TT_STRINGIFY(AG3352);
-        case ATGM336H:
-            return TT_STRINGIFY(ATGM336H);
-        case LS20031:
-            return TT_STRINGIFY(LS20031);
-        case MTK:
-            return TT_STRINGIFY(MTK);
-        case MTK_L76B:
-            return TT_STRINGIFY(MTK_L76B);
-        case MTK_PA1616S:
-            return TT_STRINGIFY(MTK_PA1616S);
-        case UBLOX6:
-            return TT_STRINGIFY(UBLOX6);
-        case UBLOX7:
-            return TT_STRINGIFY(UBLOX7);
-        case UBLOX8:
-            return TT_STRINGIFY(UBLOX8);
-        case UBLOX9:
-            return TT_STRINGIFY(UBLOX9);
-        case UBLOX10:
-            return TT_STRINGIFY(UBLOX10);
-        case UC6580:
-            return TT_STRINGIFY(UC6580);
-        default:
-            return TT_STRINGIFY(Unknown);
-    }
-}
+constexpr uint32_t GPS_UART_BUFFER_SIZE = 256;
+constexpr const char* TAG = "GpsDevice";
 
 int32_t GpsDevice::threadMainStatic(void* parameter) {
     auto* gps_device = (GpsDevice*)parameter;
@@ -54,17 +20,17 @@ int32_t GpsDevice::threadMain() {
 
     auto uart = uart::open(configuration.uartName);
     if (uart == nullptr) {
-        TT_LOG_E(TAG, "Failed to open UART %s", configuration.uartName.c_str());
+        TT_LOG_E(TAG, "Failed to open UART %s", configuration.uartName);
         return -1;
     }
 
     if (!uart->start()) {
-        TT_LOG_E(TAG, "Failed to start UART %s", configuration.uartName.c_str());
+        TT_LOG_E(TAG, "Failed to start UART %s", configuration.uartName);
         return -1;
     }
 
     if (!uart->setBaudRate((int)configuration.baudRate)) {
-        TT_LOG_E(TAG, "Failed to set baud rate to %lu for UART %s", configuration.baudRate, configuration.uartName.c_str());
+        TT_LOG_E(TAG, "Failed to set baud rate to %lu for UART %s", configuration.baudRate, configuration.uartName);
         return -1;
     }
 
@@ -77,7 +43,6 @@ int32_t GpsDevice::threadMain() {
             return -1;
         }
     }
-
     mutex.lock();
     this->model = model;
     mutex.unlock();
@@ -101,7 +66,7 @@ int32_t GpsDevice::threadMain() {
 
         if (bytes_read > 0U) {
 
-            TT_LOG_D(TAG, "%s", buffer);
+            TT_LOG_I(TAG, "[%ul] %s", bytes_read, buffer);
 
             switch (minmea_sentence_id((char*)buffer, false)) {
                 case MINMEA_SENTENCE_RMC:
@@ -137,7 +102,7 @@ int32_t GpsDevice::threadMain() {
     }
 
     if (uart->isStarted() && !uart->stop()) {
-        TT_LOG_W(TAG, "Failed to stop UART %s", configuration.uartName.c_str());
+        TT_LOG_W(TAG, "Failed to stop UART %s", configuration.uartName);
     }
 
     return 0;

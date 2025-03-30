@@ -1,23 +1,27 @@
 #include "M5stackCoreS3.h"
 #include "InitBoot.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "hal/CoreS3Display.h"
 #include "hal/CoreS3DisplayConstants.h"
 #include "hal/CoreS3Power.h"
 #include "hal/CoreS3SdCard.h"
 
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/hal/uart/Uart.h>
+
 #define CORES3_TRANSACTION_SIZE (CORES3_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
-const tt::hal::Configuration m5stack_cores3 = {
+using namespace tt::hal;
+
+const Configuration m5stack_cores3 = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
     .power = createPower,
     .i2c = {
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
@@ -31,10 +35,10 @@ const tt::hal::Configuration m5stack_cores3 = {
                 .clk_flags = 0
             }
         },
-        tt::hal::i2c::Configuration {
-            .name = "External", // Grove
+        i2c::Configuration {
+            .name = "Port A", // Grove
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::Disabled,
             .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
@@ -47,10 +51,44 @@ const tt::hal::Configuration m5stack_cores3 = {
                 },
                 .clk_flags = 0
             }
+        },
+        i2c::Configuration {
+            .name = "Port B", // Grove
+            .port = I2C_NUM_1,
+            .initMode = i2c::InitMode::Disabled,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_9,
+                .scl_io_num = GPIO_NUM_8,
+                .sda_pullup_en = true,
+                .scl_pullup_en = true,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
+        },
+        i2c::Configuration {
+            .name = "Port C", // Grove
+            .port = I2C_NUM_1,
+            .initMode = i2c::InitMode::Disabled,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_18,
+                .scl_io_num = GPIO_NUM_17,
+                .sda_pullup_en = true,
+                .scl_pullup_en = true,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
         }
     },
     .spi {
-        tt::hal::spi::Configuration {
+        spi::Configuration {
             .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
@@ -69,9 +107,80 @@ const tt::hal::Configuration m5stack_cores3 = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
+        }
+    },
+    .uart {
+        uart::Configuration {
+            .name = "Port A",
+            .port = UART_NUM_1,
+            .rxPin = GPIO_NUM_2,
+            .txPin = GPIO_NUM_1,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        },
+        uart::Configuration {
+            .name = "Port B",
+            .port = UART_NUM_1,
+            .rxPin = GPIO_NUM_9,
+            .txPin = GPIO_NUM_8,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        },
+        uart::Configuration {
+            .name = "Port C",
+            .port = UART_NUM_1,
+            .rxPin = GPIO_NUM_18,
+            .txPin = GPIO_NUM_17,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
         }
     }
 };

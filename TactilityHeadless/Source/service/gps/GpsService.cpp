@@ -1,11 +1,16 @@
 #include "Tactility/service/gps/GpsService.h"
 #include "Tactility/service/ServiceManifest.h"
+#include "Tactility/service/ServiceRegistry.h"
 
-#define TAG "gps_service"
+#include <Tactility/Log.h>
+#include <Tactility/file/File.h>
 
 using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
+
+constexpr const char* TAG = "GpsService";
+extern const ServiceManifest manifest;
 
 constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
     return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
@@ -15,7 +20,7 @@ GpsService::GpsDeviceRecord* _Nullable GpsService::findGpsRecord(const std::shar
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    auto result = std::views::filter(deviceRecords, [&device](auto& record){
+    auto result = std::views::filter(deviceRecords, [&device](auto& record) {
         return record.device.get() == device.get();
     });
     if (!result.empty()) {
@@ -29,7 +34,7 @@ void GpsService::addGpsDevice(const std::shared_ptr<GpsDevice>& device) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    GpsDeviceRecord record = { .device = device };
+    GpsDeviceRecord record = {.device = device};
 
     if (getState() == State::On) { // Ignore during OnPending due to risk of data corruptiohn
         startGpsDevice(record);
@@ -48,25 +53,19 @@ void GpsService::removeGpsDevice(const std::shared_ptr<GpsDevice>& device) {
         stopGpsDevice(*record);
     }
 
-    std::erase_if(deviceRecords, [&device](auto& reference){
+    std::erase_if(deviceRecords, [&device](auto& reference) {
         return reference.device.get() == device.get();
     });
 }
 
-void GpsService::onStart(tt::service::ServiceContext &serviceContext) {
+void GpsService::onStart(tt::service::ServiceContext& serviceContext) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    deviceRecords.clear();
-
-    auto devices = hal::findDevices<GpsDevice>(hal::Device::Type::Gps);
-    for (auto& device : devices) {
-        TT_LOG_I(TAG, "[device %lu] added", device->getId());
-        addGpsDevice(device);
-    }
+    paths = serviceContext.getPaths();
 }
 
-void GpsService::onStop(tt::service::ServiceContext &serviceContext) {
+void GpsService::onStop(tt::service::ServiceContext& serviceContext) {
     if (getState() == State::On) {
         stopReceiving();
     }
@@ -126,14 +125,39 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
 bool GpsService::startReceiving() {
     TT_LOG_I(TAG, "Start receiving");
 
+    if (getState() != State::Off) {
+        TT_LOG_E(TAG, "Already receiving");
+        return false;
+    }
+
     setState(State::OnPending);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
 
+    deviceRecords.clear();
+
+    std::vector<hal::gps::GpsConfiguration> configurations;
+    if (!getGpsConfigurations(configurations)) {
+        TT_LOG_E(TAG, "Failed to get GPS configurations");
+        setState(State::Off);
+        return false;
+    }
+
+    if (configurations.empty()) {
+        TT_LOG_E(TAG, "No GPS configurations");
+        setState(State::Off);
+        return false;
+    }
+
+    for (const auto& configuration: configurations) {
+        auto device = std::make_shared<GpsDevice>(configuration);
+        addGpsDevice(device);
+    }
+
     bool started_one_or_more = false;
 
-    for (auto& record : deviceRecords) {
+    for (auto& record: deviceRecords) {
         started_one_or_more |= startGpsDevice(record);
     }
 
@@ -156,7 +180,7 @@ void GpsService::stopReceiving() {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    for (auto& record : deviceRecords) {
+    for (auto& record: deviceRecords) {
         stopGpsDevice(record);
     }
 
@@ -202,9 +226,15 @@ bool GpsService::getCoordinates(minmea_sentence_rmc& rmc) const {
     }
 }
 
+std::shared_ptr<GpsService> findGpsService() {
+    auto service = findServiceById(manifest.id);
+    assert(service != nullptr);
+    return std::static_pointer_cast<GpsService>(service);
+}
+
 extern const ServiceManifest manifest = {
     .id = "Gps",
     .createService = create<GpsService>
 };
 
-} // tt::hal::gps
+} // namespace tt::service::gps

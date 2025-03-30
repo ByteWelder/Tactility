@@ -30,6 +30,7 @@ namespace service {
 // region Default apps
 
 namespace app {
+    namespace addgps { extern const AppManifest manifest; }
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
     namespace chat { extern const AppManifest manifest; }
@@ -70,6 +71,7 @@ namespace app {
 // endregion
 
 static void registerSystemApps() {
+    addApp(app::addgps::manifest);
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
     addApp(app::display::manifest);

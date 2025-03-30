@@ -104,13 +104,5 @@ extern const Configuration lilygo_tdeck = {
                 }
             }
         }
-    },
-    .gps = {
-        gps::GpsDevice::Configuration {
-            .name = "Internal",
-            .uartName = "Grove",
-            .baudRate = 38400,
-            .model = gps::GpsModel::UBLOX10
-        }
     }
 };

@@ -86,6 +86,5 @@ extern const Configuration crowpanel_basic_50 = {
                 }
             }
         }
-    },
-    .gps = {}
+    }
 };
