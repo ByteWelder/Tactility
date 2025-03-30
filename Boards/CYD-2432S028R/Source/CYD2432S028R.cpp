@@ -27,7 +27,7 @@ extern const Configuration cyd_2432s028r_config = {
     .spi {
         // Display (ILI9341 on SPI2_HOST)
         spi::Configuration {
-            .device = SPI1_HOST,
+            .device = SPI2_HOST,  // Fixed from SPI1_HOST
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_13,
@@ -49,9 +49,9 @@ extern const Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        // Touch (XPT2046 on SPI2_HOST)
+        // Touch (XPT2046 on SPI1_HOST)
         spi::Configuration {
-            .device = SPI2_HOST,
+            .device = SPI1_HOST,  // Fixed from SPI2_HOST
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_32,
@@ -100,10 +100,10 @@ extern const Configuration cyd_2432s028r_config = {
     },
     .uart {
         uart::Configuration {
-            .name = "UART0",
-            .port = UART_NUM_0,
-            .rxPin = GPIO_NUM_3,
-            .txPin = GPIO_NUM_1,
+            .name = "UART1",  // Changed to UART1, moved from UART0 to avoid USB conflict
+            .port = UART_NUM_1,
+            .rxPin = GPIO_NUM_26,  // Moved from GPIO 3 (USB) to avoid RGB LED conflict
+            .txPin = GPIO_NUM_27,  // Moved from GPIO 1 (USB) to avoid RGB LED conflict
             .rtsPin = GPIO_NUM_NC,
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
@@ -129,9 +129,9 @@ extern const Configuration cyd_2432s028r_config = {
         { GPIO_NUM_4, GPIO_MODE_OUTPUT, false },  // Red
         { GPIO_NUM_16, GPIO_MODE_OUTPUT, false }, // Green
         { GPIO_NUM_17, GPIO_MODE_OUTPUT, false }, // Blue
-        { GPIO_NUM_27, GPIO_MODE_INPUT, true },   // Extended GPIO (CN1)
-        { GPIO_NUM_35, GPIO_MODE_INPUT, true },   // Extended GPIO (P3)
-        { GPIO_NUM_22, GPIO_MODE_INPUT, true }    // Extended GPIO (P3)
+        { GPIO_NUM_22, GPIO_MODE_INPUT, true },   // Extended GPIO (P3)
+        { GPIO_NUM_34, GPIO_MODE_INPUT, true },   // Extended GPIO (CDS if not ADC)
+        { GPIO_NUM_35, GPIO_MODE_INPUT, true }    // Extended GPIO (P3)
     },
     // Optional: CDS Light Sensor (uncomment to enable)
     .adc = {
