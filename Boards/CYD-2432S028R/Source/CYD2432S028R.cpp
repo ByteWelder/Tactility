@@ -6,7 +6,7 @@
 
 #include <Tactility/hal/Configuration.h>
 
-#define YELLOW_SPI_TRANSFER_SIZE_LIMIT (LCD_HORIZONTAL_RESOLUTION * YELLOW_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#define YELLOW_SPI_TRANSFER_SIZE_LIMIT (YELLOW_LCD_HORIZONTAL_RESOLUTION * YELLOW_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
 using namespace tt::hal;
 
@@ -14,7 +14,7 @@ bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_21);
 }
 
-extern const Configuration cyd_2432s028r = {
+extern const Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createSdCard(),
