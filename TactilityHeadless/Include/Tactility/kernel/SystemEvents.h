@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 namespace tt::kernel {
 
@@ -26,10 +27,12 @@ enum class SystemEvent {
 /** Value 0 mean "no subscription" */
 typedef uint32_t SystemEventSubscription;
 
-typedef void (*OnSystemEvent)(SystemEvent event);
+typedef std::function<void(SystemEvent)> OnSystemEvent;
 
 void systemEventPublish(SystemEvent event);
+
 SystemEventSubscription systemEventAddListener(SystemEvent event, OnSystemEvent handler);
+
 void systemEventRemoveListener(SystemEventSubscription subscription);
 
 }

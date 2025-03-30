@@ -2,11 +2,12 @@
 
 #include <dirent.h>
 #include <string>
+#include <sys/stat.h>
 #include <vector>
 
 namespace tt::app::files {
 
-    /** File types for `dirent`'s `d_type`. */
+/** File types for `dirent`'s `d_type`. */
 enum {
     TT_DT_UNKNOWN = 0,
 #define TT_DT_UNKNOWN TT_DT_UNKNOWN // Unknown type
@@ -27,6 +28,7 @@ enum {
     TT_DT_WHT = 14
 #define TT_DT_WHT TT_DT_WHT // Whiteout inodes
 };
+
 
 std::string getChildPath(const std::string& basePath, const std::string& childPath);
 

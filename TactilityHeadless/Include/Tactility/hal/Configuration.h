@@ -53,9 +53,6 @@ struct Configuration {
 
     /** A list of UART interface configurations */
     const std::vector<uart::Configuration> uart = {};
-
-    /** A list of GPS device configurations */
-    const std::vector<gps::GpsDevice::Configuration> gps = {};
 };
 
 } // namespace

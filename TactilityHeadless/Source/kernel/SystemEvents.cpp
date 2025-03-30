@@ -69,7 +69,7 @@ void systemEventPublish(SystemEvent event) {
     }
 }
 
-SystemEventSubscription systemEventAddListener(SystemEvent event, OnSystemEvent handler) {
+SystemEventSubscription systemEventAddListener(SystemEvent event, std::function<void(SystemEvent)> handler) {
     if (mutex.lock(portMAX_DELAY)) {
         auto id = ++subscriptionCounter;
 

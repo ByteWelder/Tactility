@@ -8,6 +8,8 @@
 
 #include <cstring>
 #include <unistd.h>
+#include <vector>
+#include <dirent.h>
 
 #define TAG "files_app"
 
@@ -48,12 +50,12 @@ bool State::setEntriesForPath(const std::string& path) {
     if (show_custom_root) {
         TT_LOG_I(TAG, "Setting custom root");
         dir_entries.clear();
-        dir_entries.push_back({
+        dir_entries.push_back(dirent{
             .d_ino = 0,
             .d_type = TT_DT_DIR,
             .d_name = SYSTEM_PARTITION_NAME
         });
-        dir_entries.push_back({
+        dir_entries.push_back(dirent{
             .d_ino = 1,
             .d_type = TT_DT_DIR,
             .d_name = DATA_PARTITION_NAME

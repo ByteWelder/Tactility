@@ -3,6 +3,7 @@
 #include "Tactility/Partitions.h"
 
 #define LVGL_PATH_PREFIX std::string("A:/")
+
 #ifdef ESP_PLATFORM
 #define PARTITION_PREFIX std::string("/")
 #else
