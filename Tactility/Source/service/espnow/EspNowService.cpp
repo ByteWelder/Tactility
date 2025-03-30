@@ -38,20 +38,9 @@ void EspNowService::onStop(ServiceContext& service) {
 // region Enable
 
 void EspNowService::enable(const EspNowConfig& config) {
-    auto enable_context = std::make_shared<EspNowConfig>(config);
-    getMainDispatcher().dispatch(enableFromDispatcher, enable_context);
-}
-
-void EspNowService::enableFromDispatcher(std::shared_ptr<void> context) {
-    auto service = findService();
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not running");
-        return;
-    }
-
-    auto config = std::static_pointer_cast<EspNowConfig>(context);
-
-    service->enableFromDispatcher(*config);
+    getMainDispatcher().dispatch([this, config]() {
+        enableFromDispatcher(config);
+    });
 }
 
 void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
@@ -101,17 +90,9 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
 // region Disable
 
 void EspNowService::disable() {
-    getMainDispatcher().dispatch(disableFromDispatcher, nullptr);
-}
-
-void EspNowService::disableFromDispatcher(TT_UNUSED std::shared_ptr<void> context) {
-    auto service = findService();
-    if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not running");
-        return;
-    }
-
-    service->disableFromDispatcher();
+    getMainDispatcher().dispatch([this]() {
+        disableFromDispatcher();
+    });
 }
 
 void EspNowService::disableFromDispatcher() {

@@ -25,12 +25,12 @@ namespace tt::service::wifi {
 class Wifi;
 static void scan_list_free_safely(std::shared_ptr<Wifi> wifi);
 // Methods for main thread dispatcher
-static void dispatchAutoConnect(std::shared_ptr<void> context);
-static void dispatchEnable(std::shared_ptr<void> context);
-static void dispatchDisable(std::shared_ptr<void> context);
-static void dispatchScan(std::shared_ptr<void> context);
-static void dispatchConnect(std::shared_ptr<void> context);
-static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context);
+static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi);
+static void dispatchEnable(std::shared_ptr<Wifi> wifi);
+static void dispatchDisable(std::shared_ptr<Wifi> wifi);
+static void dispatchScan(std::shared_ptr<Wifi> wifi);
+static void dispatchConnect(std::shared_ptr<Wifi> wifi);
+static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi);
 
 class Wifi {
 
@@ -172,7 +172,7 @@ void scan() {
         return;
     }
 
-    getMainDispatcher().dispatch(dispatchScan, wifi);
+    getMainDispatcher().dispatch([wifi]() { dispatchScan(wifi); });
 }
 
 bool isScanning() {
@@ -202,10 +202,10 @@ void connect(const settings::WifiApSettings* ap, bool remember) {
     wifi->connection_target_remember = remember;
 
     if (wifi->getRadioState() == RadioState::Off) {
-        getMainDispatcher().dispatch(dispatchEnable, wifi);
+        getMainDispatcher().dispatch([wifi]() { dispatchEnable(wifi); });
     }
 
-    getMainDispatcher().dispatch(dispatchConnect, wifi);
+    getMainDispatcher().dispatch([wifi]() { dispatchConnect(wifi); });
 }
 
 void disconnect() {
@@ -227,7 +227,7 @@ void disconnect() {
     };
     // Manual disconnect (e.g. via app) should stop auto-connecting until a new connection is established
     wifi->pause_auto_connect = true;
-    getMainDispatcher().dispatch(dispatchDisconnectButKeepActive, wifi);
+    getMainDispatcher().dispatch([wifi]() { dispatchDisconnectButKeepActive(wifi); });
 }
 
 void setScanRecords(uint16_t records) {
@@ -291,10 +291,11 @@ void setEnabled(bool enabled) {
     }
 
     if (enabled) {
-        getMainDispatcher().dispatch(dispatchEnable, wifi);
+        getMainDispatcher().dispatch([wifi]() { dispatchEnable(wifi); });
     } else {
-        getMainDispatcher().dispatch(dispatchDisable, wifi);
+        getMainDispatcher().dispatch([wifi]() { dispatchDisable(wifi); });
     }
+
     wifi->pause_auto_connect = false;
     wifi->last_scan_time = 0;
 }
@@ -405,8 +406,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     }
 }
 
-static bool find_auto_connect_ap(std::shared_ptr<void> context, settings::WifiApSettings& settings) {
-    auto wifi = std::static_pointer_cast<Wifi>(context);
+static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSettings& settings) {
     auto lock = wifi->dataMutex.asScopedLock();
 
     if (lock.lock(10 / portTICK_PERIOD_MS)) {
@@ -430,12 +430,11 @@ static bool find_auto_connect_ap(std::shared_ptr<void> context, settings::WifiAp
     return false;
 }
 
-static void dispatchAutoConnect(std::shared_ptr<void> context) {
+static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchAutoConnect()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
 
     settings::WifiApSettings settings;
-    if (find_auto_connect_ap(context, settings)) {
+    if (find_auto_connect_ap(wifi, settings)) {
         TT_LOG_I(TAG, "Auto-connecting to %s", settings.ssid);
         connect(&settings, false);
     }
@@ -461,8 +460,16 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         TT_LOG_I(TAG, "eventHandler: disconnected");
-        if (wifi->getRadioState() == RadioState::ConnectionPending) {
-            wifi->connection_wait_flags.set(WIFI_FAIL_BIT);
+        switch (wifi->getRadioState()) {
+            case RadioState::ConnectionPending:
+                wifi->connection_wait_flags.set(WIFI_FAIL_BIT);
+                break;
+            case RadioState::On:
+                // Ensure we can reconnect again
+                wifi->pause_auto_connect = false;
+                break;
+            default:
+                break;
         }
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::Disconnected);
@@ -493,14 +500,13 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         TT_LOG_I(TAG, "eventHandler: Finished scan");
 
         if (copied_list && wifi_singleton->getRadioState() == RadioState::On && !wifi->pause_auto_connect) {
-            getMainDispatcher().dispatch(dispatchAutoConnect, wifi);
+            getMainDispatcher().dispatch([wifi]() { dispatchAutoConnect(wifi); });
         }
     }
 }
 
-static void dispatchEnable(std::shared_ptr<void> context) {
+static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchEnable()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
 
     RadioState state = wifi->getRadioState();
     if (
@@ -580,15 +586,17 @@ static void dispatchEnable(std::shared_ptr<void> context) {
 
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::RadioStateOn);
+
+        wifi->pause_auto_connect = false;
+
         TT_LOG_I(TAG, "Enabled");
     } else {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
 }
 
-static void dispatchDisable(std::shared_ptr<void> context) {
+static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchDisable()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
@@ -653,9 +661,8 @@ static void dispatchDisable(std::shared_ptr<void> context) {
     TT_LOG_I(TAG, "Disabled");
 }
 
-static void dispatchScan(std::shared_ptr<void> context) {
+static void dispatchScan(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchScan()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(10 / portTICK_PERIOD_MS)) {
@@ -687,9 +694,8 @@ static void dispatchScan(std::shared_ptr<void> context) {
     publish_event_simple(wifi, EventType::ScanStarted);
 }
 
-static void dispatchConnect(std::shared_ptr<void> context) {
+static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchConnect()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
@@ -786,9 +792,8 @@ static void dispatchConnect(std::shared_ptr<void> context) {
     wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
 }
 
-static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
+static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
     TT_LOG_I(TAG, "dispatchDisconnectButKeepActive()");
-    auto wifi = std::static_pointer_cast<Wifi>(context);
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
@@ -836,6 +841,7 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<void> context) {
 static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
     auto lock = wifi->dataMutex.asScopedLock();
     if (!lock.lock(100)) {
+        TT_LOG_W(TAG, "Auto-connect can't lock");
         return false;
     }
 
@@ -844,12 +850,17 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
        !wifi->pause_auto_connect;
 
     if (!is_radio_in_scannable_state) {
+        TT_LOG_W(TAG, "Auto-connect: radio state not ok (%d, %d, %d)", (int)wifi->getRadioState(), wifi->isScanActive(), wifi->pause_auto_connect);
         return false;
     }
 
     TickType_t current_time = tt::kernel::getTicks();
     bool scan_time_has_looped = (current_time < wifi->last_scan_time);
     bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
+
+    if (!scan_time_has_looped && !no_recent_scan) {
+        TT_LOG_W(TAG, "Auto-connect: scan time looped = %d, no recent scan = %d", scan_time_has_looped, no_recent_scan);
+    }
 
     return scan_time_has_looped || no_recent_scan;
 }
@@ -859,7 +870,7 @@ void onAutoConnectTimer() {
     // Automatic scanning is done so we can automatically connect to access points
     bool should_auto_scan = shouldScanForAutoConnect(wifi);
     if (should_auto_scan) {
-        getMainDispatcher().dispatch(dispatchScan, wifi);
+        getMainDispatcher().dispatch([wifi]() { dispatchScan(wifi); });
     }
 }
 
@@ -877,7 +888,7 @@ public:
 
         if (settings::shouldEnableOnBoot()) {
             TT_LOG_I(TAG, "Auto-enabling due to setting");
-            getMainDispatcher().dispatch(dispatchEnable, wifi_singleton);
+            getMainDispatcher().dispatch([]() { dispatchEnable(wifi_singleton); });
         }
     }
 

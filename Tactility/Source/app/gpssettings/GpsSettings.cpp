@@ -260,13 +260,13 @@ private:
         if (wants_on != is_on) {
             // start/stop are potentially blocking calls, so we use a dispatcher to not block the UI
             if (wants_on) {
-                getMainDispatcher().dispatch([](auto service) {
-                    std::static_pointer_cast<service::gps::GpsService>(service)->startReceiving();
-                }, service);
+                getMainDispatcher().dispatch([this]() {
+                    service->startReceiving();
+                });
             } else {
-                getMainDispatcher().dispatch([](auto service) {
-                    std::static_pointer_cast<service::gps::GpsService>(service)->stopReceiving();
-                }, service);
+                getMainDispatcher().dispatch([this]() {
+                    service->stopReceiving();
+                });
             }
         }
     }

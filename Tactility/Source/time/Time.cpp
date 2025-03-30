@@ -79,7 +79,7 @@ void init() {}
 void setTimeZone(const std::string& name, const std::string& code) {
     timeZoneName = name;
     timeZoneCode = code;
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 std::string getTimeZoneName() {
@@ -96,7 +96,7 @@ bool isTimeFormat24Hour() {
 
 void setTimeFormat24Hour(bool enabled) {
     show24Hour = enabled;
-    kernel::systemEventPublish(kernel::SystemEvent::Time);
+    kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 #endif
