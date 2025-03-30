@@ -75,3 +75,4 @@ You can also use the interrupt to respond to touch events.  Setup might look sim
 However, inside your interrupt function, if the display is no longer being touched, any attempt to read the touch position will cause the interrupt pin to create another falling edge.  This can lead to an infinite loop of falsely triggered interrupts.  Special care is needed to avoid triggering more interrupts on the low signal due to reading the touch position.
 
 For most applications, regularly reading the touch position from the main program is much simpler.
+

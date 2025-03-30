@@ -1,0 +1,13 @@
+{
+    "name": "XPT2046_TouchscreenSOFTSPI",
+    "keywords": "display, tft, lcd, graphics, SOFTSPI, touchscreen",
+    "description": "Touchscreens using the XPT2046 controller chip. Many very low cost color TFT displays with touch screens have this chip.",
+    "exclude": "doc",
+    "repository": {
+        "type": "git",
+        "url": ""
+    },
+    "frameworks": "arduino",
+    "platforms": "*",
+    "version": "1"
+}
