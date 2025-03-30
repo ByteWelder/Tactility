@@ -15,6 +15,8 @@ menu "Tactility App"
             bool "CYD 2432S022C"
         config TT_BOARD_CYD_2432S024C
             bool "CYD 2432S024C"
+        config TT_BOARD_CYD_2432S028R
+            bool "CYD 2432S028R"
         config TT_BOARD_CYD_2432S032C
             bool "CYD 2432S032C"
         config TT_BOARD_CYD_8048S043C
