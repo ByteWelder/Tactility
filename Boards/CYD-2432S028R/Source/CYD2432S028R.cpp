@@ -27,7 +27,7 @@ extern const Configuration cyd_2432s028r_config = {
     .spi {
         // Display (ILI9341 on SPI2_HOST)
         spi::Configuration {
-            .device = SPI2_HOST,
+            .device = SPI1_HOST,
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_13,
@@ -45,13 +45,13 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByExternal,  // SPI2 initialized by ILI9341 driver
+            .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        // Touch (XPT2046 on SPI1_HOST)
+        // Touch (XPT2046 on SPI2_HOST)
         spi::Configuration {
-            .device = SPI1_HOST,
+            .device = SPI2_HOST,
             .dma = SPI_DMA_DISABLED,
             .config = {
                 .mosi_io_num = GPIO_NUM_32,
