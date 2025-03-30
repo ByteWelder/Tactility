@@ -5,25 +5,21 @@
 #include <lvgl.h>
 
 class YellowDisplay : public tt::hal::display::DisplayDevice {
-
 private:
-
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* displayHandle = nullptr;
     bool poweredOn = false;
 
 public:
-
-    std::string getName() const final { return "ILI3491"; }
+    std::string getName() const final { return "ILI9341"; }
     std::string getDescription() const final { return "SPI display"; }
 
     bool start() override;
-
     bool stop() override;
 
     void setPowerOn(bool turnOn) override;
-    bool isPoweredOn() const override { return poweredOn; };
+    bool isPoweredOn() const override { return poweredOn; }
     bool supportsPowerControl() const override { return true; }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override;
@@ -32,7 +28,7 @@ public:
     bool supportsBacklightDuty() const override { return true; }
 
     void setGammaCurve(uint8_t index) override;
-    uint8_t getGammaCurveCount() const override { return 4; };
+    uint8_t getGammaCurveCount() const override { return 4; }
 
     lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 };
