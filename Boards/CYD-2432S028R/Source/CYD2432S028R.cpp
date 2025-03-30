@@ -14,7 +14,7 @@ bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_21);
 }
 
-extern const Configuration esp32_2432s028r = {
+extern const Configuration cyd_2432s028r = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,  // Assumes this is defined in YellowDisplay.h
     .sdcard = createSdCard(),       // Assumes this is defined in YellowSDCard.h
