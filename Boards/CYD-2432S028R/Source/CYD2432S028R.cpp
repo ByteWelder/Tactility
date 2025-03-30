@@ -3,7 +3,6 @@
 #include "hal/YellowDisplay.h"
 #include "hal/YellowDisplayConstants.h"
 #include "hal/YellowSDCard.h"
-
 #include <Tactility/hal/Configuration.h>
 #include <esp_log.h>
 
@@ -25,10 +24,10 @@ extern const Configuration cyd_2432s028r_config = {
     .sdcard = createSdCard(),
     .power = nullptr,
     .spi {
-        // Display (ILI9341 on SPI2_HOST)
+        // Display (ILI9341 on SPI3_HOST)
         spi::Configuration {
-            .device = SPI2_HOST,
-            .dma = SPI_DMA_DISABLED,
+            .device = SPI3_HOST,
+            .dma = SPI_DMA_CH1,
             .config = {
                 .mosi_io_num = GPIO_NUM_13,
                 .miso_io_num = GPIO_NUM_12,
@@ -45,35 +44,11 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByDriver,  // Let LVGL/esp32_drivers handle SPI2 init
+            .initMode = spi::InitMode::ByTactility,  // Tactility inits SPI3
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        // Touch (XPT2046 on SPI1_HOST)
-        spi::Configuration {
-            .device = SPI1_HOST,
-            .dma = SPI_DMA_DISABLED,
-            .config = {
-                .mosi_io_num = GPIO_NUM_32,
-                .miso_io_num = GPIO_NUM_39,
-                .sclk_io_num = GPIO_NUM_33,  // Updated from 25
-                .quadwp_io_num = GPIO_NUM_NC,
-                .quadhd_io_num = GPIO_NUM_NC,
-                .data4_io_num = GPIO_NUM_NC,
-                .data5_io_num = GPIO_NUM_NC,
-                .data6_io_num = GPIO_NUM_NC,
-                .data7_io_num = GPIO_NUM_NC,
-                .data_io_default_level = false,
-                .max_transfer_sz = 4096,
-                .flags = 0,
-                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
-                .intr_flags = 0
-            },
-            .initMode = spi::InitMode::ByTactility,  // Tactility handles SPI1
-            .isMutable = false,
-            .lock = tt::lvgl::getSyncLock()
-        },
-        // SD Card (SPI3_HOST)
+        // SD Card (SPI3_HOST, separate pins)
         spi::Configuration {
             .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -93,7 +68,7 @@ extern const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,  // Tactility handles SPI3
+            .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = nullptr
         }
