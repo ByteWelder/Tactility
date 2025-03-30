@@ -21,7 +21,7 @@ private:
     Mutex mutex;
 
     static lv_obj_t* createGpioRowWrapper(lv_obj_t* parent);
-    static void onTimer(TT_UNUSED std::shared_ptr<void> context);
+    void onTimer();
 
 public:
 
@@ -49,9 +49,9 @@ void GpioApp::updatePinStates() {
 }
 
 void GpioApp::updatePinWidgets() {
-    auto scoped_lvgl_lock = lvgl::getSyncLock()->scoped();
+    auto scoped_lvgl_lock = lvgl::getSyncLock()->asScopedLock();
     auto scoped_gpio_lock = mutex.asScopedLock();
-    if (scoped_gpio_lock.lock() && scoped_lvgl_lock->lock(100)) {
+    if (scoped_gpio_lock.lock() && scoped_lvgl_lock.lock(lvgl::defaultLockTime)) {
         for (int j = 0; j < GPIO_NUM_MAX; ++j) {
             int level = pinStates[j];
             lv_obj_t* label = lvPins[j];
@@ -79,24 +79,17 @@ lv_obj_t* GpioApp::createGpioRowWrapper(lv_obj_t* parent) {
 
 // region Task
 
-void GpioApp::onTimer(TT_UNUSED std::shared_ptr<void> context) {
-    auto appContext = getCurrentAppContext();
-    if (appContext->getManifest().id == manifest.id) {
-        auto app = std::static_pointer_cast<GpioApp>(appContext->getApp());
-        if (app != nullptr) {
-            app->updatePinStates();
-            app->updatePinWidgets();
-        }
-    }
+void GpioApp::onTimer() {
+    updatePinStates();
+    updatePinWidgets();
 }
 
 void GpioApp::startTask() {
     mutex.lock();
     assert(timer == nullptr);
-    timer = std::make_unique<Timer>(
-        Timer::Type::Periodic,
-        &onTimer
-    );
+    timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+        onTimer();
+    });
     timer->start(100 / portTICK_PERIOD_MS);
     mutex.unlock();
 }

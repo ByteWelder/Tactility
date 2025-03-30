@@ -39,12 +39,6 @@ private:
     PubSub::SubscriptionHandle serviceStateSubscription = nullptr;
     std::shared_ptr<service::gps::GpsService> service;
 
-    static void onUpdateCallback(TT_UNUSED std::shared_ptr<void> context) {
-        auto appPtr = std::static_pointer_cast<GpsSettingsApp*>(context);
-        auto app = *appPtr;
-        app->updateViews();
-    }
-
     static void onServiceStateChangedCallback(const void* data, void* context) {
         auto* app = (GpsSettingsApp*)context;
         app->onServiceStateChanged();
@@ -266,13 +260,13 @@ private:
         if (wants_on != is_on) {
             // start/stop are potentially blocking calls, so we use a dispatcher to not block the UI
             if (wants_on) {
-                getMainDispatcher().dispatch([](auto service) {
-                    std::static_pointer_cast<service::gps::GpsService>(service)->startReceiving();
-                }, service);
+                getMainDispatcher().dispatch([this]() {
+                    service->startReceiving();
+                });
             } else {
-                getMainDispatcher().dispatch([](auto service) {
-                    std::static_pointer_cast<service::gps::GpsService>(service)->stopReceiving();
-                }, service);
+                getMainDispatcher().dispatch([this]() {
+                    service->stopReceiving();
+                });
             }
         }
     }
@@ -280,7 +274,9 @@ private:
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, onUpdateCallback, appReference);
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+            updateViews();
+        });
         service = service::gps::findGpsService();
     }
 

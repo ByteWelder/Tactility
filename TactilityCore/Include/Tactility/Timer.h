@@ -2,7 +2,9 @@
 
 #include "RtosCompatTimers.h"
 #include "Thread.h"
+
 #include <memory>
+#include <functional>
 
 namespace tt {
 
@@ -10,7 +12,8 @@ class Timer {
 
 public:
 
-    typedef void (*Callback)(std::shared_ptr<void> context);
+    typedef std::function<void()> Callback;
+//    typedef std::function<void(uint32_t)> PendingCallback;
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
 private:
@@ -22,7 +25,6 @@ private:
     };
 
     Callback callback;
-    std::shared_ptr<void> callbackContext;
     std::unique_ptr<std::remove_pointer_t<TimerHandle_t>, TimerHandleDeleter> handle;
 
     static void onCallback(TimerHandle_t hTimer);
@@ -42,9 +44,8 @@ public:
     /**
      * @param[in] type The timer type
      * @param[in] callback The callback function
-     * @param callbackContext The callback context
      */
-    Timer(Type type, Callback callback, std::shared_ptr<void> callbackContext = nullptr);
+    Timer(Type type, Callback callback);
 
     ~Timer();
 

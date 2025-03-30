@@ -18,7 +18,7 @@ namespace tt::lvgl {
 
 #define TAG "statusbar"
 
-static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context);
+static void onUpdateTime();
 
 struct StatusbarIcon {
     std::string image;
@@ -30,7 +30,7 @@ struct StatusbarData {
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, onUpdateTime, nullptr);
+    Timer* time_update_timer = new Timer(Timer::Type::Once, []() { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -70,7 +70,7 @@ static TickType_t getNextUpdateTime() {
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
 }
 
-static void onUpdateTime(TT_UNUSED std::shared_ptr<void> context) {
+static void onUpdateTime() {
     time_t now = ::time(nullptr);
     struct tm* tm_struct = localtime(&now);
 
@@ -137,7 +137,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
 
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
-        statusbar_data.systemEventSubscription = kernel::systemEventAddListener(
+        statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
             kernel::SystemEvent::Time,
             onNetworkConnected
         );

@@ -15,11 +15,10 @@ Dispatcher::~Dispatcher() {
     mutex.unlock();
 }
 
-void Dispatcher::dispatch(Function function, std::shared_ptr<void> context, TickType_t timeout) {
-    auto message = std::make_shared<DispatcherMessage>(function, std::move(context));
+void Dispatcher::dispatch(Function function, TickType_t timeout) {
     // Mutate
     if (mutex.lock(timeout)) {
-        queue.push(std::move(message));
+        queue.push(std::move(function));
         if (queue.size() == BACKPRESSURE_WARNING_COUNT) {
             TT_LOG_W(TAG, "Backpressure: You're not consuming fast enough (100 queued)");
         }
@@ -46,13 +45,13 @@ uint32_t Dispatcher::consume(TickType_t timeout) {
     do {
         if (mutex.lock(10)) {
             if (!queue.empty()) {
-                auto item = queue.front();
+                auto function = queue.front();
                 queue.pop();
                 consumed++;
                 processing = !queue.empty();
                 // Don't keep lock as callback might be slow
                 mutex.unlock();
-                item->function(item->context);
+                function();
             } else {
                 processing = false;
                 mutex.unlock();

@@ -69,7 +69,13 @@ static void connect(lv_event_t* event) {
     if (ssid != nullptr) {
         TT_LOG_I(TAG, "Clicked AP: %s", ssid);
         auto* bindings = (Bindings*)lv_event_get_user_data(event);
-        bindings->onConnectSsid(ssid);
+
+        std::string connection_target = service::wifi::getConnectionTarget();
+        if (connection_target == ssid) {
+            bindings->onDisconnect();
+        } else {
+            bindings->onConnectSsid(ssid);
+        }
     }
 }
 

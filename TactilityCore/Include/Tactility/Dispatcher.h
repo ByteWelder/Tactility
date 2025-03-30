@@ -22,23 +22,12 @@ namespace tt {
 class Dispatcher {
 public:
 
-    typedef void (*Function)(std::shared_ptr<void> data);
+    typedef std::function<void()> Function;
 
 private:
-    struct DispatcherMessage {
-        Function function;
-        std::shared_ptr<void> context; // Can't use unique_ptr with void, so we use shared_ptr
-
-        DispatcherMessage(Function function, std::shared_ptr<void> context) :
-            function(function),
-            context(std::move(context))
-        {}
-
-        ~DispatcherMessage() = default;
-    };
 
     Mutex mutex;
-    std::queue<std::shared_ptr<DispatcherMessage>> queue = {};
+    std::queue<Function> queue = {};
     EventFlag eventFlag;
 
 public:
@@ -49,9 +38,8 @@ public:
     /**
      * Queue a function to be consumed elsewhere.
      * @param[in] function the function to execute elsewhere
-     * @param[in] context the data to pass onto the function
      */
-    void dispatch(Function function, std::shared_ptr<void> context, TickType_t timeout = portMAX_DELAY);
+    void dispatch(Function function, TickType_t timeout = portMAX_DELAY);
 
     /**
      * Consume 1 or more dispatched function (if any) until the queue is empty.

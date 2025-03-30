@@ -37,7 +37,7 @@ private:
     static int32_t bootThreadCallback(TT_UNUSED void* context) {
         TickType_t start_time = kernel::getTicks();
 
-        kernel::systemEventPublish(kernel::SystemEvent::BootSplash);
+        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
         auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);

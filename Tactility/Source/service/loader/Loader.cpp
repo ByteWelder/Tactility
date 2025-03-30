@@ -1,6 +1,5 @@
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/app/ManifestRegistry.h"
-#include "Tactility/service/gui/Gui.h"
 #include "Tactility/service/loader/Loader_i.h"
 
 #include <Tactility/service/ServiceManifest.h>
@@ -54,9 +53,6 @@ private:
      */
     std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher", 6144); // Files app requires ~5k
 
-    static void onStartAppMessageCallback(std::shared_ptr<void> message);
-    static void onStopAppMessageCallback(std::shared_ptr<void> message);
-
     void onStartAppMessage(const std::string& id, std::shared_ptr<const Bundle> parameters);
     void onStopAppMessage(const std::string& id);
 
@@ -84,14 +80,6 @@ public:
 
 std::shared_ptr<LoaderService> _Nullable optScreenshotService() {
     return service::findServiceById<LoaderService>(manifest.id);
-}
-
-void LoaderService::onStartAppMessageCallback(std::shared_ptr<void> message) {
-    auto start_message = std::reinterpret_pointer_cast<LoaderMessageAppStart>(message);
-    auto& id = start_message->id;
-    auto& parameters = start_message->parameters;
-
-    optScreenshotService()->onStartAppMessage(id, parameters);
 }
 
 void LoaderService::onStartAppMessage(const std::string& id, std::shared_ptr<const Bundle> parameters) {
@@ -128,12 +116,6 @@ void LoaderService::onStartAppMessage(const std::string& id, std::shared_ptr<con
 
     LoaderEvent event_external = { .type = LoaderEventTypeApplicationStarted };
     pubsubExternal->publish(&event_external);
-}
-
-void LoaderService::onStopAppMessageCallback(std::shared_ptr<void> message) {
-    TT_LOG_I(TAG, "OnStopAppMessageCallback");
-    auto stop_message = std::reinterpret_pointer_cast<LoaderMessageAppStop>(message);
-    optScreenshotService()->onStopAppMessage(stop_message->id);
 }
 
 void LoaderService::onStopAppMessage(const std::string& id) {
@@ -271,14 +253,17 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
 
 void LoaderService::startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
     auto message = std::make_shared<LoaderMessageAppStart>(id, std::move(parameters));
-    dispatcherThread->dispatch(onStartAppMessageCallback, message);
+    dispatcherThread->dispatch([this, id, parameters]() {
+        onStartAppMessage(id, parameters);
+    });
 }
 
 void LoaderService::stopApp() {
     TT_LOG_I(TAG, "stopApp()");
     auto id = getCurrentAppContext()->getManifest().id;
-    auto message = std::make_shared<LoaderMessageAppStop>(id);
-    dispatcherThread->dispatch(onStopAppMessageCallback, message);
+    dispatcherThread->dispatch([this, id]() {
+        onStopAppMessage(id);
+    });
     TT_LOG_I(TAG, "dispatched");
 }
 

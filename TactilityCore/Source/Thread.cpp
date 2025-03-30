@@ -53,7 +53,7 @@ void Thread::mainBody(void* context) {
     TT_LOG_I(TAG, "Starting %s", thread->name.c_str());
     assert(thread->state == Thread::State::Starting);
     thread->setState(Thread::State::Running);
-    thread->callbackResult = thread->callback(thread->callbackContext);
+    thread->callbackResult = thread->mainFunction();
     assert(thread->state == Thread::State::Running);
 
     thread->setState(Thread::State::Stopped);
@@ -73,8 +73,21 @@ Thread::Thread(
     _Nullable void* callbackContext,
     portBASE_TYPE affinity
 ) :
-    callback(callback),
-    callbackContext(callbackContext),
+    mainFunction([callback, callbackContext]() {
+        return callback(callbackContext);
+    }),
+    name(std::move(name)),
+    stackSize(stackSize),
+    affinity(affinity)
+{}
+
+Thread::Thread(
+    std::string name,
+    configSTACK_DEPTH_TYPE stackSize,
+    MainFunction function,
+    portBASE_TYPE affinity
+) :
+    mainFunction(function),
     name(std::move(name)),
     stackSize(stackSize),
     affinity(affinity)
@@ -97,12 +110,17 @@ void Thread::setStackSize(size_t newStackSize) {
     stackSize = newStackSize;
 }
 
-void Thread::setCallback(Callback newCallback, _Nullable void* newCallbackContext) {
+void Thread::setCallback(Callback callback, _Nullable void* callbackContext) {
     assert(state == State::Stopped);
-    callback = newCallback;
-    callbackContext = newCallbackContext;
+    mainFunction = [callback, callbackContext]() {
+        return callback(callbackContext);
+    };
 }
 
+void Thread::setMainFunction(MainFunction function) {
+    assert(state == State::Stopped);
+    mainFunction = function;
+}
 
 void Thread::setPriority(Priority newPriority) {
     assert(state == State::Stopped);
@@ -121,7 +139,7 @@ Thread::State Thread::getState() const {
 }
 
 void Thread::start() {
-    assert(callback);
+    assert(mainFunction);
     assert(state == State::Stopped);
     assert(stackSize > 0U && stackSize < (UINT16_MAX * sizeof(StackType_t)));
 

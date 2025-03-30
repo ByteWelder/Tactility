@@ -84,7 +84,7 @@ static bool initKeyboard(const std::shared_ptr<hal::display::DisplayDevice>& dis
 void init(const hal::Configuration& config) {
     TT_LOG_I(TAG, "Starting");
 
-    kernel::systemEventPublish(kernel::SystemEvent::BootInitLvglBegin);
+    kernel::publishSystemEvent(kernel::SystemEvent::BootInitLvglBegin);
 
 #ifdef ESP_PLATFORM
     if (config.lvglInit == hal::LvglInit::Default && !initEspLvglPort()) {
@@ -114,7 +114,7 @@ void init(const hal::Configuration& config) {
 
     TT_LOG_I(TAG, "Finished");
 
-    kernel::systemEventPublish(kernel::SystemEvent::BootInitLvglEnd);
+    kernel::publishSystemEvent(kernel::SystemEvent::BootInitLvglEnd);
 }
 
 } // namespace

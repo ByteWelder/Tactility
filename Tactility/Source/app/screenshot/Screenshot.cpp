@@ -72,15 +72,10 @@ static void onModeSetCallback(TT_UNUSED lv_event_t* event) {
     }
 }
 
-static void onTimerCallback(TT_UNUSED std::shared_ptr<void> context) {
-    auto app = optApp();
-    if (app != nullptr) {
-        app->onTimerTick();
-    }
-}
-
 ScreenshotApp::ScreenshotApp() {
-    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, onTimerCallback, nullptr);
+    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+        onTimerTick();
+    });
 }
 
 ScreenshotApp::~ScreenshotApp() {
@@ -90,8 +85,8 @@ ScreenshotApp::~ScreenshotApp() {
 }
 
 void ScreenshotApp::onTimerTick() {
-    auto lvgl_lock = lvgl::getSyncLock()->scoped();
-    if (lvgl_lock->lock(50 / portTICK_PERIOD_MS)) {
+    auto lock = lvgl::getSyncLock()->asScopedLock();
+    if (lock.lock(lvgl::defaultLockTime)) {
         updateScreenshotMode();
     }
 }

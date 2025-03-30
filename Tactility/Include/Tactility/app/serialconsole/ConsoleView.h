@@ -113,16 +113,6 @@ private:
         return 0;
     }
 
-    static int32_t viewThreadMainStatic(void* parameter) {
-        auto* view = (ConsoleView*)parameter;
-        return view->viewThreadMain();
-    }
-
-    static int32_t uartThreadMainStatic(void* parameter) {
-        auto* view = (ConsoleView*)parameter;
-        return view->uartThreadMain();
-    }
-
     static void onSendClickedCallback(lv_event_t* event) {
         auto* view = (ConsoleView*)lv_event_get_user_data(event);
         view->onSendClicked();
@@ -177,8 +167,9 @@ public:
         uartThread = std::make_unique<Thread>(
             "SerConsUart",
             4096,
-            uartThreadMainStatic,
-            this
+            [this]() {
+                return this->uartThreadMain();
+            }
         );
         uartThread->setPriority(tt::Thread::Priority::High);
         uartThread->start();
@@ -226,8 +217,9 @@ public:
         viewThread = std::make_unique<Thread>(
             "SerConsView",
             4096,
-            viewThreadMainStatic,
-            this
+            [this]() {
+              return this->viewThreadMain();
+            }
         );
         viewThread->setPriority(THREAD_PRIORITY_RENDER);
         viewThread->start();
