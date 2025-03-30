@@ -1,56 +1,61 @@
-#include "PwmBacklight.h"
-#include "Tactility/lvgl/LvglSync.h"
+#include "CYD2432S028R.h"
 #include "hal/YellowDisplay.h"
 #include "hal/YellowDisplayConstants.h"
-#include "hal/YellowSDCard.h"
-#include <Tactility/hal/Configuration.h>
-#include <esp_log.h>
+#include "hal/YellowSdCard.h"
 
-#define YELLOW_SPI_TRANSFER_SIZE_LIMIT (YELLOW_LCD_HORIZONTAL_RESOLUTION * YELLOW_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#include <Tactility/lvgl/LvglSync.h>
+#include <PwmBacklight.h>
 
-using namespace tt::hal;
-
-static const char* TAG = "cyd_config";
+#define CYD_SPI_TRANSFER_SIZE_LIMIT (TWODOTFOUR_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
 bool initBoot() {
-    bool success = driver::pwmbacklight::init(GPIO_NUM_21);
-    ESP_LOGI(TAG, "Backlight init: %s", success ? "success" : "failed");
-    return success;
+    return driver::pwmbacklight::init(TWODOTFOUR_LCD_PIN_BACKLIGHT);
 }
 
-extern const Configuration cyd_2432s028r_config = {
+const tt::hal::Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
+    .sdcard = createYellowSdCard(),
     .power = nullptr,
-    .spi {
-        // Display (ILI9341 on SPI3_HOST)
-        spi::Configuration {
-            .device = SPI3_HOST,
-            .dma = SPI_DMA_CH1,
-            .config = {
-                .mosi_io_num = GPIO_NUM_13,
-                .miso_io_num = GPIO_NUM_12,
-                .sclk_io_num = GPIO_NUM_14,
-                .quadwp_io_num = GPIO_NUM_NC,
-                .quadhd_io_num = GPIO_NUM_NC,
-                .data4_io_num = GPIO_NUM_NC,
-                .data5_io_num = GPIO_NUM_NC,
-                .data6_io_num = GPIO_NUM_NC,
-                .data7_io_num = GPIO_NUM_NC,
-                .data_io_default_level = false,
-                .max_transfer_sz = YELLOW_SPI_TRANSFER_SIZE_LIMIT,
-                .flags = 0,
-                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
-                .intr_flags = 0
-            },
-            .initMode = spi::InitMode::ByTactility,  // Tactility inits SPI3
-            .isMutable = false,
-            .lock = tt::lvgl::getSyncLock()
+    .i2c = {
+        tt::hal::i2c::Configuration {
+            .name = "First",
+            .port = I2C_NUM_0,
+            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_33,  // Adjust if different
+                .scl_io_num = GPIO_NUM_32,  // Adjust if different
+                .sda_pullup_en = false,
+                .scl_pullup_en = false,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
         },
-        // SD Card (SPI3_HOST, separate pins)
-        spi::Configuration {
-            .device = SPI3_HOST,
+        tt::hal::i2c::Configuration {
+            .name = "Second",
+            .port = I2C_NUM_1,
+            .initMode = tt::hal::i2c::InitMode::Disabled,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_NC,
+                .scl_io_num = GPIO_NUM_NC,
+                .sda_pullup_en = false,
+                .scl_pullup_en = false,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
+        }
+    },
+    .spi = {
+        tt::hal::spi::Configuration {
+            .device = SPI2_HOST,  // Display and touch SPI
             .dma = SPI_DMA_CH_AUTO,
             .config = {
                 .mosi_io_num = GPIO_NUM_23,
@@ -63,39 +68,37 @@ extern const Configuration cyd_2432s028r_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = 32768,
+                .max_transfer_sz = CYD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = spi::InitMode::ByTactility,
+            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .isMutable = false,
+            .lock = tt::lvgl::getSyncLock()
+        },
+        tt::hal::spi::Configuration {
+            .device = SPI3_HOST,  // SD card SPI
+            .dma = SPI_DMA_CH_AUTO,
+            .config = {
+                .mosi_io_num = GPIO_NUM_23,
+                .miso_io_num = GPIO_NUM_19,
+                .sclk_io_num = GPIO_NUM_18,
+                .quadwp_io_num = GPIO_NUM_NC,
+                .quadhd_io_num = GPIO_NUM_NC,
+                .data4_io_num = GPIO_NUM_NC,
+                .data5_io_num = GPIO_NUM_NC,
+                .data6_io_num = GPIO_NUM_NC,
+                .data7_io_num = GPIO_NUM_NC,
+                .data_io_default_level = false,
+                .max_transfer_sz = 8192,
+                .flags = 0,
+                .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
+                .intr_flags = 0
+            },
+            .initMode = tt::hal::spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = nullptr
-        }
-    },
-    .uart {
-        uart::Configuration {
-            .name = "UART1",
-            .port = UART_NUM_1,
-            .rxPin = GPIO_NUM_26,
-            .txPin = GPIO_NUM_27,
-            .rtsPin = GPIO_NUM_NC,
-            .ctsPin = GPIO_NUM_NC,
-            .rxBufferSize = 1024,
-            .txBufferSize = 1024,
-            .config = {
-                .baud_rate = 115200,
-                .data_bits = UART_DATA_8_BITS,
-                .parity = UART_PARITY_DISABLE,
-                .stop_bits = UART_STOP_BITS_1,
-                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-                .rx_flow_ctrl_thresh = 0,
-                .source_clk = UART_SCLK_DEFAULT,
-                .flags = {
-                    .allow_pd = 0,
-                    .backup_before_sleep = 0,
-                }
-            }
-        }
+        },
     }
 };
