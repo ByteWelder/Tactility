@@ -11,7 +11,7 @@ static const char* TAG = "display";
 std::shared_ptr<Xpt2046Touch> createTouch() {
     ESP_LOGI(TAG, "Creating touch on SPI1_HOST");
     auto configuration = std::make_unique<Xpt2046Touch::Configuration>(
-        SPI1_HOST,
+        SPI2_HOST,
         YELLOW_TOUCH_PIN_CS,
         YELLOW_LCD_HORIZONTAL_RESOLUTION,
         YELLOW_LCD_VERTICAL_RESOLUTION,
