@@ -57,7 +57,6 @@ private:
     GpsModel model = GpsModel::Unknown;
     State state = State::Off;
 
-    static int32_t threadMainStatic(void* parameter);
     int32_t threadMain();
 
     bool isThreadInterrupted() const;

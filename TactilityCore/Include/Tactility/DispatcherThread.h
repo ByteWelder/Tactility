@@ -11,6 +11,8 @@ class DispatcherThread {
     std::unique_ptr<Thread> thread;
     bool interruptThread = false;
 
+    int32_t threadMain();
+
 public:
 
     explicit DispatcherThread(const std::string& threadName, size_t threadStackSize = 4096);
@@ -26,9 +28,6 @@ public:
 
     /** Stop the thread (blocking). */
     void stop();
-
-    /** Internal method */
-    void _threadMain();
 };
 
 }

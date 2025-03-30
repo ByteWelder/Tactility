@@ -10,11 +10,6 @@ namespace tt::hal::gps {
 constexpr uint32_t GPS_UART_BUFFER_SIZE = 256;
 constexpr const char* TAG = "GpsDevice";
 
-int32_t GpsDevice::threadMainStatic(void* parameter) {
-    auto* gps_device = (GpsDevice*)parameter;
-    return gps_device->threadMain();
-}
-
 int32_t GpsDevice::threadMain() {
     uint8_t buffer[GPS_UART_BUFFER_SIZE];
 
@@ -125,8 +120,9 @@ bool GpsDevice::start() {
     thread = std::make_unique<Thread>(
         "gps",
         4096,
-        threadMainStatic,
-        this
+        [this]() {
+            return this->threadMain();
+        }
     );
     thread->setPriority(tt::Thread::Priority::High);
     thread->start();

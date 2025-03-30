@@ -1,11 +1,11 @@
 #pragma once
 
 #include "CoreDefines.h"
-
-#include <string>
-#include <memory>
-
 #include "RtosCompatTask.h"
+
+#include <functional>
+#include <memory>
+#include <string>
 
 namespace tt {
 
@@ -38,6 +38,7 @@ public:
      * @warning never use osThreadExit in Thread
      */
     typedef int32_t (*Callback)(void* context);
+    typedef std::function<int32_t()> MainFunction;
 
     /** Write to stdout callback
      * @param[in] data pointer to data
@@ -57,8 +58,7 @@ private:
 
     TaskHandle_t taskHandle = nullptr;
     State state = State::Stopped;
-    Callback callback = nullptr;
-    void* callbackContext = nullptr;
+    MainFunction mainFunction;
     int32_t callbackResult = 0;
     StateCallback stateCallback = nullptr;
     void* stateCallbackContext = nullptr;
@@ -80,11 +80,25 @@ public:
      * @param[in] callbackContext
      * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
      */
+    [[deprecated("Use constructor variant with std::function")]]
     Thread(
         std::string name,
         configSTACK_DEPTH_TYPE stackSize,
         Callback callback,
         _Nullable void* callbackContext,
+        portBASE_TYPE affinity = -1
+    );
+
+    /** Allocate Thread, shortcut version
+     * @param[in] name the name of the thread
+     * @param[in] stackSize in bytes
+     * @param[in] function
+     * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
+     */
+    Thread(
+        std::string name,
+        configSTACK_DEPTH_TYPE stackSize,
+        MainFunction function,
         portBASE_TYPE affinity = -1
     );
 
@@ -104,7 +118,13 @@ public:
      * @param[in] callback ThreadCallback, called upon thread run
      * @param[in] callbackContext what to pass to the callback
      */
+    [[deprecated("use setMainFunction()")]]
     void setCallback(Callback callback, _Nullable void* callbackContext = nullptr);
+
+    /** Set Thread callback
+     * @param[in] function called upon thread run
+     */
+    void setMainFunction(MainFunction function);
 
     /** Set Thread priority
      * @param[in] priority ThreadPriority value

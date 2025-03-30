@@ -2,18 +2,13 @@
 
 namespace tt {
 
-int32_t dispatcherThreadMain(void* context) {
-    auto* dispatcherThread = (DispatcherThread*)context;
-    dispatcherThread->_threadMain();
-    return 0;
-}
-
 DispatcherThread::DispatcherThread(const std::string& threadName, size_t threadStackSize) {
     thread = std::make_unique<Thread>(
         threadName,
         threadStackSize,
-        dispatcherThreadMain,
-        this
+        [this]() {
+            return threadMain();
+        }
     );
 }
 
@@ -23,7 +18,7 @@ DispatcherThread::~DispatcherThread() {
     }
 }
 
-void DispatcherThread::_threadMain() {
+int32_t DispatcherThread::threadMain() {
     do {
         /**
          * If this value is too high (e.g. 1 second) then the dispatcher destroys too slowly when the simulator exits.
@@ -31,6 +26,8 @@ void DispatcherThread::_threadMain() {
          */
         dispatcher.consume(100 / portTICK_PERIOD_MS);
     } while (!interruptThread);
+
+    return 0;
 }
 
 void DispatcherThread::dispatch(Dispatcher::Function function, std::shared_ptr<void> context, TickType_t timeout) {
