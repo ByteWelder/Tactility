@@ -7,9 +7,10 @@
 #include <inttypes.h>
 
 static const char* TAG = "XPT2046_SoftSPI";
-#define Z_THRESHOLD 400  // Touch when z < Z_THRESHOLD
-#define Z_THRESHOLD_INT 75
-#define MSEC_THRESHOLD 3
+#define CMD_X_READ  0x90  // X position
+#define CMD_Y_READ  0xD0  // Y position
+#define READ_COUNT  30    // Number of readings to average
+#define MSEC_THRESHOLD 3  // Debounce threshold (ms)
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -57,13 +58,13 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::tirqTouched() {
-    return isrWake;
+    return tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::touched() {
     update();
-    return zraw > 0 && zraw < Z_THRESHOLD;  // Touch when z is low
+    return zraw > 0;
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
@@ -80,70 +81,106 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readData(uint16
     *z = zraw;
 }
 
-static int16_t besttwoavg(int16_t x, int16_t y, int16_t z) {
-    int16_t da = abs(x - y), db = abs(x - z), dc = abs(z - y);
-    if (da <= db && da <= dc) return (x + y) >> 1;
-    if (db <= da && db <= dc) return (x + z) >> 1;
-    return (y + z) >> 1;
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::calibrate(float xfac_new, float yfac_new, int16_t xoff_new, int16_t yoff_new) {
+    xfac = xfac_new;
+    yfac = yfac_new;
+    xoff = xoff_new;
+    yoff = yoff_new;
+    ESP_LOGI(TAG, "Calibration set: xfac=%f, yfac=%f, xoff=%d, yoff=%d", xfac, yfac, xoff, yoff);
+}
+
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uint8_t cmd) {
+    uint16_t buf[READ_COUNT], temp;
+    uint32_t sum = 0;
+    const uint8_t LOST_VAL = 1;  // Discard 1 high and 1 low
+
+    fastDigitalWrite(csPin, 0);  // Select
+    for (uint8_t i = 0; i < READ_COUNT; i++) {
+        touchscreenSPI.transfer(cmd);
+        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value
+    }
+    fastDigitalWrite(csPin, 1);  // Deselect
+
+    // Sort (bubble sort)
+    for (uint8_t i = 0; i < READ_COUNT - 1; i++) {
+        for (uint8_t j = i + 1; j < READ_COUNT; j++) {
+            if (buf[i] > buf[j]) {
+                temp = buf[i];
+                buf[i] = buf[j];
+                buf[j] = temp;
+            }
+        }
+    }
+
+    // Average middle values
+    for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
+        sum += buf[i];
+    }
+    return sum / (READ_COUNT - 2 * LOST_VAL);
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
+    if (tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin)) {
+        isrWake = true;  // Simulate ISR trigger if IRQ is low
+    }
     if (!isrWake) {
         ESP_LOGD(TAG, "No IRQ, skipping update");
+        zraw = 0;
         return;
     }
+
     uint32_t now = esp_timer_get_time() / 1000;  // Milliseconds
     if (now - msraw < MSEC_THRESHOLD) return;
 
-    fastDigitalWrite(csPin, 0);  // LOW
-    esp_rom_delay_us(10);  // Stabilize
+    uint16_t ux = readXOY(CMD_X_READ);
+    uint16_t uy = readXOY(CMD_Y_READ);
 
-    // Z measurement
-    touchscreenSPI.transfer(0xB1);  // Z1
-    uint16_t z1_raw = touchscreenSPI.transfer16(0xC1);  // Z2
-    int16_t z1 = z1_raw >> 3;
-    int z = z1 + 4095;
-    uint16_t z2_raw = touchscreenSPI.transfer16(0x91);  // Dummy X
-    int16_t z2 = z2_raw >> 3;
-    z -= z2;
+    ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    int16_t data[6];
-    if (z < Z_THRESHOLD) {  // Touch when z is low
-        touchscreenSPI.transfer16(0x91);  // Dummy X
-        data[0] = touchscreenSPI.transfer16(0xD1) >> 3;  // Y
-        data[1] = touchscreenSPI.transfer16(0x91) >> 3;  // X
-        data[2] = touchscreenSPI.transfer16(0xD1) >> 3;  // Y
-        data[3] = touchscreenSPI.transfer16(0x91) >> 3;  // X
-    } else {
-        data[0] = data[1] = data[2] = data[3] = 0;
-    }
-    data[4] = touchscreenSPI.transfer16(0xD0) >> 3;  // Y (power down)
-    data[5] = touchscreenSPI.transfer16(0x00) >> 3;
+    // Apply calibration
+    int16_t x = xfac * ux + xoff;
+    int16_t y = yfac * uy + yoff;
 
-    fastDigitalWrite(csPin, 1);  // HIGH
-
-    ESP_LOGI(TAG, "SPI raw: z1=%" PRId16 " (raw=%" PRIu16 "), z2=%" PRId16 " (raw=%" PRIu16 "), z=%d, data=[%" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 "]",
-             z1, z1_raw, z2, z2_raw, z, data[0], data[1], data[2], data[3], data[4], data[5]);
-
-    if (z < 0) z = 0;
-    if (z >= Z_THRESHOLD) {  // No touch
-        zraw = 0;
-        if (tirqPin != GPIO_NUM_NC) isrWake = false;
-        return;
-    }
-    zraw = z;  // Valid touch
-
-    int16_t x = besttwoavg(data[0], data[2], data[4]);
-    int16_t y = besttwoavg(data[1], data[3], data[5]);
-
-    msraw = now;
+    // Rotation adjustment (assuming 240x320 screen for CYD-2432S028R)
+    int16_t swap_tmp;
     switch (rotation) {
-        case 0: xraw = 4095 - y; yraw = x; break;
-        case 1: xraw = x; yraw = y; break;
-        case 2: xraw = y; yraw = 4095 - x; break;
-        default: xraw = 4095 - x; yraw = 4095 - y; break;
+        case 0:  // Portrait
+            swap_tmp = x;
+            x = y;
+            y = swap_tmp;
+            y = 320 - y;
+            break;
+        case 1:  // Landscape
+            x = 240 - x;
+            y = 320 - y;
+            break;
+        case 2:  // Portrait inverted
+            swap_tmp = x;
+            x = y;
+            y = swap_tmp;
+            x = 240 - x;
+            break;
+        case 3:  // Landscape inverted
+            // No change needed
+            break;
     }
+
+    // Clamp to screen bounds
+    if (x < 0) x = 0;
+    if (x > 239) x = 239;
+    if (y < 0) y = 0;
+    if (y > 319) y = 319;
+
+    xraw = x;
+    yraw = y;
+    zraw = 1;  // Simple touch indicator (1 = touched, 0 = not touched)
+    msraw = now;
+
+    isrWake = false;  // Reset IRQ flag
+    ESP_LOGI(TAG, "Touch raw: x=%d, y=%d", xraw, yraw);
 }
 
 template class XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0>;
