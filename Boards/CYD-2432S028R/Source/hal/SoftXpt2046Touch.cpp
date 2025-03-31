@@ -20,7 +20,7 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     }
     ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
 
-    touch.setRotation(1);  // Try 0, 1, 2, 3 to match display
+    touch.setRotation(0);  // Try 0, 1, 2, 3 to match display
     ESP_LOGI(TAG, "Touch rotation set to 1");
 
     // Comment out calibration for now to test raw coordinates
