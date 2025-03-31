@@ -1,10 +1,14 @@
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/app/AppInstance.h"
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/app/ManifestRegistry.h"
-#include "Tactility/service/loader/Loader_i.h"
 
+#include <Tactility/RtosCompat.h>
+#include <Tactility/DispatcherThread.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistry.h>
-#include <Tactility/RtosCompat.h>
+
+#include <stack>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/TactilityHeadless.h>
@@ -252,7 +256,6 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
 }
 
 void LoaderService::startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
-    auto message = std::make_shared<LoaderMessageAppStart>(id, std::move(parameters));
     dispatcherThread->dispatch([this, id, parameters]() {
         onStartAppMessage(id, parameters);
     });

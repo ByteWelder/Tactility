@@ -2,7 +2,7 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Statusbar.h"
 #include "Tactility/lvgl/Style.h"
-#include "Tactility/service/loader/Loader_i.h"
+#include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/Tactility.h>
 #include <Tactility/RtosCompat.h>
