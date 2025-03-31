@@ -1,16 +1,14 @@
 #pragma once
 
 #include "driver/gpio.h"
-#include "esp_attr.h"  // For IRAM_ATTR
+#include "esp_attr.h"
+#include "SoftSPI.h"  // Include full SoftSPI definition
 #include <stdint.h>
 
 #define Z_THRESHOLD     400
 #define Z_THRESHOLD_INT 75
 #define MSEC_THRESHOLD  3
 #define SPI_SETTING     0  // Mode 0 (CPOL=0, CPHA=0)
-
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
-class SoftSPI;  // Forward declaration
 
 class TS_Point {
 public:
