@@ -2,7 +2,7 @@
 
 #include "driver/gpio.h"
 #include "esp_attr.h"
-#include "SoftSPI.h"  // Include full SoftSPI definition
+#include "SoftSPI.h"
 #include <stdint.h>
 
 #define Z_THRESHOLD     400
@@ -27,11 +27,11 @@ public:
     TS_Point getPoint();
     bool tirqTouched();
     bool touched();
-    void readData(uint16_t* x, uint16_t* y, uint8_t* z);
+    void readData(uint16_t* x, uint16_t* y, uint16_t* z);  // Changed z to uint16_t
     void setRotation(uint8_t n) { rotation = n % 4; }
 
 private:
-    IRAM_ATTR static void isrPin(void* arg);  // ISR declaration
+    IRAM_ATTR static void isrPin(void* arg);
     void update();
     gpio_num_t csPin, tirqPin;
     volatile bool isrWake = true;
