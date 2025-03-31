@@ -12,24 +12,37 @@ SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> config)
 
 bool SoftXpt2046Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Initializing software SPI touch");
+
+    // Check if touch initialization succeeds
     if (!touch.begin()) {
         TT_LOG_E(TAG, "Failed to initialize XPT2046 soft SPI");
         return false;
     }
+    ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
     touch.setRotation(1);  // Match display orientation
+    ESP_LOGI(TAG, "Touch rotation set to 1");
 
-    // LVGL v9
+    // LVGL v9: Create input device
     indev = lv_indev_create();
     if (indev == nullptr) {
         TT_LOG_E(TAG, "Failed to create LVGL input device");
         return false;
     }
+    ESP_LOGI(TAG, "LVGL input device created at %p", indev);
 
+    // Set input device type
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, readCallback);
-    lv_indev_set_user_data(indev, this);
+    ESP_LOGI(TAG, "Input device type set to POINTER");
 
-    ESP_LOGI(TAG, "Software SPI touch initialized");
+    // Set read callback
+    lv_indev_set_read_cb(indev, readCallback);
+    ESP_LOGI(TAG, "Read callback set to SoftXpt2046Touch::readCallback");
+
+    // Set user data
+    lv_indev_set_user_data(indev, this);
+    ESP_LOGI(TAG, "User data set to this=%p", this);
+
+    ESP_LOGI(TAG, "Software SPI touch initialized successfully");
     return true;
 }
 
