@@ -18,7 +18,7 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     }
     touch.setRotation(1);  // Match display orientation
 
-    // LVGL v9: Create input device directly
+    // LVGL v9
     indev = lv_indev_create();
     if (indev == nullptr) {
         TT_LOG_E(TAG, "Failed to create LVGL input device");
