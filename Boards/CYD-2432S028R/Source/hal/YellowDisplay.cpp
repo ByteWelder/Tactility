@@ -13,7 +13,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,    // yMax = 320
         false,  // swapXy
-        true,   // mirrorX
+        false,   // mirrorX
         false,  // mirrorY
         -0.087f, // xfac (placeholder from XPT2046.c example)
         -0.064f, // yfac (placeholder)
