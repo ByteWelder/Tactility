@@ -14,6 +14,10 @@ public:
         bool swapXy;
         bool mirrorX;
         bool mirrorY;
+        float xfac = 0;    // Calibration slope X
+        float yfac = 0;    // Calibration slope Y
+        int16_t xoff = 0;  // Calibration offset X
+        int16_t yoff = 0;  // Calibration offset Y
     };
 
     explicit SoftXpt2046Touch(std::unique_ptr<Configuration> config);
