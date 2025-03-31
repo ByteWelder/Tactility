@@ -20,15 +20,14 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     }
     ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
 
-    touch.setRotation(1);  // Match display orientation (adjustable)
+    touch.setRotation(1);  // Try 0, 1, 2, 3 to match display
     ESP_LOGI(TAG, "Touch rotation set to 1");
 
-    // Apply calibration if provided
-    if (config->xfac != 0 || config->yfac != 0 || config->xoff != 0 || config->yoff != 0) {
-        touch.calibrate(config->xfac, config->yfac, config->xoff, config->yoff);
-    }
+    // Comment out calibration for now to test raw coordinates
+    // if (config->xfac != 0 || config->yfac != 0 || config->xoff != 0 || config->yoff != 0) {
+    //     touch.calibrate(config->xfac, config->yfac, config->xoff, config->yoff);
+    // }
 
-    // LVGL v9: Create input device
     indev = lv_indev_create();
     if (indev == nullptr) {
         TT_LOG_E(TAG, "Failed to create LVGL input device");
@@ -62,7 +61,7 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
 
     ESP_LOGI(TAG, "Touch raw: x=%" PRIu16 ", y=%" PRIu16 ", z=%" PRIu16, x, y, z);
 
-    if (z > 0) {  // Touch detected (z=1 from updated XPT2046_TouchscreenSOFTSPI)
+    if (z > 0) {
         int16_t tx = x, ty = y;
         if (touch->config->swapXy) std::swap(tx, ty);
         if (touch->config->mirrorX) tx = touch->config->xMax - tx;
