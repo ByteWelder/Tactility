@@ -3,9 +3,12 @@
 #include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "esp_timer.h"
 #include "esp_log.h"
-#include <inttypes.h>  // For PRI macros
+#include <inttypes.h>
 
 static const char* TAG = "XPT2046_SoftSPI";
+#define Z_THRESHOLD 400
+#define Z_THRESHOLD_INT 75
+#define MSEC_THRESHOLD 3
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -15,6 +18,7 @@ template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode
 IRAM_ATTR void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin(void* arg) {
     auto* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
     o->isrWake = true;
+    ESP_LOGD(TAG, "IRQ triggered");
 }
 
 static inline void fastDigitalWrite(gpio_num_t pin, bool level) {
@@ -89,11 +93,15 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     if (now - msraw < MSEC_THRESHOLD) return;
 
     fastDigitalWrite(csPin, 0);  // LOW
+    ets_delay_us(10);  // Stabilize
 
+    // Z measurement
     touchscreenSPI.transfer(0xB1);  // Z1
-    int16_t z1 = touchscreenSPI.transfer16(0xC1) >> 3;  // Z2
+    uint16_t z1_raw = touchscreenSPI.transfer16(0xC1);  // Z2
+    int16_t z1 = z1_raw >> 3;
     int z = z1 + 4095;
-    int16_t z2 = touchscreenSPI.transfer16(0x91) >> 3;  // X (dummy read)
+    uint16_t z2_raw = touchscreenSPI.transfer16(0x91);  // Dummy X
+    int16_t z2 = z2_raw >> 3;
     z -= z2;
 
     int16_t data[6];
@@ -107,12 +115,12 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
         data[0] = data[1] = data[2] = data[3] = 0;
     }
     data[4] = touchscreenSPI.transfer16(0xD0) >> 3;  // Y (power down)
-    data[5] = touchscreenSPI.transfer16(0) >> 3;
+    data[5] = touchscreenSPI.transfer16(0x00) >> 3;
 
     fastDigitalWrite(csPin, 1);  // HIGH
 
-    ESP_LOGI(TAG, "SPI raw: z1=%" PRId16 ", z2=%" PRId16 ", z=%d, data=[%" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 "]",
-             z1, z2, z, data[0], data[1], data[2], data[3], data[4], data[5]);
+    ESP_LOGI(TAG, "SPI raw: z1=%" PRId16 " (raw=%" PRIu16 "), z2=%" PRId16 " (raw=%" PRIu16 "), z=%d, data=[%" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 "]",
+             z1, z1_raw, z2, z2_raw, z, data[0], data[1], data[2], data[3], data[4], data[5]);
 
     if (z < 0) z = 0;
     if (z < Z_THRESHOLD) {
