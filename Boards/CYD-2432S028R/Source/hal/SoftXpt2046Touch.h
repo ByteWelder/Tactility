@@ -3,7 +3,6 @@
 #include "Tactility/hal/touch/TouchDevice.h"
 #include "YellowDisplayConstants.h"
 #include "XPT2046_TouchscreenSOFTSPI.h"
-#include "SoftSPI.h"
 #include <lvgl.h>
 
 class SoftXpt2046Touch : public tt::hal::touch::TouchDevice {
@@ -30,7 +29,6 @@ private:
     static void readCallback(lv_indev_t* indev, lv_indev_data_t* data);
 
     std::unique_ptr<Configuration> config;
-    SoftSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touchscreenSPI;
-    XPT2046_TouchscreenSOFTSPI touch;
+    XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
     lv_indev_t* indev = nullptr;
 };
