@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "esp_attr.h"  // For IRAM_ATTR
 #include <stdint.h>
 
 #define Z_THRESHOLD     400
@@ -32,7 +33,7 @@ public:
     void setRotation(uint8_t n) { rotation = n % 4; }
 
 private:
-    IRAM_ATTR static void isrPin(void* arg);  // ISR declaration with correct attribute placement
+    IRAM_ATTR static void isrPin(void* arg);  // ISR declaration
     void update();
     gpio_num_t csPin, tirqPin;
     volatile bool isrWake = true;
