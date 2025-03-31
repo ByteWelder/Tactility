@@ -1,8 +1,8 @@
+#include <lv_hal_indev.h>
 #include "SoftXpt2046Touch.h"
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
-
 #define TAG "soft_xpt2046"
 
 SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> config)
