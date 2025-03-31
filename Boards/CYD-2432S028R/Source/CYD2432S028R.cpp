@@ -13,11 +13,10 @@ bool initBoot() {
 const tt::hal::Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = nullptr,
+    .sdcard = createYellowSdCard(),
     .power = nullptr,
     .i2c = {},
     .spi = {
-        // SPI2_HOST for display
         tt::hal::spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -43,3 +42,13 @@ const tt::hal::Configuration cyd_2432s028r_config = {
         }
     }
 };
+
+extern "C" void app_main() {
+    tt::start(&cyd_2432s028r_config);
+    lv_obj_t* label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Touch me!");
+    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_add_event_cb(label, [](lv_event_t* e) {
+        ESP_LOGI("LVGL", "Label touched!");
+    }, LV_EVENT_PRESSED, nullptr);
+}
