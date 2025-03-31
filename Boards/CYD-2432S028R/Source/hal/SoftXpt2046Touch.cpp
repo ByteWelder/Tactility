@@ -46,6 +46,8 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     uint16_t x, y, z;
     touch->touch.readData(&x, &y, &z);
 
+    ESP_LOGI(TAG, "Touch raw: x=%d, y=%d, z=%d", x, y, z);  // Add logging
+
     if (z >= Z_THRESHOLD) {
         int16_t tx = x, ty = y;
         if (touch->config->swapXy) std::swap(tx, ty);
@@ -54,6 +56,7 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
         data->point.x = (tx * touch->config->xMax) / 4095;
         data->point.y = (ty * touch->config->yMax) / 4095;
         data->state = LV_INDEV_STATE_PRESSED;
+        ESP_LOGI(TAG, "Touch mapped: x=%d, y=%d", data->point.x, data->point.y);
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
