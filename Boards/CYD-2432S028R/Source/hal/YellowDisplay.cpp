@@ -10,11 +10,15 @@ static const char* TAG = "YellowDisplay";
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
     auto config = std::make_unique<SoftXpt2046Touch::Configuration>(
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION,
-        CYD_DISPLAY_VERTICAL_RESOLUTION,
+        CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
+        CYD_DISPLAY_VERTICAL_RESOLUTION,    // yMax = 320
         false,  // swapXy
         true,   // mirrorX
-        false   // mirrorY
+        false,  // mirrorY
+        -0.087f, // xfac (placeholder from XPT2046.c example)
+        -0.064f, // yfac (placeholder)
+        340,     // xoff (placeholder)
+        263      // yoff (placeholder)
     );
     return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
