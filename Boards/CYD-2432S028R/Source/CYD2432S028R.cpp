@@ -1,4 +1,5 @@
 #include "CYD2432S028R.h"
+#include "hal/YellowSdCard.h"
 #include "hal/YellowDisplay.h"
 #include "hal/YellowDisplayConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
