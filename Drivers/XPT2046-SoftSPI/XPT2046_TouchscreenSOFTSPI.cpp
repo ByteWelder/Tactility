@@ -124,7 +124,7 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     if (tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin)) {
-        isrWake = true;  // Simulate ISR trigger if IRQ is low
+        isrWake = true;
     }
     if (!isrWake) {
         ESP_LOGD(TAG, "No IRQ, skipping update");
@@ -132,7 +132,7 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
         return;
     }
 
-    uint32_t now = esp_timer_get_time() / 1000;  // Milliseconds
+    uint32_t now = esp_timer_get_time() / 1000;
     if (now - msraw < MSEC_THRESHOLD) return;
 
     uint16_t ux = readXOY(CMD_X_READ);
@@ -140,11 +140,12 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    // Apply calibration
-    int16_t x = xfac * ux + xoff;
-    int16_t y = yfac * uy + yoff;
+    // Apply calibration (disabled for now)
+    int16_t x = xfac != 0 ? (xfac * ux + xoff) : ux / 17;  // Scale 0-4095 to 0-239
+    int16_t y = yfac != 0 ? (yfac * uy + yoff) : uy / 13;  // Scale 0-4095 to 0-319
 
-    // Rotation adjustment (assuming 240x320 screen for CYD-2432S028R)
+    ESP_LOGI(TAG, "Pre-rotation: x=%d, y=%d", x, y);
+
     int16_t swap_tmp;
     switch (rotation) {
         case 0:  // Portrait
@@ -164,11 +165,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
             x = 240 - x;
             break;
         case 3:  // Landscape inverted
-            // No change needed
             break;
     }
 
-    // Clamp to screen bounds
     if (x < 0) x = 0;
     if (x > 239) x = 239;
     if (y < 0) y = 0;
@@ -176,10 +175,10 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     xraw = x;
     yraw = y;
-    zraw = 1;  // Simple touch indicator (1 = touched, 0 = not touched)
+    zraw = 1;
     msraw = now;
 
-    isrWake = false;  // Reset IRQ flag
+    isrWake = false;
     ESP_LOGI(TAG, "Touch raw: x=%d, y=%d", xraw, yraw);
 }
 
