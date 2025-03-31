@@ -18,11 +18,18 @@ public:
         uint8_t rx = 0;
         for (int i = 7; i >= 0; i--) {
             fastDigitalWrite(MosiPin, (data >> i) & 1);
-            esp_rom_delay_us(10);  // Slow to ~50kHz
-            fastDigitalWrite(SckPin, MODE_CPHA(Mode) ? MODE_CPOL(Mode) : !MODE_CPOL(Mode));
-            esp_rom_delay_us(10);
-            if (fastDigitalRead(MisoPin)) rx |= (1 << i);
-            fastDigitalWrite(SckPin, MODE_CPHA(Mode) ? !MODE_CPOL(Mode) : MODE_CPOL(Mode));
+            if (MODE_CPHA(Mode)) {
+                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock low
+                esp_rom_delay_us(1);  // ~500kHz, adjustable
+                rx = rx << 1 | fastDigitalRead(MisoPin);
+                fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock high
+            } else {
+                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock high
+                esp_rom_delay_us(1);
+                rx = rx << 1 | fastDigitalRead(MisoPin);
+                fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock low
+            }
+            esp_rom_delay_us(1);
         }
         return rx;
     }
@@ -30,7 +37,7 @@ public:
     uint16_t transfer16(uint8_t data) {
         uint16_t rx = transfer(data);
         rx = (rx << 8) | transfer(0x00);
-        return rx & 0x0FFF;  // Mask to 12 bits
+        return rx & 0x0FFF;  // Mask to 12 bits (XPT2046 is 12-bit ADC)
     }
 
     void beginTransaction() {
