@@ -45,7 +45,7 @@ bool SoftXpt2046Touch::stop() {
 void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* touch = static_cast<SoftXpt2046Touch*>(indev->user_data);
     uint16_t x, y;
-    uint8_t z;
+    uint16_t z;  // Changed to uint16_t to match Z_THRESHOLD (400)
     touch->touch.readData(&x, &y, &z);
 
     if (z >= Z_THRESHOLD) {
