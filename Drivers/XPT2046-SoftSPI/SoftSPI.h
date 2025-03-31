@@ -2,7 +2,7 @@
 
 #include "driver/gpio.h"
 
-template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode = 0>
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = 0>
 class SoftSPI {
 public:
     void begin() {
