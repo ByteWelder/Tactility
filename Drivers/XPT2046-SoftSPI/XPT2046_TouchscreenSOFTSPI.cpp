@@ -1,12 +1,17 @@
 #include "XPT2046_TouchscreenSOFTSPI.h"
-#include "SoftSPI.h"
+#include "SoftSPI.h"  // Absolute path to your SoftSPI.h
+#include "esp_timer.h"
 #include "esp_log.h"
 
 static const char* TAG = "XPT2046_SoftSPI";
 
-static XPT2046_TouchscreenSOFTSPI* isrPinptr;
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
+    : csPin(csPin), tirqPin(tirqPin) {}
+
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
 static void IRAM_ATTR isrPin(void* arg) {
-    XPT2046_TouchscreenSOFTSPI* o = static_cast<XPT2046_TouchscreenSOFTSPI*>(arg);
+    XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
     o->isrWake = true;
 }
 
@@ -29,38 +34,40 @@ static inline void fastPinMode(gpio_num_t pin, bool mode) {
     gpio_config(&io_conf);
 }
 
-XPT2046_TouchscreenSOFTSPI::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
-    : csPin(csPin), tirqPin(tirqPin) {}
-
-bool XPT2046_TouchscreenSOFTSPI::begin(SoftSPI* touchscreenSPI) {
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     fastPinMode(csPin, true);
-    fastDigitalWrite(csPin, HIGH);
+    fastDigitalWrite(csPin, 1);  // HIGH
     if (tirqPin != GPIO_NUM_NC) {
         fastPinMode(tirqPin, false);
         gpio_install_isr_service(0);
-        gpio_isr_handler_add(tirqPin, isrPin, this);
+        gpio_isr_handler_add(tirqPin, isrPin<MisoPin, MosiPin, SckPin, Mode>, this);
     }
-    touchscreenSPI->begin();
+    touchscreenSPI.begin();
     ESP_LOGI(TAG, "Initialized with CS=%d, IRQ=%d", csPin, tirqPin);
     return true;
 }
 
-bool XPT2046_TouchscreenSOFTSPI::tirqTouched() {
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::tirqTouched() {
     return isrWake;
 }
 
-bool XPT2046_TouchscreenSOFTSPI::touched(SoftSPI* touchscreenSPI) {
-    update(touchscreenSPI);
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::touched() {
+    update();
     return zraw >= Z_THRESHOLD;
 }
 
-TS_Point XPT2046_TouchscreenSOFTSPI::getPoint(SoftSPI* touchscreenSPI) {
-    update(touchscreenSPI);
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+TS_Point XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getPoint() {
+    update();
     return TS_Point(xraw, yraw, zraw);
 }
 
-void XPT2046_TouchscreenSOFTSPI::readData(SoftSPI* touchscreenSPI, uint16_t* x, uint16_t* y, uint8_t* z) {
-    update(touchscreenSPI);
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readData(uint16_t* x, uint16_t* y, uint8_t* z) {
+    update();
     *x = xraw;
     *y = yraw;
     *z = zraw;
@@ -73,33 +80,34 @@ static int16_t besttwoavg(int16_t x, int16_t y, int16_t z) {
     return (y + z) >> 1;
 }
 
-void XPT2046_TouchscreenSOFTSPI::update(SoftSPI* touchscreenSPI) {
+template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
+void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     if (!isrWake) return;
     uint32_t now = esp_timer_get_time() / 1000;  // Milliseconds
     if (now - msraw < MSEC_THRESHOLD) return;
 
-    fastDigitalWrite(csPin, LOW);
+    fastDigitalWrite(csPin, 0);  // LOW
 
-    touchscreenSPI->transfer(0xB1);  // Z1
-    int16_t z1 = touchscreenSPI->transfer16(0xC1) >> 3;  // Z2
+    touchscreenSPI.transfer(0xB1);  // Z1
+    int16_t z1 = touchscreenSPI.transfer16(0xC1) >> 3;  // Z2
     int z = z1 + 4095;
-    int16_t z2 = touchscreenSPI->transfer16(0x91) >> 3;  // X (dummy read)
+    int16_t z2 = touchscreenSPI.transfer16(0x91) >> 3;  // X (dummy read)
     z -= z2;
 
     int16_t data[6];
     if (z >= Z_THRESHOLD) {
-        touchscreenSPI->transfer16(0x91);  // Dummy X
-        data[0] = touchscreenSPI->transfer16(0xD1) >> 3;  // Y
-        data[1] = touchscreenSPI->transfer16(0x91) >> 3;  // X
-        data[2] = touchscreenSPI->transfer16(0xD1) >> 3;  // Y
-        data[3] = touchscreenSPI->transfer16(0x91) >> 3;  // X
+        touchscreenSPI.transfer16(0x91);  // Dummy X
+        data[0] = touchscreenSPI.transfer16(0xD1) >> 3;  // Y
+        data[1] = touchscreenSPI.transfer16(0x91) >> 3;  // X
+        data[2] = touchscreenSPI.transfer16(0xD1) >> 3;  // Y
+        data[3] = touchscreenSPI.transfer16(0x91) >> 3;  // X
     } else {
         data[0] = data[1] = data[2] = data[3] = 0;
     }
-    data[4] = touchscreenSPI->transfer16(0xD0) >> 3;  // Y (power down)
-    data[5] = touchscreenSPI->transfer16(0) >> 3;
+    data[4] = touchscreenSPI.transfer16(0xD0) >> 3;  // Y (power down)
+    data[5] = touchscreenSPI.transfer16(0) >> 3;
 
-    fastDigitalWrite(csPin, HIGH);
+    fastDigitalWrite(csPin, 1);  // HIGH
 
     if (z < 0) z = 0;
     if (z < Z_THRESHOLD) {
@@ -122,3 +130,6 @@ void XPT2046_TouchscreenSOFTSPI::update(SoftSPI* touchscreenSPI) {
         }
     }
 }
+
+// Explicit instantiation for your pins
+template class XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0>;
