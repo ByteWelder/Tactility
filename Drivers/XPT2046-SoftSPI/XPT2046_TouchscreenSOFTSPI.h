@@ -8,8 +8,8 @@
 #define MSEC_THRESHOLD  3
 #define SPI_SETTING     0  // Mode 0 (CPOL=0, CPHA=0)
 
-template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode>
-class SoftSPI;  // Forward declaration of templated SoftSPI
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+class SoftSPI;  // Forward declaration
 
 class TS_Point {
 public:
@@ -20,7 +20,7 @@ public:
     int16_t x, y, z;
 };
 
-template<uint8_t MisoPin, uint8_t MosiPin, uint8_t SckPin, uint8_t Mode = 0>
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = 0>
 class XPT2046_TouchscreenSOFTSPI {
 public:
     XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin = GPIO_NUM_NC);
