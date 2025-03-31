@@ -3,6 +3,7 @@
 #include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include <inttypes.h>  // For PRI macros
 
 static const char* TAG = "XPT2046_SoftSPI";
 
@@ -45,7 +46,7 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
         gpio_isr_handler_add(tirqPin, XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin, this);
     }
     touchscreenSPI.begin();
-    ESP_LOGI(TAG, "Initialized with CS=%d, IRQ=%d", csPin, tirqPin);
+    ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32, (int32_t)csPin, (int32_t)tirqPin);
     return true;
 }
 
@@ -109,6 +110,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     data[5] = touchscreenSPI.transfer16(0) >> 3;
 
     fastDigitalWrite(csPin, 1);  // HIGH
+
+    ESP_LOGI(TAG, "SPI raw: z1=%" PRId16 ", z2=%" PRId16 ", z=%d, data=[%" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 ", %" PRId16 "]",
+             z1, z2, z, data[0], data[1], data[2], data[3], data[4], data[5]);
 
     if (z < 0) z = 0;
     if (z < Z_THRESHOLD) {
