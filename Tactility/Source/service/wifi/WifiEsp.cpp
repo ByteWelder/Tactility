@@ -844,7 +844,6 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
 static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
     auto lock = wifi->dataMutex.asScopedLock();
     if (!lock.lock(100)) {
-        TT_LOG_W(TAG, "Auto-connect can't lock");
         return false;
     }
 
@@ -853,7 +852,6 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
        !wifi->pause_auto_connect;
 
     if (!is_radio_in_scannable_state) {
-        TT_LOG_W(TAG, "Auto-connect: radio state not ok (%d, %d, %d)", (int)wifi->getRadioState(), wifi->isScanActive(), wifi->pause_auto_connect);
         return false;
     }
 
@@ -862,7 +860,6 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
     bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
 
     if (!scan_time_has_looped && !no_recent_scan) {
-        TT_LOG_W(TAG, "Auto-connect: scan time looped = %d, no recent scan = %d", scan_time_has_looped, no_recent_scan);
     }
 
     return scan_time_has_looped || no_recent_scan;
