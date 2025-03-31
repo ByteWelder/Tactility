@@ -140,9 +140,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    // Refined scaling
-    int16_t x = (ux - 220) * 239 / (489 - 220);  // Map 220-489 to 0-239
-    int16_t y = uy * 319 / 496;                   // Map 0-496 to 0-319
+    // Updated scaling based on logs
+    int16_t x = (ux - 154) * 239 / (473 - 154);  // Map 154-473 to 0-239
+    int16_t y = uy * 319 / 433;                   // Map 0-433 to 0-319
 
     if (x < 0) x = 0;
     if (x > 239) x = 239;
@@ -153,12 +153,11 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     int16_t swap_tmp;
     switch (rotation) {
-        case 0:  // Portrait (display orientation)
-            swap_tmp = x;
-            x = y;
-            y = 320 - swap_tmp;
+        case 0:  // Portrait (adjusted for correct mapping)
+            x = x;              // X stays as is
+            y = 319 - y;        // Invert Y (0 at top, 319 at bottom)
             break;
-        case 1:  // Landscape
+        case 1:  // Landscape (for reference, not changing)
             x = 240 - x;
             y = 320 - y;
             break;
