@@ -19,7 +19,8 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
         return false;
     }
     ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
-    touch.setRotation(1);  // Match display orientation
+
+    touch.setRotation(1);  // Match display orientation (adjustable)
     ESP_LOGI(TAG, "Touch rotation set to 1");
 
     // LVGL v9: Create input device
@@ -39,15 +40,18 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     lv_indev_set_user_data(indev, this);
     ESP_LOGI(TAG, "User data set to this=%p", this);
 
-    ESP_LOGI(TAG, "Software SPI touch initialized successfully");
+    ESP_LOGI(TAG, "Software SPI touch initialized successfully with xMax=%" PRIu16 ", yMax=%" PRIu16 ", swapXy=%d, mirrorX=%d, mirrorY=%d",
+             config->xMax, config->yMax, config->swapXy, config->mirrorX, config->mirrorY);
     return true;
 }
 
 bool SoftXpt2046Touch::stop() {
     if (indev != nullptr) {
+        ESP_LOGI(TAG, "Deleting LVGL input device at %p", indev);
         lv_indev_delete(indev);
         indev = nullptr;
     }
+    ESP_LOGI(TAG, "Software SPI touch stopped");
     return true;
 }
 
