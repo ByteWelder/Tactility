@@ -140,9 +140,14 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    // Apply calibration (disabled for now)
-    int16_t x = xfac != 0 ? (xfac * ux + xoff) : ux / 17;  // Scale 0-4095 to 0-239
-    int16_t y = yfac != 0 ? (yfac * uy + yoff) : uy / 13;  // Scale 0-4095 to 0-319
+    // Adjust scaling for actual range (~200-500 to 0-239, ~0-416 to 0-319)
+    int16_t x = (ux - 200) * 240 / (489 - 200);  // Map 200-489 to 0-239
+    int16_t y = uy * 320 / 416;                   // Map 0-416 to 0-319
+
+    if (x < 0) x = 0;
+    if (x > 239) x = 239;
+    if (y < 0) y = 0;
+    if (y > 319) y = 319;
 
     ESP_LOGI(TAG, "Pre-rotation: x=%d, y=%d", x, y);
 
@@ -167,11 +172,6 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
         case 3:  // Landscape inverted
             break;
     }
-
-    if (x < 0) x = 0;
-    if (x > 239) x = 239;
-    if (y < 0) y = 0;
-    if (y > 319) y = 319;
 
     xraw = x;
     yraw = y;
