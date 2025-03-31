@@ -3,6 +3,7 @@
 #include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"  // For esp_rom_delay_us
 #include <inttypes.h>
 
 static const char* TAG = "XPT2046_SoftSPI";
@@ -93,7 +94,7 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     if (now - msraw < MSEC_THRESHOLD) return;
 
     fastDigitalWrite(csPin, 0);  // LOW
-    ets_delay_us(10);  // Stabilize
+    esp_rom_delay_us(10);  // Stabilize
 
     // Z measurement
     touchscreenSPI.transfer(0xB1);  // Z1
