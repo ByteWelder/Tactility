@@ -2,6 +2,7 @@
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
+#include <inttypes.h>  // For PRI macros
 
 #define TAG "soft_xpt2046"
 
@@ -13,7 +14,6 @@ SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> config)
 bool SoftXpt2046Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Initializing software SPI touch");
 
-    // Check if touch initialization succeeds
     if (!touch.begin()) {
         TT_LOG_E(TAG, "Failed to initialize XPT2046 soft SPI");
         return false;
@@ -30,15 +30,12 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     }
     ESP_LOGI(TAG, "LVGL input device created at %p", indev);
 
-    // Set input device type
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     ESP_LOGI(TAG, "Input device type set to POINTER");
 
-    // Set read callback
     lv_indev_set_read_cb(indev, readCallback);
     ESP_LOGI(TAG, "Read callback set to SoftXpt2046Touch::readCallback");
 
-    // Set user data
     lv_indev_set_user_data(indev, this);
     ESP_LOGI(TAG, "User data set to this=%p", this);
 
@@ -59,7 +56,7 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     uint16_t x, y, z;
     touch->touch.readData(&x, &y, &z);
 
-    ESP_LOGI(TAG, "Touch raw: x=%d, y=%d, z=%d", x, y, z);  // Add logging
+    ESP_LOGI(TAG, "Touch raw: x=%" PRIu16 ", y=%" PRIu16 ", z=%" PRIu16, x, y, z);
 
     if (z >= Z_THRESHOLD) {
         int16_t tx = x, ty = y;
@@ -69,7 +66,7 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
         data->point.x = (tx * touch->config->xMax) / 4095;
         data->point.y = (ty * touch->config->yMax) / 4095;
         data->state = LV_INDEV_STATE_PRESSED;
-        ESP_LOGI(TAG, "Touch mapped: x=%d, y=%d", data->point.x, data->point.y);
+        ESP_LOGI(TAG, "Touch mapped: x=%" PRId32 ", y=%" PRId32, data->point.x, data->point.y);
     } else {
         data->state = LV_INDEV_STATE_RELEASED;
     }
