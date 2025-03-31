@@ -11,7 +11,7 @@ XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenS
     : csPin(csPin), tirqPin(tirqPin) {}
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
-static void IRAM_ATTR isrPin(void* arg) {
+void IRAM_ATTR XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin(void* arg) {
     auto* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
     o->isrWake = true;
 }
@@ -42,7 +42,7 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     if (tirqPin != GPIO_NUM_NC) {
         fastPinMode(tirqPin, false);
         gpio_install_isr_service(0);
-        gpio_isr_handler_add(tirqPin, isrPin<MisoPin, MosiPin, SckPin, Mode>, this);
+        gpio_isr_handler_add(tirqPin, XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin, this);
     }
     touchscreenSPI.begin();
     ESP_LOGI(TAG, "Initialized with CS=%d, IRQ=%d", csPin, tirqPin);
