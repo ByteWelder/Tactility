@@ -1,4 +1,7 @@
-#include <lv_hal_indev.h>
+#define LV_USE_PRIVATE_API 1
+
+#include <lvgl.h>
+// #include <lv_hal_indev.h>
 #include "SoftXpt2046Touch.h"
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
