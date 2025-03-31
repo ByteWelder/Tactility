@@ -32,6 +32,7 @@ public:
     void setRotation(uint8_t n) { rotation = n % 4; }
 
 private:
+    static void IRAM_ATTR isrPin(void* arg);  // ISR declaration
     void update();
     gpio_num_t csPin, tirqPin;
     volatile bool isrWake = true;
