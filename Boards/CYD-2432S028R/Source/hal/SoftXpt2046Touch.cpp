@@ -12,7 +12,7 @@ SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> config)
 
 bool SoftXpt2046Touch::start(lv_display_t* display) {
     ESP_LOGI(TAG, "Initializing software SPI touch");
-    if (!touch.begin(&touchscreenSPI)) {
+    if (!touch.begin()) {
         TT_LOG_E(TAG, "Failed to initialize XPT2046 soft SPI");
         return false;
     }
@@ -46,7 +46,7 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* touch = static_cast<SoftXpt2046Touch*>(indev->user_data);
     uint16_t x, y;
     uint8_t z;
-    touch->touch.readData(&touch->touchscreenSPI, &x, &y, &z);
+    touch->touch.readData(&x, &y, &z);
 
     if (z >= Z_THRESHOLD) {
         int16_t tx = x, ty = y;
