@@ -82,6 +82,7 @@ void Gt911Touch::cleanup() {
     if (deviceHandle != nullptr) {
         lv_indev_delete(deviceHandle);
         deviceHandle = nullptr;
+        touchHandle = nullptr;
     }
 
     if (ioHandle != nullptr) {
