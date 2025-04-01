@@ -1,5 +1,6 @@
 #include "Calibration.h"
 #include "esp_log.h"
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
