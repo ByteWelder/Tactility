@@ -1,4 +1,7 @@
 # TODOs
+
+- HAL for display touch calibration
+- Display app: hide controls for unsupported features, instead of disabling them
 - Split up boot stages, so the last stage can be done from the splash screen
 - Start using non_null (either via MS GSL, or custom)
 - `hal/Configuration.h` defines C function types: Use C++ std::function instead
@@ -38,6 +41,7 @@
 - Remove flex_flow from app_container in Gui.cpp
 
 # Nice-to-haves
+
 - Give external app a different icon. Allow an external app update their id, icon, type and name once they are running(and persist that info?). Loader will need to be able to find app by (external) location.
 - Audio player app
 - Audio recording app
@@ -52,8 +56,9 @@
 - Files app: copy/paste actions
 - On crash, try to save current log to flash or SD card? (this is risky, though, so ask in Discord first)
 - Support more than 1 hardware keyboard (see lvgl::hardware_keyboard_set_indev()). LVGL init currently calls keyboard init, but that part should probably be done from the KeyboardDevice base class.
- 
+
 # App Ideas
+
 - Map widget:
   https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/application/ui/ui_geomap.cpp
   https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/tools/generate_world_map.bin.py
