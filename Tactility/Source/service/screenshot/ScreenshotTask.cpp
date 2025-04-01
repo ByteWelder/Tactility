@@ -59,13 +59,6 @@ static void makeScreenshot(const std::string& filename) {
     }
 }
 
-static int32_t screenshotTaskCallback(void* context) {
-    auto* data = static_cast<ScreenshotTask*>(context);
-    assert(data != nullptr);
-    data->taskMain();
-    return 0;
-}
-
 void ScreenshotTask::taskMain() {
     uint8_t screenshots_taken = 0;
     std::string last_app_id;
@@ -116,8 +109,10 @@ void ScreenshotTask::taskStart() {
     thread = new Thread(
         "screenshot",
         8192,
-        &screenshotTaskCallback,
-        this
+        [this]() {
+            this->taskMain();
+            return 0;
+        }
     );
     thread->start();
 }

@@ -161,7 +161,8 @@ public:
         lv_obj_t* switch_container = lv_obj_create(wrapper);
         lv_obj_set_width(switch_container, LV_PCT(100));
         lv_obj_set_height(switch_container, LV_SIZE_CONTENT);
-        lvgl::obj_set_style_no_padding(switch_container);
+        lv_obj_set_style_pad_all(switch_container, 0, 0);
+        lv_obj_set_style_pad_gap(switch_container, 0, 0);
         lvgl::obj_set_style_bg_invisible(switch_container);
 
         enableLabel = lv_label_create(switch_container);

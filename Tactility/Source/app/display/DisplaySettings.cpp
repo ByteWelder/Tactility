@@ -6,19 +6,21 @@ namespace tt::app::display {
 
 tt::Preferences preferences("display");
 
-#define BACKLIGHT_DUTY_KEY "backlight_duty"
-#define ROTATION_KEY "rotation"
+constexpr const char* BACKLIGHT_DUTY_KEY = "backlight_duty";
+constexpr const char* GAMMA_CURVE_KEY = "gamma";
+constexpr const char* ROTATION_KEY = "rotation";
 
 void setBacklightDuty(uint8_t value) {
     preferences.putInt32(BACKLIGHT_DUTY_KEY, (int32_t)value);
 }
 
-uint8_t getBacklightDuty() {
+bool getBacklightDuty(uint8_t& duty) {
     int32_t result;
     if (preferences.optInt32(BACKLIGHT_DUTY_KEY, result)) {
-        return (uint8_t)(result % 256);
+        duty = (uint8_t)(result % 256);
+        return true;
     } else {
-        return 200;
+        return false;
     }
 }
 
@@ -32,6 +34,20 @@ lv_display_rotation_t getRotation() {
         return (lv_display_rotation_t)rotation;
     } else {
         return LV_DISPLAY_ROTATION_0;
+    }
+}
+
+void setGammaCurve(uint8_t curveIndex) {
+    preferences.putInt32(GAMMA_CURVE_KEY, (int32_t)curveIndex);
+}
+
+bool getGammaCurve(uint8_t& curveIndex) {
+    int32_t result;
+    if (preferences.optInt32(GAMMA_CURVE_KEY, result)) {
+        curveIndex = (uint8_t)(result % 256);
+        return true;
+    } else {
+        return false;
     }
 }
 

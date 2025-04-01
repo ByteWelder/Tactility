@@ -78,7 +78,8 @@ class WifiApSettings : public App {
 
         auto* auto_connect_wrapper = lv_obj_create(wrapper);
         lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lvgl::obj_set_style_no_padding(auto_connect_wrapper);
+        lv_obj_set_style_pad_all(auto_connect_wrapper, 0, 0);
+        lv_obj_set_style_pad_gap(auto_connect_wrapper, 0, 0);
         lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
 
         auto* auto_connect_label = lv_label_create(auto_connect_wrapper);

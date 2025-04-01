@@ -18,8 +18,9 @@ ThreadHandle tt_thread_alloc_ext(
     return new tt::Thread(
         name,
         stackSize,
-        callback,
-        callbackContext
+        [callback, callbackContext]() {
+            return callback(callbackContext);
+        }
     );
 }
 
@@ -36,7 +37,9 @@ void tt_thread_set_stack_size(ThreadHandle handle, size_t size) {
 }
 
 void tt_thread_set_callback(ThreadHandle handle, ThreadCallback callback, void* _Nullable callbackContext) {
-    HANDLE_AS_THREAD(handle)->setCallback(callback, callbackContext);
+    HANDLE_AS_THREAD(handle)->setMainFunction([callback, callbackContext]() {
+        return callback(callbackContext);
+    });
 }
 
 void tt_thread_set_priority(ThreadHandle handle, ThreadPriority priority) {

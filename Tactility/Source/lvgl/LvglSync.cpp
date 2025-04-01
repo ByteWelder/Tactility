@@ -22,7 +22,7 @@ void syncSet(LvglLock lock, LvglUnlock unlock) {
     auto old_unlock = unlock_singleton;
 
     // Ensure the old lock is not engaged when changing locks
-    old_lock(portMAX_DELAY);
+    old_lock((uint32_t)portMAX_DELAY);
     lock_singleton = lock;
     unlock_singleton = unlock;
     old_unlock();

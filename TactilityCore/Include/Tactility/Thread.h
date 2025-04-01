@@ -76,22 +76,6 @@ public:
     /** Allocate Thread, shortcut version
      * @param[in] name the name of the thread
      * @param[in] stackSize in bytes
-     * @param[in] callback
-     * @param[in] callbackContext
-     * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
-     */
-    [[deprecated("Use constructor variant with std::function")]]
-    Thread(
-        std::string name,
-        configSTACK_DEPTH_TYPE stackSize,
-        Callback callback,
-        _Nullable void* callbackContext,
-        portBASE_TYPE affinity = -1
-    );
-
-    /** Allocate Thread, shortcut version
-     * @param[in] name the name of the thread
-     * @param[in] stackSize in bytes
      * @param[in] function
      * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
      */
@@ -200,7 +184,6 @@ public:
     static uint32_t awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout);
 };
 
-#define THREAD_PRIORITY_APP Thread::PriorityNormal
 #define THREAD_PRIORITY_SERVICE Thread::Priority::High
 #define THREAD_PRIORITY_RENDER Thread::Priority::Higher
 #define THREAD_PRIORITY_ISR Thread::Priority::Critical

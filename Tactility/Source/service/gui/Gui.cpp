@@ -13,7 +13,7 @@ namespace tt::service::gui {
 
 // Forward declarations
 void redraw(Gui*);
-static int32_t guiMain(TT_UNUSED void* p);
+static int32_t guiMain();
 
 Gui* gui = nullptr;
 
@@ -33,8 +33,7 @@ Gui* gui_alloc() {
     instance->thread = new Thread(
         "gui",
         4096, // Last known minimum was 2800 for launching desktop
-        &guiMain,
-        nullptr
+        []() { return guiMain(); }
     );
     instance->loader_pubsub_subscription = loader::getPubsub()->subscribe(&onLoaderMessage, instance);
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
@@ -118,7 +117,7 @@ void hideApp() {
     unlock();
 }
 
-static int32_t guiMain(TT_UNUSED void* p) {
+static int32_t guiMain() {
     tt_check(gui);
     Gui* local_gui = gui;
 

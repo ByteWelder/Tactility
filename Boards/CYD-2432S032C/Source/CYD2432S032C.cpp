@@ -3,12 +3,26 @@
 #include "hal/CydDisplay.h"
 #include "hal/CydSdCard.h"
 
+#include <Tactility/kernel/SystemEvents.h>
+
 #include <PwmBacklight.h>
 
-#define CYD_SPI_TRANSFER_SIZE_LIMIT (TWODOTFOUR_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
-
 bool initBoot() {
-    return driver::pwmbacklight::init(GPIO_NUM_27);
+    if (!driver::pwmbacklight::init(GPIO_NUM_27)) {
+        return false;
+    }
+
+    // This display has a weird glitch with gamma during boot, which results in uneven dark gray colours.
+    // Setting gamma curve index to 0 doesn't work at boot for an unknown reason, so we set the curve index to 1:
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootInitLvglEnd, [](auto event) {
+        auto display = tt::hal::findFirstDevice<tt::hal::display::DisplayDevice>(tt::hal::Device::Type::Display);
+        assert(display != nullptr);
+        tt::lvgl::lock(portMAX_DELAY);
+        display->setGammaCurve(1U);
+        tt::lvgl::unlock();
+    });
+
+    return true;
 }
 
 const tt::hal::Configuration cyd_2432S032c_config = {

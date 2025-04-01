@@ -57,8 +57,8 @@ void GpioApp::updatePinWidgets() {
             lv_obj_t* label = lvPins[j];
             void* label_user_data = lv_obj_get_user_data(label);
             // The user data stores the state, so we can avoid unnecessary updates
-            if ((void*)level != label_user_data) {
-                lv_obj_set_user_data(label, (void*)level);
+            if (reinterpret_cast<void*>(level) != label_user_data) {
+                lv_obj_set_user_data(label, reinterpret_cast<void*>(level));
                 if (level == 0) {
                     lv_obj_set_style_text_color(label, lv_color_black(), 0);
                 } else {

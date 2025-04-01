@@ -112,7 +112,8 @@ lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb
 
     lv_obj_t* action_button = lv_button_create(toolbar->action_container);
     lv_obj_set_size(action_button, TOOLBAR_HEIGHT - 4, TOOLBAR_HEIGHT - 4);
-    obj_set_style_no_padding(action_button);
+    lv_obj_set_style_pad_all(action_button, 0, 0);
+    lv_obj_set_style_pad_gap(action_button, 0, 0);
     lv_obj_add_event_cb(action_button, callback, LV_EVENT_SHORT_CLICKED, user_data);
     lv_obj_t* action_button_image = lv_image_create(action_button);
     lv_image_set_src(action_button_image, icon);

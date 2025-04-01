@@ -93,7 +93,8 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
     lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(wrapper);
+    lv_obj_set_style_pad_all(wrapper, 0, 0);
+    lv_obj_set_style_pad_gap(wrapper, 0, 0);
     lv_obj_set_style_margin_all(wrapper, 0, 0);
     lv_obj_set_style_border_width(wrapper, 0, 0);
 
@@ -285,7 +286,8 @@ void View::init(const AppContext& app, lv_obj_t* parent) {
     lv_obj_set_flex_grow(secondary_flex, 1);
     lv_obj_set_flex_flow(secondary_flex, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_border_width(secondary_flex, 0, 0);
-    lvgl::obj_set_style_no_padding(secondary_flex);
+    lv_obj_set_style_pad_all(secondary_flex, 0, 0);
+    lv_obj_set_style_pad_gap(secondary_flex, 0, 0);
     lvgl::obj_set_style_bg_invisible(secondary_flex);
 
     // align() methods don't work on flex, so we need this extra wrapper

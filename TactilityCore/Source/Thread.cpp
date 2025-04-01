@@ -69,21 +69,6 @@ void Thread::mainBody(void* context) {
 Thread::Thread(
     std::string name,
     configSTACK_DEPTH_TYPE stackSize,
-    Callback callback,
-    _Nullable void* callbackContext,
-    portBASE_TYPE affinity
-) :
-    mainFunction([callback, callbackContext]() {
-        return callback(callbackContext);
-    }),
-    name(std::move(name)),
-    stackSize(stackSize),
-    affinity(affinity)
-{}
-
-Thread::Thread(
-    std::string name,
-    configSTACK_DEPTH_TYPE stackSize,
     MainFunction function,
     portBASE_TYPE affinity
 ) :
