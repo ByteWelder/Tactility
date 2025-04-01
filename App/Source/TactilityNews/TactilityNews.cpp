@@ -45,7 +45,7 @@ private:
         }
 
         String deviceId = WiFi.macAddress();
-        String url = "https://script.google.com/macros/s/[YOUR_GAS_ID]/exec?deviceId=" + deviceId + "&category=general";
+        String url = "https://script.google.com/macros/s/AKfycbzNv6bljLjuZJW4bd1Mo5IZaW5Ppo6heTA_ru5CJjL6gdQzpEIWz3_MH0ZMOnzx_4io/exec?deviceId=" + deviceId + "&category=general";
 
         esp_http_client_config_t config = {
             .url = url.c_str(),
