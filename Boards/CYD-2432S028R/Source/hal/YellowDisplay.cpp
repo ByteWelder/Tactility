@@ -13,12 +13,12 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,    // yMax = 320
         false,  // swapXy
-        false,   // mirrorX
+        false,  // mirrorX
         false,  // mirrorY
-        -0.087f, // xfac (placeholder from XPT2046.c example)
-        -0.064f, // yfac (placeholder)
-        340,     // xoff (placeholder)
-        263      // yoff (placeholder)
+        1.0f,   // xfac (neutral scaling)
+        1.0f,   // yfac (neutral scaling)
+        0,      // xoff (no offset)
+        0       // yoff (no offset)
     );
     return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
