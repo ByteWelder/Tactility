@@ -43,16 +43,8 @@ public:
         auto manifests = getApps();
         std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
 
-        lv_list_add_text(list, "User");
         for (const auto& manifest: manifests) {
-            if (manifest->type == Type::User) {
-                createAppWidget(manifest, list);
-            }
-        }
-
-        lv_list_add_text(list, "System");
-        for (const auto& manifest: manifests) {
-            if (manifest->type == Type::System) {
+            if (manifest->type == Type::User || manifest->type == Type::System) {
                 createAppWidget(manifest, list);
             }
         }
