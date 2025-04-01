@@ -4,6 +4,7 @@
 #include "esp_attr.h"
 #include "SoftSPI.h"
 #include <stdint.h>
+#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"  // Include constants here
 
 #define SPI_SETTING 0  // Mode 0 (CPOL=0, CPHA=0)
 
@@ -27,7 +28,6 @@ public:
     void readData(uint16_t* x, uint16_t* y, uint16_t* z);
     void setRotation(uint8_t n) { rotation = n % 4; }
     void calibrate(float xfac, float yfac, int16_t xoff, int16_t yoff);
-    // Added for calibration app
     void getRawTouch(uint16_t& rawX, uint16_t& rawY);
 
 private:
@@ -44,5 +44,5 @@ private:
     SoftSPI<MisoPin, MosiPin, SckPin, Mode> touchscreenSPI;
 };
 
-// Declare the global instance
+// Declare the global instance with resolved pins
 extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
