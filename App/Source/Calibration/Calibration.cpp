@@ -1,12 +1,12 @@
 #include "Calibration.h"
-#include <Tactility/log.h>
+#include "esp_log.h"
 #include <Tactility/lvgl/Toolbar.h>
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"  // Access the touch driver
 
 namespace tt::app {
     void Calibration::onShow(AppContext& context, lv_obj_t* parent) {
-        TT_LOG_I("Calibration", "Starting calibration");
+        ESP_LOG_I("Calibration", "Starting calibration");
 
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -17,7 +17,7 @@ namespace tt::app {
     }
 
     void Calibration::onHide() {
-        TT_LOG_I("Calibration", "Hiding calibration");
+        ESP_LOG_I("Calibration", "Hiding calibration");
         if (label) {
             lv_obj_del(label);
             label = nullptr;
@@ -45,21 +45,21 @@ namespace tt::app {
                 break;
             case 4: {
                 app->updateScreen("Calibration complete!");
-                TT_LOG_I("Calibration", "Calibration Results:");
-                TT_LOG_I("Calibration", "Top-Left: x=%d, y=%d", app->rawX[0], app->rawY[0]);
-                TT_LOG_I("Calibration", "Top-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
-                TT_LOG_I("Calibration", "Bottom-Left: x=%d, y=%d", app->rawX[2], app->rawY[2]);
-                TT_LOG_I("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[3], app->rawY[3]);
+                ESP_LOG_I("Calibration", "Calibration Results:");
+                ESP_LOG_I("Calibration", "Top-Left: x=%d, y=%d", app->rawX[0], app->rawY[0]);
+                ESP_LOG_I("Calibration", "Top-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
+                ESP_LOG_I("Calibration", "Bottom-Left: x=%d, y=%d", app->rawX[2], app->rawY[2]);
+                ESP_LOG_I("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[3], app->rawY[3]);
 
                 int minX = std::min({app->rawX[0], app->rawX[1], app->rawX[2], app->rawX[3]});
                 int maxX = std::max({app->rawX[0], app->rawX[1], app->rawX[2], app->rawX[3]});
                 int minY = std::min({app->rawY[0], app->rawY[1], app->rawY[2], app->rawY[3]});
                 int maxY = std::max({app->rawY[0], app->rawY[1], app->rawY[2], app->rawY[3]});
 
-                TT_LOG_I("Calibration", "X Range: %d to %d", minX, maxX);
-                TT_LOG_I("Calibration", "Y Range: %d to %d", minY, maxY);
-                TT_LOG_I("Calibration", "Suggested X: (ux - %d) * 239 / (%d - %d)", minX, maxX, minX);
-                TT_LOG_I("Calibration", "Suggested Y: (uy - %d) * 319 / (%d - %d)", minY, maxY, minY);
+                ESP_LOG_I("Calibration", "X Range: %d to %d", minX, maxX);
+                ESP_LOG_I("Calibration", "Y Range: %d to %d", minY, maxY);
+                ESP_LOG_I("Calibration", "Suggested X: (ux - %d) * 239 / (%d - %d)", minX, maxX, minX);
+                ESP_LOG_I("Calibration", "Suggested Y: (uy - %d) * 319 / (%d - %d)", minY, maxY, minY);
                 break;
             }
             default:
@@ -77,7 +77,7 @@ namespace tt::app {
         if (step < 4) {
             rawX[step] = rawX;
             rawY[step] = rawY;
-            TT_LOG_I("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
+            ESP_LOG_I("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
 
