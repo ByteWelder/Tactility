@@ -22,7 +22,7 @@ private:
     lv_obj_t* wifi_button;
     tt::app::AppContext* context;
     std::shared_ptr<tt::PubSub> wifi_pubsub;
-    std::shared_ptr<tt::PubSub::Subscription> wifi_subscription;
+    tt::PubSub::SubscriptionHandle wifi_subscription = nullptr;
 
     // Callback for "Connect to Wi-Fi" button
     static void wifi_connect_cb(lv_event_t* e) {
@@ -33,6 +33,17 @@ private:
     static void refresh_cb(lv_event_t* e) {
         TactilityNews* app = static_cast<TactilityNews*>(lv_event_get_user_data(e));
         app->fetch_and_display_news();
+    }
+
+    // Wi-Fi event callback for PubSub
+    static void wifi_event_cb(const void* message, void* context) {
+        auto* self = static_cast<TactilityNews*>(context);
+        const auto* event = static_cast<const tt::service::wifi::Event*>(message);
+        if (event->type == tt::service::wifi::EventType::ConnectionSuccess) {
+            self->fetch_and_display_news();
+        } else if (event->type == tt::service::wifi::EventType::Disconnected) {
+            self->redraw_ui();
+        }
     }
 
     // Check Wi-Fi connection status
@@ -205,19 +216,16 @@ public:
 
         // Subscribe to Wi-Fi events
         wifi_pubsub = tt::service::wifi::getPubsub();
-        wifi_subscription = wifi_pubsub->subscribe([this](const tt::service::wifi::Event* event) {
-            if (event->type == tt::service::wifi::EventType::ConnectionSuccess) {
-                fetch_and_display_news();
-            } else if (event->type == tt::service::wifi::EventType::Disconnected) {
-                redraw_ui();
-            }
-        });
+        wifi_subscription = wifi_pubsub->subscribe(wifi_event_cb, this);
 
         redraw_ui();
     }
 
     void onHide(tt::app::AppContext& app_context) override {
-        wifi_subscription.reset();
+        if (wifi_subscription) {
+            wifi_pubsub->unsubscribe(wifi_subscription);
+            wifi_subscription = nullptr;
+        }
         wifi_pubsub.reset();
     }
 };
