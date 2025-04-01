@@ -4,7 +4,7 @@
 #include <Tactility/Preferences.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <lvgl.h>
-#include <esp_http_client.h>
+#include "esp_http_client.h"
 #include <cJSON.h>
 #include <WiFi.h>
 
