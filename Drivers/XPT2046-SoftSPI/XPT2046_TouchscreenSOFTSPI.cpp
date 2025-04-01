@@ -1,6 +1,5 @@
 #include "XPT2046_TouchscreenSOFTSPI.h"
 #include "SoftSPI.h"
-#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
