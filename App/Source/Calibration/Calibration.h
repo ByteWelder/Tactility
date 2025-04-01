@@ -21,5 +21,4 @@ namespace tt::app {
         uint16_t rawY[4] = {0};
     };
 
-    extern const AppManifest calibration_app;
 }
