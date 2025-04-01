@@ -27,6 +27,8 @@ public:
     void readData(uint16_t* x, uint16_t* y, uint16_t* z);
     void setRotation(uint8_t n) { rotation = n % 4; }
     void calibrate(float xfac, float yfac, int16_t xoff, int16_t yoff);
+    // Added for calibration app
+    void getRawTouch(uint16_t& rawX, uint16_t& rawY);
 
 private:
     IRAM_ATTR static void isrPin(void* arg);
@@ -41,3 +43,6 @@ private:
     int16_t xoff = 0, yoff = 0;
     SoftSPI<MisoPin, MosiPin, SckPin, Mode> touchscreenSPI;
 };
+
+// Declare the global instance
+extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
