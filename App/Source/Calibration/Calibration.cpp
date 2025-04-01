@@ -82,7 +82,7 @@ namespace tt::app {
     }
 
     // Define the manifest
-    const AppManifest calibration_app __attribute__((used)) = {
+    const AppManifest calibration_app = {
         .id = "Calibration",
         .name = "Touch Calibration",
         .createApp = create<Calibration>
