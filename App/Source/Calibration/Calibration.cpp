@@ -80,11 +80,12 @@ namespace tt::app {
             ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
+};
 
-    // Define the manifest
-    const AppManifest calibration_app = {
-        .id = "Calibration",
-        .name = "Touch Calibration",
-        .createApp = create<Calibration>
-    };
-}
+// Define the manifest
+extern const AppManifest calibration_app = {
+    .id = "Calibration",
+    .name = "Touch Calibration",
+    .createApp = create<Calibration>
+};
+
