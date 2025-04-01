@@ -137,7 +137,7 @@ static void updatePowerSwitch() {
     }
 }
 
-static int32_t powerSwitchMain(void*) { // check power switch every 10th of sec
+static int32_t powerSwitchMain() { // check power switch every 10th of sec
     while (true) {
         updatePowerSwitch();
         tt::kernel::delayMillis(200);
@@ -148,8 +148,7 @@ static void startPowerSwitchThread() {
     powerThread = std::make_unique<tt::Thread>(
         "unphone_power_switch",
         4096,
-        powerSwitchMain,
-        nullptr
+        []() { return powerSwitchMain(); }
     );
     powerThread->start();
 }

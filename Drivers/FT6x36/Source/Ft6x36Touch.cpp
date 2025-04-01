@@ -12,15 +12,12 @@ static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     touch->readLast(data);
 }
 
-static int32_t threadCallback(void* context) {
-    auto* touch = (Ft6x36Touch*)context;
-    touch->driverThreadMain();
-    return 0;
-}
-
 Ft6x36Touch::Ft6x36Touch(std::unique_ptr<Configuration> inConfiguration) :
     configuration(std::move(inConfiguration)),
-    driverThread(tt::Thread("ft6x36", 4096, threadCallback, this))
+    driverThread(tt::Thread("ft6x36", 4096, [this]() {
+        driverThreadMain();
+        return 0;
+    }))
 {}
 
 Ft6x36Touch::~Ft6x36Touch() {
