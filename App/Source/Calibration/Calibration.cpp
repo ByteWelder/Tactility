@@ -1,12 +1,16 @@
-#include "Calibration.h"
 #include "esp_log.h"
+#include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <lvgl.h>
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
 
-namespace tt::app {
-    void Calibration::onShow(AppContext& context, lv_obj_t* parent) {
+using namespace tt::app;
+
+class Calibration : public App {
+public:
+    void onShow(AppContext& context, lv_obj_t* parent) override {
         ESP_LOGI("Calibration", "Starting calibration");
 
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
@@ -17,7 +21,7 @@ namespace tt::app {
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
     }
 
-    void Calibration::onHide(AppContext& /*context*/) {
+    void onHide(AppContext& /*context*/) override {
         ESP_LOGI("Calibration", "Hiding calibration");
         if (label) {
             lv_obj_del(label);
@@ -25,7 +29,8 @@ namespace tt::app {
         }
     }
 
-    void Calibration::eventCallback(lv_event_t* e) {
+private:
+    static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
         extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
@@ -69,12 +74,12 @@ namespace tt::app {
         }
     }
 
-    void Calibration::updateScreen(const char* instruction) {
+    void updateScreen(const char* instruction) {
         lv_label_set_text(label, instruction);
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     }
 
-    void Calibration::logTouchData(uint16_t rawX, uint16_t rawY) {
+    void logTouchData(uint16_t rawX, uint16_t rawY) {
         if (step < 4) {
             this->rawX[step] = rawX;
             this->rawY[step] = rawY;
@@ -82,10 +87,15 @@ namespace tt::app {
         }
     }
 
-    // Define the manifest
-    const AppManifest calibration_app = {
-        .id = "Calibration",
-        .name = "Touch Calibration",
-        .createApp = create<Calibration>
-    };
-}
+    lv_obj_t* label = nullptr;
+    int step = 0;  // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right, 4: done
+    uint16_t rawX[4] = {0};
+    uint16_t rawY[4] = {0};
+};
+
+// Define the manifest directly in the file
+extern const AppManifest calibration_app = {
+    .id = "Calibration",
+    .name = "Touch Calibration",
+    .createApp = create<Calibration>
+};
