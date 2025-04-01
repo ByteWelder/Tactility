@@ -11,6 +11,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/HelloWorld"
         "Source/Clock"
         "Source/Calibration"
+        "Source/TactilityNews"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
