@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tt/app/App.h>
+#include <Tactility/app/App.h>
 #include <lvgl.h>
 
 namespace tt::app {
