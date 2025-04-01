@@ -10,6 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRC_DIRS "Source"
         "Source/HelloWorld"
         "Source/Clock"
+        "Source/Calibration"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
