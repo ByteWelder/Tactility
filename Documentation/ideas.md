@@ -1,5 +1,6 @@
 # TODOs
 
+- Add a Keyboard setting app to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but user wants soft keyboard)
 - HAL for display touch calibration
 - Display app: hide controls for unsupported features, instead of disabling them
 - Split up boot stages, so the last stage can be done from the splash screen

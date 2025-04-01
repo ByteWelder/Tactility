@@ -4,12 +4,6 @@
 
 using namespace tt;
 
-static int32_t thread_with_mutex_parameter(void* parameter) {
-    auto* mutex = (Mutex*)parameter;
-    mutex->lock(portMAX_DELAY);
-    return 0;
-}
-
 TEST_CASE("a mutex can block a thread") {
     auto mutex = Mutex(Mutex::Type::Normal);
     mutex.lock(portMAX_DELAY);
@@ -17,8 +11,10 @@ TEST_CASE("a mutex can block a thread") {
     Thread thread = Thread(
         "thread",
         1024,
-        &thread_with_mutex_parameter,
-        &mutex
+        [&mutex]() {
+            mutex.lock(portMAX_DELAY);
+            return 0;
+        }
     );
     thread.start();
 
