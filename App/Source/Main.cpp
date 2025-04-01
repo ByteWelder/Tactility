@@ -11,6 +11,8 @@ namespace tt::app::clock {
 }
 
 extern const tt::app::AppManifest hello_world_app;
+extern const tt::app::AppManifest calibration_app;
+
 
 extern "C" {
 
@@ -24,6 +26,7 @@ void app_main() {
         .apps = {
             &hello_world_app,
             &tt::app::clock::clock_app,
+            &calibration_app,
         }
     };
 
