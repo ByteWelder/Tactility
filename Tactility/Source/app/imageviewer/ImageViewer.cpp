@@ -20,7 +20,8 @@ class ImageViewerApp : public App {
         auto wrapper = lv_obj_create(parent);
         lv_obj_set_size(wrapper, LV_PCT(100), LV_PCT(100));
         lv_obj_set_style_border_width(wrapper, 0, 0);
-        lvgl::obj_set_style_no_padding(wrapper);
+        lv_obj_set_style_pad_all(wrapper, 0, 0);
+        lv_obj_set_style_pad_gap(wrapper, 0, 0);
 
         auto toolbar = lvgl::toolbar_create(wrapper, app);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -32,7 +33,8 @@ class ImageViewerApp : public App {
         lv_obj_set_height(image_wrapper, parent_height - TOOLBAR_HEIGHT);
         lv_obj_set_flex_flow(image_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_flex_align(image_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lvgl::obj_set_style_no_padding(image_wrapper);
+        lv_obj_set_style_pad_all(image_wrapper, 0, 0);
+        lv_obj_set_style_pad_gap(image_wrapper, 0, 0);
         lvgl::obj_set_style_bg_invisible(image_wrapper);
 
         auto* image = lv_image_create(image_wrapper);

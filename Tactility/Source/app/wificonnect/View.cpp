@@ -16,8 +16,6 @@ namespace tt::app::wificonnect {
 
 #define TAG "wifi_connect"
 
-std::shared_ptr<WifiConnect> _Nullable optWifiConnect();
-
 void View::resetErrors() {
     lv_obj_add_flag(password_error, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ssid_error, LV_OBJ_FLAG_HIDDEN);
@@ -87,7 +85,8 @@ void View::createBottomButtons(lv_obj_t* parent) {
     auto* button_container = lv_obj_create(parent);
     lv_obj_set_width(button_container, LV_PCT(100));
     lv_obj_set_height(button_container, LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(button_container);
+    lv_obj_set_style_pad_all(button_container, 0, 0);
+    lv_obj_set_style_pad_gap(button_container, 0, 0);
     lv_obj_set_style_border_width(button_container, 0, 0);
 
     remember_switch = lv_switch_create(button_container);
@@ -126,7 +125,8 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     auto* ssid_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(ssid_wrapper, LV_PCT(100));
     lv_obj_set_height(ssid_wrapper, LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(ssid_wrapper);
+    lv_obj_set_style_pad_all(ssid_wrapper, 0, 0);
+    lv_obj_set_style_pad_gap(ssid_wrapper, 0, 0);
     lv_obj_set_style_border_width(ssid_wrapper, 0, 0);
 
     auto* ssid_label_wrapper = lv_obj_create(ssid_wrapper);
@@ -154,7 +154,8 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     auto* password_wrapper = lv_obj_create(wrapper);
     lv_obj_set_width(password_wrapper, LV_PCT(100));
     lv_obj_set_height(password_wrapper, LV_SIZE_CONTENT);
-    lvgl::obj_set_style_no_padding(password_wrapper);
+    lv_obj_set_style_pad_all(password_wrapper, 0, 0);
+    lv_obj_set_style_pad_gap(password_wrapper, 0, 0);
     lv_obj_set_style_border_width(password_wrapper, 0, 0);
 
     auto* password_label_wrapper = lv_obj_create(password_wrapper);

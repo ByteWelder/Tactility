@@ -32,9 +32,9 @@ class BootApp : public App {
 
 private:
 
-    Thread thread = Thread("boot", 4096, bootThreadCallback, this);
+    Thread thread = Thread("boot", 4096, [this]() { return bootThreadCallback(); });
 
-    static int32_t bootThreadCallback(TT_UNUSED void* context) {
+    int32_t bootThreadCallback() {
         TickType_t start_time = kernel::getTicks();
 
         kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);

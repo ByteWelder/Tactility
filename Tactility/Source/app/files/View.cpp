@@ -228,8 +228,8 @@ void View::showActionsForFile() {
 }
 
 void View::update() {
-    auto scoped_lockable = lvgl::getSyncLock()->scoped();
-    if (scoped_lockable->lock(100 / portTICK_PERIOD_MS)) {
+    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_clean(dir_entry_list);
 
         state->withEntries([this](const std::vector<dirent>& entries) {
@@ -277,15 +277,15 @@ void View::init(lv_obj_t* parent) {
 }
 
 void View::onDirEntryListScrollBegin() {
-    auto scoped_lockable = lvgl::getSyncLock()->scoped();
-    if (scoped_lockable->lock(100 / portTICK_PERIOD_MS)) {
+    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 void View::onNavigate() {
-    auto scoped_lockable = lvgl::getSyncLock()->scoped();
-    if (scoped_lockable->lock(100 / portTICK_PERIOD_MS)) {
+    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }
 }

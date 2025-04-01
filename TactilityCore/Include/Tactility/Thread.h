@@ -76,22 +76,6 @@ public:
     /** Allocate Thread, shortcut version
      * @param[in] name the name of the thread
      * @param[in] stackSize in bytes
-     * @param[in] callback
-     * @param[in] callbackContext
-     * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
-     */
-    [[deprecated("Use constructor variant with std::function")]]
-    Thread(
-        std::string name,
-        configSTACK_DEPTH_TYPE stackSize,
-        Callback callback,
-        _Nullable void* callbackContext,
-        portBASE_TYPE affinity = -1
-    );
-
-    /** Allocate Thread, shortcut version
-     * @param[in] name the name of the thread
-     * @param[in] stackSize in bytes
      * @param[in] function
      * @param[in] affinity Which CPU core to pin this task to, -1 means unpinned (only works on ESP32)
      */

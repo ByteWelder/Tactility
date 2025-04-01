@@ -24,6 +24,8 @@ static char toPrefix(LogLevel level) {
             return 'D';
         case Verbose:
             return 'V';
+        default:
+            return ' ';
     }
 }
 

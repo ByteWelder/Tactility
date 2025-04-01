@@ -81,7 +81,8 @@ public:
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
-        lvgl::obj_set_style_no_padding(wrapper);
+        lv_obj_set_style_pad_all(wrapper, 0, 0);
+        lv_obj_set_style_pad_gap(wrapper, 0, 0);
         lvgl::obj_set_style_bg_invisible(wrapper);
 
         labelWidget = lv_label_create(wrapper);
