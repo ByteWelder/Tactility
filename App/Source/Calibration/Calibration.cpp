@@ -20,7 +20,7 @@ public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
         ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
-
+        
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -28,7 +28,10 @@ public:
         updateScreen("Tap the top-left corner");
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
 #else
+        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Calibration not supported on this board");
+        #endif
+
 
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -40,7 +43,9 @@ public:
     }
 
     void onHide(AppContext& /*context*/) override {
+        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Hiding calibration");
+        #endif
         if (label) {
             lv_obj_del(label);
             label = nullptr;
