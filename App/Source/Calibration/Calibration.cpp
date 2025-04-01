@@ -3,15 +3,20 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
+
+// Board-specific check based on Boards.h
+#ifdef CONFIG_TT_BOARD_CYD_2432S028R
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
+#endif
 
 using namespace tt::app;
 
 class Calibration : public App {
 public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
-        ESP_LOGI("Calibration", "Starting calibration");
+#ifdef CONFIG_TT_BOARD_CYD_2432S028R
+        ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
 
         lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -19,6 +24,16 @@ public:
         label = lv_label_create(parent);
         updateScreen("Tap the top-left corner");
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
+#else
+        ESP_LOGI("Calibration", "Calibration not supported on this board");
+
+        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+
+        label = lv_label_create(parent);
+        lv_label_set_text(label, "Calibration only supported\non CYD-2432S028R");
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+#endif
     }
 
     void onHide(AppContext& /*context*/) override {
@@ -30,6 +45,7 @@ public:
     }
 
 private:
+#ifdef CONFIG_TT_BOARD_CYD_2432S028R
     static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
@@ -91,9 +107,17 @@ private:
     int step = 0;  // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right, 4: done
     uint16_t rawX[4] = {0};
     uint16_t rawY[4] = {0};
+#else
+    // No-op versions for non-CYD-2432S028R boards
+    static void eventCallback(lv_event_t* /*e*/) {}
+    void updateScreen(const char* /*instruction*/) {}
+    void logTouchData(uint16_t /*rawX*/, uint16_t /*rawY*/) {}
+
+    lv_obj_t* label = nullptr;
+#endif
 };
 
-// Define the manifest directly in the file
+// Define the manifest (works for all boards)
 extern const AppManifest calibration_app = {
     .id = "Calibration",
     .name = "Touch Calibration",
