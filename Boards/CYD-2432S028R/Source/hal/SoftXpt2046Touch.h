@@ -3,7 +3,6 @@
 #include "Tactility/hal/touch/TouchDevice.h"
 #include "YellowDisplayConstants.h"
 #include "XPT2046_TouchscreenSOFTSPI.h"
-#define LV_USE_PRIVATE_API 1  // Enable private API if needed for v9
 #include <lvgl.h>
 
 class SoftXpt2046Touch : public tt::hal::touch::TouchDevice {
