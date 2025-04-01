@@ -1,13 +1,14 @@
 #pragma once
 
 #include <Tactility/app/App.h>
+#include <Tactility/app/AppManifest.h>  // Added for AppManifest
 #include <lvgl.h>
 
 namespace tt::app {
     class Calibration final : public App {
     public:
         void onShow(AppContext& context, lv_obj_t* parent) override;
-        void onHide() override;
+        void onHide(AppContext& context) override;  // Updated signature
 
     private:
         static void eventCallback(lv_event_t* e);
