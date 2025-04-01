@@ -1,6 +1,6 @@
 #include "Calibration.h"
-#include <tt/log.h>
-#include <tt/lvgl/Toolbar.h>
+#include <Tactility/log.h>
+#include <Tactility/lvgl/Toolbar.h>
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"  // Access the touch driver
 
