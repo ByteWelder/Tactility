@@ -2,7 +2,7 @@
 #include "esp_log.h"
 #include <Tactility/lvgl/Toolbar.h>
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
-#include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"  // Access the touch driver
+#include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
 
 namespace tt::app {
     void Calibration::onShow(AppContext& context, lv_obj_t* parent) {
@@ -16,7 +16,7 @@ namespace tt::app {
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
     }
 
-    void Calibration::onHide(AppContext& /*context*/) {  // Updated signature, context unused
+    void Calibration::onHide(AppContext& /*context*/) {
         ESP_LOGI("Calibration", "Hiding calibration");
         if (label) {
             lv_obj_del(label);
@@ -75,15 +75,23 @@ namespace tt::app {
 
     void Calibration::logTouchData(uint16_t rawX, uint16_t rawY) {
         if (step < 4) {
-            this->rawX[step] = rawX;  // Fixed: use member variable
-            this->rawY[step] = rawY;  // Fixed: use member variable
+            this->rawX[step] = rawX;
+            this->rawY[step] = rawY;
             ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
 
+    // Define the manifest with explicit visibility
     const AppManifest calibration_app = {
         .id = "Calibration",
         .name = "Touch Calibration",
         .createApp = create<Calibration>
     };
+}
+
+// Ensure the symbol is not stripped by the linker
+extern "C" {
+    const tt::app::AppManifest* get_calibration_app() {
+        return &tt::app::calibration_app;
+    }
 }
