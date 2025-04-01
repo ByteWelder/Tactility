@@ -1,4 +1,7 @@
+#ifdef ESP_PLATFORM
 #include "esp_log.h"
+#endif
+
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
