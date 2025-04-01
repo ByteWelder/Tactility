@@ -16,7 +16,7 @@ namespace tt::app {
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
     }
 
-    void Calibration::onHide() {
+    void Calibration::onHide(AppContext& /*context*/) {  // Updated signature, context unused
         ESP_LOGI("Calibration", "Hiding calibration");
         if (label) {
             lv_obj_del(label);
@@ -75,8 +75,8 @@ namespace tt::app {
 
     void Calibration::logTouchData(uint16_t rawX, uint16_t rawY) {
         if (step < 4) {
-            rawX[step] = rawX;
-            rawY[step] = rawY;
+            this->rawX[step] = rawX;  // Fixed: use member variable
+            this->rawY[step] = rawY;  // Fixed: use member variable
             ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
