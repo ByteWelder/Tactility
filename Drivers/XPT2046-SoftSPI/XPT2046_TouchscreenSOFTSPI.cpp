@@ -140,9 +140,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    // Updated scaling based on logs
-    int16_t x = (ux - 361) * 239 / (486 - 361);  // Map 361-486 to 0-239
-    int16_t y = uy * 319 / 472;                   // Map 0-472 to 0-319
+    // Updated scaling based on new logs
+    int16_t x = (ux - 272) * 239 / (464 - 272);  // Map 272-464 to 0-239
+    int16_t y = uy * 319 / 438;                   // Map 0-438 to 0-319
 
     if (x < 0) x = 0;
     if (x > 239) x = 239;
