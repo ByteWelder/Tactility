@@ -55,6 +55,7 @@ static void onGammaSliderEvent(lv_event_t* event) {
         gamma = (uint8_t)slider_value;
 
         hal_display->setGammaCurve(gamma);
+        tt::app::display::setGammaCurve(gamma);
     }
 }
 
@@ -136,11 +137,25 @@ class DisplayApp : public App {
             lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);
             lv_obj_add_state(brightness_slider, LV_STATE_DISABLED);
         } else {
-            uint8_t value = getBacklightDuty();
-            lv_slider_set_value(brightness_slider, value, LV_ANIM_OFF);
+            uint8_t value;
+            if (getBacklightDuty(value)) {
+                lv_slider_set_value(brightness_slider, value, LV_ANIM_OFF);
+            } else {
+                lv_slider_set_value(brightness_slider, 0, LV_ANIM_OFF);
+            }
         }
 
-        lv_slider_set_value(gamma_slider, 128, LV_ANIM_OFF);
+        if (hal_display->getGammaCurveCount() == 0) {
+            lv_slider_set_value(gamma_slider, 0, LV_ANIM_OFF);
+            lv_obj_add_state(gamma_slider, LV_STATE_DISABLED);
+        } else {
+            uint8_t curve_index;
+            if (getGammaCurve(curve_index)) {
+                lv_slider_set_value(gamma_slider, curve_index, LV_ANIM_OFF);
+            } else {
+                lv_slider_set_value(gamma_slider, 0, LV_ANIM_OFF);
+            }
+        }
 
         auto* orientation_label = lv_label_create(wrapper);
         lv_label_set_text(orientation_label, "Orientation");

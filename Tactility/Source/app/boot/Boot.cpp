@@ -42,12 +42,20 @@ private:
         auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);
         if (hal_display->supportsBacklightDuty()) {
-            int32_t backlight_duty = app::display::getBacklightDuty();
-            TT_LOG_I(TAG, "backlight %ld", backlight_duty);
+            uint8_t backlight_duty = 200;
+            app::display::getBacklightDuty(backlight_duty);
+            TT_LOG_I(TAG, "backlight %du", backlight_duty);
             hal_display->setBacklightDuty(backlight_duty);
         } else {
-
             TT_LOG_I(TAG, "no backlight");
+        }
+
+        if (hal_display->getGammaCurveCount() > 0) {
+            uint8_t gamma_curve;
+            if (app::display::getGammaCurve(gamma_curve)) {
+                hal_display->setGammaCurve(gamma_curve);
+                TT_LOG_I(TAG, "gamma %du", gamma_curve);
+            }
         }
 
         if (hal::usb::isUsbBootMode()) {
