@@ -122,6 +122,13 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uint16_t& rawX, uint16_t& rawY) {
+    rawX = readXOY(CMD_X_READ);
+    rawY = readXOY(CMD_Y_READ);
+    ESP_LOGI(TAG, "Raw touch read: x=%" PRIu16 ", y=%" PRIu16, rawX, rawY);
+}
+
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     if (tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin)) {
         isrWake = true;
@@ -140,9 +147,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, ux, uy);
 
-    // Reverted scaling from earlier working version
-    int16_t x = (ux - 269) * 239 / (476 - 269);  // Map 269-476 to 0-239
-    int16_t y = uy * 319 / 397;                   // Map 0-397 to 0-319
+    // Temporary calibration - to be updated after calibration app
+    int16_t x = (ux - 269) * 239 / (476 - 269);  // Reverted for now
+    int16_t y = uy * 319 / 397;
 
     if (x < 0) x = 0;
     if (x > 239) x = 239;
@@ -154,8 +161,8 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     int16_t swap_tmp;
     switch (rotation) {
         case 0:  // Portrait
-            x = x;              // X stays as is
-            y = y;              // No inversion yet (will adjust based on logs)
+            x = x;
+            y = y;
             break;
         case 1:  // Landscape
             x = 240 - x;
@@ -179,4 +186,8 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     isrWake = false;
     ESP_LOGI(TAG, "Touch raw: x=%d, y=%d", xraw, yraw);
 }
+
+// Define the global instance
+XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch(CYD_TOUCH_CS_PIN, CYD_TOUCH_IRQ_PIN);
+
 template class XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0>;
