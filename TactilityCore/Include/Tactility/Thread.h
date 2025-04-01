@@ -200,7 +200,6 @@ public:
     static uint32_t awaitFlags(uint32_t flags, uint32_t options, uint32_t timeout);
 };
 
-#define THREAD_PRIORITY_APP Thread::PriorityNormal
 #define THREAD_PRIORITY_SERVICE Thread::Priority::High
 #define THREAD_PRIORITY_RENDER Thread::Priority::Higher
 #define THREAD_PRIORITY_ISR Thread::Priority::Critical
