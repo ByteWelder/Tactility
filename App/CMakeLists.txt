@@ -13,7 +13,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/Calibration"
         "Source/TactilityNews"
         REQUIRES ${BOARD_COMPONENTS}
-        REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client
+        REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client json
     )
 else ()
 
