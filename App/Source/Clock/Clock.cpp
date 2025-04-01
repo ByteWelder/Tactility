@@ -33,15 +33,19 @@ private:
     lv_obj_t* second_hand;
     lv_obj_t* wifi_label;
     lv_obj_t* wifi_button;
-    std::unique_ptr<Timer> timer;
+#ifdef ESP_PLATFORM
+    std::unique_ptr<Timer> timer; // Only declare timer for ESP
+#endif
     bool is_analog;
     AppContext* context;
 
+#ifdef ESP_PLATFORM
     static void timer_callback(std::shared_ptr<void> appWrapper) {
         auto* app = std::static_pointer_cast<AppWrapper>(appWrapper)->app;
         TT_LOG_I("Clock", "Timer fired");
         app->update_time();
     }
+#endif
 
     static void toggle_mode_cb(lv_event_t* e) {
         ClockApp* app = static_cast<ClockApp*>(lv_event_get_user_data(e));
@@ -73,11 +77,6 @@ private:
     bool is_time_synced() {
         return sntp_get_sync_status() == SNTP_SYNC_STATUS_COMPLETED;
     }
-#else
-    bool is_time_synced() {
-        return true;
-    }
-#endif
 
     void update_time() {
         auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -118,13 +117,24 @@ private:
             lv_label_set_text(time_label, time_str);
         }
     }
+#else
+    bool is_time_synced() {
+        return true; // Simulator assumes synced
+    }
+
+    void update_time() {
+        // No-op for simulator; static message handled in redraw_clock
+    }
+#endif
 
     void redraw_clock() {
+#ifdef ESP_PLATFORM
         auto lock = lvgl::getSyncLock()->asScopedLock();
         if (!lock.lock(lvgl::defaultLockTime)) {
             TT_LOG_E("Clock", "LVGL lock failed in redraw_clock");
             return;
         }
+#endif
 
         lv_obj_clean(clock_container);
         time_label = nullptr;
@@ -132,6 +142,7 @@ private:
         wifi_label = nullptr;
         wifi_button = nullptr;
 
+#ifdef ESP_PLATFORM
         if (!is_time_synced()) {
             wifi_label = lv_label_create(clock_container);
             lv_label_set_text(wifi_label, "No Wi-Fi - Time not synced");
@@ -165,6 +176,12 @@ private:
             lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);
             update_time();
         }
+#else
+        // Simulator: show static message
+        time_label = lv_label_create(clock_container);
+        lv_label_set_text(time_label, "Clock not supported in simulator");
+        lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);
+#endif
     }
 
 public:
@@ -187,16 +204,19 @@ public:
         load_mode();
         redraw_clock();
 
-        // Lambda captures AppWrapper and calls timer_callback
+#ifdef ESP_PLATFORM
         auto wrapper = std::make_shared<AppWrapper>(this);
         timer = std::make_unique<Timer>(Timer::Type::Periodic, [wrapper]() { timer_callback(wrapper); });
         timer->start(1000);
         TT_LOG_I("Clock", "Timer started in onShow");
+#endif
     }
 
     void onHide(AppContext& app_context) override {
+#ifdef ESP_PLATFORM
         timer->stop();
         TT_LOG_I("Clock", "Timer stopped in onHide");
+#endif
     }
 };
 
