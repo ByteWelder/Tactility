@@ -81,17 +81,10 @@ namespace tt::app {
         }
     }
 
-    // Define the manifest with explicit visibility
-    const AppManifest calibration_app = {
+    // Define the manifest
+    const AppManifest calibration_app __attribute__((used)) = {
         .id = "Calibration",
         .name = "Touch Calibration",
         .createApp = create<Calibration>
     };
-}
-
-// Ensure the symbol is not stripped by the linker
-extern "C" {
-    const tt::app::AppManifest* get_calibration_app() {
-        return &tt::app::calibration_app;
-    }
 }
