@@ -1,12 +1,15 @@
-#include <Tactility/app/AppManifest.h>
-#include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Preferences.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <lvgl.h>
-#include "esp_http_client.h"
-#include <cJSON.h>
-#include <esp_wifi.h>  // ESP-IDF Wi-Fi API
+#include <Tactility/app/AppManifest.h>  // For AppManifest and app namespace
+#include <Tactility/app/App.h>          // For App and AppContext
+#include <Tactility/PubSub.h>           // For PubSub
+#include <Tactility/Preferences.h>      // For Preferences
+#include <Tactility/service/wifi/Wifi.h> // For Wi-Fi service
+#include <Tactility/lvgl/Toolbar.h>     // For toolbar_create
+#include <Tactility/lvgl/LvglSync.h>    // For LVGL synchronization
+#include <lvgl.h>                       // Core LVGL library
+#include <esp_http_client.h>            // ESP-IDF HTTP client
+#include <esp_wifi.h>                   // ESP-IDF Wi-Fi API
+#include <cJSON.h>                      // JSON parsing
+#include <string>                       // For std::string
 
 namespace tt::app::tactility_news {
 
@@ -17,9 +20,9 @@ private:
     lv_obj_t* news_list;
     lv_obj_t* wifi_label;
     lv_obj_t* wifi_button;
-    tt::AppContext* context;
-    std::shared_ptr<tt::service::PubSub> wifi_pubsub;
-    std::shared_ptr<tt::service::PubSub::Subscription> wifi_subscription;
+    tt::app::AppContext* context;
+    std::shared_ptr<tt::PubSub> wifi_pubsub;
+    std::shared_ptr<tt::PubSub::Subscription> wifi_subscription;
 
     // Callback for "Connect to Wi-Fi" button
     static void wifi_connect_cb(lv_event_t* e) {
@@ -29,9 +32,7 @@ private:
     // Callback for "Refresh" button
     static void refresh_cb(lv_event_t* e) {
         TactilityNews* app = static_cast<TactilityNews*>(lv_event_get_user_data(e));
-        app
-
-->fetch_and_display_news();
+        app->fetch_and_display_news();
     }
 
     // Check Wi-Fi connection status
@@ -48,7 +49,7 @@ private:
 
         // Get MAC address using ESP-IDF API
         uint8_t mac[6];
-        esp_err_t err = esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+        esp_err_t err = esp_wifi_get_mac(WIFI_IF_STA, mac);
         if (err != ESP_OK) {
             TT_LOG_E("TactilityNews", "Failed to get MAC address: %s", esp_err_to_name(err));
             redraw_ui_with_error("Failed to get MAC address");
@@ -57,10 +58,10 @@ private:
         char mac_str[18];
         snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        String deviceId = String(mac_str);
+        std::string deviceId = mac_str;
 
         // Construct the API URL
-        String url = "https://script.google.com/macros/s/AKfycbzNv6bljLjuZJW4bd1Mo5IZaW5Ppo6heTA_ru5CJjL6gdQzpEIWz3_MH0ZMOnzx_4io/exec?deviceId=" + deviceId + "&category=general";
+        std::string url = "https://script.google.com/macros/s/AKfycbzNv6bljLjuZJW4bd1Mo5IZaW5Ppo6heTA_ru5CJjL6gdQzpEIWz3_MH0ZMOnzx_4io/exec?deviceId=" + deviceId + "&category=general";
 
         esp_http_client_config_t config = {
             .url = url.c_str(),
@@ -84,11 +85,9 @@ private:
                                 // Store deviceToken
                                 cJSON* deviceToken = cJSON_GetObjectItem(root, "deviceToken");
                                 if (deviceToken != nullptr && cJSON_IsString(deviceToken)) {
-                                    String token = deviceToken->valuestring;
-                                    tt::Preferences prefs;
-                                    prefs.begin("tactility_news");
+                                    std::string token = deviceToken->valuestring;
+                                    tt::Preferences prefs("tactility_news");
                                     prefs.putString("device_token", token.c_str());
-                                    prefs.end();
                                 }
                                 // Display news
                                 cJSON* news = cJSON_GetObjectItem(root, "news");
@@ -126,8 +125,8 @@ private:
 
     // Display news titles in an LVGL list
     void display_news(cJSON* news_array) {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (!lock.lock(lvgl::defaultLockTime)) {
+        auto lock = tt::lvgl::getSyncLock()->asScopedLock();
+        if (!lock.lock(tt::lvgl::defaultLockTime)) {
             TT_LOG_E("TactilityNews", "LVGL lock failed");
             return;
         }
@@ -147,8 +146,8 @@ private:
 
     // Display an error message
     void redraw_ui_with_error(const char* error_msg) {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (!lock.lock(lvgl::defaultLockTime)) {
+        auto lock = tt::lvgl::getSyncLock()->asScopedLock();
+        if (!lock.lock(tt::lvgl::defaultLockTime)) {
             TT_LOG_E("TactilityNews", "LVGL lock failed in redraw");
             return;
         }
@@ -161,8 +160,8 @@ private:
 
     // Redraw the UI based on Wi-Fi status
     void redraw_ui() {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (!lock.lock(lvgl::defaultLockTime)) {
+        auto lock = tt::lvgl::getSyncLock()->asScopedLock();
+        if (!lock.lock(tt::lvgl::defaultLockTime)) {
             TT_LOG_E("TactilityNews", "LVGL lock failed in redraw");
             return;
         }
@@ -185,7 +184,7 @@ private:
     }
 
 public:
-    void onShow(tt::AppContext& app_context, lv_obj_t* parent) override {
+    void onShow(tt::app::AppContext& app_context, lv_obj_t* parent) override {
         context = &app_context;
 
         // Create toolbar with refresh button
@@ -206,7 +205,7 @@ public:
 
         // Subscribe to Wi-Fi events
         wifi_pubsub = tt::service::wifi::getPubsub();
-        wifi_subscription = wifi_pubsub->subscribe([this](const tt::service::Event* event) {
+        wifi_subscription = wifi_pubsub->subscribe([this](const tt::service::wifi::Event* event) {
             if (event->type == tt::service::wifi::EventType::ConnectionSuccess) {
                 fetch_and_display_news();
             } else if (event->type == tt::service::wifi::EventType::Disconnected) {
@@ -217,7 +216,7 @@ public:
         redraw_ui();
     }
 
-    void onHide(tt::AppContext& app_context) override {
+    void onHide(tt::app::AppContext& app_context) override {
         wifi_subscription.reset();
         wifi_pubsub.reset();
     }
