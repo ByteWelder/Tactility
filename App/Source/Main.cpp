@@ -26,7 +26,7 @@ void app_main() {
         .apps = {
             &hello_world_app,
             &calibration_app,
-            &news_app
+            &news_app,
             &tt::app::clock::clock_app,
         }
     };
