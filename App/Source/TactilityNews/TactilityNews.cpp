@@ -6,7 +6,7 @@
 #include <lvgl.h>
 #include "esp_http_client.h"
 #include <cJSON.h>
-#include <WiFi.h>
+#include <esp_wifi.h>  // ESP-IDF Wi-Fi API
 
 namespace tt::app::tactility_news {
 
@@ -29,7 +29,9 @@ private:
     // Callback for "Refresh" button
     static void refresh_cb(lv_event_t* e) {
         TactilityNews* app = static_cast<TactilityNews*>(lv_event_get_user_data(e));
-        app->fetch_and_display_news();
+        app
+
+->fetch_and_display_news();
     }
 
     // Check Wi-Fi connection status
@@ -44,7 +46,20 @@ private:
             return;
         }
 
-        String deviceId = WiFi.macAddress();
+        // Get MAC address using ESP-IDF API
+        uint8_t mac[6];
+        esp_err_t err = esp_wifi_get_mac(ESP_IF_WIFI_STA, mac);
+        if (err != ESP_OK) {
+            TT_LOG_E("TactilityNews", "Failed to get MAC address: %s", esp_err_to_name(err));
+            redraw_ui_with_error("Failed to get MAC address");
+            return;
+        }
+        char mac_str[18];
+        snprintf(mac_str, sizeof(mac_str), "%02X:%02X:%02X:%02X:%02X:%02X",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+        String deviceId = String(mac_str);
+
+        // Construct the API URL
         String url = "https://script.google.com/macros/s/AKfycbzNv6bljLjuZJW4bd1Mo5IZaW5Ppo6heTA_ru5CJjL6gdQzpEIWz3_MH0ZMOnzx_4io/exec?deviceId=" + deviceId + "&category=general";
 
         esp_http_client_config_t config = {
@@ -52,9 +67,9 @@ private:
             .method = HTTP_METHOD_GET,
         };
         esp_http_client_handle_t client = esp_http_client_init(&config);
-        esp_err_t err = esp_http_client_perform(client);
+        esp_err_t err_http = esp_http_client_perform(client);
 
-        if (err == ESP_OK) {
+        if (err_http == ESP_OK) {
             int status_code = esp_http_client_get_status_code(client);
             if (status_code == 200) {
                 int content_length = esp_http_client_get_content_length(client);
@@ -103,7 +118,7 @@ private:
                 redraw_ui_with_error("Failed to load news");
             }
         } else {
-            TT_LOG_E("TactilityNews", "HTTP request failed: %s", esp_err_to_name(err));
+            TT_LOG_E("TactilityNews", "HTTP request failed: %s", esp_err_to_name(err_http));
             redraw_ui_with_error("Network error");
         }
         esp_http_client_cleanup(client);
