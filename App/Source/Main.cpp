@@ -25,8 +25,8 @@ void app_main() {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
-            &tt::app::clock::clock_app,
             &calibration_app,
+            &tt::app::clock::clock_app,
         }
     };
 
