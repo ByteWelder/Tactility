@@ -11,16 +11,16 @@
 #include <cJSON.h>                      // JSON parsing
 #include <string>                       // For std::string
 
-namespace tt::app::tactility_news {
+using namespace tt::app;
 
-class TactilityNews : public tt::app::App {
+class TactilityNews : public App {
 private:
     lv_obj_t* toolbar;
     lv_obj_t* news_container;
     lv_obj_t* news_list;
     lv_obj_t* wifi_label;
     lv_obj_t* wifi_button;
-    tt::app::AppContext* context;
+    AppContext* context;
     std::shared_ptr<tt::PubSub> wifi_pubsub;
     tt::PubSub::SubscriptionHandle wifi_subscription = nullptr;
 
@@ -195,7 +195,7 @@ private:
     }
 
 public:
-    void onShow(tt::app::AppContext& app_context, lv_obj_t* parent) override {
+    void onShow(AppContext& app_context, lv_obj_t* parent) override {
         context = &app_context;
 
         // Create toolbar with refresh button
@@ -221,7 +221,7 @@ public:
         redraw_ui();
     }
 
-    void onHide(tt::app::AppContext& app_context) override {
+    void onHide(AppContext& app_context) override {
         if (wifi_subscription) {
             wifi_pubsub->unsubscribe(wifi_subscription);
             wifi_subscription = nullptr;
@@ -230,10 +230,8 @@ public:
     }
 };
 
-extern const tt::app::AppManifest tactility_news_app = {
+extern const AppManifest tactility_news_app = {
     .id = "TactilityNews",
-    .name = "TactilityNews",
-    .createApp = tt::app::create<TactilityNews>
+    .name = "Tactility News",
+    .createApp = create<TactilityNews>
 };
-
-} // namespace tt::app::tactility_news
