@@ -2,14 +2,17 @@
 #include <Tactility/app/App.h>          // For App and AppContext
 #include <Tactility/PubSub.h>           // For PubSub
 #include <Tactility/Preferences.h>      // For Preferences
-#include <Tactility/service/wifi/Wifi.h> // For Wi-Fi service
 #include <Tactility/lvgl/Toolbar.h>     // For toolbar_create
 #include <Tactility/lvgl/LvglSync.h>    // For LVGL synchronization
 #include <lvgl.h>                       // Core LVGL library
+#include <string>                       // For std::string
+
+#ifdef ESP_PLATFORM
+#include <Tactility/service/wifi/Wifi.h> // For Wi-Fi service
 #include <esp_http_client.h>            // ESP-IDF HTTP client
 #include <esp_wifi.h>                   // ESP-IDF Wi-Fi API
 #include <cJSON.h>                      // JSON parsing
-#include <string>                       // For std::string
+#endif
 
 using namespace tt::app;
 
@@ -21,18 +24,14 @@ private:
     lv_obj_t* wifi_label;
     lv_obj_t* wifi_button;
     AppContext* context;
+
+#ifdef ESP_PLATFORM
     std::shared_ptr<tt::PubSub> wifi_pubsub;
     tt::PubSub::SubscriptionHandle wifi_subscription = nullptr;
 
     // Callback for "Connect to Wi-Fi" button
     static void wifi_connect_cb(lv_event_t* e) {
         tt::app::start("WifiManage"); // Launch Wi-Fi management app
-    }
-
-    // Callback for "Refresh" button
-    static void refresh_cb(lv_event_t* e) {
-        TactilityNews* app = static_cast<TactilityNews*>(lv_event_get_user_data(e));
-        app->fetch_and_display_news();
     }
 
     // Wi-Fi event callback for PubSub
@@ -154,14 +153,28 @@ private:
             }
         }
     }
+#else
+    // Simulator: no-op for fetch_and_display_news
+    void fetch_and_display_news() {
+        // No action in simulator; handled in redraw_ui
+    }
+#endif
+
+    // Callback for "Refresh" button
+    static void refresh_cb(lv_event_t* e) {
+        TactilityNews* app = static_cast<TactilityNews*>(lv_event_get_user_data(e));
+        app->fetch_and_display_news();
+    }
 
     // Display an error message
     void redraw_ui_with_error(const char* error_msg) {
+#ifdef ESP_PLATFORM
         auto lock = tt::lvgl::getSyncLock()->asScopedLock();
         if (!lock.lock(tt::lvgl::defaultLockTime)) {
             TT_LOG_E("TactilityNews", "LVGL lock failed in redraw");
             return;
         }
+#endif
 
         lv_obj_clean(news_container);
         lv_obj_t* error_label = lv_label_create(news_container);
@@ -169,15 +182,18 @@ private:
         lv_obj_align(error_label, LV_ALIGN_CENTER, 0, 0);
     }
 
-    // Redraw the UI based on Wi-Fi status
+    // Redraw the UI based on Wi-Fi status (ESP) or simulator message
     void redraw_ui() {
+#ifdef ESP_PLATFORM
         auto lock = tt::lvgl::getSyncLock()->asScopedLock();
         if (!lock.lock(tt::lvgl::defaultLockTime)) {
             TT_LOG_E("TactilityNews", "LVGL lock failed in redraw");
             return;
         }
+#endif
 
         lv_obj_clean(news_container);
+#ifdef ESP_PLATFORM
         if (!is_wifi_connected()) {
             wifi_label = lv_label_create(news_container);
             lv_label_set_text(wifi_label, "No Wi-Fi - News unavailable");
@@ -192,6 +208,12 @@ private:
         } else {
             fetch_and_display_news();
         }
+#else
+        // Simulator: show static message
+        lv_obj_t* sim_label = lv_label_create(news_container);
+        lv_label_set_text(sim_label, "News not supported in simulator");
+        lv_obj_align(sim_label, LV_ALIGN_CENTER, 0, 0);
+#endif
     }
 
 public:
@@ -214,19 +236,23 @@ public:
         lv_obj_set_size(news_container, LV_PCT(100), LV_PCT(80));
         lv_obj_align_to(news_container, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
 
+#ifdef ESP_PLATFORM
         // Subscribe to Wi-Fi events
         wifi_pubsub = tt::service::wifi::getPubsub();
         wifi_subscription = wifi_pubsub->subscribe(wifi_event_cb, this);
+#endif
 
         redraw_ui();
     }
 
     void onHide(AppContext& app_context) override {
+#ifdef ESP_PLATFORM
         if (wifi_subscription) {
             wifi_pubsub->unsubscribe(wifi_subscription);
             wifi_subscription = nullptr;
         }
         wifi_pubsub.reset();
+#endif
     }
 };
 
