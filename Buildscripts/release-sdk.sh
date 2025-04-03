@@ -46,4 +46,4 @@ cp Libraries/elf_loader/license.txt $elf_loader_library_path/
 
 cp Buildscripts/CMake/TactilitySDK.cmake $target_path/
 cp Buildscripts/CMake/CMakeLists.txt $target_path/
-echo -n $ESP_IDF_VERSION >> $target_path/idf-version.txt
+printf '%s' "$ESP_IDF_VERSION" >> $target_path/idf-version.txt
