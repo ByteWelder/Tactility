@@ -1,17 +1,20 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <lvgl.h>
-#include <cstring>
 #include <cstdlib>
-#include <stack>
+#include <cstring>
+#include <lvgl.h>
 #include <queue>
+#include <stack>
 
-using namespace tt::app;
+namespace tt::app::calculator {
+
+constexpr const char* TAG = "Calculator";
 
 class CalculatorApp : public App {
+
     lv_obj_t* displayLabel;
     lv_obj_t* resultLabel;
-    char formulaBuffer[128] = {0};  // Stores the full input expression
+    char formulaBuffer[128] = {0}; // Stores the full input expression
     bool newInput = true;
 
     static void button_event_cb(lv_event_t* e) {
@@ -134,13 +137,18 @@ class CalculatorApp : public App {
             } else if (strchr("+-*/", token[0])) {
                 if (values.size() < 2) return 0;
 
-                double b = values.top(); values.pop();
-                double a = values.top(); values.pop();
+                double b = values.top();
+                values.pop();
+                double a = values.top();
+                values.pop();
 
                 if (token[0] == '+') values.push(a + b);
-                else if (token[0] == '-') values.push(a - b);
-                else if (token[0] == '*') values.push(a * b);
-                else if (token[0] == '/' && b != 0) values.push(a / b);
+                else if (token[0] == '-')
+                    values.push(a - b);
+                else if (token[0] == '*')
+                    values.push(a * b);
+                else if (token[0] == '/' && b != 0)
+                    values.push(a / b);
             }
         }
 
@@ -213,8 +221,10 @@ class CalculatorApp : public App {
     }
 };
 
-extern const AppManifest calculator_app = {
+extern const AppManifest manifest = {
     .id = "Calculator",
     .name = "Calculator",
     .createApp = create<CalculatorApp>
 };
+
+} // namespace tt::app::calculator

@@ -6,7 +6,6 @@
 #endif
 
 extern const tt::app::AppManifest hello_world_app;
-extern const tt::app::AppManifest calculator_app;
 
 extern "C" {
 
@@ -19,7 +18,6 @@ void app_main() {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             &hello_world_app,
-            &calculator_app,
         }
     };
 
