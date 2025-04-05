@@ -33,6 +33,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/lv_screenshot"
         "Libraries/minmea"
         "Libraries/QRCode"
+
     )
 
     set(EXCLUDE_COMPONENTS "Simulator")

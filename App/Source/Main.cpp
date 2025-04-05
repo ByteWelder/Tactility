@@ -5,7 +5,15 @@
 #include "tt_init.h"
 #endif
 
+// Forward declaration of clock_app from Clock.cpp
+namespace tt::app::clock {
+    extern const AppManifest clock_app;
+}
+
 // extern const tt::app::AppManifest hello_world_app;
+extern const tt::app::AppManifest calibration_app;
+extern const tt::app::AppManifest tactility_news_app;
+extern const tt::app::AppManifest tactile_web_app;
 
 extern "C" {
 
@@ -18,6 +26,10 @@ void app_main() {
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
             // &hello_world_app,
+            &calibration_app,
+            &tactility_news_app,
+            &tactile_web_app,
+            &tt::app::clock::clock_app,
         }
     };
 
@@ -28,4 +40,4 @@ void app_main() {
     tt::run(config);
 }
 
-} // extern
+} // extern "C"

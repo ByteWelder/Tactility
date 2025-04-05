@@ -7,9 +7,15 @@
 #if defined(CONFIG_TT_BOARD_LILYGO_TDECK)
 #include "LilygoTdeck.h"
 #define TT_BOARD_HARDWARE &lilygo_tdeck
+#elif defined(CONFIG_TT_BOARD_CYD_2432S022C)
+#include "CYD2432S022C.h"
+#define TT_BOARD_HARDWARE &cyd_2432s022c_config
 #elif defined(CONFIG_TT_BOARD_CYD_2432S024C)
 #include "CYD2432S024C.h"
 #define TT_BOARD_HARDWARE &cyd_2432s024c_config
+#elif defined(CONFIG_TT_BOARD_CYD_2432S028R)
+#include "CYD2432S028R.h"
+#define TT_BOARD_HARDWARE &cyd_2432s028r_config
 #elif defined(CONFIG_TT_BOARD_CYD_2432S032C)
 #include "CYD2432S032C.h"
 #define TT_BOARD_HARDWARE &cyd_2432S032c_config
