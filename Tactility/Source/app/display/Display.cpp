@@ -39,7 +39,7 @@ static lv_display_rotation_t orientationSettingToDisplayRotation(uint32_t settin
     }
 }
 
-static uint32_t dipslayOrientationToOrientationSetting(lv_display_rotation_t orientation) {
+static uint32_t displayOrientationToOrientationSetting(lv_display_rotation_t orientation) {
     switch (orientation) {
         case LV_DISPLAY_ROTATION_90:
             return ROTATION_90;
@@ -186,7 +186,7 @@ public:
 
         lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, nullptr);
-        uint32_t orientation_selected = dipslayOrientationToOrientationSetting(
+        uint32_t orientation_selected = displayOrientationToOrientationSetting(
             lv_display_get_rotation(lv_display_get_default())
         );
         lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
