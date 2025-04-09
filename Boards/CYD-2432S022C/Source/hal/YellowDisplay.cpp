@@ -73,7 +73,7 @@ bool YellowDisplay::start() {
     i80_config.mirrorY = config->mirrorY;
     i80_config.backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
 
-    ESP_LOGI(TAG, "Buffer size: %u bytes", i80_config.bufferSize * 2);
+    ESP_LOGI(TAG, "Buffer size: %lu bytes", static_cast<unsigned long>(i80_config.bufferSize * 2));
     i80Display = std::make_unique<I80Display>(std::make_unique<I80Display::Configuration>(i80_config));
     if (!i80Display->start()) {
         ESP_LOGE(TAG, "Failed to initialize i80 display");
