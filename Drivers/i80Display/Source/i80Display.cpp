@@ -27,7 +27,7 @@ bool I80Display::start() {
             configuration->dataPins[12], configuration->dataPins[13], configuration->dataPins[14], configuration->dataPins[15]
         },
         .bus_width = configuration->busWidth,
-        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2, // Full screen in RGB565
+        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution / 2, // Full screen in RGB565
         .dma_burst_size = 64,
         .sram_trans_align = 0,
     };
