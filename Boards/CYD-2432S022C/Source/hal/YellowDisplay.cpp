@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "PwmBacklight.h"
-#include <esp_lvgl_port.h> // Add this for lvgl_port_init
+#include "esp_lvgl_port.h" // Use quotes if it’s a local override, otherwise angle brackets should work
 
 #define TAG "YellowDisplay"
 
@@ -29,13 +29,13 @@ bool YellowDisplay::start() {
     // Initialize LVGL porting layer (only needs to be called once)
     static bool lvgl_initialized = false;
     if (!lvgl_initialized) {
-        lvgl_port_init_t lvgl_init = {
+        esp_lvgl_port_init_t lvgl_init = { // Use esp_lvgl_port_init_t explicitly
             .task_priority = 2,    // Default priority
             .task_stack = 4096,    // Default stack size
             .task_affinity = -1,   // No specific core affinity
             .task_max_sleep_ms = 500 // Default sleep time
         };
-        if (lvgl_port_init(&lvgl_init) != ESP_OK) {
+        if (esp_lvgl_port_init(&lvgl_init) != ESP_OK) { // Use esp_lvgl_port_init
             ESP_LOGE(TAG, "Failed to initialize LVGL port");
             return false;
         }
