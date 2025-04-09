@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "PwmBacklight.h"
+#include <esp_lvgl_port.h> // Add this for lvgl_port_init
 
 #define TAG "YellowDisplay"
 
@@ -23,6 +24,23 @@ bool YellowDisplay::start() {
     if (isStarted) {
         ESP_LOGW(TAG, "Display already started");
         return true;
+    }
+
+    // Initialize LVGL porting layer (only needs to be called once)
+    static bool lvgl_initialized = false;
+    if (!lvgl_initialized) {
+        lvgl_port_init_t lvgl_init = {
+            .task_priority = 2,    // Default priority
+            .task_stack = 4096,    // Default stack size
+            .task_affinity = -1,   // No specific core affinity
+            .task_max_sleep_ms = 500 // Default sleep time
+        };
+        if (lvgl_port_init(&lvgl_init) != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to initialize LVGL port");
+            return false;
+        }
+        lvgl_initialized = true;
+        ESP_LOGI(TAG, "LVGL port initialized");
     }
 
     // Copy gpio_num_t[8] to int[8] to match I80Display::Configuration
