@@ -4,7 +4,8 @@
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "PwmBacklight.h"
-#include "esp_lvgl_port.h"
+#include <esp_lvgl_port.h>
+#include <esp_heap_caps.h>
 
 #define TAG "YellowDisplay"
 
@@ -26,21 +27,24 @@ bool YellowDisplay::start() {
         return true;
     }
 
-    // Initialize LVGL porting layer (only needs to be called once)
-    static bool lvgl_initialized = false;
-    if (!lvgl_initialized) {
-        lvgl_port_init_t lvgl_init = {
-            .task_priority = 2,    // Default priority
-            .task_stack = 4096,    // Default stack size
-            .task_affinity = -1,   // No specific core affinity
-            .task_max_sleep_ms = 500 // Default sleep time
+    // Initialize LVGL porting layer (only once)
+    static bool lvglInitialized = false;
+    if (!lvglInitialized) {
+        ESP_LOGI(TAG, "Heap free before LVGL init: %u", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+        const lvgl_port_cfg_t lvgl_cfg = {
+            .task_priority = 4,       // Higher priority per default
+            .task_stack = 6144,       // 6 KiB stack
+            .task_affinity = -1,      // No core affinity
+            .task_max_sleep_ms = 500, // Max sleep
+            .timer_period_ms = 5,     // 5 ms tick period
         };
-        if (lvgl_port_init(&lvgl_init) != ESP_OK) {
+        if (lvgl_port_init(&lvgl_cfg) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to initialize LVGL port");
             return false;
         }
-        lvgl_initialized = true;
         ESP_LOGI(TAG, "LVGL port initialized");
+        ESP_LOGI(TAG, "Heap free after LVGL init: %u", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+        lvglInitialized = true;
     }
 
     // Copy gpio_num_t[8] to int[8] to match I80Display::Configuration
@@ -54,7 +58,7 @@ bool YellowDisplay::start() {
         config->csPin,
         config->dcPin,
         config->wrPin,
-        dataPins,  // Pass the int array
+        dataPins,
         config->horizontalResolution,
         config->verticalResolution,
         config->touch,
@@ -69,6 +73,7 @@ bool YellowDisplay::start() {
     i80_config.mirrorY = config->mirrorY;
     i80_config.backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
 
+    ESP_LOGI(TAG, "Buffer size: %u bytes", i80_config.bufferSize * 2);
     i80Display = std::make_unique<I80Display>(std::make_unique<I80Display::Configuration>(i80_config));
     if (!i80Display->start()) {
         ESP_LOGE(TAG, "Failed to initialize i80 display");
@@ -92,7 +97,7 @@ bool YellowDisplay::start() {
         ESP_LOGI(TAG, "Backlight duty set to %u", backlightDuty);
     } else {
         ESP_LOGW(TAG, "Failed to get backlight duty, using default value");
-        const uint8_t defaultDuty = 50;  // Default value, adjustable as needed
+        const uint8_t defaultDuty = 50;
         setBacklightDuty(defaultDuty);
         ESP_LOGI(TAG, "Backlight duty set to default %u", defaultDuty);
     }
@@ -107,6 +112,18 @@ bool YellowDisplay::stop() {
     }
 
     i80Display.reset(); // Calls I80Display::stop() automatically
+
+    // Deinitialize LVGL port if this was the last instance (simplified check)
+    static bool lvglInitialized = true; // Matches start()'s static flag
+    if (lvglInitialized) {
+        if (lvgl_port_deinit() != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to deinitialize LVGL port");
+        } else {
+            ESP_LOGI(TAG, "LVGL port deinitialized");
+            lvglInitialized = false;
+        }
+    }
+
     isStarted = false;
     ESP_LOGI(TAG, "Display stopped successfully");
     return true;
@@ -125,7 +142,7 @@ void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
         ESP_LOGE(TAG, "setBacklightDuty: Display not started");
         return;
     }
-    i80Display->setBacklightDuty(backlightDuty); // Uses the callback set in config
+    i80Display->setBacklightDuty(backlightDuty);
     ESP_LOGI(TAG, "Backlight duty set to %u", backlightDuty);
 }
 
