@@ -15,10 +15,10 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         true,   // swapXy
         false,  // mirrorX
         true,   // mirrorY
-        316,    // xMinRaw (raw Y, Top-Right)
-        230,    // xMaxRaw (raw Y, Bottom-Right)
-        110,    // yMinRaw (raw X, Bottom-Left)
-        213     // yMaxRaw (raw X, Top-Right)
+        xMinRaw = 280  // Top-Left raw Y
+        xMaxRaw = 231  // Bottom-Right raw Y
+        yMinRaw = 114
+        yMaxRaw = 180
     );
     return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
