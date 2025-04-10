@@ -118,11 +118,10 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uin
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
-    if (tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin)) {
-        isrWake = true;
-    }
-    if (!isrWake) {
-        ESP_LOGD(TAG, "No IRQ, skipping update");
+    bool irqState = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
+    ESP_LOGD(TAG, "IRQ state: %d, isrWake: %d", irqState, isrWake);
+    if (!irqState && !isrWake) {
+        ESP_LOGD(TAG, "No IRQ or wake, skipping update");
         zraw = 0;
         return;
     }
@@ -135,24 +134,18 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, x, y);
 
+    if (x == 0 && y == 0) {  // Ignore invalid reads
+        zraw = 0;
+        isrWake = false;
+        return;
+    }
+
     int16_t swap_tmp;
     switch (rotation) {
-        case 0:  // Portrait
-            break;
-        case 1:  // Landscape
-            swap_tmp = x;
-            x = y;
-            y = 240 - swap_tmp;
-            break;
-        case 2:  // Portrait inverted
-            x = 240 - x;
-            y = 320 - y;
-            break;
-        case 3:  // Landscape inverted
-            swap_tmp = x;
-            x = 320 - y;
-            y = swap_tmp;
-            break;
+        case 0: break;
+        case 1: swap_tmp = x; x = y; y = 240 - swap_tmp; break;
+        case 2: x = 240 - x; y = 320 - y; break;
+        case 3: swap_tmp = x; x = 320 - y; y = swap_tmp; break;
     }
 
     xraw = x;
