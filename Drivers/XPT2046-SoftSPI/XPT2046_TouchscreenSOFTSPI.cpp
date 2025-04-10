@@ -51,16 +51,18 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
         gpio_isr_handler_add(tirqPin, XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin, this);
     }
     touchscreenSPI.begin();
-    touchscreenSPI.setBitOrder(SoftSPI<MisoPin, MosiPin, SckPin, Mode>::MSBFIRST);  // XPT2046 uses MSBFIRST
-    touchscreenSPI.setDataMode(Mode);  // Use template Mode (default 0)
-    touchscreenSPI.setClockDivider(16);  // ~62.5kHz for stability (adjusted from 8)
+    touchscreenSPI.setBitOrder(SoftSPI<MisoPin, MosiPin, SckPin, Mode>::MSBFIRST);
+    touchscreenSPI.setDataMode(Mode);
+    touchscreenSPI.setClockDivider(16);  // ~62.5kHz
     ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32 ", Mode=%d", (int32_t)csPin, (int32_t)tirqPin, Mode);
     return true;
 }
 
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::tirqTouched() {
-    return tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
+    bool touched = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
+    ESP_LOGD(TAG, "tirqTouched: IRQ pin=%d, touched=%d", tirqPin, touched);
+    return touched;
 }
 
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
@@ -90,13 +92,13 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
     const uint8_t LOST_VAL = 1;
 
     fastDigitalWrite(csPin, 0);  // Select
-    touchscreenSPI.transfer(cmd);  // Send command
+    touchscreenSPI.transfer(cmd);
     for (uint8_t i = 0; i < READ_COUNT; i++) {
-        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value, shifted
+        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value
+        ESP_LOGD(TAG, "readXOY: cmd=0x%02x, sample[%d]=%u", cmd, i, buf[i]);
     }
     fastDigitalWrite(csPin, 1);  // Deselect
 
-    // Sort readings (bubble sort)
     for (uint8_t i = 0; i < READ_COUNT - 1; i++) {
         for (uint8_t j = i + 1; j < READ_COUNT; j++) {
             if (buf[i] > buf[j]) {
@@ -107,7 +109,6 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
         }
     }
 
-    // Average middle values
     for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
         sum += buf[i];
     }
@@ -124,22 +125,20 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uin
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     bool irqState = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
-    ESP_LOGD(TAG, "IRQ state: %d, isrWake: %d", irqState, isrWake);
-    if (!irqState && !isrWake) {
-        ESP_LOGD(TAG, "No IRQ or wake, skipping update");
-        zraw = 0;
+    ESP_LOGD(TAG, "update: IRQ state=%d, isrWake=%d", irqState, isrWake);
+
+    // Force read every 500ms for debugging, even without IRQ
+    uint32_t now = esp_timer_get_time() / 1000;
+    if (now - msraw < MSEC_THRESHOLD && !irqState && !isrWake) {
         return;
     }
-
-    uint32_t now = esp_timer_get_time() / 1000;
-    if (now - msraw < MSEC_THRESHOLD) return;
 
     int16_t x = readXOY(CMD_X_READ);
     int16_t y = readXOY(CMD_Y_READ);
 
     ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, x, y);
 
-    if (x == 0 && y == 0) {  // Ignore invalid reads
+    if (x == 0 && y == 0 && !irqState && !isrWake) {  // Relaxed invalid read check
         zraw = 0;
         isrWake = false;
         return;
@@ -155,11 +154,11 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     xraw = x;
     yraw = y;
-    zraw = 1;
+    zraw = (x > 0 || y > 0) ? 1 : 0;  // Set zraw based on non-zero readings
     msraw = now;
 
     isrWake = false;
-    ESP_LOGI(TAG, "Touch raw (rotated): x=%d, y=%d", xraw, yraw);
+    ESP_LOGI(TAG, "Touch raw (rotated): x=%d, y=%d, z=%d", xraw, yraw, zraw);
 }
 
 XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch(CYD_TOUCH_CS_PIN, CYD_TOUCH_IRQ_PIN);
