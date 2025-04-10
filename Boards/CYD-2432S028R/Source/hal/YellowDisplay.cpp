@@ -12,7 +12,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto config = std::make_unique<SoftXpt2046Touch::Configuration>(
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,    // yMax = 320
-        true,   // swapXy (raw X → mapped Y, raw Y → mapped X)
+        false,   // swapXy (raw X → mapped Y, raw Y → mapped X)
         false,  // mirrorX
         true,   // mirrorY
         231,    // xMinRaw (Bottom-Right raw Y)
