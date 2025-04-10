@@ -57,25 +57,23 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     ESP_LOGI(TAG, "Touch raw (rotated): x=%" PRIu16 ", y=%" PRIu16 ", z=%" PRIu16, x, y, z);
 
     if (z > 0) {
-        // Apply calibration (zeroed out for testing)
-        int32_t tx = x;  // Raw, rotated X
-        int32_t ty = y;  // Raw, rotated Y
+        int32_t tx = x;  // Raw X
+        int32_t ty = y;  // Raw Y
         if (touch->config->xMinRaw != touch->config->xMaxRaw) {
             tx = (x - touch->config->xMinRaw) * touch->config->xMax / (touch->config->xMaxRaw - touch->config->xMinRaw);
         }
         if (touch->config->yMinRaw != touch->config->yMaxRaw) {
             ty = (y - touch->config->yMinRaw) * touch->config->yMax / (touch->config->yMaxRaw - touch->config->yMinRaw);
         }
-
+        if (touch->config->swapXy) std::swap(tx, ty);
+        if (touch->config->mirrorX) tx = touch->config->xMax - tx;
+        if (touch->config->mirrorY) ty = touch->config->yMax - ty;
         if (tx < 0) tx = 0;
         if (tx > touch->config->xMax) tx = touch->config->xMax;
         if (ty < 0) ty = 0;
         if (ty > touch->config->yMax) ty = touch->config->yMax;
 
-        if (touch->config->swapXy) std::swap(tx, ty);
-        if (touch->config->mirrorX) tx = touch->config->xMax - tx;
-        if (touch->config->mirrorY) ty = touch->config->yMax - ty;
-
+        ESP_LOGI(TAG, "Pre-mapped: tx=%" PRId32 ", ty=%" PRId32, tx, ty);
         data->point.x = tx;
         data->point.y = ty;
         data->state = LV_INDEV_STATE_PRESSED;
