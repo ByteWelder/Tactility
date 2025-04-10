@@ -28,6 +28,7 @@ bool YellowDisplay::start() {
     }
 
     // Log heap before LVGL init
+    ESP_LOGI(TAG, "DMA heap free: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
     ESP_LOGI(TAG, "Heap free before LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
 
     // Initialize LVGL porting layer (only once)
@@ -49,7 +50,8 @@ bool YellowDisplay::start() {
     }
 
     ESP_LOGI(TAG, "Heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
-
+    ESP_LOGI(TAG, "DMA heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
+    
     // Copy gpio_num_t[8] to int[8]
     int dataPins[8];
     for (int i = 0; i < 8; i++) {
