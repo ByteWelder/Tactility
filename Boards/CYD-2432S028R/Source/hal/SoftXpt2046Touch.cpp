@@ -20,7 +20,7 @@ bool SoftXpt2046Touch::start(lv_display_t* display) {
     }
     ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
 
-    touch.setRotation(0);  // Default to portrait, Tactility can override
+    touch.setRotation(0);  // Default to portrait
     ESP_LOGI(TAG, "Touch rotation set to 0");
 
     indev = lv_indev_create();
@@ -61,13 +61,24 @@ void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
         int32_t ty = y;  // Raw Y
         if (touch->config->xMinRaw != touch->config->xMaxRaw) {
             tx = (x - touch->config->xMinRaw) * touch->config->xMax / (touch->config->xMaxRaw - touch->config->xMinRaw);
+            ESP_LOGI(TAG, "Post-X calc: tx=%" PRId32, tx);
         }
         if (touch->config->yMinRaw != touch->config->yMaxRaw) {
             ty = (y - touch->config->yMinRaw) * touch->config->yMax / (touch->config->yMaxRaw - touch->config->yMinRaw);
+            ESP_LOGI(TAG, "Post-Y calc: ty=%" PRId32, ty);
         }
-        if (touch->config->swapXy) std::swap(tx, ty);
-        if (touch->config->mirrorX) tx = touch->config->xMax - tx;
-        if (touch->config->mirrorY) ty = touch->config->yMax - ty;
+        if (touch->config->swapXy) {
+            std::swap(tx, ty);
+            ESP_LOGI(TAG, "Post-swap: tx=%" PRId32 ", ty=%" PRId32, tx, ty);
+        }
+        if (touch->config->mirrorX) {
+            tx = touch->config->xMax - tx;
+            ESP_LOGI(TAG, "Post-mirrorX: tx=%" PRId32, tx);
+        }
+        if (touch->config->mirrorY) {
+            ty = touch->config->yMax - ty;
+            ESP_LOGI(TAG, "Post-mirrorY: ty=%" PRId32, ty);
+        }
         if (tx < 0) tx = 0;
         if (tx > touch->config->xMax) tx = touch->config->xMax;
         if (ty < 0) ty = 0;
