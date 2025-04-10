@@ -54,7 +54,7 @@ public:
     uint8_t transfer(uint8_t val) {
         uint8_t out = 0;
         if (_order == LSBFIRST) {
-            // Reverse bits for LSBFIRST (from Arduino driver)
+            // Reverse bits for LSBFIRST
             val = ((val & 0x01) << 7) | ((val & 0x02) << 5) | ((val & 0x04) << 3) | ((val & 0x08) << 1) |
                   ((val & 0x10) >> 1) | ((val & 0x20) >> 3) | ((val & 0x40) >> 5) | ((val & 0x80) >> 7);
         }
