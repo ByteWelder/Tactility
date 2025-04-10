@@ -27,16 +27,18 @@ bool I80Display::start() {
             configuration->dataPins[12], configuration->dataPins[13], configuration->dataPins[14], configuration->dataPins[15]
         },
         .bus_width = configuration->busWidth,
-        .max_transfer_bytes = 32768, // Fixed to 32 KiB
+        .max_transfer_bytes = 16384, // Reduced to 16 KiB
         .dma_burst_size = 64,
-        .sram_trans_align = 0,
+        .sram_trans_align = 64, // Align DMA buffers
     };
     TT_LOG_I(TAG, "DMA heap free before bus init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
+    TT_LOG_I(TAG, "Largest DMA block free before bus init: %lu", static_cast<unsigned long>(heap_caps_get_largest_free_block(MALLOC_CAP_DMA)));
     if (esp_lcd_new_i80_bus(&bus_config, &i80Bus) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create I80 bus");
         return false;
     }
     TT_LOG_I(TAG, "DMA heap free after bus init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
+    TT_LOG_I(TAG, "Largest DMA block free after bus init: %lu", static_cast<unsigned long>(heap_caps_get_largest_free_block(MALLOC_CAP_DMA)));
 
     // Step 2: Initialize panel I/O
     esp_lcd_panel_io_i80_config_t io_config = {
@@ -169,7 +171,7 @@ bool I80Display::stop() {
     }
     panelHandle = nullptr;
 
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {  // Fixed function name
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to delete panel IO");
         return false;
     }
