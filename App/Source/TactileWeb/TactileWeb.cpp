@@ -6,8 +6,9 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Preferences.h>
 #include <Tactility/lvgl/Keyboard.h>
+#include <Tactility/PubSub.h>  // Added for Wi-Fi event subscription
 #include <lvgl.h>
-#include <string>	
+#include <string>
 #include <cstring>
 
 #ifdef ESP_PLATFORM
@@ -33,6 +34,25 @@ private:
     tt::app::AppContext* context = nullptr;
     std::string last_url;
 
+#ifdef ESP_PLATFORM
+    std::shared_ptr<tt::PubSub> wifi_pubsub;
+    tt::PubSub::SubscriptionHandle wifi_subscription = nullptr;
+
+    static void wifi_event_cb(const void* message, void* context) {
+        auto* self = static_cast<TactileWeb*>(context);
+        const auto* event = static_cast<const tt::service::wifi::Event*>(message);
+        if (event->type == tt::service::wifi::EventType::ConnectionSuccess) {
+            self->fetchAndDisplay(self->last_url.c_str());
+        } else if (event->type == tt::service::wifi::EventType::Disconnected) {
+            self->showWifiPrompt();
+        }
+    }
+
+    bool is_wifi_connected() {
+        return tt::service::wifi::getRadioState() == tt::service::wifi::RadioState::ConnectionActive;
+    }
+#endif
+
     static void url_input_cb(lv_event_t* e) {
         TactileWeb* app = static_cast<TactileWeb*>(lv_event_get_user_data(e));
         const char* url = lv_textarea_get_text(static_cast<const lv_obj_t*>(lv_event_get_target(e)));
@@ -54,7 +74,9 @@ private:
         tt::Preferences prefs("tactileweb");
         last_url = "http://example.com";
         prefs.optString("last_url", last_url);
-        lv_textarea_set_text(url_input, last_url.c_str());
+        // Use a local copy to avoid dangling pointer
+        std::string url_copy = last_url;
+        lv_textarea_set_text(url_input, url_copy.c_str());
     }
 
     void saveLastUrl(const char* url) {
@@ -111,7 +133,7 @@ private:
 
 #ifdef ESP_PLATFORM
     void fetchAndDisplay(const char* url) {
-        if (tt::service::wifi::getRadioState() != tt::service::wifi::RadioState::ConnectionActive) {
+        if (!is_wifi_connected()) {
             showWifiPrompt();
             return;
         }
@@ -200,16 +222,24 @@ public:
         lv_obj_set_size(url_input, LV_HOR_RES - 40, 30);
         lv_obj_align_to(url_input, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
         lv_textarea_set_placeholder_text(url_input, "Enter URL (e.g., http://example.com)");
+        lv_textarea_set_one_line(url_input, true);  // Prevent newlines
         lv_obj_add_event_cb(url_input, url_input_cb, LV_EVENT_READY, this);
+        lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);  // Disable scrollbar
         tt::lvgl::keyboard_add_textarea(url_input);
 
         text_area = lv_textarea_create(parent);
         lv_obj_set_size(text_area, LV_HOR_RES - 20, LV_VER_RES - 80);
         lv_obj_align_to(text_area, url_input, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
+        lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_OFF);  // Disable scrollbar
 
         loadLastUrl();
+
 #ifdef ESP_PLATFORM
-        if (tt::service::wifi::getRadioState() != tt::service::wifi::RadioState::ConnectionActive) {
+        // Subscribe to Wi-Fi events
+        wifi_pubsub = tt::service::wifi::getPubsub();
+        wifi_subscription = wifi_pubsub->subscribe(wifi_event_cb, this);
+
+        if (!is_wifi_connected()) {
             showWifiPrompt();
         } else {
             fetchAndDisplay(last_url.c_str());
@@ -220,12 +250,19 @@ public:
     }
 
     void onHide(tt::app::AppContext& /* app_context */) override {
-        // No additional cleanup needed; widgets are auto-destroyed
+#ifdef ESP_PLATFORM
+        if (wifi_subscription) {
+            wifi_pubsub->unsubscribe(wifi_subscription);
+            wifi_subscription = nullptr;
+        }
+        wifi_pubsub.reset();
+#endif
+        // Widgets are auto-destroyed by Tactility
     }
 };
 
 extern const tt::app::AppManifest tactile_web_app = {
     .id = "TactileWeb",
-    .name = "Tactile Web",
+    .name = "TactileWeb",
     .createApp = tt::app::create<TactileWeb>
 };
