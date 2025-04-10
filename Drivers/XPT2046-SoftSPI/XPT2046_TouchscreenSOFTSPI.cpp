@@ -53,7 +53,7 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     touchscreenSPI.begin();
     touchscreenSPI.setBitOrder(SoftSPI<MisoPin, MosiPin, SckPin, Mode>::MSBFIRST);  // XPT2046 uses MSBFIRST
     touchscreenSPI.setDataMode(Mode);  // Use template Mode (default 0)
-    touchscreenSPI.setClockDivider(8);  // ~125kHz to start, adjust as needed
+    touchscreenSPI.setClockDivider(16);  // ~62.5kHz for stability (adjusted from 8)
     ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32 ", Mode=%d", (int32_t)csPin, (int32_t)tirqPin, Mode);
     return true;
 }
