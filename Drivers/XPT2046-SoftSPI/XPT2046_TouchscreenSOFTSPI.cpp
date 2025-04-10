@@ -11,11 +11,11 @@ static const char* TAG = "XPT2046_SoftSPI";
 #define READ_COUNT  30    // Number of readings to average
 #define MSEC_THRESHOLD 3  // Debounce threshold (ms)
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
     : csPin(csPin), tirqPin(tirqPin) {}
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 IRAM_ATTR void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin(void* arg) {
     auto* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
     o->isrWake = true;
@@ -41,7 +41,7 @@ static inline void fastPinMode(gpio_num_t pin, bool mode) {
     gpio_config(&io_conf);
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     fastPinMode(csPin, true);
     fastDigitalWrite(csPin, 1);  // HIGH
@@ -51,28 +51,31 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
         gpio_isr_handler_add(tirqPin, XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin, this);
     }
     touchscreenSPI.begin();
-    ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32, (int32_t)csPin, (int32_t)tirqPin);
+    touchscreenSPI.setBitOrder(SoftSPI<MisoPin, MosiPin, SckPin, Mode>::MSBFIRST);  // XPT2046 uses MSBFIRST
+    touchscreenSPI.setDataMode(Mode);  // Use template Mode (default 0)
+    touchscreenSPI.setClockDivider(8);  // ~125kHz to start, adjust as needed
+    ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32 ", Mode=%d", (int32_t)csPin, (int32_t)tirqPin, Mode);
     return true;
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::tirqTouched() {
     return tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::touched() {
     update();
     return zraw > 0;
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 TS_Point XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getPoint() {
     update();
     return TS_Point(xraw, yraw, zraw);
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readData(uint16_t* x, uint16_t* y, uint16_t* z) {
     update();
     *x = xraw;
@@ -80,19 +83,20 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readData(uint16
     *z = zraw;
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uint8_t cmd) {
     uint16_t buf[READ_COUNT], temp;
     uint32_t sum = 0;
     const uint8_t LOST_VAL = 1;
 
     fastDigitalWrite(csPin, 0);  // Select
+    touchscreenSPI.transfer(cmd);  // Send command
     for (uint8_t i = 0; i < READ_COUNT; i++) {
-        touchscreenSPI.transfer(cmd);
-        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value
+        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value, shifted
     }
     fastDigitalWrite(csPin, 1);  // Deselect
 
+    // Sort readings (bubble sort)
     for (uint8_t i = 0; i < READ_COUNT - 1; i++) {
         for (uint8_t j = i + 1; j < READ_COUNT; j++) {
             if (buf[i] > buf[j]) {
@@ -103,20 +107,21 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
         }
     }
 
+    // Average middle values
     for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
         sum += buf[i];
     }
     return sum / (READ_COUNT - 2 * LOST_VAL);
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uint16_t& rawX, uint16_t& rawY) {
     rawX = readXOY(CMD_X_READ);
     rawY = readXOY(CMD_Y_READ);
     ESP_LOGI(TAG, "Raw touch read: x=%" PRIu16 ", y=%" PRIu16, rawX, rawY);
 }
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     bool irqState = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
     ESP_LOGD(TAG, "IRQ state: %d, isrWake: %d", irqState, isrWake);
