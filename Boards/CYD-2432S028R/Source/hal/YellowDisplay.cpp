@@ -13,12 +13,12 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,    // yMax = 320
         false,  // swapXy
-        false,  // mirrorX
+        true,   // mirrorX (flip X-axis)
         false,  // mirrorY
-        130,    // xMinRaw (new min X)
-        495,    // xMaxRaw (new max X)
+        30,     // xMinRaw (new min X)
+        455,    // xMaxRaw (new max X)
         0,      // yMinRaw (still good)
-        408     // yMaxRaw (new max Y)
+        387     // yMaxRaw (new max Y)
     );
     return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
@@ -33,7 +33,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD_DISPLAY_VERTICAL_RESOLUTION,
         touch
     );
-    configuration->mirrorX = true;
+    configuration->mirrorX = true;  // Already set for display, keep it
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }
