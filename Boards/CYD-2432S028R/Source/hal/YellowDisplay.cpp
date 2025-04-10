@@ -18,7 +18,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         280,  // Top-Left raw Y
         231,  // Bottom-Right raw Y
         114,
-        180,
+        180
     );
     return std::make_shared<SoftXpt2046Touch>(std::move(config));
 }
