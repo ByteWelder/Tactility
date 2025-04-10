@@ -27,27 +27,30 @@ bool YellowDisplay::start() {
         return true;
     }
 
+    // Log heap before LVGL init
+    ESP_LOGI(TAG, "Heap free before LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
+
     // Initialize LVGL porting layer (only once)
     static bool lvglInitialized = false;
     if (!lvglInitialized) {
-        ESP_LOGI(TAG, "Heap free before LVGL init: %u", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
         const lvgl_port_cfg_t lvgl_cfg = {
-            .task_priority = 4,       // Higher priority per default
-            .task_stack = 6144,       // 6 KiB stack
-            .task_affinity = -1,      // No core affinity
-            .task_max_sleep_ms = 500, // Max sleep
-            .timer_period_ms = 5,     // 5 ms tick period
+            .task_priority = 4,
+            .task_stack = 6144,
+            .task_affinity = -1,
+            .task_max_sleep_ms = 500,
+            .timer_period_ms = 5,
         };
         if (lvgl_port_init(&lvgl_cfg) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to initialize LVGL port");
             return false;
         }
         ESP_LOGI(TAG, "LVGL port initialized");
-        ESP_LOGI(TAG, "Heap free after LVGL init: %u", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
         lvglInitialized = true;
     }
 
-    // Copy gpio_num_t[8] to int[8] to match I80Display::Configuration
+    ESP_LOGI(TAG, "Heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
+
+    // Copy gpio_num_t[8] to int[8]
     int dataPins[8];
     for (int i = 0; i < 8; i++) {
         dataPins[i] = static_cast<int>(config->dataPins[i]);
@@ -90,7 +93,7 @@ bool YellowDisplay::start() {
     isStarted = true;
     ESP_LOGI(TAG, "Display started successfully");
 
-    // Retrieve and set backlight duty
+    // Backlight duty
     uint8_t backlightDuty;
     if (tt::app::display::getBacklightDuty(backlightDuty)) {
         setBacklightDuty(backlightDuty);
@@ -111,10 +114,9 @@ bool YellowDisplay::stop() {
         return true;
     }
 
-    i80Display.reset(); // Calls I80Display::stop() automatically
+    i80Display.reset();
 
-    // Deinitialize LVGL port if this was the last instance (simplified check)
-    static bool lvglInitialized = true; // Matches start()'s static flag
+    static bool lvglInitialized = true;
     if (lvglInitialized) {
         if (lvgl_port_deinit() != ESP_OK) {
             ESP_LOGE(TAG, "Failed to deinitialize LVGL port");
