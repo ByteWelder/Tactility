@@ -8,6 +8,9 @@ class SoftSPI {
 public:
     SoftSPI() : _delay(2), _cke(MODE_CPHA(Mode)), _ckp(MODE_CPOL(Mode)), _order(MSBFIRST) {}
 
+    static constexpr uint8_t MSBFIRST = 0;  // Public constant
+    static constexpr uint8_t LSBFIRST = 1;  // Public constant
+
     void begin() {
         fastPinMode(MisoPin, false);  // Input
         fastPinMode(MosiPin, true);   // Output
@@ -38,7 +41,7 @@ public:
     }
 
     void setClockDivider(uint32_t div) {
-        // Map Arduino-style dividers to µs delays (assuming 80MHz ESP32 clock)
+        // Map Arduino-style dividers to µs delays (assuming 240MHz ESP32 clock)
         switch (div) {
             case 2:   _delay = 1; break;   // ~500kHz
             case 4:   _delay = 2; break;   // ~250kHz
@@ -118,8 +121,6 @@ public:
     void endTransaction() {}
 
 private:
-    static constexpr uint8_t MSBFIRST = 0;
-    static constexpr uint8_t LSBFIRST = 1;
     static constexpr bool MODE_CPHA(uint8_t mode) { return (mode & 1) != 0; }
     static constexpr bool MODE_CPOL(uint8_t mode) { return (mode & 2) != 0; }
 
