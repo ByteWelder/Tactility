@@ -21,8 +21,9 @@ public:
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
         ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
         
-        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+        lv_obj_add_flag(toolbar, LV_OBJ_FLAG_HIDDEN); // Hide it initially
 
         label = lv_label_create(parent);
         updateScreen("Tap the top-left corner");
@@ -32,8 +33,7 @@ public:
         ESP_LOGI("Calibration", "Calibration not supported on this board");
         #endif
 
-
-        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         label = lv_label_create(parent);
@@ -50,6 +50,7 @@ public:
             lv_obj_del(label);
             label = nullptr;
         }
+        toolbar = nullptr;
     }
 
 private:
@@ -75,6 +76,7 @@ private:
                 break;
             case 4: {
                 app->updateScreen("Calibration complete!");
+                lv_obj_clear_flag(app->toolbar, LV_OBJ_FLAG_HIDDEN); // Show the toolbar again
                 ESP_LOGI("Calibration", "Calibration Results:");
                 ESP_LOGI("Calibration", "Top-Left: x=%d, y=%d", app->rawX[0], app->rawY[0]);
                 ESP_LOGI("Calibration", "Top-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
@@ -105,13 +107,19 @@ private:
 
     void logTouchData(uint16_t rawX, uint16_t rawY) {
         if (step < 4) {
+            // Offset the y-coordinate for the top two points (top-left and top-right)
+            uint16_t adjustedY = rawY;
+            if (step == 0 || step == 1) { // Top-left (0) and top-right (1)
+                adjustedY = (rawY >= 24) ? rawY - 24 : 0; // Subtract 24, but ensure no underflow
+            }
             this->rawX[step] = rawX;
-            this->rawY[step] = rawY;
-            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
+            this->rawY[step] = adjustedY;
+            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d (adjustedY=%d)", step, rawX, rawY, adjustedY);
         }
     }
 
     lv_obj_t* label = nullptr;
+    lv_obj_t* toolbar = nullptr;
     int step = 0;  // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right, 4: done
     uint16_t rawX[4] = {0};
     uint16_t rawY[4] = {0};
@@ -122,6 +130,7 @@ private:
     void logTouchData(uint16_t /*rawX*/, uint16_t /*rawY*/) {}
 
     lv_obj_t* label = nullptr;
+    lv_obj_t* toolbar = nullptr;
 #endif
 };
 
