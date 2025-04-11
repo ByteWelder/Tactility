@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"  // Include constants here
 
+
 #define SPI_SETTING 0  // Mode 0 (CPOL=0, CPHA=0)
 
 class TS_Point {
@@ -17,7 +18,7 @@ public:
     int16_t x, y, z;
 };
 
-template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = SPI_SETTING>
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = SPI_SETTING>
 class XPT2046_TouchscreenSOFTSPI {
 public:
     XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin = GPIO_NUM_NC);
