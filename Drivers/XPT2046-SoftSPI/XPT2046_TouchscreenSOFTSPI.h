@@ -4,7 +4,7 @@
 #include "esp_attr.h"
 #include "SoftSPI.h"
 #include <stdint.h>
-#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"  // Use board-defined pin constants here
+#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"  // Include constants here
 
 #define SPI_SETTING 0  // Mode 0 (CPOL=0, CPHA=0)
 
@@ -35,11 +35,10 @@ private:
     uint16_t readXOY(uint8_t cmd);
     gpio_num_t csPin, tirqPin;
     volatile bool isrWake = false;
-    uint8_t rotation = 0;
+    uint8_t rotation = 0;  // Default to portrait
     int16_t xraw = 0, yraw = 0, zraw = 0;
     uint32_t msraw = 0x80000000;
     SoftSPI<MisoPin, MosiPin, SckPin, Mode> touchscreenSPI;
 };
 
-// Instantiated in .cpp
-extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, SPI_SETTING> touch;
+extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
