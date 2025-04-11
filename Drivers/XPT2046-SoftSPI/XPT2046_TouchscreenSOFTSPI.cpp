@@ -9,7 +9,7 @@ static const char* TAG = "XPT2046_SoftSPI";
 #define CMD_X_READ  0x90  // X position
 #define CMD_Y_READ  0xD0  // Y position
 #define READ_COUNT  30    // Number of readings to average
-#define MSEC_THRESHOLD 500  // Poll every 500ms for debugging
+#define MSEC_THRESHOLD 500  // Poll every 500ms
 
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -18,7 +18,7 @@ XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenS
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 IRAM_ATTR void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin(void* arg) {
     auto* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
-    o->isrWake = true;  // Minimal ISR, no logging
+    o->isrWake = true;
 }
 
 static inline void fastDigitalWrite(gpio_num_t pin, bool level) {
@@ -126,7 +126,7 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uin
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     bool irqState = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
-    ESP_LOGD(TAG, "update: IRQ state=%d, isrWake=%d", irqState, isrWake);
+    ESP_LOGI(TAG, "update: IRQ state=%d, isrWake=%d, MISO state=%d", irqState, isrWake, fastDigitalRead(MisoPin));
 
     uint32_t now = esp_timer_get_time() / 1000;
     if (now - msraw < MSEC_THRESHOLD) return;  // Poll every 500ms
@@ -146,7 +146,7 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
 
     xraw = x;
     yraw = y;
-    zraw = (x > 0 || y > 0) ? 1 : 0;  // Any non-zero reading indicates touch
+    zraw = (x > 0 || y > 0) ? 1 : 0;
     msraw = now;
 
     isrWake = false;
