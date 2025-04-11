@@ -18,8 +18,7 @@ XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenS
 template <gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 IRAM_ATTR void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin(void* arg) {
     auto* o = static_cast<XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>*>(arg);
-    o->isrWake = true;
-    ESP_LOGI(TAG, "IRQ triggered, state=%d", gpio_get_level(o->tirqPin));
+    o->isrWake = true;  // Minimal ISR, no logging
 }
 
 static inline void fastDigitalWrite(gpio_num_t pin, bool level) {
@@ -53,7 +52,7 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     touchscreenSPI.begin();
     touchscreenSPI.setBitOrder(SoftSPI<MisoPin, MosiPin, SckPin, Mode>::MSBFIRST);
     touchscreenSPI.setDataMode(Mode);
-    touchscreenSPI.setClockDivider(4);  // ~250kHz, matching Arduino examples
+    touchscreenSPI.setClockDivider(4);  // ~250kHz
     ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32 ", Mode=%d", (int32_t)csPin, (int32_t)tirqPin, Mode);
     return true;
 }
