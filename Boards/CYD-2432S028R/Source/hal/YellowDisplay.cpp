@@ -10,7 +10,7 @@ static const char* TAG = "YellowDisplay";
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
-    // Default calibration (XPT2046 ADC range, per esp_lcd_touch_xpt2046)
+    // Default calibration (XPT2046 ADC range, per esp_lcd_touch_xpt2046 (should be correct, if not, driver problem))
     uint16_t xMinRaw = 300, xMaxRaw = 3800, yMinRaw = 300, yMaxRaw = 3800;
 
     // Load from NVS
