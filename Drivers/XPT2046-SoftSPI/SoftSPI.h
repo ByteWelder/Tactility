@@ -1,69 +1,18 @@
 #pragma once
 
-#include "driver/gpio.h"
-#include "esp_rom_sys.h"
+#include <driver/gpio.h>
 
-template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = 0>
 class SoftSPI {
 public:
-    void begin() {
-        fastPinMode(MisoPin, false);
-        fastPinMode(MosiPin, true);
-        fastPinMode(SckPin, true);
-        fastDigitalWrite(MosiPin, !MODE_CPHA(Mode));
-        fastDigitalWrite(SckPin, MODE_CPOL(Mode));
-    }
-
-    uint8_t transfer(uint8_t data) {
-        uint8_t rx = 0;
-        for (int i = 7; i >= 0; i--) {
-            fastDigitalWrite(MosiPin, (data >> i) & 1);
-            esp_rom_delay_us(10);  // Stabilize output
-            if (MODE_CPHA(Mode)) {
-                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));
-                esp_rom_delay_us(8);  // ~125kHz
-                rx = rx << 1 | fastDigitalRead(MisoPin);
-                fastDigitalWrite(SckPin, MODE_CPOL(Mode));
-            } else {
-                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));
-                esp_rom_delay_us(8);
-                rx = rx << 1 | fastDigitalRead(MisoPin);
-                fastDigitalWrite(SckPin, MODE_CPOL(Mode));
-            }
-            esp_rom_delay_us(8);
-        }
-        return rx;
-    }
-
-    uint16_t transfer16(uint8_t data) {
-        uint16_t rx = transfer(data);
-        rx = (rx << 8) | transfer(0x00);
-        return rx & 0x0FFF;
-    }
-
-    void beginTransaction() {}
-    void endTransaction() {}
+    SoftSPI(gpio_num_t miso, gpio_num_t mosi, gpio_num_t sck);
+    void begin();
+    uint8_t transfer(uint8_t data);
+    void cs_low() { gpio_set_level(cs_pin_, 0); }
+    void cs_high() { gpio_set_level(cs_pin_, 1); }
 
 private:
-    static constexpr bool MODE_CPHA(uint8_t mode) { return (mode & 1) != 0; }
-    static constexpr bool MODE_CPOL(uint8_t mode) { return (mode & 2) != 0; }
-
-    static inline void fastDigitalWrite(gpio_num_t pin, bool level) {
-        gpio_set_level(pin, level);
-    }
-
-    static inline bool fastDigitalRead(gpio_num_t pin) {
-        return gpio_get_level(pin) != 0;
-    }
-
-    static inline void fastPinMode(gpio_num_t pin, bool mode) {
-        gpio_config_t io_conf = {
-            .pin_bit_mask = (1ULL << pin),
-            .mode = mode ? GPIO_MODE_OUTPUT : GPIO_MODE_INPUT,
-            .pull_up_en = GPIO_PULLUP_DISABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type = GPIO_INTR_DISABLE
-        };
-        gpio_config(&io_conf);
-    }
+    gpio_num_t miso_;
+    gpio_num_t mosi_;
+    gpio_num_t sck_;
+    gpio_num_t cs_pin_;
 };
