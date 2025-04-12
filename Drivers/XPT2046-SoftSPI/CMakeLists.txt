@@ -5,7 +5,7 @@ idf_component_register(
         "XPT2046-SoftSPI.cpp"
     INCLUDE_DIRS
         "."
-        "ESP-IDF-Driver/include"
+        "esp_lcd_touch_xpt2046/include"
     REQUIRES
         Tactility
         driver
