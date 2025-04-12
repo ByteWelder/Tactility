@@ -5,12 +5,13 @@
 #include "esp_rom_sys.h"
 #include "nvs_flash.h"
 #include <inttypes.h>
+#include <algorithm>  // For std::max, std::min
 
 static const char* TAG = "XPT2046_SoftSPI";
 #define CMD_X_READ  0x90  // X position
 #define CMD_Y_READ  0xD0  // Y position
 #define READ_COUNT  30    // Number of readings to average
-#define MSEC_THRESHOLD 10 // Debounce threshold (ms), was 3
+#define MSEC_THRESHOLD 20 // Debounce threshold (ms), was 3
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -112,7 +113,7 @@ template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode
 uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uint8_t cmd) {
     uint16_t buf[READ_COUNT], temp;
     uint32_t sum = 0;
-    const uint8_t LOST_VAL = 1;
+    const uint8_t LOST_VAL = 2;  // Discard more outliers
 
     fastDigitalWrite(csPin, 0);  // Select
     for (uint8_t i = 0; i < READ_COUNT; i++) {
@@ -122,6 +123,7 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
     }
     fastDigitalWrite(csPin, 1);  // Deselect
 
+    // Sort samples
     for (uint8_t i = 0; i < READ_COUNT - 1; i++) {
         for (uint8_t j = i + 1; j < READ_COUNT; j++) {
             if (buf[i] > buf[j]) {
@@ -132,11 +134,15 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
         }
     }
 
+    // Compute variance for debugging
+    uint16_t min_val = buf[LOST_VAL];
+    uint16_t max_val = buf[READ_COUNT - LOST_VAL - 1];
     for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
         sum += buf[i];
     }
     uint16_t avg = sum / (READ_COUNT - 2 * LOST_VAL);
-    ESP_LOGI(TAG, "readXOY: cmd=0x%02x, avg=%u", cmd, avg);
+    ESP_LOGI(TAG, "readXOY: cmd=0x%02x, avg=%u, min=%u, max=%u, variance=%u",
+             cmd, avg, min_val, max_val, max_val - min_val);
     return avg;
 }
 
