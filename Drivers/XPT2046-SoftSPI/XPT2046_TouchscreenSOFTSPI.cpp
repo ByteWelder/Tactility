@@ -3,6 +3,7 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
+#include "nvs_flash.h"
 #include <inttypes.h>
 
 static const char* TAG = "XPT2046_SoftSPI";
@@ -52,6 +53,22 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     }
     touchscreenSPI.begin();
     ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32, (int32_t)csPin, (int32_t)tirqPin);
+
+    // Load calibration from NVS
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open("touch_cal", NVS_READONLY, &nvs);
+    if (err == ESP_OK) {
+        size_t size = sizeof(CalibrationData);
+        err = nvs_get_blob(nvs, "cal_data", &calData, &size);
+        if (err == ESP_OK && calData.valid) {
+            ESP_LOGI(TAG, "Loaded calibration: xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
+                     calData.xScale, calData.xOffset, calData.yScale, calData.yOffset);
+        } else {
+            calData.valid = false;
+            ESP_LOGW(TAG, "No valid calibration data found");
+        }
+        nvs_close(nvs);
+    }
     return true;
 }
 
@@ -69,15 +86,26 @@ bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::touched() {
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 TS_Point XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getPoint() {
     update();
-    return TS_Point(xraw, yraw, zraw);
+    int16_t x = xraw, y = yraw;
+    if (calData.valid) {
+        x = (int16_t)(xraw * calData.xScale + calData.xOffset);
+        y = (int16_t)(yraw * calData.yScale + calData.yOffset);
+        x = (x < 0) ? 0 : (x > 240 ? 240 : x);
+        y = (y < 0) ? 0 : (y > 320 ? 320 : y);
+    }
+    return TS_Point(x, y, zraw);
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readData(uint16_t* x, uint16_t* y, uint16_t* z) {
     update();
-    *x = xraw;
-    *y = yraw;
+    *x = calData.valid ? (uint16_t)(xraw * calData.xScale + calData.xOffset) : xraw;
+    *y = calData.valid ? (uint16_t)(yraw * calData.yScale + calData.yOffset) : yraw;
     *z = zraw;
+    if (calData.valid) {
+        *x = (*x < 0) ? 0 : (*x > 240 ? 240 : *x);
+        *y = (*y < 0) ? 0 : (*y > 320 ? 320 : *y);
+    }
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
@@ -90,6 +118,7 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
     for (uint8_t i = 0; i < READ_COUNT; i++) {
         touchscreenSPI.transfer(cmd);
         buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value
+        ESP_LOGD(TAG, "readXOY: cmd=0x%02x, sample[%d]=%u", cmd, i, buf[i]);
     }
     fastDigitalWrite(csPin, 1);  // Deselect
 
@@ -106,7 +135,9 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
     for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
         sum += buf[i];
     }
-    return sum / (READ_COUNT - 2 * LOST_VAL);
+    uint16_t avg = sum / (READ_COUNT - 2 * LOST_VAL);
+    ESP_LOGI(TAG, "readXOY: cmd=0x%02x, avg=%u", cmd, avg);
+    return avg;
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
@@ -117,11 +148,33 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uin
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+CalibrationData XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getCalibration() {
+    return calData;
+}
+
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
+void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::setCalibration(const CalibrationData& cal) {
+    calData = cal;
+    if (calData.valid) {
+        nvs_handle_t nvs;
+        esp_err_t err = nvs_open("touch_cal", NVS_READWRITE, &nvs);
+        if (err == ESP_OK) {
+            err = nvs_set_blob(nvs, "cal_data", &calData, sizeof(CalibrationData));
+            if (err == ESP_OK) {
+                nvs_commit(nvs);
+                ESP_LOGI(TAG, "Saved calibration: xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
+                         calData.xScale, calData.xOffset, calData.yScale, calData.yOffset);
+            }
+            nvs_close(nvs);
+        }
+    }
+}
+
+template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     bool irqState = tirqPin != GPIO_NUM_NC && !fastDigitalRead(tirqPin);
     ESP_LOGD(TAG, "IRQ state: %d, isrWake: %d", irqState, isrWake);
     if (!irqState && !isrWake) {
-        ESP_LOGD(TAG, "No IRQ or wake, skipping update");
         zraw = 0;
         return;
     }
