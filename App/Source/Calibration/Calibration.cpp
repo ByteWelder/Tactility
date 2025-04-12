@@ -107,7 +107,6 @@ private:
                 ESP_LOGI("Calibration", "xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
                          cal.xScale, cal.xOffset, cal.yScale, cal.yOffset);
 
-                touch.setCalibration(cal);
                 vTaskDelay(2000 / portTICK_PERIOD_MS);  // Show result briefly
                 tt::app::start("Launcher");
                 break;
