@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-#define ESP_LCD_TOUCH_SPI_CLOCK_HZ (500 * 1000)  // Slower for SoftSPI stability
+#define ESP_LCD_TOUCH_SOFTSPI_CLOCK_HZ (500 * 1000)  // Slower for stability
 
 struct esp_lcd_touch_config_t {
     gpio_num_t int_gpio_num;
@@ -18,7 +18,7 @@ struct esp_lcd_touch_config_t {
     bool swap_xy;
     bool mirror_x;
     bool mirror_y;
-    uint16_t x_min_raw;  // Calibration
+    uint16_t x_min_raw;
     uint16_t x_max_raw;
     uint16_t y_min_raw;
     uint16_t y_max_raw;
@@ -44,6 +44,7 @@ public:
 
     esp_lcd_touch_handle_t get_handle() const { return handle_; }
     lv_indev_t* get_lvgl_indev() const { return indev_; }
+    void get_raw_touch(uint16_t& x, uint16_t& y);
 
 private:
     XPT2046_SoftSPI(gpio_num_t cs_pin, const esp_lcd_touch_config_t& config);
@@ -53,10 +54,12 @@ private:
                        uint16_t* strength, uint8_t* point_num, uint8_t max_point_num);
     static esp_err_t del(esp_lcd_touch_handle_t tp);
     static void lvgl_read_cb(lv_indev_t* indev, lv_indev_data_t* data);
+    esp_err_t read_register(uint8_t reg, uint16_t* value);
 
     esp_lcd_touch_handle_t handle_;
     lv_indev_t* indev_;
     std::unique_ptr<SoftSPI> spi_;
+    gpio_num_t cs_pin_;
 };
 
 #ifdef __cplusplus
