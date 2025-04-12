@@ -31,7 +31,6 @@ uint8_t SoftSPI::transfer(uint8_t data) {
 }
 
 void SoftSPI::cs_low() {
-    gpio_set_direction(GPIO_NUM_33, GPIO_MODE_OUTPUT); // Ensure CS pin is set as output
     gpio_set_level(GPIO_NUM_33, 0);
 }
 
