@@ -5,15 +5,14 @@
 #include <PwmBacklight.h>
 #include "esp_log.h"
 #include "nvs_flash.h"
-
 static const char* TAG = "YellowDisplay";
+
+std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;  // Global for Calibration.cpp
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
-    // Default calibration (XPT2046 ADC range, per esp_lcd_touch_xpt2046 (should be correct, if not, driver problem))
     uint16_t xMinRaw = 300, xMaxRaw = 3800, yMinRaw = 300, yMaxRaw = 3800;
 
-    // Load from NVS
     nvs_handle_t nvs;
     if (nvs_open("touch_cal", NVS_READONLY, &nvs) == ESP_OK) {
         uint16_t cal[4];
@@ -35,13 +34,13 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     }
 
     XPT2046_SoftSPI_Wrapper::Config config = {
-        .cs_pin = CYD_TOUCH_CS_PIN,  // GPIO 33
-        .int_pin = CYD_TOUCH_IRQ_PIN,  // GPIO 36
-        .miso_pin = CYD_TOUCH_MISO_PIN,  // GPIO 39
-        .mosi_pin = CYD_TOUCH_MOSI_PIN,  // GPIO 32
-        .sck_pin = CYD_TOUCH_SCK_PIN,  // GPIO 25
-        .x_max = CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // 240
-        .y_max = CYD_DISPLAY_VERTICAL_RESOLUTION,  // 320
+        .cs_pin = CYD_TOUCH_CS_PIN,
+        .int_pin = CYD_TOUCH_IRQ_PIN,
+        .miso_pin = CYD_TOUCH_MISO_PIN,
+        .mosi_pin = CYD_TOUCH_MOSI_PIN,
+        .sck_pin = CYD_TOUCH_SCK_PIN,
+        .x_max = CYD_DISPLAY_HORIZONTAL_RESOLUTION,
+        .y_max = CYD_DISPLAY_VERTICAL_RESOLUTION,
         .swap_xy = false,
         .mirror_x = false,
         .mirror_y = false,
@@ -50,34 +49,39 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         .y_min_raw = yMinRaw,
         .y_max_raw = yMaxRaw
     };
-    auto driver = XPT2046_SoftSPI_Wrapper::create(config);
+    touch = XPT2046_SoftSPI_Wrapper::create(config);
+    if (!touch) {
+        ESP_LOGE(TAG, "Failed to create touch driver");
+        return nullptr;
+    }
+
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
         TouchAdapter(std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver) : driver_(std::move(driver)) {}
-        bool init() override { return true; }
-        bool start(lv_display_t* disp) override {
+        bool initialize() override { return true; }
+        bool enable(lv_display_t* disp) override {
             lv_indev_t* indev = driver_->get_lvgl_indev();
             lv_indev_set_display(indev, disp);
             return true;
         }
-        bool stop() override { return true; }
+        bool disable() override { return true; }
     private:
         std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver_;
     };
-    return std::make_shared<TouchAdapter>(std::move(driver));
+    return std::make_shared<TouchAdapter>(std::move(touch));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    auto touch_device = createTouch();
     auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
         CYD_DISPLAY_SPI_HOST,
         CYD_DISPLAY_PIN_CS,
         CYD_DISPLAY_PIN_DC,
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,
         CYD_DISPLAY_VERTICAL_RESOLUTION,
-        touch
+        touch_device
     );
-    configuration->mirrorX = true;  // Keep for display
+    configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }
