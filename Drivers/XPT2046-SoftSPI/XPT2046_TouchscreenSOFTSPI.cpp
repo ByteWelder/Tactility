@@ -10,7 +10,7 @@ static const char* TAG = "XPT2046_SoftSPI";
 #define CMD_X_READ  0x90  // X position
 #define CMD_Y_READ  0xD0  // Y position
 #define READ_COUNT  30    // Number of readings to average
-#define MSEC_THRESHOLD 3  // Debounce threshold (ms)
+#define MSEC_THRESHOLD 10 // Debounce threshold (ms), was 3
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -144,7 +144,9 @@ template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode
 void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::getRawTouch(uint16_t& rawX, uint16_t& rawY) {
     rawX = readXOY(CMD_X_READ);
     rawY = readXOY(CMD_Y_READ);
-    ESP_LOGI(TAG, "Raw touch read: x=%" PRIu16 ", y=%" PRIu16, rawX, rawY);
+    if (rawX != 0 || rawY != 0) {
+        ESP_LOGI(TAG, "Raw touch read: x=%" PRIu16 ", y=%" PRIu16, rawX, rawY);
+    }
 }
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
@@ -185,8 +187,6 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     int16_t x = readXOY(CMD_X_READ);
     int16_t y = readXOY(CMD_Y_READ);
 
-    ESP_LOGI(TAG, "SPI raw: x=%" PRIu16 ", y=%" PRIu16, x, y);
-
     if (x == 0 && y == 0) {  // Ignore invalid reads
         zraw = 0;
         isrWake = false;
@@ -207,7 +207,9 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     msraw = now;
 
     isrWake = false;
-    ESP_LOGI(TAG, "Touch raw (rotated): x=%d, y=%d", xraw, yraw);
+    if (xraw != 0 || yraw != 0 || zraw != 0) {
+        ESP_LOGI(TAG, "Touch raw (rotated): x=%d, y=%d, z=%d", xraw, yraw, zraw);
+    }
 }
 
 XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch(CYD_TOUCH_CS_PIN, CYD_TOUCH_IRQ_PIN);
