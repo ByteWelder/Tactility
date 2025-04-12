@@ -1,6 +1,6 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
-#include "SoftXpt2046Touch.h"
+#include "XPT2046-SoftSPI.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 #include "esp_log.h"
@@ -34,18 +34,37 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         ESP_LOGW(TAG, "NVS open failed, using default calibration");
     }
 
-    auto config = std::make_unique<SoftXpt2046Touch::Configuration>(
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
-        CYD_DISPLAY_VERTICAL_RESOLUTION,   // yMax = 320
-        false,  // swapXy
-        false,  // mirrorX
-        false,  // mirrorY
-        xMinRaw,  // xMinRaw
-        xMaxRaw,  // xMaxRaw
-        yMinRaw,  // yMinRaw
-        yMaxRaw   // yMaxRaw
-    );
-    return std::make_shared<SoftXpt2046Touch>(std::move(config));
+    XPT2046_SoftSPI_Wrapper::Config config = {
+        .cs_pin = CYD_TOUCH_CS_PIN,  // GPIO 33
+        .int_pin = CYD_TOUCH_IRQ_PIN,  // GPIO 36
+        .miso_pin = CYD_TOUCH_MISO_PIN,  // GPIO 39
+        .mosi_pin = CYD_TOUCH_MOSI_PIN,  // GPIO 32
+        .sck_pin = CYD_TOUCH_SCK_PIN,  // GPIO 25
+        .x_max = CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // 240
+        .y_max = CYD_DISPLAY_VERTICAL_RESOLUTION,  // 320
+        .swap_xy = false,
+        .mirror_x = false,
+        .mirror_y = false,
+        .x_min_raw = xMinRaw,
+        .x_max_raw = xMaxRaw,
+        .y_min_raw = yMinRaw,
+        .y_max_raw = yMaxRaw
+    };
+    auto driver = XPT2046_SoftSPI_Wrapper::create(config);
+    class TouchAdapter : public tt::hal::touch::TouchDevice {
+    public:
+        TouchAdapter(std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver) : driver_(std::move(driver)) {}
+        bool init() override { return true; }
+        bool start(lv_display_t* disp) override {
+            lv_indev_t* indev = driver_->get_lvgl_indev();
+            lv_indev_set_display(indev, disp);
+            return true;
+        }
+        bool stop() override { return true; }
+    private:
+        std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver_;
+    };
+    return std::make_shared<TouchAdapter>(std::move(driver));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
