@@ -10,7 +10,6 @@
 
 bool initBoot() {
     return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN);
-    tt::app::start("Calibration");
 }
 
 const tt::hal::Configuration cyd_2432s028r_config = {
