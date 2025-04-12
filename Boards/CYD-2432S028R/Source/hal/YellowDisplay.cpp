@@ -3,11 +3,13 @@
 #include "XPT2046-SoftSPI.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
-#include "esp_log.h"
-#include "nvs_flash.h"
+#include <Tactility/hal/touch/TouchDevice.h>
+#include <esp_log.h>
+#include <nvs_flash.h>
+
 static const char* TAG = "YellowDisplay";
 
-std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;  // Global for the Calibration app
+std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
@@ -58,13 +60,13 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
         TouchAdapter(std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver) : driver_(std::move(driver)) {}
-        bool initialize() override { return true; }
-        bool enable(lv_display_t* disp) override {
+        bool start(lv_display_t* disp) override {
             lv_indev_t* indev = driver_->get_lvgl_indev();
             lv_indev_set_display(indev, disp);
             return true;
         }
-        bool disable() override { return true; }
+        bool stop() override { return true; }
+        lv_indev_t* getLvglIndev() override { return driver_->get_lvgl_indev(); }
     private:
         std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver_;
     };
