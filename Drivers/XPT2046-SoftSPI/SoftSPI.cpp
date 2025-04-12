@@ -5,7 +5,7 @@
 static const char* TAG = "SoftSPI";
 
 SoftSPI::SoftSPI(gpio_num_t miso, gpio_num_t mosi, gpio_num_t sck)
-    : miso_(miso), mosi_(mosi), sck_(sck), cs_pin_(GPIO_NUM_NC) {}
+    : miso_(miso), mosi_(mosi), sck_(sck) {}
 
 void SoftSPI::begin() {
     gpio_set_direction(miso_, GPIO_MODE_INPUT);
@@ -19,12 +19,22 @@ uint8_t SoftSPI::transfer(uint8_t data) {
     uint8_t result = 0;
     for (int i = 7; i >= 0; i--) {
         gpio_set_level(mosi_, (data >> i) & 1);
-        ets_delay_us(10);  // Slow for XPT2046
+        ets_delay_us(10);
         gpio_set_level(sck_, 1);
         ets_delay_us(10);
         result |= (gpio_get_level(miso_) << i);
         gpio_set_level(sck_, 0);
         ets_delay_us(10);
     }
+    ESP_LOGD(TAG, "SoftSPI transfer: data=0x%x, result=0x%x", data, result);
     return result;
+}
+
+void SoftSPI::cs_low() {
+    gpio_set_direction(GPIO_NUM_33, GPIO_MODE_OUTPUT); // Ensure CS pin is set as output
+    gpio_set_level(GPIO_NUM_33, 0);
+}
+
+void SoftSPI::cs_high() {
+    gpio_set_level(GPIO_NUM_33, 1);
 }
