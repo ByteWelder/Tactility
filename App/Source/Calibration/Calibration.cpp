@@ -64,9 +64,13 @@ private:
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
         extern std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;
-        touch->get_raw_touch(rawX, rawY);
+        if (touch) {
+            touch->get_raw_touch(rawX, rawY);
+        } else {
+            rawX = rawY = 0;
+        }
 
-        if (rawX == 0 || rawY == 0) return;  // Ignore invalid touches
+        if (rawX == 0 || rawY == 0) return;
 
         app->logTouchData(rawX, rawY);
         app->step++;
@@ -87,8 +91,8 @@ private:
                 CalibrationData cal;
                 float dxRaw = app->rawX[1] - app->rawX[0];
                 float dyRaw = app->rawY[1] - app->rawY[0];
-                float dxScreen = 220 - 20;  // 200 pixels
-                float dyScreen = 300 - 20;  // 280 pixels
+                float dxScreen = 220 - 20;
+                float dyScreen = 300 - 20;
 
                 if (dxRaw == 0 || dyRaw == 0) {
                     ESP_LOGE("Calibration", "Invalid raw data range");
@@ -103,12 +107,11 @@ private:
                 cal.valid = true;
 
                 ESP_LOGI("Calibration", "Results:");
-                ESP_LOGI("Calibration", "Top-Left: x=%d, y=%d", app->rawX[0], app->rawY[0]);
-                ESP_LOGI("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
+                ESP_LOGI("Calibration", "Top-Left: x=%u, y=%u", app->rawX[0], app->rawY[0]);
+                ESP_LOGI("Calibration", "Bottom-Right: x=%u, y=%u", app->rawX[1], app->rawY[1]);
                 ESP_LOGI("Calibration", "xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
                          cal.xScale, cal.xOffset, cal.yScale, cal.yOffset);
 
-                // Save to NVS
                 nvs_handle_t nvs;
                 if (nvs_open("touch_cal", NVS_READWRITE, &nvs) == ESP_OK) {
                     uint16_t cal_data[4] = {app->rawX[0], app->rawX[1], app->rawY[0], app->rawY[1]};
@@ -122,7 +125,7 @@ private:
                     nvs_close(nvs);
                 }
 
-                vTaskDelay(2000 / portTICK_PERIOD_MS);  // Show result briefly
+                vTaskDelay(2000 / portTICK_PERIOD_MS);
                 tt::app::start("Launcher");
                 break;
             }
@@ -155,7 +158,7 @@ private:
         if (step < 2) {
             rawX[step] = touchX;
             rawY[step] = touchY;
-            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, touchX, touchY);
+            ESP_LOGI("Calibration", "Step %d: rawX=%u, rawY=%u", step, touchX, touchY);
         }
     }
 #else
