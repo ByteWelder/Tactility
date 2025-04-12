@@ -4,8 +4,7 @@
 #include "esp_attr.h"
 #include "SoftSPI.h"
 #include <stdint.h>
-#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"  // Include constants here
-
+#include "../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 
 #define SPI_SETTING 0  // Mode 0 (CPOL=0, CPHA=0)
 
@@ -16,6 +15,12 @@ public:
     bool operator==(TS_Point p) { return ((p.x == x) && (p.y == y) && (p.z == z)); }
     bool operator!=(TS_Point p) { return ((p.x != x) || (p.y != y) || (p.z != z)); }
     int16_t x, y, z;
+};
+
+struct CalibrationData {
+    float xScale, xOffset;
+    float yScale, yOffset;
+    bool valid;
 };
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = SPI_SETTING>
@@ -29,6 +34,8 @@ public:
     void readData(uint16_t* x, uint16_t* y, uint16_t* z);
     void setRotation(uint8_t n) { rotation = n % 4; }
     void getRawTouch(uint16_t& rawX, uint16_t& rawY);
+    CalibrationData getCalibration();
+    void setCalibration(const CalibrationData& cal);
 
 private:
     IRAM_ATTR static void isrPin(void* arg);
@@ -36,10 +43,11 @@ private:
     uint16_t readXOY(uint8_t cmd);
     gpio_num_t csPin, tirqPin;
     volatile bool isrWake = false;
-    uint8_t rotation = 0;  // Default to portrait
+    uint8_t rotation = 0;
     int16_t xraw = 0, yraw = 0, zraw = 0;
     uint32_t msraw = 0x80000000;
     SoftSPI<MisoPin, MosiPin, SckPin, Mode> touchscreenSPI;
+    CalibrationData calData = {1.0f, 0.0f, 1.0f, 0.0f, false};
 };
 
 extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
