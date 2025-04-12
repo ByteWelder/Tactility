@@ -27,14 +27,14 @@ private:
     lv_obj_t* toolbar = nullptr;
     lv_obj_t* url_input = nullptr;
     lv_obj_t* text_area = nullptr;
-    lv_obj_t* text_container = nullptr;  // Added for scrollable text area
+    lv_obj_t* text_container = nullptr;
     lv_obj_t* wifi_button = nullptr;
     lv_obj_t* wifi_label = nullptr;
     lv_obj_t* loading_label = nullptr;
     lv_obj_t* retry_button = nullptr;
     tt::app::AppContext* context = nullptr;
     std::string last_url;
-    std::string initial_url;  // Added to ensure string lifetime
+    std::string initial_url;
 
 #ifdef ESP_PLATFORM
     std::shared_ptr<tt::PubSub> wifi_pubsub;
@@ -74,13 +74,13 @@ private:
 
     static void focus_url_cb(lv_event_t* e) {
         TactileWeb* app = static_cast<TactileWeb*>(lv_event_get_user_data(e));
-        lv_obj_set_state(app->url_input, LV_STATE_FOCUSED);
+        lv_obj_set_state(app->url_input, LV_STATE_FOCUSED, true);  // Added third argument
         tt::lvgl::keyboard_add_textarea(app->url_input);
     }
 
     void loadLastUrl() {
         tt::Preferences prefs("tactileweb");
-        initial_url = "http://example.com";  // Default value
+        initial_url = "http://example.com";
         prefs.optString("last_url", initial_url);
         last_url = initial_url;
     }
@@ -222,9 +222,8 @@ public:
 
         toolbar = tt::lvgl::toolbar_create(parent, app_context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
-        lv_obj_set_scroll_dir(toolbar, LV_DIR_NONE);  // Prevent scrolling
+        lv_obj_set_scroll_dir(toolbar, LV_DIR_NONE);
 
-        // Add a "Back to URL" button in the toolbar
         lv_obj_t* focus_btn = lv_btn_create(toolbar);
         lv_obj_t* focus_label = lv_label_create(focus_btn);
         lv_label_set_text(focus_label, "Back to URL");
@@ -239,22 +238,21 @@ public:
         lv_textarea_set_one_line(url_input, true);
         lv_obj_add_event_cb(url_input, url_input_cb, LV_EVENT_READY, this);
         lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);
-        lv_obj_set_scroll_dir(url_input, LV_DIR_NONE);  // Prevent scrolling
+        lv_obj_set_scroll_dir(url_input, LV_DIR_NONE);
         tt::lvgl::keyboard_add_textarea(url_input);
 
-        // Create a scrollable container for the text area
         text_container = lv_obj_create(parent);
         lv_obj_set_size(text_container, LV_HOR_RES - 20, LV_VER_RES - 80);
         lv_obj_align_to(text_container, url_input, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
-        lv_obj_set_scrollbar_mode(text_container, LV_SCROLLBAR_MODE_AUTO);  // Allow scrolling
+        lv_obj_set_scrollbar_mode(text_container, LV_SCROLLBAR_MODE_AUTO);
 
         text_area = lv_textarea_create(text_container);
         lv_obj_set_size(text_area, LV_HOR_RES - 20, LV_VER_RES - 80);
         lv_obj_set_pos(text_area, 0, 0);
-        lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_OFF);  // Scroll via container
+        lv_obj_set_scrollbar_mode(text_area, LV_SCROLLBAR_MODE_OFF);
 
         loadLastUrl();
-        lv_textarea_set_text(url_input, initial_url.c_str());  // Set text after widget creation
+        lv_textarea_set_text(url_input, initial_url.c_str());
 
 #ifdef ESP_PLATFORM
         wifi_pubsub = tt::service::wifi::getPubsub();
