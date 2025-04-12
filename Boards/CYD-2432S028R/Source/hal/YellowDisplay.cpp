@@ -5,29 +5,28 @@
 #include <PwmBacklight.h>
 #include "esp_log.h"
 #include "nvs_flash.h"
-#include "XPT2046_TouchscreenSOFTSPI.h"  // For CalibrationData
 
 static const char* TAG = "YellowDisplay";
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
-    // Default calibration (fallback)
+    // Default calibration (XPT2046 ADC range, per esp_lcd_touch_xpt2046)
     uint16_t xMinRaw = 300, xMaxRaw = 3800, yMinRaw = 300, yMaxRaw = 3800;
 
     // Load from NVS
     nvs_handle_t nvs;
     if (nvs_open("touch_cal", NVS_READONLY, &nvs) == ESP_OK) {
-        CalibrationData cal;
-        size_t size = sizeof(CalibrationData);
-        if (nvs_get_blob(nvs, "cal_data", &cal, &size) == ESP_OK && cal.valid) {
-            xMinRaw = -cal.xOffset / cal.xScale;
-            xMaxRaw = (CYD_DISPLAY_HORIZONTAL_RESOLUTION - cal.xOffset) / cal.xScale;
-            yMinRaw = -cal.yOffset / cal.yScale;
-            yMaxRaw = (CYD_DISPLAY_VERTICAL_RESOLUTION - cal.yOffset) / cal.yScale;
+        uint16_t cal[4];
+        size_t size = sizeof(cal);
+        if (nvs_get_blob(nvs, "cal_data", cal, &size) == ESP_OK && size == sizeof(cal)) {
+            xMinRaw = cal[0];
+            xMaxRaw = cal[1];
+            yMinRaw = cal[2];
+            yMaxRaw = cal[3];
             ESP_LOGI(TAG, "Loaded NVS calibration: xMinRaw=%u, xMaxRaw=%u, yMinRaw=%u, yMaxRaw=%u",
                      xMinRaw, xMaxRaw, yMinRaw, yMaxRaw);
         } else {
-            ESP_LOGW(TAG, "Using default calibration: xMinRaw=%u, xMaxRaw=%u, yMinRaw=%u, yMaxRaw=%u",
+            ESP_LOGW(TAG, "No valid NVS calibration, using defaults: xMinRaw=%u, xMaxRaw=%u, yMinRaw=%u, yMaxRaw=%u",
                      xMinRaw, xMaxRaw, yMinRaw, yMaxRaw);
         }
         nvs_close(nvs);
@@ -36,8 +35,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     }
 
     auto config = std::make_unique<SoftXpt2046Touch::Configuration>(
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax
-        CYD_DISPLAY_VERTICAL_RESOLUTION,   // yMax
+        CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax = 240
+        CYD_DISPLAY_VERTICAL_RESOLUTION,   // yMax = 320
         false,  // swapXy
         false,  // mirrorX
         false,  // mirrorY
