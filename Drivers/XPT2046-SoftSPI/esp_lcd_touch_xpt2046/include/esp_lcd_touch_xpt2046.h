@@ -9,24 +9,19 @@
 extern "C" {
 #endif
 
-#define ESP_LCD_TOUCH_SOFTSPI_CLOCK_HZ (500 * 1000)  // Slower for stability
+#define ESP_LCD_TOUCH_SOFTSPI_CLOCK_HZ (500 * 1000)
 
-struct esp_lcd_touch_config_t {
-    gpio_num_t int_gpio_num;
-    uint16_t x_max;
-    uint16_t y_max;
-    bool swap_xy;
-    bool mirror_x;
-    bool mirror_y;
+// Extend ESP-IDF's config with calibration and orientation
+typedef struct {
+    esp_lcd_touch_config_t base;
     uint16_t x_min_raw;
     uint16_t x_max_raw;
     uint16_t y_min_raw;
     uint16_t y_max_raw;
-    esp_lcd_touch_interrupt_callback_t interrupt_callback;
-    struct {
-        bool interrupt_level;
-    } levels;
-};
+    bool swap_xy;
+    bool mirror_x;
+    bool mirror_y;
+} esp_lcd_touch_xpt2046_config_t;
 
 class XPT2046_SoftSPI {
 public:
@@ -36,7 +31,7 @@ public:
         gpio_num_t miso_pin;
         gpio_num_t mosi_pin;
         gpio_num_t sck_pin;
-        esp_lcd_touch_config_t touch_config;
+        esp_lcd_touch_xpt2046_config_t touch_config;
     };
 
     static std::unique_ptr<XPT2046_SoftSPI> create(const Config& config);
@@ -47,7 +42,7 @@ public:
     void get_raw_touch(uint16_t& x, uint16_t& y);
 
 private:
-    XPT2046_SoftSPI(gpio_num_t cs_pin, const esp_lcd_touch_config_t& config);
+    XPT2046_SoftSPI(const Config& config);
     bool init();
     static esp_err_t read_data(esp_lcd_touch_handle_t tp);
     static bool get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
