@@ -6,6 +6,7 @@
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <esp_log.h>
 #include <nvs_flash.h>
+#include <string>
 
 static const char* TAG = "YellowDisplay";
 
@@ -67,6 +68,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         }
         bool stop() override { return true; }
         lv_indev_t* getLvglIndev() override { return driver_->get_lvgl_indev(); }
+        std::string getName() const override { return "XPT2046 Touch"; }
+        std::string getDescription() const override { return "SoftSPI XPT2046 Touch Controller"; }
     private:
         std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver_;
     };
