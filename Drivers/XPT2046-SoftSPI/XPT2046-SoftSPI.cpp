@@ -11,8 +11,7 @@ std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const C
             .y_max = config.y_max,
             .interrupt_callback = nullptr,
             .levels = {
-                .rst_level = false,
-                .int_level = false
+                .interrupt = false
             },
             .user_data = nullptr
         },
