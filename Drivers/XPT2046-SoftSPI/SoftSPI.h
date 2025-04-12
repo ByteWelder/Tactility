@@ -7,9 +7,9 @@ template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode
 class SoftSPI {
 public:
     void begin() {
-        fastPinMode(MisoPin, false);  // Input
-        fastPinMode(MosiPin, true);   // Output
-        fastPinMode(SckPin, true);    // Output
+        fastPinMode(MisoPin, false);
+        fastPinMode(MosiPin, true);
+        fastPinMode(SckPin, true);
         fastDigitalWrite(MosiPin, !MODE_CPHA(Mode));
         fastDigitalWrite(SckPin, MODE_CPOL(Mode));
     }
@@ -18,16 +18,17 @@ public:
         uint8_t rx = 0;
         for (int i = 7; i >= 0; i--) {
             fastDigitalWrite(MosiPin, (data >> i) & 1);
+            esp_rom_delay_us(10);  // Stabilize output
             if (MODE_CPHA(Mode)) {
-                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock low
+                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));
                 esp_rom_delay_us(8);  // ~125kHz
                 rx = rx << 1 | fastDigitalRead(MisoPin);
-                fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock high
+                fastDigitalWrite(SckPin, MODE_CPOL(Mode));
             } else {
-                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock high
-                esp_rom_delay_us(8);  // ~125kHz
+                fastDigitalWrite(SckPin, !MODE_CPOL(Mode));
+                esp_rom_delay_us(8);
                 rx = rx << 1 | fastDigitalRead(MisoPin);
-                fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock low
+                fastDigitalWrite(SckPin, MODE_CPOL(Mode));
             }
             esp_rom_delay_us(8);
         }
@@ -37,7 +38,7 @@ public:
     uint16_t transfer16(uint8_t data) {
         uint16_t rx = transfer(data);
         rx = (rx << 8) | transfer(0x00);
-        return rx & 0x0FFF;  // Mask to 12 bits
+        return rx & 0x0FFF;
     }
 
     void beginTransaction() {}
