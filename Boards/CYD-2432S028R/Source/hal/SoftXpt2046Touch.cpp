@@ -1,95 +1,52 @@
 #include "SoftXpt2046Touch.h"
-#include <Tactility/Log.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
-#include <inttypes.h>
 
-#define TAG "soft_xpt2046"
+static const char* TAG = "soft_xpt2046";
 
-SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> config)
-    : config(std::move(config)), touch(CYD_TOUCH_CS_PIN, CYD_TOUCH_IRQ_PIN) {
-    assert(this->config != nullptr);
-}
+SoftXpt2046Touch::SoftXpt2046Touch(std::unique_ptr<Configuration> configuration)
+    : configuration(std::move(configuration)) {}
 
-bool SoftXpt2046Touch::start(lv_display_t* display) {
-    ESP_LOGI(TAG, "Initializing software SPI touch");
-
-    if (!touch.begin()) {
-        TT_LOG_E(TAG, "Failed to initialize XPT2046 soft SPI");
-        return false;
-    }
-    ESP_LOGI(TAG, "XPT2046 soft SPI initialized successfully");
-
-    touch.setRotation(0);  // Default to portrait
-    ESP_LOGI(TAG, "Touch rotation set to 0");
-
-    indev = lv_indev_create();
-    if (indev == nullptr) {
-        TT_LOG_E(TAG, "Failed to create LVGL input device");
-        return false;
-    }
-    ESP_LOGI(TAG, "LVGL input device created at %p", indev);
-
-    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, readCallback);
-    lv_indev_set_user_data(indev, this);
-
-    ESP_LOGI(TAG, "Software SPI touch initialized with xMax=%" PRIu16 ", yMax=%" PRIu16 ", swapXy=%d, mirrorX=%d, mirrorY=%d",
-             config->xMax, config->yMax, config->swapXy, config->mirrorX, config->mirrorY);
+bool SoftXpt2046Touch::init() {
+    touch.begin();
+    touch.setRotation(0);
+    ESP_LOGI(TAG, "Software SPI touch initialized with xMax=%u, yMax=%u, swapXy=%d, mirrorX=%d, mirrorY=%d",
+             configuration->xMax, configuration->yMax, configuration->swapXy,
+             configuration->mirrorX, configuration->mirrorY);
     return true;
 }
 
-bool SoftXpt2046Touch::stop() {
-    if (indev != nullptr) {
-        ESP_LOGI(TAG, "Deleting LVGL input device at %p", indev);
-        lv_indev_delete(indev);
-        indev = nullptr;
+bool SoftXpt2046Touch::read(lv_indev_data_t* data) {
+    if (!data) return false;
+
+    TS_Point point = touch.getPoint();
+    if (point.z == 0) {
+        data->state = LV_INDEV_STATE_REL;
+        return false;
     }
-    ESP_LOGI(TAG, "Software SPI touch stopped");
+
+    int32_t x = point.x;
+    int32_t y = point.y;
+
+    // Log raw values
+    ESP_LOGI(TAG, "Touch raw (rotated): x=%d, y=%d, z=%d", x, y, point.z);
+
+    // Scale to screen coordinates
+    x = (x - configuration->xMinRaw) * configuration->xMax / (configuration->xMaxRaw - configuration->xMinRaw);
+    y = (y - configuration->yMinRaw) * configuration->yMax / (configuration->yMaxRaw - configuration->yMinRaw);
+
+    ESP_LOGI(TAG, "Post-X calc: tx=%d", x);
+    ESP_LOGI(TAG, "Post-Y calc: ty=%d", y);
+
+    // Clamp to screen bounds
+    x = x < 0 ? 0 : (x > configuration->xMax ? configuration->xMax : x);
+    y = y < 0 ? 0 : (y > configuration->yMax ? configuration->yMax : y);
+
+    ESP_LOGI(TAG, "Pre-mapped: tx=%d, ty=%d", x, y);
+
+    data->point.x = x;
+    data->point.y = y;
+    data->state = LV_INDEV_STATE_PR;
+
+    ESP_LOGI(TAG, "Touch mapped: x=%d, y=%d", data->point.x, data->point.y);
     return true;
-}
-
-void SoftXpt2046Touch::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
-    auto* touch = static_cast<SoftXpt2046Touch*>(lv_indev_get_user_data(indev));
-    uint16_t x, y, z;
-    touch->touch.readData(&x, &y, &z);
-
-    ESP_LOGI(TAG, "Touch raw (rotated): x=%" PRIu16 ", y=%" PRIu16 ", z=%" PRIu16, x, y, z);
-
-    if (z > 0) {
-        int32_t tx = x;  // Raw X
-        int32_t ty = y;  // Raw Y
-        if (touch->config->xMinRaw != touch->config->xMaxRaw) {
-            tx = (x - touch->config->xMinRaw) * touch->config->xMax / (touch->config->xMaxRaw - touch->config->xMinRaw);
-            ESP_LOGI(TAG, "Post-X calc: tx=%" PRId32, tx);
-        }
-        if (touch->config->yMinRaw != touch->config->yMaxRaw) {
-            ty = (y - touch->config->yMinRaw) * touch->config->yMax / (touch->config->yMaxRaw - touch->config->yMinRaw);
-            ESP_LOGI(TAG, "Post-Y calc: ty=%" PRId32, ty);
-        }
-        if (touch->config->swapXy) {
-            std::swap(tx, ty);
-            ESP_LOGI(TAG, "Post-swap: tx=%" PRId32 ", ty=%" PRId32, tx, ty);
-        }
-        if (touch->config->mirrorX) {
-            tx = touch->config->xMax - tx;
-            ESP_LOGI(TAG, "Post-mirrorX: tx=%" PRId32, tx);
-        }
-        if (touch->config->mirrorY) {
-            ty = touch->config->yMax - ty;
-            ESP_LOGI(TAG, "Post-mirrorY: ty=%" PRId32, ty);
-        }
-        if (tx < 0) tx = 0;
-        if (tx > touch->config->xMax) tx = touch->config->xMax;
-        if (ty < 0) ty = 0;
-        if (ty > touch->config->yMax) ty = touch->config->yMax;
-
-        ESP_LOGI(TAG, "Pre-mapped: tx=%" PRId32 ", ty=%" PRId32, tx, ty);
-        data->point.x = tx;
-        data->point.y = ty;
-        data->state = LV_INDEV_STATE_PRESSED;
-        ESP_LOGI(TAG, "Touch mapped: x=%" PRId32 ", y=%" PRId32, data->point.x, data->point.y);
-    } else {
-        data->state = LV_INDEV_STATE_RELEASED;
-    }
 }
