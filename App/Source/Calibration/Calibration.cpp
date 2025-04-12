@@ -60,6 +60,14 @@ public:
 
 private:
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
+    struct CalibrationData {
+        float xScale;
+        float yScale;
+        float xOffset;
+        float yOffset;
+        bool valid;
+    };
+
     static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
@@ -87,7 +95,6 @@ private:
                 if (app->crosshair) lv_obj_del(app->crosshair);
                 app->crosshair = nullptr;
 
-                // Compute calibration
                 CalibrationData cal;
                 float dxRaw = app->rawX[1] - app->rawX[0];
                 float dyRaw = app->rawY[1] - app->rawY[0];
