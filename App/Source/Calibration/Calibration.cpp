@@ -125,19 +125,19 @@ private:
         lv_obj_set_pos(crosshair, x - 10, y - 10);
         lv_obj_t* line1 = lv_line_create(crosshair);
         lv_obj_t* line2 = lv_line_create(crosshair);
-        static lv_point_t points1[] = {{0, 10}, {20, 10}};
-        static lv_point_t points2[] = {{10, 0}, {10, 20}};
+        static lv_point_precise_t points1[] = {{0, 10}, {20, 10}};
+        static lv_point_precise_t points2[] = {{10, 0}, {10, 20}};
         lv_line_set_points(line1, points1, 2);
         lv_line_set_points(line2, points2, 2);
-        lv_obj_set_style_line_color(line1, lv_color_red(), 0);
-        lv_obj_set_style_line_color(line2, lv_color_red(), 0);
+        lv_obj_set_style_line_color(line1, lv_color_make(255, 0, 0), 0);
+        lv_obj_set_style_line_color(line2, lv_color_make(255, 0, 0), 0);
     }
 
-    void logTouchData(uint16_t rawX, uint16_t rawY) {
+    void logTouchData(uint16_t touchX, uint16_t touchY) {
         if (step < 2) {
-            rawX[step] = rawX;
-            rawY[step] = rawY;
-            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
+            rawX[step] = touchX;
+            rawY[step] = touchY;
+            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, touchX, touchY);
         }
     }
 #else
