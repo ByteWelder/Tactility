@@ -6,10 +6,11 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
+#include <nvs_flash.h>
 
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
-#include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
+#include "../../../Drivers/XPT2046-SoftSPI/XPT2046-SoftSPI.h"
 #endif
 
 using namespace tt::app;
@@ -62,8 +63,8 @@ private:
     static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
-        extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
-        touch.getRawTouch(rawX, rawY);
+        extern std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;
+        touch->get_raw_touch(rawX, rawY);
 
         if (rawX == 0 || rawY == 0) return;  // Ignore invalid touches
 
@@ -106,6 +107,20 @@ private:
                 ESP_LOGI("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
                 ESP_LOGI("Calibration", "xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
                          cal.xScale, cal.xOffset, cal.yScale, cal.yOffset);
+
+                // Save to NVS
+                nvs_handle_t nvs;
+                if (nvs_open("touch_cal", NVS_READWRITE, &nvs) == ESP_OK) {
+                    uint16_t cal_data[4] = {app->rawX[0], app->rawX[1], app->rawY[0], app->rawY[1]};
+                    if (nvs_set_blob(nvs, "cal_data", cal_data, sizeof(cal_data)) == ESP_OK) {
+                        nvs_commit(nvs);
+                        ESP_LOGI("Calibration", "Saved to NVS: xMinRaw=%u, xMaxRaw=%u, yMinRaw=%u, yMaxRaw=%u",
+                                 cal_data[0], cal_data[1], cal_data[2], cal_data[3]);
+                    } else {
+                        ESP_LOGE("Calibration", "Failed to save to NVS");
+                    }
+                    nvs_close(nvs);
+                }
 
                 vTaskDelay(2000 / portTICK_PERIOD_MS);  // Show result briefly
                 tt::app::start("Launcher");
