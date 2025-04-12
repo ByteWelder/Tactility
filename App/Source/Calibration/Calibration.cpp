@@ -1,6 +1,6 @@
 #ifdef ESP_PLATFORM
 #include "esp_log.h"
-#endif
+
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
@@ -164,3 +164,6 @@ extern const AppManifest calibration_app = {
     .name = "Touch Calibration",
     .createApp = create<Calibration>
 };
+
+
+#endif
