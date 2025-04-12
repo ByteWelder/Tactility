@@ -1,5 +1,5 @@
 dependencies:
   esp_lcd_touch: '>=1.0.4'
   idf: '>=4.4'
-description: Modified ESP-IDF XPT2046 touch driver with SoftSPI support.
+description: ESP-IDF XPT2046 touch driver with SoftSPI support.
 version: 1.0.5-custom
