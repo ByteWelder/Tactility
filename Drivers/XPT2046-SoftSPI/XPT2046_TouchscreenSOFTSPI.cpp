@@ -5,13 +5,14 @@
 #include "esp_rom_sys.h"
 #include "nvs_flash.h"
 #include <inttypes.h>
-#include <algorithm>  // For std::max, std::min
+#include <algorithm>
 
 static const char* TAG = "XPT2046_SoftSPI";
 #define CMD_X_READ  0x90  // X position
 #define CMD_Y_READ  0xD0  // Y position
-#define READ_COUNT  30    // Number of readings to average
-#define MSEC_THRESHOLD 20 // Debounce threshold (ms), was 3
+#define READ_COUNT  30    // Number of readings
+#define MSEC_THRESHOLD 20 // Debounce (ms)
+#define VARIANCE_THRESHOLD 500  // Max allowed sample spread
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::XPT2046_TouchscreenSOFTSPI(gpio_num_t csPin, gpio_num_t tirqPin)
@@ -46,16 +47,15 @@ static inline void fastPinMode(gpio_num_t pin, bool mode) {
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode>
 bool XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::begin() {
     fastPinMode(csPin, true);
-    fastDigitalWrite(csPin, 1);  // HIGH
+    fastDigitalWrite(csPin, 1);
     if (tirqPin != GPIO_NUM_NC) {
-        fastPinMode(tirqPin, false);  // Input with pull-up
+        fastPinMode(tirqPin, false);
         gpio_install_isr_service(0);
         gpio_isr_handler_add(tirqPin, XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::isrPin, this);
     }
     touchscreenSPI.begin();
     ESP_LOGI(TAG, "Initialized with CS=%" PRId32 ", IRQ=%" PRId32, (int32_t)csPin, (int32_t)tirqPin);
 
-    // Load calibration from NVS
     nvs_handle_t nvs;
     esp_err_t err = nvs_open("touch_cal", NVS_READONLY, &nvs);
     if (err == ESP_OK) {
@@ -113,17 +113,16 @@ template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode
 uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uint8_t cmd) {
     uint16_t buf[READ_COUNT], temp;
     uint32_t sum = 0;
-    const uint8_t LOST_VAL = 2;  // Discard more outliers
+    const uint8_t LOST_VAL = 3;  // Discard more outliers
 
-    fastDigitalWrite(csPin, 0);  // Select
+    fastDigitalWrite(csPin, 0);
     for (uint8_t i = 0; i < READ_COUNT; i++) {
         touchscreenSPI.transfer(cmd);
-        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;  // 12-bit value
+        buf[i] = touchscreenSPI.transfer16(0x00) >> 3;
         ESP_LOGD(TAG, "readXOY: cmd=0x%02x, sample[%d]=%u", cmd, i, buf[i]);
     }
-    fastDigitalWrite(csPin, 1);  // Deselect
+    fastDigitalWrite(csPin, 1);
 
-    // Sort samples
     for (uint8_t i = 0; i < READ_COUNT - 1; i++) {
         for (uint8_t j = i + 1; j < READ_COUNT; j++) {
             if (buf[i] > buf[j]) {
@@ -134,9 +133,13 @@ uint16_t XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::readXOY(uin
         }
     }
 
-    // Compute variance for debugging
     uint16_t min_val = buf[LOST_VAL];
     uint16_t max_val = buf[READ_COUNT - LOST_VAL - 1];
+    if (max_val - min_val > VARIANCE_THRESHOLD) {
+        ESP_LOGW(TAG, "readXOY: cmd=0x%02x, high variance=%u, discarding", cmd, max_val - min_val);
+        return 0;  // Reject noisy reads
+    }
+
     for (uint8_t i = LOST_VAL; i < READ_COUNT - LOST_VAL; i++) {
         sum += buf[i];
     }
@@ -193,7 +196,7 @@ void XPT2046_TouchscreenSOFTSPI<MisoPin, MosiPin, SckPin, Mode>::update() {
     int16_t x = readXOY(CMD_X_READ);
     int16_t y = readXOY(CMD_Y_READ);
 
-    if (x == 0 && y == 0) {  // Ignore invalid reads
+    if (x == 0 && y == 0) {
         zraw = 0;
         isrWake = false;
         return;
