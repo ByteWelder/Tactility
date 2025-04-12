@@ -6,22 +6,23 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <inttypes.h>
+#include <cstring>
 
 static const char* TAG = "xpt2046_softspi";
 
-// Define missing macros
-#define ESP_GOTO_ON_FALSE_LOG(a, err, tag, msg, ...) do { \
+#define ESP_GOTO_ON_FALSE_LOG(a, err_code, tag, msg, ...) do { \
     if (!(a)) { \
         ESP_LOGE(tag, msg, ##__VA_ARGS__); \
+        err_code = ESP_FAIL; \
         goto err; \
     } \
 } while (0)
 
-#define ESP_GOTO_ON_ERROR_LOG(a, err, tag, msg, ...) do { \
+#define ESP_GOTO_ON_ERROR_LOG(a, err_code, tag, msg, ...) do { \
     esp_err_t ret = (a); \
     if (ret != ESP_OK) { \
         ESP_LOGE(tag, msg, ##__VA_ARGS__); \
-        err = ret; \
+        err_code = ret; \
         goto err; \
     } \
 } while (0)
@@ -37,7 +38,6 @@ enum xpt2046_registers {
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
 static const uint16_t Z_THRESHOLD = 50;
 
-// Extend esp_lcd_touch_t for user_data
 typedef struct {
     esp_lcd_touch_t base;
     void* user_data;
@@ -47,6 +47,7 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     : handle_(nullptr), indev_(nullptr),
       spi_(std::make_unique<SoftSPI>(config.miso_pin, config.mosi_pin, config.sck_pin)),
       cs_pin_(config.cs_pin) {
+    esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* tp = (esp_lcd_touch_xpt2046_t*)calloc(1, sizeof(esp_lcd_touch_xpt2046_t));
     ESP_GOTO_ON_FALSE_LOG(tp, err, TAG, "No memory for XPT2046 state");
     handle_ = (esp_lcd_touch_handle_t)tp;
@@ -66,9 +67,9 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
         gpio_config_t cfg = {
             .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
             .mode = GPIO_MODE_INPUT,
-            .intr_type = config.touch_config.base.levels.interrupt ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE,
             .pull_up_en = GPIO_PULLUP_DISABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = config.touch_config.base.levels.int_level ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE
         };
         ESP_GOTO_ON_ERROR_LOG(gpio_config(&cfg), err, TAG, "IRQ config failed");
     }
@@ -166,7 +167,6 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         y /= point_count;
         point_count = 1;
 
-        // Apply calibration
         int32_t x_scaled = (int32_t)x;
         int32_t y_scaled = (int32_t)y;
         if (cfg->x_max_raw != cfg->x_min_raw) {
@@ -176,11 +176,9 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
             y_scaled = (y_scaled - cfg->y_min_raw) * cfg->base.y_max / (cfg->y_max_raw - cfg->y_min_raw);
         }
 
-        // Clamp
         x = x_scaled < 0 ? 0 : (x_scaled > cfg->base.x_max ? cfg->base.x_max : x_scaled);
         y = y_scaled < 0 ? 0 : (y_scaled > cfg->base.y_max ? cfg->base.y_max : y_scaled);
 
-        // Apply orientation
         if (cfg->swap_xy) {
             std::swap(x, y);
         }
