@@ -49,7 +49,7 @@ bool SoftXpt2046Touch::read(lv_indev_data_t* data) {
     int32_t y = point.y;
 
     // Log raw values
-    ESP_LOGI(TAG, "Touch raw (rotated): x=%" PRId32 ", y=%" PRId32 ", z=%" PRId32, x, y, point.z);
+    ESP_LOGI(TAG, "Touch raw (rotated): x=%" PRId32 ", y=%" PRId32 ", z=%d", x, y, point.z);
 
     // Scale to screen coordinates
     x = (x - configuration->xMinRaw) * configuration->xMax / (configuration->xMaxRaw - configuration->xMinRaw);
