@@ -10,9 +10,6 @@ std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const C
             .x_max = config.x_max,
             .y_max = config.y_max,
             .interrupt_callback = nullptr,
-            .levels = {
-                .interrupt = false
-            },
             .user_data = nullptr
         },
         .x_min_raw = config.x_min_raw,
