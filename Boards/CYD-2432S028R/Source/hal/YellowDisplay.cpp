@@ -7,7 +7,7 @@
 #include "nvs_flash.h"
 static const char* TAG = "YellowDisplay";
 
-std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;  // Global for Calibration.cpp
+std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;  // Global for the Calibration app
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
