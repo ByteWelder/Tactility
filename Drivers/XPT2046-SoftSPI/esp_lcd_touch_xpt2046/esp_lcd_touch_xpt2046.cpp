@@ -69,7 +69,7 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
             .mode = GPIO_MODE_INPUT,
             .pull_up_en = GPIO_PULLUP_DISABLE,
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type = config.touch_config.base.levels.int_level ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE
+            .intr_type = config.touch_config.base.levels.interrupt ? GPIO_INTR_POSEDGE : GPIO_INTR_NEGEDGE
         };
         ESP_GOTO_ON_ERROR_LOG(gpio_config(&cfg), err, TAG, "IRQ config failed");
     }
