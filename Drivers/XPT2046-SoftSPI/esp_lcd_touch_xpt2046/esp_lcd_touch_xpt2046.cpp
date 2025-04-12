@@ -21,7 +21,7 @@ static const uint16_t XPT2046_ADC_LIMIT = 4096;
 static const uint16_t Z_THRESHOLD = 50;
 
 XPT2046_SoftSPI::XPT2046_SoftSPI(gpio_num_t cs_pin, const esp_lcd_touch_config_t& config)
-    : handle_(nullptr), indev_(nullptr), spi_(std::make_unique<SoftSPI>(config.miso_pin, config.mosi_pin, config.sck_pin)) {
+    : handle_(nullptr), indev_(nullptr), spi_(std::make_unique<SoftSPI>(config.miso_pin, config.mosi_pin, config.sck_pin)), cs_pin_(cs_pin) {
     esp_lcd_touch_t* tp = (esp_lcd_touch_t*)calloc(1, sizeof(esp_lcd_touch_t));
     ESP_GOTO_ON_FALSE_LOG(tp, err, TAG, "No memory for XPT2046 state");
     handle_ = tp;
@@ -30,6 +30,7 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(gpio_num_t cs_pin, const esp_lcd_touch_config_t
     tp->get_xy = get_xy;
     tp->del = del;
     tp->data.lock.owner = portMUX_FREE_VAL;
+    tp->user_data = this;
     memcpy(&tp->config, &config, sizeof(esp_lcd_touch_config_t));
 
     gpio_set_direction(cs_pin, GPIO_MODE_OUTPUT);
@@ -101,10 +102,10 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         return ESP_OK;
     }
 
-    gpio_set_level(static_cast<XPT2046_SoftSPI*>(tp->user_data)->spi_->cs_pin, 0);
+    gpio_set_level(driver->cs_pin_, 0);
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), TAG, "Read Z1 failed");
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), TAG, "Read Z2 failed");
-    gpio_set_level(static_cast<XPT2046_SoftSPI*>(tp->user_data)->spi_->cs_pin, 1);
+    gpio_set_level(driver->cs_pin_, 1);
 
     z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     if (z < Z_THRESHOLD) {
@@ -115,10 +116,10 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     constexpr uint8_t max_points = 4;
     for (uint8_t idx = 0; idx < max_points; idx++) {
         uint16_t x_temp = 0, y_temp = 0;
-        gpio_set_level(static_cast<XPT2046_SoftSPI*>(tp->user_data)->spi_->cs_pin, 0);
+        gpio_set_level(driver->cs_pin_, 0);
         ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &x_temp), TAG, "Read X failed");
         ESP_RETURN_ON_ERROR(driver->read_register(Y_POSITION, &y_temp), TAG, "Read Y failed");
-        gpio_set_level(static_cast<XPT2046_SoftSPI*>(tp->user_data)->spi_->cs_pin, 1);
+        gpio_set_level(driver->cs_pin_, 1);
 
         x_temp >>= 3;
         y_temp >>= 3;
@@ -214,4 +215,30 @@ esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     *value = ((buf[0] << 8) | buf[1]);
     ESP_LOGD(TAG, "Read reg=0x%x, value=%u", reg, *value);
     return ESP_OK;
+}
+
+void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
+    uint16_t z1 = 0, z2 = 0;
+    gpio_set_level(cs_pin_, 0);
+    read_register(Z_VALUE_1, &z1);
+    read_register(Z_VALUE_2, &z2);
+    gpio_set_level(cs_pin_, 1);
+
+    uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
+    if (z < Z_THRESHOLD) {
+        x = y = 0;
+        return;
+    }
+
+    gpio_set_level(cs_pin_, 0);
+    read_register(X_POSITION, &x);
+    read_register(Y_POSITION, &y);
+    gpio_set_level(cs_pin_, 1);
+
+    x >>= 3;
+    y >>= 3;
+
+    if (x < 50 || x > XPT2046_ADC_LIMIT - 50 || y < 50 || y > XPT2046_ADC_LIMIT - 50) {
+        x = y = 0;
+    }
 }
