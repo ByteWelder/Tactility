@@ -6,11 +6,17 @@ static const char* TAG = "XPT2046_Wrapper";
 std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const Config& config) {
     esp_lcd_touch_xpt2046_config_t touch_config = {
         .base = {
-            .int_gpio_num = config.int_pin,
             .x_max = config.x_max,
             .y_max = config.y_max,
+            .rst_gpio_num = GPIO_NUM_NC,
+            .int_gpio_num = config.int_pin,
+            .user_data = nullptr,
             .interrupt_callback = nullptr,
-            .user_data = nullptr
+            .flags = {
+                .swap_xy = config.swap_xy,
+                .mirror_x = config.mirror_x,
+                .mirror_y = config.mirror_y,
+            },
         },
         .x_min_raw = config.x_min_raw,
         .x_max_raw = config.x_max_raw,
