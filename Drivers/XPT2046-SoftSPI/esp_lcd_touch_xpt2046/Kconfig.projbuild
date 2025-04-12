@@ -1,0 +1,44 @@
+menu "XPT2046"
+    config XPT2046_Z_THRESHOLD
+        int "Minimum Z pressure threshold"
+        default 400
+        help
+            Touch pressure less than this value will be discarded as invalid
+            and no touch position data collected.
+
+    config XPT2046_INTERRUPT_MODE
+        bool "Enable Interrupt (PENIRQ) output"
+        default n
+        help
+            Also called Full Power Mode.
+            Enable this to configure the XPT2046 to output low on the PENIRQ output
+            if a touch is detected.
+            This mode uses more power when enabled.
+            Note that this signal goes low normally when a read is active.
+
+    config XPT2046_VREF_ON_MODE
+        bool "Keep internal Vref enabled"
+        default n
+        help
+            Enable this to keep the internal Vref enabled between conversions.
+            This uses slightly more power, but requires fewer transactions when
+            reading the battery voltage, aux voltage and temperature.
+
+    config XPT2046_CONVERT_ADC_TO_COORDS
+        bool "Convert touch coordinates to screen coordinates"
+        default y
+        help
+            When this option is enabled the raw ADC values will be converted from
+            0-4096 to 0-{screen width} or 0-{screen height}.
+            When this option is disabled the process_coordinates method will need
+            to be used to convert the raw ADC values into a screen coordinate.
+
+    config XPT2046_ENABLE_LOCKING
+        bool "Enable data structure locking"
+        default n
+        help
+            By enabling this option the XPT2046 driver will lock the touch position
+            data structures when reading values from the XPT2046 and when reading
+            position data via API.
+            WARNING: enabling this option may result in unintended crashes.
+endmenu
