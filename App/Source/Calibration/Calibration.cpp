@@ -1,6 +1,6 @@
 #ifdef ESP_PLATFORM
 #include "esp_log.h"
-
+#endif
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
@@ -29,9 +29,7 @@ public:
         drawCrosshair(20, 20);
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
 #else
-        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Calibration not supported on this board");
-        #endif
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
         label = lv_label_create(parent);
@@ -41,17 +39,17 @@ public:
     }
 
     void onHide(AppContext& /*context*/) override {
-        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Hiding calibration");
-        #endif
         if (label) {
             lv_obj_del(label);
             label = nullptr;
         }
+#ifdef CONFIG_TT_BOARD_CYD_2432S028R
         if (crosshair) {
             lv_obj_del(crosshair);
             crosshair = nullptr;
         }
+#endif
         toolbar = nullptr;
     }
 
@@ -138,24 +136,24 @@ private:
     void logTouchData(uint16_t rawX, uint16_t rawY) {
         if (step < 2) {
             rawX[step] = rawX;
-            rawY[step] = rawY;  // Removed manual Y offset
+            rawY[step] = rawY;
             ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
-
-    lv_obj_t* label = nullptr;
-    lv_obj_t* toolbar = nullptr;
-    lv_obj_t* crosshair = nullptr;
-    int step = 0;  // 0: top-left, 1: bottom-right, 2: done
-    uint16_t rawX[2] = {0};
-    uint16_t rawY[2] = {0};
 #else
     static void eventCallback(lv_event_t* /*e*/) {}
     void updateScreen(const char* /*instruction*/) {}
     void drawCrosshair(int16_t /*x*/, int16_t /*y*/) {}
     void logTouchData(uint16_t /*rawX*/, uint16_t /*rawY*/) {}
+#endif
+
     lv_obj_t* label = nullptr;
     lv_obj_t* toolbar = nullptr;
+#ifdef CONFIG_TT_BOARD_CYD_2432S028R
+    lv_obj_t* crosshair = nullptr;
+    int step = 0;
+    uint16_t rawX[2] = {0};
+    uint16_t rawY[2] = {0};
 #endif
 };
 
@@ -164,6 +162,3 @@ extern const AppManifest calibration_app = {
     .name = "Touch Calibration",
     .createApp = create<Calibration>
 };
-
-
-#endif
