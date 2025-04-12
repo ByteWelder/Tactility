@@ -1,5 +1,14 @@
 idf_component_register(
-    SRCS "XPT2046_TouchscreenSOFTSPI.cpp"
-    INCLUDE_DIRS "."
-    REQUIRES Tactility driver esp_timer
+    SRCS
+        "esp_lcd_touch_xpt2046/esp_lcd_touch_xpt2046.cpp"
+        "SoftSPI.cpp"
+        "XPT2046-SoftSPI.cpp"
+    INCLUDE_DIRS
+        "."
+        "ESP-IDF-Driver/include"
+    REQUIRES
+        Tactility
+        driver
+        esp_lcd_touch
+        esp_timer
 )
