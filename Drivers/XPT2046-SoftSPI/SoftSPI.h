@@ -20,16 +20,16 @@ public:
             fastDigitalWrite(MosiPin, (data >> i) & 1);
             if (MODE_CPHA(Mode)) {
                 fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock low
-                esp_rom_delay_us(1);  // ~500kHz, adjustable
+                esp_rom_delay_us(4);  // ~250kHz, was 1
                 rx = rx << 1 | fastDigitalRead(MisoPin);
                 fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock high
             } else {
                 fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock high
-                esp_rom_delay_us(1);
+                esp_rom_delay_us(4);  // ~250kHz, was 1
                 rx = rx << 1 | fastDigitalRead(MisoPin);
                 fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock low
             }
-            esp_rom_delay_us(1);
+            esp_rom_delay_us(4);  // Extra delay for stability
         }
         return rx;
     }
