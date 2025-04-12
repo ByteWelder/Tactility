@@ -36,7 +36,7 @@ enum xpt2046_registers {
 };
 
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
-static const uint16_t Z_THRESHOLD = 50;
+static const uint16_t Z_THRESHOLD = 100; // Increased for better noise rejection
 
 typedef struct {
     esp_lcd_touch_t base;
@@ -143,7 +143,7 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         return ESP_OK;
     }
 
-    constexpr uint8_t max_points = 4;
+    constexpr uint8_t max_points = 6; // Increased for better averaging
     for (uint8_t idx = 0; idx < max_points; idx++) {
         uint16_t x_temp = 0, y_temp = 0;
         gpio_set_level(driver->cs_pin_, 0);
@@ -154,7 +154,7 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         x_temp >>= 3;
         y_temp >>= 3;
 
-        if (x_temp >= 50 && x_temp <= XPT2046_ADC_LIMIT - 50 && y_temp >= 50 && y_temp <= XPT2046_ADC_LIMIT - 50) {
+        if (x_temp >= 100 && x_temp <= XPT2046_ADC_LIMIT - 100 && y_temp >= 100 && y_temp <= XPT2046_ADC_LIMIT - 100) {
             x += x_temp;
             y += y_temp;
             point_count++;
@@ -216,7 +216,7 @@ bool XPT2046_SoftSPI::get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y
     xpt_tp->base.data.points = 0;
 
     if (*point_num) {
-        ESP_LOGD(TAG, "Touch point: %ux%u, strength=%u", x[0], y[0], strength ? strength[0] : 0);
+        ESP_LOGI(TAG, "Touch point: x=%u, y=%u, strength=%u", x[0], y[0], strength ? strength[0] : 0);
     }
     return *point_num > 0;
 }
@@ -243,6 +243,7 @@ esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     uint8_t buf[2] = {0, 0};
     spi_->cs_low();
     spi_->transfer(reg);
+    ets_delay_us(20); // Added delay for stable read
     buf[0] = spi_->transfer(0x00);
     buf[1] = spi_->transfer(0x00);
     spi_->cs_high();
@@ -261,6 +262,7 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     if (z < Z_THRESHOLD) {
         x = y = 0;
+        ESP_LOGD(TAG, "Raw touch: z=%u below threshold", z);
         return;
     }
 
@@ -272,7 +274,10 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     x >>= 3;
     y >>= 3;
 
-    if (x < 50 || x > XPT2046_ADC_LIMIT - 50 || y < 50 || y > XPT2046_ADC_LIMIT - 50) {
+    if (x < 100 || x > XPT2046_ADC_LIMIT - 100 || y < 100 || y > XPT2046_ADC_LIMIT - 100) {
         x = y = 0;
+        ESP_LOGD(TAG, "Raw touch: x=%u, y=%u out of bounds", x, y);
+    } else {
+        ESP_LOGD(TAG, "Raw touch: x=%u, y=%u, z=%u", x, y, z);
     }
 }
