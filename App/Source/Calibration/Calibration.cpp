@@ -29,7 +29,9 @@ public:
         drawCrosshair(20, 20);
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
 #else
+        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Calibration not supported on this board");
+        #endif
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
         label = lv_label_create(parent);
@@ -39,7 +41,9 @@ public:
     }
 
     void onHide(AppContext& /*context*/) override {
+        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Hiding calibration");
+        #endif
         if (label) {
             lv_obj_del(label);
             label = nullptr;
