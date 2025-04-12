@@ -13,8 +13,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,  // xMax
         CYD_DISPLAY_VERTICAL_RESOLUTION,   // yMax
         false, // swapXy
-        true,  // mirrorX
-        true, // mirrorY
+        false,  // mirrorX
+        false, // mirrorY
         24,    // xMinRaw (Bottom-Right raw X)
         338,   // xMaxRaw (Top-Right raw X)
         155,   // yMinRaw (Bottom-Left raw Y)
