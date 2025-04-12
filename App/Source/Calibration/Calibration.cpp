@@ -1,11 +1,12 @@
-#ifdef ESP_PLATFORM
-#include "esp_log.h"
-
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
+
+#ifdef ESP_PLATFORM
+#include "esp_log.h"
 #include <nvs_flash.h>
+#endif
 
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
@@ -189,4 +190,3 @@ extern const AppManifest calibration_app = {
     .name = "Touch Calibration",
     .createApp = create<Calibration>
 };
-#endif
