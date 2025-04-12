@@ -30,6 +30,6 @@ public:
     void get_raw_touch(uint16_t& x, uint16_t& y) { driver_->get_raw_touch(x, y); }
 
 private:
-    XPT2046_SoftSPI_Wrapper(std::unique_ptr<XPT2046_SoftSPI> driver) : driver_(std::move(driver)) {}
+    explicit XPT2046_SoftSPI_Wrapper(std::unique_ptr<XPT2046_SoftSPI> driver) : driver_(std::move(driver)) {}
     std::unique_ptr<XPT2046_SoftSPI> driver_;
 };
