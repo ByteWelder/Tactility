@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esp_lcd_touch_xpt2046.h"
+#include <memory>
 
 class XPT2046_SoftSPI_Wrapper {
 public:
@@ -26,6 +27,7 @@ public:
 
     esp_lcd_touch_handle_t get_touch_handle() const { return driver_->get_handle(); }
     lv_indev_t* get_lvgl_indev() const { return driver_->get_lvgl_indev(); }
+    void get_raw_touch(uint16_t& x, uint16_t& y) { driver_->get_raw_touch(x, y); }
 
 private:
     XPT2046_SoftSPI_Wrapper(std::unique_ptr<XPT2046_SoftSPI> driver) : driver_(std::move(driver)) {}
