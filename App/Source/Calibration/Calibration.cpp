@@ -7,7 +7,6 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
 
-// Board-specific check based on Boards.h
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
 #include "../../../Boards/CYD-2432S028R/Source/hal/YellowDisplayConstants.h"
 #include "../../../Drivers/XPT2046-SoftSPI/XPT2046_TouchscreenSOFTSPI.h"
@@ -20,22 +19,21 @@ public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
         ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
-        
+
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
-        lv_obj_add_flag(toolbar, LV_OBJ_FLAG_HIDDEN); // Hide it initially
+        lv_obj_add_flag(toolbar, LV_OBJ_FLAG_HIDDEN);
 
         label = lv_label_create(parent);
         updateScreen("Tap the top-left corner");
+        drawCrosshair(20, 20);
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
 #else
         #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Calibration not supported on this board");
         #endif
-
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
-
         label = lv_label_create(parent);
         lv_label_set_text(label, "Calibration only supported\non CYD-2432S028R");
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
@@ -50,6 +48,10 @@ public:
             lv_obj_del(label);
             label = nullptr;
         }
+        if (crosshair) {
+            lv_obj_del(crosshair);
+            crosshair = nullptr;
+        }
         toolbar = nullptr;
     }
 
@@ -61,37 +63,51 @@ private:
         extern XPT2046_TouchscreenSOFTSPI<CYD_TOUCH_MISO_PIN, CYD_TOUCH_MOSI_PIN, CYD_TOUCH_SCK_PIN, 0> touch;
         touch.getRawTouch(rawX, rawY);
 
-        app->logTouchData(rawX, rawY);
+        if (rawX == 0 || rawY == 0) return;  // Ignore invalid touches
 
+        app->logTouchData(rawX, rawY);
         app->step++;
+
         switch (app->step) {
             case 1:
-                app->updateScreen("Tap the top-right corner");
-                break;
-            case 2:
-                app->updateScreen("Tap the bottom-left corner");
-                break;
-            case 3:
                 app->updateScreen("Tap the bottom-right corner");
+                if (app->crosshair) lv_obj_del(app->crosshair);
+                app->drawCrosshair(220, 300);
                 break;
-            case 4: {
+            case 2: {
                 app->updateScreen("Calibration complete!");
-                lv_obj_clear_flag(app->toolbar, LV_OBJ_FLAG_HIDDEN); // Show the toolbar again
-                ESP_LOGI("Calibration", "Calibration Results:");
+                lv_obj_clear_flag(app->toolbar, LV_OBJ_FLAG_HIDDEN);
+                if (app->crosshair) lv_obj_del(app->crosshair);
+                app->crosshair = nullptr;
+
+                // Compute calibration
+                CalibrationData cal;
+                float dxRaw = app->rawX[1] - app->rawX[0];
+                float dyRaw = app->rawY[1] - app->rawY[0];
+                float dxScreen = 220 - 20;  // 200 pixels
+                float dyScreen = 300 - 20;  // 280 pixels
+
+                if (dxRaw == 0 || dyRaw == 0) {
+                    ESP_LOGE("Calibration", "Invalid raw data range");
+                    tt::app::start("Launcher");
+                    return;
+                }
+
+                cal.xScale = dxScreen / dxRaw;
+                cal.yScale = dyScreen / dyRaw;
+                cal.xOffset = 20 - cal.xScale * app->rawX[0];
+                cal.yOffset = 20 - cal.yScale * app->rawY[0];
+                cal.valid = true;
+
+                ESP_LOGI("Calibration", "Results:");
                 ESP_LOGI("Calibration", "Top-Left: x=%d, y=%d", app->rawX[0], app->rawY[0]);
-                ESP_LOGI("Calibration", "Top-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
-                ESP_LOGI("Calibration", "Bottom-Left: x=%d, y=%d", app->rawX[2], app->rawY[2]);
-                ESP_LOGI("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[3], app->rawY[3]);
+                ESP_LOGI("Calibration", "Bottom-Right: x=%d, y=%d", app->rawX[1], app->rawY[1]);
+                ESP_LOGI("Calibration", "xScale=%.3f, xOffset=%.3f, yScale=%.3f, yOffset=%.3f",
+                         cal.xScale, cal.xOffset, cal.yScale, cal.yOffset);
 
-                int minX = std::min({app->rawX[0], app->rawX[1], app->rawX[2], app->rawX[3]});
-                int maxX = std::max({app->rawX[0], app->rawX[1], app->rawX[2], app->rawX[3]});
-                int minY = std::min({app->rawY[0], app->rawY[1], app->rawY[2], app->rawY[3]});
-                int maxY = std::max({app->rawY[0], app->rawY[1], app->rawY[2], app->rawY[3]});
-
-                ESP_LOGI("Calibration", "X Range: %d to %d", minX, maxX);
-                ESP_LOGI("Calibration", "Y Range: %d to %d", minY, maxY);
-                ESP_LOGI("Calibration", "Suggested X: (ux - %d) * 239 / (%d - %d)", minX, maxX, minX);
-                ESP_LOGI("Calibration", "Suggested Y: (uy - %d) * 319 / (%d - %d)", minY, maxY, minY);
+                touch.setCalibration(cal);
+                vTaskDelay(2000 / portTICK_PERIOD_MS);  // Show result briefly
+                tt::app::start("Launcher");
                 break;
             }
             default:
@@ -105,36 +121,44 @@ private:
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     }
 
+    void drawCrosshair(int16_t x, int16_t y) {
+        crosshair = lv_obj_create(lv_scr_act());
+        lv_obj_set_size(crosshair, 20, 20);
+        lv_obj_set_pos(crosshair, x - 10, y - 10);
+        lv_obj_t* line1 = lv_line_create(crosshair);
+        lv_obj_t* line2 = lv_line_create(crosshair);
+        static lv_point_t points1[] = {{0, 10}, {20, 10}};
+        static lv_point_t points2[] = {{10, 0}, {10, 20}};
+        lv_line_set_points(line1, points1, 2);
+        lv_line_set_points(line2, points2, 2);
+        lv_obj_set_style_line_color(line1, lv_color_red(), 0);
+        lv_obj_set_style_line_color(line2, lv_color_red(), 0);
+    }
+
     void logTouchData(uint16_t rawX, uint16_t rawY) {
-        if (step < 4) {
-            // Offset the y-coordinate for the top two points (top-left and top-right)
-            uint16_t adjustedY = rawY;
-            if (step == 0 || step == 1) { // Top-left (0) and top-right (1)
-                adjustedY = (rawY >= 24) ? rawY - 24 : 0; // Subtract 24, but ensure no underflow
-            }
-            this->rawX[step] = rawX;
-            this->rawY[step] = adjustedY;
-            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d (adjustedY=%d)", step, rawX, rawY, adjustedY);
+        if (step < 2) {
+            rawX[step] = rawX;
+            rawY[step] = rawY;  // Removed manual Y offset
+            ESP_LOGI("Calibration", "Step %d: rawX=%d, rawY=%d", step, rawX, rawY);
         }
     }
 
     lv_obj_t* label = nullptr;
     lv_obj_t* toolbar = nullptr;
-    int step = 0;  // 0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right, 4: done
-    uint16_t rawX[4] = {0};
-    uint16_t rawY[4] = {0};
+    lv_obj_t* crosshair = nullptr;
+    int step = 0;  // 0: top-left, 1: bottom-right, 2: done
+    uint16_t rawX[2] = {0};
+    uint16_t rawY[2] = {0};
 #else
-    // No-op versions for non-CYD-2432S028R boards
     static void eventCallback(lv_event_t* /*e*/) {}
     void updateScreen(const char* /*instruction*/) {}
+    void drawCrosshair(int16_t /*x*/, int16_t /*y*/) {}
     void logTouchData(uint16_t /*rawX*/, uint16_t /*rawY*/) {}
-
     lv_obj_t* label = nullptr;
     lv_obj_t* toolbar = nullptr;
 #endif
 };
 
-// Define the manifest (works for all boards)
 extern const AppManifest calibration_app = {
     .id = "Calibration",
     .name = "Touch Calibration",
