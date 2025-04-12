@@ -17,7 +17,7 @@ const tt::hal::Configuration cyd_2432s028r_config = {
     .createDisplay = createDisplay,
     .sdcard = createYellowSdCard(),
     .power = nullptr,
-    .i2c = nullptr,
+    .i2c = {},
     .spi = {
         tt::hal::spi::Configuration {
             .device = SPI2_HOST,
