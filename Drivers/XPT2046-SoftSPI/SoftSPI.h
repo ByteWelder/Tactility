@@ -1,7 +1,7 @@
 #pragma once
 
 #include "driver/gpio.h"
-#include "esp_rom_sys.h"  // For esp_rom_delay_us
+#include "esp_rom_sys.h"
 
 template<gpio_num_t MisoPin, gpio_num_t MosiPin, gpio_num_t SckPin, uint8_t Mode = 0>
 class SoftSPI {
@@ -20,16 +20,16 @@ public:
             fastDigitalWrite(MosiPin, (data >> i) & 1);
             if (MODE_CPHA(Mode)) {
                 fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock low
-                esp_rom_delay_us(4);  // ~250kHz, was 1
+                esp_rom_delay_us(8);  // ~125kHz
                 rx = rx << 1 | fastDigitalRead(MisoPin);
                 fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock high
             } else {
                 fastDigitalWrite(SckPin, !MODE_CPOL(Mode));  // Clock high
-                esp_rom_delay_us(4);  // ~250kHz, was 1
+                esp_rom_delay_us(8);  // ~125kHz
                 rx = rx << 1 | fastDigitalRead(MisoPin);
                 fastDigitalWrite(SckPin, MODE_CPOL(Mode));   // Clock low
             }
-            esp_rom_delay_us(4);  // Extra delay for stability
+            esp_rom_delay_us(8);
         }
         return rx;
     }
@@ -37,16 +37,11 @@ public:
     uint16_t transfer16(uint8_t data) {
         uint16_t rx = transfer(data);
         rx = (rx << 8) | transfer(0x00);
-        return rx & 0x0FFF;  // Mask to 12 bits (XPT2046 is 12-bit ADC)
+        return rx & 0x0FFF;  // Mask to 12 bits
     }
 
-    void beginTransaction() {
-        // No-op for SoftSPI
-    }
-
-    void endTransaction() {
-        // No-op for SoftSPI
-    }
+    void beginTransaction() {}
+    void endTransaction() {}
 
 private:
     static constexpr bool MODE_CPHA(uint8_t mode) { return (mode & 1) != 0; }
