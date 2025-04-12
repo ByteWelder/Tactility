@@ -3,12 +3,14 @@
 #include "hal/YellowDisplay.h"
 #include "hal/YellowDisplayConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/app/App.h>
 #include <PwmBacklight.h>
 
 #define CYD_SPI_TRANSFER_SIZE_LIMIT (240 * 320 / 4 * 2)
 
 bool initBoot() {
     return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN);
+    tt::app::start("Calibration");
 }
 
 const tt::hal::Configuration cyd_2432s028r_config = {
