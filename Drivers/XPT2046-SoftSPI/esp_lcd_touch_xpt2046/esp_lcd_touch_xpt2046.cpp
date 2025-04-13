@@ -36,7 +36,7 @@ enum xpt2046_registers {
 };
 
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
-static const uint16_t Z_THRESHOLD = 100; // Increased for better noise rejection
+static const uint16_t Z_THRESHOLD = 50; // Lowered for sensitivity
 
 typedef struct {
     esp_lcd_touch_t base;
@@ -129,44 +129,45 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
 
     if (xpt_tp->base.config.int_gpio_num != GPIO_NUM_NC && gpio_get_level(xpt_tp->base.config.int_gpio_num)) {
         xpt_tp->base.data.points = 0;
+        ESP_LOGD(TAG, "No touch: IRQ high");
         return ESP_OK;
     }
 
     gpio_set_level(driver->cs_pin_, 0);
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), TAG, "Read Z1 failed");
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), TAG, "Read Z2 failed");
-    gpio_set_level(driver->cs_pin_, 1);
-
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     if (z < Z_THRESHOLD) {
         xpt_tp->base.data.points = 0;
+        gpio_set_level(driver->cs_pin_, 1);
+        ESP_LOGD(TAG, "No touch: z=%u below threshold", z);
         return ESP_OK;
     }
 
-    constexpr uint8_t max_points = 6; // Increased for better averaging
+    uint16_t discard_buf = 0;
+    ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &discard_buf), TAG, "Read discard failed");
+
+    constexpr uint8_t max_points = 4; // Match atanisoft
     for (uint8_t idx = 0; idx < max_points; idx++) {
         uint16_t x_temp = 0, y_temp = 0;
-        gpio_set_level(driver->cs_pin_, 0);
         ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &x_temp), TAG, "Read X failed");
         ESP_RETURN_ON_ERROR(driver->read_register(Y_POSITION, &y_temp), TAG, "Read Y failed");
-        gpio_set_level(driver->cs_pin_, 1);
-
         x_temp >>= 3;
         y_temp >>= 3;
-
-        if (x_temp >= 100 && x_temp <= XPT2046_ADC_LIMIT - 100 && y_temp >= 100 && y_temp <= XPT2046_ADC_LIMIT - 100) {
+        if (x_temp >= 50 && x_temp <= XPT2046_ADC_LIMIT - 50 &&
+            y_temp >= 50 && y_temp <= XPT2046_ADC_LIMIT - 50) {
             x += x_temp;
             y += y_temp;
             point_count++;
         }
     }
+    gpio_set_level(driver->cs_pin_, 1);
 
     esp_lcd_touch_xpt2046_config_t* cfg = (esp_lcd_touch_xpt2046_config_t*)xpt_tp->base.config.user_data;
     if (point_count >= max_points / 2) {
         x /= point_count;
         y /= point_count;
         point_count = 1;
-
         int32_t x_scaled = (int32_t)x;
         int32_t y_scaled = (int32_t)y;
         if (cfg->x_max_raw != cfg->x_min_raw) {
@@ -175,10 +176,8 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         if (cfg->y_max_raw != cfg->y_min_raw) {
             y_scaled = (y_scaled - cfg->y_min_raw) * cfg->base.y_max / (cfg->y_max_raw - cfg->y_min_raw);
         }
-
         x = x_scaled < 0 ? 0 : (x_scaled > cfg->base.x_max ? cfg->base.x_max : x_scaled);
         y = y_scaled < 0 ? 0 : (y_scaled > cfg->base.y_max ? cfg->base.y_max : y_scaled);
-
         if (cfg->swap_xy) {
             std::swap(x, y);
         }
@@ -189,15 +188,13 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
             y = cfg->base.y_max - y;
         }
     } else {
-        z = 0;
-        point_count = 0;
+        z = point_count = 0;
     }
 
     xpt_tp->base.data.coords[0].x = x;
     xpt_tp->base.data.coords[0].y = y;
     xpt_tp->base.data.coords[0].strength = z;
     xpt_tp->base.data.points = point_count;
-
     ESP_LOGD(TAG, "Read: x=%" PRIu32 ", y=%" PRIu32 ", z=%u, points=%u", x, y, z, point_count);
     return ESP_OK;
 }
@@ -209,14 +206,13 @@ bool XPT2046_SoftSPI::get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y
     for (size_t i = 0; i < *point_num; i++) {
         x[i] = xpt_tp->base.data.coords[i].x;
         y[i] = xpt_tp->base.data.coords[i].y;
-        if (strength) {
-            strength[i] = xpt_tp->base.data.coords[i].strength;
-        }
+        if (strength) strength[i] = xpt_tp->base.data.coords[i].strength;
     }
     xpt_tp->base.data.points = 0;
-
     if (*point_num) {
         ESP_LOGI(TAG, "Touch point: x=%u, y=%u, strength=%u", x[0], y[0], strength ? strength[0] : 0);
+    } else {
+        ESP_LOGD(TAG, "No touch points");
     }
     return *point_num > 0;
 }
@@ -225,10 +221,8 @@ void XPT2046_SoftSPI::lvgl_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* driver = static_cast<XPT2046_SoftSPI*>(lv_indev_get_user_data(indev));
     uint16_t x[1], y[1], strength[1];
     uint8_t points = 0;
-
     driver->read_data(driver->handle_);
     driver->get_xy(driver->handle_, x, y, strength, &points, 1);
-
     if (points) {
         data->point.x = x[0];
         data->point.y = y[0];
@@ -243,7 +237,7 @@ esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     uint8_t buf[2] = {0, 0};
     spi_->cs_low();
     spi_->transfer(reg);
-    ets_delay_us(20); // Added delay for stable read
+    ets_delay_us(5); // Reduced for faster transaction
     buf[0] = spi_->transfer(0x00);
     buf[1] = spi_->transfer(0x00);
     spi_->cs_high();
@@ -257,24 +251,21 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     gpio_set_level(cs_pin_, 0);
     read_register(Z_VALUE_1, &z1);
     read_register(Z_VALUE_2, &z2);
-    gpio_set_level(cs_pin_, 1);
-
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     if (z < Z_THRESHOLD) {
         x = y = 0;
+        gpio_set_level(cs_pin_, 1);
         ESP_LOGD(TAG, "Raw touch: z=%u below threshold", z);
         return;
     }
-
-    gpio_set_level(cs_pin_, 0);
+    uint16_t discard_buf = 0;
+    read_register(X_POSITION, &discard_buf);
     read_register(X_POSITION, &x);
     read_register(Y_POSITION, &y);
     gpio_set_level(cs_pin_, 1);
-
     x >>= 3;
     y >>= 3;
-
-    if (x < 100 || x > XPT2046_ADC_LIMIT - 100 || y < 100 || y > XPT2046_ADC_LIMIT - 100) {
+    if (x < 50 || x > XPT2046_ADC_LIMIT - 50 || y < 50 || y > XPT2046_ADC_LIMIT - 50) {
         x = y = 0;
         ESP_LOGD(TAG, "Raw touch: x=%u, y=%u out of bounds", x, y);
     } else {
