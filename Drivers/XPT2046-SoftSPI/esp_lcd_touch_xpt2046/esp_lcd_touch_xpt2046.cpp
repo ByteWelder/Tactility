@@ -7,8 +7,7 @@
 #include <freertos/task.h>
 #include <inttypes.h>
 #include <cstring>
-#include "esp_timer.h"
-
+#include <rom/ets_sys.h> // Correct header for ets_delay_us
 
 static const char* TAG = "xpt2046_softspi";
 
