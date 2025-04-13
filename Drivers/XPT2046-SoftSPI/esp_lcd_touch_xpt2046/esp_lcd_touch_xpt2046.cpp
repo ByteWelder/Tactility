@@ -7,6 +7,8 @@
 #include <freertos/task.h>
 #include <inttypes.h>
 #include <cstring>
+#include <esp_timer.h>
+
 
 static const char* TAG = "xpt2046_softspi";
 
