@@ -7,7 +7,7 @@
 #include <freertos/task.h>
 #include <inttypes.h>
 #include <cstring>
-#include <rom/ets_sys.h> // Correct header for ets_delay_us
+#include <rom/ets_sys.h>
 
 static const char* TAG = "xpt2046_softspi";
 
@@ -37,7 +37,7 @@ enum xpt2046_registers {
 };
 
 static const uint16_t XPT2046_ADC_LIMIT = 4096;
-static const uint16_t Z_THRESHOLD = 50; // Lowered for sensitivity
+static const uint16_t Z_THRESHOLD = 30; // Further lowered for sensitivity
 
 typedef struct {
     esp_lcd_touch_t base;
@@ -68,7 +68,7 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
         gpio_config_t cfg = {
             .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
             .mode = GPIO_MODE_INPUT,
-            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
             .intr_type = GPIO_INTR_NEGEDGE
         };
@@ -128,16 +128,21 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     uint32_t x = 0, y = 0;
     uint8_t point_count = 0;
 
-    if (xpt_tp->base.config.int_gpio_num != GPIO_NUM_NC && gpio_get_level(xpt_tp->base.config.int_gpio_num)) {
-        xpt_tp->base.data.points = 0;
-        ESP_LOGD(TAG, "No touch: IRQ high");
-        return ESP_OK;
+    if (xpt_tp->base.config.int_gpio_num != GPIO_NUM_NC) {
+        int irq_level = gpio_get_level(xpt_tp->base.config.int_gpio_num);
+        ESP_LOGD(TAG, "IRQ level: %d", irq_level);
+        if (irq_level) {
+            xpt_tp->base.data.points = 0;
+            ESP_LOGD(TAG, "No touch: IRQ high");
+            return ESP_OK;
+        }
     }
 
     gpio_set_level(driver->cs_pin_, 0);
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), TAG, "Read Z1 failed");
     ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), TAG, "Read Z2 failed");
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
+    ESP_LOGD(TAG, "Z value: %u (z1=%u, z2=%u)", z, z1 >> 3, z2 >> 3);
     if (z < Z_THRESHOLD) {
         xpt_tp->base.data.points = 0;
         gpio_set_level(driver->cs_pin_, 1);
@@ -148,13 +153,14 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     uint16_t discard_buf = 0;
     ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &discard_buf), TAG, "Read discard failed");
 
-    constexpr uint8_t max_points = 4; // Match atanisoft
+    constexpr uint8_t max_points = 4;
     for (uint8_t idx = 0; idx < max_points; idx++) {
         uint16_t x_temp = 0, y_temp = 0;
         ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &x_temp), TAG, "Read X failed");
         ESP_RETURN_ON_ERROR(driver->read_register(Y_POSITION, &y_temp), TAG, "Read Y failed");
         x_temp >>= 3;
         y_temp >>= 3;
+        ESP_LOGD(TAG, "Raw X=%u, Y=%u", x_temp, y_temp);
         if (x_temp >= 50 && x_temp <= XPT2046_ADC_LIMIT - 50 &&
             y_temp >= 50 && y_temp <= XPT2046_ADC_LIMIT - 50) {
             x += x_temp;
@@ -190,6 +196,7 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         }
     } else {
         z = point_count = 0;
+        ESP_LOGD(TAG, "Insufficient valid points: %u", point_count);
     }
 
     xpt_tp->base.data.coords[0].x = x;
@@ -231,6 +238,7 @@ void XPT2046_SoftSPI::lvgl_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
         ESP_LOGI(TAG, "LVGL touch: x=%u, y=%u", x[0], y[0]);
     } else {
         data->state = LV_INDEV_STATE_REL;
+        ESP_LOGD(TAG, "LVGL no touch");
     }
 }
 
@@ -238,7 +246,7 @@ esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     uint8_t buf[2] = {0, 0};
     spi_->cs_low();
     spi_->transfer(reg);
-    ets_delay_us(5); // Reduced for faster transaction
+    ets_delay_us(2); // Adjusted to ~2µs for 500kHz
     buf[0] = spi_->transfer(0x00);
     buf[1] = spi_->transfer(0x00);
     spi_->cs_high();
@@ -253,6 +261,7 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     read_register(Z_VALUE_1, &z1);
     read_register(Z_VALUE_2, &z2);
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
+    ESP_LOGD(TAG, "Raw Z value: %u (z1=%u, z2=%u)", z, z1 >> 3, z2 >> 3);
     if (z < Z_THRESHOLD) {
         x = y = 0;
         gpio_set_level(cs_pin_, 1);
@@ -266,6 +275,7 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     gpio_set_level(cs_pin_, 1);
     x >>= 3;
     y >>= 3;
+    ESP_LOGD(TAG, "Raw X=%u, Y=%u", x, y);
     if (x < 50 || x > XPT2046_ADC_LIMIT - 50 || y < 50 || y > XPT2046_ADC_LIMIT - 50) {
         x = y = 0;
         ESP_LOGD(TAG, "Raw touch: x=%u, y=%u out of bounds", x, y);
