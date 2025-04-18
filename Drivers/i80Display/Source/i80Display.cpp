@@ -20,7 +20,7 @@ namespace {
     // Panel command constants
     constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
     constexpr uint8_t LCD_CMD_DISPLAY_ON = 0x29;
-    constexpr uint8_t LCD_CMD_COLMOD = 0x3A;
+
     
     // Display initialization delay constants
     constexpr uint32_t SLEEP_OUT_DELAY_MS = 120;
@@ -208,11 +208,14 @@ bool I80Display::initializePanelIO() {
         .cs_gpio_num = configuration->csPin,
         .pclk_hz = configuration->pixelClockFrequency,
         .trans_queue_depth = configuration->transactionQueueDepth,
-        .on_color_trans_done = configuration->onTransactionDone ? 
-                              [](esp_lcd_panel_io_handle_t, void* user_ctx, void* event_data) {
-                                  auto* display = static_cast<I80Display*>(user_ctx);
-                                  display->configuration->onTransactionDone(display, event_data);
-                              } : nullptr,
+        .on_color_trans_done = nullptr,
+    };
+    if (configuration->onTransactionDone) {
+        io_config.on_color_trans_done = [](esp_lcd_panel_io_handle_t, void* user_ctx, void* event_data) {
+            auto* display = static_cast<I80Display*>(user_ctx);
+            display->configuration->onTransactionDone(display, event_data);
+        };
+    }
         .user_ctx = configuration->onTransactionDone ? this : nullptr,
         .lcd_cmd_bits = configuration->cmdBits > 0 ? configuration->cmdBits : 8,
         .lcd_param_bits = configuration->paramBits > 0 ? configuration->paramBits : 8,
@@ -242,8 +245,8 @@ bool I80Display::initializePanel() {
         .rgb_ele_order = configuration->rgbElementOrder,
         .data_endian = configuration->dataEndian == 0 ? 
                       LCD_RGB_DATA_ENDIAN_BIG : LCD_RGB_DATA_ENDIAN_LITTLE,
-        .bits_per_pixel = configuration->bitsPerPixel > 0 ? 
-                         configuration->bitsPerPixel : 16,
+        .bits_per_pixel = static_cast<uint32_t>(configuration->bitsPerPixel > 0 ? 
+                         configuration->bitsPerPixel : 16),
         .flags = { 
             .reset_active_high = configuration->resetActiveHigh ? 1u : 0u 
         },
@@ -265,6 +268,7 @@ bool I80Display::initializePanel() {
                 ret = configuration->customPanelSetup(ioHandle, &panel_config, &panelHandle);
                 break;
             }
+            break;
             // Fall through if no custom setup provided
         default:
             TT_LOG_E(TAG, "Unsupported panel type");
@@ -410,8 +414,7 @@ bool I80Display::setupLVGLDisplay() {
         auto* self = static_cast<I80Display*>(lv_display_get_user_data(disp));
         
         if (self->configuration->debugFlushCalls) {
-            TT_LOG_I(TAG, "Flush: x1=%d, y1=%d, x2=%d, y2=%d", 
-                    area->x1, area->y1, area->x2, area->y2);
+            TT_LOG_I(TAG, "Flush: x1=%ld, y1=%ld, x2=%ld, y2=%ld", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
         }
         
         // Drawing optimization - batch commands if supported by the controller

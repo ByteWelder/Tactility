@@ -2,23 +2,6 @@
 #include <esp_log.h>
 #include <esp_check.h>
 #include <cstring>
-
-// Macros must be defined at global scope
-#define ESP_GOTO_ON_FALSE_LOG(a, err_code, tag, msg, ...) do { \
-    if (!(a)) { \
-        err = err_code; \
-        ESP_LOGE(tag, msg, ##__VA_ARGS__); \
-        goto err; \
-    } \
-} while (0)
-#define ESP_GOTO_ON_ERROR_LOG(a, err_code, tag, msg, ...) do { \
-    if ((a) != ESP_OK) { \
-        err = err_code; \
-        ESP_LOGE(tag, msg, ##__VA_ARGS__); \
-        goto err; \
-    } \
-} while (0)
-
 #include <driver/gpio.h>
 #include <esp_rom_gpio.h>
 #include <freertos/FreeRTOS.h>
@@ -64,11 +47,11 @@ typedef struct {
 
 XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     : handle_(nullptr), indev_(nullptr),
-      spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
-          config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.spi_delay_us
-      })),
       cs_pin_(config.cs_pin),
-      int_pin_(config.int_pin)
+int_pin_(config.int_pin),
+spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
+    config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.spi_delay_us
+}))
 {
     esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* tp = (esp_lcd_touch_xpt2046_t*)calloc(1, sizeof(esp_lcd_touch_xpt2046_t));
@@ -86,24 +69,24 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     tp->base.del = del;
     tp->base.data.lock.owner = portMUX_FREE_VAL;
     tp->user_data = this;
-    memcpy(&tp->base.config, &config.touch_config.base, sizeof(esp_lcd_touch_config_t));
+    memcpy(&tp->base.config, &config, sizeof(esp_lcd_touch_config_t));
 
     // CS pin setup
     ESP_GOTO_ON_ERROR_LOG(gpio_set_direction(cs_pin_, GPIO_MODE_OUTPUT), err, TAG, "CS pin direction failed");
     ESP_GOTO_ON_ERROR_LOG(gpio_set_level(cs_pin_, 1), err, TAG, "CS pin set high failed");
 
     // Optional IRQ setup
-    if (config.touch_config.base.int_gpio_num != GPIO_NUM_NC) {
-        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.touch_config.base.int_gpio_num), err, TAG, "Invalid IRQ pin");
+    if (config.int_pin != GPIO_NUM_NC) {
+        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.int_pin), err, TAG, "Invalid IRQ pin");
         gpio_config_t cfg = {
-            .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
+            .pin_bit_mask = BIT64(config.int_pin),
             .mode = GPIO_MODE_INPUT,
             .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
             .intr_type = GPIO_INTR_NEGEDGE
         };
         ESP_GOTO_ON_ERROR_LOG(gpio_config(&cfg), err, TAG, "IRQ config failed");
-        ESP_LOGI(TAG, "IRQ pin configured: %d", config.touch_config.base.int_gpio_num);
+        ESP_LOGI(TAG, "IRQ pin configured: %d", config.int_pin);
     } else {
         ESP_LOGW(TAG, "No IRQ pin configured, will use polling mode.");
     }
@@ -122,7 +105,7 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     lv_indev_set_read_cb(indev_, lvgl_read_cb);
     lv_indev_set_user_data(indev_, this);
 
-    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.touch_config.base.int_gpio_num);
+    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.int_pin);
     return;
 
 err:
@@ -145,9 +128,9 @@ bool XPT2046_SoftSPI::self_test() {
     return false;
 }
 
-        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.touch_config.base.int_gpio_num), err, TAG, "Invalid IRQ pin");
+        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.int_pin), err, TAG, "Invalid IRQ pin");
         gpio_config_t cfg = {
-            .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
+            .pin_bit_mask = BIT64(config.int_pin),
             .mode = GPIO_MODE_INPUT,
             .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -161,7 +144,7 @@ bool XPT2046_SoftSPI::self_test() {
     lv_indev_set_read_cb(indev_, lvgl_read_cb);
     lv_indev_set_user_data(indev_, this);
 
-    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.touch_config.base.int_gpio_num);
+    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.int_pin);
     return;
 
 err:
