@@ -136,6 +136,8 @@ public:
         std::shared_ptr<tt::hal::touch::TouchDevice> touch = nullptr;
     };
 
+protected:
+    inline auto& getOnTransactionDone() const { return configuration->onTransactionDone; }
 private:
     std::unique_ptr<Configuration> configuration;
     esp_lcd_i80_bus_handle_t i80Bus = nullptr;

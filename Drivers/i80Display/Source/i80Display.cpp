@@ -17,10 +17,11 @@
 namespace tt::hal::display {
 
 // Transaction done callback for panel IO
-static bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, void* user_ctx) {
+static bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, esp_lcd_panel_io_event_data_t* event_data, void* user_ctx) {
     auto* self = static_cast<I80Display*>(user_ctx);
-    if (self && self->configuration->onTransactionDone) {
-        self->configuration->onTransactionDone(self, io);
+    // Provide a public/protected accessor for configuration if needed, or make this a friend if necessary
+    if (self && self->getOnTransactionDone()) {
+        self->getOnTransactionDone()(self, io);
     }
     return true;
 }
