@@ -10,7 +10,7 @@
 
 static const char* TAG = "YellowDisplay";
 
-std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;
+std::unique_ptr<XPT2046_SoftSPI> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     ESP_LOGI(TAG, "Creating software SPI touch");
@@ -36,7 +36,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         ESP_LOGW(TAG, "NVS open failed, using default calibration");
     }
 
-    XPT2046_SoftSPI_Wrapper::Config config = {
+    XPT2046_SoftSPI::Config config = {
         .cs_pin = CYD_TOUCH_CS_PIN,
         .int_pin = CYD_TOUCH_IRQ_PIN,
         .miso_pin = CYD_TOUCH_MISO_PIN,
@@ -44,15 +44,15 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         .sck_pin = CYD_TOUCH_SCK_PIN,
         .x_max = CYD_DISPLAY_HORIZONTAL_RESOLUTION,
         .y_max = CYD_DISPLAY_VERTICAL_RESOLUTION,
-        .swap_xy = false,
-        .mirror_x = false,
-        .mirror_y = false,
         .x_min_raw = xMinRaw,
         .x_max_raw = xMaxRaw,
         .y_min_raw = yMinRaw,
-        .y_max_raw = yMaxRaw
+        .y_max_raw = yMaxRaw,
+        .swap_xy = false,
+        .mirror_x = false,
+        .mirror_y = false
     };
-    touch = XPT2046_SoftSPI_Wrapper::create(config);
+    touch = XPT2046_SoftSPI::create(config);
     if (!touch) {
         ESP_LOGE(TAG, "Failed to create touch driver");
         return nullptr;
@@ -60,7 +60,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
-        TouchAdapter(std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver) : driver_(std::move(driver)) {}
+        TouchAdapter(std::unique_ptr<XPT2046_SoftSPI> driver) : driver_(std::move(driver)) {}
         bool start(lv_display_t* disp) override {
             lv_indev_t* indev = driver_->get_lvgl_indev();
             lv_indev_set_display(indev, disp);
@@ -71,7 +71,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         std::string getName() const override { return "XPT2046 Touch"; }
         std::string getDescription() const override { return "SoftSPI XPT2046 Touch Controller"; }
     private:
-        std::unique_ptr<XPT2046_SoftSPI_Wrapper> driver_;
+        std::unique_ptr<XPT2046_SoftSPI> driver_;
     };
     return std::make_shared<TouchAdapter>(std::move(touch));
 }

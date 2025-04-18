@@ -10,7 +10,7 @@
 #include <driver/gpio.h>
 
 // Add other panel support
-#include <esp_lcd_panel_gc9a01.h>
+
 #include <esp_lcd_panel_ili9486.h>
 #include <esp_lcd_panel_ili9488.h>
 
@@ -260,9 +260,6 @@ bool I80Display::initializePanel() {
             break;
         case PanelType::ILI9341:
             ret = esp_lcd_new_panel_ili9341(ioHandle, &panel_config, &panelHandle);
-            break;
-        case PanelType::GC9A01:
-            ret = esp_lcd_new_panel_gc9a01(ioHandle, &panel_config, &panelHandle);
             break;
         case PanelType::ILI9486:
             ret = esp_lcd_new_panel_ili9486(ioHandle, &panel_config, &panelHandle);
