@@ -16,7 +16,7 @@ public:
     enum class PanelType {
         ST7789,
         ILI9341,
-        GC9A01,
+
         ILI9486,
         ILI9488,
         CUSTOM
@@ -173,7 +173,6 @@ public:
         switch (configuration->panelType) {
             case PanelType::ST7789: return "ST7789-I80";
             case PanelType::ILI9341: return "ILI9341-I80";
-            case PanelType::GC9A01: return "GC9A01-I80";
             case PanelType::ILI9486: return "ILI9486-I80";
             case PanelType::ILI9488: return "ILI9488-I80";
             case PanelType::CUSTOM: return "Custom-I80";
