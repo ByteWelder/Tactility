@@ -14,13 +14,6 @@ SoftSPI::SoftSPI(const Config& config)
 {
 }
 
-void SoftSPI::set_post_command_delay_us(uint32_t delay) {
-    post_command_delay_us_ = delay;
-}
-
-uint32_t SoftSPI::get_post_command_delay_us() const {
-    return post_command_delay_us_;
-}
 
 bool SoftSPI::begin() {
     // Configure pins

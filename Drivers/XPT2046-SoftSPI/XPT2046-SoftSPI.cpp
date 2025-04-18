@@ -1,9 +1,10 @@
 #include "XPT2046-SoftSPI.h"
 #include <esp_log.h>
+#include <inttypes.h>
 
-static const char* TAG = "XPT2046_Wrapper";
+static const char* TAG = "XPT2046_SoftSPI";
 
-std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const Config& config) {
+std::unique_ptr<XPT2046_SoftSPI> XPT2046_SoftSPI::create(const Config& config) {
     esp_lcd_touch_xpt2046_config_t touch_config = {
         .base = {
             .x_max = config.x_max,
@@ -27,26 +28,14 @@ std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const C
         .mirror_y = config.mirror_y
     };
 
-    XPT2046_SoftSPI::Config driver_config = {
-        .cs_pin = config.cs_pin,
-        .int_pin = config.int_pin,
-        .miso_pin = config.miso_pin,
-        .mosi_pin = config.mosi_pin,
-        .sck_pin = config.sck_pin,
-        .touch_config = touch_config,
-        .spi_delay_us = config.spi_delay_us,
-        .spi_post_command_delay_us = config.spi_post_command_delay_us
-    };
-    ESP_LOGI(TAG, "SoftSPI timings: delay_us=%u, post_command_delay_us=%u", driver_config.spi_delay_us, driver_config.spi_post_command_delay_us);
+    XPT2046_SoftSPI::Config driver_config = config;
+    ESP_LOGI(TAG, "SoftSPI timings: delay_us=%" PRIu32 ", post_command_delay_us=%" PRIu32, driver_config.spi_delay_us, driver_config.spi_post_command_delay_us);
 
-    auto driver = XPT2046_SoftSPI::create(driver_config);
+    auto driver = std::unique_ptr<XPT2046_SoftSPI>(new XPT2046_SoftSPI(driver_config));
     if (!driver) {
         ESP_LOGE(TAG, "Failed to create XPT2046 driver");
         return nullptr;
     }
-
-    driver->get_handle()->config.user_data = &driver_config.touch_config;
-
-    ESP_LOGI(TAG, "XPT2046 wrapper created");
-    return std::unique_ptr<XPT2046_SoftSPI_Wrapper>(new XPT2046_SoftSPI_Wrapper(std::move(driver)));
+    ESP_LOGI(TAG, "XPT2046 SoftSPI driver created");
+    return driver;
 }

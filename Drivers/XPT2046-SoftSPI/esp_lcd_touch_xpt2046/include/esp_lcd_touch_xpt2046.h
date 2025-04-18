@@ -38,7 +38,19 @@ public:
     ~XPT2046_SoftSPI();
 
     esp_lcd_touch_handle_t get_handle() const { return handle_; }
+    /**
+     * @brief Get the LVGL input device for this touchscreen
+     * 
+     * @return lv_indev_t* LVGL input device pointer
+     */
     lv_indev_t* get_lvgl_indev() const { return indev_; }
+
+    /**
+     * @brief Self-test method for communication verification
+     *
+     * @return true if communication is successful, false otherwise
+     */
+    bool self_test();
     void get_raw_touch(uint16_t& x, uint16_t& y);
 
 private:
