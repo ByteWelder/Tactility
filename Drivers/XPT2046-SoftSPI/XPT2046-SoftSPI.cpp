@@ -5,10 +5,8 @@
 static const char* TAG = "XPT2046_SoftSPI";
 
 std::unique_ptr<XPT2046_SoftSPI> XPT2046_SoftSPI::create(const Config& config) {
-    esp_lcd_touch_xpt2046_config_t touch_config = {
-        .base = {
-            .x_max = config.x_max,
-            .y_max = config.y_max,
+    // Use unified Config struct directly
+    auto& touch_config = config;
             .rst_gpio_num = GPIO_NUM_NC,
             .int_gpio_num = config.int_pin,
             .flags = {

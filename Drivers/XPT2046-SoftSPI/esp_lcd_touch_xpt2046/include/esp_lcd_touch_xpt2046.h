@@ -26,13 +26,35 @@ typedef struct {
 class XPT2046_SoftSPI {
 public:
     struct Config {
-        gpio_num_t cs_pin;
-        gpio_num_t int_pin;
-        gpio_num_t miso_pin;
-        gpio_num_t mosi_pin;
-        gpio_num_t sck_pin;
-        esp_lcd_touch_xpt2046_config_t touch_config;
-    };
+    // SPI connection pins
+    gpio_num_t cs_pin;    ///< Chip Select pin
+    gpio_num_t int_pin;   ///< Interrupt pin (optional, can be GPIO_NUM_NC)
+    gpio_num_t miso_pin;  ///< MISO pin
+    gpio_num_t mosi_pin;  ///< MOSI pin
+    gpio_num_t sck_pin;   ///< SCK pin
+
+    // Screen dimensions and behavior
+    uint16_t x_max;       ///< Maximum X coordinate value
+    uint16_t y_max;       ///< Maximum Y coordinate value
+
+    // Calibration values
+    uint16_t x_min_raw;   ///< Minimum raw X value from ADC
+    uint16_t x_max_raw;   ///< Maximum raw X value from ADC
+    uint16_t y_min_raw;   ///< Minimum raw Y value from ADC
+    uint16_t y_max_raw;   ///< Maximum raw Y value from ADC
+
+    // Orientation flags
+    bool swap_xy;         ///< Swap X and Y coordinates
+    bool mirror_x;        ///< Mirror X coordinates
+    bool mirror_y;        ///< Mirror Y coordinates
+
+    // Optional Z-axis threshold (minimum pressure to register a touch)
+    uint16_t z_threshold = 30;
+
+    // SoftSPI timing configuration
+    uint32_t spi_delay_us = 10; ///< Delay between SPI signal transitions (default 10us)
+    uint32_t spi_post_command_delay_us = 2; ///< Delay after sending command before reading (default 2us)
+};
 
     static std::unique_ptr<XPT2046_SoftSPI> create(const Config& config);
     ~XPT2046_SoftSPI();
@@ -56,6 +78,8 @@ public:
 private:
     XPT2046_SoftSPI(const Config& config);
     bool init();
+    gpio_num_t int_pin_; // Add missing member for interrupt pin
+
     static esp_err_t read_data(esp_lcd_touch_handle_t tp);
     static bool get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
                        uint16_t* strength, uint8_t* point_num, uint8_t max_point_num);

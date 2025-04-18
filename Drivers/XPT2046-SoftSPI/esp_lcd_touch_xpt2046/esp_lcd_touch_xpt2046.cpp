@@ -1,7 +1,25 @@
 #include "esp_lcd_touch_xpt2046.h"
-#include <driver/gpio.h>
-#include <esp_check.h>
 #include <esp_log.h>
+#include <esp_check.h>
+#include <cstring>
+
+// Macros must be defined at global scope
+#define ESP_GOTO_ON_FALSE_LOG(a, err_code, tag, msg, ...) do { \
+    if (!(a)) { \
+        err = err_code; \
+        ESP_LOGE(tag, msg, ##__VA_ARGS__); \
+        goto err; \
+    } \
+} while (0)
+#define ESP_GOTO_ON_ERROR_LOG(a, err_code, tag, msg, ...) do { \
+    if ((a) != ESP_OK) { \
+        err = err_code; \
+        ESP_LOGE(tag, msg, ##__VA_ARGS__); \
+        goto err; \
+    } \
+} while (0)
+
+#include <driver/gpio.h>
 #include <esp_rom_gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>

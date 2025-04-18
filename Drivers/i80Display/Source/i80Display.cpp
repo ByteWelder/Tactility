@@ -9,7 +9,7 @@
 #include <esp_heap_caps.h>
 #include <driver/gpio.h>
 
-// Add other panel support
+// Add other panel support (future)
 
 
 #define TAG "i80display"
