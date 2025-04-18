@@ -2,6 +2,7 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
+#include "../../Drivers/XPT2046-SoftSPI/esp_lcd_touch_xpt2046/include/esp_lcd_touch_xpt2046.h"
 
 #ifdef ESP_PLATFORM
 #include "esp_log.h"
@@ -71,7 +72,7 @@ private:
     static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
-        extern std::unique_ptr<XPT2046_SoftSPI_Wrapper> touch;
+        extern std::unique_ptr<XPT2046_SoftSPI> touch;
         if (touch) {
             touch->get_raw_touch(rawX, rawY);
         } else {

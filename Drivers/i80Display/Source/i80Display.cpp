@@ -16,6 +16,15 @@
 
 namespace tt::hal::display {
 
+// Transaction done callback for panel IO
+static bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, void* user_ctx) {
+    auto* self = static_cast<I80Display*>(user_ctx);
+    if (self && self->configuration->onTransactionDone) {
+        self->configuration->onTransactionDone(self, io);
+    }
+    return true;
+}
+
 namespace {
     // Panel command constants
     constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
@@ -40,6 +49,7 @@ namespace {
         } \
     } while(0)
 }
+
 
 bool I80Display::start() {
     TT_LOG_I(TAG, "Starting I80 Display");
@@ -226,7 +236,7 @@ bool I80Display::initializePanelIO() {
             .pclk_idle_low = configuration->pclkIdleLow ? 1u : 0u 
         }
     };
-    };
+
     
     RETURN_ON_ERROR(esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle));
     
