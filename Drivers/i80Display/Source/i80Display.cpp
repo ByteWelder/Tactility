@@ -11,8 +11,6 @@
 
 // Add other panel support
 
-#include <esp_lcd_panel_ili9486.h>
-#include <esp_lcd_panel_ili9488.h>
 
 #define TAG "i80display"
 
@@ -261,12 +259,7 @@ bool I80Display::initializePanel() {
         case PanelType::ILI9341:
             ret = esp_lcd_new_panel_ili9341(ioHandle, &panel_config, &panelHandle);
             break;
-        case PanelType::ILI9486:
-            ret = esp_lcd_new_panel_ili9486(ioHandle, &panel_config, &panelHandle);
-            break;
-        case PanelType::ILI9488:
-            ret = esp_lcd_new_panel_ili9488(ioHandle, &panel_config, &panelHandle);
-            break;
+
         case PanelType::CUSTOM:
             if (configuration->customPanelSetup) {
                 ret = configuration->customPanelSetup(ioHandle, &panel_config, &panelHandle);
