@@ -6,16 +6,16 @@
 #include <esp_rom_gpio.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <inttypes.h>
-#include <cstring>
 #include <rom/ets_sys.h>
+#include <inttypes.h>
 
 static const char* TAG = "xpt2046_softspi";
 
+// Define necessary macros for error handling
 #define ESP_GOTO_ON_FALSE_LOG(a, err_code, tag, msg, ...) do { \
     if (!(a)) { \
+        err = err_code; \
         ESP_LOGE(tag, msg, ##__VA_ARGS__); \
-        err_code = ESP_FAIL; \
         goto err; \
     } \
 } while (0)
@@ -46,12 +46,17 @@ typedef struct {
 } esp_lcd_touch_xpt2046_t;
 
 XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
-    : handle_(nullptr), indev_(nullptr),
+    : handle_(nullptr),
+      indev_(nullptr), 
       cs_pin_(config.cs_pin),
-int_pin_(config.int_pin),
-spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
-    config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.spi_delay_us
-}))
+      int_pin_(config.int_pin),
+      spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
+          config.miso_pin,
+          config.mosi_pin,
+          config.sck_pin,
+          config.cs_pin,
+          config.spi_delay_us
+      }))
 {
     esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* tp = (esp_lcd_touch_xpt2046_t*)calloc(1, sizeof(esp_lcd_touch_xpt2046_t));
@@ -91,15 +96,6 @@ spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
         ESP_LOGW(TAG, "No IRQ pin configured, will use polling mode.");
     }
 
-    // Optionally: Reset pin logic here
-    // if (config.rst_pin != GPIO_NUM_NC) {
-    //     gpio_set_direction(config.rst_pin, GPIO_MODE_OUTPUT);
-    //     gpio_set_level(config.rst_pin, 0);
-    //     ets_delay_us(10000); // 10ms pulse
-    //     gpio_set_level(config.rst_pin, 1);
-    //     ESP_LOGI(TAG, "Reset pin pulsed at startup: %d", config.rst_pin);
-    // }
-
     indev_ = lv_indev_create();
     lv_indev_set_type(indev_, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev_, lvgl_read_cb);
@@ -113,10 +109,22 @@ err:
         free(tp);
         handle_ = nullptr;
     }
-    // Optionally: Clean up other resources
 }
 
-// Self-test method for communication verification
+bool XPT2046_SoftSPI::init() {
+    if (!spi_) {
+        ESP_LOGE(TAG, "SoftSPI interface not initialized");
+        return false;
+    }
+
+    if (!spi_->begin()) {
+        ESP_LOGE(TAG, "Failed to initialize SoftSPI");
+        return false;
+    }
+
+    return true;
+}
+
 bool XPT2046_SoftSPI::self_test() {
     uint16_t value = 0;
     if (read_register(X_POSITION, &value) == ESP_OK) {
@@ -126,32 +134,6 @@ bool XPT2046_SoftSPI::self_test() {
     }
     ESP_LOGE(TAG, "Self-test failed: could not read X_POSITION");
     return false;
-}
-
-        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.int_pin), err, TAG, "Invalid IRQ pin");
-        gpio_config_t cfg = {
-            .pin_bit_mask = BIT64(config.int_pin),
-            .mode = GPIO_MODE_INPUT,
-            .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type = GPIO_INTR_NEGEDGE
-        };
-        ESP_GOTO_ON_ERROR_LOG(gpio_config(&cfg), err, TAG, "IRQ config failed");
-    }
-
-    indev_ = lv_indev_create();
-    lv_indev_set_type(indev_, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev_, lvgl_read_cb);
-    lv_indev_set_user_data(indev_, this);
-
-    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.int_pin);
-    return;
-
-err:
-    if (tp) {
-        free(tp);
-        handle_ = nullptr;
-    }
 }
 
 XPT2046_SoftSPI::~XPT2046_SoftSPI() {

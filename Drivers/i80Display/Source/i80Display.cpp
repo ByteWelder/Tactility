@@ -204,22 +204,28 @@ bool I80Display::initializeI80Bus() {
 }
 
 bool I80Display::initializePanelIO() {
+    // Helper static function to provide correct signature for callback
+    static bool transactionDoneCallback(esp_lcd_panel_io_handle_t panel_io, 
+                                       esp_lcd_panel_io_event_data_t* edata, 
+                                       void* user_ctx) {
+        if (user_ctx) {
+            auto* display = static_cast<I80Display*>(user_ctx);
+            if (display->configuration->onTransactionDone) {
+                display->configuration->onTransactionDone(display, edata);
+            }
+        }
+        return false;
+    }
+    
     esp_lcd_panel_io_i80_config_t io_config = {
         .cs_gpio_num = configuration->csPin,
         .pclk_hz = configuration->pixelClockFrequency,
         .trans_queue_depth = configuration->transactionQueueDepth,
-        .on_color_trans_done = nullptr,
-    };
-    if (configuration->onTransactionDone) {
-        io_config.on_color_trans_done = [](esp_lcd_panel_io_handle_t, void* user_ctx, void* event_data) {
-            auto* display = static_cast<I80Display*>(user_ctx);
-            display->configuration->onTransactionDone(display, event_data);
-        };
-    }
+        .on_color_trans_done = configuration->onTransactionDone ? transactionDoneCallback : nullptr,
         .user_ctx = configuration->onTransactionDone ? this : nullptr,
         .lcd_cmd_bits = configuration->cmdBits > 0 ? configuration->cmdBits : 8,
         .lcd_param_bits = configuration->paramBits > 0 ? configuration->paramBits : 8,
-        .dc_levels = { 
+        .dc_levels = {
             .dc_idle_level = 0, 
             .dc_cmd_level = 0, 
             .dc_dummy_level = 0, 
@@ -231,7 +237,8 @@ bool I80Display::initializePanelIO() {
             .swap_color_bytes = configuration->swapColorBytes ? 1u : 0u,
             .pclk_active_neg = configuration->pclkActiveNeg ? 1u : 0u, 
             .pclk_idle_low = configuration->pclkIdleLow ? 1u : 0u 
-        },
+        }
+    };
     };
     
     RETURN_ON_ERROR(esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle));
@@ -239,7 +246,7 @@ bool I80Display::initializePanelIO() {
     return true;
 }
 
-bool I80Display::initializePanel() {
+bool tt::hal::display::I80Display::initializePanel() {
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin,
         .rgb_ele_order = configuration->rgbElementOrder,
@@ -253,8 +260,9 @@ bool I80Display::initializePanel() {
         .vendor_config = configuration->vendorConfig
     };
     
-    esp_err_t ret;
+    esp_err_t ret = ESP_OK;
     
+    // Create panel based on panel type
     switch (configuration->panelType) {
         case PanelType::ST7789:
             ret = esp_lcd_new_panel_st7789(ioHandle, &panel_config, &panelHandle);
@@ -268,8 +276,8 @@ bool I80Display::initializePanel() {
                 ret = configuration->customPanelSetup(ioHandle, &panel_config, &panelHandle);
                 break;
             }
-            break;
-            // Fall through if no custom setup provided
+            // Explicitly fall through if no custom setup provided
+            [[fallthrough]];
         default:
             TT_LOG_E(TAG, "Unsupported panel type");
             return false;
@@ -283,7 +291,7 @@ bool I80Display::initializePanel() {
     return true;
 }
 
-bool I80Display::configurePanel() {
+bool tt::hal::display::I80Display::configurePanel() {
     // Reset panel if reset pin is configured
     if (configuration->resetPin != GPIO_NUM_NC) {
         RETURN_ON_ERROR(esp_lcd_panel_reset(panelHandle));
@@ -366,7 +374,7 @@ bool I80Display::configurePanel() {
     return true;
 }
 
-bool I80Display::setupLVGLDisplay() {
+bool tt::hal::display::I80Display::setupLVGLDisplay() {
     uint32_t buffer_size = configuration->horizontalResolution * 
                           (configuration->drawBufferHeight > 0 ? 
                            configuration->drawBufferHeight : 
@@ -411,10 +419,11 @@ bool I80Display::setupLVGLDisplay() {
     // Set up flush callback
     lv_display_set_user_data(displayHandle, this);
     lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
-        auto* self = static_cast<I80Display*>(lv_display_get_user_data(disp));
+        auto* self = static_cast<tt::hal::display::I80Display*>(lv_display_get_user_data(disp));
         
         if (self->configuration->debugFlushCalls) {
-            TT_LOG_I(TAG, "Flush: x1=%ld, y1=%ld, x2=%ld, y2=%ld", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
+            TT_LOG_I(TAG, "Flush: x1=%ld, y1=%ld, x2=%ld, y2=%ld", 
+                    (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
         }
         
         // Drawing optimization - batch commands if supported by the controller
@@ -439,7 +448,7 @@ bool I80Display::setupLVGLDisplay() {
     return true;
 }
 
-void I80Display::runDisplayTest() {
+void tt::hal::display::I80Display::runDisplayTest() {
     const uint32_t width = configuration->horizontalResolution;
     const uint32_t height = configuration->verticalResolution;
     const size_t bufferSize = width * height * sizeof(uint16_t);
@@ -477,7 +486,7 @@ void I80Display::runDisplayTest() {
     logMemoryStats("after test buffer deallocation");
 }
 
-bool I80Display::setBatchArea(const lv_area_t* area) {
+bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
     // This is a method to optimize drawing by setting the area once
     // and then sending pixel data without repeating the area command.
     // Implemented for common display controllers like ILI9341, ST7789, etc.
@@ -516,7 +525,7 @@ bool I80Display::setBatchArea(const lv_area_t* area) {
     return true;
 }
 
-void I80Display::setGammaCurve(uint8_t index) {
+void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
     uint8_t gamma_curve;
     switch (index) {
         case 0: gamma_curve = 0x01; break; // Gamma curve 1
@@ -536,7 +545,7 @@ void I80Display::setGammaCurve(uint8_t index) {
     // Success, do nothing further
 }
 
-bool I80Display::setBrightness(uint8_t brightness) {
+bool tt::hal::display::I80Display::setBrightness(uint8_t brightness) {
     // Implement brightness control if hardware supports it
     if (configuration->backlightPin != GPIO_NUM_NC) {
         // For simple GPIO backlight control
@@ -554,7 +563,7 @@ bool I80Display::setBrightness(uint8_t brightness) {
     return false;
 }
 
-bool I80Display::setInvertColor(bool invert) {
+bool tt::hal::display::I80Display::setInvertColor(bool invert) {
     if (esp_lcd_panel_invert_color(panelHandle, invert) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set color inversion");
         return false;
@@ -562,7 +571,7 @@ bool I80Display::setInvertColor(bool invert) {
     return true;
 }
 
-bool I80Display::stop() {
+bool tt::hal::display::I80Display::stop() {
     TT_LOG_I(TAG, "Stopping I80 Display");
     
     if (!displayHandle) {
@@ -587,7 +596,7 @@ bool I80Display::stop() {
     return cleanupResources();
 }
 
-bool I80Display::cleanupResources() {
+bool tt::hal::display::I80Display::cleanupResources() {
     bool success = true;
     
     // Delete panel
@@ -621,7 +630,7 @@ bool I80Display::cleanupResources() {
     return success;
 }
 
-void I80Display::logMemoryStats(const char* stage) {
+void tt::hal::display::I80Display::logMemoryStats(const char* stage) {
     if (configuration->debugMemory) {
         TT_LOG_I(TAG, "Memory stats %s:", stage);
         TT_LOG_I(TAG, "  DMA heap free: %lu", 

@@ -78,7 +78,6 @@ public:
 private:
     XPT2046_SoftSPI(const Config& config);
     bool init();
-    gpio_num_t int_pin_; // Add missing member for interrupt pin
 
     static esp_err_t read_data(esp_lcd_touch_handle_t tp);
     static bool get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
@@ -89,8 +88,9 @@ private:
 
     esp_lcd_touch_handle_t handle_;
     lv_indev_t* indev_;
-    std::unique_ptr<SoftSPI> spi_;
     gpio_num_t cs_pin_;
+    gpio_num_t int_pin_;
+    std::unique_ptr<SoftSPI> spi_;
 };
 
 #ifdef __cplusplus
