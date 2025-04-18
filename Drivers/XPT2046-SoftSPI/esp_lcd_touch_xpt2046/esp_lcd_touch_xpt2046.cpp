@@ -153,15 +153,6 @@ std::unique_ptr<XPT2046_SoftSPI> XPT2046_SoftSPI::create(const Config& config) {
     return nullptr;
 }
 
-bool XPT2046_SoftSPI::init() {
-    if (!spi_->begin()) {
-        ESP_LOGE(TAG, "SoftSPI initialization failed. Check pin configuration.");
-        return false;
-    }
-    ESP_LOGI(TAG, "SoftSPI initialized successfully.");
-    return true;
-}
-
 esp_err_t XPT2046_SoftSPI::del(esp_lcd_touch_handle_t tp) {
     esp_lcd_touch_xpt2046_t* xpt_tp = (esp_lcd_touch_xpt2046_t*)tp;
     if (xpt_tp->base.config.int_gpio_num != GPIO_NUM_NC) {

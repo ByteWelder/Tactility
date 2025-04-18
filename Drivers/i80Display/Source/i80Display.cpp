@@ -204,19 +204,6 @@ bool I80Display::initializeI80Bus() {
 }
 
 bool I80Display::initializePanelIO() {
-    // Helper static function to provide correct signature for callback
-    static bool transactionDoneCallback(esp_lcd_panel_io_handle_t panel_io, 
-                                       esp_lcd_panel_io_event_data_t* edata, 
-                                       void* user_ctx) {
-        if (user_ctx) {
-            auto* display = static_cast<I80Display*>(user_ctx);
-            if (display->configuration->onTransactionDone) {
-                display->configuration->onTransactionDone(display, edata);
-            }
-        }
-        return false;
-    }
-    
     esp_lcd_panel_io_i80_config_t io_config = {
         .cs_gpio_num = configuration->csPin,
         .pclk_hz = configuration->pixelClockFrequency,
