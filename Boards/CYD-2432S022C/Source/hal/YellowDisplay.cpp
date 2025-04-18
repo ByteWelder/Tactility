@@ -77,14 +77,11 @@ bool YellowDisplay::start() {
     i80_config->pixelClockFrequency = config->pclkHz;
     i80_config->drawBufferHeight = 0; // Use default unless overridden
     i80_config->invertColor = false; // Set if needed
-    i80_config->mirrorX = config->mirrorX;
-    i80_config->mirrorY = config->mirrorY;
-    i80_config->swapColorBytes = false;
     i80_config->rotationMode = I80Display::RotationMode::ROTATE_0;
     i80_config->touch = config->touch;
     // Add more fields as needed for your use case
 
-    ESP_LOGI(TAG, "Buffer size: %lu bytes", static_cast<unsigned long>(i80_config->drawBufferHeight * config->horizontalResolution * 2));
+    ESP_LOGI(TAG, "Configured I80Display for %ux%u", config->horizontalResolution, config->verticalResolution);
     i80Display = std::make_unique<I80Display>(std::move(i80_config));
     if (!i80Display->start()) {
         ESP_LOGE(TAG, "Failed to initialize i80 display");

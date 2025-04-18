@@ -523,7 +523,7 @@ bool I80Display::setBatchArea(const lv_area_t* area) {
     return true;
 }
 
-bool I80Display::setGammaCurve(uint8_t index) {
+void I80Display::setGammaCurve(uint8_t index) {
     uint8_t gamma_curve;
     switch (index) {
         case 0: gamma_curve = 0x01; break; // Gamma curve 1
@@ -532,16 +532,15 @@ bool I80Display::setGammaCurve(uint8_t index) {
         case 3: gamma_curve = 0x08; break; // Gamma curve 4
         default: 
             TT_LOG_E(TAG, "Invalid gamma curve index: %u", index);
-            return false;
+            return;
     }
     
     const uint8_t param[] = { gamma_curve };
     if (esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMSET, param, 1) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set gamma curve");
-        return false;
+        return;
     }
-    
-    return true;
+    // Success, do nothing further
 }
 
 bool I80Display::setBrightness(uint8_t brightness) {
