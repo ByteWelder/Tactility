@@ -46,12 +46,22 @@ typedef struct {
 
 XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     : handle_(nullptr), indev_(nullptr),
-      spi_(std::make_unique<SoftSPI>(config.miso_pin, config.mosi_pin, config.sck_pin)),
-      cs_pin_(config.cs_pin) {
+      spi_(std::make_unique<SoftSPI>(SoftSPI::Config{
+          config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.spi_delay_us
+      })),
+      cs_pin_(config.cs_pin),
+      int_pin_(config.int_pin)
+{
     esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* tp = (esp_lcd_touch_xpt2046_t*)calloc(1, sizeof(esp_lcd_touch_xpt2046_t));
     ESP_GOTO_ON_FALSE_LOG(tp, err, TAG, "No memory for XPT2046 state");
     handle_ = (esp_lcd_touch_handle_t)tp;
+
+    // Set SPI post-command delay from config
+    spi_->set_post_command_delay_us(config.spi_post_command_delay_us);
+
+    // Log all pin assignments
+    ESP_LOGI(TAG, "Pin config: MISO=%d, MOSI=%d, SCK=%d, CS=%d, INT=%d", config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.int_pin);
 
     tp->base.read_data = read_data;
     tp->base.get_xy = get_xy;
@@ -60,10 +70,63 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
     tp->user_data = this;
     memcpy(&tp->base.config, &config.touch_config.base, sizeof(esp_lcd_touch_config_t));
 
-    gpio_set_direction(cs_pin_, GPIO_MODE_OUTPUT);
-    gpio_set_level(cs_pin_, 1);
+    // CS pin setup
+    ESP_GOTO_ON_ERROR_LOG(gpio_set_direction(cs_pin_, GPIO_MODE_OUTPUT), err, TAG, "CS pin direction failed");
+    ESP_GOTO_ON_ERROR_LOG(gpio_set_level(cs_pin_, 1), err, TAG, "CS pin set high failed");
 
+    // Optional IRQ setup
     if (config.touch_config.base.int_gpio_num != GPIO_NUM_NC) {
+        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.touch_config.base.int_gpio_num), err, TAG, "Invalid IRQ pin");
+        gpio_config_t cfg = {
+            .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
+            .mode = GPIO_MODE_INPUT,
+            .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_NEGEDGE
+        };
+        ESP_GOTO_ON_ERROR_LOG(gpio_config(&cfg), err, TAG, "IRQ config failed");
+        ESP_LOGI(TAG, "IRQ pin configured: %d", config.touch_config.base.int_gpio_num);
+    } else {
+        ESP_LOGW(TAG, "No IRQ pin configured, will use polling mode.");
+    }
+
+    // Optionally: Reset pin logic here
+    // if (config.rst_pin != GPIO_NUM_NC) {
+    //     gpio_set_direction(config.rst_pin, GPIO_MODE_OUTPUT);
+    //     gpio_set_level(config.rst_pin, 0);
+    //     ets_delay_us(10000); // 10ms pulse
+    //     gpio_set_level(config.rst_pin, 1);
+    //     ESP_LOGI(TAG, "Reset pin pulsed at startup: %d", config.rst_pin);
+    // }
+
+    indev_ = lv_indev_create();
+    lv_indev_set_type(indev_, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev_, lvgl_read_cb);
+    lv_indev_set_user_data(indev_, this);
+
+    ESP_LOGI(TAG, "XPT2046 SoftSPI initialized: CS=%d, IRQ=%d", cs_pin_, config.touch_config.base.int_gpio_num);
+    return;
+
+err:
+    if (tp) {
+        free(tp);
+        handle_ = nullptr;
+    }
+    // Optionally: Clean up other resources
+}
+
+// Self-test method for communication verification
+bool XPT2046_SoftSPI::self_test() {
+    uint16_t value = 0;
+    if (read_register(X_POSITION, &value) == ESP_OK) {
+        ESP_LOGI(TAG, "Self-test: X_POSITION register read value: %u", value);
+        // Optionally check value range
+        return true;
+    }
+    ESP_LOGE(TAG, "Self-test failed: could not read X_POSITION");
+    return false;
+}
+
         ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.touch_config.base.int_gpio_num), err, TAG, "Invalid IRQ pin");
         gpio_config_t cfg = {
             .pin_bit_mask = BIT64(config.touch_config.base.int_gpio_num),
@@ -108,7 +171,11 @@ std::unique_ptr<XPT2046_SoftSPI> XPT2046_SoftSPI::create(const Config& config) {
 }
 
 bool XPT2046_SoftSPI::init() {
-    spi_->begin();
+    if (!spi_->begin()) {
+        ESP_LOGE(TAG, "SoftSPI initialization failed. Check pin configuration.");
+        return false;
+    }
+    ESP_LOGI(TAG, "SoftSPI initialized successfully.");
     return true;
 }
 
@@ -245,13 +312,15 @@ void XPT2046_SoftSPI::lvgl_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
 esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     uint8_t buf[2] = {0, 0};
     spi_->cs_low();
+    ESP_LOGD(TAG, "CS LOW, sending command 0x%02x", reg);
     spi_->transfer(reg);
-    ets_delay_us(2); // Adjusted to ~2µs for 500kHz
+    // Configurable post-command delay for reliability
+    ets_delay_us(spi_->get_post_command_delay_us());
     buf[0] = spi_->transfer(0x00);
     buf[1] = spi_->transfer(0x00);
     spi_->cs_high();
     *value = ((buf[0] << 8) | buf[1]);
-    ESP_LOGD(TAG, "Read reg=0x%x, value=%u", reg, *value);
+    ESP_LOGD(TAG, "Read reg=0x%x, value=0x%04x (%u)", reg, *value, *value);
     return ESP_OK;
 }
 

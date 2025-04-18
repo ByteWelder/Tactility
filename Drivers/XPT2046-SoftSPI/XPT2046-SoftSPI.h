@@ -42,6 +42,10 @@ public:
         
         // Optional Z-axis threshold (minimum pressure to register a touch)
         uint16_t z_threshold = 30;
+
+        // SoftSPI timing configuration
+        uint32_t spi_delay_us = 10; ///< Delay between SPI signal transitions (default 10us)
+        uint32_t spi_post_command_delay_us = 2; ///< Delay after sending command before reading (default 2us)
     };
 
     /**

@@ -33,8 +33,11 @@ std::unique_ptr<XPT2046_SoftSPI_Wrapper> XPT2046_SoftSPI_Wrapper::create(const C
         .miso_pin = config.miso_pin,
         .mosi_pin = config.mosi_pin,
         .sck_pin = config.sck_pin,
-        .touch_config = touch_config
+        .touch_config = touch_config,
+        .spi_delay_us = config.spi_delay_us,
+        .spi_post_command_delay_us = config.spi_post_command_delay_us
     };
+    ESP_LOGI(TAG, "SoftSPI timings: delay_us=%u, post_command_delay_us=%u", driver_config.spi_delay_us, driver_config.spi_post_command_delay_us);
 
     auto driver = XPT2046_SoftSPI::create(driver_config);
     if (!driver) {

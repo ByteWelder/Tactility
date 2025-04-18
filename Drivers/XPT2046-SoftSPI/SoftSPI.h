@@ -54,10 +54,16 @@ public:
      */
     void cs_high();
 
+public:
+    // Set the delay (in microseconds) after sending the command byte before reading data
+    void set_post_command_delay_us(uint32_t delay) { post_command_delay_us_ = delay; }
+    uint32_t get_post_command_delay_us() const { return post_command_delay_us_; }
+
 private:
     gpio_num_t miso_pin_;
     gpio_num_t mosi_pin_;
     gpio_num_t sck_pin_;
     gpio_num_t cs_pin_;
     uint32_t delay_us_;
+    uint32_t post_command_delay_us_ = 2; // Default to 2us, can be tuned
 };

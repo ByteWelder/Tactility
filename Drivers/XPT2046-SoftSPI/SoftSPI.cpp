@@ -9,7 +9,17 @@ SoftSPI::SoftSPI(const Config& config)
       mosi_pin_(config.mosi_pin),
       sck_pin_(config.sck_pin),
       cs_pin_(config.cs_pin),
-      delay_us_(config.delay_us) {
+      delay_us_(config.delay_us),
+      post_command_delay_us_(2) // Default to 2us, can be tuned
+{
+}
+
+void SoftSPI::set_post_command_delay_us(uint32_t delay) {
+    post_command_delay_us_ = delay;
+}
+
+uint32_t SoftSPI::get_post_command_delay_us() const {
+    return post_command_delay_us_;
 }
 
 bool SoftSPI::begin() {
