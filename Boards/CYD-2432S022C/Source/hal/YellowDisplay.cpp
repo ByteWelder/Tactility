@@ -52,34 +52,40 @@ bool YellowDisplay::start() {
     ESP_LOGI(TAG, "Heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
     ESP_LOGI(TAG, "DMA heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
     
-    // Copy gpio_num_t[8] to int[8]
-    int dataPins[8];
+    // Copy gpio_num_t[8] to int[16] for new I80Display config (fill unused with GPIO_NUM_NC)
+    int dataPins[16];
     for (int i = 0; i < 8; i++) {
         dataPins[i] = static_cast<int>(config->dataPins[i]);
     }
+    for (int i = 8; i < 16; i++) {
+        dataPins[i] = GPIO_NUM_NC;
+    }
 
-    // Configure I80Display
-    I80Display::Configuration i80_config(
-        config->csPin,
-        config->dcPin,
-        config->wrPin,
-        dataPins,
-        config->horizontalResolution,
-        config->verticalResolution,
-        config->touch,
-        I80Display::PanelType::ST7789,
-        8
+    // Construct I80Display::Configuration using new API
+    auto i80_config = std::make_unique<I80Display::Configuration>(
+        config->dcPin, // dcPin
+        config->wrPin, // wrPin
+        dataPins,      // dataPins (int[16])
+        static_cast<unsigned int>(config->horizontalResolution),
+        static_cast<unsigned int>(config->verticalResolution),
+        I80Display::PanelType::ST7789, // panelType, hardcoded for this board
+        8, // busWidth
+        config->csPin // csPin
     );
-    i80_config.resetPin = config->rstPin;
-    i80_config.pixelClockFrequency = config->pclkHz;
-    i80_config.bufferSize = config->bufferSize ? config->bufferSize : CYD_2432S022C_LCD_DRAW_BUFFER_SIZE;
-    i80_config.swapXY = config->swapXY;
-    i80_config.mirrorX = config->mirrorX;
-    i80_config.mirrorY = config->mirrorY;
-    i80_config.backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
+    i80_config->resetPin = config->rstPin;
+    i80_config->backlightPin = config->backlightPin;
+    i80_config->pixelClockFrequency = config->pclkHz;
+    i80_config->drawBufferHeight = 0; // Use default unless overridden
+    i80_config->invertColor = false; // Set if needed
+    i80_config->mirrorX = config->mirrorX;
+    i80_config->mirrorY = config->mirrorY;
+    i80_config->swapColorBytes = false;
+    i80_config->rotationMode = I80Display::RotationMode::ROTATE_0;
+    i80_config->touch = config->touch;
+    // Add more fields as needed for your use case
 
-    ESP_LOGI(TAG, "Buffer size: %lu bytes", static_cast<unsigned long>(i80_config.bufferSize * 2));
-    i80Display = std::make_unique<I80Display>(std::make_unique<I80Display::Configuration>(i80_config));
+    ESP_LOGI(TAG, "Buffer size: %lu bytes", static_cast<unsigned long>(i80_config->drawBufferHeight * config->horizontalResolution * 2));
+    i80Display = std::make_unique<I80Display>(std::move(i80_config));
     if (!i80Display->start()) {
         ESP_LOGE(TAG, "Failed to initialize i80 display");
         i80Display.reset();
@@ -146,8 +152,11 @@ void YellowDisplay::setBacklightDuty(uint8_t backlightDuty) {
         ESP_LOGE(TAG, "setBacklightDuty: Display not started");
         return;
     }
-    i80Display->setBacklightDuty(backlightDuty);
-    ESP_LOGI(TAG, "Backlight duty set to %u", backlightDuty);
+    // Use setBacklightDuty only if supported by the new driver
+    if (i80Display) {
+        i80Display->setBacklightDuty(backlightDuty);
+        ESP_LOGI(TAG, "Backlight duty set to %u", backlightDuty);
+    }
 }
 
 std::shared_ptr<DisplayDevice> createDisplay() {
