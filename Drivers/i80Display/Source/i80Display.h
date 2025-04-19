@@ -136,7 +136,7 @@ public:
         std::shared_ptr<tt::hal::touch::TouchDevice> touch = nullptr;
     };
 
-protected:
+public:
     inline auto& getOnTransactionDone() const { return configuration->onTransactionDone; }
 private:
     std::unique_ptr<Configuration> configuration;
