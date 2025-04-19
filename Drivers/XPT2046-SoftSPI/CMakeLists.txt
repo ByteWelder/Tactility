@@ -2,6 +2,7 @@ idf_component_register(
     SRCS
         "esp_lcd_touch_xpt2046/esp_lcd_touch_xpt2046.cpp"
         "SoftSPI.cpp"
+        "SoftSPI.h"
         "XPT2046-SoftSPI.cpp"
     INCLUDE_DIRS
         "."
