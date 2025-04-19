@@ -7,7 +7,6 @@ idf_component_register(
     INCLUDE_DIRS
         "."
         "esp_lcd_touch_xpt2046/include"
-        "SoftSPI.h"
     REQUIRES
         Tactility
         driver

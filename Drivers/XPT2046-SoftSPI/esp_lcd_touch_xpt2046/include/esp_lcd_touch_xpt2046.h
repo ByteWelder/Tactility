@@ -3,7 +3,7 @@
 #include <memory>
 #include <esp_lcd_touch.h>
 #include <lvgl.h>
-#include "SoftSPI.h"
+#include "../../SoftSPI.h"
 
 #ifdef __cplusplus
 extern "C" {
