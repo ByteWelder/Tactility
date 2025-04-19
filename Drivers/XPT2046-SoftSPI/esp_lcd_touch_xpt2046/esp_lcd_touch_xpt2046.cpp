@@ -1,4 +1,5 @@
 #include "esp_lcd_touch_xpt2046.h"
+#include "../../XPT2046-SoftSPI.h"
 #include <esp_log.h>
 #include <esp_check.h>
 #include <cstring>
