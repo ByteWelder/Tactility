@@ -19,22 +19,22 @@ class Calibration : public App {
 public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
-        #ifdef ESP_PLATFORM
+    #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
-        #endif
-
+    #endif
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_add_flag(toolbar, LV_OBJ_FLAG_HIDDEN);
-
         label = lv_label_create(parent);
         updateScreen("Tap the top-left corner");
         drawCrosshair(20, 20);
+    #ifdef ESP_PLATFORM
         lv_obj_add_event_cb(lv_scr_act(), eventCallback, LV_EVENT_PRESSED, this);
+    #endif
 #else
-        #ifdef ESP_PLATFORM
+    #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Calibration not supported on this board");
-        #endif
+    #endif
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
         label = lv_label_create(parent);
@@ -44,9 +44,9 @@ public:
     }
 
     void onHide(AppContext& /*context*/) override {
-#ifdef ESP_PLATFORM
+    #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Hiding calibration");
-#endif
+    #endif
         if (label) {
             lv_obj_del(label);
             label = nullptr;
@@ -71,6 +71,7 @@ private:
         bool valid;
     };
 
+    #ifdef ESP_PLATFORM
     static void eventCallback(lv_event_t* e) {
         Calibration* app = static_cast<Calibration*>(lv_event_get_user_data(e));
         uint16_t rawX, rawY;
@@ -144,6 +145,8 @@ private:
                 break;
         }
     }
+    #endif
+
 
     void updateScreen(const char* instruction) {
         lv_label_set_text(label, instruction);
@@ -164,6 +167,7 @@ private:
         lv_obj_set_style_line_color(line2, lv_color_make(255, 0, 0), 0);
     }
 
+    #ifdef ESP_PLATFORM
     void logTouchData(uint16_t touchX, uint16_t touchY) {
         if (step < 2) {
             rawX[step] = touchX;
@@ -171,6 +175,9 @@ private:
             ESP_LOGI("Calibration", "Step %d: rawX=%u, rawY=%u", step, touchX, touchY);
         }
     }
+    #endif
+
+#endif // ESP_PLATFORM
 #else
     static void eventCallback(lv_event_t* /*e*/) {}
     void updateScreen(const char* /*instruction*/) {}
