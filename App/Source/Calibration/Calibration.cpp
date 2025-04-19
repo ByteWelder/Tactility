@@ -2,9 +2,8 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
-#include "../../Drivers/XPT2046-SoftSPI/esp_lcd_touch_xpt2046/include/esp_lcd_touch_xpt2046.h"
-
 #ifdef ESP_PLATFORM
+#include "../../Drivers/XPT2046-SoftSPI/esp_lcd_touch_xpt2046/include/esp_lcd_touch_xpt2046.h"
 #include "esp_log.h"
 #include <nvs_flash.h>
 #endif
@@ -20,7 +19,9 @@ class Calibration : public App {
 public:
     void onShow(AppContext& context, lv_obj_t* parent) override {
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
+        #ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Starting calibration on CYD-2432S028R");
+        #endif
 
         toolbar = tt::lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -43,9 +44,9 @@ public:
     }
 
     void onHide(AppContext& /*context*/) override {
-        #ifdef ESP_PLATFORM
+#ifdef ESP_PLATFORM
         ESP_LOGI("Calibration", "Hiding calibration");
-        #endif
+#endif
         if (label) {
             lv_obj_del(label);
             label = nullptr;
@@ -61,6 +62,7 @@ public:
 
 private:
 #ifdef CONFIG_TT_BOARD_CYD_2432S028R
+#ifdef ESP_PLATFORM
     struct CalibrationData {
         float xScale;
         float yScale;
