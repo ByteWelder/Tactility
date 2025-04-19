@@ -3,7 +3,7 @@
 #include <memory>
 #include <esp_lcd_touch.h>
 #include <lvgl.h>
-
+#include "../../SoftSPI.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -23,28 +23,38 @@ typedef struct {
     bool mirror_y;
 } esp_lcd_touch_xpt2046_config_t;
 
-class XPT2046_SoftSPI;
+#ifdef __cplusplus
+}
+#endif
 
-    uint32_t spi_delay_us = 10; ///< Delay between SPI signal transitions (default 10us)
-    uint32_t spi_post_command_delay_us = 2; ///< Delay after sending command before reading (default 2us)
-};
+// XPT2046_SoftSPI driver class (C++ only)
+class XPT2046_SoftSPI {
+public:
+    struct Config {
+        gpio_num_t cs_pin;
+        gpio_num_t int_pin;
+        gpio_num_t miso_pin;
+        gpio_num_t mosi_pin;
+        gpio_num_t sck_pin;
+        uint16_t x_max;
+        uint16_t y_max;
+        uint16_t x_min_raw;
+        uint16_t x_max_raw;
+        uint16_t y_min_raw;
+        uint16_t y_max_raw;
+        bool swap_xy;
+        bool mirror_x;
+        bool mirror_y;
+        uint16_t z_threshold = 30;
+        uint32_t spi_delay_us = 10;
+        uint32_t spi_post_command_delay_us = 2;
+    };
 
     static std::unique_ptr<XPT2046_SoftSPI> create(const Config& config);
     ~XPT2046_SoftSPI();
 
     esp_lcd_touch_handle_t get_handle() const { return handle_; }
-    /**
-     * @brief Get the LVGL input device for this touchscreen
-     * 
-     * @return lv_indev_t* LVGL input device pointer
-     */
     lv_indev_t* get_lvgl_indev() const { return indev_; }
-
-    /**
-     * @brief Self-test method for communication verification
-     *
-     * @return true if communication is successful, false otherwise
-     */
     bool self_test();
     void get_raw_touch(uint16_t& x, uint16_t& y);
 
@@ -65,7 +75,3 @@ private:
     gpio_num_t int_pin_;
     std::unique_ptr<SoftSPI> spi_;
 };
-
-#ifdef __cplusplus
-}
-#endif
