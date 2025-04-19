@@ -1,9 +1,6 @@
 #pragma once
 
-#include <memory>
 #include <esp_lcd_touch.h>
-#include <lvgl.h>
-#include "../../SoftSPI.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,53 +22,6 @@ typedef struct {
 
 #ifdef __cplusplus
 }
+// Forward declaration only; full definition is in XPT2046-SoftSPI.h
+class XPT2046_SoftSPI;
 #endif
-
-// XPT2046_SoftSPI driver class (C++ only)
-class XPT2046_SoftSPI {
-public:
-    struct Config {
-        gpio_num_t cs_pin;
-        gpio_num_t int_pin;
-        gpio_num_t miso_pin;
-        gpio_num_t mosi_pin;
-        gpio_num_t sck_pin;
-        uint16_t x_max;
-        uint16_t y_max;
-        uint16_t x_min_raw;
-        uint16_t x_max_raw;
-        uint16_t y_min_raw;
-        uint16_t y_max_raw;
-        bool swap_xy;
-        bool mirror_x;
-        bool mirror_y;
-        uint16_t z_threshold = 30;
-        uint32_t spi_delay_us = 10;
-        uint32_t spi_post_command_delay_us = 2;
-    };
-
-    static std::unique_ptr<XPT2046_SoftSPI> create(const Config& config);
-    ~XPT2046_SoftSPI();
-
-    esp_lcd_touch_handle_t get_handle() const { return handle_; }
-    lv_indev_t* get_lvgl_indev() const { return indev_; }
-    bool self_test();
-    void get_raw_touch(uint16_t& x, uint16_t& y);
-
-private:
-    XPT2046_SoftSPI(const Config& config);
-    bool init();
-
-    static esp_err_t read_data(esp_lcd_touch_handle_t tp);
-    static bool get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
-                       uint16_t* strength, uint8_t* point_num, uint8_t max_point_num);
-    static esp_err_t del(esp_lcd_touch_handle_t tp);
-    static void lvgl_read_cb(lv_indev_t* indev, lv_indev_data_t* data);
-    esp_err_t read_register(uint8_t reg, uint16_t* value);
-
-    esp_lcd_touch_handle_t handle_;
-    lv_indev_t* indev_;
-    gpio_num_t cs_pin_;
-    gpio_num_t int_pin_;
-    std::unique_ptr<SoftSPI> spi_;
-};
