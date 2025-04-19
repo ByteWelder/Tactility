@@ -85,6 +85,7 @@ public:
      * @param[out] y Raw Y coordinate (0-4095) or 0 if no touch
      */
     void get_raw_touch(uint16_t& x, uint16_t& y);
+    bool self_test();
     
     /**
      * @brief Read touch data from the controller
@@ -152,9 +153,9 @@ private:
 
     esp_lcd_touch_handle_t handle_;        ///< ESP LCD Touch handle
     lv_indev_t* indev_;                   ///< LVGL input device
-    std::unique_ptr<SoftSPI> spi_;        ///< SoftSPI interface
     gpio_num_t cs_pin_;                   ///< Chip select pin
     gpio_num_t int_pin_;                  ///< Interrupt pin
+    std::unique_ptr<SoftSPI> spi_;        ///< SoftSPI interface
     uint16_t z_threshold_;                ///< Z threshold value
     Config config_;                       ///< Driver configuration
 };
