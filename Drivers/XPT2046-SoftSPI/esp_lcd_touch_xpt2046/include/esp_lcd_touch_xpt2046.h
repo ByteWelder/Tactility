@@ -23,9 +23,8 @@ typedef struct {
     bool mirror_y;
 } esp_lcd_touch_xpt2046_config_t;
 
-class XPT2046_SoftSPI {
-public:
-    struct Config {
+class XPT2046_SoftSPI;
+
     // SPI connection pins
     gpio_num_t cs_pin;    ///< Chip Select pin
     gpio_num_t int_pin;   ///< Interrupt pin (optional, can be GPIO_NUM_NC)
