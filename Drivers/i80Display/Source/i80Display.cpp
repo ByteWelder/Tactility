@@ -430,9 +430,15 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
             esp_lcd_panel_draw_bitmap(self->panelHandle, 0, 0, 0, 0, px_map);
         } else {
             // Fallback to regular drawing
-            esp_lcd_panel_draw_bitmap(self->panelHandle,
-                                     area->x1, area->y1, 
-                                     area->x2 + 1, area->y2 + 1, px_map);
+            if (area->x1 > area->x2 || area->y1 > area->y2) {
+    TT_LOG_E(TAG, "Invalid area for draw_bitmap: x1=%d y1=%d x2=%d y2=%d", area->x1, area->y1, area->x2, area->y2);
+    lv_display_flush_ready(disp);
+    return;
+}
+TT_LOG_I(TAG, "draw_bitmap: x1=%d y1=%d x2=%d y2=%d", area->x1, area->y1, area->x2, area->y2);
+esp_lcd_panel_draw_bitmap(self->panelHandle,
+                         area->x1, area->y1, 
+                         area->x2 + 1, area->y2 + 1, px_map);
         }
         
         lv_display_flush_ready(disp);
