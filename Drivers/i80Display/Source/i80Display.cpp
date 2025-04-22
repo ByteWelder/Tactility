@@ -419,26 +419,26 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
     lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
         auto* self = static_cast<tt::hal::display::I80Display*>(lv_display_get_user_data(disp));
         
-        if (self->configuration->debugFlushCalls) {
-            TT_LOG_I(TAG, "Flush: x1=%ld, y1=%ld, x2=%ld, y2=%ld", 
-                    (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-        }
-        
+        // Always log the flush area and pointer
+        TT_LOG_I(TAG, "LVGL flush: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
         // Drawing optimization - batch commands if supported by the controller
         if (self->configuration->useBatchCommands && self->setBatchArea(area)) {
             // If batch area setup succeeded, we can use optimized drawing
+            TT_LOG_I(TAG, "Batch draw: area=%p", (void*)area);
             esp_lcd_panel_draw_bitmap(self->panelHandle, 0, 0, 0, 0, px_map);
         } else {
             // Fallback to regular drawing
+            TT_LOG_I(TAG, "Regular draw: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
             if (area->x1 > area->x2 || area->y1 > area->y2) {
-    TT_LOG_E(TAG, "Invalid area for draw_bitmap: x1=%d y1=%d x2=%d y2=%d", (int)area->x1, (int)area->y1, (int)area->x2, (int)area->y2);
-    lv_display_flush_ready(disp);
-    return;
-}
-TT_LOG_I(TAG, "draw_bitmap: x1=%d y1=%d x2=%d y2=%d", (int)area->x1, (int)area->y1, (int)area->x2, (int)area->y2);
-esp_lcd_panel_draw_bitmap(self->panelHandle,
-                         area->x1, area->y1, 
-                         area->x2 + 1, area->y2 + 1, px_map);
+                TT_LOG_E(TAG, "Invalid area for draw_bitmap: x1=%ld y1=%ld x2=%ld y2=%ld (area=%p)", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, (void*)area);
+                lv_display_flush_ready(disp);
+                return;
+            }
+            TT_LOG_I(TAG, "draw_bitmap: x1=%ld y1=%ld x2=%ld y2=%ld (area=%p)", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, (void*)area);
+            esp_lcd_panel_draw_bitmap(self->panelHandle,
+                                     area->x1, area->y1, 
+                                     area->x2 + 1, area->y2 + 1, px_map);
+        }
         }
         
         lv_display_flush_ready(disp);
