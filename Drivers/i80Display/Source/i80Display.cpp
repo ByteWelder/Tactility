@@ -443,7 +443,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         
         lv_display_flush_ready(disp);
     });
-    
+
     // Register additional callbacks if configured
     if (configuration->displayCallbacks) {
         configuration->displayCallbacks(displayHandle);
