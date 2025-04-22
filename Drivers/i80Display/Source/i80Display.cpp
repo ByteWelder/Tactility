@@ -439,7 +439,6 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
                                      area->x1, area->y1, 
                                      area->x2 + 1, area->y2 + 1, px_map);
         }
-        }
         
         lv_display_flush_ready(disp);
     });
