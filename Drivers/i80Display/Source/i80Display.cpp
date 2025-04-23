@@ -424,8 +424,10 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         // Drawing optimization - batch commands if supported by the controller
         if (self->configuration->useBatchCommands && self->setBatchArea(area)) {
             // If batch area setup succeeded, we can use optimized drawing
-            TT_LOG_I(TAG, "Batch draw: area=%p", (void*)area);
-            esp_lcd_panel_draw_bitmap(self->panelHandle, 0, 0, 0, 0, px_map);
+            TT_LOG_I(TAG, "Batch draw: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
+            esp_lcd_panel_draw_bitmap(self->panelHandle,
+                                     area->x1, area->y1,
+                                     area->x2 + 1, area->y2 + 1, px_map);
         } else {
             // Fallback to regular drawing
             TT_LOG_I(TAG, "Regular draw: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);

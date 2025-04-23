@@ -21,6 +21,8 @@ YellowDisplay::~YellowDisplay() {
     }
 }
 
+bool YellowDisplay::lvglInitialized = false;
+
 bool YellowDisplay::start() {
     if (isStarted) {
         ESP_LOGW(TAG, "Display already started");
@@ -32,7 +34,6 @@ bool YellowDisplay::start() {
     ESP_LOGI(TAG, "Heap free before LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
 
     // Initialize LVGL porting layer (only once)
-    static bool lvglInitialized = false;
     if (!lvglInitialized) {
         const lvgl_port_cfg_t lvgl_cfg = {
             .task_priority = 4,
@@ -129,7 +130,6 @@ bool YellowDisplay::stop() {
 
     i80Display.reset();
 
-    static bool lvglInitialized = true;
     if (lvglInitialized) {
         if (lvgl_port_deinit() != ESP_OK) {
             ESP_LOGE(TAG, "Failed to deinitialize LVGL port");

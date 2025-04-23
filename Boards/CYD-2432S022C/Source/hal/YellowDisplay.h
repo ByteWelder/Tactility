@@ -48,6 +48,7 @@ private:
     std::unique_ptr<Configuration> config;
     std::unique_ptr<I80Display> i80Display;
     bool isStarted;
+    static bool lvglInitialized;
 };
 
 std::shared_ptr<DisplayDevice> createDisplay();
