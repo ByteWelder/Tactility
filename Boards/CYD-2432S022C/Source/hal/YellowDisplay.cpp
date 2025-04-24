@@ -72,20 +72,14 @@ bool YellowDisplay::start() {
     i80Display = std::make_unique<I80Display>(std::move(i80_config));
     if (!i80Display->start()) {
         ESP_LOGE(TAG, "Failed to initialize i80 display");
-        if (lvglInitialized) {
-            lvgl_port_deinit();
-            lvglInitialized = false;
-        }
+
         i80Display.reset();
         return false;
     }
 
     if (!driver::pwmbacklight::init(config->backlightPin)) {
         ESP_LOGE(TAG, "Failed to initialize PWM backlight");
-        if (lvglInitialized) {
-            lvgl_port_deinit();
-            lvglInitialized = false;
-        }
+
         i80Display.reset();
         return false;
     }
