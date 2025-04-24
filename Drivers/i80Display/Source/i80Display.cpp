@@ -102,10 +102,10 @@ bool I80Display::start() {
     }
 
     // Optional: Run display test if configured
-    if (configuration->runDisplayTest) {
-        runDisplayTest();
-    }
-
+    // if (configuration->runDisplayTest) {
+    //     runDisplayTest();
+    // }
+    
     TT_LOG_I(TAG, "I80 Display initialization completed successfully");
     return true;
 }

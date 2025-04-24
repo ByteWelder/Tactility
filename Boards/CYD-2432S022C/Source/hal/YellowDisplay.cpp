@@ -21,9 +21,10 @@ YellowDisplay::~YellowDisplay() {
     }
 }
 
-bool YellowDisplay::lvglInitialized = false;
-
 bool YellowDisplay::start() {
+    ESP_LOGW(TAG, "[LOG] Entered YellowDisplay::start() at %s:%d", __FILE__, __LINE__);
+    esp_backtrace_print(10); // Print up to 10 stack frames for debugging
+
     if (isStarted) {
         ESP_LOGW(TAG, "Display already started");
         return true;
@@ -33,22 +34,6 @@ bool YellowDisplay::start() {
     ESP_LOGI(TAG, "DMA heap free: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
     ESP_LOGI(TAG, "Heap free before LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
 
-    // Initialize LVGL porting layer (only once)
-    if (!lvglInitialized) {
-        const lvgl_port_cfg_t lvgl_cfg = {
-            .task_priority = 4,
-            .task_stack = 6144,
-            .task_affinity = -1,
-            .task_max_sleep_ms = 500,
-            .timer_period_ms = 5,
-        };
-        if (lvgl_port_init(&lvgl_cfg) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize LVGL port");
-            return false;
-        }
-        ESP_LOGI(TAG, "LVGL port initialized");
-        lvglInitialized = true;
-    }
 
     ESP_LOGI(TAG, "Heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DEFAULT)));
     ESP_LOGI(TAG, "DMA heap free after LVGL init: %lu", static_cast<unsigned long>(heap_caps_get_free_size(MALLOC_CAP_DMA)));
@@ -123,22 +108,15 @@ bool YellowDisplay::start() {
 }
 
 bool YellowDisplay::stop() {
+    ESP_LOGW(TAG, "[LOG] Entered YellowDisplay::stop() at %s:%d", __FILE__, __LINE__);
+    esp_backtrace_print(10); // Print up to 10 stack frames for debugging
+
     if (!isStarted) {
         ESP_LOGW(TAG, "Display not started");
         return true;
     }
 
     i80Display.reset();
-
-    if (lvglInitialized) {
-        if (lvgl_port_deinit() != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to deinitialize LVGL port");
-        } else {
-            ESP_LOGI(TAG, "LVGL port deinitialized");
-            lvglInitialized = false;
-        }
-    }
-
     isStarted = false;
     ESP_LOGI(TAG, "Display stopped successfully");
     return true;
