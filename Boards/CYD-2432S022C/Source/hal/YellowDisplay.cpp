@@ -4,7 +4,7 @@
 #include "esp_log.h"
 #include "Tactility/app/display/DisplaySettings.h"
 #include "PwmBacklight.h"
-#include <esp_private/esp_backtrace.h>
+#include <esp_debug_helpers.h>
 #include <esp_lvgl_port.h>
 #include <esp_heap_caps.h>
 
