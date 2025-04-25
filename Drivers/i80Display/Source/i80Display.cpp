@@ -376,7 +376,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
     uint32_t buffer_size = configuration->horizontalResolution * 
                           (configuration->drawBufferHeight > 0 ? 
                            configuration->drawBufferHeight : 
-                           CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT);
+                           DEFAULT_DRAW_BUFFER_HEIGHT);
     
     lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = ioHandle,

@@ -36,7 +36,7 @@ public:
     };
 
     // Default configuration values for common displays
-    static constexpr uint16_t CYD_2432S022C_LCD_DRAW_BUFFER_HEIGHT = 10;
+    static constexpr uint16_t DEFAULT_DRAW_BUFFER_HEIGHT = 10;
 
     class Configuration {
     public:

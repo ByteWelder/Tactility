@@ -7,6 +7,8 @@
 #include "esp_log.h"
 #include <inttypes.h>
 
+using tt::hal::display::I80Display;
+
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // If you have a custom touch config, put it here. Otherwise, just return nullptr or use createYellowTouch().
     return createYellowTouch();
