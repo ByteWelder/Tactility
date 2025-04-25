@@ -14,6 +14,10 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     return createYellowTouch();
 }
 
+void YellowDisplay::setBacklightDuty(uint8_t duty) {
+    driver::pwmbacklight::setBacklightDuty(duty);
+}
+
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI("YellowDisplay", "[LOG] Entered createDisplay() at %s:%d", __FILE__, __LINE__);
     auto touch = createTouch();
@@ -51,6 +55,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     config->invertColor = false;
     config->rotationMode = I80Display::RotationMode::ROTATE_0;
     config->touch = touch;
-    config->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-    return std::make_shared<I80Display>(std::move(config));
+    
+    // Initialize PWM backlight before creating display
+    driver::pwmbacklight::init(CYD_2432S022C_LCD_PIN_BACKLIGHT, 200); // Set frequency as needed
+    config->backlightPin = GPIO_NUM_NC; // Let PWM handle backlight
+    return std::make_shared<YellowDisplay>(std::move(config));
 }
