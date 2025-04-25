@@ -5,36 +5,15 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
 
-
 #define TAG "CYD2432S022C"
 
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto display = tt::hal::display::createDisplay();
-    if (!display) {
-        ESP_LOGE(TAG, "Failed to create display");
-    }
-    return display;
-}
-
-bool init_boot() {
-    auto display = createDisplay();
-    if (!display || !display->start()) {
-        ESP_LOGE(TAG, "Failed to start display during boot");
-        return false;
-    }
-
-    lv_display_t* lvglDisp = display->getLvglDisplay();
-    if (!lvglDisp) {
-        ESP_LOGE(TAG, "Failed to get LVGL display handle during boot");
-        return false;
-    }
-
-    ESP_LOGI(TAG, "Boot initialization completed successfully");
+static bool initBoot() {
+    // No hardware initialization required at boot for this board
     return true;
 }
 
 const tt::hal::Configuration cyd_2432s022c_config = {
-    .initBoot = init_boot,
+    .initBoot = initBoot,
     .createDisplay = createDisplay,
     .sdcard = createYellowSDCard(),
     .power = nullptr,
