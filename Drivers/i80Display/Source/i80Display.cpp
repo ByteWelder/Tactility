@@ -415,7 +415,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
     }
     
     // Set up flush callback
-    lv_display_set_user_data(displayHandle, this);
+    // lv_display_set_user_data(displayHandle, this); // never set this *sigh*
     lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
         auto* self = static_cast<tt::hal::display::I80Display*>(lv_display_get_user_data(disp));
         
