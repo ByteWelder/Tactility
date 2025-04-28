@@ -4,6 +4,7 @@
 #include "hal/CYD2432S022CConstants.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include "esp_log.h"
+#include <PwmBacklight.h>
 
 #define TAG "CYD2432S022C"
 
