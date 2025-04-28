@@ -8,8 +8,10 @@
 #define TAG "CYD2432S022C"
 
 static bool initBoot() {
-    // No hardware initialization required at boot for this board
-    return true;
+    // Initialize PWM backlight before creating display
+    driver::pwmbacklight::init(CYD_2432S022C_LCD_PIN_BACKLIGHT, 40000); // Recommended 40 kHz
+    ESP_LOGI("YellowDisplay", "Setting backlight duty to 255");
+    driver::pwmbacklight::setBacklightDuty(255);
 }
 
 const tt::hal::Configuration cyd_2432s022c_config = {

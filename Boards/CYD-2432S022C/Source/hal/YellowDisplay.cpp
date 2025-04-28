@@ -46,15 +46,12 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     );
     config->resetPin = CYD_2432S022C_LCD_PIN_RST;
     config->pixelClockFrequency = CYD_2432S022C_LCD_PCLK_HZ;
+    config->backlightPin = GPIO_NUM_NC; // Let PWM handle backlight
     config->drawBufferHeight = 0;
+    config->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     config->invertColor = false;
     config->rotationMode = I80Display::RotationMode::ROTATE_0;
     config->touch = touch;
     
-    // Initialize PWM backlight before creating display
-    driver::pwmbacklight::init(CYD_2432S022C_LCD_PIN_BACKLIGHT, 40000); // Recommended 40 kHz
-    ESP_LOGI("YellowDisplay", "Setting backlight duty to 128");
-    driver::pwmbacklight::setBacklightDuty(128);
-    config->backlightPin = GPIO_NUM_NC; // Let PWM handle backlight
     return std::make_shared<I80Display>(std::move(config));
 }

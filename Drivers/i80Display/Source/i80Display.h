@@ -40,6 +40,8 @@ public:
 
     class Configuration {
     public:
+        // Flexible PWM backlight callback (optional, like ILI934x)
+        std::function<void(uint8_t)> backlightDutyFunction = nullptr;
         Configuration(
             gpio_num_t dcPin,
             gpio_num_t wrPin,
@@ -187,11 +189,16 @@ public:
     }
 
     void setBacklightDuty(uint8_t backlightDuty) final {
-        setBrightness(backlightDuty);
+        if (configuration->backlightDutyFunction) {
+            configuration->backlightDutyFunction(backlightDuty);
+        } else {
+            setBrightness(backlightDuty);
+        }
     }
 
     bool supportsBacklightDuty() const final {
-        return configuration->backlightPin != GPIO_NUM_NC || 
+        return (configuration->backlightDutyFunction != nullptr) ||
+               (configuration->backlightPin != GPIO_NUM_NC) ||
                configuration->supportsBrightnessCommand;
     }
 
