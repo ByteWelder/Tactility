@@ -12,6 +12,7 @@ static bool initBoot() {
     driver::pwmbacklight::init(CYD_2432S022C_LCD_PIN_BACKLIGHT, 40000); // Recommended 40 kHz
     ESP_LOGI("YellowDisplay", "Setting backlight duty to 255");
     driver::pwmbacklight::setBacklightDuty(255);
+    return true;
 }
 
 const tt::hal::Configuration cyd_2432s022c_config = {
