@@ -17,13 +17,15 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI("YellowDisplay", "[LOG] Entered createDisplay() at %s:%d", __FILE__, __LINE__);
     auto touch = createTouch();
-    int dataPins[16] = {
-        CYD_2432S022C_LCD_PIN_D0, CYD_2432S022C_LCD_PIN_D1,
-        CYD_2432S022C_LCD_PIN_D2, CYD_2432S022C_LCD_PIN_D3,
-        CYD_2432S022C_LCD_PIN_D4, CYD_2432S022C_LCD_PIN_D5,
-        CYD_2432S022C_LCD_PIN_D6, CYD_2432S022C_LCD_PIN_D7,
-        GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC,
-        GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC, GPIO_NUM_NC
+    int dataPins[8] = {
+        CYD_2432S022C_LCD_PIN_D0,
+        CYD_2432S022C_LCD_PIN_D1,
+        CYD_2432S022C_LCD_PIN_D2,
+        CYD_2432S022C_LCD_PIN_D3,
+        CYD_2432S022C_LCD_PIN_D4,
+        CYD_2432S022C_LCD_PIN_D5,
+        CYD_2432S022C_LCD_PIN_D6,
+        CYD_2432S022C_LCD_PIN_D7
     };
     ESP_LOGI("YellowDisplay", "Display config:");
     ESP_LOGI("YellowDisplay", "  dataPins: [%d %d %d %d %d %d %d %d]", 
