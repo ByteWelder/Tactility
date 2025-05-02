@@ -7,7 +7,7 @@
 #include "esp_log.h"
 #include <inttypes.h>
 
-using tt::hal::display::I80Display;
+using namespace tt::hal::display;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // If you have a custom touch config, put it here. Otherwise, just return nullptr or use createYellowTouch().
@@ -36,33 +36,26 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     ESP_LOGI("YellowDisplay", "  Resolution: %ux%u, Pixel Clock: %u Hz, Bus Width: %u", 
         CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION, CYD_2432S022C_LCD_VERTICAL_RESOLUTION, CYD_2432S022C_LCD_PCLK_HZ, 8);
 
-    auto config = std::make_unique<I80Display::Configuration>(
-        CYD_2432S022C_LCD_PIN_DC,
-        CYD_2432S022C_LCD_PIN_WR,
-        dataPins,
-        CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION,
-        CYD_2432S022C_LCD_VERTICAL_RESOLUTION,
-        I80Display::PanelType::ST7789,
-        8,
-        CYD_2432S022C_LCD_PIN_CS
-    );
-    // Bus configuration
+    auto config = std::make_unique<Configuration>();
+    config->dcPin = CYD_2432S022C_LCD_PIN_DC;
+    config->wrPin = CYD_2432S022C_LCD_PIN_WR;
+    config->csPin = CYD_2432S022C_LCD_PIN_CS;
     config->resetPin = CYD_2432S022C_LCD_PIN_RST;
+    config->horizontalResolution = CYD_2432S022C_LCD_HORIZONTAL_RESOLUTION;
+    config->verticalResolution = CYD_2432S022C_LCD_VERTICAL_RESOLUTION;
+    config->panelType = PanelType::ST7789;
+    config->busWidth = 8;
     config->pixelClockFrequency = CYD_2432S022C_LCD_PCLK_HZ;
-    config->useDmaBuffer = true;
-    config->useSpiRamBuffer = false;
-    
-    // Panel configuration
-    config->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
-    config->bitsPerPixel = 16;
-    config->supportsGammaCorrection = true;
-    
-    // Display settings
     config->backlightPin = GPIO_NUM_NC;
     config->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     config->invertColor = false;
-    config->rotationMode = I80Display::RotationMode::ROTATE_0;
+    config->rotationMode = RotationMode::ROTATE_0;
     config->touch = touch;
+    config->supportsGammaCorrection = true;
+    config->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
+    config->bitsPerPixel = 16;
+    config->useDmaBuffer = true;
+    config->useSpiRamBuffer = false;
     config->drawBufferHeight = 0;
     
     return std::make_shared<I80Display>(std::move(config));

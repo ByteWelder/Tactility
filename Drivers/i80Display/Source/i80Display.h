@@ -1,15 +1,16 @@
 #pragma once
 
 #include "Tactility/hal/display/DisplayDevice.h"
+#include <driver/gpio.h>
 #include <esp_lcd_panel_commands.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_vendor.h>
 #include <esp_lcd_panel_st7789.h>
 #include <esp_lcd_ili9341.h>
 #include <esp_heap_caps.h>
-#include <driver/gpio.h>
 #include <lvgl.h>
 #include "Tactility/Log.h"
+#include <functional>
 
 namespace tt::hal::display {
 
@@ -100,7 +101,7 @@ struct Configuration {
     std::function<esp_err_t(esp_lcd_panel_io_handle_t, const esp_lcd_panel_dev_config_t*, esp_lcd_panel_handle_t*)> customPanelSetup = nullptr;
     
     // Transaction callbacks
-    std::function<void(I80Display*, void*)> onTransactionDone = nullptr;
+    std::function<void(esp_lcd_panel_io_handle_t, esp_lcd_panel_io_event_data_t*, void*)> onTransactionDone = nullptr;
     std::function<void(lv_display_t*)> displayCallbacks = nullptr;
     
     // Debug options
@@ -119,6 +120,7 @@ struct Configuration {
     std::function<void(uint8_t)> backlightDutyFunction = nullptr;
 };
 
+// I80Display class definition
 class I80Display final : public tt::hal::display::DisplayDevice {
 public:
     explicit I80Display(std::unique_ptr<Configuration> inConfiguration)
