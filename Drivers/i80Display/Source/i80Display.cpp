@@ -87,14 +87,14 @@ bool I80Display::start() {
         return false;
     }
 
-    // Step 4: Configure panel
+    // Step 4: Configure panel with explicit settings
     if (!configurePanel()) {
         TT_LOG_E(TAG, "Failed to configure panel");
         cleanupResources();
         return false;
     }
 
-    // Step 5: Set up LVGL display
+    // Step 5: Set up LVGL display with color format handling
     if (!setupLVGLDisplay()) {
         TT_LOG_E(TAG, "Failed to set up LVGL display");
         cleanupResources();
@@ -181,36 +181,28 @@ bool I80Display::initializeGPIO() {
 }
 
 bool I80Display::initializeI80Bus() {
-    // Log memory stats before allocation
-    logMemoryStats("before bus initialization");
+    TT_LOG_I(TAG, "Initializing I80 bus");
     
     esp_lcd_i80_bus_config_t bus_config = {
+        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = configuration->dcPin,
         .wr_gpio_num = configuration->wrPin,
-        .clk_src = LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums = {
-            configuration->dataPins[0], configuration->dataPins[1], 
-            configuration->dataPins[2], configuration->dataPins[3],
-            configuration->dataPins[4], configuration->dataPins[5], 
-            configuration->dataPins[6], configuration->dataPins[7],
-            configuration->dataPins[8], configuration->dataPins[9], 
-            configuration->dataPins[10], configuration->dataPins[11],
-            configuration->dataPins[12], configuration->dataPins[13], 
-            configuration->dataPins[14], configuration->dataPins[15]
+            configuration->dataPins[0],
+            configuration->dataPins[1],
+            configuration->dataPins[2],
+            configuration->dataPins[3],
+            configuration->dataPins[4],
+            configuration->dataPins[5],
+            configuration->dataPins[6],
+            configuration->dataPins[7]
         },
-        .bus_width = configuration->busWidth,
-        .max_transfer_bytes = configuration->maxTransferBytes > 0 ? 
-                              configuration->maxTransferBytes : DEFAULT_MAX_TRANSFER_BYTES,
-        .dma_burst_size = configuration->dmaBurstSize > 0 ? 
-                         configuration->dmaBurstSize : DEFAULT_DMA_BURST_SIZE,
-        .sram_trans_align = DEFAULT_SRAM_ALIGN,
+        .bus_width = 8,  // Explicitly set bus width
+        .max_transfer_bytes = DEFAULT_MAX_TRANSFER_BYTES,
+        .dma_burst_size = DEFAULT_DMA_BURST_SIZE,
     };
-    
+
     RETURN_ON_ERROR(esp_lcd_new_i80_bus(&bus_config, &i80Bus));
-    
-    // Log memory stats after allocation
-    logMemoryStats("after bus initialization");
-    
     return true;
 }
 
@@ -290,170 +282,86 @@ bool tt::hal::display::I80Display::initializePanel() {
 }
 
 bool tt::hal::display::I80Display::configurePanel() {
-    // Reset panel if reset pin is configured
-    if (configuration->resetPin != GPIO_NUM_NC) {
-        RETURN_ON_ERROR(esp_lcd_panel_reset(panelHandle));
-    }
+    TT_LOG_I(TAG, "Configuring panel");
     
-    // Initialize the panel
+    // Set color format and bit depth
+    esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = configuration->resetPin,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,  // Explicitly set RGB order
+        .bits_per_pixel = 16,
+    };
+
+    // Initialize panel
+    RETURN_ON_ERROR(esp_lcd_panel_reset(panelHandle));
     RETURN_ON_ERROR(esp_lcd_panel_init(panelHandle));
+
+    // Set panel configuration
+    RETURN_ON_ERROR(esp_lcd_panel_invert_color(panelHandle, true));
+    RETURN_ON_ERROR(esp_lcd_panel_swap_xy(panelHandle, false));
+    RETURN_ON_ERROR(esp_lcd_panel_mirror(panelHandle, false, false));
     
-    // Apply custom initialization commands if provided
-    if (configuration->customInitCommands && configuration->customInitCommandsCount > 0) {
-        for (size_t i = 0; i < configuration->customInitCommandsCount; i++) {
-            const auto& cmd = configuration->customInitCommands[i];
-            RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, cmd.cmd, 
-                                                     cmd.data, cmd.dataSize));
-            if (cmd.delayMs > 0) {
-                vTaskDelay(pdMS_TO_TICKS(cmd.delayMs));
-            }
-        }
-    } else {
-        // Default initialization sequence (mimic LovyanGFX)
-        uint8_t colmod[] = {static_cast<uint8_t>(configuration->bitsPerPixel == 16 ? 0x05 : 0x06)}; // RGB565 or RGB666
-        
-        // Sleep Out
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_SLEEP_OUT, nullptr, 0));
-        vTaskDelay(pdMS_TO_TICKS(SLEEP_OUT_DELAY_MS));
-        
-        // COLMOD - Color pixel format
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_COLMOD, colmod, 1));
-        
-        // Display ON
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_DISPLAY_ON, nullptr, 0));
-        vTaskDelay(pdMS_TO_TICKS(DISPLAY_ON_DELAY_MS));
+    // Set gamma correction (if needed)
+    if (configuration->supportsGammaCorrection) {
+        uint8_t gamma_table[] = {
+            0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
+            0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F
+        };
+        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, 0xE0, gamma_table, 15));
+        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, 0xE1, gamma_table + 15, 15));
     }
-    
-    // Set panel orientation
-    if (configuration->rotationMode != RotationMode::SOFTWARE) {
-        bool swapXY = false;
-        bool mirrorX = false;
-        bool mirrorY = false;
-        
-        switch (configuration->rotationMode) {
-            case RotationMode::ROTATE_0:
-                break;
-            case RotationMode::ROTATE_90:
-                swapXY = true;
-                mirrorY = true;
-                break;
-            case RotationMode::ROTATE_180:
-                mirrorX = true;
-                mirrorY = true;
-                break;
-            case RotationMode::ROTATE_270:
-                swapXY = true;
-                mirrorX = true;
-                break;
-            default:
-                break;
-        }
-        
-        RETURN_ON_ERROR(esp_lcd_panel_swap_xy(panelHandle, swapXY));
-        RETURN_ON_ERROR(esp_lcd_panel_mirror(panelHandle, mirrorX, mirrorY));
-    } else {
-        // Avoid hardware rotation to prevent conflicts when using software rotation
-        RETURN_ON_ERROR(esp_lcd_panel_swap_xy(panelHandle, false));
-        RETURN_ON_ERROR(esp_lcd_panel_mirror(panelHandle, false, false));
-    }
-    
-    // Set color inversion if needed
-    RETURN_ON_ERROR(esp_lcd_panel_invert_color(panelHandle, configuration->invertColor));
-    
-    // Turn on the display
-    RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(panelHandle, true));
-    
-    // Turn on backlight if configured
-    if (configuration->backlightPin != GPIO_NUM_NC) {
-        gpio_set_level(configuration->backlightPin, 
-                      configuration->backlightActiveLow ? 0 : 1);
-    }
-    
+
     return true;
 }
 
 bool tt::hal::display::I80Display::setupLVGLDisplay() {
-    uint32_t buffer_size = configuration->horizontalResolution * 
+    TT_LOG_I(TAG, "Setting up LVGL display");
+    
+    // Create LVGL display
+    displayHandle = lvgl_port_add_disp(nullptr);
+    if (!displayHandle) {
+        TT_LOG_E(TAG, "Failed to create LVGL display");
+        return false;
+    }
+
+    // Set color format
+    lv_display_set_color_format(displayHandle, LV_COLOR_FORMAT_RGB565);
+
+    // Allocate draw buffers
+    size_t draw_buffer_sz = configuration->horizontalResolution * 
                           (configuration->drawBufferHeight > 0 ? 
                            configuration->drawBufferHeight : 
                            DEFAULT_DRAW_BUFFER_HEIGHT);
     
-    lvgl_port_display_cfg_t disp_cfg = {
-        .io_handle = ioHandle,
-        .panel_handle = panelHandle,
-        .control_handle = nullptr,
-        .buffer_size = buffer_size,
-        .double_buffer = configuration->useDoubleBuffer,
-        .trans_size = configuration->transactionSize,
-        .hres = configuration->horizontalResolution,
-        .vres = configuration->verticalResolution,
-        .monochrome = false,
-        .rotation = { // This corresponds to LVGL's rotation
-            .swap_xy = (configuration->rotationMode == RotationMode::ROTATE_90 || 
-                       configuration->rotationMode == RotationMode::ROTATE_270),
-            .mirror_x = (configuration->rotationMode == RotationMode::ROTATE_180 || 
-                        configuration->rotationMode == RotationMode::ROTATE_270),
-            .mirror_y = (configuration->rotationMode == RotationMode::ROTATE_180 || 
-                        configuration->rotationMode == RotationMode::ROTATE_90)
-        },
-        .color_format = (configuration->bitsPerPixel == 16) ? 
-                        LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
-        .flags = {
-            .buff_dma = configuration->useDmaBuffer,
-            .buff_spiram = configuration->useSpiRamBuffer,
-            .sw_rotate = configuration->rotationMode == RotationMode::SOFTWARE,
-            .swap_bytes = configuration->swapBytesLVGL,
-            .full_refresh = configuration->useFullRefresh,
-            .direct_mode = configuration->useDirectMode
-        }
-    };
+    void* buf1 = esp_lcd_i80_alloc_draw_buffer(ioHandle, draw_buffer_sz, MALLOC_CAP_DMA);
+    void* buf2 = esp_lcd_i80_alloc_draw_buffer(ioHandle, draw_buffer_sz, MALLOC_CAP_DMA);
     
-    displayHandle = lvgl_port_add_disp(&disp_cfg);
-    if (!displayHandle) {
-        TT_LOG_E(TAG, "Failed to initialize LVGL display");
+    if (!buf1 || !buf2) {
+        TT_LOG_E(TAG, "Failed to allocate draw buffers");
         return false;
     }
-    
-    // Set up flush callback
-    // lv_display_set_user_data(displayHandle, this); // never set this *sigh*
-    lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
-        auto* self = static_cast<tt::hal::display::I80Display*>(lv_display_get_user_data(disp));
+
+    // Initialize LVGL draw buffers
+    lv_display_set_buffers(displayHandle, buf1, buf2, draw_buffer_sz, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_user_data(displayHandle, panelHandle);
+
+    // Set flush callback with color format handling
+    lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* color_map) {
+        esp_lcd_panel_handle_t panel_handle = lv_display_get_user_data(disp);
+        int offsetx1 = area->x1;
+        int offsetx2 = area->x2;
+        int offsety1 = area->y1;
+        int offsety2 = area->y2;
+
+        // Swap RGB bytes for correct color format
+        lv_draw_sw_rgb565_swap(color_map, (offsetx2 + 1 - offsetx1) * (offsety2 + 1 - offsety1));
         
-        // Always log the flush area and pointer
-        TT_LOG_I(TAG, "LVGL flush: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-        // Drawing optimization - batch commands if supported by the controller
-        if (self->configuration->useBatchCommands && self->setBatchArea(area)) {
-            // If batch area setup succeeded, we can use optimized drawing
-            TT_LOG_I(TAG, "Batch draw: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-            esp_lcd_panel_draw_bitmap(self->panelHandle,
-                                     area->x1, area->y1,
-                                     area->x2 + 1, area->y2 + 1, px_map);
-        } else {
-            // Fallback to regular drawing
-            TT_LOG_I(TAG, "Regular draw: area=%p x1=%ld y1=%ld x2=%ld y2=%ld", (void*)area, (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2);
-            if (area->x1 > area->x2 || area->y1 > area->y2) {
-                TT_LOG_E(TAG, "Invalid area for draw_bitmap: x1=%ld y1=%ld x2=%ld y2=%ld (area=%p)", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, (void*)area);
-                lv_display_flush_ready(disp);
-                return;
-            }
-            TT_LOG_I(TAG, "draw_bitmap: x1=%ld y1=%ld x2=%ld y2=%ld (area=%p)", (long)area->x1, (long)area->y1, (long)area->x2, (long)area->y2, (void*)area);
-            esp_lcd_panel_draw_bitmap(self->panelHandle,
-                                     area->x1, area->y1, 
-                                     area->x2 + 1, area->y2 + 1, px_map);
-        }
-        
-        lv_display_flush_ready(disp);
+        esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
     });
 
-    // Register additional callbacks if configured
-    if (configuration->displayCallbacks) {
-        configuration->displayCallbacks(displayHandle);
-    }
-    
     return true;
 }
 
-void tt::hal::display::I80Display::runDisplayTest() {
+bool I80Display::runDisplayTest() {
     const uint32_t width = configuration->horizontalResolution;
     const uint32_t height = configuration->verticalResolution;
     const size_t bufferSize = width * height * sizeof(uint16_t);
