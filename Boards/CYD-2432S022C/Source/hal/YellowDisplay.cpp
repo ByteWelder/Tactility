@@ -52,6 +52,11 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     config->invertColor = false;
     config->rotationMode = I80Display::RotationMode::ROTATE_0;
     config->touch = touch;
+    config->supportsGammaCorrection = true;  // ST7789 supports gamma correction
+    config->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
+    config->bitsPerPixel = 16;  // RGB565 format
+    config->useDmaBuffer = true;  // Enable DMA for faster transfers
+    config->useSpiRamBuffer = false;  // Use regular DMA instead of SPI RAM
     
     return std::make_shared<I80Display>(std::move(config));
 }
