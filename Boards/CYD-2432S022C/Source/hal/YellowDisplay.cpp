@@ -44,19 +44,24 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         8,
         CYD_2432S022C_LCD_PIN_CS
     );
+    // Bus configuration
     config->resetPin = CYD_2432S022C_LCD_PIN_RST;
     config->pixelClockFrequency = CYD_2432S022C_LCD_PCLK_HZ;
-    config->backlightPin = GPIO_NUM_NC; // Let PWM handle backlight
-    config->drawBufferHeight = 0;
+    config->useDmaBuffer = true;
+    config->useSpiRamBuffer = false;
+    
+    // Panel configuration
+    config->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
+    config->bitsPerPixel = 16;
+    config->supportsGammaCorrection = true;
+    
+    // Display settings
+    config->backlightPin = GPIO_NUM_NC;
     config->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     config->invertColor = false;
     config->rotationMode = I80Display::RotationMode::ROTATE_0;
     config->touch = touch;
-    config->supportsGammaCorrection = true;  // ST7789 supports gamma correction
-    config->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
-    config->bitsPerPixel = 16;  // RGB565 format
-    config->useDmaBuffer = true;  // Enable DMA for faster transfers
-    config->useSpiRamBuffer = false;  // Use regular DMA instead of SPI RAM
+    config->drawBufferHeight = 0;
     
     return std::make_shared<I80Display>(std::move(config));
 }
