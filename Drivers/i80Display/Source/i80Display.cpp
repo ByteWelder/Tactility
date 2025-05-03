@@ -201,7 +201,8 @@ bool I80Display::initializeI80Bus() {
     TT_LOG_I(TAG, "Initializing I80 bus");
     
     esp_lcd_i80_bus_config_t bus_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .dc_gpio_num = configuration->dcPin,
+        .wr_gpio_num = configuration->wrPin,
         .data_gpio_nums = {
             configuration->dataPins[0],
             configuration->dataPins[1],
@@ -214,9 +215,9 @@ bool I80Display::initializeI80Bus() {
         },
         .bus_width = 8,  // Explicitly set bus width
         .max_transfer_bytes = DEFAULT_MAX_TRANSFER_BYTES,
+        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dma_burst_size = DEFAULT_DMA_BURST_SIZE,
-        .dc_gpio_num = configuration->dcPin,
-        .wr_gpio_num = configuration->wrPin
+        // psram_trans_align and sram_trans_align omitted as they default to 0
     };
 
     RETURN_ON_ERROR(esp_lcd_new_i80_bus(&bus_config, &i80Bus));
