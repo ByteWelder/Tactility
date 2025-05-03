@@ -189,7 +189,7 @@ private:
     bool setupLVGLDisplay();
     bool cleanupResources();
     bool setBatchArea(const lv_area_t* area);
-    void runDisplayTest();
+    bool runDisplayTest();
     void logMemoryStats(const char* stage);
 };
 

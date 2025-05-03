@@ -17,11 +17,10 @@
 namespace tt::hal::display {
 
 // Transaction done callback for panel IO
-static bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, esp_lcd_panel_io_event_data_t* event_data, void* user_ctx) {
+bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, esp_lcd_panel_io_event_data_t* event_data, void* user_ctx) {
     auto* self = static_cast<I80Display*>(user_ctx);
-    // Provide a public/protected accessor for configuration if needed, or make this a friend if necessary
-    if (self && self->getOnTransactionDone()) {
-        self->getOnTransactionDone()(self, io);
+    if (self && self->configuration->onTransactionDone) {
+        self->configuration->onTransactionDone(io, event_data, user_ctx);
     }
     return true;
 }
@@ -30,11 +29,35 @@ namespace {
     // Panel command constants
     constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
     constexpr uint8_t LCD_CMD_DISPLAY_ON = 0x29;
-
+    constexpr uint8_t LCD_CMD_COLMOD = 0x3A;
+    constexpr uint8_t LCD_CMD_MADCTL = 0x36;
+    constexpr uint8_t LCD_CMD_INVON = 0x21;
+    constexpr uint8_t LCD_CMD_INVOFF = 0x20;
+    constexpr uint8_t LCD_CMD_GAMMASET = 0x26;
+    
+    // Gamma values for ST7789
+    constexpr uint8_t GAMMA_DEFAULT[] = {
+        // Gamma set
+        LCD_CMD_GAMMASET,
+        1,
+        0x01,  // Gamma curve 1
+        
+        // Gamma curve 1
+        0x01, 0x02, 0x04, 0x05, 0x08, 0x0A, 0x13, 0x19,
+        0x1C, 0x23, 0x2B, 0x34, 0x47, 0x4F, 0x5A, 0x66,
+        0x70, 0x77, 0x7E, 0x89, 0x92, 0x9C, 0xA3, 0xAA,
+        0xB0, 0xB8, 0xC1, 0xC9, 0xD2, 0xDB, 0xE2, 0xE9,
+        
+        // Gamma curve 2
+        0x01, 0x02, 0x04, 0x05, 0x08, 0x0A, 0x13, 0x19,
+        0x1C, 0x23, 0x2B, 0x34, 0x47, 0x4F, 0x5A, 0x66,
+        0x70, 0x77, 0x7E, 0x89, 0x92, 0x9C, 0xA3, 0xAA,
+        0xB0, 0xB8, 0xC1, 0xC9, 0xD2, 0xDB, 0xE2, 0xE9
+    };
     
     // Display initialization delay constants
     constexpr uint32_t SLEEP_OUT_DELAY_MS = 120;
-    constexpr uint32_t DISPLAY_ON_DELAY_MS = 50;
+    constexpr uint8_t DISPLAY_ON_DELAY_MS = 50;
     
     // Default DMA configuration
     constexpr size_t DEFAULT_MAX_TRANSFER_BYTES = 32768; // Increased from 16384
@@ -215,7 +238,7 @@ bool I80Display::initializePanelIO() {
         .user_ctx = configuration->onTransactionDone ? this : nullptr,
         .lcd_cmd_bits = configuration->cmdBits > 0 ? configuration->cmdBits : 8,
         .lcd_param_bits = configuration->paramBits > 0 ? configuration->paramBits : 8,
-        .dc_levels = {
+        .dc_levels = { 
             .dc_idle_level = 0, 
             .dc_cmd_level = 0, 
             .dc_dummy_level = 0, 
@@ -302,12 +325,7 @@ bool tt::hal::display::I80Display::configurePanel() {
     
     // Set gamma correction (if needed)
     if (configuration->supportsGammaCorrection) {
-        uint8_t gamma_table[] = {
-            0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
-            0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F
-        };
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, 0xE0, gamma_table, 15));
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, 0xE1, gamma_table + 15, 15));
+        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, GAMMA_DEFAULT[0], GAMMA_DEFAULT + 1, sizeof(GAMMA_DEFAULT) - 1));
     }
 
     return true;
