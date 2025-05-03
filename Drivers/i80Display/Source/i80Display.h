@@ -18,6 +18,7 @@ namespace tt::hal::display {
 constexpr size_t DEFAULT_MAX_TRANSFER_BYTES = 32768;
 constexpr size_t DEFAULT_DMA_BURST_SIZE = 128;
 constexpr size_t DEFAULT_SRAM_ALIGN = 64;
+constexpr size_t DEFAULT_DRAW_BUFFER_HEIGHT = 100;  // Default height for draw buffer
 
 // Panel types
 enum class PanelType {
@@ -172,8 +173,10 @@ public:
 
     lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
 
-private:
+public:
     std::unique_ptr<Configuration> configuration;
+
+private:
     esp_lcd_i80_bus_handle_t i80Bus = nullptr;
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_panel_handle_t panelHandle = nullptr;

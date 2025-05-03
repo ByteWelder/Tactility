@@ -29,10 +29,6 @@ namespace {
     // Panel command constants
     constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
     constexpr uint8_t LCD_CMD_DISPLAY_ON = 0x29;
-    constexpr uint8_t LCD_CMD_COLMOD = 0x3A;
-    constexpr uint8_t LCD_CMD_MADCTL = 0x36;
-    constexpr uint8_t LCD_CMD_INVON = 0x21;
-    constexpr uint8_t LCD_CMD_INVOFF = 0x20;
     constexpr uint8_t LCD_CMD_GAMMASET = 0x26;
     
     // Gamma values for ST7789
@@ -364,7 +360,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
 
     // Set flush callback with color format handling
     lv_display_set_flush_cb(displayHandle, [](lv_display_t* disp, const lv_area_t* area, uint8_t* color_map) {
-        esp_lcd_panel_handle_t panel_handle = lv_display_get_user_data(disp);
+        esp_lcd_panel_handle_t panel_handle = static_cast<esp_lcd_panel_handle_t>(lv_display_get_user_data(disp));
         int offsetx1 = area->x1;
         int offsetx2 = area->x2;
         int offsety1 = area->y1;
@@ -415,6 +411,8 @@ bool I80Display::runDisplayTest() {
     
     // Log memory stats after allocation
     logMemoryStats("after test buffer deallocation");
+    
+    return true;
 }
 
 bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
