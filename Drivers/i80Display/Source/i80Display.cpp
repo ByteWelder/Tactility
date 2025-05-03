@@ -56,8 +56,6 @@ namespace {
     constexpr uint8_t DISPLAY_ON_DELAY_MS = 50;
     
     // Default DMA configuration
-    constexpr size_t DEFAULT_MAX_TRANSFER_BYTES = 32768; // Increased from 16384
-    constexpr size_t DEFAULT_DMA_BURST_SIZE = 128;       // Increased from 64
     constexpr size_t DEFAULT_SRAM_ALIGN = 64;
     
     // Error handling helper
