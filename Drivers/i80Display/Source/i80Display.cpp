@@ -422,8 +422,8 @@ bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
         static_cast<uint8_t>(area->x2 & 0xFF)          // End column low byte
     };
     
-    // Page Address Set (PASET)
-    const uint8_t paset[4] = {
+    // Page Address Set (RASET)
+    const uint8_t raset[4] = {
         static_cast<uint8_t>((area->y1 >> 8) & 0xFF),  // Start page high byte
         static_cast<uint8_t>(area->y1 & 0xFF),         // Start page low byte
         static_cast<uint8_t>((area->y2 >> 8) & 0xFF),  // End page high byte
@@ -442,9 +442,9 @@ bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
     
     // Page Address Set
     ret |= esp_lcd_panel_io_tx_param(ioHandle, 
-        LCD_CMD_PASET,  // Page Address Set command
-        paset, 
-        sizeof(paset)
+        LCD_CMD_RASET,  // Page Address Set command
+        raset, 
+        sizeof(raset)
     );
     
     // Memory Write command

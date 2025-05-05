@@ -165,7 +165,7 @@ public:
                configuration->supportsBrightnessCommand;
     }
 
-    void setGammaCurve(uint8_t index) final override;
+    bool setGammaCurve(uint8_t index) final override;
     uint8_t getGammaCurveCount() const final { return 4; }
     
     bool setBrightness(uint8_t brightness);
