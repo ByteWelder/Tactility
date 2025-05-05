@@ -8,7 +8,7 @@
 #include <esp_lcd_ili9341.h>
 #include <esp_heap_caps.h>
 #include <driver/gpio.h>
-
+#include <esp_lcd_panel_commands.h>
 // Add other panel support (future)
 
 
@@ -26,22 +26,8 @@ bool transactionDoneCallback(esp_lcd_panel_io_handle_t io, esp_lcd_panel_io_even
 }
 
 namespace {
-    // Panel command constants
-    constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
-    constexpr uint8_t LCD_CMD_DISPLAY_ON = 0x29;
-    constexpr uint8_t LCD_CMD_GAMMASET = 0x26;
-    constexpr uint8_t LCD_CMD_CASET = 0x2A;   // Column Address Set
-    constexpr uint8_t LCD_CMD_PASET = 0x2B;   // Page Address Set
-    constexpr uint8_t LCD_CMD_RAMWR = 0x2c;   // Memory Write
-    constexpr uint8_t LCD_CMD_COLMOD = 0x3A;  // Color Mode
-    constexpr uint8_t LCD_CMD_MADCTL = 0x36;  // Memory Access Control
-    constexpr uint8_t LCD_CMD_INVON = 0x21;   // Display Inversion On
-    
-    // Simplified gamma values for ST7789
-    constexpr uint8_t GAMMA_DEFAULT[] = {
-        LCD_CMD_GAMMASET,  // Gamma set command
-        0x01  // Simplified gamma curve selection
-    };
+    // Default gamma curve for ST7789: curve 1 (0x01)
+    constexpr uint8_t DEFAULT_GAMMA_CURVE = 0x01;
 
     // Display initialization delay constants
     constexpr uint32_t SLEEP_OUT_DELAY_MS = 120;
@@ -307,7 +293,7 @@ bool tt::hal::display::I80Display::configurePanel() {
 
     // ST7789 Initialization Sequence
     // 1. Exit Sleep Mode
-    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_SLEEP_OUT, nullptr, 0));
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_SLPOUT, nullptr, 0));
     vTaskDelay(pdMS_TO_TICKS(SLEEP_OUT_DELAY_MS));
 
     // 2. Set Color Mode to 16-bit (65k colors)
@@ -322,13 +308,16 @@ bool tt::hal::display::I80Display::configurePanel() {
     RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_MADCTL, &MEMORY_ACCESS_CONTROL, 1));
 
     // 5. Turn on Display
-    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_DISPLAY_ON, nullptr, 0));
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_DISPON, nullptr, 0));
     vTaskDelay(pdMS_TO_TICKS(DISPLAY_ON_DELAY_MS));
 
-    // Optional: Gamma Correction
+    // Gamma Correction
     if (configuration->supportsGammaCorrection) {
-        constexpr uint8_t GAMMA_CURVE = 0x01;
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMMASET, &GAMMA_CURVE, 1));
+        // Use the default gamma curve index (0)
+        if (!setGammaCurve(0)) {
+            TT_LOG_E(TAG, "Failed to set default gamma curve during panel configuration");
+            // return false;  // Uncomment if gamma curve is critical
+        }
     }
 
     return true;
@@ -468,7 +457,7 @@ bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
     return ret == ESP_OK;
 }
 
-void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
+bool tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
     uint8_t gamma_curve;
     switch (index) {
         case 0: gamma_curve = 0x01; break; // Gamma curve 1
@@ -477,15 +466,17 @@ void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
         case 3: gamma_curve = 0x08; break; // Gamma curve 4
         default: 
             TT_LOG_E(TAG, "Invalid gamma curve index: %u", index);
-            return;
+            return false;
     }
     
     const uint8_t param[] = { gamma_curve };
-    if (esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMSET, param, 1) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to set gamma curve");
-        return;
+    esp_err_t result = esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMSET, param, 1);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set gamma curve: %s", esp_err_to_name(result));
+        return false;
     }
-    // Success, do nothing further
+    
+    return true;
 }
 
 bool tt::hal::display::I80Display::setBrightness(uint8_t brightness) {
