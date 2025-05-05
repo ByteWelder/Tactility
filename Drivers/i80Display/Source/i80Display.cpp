@@ -30,27 +30,19 @@ namespace {
     constexpr uint8_t LCD_CMD_SLEEP_OUT = 0x11;
     constexpr uint8_t LCD_CMD_DISPLAY_ON = 0x29;
     constexpr uint8_t LCD_CMD_GAMMASET = 0x26;
+    constexpr uint8_t LCD_CMD_CASET = 0x2A;   // Column Address Set
+    constexpr uint8_t LCD_CMD_PASET = 0x2B;   // Page Address Set
+    constexpr uint8_t LCD_CMD_RAMWR = 0x2c;   // Memory Write
+    constexpr uint8_t LCD_CMD_COLMOD = 0x3A;  // Color Mode
+    constexpr uint8_t LCD_CMD_MADCTL = 0x36;  // Memory Access Control
+    constexpr uint8_t LCD_CMD_INVON = 0x21;   // Display Inversion On
     
-    // Gamma values for ST7789
+    // Simplified gamma values for ST7789
     constexpr uint8_t GAMMA_DEFAULT[] = {
-        // Gamma set
-        LCD_CMD_GAMMASET,
-        1,
-        0x01,  // Gamma curve 1
-        
-        // Gamma curve 1
-        0x01, 0x02, 0x04, 0x05, 0x08, 0x0A, 0x13, 0x19,
-        0x1C, 0x23, 0x2B, 0x34, 0x47, 0x4F, 0x5A, 0x66,
-        0x70, 0x77, 0x7E, 0x89, 0x92, 0x9C, 0xA3, 0xAA,
-        0xB0, 0xB8, 0xC1, 0xC9, 0xD2, 0xDB, 0xE2, 0xE9,
-        
-        // Gamma curve 2
-        0x01, 0x02, 0x04, 0x05, 0x08, 0x0A, 0x13, 0x19,
-        0x1C, 0x23, 0x2B, 0x34, 0x47, 0x4F, 0x5A, 0x66,
-        0x70, 0x77, 0x7E, 0x89, 0x92, 0x9C, 0xA3, 0xAA,
-        0xB0, 0xB8, 0xC1, 0xC9, 0xD2, 0xDB, 0xE2, 0xE9
+        LCD_CMD_GAMMASET,  // Gamma set command
+        0x01  // Simplified gamma curve selection
     };
-    
+
     // Display initialization delay constants
     constexpr uint32_t SLEEP_OUT_DELAY_MS = 120;
     constexpr uint8_t DISPLAY_ON_DELAY_MS = 50;
@@ -313,14 +305,30 @@ bool tt::hal::display::I80Display::configurePanel() {
     RETURN_ON_ERROR(esp_lcd_panel_reset(panelHandle));
     RETURN_ON_ERROR(esp_lcd_panel_init(panelHandle));
 
-    // Set panel configuration
-    RETURN_ON_ERROR(esp_lcd_panel_invert_color(panelHandle, true));
-    RETURN_ON_ERROR(esp_lcd_panel_swap_xy(panelHandle, false));
-    RETURN_ON_ERROR(esp_lcd_panel_mirror(panelHandle, false, false));
-    
-    // Set gamma correction (if needed)
+    // ST7789 Initialization Sequence
+    // 1. Exit Sleep Mode
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_SLEEP_OUT, nullptr, 0));
+    vTaskDelay(pdMS_TO_TICKS(SLEEP_OUT_DELAY_MS));
+
+    // 2. Set Color Mode to 16-bit (65k colors)
+    constexpr uint8_t COLOR_MODE_16BIT = 0x05;
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_COLMOD, &COLOR_MODE_16BIT, 1));
+
+    // 3. Enable Color Inversion (for IPS displays)
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_INVON, nullptr, 0));
+
+    // 4. Set Memory Access Control (optional, adjust as needed)
+    constexpr uint8_t MEMORY_ACCESS_CONTROL = 0x08;  // Adjust based on display orientation
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_MADCTL, &MEMORY_ACCESS_CONTROL, 1));
+
+    // 5. Turn on Display
+    RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_DISPLAY_ON, nullptr, 0));
+    vTaskDelay(pdMS_TO_TICKS(DISPLAY_ON_DELAY_MS));
+
+    // Optional: Gamma Correction
     if (configuration->supportsGammaCorrection) {
-        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, GAMMA_DEFAULT[0], GAMMA_DEFAULT + 1, sizeof(GAMMA_DEFAULT) - 1));
+        constexpr uint8_t GAMMA_CURVE = 0x01;
+        RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMMASET, &GAMMA_CURVE, 1));
     }
 
     return true;
@@ -415,42 +423,49 @@ bool I80Display::runDisplayTest() {
 }
 
 bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
-    // This is a method to optimize drawing by setting the area once
-    // and then sending pixel data without repeating the area command.
-    // Implemented for common display controllers like ILI9341, ST7789, etc.
+    // Optimized batch area setting for ST7789
     
-    // This usually involves sending CASET and PASET commands
-    // Example implementation for ILI9341/ST7789:
-    uint8_t caset[4] = {
-        static_cast<uint8_t>((area->x1 >> 8) & 0xFF),
-        static_cast<uint8_t>(area->x1 & 0xFF),
-        static_cast<uint8_t>((area->x2 >> 8) & 0xFF),
-        static_cast<uint8_t>(area->x2 & 0xFF)
+    // Column Address Set (CASET)
+    const uint8_t caset[4] = {
+        static_cast<uint8_t>((area->x1 >> 8) & 0xFF),  // Start column high byte
+        static_cast<uint8_t>(area->x1 & 0xFF),         // Start column low byte
+        static_cast<uint8_t>((area->x2 >> 8) & 0xFF),  // End column high byte
+        static_cast<uint8_t>(area->x2 & 0xFF)          // End column low byte
     };
     
-    uint8_t paset[4] = {
-        static_cast<uint8_t>((area->y1 >> 8) & 0xFF),
-        static_cast<uint8_t>(area->y1 & 0xFF),
-        static_cast<uint8_t>((area->y2 >> 8) & 0xFF),
-        static_cast<uint8_t>(area->y2 & 0xFF)
+    // Page Address Set (PASET)
+    const uint8_t paset[4] = {
+        static_cast<uint8_t>((area->y1 >> 8) & 0xFF),  // Start page high byte
+        static_cast<uint8_t>(area->y1 & 0xFF),         // Start page low byte
+        static_cast<uint8_t>((area->y2 >> 8) & 0xFF),  // End page high byte
+        static_cast<uint8_t>(area->y2 & 0xFF)          // End page low byte
     };
     
-    // Send column address set
-    if (esp_lcd_panel_io_tx_param(ioHandle, 0x2A, caset, 4) != ESP_OK) {
-        return false;
-    }
+    // Use separate transactions to minimize buffer usage
+    esp_err_t ret = ESP_OK;
     
-    // Send page address set
-    if (esp_lcd_panel_io_tx_param(ioHandle, 0x2B, paset, 4) != ESP_OK) {
-        return false;
-    }
+    // Column Address Set
+    ret |= esp_lcd_panel_io_tx_param(ioHandle, 
+        LCD_CMD_CASET,  // Column Address Set command
+        caset, 
+        sizeof(caset)
+    );
     
-    // Start memory write
-    if (esp_lcd_panel_io_tx_param(ioHandle, 0x2C, nullptr, 0) != ESP_OK) {
-        return false;
-    }
+    // Page Address Set
+    ret |= esp_lcd_panel_io_tx_param(ioHandle, 
+        LCD_CMD_PASET,  // Page Address Set command
+        paset, 
+        sizeof(paset)
+    );
     
-    return true;
+    // Memory Write command
+    ret |= esp_lcd_panel_io_tx_param(ioHandle, 
+        LCD_CMD_RAMWR,  // Memory Write command
+        nullptr, 
+        0
+    );
+    
+    return ret == ESP_OK;
 }
 
 void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
