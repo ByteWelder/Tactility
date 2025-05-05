@@ -457,7 +457,7 @@ bool tt::hal::display::I80Display::setBatchArea(const lv_area_t* area) {
     return ret == ESP_OK;
 }
 
-bool tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
+void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
     uint8_t gamma_curve;
     switch (index) {
         case 0: gamma_curve = 0x01; break; // Gamma curve 1
