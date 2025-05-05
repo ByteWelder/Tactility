@@ -313,11 +313,7 @@ bool tt::hal::display::I80Display::configurePanel() {
 
     // Gamma Correction
     if (configuration->supportsGammaCorrection) {
-        // Use the default gamma curve index (0)
-        if (!setGammaCurve(0)) {
-            TT_LOG_E(TAG, "Failed to set default gamma curve during panel configuration");
-            // return false;  // Uncomment if gamma curve is critical
-        }
+        setGammaCurve(0);  // Simply call without checking return value
     }
 
     return true;
@@ -466,17 +462,15 @@ void tt::hal::display::I80Display::setGammaCurve(uint8_t index) {
         case 3: gamma_curve = 0x08; break; // Gamma curve 4
         default: 
             TT_LOG_E(TAG, "Invalid gamma curve index: %u", index);
-            return false;
+            return;  // Just return if invalid index
     }
     
     const uint8_t param[] = { gamma_curve };
     esp_err_t result = esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMSET, param, 1);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set gamma curve: %s", esp_err_to_name(result));
-        return false;
+        // No return value, just log the error
     }
-    
-    return true;
 }
 
 bool tt::hal::display::I80Display::setBrightness(uint8_t brightness) {
