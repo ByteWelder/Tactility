@@ -101,7 +101,7 @@ public:
         lv_dropdown_set_options(uartDropdown, uart_options.c_str());
         lv_obj_align(uartDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_width(uartDropdown, LV_PCT(50));
-        lv_obj_set_style_border_color(uartDropdown, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+        lv_obj_set_style_border_color(uartDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(uartDropdown, 1, LV_PART_MAIN);
 
         auto* uart_label = lv_label_create(uart_wrapper);
@@ -123,7 +123,7 @@ public:
         lv_dropdown_set_options(modelDropdown, model_options.c_str());
         lv_obj_align(modelDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_width(modelDropdown, LV_PCT(50));
-        lv_obj_set_style_border_color(modelDropdown, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+        lv_obj_set_style_border_color(modelDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(modelDropdown, 1, LV_PART_MAIN);
 
         auto* model_label = lv_label_create(model_wrapper);
@@ -143,7 +143,7 @@ public:
         lv_dropdown_set_options(baudDropdown, baudRatesDropdownValues);
         lv_obj_align(baudDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_width(baudDropdown, LV_PCT(50));
-        lv_obj_set_style_border_color(baudDropdown, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+        lv_obj_set_style_border_color(baudDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(baudDropdown, 1, LV_PART_MAIN);
 
         auto* baud_rate_label = lv_label_create(baud_wrapper);

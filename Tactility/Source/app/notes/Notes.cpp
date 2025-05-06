@@ -344,7 +344,7 @@ class NotesApp : public App {
         lv_dropdown_set_text(uiDropDownMenu, "Menu");
         lv_dropdown_set_symbol(uiDropDownMenu, LV_SYMBOL_DOWN);
         lv_dropdown_set_selected_highlight(uiDropDownMenu, false);
-        lv_obj_set_style_border_color(uiDropDownMenu, lv_palette_main(LV_PALETTE_BLUE), LV_PART_MAIN);
+        lv_obj_set_style_border_color(uiDropDownMenu, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(uiDropDownMenu, 1, LV_PART_MAIN);
         lv_obj_align(uiDropDownMenu, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_add_event_cb(uiDropDownMenu, [](lv_event_t* e) {
