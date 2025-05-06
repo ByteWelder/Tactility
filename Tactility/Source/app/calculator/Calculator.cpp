@@ -1,5 +1,6 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Assets.h>
 #include <cstdlib>
 #include <cstring>
 #include <lvgl.h>
@@ -208,6 +209,7 @@ class CalculatorApp : public App {
         lv_obj_set_style_pad_row(btnm, 10, LV_PART_MAIN);
         lv_obj_set_style_pad_column(btnm, 5, LV_PART_MAIN);
         lv_obj_set_style_border_width(btnm, 0, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(btnm, lv_palette_main(LV_PALETTE_BLUE), LV_PART_ITEMS);
 
         lv_obj_set_style_border_width(btnm, 0, LV_PART_MAIN);
         if (lv_display_get_horizontal_resolution(nullptr) <= 240 || lv_display_get_vertical_resolution(nullptr) <= 240) { //small screens
@@ -224,6 +226,7 @@ class CalculatorApp : public App {
 extern const AppManifest manifest = {
     .id = "Calculator",
     .name = "Calculator",
+    .icon = TT_ASSETS_APP_ICON_CALCULATOR,
     .createApp = create<CalculatorApp>
 };
 

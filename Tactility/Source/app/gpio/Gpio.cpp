@@ -1,6 +1,6 @@
 #include "Tactility/service/loader/Loader.h"
 #include "Tactility/lvgl/Toolbar.h"
-
+#include <Tactility/Assets.h>
 #include <Tactility/app/gpio/GpioHal.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/Mutex.h>
@@ -170,6 +170,7 @@ void GpioApp::onHide(AppContext& app) {
 extern const AppManifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
+    .icon = TT_ASSETS_APP_ICON_GPIO,
     .type = Type::System,
     .createApp = create<GpioApp>
 };
