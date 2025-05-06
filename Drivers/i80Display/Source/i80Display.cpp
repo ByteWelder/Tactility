@@ -331,23 +331,23 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         .io_handle = ioHandle,  // Use ioHandle instead of panel
         .hres = configuration->horizontalResolution,
         .vres = configuration->verticalResolution,
-        .buffer_size = configuration->horizontalResolution * 
-                     (configuration->drawBufferHeight > 0 ? 
-                      configuration->drawBufferHeight : 
-                      DEFAULT_DRAW_BUFFER_HEIGHT) * 
-                     (configuration->bitsPerPixel / 8),
         .color_format = configuration->bitsPerPixel == 16 ? LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
         .flags = {
             .swap_bytes = configuration->swapBytesLVGL ? 1 : 0,
             .buff_dma = configuration->useDmaBuffer ? 1 : 0,
             .buff_spiram = configuration->useSpiRamBuffer ? 1 : 0,
             .sw_rotate = configuration->rotationMode == RotationMode::SOFTWARE ? 1 : 0,
-        }
+        },
+        .buffer_size = configuration->horizontalResolution * 
+                     (configuration->drawBufferHeight > 0 ? 
+                      configuration->drawBufferHeight : 
+                      DEFAULT_DRAW_BUFFER_HEIGHT) * 
+                     (configuration->bitsPerPixel / 8)
     };
 
     // Debug logging
     if (configuration->debugMemory) {
-        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%d, vres=%d, buffer_size=%d, color_format=%d",
+        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%" PRIu32 ", vres=%" PRIu32 ", buffer_size=%" PRIu32 ", color_format=%" PRIu32,
                  disp_cfg.io_handle, disp_cfg.hres, disp_cfg.vres, 
                  disp_cfg.buffer_size, disp_cfg.color_format);
     }
