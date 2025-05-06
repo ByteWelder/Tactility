@@ -335,8 +335,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
                      (configuration->drawBufferHeight > 0 ? 
                       configuration->drawBufferHeight : 
                       DEFAULT_DRAW_BUFFER_HEIGHT) * 
-                     (configuration->bitsPerPixel / 8), // Bytes per pixel
-        .buffer_count = configuration->useDoubleBuffer ? 2 : 1, // Single or double buffering
+                     (configuration->bitsPerPixel / 8),
         .color_format = configuration->bitsPerPixel == 16 ? LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
         .flags = {
             .swap_bytes = configuration->swapBytesLVGL ? 1 : 0,
@@ -346,11 +345,11 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         }
     };
 
-    // Log configuration for debugging
+    // Debug logging
     if (configuration->debugMemory) {
-        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%d, vres=%d, buffer_size=%d, buffer_count=%d, color_format=%d",
+        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%d, vres=%d, buffer_size=%d, color_format=%d",
                  disp_cfg.io_handle, disp_cfg.hres, disp_cfg.vres, 
-                 disp_cfg.buffer_size, disp_cfg.buffer_count, disp_cfg.color_format);
+                 disp_cfg.buffer_size, disp_cfg.color_format);
     }
 
     // Create LVGL display
