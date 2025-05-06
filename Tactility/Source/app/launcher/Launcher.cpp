@@ -30,7 +30,7 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
     lv_obj_set_style_pad_bottom(apps_button, 16, 0);
     lv_obj_set_style_shadow_width(apps_button, 0, 0);
     lv_obj_set_style_border_width(apps_button, 0, 0);
-    lv_obj_set_style_bg_color(apps_button, lv_color_white(), 0);
+    lv_obj_set_style_bg_opa(apps_button, 0, LV_PART_MAIN);
 
     auto* button_image = lv_image_create(apps_button);
     lv_image_set_src(button_image, imageFile);

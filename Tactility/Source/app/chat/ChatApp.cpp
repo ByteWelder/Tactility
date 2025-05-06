@@ -2,6 +2,7 @@
 
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Assets.h>
 #include <Tactility/service/espnow/EspNow.h>
 
 #include "Tactility/service/gui/Gui.h"
@@ -115,7 +116,7 @@ public:
         msg_list = lv_list_create(parent);
         lv_obj_set_size(msg_list, lv_pct(75), lv_pct(43));
         lv_obj_align(msg_list, LV_ALIGN_TOP_LEFT, 5, toolbar_height + 45);
-        lv_obj_set_style_bg_color(msg_list, lv_color_hex(0xEEEEEE), 0);
+        lv_obj_set_style_bg_color(msg_list, lv_color_hex(0x262626), 0);
         lv_obj_set_style_border_width(msg_list, 1, 0);
         lv_obj_set_style_pad_all(msg_list, 5, 0);
 
@@ -171,6 +172,7 @@ public:
 extern const AppManifest manifest = {
     .id = "Chat",
     .name = "Chat",
+    .icon = TT_ASSETS_APP_ICON_CHAT,
     .createApp = create<ChatApp>
 };
 

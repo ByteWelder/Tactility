@@ -2,6 +2,7 @@
 #include <Tactility/file/File.h>
 #include <Tactility/lvgl/Keyboard.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Assets.h>
 #include <lvgl.h>
 
 #include <dirent.h>
@@ -343,6 +344,8 @@ class NotesApp : public App {
         lv_dropdown_set_text(uiDropDownMenu, "Menu");
         lv_dropdown_set_symbol(uiDropDownMenu, LV_SYMBOL_DOWN);
         lv_dropdown_set_selected_highlight(uiDropDownMenu, false);
+        lv_obj_set_style_border_color(uiDropDownMenu, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
+        lv_obj_set_style_border_width(uiDropDownMenu, 1, LV_PART_MAIN);
         lv_obj_align(uiDropDownMenu, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_add_event_cb(uiDropDownMenu, [](lv_event_t* e) {
                 auto *self = static_cast<NotesApp *>(lv_event_get_user_data(e));
@@ -363,13 +366,13 @@ class NotesApp : public App {
         lv_obj_set_width(uiNoteText, LV_PCT(100));
         lv_obj_set_height(uiNoteText, LV_PCT(86));
         lv_textarea_set_password_mode(uiNoteText, false);
-        lv_obj_set_style_bg_color(uiNoteText, lv_color_make(254, 255, 156), LV_PART_MAIN);
-        lv_textarea_set_text(uiNoteText, "This is some random notes\nHere's some more notes!\nThis is some random notes\nHere's some more notes!");
+        lv_obj_set_style_bg_color(uiNoteText, lv_color_hex(0x262626), LV_PART_MAIN);
+        lv_textarea_set_placeholder_text(uiNoteText, "Notes...");
 
         lv_obj_t* footer = lv_obj_create(wrapper);
         lv_obj_set_flex_flow(footer, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(footer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_style_bg_color(footer, lv_color_make(206, 206, 206), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(footer, lv_color_hex(0x262626), LV_PART_MAIN);
         lv_obj_set_width(footer, LV_PCT(100));
         lv_obj_set_height(footer, LV_PCT(14));
         lv_obj_set_style_pad_all(footer, 0, LV_PART_MAIN);
@@ -395,6 +398,7 @@ class NotesApp : public App {
 extern const AppManifest manifest = {
     .id = "Notes",
     .name = "Notes",
+    .icon = TT_ASSETS_APP_ICON_NOTES,
     .createApp = create<NotesApp>
 };
 } // namespace tt::app::notes
