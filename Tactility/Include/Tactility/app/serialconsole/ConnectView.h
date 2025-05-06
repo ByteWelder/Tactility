@@ -98,6 +98,8 @@ public:
         lv_dropdown_set_options(busDropdown, bus_options.c_str());
         lv_obj_align(busDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_width(busDropdown, LV_PCT(50));
+        lv_obj_set_style_border_color(busDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
+        lv_obj_set_style_border_width(busDropdown, 1, LV_PART_MAIN);
         int32_t bus_index = 0;
         preferences.optInt32("bus", bus_index);
         if (bus_index < uartNames.size()) {

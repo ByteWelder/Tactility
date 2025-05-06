@@ -185,6 +185,8 @@ public:
         }
 
         lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_set_style_border_color(orientation_dropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
+        lv_obj_set_style_border_width(orientation_dropdown, 1, LV_PART_MAIN);
         lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, nullptr);
         uint32_t orientation_selected = displayOrientationToOrientationSetting(
             lv_display_get_rotation(lv_display_get_default())
