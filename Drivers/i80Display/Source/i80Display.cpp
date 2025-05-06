@@ -328,28 +328,29 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
 
     // Map Configuration to lvgl_port_display_cfg_t
     lvgl_port_display_cfg_t disp_cfg = {
-        .panel = panelHandle, // Link to the initialized LCD panel
-        .hor_res = configuration->horizontalResolution,
-        .ver_res = configuration->verticalResolution,
-        .buff_size = configuration->horizontalResolution * 
+        .io_handle = ioHandle,  // Use ioHandle instead of panel
+        .hres = configuration->horizontalResolution,
+        .vres = configuration->verticalResolution,
+        .buffer_size = configuration->horizontalResolution * 
                      (configuration->drawBufferHeight > 0 ? 
                       configuration->drawBufferHeight : 
                       DEFAULT_DRAW_BUFFER_HEIGHT) * 
                      (configuration->bitsPerPixel / 8), // Bytes per pixel
-        .buff_count = configuration->useDoubleBuffer ? 2 : 1, // Single or double buffering
+        .buffer_count = configuration->useDoubleBuffer ? 2 : 1, // Single or double buffering
         .color_format = configuration->bitsPerPixel == 16 ? LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
-        .swap_bytes = configuration->swapBytesLVGL, // Use LVGL-specific byte swapping
         .flags = {
-            .buff_dma = configuration->useDmaBuffer, // Use DMA if configured
-            .buff_spiram = configuration->useSpiRamBuffer, // Use SPIRAM if configured
-            .sw_rotate = configuration->rotationMode == RotationMode::SOFTWARE, // Software rotation if specified
+            .swap_bytes = configuration->swapBytesLVGL ? 1 : 0,
+            .buff_dma = configuration->useDmaBuffer ? 1 : 0,
+            .buff_spiram = configuration->useSpiRamBuffer ? 1 : 0,
+            .sw_rotate = configuration->rotationMode == RotationMode::SOFTWARE ? 1 : 0,
         }
     };
 
     // Log configuration for debugging
     if (configuration->debugMemory) {
-        TT_LOG_I(TAG, "disp_cfg: panel=%p, hor_res=%d, ver_res=%d, buff_size=%d, buff_count=%d, color_format=%d",
-                 disp_cfg.panel, disp_cfg.hor_res, disp_cfg.ver_res, disp_cfg.buff_size, disp_cfg.buff_count, disp_cfg.color_format);
+        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%d, vres=%d, buffer_size=%d, buffer_count=%d, color_format=%d",
+                 disp_cfg.io_handle, disp_cfg.hres, disp_cfg.vres, 
+                 disp_cfg.buffer_size, disp_cfg.buffer_count, disp_cfg.color_format);
     }
 
     // Create LVGL display
@@ -360,7 +361,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
     }
 
     // Allocate draw buffers
-    size_t draw_buffer_sz = disp_cfg.buff_size;
+    size_t draw_buffer_sz = disp_cfg.buffer_size;
     uint32_t malloc_caps = configuration->useDmaBuffer ? MALLOC_CAP_DMA : MALLOC_CAP_DEFAULT;
     if (configuration->useSpiRamBuffer) {
         malloc_caps |= MALLOC_CAP_SPIRAM;
@@ -396,7 +397,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         int offsety1 = area->y1;
         int offsety2 = area->y2;
 
-        // Swap RGB bytes if configured (already handled in disp_cfg.swap_bytes, but kept for compatibility)
+        // Swap RGB bytes if configured
         if (lv_display_get_color_format(disp) == LV_COLOR_FORMAT_RGB565) {
             lv_draw_sw_rgb565_swap(color_map, (offsetx2 + 1 - offsetx1) * (offsety2 + 1 - offsety1));
         }
