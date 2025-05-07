@@ -329,13 +329,23 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
     // Map Configuration to lvgl_port_display_cfg_t
     lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = ioHandle,  // Use ioHandle instead of panel
-        .hres = configuration->horizontalResolution,
-        .vres = configuration->verticalResolution,
+        .panel_handle = panelHandle,  // Add panel handle
+        .control_handle = nullptr,    // No control handle needed
         .buffer_size = configuration->horizontalResolution * 
                      (configuration->drawBufferHeight > 0 ? 
                       configuration->drawBufferHeight : 
                       DEFAULT_DRAW_BUFFER_HEIGHT) * 
                      (configuration->bitsPerPixel / 8),
+        .double_buffer = configuration->useDoubleBuffer,
+        .trans_size = 0,  // No transfer size needed
+        .hres = configuration->horizontalResolution,
+        .vres = configuration->verticalResolution,
+        .monochrome = false,
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = false,
+            .mirror_y = false
+        },
         .color_format = configuration->bitsPerPixel == 16 ? LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
         .flags = {
             .buff_dma = static_cast<unsigned int>(configuration->useDmaBuffer),
