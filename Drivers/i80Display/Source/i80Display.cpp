@@ -333,10 +333,12 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         .vres = configuration->verticalResolution,
         .color_format = configuration->bitsPerPixel == 16 ? LV_COLOR_FORMAT_RGB565 : LV_COLOR_FORMAT_RGB888,
         .flags = {
-            .swap_bytes = configuration->swapBytesLVGL ? 1 : 0,
-            .buff_dma = configuration->useDmaBuffer ? 1 : 0,
-            .buff_spiram = configuration->useSpiRamBuffer ? 1 : 0,
-            .sw_rotate = configuration->rotationMode == RotationMode::SOFTWARE ? 1 : 0,
+            .buff_dma = static_cast<unsigned int>(configuration->useDmaBuffer),
+            .buff_spiram = static_cast<unsigned int>(configuration->useSpiRamBuffer),
+            .sw_rotate = static_cast<unsigned int>(configuration->rotationMode == RotationMode::SOFTWARE),
+            .swap_bytes = static_cast<unsigned int>(configuration->swapBytesLVGL),
+            .full_refresh = 0,
+            .direct_mode = 0
         },
         .buffer_size = configuration->horizontalResolution * 
                      (configuration->drawBufferHeight > 0 ? 
@@ -347,7 +349,7 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
 
     // Debug logging
     if (configuration->debugMemory) {
-        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%" PRIu32 ", vres=%" PRIu32 ", buffer_size=%" PRIu32 ", color_format=%" PRIu32,
+        TT_LOG_I(TAG, "disp_cfg: io_handle=%p, hres=%" PRIu32 ", vres=%" PRIu32 ", buffer_size=%" PRIu32 ", color_format=%d",
                  disp_cfg.io_handle, disp_cfg.hres, disp_cfg.vres, 
                  disp_cfg.buffer_size, disp_cfg.color_format);
     }
