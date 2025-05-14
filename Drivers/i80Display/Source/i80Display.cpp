@@ -332,10 +332,10 @@ bool tt::hal::display::I80Display::setupLVGLDisplay() {
         .panel_handle = panelHandle,  // Add panel handle
         .control_handle = nullptr,    // No control handle needed
         .buffer_size = configuration->horizontalResolution * 
-                     (configuration->drawBufferHeight > 0 ? 
-                      configuration->drawBufferHeight : 
-                      DEFAULT_DRAW_BUFFER_HEIGHT) * 
-                     (configuration->bitsPerPixel / 8),
+                       (configuration->drawBufferHeight > 0 ? 
+                       configuration->drawBufferHeight : 
+                       (configuration->verticalResolution / 4)) * // Use 1/4 of screen height for buffer
+                       (configuration->bitsPerPixel / 8),
         .double_buffer = configuration->useDoubleBuffer,
         .trans_size = 0,  // No transfer size needed
         .hres = configuration->horizontalResolution,
