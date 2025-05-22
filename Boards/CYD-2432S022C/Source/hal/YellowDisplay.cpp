@@ -56,7 +56,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     config->bitsPerPixel = 16;
     config->useDmaBuffer = true;
     config->useSpiRamBuffer = false;
-    config->drawBufferHeight = 0;
+    config->drawBufferHeight = 20; // Use smaller buffer height to reduce memory requirements
     
     return std::make_shared<I80Display>(std::move(config));
 }
