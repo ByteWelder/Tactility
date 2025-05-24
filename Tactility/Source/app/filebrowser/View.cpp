@@ -1,5 +1,5 @@
-#include "Tactility/app/files/FileUtils.h"
-#include "Tactility/app/files/View.h"
+#include "Tactility/app/filebrowser/View.h"
+#include "Tactility/app/filebrowser/SupportedFiles.h"
 
 #include "Tactility/app/alertdialog/AlertDialog.h"
 #include "Tactility/app/imageviewer/ImageViewer.h"
@@ -10,6 +10,7 @@
 #include "Tactility/lvgl/LvglSync.h"
 
 #include <Tactility/Tactility.h>
+#include "Tactility/file/File.h"
 #include <Tactility/StringUtils.h>
 
 #include <cstring>
@@ -19,9 +20,9 @@
 #include "Tactility/service/loader/Loader.h"
 #endif
 
-#define TAG "files_app"
+#define TAG "filebrowser_app"
 
-namespace tt::app::files {
+namespace tt::app::filebrowser {
 
 // region Callbacks
 
@@ -111,6 +112,7 @@ void View::onDirEntryPressed(uint32_t index) {
     if (state->getDirent(index, dir_entry)) {
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
+        using namespace tt::file;
         switch (dir_entry.d_type) {
             case TT_DT_DIR:
             case TT_DT_CHR:
@@ -140,6 +142,7 @@ void View::onDirEntryLongPressed(int32_t index) {
     if (state->getDirent(index, dir_entry)) {
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
+        using namespace file;
         switch (dir_entry.d_type) {
             case TT_DT_DIR:
             case TT_DT_CHR:
@@ -164,11 +167,11 @@ void View::onDirEntryLongPressed(int32_t index) {
 void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
     tt_check(list);
     const char* symbol;
-    if (dir_entry.d_type == TT_DT_DIR || dir_entry.d_type == TT_DT_CHR) {
+    if (dir_entry.d_type == file::TT_DT_DIR || dir_entry.d_type == file::TT_DT_CHR) {
         symbol = LV_SYMBOL_DIRECTORY;
     } else if (isSupportedImageFile(dir_entry.d_name)) {
         symbol = LV_SYMBOL_IMAGE;
-    } else if (dir_entry.d_type == TT_DT_LNK) {
+    } else if (dir_entry.d_type == file::TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
     } else {
         symbol = LV_SYMBOL_FILE;
@@ -300,7 +303,7 @@ void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
             if (alertdialog::getResultIndex(*bundle) == 0) {
-                int delete_count = (int)remove(filepath.c_str());
+                int delete_count = remove(filepath.c_str());
                 if (delete_count > 0) {
                     TT_LOG_I(TAG, "Deleted %d items", delete_count);
                 } else {
@@ -312,9 +315,9 @@ void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
             break;
         }
         case State::ActionRename: {
-            auto new_name = app::inputdialog::getResult(*bundle);
+            auto new_name = inputdialog::getResult(*bundle);
             if (!new_name.empty() && new_name != state->getSelectedChildEntry()) {
-                std::string rename_to = getChildPath(state->getCurrentPath(), new_name);
+                std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
                 if (rename(filepath.c_str(), rename_to.c_str())) {
                     TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
                 } else {
