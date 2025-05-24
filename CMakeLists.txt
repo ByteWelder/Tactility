@@ -8,14 +8,24 @@ set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
 include("Buildscripts/logo.cmake")
 
+if (NOT WIN32)
+    string(ASCII 27 Esc)
+    set(ColorReset "${Esc}[m")
+    set(Cyan "${Esc}[36m")
+else ()
+    set(ColorReset "")
+    set(Cyan "")
+endif ()
+
 file(READ version.txt TACTILITY_VERSION)
 add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    message("Building with ESP-IDF v$ENV{ESP_IDF_VERSION}")
+    message("Building with ESP-IDF ${Cyan}v$ENV{ESP_IDF_VERSION}${ColorReset}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
     include("Buildscripts/board.cmake")
+
     init_tactility_globals("sdkconfig")
     get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
 
@@ -45,11 +55,11 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h")
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
-else()
+else ()
     message("Building for sim target")
     add_compile_definitions(CONFIG_TT_BOARD_ID="simulator")
     add_compile_definitions(CONFIG_TT_BOARD_NAME="Simulator")
-endif()
+endif ()
 
 project(Tactility)
 
@@ -58,7 +68,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
     add_subdirectory(TactilityCore)
     add_subdirectory(Boards/Simulator)
-endif()
+endif ()
 
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
@@ -94,4 +104,4 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=\"${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h\"")
     target_link_libraries(lvgl PRIVATE SDL2-static)
 
-endif()
+endif ()
