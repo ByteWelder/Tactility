@@ -2,8 +2,10 @@
 
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
+#include <esp_timer.h>
 #else
 #include "FreeRTOS.h"
+#include <sys/time.h>
 #endif
 
 namespace tt::kernel {
@@ -16,9 +18,9 @@ typedef enum {
 
 /** Return true when called from an Interrupt Service Routine (~IRQ mode) */
 #ifdef ESP_PLATFORM
-inline constexpr bool isIsr() { return (xPortInIsrContext() == pdTRUE); }
+constexpr bool isIsr() { return (xPortInIsrContext() == pdTRUE); }
 #else
-inline constexpr bool isIsr() { return false; }
+constexpr bool isIsr() { return false; }
 #endif
 
 /** Check if kernel is running
@@ -52,7 +54,17 @@ uint32_t getTickFrequency();
 
 TickType_t getTicks();
 
-inline size_t getMillis() { return getTicks() / portTICK_PERIOD_MS; }
+constexpr size_t getMillis() { return getTicks() / portTICK_PERIOD_MS; }
+
+constexpr long int getMicros() {
+#ifdef ESP_PLATFORM
+    return static_cast<unsigned long>(esp_timer_get_time());
+#else
+    timeval tv;
+    gettimeofday(&tv, nullptr);
+    return 1000000 * tv.tv_sec + tv.tv_usec;
+#endif
+}
 
 /** Delay execution
  * @warning don't call from ISR context
@@ -68,11 +80,11 @@ void delayTicks(TickType_t ticks);
  */
 bool delayUntilTick(TickType_t tick);
 
-constexpr inline TickType_t secondsToTicks(uint32_t seconds) {
-    return (TickType_t)seconds * 1000U / portTICK_PERIOD_MS;
+constexpr TickType_t secondsToTicks(uint32_t seconds) {
+    return static_cast<TickType_t>(seconds) * 1000U / portTICK_PERIOD_MS;
 }
 
-constexpr inline TickType_t minutesToTicks(uint32_t minutes) {
+constexpr TickType_t minutesToTicks(uint32_t minutes) {
     return secondsToTicks(minutes * 60U);
 }
 
