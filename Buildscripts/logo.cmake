@@ -4,24 +4,24 @@ file(READ ${VERSION_TEXT_FILE} TACTILITY_VERSION)
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     set(TACTILITY_TARGET "   @ ESP-IDF")
-else()
+else ()
     set(TACTILITY_TARGET "  @ Simulator")
-endif()
+endif ()
 
-if(NOT WIN32)
+if (NOT WIN32)
     string(ASCII 27 Esc)
-    set(ColourReset "${Esc}[m")
-    set(Cyan        "${Esc}[36m")
-    set(Grey        "${Esc}[37m")
+    set(ColorReset "${Esc}[m")
+    set(Cyan "${Esc}[36m")
+    set(Grey "${Esc}[37m")
     set(LightPurple "${Esc}[1;35m")
-    set(White       "${Esc}[1;37m")
-else()
-    set(ColourReset "")
-    set(Cyan        "")
-    set(Grey        "")
+    set(White "${Esc}[1;37m")
+else ()
+    set(ColorReset "")
+    set(Cyan "")
+    set(Grey "")
     set(LightPurple "")
-    set(White       "")
-endif()
+    set(White "")
+endif ()
 
 # Some terminals (e.g. GitHub Actions) reset colour for every in a multiline message(),
 # so we add the colour to each line instead of assuming it would automatically be re-used.
@@ -41,4 +41,4 @@ message("\n\n\
               ${Cyan}@@@\n\
               ${Cyan}@@@\n\
               ${Cyan}@@@\n\
-              ${Cyan}@@\n\n${ColourReset}")
+              ${Cyan}@@\n\n${ColorReset}")
