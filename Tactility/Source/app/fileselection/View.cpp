@@ -101,13 +101,26 @@ void View::onSelectButtonPressed(lv_event_t* event) {
     view->onFileSelected(std::string(path));
 }
 
+static bool isSelectableFilePath(const char* path) {
+    if (path == nullptr) {
+        return false;
+    }
+
+    auto len = strlen(path);
+    if (len == 0) {
+        return false;
+    }
+
+    return path[len - 1] != '/';
+}
+
 void View::onPathTextChanged(lv_event_t* event) {
     auto* view = static_cast<View*>(lv_event_get_user_data(event));
     const char* path = lv_textarea_get_text(view->path_textarea);
-    if (path == nullptr || strlen(path) == 0) {
-        lv_obj_add_flag(view->select_button, LV_OBJ_FLAG_HIDDEN);
-    } else {
+    if (isSelectableFilePath(path)) {
         lv_obj_remove_flag(view->select_button, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(view->select_button, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
