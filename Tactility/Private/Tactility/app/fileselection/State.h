@@ -45,6 +45,13 @@ public:
 
     std::string getSelectedChildEntry() const { return selected_child_entry; }
     std::string getCurrentPath() const { return current_path; }
+    std::string getCurrentPathWithTrailingSlash() const {
+        if (current_path.length() > 1) {
+            return current_path + "/";
+        } else {
+            return current_path;
+        }
+    }
 
     std::string getSelectedChildPath() const;
 };
