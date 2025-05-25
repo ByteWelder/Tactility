@@ -6,7 +6,7 @@
 #include <vector>
 #include <dirent.h>
 
-namespace tt::app::files {
+namespace tt::app::filebrowser {
 
 class State {
 

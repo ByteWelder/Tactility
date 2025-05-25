@@ -16,6 +16,8 @@ typedef enum {
 
 typedef void* AppHandle;
 
+typedef unsigned int LaunchId;
+
 /** Important: These function types must map to t::app types exactly */
 typedef void* (*AppCreateData)();
 typedef void (*AppDestroyData)(void* data);
@@ -23,7 +25,7 @@ typedef void (*AppOnCreate)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnDestroy)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnShow)(AppHandle app, void* _Nullable data, lv_obj_t* parent);
 typedef void (*AppOnHide)(AppHandle app, void* _Nullable data);
-typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, Result result, BundleHandle resultData);
+typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, LaunchId launchId, Result result, BundleHandle resultData);
 
 typedef struct {
     /** The application's human-readable name */

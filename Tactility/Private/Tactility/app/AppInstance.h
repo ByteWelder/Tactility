@@ -25,22 +25,21 @@ enum class State {
  */
 class AppInstance : public AppContext {
 
-private:
-
     Mutex mutex = Mutex(Mutex::Type::Normal);
     const std::shared_ptr<AppManifest> manifest;
     State state = State::Initial;
+    LaunchId launchId;
     Flags flags = { .showStatusbar = true };
     /** @brief Optional parameters to start the app with
      * When these are stored in the app struct, the struct takes ownership.
      * Do not mutate after app creation.
      */
-    std::shared_ptr<const tt::Bundle> _Nullable parameters;
+    std::shared_ptr<const Bundle> _Nullable parameters;
 
     std::shared_ptr<App> app;
 
-    static std::shared_ptr<app::App> createApp(
-        const std::shared_ptr<app::AppManifest>& manifest
+    static std::shared_ptr<App> createApp(
+        const std::shared_ptr<AppManifest>& manifest
     ) {
         if (manifest->location.isInternal()) {
             assert(manifest->createApp != nullptr);
@@ -50,7 +49,7 @@ private:
                 TT_LOG_W("", "Manifest specifies createApp, but this is not used with external apps");
             }
 #ifdef ESP_PLATFORM
-            return app::createElfApp(manifest);
+            return createElfApp(manifest);
 #else
             tt_crash("not supported");
 #endif
@@ -61,17 +60,22 @@ private:
 
 public:
 
-    explicit AppInstance(const std::shared_ptr<AppManifest>& manifest) :
+    explicit AppInstance(const std::shared_ptr<AppManifest>& manifest, LaunchId launchId) :
         manifest(manifest),
+        launchId(launchId),
         app(createApp(manifest))
     {}
 
-    AppInstance(const std::shared_ptr<AppManifest>& manifest, std::shared_ptr<const Bundle> parameters) :
+    AppInstance(const std::shared_ptr<AppManifest>& manifest, LaunchId launchId, std::shared_ptr<const Bundle> parameters) :
         manifest(manifest),
+        launchId(launchId),
         parameters(std::move(parameters)),
-        app(createApp(manifest)) {}
+        app(createApp(manifest))
+    {}
 
     ~AppInstance() override = default;
+
+    LaunchId getLaunchId() const { return launchId; }
 
     void setState(State state);
     State getState() const;

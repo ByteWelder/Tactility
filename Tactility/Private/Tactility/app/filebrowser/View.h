@@ -7,7 +7,7 @@
 #include <lvgl.h>
 #include <memory>
 
-namespace tt::app::files {
+namespace tt::app::filebrowser {
 
 class View {
     std::shared_ptr<State> state;

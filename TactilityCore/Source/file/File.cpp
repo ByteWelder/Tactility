@@ -1,8 +1,65 @@
 #include "Tactility/file/File.h"
 
+#include <cstring>
+#include <fstream>
+
 namespace tt::file {
 
 #define TAG "file"
+
+std::string getChildPath(const std::string& basePath, const std::string& childPath) {
+    // Postfix with "/" when the current path isn't "/"
+    if (basePath.length() != 1) {
+        return basePath + "/" + childPath;
+    } else {
+        return "/" + childPath;
+    }
+}
+
+int direntFilterDotEntries(const dirent* entry) {
+    return (strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, ".") == 0) ? -1 : 0;
+}
+
+bool direntSortAlphaAndType(const dirent& left, const dirent& right) {
+    bool left_is_dir = left.d_type == TT_DT_DIR || left.d_type == TT_DT_CHR;
+    bool right_is_dir = right.d_type == TT_DT_DIR || right.d_type == TT_DT_CHR;
+    if (left_is_dir == right_is_dir) {
+        return strcmp(left.d_name, right.d_name) < 0;
+    } else {
+        return left_is_dir > right_is_dir;
+    }
+}
+
+int scandir(
+    const std::string& path,
+    std::vector<dirent>& outList,
+    ScandirFilter _Nullable filterMethod,
+    ScandirSort _Nullable sortMethod
+) {
+    TT_LOG_I(TAG, "scandir start");
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
+        return -1;
+    }
+
+    dirent* current_entry;
+    while ((current_entry = readdir(dir)) != nullptr) {
+        if (filterMethod(current_entry) == 0) {
+            outList.push_back(*current_entry);
+        }
+    }
+
+    closedir(dir);
+
+    if (sortMethod != nullptr) {
+        std::ranges::sort(outList, sortMethod);
+    }
+
+    TT_LOG_I(TAG, "scandir finish");
+    return outList.size();
+}
+
 
 long getSize(FILE* file) {
     long original_offset = ftell(file);
@@ -80,12 +137,25 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     size_t size = 0;
     auto data = readBinaryInternal(filepath, size, 1);
-    if (data != nullptr) {
-        data.get()[size] = 0; // Append null terminator
-        return data;
-    } else {
+    if (data == nullptr) {
         return nullptr;
     }
+
+    data.get()[size] = 0; // Append null terminator
+    return data;
+}
+
+bool writeString(const std::string& filepath, const std::string& content) {
+    std::ofstream fileStream(filepath);
+
+    if (!fileStream.is_open()) {
+        return false;
+    }
+
+    fileStream << content;
+    fileStream.close();
+
+    return true;
 }
 
 static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
