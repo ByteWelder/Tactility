@@ -88,7 +88,7 @@ public:
         }
     }
 
-    void onResult(AppContext& app, Result result, std::unique_ptr<Bundle> bundle) override {
+    void onResult(AppContext& app, TT_UNUSED LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) override {
         if (result == Result::Ok && bundle != nullptr) {
             auto name = timezone::getResultName(*bundle);
             auto code = timezone::getResultCode(*bundle);

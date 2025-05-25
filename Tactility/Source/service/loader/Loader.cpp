@@ -47,17 +47,17 @@ static const char* appStateToString(app::State state) {
 
 class LoaderService final : public Service {
 
-private:
-
     std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::stack<std::shared_ptr<app::AppInstance>> appStack;
+    app::LaunchId nextLaunchId = 0;
+
     /** The dispatcher thread needs a callstack large enough to accommodate all the dispatched methods.
      * This includes full LVGL redraw via Gui::redraw()
      */
     std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher", 6144); // Files app requires ~5k
 
-    void onStartAppMessage(const std::string& id, std::shared_ptr<const Bundle> parameters);
+    void onStartAppMessage(const std::string& id, app::LaunchId launchId, std::shared_ptr<const Bundle> parameters);
     void onStopAppMessage(const std::string& id);
 
     void transitionAppToState(const std::shared_ptr<app::AppInstance>& app, app::State state);
@@ -75,7 +75,7 @@ public:
         });
     }
 
-    void startApp(const std::string& id, std::shared_ptr<const Bundle> parameters);
+    app::LaunchId startApp(const std::string& id, std::shared_ptr<const Bundle> parameters);
     void stopApp();
     std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
 
@@ -86,8 +86,7 @@ std::shared_ptr<LoaderService> _Nullable optScreenshotService() {
     return service::findServiceById<LoaderService>(manifest.id);
 }
 
-void LoaderService::onStartAppMessage(const std::string& id, std::shared_ptr<const Bundle> parameters) {
-
+void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launchId, std::shared_ptr<const Bundle> parameters) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
     auto app_manifest = app::findAppById(id);
@@ -103,7 +102,7 @@ void LoaderService::onStartAppMessage(const std::string& id, std::shared_ptr<con
     }
 
     auto previous_app = !appStack.empty() ? appStack.top() : nullptr;
-    auto new_app = std::make_shared<app::AppInstance>(app_manifest, parameters);
+    auto new_app = std::make_shared<app::AppInstance>(app_manifest, launchId, parameters);
 
     new_app->mutableFlags().showStatusbar = (app_manifest->type != app::Type::Boot);
 
@@ -123,7 +122,6 @@ void LoaderService::onStartAppMessage(const std::string& id, std::shared_ptr<con
 }
 
 void LoaderService::onStopAppMessage(const std::string& id) {
-
     auto lock = mutex.asScopedLock();
     if (!lock.lock(LOADER_TIMEOUT)) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
@@ -156,6 +154,8 @@ void LoaderService::onStopAppMessage(const std::string& id) {
     if (app_to_stop->getApp()->moveResult(result, result_bundle)) {
         result_set = true;
     }
+
+    auto app_to_stop_launch_id = app_to_stop->getLaunchId();
 
     transitionAppToState(app_to_stop, app::State::Hiding);
     transitionAppToState(app_to_stop, app::State::Stopped);
@@ -196,12 +196,14 @@ void LoaderService::onStopAppMessage(const std::string& id) {
             if (result_bundle != nullptr) {
                 instance_to_resume->getApp()->onResult(
                     *instance_to_resume,
+                    app_to_stop_launch_id,
                     result,
                     std::move(result_bundle)
                 );
             } else {
                 instance_to_resume->getApp()->onResult(
                     *instance_to_resume,
+                    app_to_stop_launch_id,
                     result,
                     nullptr
                 );
@@ -210,6 +212,7 @@ void LoaderService::onStopAppMessage(const std::string& id) {
             const Bundle empty_bundle;
             instance_to_resume->getApp()->onResult(
                 *instance_to_resume,
+                app_to_stop_launch_id,
                 app::Result::Cancelled,
                 nullptr
             );
@@ -255,10 +258,12 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
     app->setState(state);
 }
 
-void LoaderService::startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
-    dispatcherThread->dispatch([this, id, parameters]() {
-        onStartAppMessage(id, parameters);
+app::LaunchId LoaderService::startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
+    auto launch_id = nextLaunchId++;
+    dispatcherThread->dispatch([this, id, launch_id, parameters]() {
+        onStartAppMessage(id, launch_id, parameters);
     });
+    return launch_id;
 }
 
 void LoaderService::stopApp() {
@@ -278,11 +283,11 @@ std::shared_ptr<app::AppContext> _Nullable LoaderService::getCurrentAppContext()
 
 // region Public API
 
-void startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
+app::LaunchId startApp(const std::string& id, std::shared_ptr<const Bundle> parameters) {
     TT_LOG_I(TAG, "Start app %s", id.c_str());
     auto service = optScreenshotService();
     assert(service);
-    service->startApp(id, std::move(parameters));
+    return service->startApp(id, std::move(parameters));
 }
 
 void stopApp() {

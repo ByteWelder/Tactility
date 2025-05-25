@@ -16,9 +16,9 @@ namespace tt::app {
 class AppContext;
 enum class Result;
 
-class App {
+typedef unsigned int LaunchId;
 
-private:
+class App {
 
     Mutex mutex;
 
@@ -44,7 +44,7 @@ public:
     virtual void onDestroy(AppContext& appContext) {}
     virtual void onShow(AppContext& appContext, lv_obj_t* parent) {}
     virtual void onHide(AppContext& appContext) {}
-    virtual void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> _Nullable resultData) {}
+    virtual void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> _Nullable resultData) {}
 
     Mutex& getMutex() { return mutex; }
 
@@ -83,15 +83,15 @@ std::shared_ptr<App> create() { return std::shared_ptr<T>(new T); }
  * @param[in] id application name or id
  * @param[in] parameters optional parameters to pass onto the application
  */
-void start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
+LaunchId start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
 
 /** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stop();
 
 /** @return the currently running app context (it is only ever null before the splash screen is shown) */
-std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
+std::shared_ptr<AppContext> _Nullable getCurrentAppContext();
 
 /** @return the currently running app (it is only ever null before the splash screen is shown) */
-std::shared_ptr<app::App> _Nullable getCurrentApp();
+std::shared_ptr<App> _Nullable getCurrentApp();
 
 }

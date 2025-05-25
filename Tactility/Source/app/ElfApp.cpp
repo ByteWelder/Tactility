@@ -36,8 +36,6 @@ static ElfManifest elfManifest;
 
 class ElfApp : public App {
 
-private:
-
     const std::string filePath;
     std::unique_ptr<uint8_t[]> elfFileData;
     esp_elf_t elf;
@@ -143,9 +141,9 @@ public:
         }
     }
 
-    void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> resultBundle) override {
+    void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> resultBundle) override {
         if (manifest != nullptr && manifest->onResult != nullptr) {
-            manifest->onResult(&appContext, data, result, resultBundle.get());
+            manifest->onResult(&appContext, data, launchId, result, resultBundle.get());
         }
     }
 };
