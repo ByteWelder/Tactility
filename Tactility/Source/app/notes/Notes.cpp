@@ -6,6 +6,7 @@
 #include <lvgl.h>
 
 #include <Tactility/app/fileselection/FileSelection.h>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 
 namespace tt::app::notes {
@@ -153,31 +154,31 @@ class NotesApp : public App {
 #pragma region Open_Events_Functions
 
     void openFile(const std::string& path) {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
-        // TODO: also use SD card lock, if needed
-
-        auto data = file::readString(path);
-        if (data != nullptr) {
-            lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
-            lv_label_set_text(uiCurrentFileName, path.c_str());
-            filePath = path;
-            TT_LOG_I(TAG, "Loaded from %s", path.c_str());
-        }
+        // We might be reading from the SD card, which could share a SPI bus with other devices (display)
+        hal::sdcard::withSdCardLock<void>(path, [this, path]() {
+            auto data = file::readString(path);
+            if (data != nullptr) {
+               auto lock = lvgl::getSyncLock()->asScopedLock();
+               lock.lock();
+               lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
+               lv_label_set_text(uiCurrentFileName, path.c_str());
+               filePath = path;
+               TT_LOG_I(TAG, "Loaded from %s", path.c_str());
+            }
+        });
     }
 
     bool saveFile(const std::string& path) {
-        // TODO: also use SD card lock, if needed
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-        if (file::writeString(path, saveBuffer.c_str())) {
-            TT_LOG_I(TAG, "Saved to %s", path.c_str());
-            filePath = path;
-            return true;
-        } else {
-            return false;
-        }
+        // We might be writing to SD card, which could share a SPI bus with other devices (display)
+        return hal::sdcard::withSdCardLock<bool>(path, [this, path]() {
+           if (file::writeString(path, saveBuffer.c_str())) {
+               TT_LOG_I(TAG, "Saved to %s", path.c_str());
+               filePath = path;
+               return true;
+           } else {
+               return false;
+           }
+        });
     }
 
 #pragma endregion Open_Events_Functions
