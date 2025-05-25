@@ -9,7 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Include/"
-        REQUIRES mbedtls nvs_flash esp_rom
+        REQUIRES mbedtls nvs_flash esp_rom esp_timer
     )
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
