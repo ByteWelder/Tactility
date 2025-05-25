@@ -91,10 +91,9 @@ public:
         updateLogEntries();
     }
 
-    void onResult(AppContext& app, Result result, std::unique_ptr<Bundle> bundle) override {
+    void onResult(AppContext& app, TT_UNUSED LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) override {
         if (result == Result::Ok && bundle != nullptr) {
-            auto resultIndex = selectiondialog::getResultIndex(*bundle);
-            switch (resultIndex) {
+            switch (selectiondialog::getResultIndex(*bundle)) {
                 case 0:
                     filterLevel = LogLevel::Verbose;
                     break;

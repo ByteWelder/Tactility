@@ -1,4 +1,5 @@
 #pragma once
+#include <Tactility/hal/Configuration.h>
 
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>

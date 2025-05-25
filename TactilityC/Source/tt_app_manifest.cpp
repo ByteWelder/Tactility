@@ -12,16 +12,16 @@ void tt_app_register(
 ) {
 #ifdef ESP_PLATFORM
     assert((manifest->createData == nullptr) == (manifest->destroyData == nullptr));
-    tt::app::setElfAppManifest(
+    setElfAppManifest(
         manifest->name,
         manifest->icon,
-        (tt::app::CreateData)manifest->createData,
-        (tt::app::DestroyData)manifest->destroyData,
-        (tt::app::OnCreate)manifest->onCreate,
-        (tt::app::OnDestroy)manifest->onDestroy,
-        (tt::app::OnShow)manifest->onShow,
-        (tt::app::OnHide)manifest->onHide,
-        (tt::app::OnResult)manifest->onResult
+        manifest->createData,
+        manifest->destroyData,
+        manifest->onCreate,
+        manifest->onDestroy,
+        manifest->onShow,
+        manifest->onHide,
+        reinterpret_cast<tt::app::OnResult>(manifest->onResult)
     );
 #else
     tt_crash("TactilityC is not intended for PC/Simulator");

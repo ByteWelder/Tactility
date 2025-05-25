@@ -1,6 +1,7 @@
 #include "Tactility/file/File.h"
 
 #include <cstring>
+#include <fstream>
 
 namespace tt::file {
 
@@ -136,12 +137,25 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath) {
     size_t size = 0;
     auto data = readBinaryInternal(filepath, size, 1);
-    if (data != nullptr) {
-        data.get()[size] = 0; // Append null terminator
-        return data;
-    } else {
+    if (data == nullptr) {
         return nullptr;
     }
+
+    data.get()[size] = 0; // Append null terminator
+    return data;
+}
+
+bool writeString(const std::string& filepath, const std::string& content) {
+    std::ofstream fileStream(filepath);
+
+    if (!fileStream.is_open()) {
+        return false;
+    }
+
+    fileStream << content;
+    fileStream.close();
+
+    return true;
 }
 
 static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {

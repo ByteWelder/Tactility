@@ -60,6 +60,13 @@ std::unique_ptr<uint8_t[]> readBinary(const std::string& filepath, size_t& outSi
  */
 std::unique_ptr<uint8_t[]> readString(const std::string& filepath);
 
+/** Write text to a file
+ * @param[in] path file path to write to
+ * @param[in] content file content to write
+ * @return true when operation is successful
+ */
+bool writeString(const std::string& filepath, const std::string& content);
+
 /** Ensure a directory path exists.
  * @param[in] path the directory path to find, or to create recursively
  * @param[in] mode the mode to use when creating directories
