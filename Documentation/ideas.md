@@ -65,6 +65,5 @@
 - GPS app
 - Investigate CSI https://stevenmhernandez.github.io/ESP32-CSI-Tool/
 - Compile unix tools to ELF apps?
-- Text editor
 - Todo list
 - Calendar
