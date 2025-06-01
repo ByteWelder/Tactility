@@ -1,10 +1,10 @@
 #include "Tactility/service/loader/Loader.h"
-#include "Tactility/lvgl/Toolbar.h"
 #include <Tactility/Assets.h>
 #include <Tactility/app/gpio/GpioHal.h>
+#include "Tactility/lvgl/Toolbar.h"
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Color.h>
 #include <Tactility/Mutex.h>
-#include <Tactility/Thread.h>
 #include <Tactility/Timer.h>
 
 namespace tt::app::gpio {
@@ -13,10 +13,8 @@ extern const AppManifest manifest;
 
 class GpioApp : public App {
 
-private:
-
-    lv_obj_t* lvPins[GPIO_NUM_MAX] = {0 };
-    uint8_t pinStates[GPIO_NUM_MAX] = {0 };
+    lv_obj_t* lvPins[GPIO_NUM_MAX] = { nullptr };
+    uint8_t pinStates[GPIO_NUM_MAX] = { 0 };
     std::unique_ptr<Timer> timer;
     Mutex mutex;
 
@@ -40,7 +38,7 @@ void GpioApp::updatePinStates() {
     // Update pin states
     for (int i = 0; i < GPIO_NUM_MAX; ++i) {
 #ifdef ESP_PLATFORM
-        pinStates[i] = gpio_get_level((gpio_num_t)i);
+        pinStates[i] = gpio_get_level(static_cast<gpio_num_t>(i));
 #else
         pinStates[i] = gpio_get_level(i);
 #endif
@@ -60,9 +58,9 @@ void GpioApp::updatePinWidgets() {
             if (reinterpret_cast<void*>(level) != label_user_data) {
                 lv_obj_set_user_data(label, reinterpret_cast<void*>(level));
                 if (level == 0) {
-                    lv_obj_set_style_text_color(label, lv_color_black(), 0);
+                    lv_obj_set_style_text_color(label, lv_color_background_darkest(), LV_STATE_DEFAULT);
                 } else {
-                    lv_obj_set_style_text_color(label, lv_color_make(0, 200, 0), 0);
+                    lv_obj_set_style_text_color(label, lv_color_make(0, 200, 0), LV_STATE_DEFAULT);
                 }
             }
         }
@@ -71,8 +69,8 @@ void GpioApp::updatePinWidgets() {
 
 lv_obj_t* GpioApp::createGpioRowWrapper(lv_obj_t* parent) {
     lv_obj_t* wrapper = lv_obj_create(parent);
-    lv_obj_set_style_pad_all(wrapper, 0, 0);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+    lv_obj_set_style_pad_all(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
     lv_obj_set_size(wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     return wrapper;
 }
@@ -87,7 +85,7 @@ void GpioApp::onTimer() {
 void GpioApp::startTask() {
     mutex.lock();
     assert(timer == nullptr);
-    timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+    timer = std::make_unique<Timer>(Timer::Type::Periodic, [this] {
         onTimer();
     });
     timer->start(100 / portTICK_PERIOD_MS);
@@ -113,7 +111,7 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
     lv_obj_set_flex_grow(wrapper, 1);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+    lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
 
     auto* display = lv_obj_get_display(parent);
     auto horizontal_px = lv_display_get_horizontal_resolution(display);
@@ -122,7 +120,8 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
     int32_t x_spacing = 20;
     uint8_t column = 0;
-    uint8_t column_limit = is_landscape_display ? 10 : 5;
+    const uint8_t offset_from_left_label = 4;
+    const uint8_t column_limit = is_landscape_display ? 10 : 5;
 
     auto* row_wrapper = createGpioRowWrapper(wrapper);
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
@@ -138,8 +137,9 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
         // Add a new GPIO status indicator
         auto* status_label = lv_label_create(row_wrapper);
-        lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing), 0);
+        lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing + offset_from_left_label), 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
+        lv_obj_set_style_text_color(status_label, lv_color_background_darkest(), LV_STATE_DEFAULT);
         lvPins[i] = status_label;
 
         column++;
@@ -148,7 +148,7 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
             // Add the GPIO number after the last item on a row
             auto* postfix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(postfix, "%02d", i);
-            lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing), 0);
+            lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing + offset_from_left_label), 0);
 
             // Add a new row wrapper underneath the last one
             auto* new_row_wrapper = createGpioRowWrapper(wrapper);
