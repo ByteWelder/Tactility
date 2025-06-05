@@ -12,6 +12,11 @@ ttbuild_version = '0.1.0'
 ttbuild_properties_file = 'tactility.properties'
 ttbuild_cdn = "https://cdn.tactility.one"
 
+def print_help():
+    print("Usage: python ttbuild.py [all|esp32|esp32s3] [options]")
+    print("Options:")
+    print("  --skip-build     Run everything except the idf.py/CMake commands")
+
 def download_file(url, filepath):
     request = urllib.request.Request(
         url,
@@ -45,19 +50,15 @@ def exit_with_error(message):
 def is_valid_platform_name(name):
     return name == "all" or name == "esp32" or name == "esp32s3"
 
-def build(version, platforms):
+def build(version, platforms, skip_build):
     for platform in platforms:
         print(f"Platform: {platform}")
         sdk_dir = get_sdk_dir(version, platform)
         print(f"Using SDK at {sdk_dir}")
         os.environ['TACTILITY_SDK_PATH'] = sdk_dir
         os.system(f"cp sdkconfig.{platform} sdkconfig")
-        # os.system(f"idf.py -B build-{platform} build")
-
-def print_help():
-    print("Usage:")
-    print("\tpython ttbuild.py [platformName]")
-    print("\tplatformName:   all|esp32|esp32s3")
+        if not skip_build:
+            os.system(f"idf.py -B build-{platform} build")
 
 def validate_environment():
     if os.environ.get('IDF_PATH') is None:
@@ -161,4 +162,5 @@ if __name__ == "__main__":
     sdk_version = get_sdk_version()
     validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build)
     sdk_download_all(sdk_version, platforms_to_build)
-    build(sdk_version, platforms_to_build)
+    skip_build = '--skip-build' in sys.argv
+    build(sdk_version, platforms_to_build, skip_build)
