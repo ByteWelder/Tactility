@@ -63,18 +63,6 @@ def exit_with_error(message):
 def is_valid_platform_name(name):
     return name == "all" or name == "esp32" or name == "esp32s3"
 
-def build(version, platforms, skip_build):
-    for platform in platforms:
-        if verbose:
-            print(f"Platform: {platform}")
-        sdk_dir = get_sdk_dir(version, platform)
-        if verbose:
-            print(f"Using SDK at {sdk_dir}")
-        os.environ['TACTILITY_SDK_PATH'] = sdk_dir
-        os.system(f"cp sdkconfig.{platform} sdkconfig")
-        if not skip_build:
-            os.system(f"idf.py -B build-{platform} build")
-
 def validate_environment():
     global ttbuild_properties_file
     if os.environ.get('IDF_PATH') is None:
@@ -131,28 +119,6 @@ def update_sdk_json():
     json_filepath = os.path.join(ttbuild_path, "sdk.json")
     return download_file(json_url, json_filepath)
 
-def sdk_download(version, platform):
-    sdk_root_dir = get_sdk_root_dir(version, platform)
-    os.makedirs(sdk_root_dir, exist_ok=True)
-    sdk_url = get_sdk_url(version, platform)
-    filepath = os.path.join(sdk_root_dir, f"{version}-{platform}.zip")
-    print(f"Downloading SDK version {version} for {platform}")
-    if download_file(sdk_url, filepath):
-        with zipfile.ZipFile(filepath, 'r') as zip_ref:
-            zip_ref.extractall(sdk_root_dir)
-        return True
-    else:
-        return False
-
-def sdk_download_all(version, platforms):
-    for platform in platforms:
-        if not sdk_exists(version, platform):
-            if not sdk_download(version, platform):
-                return False
-        else:
-            print(f"Using cached download for SDK version {version} and platform {platform}")
-    return True
-
 def validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build):
     version_map = sdk_json['versions']
     if not sdk_version in version_map:
@@ -178,6 +144,40 @@ def validate_self(sdk_json):
         print_warning(f"Download it at {tool_download_url}")
     if re.search(tool_compatibility, ttbuild_version) is None:
         exit_with_error('The tool is not compatible anymore. Please upgrade. See https://docs.tactility.one for more information.')
+
+def sdk_download(version, platform):
+    sdk_root_dir = get_sdk_root_dir(version, platform)
+    os.makedirs(sdk_root_dir, exist_ok=True)
+    sdk_url = get_sdk_url(version, platform)
+    filepath = os.path.join(sdk_root_dir, f"{version}-{platform}.zip")
+    print(f"Downloading SDK version {version} for {platform}")
+    if download_file(sdk_url, filepath):
+        with zipfile.ZipFile(filepath, 'r') as zip_ref:
+            zip_ref.extractall(sdk_root_dir)
+        return True
+    else:
+        return False
+
+def sdk_download_all(version, platforms):
+    for platform in platforms:
+        if not sdk_exists(version, platform):
+            if not sdk_download(version, platform):
+                return False
+        else:
+            print(f"Using cached download for SDK version {version} and platform {platform}")
+    return True
+
+def build(version, platforms, skip_build):
+    for platform in platforms:
+        if verbose:
+            print(f"Platform: {platform}")
+        sdk_dir = get_sdk_dir(version, platform)
+        if verbose:
+            print(f"Using SDK at {sdk_dir}")
+        os.environ['TACTILITY_SDK_PATH'] = sdk_dir
+        os.system(f"cp sdkconfig.{platform} sdkconfig")
+        if not skip_build:
+            os.system(f"idf.py -B build-{platform} build")
 
 if __name__ == "__main__":
     print(f"Tactility Build System v{ttbuild_version}")
