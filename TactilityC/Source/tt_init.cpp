@@ -11,8 +11,10 @@
 #include "tt_lvgl_toolbar.h"
 #include "tt_message_queue.h"
 #include "tt_mutex.h"
+#include "tt_preferences.h"
 #include "tt_semaphore.h"
 #include "tt_thread.h"
+#include "tt_time.h"
 #include "tt_timer.h"
 
 #include <private/elf_symbol.h>
@@ -72,6 +74,14 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_mutex_free),
     ESP_ELFSYM_EXPORT(tt_mutex_lock),
     ESP_ELFSYM_EXPORT(tt_mutex_unlock),
+    ESP_ELFSYM_EXPORT(tt_preferences_alloc),
+    ESP_ELFSYM_EXPORT(tt_preferences_free),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_bool),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_int32),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_string),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_bool),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_int32),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_string),
     ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
     ESP_ELFSYM_EXPORT(tt_semaphore_free),
     ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
@@ -99,6 +109,11 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
     ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
     ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
+    ESP_ELFSYM_EXPORT(tt_timezone_set),
+    ESP_ELFSYM_EXPORT(tt_timezone_get_name),
+    ESP_ELFSYM_EXPORT(tt_timezone_get_code),
+    ESP_ELFSYM_EXPORT(tt_timezone_is_format_24_hour),
+    ESP_ELFSYM_EXPORT(tt_timezone_set_format_24_hour),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_event
