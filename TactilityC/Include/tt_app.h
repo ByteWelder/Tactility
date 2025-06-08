@@ -18,7 +18,7 @@ BundleHandle _Nullable tt_app_get_parameters(AppHandle handle);
  * @param[in] result the result state to set
  * @param[in] bundle the result bundle to set
  */
-void tt_app_set_result(AppHandle handle, Result result, BundleHandle _Nullable bundle);
+void tt_app_set_result(AppHandle handle, AppResult result, BundleHandle _Nullable bundle);
 
 /** @return true if a result was set for this app context */
 bool tt_app_has_result(AppHandle handle);

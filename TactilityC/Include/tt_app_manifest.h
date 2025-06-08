@@ -9,14 +9,14 @@ extern "C" {
 
 /** Important: These values must map to tt::app::Result values exactly */
 typedef enum {
-    AppResultOk = 0,
-    AppResultCancelled = 1,
-    AppResultError = 2
-} Result;
+    APP_RESULT_OK = 0,
+    APP_RESULT_CANCELLED = 1,
+    APP_RESULT_ERROR = 2
+} AppResult;
 
 typedef void* AppHandle;
 
-typedef unsigned int LaunchId;
+typedef unsigned int AppLaunchId;
 
 /** Important: These function types must map to t::app types exactly */
 typedef void* (*AppCreateData)();
@@ -25,7 +25,7 @@ typedef void (*AppOnCreate)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnDestroy)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnShow)(AppHandle app, void* _Nullable data, lv_obj_t* parent);
 typedef void (*AppOnHide)(AppHandle app, void* _Nullable data);
-typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, LaunchId launchId, Result result, BundleHandle resultData);
+typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, AppLaunchId launchId, AppResult result, BundleHandle resultData);
 
 typedef struct {
     /** The application's human-readable name */
