@@ -5,6 +5,7 @@
 #include "tt_app_manifest.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
+#include "tt_gps.h"
 #include "tt_hal_i2c.h"
 #include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
@@ -42,6 +43,8 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
+    ESP_ELFSYM_EXPORT(tt_gps_has_coordinates),
+    ESP_ELFSYM_EXPORT(tt_gps_get_coordinates),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_is_started),
