@@ -217,7 +217,7 @@ def sdk_download(version, platform):
     print(f"Downloading SDK version {version} for {platform}")
     if download_file(sdk_url, filepath):
         with zipfile.ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(sdk_root_dir)
+            zip_ref.extractall(os.path.join(sdk_root_dir, "TactilitySDK"))
         return True
     else:
         return False

@@ -24,8 +24,12 @@ runs:
         target: ${{ inputs.arch }}
         path: './'
     - name: 'Release'
-      shell: bash
-      run: Buildscripts/release-sdk.sh  release/TactilitySDK
+      uses: espressif/esp-idf-ci-action@main
+      with:
+        esp_idf_version: v5.4
+        target: ${{ inputs.arch }}
+        path: './'
+      command: Buildscripts/release-sdk.sh  release/TactilitySDK
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
