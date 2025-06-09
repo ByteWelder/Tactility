@@ -15,7 +15,7 @@ platform_targets = ["esp32", "esp32s3"]
 platform_arguments = platform_targets.copy()
 platform_arguments.append("all")
 ttbuild_path = ".tactility"
-ttbuild_version = "0.3.0"
+ttbuild_version = "1.0.0"
 ttbuild_properties_file = "tactility.properties"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
