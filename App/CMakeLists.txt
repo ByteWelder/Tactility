@@ -14,6 +14,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/TactilityNews"
         "Source/TactileWeb"
         "Source/TactileWeb/html2text"
+        "Source/Tactiligotchi"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client json
     )
