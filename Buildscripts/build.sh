@@ -27,12 +27,13 @@ fi
 
 echoNewPhase "Cleaning build folder"
 
-rm -rf build
+#rm -rf build
 
 echoNewPhase "Building $sdkconfig_file"
 
 cp $sdkconfig_file sdkconfig
-if not idf.py build; then
+idf.py build
+if [[ $? != 0 ]]; then
     fatalError "Failed to build esp32s3 SDK"
 fi
 
