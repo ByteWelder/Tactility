@@ -8,9 +8,13 @@ namespace tt {
 /**
  * Settings that persist on NVS flash for ESP32.
  * On simulator, the settings are only in-memory.
+ *
+ * Note that on ESP32, there are limitations:
+ * - namespace name is limited by NVS_NS_NAME_MAX_SIZE (generally 16 characters)
+ * - key is limited by NVS_KEY_NAME_MAX_SIZE (generally 16 characters)
  */
 class Preferences {
-private:
+
     const char* namespace_;
 
 public:
