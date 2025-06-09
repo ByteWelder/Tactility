@@ -1,6 +1,7 @@
 #include "tt_time.h"
 
 #include <Tactility/time/Time.h>
+#include <cstring>
 
 using namespace tt;
 
@@ -10,12 +11,24 @@ void tt_timezone_set(const char* name, const char* code) {
     time::setTimeZone(name, code);
 }
 
-const char* tt_timezone_get_name() {
-    return time::getTimeZoneName().c_str();
+bool tt_timezone_get_name(char* buffer, size_t bufferSize) {
+    auto name = time::getTimeZoneName();
+    if (bufferSize < (name.length() + 1)) {
+        return false;
+    } else {
+        strcpy(buffer, name.c_str());
+        return true;
+    }
 }
 
-const char* tt_timezone_get_code() {
-    return time::getTimeZoneCode().c_str();
+bool tt_timezone_get_code(char* buffer, size_t bufferSize) {
+    auto code = time::getTimeZoneCode();
+    if (bufferSize < (code.length() + 1)) {
+        return false;
+    } else {
+        strcpy(buffer, code.c_str());
+        return true;
+    }
 }
 
 bool tt_timezone_is_format_24_hour() {

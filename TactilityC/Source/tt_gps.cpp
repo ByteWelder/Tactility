@@ -11,13 +11,13 @@ bool tt_gps_has_coordinates() {
 }
 
 bool tt_gps_get_coordinates(
-    float& longitude,
-    float& latitude,
-    float& speed,
-    float& course,
-    int& day,
-    int& month,
-    int& year
+    float* longitude,
+    float* latitude,
+    float* speed,
+    float* course,
+    int* day,
+    int* month,
+    int* year
 ) {
     auto service = gps::findGpsService();
 
@@ -31,13 +31,13 @@ bool tt_gps_get_coordinates(
         return false;
     }
 
-    longitude = minmea_tocoord(&rmc.longitude);
-    latitude = minmea_tocoord(&rmc.latitude);
-    speed = minmea_tocoord(&rmc.speed);
-    course = minmea_tocoord(&rmc.course);
-    day = rmc.date.day;
-    month = rmc.date.month;
-    year = rmc.date.year;
+    *longitude = minmea_tocoord(&rmc.longitude);
+    *latitude = minmea_tocoord(&rmc.latitude);
+    *speed = minmea_tocoord(&rmc.speed);
+    *course = minmea_tocoord(&rmc.course);
+    *day = rmc.date.day;
+    *month = rmc.date.month;
+    *year = rmc.date.year;
 
     return true;
 }
