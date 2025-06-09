@@ -1,5 +1,5 @@
 #pragma once
-#include "tt/app/App.h"
+#include "Tactility/app/App.h"
 #include <cstdint>
 #include <lvgl.h>
 
