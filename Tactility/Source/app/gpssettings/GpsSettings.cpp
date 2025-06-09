@@ -24,8 +24,6 @@ extern const AppManifest manifest;
 
 class GpsSettingsApp final : public App {
 
-private:
-
     std::unique_ptr<Timer> timer;
     std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
     lv_obj_t* statusWrapper = nullptr;
@@ -96,7 +94,7 @@ private:
         memcpy(&index, &index_as_voidptr, sizeof(int));
 
         std::vector<tt::hal::gps::GpsConfiguration> configurations;
-        auto gps_service = tt::service::gps::findGpsService();
+        auto gps_service = service::gps::findGpsService();
         if (gps_service && gps_service->getGpsConfigurations(configurations)) {
             TT_LOG_I(TAG, "Found service and configs %d %d", index, configurations.size());
             if (index <= configurations.size()) {
