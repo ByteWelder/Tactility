@@ -1,9 +1,12 @@
 #include "Tactiligotchi.h"
 #include <string>
 #include <lvgl.h>
-#include <Tactility/app/App.h>
+#include <Tactility/app/App.h>          // For App and AppContext
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+
+using namespace tt::app;
+using namespace tt::lvgl;
 
 #define PET_COLOR_HAPPY    lv_color_hex(0x00FF00)
 #define PET_COLOR_NEUTRAL  lv_color_hex(0xFFFF00)
@@ -18,7 +21,7 @@ void TamagotchiApp::onShow(AppContext& context, lv_obj_t* parent) {
     lv_obj_set_size(pet_container, LV_PCT(100), LV_PCT(100));
     lv_obj_clear_flag(pet_container, LV_OBJ_FLAG_SCROLLABLE);
 
-    lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+    lv_obj_t* toolbar = toolbar_create(parent, context);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     createPetDisplay(pet_container);
@@ -52,7 +55,7 @@ void TamagotchiApp::createPetDisplay(lv_obj_t* parent) {
     lv_obj_add_flag(pet_sprite, LV_OBJ_FLAG_CLICKABLE);
 
     lv_obj_add_event_cb(pet_sprite, [](lv_event_t* e) {
-        TamagotchiApp* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
+        auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
         app->petAnimal();
     }, LV_EVENT_CLICKED, this);
 
@@ -128,26 +131,11 @@ void TamagotchiApp::updatePetDisplay() {
     const char* status_text;
 
     switch (pet.mood) {
-        case PetMood::HAPPY:
-            pet_color = PET_COLOR_HAPPY;
-            status_text = "😊 Happy!";
-            break;
-        case PetMood::SAD:
-            pet_color = PET_COLOR_SAD;
-            status_text = "😢 Sad...";
-            break;
-        case PetMood::SICK:
-            pet_color = PET_COLOR_SICK;
-            status_text = "🤒 Sick!";
-            break;
-        case PetMood::SLEEPING:
-            pet_color = PET_COLOR_SLEEPING;
-            status_text = "😴 Sleeping";
-            break;
-        default:
-            pet_color = PET_COLOR_NEUTRAL;
-            status_text = "😐 Okay";
-            break;
+        case PetMood::HAPPY:    pet_color = PET_COLOR_HAPPY; status_text = "😊 Happy!"; break;
+        case PetMood::SAD:      pet_color = PET_COLOR_SAD;   status_text = "😢 Sad..."; break;
+        case PetMood::SICK:     pet_color = PET_COLOR_SICK;  status_text = "🤒 Sick!"; break;
+        case PetMood::SLEEPING: pet_color = PET_COLOR_SLEEPING; status_text = "😴 Sleeping"; break;
+        default:                pet_color = PET_COLOR_NEUTRAL; status_text = "😐 Okay"; break;
     }
 
     lv_obj_set_style_bg_color(pet_sprite, pet_color, 0);
@@ -157,7 +145,7 @@ void TamagotchiApp::updatePetDisplay() {
         lv_label_set_text_fmt(status_label, "%s\n💩 Needs cleaning!", status_text);
     }
 
-    int size = 60 + (int)pet.type * 10;
+    int size = 60 + pet.type * 10;
     lv_obj_set_size(pet_sprite, size, size);
 }
 
@@ -175,10 +163,10 @@ void TamagotchiApp::animatePet(lv_color_t flash_color) {
     lv_anim_init(&anim);
     lv_anim_set_var(&anim, pet_sprite);
     lv_anim_set_exec_cb(&anim, [](void* obj, int32_t val) {
-        lv_obj_set_size((lv_obj_t*)obj, val, val);
+        lv_obj_set_size(static_cast<lv_obj_t*>(obj), val, val);
     });
 
-    int current_size = 60 + (int)pet.type * 10;
+    int current_size = 60 + pet.type * 10;
     lv_anim_set_values(&anim, current_size, current_size + 10);
     lv_anim_set_time(&anim, 200);
     lv_anim_set_playback_time(&anim, 200);
@@ -186,7 +174,7 @@ void TamagotchiApp::animatePet(lv_color_t flash_color) {
     lv_anim_start(&anim);
 
     lv_timer_create([](lv_timer_t* timer) {
-        TamagotchiApp* app = static_cast<TamagotchiApp*>(timer->user_data);
+        auto* app = static_cast<TamagotchiApp*>(timer->user_data);
         app->updatePetDisplay();
         lv_timer_del(timer);
     }, 500, this);
@@ -232,8 +220,34 @@ void TamagotchiApp::putPetToSleep() {
     savePetData();
 }
 
-extern const AppManifest tactiligotchi_app = {
+void TamagotchiApp::update_timer_cb(lv_timer_t* timer) {
+    auto* app = static_cast<TamagotchiApp*>(timer->user_data);
+    app->updatePetDisplay();
+    app->updateStatBars();
+}
+
+void TamagotchiApp::feed_btn_cb(lv_event_t* e) {
+    auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
+    app->feedPet();
+}
+
+void TamagotchiApp::play_btn_cb(lv_event_t* e) {
+    auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
+    app->petAnimal();
+}
+
+void TamagotchiApp::clean_btn_cb(lv_event_t* e) {
+    auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
+    app->cleanPet();
+}
+
+void TamagotchiApp::sleep_btn_cb(lv_event_t* e) {
+    auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
+    app->putPetToSleep();
+}
+
+const AppManifest tactiligotchi_app = {
     .id = "Tactiligotchi",
     .name = "Tactiligotchi",
-    .createApp = create<Tactiligotchi>
+    .createApp = create<TamagotchiApp>
 };
