@@ -9,13 +9,18 @@ import time
 import urllib.request
 import zipfile
 
-esp_platforms = ["esp32", "esp32s3"]
+# Targetable platforms that represent a specific hardware target
+platform_targets = ["esp32", "esp32s3"]
+# All valid platform commandline arguments
+platform_arguments = platform_targets.copy()
+platform_arguments.append("all")
 ttbuild_path = ".tactility"
-ttbuild_version = "0.1.0"
+ttbuild_version = "0.3.0"
 ttbuild_properties_file = "tactility.properties"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
 verbose = False
+use_local_sdk = False
 
 spinner_pattern = [
     "⠋",
@@ -49,15 +54,19 @@ def print_help():
     print("Usage: python tactility.py [action] [options]")
     print("")
     print("Actions:")
-    print("  build [esp32,esp32s3,all]   Build the app for 1 or more platforms")
-    print("  clean                       Clean the build folders")
-    print("  clearcache                  Clear the SDK cache")
-    print("  updateself                  Update this tool")
+    print("  build [esp32,esp32s3,all,local]   Build the app for the specified platform")
+    print("    esp32:         ESP32")
+    print("    esp32s3:       ESP32 S3")
+    print("    all:           all supported ESP platforms")
+    print("  clean                             Clean the build folders")
+    print("  clearcache                        Clear the SDK cache")
+    print("  updateself                        Update this tool")
     print("")
     print("Options:")
-    print("  --help                      Show this commandline info")
-    print("  --skip-build                Run everything except the idf.py/CMake commands")
-    print("  --verbose                   Show extra console output")
+    print("  --help                            Show this commandline info")
+    print("  --local-sdk                       Use SDK specifiedc by environment variable TACTILITY_SDK_PATH")
+    print("  --skip-build                      Run everything except the idf.py/CMake commands")
+    print("  --verbose                         Show extra console output")
 
 def download_file(url, filepath):
     global verbose
@@ -92,24 +101,32 @@ def exit_with_error(message):
     sys.exit(1)
 
 def is_valid_platform_name(name):
-    return name == "all" or name == "esp32" or name == "esp32s3"
+    global platform_arguments
+    return name in platform_arguments
 
 def validate_environment():
-    global ttbuild_properties_file
+    global ttbuild_properties_file, use_local_sdk
     if os.environ.get("IDF_PATH") is None:
-        exit_with_error("IDF is not installed or activated. Ensure you installed the toolset and ran the export command.")
-    if os.environ.get("TACTILITY_SDK_PATH") is not None:
-        print_warning("TACTILITY_SDK_PATH is set, but will be ignored by this command")
+        exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
     if not os.path.exists(ttbuild_properties_file):
         exit_with_error(f"{ttbuild_properties_file} file not found")
+    if use_local_sdk == False and os.environ.get("TACTILITY_SDK_PATH") is not None:
+        print_warning("TACTILITY_SDK_PATH is set, but will be ignored by this command.")
+        print_warning("If you want to use it, use the 'build local' parameters.")
+    elif use_local_sdk == True and os.environ.get("TACTILITY_SDK_PATH") is None:
+        exit_with_error("local build was requested, but TACTILITY_SDK_PATH environment variable is not set.")
 
 def setup_environment():
     global ttbuild_path
     os.makedirs(ttbuild_path, exist_ok=True)
 
 def get_sdk_dir(version, platform):
-    global ttbuild_cdn
-    return os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK")
+    global use_local_sdk
+    if use_local_sdk:
+        return os.environ.get("TACTILITY_SDK_PATH")
+    else:
+        global ttbuild_cdn
+        return os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK")
 
 def get_sdk_version():
     global ttbuild_properties_file
@@ -151,14 +168,14 @@ def update_sdk_json():
     return download_file(json_url, json_filepath)
 
 def should_fetch_sdkconfig_files():
-    for platform in esp_platforms:
+    for platform in platform_targets:
         sdkconfig_filename = f"sdkconfig.app.{platform}"
         if not os.path.exists(os.path.join(ttbuild_path, sdkconfig_filename)):
             return True
     return False
 
 def fetch_sdkconfig_files():
-    for platform in esp_platforms:
+    for platform in platform_targets:
         sdkconfig_filename = f"sdkconfig.app.{platform}"
         target_path = os.path.join(ttbuild_path, sdkconfig_filename)
         if not download_file(f"{ttbuild_cdn}/{sdkconfig_filename}", target_path):
@@ -190,7 +207,7 @@ def validate_self(sdk_json):
     if re.search(tool_compatibility, ttbuild_version) is None:
         print_error("The tool is not compatible anymore.")
         print_error("Run 'tactility.py updateself' to update.")
-        sys.exit()
+        sys.exit(1)
 
 def sdk_download(version, platform):
     sdk_root_dir = get_sdk_root_dir(version, platform)
@@ -316,25 +333,27 @@ def build_action(platform_arg):
     validate_environment()
     # Environment setup
     setup_environment()
+    platforms_to_build = platform_targets if platform_arg == "all" else [platform_arg]
     if not is_valid_platform_name(platform_arg):
         print_help()
         exit_with_error("Invalid platform name")
-    if should_fetch_sdkconfig_files():
-        fetch_sdkconfig_files()
-    # Update SDK cache
-    if should_update_sdk_json() and not update_sdk_json():
-        exit_with_error("Failed to retrieve SDK info")
-    sdk_json = read_sdk_json()
-    validate_self(sdk_json)
-    if not "versions" in sdk_json:
-        exit_with_error("Version data not found in sdk.json")
+    if not use_local_sdk:
+        if should_fetch_sdkconfig_files():
+            fetch_sdkconfig_files()
+        # Update SDK cache
+        if should_update_sdk_json() and not update_sdk_json():
+            exit_with_error("Failed to retrieve SDK info")
+        sdk_json = read_sdk_json()
+        validate_self(sdk_json)
+        if not "versions" in sdk_json:
+            exit_with_error("Version data not found in sdk.json")
     # Build
-    platforms_to_build = esp_platforms if platform_arg == "all" else [platform_arg]
     sdk_version = get_sdk_version()
-    validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build)
-    if not sdk_download_all(sdk_version, platforms_to_build):
-        exit_with_error("Failed to download one or more SDKs")
-    build_all(sdk_version, platforms_to_build, skip_build)    # Environment validation
+    if not use_local_sdk:
+        validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build)
+        if not sdk_download_all(sdk_version, platforms_to_build):
+            exit_with_error("Failed to download one or more SDKs")
+    build_all(sdk_version, platforms_to_build, skip_build)  # Environment validation
 
 def clean_action():
     count = 0
@@ -373,14 +392,13 @@ if __name__ == "__main__":
     action_arg = sys.argv[1]
     verbose = "--verbose" in sys.argv
     skip_build = "--skip-build" in sys.argv
+    use_local_sdk = "--local-sdk" in sys.argv
     # Actions
     if action_arg == "build":
         if len(sys.argv) < 3:
             print_help()
-            sys.exit()
-        else:
-            platform_arg = sys.argv[2]
-            build_action(platform_arg)
+            exit_with_error("Commandline parameter missing")
+        build_action(sys.argv[2])
     elif action_arg == "clean":
         clean_action()
     elif action_arg == "clearcache":
@@ -389,4 +407,4 @@ if __name__ == "__main__":
         update_self_action()
     else:
         print_help()
-        sys.exit()
+        exit_with_error("Unknown commandline parameter")
