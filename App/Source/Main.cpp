@@ -14,6 +14,7 @@ namespace tt::app::clock {
 extern const tt::app::AppManifest calibration_app;
 extern const tt::app::AppManifest tactility_news_app;
 extern const tt::app::AppManifest tactile_web_app;
+extern const tt::app::AppManifest tactiligotchi_app;
 
 extern "C" {
 
@@ -30,6 +31,7 @@ void app_main() {
             &tactility_news_app,
             &tactile_web_app,
             &tt::app::clock::clock_app,
+            &tactiligotchi_app,
         }
     };
 
