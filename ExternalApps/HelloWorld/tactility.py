@@ -15,7 +15,7 @@ platform_targets = ["esp32", "esp32s3"]
 platform_arguments = platform_targets.copy()
 platform_arguments.append("all")
 ttbuild_path = ".tactility"
-ttbuild_version = "0.3.0"
+ttbuild_version = "1.0.0"
 ttbuild_properties_file = "tactility.properties"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
@@ -217,7 +217,7 @@ def sdk_download(version, platform):
     print(f"Downloading SDK version {version} for {platform}")
     if download_file(sdk_url, filepath):
         with zipfile.ZipFile(filepath, "r") as zip_ref:
-            zip_ref.extractall(sdk_root_dir)
+            zip_ref.extractall(os.path.join(sdk_root_dir, "TactilitySDK"))
         return True
     else:
         return False

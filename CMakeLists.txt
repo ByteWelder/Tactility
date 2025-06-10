@@ -21,7 +21,7 @@ file(READ version.txt TACTILITY_VERSION)
 add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
 
 if (DEFINED ENV{ESP_IDF_VERSION})
-    message("Building with ESP-IDF ${Cyan}v$ENV{ESP_IDF_VERSION}${ColorReset}")
+    message("Using ESP-IDF ${Cyan}v$ENV{ESP_IDF_VERSION}${ColorReset}")
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
     include("Buildscripts/board.cmake")
