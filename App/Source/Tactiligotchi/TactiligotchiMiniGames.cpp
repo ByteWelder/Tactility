@@ -23,12 +23,12 @@ void TactiligotchiMiniGames::endPatternGame() {
 
 void TactiligotchiMiniGames::gameSuccess() {
     // Forward to parent app for handling success
-    if (parent_app) parent_app->onGameSuccess();
+    if (parent_app) parent_app->gameSuccess();
 }
 
 void TactiligotchiMiniGames::gameFailed() {
     // Forward to parent app for handling failure
-    if (parent_app) parent_app->onGameFail();
+    if (parent_app) parent_app->gameFailed();
 }
 
 void TactiligotchiMiniGames::endMiniGame() {
@@ -40,5 +40,5 @@ void TactiligotchiMiniGames::endMiniGame() {
     }
 
     // Notify parent app
-    if (parent_app) parent_app->onMiniGameEnd();
+    if (parent_app) parent_app->endMiniGame();
 }
