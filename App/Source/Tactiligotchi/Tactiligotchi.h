@@ -4,7 +4,6 @@
 #include "Tactility/app/AppContext.h"   // For tt::app::AppContext
 #include <cstdint>
 #include <lvgl.h>
-#include "Pet.h"
 #include "PatternGame.h"                // Full definition for PatternGame
 
 // Pet states and types
