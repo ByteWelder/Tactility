@@ -1,7 +1,7 @@
 #include "Tactiligotchi.h"
 #include <string>
 #include <lvgl.h>
-#include <Tactility/app/App.h>          // For App and AppContext
+#include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 
@@ -222,8 +222,11 @@ void TamagotchiApp::putPetToSleep() {
 
 void TamagotchiApp::update_timer_cb(lv_timer_t* timer) {
     auto* app = static_cast<TamagotchiApp*>(timer->user_data);
+    uint32_t current_time = lv_tick_get();
+    app->pet.updateStats(current_time);
     app->updatePetDisplay();
     app->updateStatBars();
+    app->savePetData();
 }
 
 void TamagotchiApp::feed_btn_cb(lv_event_t* e) {
@@ -244,6 +247,66 @@ void TamagotchiApp::clean_btn_cb(lv_event_t* e) {
 void TamagotchiApp::sleep_btn_cb(lv_event_t* e) {
     auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
     app->putPetToSleep();
+}
+
+void TamagotchiApp::playWithPet() {
+    if (pet.energy < 20) {
+        lv_label_set_text(status_label, "Too tired to play!");
+        return;
+    }
+
+    PatternGame* game = new PatternGame(this);
+    game->startGame(pet_container);
+    current_minigame = game;
+}
+
+void TamagotchiApp::gameSuccess() {
+    pet.happiness = std::min(100, pet.happiness + 15);
+    pet.energy = std::max(0, pet.energy - 10);
+    pet.times_played++;
+
+    animatePet(lv_color_hex(0x00FF00));
+    updateStatBars();
+    savePetData();
+}
+
+void TamagotchiApp::gameFailed() {
+    pet.energy = std::max(0, pet.energy - 5);
+    pet.happiness = std::max(0, pet.happiness - 5);
+
+    animatePet(lv_color_hex(0xFF0000));
+    updateStatBars();
+}
+
+void TamagotchiApp::endMiniGame() {
+    if (current_minigame) {
+        delete current_minigame;
+        current_minigame = nullptr;
+    }
+    updatePetDisplay();
+}
+
+void TamagotchiApp::savePetData() {
+    std::ofstream file("/sd/tamagotchi_save.dat", std::ios::binary);
+    if (file.is_open()) {
+        pet.last_update_time = lv_tick_get();
+        file.write((char*)&pet, sizeof(PetData));
+        file.close();
+    }
+}
+
+void TamagotchiApp::loadPetData() {
+    std::ifstream file("/sd/tamagotchi_save.dat", std::ios::binary);
+    if (file.is_open()) {
+        file.read((char*)&pet, sizeof(PetData));
+        file.close();
+
+        uint32_t current_time = lv_tick_get();
+        pet.updateStats(current_time);
+    } else {
+        pet = PetData();
+        pet.last_update_time = lv_tick_get();
+    }
 }
 
 const AppManifest tactiligotchi_app = {
