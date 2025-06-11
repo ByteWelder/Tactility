@@ -29,7 +29,7 @@ public:
     ~TamagotchiApp() override = default;
 
     void onShow(tt::app::AppContext& context, lv_obj_t* parent) override;
-    virtual void onHide(AppContext& appContext);
+    void onHide(tt::app::AppContext& appContext) override;
 
     // Must be public so PatternGame can call them:
     void gameSuccess();
