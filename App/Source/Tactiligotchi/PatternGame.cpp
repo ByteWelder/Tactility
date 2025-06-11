@@ -1,5 +1,5 @@
 #include "PatternGame.h"
-#include <lvgl.h>
+#include "lvgl.h"
 #include "lv_timer.h"
 #include "Tactiligotchi.h"  // For TamagotchiApp definition
 
