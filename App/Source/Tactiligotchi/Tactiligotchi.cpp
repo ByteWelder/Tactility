@@ -1,7 +1,9 @@
 #include "Tactiligotchi.h"
-#include <string>
-#include <lvgl.h>
-#include <Tactility/app/App.h>
+#include "PatternGame.h"
+#include <fstream>
+#include <cstdlib>
+#include <algorithm>
+#include <lv_timer.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 
@@ -40,6 +42,7 @@ void TamagotchiApp::onHide() {
         lv_timer_del(update_timer);
         update_timer = nullptr;
     }
+    endMiniGame();
 }
 
 void TamagotchiApp::createPetDisplay(lv_obj_t* parent) {
@@ -83,11 +86,11 @@ void TamagotchiApp::createStatBars(lv_obj_t* parent) {
     for (int i = 0; i < 4; i++) {
         lv_obj_t* label = lv_label_create(stats_area);
         lv_label_set_text(label, stat_names[i]);
-        lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, i * 20);
+        lv_obj_align(label, LV_ALIGN_TOP_LEFT, 0, i * 25);
 
         *stat_bars[i] = lv_bar_create(stats_area);
         lv_obj_set_size(*stat_bars[i], 120, 15);
-        lv_obj_align(*stat_bars[i], LV_ALIGN_TOP_LEFT, 60, i * 20);
+        lv_obj_align(*stat_bars[i], LV_ALIGN_TOP_LEFT, 60, i * 25);
         lv_obj_set_style_bg_color(*stat_bars[i], stat_colors[i], LV_PART_INDICATOR);
         lv_bar_set_range(*stat_bars[i], 0, 100);
     }
@@ -139,10 +142,11 @@ void TamagotchiApp::updatePetDisplay() {
     }
 
     lv_obj_set_style_bg_color(pet_sprite, pet_color, 0);
-    lv_label_set_text(status_label, status_text);
 
     if (pet.needs_cleaning) {
         lv_label_set_text_fmt(status_label, "%s\n💩 Needs cleaning!", status_text);
+    } else {
+        lv_label_set_text(status_label, status_text);
     }
 
     int size = 60 + pet.type * 10;
@@ -255,9 +259,11 @@ void TamagotchiApp::playWithPet() {
         return;
     }
 
-    PatternGame* game = new PatternGame(this);
-    game->startGame(pet_container);
-    current_minigame = game;
+    // End any previous minigame before starting a new one
+    endMiniGame();
+
+    current_minigame = new PatternGame(this);
+    current_minigame->startGame(pet_container);
 }
 
 void TamagotchiApp::gameSuccess() {
@@ -280,6 +286,7 @@ void TamagotchiApp::gameFailed() {
 
 void TamagotchiApp::endMiniGame() {
     if (current_minigame) {
+        current_minigame->endGame(); // if PatternGame supports cleanup
         delete current_minigame;
         current_minigame = nullptr;
     }
@@ -290,15 +297,17 @@ void TamagotchiApp::savePetData() {
     std::ofstream file("/sd/tamagotchi_save.dat", std::ios::binary);
     if (file.is_open()) {
         pet.last_update_time = lv_tick_get();
-        file.write((char*)&pet, sizeof(PetData));
+        file.write(reinterpret_cast<const char*>(&pet), sizeof(PetData));
         file.close();
+    } else {
+        // Handle error: log or fallback
     }
 }
 
 void TamagotchiApp::loadPetData() {
     std::ifstream file("/sd/tamagotchi_save.dat", std::ios::binary);
     if (file.is_open()) {
-        file.read((char*)&pet, sizeof(PetData));
+        file.read(reinterpret_cast<char*>(&pet), sizeof(PetData));
         file.close();
 
         uint32_t current_time = lv_tick_get();
