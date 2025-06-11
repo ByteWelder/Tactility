@@ -1,4 +1,7 @@
-// PatternGame: Simon Says-style pattern mini-game
+#include <cstdlib>     // For rand()
+#include <algorithm>   // For std::max
+#include "lvgl.h"      // Core LVGL UI framework
+#include "Tactiligotchi.h"  // Forward declare app interface
 
 class PatternGame {
 private:
