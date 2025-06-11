@@ -233,7 +233,7 @@ void TamagotchiApp::feed_btn_cb(lv_event_t* e) {
 
 void TamagotchiApp::play_btn_cb(lv_event_t* e) {
     auto* app = static_cast<TamagotchiApp*>(lv_event_get_user_data(e));
-    app->petAnimal();
+    app->playWithPet();
 }
 
 void TamagotchiApp::clean_btn_cb(lv_event_t* e) {
