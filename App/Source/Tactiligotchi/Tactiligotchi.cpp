@@ -3,7 +3,7 @@
 #include <fstream>
 #include <cstdlib>
 #include <algorithm>
-#include <lvgl.h>
+#include "lvgl.h"
 #include "lv_timer.h"
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
