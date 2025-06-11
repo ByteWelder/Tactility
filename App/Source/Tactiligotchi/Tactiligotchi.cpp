@@ -36,7 +36,7 @@ void TamagotchiApp::onShow(AppContext& context, lv_obj_t* parent) {
     update_timer = lv_timer_create(update_timer_cb, 30000, this);
 }
 
-void TamagotchiApp::onHide() {
+void TamagotchiApp::onHide(AppContext& context) {
     savePetData();
     if (update_timer) {
         lv_timer_del(update_timer);
