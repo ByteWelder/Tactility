@@ -42,7 +42,7 @@ void PatternGame::startGame(lv_obj_t* parent) {
 
         lv_obj_add_event_cb(input_buttons[i], [](lv_event_t* e) {
             PatternGame* game = static_cast<PatternGame*>(lv_event_get_user_data(e));
-            lv_obj_t* btn = lv_event_get_target(e);
+            lv_obj_t* btn = static_cast<lv_obj_t*>(lv_event_get_target(e));
 
             for (int id = 0; id < 4; ++id) {
                 if (btn == game->input_buttons[id]) {
