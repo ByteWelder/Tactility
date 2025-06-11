@@ -149,7 +149,7 @@ void TamagotchiApp::updatePetDisplay() {
         lv_label_set_text(status_label, status_text);
     }
 
-    int size = 60 + pet.type * 10;
+    int size = 60 + static_cast<int>(pet.type) * 10;
     lv_obj_set_size(pet_sprite, size, size);
 }
 
@@ -170,7 +170,7 @@ void TamagotchiApp::animatePet(lv_color_t flash_color) {
         lv_obj_set_size(static_cast<lv_obj_t*>(obj), val, val);
     });
 
-    int current_size = 60 + pet.type * 10;
+    int current_size = 60 + static_cast<int>(pet.type) * 10;
     lv_anim_set_values(&anim, current_size, current_size + 10);
     lv_anim_set_time(&anim, 200);
     lv_anim_set_playback_time(&anim, 200);
