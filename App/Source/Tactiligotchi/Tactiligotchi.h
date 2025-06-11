@@ -35,6 +35,7 @@ public:
     void gameSuccess();
     void gameFailed();
     void endMiniGame();
+    void petAnimal();
 
 private:
     // UI & data
