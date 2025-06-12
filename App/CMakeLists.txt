@@ -15,6 +15,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Source/TactileWeb"
         "Source/TactileWeb/html2text"
         "Source/Tactiligotchi"
+        INCLUDE_DIRS 
+        "." 
+        "../Libraries/lvgl/src"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client json
     )
