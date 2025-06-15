@@ -126,24 +126,6 @@ jobs:
         with:
           board_id: lilygo-tdeck
           arch: esp32s3
-  lilygo-tdeck-plus:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: lilygo-tdeck-plus
-          arch: esp32s3
-  lilygo-tdeck-pro:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: lilygo-tdeck-pro
-          arch: esp32s3
   m5stack-core2:
     runs-on: ubuntu-latest
     steps:
