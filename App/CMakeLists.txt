@@ -18,6 +18,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         INCLUDE_DIRS 
         "." 
         "../Libraries/lvgl/src"
+        "../Libraries/lvgl/src/misc"
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client json
     )
