@@ -5,15 +5,19 @@
 #include "tt_app_manifest.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
+#include "tt_gps.h"
 #include "tt_hal_i2c.h"
 #include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
 #include "tt_message_queue.h"
 #include "tt_mutex.h"
+#include "tt_preferences.h"
 #include "tt_semaphore.h"
 #include "tt_thread.h"
+#include "tt_time.h"
 #include "tt_timer.h"
+#include "tt_wifi.h"
 
 #include <private/elf_symbol.h>
 
@@ -39,6 +43,8 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
+    ESP_ELFSYM_EXPORT(tt_gps_has_coordinates),
+    ESP_ELFSYM_EXPORT(tt_gps_get_coordinates),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_is_started),
@@ -72,6 +78,14 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_mutex_free),
     ESP_ELFSYM_EXPORT(tt_mutex_lock),
     ESP_ELFSYM_EXPORT(tt_mutex_unlock),
+    ESP_ELFSYM_EXPORT(tt_preferences_alloc),
+    ESP_ELFSYM_EXPORT(tt_preferences_free),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_bool),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_int32),
+    ESP_ELFSYM_EXPORT(tt_preferences_opt_string),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_bool),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_int32),
+    ESP_ELFSYM_EXPORT(tt_preferences_put_string),
     ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
     ESP_ELFSYM_EXPORT(tt_semaphore_free),
     ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
@@ -99,6 +113,21 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
     ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
     ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
+    ESP_ELFSYM_EXPORT(tt_timezone_set),
+    ESP_ELFSYM_EXPORT(tt_timezone_get_name),
+    ESP_ELFSYM_EXPORT(tt_timezone_get_code),
+    ESP_ELFSYM_EXPORT(tt_timezone_is_format_24_hour),
+    ESP_ELFSYM_EXPORT(tt_timezone_set_format_24_hour),
+    ESP_ELFSYM_EXPORT(tt_wifi_get_radio_state),
+    ESP_ELFSYM_EXPORT(tt_wifi_radio_state_to_string),
+    ESP_ELFSYM_EXPORT(tt_wifi_scan),
+    ESP_ELFSYM_EXPORT(tt_wifi_is_scanning),
+    ESP_ELFSYM_EXPORT(tt_wifi_get_connection_target),
+    ESP_ELFSYM_EXPORT(tt_wifi_set_enabled),
+    ESP_ELFSYM_EXPORT(tt_wifi_connect),
+    ESP_ELFSYM_EXPORT(tt_wifi_disconnect),
+    ESP_ELFSYM_EXPORT(tt_wifi_is_connnection_secure),
+    ESP_ELFSYM_EXPORT(tt_wifi_get_rssi),
     // tt::lvgl
     ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
     // lv_event

@@ -1,5 +1,5 @@
-#include "Tactility/app/files/View.h"
-#include "Tactility/app/files/State.h"
+#include "Tactility/app/filebrowser/View.h"
+#include "Tactility/app/filebrowser/State.h"
 #include "Tactility/app/AppContext.h"
 
 #include <Tactility/Assets.h>
@@ -7,18 +7,18 @@
 
 #include <memory>
 
-namespace tt::app::files {
+namespace tt::app::filebrowser {
 
-#define TAG "files_app"
+#define TAG "filebrowser_app"
 
 extern const AppManifest manifest;
 
-class FilesApp : public App {
+class FileBrowser : public App {
     std::unique_ptr<View> view;
     std::shared_ptr<State> state;
 
 public:
-    FilesApp() {
+    FileBrowser() {
         state = std::make_shared<State>();
         view = std::make_unique<View>(state);
     }
@@ -27,7 +27,7 @@ public:
         view->init(parent);
     }
 
-    void onResult(AppContext& appContext, Result result, std::unique_ptr<Bundle> bundle) override {
+    void onResult(AppContext& appContext, TT_UNUSED LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) override {
         view->onResult(result, std::move(bundle));
     }
 };
@@ -37,7 +37,7 @@ extern const AppManifest manifest = {
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
     .type = Type::Hidden,
-    .createApp = create<FilesApp>
+    .createApp = create<FileBrowser>
 };
 
 void start() {

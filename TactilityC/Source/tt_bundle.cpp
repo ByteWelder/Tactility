@@ -23,17 +23,19 @@ bool tt_bundle_opt_int32(BundleHandle handle, const char* key, int32_t* out) {
 }
 bool tt_bundle_opt_string(BundleHandle handle, const char* key, char* out, uint32_t outSize) {
     std::string out_string;
-    if (HANDLE_AS_BUNDLE(handle)->optString(key, out_string)) {
-        if (out_string.length() < outSize) { // Need 1 byte to add 0 at the end
-            memcpy(out, out_string.c_str(), out_string.length());
-            out[out_string.length()] = 0x00;
-            return true;
-        } else {
-            return false;
-        }
-    } else {
+
+    if (!HANDLE_AS_BUNDLE(handle)->optString(key, out_string)) {
         return false;
     }
+
+    if (out_string.length() >= outSize) {
+        // Need 1 byte to add 0 at the end
+        return false;
+    }
+
+    memcpy(out, out_string.c_str(), out_string.length());
+    out[out_string.length()] = 0x00;
+    return true;
 }
 
 void tt_bundle_put_bool(BundleHandle handle, const char* key, bool value) {

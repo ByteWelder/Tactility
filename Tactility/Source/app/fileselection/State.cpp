@@ -1,6 +1,6 @@
-#include "Tactility/app/files/State.h"
-#include "Tactility/app/files/FileUtils.h"
+#include "Tactility/app/fileselection/State.h"
 
+#include <Tactility/file/File.h>
 #include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Log.h>
 #include <Tactility/Partitions.h>
@@ -11,9 +11,9 @@
 #include <vector>
 #include <dirent.h>
 
-#define TAG "files_app"
+#define TAG "fileselection_app"
 
-namespace tt::app::files {
+namespace tt::app::fileselection {
 
 State::State() {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
@@ -30,7 +30,7 @@ State::State() {
 }
 
 std::string State::getSelectedChildPath() const {
-    return getChildPath(current_path, selected_child_entry);
+    return file::getChildPath(current_path, selected_child_entry);
 }
 
 bool State::setEntriesForPath(const std::string& path) {
@@ -52,12 +52,12 @@ bool State::setEntriesForPath(const std::string& path) {
         dir_entries.clear();
         dir_entries.push_back(dirent{
             .d_ino = 0,
-            .d_type = TT_DT_DIR,
+            .d_type = file::TT_DT_DIR,
             .d_name = SYSTEM_PARTITION_NAME
         });
         dir_entries.push_back(dirent{
             .d_ino = 1,
-            .d_type = TT_DT_DIR,
+            .d_type = file::TT_DT_DIR,
             .d_name = DATA_PARTITION_NAME
         });
 
@@ -68,7 +68,7 @@ bool State::setEntriesForPath(const std::string& path) {
                 auto mount_name = sdcard->getMountPath().substr(1);
                 auto dir_entry = dirent {
                     .d_ino = 2,
-                    .d_type = TT_DT_DIR,
+                    .d_type = file::TT_DT_DIR,
                     .d_name = { 0 }
                 };
                 assert(mount_name.length() < sizeof(dirent::d_name));
@@ -79,16 +79,14 @@ bool State::setEntriesForPath(const std::string& path) {
 
         current_path = path;
         selected_child_entry = "";
-        action = ActionNone;
         return true;
     } else {
         dir_entries.clear();
-        int count = tt::app::files::scandir(path, dir_entries, &dirent_filter_dot_entries, dirent_sort_alpha_and_type);
+        int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
         if (count >= 0) {
             TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);
             current_path = path;
             selected_child_entry = "";
-            action = ActionNone;
             return true;
         } else {
             TT_LOG_E(TAG, "Failed to fetch entries for %s", path.c_str());
@@ -97,8 +95,8 @@ bool State::setEntriesForPath(const std::string& path) {
     }
 }
 
-bool State::setEntriesForChildPath(const std::string& child_path) {
-    auto path = getChildPath(current_path, child_path);
+bool State::setEntriesForChildPath(const std::string& childPath) {
+    auto path = file::getChildPath(current_path, childPath);
     TT_LOG_I(TAG, "Navigating from %s to %s", current_path.c_str(), path.c_str());
     return setEntriesForPath(path);
 }
@@ -116,4 +114,5 @@ bool State::getDirent(uint32_t index, dirent& dirent) {
         return false;
     }
 }
+
 }

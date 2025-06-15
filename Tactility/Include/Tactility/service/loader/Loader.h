@@ -4,7 +4,6 @@
 
 #include <Tactility/Bundle.h>
 #include <Tactility/PubSub.h>
-#include <Tactility/service/ServiceManifest.h>
 
 #include <memory>
 
@@ -30,7 +29,7 @@ struct LoaderEvent {
  * @param[in] id application name or id
  * @param[in] parameters optional parameters to pass onto the application
  */
-void startApp(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
+app::LaunchId startApp(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
 
 /** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stopApp();

@@ -1,5 +1,5 @@
-#include "Tactility/app/files/FileUtils.h"
-#include "Tactility/app/files/View.h"
+#include "Tactility/app/filebrowser/View.h"
+#include "Tactility/app/filebrowser/SupportedFiles.h"
 
 #include "Tactility/app/alertdialog/AlertDialog.h"
 #include "Tactility/app/imageviewer/ImageViewer.h"
@@ -10,6 +10,7 @@
 #include "Tactility/lvgl/LvglSync.h"
 
 #include <Tactility/Tactility.h>
+#include "Tactility/file/File.h"
 #include <Tactility/StringUtils.h>
 
 #include <cstring>
@@ -19,43 +20,43 @@
 #include "Tactility/service/loader/Loader.h"
 #endif
 
-#define TAG "files_app"
+#define TAG "filebrowser_app"
 
-namespace tt::app::files {
+namespace tt::app::filebrowser {
 
 // region Callbacks
 
 static void dirEntryListScrollBeginCallback(lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onDirEntryListScrollBegin();
 }
 
 static void onDirEntryPressedCallback(lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     auto* button = lv_event_get_target_obj(event);
     auto index = lv_obj_get_index(button);
     view->onDirEntryPressed(index);
 }
 
 static void onDirEntryLongPressedCallback(lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     auto* button = lv_event_get_target_obj(event);
     auto index = lv_obj_get_index(button);
     view->onDirEntryLongPressed(index);
 }
 
 static void onRenamePressedCallback(lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onRenamePressed();
 }
 
 static void onDeletePressedCallback(lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onDeletePressed();
 }
 
 static void onNavigateUpPressedCallback(TT_UNUSED lv_event_t* event) {
-    auto* view = (View*)lv_event_get_user_data(event);
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onNavigateUpPressed();
 }
 
@@ -86,18 +87,18 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 
     if (isSupportedExecutableFile(filename)) {
 #ifdef ESP_PLATFORM
-        app::registerElfApp(processed_filepath);
-        auto app_id = app::getElfAppId(processed_filepath);
+        registerElfApp(processed_filepath);
+        auto app_id = getElfAppId(processed_filepath);
         service::loader::startApp(app_id);
 #endif
     } else if (isSupportedImageFile(filename)) {
-        app::imageviewer::start(processed_filepath);
+        imageviewer::start(processed_filepath);
     } else if (isSupportedTextFile(filename)) {
         if (kernel::getPlatform() == kernel::PlatformEsp) {
-            app::textviewer::start(processed_filepath);
+            textviewer::start(processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
-            app::textviewer::start(processed_filepath.substr(1));
+            textviewer::start(processed_filepath.substr(1));
         }
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
@@ -111,6 +112,7 @@ void View::onDirEntryPressed(uint32_t index) {
     if (state->getDirent(index, dir_entry)) {
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
+        using namespace tt::file;
         switch (dir_entry.d_type) {
             case TT_DT_DIR:
             case TT_DT_CHR:
@@ -140,6 +142,7 @@ void View::onDirEntryLongPressed(int32_t index) {
     if (state->getDirent(index, dir_entry)) {
         TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
+        using namespace file;
         switch (dir_entry.d_type) {
             case TT_DT_DIR:
             case TT_DT_CHR:
@@ -161,15 +164,14 @@ void View::onDirEntryLongPressed(int32_t index) {
 }
 
 
-void View::createDirEntryWidget(lv_obj_t* parent, struct dirent& dir_entry) {
-    tt_check(parent);
-    auto* list = (lv_obj_t*)parent;
+void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
+    tt_check(list);
     const char* symbol;
-    if (dir_entry.d_type == TT_DT_DIR || dir_entry.d_type == TT_DT_CHR) {
+    if (dir_entry.d_type == file::TT_DT_DIR || dir_entry.d_type == file::TT_DT_CHR) {
         symbol = LV_SYMBOL_DIRECTORY;
     } else if (isSupportedImageFile(dir_entry.d_name)) {
         symbol = LV_SYMBOL_IMAGE;
-    } else if (dir_entry.d_type == TT_DT_LNK) {
+    } else if (dir_entry.d_type == file::TT_DT_LNK) {
         symbol = LV_SYMBOL_LOOP;
     } else {
         symbol = LV_SYMBOL_FILE;
@@ -195,7 +197,7 @@ void View::onRenamePressed() {
     std::string entry_name = state->getSelectedChildEntry();
     TT_LOG_I(TAG, "Pending rename %s", entry_name.c_str());
     state->setPendingAction(State::ActionRename);
-    app::inputdialog::start("Rename", "", entry_name);
+    inputdialog::start("Rename", "", entry_name);
 }
 
 void View::onDeletePressed() {
@@ -204,7 +206,7 @@ void View::onDeletePressed() {
     state->setPendingAction(State::ActionDelete);
     std::string message = "Do you want to delete this?\n" + file_path;
     const std::vector<std::string> choices = { "Yes", "No" };
-    app::alertdialog::start("Are you sure?", message, choices);
+    alertdialog::start("Are you sure?", message, choices);
 }
 
 void View::showActionsForDirectory() {
@@ -301,7 +303,7 @@ void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
             if (alertdialog::getResultIndex(*bundle) == 0) {
-                int delete_count = (int)remove(filepath.c_str());
+                int delete_count = remove(filepath.c_str());
                 if (delete_count > 0) {
                     TT_LOG_I(TAG, "Deleted %d items", delete_count);
                 } else {
@@ -313,9 +315,9 @@ void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
             break;
         }
         case State::ActionRename: {
-            auto new_name = app::inputdialog::getResult(*bundle);
+            auto new_name = inputdialog::getResult(*bundle);
             if (!new_name.empty() && new_name != state->getSelectedChildEntry()) {
-                std::string rename_to = getChildPath(state->getCurrentPath(), new_name);
+                std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
                 if (rename(filepath.c_str(), rename_to.c_str())) {
                     TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
                 } else {
