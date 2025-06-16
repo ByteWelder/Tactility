@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppContext.h>
 #include <cstdlib>
 #include <memory>
 #include <functional> // Added for std::function
