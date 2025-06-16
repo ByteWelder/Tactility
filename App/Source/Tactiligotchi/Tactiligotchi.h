@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Tactility/app/App.h"
-#include "Tactility/app/AppContext.h"   // For tt::app::AppContext
+#include "Tactility/app/AppContext.h"
 #include <cstdint>
 #include <lvgl.h>
-#include "PatternGame.h"                // Full definition for PatternGame
+#include "PatternGame.h"
+#include "Tactility/Timer.h" // Added for tt::Timer
 
-// Pet states and types
 enum class PetMood { HAPPY, NEUTRAL, SAD, SICK, SLEEPING, PLAYING };
 enum class PetType { EGG, BABY, CHILD, TEEN, ADULT };
 
@@ -31,14 +31,12 @@ public:
     void onShow(tt::app::AppContext& context, lv_obj_t* parent) override;
     void onHide(tt::app::AppContext& appContext) override;
 
-    // Must be public so PatternGame can call them:
     void gameSuccess();
     void gameFailed();
     void endMiniGame();
     void petAnimal();
 
 private:
-    // UI & data
     PetData pet;
     lv_obj_t* pet_container = nullptr;
     lv_obj_t* pet_sprite = nullptr;
@@ -51,15 +49,13 @@ private:
     lv_obj_t* play_btn = nullptr;
     lv_obj_t* clean_btn = nullptr;
     lv_obj_t* sleep_btn = nullptr;
-    lv_timer_t* update_timer = nullptr;
+    tt::Timer* update_timer = nullptr; // Updated to tt::Timer*
     PatternGame* current_minigame = nullptr;
 
-    // UI building
     void createPetDisplay(lv_obj_t* parent);
     void createStatBars(lv_obj_t* parent);
     void createActionButtons(lv_obj_t* parent);
 
-    // Pet logic
     void updatePetDisplay();
     void updateStatBars();
     void feedPet();
@@ -68,14 +64,13 @@ private:
     void putPetToSleep();
     void animatePet(lv_color_t color);
 
-    // Callbacks
+    void update_timer_cb(); // Updated to non-static, no arguments
+
     static void feed_btn_cb(lv_event_t* e);
     static void play_btn_cb(lv_event_t* e);
     static void clean_btn_cb(lv_event_t* e);
     static void sleep_btn_cb(lv_event_t* e);
-    static void update_timer_cb(lv_timer_t* timer);
 
-    // Persistence
     void savePetData();
     void loadPetData();
 };
