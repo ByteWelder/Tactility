@@ -4,8 +4,9 @@
 #include <cstdlib>
 #include <algorithm>
 #include "lvgl.h"
-#include "lvgl/src/misc/lv_timer.h"
+#include "Tactility/Timer.h" // Replaced lvgl/src/misc/lv_timer.h
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
 
 using namespace tt::app;
@@ -16,6 +17,49 @@ using namespace tt::lvgl;
 #define PET_COLOR_SAD      lv_color_hex(0xFF8800)
 #define PET_COLOR_SICK     lv_color_hex(0xFF0000)
 #define PET_COLOR_SLEEPING lv_color_hex(0x8888FF)
+
+void PetData::updateStats(uint32_t current_time) {
+    if (current_time < last_update_time) return; // Avoid issues with time overflow
+    uint32_t elapsed_minutes = (current_time - last_update_time) / 60000; // Convert ms to minutes
+    if (elapsed_minutes == 0) return;
+
+    hunger = std::max(0, hunger - static_cast<int>(elapsed_minutes * 2));
+    happiness = std::max(0, happiness - static_cast<int>(elapsed_minutes));
+    energy = std::max(0, energy - static_cast<int>(elapsed_minutes));
+    health = std::max(0, health - static_cast<int>(elapsed_minutes * (needs_cleaning ? 2 : 1)));
+
+    age_minutes += elapsed_minutes;
+    last_update_time = current_time;
+
+    if (needsEvolution()) evolve();
+    mood = calculateMood();
+}
+
+PetMood PetData::calculateMood() const {
+    if (health < 30 || hunger < 20) return PetMood::SICK;
+    if (energy < 20) return PetMood::SLEEPING;
+    if (happiness < 40 || hunger < 40) return PetMood::SAD;
+    if (happiness > 70 && hunger > 70 && health > 70) return PetMood::HAPPY;
+    return PetMood::NEUTRAL;
+}
+
+bool PetData::needsEvolution() const {
+    if (type == PetType::EGG && age_minutes >= 5) return true;
+    if (type == PetType::BABY && age_minutes >= 60) return true;
+    if (type == PetType::CHILD && age_minutes >= 180) return true;
+    if (type == PetType::TEEN && age_minutes >= 360) return true;
+    return false;
+}
+
+void PetData::evolve() {
+    switch (type) {
+        case PetType::EGG: type = PetType::BABY; break;
+        case PetType::BABY: type = PetType::CHILD; break;
+        case PetType::CHILD: type = PetType::TEEN; break;
+        case PetType::TEEN: type = PetType::ADULT; break;
+        default: break;
+    }
+}
 
 void TamagotchiApp::onShow(AppContext& context, lv_obj_t* parent) {
     loadPetData();
@@ -34,13 +78,18 @@ void TamagotchiApp::onShow(AppContext& context, lv_obj_t* parent) {
     updatePetDisplay();
     updateStatBars();
 
-    update_timer = lv_timer_create(update_timer_cb, 30000, this);
+    // Create periodic timer using tt::Timer (30,000 ms = 30 seconds)
+    update_timer = new tt::Timer(tt::Timer::Type::Periodic, [this]() {
+        update_timer_cb();
+    });
+    update_timer->start(pdMS_TO_TICKS(30000)); // Convert ms to ticks
 }
 
 void TamagotchiApp::onHide(AppContext& context) {
     savePetData();
     if (update_timer) {
-        lv_timer_del(update_timer);
+        update_timer->stop(); // Stop the timer
+        delete update_timer;   // Delete the timer object
         update_timer = nullptr;
     }
     endMiniGame();
@@ -178,11 +227,11 @@ void TamagotchiApp::animatePet(lv_color_t flash_color) {
     lv_anim_set_repeat_count(&anim, 1);
     lv_anim_start(&anim);
 
-    lv_timer_create([](lv_timer_t* timer) {
-        auto* app = static_cast<TamagotchiApp*>(timer->user_data);
-        app->updatePetDisplay();
-        lv_timer_del(timer);
-    }, 500, this);
+    // Create one-shot timer using tt::Timer (500 ms)
+    auto* anim_timer = new tt::Timer(tt::Timer::Type::Once, [this]() {
+        updatePetDisplay();
+    });
+    anim_timer->start(pdMS_TO_TICKS(500)); // Convert ms to ticks
 }
 
 void TamagotchiApp::feedPet() {
@@ -225,13 +274,12 @@ void TamagotchiApp::putPetToSleep() {
     savePetData();
 }
 
-void TamagotchiApp::update_timer_cb(lv_timer_t* timer) {
-    auto* app = static_cast<TamagotchiApp*>(timer->user_data);
+void TamagotchiApp::update_timer_cb() {
     uint32_t current_time = lv_tick_get();
-    app->pet.updateStats(current_time);
-    app->updatePetDisplay();
-    app->updateStatBars();
-    app->savePetData();
+    pet.updateStats(current_time);
+    updatePetDisplay();
+    updateStatBars();
+    savePetData();
 }
 
 void TamagotchiApp::feed_btn_cb(lv_event_t* e) {
@@ -260,7 +308,6 @@ void TamagotchiApp::playWithPet() {
         return;
     }
 
-    // End any previous minigame before starting a new one
     endMiniGame();
 
     current_minigame = new PatternGame(this);
@@ -287,7 +334,7 @@ void TamagotchiApp::gameFailed() {
 
 void TamagotchiApp::endMiniGame() {
     if (current_minigame) {
-        current_minigame->endGame(); // if PatternGame supports cleanup
+        current_minigame->endGame();
         delete current_minigame;
         current_minigame = nullptr;
     }
@@ -300,8 +347,6 @@ void TamagotchiApp::savePetData() {
         pet.last_update_time = lv_tick_get();
         file.write(reinterpret_cast<const char*>(&pet), sizeof(PetData));
         file.close();
-    } else {
-        // Handle error: log or fallback
     }
 }
 
