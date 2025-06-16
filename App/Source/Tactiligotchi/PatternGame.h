@@ -1,7 +1,9 @@
 #pragma once
 
 #include <cstdlib>     // For rand()
+#include <memory>      // For std::unique_ptr
 #include "lvgl.h"
+#include "Tactility/Timer.h"     // For tt::Timer
 
 // Forward declaration of TamagotchiApp
 class TamagotchiApp;
@@ -18,7 +20,7 @@ private:
     int current_input;
     int score;
     bool showing_pattern;
-    lv_timer_t* pattern_timer;
+    std::unique_ptr<tt::Timer> pattern_timer;
     int pattern_step;
 
 public:
