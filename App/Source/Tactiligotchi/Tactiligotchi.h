@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Tactility/app/App.h"
-#include "Tactility/app/AppContext.h"
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppContext.h>
 #include <cstdint>
 #include <lvgl.h>
 #include "PatternGame.h"
