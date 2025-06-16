@@ -1,13 +1,14 @@
 #pragma once
 
-#include "Tactility/app/App.h"
-#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppManifest.h> // Already added
 #include <cstdint>
 #include <lvgl.h>
 #include "PatternGame.h"
 #include "Tactility/Timer.h" // Added for tt::Timer
 
+// Pet states and types
 enum class PetMood { HAPPY, NEUTRAL, SAD, SICK, SLEEPING, PLAYING };
 enum class PetType { EGG, BABY, CHILD, TEEN, ADULT };
 
@@ -50,7 +51,7 @@ private:
     lv_obj_t* play_btn = nullptr;
     lv_obj_t* clean_btn = nullptr;
     lv_obj_t* sleep_btn = nullptr;
-    tt::Timer* update_timer = nullptr; // Updated to tt::Timer*
+    tt::Timer* update_timer = nullptr;
     PatternGame* current_minigame = nullptr;
 
     void createPetDisplay(lv_obj_t* parent);
@@ -65,7 +66,7 @@ private:
     void putPetToSleep();
     void animatePet(lv_color_t color);
 
-    void update_timer_cb(); // Updated to non-static, no arguments
+    void update_timer_cb();
 
     static void feed_btn_cb(lv_event_t* e);
     static void play_btn_cb(lv_event_t* e);
@@ -76,5 +77,5 @@ private:
     void loadPetData();
 };
 
-// App manifest export
-extern const tt::AppManifest tactiligotchi_app;
+// App manifest export (corrected namespace)
+extern const tt::app::AppManifest tactiligotchi_app;
