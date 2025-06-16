@@ -74,3 +74,6 @@ private:
     void savePetData();
     void loadPetData();
 };
+
+// App manifest export
+extern const tt::AppManifest tactiligotchi_app;
