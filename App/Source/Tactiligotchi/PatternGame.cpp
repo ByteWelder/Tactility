@@ -1,7 +1,9 @@
 #include "PatternGame.h"
 #include "lvgl.h"
-#include "src/misc/lv_timer.h"
+#include "Tactility/Timer.h"
 #include "Tactiligotchi.h"  // For TamagotchiApp definition
+#include <memory>
+#include <functional>
 
 PatternGame::PatternGame(TamagotchiApp* app)
     : parent_app(app),
@@ -11,7 +13,6 @@ PatternGame::PatternGame(TamagotchiApp* app)
       current_input(0),
       score(0),
       showing_pattern(true),
-      pattern_timer(nullptr),
       pattern_step(0)
 {
     // Initialize pattern array to zero
@@ -81,35 +82,66 @@ void PatternGame::generatePattern() {
 }
 
 void PatternGame::showPattern() {
-    lv_label_set_text(pattern_display, "Watch carefully!");
+    // Defer UI update to LVGL context
+    lv_async_call([](void* user_data) {
+        PatternGame* game = static_cast<PatternGame*>(user_data);
+        lv_label_set_text(game->pattern_display, "Watch carefully!");
+    }, this);
 
-    if (pattern_timer) {
-        lv_timer_del(pattern_timer);
-    }
+    // Stop any existing timer
+    pattern_timer = nullptr;
 
-    pattern_timer = lv_timer_create([](lv_timer_t* timer) {
-        PatternGame* game = static_cast<PatternGame*>(timer->user_data);
+    // Create new timer for pattern display
+    pattern_timer = std::make_unique<tt::Timer>(tt::Timer::Type::Once, [this]() {
+        if (pattern_step < pattern_length) {
+            int btn_id = pattern[pattern_step];
 
-        if (game->pattern_step < game->pattern_length) {
-            int btn_id = game->pattern[game->pattern_step];
-            lv_obj_add_state(game->input_buttons[btn_id], LV_STATE_PRESSED);
+            // Defer button highlight to LVGL
+            lv_async_call([](void* user_data) {
+                auto* data = static_cast<std::pair<PatternGame*, int>*>(user_data);
+                PatternGame* game = data->first;
+                int btn_id = data->second;
+                lv_obj_add_state(game->input_buttons[btn_id], LV_STATE_PRESSED);
+                delete data;
+            }, new std::pair<PatternGame*, int>(this, btn_id));
 
-            lv_timer_create([](lv_timer_t* t) {
-                PatternGame* g = static_cast<PatternGame*>(t->user_data);
-                for (int i = 0; i < 4; i++) {
-                    lv_obj_clear_state(g->input_buttons[i], LV_STATE_PRESSED);
-                }
-                lv_timer_del(t);
-            }, 300, game);
+            // Create timer for clearing highlight
+            auto highlight_timer = std::make_unique<tt::Timer>(tt::Timer::Type::Once, [this, timer = std::move(highlight_timer)]() {
+                // Defer clearing highlights to LVGL
+                lv_async_call([](void* user_data) {
+                    PatternGame* game = static_cast<PatternGame*>(user_data);
+                    for (int i = 0; i < 4; i++) {
+                        lv_obj_clear_state(game->input_buttons[i], LV_STATE_PRESSED);
+                    }
+                }, this);
+            });
 
-            game->pattern_step++;
+            // Start highlight timer (300 ms)
+            highlight_timer->start(300); // Assuming 1 tick = 1 ms
+            highlight_timer->setThreadPriority(tt::Timer::Priority::Normal);
+
+            pattern_step++;
+
+            // Restart pattern timer for next step
+            pattern_timer = std::make_unique<tt::Timer>(tt::Timer::Type::Once, [this]() {
+                showPattern();
+            });
+            pattern_timer->start(600); // Assuming 1 tick = 1 ms
+            pattern_timer->setThreadPriority(tt::Timer::Priority::Normal);
         } else {
-            game->showing_pattern = false;
-            lv_label_set_text(game->pattern_display, "Your turn! Repeat the pattern");
-            lv_timer_del(timer);
-            game->pattern_timer = nullptr;
+            // Pattern display complete
+            showing_pattern = false;
+            lv_async_call([](void* user_data) {
+                PatternGame* game = static_cast<PatternGame*>(user_data);
+                lv_label_set_text(game->pattern_display, "Your turn! Repeat the pattern");
+            }, this);
+            pattern_timer = nullptr;
         }
-    }, 600, this);
+    });
+
+    // Start initial timer
+    pattern_timer->start(600); // 600 ms = 600 ticks
+    pattern_timer->setThreadPriority(tt::Timer::Priority::Normal);
 }
 
 void PatternGame::buttonPressed(int button_id) {
@@ -120,37 +152,49 @@ void PatternGame::buttonPressed(int button_id) {
 
         if (current_input >= pattern_length) {
             score++;
-            lv_label_set_text_fmt(pattern_display, "Great! Score: %d", score);
-            if (pattern_length < 8) pattern_length++;
+            lv_async_call([](void* user_data) {
+                auto* data = static_cast<std::pair<PatternGame*, int>*>(user_data);
+                PatternGame* game = data->first;
+                int score = data->second;
+                lv_label_set_text_fmt(game->pattern_display, "Great! Score: %d", score);
+                delete data;
+            }, new std::pair<PatternGame*, int>(this, score));
 
             parent_app->gameSuccess();
+            if (pattern_length < 8) pattern_length++;
 
-            lv_timer_create([](lv_timer_t* timer) {
-                PatternGame* game = static_cast<PatternGame*>(timer->user_data);
-                game->generatePattern();
-                game->showPattern();
-                lv_timer_del(timer);
-            }, 1500, this);
+            // Delay before next pattern
+            auto delay_timer = std::make_unique<tt::Timer>(tt::Timer::Type::Once, [this, delay_timer = std::move(delay_timer)]() {
+                generatePattern();
+                showPattern();
+            });
+            delay_timer->start(1500); // 1500 ms
+            delay_timer->setThreadPriority(tt::Timer::Priority::Normal);
         }
     } else {
-        lv_label_set_text(pattern_display, "Wrong! Try again");
+        lv_async_call([](void* user_data) {
+            PatternGame* game = static_cast<PatternGame*>(user_data);
+            lv_label_set_text(game->pattern_display, "Wrong! Try again");
+        }, this);
+
         parent_app->gameFailed();
 
-        lv_timer_create([](lv_timer_t* timer) {
-            PatternGame* game = static_cast<PatternGame*>(timer->user_data);
-            game->pattern_length = std::max(3, game->pattern_length - 1);
-            game->generatePattern();
-            game->showPattern();
-            lv_timer_del(timer);
-        }, 1500, this);
+        // Delay before retry
+        auto delay_timer = std::make_unique<tt::Timer>(tt::Timer::Type::Once, [this, delay_timer = std::move(delay_timer)]() {
+            pattern_length = std::max(3, pattern_length - 1);
+            generatePattern();
+            showPattern();
+        });
+        delay_timer->start(1500); // 1500 ms
+        delay_timer->setThreadPriority(tt::Timer::Priority::Normal);
     }
 }
 
 void PatternGame::endGame() {
-    if (pattern_timer) {
-        lv_timer_del(pattern_timer);
-        pattern_timer = nullptr;
-    }
-    lv_obj_del(game_container);
-    parent_app->endMiniGame();
+    pattern_timer = nullptr; // Clean up timer
+    lv_async_call([](void* user_data) {
+        PatternGame* game = static_cast<PatternGame*>(user_data);
+        lv_obj_delete(game->game_container);
+        game->parent_app->endMiniGame();
+    }, this);
 }
