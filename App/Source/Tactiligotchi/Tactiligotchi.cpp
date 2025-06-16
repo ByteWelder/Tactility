@@ -4,7 +4,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include "lvgl.h"
-#include "Tactility/Timer.h" // Replaced lvgl/src/misc/lv_timer.h
+#include "Tactility/Timer.h"
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
@@ -19,8 +19,8 @@ using namespace tt::lvgl;
 #define PET_COLOR_SLEEPING lv_color_hex(0x8888FF)
 
 void PetData::updateStats(uint32_t current_time) {
-    if (current_time < last_update_time) return; // Avoid issues with time overflow
-    uint32_t elapsed_minutes = (current_time - last_update_time) / 60000; // Convert ms to minutes
+    if (current_time < last_update_time) return;
+    uint32_t elapsed_minutes = (current_time - last_update_time) / 60000;
     if (elapsed_minutes == 0) return;
 
     hunger = std::max(0, hunger - static_cast<int>(elapsed_minutes * 2));
@@ -78,18 +78,17 @@ void TamagotchiApp::onShow(AppContext& context, lv_obj_t* parent) {
     updatePetDisplay();
     updateStatBars();
 
-    // Create periodic timer using tt::Timer (30,000 ms = 30 seconds)
     update_timer = new tt::Timer(tt::Timer::Type::Periodic, [this]() {
         update_timer_cb();
     });
-    update_timer->start(pdMS_TO_TICKS(30000)); // Convert ms to ticks
+    update_timer->start(pdMS_TO_TICKS(30000));
 }
 
 void TamagotchiApp::onHide(AppContext& context) {
     savePetData();
     if (update_timer) {
-        update_timer->stop(); // Stop the timer
-        delete update_timer;   // Delete the timer object
+        update_timer->stop();
+        delete update_timer;
         update_timer = nullptr;
     }
     endMiniGame();
@@ -227,11 +226,10 @@ void TamagotchiApp::animatePet(lv_color_t flash_color) {
     lv_anim_set_repeat_count(&anim, 1);
     lv_anim_start(&anim);
 
-    // Create one-shot timer using tt::Timer (500 ms)
     auto* anim_timer = new tt::Timer(tt::Timer::Type::Once, [this]() {
         updatePetDisplay();
     });
-    anim_timer->start(pdMS_TO_TICKS(500)); // Convert ms to ticks
+    anim_timer->start(pdMS_TO_TICKS(500));
 }
 
 void TamagotchiApp::feedPet() {
