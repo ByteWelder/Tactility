@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstdlib>     // For rand()
-#include <memory>      // For std::unique_ptr
+#include <cstdlib>
+#include <memory>
+#include <functional> // Added for std::function
 #include "lvgl.h"
-#include "Tactility/Timer.h"     // For tt::Timer
+#include "Tactility/Timer.h"
 
-// Forward declaration of TamagotchiApp
 class TamagotchiApp;
 
 class PatternGame {
@@ -14,7 +14,6 @@ private:
     lv_obj_t* game_container;
     lv_obj_t* pattern_display;
     lv_obj_t* input_buttons[4];
-
     int pattern[8];
     int pattern_length;
     int current_input;
