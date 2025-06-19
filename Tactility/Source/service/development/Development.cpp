@@ -16,7 +16,6 @@ extern const ServiceManifest manifest;
 
 constexpr const char* TAG = "DevService";
 
-
 static char* rest_read_buffer(httpd_req_t* request) {
     static char buffer[1024];
     int contentLength = request->content_len;
@@ -84,8 +83,6 @@ bool Development::isEnabled() const {
 
 // region Enable/disable
 
-// region Handlers
-
 void Development::startServer() {
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -99,7 +96,9 @@ void Development::startServer() {
 
     std::stringstream stream;
     stream << "{";
-    stream << "\"cpuFamily\" : \"" << CONFIG_IDF_TARGET << "\"";
+    stream << "\"cpuFamily\":\"" << CONFIG_IDF_TARGET << "\", ";
+    stream << "\"osVersion\":\"" << TT_VERSION << "\", ";
+    stream << "\"protocolVersion\":\"1.0.0\"";
     stream << "}";
     deviceResponse = stream.str();
 
@@ -109,7 +108,9 @@ void Development::startServer() {
     config.uri_match_fn = httpd_uri_match_wildcard;
 
     if (httpd_start(&server, &config) == ESP_OK) {
-        httpd_register_uri_handler(server, &getDeviceEndpoint);
+        httpd_register_uri_handler(server, &handleGetInfoEndpoint);
+        httpd_register_uri_handler(server, &appRunEndpoint);
+        httpd_register_uri_handler(server, &appInstallEndpoint);
         TT_LOG_I(TAG, "Started on port %d", config.server_port);
     } else {
         TT_LOG_E(TAG, "Failed to start");
@@ -156,11 +157,9 @@ void Development::onNetworkDisconnected() {
     });
 }
 
-// endregion
-
 // region endpoints
 
-esp_err_t Development::getDevice(httpd_req_t* request) {
+esp_err_t Development::handleGetInfo(httpd_req_t* request) {
     if (httpd_resp_set_type(request, "application/json") != ESP_OK) {
         TT_LOG_W(TAG, "Failed to send header");
         return ESP_FAIL;
@@ -173,9 +172,23 @@ esp_err_t Development::getDevice(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    TT_LOG_I(TAG, "[200] /device from");
+    TT_LOG_I(TAG, "[200] /device");
     return ESP_OK;
 }
+
+esp_err_t Development::handleAppRun(httpd_req_t* request) {
+    httpd_resp_send(request, nullptr, 0);
+    TT_LOG_I(TAG, "[200] /app/run");
+    return ESP_OK;
+}
+
+esp_err_t Development::handleAppInstall(httpd_req_t* request) {
+    httpd_resp_send(request, nullptr, 0);
+    TT_LOG_I(TAG, "[200] /app/install");
+    return ESP_OK;
+}
+
+// endregion
 
 std::shared_ptr<Development> findService() {
     return std::static_pointer_cast<Development>(

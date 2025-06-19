@@ -20,10 +20,24 @@ class Development final : public Service {
     kernel::SystemEventSubscription networkDisconnectEventSubscription = 0;
     std::string deviceResponse;
 
-    httpd_uri_t getDeviceEndpoint = {
-        .uri = "/device",
+    httpd_uri_t handleGetInfoEndpoint = {
+        .uri = "/info",
         .method = HTTP_GET,
-        .handler = getDevice,
+        .handler = handleGetInfo,
+        .user_ctx = this
+    };
+
+    httpd_uri_t appRunEndpoint = {
+        .uri = "/app/run",
+        .method = HTTP_POST,
+        .handler = handleAppRun,
+        .user_ctx = this
+    };
+
+    httpd_uri_t appInstallEndpoint = {
+        .uri = "/app/install",
+        .method = HTTP_POST,
+        .handler = handleAppInstall,
         .user_ctx = this
     };
 
@@ -33,7 +47,9 @@ class Development final : public Service {
     void startServer();
     void stopServer();
 
-    static esp_err_t getDevice(httpd_req_t* request);
+    static esp_err_t handleGetInfo(httpd_req_t* request);
+    static esp_err_t handleAppRun(httpd_req_t* request);
+    static esp_err_t handleAppInstall(httpd_req_t* request);
 
 public:
 
