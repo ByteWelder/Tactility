@@ -12,6 +12,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <Tactility/kernel/SystemEvents.h>
 #include <sys/cdefs.h>
 
 namespace tt::service::wifi {
@@ -476,6 +477,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         }
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::Disconnected);
+        kernel::publishSystemEvent(kernel::SystemEvent::NetworkDisconnected);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         TT_LOG_I(TAG, "eventHandler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -485,6 +487,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
             // TODO: Make thread-safe
             wifi->pause_auto_connect = false; // Resume auto-connection
         }
+        kernel::publishSystemEvent(kernel::SystemEvent::NetworkConnected);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
         TT_LOG_I(TAG, "eventHandler: wifi scanning done (scan id %u)", event->scan_id);
