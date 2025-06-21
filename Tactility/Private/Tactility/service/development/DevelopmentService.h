@@ -11,7 +11,7 @@
 
 namespace tt::service::development {
 
-class Development final : public Service {
+class DevelopmentService final : public Service {
 
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     httpd_handle_t server = nullptr;
@@ -62,16 +62,35 @@ public:
 
     // region Internal API
 
+    /**
+     * Enabling the service means that the user is willing to start the web server.
+     * @return true when the service is enabled
+     */
+    bool isEnabled() const;
+
+    /**
+     * Enabling the service means that the user is willing to start the web server.
+     * @param[in] enabled
+     */
     void setEnabled(bool enabled);
 
-    bool isEnabled() const;
+    /**
+     * @return true if the service will enable itself when it is started (e.g. on boot, or manual start)
+     */
+    bool isEnabledOnStart() const;
+
+    /**
+     * Set whether the service should auto-enable when it is started.
+     * @param enabled
+     */
+    void setEnabledOnStart(bool enabled);
 
     bool isStarted() const;
 
     // region Internal API
 };
 
-std::shared_ptr<Development> findService();
+std::shared_ptr<DevelopmentService> findService();
 
 }
 

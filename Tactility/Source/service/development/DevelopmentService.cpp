@@ -1,14 +1,16 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/service/development/Development.h"
+#include "Tactility/service/development/DevelopmentService.h"
 
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceManifest.h"
 #include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/wifi/Wifi.h"
 
 #include <cstring>
 #include <esp_wifi.h>
 #include <sstream>
+#include <Tactility/Preferences.h>
 
 namespace tt::service::development {
 
@@ -24,14 +26,14 @@ static char* rest_read_buffer(httpd_req_t* request) {
     if (contentLength >= 1024) {
         // Respond with 500 Internal Server Error
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
-        return NULL;
+        return nullptr;
     }
     while (currentLength < contentLength) {
         received = httpd_req_recv(request, buffer + currentLength, contentLength);
         if (received <= 0) {
             // Respond with 500 Internal Server Error
             httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return NULL;
+            return nullptr;
         }
         currentLength += received;
     }
@@ -39,7 +41,7 @@ static char* rest_read_buffer(httpd_req_t* request) {
     return buffer;
 }
 
-void Development::onStart(ServiceContext& service) {
+void DevelopmentService::onStart(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -52,10 +54,10 @@ void Development::onStart(ServiceContext& service) {
         [this](kernel::SystemEvent) { onNetworkDisconnected(); }
     );
 
-    setEnabled(true);
+    setEnabled(isEnabledOnStart());
 }
 
-void Development::onStop(ServiceContext& service) {
+void DevelopmentService::onStop(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -69,21 +71,41 @@ void Development::onStop(ServiceContext& service) {
 
 // region Enable/disable
 
-void Development::setEnabled(bool enabled) {
+void DevelopmentService::setEnabled(bool enabled) {
     auto lock = mutex.asScopedLock();
     lock.lock();
     this->enabled = enabled;
+
+    // We might already have an IP address, so in case we do, we start the server manually
+    // Or we started the server while it shouldn't be
+    if (enabled && !isStarted() && wifi::getRadioState() == wifi::RadioState::ConnectionActive) {
+        startServer();
+    } else if (!enabled && isStarted()) {
+        stopServer();
+    }
 }
 
-bool Development::isEnabled() const {
+bool DevelopmentService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
     return enabled;
 }
 
+bool DevelopmentService::isEnabledOnStart() const {
+    Preferences preferences = Preferences(manifest.id.c_str());
+    bool enabled_on_boot = false;
+    preferences.optBool("enabledOnBoot", enabled_on_boot);
+    return enabled_on_boot;
+}
+
+void DevelopmentService::setEnabledOnStart(bool enabled) {
+    Preferences preferences = Preferences(manifest.id.c_str());
+    preferences.putBool("enabledOnBoot", enabled);
+}
+
 // region Enable/disable
 
-void Development::startServer() {
+void DevelopmentService::startServer() {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -117,7 +139,7 @@ void Development::startServer() {
     }
 }
 
-void Development::stopServer() {
+void DevelopmentService::stopServer() {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -133,13 +155,13 @@ void Development::stopServer() {
     server = nullptr;
 }
 
-bool Development::isStarted() const {
+bool DevelopmentService::isStarted() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
     return server != nullptr;
 }
 
-void Development::onNetworkConnected() {
+void DevelopmentService::onNetworkConnected() {
     TT_LOG_I(TAG, "onNetworkConnected");
     mutex.withLock([this] {
         if (isEnabled() && !isStarted()) {
@@ -148,7 +170,7 @@ void Development::onNetworkConnected() {
     });
 }
 
-void Development::onNetworkDisconnected() {
+void DevelopmentService::onNetworkDisconnected() {
     TT_LOG_I(TAG, "onNetworkDisconnected");
     mutex.withLock([this] {
         if (isStarted()) {
@@ -159,13 +181,13 @@ void Development::onNetworkDisconnected() {
 
 // region endpoints
 
-esp_err_t Development::handleGetInfo(httpd_req_t* request) {
+esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
     if (httpd_resp_set_type(request, "application/json") != ESP_OK) {
         TT_LOG_W(TAG, "Failed to send header");
         return ESP_FAIL;
     }
 
-    auto* service = static_cast<Development*>(request->user_ctx);
+    auto* service = static_cast<DevelopmentService*>(request->user_ctx);
 
     if (httpd_resp_sendstr(request, service->deviceResponse.c_str()) != ESP_OK) {
         TT_LOG_W(TAG, "Failed to send response body");
@@ -176,13 +198,13 @@ esp_err_t Development::handleGetInfo(httpd_req_t* request) {
     return ESP_OK;
 }
 
-esp_err_t Development::handleAppRun(httpd_req_t* request) {
+esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
     httpd_resp_send(request, nullptr, 0);
     TT_LOG_I(TAG, "[200] /app/run");
     return ESP_OK;
 }
 
-esp_err_t Development::handleAppInstall(httpd_req_t* request) {
+esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     httpd_resp_send(request, nullptr, 0);
     TT_LOG_I(TAG, "[200] /app/install");
     return ESP_OK;
@@ -190,15 +212,15 @@ esp_err_t Development::handleAppInstall(httpd_req_t* request) {
 
 // endregion
 
-std::shared_ptr<Development> findService() {
-    return std::static_pointer_cast<Development>(
+std::shared_ptr<DevelopmentService> findService() {
+    return std::static_pointer_cast<DevelopmentService>(
         findServiceById(manifest.id)
     );
 }
 
 extern const ServiceManifest manifest = {
     .id = "Development",
-    .createService = create<Development>
+    .createService = create<DevelopmentService>
 };
 
 }
