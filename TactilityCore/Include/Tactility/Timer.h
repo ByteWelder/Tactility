@@ -13,7 +13,6 @@ class Timer {
 public:
 
     typedef std::function<void()> Callback;
-//    typedef std::function<void(uint32_t)> PendingCallback;
     typedef void (*PendingCallback)(void* context, uint32_t arg);
 
 private:
