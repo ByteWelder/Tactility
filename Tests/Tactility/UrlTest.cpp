@@ -1,98 +1,61 @@
 #include "doctest.h"
-#include <Tactility/hal/Device.h>
-
-#include <utility>
+#include <Tactility/network/Url.h>
 
 using namespace tt;
 
-class TestDevice final : public hal::Device {
-
-private:
-
-    hal::Device::Type type;
-    std::string name;
-    std::string description;
-
-public:
-
-    TestDevice(hal::Device::Type type, std::string name, std::string description) :
-        type(type),
-        name(std::move(name)),
-        description(std::move(description))
-    {}
-
-    TestDevice() : TestDevice(hal::Device::Type::Power, "PowerMock", "PowerMock description") {}
-
-    ~TestDevice() final = default;
-
-    Type getType() const final { return type; }
-    std::string getName() const final { return name; }
-    std::string getDescription() const final { return description; }
-};
-
-class DeviceAutoRegistration {
-
-    std::shared_ptr<hal::Device> device;
-
-public:
-
-    explicit DeviceAutoRegistration(std::shared_ptr<hal::Device> inDevice) : device(std::move(inDevice)) {
-        hal::registerDevice(device);
-    }
-
-    ~DeviceAutoRegistration() {
-        hal::deregisterDevice(device);
-    }
-};
-
-/** We add 3 tests into 1 to ensure cleanup happens */
-TEST_CASE("registering and deregistering a device works") {
-    auto device = std::make_shared<TestDevice>();
-
-    // Pre-registration
-    CHECK_EQ(hal::findDevice(device->getId()), nullptr);
-
-    // Registration
-    hal::registerDevice(device);
-    auto found_device = hal::findDevice(device->getId());
-    CHECK_NE(found_device, nullptr);
-    CHECK_EQ(found_device->getId(), device->getId());
-
-    // Deregistration
-    hal::deregisterDevice(device);
-    CHECK_EQ(hal::findDevice(device->getId()), nullptr);
-    found_device = nullptr; // to decrease use count
-    CHECK_EQ(device.use_count(), 1);
+TEST_CASE("parseUrlQuery can handle a single key-value pair") {
+    auto map = network::parseUrlQuery("?key=value");
+    CHECK_EQ(map.size(), 1);
+    CHECK_EQ(map["key"], "value");
 }
 
-TEST_CASE("find device by id") {
-    auto device = std::make_shared<TestDevice>();
-    DeviceAutoRegistration auto_registration(device);
-
-    auto found_device = hal::findDevice(device->getId());
-    CHECK_NE(found_device, nullptr);
-    CHECK_EQ(found_device->getId(), device->getId());
+TEST_CASE("parseUrlQuery can handle empty value in the middle") {
+    auto map = network::parseUrlQuery("?a=1&b=&c=3");
+    CHECK_EQ(map.size(), 3);
+    CHECK_EQ(map["a"], "1");
+    CHECK_EQ(map["b"], "");
+    CHECK_EQ(map["c"], "3");
 }
 
-TEST_CASE("find device by name") {
-    auto device = std::make_shared<TestDevice>();
-    DeviceAutoRegistration auto_registration(device);
-
-    auto found_device = hal::findDevice(device->getName());
-    CHECK_NE(found_device, nullptr);
-    CHECK_EQ(found_device->getId(), device->getId());
+TEST_CASE("parseUrlQuery can handle empty value at the end") {
+    auto map = network::parseUrlQuery("?a=1&b=");
+    CHECK_EQ(map.size(), 2);
+    CHECK_EQ(map["a"], "1");
+    CHECK_EQ(map["b"], "");
 }
 
-TEST_CASE("find device by type") {
-    // Headless mode shouldn't have a display, so we want to create one to find only our own display as unique device
-    // We first verify the initial assumption that there is no display:
-    auto unexpected_display = hal::findFirstDevice<TestDevice>(hal::Device::Type::Display);
-    CHECK_EQ(unexpected_display, nullptr);
+TEST_CASE("parseUrlQuery returns empty map when query s questionmark with a key without a value") {
+    auto map = network::parseUrlQuery("?a");
+    CHECK_EQ(map.size(), 0);
+}
 
-    auto device = std::make_shared<TestDevice>(hal::Device::Type::Display, "DisplayMock", "");
-    DeviceAutoRegistration auto_registration(device);
+TEST_CASE("parseUrlQuery returns empty map when query is a questionmark") {
+    auto map = network::parseUrlQuery("?");
+    CHECK_EQ(map.size(), 0);
+}
 
-    auto found_device = hal::findFirstDevice<TestDevice>(hal::Device::Type::Display);
-    CHECK_NE(found_device, nullptr);
-    CHECK_EQ(found_device->getId(), device->getId());
+TEST_CASE("parseUrlQuery should url-decode the value") {
+    auto map = network::parseUrlQuery("?key=Test%21Test");
+    CHECK_EQ(map.size(), 1);
+    CHECK_EQ(map["key"], "Test!Test");
+}
+
+TEST_CASE("parseUrlQuery should url-decode the key") {
+    auto map = network::parseUrlQuery("?Test%21Test=value");
+    CHECK_EQ(map.size(), 1);
+    CHECK_EQ(map["Test!Test"], "value");
+}
+
+TEST_CASE("urlDecode") {
+    auto input = std::string("prefix!*'();:@&=+$,/?#[]<>%-.^_`{}|~ \\");
+    auto expected = std::string("prefix%21%2A%27%28%29%3B%3A%40%26%3D%2B%24%2C%2F%3F%23%5B%5D%3C%3E%25-.%5E_%60%7B%7D%7C~+%5C");
+    auto encoded = network::urlEncode(input);
+    CHECK_EQ(encoded, expected);
+}
+
+TEST_CASE("urlDecode") {
+    auto input = std::string("prefix%21%2A%27%28%29%3B%3A%40%26%3D%2B%24%2C%2F%3F%23%5B%5D%3C%3E%25-.%5E_%60%7B%7D%7C~+%5C");
+    auto expected = std::string("prefix!*'();:@&=+$,/?#[]<>%-.^_`{}|~ \\");
+    auto decoded = network::urlDecode(input);
+    CHECK_EQ(decoded, expected);
 }

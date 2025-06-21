@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/lvgl/Style.h"
 #include "Tactility/lvgl/Toolbar.h"
@@ -154,3 +156,5 @@ void start() {
 }
 
 } // namespace
+
+#endif // ESP_PLATFORM

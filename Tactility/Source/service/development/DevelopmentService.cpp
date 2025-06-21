@@ -2,6 +2,7 @@
 
 #include "Tactility/service/development/DevelopmentService.h"
 
+#include "Tactility/network/Url.h"
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceManifest.h"
 #include "Tactility/service/ServiceRegistry.h"
@@ -200,8 +201,17 @@ esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
 
 esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
     httpd_resp_send(request, nullptr, 0);
-    TT_LOG_I(TAG, "[200] /app/run");
-    return ESP_OK;
+    size_t buffer_length = httpd_req_get_url_query_len(request) + 1;
+    auto buffer = std::make_unique<char[]>(buffer_length);
+    if (buffer.get() != nullptr && httpd_req_get_url_query_str(request, buffer.get(), buffer_length) == ESP_OK) {
+        auto key_values = network::parseUrlQuery(std::string(buffer.get()));
+        TT_LOG_I(TAG, "[200] /app/run %s", buffer.get());
+        return ESP_OK;
+    } else {
+        TT_LOG_I(TAG, "[500] /app/run failed to get query");
+        httpd_resp_send_500(request);
+        return ESP_FAIL;
+    }
 }
 
 esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {

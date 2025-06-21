@@ -36,7 +36,7 @@ class DevelopmentService final : public Service {
 
     httpd_uri_t appInstallEndpoint = {
         .uri = "/app/install",
-        .method = HTTP_POST,
+        .method = HTTP_PUT,
         .handler = handleAppInstall,
         .user_ctx = this
     };
