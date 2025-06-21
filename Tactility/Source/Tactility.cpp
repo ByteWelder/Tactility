@@ -80,7 +80,6 @@ static void registerSystemApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
     addApp(app::calculator::manifest);
-    addApp(app::development::manifest);
     addApp(app::display::manifest);
     addApp(app::filebrowser::manifest);
     addApp(app::fileselection::manifest);
@@ -112,6 +111,7 @@ static void registerSystemApps() {
 #ifdef ESP_PLATFORM
     addApp(app::chat::manifest);
     addApp(app::crashdiagnostics::manifest);
+    addApp(app::development::manifest);
 #endif
 
     if (getConfiguration()->hardware->power != nullptr) {

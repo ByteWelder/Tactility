@@ -136,7 +136,7 @@ int getRssi() {
 }
 
 std::string getIp() {
-    return "192.168.1.2"
+    return "192.168.1.2";
 }
 
 // endregion Public functions
