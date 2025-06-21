@@ -12,6 +12,8 @@
 #include <esp_wifi.h>
 #include <sstream>
 #include <Tactility/Preferences.h>
+#include <Tactility/app/App.h>
+#include <Tactility/app/ManifestRegistry.h>
 
 namespace tt::service::development {
 
@@ -200,23 +202,58 @@ esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
-    httpd_resp_send(request, nullptr, 0);
-    size_t buffer_length = httpd_req_get_url_query_len(request) + 1;
-    auto buffer = std::make_unique<char[]>(buffer_length);
-    if (buffer.get() != nullptr && httpd_req_get_url_query_str(request, buffer.get(), buffer_length) == ESP_OK) {
-        auto key_values = network::parseUrlQuery(std::string(buffer.get()));
-        TT_LOG_I(TAG, "[200] /app/run %s", buffer.get());
-        return ESP_OK;
-    } else {
-        TT_LOG_I(TAG, "[500] /app/run failed to get query");
+    size_t buffer_length = httpd_req_get_url_query_len(request);
+    if (buffer_length == 0) {
+        TT_LOG_W(TAG, "[400] /app/run id not specified");
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
+        return ESP_FAIL;
+    }
+
+    auto buffer = std::make_unique<char[]>(buffer_length + 1);
+    if (buffer.get() == nullptr || httpd_req_get_url_query_str(request, buffer.get(), buffer_length + 1) != ESP_OK) {
+        TT_LOG_W(TAG, "[500] /app/run");
         httpd_resp_send_500(request);
         return ESP_FAIL;
     }
+
+    auto parameters = network::parseUrlQuery(std::string(buffer.get()));
+    auto id_key_pos = parameters.find("id");
+    if (id_key_pos == parameters.end()) {
+        TT_LOG_W(TAG, "[400] /app/run id not specified");
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
+        return ESP_FAIL;
+    }
+
+    auto app_id = id_key_pos->second;
+    if (!app::findAppById(app_id.c_str())) {
+        TT_LOG_W(TAG, "[400] /app/run app not found");
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
+        return ESP_FAIL;
+    }
+
+    app::start(app_id);
+    TT_LOG_I(TAG, "[200] /app/run %s", app_id.c_str());
+    httpd_resp_send(request, nullptr, 0);
+    return ESP_OK;
 }
 
 esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
+    size_t header_size = httpd_req_get_hdr_value_len(request, "Content-Type");
+    if (header_size == 0) {
+        TT_LOG_W(TAG, "[400] /app/install Content-Type header not specified");
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Content-Type header not specified");
+        return ESP_FAIL;
+    }
+
+    auto header_buffer = std::make_unique<char[]>(header_size + 1);
+    if (header_buffer.get() == nullptr || httpd_req_get_hdr_value_str(request, "Content-Type", header_buffer.get(), header_size + 1) != ESP_OK) {
+        TT_LOG_W(TAG, "[500] /app/run");
+        httpd_resp_send_500(request);
+        return ESP_FAIL;
+    }
+
+    TT_LOG_I(TAG, "[200] /app/install %s", header_buffer.get());
     httpd_resp_send(request, nullptr, 0);
-    TT_LOG_I(TAG, "[200] /app/install");
     return ESP_OK;
 }
 
