@@ -31,10 +31,7 @@ void setElfAppManifest(
  */
 std::string getElfAppId(const std::string& filePath);
 
-/**
- * @return true when registration was done, false when app was already registered
- */
-bool registerElfApp(const std::string& filePath);
+void registerElfApp(const std::string& filePath);
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest);
 

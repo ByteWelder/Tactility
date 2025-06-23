@@ -2,6 +2,7 @@
 
 #include "Tactility/service/development/DevelopmentService.h"
 
+#include "Tactility/network/HttpdReq.h"
 #include "Tactility/network/Url.h"
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceManifest.h"
@@ -10,9 +11,12 @@
 
 #include <cstring>
 #include <esp_wifi.h>
+#include <ranges>
 #include <sstream>
 #include <Tactility/Preferences.h>
+#include <Tactility/StringUtils.h>
 #include <Tactility/app/App.h>
+#include <Tactility/app/ElfApp.h>
 #include <Tactility/app/ManifestRegistry.h>
 
 namespace tt::service::development {
@@ -20,29 +24,6 @@ namespace tt::service::development {
 extern const ServiceManifest manifest;
 
 constexpr const char* TAG = "DevService";
-
-static char* rest_read_buffer(httpd_req_t* request) {
-    static char buffer[1024];
-    int contentLength = request->content_len;
-    int currentLength = 0;
-    int received = 0;
-    if (contentLength >= 1024) {
-        // Respond with 500 Internal Server Error
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "content too long");
-        return nullptr;
-    }
-    while (currentLength < contentLength) {
-        received = httpd_req_recv(request, buffer + currentLength, contentLength);
-        if (received <= 0) {
-            // Respond with 500 Internal Server Error
-            httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to post control value");
-            return nullptr;
-        }
-        currentLength += received;
-    }
-    buffer[contentLength] = '\0';
-    return buffer;
-}
 
 void DevelopmentService::onStart(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
@@ -202,21 +183,12 @@ esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
-    size_t buffer_length = httpd_req_get_url_query_len(request);
-    if (buffer_length == 0) {
-        TT_LOG_W(TAG, "[400] /app/run id not specified");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
+    std::string query;
+    if (!network::getQueryOrSendError(request, query)) {
         return ESP_FAIL;
     }
 
-    auto buffer = std::make_unique<char[]>(buffer_length + 1);
-    if (buffer.get() == nullptr || httpd_req_get_url_query_str(request, buffer.get(), buffer_length + 1) != ESP_OK) {
-        TT_LOG_W(TAG, "[500] /app/run");
-        httpd_resp_send_500(request);
-        return ESP_FAIL;
-    }
-
-    auto parameters = network::parseUrlQuery(std::string(buffer.get()));
+    auto parameters = network::parseUrlQuery(query);
     auto id_key_pos = parameters.find("id");
     if (id_key_pos == parameters.end()) {
         TT_LOG_W(TAG, "[400] /app/run id not specified");
@@ -225,7 +197,10 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
     }
 
     auto app_id = id_key_pos->second;
-    if (!app::findAppById(app_id.c_str())) {
+    if (app_id.ends_with(".app.elf")) {
+        app::registerElfApp(app_id);
+        app_id = app::getElfAppId(app_id);
+    } else if (!app::findAppById(app_id.c_str())) {
         TT_LOG_W(TAG, "[400] /app/run app not found");
         httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
         return ESP_FAIL;
@@ -238,21 +213,72 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
-    size_t header_size = httpd_req_get_hdr_value_len(request, "Content-Type");
-    if (header_size == 0) {
-        TT_LOG_W(TAG, "[400] /app/install Content-Type header not specified");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Content-Type header not specified");
+    std::string boundary;
+    if (!network::getMultiPartBoundaryOrSendError(request, boundary)) {
+        return false;
+    }
+
+    size_t content_left = request->content_len;
+
+    // Skip newline after reading boundary
+    auto content_headers_data = network::receiveTextUntil(request, "\r\n\r\n");
+    content_left -= content_headers_data.length();
+    auto content_headers = string::split(content_headers_data, "\r\n")
+        | std::views::filter([](const std::string& line) {
+            return line.length() > 0;
+        })
+        | std::ranges::to<std::vector>();
+
+    auto content_disposition_map = network::parseContentDisposition(content_headers);
+    if (content_disposition_map.empty()) {
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: invalid content disposition");
         return ESP_FAIL;
     }
 
-    auto header_buffer = std::make_unique<char[]>(header_size + 1);
-    if (header_buffer.get() == nullptr || httpd_req_get_hdr_value_str(request, "Content-Type", header_buffer.get(), header_size + 1) != ESP_OK) {
-        TT_LOG_W(TAG, "[500] /app/run");
-        httpd_resp_send_500(request);
+    auto name_entry = content_disposition_map.find("name");
+    auto filename_entry = content_disposition_map.find("filename");
+    if (
+        name_entry == content_disposition_map.end() ||
+        filename_entry == content_disposition_map.end() ||
+        name_entry->second != "elf"
+    ) {
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: name or filename parameter missing or mismatching");
         return ESP_FAIL;
     }
 
-    TT_LOG_I(TAG, "[200] /app/install %s", header_buffer.get());
+    // Receive file
+    size_t content_read;
+    auto part_after_file = std::format("\r\n--{}--\r\n", boundary);
+    auto file_size = content_left - part_after_file.length();
+    auto buffer = network::receiveByteArray(request, file_size, content_read);
+    if (content_read != file_size) {
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: file data not received");
+        return ESP_FAIL;
+    }
+    content_left -= content_read;
+
+    // Write file
+    auto file_path = std::format("/sdcard/{}", filename_entry->second);
+    auto* file = fopen(file_path.c_str(), "wb");
+    auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
+    fclose(file);
+    if (file_bytes_written != file_size) {
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
+        return ESP_FAIL;
+    }
+
+    // Read and verify part
+    if (!network::readAndDiscardOrSendError(request, part_after_file)) {
+        return ESP_FAIL;
+    }
+    content_left -= part_after_file.length();
+
+    if (content_left != 0) {
+        TT_LOG_W(TAG, "We have more bytes at the end of the request parsing?!");
+    }
+
+    TT_LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
+
     httpd_resp_send(request, nullptr, 0);
     return ESP_OK;
 }
