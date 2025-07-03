@@ -9,12 +9,12 @@
 
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
-bool tdeckInit();
+bool tloraInit();
 
 using namespace tt::hal;
 
 extern const Configuration lilygo_tlora_pager = {
-    .initBoot = tdeckInit,
+    .initBoot = tpagerInit,
     .createDisplay = createDisplay,
     .createKeyboard = createKeyboard,
     .sdcard = createTpagerSdCard(),
