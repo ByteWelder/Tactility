@@ -4,6 +4,22 @@
 
 namespace tt::hal::i2c {
 
+bool I2cDevice::read(uint8_t* data, size_t dataSize, TickType_t timeout) {
+    return tt::hal::i2c::masterRead(port, address, data, dataSize, timeout);
+}
+
+bool I2cDevice::write(const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    return tt::hal::i2c::masterWrite(port, address, data, dataSize, timeout);
+}
+
+bool I2cDevice::writeRead(const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
+    return masterWriteRead(port, address, writeData, writeDataSize, readData, readDataSize, timeout);
+}
+
+bool I2cDevice::writeRegister(uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
+    return masterWriteRegister(port, address, reg, data, dataSize, timeout);
+}
+
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
     if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
@@ -62,4 +78,4 @@ bool I2cDevice::bitOff(uint8_t reg, uint8_t bitmask) const {
     }
 }
 
-} // namespace
+} // namespace tt::hal::i2c

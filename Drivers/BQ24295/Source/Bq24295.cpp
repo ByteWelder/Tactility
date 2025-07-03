@@ -8,10 +8,10 @@
  * https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads
  */
 namespace registers {
-    static const uint8_t CHARGE_TERMINATION = 0x05U; // Datasheet page 35: Charge end/timer cntrl
-    static const uint8_t OPERATION_CONTROL = 0x07U; // Datasheet page 37: Misc operation control
-    static const uint8_t STATUS = 0x08U; // Datasheet page 38: System status
-    static const uint8_t VERSION = 0x0AU; // Datasheet page 38: Vendor/part/revision status
+static const uint8_t CHARGE_TERMINATION = 0x05U; // Datasheet page 35: Charge end/timer cntrl
+static const uint8_t OPERATION_CONTROL = 0x07U; // Datasheet page 37: Misc operation control
+static const uint8_t STATUS = 0x08U; // Datasheet page 38: System status
+static const uint8_t VERSION = 0x0AU; // Datasheet page 38: Vendor/part/revision status
 } // namespace registers
 
 bool Bq24295::readChargeTermination(uint8_t& out) const {
