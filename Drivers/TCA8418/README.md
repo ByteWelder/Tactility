@@ -1,5 +1,4 @@
-# BQ24295
+# TCA8418 I2C Controlled Keypad Scan IC With Integrated ESD Protection
 
-Power management: I2C-controlled 3A single cell USB charger with narrow VDC 4.5-5.5V adjustable voltage at 1.5A synchronous boost operation.
-
-[Datasheet](https://www.ti.com/lit/ds/symlink/bq24295.pdf)
+[Datasheet](https://www.ti.com/lit/ds/symlink/tca8418.pdf?ts=1751500237439)
+[Original implementation](https://github.com/AnthonyDiGirolamo/i2c-thumb-keyboard/tree/master) by Anthony DiGirolamo
