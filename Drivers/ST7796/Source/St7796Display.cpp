@@ -123,7 +123,7 @@ bool St7796Display::start() {
         return false;
     }
 
-    if (esp_lcd_panel_set_gap(panelHandle, 0, 49) != ESP_OK) {
+    if (esp_lcd_panel_set_gap(panelHandle, configuration->gapX, configuration->gapY) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set panel gap");
         return false;
     }

@@ -28,6 +28,8 @@ public:
             bool mirrorX = false,
             bool mirrorY = false,
             bool invertColor = false,
+            unsigned int gapX = 0,
+            unsigned int gapY = 0,
             uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/10 of the screen size
         ) : spiBusHandle(spi_bus_handle),
             csPin(csPin),
@@ -38,6 +40,8 @@ public:
             mirrorX(mirrorX),
             mirrorY(mirrorY),
             invertColor(invertColor),
+            gapX(gapX),
+            gapY(gapY),
             bufferSize(bufferSize),
             touch(std::move(touch)) {}
 
@@ -53,6 +57,8 @@ public:
         bool mirrorX = false;
         bool mirrorY = false;
         bool invertColor = false;
+        unsigned int gapX = 0;
+        unsigned int gapY = 0;
         uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is 1/10 of the screen size
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;

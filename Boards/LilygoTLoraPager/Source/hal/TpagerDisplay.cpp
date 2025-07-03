@@ -19,7 +19,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         true, //swapXY
         true, //mirrorX
         true, //mirrorY
-        true //invertColor
+        true, //invertColor
+        0, //gapX
+        49 //gapY
     );
 
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;

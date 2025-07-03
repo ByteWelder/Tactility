@@ -1,3 +1,3 @@
-# ST7789
+# ST7796
 
-A basic ESP32 LVGL driver for ST7789 displays.
+A basic ESP32 LVGL driver for ST7796 displays.
