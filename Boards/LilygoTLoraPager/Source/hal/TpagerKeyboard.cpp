@@ -219,6 +219,10 @@ void TpagerKeyboard::initEncoder(void) {
     const int low_limit = -127;
     const int high_limit = 126;
 
+    // Original implementation based on
+    // https://github.com/UsefulElectronics/esp32s3-gc9a01-lvgl/blob/main/main/hardware/rotary_encoder.c
+    // Copyright (c) 2023 Ward Almasarani
+
     // Accum. count makes it that over- and underflows are automatically compensated.
     // Prerequisite: watchpoints at low and high limit
     pcnt_unit_config_t unit_config = {
