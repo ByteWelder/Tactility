@@ -9,7 +9,7 @@
 
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
-bool tloraInit();
+bool tpagerInit();
 
 using namespace tt::hal;
 
