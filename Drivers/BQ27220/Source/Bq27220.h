@@ -20,6 +20,11 @@ private:
     template<typename T>
     bool performConfigUpdate(T configUpdateFunc)
     {
+        // Configuration routine lifted from
+        // https://github.com/Xinyuan-LilyGO/T-Echo/blob/main/lib/SensorLib/src/GaugeBQ27220.hpp
+        // Copyright (c) 2025 lewis he
+        // SPDX-License-Identifier: MIT
+
         bool isSealed = false;
 
         if (!configPreamble(isSealed)) {
@@ -32,6 +37,10 @@ private:
     }
 
 public:
+    // Register structures lifted from
+    // https://github.com/Xinyuan-LilyGO/T-Deck-Pro/blob/master/lib/BQ27220/bq27220.h
+    // Copyright (c) 2025 Liygo / Shenzhen Xinyuan Electronic Technology Co., Ltd
+
     union BatteryStatus {
         struct
         {

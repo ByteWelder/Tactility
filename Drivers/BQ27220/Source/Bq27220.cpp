@@ -7,9 +7,9 @@
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 
-uint8_t highByte(const uint16_t word) { return (word >> 8) & 0xFF; }
-uint8_t lowByte(const uint16_t word) { return word & 0xFF; }
-void swapEndianess(uint16_t &word) { word = (lowByte(word) << 8) | highByte(word); }
+static uint8_t highByte(const uint16_t word) { return (word >> 8) & 0xFF; }
+static uint8_t lowByte(const uint16_t word) { return word & 0xFF; }
+static constexpr void swapEndianess(uint16_t &word) { word = (lowByte(word) << 8) | highByte(word); }
 
 namespace registers {
     static const uint16_t SUBCMD_CTRL_STATUS                    = 0x0000U;
@@ -314,8 +314,6 @@ bool Bq27220::configPreamble(bool &isSealed) {
         if (!unsealFullAccess()) {
             TT_LOG_E(TAG, "Unsealing full access failure!");
             return false;
-        } else {
-            TT_LOG_I(TAG, "Full access theoretically.");
         }
     }
 
