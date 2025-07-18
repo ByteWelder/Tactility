@@ -15,7 +15,7 @@
 
 namespace tt::app::development {
 
-constexpr const char* TAG = "AddGps";
+constexpr const char* TAG = "Development";
 
 class DevelopmentApp final : public App {
 
@@ -140,6 +140,9 @@ public:
     }
 
     void onHide(AppContext& appContext) override {
+        auto lock = lvgl::getSyncLock()->asScopedLock();
+        // Ensure that the update isn't already happening
+        lock.lock();
         timer.stop();
     }
 };
