@@ -114,6 +114,11 @@ void setScanRecords(uint16_t records);
 void setEnabled(bool enabled);
 
 /**
+ * @return the IPv4 address or empty string
+ */
+std::string getIp();
+
+/**
  * @brief Connect to a network. Disconnects any existing connection.
  * Returns immediately but runs in the background. Results are through pubsub.
  * @param[in] ap

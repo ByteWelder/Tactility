@@ -96,4 +96,14 @@ bool isAsciiHexString(const std::string& input) {
     }).empty();
 }
 
+std::string trim(const std::string& input, const std::string& characters) {
+    auto index = input.find_first_not_of(characters);
+    if (index == std::string::npos) {
+        return "";
+    } else {
+        auto end_index = input.find_last_not_of(characters);
+        return input.substr(index, end_index - index + 1);
+    }
+}
+
 } // namespace

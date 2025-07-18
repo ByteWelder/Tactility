@@ -33,9 +33,10 @@ namespace app {
     namespace addgps { extern const AppManifest manifest; }
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
+    namespace boot { extern const AppManifest manifest; }
     namespace calculator { extern const AppManifest manifest; }
     namespace chat { extern const AppManifest manifest; }
-    namespace boot { extern const AppManifest manifest; }
+    namespace development { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace filebrowser { extern const AppManifest manifest; }
     namespace fileselection { extern const AppManifest manifest; }
@@ -73,6 +74,7 @@ namespace app {
 
 // endregion
 
+// List of all apps excluding Boot app (as Boot app calls this function indirectly)
 static void registerSystemApps() {
     addApp(app::addgps::manifest);
     addApp(app::alertdialog::manifest);
@@ -109,6 +111,7 @@ static void registerSystemApps() {
 #ifdef ESP_PLATFORM
     addApp(app::chat::manifest);
     addApp(app::crashdiagnostics::manifest);
+    addApp(app::development::manifest);
 #endif
 
     if (getConfiguration()->hardware->power != nullptr) {

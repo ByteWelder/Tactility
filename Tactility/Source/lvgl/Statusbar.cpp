@@ -118,7 +118,7 @@ static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     }
 }
 
-static void onNetworkConnected(TT_UNUSED kernel::SystemEvent event) {
+static void onTimeChanged(TT_UNUSED kernel::SystemEvent event) {
     if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
         statusbar_data.time_update_timer->stop();
         statusbar_data.time_update_timer->start(5);
@@ -139,7 +139,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
         statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
         statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
             kernel::SystemEvent::Time,
-            onNetworkConnected
+            onTimeChanged
         );
     }
 }

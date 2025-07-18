@@ -1,5 +1,6 @@
 # TODOs
 
+- Bug: When a Wi-Fi SSID is too long, then it fails to save the credentials
 - Add a Keyboard setting app to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but user wants soft keyboard)
 - HAL for display touch calibration
 - Start using non_null (either via MS GSL, or custom)

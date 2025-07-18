@@ -4,6 +4,9 @@
  */
 #pragma once
 
+// Alloc
+#define LOG_MESSAGE_ALLOC_FAILED "Memory allocation failed"
+
 // Mutex
 #define LOG_MESSAGE_MUTEX_LOCK_FAILED "Mutex acquisition timeout"
 #define LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT "Mutex acquisition timeout (%s)"

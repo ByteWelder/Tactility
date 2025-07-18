@@ -36,7 +36,7 @@ bool contains(const char* ssid) {
         return false;
     }
 
-    bool key_exists = nvs_find_key(handle, ssid, NULL) == ESP_OK;
+    bool key_exists = nvs_find_key(handle, ssid, nullptr) == ESP_OK;
     credentials_nvs_close(handle);
 
     return key_exists;

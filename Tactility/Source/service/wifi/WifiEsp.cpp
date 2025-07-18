@@ -1,5 +1,6 @@
 #ifdef ESP_PLATFORM
 
+#include <lwip/esp_netif_net_stack.h>
 #include "Tactility/service/wifi/Wifi.h"
 
 #include "Tactility/TactilityHeadless.h"
@@ -12,6 +13,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <Tactility/kernel/SystemEvents.h>
 #include <sys/cdefs.h>
 
 namespace tt::service::wifi {
@@ -71,6 +73,7 @@ public:
     };
     bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
+    esp_netif_ip_info_t ip_info;
 
     RadioState getRadioState() const {
         auto lock = dataMutex.asScopedLock();
@@ -230,6 +233,19 @@ void disconnect() {
     getMainDispatcher().dispatch([wifi]() { dispatchDisconnectButKeepActive(wifi); });
 }
 
+void clearIp() {
+    auto wifi = wifi_singleton;
+    if (wifi == nullptr) {
+        return;
+    }
+
+    auto lock = wifi->dataMutex.asScopedLock();
+    if (!lock.lock(10 / portTICK_PERIOD_MS)) {
+        return;
+    }
+
+    memset(&wifi->ip_info, 0, sizeof(esp_netif_ip_info_t));
+}
 void setScanRecords(uint16_t records) {
     TT_LOG_I(TAG, "setScanRecords(%d)", records);
     auto wifi = wifi_singleton;
@@ -463,6 +479,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         TT_LOG_I(TAG, "eventHandler: disconnected");
+        clearIp();
         switch (wifi->getRadioState()) {
             case RadioState::ConnectionPending:
                 wifi->connection_wait_flags.set(WIFI_FAIL_BIT);
@@ -476,8 +493,10 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         }
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::Disconnected);
+        kernel::publishSystemEvent(kernel::SystemEvent::NetworkDisconnected);
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
+        memcpy(&wifi->ip_info, &event->ip_info, sizeof(esp_netif_ip_info_t));
         TT_LOG_I(TAG, "eventHandler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
             wifi->connection_wait_flags.set(WIFI_CONNECTED_BIT);
@@ -485,6 +504,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
             // TODO: Make thread-safe
             wifi->pause_auto_connect = false; // Resume auto-connection
         }
+        kernel::publishSystemEvent(kernel::SystemEvent::NetworkConnected);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
         TT_LOG_I(TAG, "eventHandler: wifi scanning done (scan id %u)", event->scan_id);
@@ -872,6 +892,15 @@ void onAutoConnectTimer() {
     if (should_auto_scan) {
         getMainDispatcher().dispatch([wifi]() { dispatchScan(wifi); });
     }
+}
+
+std::string getIp() {
+    auto wifi = std::static_pointer_cast<Wifi>(wifi_singleton);
+
+    auto lock = wifi->dataMutex.asScopedLock();
+    lock.lock();
+
+    return std::format("{}.{}.{}.{}", IP2STR(&wifi->ip_info.ip));
 }
 
 class WifiService final : public Service {
