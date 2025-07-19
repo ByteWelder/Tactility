@@ -135,6 +135,10 @@ int getRssi() {
     }
 }
 
+std::string getIp() {
+    return "192.168.1.2";
+}
+
 // endregion Public functions
 
 class WifiService final : public Service {

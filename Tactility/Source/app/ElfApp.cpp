@@ -177,7 +177,7 @@ std::string getElfAppId(const std::string& filePath) {
     return filePath;
 }
 
-bool registerElfApp(const std::string& filePath) {
+void registerElfApp(const std::string& filePath) {
     if (findAppById(filePath) == nullptr) {
         auto manifest = AppManifest {
             .id = getElfAppId(filePath),
@@ -187,7 +187,6 @@ bool registerElfApp(const std::string& filePath) {
         };
         addApp(manifest);
     }
-    return false;
 }
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {

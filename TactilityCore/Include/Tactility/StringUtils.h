@@ -64,4 +64,12 @@ bool isAsciiHexString(const std::string& input);
 /** @return the first part of a file name right up (and excluding) the first period character. */
 std::string removeFileExtension(const std::string& input);
 
+/**
+ * Remove the given characters from the start and end of the specified string.
+ * @param[in] input the text to trim
+ * @param[in] characters the characters to remove from the input
+ * @return the input where the specified characters are removed from the start and end of the input string
+ */
+std::string trim(const std::string& input, const std::string& characters);
+
 } // namespace
