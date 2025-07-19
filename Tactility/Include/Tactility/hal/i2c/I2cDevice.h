@@ -1,7 +1,7 @@
 #pragma once
 
-#include "I2c.h"
 #include "../Device.h"
+#include "I2c.h"
 
 namespace tt::hal::i2c {
 
@@ -20,7 +20,11 @@ protected:
 
     static constexpr TickType_t DEFAULT_TIMEOUT = 1000 / portTICK_PERIOD_MS;
 
+    bool read(uint8_t* data, size_t dataSize, TickType_t timeout = DEFAULT_TIMEOUT);
+    bool write(const uint8_t* data, uint16_t dataSize, TickType_t timeout = DEFAULT_TIMEOUT);
+    bool writeRead(const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout = DEFAULT_TIMEOUT);
     bool readRegister8(uint8_t reg, uint8_t& result) const;
+    bool writeRegister(uint8_t reg, const uint8_t* data, uint16_t dataSize, TickType_t timeout = DEFAULT_TIMEOUT);
     bool writeRegister8(uint8_t reg, uint8_t value) const;
     bool readRegister12(uint8_t reg, float& out) const;
     bool readRegister14(uint8_t reg, float& out) const;
@@ -41,4 +45,4 @@ public:
     uint8_t getAddress() const { return address; }
 };
 
-}
+} // namespace tt::hal::i2c
