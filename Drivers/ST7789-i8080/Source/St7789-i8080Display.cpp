@@ -1,195 +1,233 @@
-#include "esp_log.h"
 #include "St7789-i8080Display.h"
-#include "esp_lcd_panel_st7796.h"
+#include <Tactility/Log.h>
+#include <esp_lcd_panel_commands.h>
+#include <esp_lcd_panel_dev.h>
+#include <esp_lcd_panel_st7796.h>
+#include <esp_lvgl_port.h>
 
-static const char* TAG = "St7789I8080";
+#define TAG "st7789-i8080"
 
-// Minimal ST7789 initialization sequence
-const st7796_lcd_init_cmd_t St7789I8080Display::st7789_init_cmds_[] = {
-    // Sleep out - enable normal operation  
+// Custom initialization sequence
+static const st7796_lcd_init_cmd_t st7789_init_cmds_[] = {
+    // Sleep out - enable normal operation
     {0x11, {0}, 0, 120},                    // SLPOUT + 120ms delay
-    
     // Configure 16 bpp (65k colors) display mode
     {0x3A, {0x05}, 1, 0},                   // COLMOD - 16 bits per pixel
-    
     // Memory Data Access Control (can be modified for orientation)
-    {0x36, {0x00}, 1, 0},                   // MADCTL - normal orientation (will be updated)
-    
-    // Enable color inversion for IPS displays (if needed)
-    // This will be conditionally applied based on config
-    
+    {0x36, {0x00}, 1, 0},                   // MADCTL - normal orientation
     // Display on
     {0x29, {0}, 0, 0},                      // DISPON
 };
 
-St7789I8080Display::St7789I8080Display(std::unique_ptr<Configuration> config) 
-    : config_(std::move(config)), panel_handle_(nullptr), io_handle_(nullptr), 
-      i80_bus_(nullptr), initialized_(false) {
-    
-    ESP_LOGI(TAG, "Initializing ST7789 I8080 Display");
-    ESP_LOGI(TAG, "Resolution: %dx%d, Bus Width: %d-bit", 
-             config_->horizontal_resolution, config_->vertical_resolution, config_->bus_width);
-    
-    initializeI8080Bus();
-    initializePanelIO(); 
-    initializePanel();
-    applyDisplaySettings();
-    initializeBacklight();
-    
-    initialized_ = true;
-    ESP_LOGI(TAG, "ST7789 Display initialization complete");
-}
+bool St7789I8080Display::start() {
+    TT_LOG_I(TAG, "Starting");
 
-St7789I8080Display::~St7789I8080Display() {
-    if (panel_handle_) {
-        esp_lcd_panel_del(panel_handle_);
+    // Initialize I8080 bus
+    TT_LOG_I(TAG, "Initialize Intel 8080 bus");
+    esp_lcd_i80_bus_config_t bus_config = {
+        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .dc_gpio_num = configuration->pin_dc,
+        .wr_gpio_num = configuration->pin_wr,
+        .data_gpio_nums = {},
+        .bus_width = configuration->busWidth,
+        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2, // 16-bit pixels
+        .psram_trans_align = 64,
+        .sram_trans_align = 4
+    };
+    for (int i = 0; i < configuration->busWidth; i++) {
+        bus_config.data_gpio_nums[i] = configuration->dataPins[i];
     }
-    if (io_handle_) {
-        esp_lcd_panel_io_del(io_handle_);
-    }
-    if (i80_bus_) {
-        esp_lcd_del_i80_bus(i80_bus_);
-    }
-    
-    // Turn off backlight
-    if (config_->pin_backlight != GPIO_NUM_NC) {
-        gpio_set_level(config_->pin_backlight, !config_->backlight_on_level);
-    }
-}
 
-void St7789I8080Display::initializeI8080Bus() {
-    ESP_LOGI(TAG, "Initialize Intel 8080 bus");
-    
-    esp_lcd_i80_bus_config_t bus_config = {};
-    bus_config.clk_src = LCD_CLK_SRC_DEFAULT;
-    bus_config.dc_gpio_num = config_->pin_dc;
-    bus_config.wr_gpio_num = config_->pin_wr;
-    
-    // Set data pins
-    for (int i = 0; i < config_->bus_width; i++) {
-        bus_config.data_gpio_nums[i] = config_->data_pins[i];
+    if (esp_lcd_new_i80_bus(&bus_config, &i80Bus) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create I8080 bus");
+        return false;
     }
-    
-    bus_config.bus_width = config_->bus_width;
-    bus_config.max_transfer_bytes = config_->horizontal_resolution * config_->vertical_resolution * 2; // 16-bit pixels
-    bus_config.psram_trans_align = 64;
-    bus_config.sram_trans_align = 4;
-    
-    ESP_ERROR_CHECK(esp_lcd_new_i80_bus(&bus_config, &i80_bus_));
-}
 
-void St7789I8080Display::initializePanelIO() {
-    ESP_LOGI(TAG, "Install panel IO");
-    
-    esp_lcd_panel_io_i80_config_t io_config = {};
-    io_config.cs_gpio_num = config_->pin_cs;
-    io_config.pclk_hz = config_->pixel_clock_hz;
-    io_config.trans_queue_depth = 10;
-    io_config.on_color_trans_done = displayNotifyCallback;
-    io_config.user_ctx = this;
-    io_config.lcd_cmd_bits = 8;
-    io_config.lcd_param_bits = 8;
-    io_config.dc_levels.dc_idle_level = 0;
-    io_config.dc_levels.dc_cmd_level = 0;
-    io_config.dc_levels.dc_dummy_level = 0;
-    io_config.dc_levels.dc_data_level = 1;
-    
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i80(i80_bus_, &io_config, &io_handle_));
-}
+    // Initialize panel IO
+    TT_LOG_I(TAG, "Install panel IO");
+    esp_lcd_panel_io_i80_config_t io_config = {
+        .cs_gpio_num = configuration->pin_cs,
+        .pclk_hz = configuration->pixelClockHz,
+        .trans_queue_depth = 10,
+        .dc_levels = {
+            .dc_idle_level = 0,
+            .dc_cmd_level = 0,
+            .dc_dummy_level = 0,
+            .dc_data_level = 1
+        },
+        .on_color_trans_done = nullptr,
+        .user_ctx = nullptr,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8
+    };
 
-void St7789I8080Display::initializePanel() {
-    ESP_LOGI(TAG, "Install ST7789 panel driver");
-    
-    // Prepare custom initialization commands
-    std::vector<st7796_lcd_init_cmd_t> init_cmds(
-        st7789_init_cmds_, 
-        st7789_init_cmds_ + sizeof(st7789_init_cmds_) / sizeof(st7796_lcd_init_cmd_t)
-    );
-    
-    // Add color inversion if needed
-    if (config_->invert_colors) {
+    if (esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create panel IO");
+        return false;
+    }
+
+    // Initialize panel
+    TT_LOG_I(TAG, "Install ST7796 panel driver");
+    std::vector<st7796_lcd_init_cmd_t> init_cmds(st7789_init_cmds_, st7789_init_cmds_ + sizeof(st7789_init_cmds_) / sizeof(st7796_lcd_init_cmd_t));
+    if (configuration->invertColor) {
         st7796_lcd_init_cmd_t invert_cmd = {0x21, {0}, 0, 0}; // INVON
         init_cmds.insert(init_cmds.end() - 1, invert_cmd); // Insert before DISPON
     }
-    
-    st7796_vendor_config_t vendor_config = {};
-    vendor_config.init_cmds = init_cmds.data();
-    vendor_config.init_cmds_size = init_cmds.size();
-    
-    esp_lcd_panel_dev_config_t panel_config = {};
-    panel_config.reset_gpio_num = config_->pin_rst;
-    panel_config.rgb_endian = LCD_RGB_ENDIAN_RGB;
-    panel_config.bits_per_pixel = 16;
-    panel_config.vendor_config = &vendor_config;
-    
-    ESP_ERROR_CHECK(esp_lcd_new_panel_st7796(io_handle_, &panel_config, &panel_handle_));
-    ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle_));
-    ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle_));
+
+    st7796_vendor_config_t vendor_config = {
+        .init_cmds = init_cmds.data(),
+        .init_cmds_size = init_cmds.size()
+    };
+    esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = configuration->pin_rst,
+        .rgb_endian = LCD_RGB_ENDIAN_RGB,
+        .bits_per_pixel = 16,
+        .vendor_config = &vendor_config
+    };
+
+    if (esp_lcd_new_panel_st7796(ioHandle, &panel_config, &panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_reset(panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to reset panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_init(panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to init panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to swap XY");
+        return false;
+    }
+
+    if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel to mirror");
+        return false;
+    }
+
+    if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to turn display on");
+        return false;
+    }
+
+    // Initialize backlight
+    if (configuration->pin_backlight != GPIO_NUM_NC) {
+        TT_LOG_I(TAG, "Initializing backlight on GPIO %d", configuration->pin_backlight);
+        gpio_config_t backlight_config = {
+            .pin_bit_mask = 1ULL << configuration->pin_backlight,
+            .mode = GPIO_MODE_OUTPUT,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE
+        };
+        if (gpio_config(&backlight_config) != ESP_OK) {
+            TT_LOG_E(TAG, "Failed to configure backlight GPIO");
+            return false;
+        }
+        setBacklight(true);
+    }
+
+    // Initialize LVGL display
+    uint32_t buffer_size;
+    if (configuration->bufferSize == 0) {
+        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
+    } else {
+        buffer_size = configuration->bufferSize;
+    }
+
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = ioHandle,
+        .panel_handle = panelHandle,
+        .control_handle = nullptr,
+        .buffer_size = buffer_size,
+        .double_buffer = false,
+        .trans_size = 0,
+        .hres = configuration->horizontalResolution,
+        .vres = configuration->verticalResolution,
+        .monochrome = false,
+        .rotation = {
+            .swap_xy = configuration->swapXY,
+            .mirror_x = configuration->mirrorX,
+            .mirror_y = configuration->mirrorY
+        },
+        .color_format = LV_COLOR_FORMAT_RGB565,
+        .flags = {
+            .buff_dma = true,
+            .buff_spiram = false,
+            .sw_rotate = false,
+            .swap_bytes = false,
+            .full_refresh = false,
+            .direct_mode = false
+        }
+    };
+
+    displayHandle = lvgl_port_add_disp(&disp_cfg);
+
+    TT_LOG_I(TAG, "Finished");
+    return displayHandle != nullptr;
 }
 
-void St7789I8080Display::applyDisplaySettings() {
-    // Apply mirror and swap settings
-    if (config_->mirror_x || config_->mirror_y || config_->swap_xy) {
-        ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle_, config_->mirror_x, config_->mirror_y));
-        ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle_, config_->swap_xy));
-    }
-    
-    ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle_, true));
-}
+bool St7789I8080Display::stop() {
+    assert(displayHandle != nullptr);
 
-void St7789I8080Display::initializeBacklight() {
-    if (config_->pin_backlight == GPIO_NUM_NC) {
-        ESP_LOGI(TAG, "No backlight pin configured");
-        return;
+    lvgl_port_remove_disp(displayHandle);
+
+    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to delete panel");
+        return false;
     }
-    
-    ESP_LOGI(TAG, "Initializing backlight on GPIO %d", config_->pin_backlight);
-    
-    gpio_config_t backlight_config = {};
-    backlight_config.pin_bit_mask = 1ULL << config_->pin_backlight;
-    backlight_config.mode = GPIO_MODE_OUTPUT;
-    backlight_config.pull_up_en = GPIO_PULLUP_DISABLE;
-    backlight_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    backlight_config.intr_type = GPIO_INTR_DISABLE;
-    
-    ESP_ERROR_CHECK(gpio_config(&backlight_config));
-    setBacklight(true);
+
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to delete panel IO");
+        return false;
+    }
+
+    if (esp_lcd_del_i80_bus(i80Bus) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to delete I8080 bus");
+        return false;
+    }
+
+    if (configuration->pin_backlight != GPIO_NUM_NC) {
+        gpio_set_level(configuration->pin_backlight, !configuration->backlightOnLevel);
+    }
+
+    displayHandle = nullptr;
+    return true;
 }
 
 void St7789I8080Display::setBacklight(bool on) {
-    if (config_->pin_backlight != GPIO_NUM_NC) {
-        bool level = on ? config_->backlight_on_level : !config_->backlight_on_level;
-        ESP_ERROR_CHECK(gpio_set_level(config_->pin_backlight, level));
+    if (configuration->pin_backlight != GPIO_NUM_NC) {
+        bool level = on ? configuration->backlightOnLevel : !configuration->backlightOnLevel;
+        ESP_ERROR_CHECK(gpio_set_level(configuration->pin_backlight, level));
     }
 }
 
-bool St7789I8080Display::displayNotifyCallback(esp_lcd_panel_io_handle_t panel_io, 
-                                              esp_lcd_panel_io_event_data_t *edata, 
-                                              void *user_ctx) {
-    return false;
-}
-
-// Drawing functions
-void St7789I8080Display::setPixel(uint16_t x, uint16_t y, uint16_t color) {
-    esp_lcd_panel_draw_bitmap(panel_handle_, x, y, x + 1, y + 1, &color);
-}
-
-void St7789I8080Display::fillRect(uint16_t x, uint16_t y, uint16_t width, uint16_t height, uint16_t color) {
-    size_t pixel_count = width * height;
-    uint16_t* buffer = (uint16_t*)malloc(pixel_count * sizeof(uint16_t));
-    if (buffer) {
-        for (size_t i = 0; i < pixel_count; i++) {
-            buffer[i] = color;
-        }
-        esp_lcd_panel_draw_bitmap(panel_handle_, x, y, x + width, y + height, buffer);
-        free(buffer);
+void St7789I8080Display::setGammaCurve(uint8_t index) {
+    uint8_t gamma_curve;
+    switch (index) {
+        case 0:
+            gamma_curve = 0x01;
+            break;
+        case 1:
+            gamma_curve = 0x04;
+            break;
+        case 2:
+            gamma_curve = 0x02;
+            break;
+        case 3:
+            gamma_curve = 0x08;
+            break;
+        default:
+            return;
     }
-}
+    const uint8_t param[] = { gamma_curve };
 
-void St7789I8080Display::drawBitmap(uint16_t x, uint16_t y, uint16_t width, uint16_t height, const uint16_t* bitmap) {
-    esp_lcd_panel_draw_bitmap(panel_handle_, x, y, x + width, y + height, bitmap);
-}
-
-void St7789I8080Display::clearScreen(uint16_t color) {
-    fillRect(0, 0, getWidth(), getHeight(), color);
+    if (esp_lcd_panel_io_tx_param(ioHandle, LCD_CMD_GAMSET, param, 1) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set gamma");
+    }
 }
