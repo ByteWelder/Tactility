@@ -21,9 +21,9 @@ bool St7789I8080Display::start() {
     // Initialize I8080 bus
     TT_LOG_I(TAG, "Initialize Intel 8080 bus");
     esp_lcd_i80_bus_config_t bus_config = {
-        .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = configuration->pin_dc,
         .wr_gpio_num = configuration->pin_wr,
+        .clk_src = LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         .bus_width = configuration->busWidth,
         .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2,
@@ -43,14 +43,14 @@ bool St7789I8080Display::start() {
         .cs_gpio_num = configuration->pin_cs,
         .pclk_hz = configuration->pixelClockHz,
         .trans_queue_depth = 10,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
         .dc_levels = {
             .dc_idle_level = 0,
             .dc_cmd_level = 0,
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
     };
 
     if (esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle) != ESP_OK) {
