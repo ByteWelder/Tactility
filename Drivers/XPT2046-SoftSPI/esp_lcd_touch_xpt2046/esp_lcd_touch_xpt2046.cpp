@@ -25,7 +25,7 @@ static const char* TAG = "xpt2046_softspi";
     esp_err_t ret = (a); \
     if (ret != ESP_OK) { \
         ESP_LOGE(tag, msg, ##__VA_ARGS__); \
-        err_code = ret; \
+        err = ret; \
         goto err; \
     } \
 } while (0)
@@ -57,25 +57,46 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
           config.sck_pin,
           config.cs_pin,
           config.spi_delay_us
-      }))
+      })),
+      xpt_config_(std::make_unique<esp_lcd_touch_xpt2046_config_t>())
 {
     esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* tp = (esp_lcd_touch_xpt2046_t*)calloc(1, sizeof(esp_lcd_touch_xpt2046_t));
-    ESP_GOTO_ON_FALSE_LOG(tp, err, TAG, "No memory for XPT2046 state");
+    ESP_GOTO_ON_FALSE_LOG(tp, ESP_ERR_NO_MEM, TAG, "No memory for XPT2046 state");
     handle_ = (esp_lcd_touch_handle_t)tp;
+
+    // Initialize xpt_config
+    ESP_GOTO_ON_FALSE_LOG(xpt_config_, ESP_ERR_NO_MEM, TAG, "No memory for xpt_config");
+    xpt_config_->base = {
+        .x_max = config.x_max,
+        .y_max = config.y_max,
+        .int_gpio_num = config.int_pin,
+        .user_data = xpt_config_.get()
+    };
+    xpt_config_->x_min_raw = config.x_min_raw;
+    xpt_config_->x_max_raw = config.x_max_raw;
+    xpt_config_->y_min_raw = config.y_min_raw;
+    xpt_config_->y_max_raw = config.y_max_raw;
+    xpt_config_->swap_xy = config.swap_xy;
+    xpt_config_->mirror_x = config.mirror_x;
+    xpt_config_->mirror_y = config.mirror_y;
 
     // Set SPI post-command delay from config
     spi_->set_post_command_delay_us(config.spi_post_command_delay_us);
 
-    // Log all pin assignments
-    ESP_LOGI(TAG, "Pin config: MISO=%d, MOSI=%d, SCK=%d, CS=%d, INT=%d", config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.int_pin);
+    // Log all pin assignments and configuration
+    ESP_LOGI(TAG, "Pin config: MISO=%d, MOSI=%d, SCK=%d, CS=%d, INT=%d", 
+             config.miso_pin, config.mosi_pin, config.sck_pin, config.cs_pin, config.int_pin);
+    ESP_LOGI(TAG, "Touch config: x_max=%u, y_max=%u, x_min_raw=%u, x_max_raw=%u, y_min_raw=%u, y_max_raw=%u, swap_xy=%d, mirror_x=%d, mirror_y=%d",
+             config.x_max, config.y_max, config.x_min_raw, config.x_max_raw, config.y_min_raw, config.y_max_raw,
+             config.swap_xy, config.mirror_x, config.mirror_y);
 
     tp->base.read_data = read_data;
     tp->base.get_xy = get_xy;
     tp->base.del = del;
     tp->base.data.lock.owner = portMUX_FREE_VAL;
     tp->user_data = this;
-    memcpy(&tp->base.config, &config, sizeof(esp_lcd_touch_config_t));
+    tp->base.config = xpt_config_->base;
 
     // CS pin setup
     ESP_GOTO_ON_ERROR_LOG(gpio_set_direction(cs_pin_, GPIO_MODE_OUTPUT), err, TAG, "CS pin direction failed");
@@ -83,11 +104,11 @@ XPT2046_SoftSPI::XPT2046_SoftSPI(const Config& config)
 
     // Optional IRQ setup
     if (config.int_pin != GPIO_NUM_NC) {
-        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.int_pin), err, TAG, "Invalid IRQ pin");
+        ESP_GOTO_ON_FALSE_LOG(GPIO_IS_VALID_GPIO(config.int_pin), ESP_ERR_INVALID_ARG, TAG, "Invalid IRQ pin");
         gpio_config_t cfg = {
             .pin_bit_mask = BIT64(config.int_pin),
             .mode = GPIO_MODE_INPUT,
-            .pull_up_en = GPIO_PULLUP_ENABLE, // Added pull-up for stability
+            .pull_up_en = GPIO_PULLUP_ENABLE,
             .pull_down_en = GPIO_PULLDOWN_DISABLE,
             .intr_type = GPIO_INTR_NEGEDGE
         };
@@ -130,7 +151,6 @@ bool XPT2046_SoftSPI::self_test() {
     uint16_t value = 0;
     if (read_register(X_POSITION, &value) == ESP_OK) {
         ESP_LOGI(TAG, "Self-test: X_POSITION register read value: %u", value);
-        // Optionally check value range
         return true;
     }
     ESP_LOGE(TAG, "Self-test failed: could not read X_POSITION");
@@ -164,6 +184,7 @@ esp_err_t XPT2046_SoftSPI::del(esp_lcd_touch_handle_t tp) {
 }
 
 esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
+    esp_err_t err = ESP_OK;
     esp_lcd_touch_xpt2046_t* xpt_tp = (esp_lcd_touch_xpt2046_t*)tp;
     auto* driver = static_cast<XPT2046_SoftSPI*>(xpt_tp->user_data);
     uint16_t z1 = 0, z2 = 0;
@@ -181,8 +202,8 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     }
 
     gpio_set_level(driver->cs_pin_, 0);
-    ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), TAG, "Read Z1 failed");
-    ESP_RETURN_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), TAG, "Read Z2 failed");
+    ESP_GOTO_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), err, TAG, "Read Z1 failed");
+    ESP_GOTO_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), err, TAG, "Read Z2 failed");
     uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     ESP_LOGD(TAG, "Z value: %u (z1=%u, z2=%u)", z, z1 >> 3, z2 >> 3);
     if (z < Z_THRESHOLD) {
@@ -193,13 +214,13 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     }
 
     uint16_t discard_buf = 0;
-    ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &discard_buf), TAG, "Read discard failed");
+    ESP_GOTO_ON_ERROR(driver->read_register(X_POSITION, &discard_buf), err, TAG, "Read discard failed");
 
     constexpr uint8_t max_points = 4;
     for (uint8_t idx = 0; idx < max_points; idx++) {
         uint16_t x_temp = 0, y_temp = 0;
-        ESP_RETURN_ON_ERROR(driver->read_register(X_POSITION, &x_temp), TAG, "Read X failed");
-        ESP_RETURN_ON_ERROR(driver->read_register(Y_POSITION, &y_temp), TAG, "Read Y failed");
+        ESP_GOTO_ON_ERROR(driver->read_register(X_POSITION, &x_temp), err, TAG, "Read X failed");
+        ESP_GOTO_ON_ERROR(driver->read_register(Y_POSITION, &y_temp), err, TAG, "Read Y failed");
         x_temp >>= 3;
         y_temp >>= 3;
         ESP_LOGD(TAG, "Raw X=%u, Y=%u", x_temp, y_temp);
@@ -212,7 +233,13 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     }
     gpio_set_level(driver->cs_pin_, 1);
 
+    // Validate user_data
+    ESP_GOTO_ON_FALSE_LOG(xpt_tp->base.config.user_data != nullptr, ESP_ERR_INVALID_ARG, TAG, "config.user_data is null");
+    ESP_GOTO_ON_FALSE_LOG((uintptr_t)xpt_tp->base.config.user_data % 4 == 0, ESP_ERR_INVALID_STATE, TAG, "config.user_data is unaligned: %p", xpt_tp->base.config.user_data);
+
     esp_lcd_touch_xpt2046_config_t* cfg = (esp_lcd_touch_xpt2046_config_t*)xpt_tp->base.config.user_data;
+    ESP_LOGD(TAG, "cfg=%p, x_max_raw=%u, x_min_raw=%u", cfg, cfg->x_max_raw, cfg->x_min_raw);
+
     if (point_count >= max_points / 2) {
         x /= point_count;
         y /= point_count;
@@ -220,7 +247,7 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         int32_t x_scaled = (int32_t)x;
         int32_t y_scaled = (int32_t)y;
         if (cfg->x_max_raw != cfg->x_min_raw) {
-            x_scaled = (x_scaled - cfg->x_min_raw) * cfg->base.x_max / (cfg->x_max_raw - cfg->x_min_raw);
+            x_scaled = (x_scaled - cfg->x_min_raw) *	cfg->base.x_max / (cfg->x_max_raw - cfg->x_min_raw);
         }
         if (cfg->y_max_raw != cfg->y_min_raw) {
             y_scaled = (y_scaled - cfg->y_min_raw) * cfg->base.y_max / (cfg->y_max_raw - cfg->y_min_raw);
@@ -247,6 +274,10 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     xpt_tp->base.data.points = point_count;
     ESP_LOGD(TAG, "Read: x=%" PRIu32 ", y=%" PRIu32 ", z=%u, points=%u", x, y, z, point_count);
     return ESP_OK;
+
+err:
+    gpio_set_level(driver->cs_pin_, 1);
+    return err;
 }
 
 bool XPT2046_SoftSPI::get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
@@ -289,7 +320,6 @@ esp_err_t XPT2046_SoftSPI::read_register(uint8_t reg, uint16_t* value) {
     spi_->cs_low();
     ESP_LOGD(TAG, "CS LOW, sending command 0x%02x", reg);
     spi_->transfer(reg);
-    // Configurable post-command delay for reliability
     ets_delay_us(spi_->get_post_command_delay_us());
     buf[0] = spi_->transfer(0x00);
     buf[1] = spi_->transfer(0x00);
@@ -326,4 +356,8 @@ void XPT2046_SoftSPI::get_raw_touch(uint16_t& x, uint16_t& y) {
     } else {
         ESP_LOGD(TAG, "Raw touch: x=%u, y=%u, z=%u", x, y, z);
     }
+}
+
+esp_err_t XPT2046_SoftSPI::read_touch_data() {
+    return read_data(handle_);
 }
