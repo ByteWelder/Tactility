@@ -6,13 +6,13 @@
 
 #include <driver/spi_master.h>
 
-#define TAG "tdeck_display"
+#define TAG "TPAGER_display"
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto configuration = std::make_unique<St7796Display::Configuration>(
-        TDECK_LCD_SPI_HOST,
-        TDECK_LCD_PIN_CS,
-        TDECK_LCD_PIN_DC,
+        TPAGER_LCD_SPI_HOST,
+        TPAGER_LCD_PIN_CS,
+        TPAGER_LCD_PIN_DC,
         480, // w
         222, // h
         nullptr,

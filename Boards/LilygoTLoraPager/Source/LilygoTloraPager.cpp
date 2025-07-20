@@ -7,7 +7,7 @@
 
 #include <Tactility/hal/Configuration.h>
 
-#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#define TPAGER_SPI_TRANSFER_SIZE_LIMIT (TPAGER_LCD_HORIZONTAL_RESOLUTION * TPAGER_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
 bool tpagerInit();
 
@@ -21,7 +21,7 @@ extern const Configuration lilygo_tlora_pager = {
     .power = tpager_get_power,
     .i2c = {
         i2c::Configuration {
-            .name = "Internal",
+            .name = "Shared",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
             .isMutable = true,
@@ -49,7 +49,7 @@ extern const Configuration lilygo_tlora_pager = {
                    .data6_io_num = GPIO_NUM_NC,
                    .data7_io_num = GPIO_NUM_NC,
                    .data_io_default_level = false,
-                   .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+                   .max_transfer_sz = TPAGER_SPI_TRANSFER_SIZE_LIMIT,
                    .flags = 0,
                    .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                    .intr_flags = 0},
@@ -57,8 +57,27 @@ extern const Configuration lilygo_tlora_pager = {
         .isMutable = false,
         .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
     }},
-    .uart {uart::Configuration {.name = "Grove", .port = UART_NUM_1, .rxPin = GPIO_NUM_4, .txPin = GPIO_NUM_12, .rtsPin = GPIO_NUM_NC, .ctsPin = GPIO_NUM_NC, .rxBufferSize = 1024, .txBufferSize = 1024, .config = {.baud_rate = 38400, .data_bits = UART_DATA_8_BITS, .parity = UART_PARITY_DISABLE, .stop_bits = UART_STOP_BITS_1, .flow_ctrl = UART_HW_FLOWCTRL_DISABLE, .rx_flow_ctrl_thresh = 0, .source_clk = UART_SCLK_DEFAULT, .flags = {
-                                                                                                                                                                                                                                                                                                                                                                                                                                            .allow_pd = 0,
-                                                                                                                                                                                                                                                                                                                                                                                                                                            .backup_before_sleep = 0,
-                                                                                                                                                                                                                                                                                                                                                                                                                                        }}}}
+    .uart {uart::Configuration {
+        .name = "Grove",
+        .port = UART_NUM_1,
+        .rxPin = GPIO_NUM_4,
+        .txPin = GPIO_NUM_12,
+        .rtsPin = GPIO_NUM_NC,
+        .ctsPin = GPIO_NUM_NC,
+        .rxBufferSize = 1024,
+        .txBufferSize = 1024,
+        .config = {
+            .baud_rate = 38400,
+            .data_bits = UART_DATA_8_BITS,
+            .parity = UART_PARITY_DISABLE,
+            .stop_bits = UART_STOP_BITS_1,
+            .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+            .rx_flow_ctrl_thresh = 0,
+            .source_clk = UART_SCLK_DEFAULT,
+            .flags = {
+                .allow_pd = 0,
+                .backup_before_sleep = 0,
+            }
+        }
+    }}
 };
