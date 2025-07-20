@@ -9,13 +9,9 @@
 
 // Custom initialization sequence
 static const st7796_lcd_init_cmd_t st7789_init_cmds_[] = {
-    // Sleep out - enable normal operation
     {0x11, nullptr, 0, 120},                 // SLPOUT + 120ms delay
-    // Configure 16 bpp (65k colors) display mode
     {0x3A, (uint8_t[]){0x05}, 1, 0},        // COLMOD - 16 bits per pixel
-    // Memory Data Access Control (normal orientation)
     {0x36, (uint8_t[]){0x00}, 1, 0},        // MADCTL
-    // Display on
     {0x29, nullptr, 0, 0},                   // DISPON
 };
 
@@ -28,9 +24,9 @@ bool St7789I8080Display::start() {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .dc_gpio_num = configuration->pin_dc,
         .wr_gpio_num = configuration->pin_wr,
-        .data_gpio_nums = {0},
+        .data_gpio_nums = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         .bus_width = configuration->busWidth,
-        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2, // 16-bit pixels
+        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2,
         .psram_trans_align = 64,
         .sram_trans_align = 4
     };
@@ -55,17 +51,17 @@ bool St7789I8080Display::start() {
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
+        .on_color_trans_done = nullptr,
+        .user_ctx = nullptr,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
         .flags = {
             .cs_active_high = 0,
             .reverse_color_bits = 0,
             .swap_color_bytes = 0,
             .pclk_idle_low = 0,
             .pclk_active_neg = 0
-        },
-        .on_color_trans_done = nullptr,
-        .user_ctx = nullptr,
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8
+        }
     };
 
     if (esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle) != ESP_OK) {
@@ -78,7 +74,7 @@ bool St7789I8080Display::start() {
     std::vector<st7796_lcd_init_cmd_t> init_cmds(st7789_init_cmds_, st7789_init_cmds_ + sizeof(st7789_init_cmds_) / sizeof(st7796_lcd_init_cmd_t));
     if (configuration->invertColor) {
         st7796_lcd_init_cmd_t invert_cmd = {0x21, nullptr, 0, 0}; // INVON
-        init_cmds.insert(init_cmds.end() - 1, invert_cmd); // Insert before DISPON
+        init_cmds.insert(init_cmds.end() - 1, invert_cmd);
     }
 
     st7796_vendor_config_t vendor_config = {
