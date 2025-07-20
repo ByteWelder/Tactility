@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <esp_lcd_touch.h>
+#include "esp_lcd_touch_xpt2046.h"
 #include <lvgl.h>
 #include "SoftSPI.h"
 
