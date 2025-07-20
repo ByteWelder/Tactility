@@ -88,5 +88,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     );
     configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
+    configuration->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }
