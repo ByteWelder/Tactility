@@ -3,6 +3,7 @@
 #include "CYD2432S022CConstants.h"
 #include "St7789-i8080Display.h"
 #include <Tactility/Log.h>
+#include <inttypes.h>
 
 #define TAG "YellowDisplay"
 
@@ -56,7 +57,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     );
 
     // Log configuration details
-    TT_LOG_I(TAG, "Configuration: %dx%d, PCLK=%d Hz, Backlight GPIO=%d, Bus width=%d",
+    TT_LOG_I(TAG, "Configuration: %dx%d, PCLK=%" PRIu32 " Hz, Backlight GPIO=%d, Bus width=%" PRIu8,
              configuration->horizontalResolution,
              configuration->verticalResolution,
              configuration->pixelClockHz,
