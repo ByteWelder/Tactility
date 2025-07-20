@@ -185,16 +185,22 @@ esp_err_t XPT2046_SoftSPI::del(esp_lcd_touch_handle_t tp) {
 
 esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     esp_err_t err = ESP_OK;
-
-    // Declare all variables upfront before any goto label or early return
+    esp_err_t ret = ESP_OK; // Declare ret for ESP_GOTO_ON_ERROR
     esp_lcd_touch_xpt2046_t* xpt_tp = (esp_lcd_touch_xpt2046_t*)tp;
     auto* driver = static_cast<XPT2046_SoftSPI*>(xpt_tp->user_data);
-
-    uint16_t z1 = 0, z2 = 0;
+    esp_lcd_touch_xpt2046_config_t* cfg = nullptr; // Declare cfg early
+    uint16_t z1 = 0, z2 = 0, z = 0;              // Declare z early
     uint32_t x = 0, y = 0;
     uint8_t point_count = 0;
     uint16_t discard_buf = 0;
     constexpr uint8_t max_points = 4;
+
+    // Validate user_data early
+    ESP_GOTO_ON_FALSE_LOG(xpt_tp->base.config.user_data != nullptr, ESP_ERR_INVALID_ARG, TAG, "config.user_data is null");
+    ESP_GOTO_ON_FALSE_LOG((uintptr_t)xpt_tp->base.config.user_data % 4 == 0, ESP_ERR_INVALID_STATE, TAG, "config.user_data is unaligned: %p", xpt_tp->base.config.user_data);
+
+    cfg = (esp_lcd_touch_xpt2046_config_t*)xpt_tp->base.config.user_data; // Initialize cfg after validation
+    ESP_LOGD(TAG, "cfg=%p, x_max_raw=%u, x_min_raw=%u", cfg, cfg->x_max_raw, cfg->x_min_raw);
 
     if (xpt_tp->base.config.int_gpio_num != GPIO_NUM_NC) {
         int irq_level = gpio_get_level(xpt_tp->base.config.int_gpio_num);
@@ -211,7 +217,7 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
     ESP_GOTO_ON_ERROR(driver->read_register(Z_VALUE_1, &z1), err, TAG, "Read Z1 failed");
     ESP_GOTO_ON_ERROR(driver->read_register(Z_VALUE_2, &z2), err, TAG, "Read Z2 failed");
 
-    uint16_t z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
+    z = (z1 >> 3) + (XPT2046_ADC_LIMIT - (z2 >> 3));
     ESP_LOGD(TAG, "Z value: %u (z1=%u, z2=%u)", z, z1 >> 3, z2 >> 3);
 
     if (z < Z_THRESHOLD) {
@@ -238,12 +244,6 @@ esp_err_t XPT2046_SoftSPI::read_data(esp_lcd_touch_handle_t tp) {
         }
     }
     gpio_set_level(driver->cs_pin_, 1);
-
-    ESP_GOTO_ON_FALSE_LOG(xpt_tp->base.config.user_data != nullptr, ESP_ERR_INVALID_ARG, TAG, "config.user_data is null");
-    ESP_GOTO_ON_FALSE_LOG((uintptr_t)xpt_tp->base.config.user_data % 4 == 0, ESP_ERR_INVALID_STATE, TAG, "config.user_data is unaligned: %p", xpt_tp->base.config.user_data);
-
-    esp_lcd_touch_xpt2046_config_t* cfg = (esp_lcd_touch_xpt2046_config_t*)xpt_tp->base.config.user_data;
-    ESP_LOGD(TAG, "cfg=%p, x_max_raw=%u, x_min_raw=%u", cfg, cfg->x_max_raw, cfg->x_min_raw);
 
     if (point_count >= max_points / 2) {
         x /= point_count;
@@ -285,6 +285,7 @@ err:
     gpio_set_level(driver->cs_pin_, 1);
     return err;
 }
+
 
 bool XPT2046_SoftSPI::get_xy(esp_lcd_touch_handle_t tp, uint16_t* x, uint16_t* y,
                              uint16_t* strength, uint8_t* point_num, uint8_t max_point_num) {
