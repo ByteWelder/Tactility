@@ -34,6 +34,8 @@ public:
             pin_cs(cs),
             pin_rst(rst),
             pin_backlight(backlight),
+            dataPins{},
+            busWidth(8),
             horizontalResolution(horizontalResolution),
             verticalResolution(verticalResolution),
             pixelClockHz(pixelClockHz),
@@ -44,7 +46,6 @@ public:
             bufferSize(bufferSize),
             backlightOnLevel(backlightOnLevel),
             touch(std::move(touch)),
-            busWidth(8),
             backlightDutyFunction(nullptr)
         {
             for (int i = 0; i < 16; i++) {
@@ -87,16 +88,16 @@ public:
         std::function<void(uint8_t)> _Nullable backlightDutyFunction;
 
         void setDataPins8Bit(gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
-                            gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7) {
+                             gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7) {
             busWidth = 8;
             dataPins[0] = d0; dataPins[1] = d1; dataPins[2] = d2; dataPins[3] = d3;
             dataPins[4] = d4; dataPins[5] = d5; dataPins[6] = d6; dataPins[7] = d7;
         }
 
         void setDataPins16Bit(gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
-                             gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7,
-                             gpio_num_t d8, gpio_num_t d9, gpio_num_t d10, gpio_num_t d11,
-                             gpio_num_t d12, gpio_num_t d13, gpio_num_t d14, gpio_num_t d15) {
+                              gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7,
+                              gpio_num_t d8, gpio_num_t d9, gpio_num_t d10, gpio_num_t d11,
+                              gpio_num_t d12, gpio_num_t d13, gpio_num_t d14, gpio_num_t d15) {
             busWidth = 16;
             dataPins[0] = d0; dataPins[1] = d1; dataPins[2] = d2; dataPins[3] = d3;
             dataPins[4] = d4; dataPins[5] = d5; dataPins[6] = d6; dataPins[7] = d7;
