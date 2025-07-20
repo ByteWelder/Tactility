@@ -156,6 +156,5 @@ private:
     gpio_num_t cs_pin_;                   ///< Chip select pin
     gpio_num_t int_pin_;                  ///< Interrupt pin
     std::unique_ptr<SoftSPI> spi_;        ///< SoftSPI interface
-    uint16_t z_threshold_;                ///< Z threshold value
-    Config config_;                       ///< Driver configuration
+    std::unique_ptr<esp_lcd_touch_xpt2046_config_t> xpt_config_; ///< Configuration for touch calibration
 };
