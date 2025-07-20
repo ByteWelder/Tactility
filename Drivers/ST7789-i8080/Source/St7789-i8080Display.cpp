@@ -2,7 +2,7 @@
 #include <Tactility/Log.h>
 #include <esp_lcd_panel_commands.h>
 #include <esp_lcd_panel_dev.h>
-#include <esp_lcd_st7796.h.h>
+#include <esp_lcd_st7796.h>
 #include <esp_lvgl_port.h>
 
 #define TAG "st7789-i8080"
