@@ -27,8 +27,6 @@ bool St7789I8080Display::start() {
         .data_gpio_nums = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         .bus_width = configuration->busWidth,
         .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2,
-        .psram_trans_align = 64,
-        .sram_trans_align = 4
     };
     for (int i = 0; i < configuration->busWidth; i++) {
         bus_config.data_gpio_nums[i] = configuration->dataPins[i];
@@ -51,17 +49,8 @@ bool St7789I8080Display::start() {
             .dc_dummy_level = 0,
             .dc_data_level = 1
         },
-        .flags = {
-            .cs_active_high = 0,
-            .reverse_color_bits = 0,
-            .swap_color_bytes = 0,
-            .pclk_idle_low = 0,
-            .pclk_active_neg = 0
-        },
-        .on_color_trans_done = nullptr,
-        .user_ctx = nullptr,
         .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8
+        .lcd_param_bits = 8,
     };
 
     if (esp_lcd_new_panel_io_i80(i80Bus, &io_config, &ioHandle) != ESP_OK) {
