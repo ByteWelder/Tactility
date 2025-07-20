@@ -219,10 +219,6 @@ void TpagerKeyboard::initEncoder(void) {
     const int low_limit = -127;
     const int high_limit = 126;
 
-    // Original implementation based on
-    // https://github.com/UsefulElectronics/esp32s3-gc9a01-lvgl/blob/main/main/hardware/rotary_encoder.c
-    // Copyright (c) 2023 Ward Almasarani
-
     // Accum. count makes it that over- and underflows are automatically compensated.
     // Prerequisite: watchpoints at low and high limit
     pcnt_unit_config_t unit_config = {
@@ -231,37 +227,60 @@ void TpagerKeyboard::initEncoder(void) {
         .flags = {.accum_count = 1},
     };
 
-    ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, &encPcntUnit));
+    if (pcnt_new_unit(&unit_config, &encPcntUnit) != ESP_OK) {
+        TT_LOG_E(TAG, "Pulsecounter intialization failed");
+    }
 
     pcnt_glitch_filter_config_t filter_config = {
-        .max_glitch_ns = 1000,
+        .max_glitch_ns = 5000,
     };
-    ESP_ERROR_CHECK(pcnt_unit_set_glitch_filter(encPcntUnit, &filter_config));
+    if (pcnt_unit_set_glitch_filter(encPcntUnit, &filter_config) != ESP_OK) {
+        TT_LOG_E(TAG, "Pulsecounter glitch filter config failed");
+    }
 
-    pcnt_chan_config_t chan_a_config = {
+    pcnt_chan_config_t chan_1_config = {
         .edge_gpio_num = ENCODER_A,
         .level_gpio_num = ENCODER_B,
     };
-    pcnt_channel_handle_t pcnt_chan_a = NULL;
-    ESP_ERROR_CHECK(pcnt_new_channel(encPcntUnit, &chan_a_config, &pcnt_chan_a));
-    pcnt_chan_config_t chan_b_config = {
+    pcnt_chan_config_t chan_2_config = {
         .edge_gpio_num = ENCODER_B,
         .level_gpio_num = ENCODER_A,
     };
-    pcnt_channel_handle_t pcnt_chan_b = NULL;
-    ESP_ERROR_CHECK(pcnt_new_channel(encPcntUnit, &chan_b_config, &pcnt_chan_b));
 
-    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan_a, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE));
-    ESP_ERROR_CHECK(pcnt_channel_set_level_action(pcnt_chan_a, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE));
-    ESP_ERROR_CHECK(pcnt_channel_set_edge_action(pcnt_chan_b, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE));
-    ESP_ERROR_CHECK(pcnt_channel_set_level_action(pcnt_chan_b, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE));
+    pcnt_channel_handle_t pcnt_chan_1 = NULL;
+    pcnt_channel_handle_t pcnt_chan_2 = NULL;
 
-    ESP_ERROR_CHECK(pcnt_unit_add_watch_point(encPcntUnit, low_limit));
-    ESP_ERROR_CHECK(pcnt_unit_add_watch_point(encPcntUnit, high_limit));
+    if ((pcnt_new_channel(encPcntUnit, &chan_1_config, &pcnt_chan_1) != ESP_OK) ||
+        (pcnt_new_channel(encPcntUnit, &chan_2_config, &pcnt_chan_2) != ESP_OK)) {
+        TT_LOG_E(TAG, "Pulsecounter channel config failed");
+    }
 
-    ESP_ERROR_CHECK(pcnt_unit_enable(encPcntUnit));
-    ESP_ERROR_CHECK(pcnt_unit_clear_count(encPcntUnit));
-    ESP_ERROR_CHECK(pcnt_unit_start(encPcntUnit));
+    // second argument is rising edge, third argument is falling edge
+    if ((pcnt_channel_set_edge_action(pcnt_chan_1, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE) != ESP_OK) ||
+        (pcnt_channel_set_edge_action(pcnt_chan_2, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE) != ESP_OK)) {
+        TT_LOG_E(TAG, "Pulsecounter edge action config failed");
+    }
+
+    // second argument is low level, third argument is high level
+    if ((pcnt_channel_set_level_action(pcnt_chan_1, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK) ||
+        (pcnt_channel_set_level_action(pcnt_chan_2, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK)) {
+        TT_LOG_E(TAG, "Pulsecounter level action config failed");
+    }
+
+    if ((pcnt_unit_add_watch_point(encPcntUnit, low_limit) != ESP_OK) ||
+        (pcnt_unit_add_watch_point(encPcntUnit, high_limit) != ESP_OK)) {
+        TT_LOG_E(TAG, "Pulsecounter watch point config failed");
+    }
+
+    if (pcnt_unit_enable(encPcntUnit) != ESP_OK) {
+        TT_LOG_E(TAG, "Pulsecounter could not be enabled");
+    }
+    if (pcnt_unit_clear_count(encPcntUnit) != ESP_OK) {
+        TT_LOG_E(TAG, "Pulsecounter could not be cleared");
+    }
+    if (pcnt_unit_start(encPcntUnit) != ESP_OK) {
+        TT_LOG_E(TAG, "Pulsecounter could not be started");
+    }
 }
 
 int TpagerKeyboard::getEncoderPulses() {
