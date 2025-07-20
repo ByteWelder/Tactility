@@ -26,9 +26,9 @@ public:
             bool swapXY = false,
             bool mirrorX = false,
             bool mirrorY = false,
-            bool invertColor = true, // Usually needed for IPS displays
-            uint32_t bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size
-            bool backlightOnLevel = true // true = active high, false = active low
+            bool invertColor = true,
+            uint32_t bufferSize = 0,
+            bool backlightOnLevel = true
         ) : pin_wr(wr),
             pin_dc(dc),
             pin_cs(cs),
@@ -44,9 +44,9 @@ public:
             bufferSize(bufferSize),
             backlightOnLevel(backlightOnLevel),
             touch(std::move(touch)),
-            busWidth(8)
+            busWidth(8),
+            backlightDutyFunction(nullptr)
         {
-            // Initialize data pins array
             for (int i = 0; i < 16; i++) {
                 dataPins[i] = GPIO_NUM_NC;
             }
@@ -84,7 +84,7 @@ public:
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         
         // Backlight duty function (optional)
-        std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;
+        std::function<void(uint8_t)> _Nullable backlightDutyFunction;
 
         void setDataPins8Bit(gpio_num_t d0, gpio_num_t d1, gpio_num_t d2, gpio_num_t d3,
                             gpio_num_t d4, gpio_num_t d5, gpio_num_t d6, gpio_num_t d7) {
@@ -111,16 +111,6 @@ private:
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_i80_bus_handle_t i80Bus = nullptr;
     lv_display_t* displayHandle = nullptr;
-
-    void initializeI8080Bus();
-    void initializePanelIO();
-    void initializePanel();
-    void initializeBacklight();
-    void applyDisplaySettings();
-    
-    static bool displayNotifyCallback(esp_lcd_panel_io_handle_t panel_io, 
-                                    esp_lcd_panel_io_event_data_t *edata, 
-                                    void *user_ctx);
 
 public:
     explicit St7789I8080Display(std::unique_ptr<Configuration> inConfiguration) 
