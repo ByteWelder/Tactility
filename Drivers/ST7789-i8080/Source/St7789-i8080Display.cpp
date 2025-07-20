@@ -26,7 +26,7 @@ bool St7789I8080Display::start() {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .data_gpio_nums = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
         .bus_width = configuration->busWidth,
-        .max_transfer_bytes = configuration->horizontalResolution * configuration->verticalResolution * 2,
+        .max_transfer_bytes = static_cast<size_t>(configuration->horizontalResolution * configuration->verticalResolution * 2),
     };
     for (int i = 0; i < configuration->busWidth; i++) {
         bus_config.data_gpio_nums[i] = configuration->dataPins[i];
