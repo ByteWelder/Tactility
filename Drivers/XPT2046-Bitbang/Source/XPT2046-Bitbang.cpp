@@ -1,4 +1,4 @@
-#include "XPT2046_Bitbang.h"
+#include "XPT2046-Bitbang.h"
 
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>

@@ -1,6 +1,6 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
-#include "XPT2046_Bitbang.h"
+#include "XPT2046-Bitbang.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/touch/TouchDevice.h>
