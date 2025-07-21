@@ -55,14 +55,16 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
+        uint16_t xMin = 300, yMin = 300, xMax = 3800, yMax = 3800;
+
         bool start(lv_display_t* disp) override {
             if (!touch->start(disp)) {
                 ESP_LOGE(TAG, "Touch driver start failed");
                 return false;
             }
-            TT_LVGL_LOCK();
+            // TT_LVGL_LOCK();
             touch->setCalibration(xMinRaw, yMinRaw, xMaxRaw, yMaxRaw);
-            TT_LVGL_UNLOCK();
+            // TT_LVGL_UNLOCK();
             return true;
         }
         bool stop() override {
@@ -72,7 +74,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
             return true;
         }
         lv_indev_t* getLvglIndev() override {
-            return touch ? touch->get_lvgl_indev() : nullptr;
+            return touch ? touch->getLvglIndev() : nullptr;
         }
         std::string getName() const override { return "XPT2046 Touch"; }
         std::string getDescription() const override { return "Bitbang XPT2046 Touch Controller"; }
