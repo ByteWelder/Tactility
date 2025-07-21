@@ -3,6 +3,7 @@
 #include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/TactilityCore.h>
 #include "lvgl.h"
+#include "lvgl/input/lv_indev.h"
 #include <driver/gpio.h>
 #include <esp_err.h>
 #include <esp_spiffs.h>

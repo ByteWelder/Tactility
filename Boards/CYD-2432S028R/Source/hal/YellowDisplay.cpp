@@ -55,7 +55,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
-        uint16_t xMin = 300, yMin = 300, xMax = 3800, yMax = 3800;
+        TouchAdapter(uint16_t xMin, uint16_t xMax, uint16_t yMin, uint16_t yMax)
+            : xMinRaw(xMin), xMaxRaw(xMax), yMinRaw(yMin), yMaxRaw(yMax) {}
 
         bool start(lv_display_t* disp) override {
             if (!touch->start(disp)) {
@@ -67,20 +68,28 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
             // TT_LVGL_UNLOCK();
             return true;
         }
+
         bool stop() override {
             if (touch) {
                 touch->stop();
             }
             return true;
         }
+
         lv_indev_t* getLvglIndev() override {
             return touch ? touch->getLvglIndev() : nullptr;
         }
+
         std::string getName() const override { return "XPT2046 Touch"; }
         std::string getDescription() const override { return "Bitbang XPT2046 Touch Controller"; }
+
+    private:
+        uint16_t xMinRaw, xMaxRaw, yMinRaw, yMaxRaw;
     };
 
-    return std::make_shared<TouchAdapter>();
+
+    return std::make_shared<TouchAdapter>(xMinRaw, xMaxRaw, yMinRaw, yMaxRaw);
+
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
