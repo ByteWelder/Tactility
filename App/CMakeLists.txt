@@ -10,7 +10,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         SRC_DIRS "Source"
         "Source/HelloWorld"
         "Source/Clock"
-        "Source/Calibration"
         "Source/TactilityNews"
         "Source/TactileWeb"
         "Source/TactileWeb/html2text"
