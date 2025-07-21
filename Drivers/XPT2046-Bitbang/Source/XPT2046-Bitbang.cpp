@@ -76,26 +76,21 @@ bool XPT2046_Bitbang::start(lv_display_t* display) {
                  cal.xMin, cal.yMin, cal.xMax, cal.yMax);
     }
     
-    // Create LVGL input device
-    static lv_indev_drv_t indev_drv;
-    lv_indev_drv_init(&indev_drv);
-    indev_drv.type = LV_INDEV_TYPE_POINTER;
-    indev_drv.read_cb = touchReadCallback;
-    indev_drv.user_data = this;
-    
-    deviceHandle = lv_indev_drv_register(&indev_drv);
-    if (deviceHandle == nullptr) {
-        TT_LOG_E(TAG, "Failed to register LVGL input device");
+    // Create LVGL input device using new API
+    deviceHandle = lv_indev_create();
+    if (!deviceHandle) {
+        TT_LOG_E(TAG, "Failed to create LVGL input device");
         return false;
     }
-    
-    // Associate with display
-    lv_indev_set_display(deviceHandle, display);
-    
+    lv_indev_set_type(deviceHandle, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(deviceHandle, touchReadCallback);
+    lv_indev_set_user_data(deviceHandle, this);
+
     instance = this;
     TT_LOG_I(TAG, "XPT2046 Bitbang touch driver started successfully");
     return true;
 }
+
 
 bool XPT2046_Bitbang::stop() {
     TT_LOG_I(TAG, "Stopping XPT2046 Bitbang touch driver");
