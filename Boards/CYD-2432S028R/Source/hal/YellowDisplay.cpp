@@ -1,6 +1,6 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
-#include "XPT2046-SoftSPI.h"
+#include "XPT2046_Bitbang.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/touch/TouchDevice.h>
@@ -10,10 +10,11 @@
 
 static const char* TAG = "YellowDisplay";
 
-std::unique_ptr<XPT2046_SoftSPI> touch;
+// Global to hold reference (only needed if calling stop() later)
+static std::unique_ptr<XPT2046_Bitbang> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    ESP_LOGI(TAG, "Creating software SPI touch");
+    ESP_LOGI(TAG, "Creating bitbang SPI touch");
     uint16_t xMinRaw = 300, xMaxRaw = 3800, yMinRaw = 300, yMaxRaw = 3800;
 
     nvs_handle_t nvs;
@@ -36,44 +37,48 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         ESP_LOGW(TAG, "NVS open failed, using default calibration");
     }
 
-    XPT2046_SoftSPI::Config config = {
-        .cs_pin = CYD_TOUCH_CS_PIN,
-        .int_pin = CYD_TOUCH_IRQ_PIN,
-        .miso_pin = CYD_TOUCH_MISO_PIN,
-        .mosi_pin = CYD_TOUCH_MOSI_PIN,
-        .sck_pin = CYD_TOUCH_SCK_PIN,
-        .x_max = CYD_DISPLAY_HORIZONTAL_RESOLUTION,
-        .y_max = CYD_DISPLAY_VERTICAL_RESOLUTION,
-        .x_min_raw = xMinRaw,
-        .x_max_raw = xMaxRaw,
-        .y_min_raw = yMinRaw,
-        .y_max_raw = yMaxRaw,
-        .swap_xy = false,
-        .mirror_x = false,
-        .mirror_y = false
-    };
-    touch = XPT2046_SoftSPI::create(config);
-    if (!touch) {
-        ESP_LOGE(TAG, "Failed to create touch driver");
-        return nullptr;
-    }
+    // Create bitbang config object
+    auto config = std::make_unique<XPT2046_Bitbang::Configuration>(
+        CYD_TOUCH_MOSI_PIN,
+        CYD_TOUCH_MISO_PIN,
+        CYD_TOUCH_SCK_PIN,
+        CYD_TOUCH_CS_PIN,
+        CYD_DISPLAY_HORIZONTAL_RESOLUTION,
+        CYD_DISPLAY_VERTICAL_RESOLUTION,
+        false,  // swapXY
+        false,  // mirrorX
+        false   // mirrorY
+    );
+
+    // Allocate the driver
+    touch = std::make_unique<XPT2046_Bitbang>(std::move(config));
 
     class TouchAdapter : public tt::hal::touch::TouchDevice {
     public:
-        TouchAdapter(std::unique_ptr<XPT2046_SoftSPI> driver) : driver_(std::move(driver)) {}
         bool start(lv_display_t* disp) override {
-            lv_indev_t* indev = driver_->get_lvgl_indev();
-            lv_indev_set_display(indev, disp);
+            if (!touch->start(disp)) {
+                ESP_LOGE(TAG, "Touch driver start failed");
+                return false;
+            }
+            TT_LVGL_LOCK();
+            touch->setCalibration(xMinRaw, yMinRaw, xMaxRaw, yMaxRaw);
+            TT_LVGL_UNLOCK();
             return true;
         }
-        bool stop() override { return true; }
-        lv_indev_t* getLvglIndev() override { return driver_->get_lvgl_indev(); }
+        bool stop() override {
+            if (touch) {
+                touch->stop();
+            }
+            return true;
+        }
+        lv_indev_t* getLvglIndev() override {
+            return touch ? touch->get_lvgl_indev() : nullptr;
+        }
         std::string getName() const override { return "XPT2046 Touch"; }
-        std::string getDescription() const override { return "SoftSPI XPT2046 Touch Controller"; }
-    private:
-        std::unique_ptr<XPT2046_SoftSPI> driver_;
+        std::string getDescription() const override { return "Bitbang XPT2046 Touch Controller"; }
     };
-    return std::make_shared<TouchAdapter>(std::move(touch));
+
+    return std::make_shared<TouchAdapter>();
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
