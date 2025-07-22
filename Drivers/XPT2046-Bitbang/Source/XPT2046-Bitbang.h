@@ -5,7 +5,6 @@
 #include "lvgl.h"
 #include <driver/gpio.h>
 #include <esp_err.h>
-#include <esp_spiffs.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -75,8 +74,7 @@ private:
     void cleanup();
     bool loadCalibration();
     void saveCalibration();
-    void initializeSPIFFS();
-    
+
     // LVGL input device callback
     static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data);
 
