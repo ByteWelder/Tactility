@@ -53,6 +53,18 @@ Website: https://github.com/meshtastic/firmware
 
 License: [GPL v3.0](https://github.com/meshtastic/firmware/blob/master/LICENSE)
 
+### BQ27220 Driver
+
+Website: https://github.com/Xinyuan-LilyGO/T-Echo/blob/main/LICENSE
+
+License: [MIT](https://github.com/Xinyuan-LilyGO/T-Echo/blob/main/LICENSE)
+
+### esp32s3-gc9a01-lvgl
+
+Website: https://github.com/UsefulElectronics/esp32s3-gc9a01-lvgl
+
+License: [Explicitly granted by author](https://github.com/ByteWelder/Tactility/pull/295#discussion_r2226215423)
+
 ### Other Components
 
 See `/components` for the respective projects and their licenses.

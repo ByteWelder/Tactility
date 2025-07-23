@@ -112,7 +112,7 @@ class WifiApSettings : public App {
         }
     }
 
-    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED Result result, std::unique_ptr<Bundle> bundle) override {
+    void onResult(TT_UNUSED AppContext& appContext, TT_UNUSED LaunchId launchId, TT_UNUSED Result result, std::unique_ptr<Bundle> bundle) override {
         if (result == Result::Ok && bundle != nullptr) {
             auto index = alertdialog::getResultIndex(*bundle);
             if (index == 0) { // Yes

@@ -39,6 +39,17 @@ void redraw(Gui* gui) {
 
         if (gui->appToRender != nullptr) {
 
+            // Create a default group which adds all objects automatically,
+            // and assign all indevs to it.
+            // This enables navigation with limited input, such as encoder wheels.
+            lv_group_t* group = lv_group_create();
+            auto* indev = lv_indev_get_next(nullptr);
+            while (indev) {
+                lv_indev_set_group(indev, group);
+                indev = lv_indev_get_next(indev);
+            }
+            lv_group_set_default(group);
+
             app::Flags flags = std::static_pointer_cast<app::AppInstance>(gui->appToRender)->getFlags();
             if (flags.showStatusbar) {
                 lv_obj_remove_flag(gui->statusbarWidget, LV_OBJ_FLAG_HIDDEN);
@@ -61,4 +72,4 @@ void redraw(Gui* gui) {
     unlock();
 }
 
-} // namespace
+} // namespace tt::service::gui

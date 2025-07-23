@@ -12,7 +12,7 @@ typedef void (*OnCreate)(void* appContext, void* _Nullable data);
 typedef void (*OnDestroy)(void* appContext, void* _Nullable data);
 typedef void (*OnShow)(void* appContext, void* _Nullable data, lv_obj_t* parent);
 typedef void (*OnHide)(void* appContext, void* _Nullable data);
-typedef void (*OnResult)(void* appContext, void* _Nullable data, Result result, Bundle* resultData);
+typedef void (*OnResult)(void* appContext, void* _Nullable data, LaunchId launchId, Result result, Bundle* resultData);
 
 void setElfAppManifest(
     const char* name,
@@ -31,10 +31,7 @@ void setElfAppManifest(
  */
 std::string getElfAppId(const std::string& filePath);
 
-/**
- * @return true when registration was done, false when app was already registered
- */
-bool registerElfApp(const std::string& filePath);
+void registerElfApp(const std::string& filePath);
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest);
 

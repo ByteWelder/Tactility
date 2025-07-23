@@ -7,7 +7,6 @@ struct TimerWrapper {
 
 extern "C" {
 
-
 TimerHandle tt_timer_alloc(TimerType type, TimerCallback callback, void* callbackContext) {
     auto wrapper = std::make_shared<TimerWrapper>();
     wrapper->timer = std::make_unique<tt::Timer>((tt::Timer::Type)type, [callback, callbackContext](){ callback(callbackContext); });
@@ -54,4 +53,3 @@ void tt_timer_set_thread_priority(TimerHandle handle, ThreadPriority priority) {
 }
 
 }
-

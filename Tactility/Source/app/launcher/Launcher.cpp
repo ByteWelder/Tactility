@@ -27,22 +27,26 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
     auto* apps_button = lv_button_create(wrapper);
     lv_obj_set_style_pad_hor(apps_button, 0, 0);
     lv_obj_set_style_pad_top(apps_button, 0, 0);
-    lv_obj_set_style_pad_bottom(apps_button, 16, 0);
+    lv_obj_set_style_pad_bottom(apps_button, 8, 0);
     lv_obj_set_style_shadow_width(apps_button, 0, 0);
     lv_obj_set_style_border_width(apps_button, 0, 0);
     lv_obj_set_style_bg_opa(apps_button, 0, LV_PART_MAIN);
 
     auto* button_image = lv_image_create(apps_button);
     lv_image_set_src(button_image, imageFile);
-    lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
-    lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), 0);
-    lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, 0);
+    lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
+    lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
     // Ensure buttons are still tappable when asset fails to load
+    // Icon images are 40x40, so we get some extra padding too
     lv_obj_set_size(button_image, 64, 64);
 
     auto* label = lv_label_create(wrapper);
     lv_label_set_text(label, title);
     lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, 0);
+
+    lv_obj_add_event_cb(wrapper, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
+    lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
+    lv_obj_add_event_cb(label, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
 
     return wrapper;
 }
@@ -50,10 +54,10 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 class LauncherApp : public App {
 
     void onCreate(TT_UNUSED AppContext& app) override {
-        auto* config = tt::getConfiguration();
+        auto* config = getConfiguration();
         if (!config->autoStartAppId.empty()) {
             TT_LOG_I(TAG, "auto-starting %s", config->autoStartAppId.c_str());
-            tt::service::loader::startApp(config->autoStartAppId);
+            service::loader::startApp(config->autoStartAppId);
         }
     }
 

@@ -4,19 +4,19 @@
 
 namespace tt::app {
 
-void start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters) {
-    service::loader::startApp(id, std::move(parameters));
+LaunchId start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters) {
+    return service::loader::startApp(id, std::move(parameters));
 }
 
 void stop() {
     service::loader::stopApp();
 }
 
-std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext() {
+std::shared_ptr<AppContext> _Nullable getCurrentAppContext() {
     return service::loader::getCurrentAppContext();
 }
 
-std::shared_ptr<app::App> _Nullable getCurrentApp() {
+std::shared_ptr<App> _Nullable getCurrentApp() {
     return service::loader::getCurrentApp();
 }
 
