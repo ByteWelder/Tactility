@@ -35,6 +35,9 @@ release elecrow-crowpanel-basic-50
 build lilygo-tdeck
 release lilygo-tdeck
 
+build lilygo-tlora-pager
+release lilygo-tlora-pager
+
 releaseSdk release/TactilitySDK-esp32s3
 
 build cyd-2432s024c
