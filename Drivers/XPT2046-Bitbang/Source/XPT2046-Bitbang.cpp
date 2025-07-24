@@ -40,6 +40,8 @@ static void ensureNvsInitialized() {
 }
 
 bool XPT2046_Bitbang::start(lv_display_t* display) {
+    ensureNvsInitialized();
+    
     TT_LOG_I(TAG, "Starting XPT2046 Bitbang touch driver");
 
     // Configure GPIO pins

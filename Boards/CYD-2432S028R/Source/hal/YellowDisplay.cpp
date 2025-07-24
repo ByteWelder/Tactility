@@ -13,8 +13,6 @@ static const char* TAG = "YellowDisplay";
 static std::unique_ptr<XPT2046_Bitbang> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    ensureNvsInitialized();
-    
     ESP_LOGI(TAG, "Creating bitbang SPI touch");
 
     // Create bitbang config object
