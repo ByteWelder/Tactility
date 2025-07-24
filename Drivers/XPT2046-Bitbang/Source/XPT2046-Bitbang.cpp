@@ -11,6 +11,7 @@
 #include <rom/ets_sys.h>
 #include <nvs_flash.h>
 #include <nvs.h>
+#include <inttypes.h>
 
 #define TAG "xpt2046_bitbang"
 
@@ -211,31 +212,39 @@ void XPT2046_Bitbang::setCalibration(int xMin, int yMin, int xMax, int yMax) {
 
 Point XPT2046_Bitbang::getTouch() {
     gpio_set_level(configuration->csPin, 0);
-    int x = readSPI(CMD_READ_X);
-    int y = readSPI(CMD_READ_Y);
+    int rawX = readSPI(CMD_READ_X);
+    int rawY = readSPI(CMD_READ_Y);
     gpio_set_level(configuration->csPin, 1);
 
-    x = (x - cal.xMin) * configuration->xMax / (cal.xMax - cal.xMin);
-    y = (y - cal.yMin) * configuration->yMax / (cal.yMax - cal.yMin);
+    // Ensure calibration values are valid to avoid divide-by-zero
+    const int xRange = cal.xMax - cal.xMin;
+    const int yRange = cal.yMax - cal.yMin;
 
+    if (xRange <= 0 || yRange <= 0) {
+        TT_LOG_I(TAG, "Invalid calibration: xRange=%" PRId32 ", yRange=%" PRId32, (int32_t)xRange, (int32_t)yRange);
+        return Point{0, 0};
+    }
+
+    // Apply calibration
+    int x = (rawX - cal.xMin) * configuration->xMax / xRange;
+    int y = (rawY - cal.yMin) * configuration->yMax / yRange;
+
+    // Apply swap/mirror
     if (configuration->swapXy) {
         int temp = x;
         x = y;
         y = temp;
     }
-
     if (configuration->mirrorX) {
         x = configuration->xMax - x;
     }
-
     if (configuration->mirrorY) {
         y = configuration->yMax - y;
     }
 
-    if (x > configuration->xMax) x = configuration->xMax;
-    if (x < 0) x = 0;
-    if (y > configuration->yMax) y = configuration->yMax;
-    if (y < 0) y = 0;
+    // Clamp to bounds
+    x = std::clamp(x, 0, (int)configuration->xMax);
+    y = std::clamp(y, 0, (int)configuration->yMax);
 
     return Point{x, y};
 }
