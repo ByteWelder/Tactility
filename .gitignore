@@ -17,3 +17,4 @@ managed_components/
 dependencies.lock
 
 .vscode/
+.gitpod.yml

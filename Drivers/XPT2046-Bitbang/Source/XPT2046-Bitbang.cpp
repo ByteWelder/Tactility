@@ -25,6 +25,20 @@ XPT2046_Bitbang::XPT2046_Bitbang(std::unique_ptr<Configuration> inConfiguration)
     assert(configuration != nullptr);
 }
 
+// Defensive check for NVS, put here just in case NVS is init after touch setup.
+static void ensureNvsInitialized() {
+    static bool initialized = false;
+    if (initialized) return;
+
+    esp_err_t result = nvs_flash_init();
+    if (result == ESP_ERR_NVS_NO_FREE_PAGES || result == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        nvs_flash_erase(); // ignore error for safety
+        result = nvs_flash_init();
+    }
+
+    initialized = (result == ESP_OK);
+}
+
 bool XPT2046_Bitbang::start(lv_display_t* display) {
     TT_LOG_I(TAG, "Starting XPT2046 Bitbang touch driver");
 
