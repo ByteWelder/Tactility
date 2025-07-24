@@ -144,6 +144,15 @@ jobs:
         with:
           board_id: lilygo-tdeck
           arch: esp32s3
+  lilygo-tlora-pager:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: lilygo-tlora-pager
+          arch: esp32s3
   m5stack-core2:
     runs-on: ubuntu-latest
     steps:

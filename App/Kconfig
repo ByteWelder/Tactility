@@ -41,6 +41,8 @@ menu "Tactility App"
             bool "Elecrow CrowPanel Basic 5.0"
         config TT_BOARD_LILYGO_TDECK
             bool "LilyGo T-Deck"
+        config TT_BOARD_LILYGO_TLORA_PAGER
+            bool "LilyGo T-Lora Pager"
         config TT_BOARD_M5STACK_CORE2
             bool "M5Stack Core2"
         config TT_BOARD_M5STACK_CORES3
