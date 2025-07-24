@@ -78,8 +78,18 @@ bool XPT2046_Bitbang::start(lv_display_t* display) {
     gpio_set_level(configuration->mosiPin, 0);  // MOSI low
 
     // Load or perform calibration
-    if (!loadCalibration() || RERUN_CALIBRATE) {
-        TT_LOG_W(TAG, "Calibration data not found or forced recalibration");
+    bool calibrationValid = loadCalibration() && !RERUN_CALIBRATE;
+    if (calibrationValid) {
+        // Check if calibration values are valid (xMin != xMax, yMin != yMax)
+        if (cal.xMin == cal.xMax || cal.yMin == cal.yMax) {
+            TT_LOG_W(TAG, "Invalid calibration detected: xMin=%d, xMax=%d, yMin=%d, yMax=%d",
+                     cal.xMin, cal.xMax, cal.yMin, cal.yMax);
+            calibrationValid = false;
+        }
+    }
+
+    if (!calibrationValid) {
+        TT_LOG_W(TAG, "Calibration data not found, invalid, or forced recalibration");
         calibrate();
         saveCalibration();
     } else {
