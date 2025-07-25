@@ -23,9 +23,9 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_TOUCH_CS_PIN,
         CYD_DISPLAY_HORIZONTAL_RESOLUTION,
         CYD_DISPLAY_VERTICAL_RESOLUTION,
-        true,  // swapXY
+        false,  // swapXY
         false,  // mirrorX
-        true   // mirrorY
+        false   // mirrorY
     );
 
     // Allocate the driver
