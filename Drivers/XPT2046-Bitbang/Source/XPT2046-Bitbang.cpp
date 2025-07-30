@@ -129,25 +129,36 @@ void XPT2046_Bitbang::cleanup() {
 int XPT2046_Bitbang::readSPI(uint8_t command) {
     int result = 0;
 
+    // Send 8-bit command
     for (int i = 7; i >= 0; i--) {
         gpio_set_level(configuration->mosiPin, (command >> i) & 1);
         gpio_set_level(configuration->clkPin, 1);
-        ets_delay_us(10);
+        ets_delay_us(15);
         gpio_set_level(configuration->clkPin, 0);
-        ets_delay_us(10);
+        ets_delay_us(15);
     }
 
-    for (int i = 11; i >= 0; i--) {
+    // Send 3 dummy clocks (acquisition time)
+    for (int i = 0; i < 3; i++) {
         gpio_set_level(configuration->clkPin, 1);
-        ets_delay_us(10);
+        ets_delay_us(15);
+        gpio_set_level(configuration->clkPin, 0);
+        ets_delay_us(15);
+    }
+
+    // Read 16 bits (12-bit data left-aligned in bits 15:4)
+    for (int i = 15; i >= 0; i--) {
+        gpio_set_level(configuration->clkPin, 1);
+        ets_delay_us(15);
         if (gpio_get_level(configuration->misoPin)) {
             result |= (1 << i);
         }
         gpio_set_level(configuration->clkPin, 0);
-        ets_delay_us(10);
+        ets_delay_us(15);
     }
 
-    return result;
+    // Return 12-bit data (discard bottom 4 bits)
+    return result >> 4;
 }
 
 void XPT2046_Bitbang::calibrate() {
@@ -222,28 +233,43 @@ void XPT2046_Bitbang::setCalibration(int xMin, int yMin, int xMax, int yMax) {
 
 Point XPT2046_Bitbang::getTouch() {
     gpio_set_level(configuration->csPin, 0);
-    int rawX = readSPI(CMD_READ_X);
-    int rawY = readSPI(CMD_READ_Y);
+
+    // Discard first conversion result for settling
+    readSPI(CMD_READ_X);
+    readSPI(CMD_READ_Y);
+
+    const int samples = 4;
+    int totalX = 0, totalY = 0;
+
+    for (int i = 0; i < samples; i++) {
+        readSPI(CMD_READ_X);    // send command for X
+        totalX += readSPI(CMD_READ_X); // read X data
+
+        readSPI(CMD_READ_Y);    // send command for Y
+        totalY += readSPI(CMD_READ_Y); // read Y data
+    }
+
     gpio_set_level(configuration->csPin, 1);
 
-    // Ensure calibration values are valid to avoid divide-by-zero
+    int rawX = totalX / samples;
+    int rawY = totalY / samples;
+
+    // Validate calibration range
     const int xRange = cal.xMax - cal.xMin;
     const int yRange = cal.yMax - cal.yMin;
 
     if (xRange <= 0 || yRange <= 0) {
-        TT_LOG_I(TAG, "Invalid calibration: xRange=%" PRId32 ", yRange=%" PRId32, (int32_t)xRange, (int32_t)yRange);
+        TT_LOG_I(TAG, "Invalid calibration: xRange=%d, yRange=%d", xRange, yRange);
         return Point{0, 0};
     }
 
-    // Apply calibration
+    // Apply calibration scaling
     int x = (rawX - cal.xMin) * configuration->xMax / xRange;
     int y = (rawY - cal.yMin) * configuration->yMax / yRange;
 
-    // Apply swap/mirror
+    // Apply swap and mirror config
     if (configuration->swapXy) {
-        int temp = x;
-        x = y;
-        y = temp;
+        std::swap(x, y);
     }
     if (configuration->mirrorX) {
         x = configuration->xMax - x;
@@ -252,7 +278,7 @@ Point XPT2046_Bitbang::getTouch() {
         y = configuration->yMax - y;
     }
 
-    // Clamp to bounds
+    // Clamp to valid range
     x = std::clamp(x, 0, (int)configuration->xMax);
     y = std::clamp(y, 0, (int)configuration->yMax);
 
