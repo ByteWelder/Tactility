@@ -9,16 +9,19 @@ import time
 import urllib.request
 import zipfile
 
+import requests
+
 # Targetable platforms that represent a specific hardware target
 platform_targets = ["esp32", "esp32s3"]
 # All valid platform commandline arguments
 platform_arguments = platform_targets.copy()
 platform_arguments.append("all")
 ttbuild_path = ".tactility"
-ttbuild_version = "1.0.0"
+ttbuild_version = "1.2.0"
 ttbuild_properties_file = "tactility.properties"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
+ttport = 6666
 verbose = False
 use_local_sdk = False
 
@@ -54,19 +57,21 @@ def print_help():
     print("Usage: python tactility.py [action] [options]")
     print("")
     print("Actions:")
-    print("  build [esp32,esp32s3,all,local]   Build the app for the specified platform")
+    print("  build [esp32,esp32s3,all,local]          Build the app for the specified platform")
     print("    esp32:         ESP32")
     print("    esp32s3:       ESP32 S3")
     print("    all:           all supported ESP platforms")
-    print("  clean                             Clean the build folders")
-    print("  clearcache                        Clear the SDK cache")
-    print("  updateself                        Update this tool")
+    print("  clean                                    Clean the build folders")
+    print("  clearcache                               Clear the SDK cache")
+    print("  updateself                               Update this tool")
+    print("  run [ip] [app id]                        Run an application")
+    print("  install [ip] [esp32,esp32s3]             Install an application")
     print("")
     print("Options:")
-    print("  --help                            Show this commandline info")
-    print("  --local-sdk                       Use SDK specifiedc by environment variable TACTILITY_SDK_PATH")
-    print("  --skip-build                      Run everything except the idf.py/CMake commands")
-    print("  --verbose                         Show extra console output")
+    print("  --help                                   Show this commandline info")
+    print("  --local-sdk                              Use SDK specified by environment variable TACTILITY_SDK_PATH")
+    print("  --skip-build                             Run everything except the idf.py/CMake commands")
+    print("  --verbose                                Show extra console output")
 
 def download_file(url, filepath):
     global verbose
@@ -99,6 +104,9 @@ def print_error(message):
 def exit_with_error(message):
     print_error(message)
     sys.exit(1)
+
+def get_url(ip, path):
+    return f"http://{ip}:{ttport}{path}"
 
 def is_valid_platform_name(name):
     global platform_arguments
@@ -340,9 +348,6 @@ def build_action(platform_arg):
     if not use_local_sdk:
         if should_fetch_sdkconfig_files():
             fetch_sdkconfig_files()
-        # Update SDK cache
-        if should_update_sdk_json() and not update_sdk_json():
-            exit_with_error("Failed to retrieve SDK info")
         sdk_json = read_sdk_json()
         validate_self(sdk_json)
         if not "versions" in sdk_json:
@@ -380,6 +385,56 @@ def update_self_action():
     else:
         exit_with_error("Update failed")
 
+def get_device_info(ip):
+    print(f"Getting device info from {ip}")
+    url = get_url(ip, "/info")
+    try:
+        response = requests.get(url)
+        if response.status_code != 200:
+            print_error("Run failed")
+        else:
+            print(response.json())
+            print(f"{shell_color_green}Run successful ✅{shell_color_reset}")
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+
+def run_action(ip, app_id):
+    print(f"Running {app_id} on {ip}")
+    url = get_url(ip, "/app/run")
+    params = {'id': app_id}
+    try:
+        response = requests.post(url, params=params)
+        if response.status_code != 200:
+            print_error("Run failed")
+        else:
+            print(f"{shell_color_green}Run successful ✅{shell_color_reset}")
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
+
+def install_action(ip, platform):
+    file_path = find_elf_file(platform)
+    if file_path is None:
+        print_error(f"File not found: {file_path}")
+        return
+    print(f"Installing {file_path} to {ip}")
+    url = get_url(ip, "/app/install")
+    try:
+        # Prepare multipart form data
+        with open(file_path, 'rb') as file:
+            files = {
+                'elf': file
+            }
+            response = requests.put(url, files=files)
+            if response.status_code != 200:
+                print_error("Install failed")
+            else:
+                print(f"{shell_color_green}Installation successful ✅{shell_color_reset}")
+    except requests.RequestException as e:
+        print_error(f"Installation failed: {e}")
+    except IOError as e:
+        print_error(f"File error: {e}")
+
+
 if __name__ == "__main__":
     print(f"Tactility Build System v{ttbuild_version}")
     if "--help" in sys.argv:
@@ -393,6 +448,9 @@ if __name__ == "__main__":
     verbose = "--verbose" in sys.argv
     skip_build = "--skip-build" in sys.argv
     use_local_sdk = "--local-sdk" in sys.argv
+    # Update SDK cache (sdk.json)
+    if should_update_sdk_json() and not update_sdk_json():
+        exit_with_error("Failed to retrieve SDK info")
     # Actions
     if action_arg == "build":
         if len(sys.argv) < 3:
@@ -405,6 +463,16 @@ if __name__ == "__main__":
         clear_cache_action()
     elif action_arg == "updateself":
         update_self_action()
+    elif action_arg == "run":
+        if len(sys.argv) < 4:
+            print_help()
+            exit_with_error("Commandline parameter missing")
+        run_action(sys.argv[2], sys.argv[3])
+    elif action_arg == "install":
+        if len(sys.argv) < 4:
+            print_help()
+            exit_with_error("Commandline parameter missing")
+        install_action(sys.argv[2], sys.argv[3])
     else:
         print_help()
         exit_with_error("Unknown commandline parameter")
