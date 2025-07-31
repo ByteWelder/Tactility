@@ -51,7 +51,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD_DISPLAY_VERTICAL_RESOLUTION,
         touch_device
     );
-    configuration->mirrorX = false;
+    configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     configuration->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR;
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
