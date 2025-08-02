@@ -2,6 +2,7 @@
 
 #include <Tactility/file/ObjectFile.h>
 #include <cstring>
+#include <unistd.h>
 
 using tt::hal::gps::GpsDevice;
 
@@ -30,6 +31,13 @@ bool GpsService::getGpsConfigurations(std::vector<hal::gps::GpsConfiguration>& c
         return false;
     }
 
+    // If file does not exist, return empty list
+    if (access(path.c_str(), F_OK) != 0) {
+        TT_LOG_W(TAG, "No configurations (file not found: %s)", path.c_str());
+        return true;
+    }
+
+    TT_LOG_I(TAG, "Reading configuration file %s", path.c_str());
     auto reader = file::ObjectFileReader(path, sizeof(hal::gps::GpsConfiguration));
     if (!reader.open()) {
         TT_LOG_E(TAG, "Failed to open configuration file");

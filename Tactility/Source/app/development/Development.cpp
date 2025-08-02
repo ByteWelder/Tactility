@@ -67,7 +67,7 @@ class DevelopmentApp final : public App {
             if (ip.empty()) {
                 lv_label_set_text(statusLabel, "Waiting for IP...");
             } else {
-                std::string status = std::string("Available at ") + ip;
+                const std::string status = std::string("Available at ") + ip;
                 lv_label_set_text(statusLabel, status.c_str());
             }
         }
@@ -133,6 +133,13 @@ public:
 
         statusLabel = lv_label_create(wrapper);
         lv_obj_align(statusLabel, LV_ALIGN_TOP_LEFT, 0, 50);
+
+        auto warning_label = lv_label_create(wrapper);
+        lv_label_set_text(warning_label, "This feature is experimental and uses an unsecured http connection.");
+        lv_obj_set_width(warning_label, LV_PCT(100));
+        lv_label_set_long_mode(warning_label, LV_LABEL_LONG_WRAP);
+        lv_obj_set_style_text_color(warning_label, lv_color_make(0xff, 0xff, 00), LV_STATE_DEFAULT);
+        lv_obj_align(warning_label, LV_ALIGN_TOP_LEFT, 0, 80);
 
         updateViewState();
 
