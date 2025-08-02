@@ -2,6 +2,7 @@
 
 #include <Tactility/file/ObjectFile.h>
 #include <cstring>
+#include <unistd.h>
 
 using tt::hal::gps::GpsDevice;
 
