@@ -1,45 +1,127 @@
 #include "TdeckDisplay.h"
-#include "TdeckDisplayConstants.h"
+#include "esp_lcd_panel_gdeq.h"
+#include "TdeckConstants.h"
 
-#include <Gt911Touch.h>
-#include <PwmBacklight.h>
-#include <St7789Display.h>
+#include <Tactility/Log.h>
 
-#include <driver/spi_master.h>
+#include <esp_lvgl_port.h>
 
-#define TAG "tdeck_display"
+#define TAG "EpaperDisplay"
 
-static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    // Note for future changes: Reset pin is 48 and interrupt pin is 47
-    auto configuration = std::make_unique<Gt911Touch::Configuration>(
-        I2C_NUM_0,
-        240,
-        320,
-        true,
-        true,
-        false
-    );
+bool TdeckDisplay::start() {
+    TT_LOG_I(TAG, "Starting");
 
-    return std::make_shared<Gt911Touch>(std::move(configuration));
+    constexpr esp_lcd_panel_io_spi_config_t panel_io_config = {
+        .cs_gpio_num = BOARD_EPD_CS,
+        .dc_gpio_num = BOARD_EPD_DC,
+        .spi_mode = 0,
+        .pclk_hz = 4000000,
+        .trans_queue_depth = 10,
+        .on_color_trans_done = nullptr,
+        .user_ctx = nullptr,
+        .lcd_cmd_bits = 8,
+        .lcd_param_bits = 8,
+        .cs_ena_pretrans = 0,
+        .cs_ena_posttrans = 0,
+        .flags = {
+            .dc_high_on_cmd = 0,
+            .dc_low_on_data = 0,
+            .dc_low_on_param = 0,
+            .octal_mode = 0,
+            .quad_mode = 0,
+            .sio_mode = 0,
+            .lsb_first = 0,
+            .cs_high_active = 0
+        }
+    };
+
+    if (esp_lcd_new_panel_io_spi(SPI2_HOST, &panel_io_config, &ioHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create panel");
+        return false;
+    }
+
+    const esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = GPIO_NUM_NC,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB, // Doesn't matter
+        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
+        .bits_per_pixel = 1,
+        .flags = {
+            .reset_active_high = false
+        },
+        .vendor_config = nullptr
+    };
+
+    if (esp_lcd_new_panel_gdeq031t10(ioHandle, &panel_config, &panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_reset(panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to reset panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_init(panelHandle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to init panel");
+        return false;
+    }
+
+    if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to turn display on");
+        return false;
+    }
+
+    uint32_t buffer_size = 240 * 320;
+
+    const lvgl_port_display_cfg_t disp_cfg = {
+        .io_handle = ioHandle,
+        .panel_handle = panelHandle,
+        .control_handle = nullptr,
+        .buffer_size = buffer_size,
+        .double_buffer = false,
+        .trans_size = 0,
+        .hres = 240,
+        .vres = 320,
+        .monochrome = true,
+        .rotation = {
+            .swap_xy = false,
+            .mirror_x = false,
+            .mirror_y = false,
+        },
+        .color_format = LV_COLOR_FORMAT_I1,
+        .flags = {
+            .buff_dma = false,
+            .buff_spiram = false,
+            .sw_rotate = false,
+            .swap_bytes = false,
+            .full_refresh = false,
+            .direct_mode = false
+        }
+    };
+
+    displayHandle = lvgl_port_add_disp(&disp_cfg);
+
+    TT_LOG_I(TAG, "Finished");
+    return displayHandle != nullptr;
+}
+
+bool TdeckDisplay::stop() {
+    assert(displayHandle != nullptr);
+
+    lvgl_port_remove_disp(displayHandle);
+
+    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        return false;
+    }
+
+    displayHandle = nullptr;
+    return true;
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
-
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        TDECK_LCD_SPI_HOST,
-        TDECK_LCD_PIN_CS,
-        TDECK_LCD_PIN_DC,
-        320,
-        240,
-        touch,
-        true,
-        true,
-        false,
-        true
-    );
-
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    return std::make_shared<St7789Display>(std::move(configuration));
+    return std::make_shared<TdeckDisplay>();
 }

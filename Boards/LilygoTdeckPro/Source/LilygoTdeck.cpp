@@ -1,13 +1,12 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "hal/TdeckDisplay.h"
-#include "hal/TdeckDisplayConstants.h"
 #include "hal/TdeckKeyboard.h"
 #include "hal/TdeckPower.h"
 #include "hal/TdeckSdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
-#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#define TDECK_SPI_TRANSFER_SIZE_LIMIT (240 * 320 * (LV_COLOR_DEPTH / 8))
 
 bool tdeckInit();
 
@@ -60,9 +59,9 @@ extern const Configuration lilygo_tdeck = {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_41,
-                .miso_io_num = GPIO_NUM_38,
-                .sclk_io_num = GPIO_NUM_40,
+                .mosi_io_num = GPIO_NUM_33,
+                .miso_io_num = GPIO_NUM_47,
+                .sclk_io_num = GPIO_NUM_36,
                 .quadwp_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
                 .quadhd_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
                 .data4_io_num = GPIO_NUM_NC,
