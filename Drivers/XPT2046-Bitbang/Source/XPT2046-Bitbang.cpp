@@ -16,8 +16,8 @@
 #define TAG "xpt2046_bitbang"
 
 #define RERUN_CALIBRATE false
-#define CMD_READ_Y  0x98 // Single-ended mode Y position command
-#define CMD_READ_X  0xD8 // Single-ended mode X position command
+#define CMD_READ_Y  0x90 // Try different commands if these don't work
+#define CMD_READ_X  0xD0 // Alternative: 0x98 for Y, 0xD8 for X
 
 XPT2046_Bitbang* XPT2046_Bitbang::instance = nullptr;
 
@@ -77,6 +77,10 @@ bool XPT2046_Bitbang::start(lv_display_t* display) {
     gpio_set_level(configuration->clkPin, 0);   // CLK low
     gpio_set_level(configuration->mosiPin, 0);  // MOSI low
 
+    TT_LOG_I(TAG, "GPIO configured: MOSI=%d, MISO=%d, CLK=%d, CS=%d", 
+             configuration->mosiPin, configuration->misoPin, 
+             configuration->clkPin, configuration->csPin);
+
     // Load or perform calibration
     bool calibrationValid = loadCalibration() && !RERUN_CALIBRATE;
     if (calibrationValid) {
@@ -128,6 +132,10 @@ void XPT2046_Bitbang::cleanup() {
 
 int XPT2046_Bitbang::readSPI(uint8_t command) {
     int result = 0;
+    
+    // Pull CS low for this transaction
+    gpio_set_level(configuration->csPin, 0);
+    ets_delay_us(1);
 
     // Send 8-bit command
     for (int i = 7; i >= 0; i--) {
@@ -138,15 +146,7 @@ int XPT2046_Bitbang::readSPI(uint8_t command) {
         ets_delay_us(1);
     }
 
-    // Send 3 dummy clocks (acquisition time)
-    for (int i = 0; i < 3; i++) {
-        gpio_set_level(configuration->clkPin, 1);
-        ets_delay_us(1);
-        gpio_set_level(configuration->clkPin, 0);
-        ets_delay_us(1);
-    }
-
-    // Read 16 bits (12-bit data left-aligned in bits 15:4)
+    // Read 16 bits (12-bit data + 4 bits padding)
     for (int i = 15; i >= 0; i--) {
         gpio_set_level(configuration->clkPin, 1);
         ets_delay_us(1);
@@ -157,52 +157,108 @@ int XPT2046_Bitbang::readSPI(uint8_t command) {
         ets_delay_us(1);
     }
 
-    // Return 12-bit data (discard bottom 4 bits)
-    return result >> 4;
+    // Pull CS high to end transaction
+    gpio_set_level(configuration->csPin, 1);
+    ets_delay_us(1);
+
+    // Return 12-bit data (shift right by 3, not 4, as data is typically in bits 14:3)
+    return (result >> 3) & 0x0FFF;
 }
 
 void XPT2046_Bitbang::calibrate() {
     TT_LOG_I(TAG, "Calibration starting...");
 
-    // Wait until touch detected on top-left corner
-    TT_LOG_I(TAG, "Touch the top-left corner and hold...");
-    while (!isTouched()) {
-        vTaskDelay(pdMS_TO_TICKS(10));
+    // Test raw readings first
+    TT_LOG_I(TAG, "Testing raw SPI communication...");
+    for (int i = 0; i < 5; i++) {
+        int x = readSPI(CMD_READ_X);
+        int y = readSPI(CMD_READ_Y);
+        TT_LOG_I(TAG, "Raw test %d: X=%d, Y=%d", i, x, y);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
+
+    TT_LOG_I(TAG, "Touch the top-left corner and hold...");
+    
+    // Wait for touch with timeout
+    int timeout = 30000; // 30 seconds
+    int elapsed = 0;
+    while (!isTouched() && elapsed < timeout) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        elapsed += 100;
+        
+        if (elapsed % 5000 == 0) { // Every 5 seconds
+            TT_LOG_I(TAG, "Still waiting for touch... (%d/%d seconds)", elapsed/1000, timeout/1000);
+            
+            // Log some raw readings to see what's happening
+            int x = readSPI(CMD_READ_X);
+            int y = readSPI(CMD_READ_Y);
+            TT_LOG_I(TAG, "Current raw readings: X=%d, Y=%d", x, y);
+        }
+    }
+    
+    if (elapsed >= timeout) {
+        TT_LOG_E(TAG, "Calibration timeout! No touch detected.");
+        // Set some default values to prevent infinite loop
+        cal.xMin = 300; cal.yMin = 300;
+        cal.xMax = 3700; cal.yMax = 3700;
+        return;
+    }
+
+    TT_LOG_I(TAG, "Touch detected! Sampling top-left corner...");
     vTaskDelay(pdMS_TO_TICKS(500));  // Wait for stable touch
 
-    gpio_set_level(configuration->csPin, 0);
     int xSum = 0, ySum = 0, samples = 8;
     for (int i = 0; i < samples; i++) {
-        readSPI(CMD_READ_X);
-        xSum += readSPI(0x00);
-        readSPI(CMD_READ_Y);
-        ySum += readSPI(0x00);
-    }
-    gpio_set_level(configuration->csPin, 1);
-    cal.xMin = xSum / samples;
-    cal.yMin = ySum / samples;
-
-    // Wait until touch detected on bottom-right corner
-    TT_LOG_I(TAG, "Touch the bottom-right corner and hold...");
-    while (!isTouched()) {
+        int x = readSPI(CMD_READ_X);
+        int y = readSPI(CMD_READ_Y);
+        xSum += x;
+        ySum += y;
+        TT_LOG_I(TAG, "Sample %d: X=%d, Y=%d", i, x, y);
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-    vTaskDelay(pdMS_TO_TICKS(500));  // Wait for stable touch
+    cal.xMin = xSum / samples;
+    cal.yMin = ySum / samples;
+    TT_LOG_I(TAG, "Top-left calibrated: xMin=%d, yMin=%d", cal.xMin, cal.yMin);
 
-    gpio_set_level(configuration->csPin, 0);
+    // Wait for release
+    TT_LOG_I(TAG, "Release touch and then touch bottom-right corner...");
+    while (isTouched()) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for full release
+
+    // Wait for bottom-right touch
+    elapsed = 0;
+    while (!isTouched() && elapsed < timeout) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        elapsed += 100;
+        
+        if (elapsed % 5000 == 0) {
+            TT_LOG_I(TAG, "Waiting for bottom-right corner touch... (%d/%d seconds)", elapsed/1000, timeout/1000);
+        }
+    }
+
+    if (elapsed >= timeout) {
+        TT_LOG_E(TAG, "Calibration timeout on second touch!");
+        return;
+    }
+
+    TT_LOG_I(TAG, "Bottom-right touch detected! Sampling...");
+    vTaskDelay(pdMS_TO_TICKS(500));
+
     xSum = 0; ySum = 0;
     for (int i = 0; i < samples; i++) {
-        readSPI(CMD_READ_X);
-        xSum += readSPI(0x00);
-        readSPI(CMD_READ_Y);
-        ySum += readSPI(0x00);
+        int x = readSPI(CMD_READ_X);
+        int y = readSPI(CMD_READ_Y);
+        xSum += x;
+        ySum += y;
+        TT_LOG_I(TAG, "Sample %d: X=%d, Y=%d", i, x, y);
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
-    gpio_set_level(configuration->csPin, 1);
     cal.xMax = xSum / samples;
     cal.yMax = ySum / samples;
 
-    TT_LOG_I(TAG, "Calibration done! xMin=%d, yMin=%d, xMax=%d, yMax=%d",
+    TT_LOG_I(TAG, "Calibration completed! xMin=%d, yMin=%d, xMax=%d, yMax=%d",
              cal.xMin, cal.yMin, cal.xMax, cal.yMax);
 }
 
@@ -255,31 +311,36 @@ void XPT2046_Bitbang::setCalibration(int xMin, int yMin, int xMax, int yMax) {
 }
 
 Point XPT2046_Bitbang::getTouch() {
-    const int samples = 4;
+    const int samples = 8; // More samples for better accuracy
     int totalX = 0, totalY = 0;
-
-    gpio_set_level(configuration->csPin, 0);
+    int validSamples = 0;
 
     for (int i = 0; i < samples; i++) {
-        // Send command and read X data once per sample
-        readSPI(CMD_READ_X);      // send X command
-        totalX += readSPI(0x00);  // read X data
-
-        // Send command and read Y data once per sample
-        readSPI(CMD_READ_Y);      // send Y command
-        totalY += readSPI(0x00);  // read Y data
+        int rawX = readSPI(CMD_READ_X);
+        int rawY = readSPI(CMD_READ_Y);
+        
+        // Only use valid readings
+        if (rawX > 100 && rawX < 3900 && rawY > 100 && rawY < 3900) {
+            totalX += rawX;
+            totalY += rawY;
+            validSamples++;
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(1));
     }
 
-    gpio_set_level(configuration->csPin, 1);
+    if (validSamples == 0) {
+        return Point{0, 0};
+    }
 
-    int rawX = totalX / samples;
-    int rawY = totalY / samples;
+    int rawX = totalX / validSamples;
+    int rawY = totalY / validSamples;
 
     const int xRange = cal.xMax - cal.xMin;
     const int yRange = cal.yMax - cal.yMin;
 
     if (xRange <= 0 || yRange <= 0) {
-        TT_LOG_I(TAG, "Invalid calibration: xRange=%d, yRange=%d", xRange, yRange);
+        TT_LOG_W(TAG, "Invalid calibration: xRange=%d, yRange=%d", xRange, yRange);
         return Point{0, 0};
     }
 
@@ -298,20 +359,34 @@ Point XPT2046_Bitbang::getTouch() {
 
 bool XPT2046_Bitbang::isTouched() {
     const int samples = 3;
-    int total = 0;
+    int xTotal = 0, yTotal = 0;
+    int validSamples = 0;
 
-    gpio_set_level(configuration->csPin, 0);
     for (int i = 0; i < samples; i++) {
-        readSPI(CMD_READ_X);
-        total += readSPI(0x00);
+        int x = readSPI(CMD_READ_X);
+        int y = readSPI(CMD_READ_Y);
+        
+        // Basic validity check - XPT2046 typically returns values in range 100-3900 when touched
+        if (x > 100 && x < 3900 && y > 100 && y < 3900) {
+            xTotal += x;
+            yTotal += y;
+            validSamples++;
+        }
+        
+        vTaskDelay(pdMS_TO_TICKS(1)); // Small delay between samples
     }
-    gpio_set_level(configuration->csPin, 1);
 
-    int avg = total / samples;
-
-    return (avg > 100 && avg < 4000);
+    // Consider touched if we got valid readings
+    bool touched = validSamples >= 2;
+    
+    // Debug logging (remove this once working)
+    if (touched) {
+        TT_LOG_I(TAG, "Touch detected: validSamples=%d, avgX=%d, avgY=%d", 
+                 validSamples, xTotal/validSamples, yTotal/validSamples);
+    }
+    
+    return touched;
 }
-
 
 void XPT2046_Bitbang::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     XPT2046_Bitbang* touch = static_cast<XPT2046_Bitbang*>(lv_indev_get_user_data(indev));
