@@ -71,7 +71,7 @@ bool TdeckDisplay::start() {
         return false;
     }
 
-    uint32_t buffer_size = 240 * 320;
+    uint32_t buffer_size = 240 * 320; // Note: Pixel count, not bytes!
 
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = ioHandle,

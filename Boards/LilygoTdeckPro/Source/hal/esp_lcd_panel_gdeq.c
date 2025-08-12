@@ -40,7 +40,6 @@ typedef struct {
 } epaper_panel_t;
 
 // --- Utility functions
-static esp_err_t process_bitmap(esp_lcd_panel_t* panel, int buffer_size, const void* color_data);
 static esp_err_t panel_epaper_wait_busy(esp_lcd_panel_t* panel);
 // --- Used to implement esp_lcd_panel_interface
 static esp_err_t epaper_panel_del(esp_lcd_panel_t* panel);
@@ -227,9 +226,6 @@ static esp_err_t epaper_panel_draw_bitmap(esp_lcd_panel_t* panel, int x_start, i
     int len_x = abs(x_start - x_end);
     int len_y = abs(y_start - y_end);
     int buffer_size = len_x * len_y / 8;
-    // --- Data copy & preprocess
-    // prepare buffer
-    process_bitmap(panel, buffer_size, color_data);
 
     ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(epaper_panel->io, 0x91, NULL, 0), TAG, "tx partial in failed");
     epaper_set_area(epaper_panel->io, x_start, y_start, x_end, y_end);
@@ -266,24 +262,5 @@ static esp_err_t epaper_panel_disp_on_off(esp_lcd_panel_t* panel, bool on_off) {
     if (on_off) { ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(epaper_panel->io, GDEQ_CMD_POWER_ON, NULL, 0), TAG, "power on err"); } else { ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(epaper_panel->io, GDEQ_CMD_POWER_OFF, NULL, 0), TAG, "power off err"); }
     panel_epaper_wait_busy(panel);
 
-    return ESP_OK;
-}
-
-static esp_err_t process_bitmap(esp_lcd_panel_t* panel, int buffer_size, const void* color_data) {
-    epaper_panel_t* epaper_panel = __containerof(panel, epaper_panel_t, base);
-    uint8_t* byte_pixels = (uint8_t*)color_data;
-    for (int i = 0; i < buffer_size; i += 8) {
-        // Convert byte-sized pixels to bit-sized ones
-        uint8_t bit_pixel_group =
-            (0b00000001 & byte_pixels[i]) |
-            (0b00000010 & byte_pixels[i + 2]) |
-            (0b00000100 & byte_pixels[i + 3]) |
-            (0b00001000 & byte_pixels[i + 4]) |
-            (0b00010000 & byte_pixels[i + 5]) |
-            (0b00100000 & byte_pixels[i + 6]) |
-            (0b01000000 & byte_pixels[i + 7]) |
-            (0b10000000 & byte_pixels[i + 8]);
-        epaper_panel->_framebuffer[i] = bit_pixel_group;
-    }
     return ESP_OK;
 }
