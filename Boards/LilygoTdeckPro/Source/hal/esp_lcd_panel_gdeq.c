@@ -1,3 +1,10 @@
+/**
+ * This code is based on the esp_lcd_ssd1681 driver from https://github.com/espressif/esp-bsp/tree/master/components/lcd/esp_lcd_ssd1681
+ * The esp_lcd_ssd1681 driver is copyrighted by "2023 Espressif Systems (Shanghai) CO LTD" and was distributed under Apache License:
+ * https://github.com/espressif/esp-bsp/blob/master/components/lcd/esp_lcd_ssd1681/license.txt
+ *
+ * The gdeq driver is licensed under Tactility's GPL v2 license.
+ */
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -22,11 +29,6 @@
 static const char* TAG = "lcd_panel.epaper";
 
 typedef struct {
-    esp_lcd_epaper_panel_cb_t callback_ptr;
-    void* args;
-} epaper_panel_callback_t;
-
-typedef struct {
     esp_lcd_panel_t base;
     esp_lcd_panel_io_handle_t io;
     // --- Normal configurations
@@ -34,8 +36,6 @@ typedef struct {
     bool full_refresh;
     bool fast_refresh;
     int busy_gpio_num;
-    // Configurations from e-Paper specific public functions
-    epaper_panel_callback_t epaper_refresh_done_isr_callback;
     uint8_t* _framebuffer;
 } epaper_panel_t;
 
@@ -54,18 +54,10 @@ static esp_err_t epaper_panel_set_gap(esp_lcd_panel_t* panel, int x_gap, int y_g
 static esp_err_t epaper_panel_disp_on_off(esp_lcd_panel_t* panel, bool on_off);
 
 static esp_err_t panel_epaper_wait_busy(esp_lcd_panel_t* panel) {
-    epaper_panel_t* epaper_panel = __containerof(panel, epaper_panel_t, base);
+    // TODO: Fix this
+    // epaper_panel_t* epaper_panel = __containerof(panel, epaper_panel_t, base);
     // Wait until busy pin is high (busy means low)
-    while (gpio_get_level(epaper_panel->busy_gpio_num) != 0) { vTaskDelay(pdMS_TO_TICKS(15)); }
-    return ESP_OK;
-}
-
-esp_err_t epaper_panel_register_event_callbacks(esp_lcd_panel_t* panel, epaper_panel_callbacks_t* cbs, void* user_ctx) {
-    ESP_RETURN_ON_FALSE(panel, ESP_ERR_INVALID_ARG, TAG, "panel handler is NULL");
-    ESP_RETURN_ON_FALSE(cbs, ESP_ERR_INVALID_ARG, TAG, "cbs is NULL");
-    epaper_panel_t* epaper_panel = __containerof(panel, epaper_panel_t, base);
-    (epaper_panel->epaper_refresh_done_isr_callback).callback_ptr = cbs->on_epaper_refresh_done;
-    (epaper_panel->epaper_refresh_done_isr_callback).args = user_ctx;
+    // while (gpio_get_level(epaper_panel->busy_gpio_num) != 0) { vTaskDelay(pdMS_TO_TICKS(15)); }
     return ESP_OK;
 }
 
@@ -197,11 +189,6 @@ static esp_err_t epaper_panel_reset(esp_lcd_panel_t* panel) {
 
     panel_epaper_wait_busy(panel);
     return ESP_OK;
-}
-
-esp_err_t epaper_panel_set_bitmap_color(esp_lcd_panel_t* panel, esp_lcd_gdeq_bitmap_color_t color) {
-    // Not implemented
-    return ESP_FAIL;
 }
 
 static esp_err_t epaper_panel_init(esp_lcd_panel_t* panel) {
