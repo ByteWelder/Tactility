@@ -38,7 +38,7 @@ extern double __muldf3 (double a, double b);
 extern double __divdf3 (double a, double b);
 extern int __nedf2 (double a, double b);
 
-const struct esp_elfsym elf_symbols[] {
+const esp_elfsym elf_symbols[] {
     // Hidden functions work-around
     ESP_ELFSYM_EXPORT(_ZdlPvj), // new?
     ESP_ELFSYM_EXPORT(_Znwj), // delete?
