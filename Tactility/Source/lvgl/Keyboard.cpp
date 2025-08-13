@@ -37,8 +37,4 @@ void hardware_keyboard_set_indev(lv_indev_t* device) {
     keyboard_device = device;
 }
 
-void keyboard_add_textarea(lv_obj_t* textarea) {
-    service::gui::keyboardAddTextArea(textarea);
-}
-
 }

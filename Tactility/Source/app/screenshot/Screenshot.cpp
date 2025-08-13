@@ -271,9 +271,6 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
     createFilePathWidgets(wrapper);
     createTimerSettingsWidgets(wrapper);
 
-    service::gui::keyboardAddTextArea(delayTextArea);
-    service::gui::keyboardAddTextArea(pathTextArea);
-
     updateScreenshotMode();
 
     if (!updateTimer->isRunning()) {

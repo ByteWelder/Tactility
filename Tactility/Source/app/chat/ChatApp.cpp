@@ -154,7 +154,6 @@ public:
         lv_obj_set_height(input_field, LV_PCT(100));
         lv_textarea_set_placeholder_text(input_field, "Type a message...");
         lv_textarea_set_one_line(input_field, true);
-        service::gui::keyboardAddTextArea(input_field);
 
         // Send button
         auto* send_btn = lv_btn_create(input_panel);

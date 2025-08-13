@@ -106,7 +106,6 @@ public:
         if (parameters->optString(PARAMETER_BUNDLE_KEY_PREFILLED, prefilled)) {
             lv_textarea_set_text(textarea, prefilled.c_str());
         }
-        service::gui::keyboardAddTextArea(textarea);
 
         auto* button_wrapper = lv_obj_create(parent);
         lv_obj_set_flex_flow(button_wrapper, LV_FLEX_FLOW_ROW);

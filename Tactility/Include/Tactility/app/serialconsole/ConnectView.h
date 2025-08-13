@@ -117,7 +117,6 @@ public:
         lv_textarea_set_one_line(speedTextarea, true);
         lv_obj_set_width(speedTextarea, LV_PCT(50));
         lv_obj_align(speedTextarea, LV_ALIGN_TOP_RIGHT, 0, 40);
-        service::gui::keyboardAddTextArea(speedTextarea);
 
         auto* baud_rate_label = lv_label_create(wrapper);
         lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 50);

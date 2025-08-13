@@ -221,7 +221,6 @@ public:
         lv_obj_add_event_cb(textarea, onTextareaValueChangedCallback, LV_EVENT_VALUE_CHANGED, this);
         filterTextareaWidget = textarea;
         lv_obj_set_flex_grow(textarea, 1);
-        service::gui::keyboardAddTextArea(textarea);
 
         auto* list = lv_list_create(parent);
         lv_obj_set_width(list, LV_PCT(100));

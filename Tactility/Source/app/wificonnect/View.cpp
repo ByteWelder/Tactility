@@ -187,10 +187,6 @@ void View::init(AppContext& app, lv_obj_t* parent) {
     // Bottom buttons
     createBottomButtons(wrapper);
 
-    // Keyboard bindings
-    service::gui::keyboardAddTextArea(ssid_textarea);
-    service::gui::keyboardAddTextArea(password_textarea);
-
     // Init from app parameters
     auto bundle = app.getParameters();
     if (bundle != nullptr) {

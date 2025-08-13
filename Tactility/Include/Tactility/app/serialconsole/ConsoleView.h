@@ -186,7 +186,6 @@ public:
         lv_obj_set_width(logTextarea, LV_PCT(100));
         lv_obj_add_state(logTextarea, LV_STATE_DISABLED);
         lv_obj_set_style_margin_ver(logTextarea, 0, 0);
-        service::gui::keyboardAddTextArea(logTextarea);
 
         auto* input_wrapper = lv_obj_create(parent);
         lv_obj_set_size(input_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
@@ -200,7 +199,6 @@ public:
         lv_textarea_set_placeholder_text(inputTextarea, "Text to send");
         lv_obj_set_width(inputTextarea, LV_PCT(100));
         lv_obj_set_flex_grow(inputTextarea, 1);
-        service::gui::keyboardAddTextArea(inputTextarea);
 
         auto* terminator_dropdown = lv_dropdown_create(input_wrapper);
         lv_dropdown_set_options(terminator_dropdown, "\\n\n\\r\\n");
