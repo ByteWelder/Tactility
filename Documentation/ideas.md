@@ -43,7 +43,7 @@
 - If present, use LED to show boot/wifi status
 - Capacity based on voltage: estimation for various devices uses a linear voltage curve, but it should use some sort of battery discharge curve.
 - Statusbar widget to show how much memory is in use?
-- Wrapper for Slider that shows "+" and "-" buttons, and also the value in a label.
+- Wrapper for lvgl slider widget that shows "+" and "-" buttons, and also the value in a label.
 - Files app: copy/paste actions
 - On crash, try to save the current log to flash or SD card? (this is risky, though, so ask in Discord first)
 - Support more than 1 hardware keyboard (see lvgl::hardware_keyboard_set_indev()). LVGL init currently calls keyboard init, but that part should probably be done from the KeyboardDevice base class.
