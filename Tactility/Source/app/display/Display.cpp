@@ -74,7 +74,7 @@ class DisplayApp : public App {
         auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
         auto* lvgl_display = lv_display_get_default();
         assert(lvgl_display != nullptr);
-        auto* hal_display = static_cast<hal::display::DisplayDevice*>(lv_display_get_user_data(lvgl_display));
+        auto hal_display = hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
         assert(hal_display != nullptr);
 
         if (hal_display->getGammaCurveCount() > 0) {
