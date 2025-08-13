@@ -31,7 +31,6 @@
 - Support hot-plugging SD card
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 - Use GPS time to set/update the current time
-- Investigate EEZ Studio
 - Remove flex_flow from app_container in Gui.cpp
 
 # Nice-to-haves
