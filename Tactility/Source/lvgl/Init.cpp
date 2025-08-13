@@ -27,9 +27,6 @@ static std::shared_ptr<hal::display::DisplayDevice> initDisplay(const hal::Confi
         return nullptr;
     }
 
-    lv_display_t* lvgl_display = display->getLvglDisplay();
-    assert(lvgl_display);
-
     if (display->supportsBacklightDuty()) {
         display->setBacklightDuty(0);
     }
