@@ -4,7 +4,6 @@
 
 #include <EspLcdNativeDisplay.h>
 
-#include <driver/spi_common.h>
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_types.h>

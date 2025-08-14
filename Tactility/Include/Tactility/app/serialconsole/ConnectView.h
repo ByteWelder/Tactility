@@ -8,10 +8,8 @@
 #include "Tactility/hal/uart/Uart.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Style.h"
-#include "Tactility/service/gui/Gui.h"
 
 #include <Tactility/StringUtils.h>
-#include <array>
 #include <string>
 
 namespace tt::app::serialconsole {
@@ -129,7 +127,7 @@ public:
         lv_obj_add_event_cb(connect_button, onConnectCallback, LV_EVENT_SHORT_CLICKED, this);
     }
 
-    void onStop() final {
+    void onStop() {
         int speed = getSpeedInput();
         if (speed > 0) {
             preferences.putInt32("speed", speed);

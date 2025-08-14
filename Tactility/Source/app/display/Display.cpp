@@ -72,8 +72,6 @@ class DisplayApp : public App {
 
     static void onGammaSliderEvent(lv_event_t* event) {
         auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
-        auto* lvgl_display = lv_display_get_default();
-        assert(lvgl_display != nullptr);
         auto hal_display = hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
         assert(hal_display != nullptr);
 

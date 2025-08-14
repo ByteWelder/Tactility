@@ -76,7 +76,9 @@ bool startService(const std::string& id) {
     service_instance_map[manifest->id] = service_instance;
     instance_mutex.unlock();
 
+    service_instance->setState(State::Starting);
     service_instance->getService()->onStart(*service_instance);
+    service_instance->setState(State::Started);
 
     TT_LOG_I(TAG, "Started %s", id.c_str());
 
@@ -100,7 +102,9 @@ bool stopService(const std::string& id) {
         return false;
     }
 
+    service_instance->setState(State::Stopping);
     service_instance->getService()->onStop(*service_instance);
+    service_instance->setState(State::Stopped);
 
     instance_mutex.lock();
     service_instance_map.erase(id);
@@ -113,6 +117,17 @@ bool stopService(const std::string& id) {
     TT_LOG_I(TAG, "Stopped %s", id.c_str());
 
     return true;
+}
+
+bool getState(const std::string& id, State& state) {
+    auto service_instance = findServiceInstanceById(id);
+    if (service_instance == nullptr) {
+        TT_LOG_W(TAG, "service not running: %s", id.c_str());
+        return false;
+    } else {
+        state = service_instance->getState();
+        return true;
+    }
 }
 
 } // namespace

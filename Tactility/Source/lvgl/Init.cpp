@@ -32,9 +32,11 @@ static std::shared_ptr<hal::display::DisplayDevice> initDisplay(const hal::Confi
     }
 
     if (display->supportsLvgl() && display->startLvgl()) {
+        auto lvgl_display = display->getLvglDisplay();
+        assert(lvgl_display != nullptr);
         lv_display_rotation_t rotation = app::display::getRotation();
-        if (rotation != lv_display_get_rotation(lv_display_get_default())) {
-            lv_display_set_rotation(lv_display_get_default(), rotation);
+        if (rotation != lv_display_get_rotation(lvgl_display)) {
+            lv_display_set_rotation(lvgl_display, rotation);
         }
     }
 

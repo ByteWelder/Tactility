@@ -88,7 +88,7 @@ bool St7789Display::start() {
     }
 
     TT_LOG_I(TAG, "Finished");
-    return displayHandle != nullptr;
+    return panelHandle != nullptr;
 }
 
 bool St7789Display::stop() {

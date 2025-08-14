@@ -5,7 +5,7 @@
 #include "tt_init.h"
 #endif
 
-// extern const tt::app::AppManifest hello_world_app;
+extern const tt::app::AppManifest hello_world_app;
 
 extern "C" {
 
@@ -17,7 +17,7 @@ void app_main() {
          */
         .hardware = TT_BOARD_HARDWARE,
         .apps = {
-            // &hello_world_app,
+            &hello_world_app,
         }
     };
 

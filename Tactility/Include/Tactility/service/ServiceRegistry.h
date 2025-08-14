@@ -29,6 +29,13 @@ bool startService(const std::string& id);
  */
 bool stopService(const std::string& id);
 
+/** Get the state of a service.
+ * @param[in] the service id as defined in its manifest
+ * @param[out] the variable to store the resulting state in
+ * @return true if the service was found and "state" was set
+ */
+bool getState(const std::string& id, State& state);
+
 /** Find a service manifest by its id.
  * @param[in] id the id as defined in the manifest
  * @return the matching manifest or nullptr when it wasn't found

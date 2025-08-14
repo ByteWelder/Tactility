@@ -3,7 +3,6 @@
 #include "Tactility/app/timezone/TimeZone.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/gui/Gui.h"
 #include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/Partitions.h>
@@ -66,8 +65,6 @@ void setResultCode(Bundle& bundle, const std::string& code) {
 
 class TimeZoneApp : public App {
 
-private:
-
     Mutex mutex;
     std::vector<TimeZoneEntry> entries;
     std::unique_ptr<Timer> updateTimer;
@@ -107,7 +104,7 @@ private:
         setResultName(*bundle, entry.name);
         setResultCode(*bundle, entry.code);
 
-        setResult(app::Result::Ok, std::move(bundle));
+        setResult(Result::Ok, std::move(bundle));
 
         service::loader::stopApp();
     }

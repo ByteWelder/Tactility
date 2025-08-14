@@ -2,7 +2,6 @@
 
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
-#include "Tactility/service/gui/Gui.h"
 
 #include <Tactility/TactilityCore.h>
 
@@ -47,8 +46,6 @@ static std::string getTitleParameter(const std::shared_ptr<const Bundle>& bundle
 
 class InputDialogApp : public App {
 
-private:
-
     static void createButton(lv_obj_t* parent, const std::string& text, void* callbackContext) {
         lv_obj_t* button = lv_button_create(parent);
         lv_obj_t* button_label = lv_label_create(button);
@@ -71,9 +68,9 @@ private:
             auto bundle = std::make_unique<Bundle>();
             const char* text = lv_textarea_get_text((lv_obj_t*)user_data);
             bundle->putString(RESULT_BUNDLE_KEY_RESULT, text);
-            setResult(app::Result::Ok, std::move(bundle));
+            setResult(Result::Ok, std::move(bundle));
         } else {
-            setResult(app::Result::Cancelled);
+            setResult(Result::Cancelled);
 
         }
         service::loader::stopApp();

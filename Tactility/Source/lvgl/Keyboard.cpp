@@ -1,20 +1,33 @@
 #include "Tactility/lvgl/Keyboard.h"
-#include "Tactility/service/gui/Gui.h"
+#include "Tactility/service/gui/GuiService.h"
+
+#include <Tactility/service/espnow/EspNowService.h>
 
 namespace tt::lvgl {
 
 static lv_indev_t* keyboard_device = nullptr;
 
 void software_keyboard_show(lv_obj_t* textarea) {
-    service::gui::softwareKeyboardShow(textarea);
+    auto gui_service = service::gui::findService();
+    if (gui_service != nullptr) {
+        gui_service->softwareKeyboardShow(textarea);
+    }
 }
 
 void software_keyboard_hide() {
-    service::gui::softwareKeyboardHide();
+    auto gui_service = service::gui::findService();
+    if (gui_service != nullptr) {
+        gui_service->softwareKeyboardHide();
+    }
 }
 
 bool software_keyboard_is_enabled() {
-    return service::gui::softwareKeyboardIsEnabled();
+    auto gui_service = service::gui::findService();
+    if (gui_service != nullptr) {
+        return gui_service->softwareKeyboardIsEnabled();
+    } else {
+        return false;
+    }
 }
 
 void software_keyboard_activate(lv_group_t* group) {

@@ -5,7 +5,6 @@
 #include <Tactility/Assets.h>
 #include <Tactility/service/espnow/EspNow.h>
 
-#include "Tactility/service/gui/Gui.h"
 #include "Tactility/lvgl/LvglSync.h"
 
 #include <cstdio>
@@ -16,7 +15,7 @@
 namespace tt::app::chat {
 
 constexpr const char* TAG = "ChatApp";
-constexpr const uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+constexpr uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 class ChatApp : public App {
 

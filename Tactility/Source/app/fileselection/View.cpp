@@ -10,7 +10,6 @@
 
 #include <cstring>
 #include <unistd.h>
-#include <Tactility/service/gui/Gui.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/service/loader/Loader.h"
