@@ -7,7 +7,7 @@
 #include <esp_lcd_panel_st7789.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "st7789"
+#define TAG "ST7789"
 
 bool St7789Display::start() {
     TT_LOG_I(TAG, "Starting");
@@ -86,6 +86,29 @@ bool St7789Display::start() {
         TT_LOG_E(TAG, "Failed to turn display on");
         return false;
     }
+
+    TT_LOG_I(TAG, "Finished");
+    return displayHandle != nullptr;
+}
+
+bool St7789Display::stop() {
+    if (getLvglDisplay() != nullptr) {
+        stopLvgl();
+    }
+
+    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        return false;
+    }
+
+    displayHandle = nullptr;
+    return true;
+}
+
+bool St7789Display::startLvgl() {
     uint32_t buffer_size;
     if (configuration->bufferSize == 0) {
         buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
@@ -120,26 +143,16 @@ bool St7789Display::start() {
     };
 
     displayHandle = lvgl_port_add_disp(&disp_cfg);
-
-    TT_LOG_I(TAG, "Finished");
     return displayHandle != nullptr;
 }
 
-bool St7789Display::stop() {
-    assert(displayHandle != nullptr);
-
-    lvgl_port_remove_disp(displayHandle);
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+bool St7789Display::stopLvgl() {
+    if (displayHandle == nullptr) {
         return false;
+    } else {
+        lvgl_port_remove_disp(displayHandle);
+        return true;
     }
-
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
-    displayHandle = nullptr;
-    return true;
 }
 
 /**

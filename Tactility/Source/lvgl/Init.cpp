@@ -31,9 +31,11 @@ static std::shared_ptr<hal::display::DisplayDevice> initDisplay(const hal::Confi
         display->setBacklightDuty(0);
     }
 
-    lv_display_rotation_t rotation = app::display::getRotation();
-    if (rotation != lv_display_get_rotation(lv_display_get_default())) {
-        lv_display_set_rotation(lv_display_get_default(), rotation);
+    if (display->supportsLvgl() && display->startLvgl()) {
+        lv_display_rotation_t rotation = app::display::getRotation();
+        if (rotation != lv_display_get_rotation(lv_display_get_default())) {
+            lv_display_set_rotation(lv_display_get_default(), rotation);
+        }
     }
 
     return display;
