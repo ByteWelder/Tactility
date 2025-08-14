@@ -1,8 +1,11 @@
+#include "../../../Tactility/Private/Tactility/service/gui/GuiService.h"
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <lvgl.h>
 #include <Tactility/hal/Device.h>
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/display/NativeDisplay.h>
 #include <Tactility/service/ServiceRegistry.h>
 
 using namespace tt::app;
@@ -23,29 +26,33 @@ class HelloWorldApp : public App {
         tt::service::stopService("Statusbar");
         tt::service::stopService("Gui");
 
-        tt::service::startService("Gui");
-        tt::service::startService("Statusbar");
+        using namespace tt::hal;
+        displayDevice = findFirstDevice<display::DisplayDevice>(Device::Type::Display);
+        if (displayDevice == nullptr) {
+            TT_LOG_E("HelloWorld", "Display device not found");
+            stop();
+        } else {
+            if (displayDevice->supportsLvgl() && displayDevice->getLvglDisplay() != nullptr) {
+                if (!displayDevice->stopLvgl()) {
+                    TT_LOG_E("HelloWorld", "Failed to detach display from LVGL");
+                }
+            }
+        }
 
-    //     using namespace tt::hal;
-    //     displayDevice = findFirstDevice<display::DisplayDevice>(Device::Type::Display);
-    //     if (displayDevice == nullptr) {
-    //         TT_LOG_E("HelloWorld", "Display device not found");
-    //         stop();
-    //     } else {
-    //         if (displayDevice->supportsLvgl() && displayDevice->getLvglDisplay() != nullptr) {
-    //             if (!displayDevice->stopLvgl()) {
-    //                 TT_LOG_E("HelloWorld", "Failed to detach display from LVGL");
-    //             }
-    //         }
-    //     }
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        stop(); // stop this app
     }
 
     void onDestroy(AppContext& appContext) override {
         if (displayDevice != nullptr) {
             if (displayDevice->supportsLvgl() && displayDevice->getLvglDisplay() == nullptr) {
+                TT_LOG_I("HelloWorld", "Starting LVGL");
                 displayDevice->startLvgl();
             }
         }
+
+        tt::service::startService("Gui");
+        tt::service::startService("Statusbar");
     }
 };
 
