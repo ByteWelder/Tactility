@@ -112,14 +112,11 @@ public:
     std::shared_ptr<tt::hal::display::NativeDisplay> getNativeDisplay() override {
         assert(displayHandle == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
 
-        uint16_t width = configuration->swapXY ? configuration->verticalResolution : configuration->horizontalResolution;
-        uint16_t height = configuration->swapXY ? configuration->horizontalResolution : configuration->verticalResolution;
-
         return std::make_shared<tt::hal::display::EspLcdNativeDisplay>(
             panelHandle,
             tt::hal::display::ColorFormat::RGB565,
-            width,
-            height
+            configuration->horizontalResolution,
+            configuration->verticalResolution
         );
     }
 

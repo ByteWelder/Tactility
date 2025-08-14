@@ -109,6 +109,8 @@ bool St7789Display::stop() {
 }
 
 bool St7789Display::startLvgl() {
+    assert(displayHandle == nullptr);
+
     uint32_t buffer_size;
     if (configuration->bufferSize == 0) {
         buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
@@ -151,6 +153,7 @@ bool St7789Display::stopLvgl() {
         return false;
     } else {
         lvgl_port_remove_disp(displayHandle);
+        displayHandle = nullptr;
         return true;
     }
 }
