@@ -63,7 +63,7 @@ bool EspLcdDisplay::startLvgl() {
 
     auto touch_device = getTouchDevice();
     if (touch_device != nullptr) {
-        touch_device->start(lvglDisplay);
+        touch_device->startLvgl(lvglDisplay);
     }
 
     return lvglDisplay != nullptr;
@@ -76,7 +76,7 @@ bool EspLcdDisplay::stopLvgl() {
 
     auto touch_device = getTouchDevice();
     if (touch_device != nullptr) {
-        touch_device->stop();
+        touch_device->stopLvgl();
     }
 
     lvgl_port_remove_disp(lvglDisplay);
@@ -84,10 +84,10 @@ bool EspLcdDisplay::stopLvgl() {
     return true;
 }
 
-std::shared_ptr<tt::hal::display::NativeDisplay> EspLcdDisplay::getNativeDisplay() {
+std::shared_ptr<display::NativeDisplay> EspLcdDisplay::getNativeDisplay() {
     assert(lvglDisplay == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
     if (nativeDisplay == nullptr) {
-        nativeDisplay = std::make_shared<tt::hal::display::EspLcdNativeDisplay>(
+        nativeDisplay = std::make_shared<EspLcdNativeDisplay>(
             panelHandle,
             lvglPortDisplayConfig
         );

@@ -67,5 +67,6 @@ public:
     }
 
     std::string getName() const override { return "GT911"; }
-    std::string getDescription() const override { return "I2C Touch Driver"; }
+
+    std::string getDescription() const override { return "GT911 I2C touch driver"; }
 };

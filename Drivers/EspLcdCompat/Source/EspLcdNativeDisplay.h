@@ -4,9 +4,9 @@
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port_disp.h>
 
-namespace tt::hal::display {
+using namespace tt::hal;
 
-class EspLcdNativeDisplay final : public NativeDisplay {
+class EspLcdNativeDisplay final : public display::NativeDisplay {
 
     esp_lcd_panel_handle_t panelHandle;
     const lvgl_port_display_cfg_t& lvglPortDisplayConfig;
@@ -17,7 +17,8 @@ public:
         const lvgl_port_display_cfg_t& lvglPortDisplayConfig
     ) : panelHandle(panelHandle), lvglPortDisplayConfig(lvglPortDisplayConfig) {}
 
-    ColorFormat getColorFormat() const override {
+    display::ColorFormat getColorFormat() const override {
+        using display::ColorFormat;
         switch (lvglPortDisplayConfig.color_format) {
             case LV_COLOR_FORMAT_I1:
                 return ColorFormat::Monochrome;
@@ -39,5 +40,3 @@ public:
     uint16_t getPixelWidth() const override { return lvglPortDisplayConfig.hres; }
     uint16_t getPixelHeight() const override { return lvglPortDisplayConfig.vres; }
 };
-
-}

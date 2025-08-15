@@ -161,7 +161,7 @@ void TpagerKeyboard::processKeyboard() {
     }
 }
 
-bool TpagerKeyboard::start(lv_display_t* display) {
+bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     backlightOkay = initBacklight(BACKLIGHT, 30000, LEDC_TIMER_0, LEDC_CHANNEL_1);
     initEncoder();
     keypad->init(KB_ROWS, KB_COLS);
@@ -195,7 +195,7 @@ bool TpagerKeyboard::start(lv_display_t* display) {
     return true;
 }
 
-bool TpagerKeyboard::stop() {
+bool TpagerKeyboard::stopLvgl() {
     assert(inputTimer);
     inputTimer->stop();
     inputTimer = nullptr;

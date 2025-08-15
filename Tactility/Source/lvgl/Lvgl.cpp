@@ -40,26 +40,6 @@ static std::shared_ptr<hal::display::DisplayDevice> createDisplay(const hal::Con
     return display;
 }
 
-static bool startKeyboard(const std::shared_ptr<hal::display::DisplayDevice>& display, const std::shared_ptr<hal::keyboard::KeyboardDevice>& keyboard) {
-    TT_LOG_I(TAG, "Keyboard init");
-    assert(display);
-    assert(keyboard);
-    if (keyboard->isAttached()) {
-        if (keyboard->start(display->getLvglDisplay())) {
-            lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
-            hardware_keyboard_set_indev(keyboard_indev);
-            TT_LOG_I(TAG, "Keyboard started");
-            return true;
-        } else {
-            TT_LOG_E(TAG, "Keyboard start failed");
-            return false;
-        }
-    } else {
-        TT_LOG_E(TAG, "Keyboard attach failed");
-        return false;
-    }
-}
-
 void init(const hal::Configuration& config) {
     TT_LOG_I(TAG, "Init started");
 
@@ -77,6 +57,7 @@ void init(const hal::Configuration& config) {
 
     auto touch = display->getTouchDevice();
     if (touch != nullptr) {
+        touch->start();
         hal::registerDevice(touch);
     }
 
@@ -119,6 +100,19 @@ void start() {
         }
     }
 
+    // Start touch
+
+    auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
+    for (auto touch_device : touch_devices) {
+        if (displays.size() > 0) {
+            // TODO: Consider implementing support for multiple displays
+            auto display = displays[0];
+            if (touch_device->supportsLvgl()) {
+                touch_device->startLvgl(display->getLvglDisplay());
+            }
+        }
+    }
+
     // Start keyboards
 
     auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
@@ -126,7 +120,15 @@ void start() {
         if (displays.size() > 0) {
             // TODO: Consider implementing support for multiple displays
             auto display = displays[0];
-            startKeyboard(display, keyboard);
+            if (keyboard->isAttached()) {
+                if (keyboard->startLvgl(display->getLvglDisplay())) {
+                    lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
+                    hardware_keyboard_set_indev(keyboard_indev);
+                    TT_LOG_I(TAG, "Keyboard started");
+                } else {
+                    TT_LOG_E(TAG, "Keyboard start failed");
+                }
+            }
         }
     }
 
@@ -168,7 +170,14 @@ void stop() {
 
     auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
     for (auto keyboard : keyboards) {
-        keyboard->stop();
+        keyboard->stopLvgl();
+    }
+
+    // Stop touch
+
+    auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
+    for (auto touch_device : touch_devices) {
+        touch_device->stopLvgl();
     }
 
     // Stop displays (and their touch devices)

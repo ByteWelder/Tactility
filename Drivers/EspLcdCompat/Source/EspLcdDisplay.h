@@ -47,7 +47,7 @@ public:
 
     // region NativedDisplay
 
-    /** @return a NativeDisplay if this device supports it */
+    /** @return a NativeDisplay instance if this device supports it */
     std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable getNativeDisplay() final;
 
     // endregion

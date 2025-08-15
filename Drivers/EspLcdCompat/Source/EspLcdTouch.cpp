@@ -1,11 +1,12 @@
 #include "EspLcdTouch.h"
 
+#include <EspLcdNativeTouch.h>
 #include <esp_lvgl_port_touch.h>
 #include <Tactility/LogEsp.h>
 
 constexpr char* TAG = "EspLcdTouch";
 
-bool EspLcdTouch::start(lv_display_t* display) {
+bool EspLcdTouch::start() {
     if (!createIoHandle(ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Touch IO failed");
         return false;
@@ -15,8 +16,39 @@ bool EspLcdTouch::start(lv_display_t* display) {
 
     if (!createTouchHandle(ioHandle, config, touchHandle)) {
         TT_LOG_E(TAG, "Driver init failed");
-        cleanup();
+        esp_lcd_panel_io_del(ioHandle);
+        ioHandle = nullptr;
         return false;
+    }
+
+    return true;
+}
+
+bool EspLcdTouch::stop() {
+    if (lvglDevice != nullptr) {
+        stopLvgl();
+    }
+
+    if (ioHandle != nullptr) {
+        esp_lcd_panel_io_del(ioHandle);
+        ioHandle = nullptr;
+    }
+
+    if (touchHandle != nullptr) {
+        esp_lcd_touch_del(touchHandle);
+        touchHandle = nullptr;
+    }
+
+    return true;
+}
+
+bool EspLcdTouch::startLvgl(lv_disp_t* display) {
+    if (lvglDevice != nullptr) {
+        return false;
+    }
+
+    if (nativeTouch != nullptr && nativeTouch.use_count() > 1) {
+        TT_LOG_W(TAG, "NativeTouch is still in use.");
     }
 
     const lvgl_port_touch_cfg_t touch_cfg = {
@@ -28,28 +60,27 @@ bool EspLcdTouch::start(lv_display_t* display) {
     lvglDevice = lvgl_port_add_touch(&touch_cfg);
     if (lvglDevice == nullptr) {
         TT_LOG_E(TAG, "Adding touch failed");
-        cleanup();
         return false;
     }
 
     return true;
 }
 
-bool EspLcdTouch::stop() {
-    cleanup();
+bool EspLcdTouch::stopLvgl() {
+    if (lvglDevice == nullptr) {
+        return false;
+    }
+
+    lvgl_port_remove_touch(lvglDevice);
+    lvglDevice = nullptr;
+
     return true;
 }
 
-void EspLcdTouch::cleanup() {
-    if (lvglDevice != nullptr) {
-        lv_indev_delete(lvglDevice);
-        lvglDevice = nullptr;
-        // TODO: is this correct? We don't have to delete it manually?
-        touchHandle = nullptr;
+std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable EspLcdTouch::getNativeTouch() {
+    assert(lvglDevice == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
+    if (nativeTouch == nullptr) {
+        nativeTouch = std::make_shared<EspLcdNativeTouch>(touchHandle);
     }
-
-    if (ioHandle != nullptr) {
-        esp_lcd_panel_io_del(ioHandle);
-        ioHandle = nullptr;
-    }
+    return nativeTouch;
 }

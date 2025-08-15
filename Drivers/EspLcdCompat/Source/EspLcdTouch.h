@@ -11,8 +11,7 @@ class EspLcdTouch : public tt::hal::touch::TouchDevice {
     esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
     esp_lcd_touch_handle_t _Nullable touchHandle = nullptr;
     lv_indev_t* _Nullable lvglDevice = nullptr;
-
-    void cleanup();
+    std::shared_ptr<tt::hal::touch::NativeTouch> nativeTouch;
 
 protected:
 
@@ -24,11 +23,17 @@ protected:
 
 public:
 
+    bool start() final;
 
-    bool start(lv_display_t* display) override;
+    bool stop() final;
 
-    bool stop() override;
+    bool supportsLvgl() const final { return true; }
 
+    bool startLvgl(lv_display_t* display) final;
 
-    lv_indev_t* _Nullable getLvglIndev() override { return lvglDevice; }
+    bool stopLvgl() final;
+
+    lv_indev_t* _Nullable getLvglIndev() final { return lvglDevice; }
+
+    std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() final;
 };
