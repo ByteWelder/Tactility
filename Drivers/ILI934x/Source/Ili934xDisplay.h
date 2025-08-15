@@ -72,11 +72,11 @@ private:
 
     std::unique_ptr<Configuration> configuration;
 
-    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle);
+    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;
 
-    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle);
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
 
-    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle);
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
 
 public:
 

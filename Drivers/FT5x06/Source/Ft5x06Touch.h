@@ -56,7 +56,7 @@ private:
 
     bool createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& configuration, esp_lcd_touch_handle_t& panelHandle) override;
 
-    esp_lcd_touch_config_t createEspLcdTouchConfig();
+    esp_lcd_touch_config_t createEspLcdTouchConfig() override;
 
 public:
 
