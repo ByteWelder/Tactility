@@ -1,9 +1,11 @@
 #pragma once
 
-#include <lvgl.h>
+namespace tt::lvgl {
 
-#include "./Colors.h"
+bool isStarted();
 
-void startLvgl();
+void start();
 
-void stopLvgl();
+void stop();
+
+}

@@ -32,16 +32,11 @@ void GuiService::onLoaderMessage(const void* message, TT_UNUSED void* context) {
 }
 
 int32_t GuiService::guiMain() {
-    State service_state;
     while (true) {
         uint32_t flags = Thread::awaitFlags(GUI_THREAD_FLAG_ALL, EventFlag::WaitAny, (uint32_t)portMAX_DELAY);
 
-        // When service (state) not found -> exit
-        if (!getState(manifest.id, service_state)) {
-            break;
-        }
-
         // When service not started or starting -> exit
+        State service_state = getState(manifest.id);
         if (service_state != State::Started && service_state != State::Starting) {
             break;
         }

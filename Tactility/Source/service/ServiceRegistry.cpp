@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <Tactility/app/AppInstance.h>
 
 namespace tt::service {
 
@@ -98,7 +99,7 @@ bool stopService(const std::string& id) {
     TT_LOG_I(TAG, "Stopping %s", id.c_str());
     auto service_instance = findServiceInstanceById(id);
     if (service_instance == nullptr) {
-        TT_LOG_W(TAG, "service not running: %s", id.c_str());
+        TT_LOG_W(TAG, "Service not running: %s", id.c_str());
         return false;
     }
 
@@ -119,15 +120,12 @@ bool stopService(const std::string& id) {
     return true;
 }
 
-bool getState(const std::string& id, State& state) {
+State getState(const std::string& id) {
     auto service_instance = findServiceInstanceById(id);
     if (service_instance == nullptr) {
-        TT_LOG_W(TAG, "service not running: %s", id.c_str());
-        return false;
-    } else {
-        state = service_instance->getState();
-        return true;
+        return State::Stopped;
     }
+    return service_instance->getState();
 }
 
 } // namespace
