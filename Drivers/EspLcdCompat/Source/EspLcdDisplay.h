@@ -9,11 +9,11 @@
 
 class EspLcdDisplay : tt::hal::display::DisplayDevice {
 
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* lvglDisplay = nullptr;
-    lvgl_port_display_cfg_t lvglPortDisplayConfig;
-    std::shared_ptr<tt::hal::display::NativeDisplay> nativeDisplay;
+    esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
+    esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
+    lv_display_t* _Nullable lvglDisplay = nullptr;
+    lvgl_port_display_cfg_t _Nullable lvglPortDisplayConfig;
+    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable nativeDisplay;
 
 protected:
 
