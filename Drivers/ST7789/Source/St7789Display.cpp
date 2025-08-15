@@ -9,7 +9,7 @@
 
 #define TAG "ST7789"
 
-bool St7789Display::start() {
+bool St7789Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     TT_LOG_I(TAG, "Starting");
 
     const esp_lcd_panel_io_spi_config_t panel_io_config = {
@@ -36,10 +36,15 @@ bool St7789Display::start() {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &ioHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &outHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }
+
+    return true;
+}
+
+bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin,
@@ -88,29 +93,10 @@ bool St7789Display::start() {
     }
 
     TT_LOG_I(TAG, "Finished");
-    return panelHandle != nullptr;
-}
-
-bool St7789Display::stop() {
-    if (getLvglDisplay() != nullptr) {
-        stopLvgl();
-    }
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
-        return false;
-    }
-
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
-    displayHandle = nullptr;
     return true;
 }
 
-bool St7789Display::startLvgl() {
-    assert(displayHandle == nullptr);
-
+lvgl_port_display_cfg_t St7789Display::getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
     uint32_t buffer_size;
     if (configuration->bufferSize == 0) {
         buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
@@ -118,7 +104,7 @@ bool St7789Display::startLvgl() {
         buffer_size = configuration->bufferSize;
     }
 
-    const lvgl_port_display_cfg_t disp_cfg = {
+    return lvgl_port_display_cfg_t {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
@@ -143,21 +129,7 @@ bool St7789Display::startLvgl() {
             .direct_mode = false
         }
     };
-
-    displayHandle = lvgl_port_add_disp(&disp_cfg);
-    return displayHandle != nullptr;
 }
-
-bool St7789Display::stopLvgl() {
-    if (displayHandle == nullptr) {
-        return false;
-    } else {
-        lvgl_port_remove_disp(displayHandle);
-        displayHandle = nullptr;
-        return true;
-    }
-}
-
 /**
  * Note:
  * The datasheet implies this should work, but it doesn't:
@@ -190,7 +162,9 @@ void St7789Display::setGammaCurve(uint8_t index) {
         gamma_curve
     };
 
-    if (esp_lcd_panel_io_tx_param(ioHandle , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
+    auto io_handle = getIoHandle();
+    assert(io_handle != nullptr);
+    if (esp_lcd_panel_io_tx_param(io_handle, LCD_CMD_GAMSET, param, 1) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set gamma");
     }
 }

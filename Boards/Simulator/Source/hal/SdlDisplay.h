@@ -4,6 +4,9 @@
 #include "Tactility/hal/display/DisplayDevice.h"
 #include <memory>
 
+#include 
+#include 
+
 /** Hack: variable comes from LvglTask.cpp */
 extern lv_disp_t* displayHandle;
 

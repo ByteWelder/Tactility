@@ -1,8 +1,7 @@
 #pragma once
 
+#include <EspLcdDisplay.h>
 #include <Tactility/hal/display/DisplayDevice.h>
-
-#include <EspLcdNativeDisplay.h>
 
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
@@ -10,7 +9,7 @@
 #include <functional>
 #include <lvgl.h>
 
-class St7789Display final : public tt::hal::display::DisplayDevice {
+class St7789Display final : public EspLcdDisplay {
 
 public:
 
@@ -63,9 +62,6 @@ public:
 private:
 
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
 
 public:
 
@@ -76,11 +72,13 @@ public:
     std::string getName() const override { return "ST7789"; }
     std::string getDescription() const override { return "ST7789 display"; }
 
-    bool start() override;
+    bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
 
-    bool stop() override;
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override { return configuration->touch; }
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
+
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
     void setBacklightDuty(uint8_t backlightDuty) override {
         if (configuration->backlightDutyFunction != nullptr) {
@@ -92,35 +90,6 @@ public:
 
     void setGammaCurve(uint8_t index) override;
     uint8_t getGammaCurveCount() const override { return 4; };
-
-    // region LVGL
-
-    bool supportsLvgl() const override { return true; }
-
-    bool startLvgl() override;
-
-    bool stopLvgl() override;
-
-    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
-
-    // endregion
-
-    // region NativedDisplay
-
-    bool supportsNativeDisplay() const override { return true; }
-
-    std::shared_ptr<tt::hal::display::NativeDisplay> getNativeDisplay() override {
-        assert(displayHandle == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
-
-        return std::make_shared<tt::hal::display::EspLcdNativeDisplay>(
-            panelHandle,
-            tt::hal::display::ColorFormat::RGB565,
-            configuration->horizontalResolution,
-            configuration->verticalResolution
-        );
-    }
-
-    // endregion
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

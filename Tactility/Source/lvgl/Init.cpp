@@ -43,18 +43,6 @@ static std::shared_ptr<hal::display::DisplayDevice> initDisplay(const hal::Confi
     return display;
 }
 
-static bool initTouch(const std::shared_ptr<hal::display::DisplayDevice>& display, const std::shared_ptr<hal::touch::TouchDevice>& touch) {
-    TT_LOG_I(TAG, "Touch init");
-    assert(display);
-    assert(touch);
-    if (touch->start(display->getLvglDisplay())) {
-        return true;
-    } else {
-        TT_LOG_E(TAG, "Touch init failed");
-        return false;
-    }
-}
-
 static bool initKeyboard(const std::shared_ptr<hal::display::DisplayDevice>& display, const std::shared_ptr<hal::keyboard::KeyboardDevice>& keyboard) {
     TT_LOG_I(TAG, "Keyboard init");
     assert(display);
@@ -93,10 +81,9 @@ void init(const hal::Configuration& config) {
     }
     hal::registerDevice(display);
 
-    auto touch = display->createTouch();
+    auto touch = display->getTouchDevice();
     if (touch != nullptr) {
         hal::registerDevice(touch);
-        initTouch(display, touch);
     }
 
     if (config.createKeyboard) {
