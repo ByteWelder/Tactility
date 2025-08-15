@@ -7,7 +7,7 @@
 #include <Tactility/LogEsp.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 
-constexpr char* TAG = "EspLcdDisplay";
+constexpr const char* TAG = "EspLcdDisplay";
 
 EspLcdDisplay::~EspLcdDisplay() {
     if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
@@ -59,7 +59,13 @@ bool EspLcdDisplay::startLvgl() {
     }
 
     lvglPortDisplayConfig = getLvglPortDisplayConfig(ioHandle, panelHandle);
-    lvglDisplay = lvgl_port_add_disp(&lvglPortDisplayConfig);
+
+    if (isRgbPanel()) {
+        auto rgb_config = getLvglPortDisplayRgbConfig(ioHandle, panelHandle);
+        lvglDisplay = lvgl_port_add_disp_rgb(&lvglPortDisplayConfig, &rgb_config);
+    } else {
+        lvglDisplay = lvgl_port_add_disp(&lvglPortDisplayConfig);
+    }
 
     auto touch_device = getTouchDevice();
     if (touch_device != nullptr) {

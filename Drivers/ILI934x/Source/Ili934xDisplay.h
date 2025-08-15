@@ -9,7 +9,9 @@
 #include <functional>
 #include <lvgl.h>
 
-class Ili934xDisplay final : public tt::hal::display::DisplayDevice {
+#include <EspLcdDisplay.h>
+
+class Ili934xDisplay final : public EspLcdDisplay {
 
 public:
 
@@ -41,8 +43,12 @@ public:
             invertColor(invertColor),
             bufferSize(bufferSize),
             rgbElementOrder(rgbElementOrder),
-            touch(std::move(touch))
-        {}
+            touch(std::move(touch)
+        ) {
+            if (this->bufferSize == 0) {
+                this->bufferSize = horizontalResolution * verticalResolution / 10;
+            }
+        }
 
         esp_lcd_spi_bus_handle_t spiBusHandle;
         gpio_num_t csPin;
@@ -65,9 +71,12 @@ public:
 private:
 
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
+
+    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle);
+
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle);
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle);
 
 public:
 
@@ -75,25 +84,21 @@ public:
         assert(configuration != nullptr);
     }
 
-    std::string getName() const final { return "ILI934x"; }
-    std::string getDescription() const final { return "ILI934x display"; }
+    std::string getName() const override { return "ILI934x"; }
 
-    bool start() final;
+    std::string getDescription() const override { return "ILI934x display"; }
 
-    bool stop() final;
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { return configuration->touch; }
-
-    void setBacklightDuty(uint8_t backlightDuty) final {
+    void setBacklightDuty(uint8_t backlightDuty) override {
         if (configuration->backlightDutyFunction != nullptr) {
             configuration->backlightDutyFunction(backlightDuty);
         }
     }
 
-    bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
+    bool supportsBacklightDuty() const override { return configuration->backlightDutyFunction != nullptr; }
 
-    void setGammaCurve(uint8_t index) final;
-    uint8_t getGammaCurveCount() const final { return 4; };
+    void setGammaCurve(uint8_t index) override;
 
-    lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
+    uint8_t getGammaCurveCount() const override { return 4; };
 };

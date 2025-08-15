@@ -92,7 +92,6 @@ bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
         return false;
     }
 
-    TT_LOG_I(TAG, "Finished");
     return true;
 }
 

@@ -14,7 +14,7 @@ bool initBoot() {
 
     // This display has a weird glitch with gamma during boot, which results in uneven dark gray colours.
     // Setting gamma curve index to 0 doesn't work at boot for an unknown reason, so we set the curve index to 1:
-    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootInitLvglEnd, [](auto event) {
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](auto) {
         auto display = tt::hal::findFirstDevice<tt::hal::display::DisplayDevice>(tt::hal::Device::Type::Display);
         assert(display != nullptr);
         tt::lvgl::lock(portMAX_DELAY);

@@ -4,6 +4,7 @@
 
 #include <esp_lcd_types.h>
 #include <esp_lvgl_port_disp.h>
+#include <Tactility/Check.h>
 #include <Tactility/hal/display/NativeDisplay.h>
 
 class EspLcdDisplay : tt::hal::display::DisplayDevice {
@@ -24,6 +25,10 @@ protected:
     virtual bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) = 0;
 
     virtual lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) = 0;
+
+    virtual bool isRgbPanel() const { return false; }
+
+    virtual lvgl_port_display_rgb_cfg_t getLvglPortDisplayRgbConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) { tt_crash("Not supported"); }
 
 public:
 

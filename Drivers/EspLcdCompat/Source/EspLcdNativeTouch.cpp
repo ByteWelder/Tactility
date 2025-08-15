@@ -2,7 +2,7 @@
 
 #include <Tactility/LogEsp.h>
 
-constexpr char* TAG = "EspLcdNativeTouch";
+constexpr const char* TAG = "EspLcdNativeTouch";
 
 bool EspLcdNativeTouch::getTouchedPoints(uint16_t* x, uint16_t* y, uint16_t* _Nullable strength, uint8_t* pointCount, uint8_t maxPointCount) {
     if (esp_lcd_touch_read_data(handle) != ESP_OK) {

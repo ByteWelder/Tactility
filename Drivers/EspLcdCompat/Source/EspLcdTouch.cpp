@@ -4,7 +4,7 @@
 #include <esp_lvgl_port_touch.h>
 #include <Tactility/LogEsp.h>
 
-constexpr char* TAG = "EspLcdTouch";
+constexpr const char* TAG = "EspLcdTouch";
 
 bool EspLcdTouch::start() {
     if (!createIoHandle(ioHandle) != ESP_OK) {
