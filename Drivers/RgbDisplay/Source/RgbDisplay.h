@@ -51,22 +51,30 @@ public:
             mirrorX(mirrorX),
             mirrorY(mirrorY),
             invertColor(invertColor),
-            backlightDutyFunction(std::move(backlightDutyFunction))
-        {}
+            backlightDutyFunction(std::move(backlightDutyFunction)) {
+            if (this->bufferConfiguration.size == 0) {
+                auto horizontal_resolution = panelConfig.timings.h_res;
+                auto vertical_resolution = panelConfig.timings.v_res;
+                this->bufferConfiguration.size = horizontal_resolution * vertical_resolution / 15;
+            }
+        }
     };
 
 private:
 
-    std::unique_ptr<Configuration> configuration = nullptr;
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
+    std::unique_ptr<Configuration> _Nullable configuration = nullptr;
+    esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
+    esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
+    lv_display_t* _Nullable lvglDisplay = nullptr;
+    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable nativeDisplay;
 
 public:
 
     explicit RgbDisplay(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
         assert(configuration != nullptr);
     }
+
+    ~RgbDisplay();
 
     std::string getName() const final { return "RGB Display"; }
     std::string getDescription() const final { return "RGB Display"; }
@@ -75,7 +83,13 @@ public:
 
     bool stop() override;
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { return configuration->touch; }
+    bool supportsLvgl() const override { return true; }
+
+    bool startLvgl() override;
+
+    bool stopLvgl() override;
+
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() final { return configuration->touch; }
 
     void setBacklightDuty(uint8_t backlightDuty) final {
         if (configuration->backlightDutyFunction != nullptr) {
@@ -85,7 +99,7 @@ public:
 
     bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
 
-    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
+    lv_display_t* _Nullable getLvglDisplay() const override { return lvglDisplay; }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

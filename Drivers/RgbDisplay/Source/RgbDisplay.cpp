@@ -6,8 +6,16 @@
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port.h>
+#include <Tactility/Check.h>
+#include <Tactility/hal/touch/TouchDevice.h>
 
-#define TAG "RgbDisplay"
+constexpr auto TAG = "RgbDisplay";
+
+RgbDisplay::~RgbDisplay() {
+    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
+        tt_crash("NativeDisplay is still in use. This will cause memory access violations.");
+    }
+}
 
 bool RgbDisplay::start() {
     TT_LOG_I(TAG, "Starting");
@@ -42,25 +50,47 @@ bool RgbDisplay::start() {
         return false;
     }
 
-    auto horizontal_resolution = configuration->panelConfig.timings.h_res;
-    auto vertical_resolution = configuration->panelConfig.timings.v_res;
+    return true;
+}
 
-    uint32_t buffer_size;
-    if (configuration->bufferConfiguration.size == 0) {
-        buffer_size = horizontal_resolution * vertical_resolution / 15;
-    } else {
-        buffer_size = configuration->bufferConfiguration.size;
+bool RgbDisplay::stop() {
+    if (lvglDisplay != nullptr) {
+        stopLvgl();
+        lvglDisplay = nullptr;
+    }
+
+    if (panelHandle != nullptr && esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (ioHandle != nullptr && esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
+        TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    }
+
+    return true;
+}
+
+
+bool RgbDisplay::startLvgl() {
+    assert(lvglDisplay == nullptr);
+
+    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
+        TT_LOG_W(TAG, "NativeDisplay is still in use.");
     }
 
     const lvgl_port_display_cfg_t display_config = {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = buffer_size,
+        .buffer_size = configuration->bufferConfiguration.size,
         .double_buffer = configuration->bufferConfiguration.doubleBuffer,
         .trans_size = 0,
-        .hres = horizontal_resolution,
-        .vres = vertical_resolution,
+        .hres = configuration->panelConfig.timings.h_res,
+        .vres = configuration->panelConfig.timings.v_res,
         .monochrome = false,
         .rotation = {
             .swap_xy = configuration->swapXY,
@@ -85,25 +115,28 @@ bool RgbDisplay::start() {
         }
     };
 
-    displayHandle = lvgl_port_add_disp_rgb(&display_config, &rgb_config);
+    lvglDisplay = lvgl_port_add_disp_rgb(&display_config, &rgb_config);
     TT_LOG_I(TAG, "Finished");
 
-    return displayHandle != nullptr;
+    auto touch_device = getTouchDevice();
+    if (touch_device != nullptr) {
+        touch_device->startLvgl(lvglDisplay);
+    }
+
+    return lvglDisplay != nullptr;
 }
 
-bool RgbDisplay::stop() {
-    assert(displayHandle != nullptr);
-
-    lvgl_port_remove_disp(displayHandle);
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
+bool RgbDisplay::stopLvgl() {
+    if (lvglDisplay == nullptr) {
         return false;
     }
 
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
+    auto touch_device = getTouchDevice();
+    if (touch_device != nullptr) {
+        touch_device->stopLvgl();
     }
 
-    displayHandle = nullptr;
+    lvgl_port_remove_disp(lvglDisplay);
+    lvglDisplay = nullptr;
     return true;
 }
