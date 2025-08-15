@@ -5,8 +5,6 @@
 #include <PwmBacklight.h>
 #include <St7789Display.h>
 
-#define TAG "crowpanel_display"
-
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
     auto configuration = std::make_unique<Ft5x06Touch::Configuration>(
@@ -39,5 +37,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
 
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
 
-    return std::make_shared<St7789Display>(std::move(configuration));
+    auto display = std::make_shared<St7789Display>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

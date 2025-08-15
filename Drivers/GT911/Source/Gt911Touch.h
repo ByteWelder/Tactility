@@ -4,9 +4,7 @@
 #include <Tactility/TactilityCore.h>
 #include <driver/i2c.h>
 
-#include <esp_lcd_touch.h>
-
-#include "../../EspLcdCompat/Source/EspLcdTouch.h"
+#include <EspLcdTouch.h>
 
 class Gt911Touch final : public EspLcdTouch {
 
