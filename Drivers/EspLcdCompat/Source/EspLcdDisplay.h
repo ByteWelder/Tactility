@@ -47,9 +47,8 @@ public:
 
     // region NativedDisplay
 
-    bool supportsNativeDisplay() const final { return true; }
-
-    std::shared_ptr<tt::hal::display::NativeDisplay> getNativeDisplay() final;
+    /** @return a NativeDisplay if this device supports it */
+    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable getNativeDisplay() final;
 
     // endregion
 };

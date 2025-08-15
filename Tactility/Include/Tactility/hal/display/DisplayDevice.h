@@ -43,8 +43,7 @@ public:
     virtual bool startLvgl() { return false; }
     virtual bool stopLvgl() { return false; }
 
-    virtual bool supportsNativeDisplay() const { return false; }
-    virtual std::shared_ptr<NativeDisplay> getNativeDisplay() { return nullptr; }
+    virtual std::shared_ptr<NativeDisplay> _Nullable getNativeDisplay() { return nullptr; }
 };
 
 } // namespace tt::hal::display
