@@ -7,7 +7,7 @@
 #include <esp_lcd_panel_st7789.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "ST7789"
+constexpr auto TAG = "ST7789";
 
 bool St7789Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     TT_LOG_I(TAG, "Starting");
@@ -96,18 +96,11 @@ bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
 }
 
 lvgl_port_display_cfg_t St7789Display::getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
-    uint32_t buffer_size;
-    if (configuration->bufferSize == 0) {
-        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
-    } else {
-        buffer_size = configuration->bufferSize;
-    }
-
     return lvgl_port_display_cfg_t {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = buffer_size,
+        .buffer_size = configuration->bufferSize,
         .double_buffer = false,
         .trans_size = 0,
         .hres = configuration->horizontalResolution,

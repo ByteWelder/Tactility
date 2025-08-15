@@ -3,8 +3,6 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 
-#include <esp_vfs_fat.h>
-
 using tt::hal::sdcard::SpiSdCardDevice;
 
 std::shared_ptr<SdCardDevice> createSdCard() {

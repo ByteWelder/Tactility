@@ -40,7 +40,11 @@ public:
             invertColor(invertColor),
             bufferSize(bufferSize),
             touch(std::move(touch))
-        {}
+        {
+            if (this->bufferSize == 0) {
+                this->bufferSize = horizontalResolution * verticalResolution / 10;
+            }
+        }
 
         esp_lcd_spi_bus_handle_t spiBusHandle;
         gpio_num_t csPin;
@@ -63,6 +67,12 @@ private:
 
     std::unique_ptr<Configuration> configuration;
 
+    bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
+
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
+
 public:
 
     explicit St7789Display(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
@@ -70,13 +80,8 @@ public:
     }
 
     std::string getName() const override { return "ST7789"; }
+
     std::string getDescription() const override { return "ST7789 display"; }
-
-    bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
-
-    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
-
-    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
