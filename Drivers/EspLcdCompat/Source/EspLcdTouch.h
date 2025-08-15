@@ -15,6 +15,8 @@ class EspLcdTouch : public tt::hal::touch::TouchDevice {
 
 protected:
 
+    esp_lcd_touch_handle_t _Nullable getTouchHandle() const { return touchHandle; }
+
     virtual bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) = 0;
 
     virtual bool createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& configuration, esp_lcd_touch_handle_t& touchHandle) = 0;
