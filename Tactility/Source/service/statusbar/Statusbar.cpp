@@ -130,20 +130,18 @@ static _Nullable const char* getPowerStatusIcon() {
 
 class StatusbarService final : public Service {
 
-private:
-
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
-    int8_t gps_icon_id = lvgl::statusbar_icon_add();
+    int8_t gps_icon_id;
     bool gps_last_state = false;
-    int8_t wifi_icon_id = lvgl::statusbar_icon_add();
+    int8_t wifi_icon_id;
     const char* wifi_last_icon = nullptr;
-    int8_t sdcard_icon_id = lvgl::statusbar_icon_add();
+    int8_t sdcard_icon_id;
     const char* sdcard_last_icon = nullptr;
-    int8_t power_icon_id = lvgl::statusbar_icon_add();
+    int8_t power_icon_id;
     const char* power_last_icon = nullptr;
 
-    std::unique_ptr<service::Paths> paths;
+    std::unique_ptr<Paths> paths;
 
     void lock() const {
         mutex.lock();
@@ -154,7 +152,7 @@ private:
     }
 
     void updateGpsIcon() {
-        auto gps_state = service::gps::findGpsService()->getState();
+        auto gps_state = gps::findGpsService()->getState();
         bool show_icon = (gps_state == gps::State::OnPending) || (gps_state == gps::State::On);
         if (gps_last_state != show_icon) {
             if (show_icon) {
@@ -199,7 +197,7 @@ private:
     }
 
     void updateSdCardIcon() {
-        auto sdcard = tt::hal::getConfiguration()->sdcard;
+        auto sdcard = hal::getConfiguration()->sdcard;
         if (sdcard != nullptr) {
             auto state = sdcard->getState();
             if (state != hal::sdcard::SdCardDevice::State::Unknown) {
@@ -229,10 +227,18 @@ private:
 
 public:
 
-    ~StatusbarService() final {
+    StatusbarService() {
+        gps_icon_id = lvgl::statusbar_icon_add();
+        sdcard_icon_id = lvgl::statusbar_icon_add();
+        wifi_icon_id = lvgl::statusbar_icon_add();
+        power_icon_id = lvgl::statusbar_icon_add();
+    }
+
+    ~StatusbarService() override {
         lvgl::statusbar_icon_remove(wifi_icon_id);
         lvgl::statusbar_icon_remove(sdcard_icon_id);
         lvgl::statusbar_icon_remove(power_icon_id);
+        lvgl::statusbar_icon_remove(gps_icon_id);
     }
 
     void onStart(ServiceContext& serviceContext) override {
@@ -245,7 +251,7 @@ public:
         assert(service);
         onUpdate(service);
 
-        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
+        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service] {
             onUpdate(service);
         });
 
