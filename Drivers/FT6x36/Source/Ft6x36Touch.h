@@ -86,5 +86,7 @@ public:
         }
     };
 
+    bool supportsTouchDriver() override { return true; }
+
     std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable getTouchDriver() override { return nativeTouch; }
 };
