@@ -1,3 +1,8 @@
+#ifdef ESP_PLATFORM
+
+#include "Tactility/app/App.h"
+#include "Tactility/service/gui/GuiService.h"
+
 #include <lvgl.h>
 #include <Tactility/service/gui/GuiService.h>
 
@@ -17,3 +22,5 @@ lv_obj_t * __wrap_lv_textarea_create(lv_obj_t * parent) {
 }
 
 }
+
+#endif // ESP_PLATFORM

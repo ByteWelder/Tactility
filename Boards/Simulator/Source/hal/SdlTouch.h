@@ -4,21 +4,30 @@
 #include <Tactility/TactilityCore.h>
 
 class SdlTouch final : public tt::hal::touch::TouchDevice {
-private:
+
     lv_indev_t* _Nullable handle = nullptr;
 
 public:
 
-    std::string getName() const final { return "SDL Pointer"; }
-    std::string getDescription() const final { return "SDL mouse/touch pointer device"; }
+    std::string getName() const override { return "SDL Mouse"; }
 
-    bool start(lv_display_t* display) override {
+    std::string getDescription() const override { return "SDL mouse/touch pointer device"; }
+
+    bool start() override { }
+
+    bool stop() override { tt_crash("Not supported"); }
+
+    bool supportsLvgl() const override { return true; }
+
+    bool startLvgl(lv_display_t* display) override {
         handle = lv_sdl_mouse_create();
         return handle != nullptr;
     }
 
-    bool stop() override { tt_crash("Not supported"); }
+    bool stopLvgl() override { tt_crash("Not supported"); }
 
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
+
+    std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() override { return nullptr; };
 };
 
