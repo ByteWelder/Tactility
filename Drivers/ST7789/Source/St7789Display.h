@@ -1,6 +1,6 @@
 #pragma once
 
-#include <EspLcdDisplayDriver.h>
+#include <EspLcdDisplay.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 
 #include <driver/gpio.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <lvgl.h>
 
-class St7789Display final : public EspLcdDisplayDriver {
+class St7789Display final : public EspLcdDisplay {
 
 public:
 

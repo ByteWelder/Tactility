@@ -6,7 +6,7 @@
 
 using namespace tt::hal;
 
-class EspLcdDisplayDriver final : public display::DisplayDriver {
+class EspLcdDisplayDriver : public display::DisplayDriver {
 
     esp_lcd_panel_handle_t panelHandle;
     const lvgl_port_display_cfg_t& lvglPortDisplayConfig;
@@ -39,5 +39,6 @@ public:
     }
 
     uint16_t getPixelWidth() const override { return lvglPortDisplayConfig.hres; }
+
     uint16_t getPixelHeight() const override { return lvglPortDisplayConfig.vres; }
 };
