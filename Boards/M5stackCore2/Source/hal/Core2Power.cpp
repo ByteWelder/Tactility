@@ -2,7 +2,7 @@
 #include <Tactility/TactilityCore.h>
 #include "axp192/axp192.h"
 
-#define TAG "core2_power"
+constexpr auto TAG = "Core2Power";
 
 extern axp192_t axpDevice;
 

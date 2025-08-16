@@ -2,11 +2,28 @@
 #include "Xpt2046Touch.h"
 
 #include <Tactility/Log.h>
+#include <Tactility/hal/Device.h>
 
-#define TAG "xpt2046_power"
+constexpr auto TAG = "Xpt2046Power";
+constexpr auto BATTERY_VOLTAGE_MIN = 3.2f;
+constexpr auto BATTERY_VOLTAGE_MAX = 4.2f;
+constexpr auto MAX_VOLTAGE_SAMPLES = 15;
 
-#define BATTERY_VOLTAGE_MIN 3.2f
-#define BATTERY_VOLTAGE_MAX 4.2f
+static std::shared_ptr<Xpt2046Touch> findXp2046TouchDevice() {
+    // Make a safe copy
+    auto touch = tt::hal::findFirstDevice<tt::hal::touch::TouchDevice>(tt::hal::Device::Type::Touch);
+    if (touch == nullptr) {
+        TT_LOG_E(TAG, "Touch device not found");
+        return nullptr;
+    }
+
+    if (touch->getName() != "XPT2046") {
+        TT_LOG_E(TAG, "Touch device name mismatch");
+        return nullptr;
+    }
+
+    return std::reinterpret_pointer_cast<Xpt2046Touch>(touch);
+}
 
 static uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) {
     float volts = std::min((float)milliVolt / 1000.f, BATTERY_VOLTAGE_MAX);
@@ -47,25 +64,26 @@ bool Xpt2046Power::getMetric(MetricType type, MetricData& data) {
     }
 }
 
-bool Xpt2046Power::readBatteryVoltageOnce(uint32_t& output) const {
-    // Make a safe copy
-    auto touch = Xpt2046Touch::getInstance();
-    if (touch != nullptr) {
-        float vbat;
-        if (touch->getVBat(vbat)) {
-            // Convert to mV
-            output = (uint32_t)(vbat * 1000.f);
-            return true;
+bool Xpt2046Power::readBatteryVoltageOnce(uint32_t& output) {
+    if (xptTouch == nullptr) {
+        xptTouch = findXp2046TouchDevice();
+        if (xptTouch == nullptr) {
+            TT_LOG_E(TAG, "XPT2046 touch device not found");
+            return false;
         }
     }
 
-    return false;
+    float vbat;
+    if (!xptTouch->getVBat(vbat)) {
+        return false;
+    }
+
+    // Convert to mV
+    output = (uint32_t)(vbat * 1000.f);
+    return true;
 }
 
-
-#define MAX_VOLTAGE_SAMPLES 15
-
-bool Xpt2046Power::readBatteryVoltageSampled(uint32_t& output) const {
+bool Xpt2046Power::readBatteryVoltageSampled(uint32_t& output) {
     size_t samples_read = 0;
     uint32_t sample_accumulator = 0;
     uint32_t sample_read_buffer;

@@ -48,12 +48,4 @@ bool hardware_keyboard_is_available();
  */
 void hardware_keyboard_set_indev(lv_indev_t* device);
 
-/**
- * Glue code for the on-screen keyboard and the hardware keyboard:
- *  - Attach automatic hide/show parameters for the on-screen keyboard.
- *  - Registers the textarea to the default lv_group_t for hardware keyboards.
- * @param[in] textarea
- */
-void keyboard_add_textarea(lv_obj_t* textarea);
-
 }

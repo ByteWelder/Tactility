@@ -30,8 +30,4 @@ void tt_lvgl_hardware_keyboard_set_indev(lv_indev_t* device) {
     tt::lvgl::hardware_keyboard_set_indev(device);
 }
 
-void tt_lvgl_keyboard_add_textarea(lv_obj_t* textarea) {
-    tt::lvgl::keyboard_add_textarea(textarea);
-}
-
 }

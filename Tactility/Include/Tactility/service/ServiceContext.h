@@ -22,8 +22,8 @@ protected:
 
 public:
 
-    /** @return a reference ot the service's manifest */
-    virtual const service::ServiceManifest& getManifest() const = 0;
+    /** @return a reference to the service's manifest */
+    virtual const ServiceManifest& getManifest() const = 0;
 
     /** Retrieve the paths that are relevant to this service */
     virtual std::unique_ptr<Paths> getPaths() const = 0;

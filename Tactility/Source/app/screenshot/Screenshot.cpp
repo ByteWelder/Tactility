@@ -9,8 +9,6 @@
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/gui/Gui.h"
-#include "Tactility/service/loader/Loader.h"
 #include "Tactility/service/screenshot/Screenshot.h"
 
 #include <Tactility/TactilityHeadless.h>
@@ -39,7 +37,7 @@ class ScreenshotApp final : public App {
 public:
 
     ScreenshotApp();
-    ~ScreenshotApp() final;
+    ~ScreenshotApp();
 
     void onShow(AppContext& app, lv_obj_t* parent) override;
     void onStartPressed();
@@ -270,9 +268,6 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
     createModeSettingWidgets(wrapper);
     createFilePathWidgets(wrapper);
     createTimerSettingsWidgets(wrapper);
-
-    service::gui::keyboardAddTextArea(delayTextArea);
-    service::gui::keyboardAddTextArea(pathTextArea);
 
     updateScreenshotMode();
 

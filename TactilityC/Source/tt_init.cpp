@@ -38,7 +38,7 @@ extern double __muldf3 (double a, double b);
 extern double __divdf3 (double a, double b);
 extern int __nedf2 (double a, double b);
 
-const struct esp_elfsym elf_symbols[] {
+const esp_elfsym elf_symbols[] {
     // Hidden functions work-around
     ESP_ELFSYM_EXPORT(_ZdlPvj), // new?
     ESP_ELFSYM_EXPORT(_Znwj), // delete?
@@ -139,7 +139,6 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_deactivate),
     ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_is_available),
     ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
-    ESP_ELFSYM_EXPORT(tt_lvgl_keyboard_add_textarea),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),

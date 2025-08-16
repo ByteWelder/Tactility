@@ -6,11 +6,9 @@
 #include <esp_lcd_panel_commands.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "ili934x"
+constexpr const char* TAG = "ILI934x";
 
-bool Ili934xDisplay::start() {
-    TT_LOG_I(TAG, "Starting");
-
+bool Ili934xDisplay::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     const esp_lcd_panel_io_spi_config_t panel_io_config = {
         .cs_gpio_num = configuration->csPin,
         .dc_gpio_num = configuration->dcPin,
@@ -35,11 +33,10 @@ bool Ili934xDisplay::start() {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel");
-        return false;
-    }
+    return esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &outHandle) == ESP_OK;
+}
 
+bool Ili934xDisplay::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin,
         .rgb_ele_order = configuration->rgbElementOrder,
@@ -86,18 +83,15 @@ bool Ili934xDisplay::start() {
         return false;
     }
 
-    uint32_t buffer_size;
-    if (configuration->bufferSize == 0) {
-        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 10;
-    } else {
-        buffer_size = configuration->bufferSize;
-    }
+    return true;
+}
 
-    const lvgl_port_display_cfg_t disp_cfg = {
+lvgl_port_display_cfg_t Ili934xDisplay::getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
+    return {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = buffer_size,
+        .buffer_size = configuration->bufferSize,
         .double_buffer = false,
         .trans_size = 0,
         .hres = configuration->horizontalResolution,
@@ -118,28 +112,6 @@ bool Ili934xDisplay::start() {
             .direct_mode = false
         }
     };
-
-    displayHandle = lvgl_port_add_disp(&disp_cfg);
-
-    TT_LOG_I(TAG, "Finished");
-    return displayHandle != nullptr;
-}
-
-bool Ili934xDisplay::stop() {
-    assert(displayHandle != nullptr);
-
-    lvgl_port_remove_disp(displayHandle);
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
-        return false;
-    }
-
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
-    displayHandle = nullptr;
-    return true;
 }
 
 /**
@@ -174,7 +146,7 @@ void Ili934xDisplay::setGammaCurve(uint8_t index) {
         gamma_curve
     };
 
-    if (esp_lcd_panel_io_tx_param(ioHandle , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
+    if (esp_lcd_panel_io_tx_param(getIoHandle() , LCD_CMD_GAMSET, param, 1) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to set gamma");
     }
 }

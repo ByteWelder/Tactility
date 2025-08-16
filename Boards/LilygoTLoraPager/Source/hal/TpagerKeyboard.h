@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Tactility/TactilityCore.h>
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
 
 #include <Tca8418.h>
@@ -10,10 +9,7 @@
 
 #include <Tactility/Timer.h>
 
-
-class TpagerKeyboard : public tt::hal::keyboard::KeyboardDevice {
-
-private:
+class TpagerKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 
     lv_indev_t* _Nullable kbHandle = nullptr;
     lv_indev_t* _Nullable encHandle = nullptr;
@@ -36,13 +32,13 @@ private:
 public:
 
     TpagerKeyboard(std::shared_ptr<Tca8418> tca) : keypad(std::move(tca)) {}
-    ~TpagerKeyboard() {}
 
-    std::string getName() const final { return "T-Lora Pager Keyboard"; }
-    std::string getDescription() const final { return "I2C keyboard with encoder"; }
+    std::string getName() const override { return "T-Lora Pager Keyboard"; }
+    std::string getDescription() const override { return "T-Lora Pager I2C keyboard with encoder"; }
 
-    bool start(lv_display_t* display) override;
-    bool stop() override;
+    bool startLvgl(lv_display_t* display) override;
+    bool stopLvgl() override;
+
     bool isAttached() const override;
     lv_indev_t* _Nullable getLvglIndev() override { return kbHandle; }
 

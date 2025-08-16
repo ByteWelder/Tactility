@@ -4,10 +4,9 @@
 #include <Tactility/TactilityCore.h>
 #include <driver/i2c.h>
 
-#include <esp_lcd_panel_io_interface.h>
-#include <esp_lcd_touch.h>
+#include <EspLcdTouch.h>
 
-class Ft5x06Touch final : public tt::hal::touch::TouchDevice {
+class Ft5x06Touch final : public EspLcdTouch {
 
 public:
 
@@ -52,11 +51,12 @@ public:
 private:
 
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
-    esp_lcd_touch_handle_t _Nullable touchHandle = nullptr;
-    lv_indev_t* _Nullable deviceHandle = nullptr;
 
-    void cleanup();
+    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;
+
+    bool createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& configuration, esp_lcd_touch_handle_t& panelHandle) override;
+
+    esp_lcd_touch_config_t createEspLcdTouchConfig() override;
 
 public:
 
@@ -64,10 +64,7 @@ public:
         assert(configuration != nullptr);
     }
 
-    bool start(lv_display_t* display) override;
-    bool stop() override;
-    lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }
+    std::string getName() const override { return "FT5x06"; }
 
-    std::string getName() const final { return "FT5x06"; }
-    std::string getDescription() const final { return "I2C Touch Driver"; }
+    std::string getDescription() const override { return "FT5x06 I2C touch driver"; }
 };

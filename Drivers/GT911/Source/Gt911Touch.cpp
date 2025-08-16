@@ -5,11 +5,10 @@
 
 #include <esp_lcd_touch_gt911.h>
 #include <esp_err.h>
-#include <esp_lvgl_port.h>
 
 #define TAG "GT911"
 
-bool Gt911Touch::start(lv_display_t* display) {
+bool Gt911Touch::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
 
     /**
@@ -26,12 +25,15 @@ bool Gt911Touch::start(lv_display_t* display) {
         return false;
     }
 
-    if (esp_lcd_new_panel_io_i2c(configuration->port, &io_config, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Touch IO I2C creation failed");
-        return false;
-    }
+    return esp_lcd_new_panel_io_i2c(configuration->port, &io_config, &outHandle) == ESP_OK;
+}
 
-    esp_lcd_touch_config_t config = {
+bool Gt911Touch::createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& configuration, esp_lcd_touch_handle_t& panelHandle) {
+    return esp_lcd_touch_new_i2c_gt911(ioHandle, &configuration, &panelHandle) == ESP_OK;
+}
+
+esp_lcd_touch_config_t Gt911Touch::createEspLcdTouchConfig() {
+    return {
         .x_max = configuration->xMax,
         .y_max = configuration->yMax,
         .rst_gpio_num = configuration->pinReset,
@@ -50,43 +52,4 @@ bool Gt911Touch::start(lv_display_t* display) {
         .user_data = nullptr,
         .driver_data = nullptr
     };
-
-    if (esp_lcd_touch_new_i2c_gt911(ioHandle, &config, &touchHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Driver init failed");
-        cleanup();
-        return false;
-    }
-
-    const lvgl_port_touch_cfg_t touch_cfg = {
-        .disp = display,
-        .handle = touchHandle,
-    };
-
-    TT_LOG_I(TAG, "Adding touch to LVGL");
-    deviceHandle = lvgl_port_add_touch(&touch_cfg);
-    if (deviceHandle == nullptr) {
-        TT_LOG_E(TAG, "Adding touch failed");
-        cleanup();
-        return false;
-    }
-
-    return true;
-}
-
-bool Gt911Touch::stop() {
-    cleanup();
-    return true;
-}
-
-void Gt911Touch::cleanup() {
-    if (deviceHandle != nullptr) {
-        lv_indev_delete(deviceHandle);
-        deviceHandle = nullptr;
-        touchHandle = nullptr;
-    }
-
-    if (ioHandle != nullptr) {
-        esp_lcd_panel_io_del(ioHandle);
-        ioHandle = nullptr;
-    }
 }

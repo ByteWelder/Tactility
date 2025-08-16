@@ -3,7 +3,6 @@
 #include "Tactility/app/timezone/TimeZone.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/gui/Gui.h"
 #include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/Partitions.h>
@@ -66,8 +65,6 @@ void setResultCode(Bundle& bundle, const std::string& code) {
 
 class TimeZoneApp : public App {
 
-private:
-
     Mutex mutex;
     std::vector<TimeZoneEntry> entries;
     std::unique_ptr<Timer> updateTimer;
@@ -107,7 +104,7 @@ private:
         setResultName(*bundle, entry.name);
         setResultCode(*bundle, entry.code);
 
-        setResult(app::Result::Ok, std::move(bundle));
+        setResult(Result::Ok, std::move(bundle));
 
         service::loader::stopApp();
     }
@@ -221,7 +218,6 @@ public:
         lv_obj_add_event_cb(textarea, onTextareaValueChangedCallback, LV_EVENT_VALUE_CHANGED, this);
         filterTextareaWidget = textarea;
         lv_obj_set_flex_grow(textarea, 1);
-        service::gui::keyboardAddTextArea(textarea);
 
         auto* list = lv_list_create(parent);
         lv_obj_set_width(list, LV_PCT(100));

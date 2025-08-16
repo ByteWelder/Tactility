@@ -1,0 +1,101 @@
+#pragma once
+
+#include <Tactility/MessageQueue.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/PubSub.h>
+#include <Tactility/service/Service.h>
+
+#include "Tactility/app/AppContext.h"
+
+#include <cstdio>
+
+#include <lvgl.h>
+
+namespace tt::service::gui {
+
+#define GUI_THREAD_FLAG_DRAW (1 << 0)
+#define GUI_THREAD_FLAG_INPUT (1 << 1)
+#define GUI_THREAD_FLAG_EXIT (1 << 2)
+#define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT)
+
+class GuiService : public Service {
+
+    // Thread and lock
+    Thread* thread = nullptr;
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    PubSub::SubscriptionHandle loader_pubsub_subscription = nullptr;
+
+    // Layers and Canvas
+    lv_obj_t* appRootWidget = nullptr;
+    lv_obj_t* statusbarWidget = nullptr;
+
+    // App-specific
+    std::shared_ptr<app::AppContext> appToRender = nullptr;
+
+    lv_obj_t* _Nullable keyboard = nullptr;
+    lv_group_t* keyboardGroup = nullptr;
+
+    bool isStarted = false;
+
+    static void onLoaderMessage(const void* message, TT_UNUSED void* context);
+
+    static int32_t guiMain();
+
+    lv_obj_t* createAppViews(lv_obj_t* parent);
+
+    void redraw();
+
+    void lock() const {
+        tt_check(mutex.lock(pdMS_TO_TICKS(1000)));
+    }
+
+    void unlock() const {
+        tt_check(mutex.unlock());
+    }
+
+public:
+
+    void onStart(TT_UNUSED ServiceContext& service) override;
+
+    void onStop(TT_UNUSED ServiceContext& service) override;
+
+    void requestDraw();
+
+    void showApp(std::shared_ptr<app::AppContext> app);
+
+    void hideApp();
+
+
+    /**
+     * Show the on-screen keyboard.
+     * @param[in] textarea the textarea to focus the input for
+     */
+    void softwareKeyboardShow(lv_obj_t* textarea);
+
+    /**
+     * Hide the on-screen keyboard.
+     * Has no effect when the keyboard is not visible.
+     */
+    void softwareKeyboardHide();
+
+    /**
+     * The on-screen keyboard is only shown when both of these conditions are true:
+     *  - there is no hardware keyboard
+     *  - TT_CONFIG_FORCE_ONSCREEN_KEYBOARD is set to true in tactility_config.h
+     * @return if we should show a on-screen keyboard for text input inside our apps
+     */
+    bool softwareKeyboardIsEnabled();
+
+    /**
+     * Glue code for the on-screen keyboard and the hardware keyboard:
+     *  - Attach automatic hide/show parameters for the on-screen keyboard.
+     *  - Registers the textarea to the default lv_group_t for hardware keyboards.
+     * @param[in] textarea
+     */
+    void keyboardAddTextArea(lv_obj_t* textarea);
+
+};
+
+std::shared_ptr<GuiService> findService();
+
+} // namespace

@@ -7,6 +7,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <Tactility/app/AppInstance.h>
 
 namespace tt::service {
 
@@ -76,7 +77,9 @@ bool startService(const std::string& id) {
     service_instance_map[manifest->id] = service_instance;
     instance_mutex.unlock();
 
+    service_instance->setState(State::Starting);
     service_instance->getService()->onStart(*service_instance);
+    service_instance->setState(State::Started);
 
     TT_LOG_I(TAG, "Started %s", id.c_str());
 
@@ -96,11 +99,13 @@ bool stopService(const std::string& id) {
     TT_LOG_I(TAG, "Stopping %s", id.c_str());
     auto service_instance = findServiceInstanceById(id);
     if (service_instance == nullptr) {
-        TT_LOG_W(TAG, "service not running: %s", id.c_str());
+        TT_LOG_W(TAG, "Service not running: %s", id.c_str());
         return false;
     }
 
+    service_instance->setState(State::Stopping);
     service_instance->getService()->onStop(*service_instance);
+    service_instance->setState(State::Stopped);
 
     instance_mutex.lock();
     service_instance_map.erase(id);
@@ -113,6 +118,14 @@ bool stopService(const std::string& id) {
     TT_LOG_I(TAG, "Stopped %s", id.c_str());
 
     return true;
+}
+
+State getState(const std::string& id) {
+    auto service_instance = findServiceInstanceById(id);
+    if (service_instance == nullptr) {
+        return State::Stopped;
+    }
+    return service_instance->getState();
 }
 
 } // namespace

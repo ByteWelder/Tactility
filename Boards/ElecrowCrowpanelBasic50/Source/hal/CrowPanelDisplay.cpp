@@ -101,5 +101,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         driver::pwmbacklight::setBacklightDuty
     );
 
-    return std::make_shared<RgbDisplay>(std::move(configuration));
+    auto display = std::make_shared<RgbDisplay>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

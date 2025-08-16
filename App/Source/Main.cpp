@@ -5,7 +5,7 @@
 #include "tt_init.h"
 #endif
 
-// extern const tt::app::AppManifest hello_world_app;
+extern const tt::app::AppManifest hello_world_app;
 
 extern "C" {
 
