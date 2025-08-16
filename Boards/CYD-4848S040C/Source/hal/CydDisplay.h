@@ -1,9 +1,9 @@
 #pragma once
 
-#include <EspLcdDisplayDriver.h>
-#include <lvgl.h>
+#include <EspLcdDisplay.h>
+#include<lvgl.h>
 
-class CydDisplay final : public EspLcdDisplayDriver {
+class CydDisplay final : public EspLcdDisplay {
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable touchDevice;
 

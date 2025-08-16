@@ -20,7 +20,7 @@ public:
     bool stop() override { tt_crash("Not supported"); }
 
     bool supportsLvgl() const override { return true; }
-    bool startLvgl() override {}
+    bool startLvgl() override { return true; }
     bool stopLvgl() override { tt_crash("Not supported"); }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return std::make_shared<SdlTouch>(); }

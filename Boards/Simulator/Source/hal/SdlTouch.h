@@ -13,7 +13,7 @@ public:
 
     std::string getDescription() const override { return "SDL mouse/touch pointer device"; }
 
-    bool start() override { }
+    bool start() override { return true; }
 
     bool stop() override { tt_crash("Not supported"); }
 
@@ -27,6 +27,8 @@ public:
     bool stopLvgl() override { tt_crash("Not supported"); }
 
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
+
+    bool supportsTouchDriver() override { return false; }
 
     std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable getTouchDriver() override { return nullptr; };
 };
