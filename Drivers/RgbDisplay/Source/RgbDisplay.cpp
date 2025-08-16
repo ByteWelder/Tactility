@@ -63,12 +63,13 @@ bool RgbDisplay::stop() {
         return false;
     }
 
-    if (ioHandle != nullptr && esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
     if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
         TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    }
+
+    auto touch_device = getTouchDevice();
+    if (touch_device != nullptr) {
+        touch_device->startLvgl(lvglDisplay);
     }
 
     return true;
@@ -82,31 +83,7 @@ bool RgbDisplay::startLvgl() {
         TT_LOG_W(TAG, "NativeDisplay is still in use.");
     }
 
-    const lvgl_port_display_cfg_t display_config = {
-        .io_handle = ioHandle,
-        .panel_handle = panelHandle,
-        .control_handle = nullptr,
-        .buffer_size = configuration->bufferConfiguration.size,
-        .double_buffer = configuration->bufferConfiguration.doubleBuffer,
-        .trans_size = 0,
-        .hres = configuration->panelConfig.timings.h_res,
-        .vres = configuration->panelConfig.timings.v_res,
-        .monochrome = false,
-        .rotation = {
-            .swap_xy = configuration->swapXY,
-            .mirror_x = configuration->mirrorX,
-            .mirror_y = configuration->mirrorY,
-        },
-        .color_format = configuration->colorFormat,
-        .flags = {
-            .buff_dma = !configuration->bufferConfiguration.useSpi,
-            .buff_spiram = configuration->bufferConfiguration.useSpi,
-            .sw_rotate = false,
-            .swap_bytes = false,
-            .full_refresh = false,
-            .direct_mode = false
-        }
-    };
+    auto display_config = getLvglPortDisplayConfig();
 
     const lvgl_port_display_rgb_cfg_t rgb_config = {
         .flags = {
@@ -138,5 +115,35 @@ bool RgbDisplay::stopLvgl() {
 
     lvgl_port_remove_disp(lvglDisplay);
     lvglDisplay = nullptr;
+    
     return true;
 }
+
+lvgl_port_display_cfg_t RgbDisplay::getLvglPortDisplayConfig() const {
+    return {
+        .io_handle = nullptr,
+        .panel_handle = panelHandle,
+        .control_handle = nullptr,
+        .buffer_size = configuration->bufferConfiguration.size,
+        .double_buffer = configuration->bufferConfiguration.doubleBuffer,
+        .trans_size = 0,
+        .hres = configuration->panelConfig.timings.h_res,
+        .vres = configuration->panelConfig.timings.v_res,
+        .monochrome = false,
+        .rotation = {
+            .swap_xy = configuration->swapXY,
+            .mirror_x = configuration->mirrorX,
+            .mirror_y = configuration->mirrorY,
+        },
+        .color_format = configuration->colorFormat,
+        .flags = {
+            .buff_dma = !configuration->bufferConfiguration.useSpi,
+            .buff_spiram = configuration->bufferConfiguration.useSpi,
+            .sw_rotate = false,
+            .swap_bytes = false,
+            .full_refresh = false,
+            .direct_mode = false
+        }
+    };
+}
+

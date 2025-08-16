@@ -1,14 +1,10 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
-
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <EspLcdNativeDisplay.h>
 #include <esp_lcd_panel_rgb.h>
-#include <esp_lcd_types.h>
-#include <lvgl.h>
 
-#include <utility>
-
-class RgbDisplay : public tt::hal::display::DisplayDevice {
+class RgbDisplay final : public display::DisplayDevice {
 
 public:
 
@@ -25,7 +21,7 @@ public:
 
         esp_lcd_rgb_panel_config_t panelConfig;
         BufferConfiguration bufferConfiguration;
-        std::shared_ptr<tt::hal::touch::TouchDevice> touch;
+        std::shared_ptr<touch::TouchDevice> touch;
         lv_color_format_t colorFormat;
         bool swapXY;
         bool mirrorX;
@@ -36,7 +32,7 @@ public:
         Configuration(
             esp_lcd_rgb_panel_config_t panelConfig,
             BufferConfiguration bufferConfiguration,
-            std::shared_ptr<tt::hal::touch::TouchDevice> touch,
+            std::shared_ptr<touch::TouchDevice> touch,
             lv_color_format_t colorFormat,
             bool swapXY = false,
             bool mirrorX = false,
@@ -63,10 +59,11 @@ public:
 private:
 
     std::unique_ptr<Configuration> _Nullable configuration = nullptr;
-    esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
     esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
     lv_display_t* _Nullable lvglDisplay = nullptr;
-    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable nativeDisplay;
+    std::shared_ptr<display::NativeDisplay> _Nullable nativeDisplay;
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig() const;
 
 public:
 
@@ -76,8 +73,8 @@ public:
 
     ~RgbDisplay();
 
-    std::string getName() const final { return "RGB Display"; }
-    std::string getDescription() const final { return "RGB Display"; }
+    std::string getName() const override { return "RGB Display"; }
+    std::string getDescription() const override { return "RGB Display"; }
 
     bool start() override;
 
@@ -89,17 +86,26 @@ public:
 
     bool stopLvgl() override;
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() final { return configuration->touch; }
+    std::shared_ptr<touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
-    void setBacklightDuty(uint8_t backlightDuty) final {
+    void setBacklightDuty(uint8_t backlightDuty) override {
         if (configuration->backlightDutyFunction != nullptr) {
             configuration->backlightDutyFunction(backlightDuty);
         }
     }
 
-    bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
+    bool supportsBacklightDuty() const override { return configuration->backlightDutyFunction != nullptr; }
 
     lv_display_t* _Nullable getLvglDisplay() const override { return lvglDisplay; }
+
+    bool supportsNativeDisplay() const override { return true; }
+
+    std::shared_ptr<display::NativeDisplay> _Nullable getNativeDisplay() override {
+        if (nativeDisplay == nullptr) {
+            nativeDisplay = std::make_shared<EspLcdNativeDisplay>(panelHandle, getLvglPortDisplayConfig());
+        }
+        return nativeDisplay;
+    }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
