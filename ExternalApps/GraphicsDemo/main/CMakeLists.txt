@@ -1,6 +1,7 @@
 file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 
 idf_component_register(
-    SRCS ${SOURCE_FILES}
+    SRC_DIRS "Source"
+    INCLUDE_DIRS "Include"
     REQUIRES TactilitySDK
 )

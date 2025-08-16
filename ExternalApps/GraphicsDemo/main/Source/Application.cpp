@@ -1,14 +1,10 @@
-#include "esp_log.h"
+#include "Application.h"
 
-#include <tt_app.h>
-#include <tt_hal_device.h>
-#include <tt_hal_display.h>
+#include <cstdlib>
+#include <cstring>
 #include <tt_kernel.h>
-#include <tt_lvgl.h>
 
-constexpr auto TAG = "GraphicsDemo";
-
-const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST uint8_t logo[] = {
+const uint8_t logo[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0xf4, 0x38, 0xf4, 0x78, 0xf4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0xf4, 0x18, 0xf4, 0x18, 0xf4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x18, 0xf4, 0x18, 0xf4, 0x18, 0xf4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -35,49 +31,47 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST uint8_t logo[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x06, 0xff, 0x05, 0xff, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-static void onCreate(AppHandle appHandle, void* data) {
-    DeviceId deviceId = 0;
-    uint16_t count = 0;
-    if (!tt_hal_device_find(DEVICE_TYPE_DISPLAY, &deviceId, &count, 1)) {
-        ESP_LOGI(TAG, "No display device found");
-        tt_app_stop();
-        return;
-    }
-
-    if (!tt_hal_display_driver_supported(deviceId)) {
-        ESP_LOGI(TAG, "Display doesn't support driver interface");
-        tt_app_stop();
-        return;
-    }
-
-    tt_lvgl_stop();
-
-    auto* driver = tt_hal_display_driver_alloc(deviceId);
-    tt_hal_display_driver_draw_bitmap(driver, 0, 0, 24, 24, logo);
-    tt_hal_display_driver_free(driver);
-
-    tt_kernel_delay_millis(2000);
-
-    tt_app_stop();
+static void waitForTouch(TouchDriverHandle touch) {
+    // Wait for touch
+    uint16_t x, y, strength;
+    uint8_t pointCount = 0;
+    do  {
+        tt_hal_touch_driver_get_touched_points(touch, &x, &y, &strength, &pointCount, 1);
+        tt_kernel_delay_millis(20);
+    } while (pointCount == 0);
 }
 
-static void onDestroy(AppHandle appHandle, void* data) {
-    if (!tt_lvgl_is_started()) {
-        tt_lvgl_start();
+uint32_t getPixelSize(ColorFormat colorFormat) {
+    switch (colorFormat) {
+        case COLOR_FORMAT_MONOCHROME:
+            return 1;
+        case COLOR_FORMAT_BGR565:
+            return 2;
+        case COLOR_FORMAT_RGB565:
+            return 2;
+        case COLOR_FORMAT_RGB888:
+            return 3;
+        default:
+            return 0;
     }
 }
 
-ExternalAppManifest manifest = {
-    .name = "Hello World",
-    .onCreate = onCreate,
-    .onDestroy = onDestroy
-};
+void runApplication(DisplayDriverHandle display, TouchDriverHandle touch) {
 
-extern "C" {
+    auto display_width = tt_hal_display_driver_get_pixel_width(display);
+    auto display_height = tt_hal_display_driver_get_pixel_height(display);
+    auto color_format = tt_hal_display_driver_get_colorformat(display);
+    auto buffer_height = display_height / 10;
+    auto buffer_size = display_width * buffer_height * getPixelSize(color_format);
+    void* buffer = malloc(buffer_size);
+    memset(buffer, 0, buffer_size);
 
-int main(int argc, char* argv[]) {
-    tt_app_register(&manifest);
-    return 0;
+    for (int i = 0; i < 10; i++) {
+        tt_hal_display_driver_draw_bitmap(display, 0, i * buffer_height, display_width, (i + 1) * buffer_height, buffer);
+    }
+
+    tt_hal_display_driver_draw_bitmap(display, 0, 0, 24, 24, logo);
+
+    waitForTouch(touch);
 }
 
-}
