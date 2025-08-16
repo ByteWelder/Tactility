@@ -4,6 +4,7 @@
 #include <esp_lcd_types.h>
 #include <lvgl.h>
 #include <Tactility/hal/touch/TouchDevice.h>
+#include <Tactility/hal/touch/TouchDriver.h>
 
 class EspLcdTouch : public tt::hal::touch::TouchDevice {
 
@@ -11,7 +12,7 @@ class EspLcdTouch : public tt::hal::touch::TouchDevice {
     esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
     esp_lcd_touch_handle_t _Nullable touchHandle = nullptr;
     lv_indev_t* _Nullable lvglDevice = nullptr;
-    std::shared_ptr<tt::hal::touch::NativeTouch> nativeTouch;
+    std::shared_ptr<tt::hal::touch::TouchDriver> touchDriver;
 
 protected:
 
@@ -37,7 +38,7 @@ public:
 
     lv_indev_t* _Nullable getLvglIndev() final { return lvglDevice; }
 
-    bool supportsNativeTouch() override { return true; }
+    bool supportsTouchDriver() override { return true; }
 
-    std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() final;
+    std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable getTouchDriver() final;
 };

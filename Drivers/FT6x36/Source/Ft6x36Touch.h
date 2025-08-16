@@ -38,7 +38,7 @@ private:
     std::shared_ptr<tt::Thread> driverThread;
     bool interruptDriverThread = false;
     tt::Mutex mutex;
-    std::shared_ptr<tt::hal::touch::NativeTouch> nativeTouch;
+    std::shared_ptr<tt::hal::touch::TouchDriver> nativeTouch;
 
     lv_point_t lastPoint = { .x = 0, .y = 0 };
     lv_indev_state_t lastState = LV_INDEV_STATE_RELEASED;
@@ -66,10 +66,10 @@ public:
 
     lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }
 
-    class Ft6NativeTouch : public tt::hal::touch::NativeTouch {
+    class Ft6TouchDriver : public tt::hal::touch::TouchDriver {
     public:
         const Ft6x36Touch& parent;
-        Ft6NativeTouch(const Ft6x36Touch& parent) : parent(parent) {}
+        Ft6TouchDriver(const Ft6x36Touch& parent) : parent(parent) {}
 
         bool getTouchedPoints(uint16_t* x, uint16_t* y, uint16_t* _Nullable strength, uint8_t* pointCount, uint8_t maxPointCount) {
             auto lock = parent.mutex.asScopedLock();
@@ -86,5 +86,5 @@ public:
         }
     };
 
-    std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() override { return nativeTouch; }
+    std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable getTouchDriver() override { return nativeTouch; }
 };

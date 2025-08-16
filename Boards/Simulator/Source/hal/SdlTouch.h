@@ -28,6 +28,6 @@ public:
 
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
 
-    std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() override { return nullptr; };
+    std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable getTouchDriver() override { return nullptr; };
 };
 

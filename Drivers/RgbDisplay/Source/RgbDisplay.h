@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Tactility/hal/display/DisplayDevice.h>
-#include <EspLcdNativeDisplay.h>
+#include <EspLcdDisplayDriver.h>
 #include <esp_lcd_panel_rgb.h>
 
 class RgbDisplay final : public display::DisplayDevice {
@@ -61,7 +61,7 @@ private:
     std::unique_ptr<Configuration> _Nullable configuration = nullptr;
     esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
     lv_display_t* _Nullable lvglDisplay = nullptr;
-    std::shared_ptr<display::NativeDisplay> _Nullable nativeDisplay;
+    std::shared_ptr<display::DisplayDriver> _Nullable displayDriver;
 
     lvgl_port_display_cfg_t getLvglPortDisplayConfig() const;
 
@@ -98,13 +98,13 @@ public:
 
     lv_display_t* _Nullable getLvglDisplay() const override { return lvglDisplay; }
 
-    bool supportsNativeDisplay() const override { return true; }
+    bool supportsDisplayDriver() const override { return true; }
 
-    std::shared_ptr<display::NativeDisplay> _Nullable getNativeDisplay() override {
-        if (nativeDisplay == nullptr) {
-            nativeDisplay = std::make_shared<EspLcdNativeDisplay>(panelHandle, getLvglPortDisplayConfig());
+    std::shared_ptr<display::DisplayDriver> _Nullable getDisplayDriver() override {
+        if (displayDriver == nullptr) {
+            displayDriver = std::make_shared<EspLcdDisplayDriver>(panelHandle, getLvglPortDisplayConfig());
         }
-        return nativeDisplay;
+        return displayDriver;
     }
 };
 

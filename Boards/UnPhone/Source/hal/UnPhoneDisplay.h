@@ -3,7 +3,7 @@
 #include "Tactility/hal/display/DisplayDevice.h"
 #include <esp_lcd_types.h>
 #include <lvgl.h>
-#include <Tactility/hal/display/NativeDisplay.h>
+#include <Tactility/hal/display/DisplayDriver.h>
 
 #include "UnPhoneDisplayConstants.h"
 
@@ -12,10 +12,10 @@ class UnPhoneDisplay : public tt::hal::display::DisplayDevice {
     uint8_t* _Nullable buffer = nullptr;
     lv_display_t* _Nullable lvglDisplay = nullptr;
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable touchDevice;
-    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable nativeDisplay;
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable nativeDisplay;
 
 
-    class UnPhoneNativeDisplay : public tt::hal::display::NativeDisplay {
+    class UnPhoneDisplayDriver : public tt::hal::display::DisplayDriver {
         tt::hal::display::ColorFormat getColorFormat() const override { return tt::hal::display::ColorFormat::RGB888; }
         uint16_t getPixelWidth() const override { return UNPHONE_LCD_HORIZONTAL_RESOLUTION; }
         uint16_t getPixelHeight() const override { return UNPHONE_LCD_VERTICAL_RESOLUTION; }
@@ -41,12 +41,12 @@ public:
 
     lv_display_t* _Nullable getLvglDisplay() const override { return lvglDisplay; }
 
-    // TODO: Set to true after fixing UnPhoneNativeDisplay
-    bool supportsNativeDisplay() const override { return false; }
+    // TODO: Set to true after fixing UnPhoneDisplayDriver
+    bool supportsDisplayDriver() const override { return false; }
 
-    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable getNativeDisplay() override {
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() override {
         if (nativeDisplay == nullptr) {
-            nativeDisplay = std::make_shared<UnPhoneNativeDisplay>();
+            nativeDisplay = std::make_shared<UnPhoneDisplayDriver>();
         }
         assert(nativeDisplay != nullptr);
         return nativeDisplay;

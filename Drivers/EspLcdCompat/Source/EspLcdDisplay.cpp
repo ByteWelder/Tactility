@@ -1,5 +1,5 @@
 #include "EspLcdDisplay.h"
-#include "EspLcdNativeDisplay.h"
+#include "EspLcdDisplayDriver.h"
 
 #include <assert.h>
 #include <esp_lvgl_port_disp.h>
@@ -7,11 +7,11 @@
 #include <Tactility/LogEsp.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 
-constexpr const char* TAG = "EspLcdDisplay";
+constexpr const char* TAG = "EspLcdDispDrv";
 
 EspLcdDisplay::~EspLcdDisplay() {
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        tt_crash("NativeDisplay is still in use. This will cause memory access violations.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        tt_crash("DisplayDriver is still in use. This will cause memory access violations.");
     }
 }
 
@@ -44,8 +44,8 @@ bool EspLcdDisplay::stop() {
         return false;
     }
 
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
     }
 
     return true;
@@ -54,8 +54,8 @@ bool EspLcdDisplay::stop() {
 bool EspLcdDisplay::startLvgl() {
     assert(lvglDisplay == nullptr);
 
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
     }
 
     lvglPortDisplayConfig = getLvglPortDisplayConfig(ioHandle, panelHandle);
@@ -90,13 +90,13 @@ bool EspLcdDisplay::stopLvgl() {
     return true;
 }
 
-std::shared_ptr<display::NativeDisplay> EspLcdDisplay::getNativeDisplay() {
+std::shared_ptr<display::DisplayDriver> EspLcdDisplay::getDisplayDriver() {
     assert(lvglDisplay == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
-    if (nativeDisplay == nullptr) {
-        nativeDisplay = std::make_shared<EspLcdNativeDisplay>(
+    if (displayDriver == nullptr) {
+        displayDriver = std::make_shared<EspLcdDisplayDriver>(
             panelHandle,
             lvglPortDisplayConfig
         );
     }
-    return nativeDisplay;
+    return displayDriver;
 }

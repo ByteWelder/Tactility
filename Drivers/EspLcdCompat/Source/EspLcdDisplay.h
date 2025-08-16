@@ -5,7 +5,6 @@
 #include <esp_lcd_types.h>
 #include <esp_lvgl_port_disp.h>
 #include <Tactility/Check.h>
-#include <Tactility/hal/display/NativeDisplay.h>
 
 class EspLcdDisplay : tt::hal::display::DisplayDevice {
 
@@ -13,7 +12,7 @@ class EspLcdDisplay : tt::hal::display::DisplayDevice {
     esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
     lv_display_t* _Nullable lvglDisplay = nullptr;
     lvgl_port_display_cfg_t _Nullable lvglPortDisplayConfig;
-    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable nativeDisplay;
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable displayDriver;
 
 protected:
 
@@ -52,10 +51,10 @@ public:
 
     // region NativeDisplay
 
-    bool supportsNativeDisplay() const override { return true; }
+    bool supportsDisplayDriver() const override { return true; }
 
     /** @return a NativeDisplay instance if this device supports it */
-    std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable getNativeDisplay() final;
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() final;
 
     // endregion
 };

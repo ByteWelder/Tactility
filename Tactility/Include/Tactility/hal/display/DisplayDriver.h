@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace tt::hal::display {
 
 enum class ColorFormat {
@@ -9,11 +11,11 @@ enum class ColorFormat {
     RGB888
 };
 
-class NativeDisplay {
+class DisplayDriver {
 
 public:
 
-    virtual ~NativeDisplay() = default;
+    virtual ~DisplayDriver() = default;
 
     virtual ColorFormat getColorFormat() const = 0;
     virtual uint16_t getPixelWidth() const = 0;

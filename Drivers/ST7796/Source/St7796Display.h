@@ -1,10 +1,10 @@
 #pragma once
 
-#include <EspLcdDisplay.h>
+#include <EspLcdDisplayDriver.h>
 #include <driver/gpio.h>
 #include <functional>
 
-class St7796Display final : public EspLcdDisplay {
+class St7796Display final : public EspLcdDisplayDriver {
 
 public:
 

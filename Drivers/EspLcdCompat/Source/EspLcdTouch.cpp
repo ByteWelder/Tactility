@@ -1,6 +1,6 @@
 #include "EspLcdTouch.h"
 
-#include <EspLcdNativeTouch.h>
+#include <EspLcdTouchDriver.h>
 #include <esp_lvgl_port_touch.h>
 #include <Tactility/LogEsp.h>
 
@@ -47,8 +47,8 @@ bool EspLcdTouch::startLvgl(lv_disp_t* display) {
         return false;
     }
 
-    if (nativeTouch != nullptr && nativeTouch.use_count() > 1) {
-        TT_LOG_W(TAG, "NativeTouch is still in use.");
+    if (touchDriver != nullptr && touchDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "TouchDriver is still in use.");
     }
 
     const lvgl_port_touch_cfg_t touch_cfg = {
@@ -77,16 +77,16 @@ bool EspLcdTouch::stopLvgl() {
     return true;
 }
 
-std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable EspLcdTouch::getNativeTouch() {
+std::shared_ptr<tt::hal::touch::TouchDriver> _Nullable EspLcdTouch::getTouchDriver() {
     assert(lvglDevice == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
 
     if (touchHandle == nullptr) {
         return nullptr;
     }
 
-    if (nativeTouch == nullptr) {
-        nativeTouch = std::make_shared<EspLcdNativeTouch>(touchHandle);
+    if (touchDriver == nullptr) {
+        touchDriver = std::make_shared<EspLcdTouchDriver>(touchHandle);
     }
 
-    return nativeTouch;
+    return touchDriver;
 }

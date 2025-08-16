@@ -2,13 +2,13 @@
 
 #include "Tactility/hal/display/DisplayDevice.h"
 
-#include <EspLcdDisplay.h>
+#include <EspLcdDisplayDriver.h>
 
 #include <driver/gpio.h>
 #include <functional>
 #include <lvgl.h>
 
-class Ili9488Display final : public EspLcdDisplay {
+class Ili9488Display final : public EspLcdDisplayDriver {
 
 public:
 

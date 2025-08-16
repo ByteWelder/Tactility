@@ -1,18 +1,19 @@
 #pragma once
 
-#include <Tactility/hal/display/NativeDisplay.h>
+#include <Tactility/hal/display/DisplayDriver.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port_disp.h>
 
 using namespace tt::hal;
 
-class EspLcdNativeDisplay final : public display::NativeDisplay {
+class EspLcdDisplayDriver final : public display::DisplayDriver {
 
     esp_lcd_panel_handle_t panelHandle;
     const lvgl_port_display_cfg_t& lvglPortDisplayConfig;
 
 public:
-    EspLcdNativeDisplay(
+
+    EspLcdDisplayDriver(
         esp_lcd_panel_handle_t panelHandle,
         const lvgl_port_display_cfg_t& lvglPortDisplayConfig
     ) : panelHandle(panelHandle), lvglPortDisplayConfig(lvglPortDisplayConfig) {}

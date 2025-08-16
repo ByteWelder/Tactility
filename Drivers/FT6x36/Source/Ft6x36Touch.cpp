@@ -18,7 +18,7 @@ void Ft6x36Touch::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
 
 Ft6x36Touch::Ft6x36Touch(std::unique_ptr<Configuration> inConfiguration) :
     configuration(std::move(inConfiguration)) {
-    nativeTouch = std::make_shared<Ft6NativeTouch>(*this);
+    nativeTouch = std::make_shared<Ft6TouchDriver>(*this);
 }
 
 Ft6x36Touch::~Ft6x36Touch() {

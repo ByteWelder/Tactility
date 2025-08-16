@@ -113,7 +113,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     return std::make_shared<UnPhoneDisplay>();
 }
 
-bool UnPhoneDisplay::UnPhoneNativeDisplay::drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) {
+bool UnPhoneDisplay::UnPhoneDisplayDriver::drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) {
     lv_area_t area = { xStart, yStart, xEnd, yEnd };
     hx8357_flush(nullptr, &area, (uint8_t*)pixelData);
     return true;

@@ -9,9 +9,9 @@
 #include <functional>
 #include <lvgl.h>
 
-#include <EspLcdDisplay.h>
+#include <EspLcdDisplayDriver.h>
 
-class Ili934xDisplay final : public EspLcdDisplay {
+class Ili934xDisplay final : public EspLcdDisplayDriver {
 
 public:
 

@@ -12,8 +12,8 @@
 constexpr auto TAG = "RgbDisplay";
 
 RgbDisplay::~RgbDisplay() {
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        tt_crash("NativeDisplay is still in use. This will cause memory access violations.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        tt_crash("DisplayDriver is still in use. This will cause memory access violations.");
     }
 }
 
@@ -63,8 +63,8 @@ bool RgbDisplay::stop() {
         return false;
     }
 
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
     }
 
     auto touch_device = getTouchDevice();
@@ -79,8 +79,8 @@ bool RgbDisplay::stop() {
 bool RgbDisplay::startLvgl() {
     assert(lvglDisplay == nullptr);
 
-    if (nativeDisplay != nullptr && nativeDisplay.use_count() > 1) {
-        TT_LOG_W(TAG, "NativeDisplay is still in use.");
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
     }
 
     auto display_config = getLvglPortDisplayConfig();
@@ -115,7 +115,7 @@ bool RgbDisplay::stopLvgl() {
 
     lvgl_port_remove_disp(lvglDisplay);
     lvglDisplay = nullptr;
-    
+
     return true;
 }
 

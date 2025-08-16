@@ -2,7 +2,7 @@
 
 namespace tt::hal::touch {
 
-class NativeTouch {
+class TouchDriver {
 
 public:
 

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Device.h"
-#include "NativeTouch.h"
+#include "TouchDriver.h"
 
 #include <lvgl.h>
 
@@ -24,9 +24,9 @@ public:
 
     virtual lv_indev_t* _Nullable getLvglIndev() = 0;
 
-    virtual bool supportsNativeTouch() = 0;
+    virtual bool supportsTouchDriver() = 0;
 
-    virtual std::shared_ptr<NativeTouch> _Nullable getNativeTouch() = 0;
+    virtual std::shared_ptr<TouchDriver> _Nullable getTouchDriver() = 0;
 };
 
 }
