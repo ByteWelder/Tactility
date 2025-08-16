@@ -15,6 +15,7 @@
 #include <lvgl.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityHeadless.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/ServiceRegistry.h>
 
 namespace tt::lvgl {
@@ -86,6 +87,9 @@ void start() {
         return;
     }
 
+    auto lock = getSyncLock()->asScopedLock();
+    lock.lock();
+
     // Start displays (their related touch devices start automatically within)
 
     auto displays = hal::findDevices<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -107,7 +111,8 @@ void start() {
         if (displays.size() > 0) {
             // TODO: Consider implementing support for multiple displays
             auto display = displays[0];
-            if (touch_device->supportsLvgl()) {
+            // Start any touch devices that haven't been started yet
+            if (touch_device->supportsLvgl() && touch_device->getLvglIndev() == nullptr) {
                 touch_device->startLvgl(display->getLvglDisplay());
             }
         }
@@ -161,6 +166,9 @@ void stop() {
         return;
     }
 
+    auto lock = getSyncLock()->asScopedLock();
+    lock.lock();
+
     // Stop services that highly depend on LVGL
 
     service::stopService("Statusbar");
@@ -170,14 +178,19 @@ void stop() {
 
     auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
     for (auto keyboard : keyboards) {
-        keyboard->stopLvgl();
+        if (keyboard->getLvglIndev() != nullptr) {
+            keyboard->stopLvgl();
+        }
     }
 
     // Stop touch
 
+    // The display generally stops their own touch devices, but we'll clean up anything that didn't
     auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
     for (auto touch_device : touch_devices) {
-        touch_device->stopLvgl();
+        if (touch_device->getLvglIndev() != nullptr) {
+            touch_device->stopLvgl();
+        }
     }
 
     // Stop displays (and their touch devices)

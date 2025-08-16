@@ -37,5 +37,7 @@ public:
 
     lv_indev_t* _Nullable getLvglIndev() final { return lvglDevice; }
 
+    bool supportsNativeTouch() override { return true; }
+
     std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable getNativeTouch() final;
 };

@@ -2,7 +2,6 @@
 
 #include <Tactility/hal/touch/TouchDevice.h>
 
-#include <esp_lcd_panel_io_interface.h>
 #include <EspLcdTouch.h>
 
 class Xpt2046Touch : public EspLcdTouch {

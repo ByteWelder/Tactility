@@ -79,8 +79,14 @@ bool EspLcdTouch::stopLvgl() {
 
 std::shared_ptr<tt::hal::touch::NativeTouch> _Nullable EspLcdTouch::getNativeTouch() {
     assert(lvglDevice == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
+
+    if (touchHandle == nullptr) {
+        return nullptr;
+    }
+
     if (nativeTouch == nullptr) {
         nativeTouch = std::make_shared<EspLcdNativeTouch>(touchHandle);
     }
+
     return nativeTouch;
 }

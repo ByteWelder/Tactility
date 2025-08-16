@@ -50,7 +50,9 @@ public:
 
     // endregion
 
-    // region NativedDisplay
+    // region NativeDisplay
+
+    bool supportsNativeDisplay() const override { return true; }
 
     /** @return a NativeDisplay instance if this device supports it */
     std::shared_ptr<tt::hal::display::NativeDisplay> _Nullable getNativeDisplay() final;
