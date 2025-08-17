@@ -167,7 +167,6 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_start),
     ESP_ELFSYM_EXPORT(tt_lvgl_stop),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_hide),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_is_enabled),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_activate),
