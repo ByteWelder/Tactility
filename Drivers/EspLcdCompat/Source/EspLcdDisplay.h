@@ -34,7 +34,7 @@ protected:
 
 public:
 
-    EspLcdDisplay(std::shared_ptr<tt::Lock> lock, lcd_rgb_element_order_t element_order) : lock(lock) {}
+    EspLcdDisplay(std::shared_ptr<tt::Lock> lock) : lock(lock) {}
 
     ~EspLcdDisplay() override;
 

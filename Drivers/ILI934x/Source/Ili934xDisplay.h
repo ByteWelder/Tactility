@@ -81,7 +81,7 @@ private:
 public:
 
     explicit Ili934xDisplay(std::unique_ptr<Configuration> inConfiguration) :
-        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice), inConfiguration->rgbElementOrder),
+        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
         configuration(std::move(inConfiguration)
     ) {
         assert(configuration != nullptr);
