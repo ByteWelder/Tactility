@@ -30,7 +30,7 @@ static void onCreate(AppHandle appHandle, void* data) {
     ESP_LOGI(TAG, "Creating display driver");
     auto display = new DisplayDriver(display_id);
 
-    ESP_LOGI(TAG, "Creating display driver");
+    ESP_LOGI(TAG, "Creating touch driver");
     auto touch = new TouchDriver(touch_id);
 
     // Run the main logic
@@ -39,6 +39,9 @@ static void onCreate(AppHandle appHandle, void* data) {
 
     ESP_LOGI(TAG, "Cleanup display driver");
     delete display;
+
+    ESP_LOGI(TAG, "Cleanup touch driver");
+    delete touch;
 
     ESP_LOGI(TAG, "Stopping application");
     tt_app_stop();
