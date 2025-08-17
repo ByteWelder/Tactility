@@ -6,20 +6,10 @@
 
 constexpr auto TAG = "Application";
 
-static void waitForTouch(TouchDriver* touch) {
-    // Wait for touch
-    uint16_t x, y, strength;
-    uint8_t pointCount = 0;
-    do  {
-        touch->getTouchedPoints(&x, &y, &strength, &pointCount, 1);
-        tt_kernel_delay_millis(20);
-    } while (pointCount == 0);
-}
-
 static bool isTouched(TouchDriver* touch) {
     uint16_t x, y, strength;
     uint8_t pointCount = 0;
-    return touch->getTouchedPoints(&x, &y, &strength, &pointCount, 1) && pointCount > 0;
+    return touch->getTouchedPoints(&x, &y, &strength, &pointCount, 1);
 }
 
 void createRgbRow(PixelBuffer& buffer) {
@@ -58,30 +48,23 @@ void runApplication(DisplayDriver* display, TouchDriver* touch) {
     PixelBuffer line_buffer(display->getWidth(), 1, display->getColorFormat());
     line_buffer.clear();
 
-    // Draw row by row
-    for (int i = 0; i < display->getHeight(); i++) {
-
-        if (i == 0) {
-            createRgbRow(line_buffer);
-        } else if (i == display->getHeight() / 2) {
-            createRgbFadingRow(line_buffer);
-        }
-
-        display->drawBitmap(0, i, display->getWidth(), i + 1, line_buffer.getData());
-    }
-
-    size_t counter = 0;
-    PixelBuffer square_buffer(8, 8, display->getColorFormat());
-    square_buffer.clear(0xffffffff);
-
     do {
-        for (int i = 0; i < square_buffer.getPixelHeight(); ++i) {
-            display->drawBitmap(0, i, display->getWidth(), i + 1, line_clear_buffer.getData());
-        }
-        uint32_t x = (counter++) % display->getWidth();
-        display->drawBitmap(x, 0, x + square_buffer.getPixelWidth(), square_buffer.getPixelHeight(), square_buffer.getData());
-    } while (!isTouched(touch));
+        // Draw row by row
+        // This is placed in a loop to test the SPI locking mechanismss
+        for (int i = 0; i < display->getHeight(); i++) {
 
-    // waitForTouch(touch);
+            if (i == 0) {
+                createRgbRow(line_buffer);
+            } else if (i == display->getHeight() / 2) {
+                createRgbFadingRow(line_buffer);
+            }
+
+            display->drawBitmap(0, i, display->getWidth(), i + 1, line_buffer.getData());
+        }
+
+        // Give other tasks space to breathe
+        // SPI displays would otherwise time out SPI SD card access
+        tt_kernel_delay_ticks(1);
+    } while (!isTouched(touch));
 }
 
