@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Tactility/Lock.h"
+
 #include <Tactility/hal/display/DisplayDevice.h>
 
 #include <esp_lcd_types.h>
@@ -13,6 +15,7 @@ class EspLcdDisplay : tt::hal::display::DisplayDevice {
     lv_display_t* _Nullable lvglDisplay = nullptr;
     lvgl_port_display_cfg_t _Nullable lvglPortDisplayConfig;
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable displayDriver;
+    std::shared_ptr<tt::Lock> lock;
 
 protected:
 
@@ -31,7 +34,11 @@ protected:
 
 public:
 
+    EspLcdDisplay(std::shared_ptr<tt::Lock> lock) : lock(lock) {}
+
     ~EspLcdDisplay() override;
+
+    std::shared_ptr<tt::Lock> getLock() const { return lock; }
 
     bool start() final;
 

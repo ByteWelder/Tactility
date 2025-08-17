@@ -95,7 +95,8 @@ std::shared_ptr<display::DisplayDriver> EspLcdDisplay::getDisplayDriver() {
     if (displayDriver == nullptr) {
         displayDriver = std::make_shared<EspLcdDisplayDriver>(
             panelHandle,
-            lvglPortDisplayConfig
+            lvglPortDisplayConfig,
+            lock
         );
     }
     return displayDriver;

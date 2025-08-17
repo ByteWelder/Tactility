@@ -1,25 +1,38 @@
 #pragma once
 
+#include <esp_log.h>
+#include "drivers/Colors.h"
+
+#include <cstring>
 #include <tt_hal_display.h>
 
 class PixelBuffer {
-    uint16_t width;
-    uint16_t height;
+    uint16_t pixelWidth;
+    uint16_t pixelHeight;
     ColorFormat colorFormat;
-    void* data;
+    uint8_t* data;
 
 public:
 
-    PixelBuffer(uint16_t width, uint16_t height, ColorFormat colorFormat);
-
-    ~PixelBuffer();
-
-    uint16_t getWidth() const {
-        return width;
+    PixelBuffer(uint16_t pixelWidth, uint16_t pixelHeight, ColorFormat colorFormat) :
+        pixelWidth(pixelWidth),
+        pixelHeight(pixelHeight),
+        colorFormat(colorFormat)
+    {
+        data = static_cast<uint8_t*>(malloc(pixelWidth * pixelHeight * getPixelSize()));
+        assert(data != nullptr);
     }
 
-    uint16_t getHeight() const {
-        return height;
+    ~PixelBuffer() {
+        free(data);
+    }
+
+    uint16_t getPixelWidth() const {
+        return pixelWidth;
+    }
+
+    uint16_t getPixelHeight() const {
+        return pixelHeight;
     }
 
     ColorFormat getColorFormat() const {
@@ -31,19 +44,63 @@ public:
     }
 
     uint32_t getDataSize() const {
-        return width * height * getPixelSize();
+        return pixelWidth * pixelHeight * getPixelSize();
     }
 
     void* getDataAtRow(uint16_t row) const {
-        auto address = reinterpret_cast<uint32_t>(data) + (row * getRowSize());
+        auto address = reinterpret_cast<uint32_t>(data) + (row * getRowDataSize());
         return reinterpret_cast<void*>(address);
     }
 
-    uint16_t getRowSize() const {
-        return width * getPixelSize();
+    uint16_t getRowDataSize() const {
+        return pixelWidth * getPixelSize();
     }
 
-    uint8_t getPixelSize() const;
+    uint8_t getPixelSize() const {
+        switch (colorFormat) {
+            case COLOR_FORMAT_MONOCHROME:
+                return 1;
+            case COLOR_FORMAT_BGR565:
+                return 2;
+            case COLOR_FORMAT_RGB565:
+                return 2;
+            case COLOR_FORMAT_RGB888:
+                return 3;
+            default:
+                return 0;
+        }
+    }
 
-    void clear() const;
+    uint8_t* getPixelAddress(uint16_t x, uint16_t y) const {
+        uint32_t offset = ((y * getPixelWidth()) + x) * getPixelSize();
+        uint32_t address = reinterpret_cast<uint32_t>(data) + offset;
+        return reinterpret_cast<uint8_t*>(address);
+    }
+
+    void setPixel(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b) const {
+        auto address = getPixelAddress(x, y);
+        switch (colorFormat) {
+            case COLOR_FORMAT_MONOCHROME:
+                *address = (uint8_t)((uint16_t)r + (uint16_t)g + (uint16_t)b / 3);
+                break;
+            case COLOR_FORMAT_BGR565:
+                Colors::rgb888ToBgr565(r, g, b, reinterpret_cast<uint16_t*>(address));
+                break;
+            case COLOR_FORMAT_RGB565:
+                Colors::rgb888ToRgb565(r, g, b, reinterpret_cast<uint16_t*>(address));
+                break;
+            case COLOR_FORMAT_RGB888:
+                *address = r;
+                *(address + 1) = g;
+                *(address + 2) = b;
+                break;
+            default:
+                // NO-OP
+                break;
+        }
+    }
+
+    void clear(int value = 0) const {
+        memset(data, value, getDataSize());
+    }
 };

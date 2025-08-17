@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Tactility/Mutex.h"
+
 #include <Tactility/hal/display/DisplayDriver.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port_disp.h>
@@ -10,13 +12,15 @@ class EspLcdDisplayDriver : public display::DisplayDriver {
 
     esp_lcd_panel_handle_t panelHandle;
     const lvgl_port_display_cfg_t& lvglPortDisplayConfig;
+    std::shared_ptr<tt::Lock> lock;
 
 public:
 
     EspLcdDisplayDriver(
         esp_lcd_panel_handle_t panelHandle,
-        const lvgl_port_display_cfg_t& lvglPortDisplayConfig
-    ) : panelHandle(panelHandle), lvglPortDisplayConfig(lvglPortDisplayConfig) {}
+        const lvgl_port_display_cfg_t& lvglPortDisplayConfig,
+        std::shared_ptr<tt::Lock> lock
+    ) : panelHandle(panelHandle), lvglPortDisplayConfig(lvglPortDisplayConfig), lock(lock) {}
 
     display::ColorFormat getColorFormat() const override {
         using display::ColorFormat;
@@ -35,10 +39,15 @@ public:
     }
 
     bool drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) override {
-        return esp_lcd_panel_draw_bitmap(panelHandle, xStart, yStart, xEnd, yEnd, pixelData) == ESP_OK;
+        lock->lock();
+        bool result = esp_lcd_panel_draw_bitmap(panelHandle, xStart, yStart, xEnd, yEnd, pixelData) == ESP_OK;
+        lock->unlock();
+        return result;
     }
 
     uint16_t getPixelWidth() const override { return lvglPortDisplayConfig.hres; }
 
     uint16_t getPixelHeight() const override { return lvglPortDisplayConfig.vres; }
+
+    std::shared_ptr<tt::Lock> getLock() const { return lock; }
 };
