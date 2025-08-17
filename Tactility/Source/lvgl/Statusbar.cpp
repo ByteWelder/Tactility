@@ -30,7 +30,7 @@ struct StatusbarData {
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });
+    Timer* time_update_timer = new Timer(Timer::Type::Once, []() { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -64,7 +64,7 @@ static void update_main(Statusbar* statusbar);
 
 static TickType_t getNextUpdateTime() {
     time_t now = ::time(nullptr);
-    struct tm* tm_struct = localtime(&now);
+    tm* tm_struct = localtime(&now);
     uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
     TT_LOG_D(TAG, "Update in %lu s", seconds_to_wait);
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
@@ -72,7 +72,7 @@ static TickType_t getNextUpdateTime() {
 
 static void onUpdateTime() {
     time_t now = ::time(nullptr);
-    struct tm* tm_struct = localtime(&now);
+    tm* tm_struct = localtime(&now);
 
     if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (tm_struct->tm_year >= (2025 - 1900)) {
@@ -146,11 +146,6 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
 
 static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj_t* obj) {
     auto* statusbar = (Statusbar*)obj;
-    if (statusbar_data.time_update_timer->isRunning()) {
-        statusbar_data.time_update_timer->stop();
-    }
-    delete statusbar_data.time_update_timer;
-    kernel::unsubscribeSystemEvent(statusbar_data.systemEventSubscription);
     statusbar_data.pubsub->unsubscribe(statusbar->pubsub_subscription);
 }
 
