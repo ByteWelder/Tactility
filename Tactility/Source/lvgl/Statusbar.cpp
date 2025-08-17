@@ -64,7 +64,7 @@ static void update_main(Statusbar* statusbar);
 
 static TickType_t getNextUpdateTime() {
     time_t now = ::time(nullptr);
-    struct tm* tm_struct = localtime(&now);
+    tm* tm_struct = localtime(&now);
     uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
     TT_LOG_D(TAG, "Update in %lu s", seconds_to_wait);
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
@@ -72,7 +72,7 @@ static TickType_t getNextUpdateTime() {
 
 static void onUpdateTime() {
     time_t now = ::time(nullptr);
-    struct tm* tm_struct = localtime(&now);
+    tm* tm_struct = localtime(&now);
 
     if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (tm_struct->tm_year >= (2025 - 1900)) {

@@ -1,11 +1,15 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/display/DisplayDriver.h>
+#include <Tactility/Mutex.h>
+
 #include <esp_lcd_types.h>
 #include <lvgl.h>
-#include <Tactility/hal/display/DisplayDriver.h>
 
 #include "UnPhoneDisplayConstants.h"
+
+#include <Tactility/hal/spi/Spi.h>
 
 class UnPhoneDisplay : public tt::hal::display::DisplayDevice {
 
@@ -14,12 +18,14 @@ class UnPhoneDisplay : public tt::hal::display::DisplayDevice {
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable touchDevice;
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable nativeDisplay;
 
-
     class UnPhoneDisplayDriver : public tt::hal::display::DisplayDriver {
+        std::shared_ptr<tt::Lock> lock = tt::hal::spi::getLock(SPI2_HOST);
+    public:
         tt::hal::display::ColorFormat getColorFormat() const override { return tt::hal::display::ColorFormat::RGB888; }
         uint16_t getPixelWidth() const override { return UNPHONE_LCD_HORIZONTAL_RESOLUTION; }
         uint16_t getPixelHeight() const override { return UNPHONE_LCD_VERTICAL_RESOLUTION; }
         bool drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) override;
+        std::shared_ptr<tt::Lock> getLock() const override { return lock; }
     };
 
 public:

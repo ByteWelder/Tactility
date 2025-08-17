@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tactility/Lock.h>
 #include <cstdint>
 
 namespace tt::hal::display {
@@ -7,7 +8,9 @@ namespace tt::hal::display {
 enum class ColorFormat {
     Monochrome, // 1 bpp
     BGR565,
+    BGR565Swapped,
     RGB565,
+    RGB565Swapped,
     RGB888
 };
 
@@ -21,6 +24,7 @@ public:
     virtual uint16_t getPixelWidth() const = 0;
     virtual uint16_t getPixelHeight() const = 0;
     virtual bool drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) = 0;
+    virtual std::shared_ptr<Lock> getLock() const = 0;
 };
 
 }

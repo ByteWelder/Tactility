@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/spi/Spi.h>
 
-#include <driver/spi_common.h>
+#include <EspLcdDisplay.h>
+
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_types.h>
 #include <functional>
 #include <lvgl.h>
-
-#include <EspLcdDisplay.h>
 
 class Ili934xDisplay final : public EspLcdDisplay {
 
@@ -20,7 +20,7 @@ public:
     public:
 
         Configuration(
-            esp_lcd_spi_bus_handle_t spi_bus_handle,
+            spi_host_device_t spiHostDevice,
             gpio_num_t csPin,
             gpio_num_t dcPin,
             unsigned int horizontalResolution,
@@ -32,7 +32,7 @@ public:
             bool invertColor = false,
             uint32_t bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size,
             lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
-        ) : spiBusHandle(spi_bus_handle),
+        ) : spiHostDevice(spiHostDevice),
             csPin(csPin),
             dcPin(dcPin),
             horizontalResolution(horizontalResolution),
@@ -50,7 +50,7 @@ public:
             }
         }
 
-        esp_lcd_spi_bus_handle_t spiBusHandle;
+        spi_host_device_t spiHostDevice;
         gpio_num_t csPin;
         gpio_num_t dcPin;
         gpio_num_t resetPin = GPIO_NUM_NC;
@@ -80,7 +80,10 @@ private:
 
 public:
 
-    explicit Ili934xDisplay(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
+    explicit Ili934xDisplay(std::unique_ptr<Configuration> inConfiguration) :
+        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
+        configuration(std::move(inConfiguration)
+    ) {
         assert(configuration != nullptr);
     }
 

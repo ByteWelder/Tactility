@@ -33,7 +33,7 @@ bool St7796Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {
         }
     };
 
-    return esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &ioHandle) == ESP_OK;
+    return esp_lcd_new_panel_io_spi(configuration->spiHostDevice, &panel_io_config, &ioHandle) == ESP_OK;
 }
 
 bool St7796Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/spi/Spi.h>
+
 #include <EspLcdDisplay.h>
 #include <driver/gpio.h>
 #include <functional>
@@ -13,7 +16,7 @@ public:
     public:
 
         Configuration(
-            esp_lcd_spi_bus_handle_t spi_bus_handle,
+            spi_host_device_t spiHostDevice,
             gpio_num_t csPin,
             gpio_num_t dcPin,
             unsigned int horizontalResolution,
@@ -26,7 +29,7 @@ public:
             unsigned int gapX = 0,
             unsigned int gapY = 0,
             uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/10 of the screen size
-        ) : spiBusHandle(spi_bus_handle),
+        ) : spiHostDevice(spiHostDevice),
             csPin(csPin),
             dcPin(dcPin),
             horizontalResolution(horizontalResolution),
@@ -44,7 +47,7 @@ public:
             }
         }
 
-        esp_lcd_spi_bus_handle_t spiBusHandle;
+        spi_host_device_t spiHostDevice;
         gpio_num_t csPin;
         gpio_num_t dcPin;
         gpio_num_t resetPin = GPIO_NUM_NC;
@@ -75,7 +78,10 @@ private:
 
 public:
 
-    explicit St7796Display(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
+    explicit St7796Display(std::unique_ptr<Configuration> inConfiguration) :
+        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
+        configuration(std::move(inConfiguration)
+    ) {
         assert(configuration != nullptr);
     }
 

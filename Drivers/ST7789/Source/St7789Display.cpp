@@ -36,7 +36,7 @@ bool St7789Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &outHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_spi(configuration->spiHostDevice, &panel_io_config, &outHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }

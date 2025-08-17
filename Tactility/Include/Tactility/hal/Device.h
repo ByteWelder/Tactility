@@ -95,6 +95,8 @@ std::vector<std::shared_ptr<DeviceType>> findDevices(Device::Type type) {
     }
 }
 
+void findDevices(Device::Type type, std::function<bool(const std::shared_ptr<Device>&)> onDeviceFound);
+
 /** Find the first device of the specified type and cast it to the specified class */
 template<class DeviceType>
 std::shared_ptr<DeviceType> findFirstDevice(Device::Type type) {

@@ -1,5 +1,6 @@
 # TODOs
 
+- When an external app fails to load (e.g. due to mapping error) then show an error dialog.
 - Revisit TinyUSB mouse idea: the bugs related to cleanup seem to be fixed in the library.
 - Bug: When a Wi-Fi SSID is too long, then it fails to save the credentials
 - Add a Keyboard setting app to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)

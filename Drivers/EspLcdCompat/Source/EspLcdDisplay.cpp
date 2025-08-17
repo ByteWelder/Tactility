@@ -58,13 +58,13 @@ bool EspLcdDisplay::startLvgl() {
         TT_LOG_W(TAG, "DisplayDriver is still in use.");
     }
 
-    lvglPortDisplayConfig = getLvglPortDisplayConfig(ioHandle, panelHandle);
+    auto lvgl_port_config  = getLvglPortDisplayConfig(ioHandle, panelHandle);
 
     if (isRgbPanel()) {
         auto rgb_config = getLvglPortDisplayRgbConfig(ioHandle, panelHandle);
-        lvglDisplay = lvgl_port_add_disp_rgb(&lvglPortDisplayConfig, &rgb_config);
+        lvglDisplay = lvgl_port_add_disp_rgb(&lvgl_port_config , &rgb_config);
     } else {
-        lvglDisplay = lvgl_port_add_disp(&lvglPortDisplayConfig);
+        lvglDisplay = lvgl_port_add_disp(&lvgl_port_config );
     }
 
     auto touch_device = getTouchDevice();
@@ -90,12 +90,40 @@ bool EspLcdDisplay::stopLvgl() {
     return true;
 }
 
-std::shared_ptr<display::DisplayDriver> EspLcdDisplay::getDisplayDriver() {
+std::shared_ptr<tt::hal::display::DisplayDriver> EspLcdDisplay::getDisplayDriver() {
     assert(lvglDisplay == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
     if (displayDriver == nullptr) {
+        auto lvgl_port_config  = getLvglPortDisplayConfig(ioHandle, panelHandle);
+
+        tt::hal::display::ColorFormat color_format;
+        if (lvgl_port_config.color_format == LV_COLOR_FORMAT_I1) {
+            color_format = tt::hal::display::ColorFormat::Monochrome;
+        } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB565) {
+            if (rgbElementOrder == LCD_RGB_ELEMENT_ORDER_RGB) {
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::RGB565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::RGB565;
+                }
+            } else {
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::BGR565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::BGR565;
+                }
+            }
+        } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB888) {
+            color_format = tt::hal::display::ColorFormat::RGB888;
+        } else {
+            tt_crash("unsupported driver");
+        }
+
         displayDriver = std::make_shared<EspLcdDisplayDriver>(
             panelHandle,
-            lvglPortDisplayConfig
+            lock,
+            lvgl_port_config.hres,
+            lvgl_port_config.vres,
+            color_format
         );
     }
     return displayDriver;
