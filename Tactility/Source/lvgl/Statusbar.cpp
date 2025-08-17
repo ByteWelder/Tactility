@@ -30,7 +30,7 @@ struct StatusbarData {
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, []() { onUpdateTime(); });
+    Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -146,6 +146,11 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
 
 static void statusbar_destructor(TT_UNUSED const lv_obj_class_t* class_p, lv_obj_t* obj) {
     auto* statusbar = (Statusbar*)obj;
+    if (statusbar_data.time_update_timer->isRunning()) {
+        statusbar_data.time_update_timer->stop();
+    }
+    delete statusbar_data.time_update_timer;
+    kernel::unsubscribeSystemEvent(statusbar_data.systemEventSubscription);
     statusbar_data.pubsub->unsubscribe(statusbar->pubsub_subscription);
 }
 
