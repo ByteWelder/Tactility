@@ -89,11 +89,11 @@ public:
             case COLOR_FORMAT_RGB565:
                 Colors::rgb888ToRgb565(r, g, b, reinterpret_cast<uint16_t*>(address));
                 break;
-            case COLOR_FORMAT_RGB888:
-                *address = r;
-                *(address + 1) = g;
-                *(address + 2) = b;
+            case COLOR_FORMAT_RGB888: {
+                uint8_t pixel[3] = { r, g, b };
+                memcpy(address, pixel, 3);
                 break;
+            }
             default:
                 // NO-OP
                 break;
