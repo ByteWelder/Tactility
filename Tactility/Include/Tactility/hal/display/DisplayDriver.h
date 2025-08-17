@@ -8,7 +8,9 @@ namespace tt::hal::display {
 enum class ColorFormat {
     Monochrome, // 1 bpp
     BGR565,
+    BGR565Swapped,
     RGB565,
+    RGB565Swapped,
     RGB888
 };
 

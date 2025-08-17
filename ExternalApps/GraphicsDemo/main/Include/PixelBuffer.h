@@ -61,12 +61,14 @@ public:
             case COLOR_FORMAT_MONOCHROME:
                 return 1;
             case COLOR_FORMAT_BGR565:
-                return 2;
+            case COLOR_FORMAT_BGR565_SWAPPED:
             case COLOR_FORMAT_RGB565:
+            case COLOR_FORMAT_RGB565_SWAPPED:
                 return 2;
             case COLOR_FORMAT_RGB888:
                 return 3;
             default:
+                // TODO: Crash with error
                 return 0;
         }
     }
@@ -86,9 +88,26 @@ public:
             case COLOR_FORMAT_BGR565:
                 Colors::rgb888ToBgr565(r, g, b, reinterpret_cast<uint16_t*>(address));
                 break;
-            case COLOR_FORMAT_RGB565:
+            case COLOR_FORMAT_BGR565_SWAPPED: {
+                // TODO: Make proper conversion function
+                Colors::rgb888ToBgr565(r, g, b, reinterpret_cast<uint16_t*>(address));
+                uint8_t temp = *address;
+                *address = *(address + 1);
+                *(address + 1) = temp;
+                break;
+            }
+            case COLOR_FORMAT_RGB565: {
                 Colors::rgb888ToRgb565(r, g, b, reinterpret_cast<uint16_t*>(address));
                 break;
+            }
+            case COLOR_FORMAT_RGB565_SWAPPED: {
+                // TODO: Make proper conversion function
+                Colors::rgb888ToRgb565(r, g, b, reinterpret_cast<uint16_t*>(address));
+                uint8_t temp = *address;
+                *address = *(address + 1);
+                *(address + 1) = temp;
+                break;
+            }
             case COLOR_FORMAT_RGB888: {
                 uint8_t pixel[3] = { r, g, b };
                 memcpy(address, pixel, 3);

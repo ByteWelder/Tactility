@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/spi/Spi.h>
 
 #include <EspLcdDisplay.h>
 

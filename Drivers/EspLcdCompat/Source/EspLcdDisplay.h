@@ -15,6 +15,7 @@ class EspLcdDisplay : tt::hal::display::DisplayDevice {
     lv_display_t* _Nullable lvglDisplay = nullptr;
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable displayDriver;
     std::shared_ptr<tt::Lock> lock;
+    lcd_rgb_element_order_t rgbElementOrder;
 
 protected:
 
@@ -33,7 +34,7 @@ protected:
 
 public:
 
-    EspLcdDisplay(std::shared_ptr<tt::Lock> lock) : lock(lock) {}
+    EspLcdDisplay(std::shared_ptr<tt::Lock> lock, lcd_rgb_element_order_t element_order) : lock(lock) {}
 
     ~EspLcdDisplay() override;
 

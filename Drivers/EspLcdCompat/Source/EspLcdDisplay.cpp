@@ -99,10 +99,18 @@ std::shared_ptr<tt::hal::display::DisplayDriver> EspLcdDisplay::getDisplayDriver
         if (lvgl_port_config.color_format == LV_COLOR_FORMAT_I1) {
             color_format = tt::hal::display::ColorFormat::Monochrome;
         } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB565) {
-            if (lvgl_port_config.flags.swap_bytes) {
-                color_format = tt::hal::display::ColorFormat::RGB565;
+            if (rgbElementOrder == LCD_RGB_ELEMENT_ORDER_RGB) {
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::RGB565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::RGB565;
+                }
             } else {
-                color_format = tt::hal::display::ColorFormat::BGR565;
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::BGR565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::BGR565;
+                }
             }
         } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB888) {
             color_format = tt::hal::display::ColorFormat::RGB888;

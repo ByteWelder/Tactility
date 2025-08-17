@@ -11,8 +11,12 @@ static ColorFormat toColorFormat(tt::hal::display::ColorFormat format) {
             return COLOR_FORMAT_MONOCHROME;
         case tt::hal::display::ColorFormat::BGR565:
             return COLOR_FORMAT_BGR565;
+        case tt::hal::display::ColorFormat::BGR565Swapped:
+            return COLOR_FORMAT_BGR565_SWAPPED;
         case tt::hal::display::ColorFormat::RGB565:
             return COLOR_FORMAT_RGB565;
+        case tt::hal::display::ColorFormat::RGB565Swapped:
+            return COLOR_FORMAT_RGB565_SWAPPED;
         case tt::hal::display::ColorFormat::RGB888:
             return COLOR_FORMAT_RGB888;
         default:

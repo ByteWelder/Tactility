@@ -11,13 +11,6 @@ public:
         *rgb565 = _rgb565;
     }
 
-    static void rgb888ToRgb565Real(uint8_t red, uint8_t green, uint8_t blue, uint16_t* rgb565) {
-        uint16_t _rgb565 = (blue >> 3);
-        _rgb565 = (_rgb565 << 6) | (green >> 2);
-        _rgb565 = (_rgb565 << 5) | (red >> 3);
-        *rgb565 = _rgb565;
-    }
-
     static void rgb888ToBgr565(uint8_t red, uint8_t green, uint8_t blue, uint16_t* bgr565) {
         uint16_t _bgr565 = (blue >> 3);
         _bgr565 = (_bgr565 << 6) | (green >> 2);

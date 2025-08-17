@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/spi/Spi.h>
 
-#include <driver/spi_common.h>
+#include <EspLcdDisplay.h>
+
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_types.h>
 #include <functional>
 #include <lvgl.h>
-
-#include <EspLcdDisplay.h>
 
 class Ili934xDisplay final : public EspLcdDisplay {
 
@@ -81,7 +81,7 @@ private:
 public:
 
     explicit Ili934xDisplay(std::unique_ptr<Configuration> inConfiguration) :
-        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
+        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice), inConfiguration->rgbElementOrder),
         configuration(std::move(inConfiguration)
     ) {
         assert(configuration != nullptr);
