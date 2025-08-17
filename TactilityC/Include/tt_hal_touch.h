@@ -7,11 +7,25 @@ extern "C" {
 #endif
 
 typedef void* TouchDriverHandle;
+/**
+ * Check if the touch driver interface is supported for this device.
+ * @param[in] touchDeviceId the identifier of the touch device
+ * @return true if the driver is supported.
+ */
+bool tt_hal_touch_driver_supported(DeviceId touchDeviceId);
 
-bool tt_hal_touch_driver_supported(DeviceId id);
+/**
+ * Allocate a driver object for the specified touchDeviceId.
+ * @warning check whether the driver is supported by calling tt_hal_touch_driver_supported() first
+ * @param[in] touchDeviceId the identifier of the touch device
+ * @return the driver handle
+ */
+TouchDriverHandle tt_hal_touch_driver_alloc(DeviceId touchDeviceId);
 
-TouchDriverHandle tt_hal_touch_driver_alloc(DeviceId id);
-
+/**
+ * Free the memory for the touch driver.
+ * @param[in] handle the touch driver handle
+ */
 void tt_hal_touch_driver_free(TouchDriverHandle handle);
 
 /**
