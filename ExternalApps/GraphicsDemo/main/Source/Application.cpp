@@ -59,7 +59,9 @@ void runApplication(DisplayDriver* display, TouchDriver* touch) {
                 createRgbFadingRow(line_buffer);
             }
 
+            display->lock();
             display->drawBitmap(0, i, display->getWidth(), i + 1, line_buffer.getData());
+            display->unlock();
         }
 
         // Give other tasks space to breathe

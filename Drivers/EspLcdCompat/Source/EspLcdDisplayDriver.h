@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Tactility/Mutex.h"
-
+#include <Tactility/Mutex.h>
 #include <Tactility/hal/display/DisplayDriver.h>
+
 #include <esp_lcd_panel_ops.h>
 
 class EspLcdDisplayDriver : public tt::hal::display::DisplayDriver {
@@ -28,9 +28,7 @@ public:
     }
 
     bool drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) override {
-        lock->lock();
         bool result = esp_lcd_panel_draw_bitmap(panelHandle, xStart, yStart, xEnd, yEnd, pixelData) == ESP_OK;
-        lock->unlock();
         return result;
     }
 
@@ -38,5 +36,5 @@ public:
 
     uint16_t getPixelHeight() const override { return vRes; }
 
-    std::shared_ptr<tt::Lock> getLock() const { return lock; }
+    std::shared_ptr<tt::Lock> getLock() const override { return lock; }
 };

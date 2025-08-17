@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tt_kernel.h>
+
 #include "tt_hal_device.h"
 
 #ifdef __cplusplus
@@ -22,6 +24,10 @@ bool tt_hal_display_driver_supported(DeviceId id);
 DisplayDriverHandle tt_hal_display_driver_alloc(DeviceId id);
 
 void tt_hal_display_driver_free(DisplayDriverHandle handle);
+
+bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType timeout);
+
+void tt_hal_display_driver_unlock(DisplayDriverHandle handle);
 
 ColorFormat tt_hal_display_driver_get_colorformat(DisplayDriverHandle handle);
 

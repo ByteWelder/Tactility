@@ -33,7 +33,7 @@ bool Ili9488Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
         }
     };
 
-    return esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &outHandle) == ESP_OK;
+    return esp_lcd_new_panel_io_spi(configuration->spiHostDevice, &panel_io_config, &outHandle) == ESP_OK;
 }
 
 bool Ili9488Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {

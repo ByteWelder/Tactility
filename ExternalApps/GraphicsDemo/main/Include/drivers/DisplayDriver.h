@@ -22,6 +22,14 @@ public:
         tt_hal_display_driver_free(handle);
     }
 
+    bool lock(TickType timeout = MAX_TICKS) const {
+        return tt_hal_display_driver_lock(handle, timeout);
+    }
+
+    void unlock() const {
+        tt_hal_display_driver_unlock(handle);
+    }
+
     uint16_t getWidth() const {
         return tt_hal_display_driver_get_pixel_width(handle);
     }

@@ -51,27 +51,37 @@ DisplayDriverHandle tt_hal_display_driver_alloc(DeviceId id) {
 }
 
 void tt_hal_display_driver_free(DisplayDriverHandle handle) {
-    DriverWrapper* wrapper = static_cast<DriverWrapper*>(handle);
+    auto wrapper = static_cast<DriverWrapper*>(handle);
     delete wrapper;
 }
 
+bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType timeout) {
+    auto wrapper = static_cast<DriverWrapper*>(handle);
+    return wrapper->driver->getLock()->lock(timeout);
+}
+
+void tt_hal_display_driver_unlock(DisplayDriverHandle handle) {
+    auto wrapper = static_cast<DriverWrapper*>(handle);
+    wrapper->driver->getLock()->unlock();
+}
+
 ColorFormat tt_hal_display_driver_get_colorformat(DisplayDriverHandle handle) {
-    DriverWrapper* wrapper = static_cast<DriverWrapper*>(handle);
+    auto wrapper = static_cast<DriverWrapper*>(handle);
     return toColorFormat(wrapper->driver->getColorFormat());
 }
 
 uint16_t tt_hal_display_driver_get_pixel_width(DisplayDriverHandle handle) {
-    DriverWrapper* wrapper = static_cast<DriverWrapper*>(handle);
+    auto wrapper = static_cast<DriverWrapper*>(handle);
     return wrapper->driver->getPixelWidth();
 }
 
 uint16_t tt_hal_display_driver_get_pixel_height(DisplayDriverHandle handle) {
-    DriverWrapper* wrapper = static_cast<DriverWrapper*>(handle);
+    auto wrapper = static_cast<DriverWrapper*>(handle);
     return wrapper->driver->getPixelHeight();
 }
 
 void tt_hal_display_driver_draw_bitmap(DisplayDriverHandle handle, int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) {
-    DriverWrapper* wrapper = static_cast<DriverWrapper*>(handle);
+    auto wrapper = static_cast<DriverWrapper*>(handle);
     wrapper->driver->drawBitmap(xStart, yStart, xEnd, yEnd, pixelData);
 }
 

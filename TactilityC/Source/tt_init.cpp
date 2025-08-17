@@ -136,6 +136,8 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_colorformat),
     ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_height),
     ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_width),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_lock),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_unlock),
     ESP_ELFSYM_EXPORT(tt_hal_display_driver_supported),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
