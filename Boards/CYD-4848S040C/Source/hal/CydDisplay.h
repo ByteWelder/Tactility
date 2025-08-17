@@ -1,7 +1,9 @@
 #pragma once
 
+#include <Tactility/Mutex.h>
+
 #include <EspLcdDisplay.h>
-#include<lvgl.h>
+#include <lvgl.h>
 
 class CydDisplay final : public EspLcdDisplay {
 
@@ -18,6 +20,8 @@ class CydDisplay final : public EspLcdDisplay {
     lvgl_port_display_rgb_cfg_t getLvglPortDisplayRgbConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
 
 public:
+
+    CydDisplay() : EspLcdDisplay(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive)) {}
 
     std::string getName() const override { return "ST7701S"; }
 
