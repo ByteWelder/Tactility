@@ -1,7 +1,6 @@
 #include "Application.h"
+#include "PixelBuffer.h"
 
-#include <cstdlib>
-#include <cstring>
 #include <tt_kernel.h>
 
 const uint8_t logo[] = {
@@ -31,46 +30,31 @@ const uint8_t logo[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1f, 0x06, 0xff, 0x05, 0xff, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 };
 
-static void waitForTouch(TouchDriverHandle touch) {
+static void waitForTouch(TouchDriver* touch) {
     // Wait for touch
     uint16_t x, y, strength;
     uint8_t pointCount = 0;
     do  {
-        tt_hal_touch_driver_get_touched_points(touch, &x, &y, &strength, &pointCount, 1);
+        touch->getTouchedPoints(&x, &y, &strength, &pointCount, 1);
         tt_kernel_delay_millis(20);
     } while (pointCount == 0);
 }
 
-uint32_t getPixelSize(ColorFormat colorFormat) {
-    switch (colorFormat) {
-        case COLOR_FORMAT_MONOCHROME:
-            return 1;
-        case COLOR_FORMAT_BGR565:
-            return 2;
-        case COLOR_FORMAT_RGB565:
-            return 2;
-        case COLOR_FORMAT_RGB888:
-            return 3;
-        default:
-            return 0;
-    }
-}
+void runApplication(DisplayDriver* display, TouchDriver* touch) {
 
-void runApplication(DisplayDriverHandle display, TouchDriverHandle touch) {
+    PixelBuffer buffer(display->getWidth(), display->getHeight(), display->getColorFormat());
+    buffer.clear();
 
-    auto display_width = tt_hal_display_driver_get_pixel_width(display);
-    auto display_height = tt_hal_display_driver_get_pixel_height(display);
-    auto color_format = tt_hal_display_driver_get_colorformat(display);
-    auto buffer_height = display_height / 10;
-    auto buffer_size = display_width * buffer_height * getPixelSize(color_format);
-    void* buffer = malloc(buffer_size);
-    memset(buffer, 0, buffer_size);
-
-    for (int i = 0; i < 10; i++) {
-        tt_hal_display_driver_draw_bitmap(display, 0, i * buffer_height, display_width, (i + 1) * buffer_height, buffer);
+    // SPI displays don't allow us to render everything at once, so we send 1/10th of the display at a time
+    auto chunks = 10;
+    auto chunk_row_pixel_height = buffer.getHeight() / chunks;
+    for (int i = 0; i < chunks; i++) {
+        auto row = buffer.getHeight() * i / 10;
+        auto chunk_data = buffer.getDataAtRow(row);
+        display->drawBitmap(0, row, buffer.getWidth(), row + chunk_row_pixel_height, chunk_data);
     }
 
-    tt_hal_display_driver_draw_bitmap(display, 0, 0, 24, 24, logo);
+    display->drawBitmap(0, 0, 24, 24, logo);
 
     waitForTouch(touch);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tt_hal_display.h>
-#include <tt_hal_touch.h>
+#include "drivers/DisplayDriver.h"
+#include "drivers/TouchDriver.h"
 
-void runApplication(DisplayDriverHandle display, TouchDriverHandle touch);
+void runApplication(DisplayDriver* display, TouchDriver* touch);
