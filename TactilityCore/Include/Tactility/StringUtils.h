@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <string>
 #include <vector>
+#include <functional>
 
 namespace tt::string {
 
@@ -29,6 +30,16 @@ std::string getLastPathSegment(const std::string& path);
  * @param delimiter a non-empty string to recognize as separator
  */
 std::vector<std::string> split(const std::string& input, const std::string& delimiter);
+
+/**
+ * Splits the provided input into separate pieces with delimiter as separator text.
+ * When the input string is empty, the output list will be empty too.
+ *
+ * @param input the input to split up
+ * @param delimiter a non-empty string to recognize as separator
+ * @param callback the callback function that receives the split parts
+ */
+void split(const std::string& input, const std::string& delimiter, std::function<void(const std::string&)> callback);
 
 /**
  * Join a set of tokens into a single string, given a delimiter (separator).
