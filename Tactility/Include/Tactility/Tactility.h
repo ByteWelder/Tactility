@@ -4,7 +4,6 @@
 
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/service/ServiceManifest.h>
-#include <Tactility/TactilityConfig.h>
 
 namespace tt {
 

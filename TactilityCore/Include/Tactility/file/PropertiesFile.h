@@ -1,0 +1,8 @@
+//
+// Created by ken on 18/08/2025.
+//
+
+#ifndef TACTILITY_PROPERTIESFILE_H
+#define TACTILITY_PROPERTIESFILE_H
+
+#endif //TACTILITY_PROPERTIESFILE_H
