@@ -1,8 +1,13 @@
-//
-// Created by ken on 18/08/2025.
-//
+#pragma once
 
-#ifndef TACTILITY_PROPERTIESFILE_H
-#define TACTILITY_PROPERTIESFILE_H
+#include <functional>
+#include <map>
+#include <string>
 
-#endif //TACTILITY_PROPERTIESFILE_H
+namespace tt::file {
+
+bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::string>& outProperties);
+
+bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback);
+
+}
