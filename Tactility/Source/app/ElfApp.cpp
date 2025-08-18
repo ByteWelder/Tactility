@@ -33,6 +33,7 @@ struct ElfManifest {
 
 static size_t elfManifestSetCount = 0;
 static ElfManifest elfManifest;
+static std::shared_ptr<Lock> elfManifestLock = std::make_shared<Mutex>();
 
 class ElfApp : public App {
 
@@ -56,25 +57,30 @@ class ElfApp : public App {
             return false;
         }
 
-        if (esp_elf_init(&elf) < 0) {
+        if (esp_elf_init(&elf) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to initialize");
-            shouldCleanupElf = true;
+            elfFileData  = nullptr;
             return false;
         }
 
-        if (esp_elf_relocate(&elf, elfFileData.get()) < 0) {
+        if (esp_elf_relocate(&elf, elfFileData.get()) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to load executable");
+            esp_elf_deinit(&elf);
+            elfFileData  = nullptr;
             return false;
         }
 
         int argc = 0;
         char* argv[] = {};
 
-        if (esp_elf_request(&elf, 0, argc, argv) < 0) {
+        if (esp_elf_request(&elf, 0, argc, argv) != ESP_OK) {
             TT_LOG_W(TAG, "Executable returned error code");
+            esp_elf_deinit(&elf);
+            elfFileData  = nullptr;
             return false;
         }
 
+        shouldCleanupElf = true;
         return true;
     }
 
@@ -95,10 +101,16 @@ public:
     explicit ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
 
     void onCreate(AppContext& appContext) override {
+        // Because we use global variables, we have to ensure that we are not starting 2 apps in parallel
+        // We use a ScopedLock so we don't have to safeguard all branches
+        auto lock = elfManifestLock->asScopedLock();
+        lock.lock();
+
         auto initial_count = elfManifestSetCount;
         if (startElf()) {
             if (elfManifestSetCount > initial_count) {
                 manifest = std::make_unique<ElfManifest>(elfManifest);
+                lock.unlock();
 
                 if (manifest->createData != nullptr) {
                     data = manifest->createData();
@@ -181,7 +193,7 @@ void registerElfApp(const std::string& filePath) {
     if (findAppById(filePath) == nullptr) {
         auto manifest = AppManifest {
             .id = getElfAppId(filePath),
-            .name = tt::string::removeFileExtension(tt::string::getLastPathSegment(filePath)),
+            .name = string::removeFileExtension(string::getLastPathSegment(filePath)),
             .type = Type::User,
             .location = Location::external(filePath)
         };
