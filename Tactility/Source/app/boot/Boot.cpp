@@ -24,26 +24,20 @@
 
 namespace tt::app::boot {
 
-static std::shared_ptr<tt::hal::display::DisplayDevice> getHalDisplay() {
+static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
 }
 
 class BootApp : public App {
 
-private:
+    Thread thread = Thread("boot", 4096, [] { return bootThreadCallback(); });
 
-    Thread thread = Thread("boot", 4096, [this]() { return bootThreadCallback(); });
-
-    int32_t bootThreadCallback() {
-        TickType_t start_time = kernel::getTicks();
-
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
-
-        auto hal_display = getHalDisplay();
+    static void setupDisplay() {
+        const auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);
         if (hal_display->supportsBacklightDuty()) {
             uint8_t backlight_duty = 200;
-            app::display::getBacklightDuty(backlight_duty);
+            display::getBacklightDuty(backlight_duty);
             TT_LOG_I(TAG, "backlight %du", backlight_duty);
             hal_display->setBacklightDuty(backlight_duty);
         } else {
@@ -52,27 +46,45 @@ private:
 
         if (hal_display->getGammaCurveCount() > 0) {
             uint8_t gamma_curve;
-            if (app::display::getGammaCurve(gamma_curve)) {
+            if (display::getGammaCurve(gamma_curve)) {
                 hal_display->setGammaCurve(gamma_curve);
                 TT_LOG_I(TAG, "gamma %du", gamma_curve);
             }
         }
+    }
 
-        if (hal::usb::isUsbBootMode()) {
-            TT_LOG_I(TAG, "Rebooting into mass storage device mode");
-            hal::usb::resetUsbBootMode();
-            hal::usb::startMassStorageWithSdmmc();
-        } else {
+    static bool setupUsbBootMode() {
+        if (!hal::usb::isUsbBootMode()) {
+            return false;
+        }
+
+        TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+        hal::usb::resetUsbBootMode();
+        hal::usb::startMassStorageWithSdmmc();
+
+        return true;
+    }
+
+    static void waitForMinimalSplashDuration(TickType_t startTime) {
+        const auto end_time = kernel::getTicks();
+        const auto ticks_passed = end_time - startTime;
+        constexpr auto minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
+        if (minimum_ticks > ticks_passed) {
+            kernel::delayTicks(minimum_ticks - ticks_passed);
+        }
+    }
+
+    static int32_t bootThreadCallback() {
+        const auto start_time = kernel::getTicks();
+
+        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+
+        setupDisplay();
+
+        if (!setupUsbBootMode()) {
             initFromBootApp();
-
-            TickType_t end_time = tt::kernel::getTicks();
-            TickType_t ticks_passed = end_time - start_time;
-            TickType_t minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
-            if (minimum_ticks > ticks_passed) {
-                kernel::delayTicks(minimum_ticks - ticks_passed);
-            }
-
-            tt::service::loader::stopApp();
+            waitForMinimalSplashDuration(start_time);
+            service::loader::stopApp();
             startNextApp();
         }
 
@@ -81,16 +93,15 @@ private:
 
     static void startNextApp() {
 #ifdef ESP_PLATFORM
-        esp_reset_reason_t reason = esp_reset_reason();
-        if (reason == ESP_RST_PANIC) {
-            app::crashdiagnostics::start();
+        if (esp_reset_reason() == ESP_RST_PANIC) {
+            crashdiagnostics::start();
             return;
         }
 #endif
 
-        auto* config = tt::getConfiguration();
+        const auto* config = getConfiguration();
         assert(!config->launcherAppId.empty());
-        tt::service::loader::startApp(config->launcherAppId);
+        service::loader::startApp(config->launcherAppId);
     }
 
 public:
@@ -99,9 +110,9 @@ public:
         auto* image = lv_image_create(parent);
         lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
 
-        auto paths = app.getPaths();
+        const auto paths = app.getPaths();
         const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
-        auto logo_path = paths->getSystemPathLvgl(logo);
+        const auto logo_path = paths->getSystemPathLvgl(logo);
         TT_LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());
 
