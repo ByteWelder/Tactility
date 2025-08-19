@@ -172,8 +172,6 @@ class NotesApp : public App {
         if (!file::findOrCreateDirectory(context.getPaths()->getDataDirectory(), 0777)) {
             TT_LOG_E(TAG, "Failed to find or create path %s", context.getPaths()->getDataDirectory().c_str());
         }
-
-        lvgl::keyboard_add_textarea(uiNoteText);
     }
 
     void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> resultData) override {

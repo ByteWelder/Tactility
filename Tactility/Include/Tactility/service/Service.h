@@ -4,6 +4,13 @@
 
 namespace tt::service {
 
+enum class State {
+    Starting,
+    Started,
+    Stopping,
+    Stopped
+};
+
 // Forward declaration
 class ServiceContext;
 

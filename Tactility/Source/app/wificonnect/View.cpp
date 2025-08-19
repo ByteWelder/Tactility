@@ -1,10 +1,8 @@
 #include "Tactility/app/wificonnect/View.h"
 #include "Tactility/app/wificonnect/WifiConnect.h"
 
-#include "Tactility/lvgl/Style.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/lvgl/Spinner.h"
-#include "Tactility/service/gui/Gui.h"
 
 #include <Tactility/TactilityCore.h>
 #include <Tactility/service/wifi/WifiSettings.h>
@@ -186,10 +184,6 @@ void View::init(AppContext& app, lv_obj_t* parent) {
 
     // Bottom buttons
     createBottomButtons(wrapper);
-
-    // Keyboard bindings
-    service::gui::keyboardAddTextArea(ssid_textarea);
-    service::gui::keyboardAddTextArea(password_textarea);
 
     // Init from app parameters
     auto bundle = app.getParameters();

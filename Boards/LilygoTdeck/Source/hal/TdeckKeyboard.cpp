@@ -7,7 +7,7 @@
 #define TDECK_KEYBOARD_I2C_BUS_HANDLE I2C_NUM_0
 #define TDECK_KEYBOARD_SLAVE_ADDRESS 0x55
 
-static inline bool keyboard_i2c_read(uint8_t* output) {
+static bool keyboard_i2c_read(uint8_t* output) {
     return tt::hal::i2c::masterRead(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, output, 1, 100 / portTICK_PERIOD_MS);
 }
 
@@ -43,7 +43,7 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
     last_buffer = read_buffer;
 }
 
-bool TdeckKeyboard::start(lv_display_t* display) {
+bool TdeckKeyboard::startLvgl(lv_display_t* display) {
     deviceHandle = lv_indev_create();
     lv_indev_set_type(deviceHandle, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(deviceHandle, &keyboard_read_callback);
@@ -52,7 +52,7 @@ bool TdeckKeyboard::start(lv_display_t* display) {
     return true;
 }
 
-bool TdeckKeyboard::stop() {
+bool TdeckKeyboard::stopLvgl() {
     lv_indev_delete(deviceHandle);
     deviceHandle = nullptr;
     return true;

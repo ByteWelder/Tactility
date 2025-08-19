@@ -6,10 +6,13 @@
 std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Ft6x36Touch::Configuration>(
         I2C_NUM_0,
-        GPIO_NUM_39
+        GPIO_NUM_39,
+        CORE2_LCD_HORIZONTAL_RESOLUTION,
+        CORE2_LCD_VERTICAL_RESOLUTION
     );
 
-    return std::make_shared<Ft6x36Touch>(std::move(configuration));
+    auto touch = std::make_shared<Ft6x36Touch>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::touch::TouchDevice>(touch);
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -28,5 +31,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         true
     );
 
-    return std::make_shared<Ili934xDisplay>(std::move(configuration));
+    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

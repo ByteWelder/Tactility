@@ -1,5 +1,4 @@
 #include "CoreS3Display.h"
-
 #include "CoreS3Constants.h"
 
 #include <Ft5x06Touch.h>
@@ -7,7 +6,7 @@
 #include <Tactility/Log.h>
 #include <Tactility/hal/i2c/I2c.h>
 
-#define TAG "cores3"
+constexpr auto TAG = "CoreS3Display";
 
 static void setBacklightDuty(uint8_t backlightDuty) {
     const uint8_t voltage = 20 + ((8 * backlightDuty) / 255); // [0b00000, 0b11100] - under 20 is too dark
@@ -25,7 +24,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         240
     );
 
-    return std::make_shared<Ft5x06Touch>(std::move(configuration));
+    auto touch = std::make_shared<Ft5x06Touch>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::touch::TouchDevice>(touch);
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -46,5 +46,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
 
     configuration->backlightDutyFunction = ::setBacklightDuty;
 
-    return std::make_shared<Ili934xDisplay>(std::move(configuration));
+    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

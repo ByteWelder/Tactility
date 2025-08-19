@@ -10,10 +10,11 @@ namespace tt::app::clock {
     extern const AppManifest clock_app;
 }
 
-// extern const tt::app::AppManifest hello_world_app;
 extern const tt::app::AppManifest tactility_news_app;
 extern const tt::app::AppManifest tactile_web_app;
 extern const tt::app::AppManifest tactiligotchi_app;
+extern const tt::app::AppManifest hello_world_app;
+
 
 extern "C" {
 

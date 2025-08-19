@@ -35,5 +35,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
 
-    return std::make_shared<Ili934xDisplay>(std::move(configuration));
+    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

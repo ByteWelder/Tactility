@@ -8,10 +8,8 @@
 #include "Tactility/hal/uart/Uart.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Style.h"
-#include "Tactility/service/gui/Gui.h"
 
 #include <Tactility/StringUtils.h>
-#include <array>
 #include <string>
 
 namespace tt::app::serialconsole {
@@ -117,7 +115,6 @@ public:
         lv_textarea_set_one_line(speedTextarea, true);
         lv_obj_set_width(speedTextarea, LV_PCT(50));
         lv_obj_align(speedTextarea, LV_ALIGN_TOP_RIGHT, 0, 40);
-        service::gui::keyboardAddTextArea(speedTextarea);
 
         auto* baud_rate_label = lv_label_create(wrapper);
         lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 50);
@@ -130,7 +127,7 @@ public:
         lv_obj_add_event_cb(connect_button, onConnectCallback, LV_EVENT_SHORT_CLICKED, this);
     }
 
-    void onStop() final {
+    void onStop() {
         int speed = getSpeedInput();
         if (speed > 0) {
             preferences.putInt32("speed", speed);

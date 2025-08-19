@@ -1,19 +1,17 @@
 #include "CydDisplay.h"
-#include "PwmBacklight.h"
 
 #include <Gt911Touch.h>
+#include <PwmBacklight.h>
 #include <Tactility/Log.h>
 
 #include <driver/gpio.h>
 #include <esp_err.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lcd_panel_ops.h>
-#include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_io_additions.h>
 #include <esp_lcd_st7701.h>
-#include <esp_lvgl_port.h>
 
-#define TAG "cyd_display"
+constexpr auto TAG = "ST7701";
 
 static const st7701_lcd_init_cmd_t st7701_lcd_init_cmds[] = {
     //  {cmd, { data }, data_size, delay_ms}
@@ -58,9 +56,7 @@ static const st7701_lcd_init_cmd_t st7701_lcd_init_cmds[] = {
     {0x29, (uint8_t[]) {0x00}, 0, 0}, //Display On
 };
 
-bool CydDisplay::start() {
-    TT_LOG_I(TAG, "Starting");
-
+bool CydDisplay::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     spi_line_config_t line_config = {
         .cs_io_type = IO_TYPE_GPIO,
         .cs_gpio_num = GPIO_NUM_39,
@@ -68,11 +64,13 @@ bool CydDisplay::start() {
         .scl_gpio_num = GPIO_NUM_48,
         .sda_io_type = IO_TYPE_GPIO,
         .sda_gpio_num = GPIO_NUM_47,
-        .io_expander = NULL,
+        .io_expander = nullptr,
     };
     esp_lcd_panel_io_3wire_spi_config_t panel_io_config = ST7701_PANEL_IO_3WIRE_SPI_CONFIG(line_config, 0);
-    ESP_ERROR_CHECK(esp_lcd_new_panel_io_3wire_spi(&panel_io_config, &ioHandle));
+    return esp_lcd_new_panel_io_3wire_spi(&panel_io_config, &outHandle) == ESP_OK;
+}
 
+bool CydDisplay::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {
     const esp_lcd_rgb_panel_config_t rgb_config = {
         .clk_src = LCD_CLK_SRC_DEFAULT,
         .timings = {
@@ -179,7 +177,11 @@ bool CydDisplay::start() {
         TT_LOG_E(TAG, "Failed to turn display on");
     }
 
-    const lvgl_port_display_cfg_t disp_cfg = {
+    return true;
+}
+
+lvgl_port_display_cfg_t CydDisplay::getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
+    return {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
@@ -204,44 +206,29 @@ bool CydDisplay::start() {
             .direct_mode = false
         }
     };
+}
 
-    const lvgl_port_display_rgb_cfg_t rgb_cfg = {
+lvgl_port_display_rgb_cfg_t CydDisplay::getLvglPortDisplayRgbConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
+    return {
         .flags = {
             .bb_mode = true,
             .avoid_tearing = false
         }
     };
-
-    displayHandle = lvgl_port_add_disp_rgb(&disp_cfg, &rgb_cfg);
-    TT_LOG_I(TAG, "Finished");
-    return displayHandle != nullptr;
 }
 
-bool CydDisplay::stop() {
-    assert(displayHandle != nullptr);
+std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable CydDisplay::getTouchDevice() {
+    if (touchDevice == nullptr) {
+        auto configuration = std::make_unique<Gt911Touch::Configuration>(
+           I2C_NUM_0,
+           480,
+           480
+       );
 
-    lvgl_port_remove_disp(displayHandle);
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
-        return false;
+        touchDevice = std::make_shared<Gt911Touch>(std::move(configuration));
     }
 
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
-    displayHandle = nullptr;
-    return true;
-}
-
-std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable CydDisplay::createTouch() {
-    auto configuration = std::make_unique<Gt911Touch::Configuration>(
-        I2C_NUM_0,
-        480,
-        480
-    );
-
-    return std::make_shared<Gt911Touch>(std::move(configuration));
+    return touchDevice;
 }
 
 void CydDisplay::setBacklightDuty(uint8_t backlightDuty) {
@@ -249,5 +236,6 @@ void CydDisplay::setBacklightDuty(uint8_t backlightDuty) {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    return std::make_shared<CydDisplay>();
+    auto display = std::make_shared<CydDisplay>();
+    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

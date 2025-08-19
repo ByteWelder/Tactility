@@ -1,9 +1,8 @@
 #pragma once
 
-#include <Tactility/hal/touch/TouchDevice.h>
-#include <esp_lcd_touch.h>
+#include <EspLcdTouch.h>
 
-class Cst816sTouch final : public tt::hal::touch::TouchDevice {
+class Cst816sTouch final : public EspLcdTouch {
 
 public:
 
@@ -54,16 +53,18 @@ private:
 
     void cleanup();
 
+    bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
+
+    bool createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& configuration, esp_lcd_touch_handle_t& touchHandle) override;
+
+    esp_lcd_touch_config_t createEspLcdTouchConfig() override;
+
 public:
 
     explicit Cst816sTouch(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
         assert(configuration != nullptr);
     }
 
-    std::string getName() const final { return "CST816S"; }
-    std::string getDescription() const final { return "I2C touch driver"; }
-
-    bool start(lv_display_t* display) override;
-    bool stop() override;
-    lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }
+    std::string getName() const override { return "CST816S"; }
+    std::string getDescription() const override { return "CST816S I2C touch driver"; }
 };

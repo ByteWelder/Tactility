@@ -1,7 +1,7 @@
 #include "Tactility/Tactility.h"
 
 #include "Tactility/app/ManifestRegistry.h"
-#include "Tactility/lvgl/Init_i.h"
+#include "Tactility/lvgl/LvglPrivate.h"
 #include "Tactility/service/ServiceManifest.h"
 
 #include <Tactility/TactilityHeadless.h>

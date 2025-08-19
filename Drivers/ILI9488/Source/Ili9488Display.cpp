@@ -6,11 +6,9 @@
 #include <esp_lcd_panel_commands.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "ili9488"
+#define TAG "ILI9488"
 
-bool Ili9488Display::start() {
-    TT_LOG_I(TAG, "Starting");
-
+bool Ili9488Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     const esp_lcd_panel_io_spi_config_t panel_io_config = {
         .cs_gpio_num = configuration->csPin,
         .dc_gpio_num = configuration->dcPin,
@@ -35,10 +33,10 @@ bool Ili9488Display::start() {
         }
     };
 
-    if (esp_lcd_new_panel_io_spi(configuration->spiBusHandle, &panel_io_config, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel");
-        return false;
-    }
+    return esp_lcd_new_panel_io_spi(configuration->spiHostDevice, &panel_io_config, &outHandle) == ESP_OK;
+}
+
+bool Ili9488Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) {
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin,
@@ -51,14 +49,7 @@ bool Ili9488Display::start() {
         .vendor_config = nullptr
     };
 
-    uint32_t buffer_size;
-    if (configuration->bufferSize == 0) {
-        buffer_size = configuration->horizontalResolution * configuration->verticalResolution / 20;
-    } else {
-        buffer_size = configuration->bufferSize;
-    }
-
-    if (esp_lcd_new_panel_ili9488(ioHandle, &panel_config, buffer_size, &panelHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_ili9488(ioHandle, &panel_config, configuration->bufferSize, &panelHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
     }
@@ -93,11 +84,16 @@ bool Ili9488Display::start() {
         return false;
     }
 
-    const lvgl_port_display_cfg_t disp_cfg = {
+    return true;
+}
+
+
+lvgl_port_display_cfg_t Ili9488Display::getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) {
+    return {
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size = buffer_size,
+        .buffer_size = configuration->bufferSize,
         .double_buffer = false,
         .trans_size = 0,
         .hres = configuration->horizontalResolution,
@@ -118,26 +114,4 @@ bool Ili9488Display::start() {
             .direct_mode = false
         }
     };
-
-    displayHandle = lvgl_port_add_disp(&disp_cfg);
-
-    TT_LOG_I(TAG, "Finished");
-    return displayHandle != nullptr;
-}
-
-bool Ili9488Display::stop() {
-    assert(displayHandle != nullptr);
-
-    lvgl_port_remove_disp(displayHandle);
-
-    if (esp_lcd_panel_del(panelHandle) != ESP_OK) {
-        return false;
-    }
-
-    if (esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
-        return false;
-    }
-
-    displayHandle = nullptr;
-    return true;
 }

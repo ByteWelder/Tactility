@@ -10,12 +10,15 @@ class TouchDevice;
 
 namespace tt::hal::display {
 
+class DisplayDriver;
+
 class DisplayDevice : public Device {
 
 public:
 
     Type getType() const override { return Type::Display; }
 
+    /** Starts the internal driver */
     virtual bool start() = 0;
     virtual bool stop() = 0;
 
@@ -23,7 +26,7 @@ public:
     virtual bool isPoweredOn() const { return true; }
     virtual bool supportsPowerControl() const { return false; }
 
-    virtual std::shared_ptr<touch::TouchDevice> _Nullable createTouch() = 0;
+    virtual std::shared_ptr<touch::TouchDevice> _Nullable getTouchDevice() = 0;
 
     /** Set a value in the range [0, 255] */
     virtual void setBacklightDuty(uint8_t backlightDuty) { /* NO-OP */ }
@@ -33,8 +36,14 @@ public:
     virtual void setGammaCurve(uint8_t index) { /* NO-OP */ }
     virtual uint8_t getGammaCurveCount() const { return 0; };
 
-    /** After start() returns true, this should return a valid pointer until stop() is called and returns true */
+    virtual bool supportsLvgl() const { return false; }
+    virtual bool startLvgl() { return false; }
+    virtual bool stopLvgl() { return false; }
+
     virtual lv_display_t* _Nullable getLvglDisplay() const = 0;
+
+    virtual bool supportsDisplayDriver() const { return false; }
+    virtual std::shared_ptr<DisplayDriver> _Nullable getDisplayDriver() { return nullptr; }
 };
 
 } // namespace tt::hal::display

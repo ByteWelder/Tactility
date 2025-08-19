@@ -4,20 +4,20 @@
 #include <Tactility/TactilityCore.h>
 
 class SdlKeyboard final : public tt::hal::keyboard::KeyboardDevice {
-private:
+
     lv_indev_t* _Nullable handle = nullptr;
 
 public:
 
-    std::string getName() const final { return "SDL Keyboard"; }
-    std::string getDescription() const final { return "SDL keyboard device"; }
+    std::string getName() const override { return "SDL Keyboard"; }
+    std::string getDescription() const override { return "SDL keyboard device"; }
 
-    bool start(lv_display_t* display) override {
+    bool startLvgl(lv_display_t* display) override {
         handle = lv_sdl_keyboard_create();
         return handle != nullptr;
     }
 
-    bool stop() override { tt_crash("Not supported"); }
+    bool stopLvgl() override { tt_crash("Not supported"); }
 
     bool isAttached() const override { return true; }
 

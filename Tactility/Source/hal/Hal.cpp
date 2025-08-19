@@ -39,12 +39,12 @@ void init(const Configuration& configuration) {
         if (!configuration.sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
             TT_LOG_W(TAG, "SD card mount failed (init can continue)");
         }
-        hal::registerDevice(configuration.sdcard);
+        registerDevice(configuration.sdcard);
     }
 
     if (configuration.power != nullptr) {
-        std::shared_ptr<tt::hal::power::PowerDevice> power = configuration.power();
-        hal::registerDevice(power);
+        std::shared_ptr<power::PowerDevice> power = configuration.power();
+        registerDevice(power);
     }
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);

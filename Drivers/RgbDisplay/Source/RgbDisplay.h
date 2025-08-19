@@ -1,14 +1,13 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
-
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <EspLcdDisplayDriver.h>
 #include <esp_lcd_panel_rgb.h>
-#include <esp_lcd_types.h>
-#include <lvgl.h>
+#include <esp_lvgl_port_disp.h>
 
-#include <utility>
+class RgbDisplay final : public tt::hal::display::DisplayDevice {
 
-class RgbDisplay : public tt::hal::display::DisplayDevice {
+    std::shared_ptr<tt::Lock> lock = std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive);
 
 public:
 
@@ -51,16 +50,23 @@ public:
             mirrorX(mirrorX),
             mirrorY(mirrorY),
             invertColor(invertColor),
-            backlightDutyFunction(std::move(backlightDutyFunction))
-        {}
+            backlightDutyFunction(std::move(backlightDutyFunction)) {
+            if (this->bufferConfiguration.size == 0) {
+                auto horizontal_resolution = panelConfig.timings.h_res;
+                auto vertical_resolution = panelConfig.timings.v_res;
+                this->bufferConfiguration.size = horizontal_resolution * vertical_resolution / 15;
+            }
+        }
     };
 
 private:
 
-    std::unique_ptr<Configuration> configuration = nullptr;
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
+    std::unique_ptr<Configuration> _Nullable configuration = nullptr;
+    esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
+    lv_display_t* _Nullable lvglDisplay = nullptr;
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable displayDriver;
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig() const;
 
 public:
 
@@ -68,24 +74,43 @@ public:
         assert(configuration != nullptr);
     }
 
-    std::string getName() const final { return "RGB Display"; }
-    std::string getDescription() const final { return "RGB Display"; }
+    ~RgbDisplay();
+
+    std::string getName() const override { return "RGB Display"; }
+    std::string getDescription() const override { return "RGB Display"; }
 
     bool start() override;
 
     bool stop() override;
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { return configuration->touch; }
+    bool supportsLvgl() const override { return true; }
 
-    void setBacklightDuty(uint8_t backlightDuty) final {
+    bool startLvgl() override;
+
+    bool stopLvgl() override;
+
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
+
+    void setBacklightDuty(uint8_t backlightDuty) override {
         if (configuration->backlightDutyFunction != nullptr) {
             configuration->backlightDutyFunction(backlightDuty);
         }
     }
 
-    bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
+    bool supportsBacklightDuty() const override { return configuration->backlightDutyFunction != nullptr; }
 
-    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
+    lv_display_t* _Nullable getLvglDisplay() const override { return lvglDisplay; }
+
+    // TODO: Fix driver and re-enable
+    bool supportsDisplayDriver() const override { return false; }
+
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() override {
+        if (displayDriver == nullptr) {
+            auto config = getLvglPortDisplayConfig();
+            displayDriver = std::make_shared<EspLcdDisplayDriver>(panelHandle, lock, config.hres, config.vres, tt::hal::display::ColorFormat::RGB888);
+        }
+        return displayDriver;
+    }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

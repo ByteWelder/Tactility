@@ -10,7 +10,6 @@
 
 #include <cstring>
 #include <unistd.h>
-#include <Tactility/service/gui/Gui.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/service/loader/Loader.h"
@@ -200,7 +199,6 @@ void View::init(lv_obj_t* parent, Mode mode) {
     path_textarea = lv_textarea_create(bottom_wrapper);
     lv_textarea_set_one_line(path_textarea, true);
     lv_obj_set_flex_grow(path_textarea, 1);
-    service::gui::keyboardAddTextArea(path_textarea);
     lv_obj_add_event_cb(path_textarea, onPathTextChanged, LV_EVENT_VALUE_CHANGED, this);
 
     select_button = lv_button_create(bottom_wrapper);

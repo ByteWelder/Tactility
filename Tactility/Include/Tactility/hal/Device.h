@@ -36,7 +36,7 @@ public:
     virtual ~Device() = default;
 
     /** Unique identifier */
-    inline Id getId() const { return id; }
+    Id getId() const { return id; }
 
     /** The type of device */
     virtual Type getType() const = 0;
@@ -94,6 +94,8 @@ std::vector<std::shared_ptr<DeviceType>> findDevices(Device::Type type) {
         return std::move(result);
     }
 }
+
+void findDevices(Device::Type type, std::function<bool(const std::shared_ptr<Device>&)> onDeviceFound);
 
 /** Find the first device of the specified type and cast it to the specified class */
 template<class DeviceType>

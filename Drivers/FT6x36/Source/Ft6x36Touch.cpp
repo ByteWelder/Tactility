@@ -1,5 +1,6 @@
 #include "Ft6x36Touch.h"
 
+#include <Ft6x36Touch.h>
 #include <Tactility/Log.h>
 
 #include <esp_err.h>
@@ -7,22 +8,23 @@
 
 #define TAG "ft6x36"
 
-static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
+void Ft6x36Touch::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* touch = (Ft6x36Touch*)lv_indev_get_driver_data(indev);
-    touch->readLast(data);
+    touch->mutex.lock();
+    data->point = touch->lastPoint;
+    data->state = touch->lastState;
+    touch->mutex.unlock();
 }
 
 Ft6x36Touch::Ft6x36Touch(std::unique_ptr<Configuration> inConfiguration) :
-    configuration(std::move(inConfiguration)),
-    driverThread(tt::Thread("ft6x36", 4096, [this]() {
-        driverThreadMain();
-        return 0;
-    }))
-{}
+    configuration(std::move(inConfiguration)) {
+    nativeTouch = std::make_shared<Ft6TouchDriver>(*this);
+}
 
 Ft6x36Touch::~Ft6x36Touch() {
-    if (driverThread.getState() != tt::Thread::State::Stopped) {
-        stop();
+    if (driverThread != nullptr && driverThread->getState() != tt::Thread::State::Stopped) {
+        interruptDriverThread = true;
+        driverThread->join();
     }
 }
 
@@ -59,7 +61,7 @@ void Ft6x36Touch::driverThreadMain() {
     }
 }
 
-bool Ft6x36Touch::shouldInterruptDriverThread() {
+bool Ft6x36Touch::shouldInterruptDriverThread() const {
     bool interrupt = false;
     if (mutex.lock(50 / portTICK_PERIOD_MS)) {
         interrupt = interruptDriverThread;
@@ -68,15 +70,48 @@ bool Ft6x36Touch::shouldInterruptDriverThread() {
     return interrupt;
 }
 
-bool Ft6x36Touch::start(lv_display_t* display) {
-    TT_LOG_I(TAG, "start");
+bool Ft6x36Touch::start() {
+    TT_LOG_I(TAG, "Start");
 
-    driverThread.start();
-
-    uint16_t width = lv_display_get_horizontal_resolution(display);
-    uint16_t height = lv_display_get_vertical_resolution(display);
-    if (!driver.begin(FT6X36_DEFAULT_THRESHOLD, width, height)) {
+    if (!driver.begin(FT6X36_DEFAULT_THRESHOLD, configuration->width, configuration->height)) {
         TT_LOG_E(TAG, "driver.begin() failed");
+        return false;
+    }
+
+    mutex.lock();
+
+    interruptDriverThread = false;
+
+    driverThread = std::make_shared<tt::Thread>("ft6x36", 4096, [this] {
+        driverThreadMain();
+        return 0;
+    });
+
+    driverThread->start();
+
+    mutex.unlock();
+
+    return true;
+}
+
+bool Ft6x36Touch::stop() {
+    TT_LOG_I(TAG, "Stop");
+
+    mutex.lock();
+    interruptDriverThread = true;
+    mutex.unlock();
+
+    driverThread->join();
+
+    mutex.lock();
+    driverThread = nullptr;
+    mutex.unlock();
+
+    return false;
+}
+
+bool Ft6x36Touch::startLvgl(lv_display_t* display) {
+    if (deviceHandle != nullptr) {
         return false;
     }
 
@@ -85,18 +120,15 @@ bool Ft6x36Touch::start(lv_display_t* display) {
     lv_indev_set_driver_data(deviceHandle, this);
     lv_indev_set_read_cb(deviceHandle, touchReadCallback);
 
-    TT_LOG_I(TAG, "start success");
     return true;
 }
 
-bool Ft6x36Touch::stop() {
+bool Ft6x36Touch::stopLvgl() {
+    if (deviceHandle == nullptr) {
+        return false;
+    }
+
     lv_indev_delete(deviceHandle);
-    interruptDriverThread = true;
-    driverThread.join();
+    deviceHandle = nullptr;
     return true;
-}
-
-void Ft6x36Touch::readLast(lv_indev_data_t* data) {
-    data->point = lastPoint;
-    data->state = lastState;
 }

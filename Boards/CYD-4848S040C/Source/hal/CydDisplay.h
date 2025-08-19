@@ -1,32 +1,37 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
-#include <esp_lcd_types.h>
+#include <Tactility/Mutex.h>
+
+#include <EspLcdDisplay.h>
 #include <lvgl.h>
 
-class CydDisplay : public tt::hal::display::DisplayDevice {
+class CydDisplay final : public EspLcdDisplay {
 
-private:
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable touchDevice;
 
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
+    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;
+
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
+
+    bool isRgbPanel() const override { return true; }
+
+    lvgl_port_display_rgb_cfg_t getLvglPortDisplayRgbConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
 
 public:
 
-    std::string getName() const final { return "ST7701S"; }
-    std::string getDescription() const final { return "RGB Display"; }
+    CydDisplay() : EspLcdDisplay(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive)) {}
 
-    bool start() override;
+    std::string getName() const override { return "ST7701S"; }
 
-    bool stop() override;
+    std::string getDescription() const override { return "ST7701S RGB display"; }
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override;
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override;
 
     void setBacklightDuty(uint8_t backlightDuty) override;
-    bool supportsBacklightDuty() const override { return true; }
 
-    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
+    bool supportsBacklightDuty() const override { return true; }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

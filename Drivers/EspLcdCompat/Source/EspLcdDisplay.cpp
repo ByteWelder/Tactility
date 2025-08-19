@@ -1,0 +1,130 @@
+#include "EspLcdDisplay.h"
+#include "EspLcdDisplayDriver.h"
+
+#include <assert.h>
+#include <esp_lvgl_port_disp.h>
+#include <Tactility/Check.h>
+#include <Tactility/LogEsp.h>
+#include <Tactility/hal/touch/TouchDevice.h>
+
+constexpr const char* TAG = "EspLcdDispDrv";
+
+EspLcdDisplay::~EspLcdDisplay() {
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        tt_crash("DisplayDriver is still in use. This will cause memory access violations.");
+    }
+}
+
+bool EspLcdDisplay::start() {
+    if (!createIoHandle(ioHandle)) {
+        TT_LOG_E(TAG, "Failed to create IO handle");
+        return false;
+    }
+
+    if (!createPanelHandle(ioHandle, panelHandle)) {
+        TT_LOG_E(TAG, "Failed to create panel handle");
+        esp_lcd_panel_io_del(ioHandle);
+        return false;
+    }
+
+    return true;
+}
+
+bool EspLcdDisplay::stop() {
+    if (lvglDisplay != nullptr) {
+        stopLvgl();
+        lvglDisplay = nullptr;
+    }
+
+    if (panelHandle != nullptr && esp_lcd_panel_del(panelHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (ioHandle != nullptr && esp_lcd_panel_io_del(ioHandle) != ESP_OK) {
+        return false;
+    }
+
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
+    }
+
+    return true;
+}
+
+bool EspLcdDisplay::startLvgl() {
+    assert(lvglDisplay == nullptr);
+
+    if (displayDriver != nullptr && displayDriver.use_count() > 1) {
+        TT_LOG_W(TAG, "DisplayDriver is still in use.");
+    }
+
+    auto lvgl_port_config  = getLvglPortDisplayConfig(ioHandle, panelHandle);
+
+    if (isRgbPanel()) {
+        auto rgb_config = getLvglPortDisplayRgbConfig(ioHandle, panelHandle);
+        lvglDisplay = lvgl_port_add_disp_rgb(&lvgl_port_config , &rgb_config);
+    } else {
+        lvglDisplay = lvgl_port_add_disp(&lvgl_port_config );
+    }
+
+    auto touch_device = getTouchDevice();
+    if (touch_device != nullptr) {
+        touch_device->startLvgl(lvglDisplay);
+    }
+
+    return lvglDisplay != nullptr;
+}
+
+bool EspLcdDisplay::stopLvgl() {
+    if (lvglDisplay == nullptr) {
+        return false;
+    }
+
+    auto touch_device = getTouchDevice();
+    if (touch_device != nullptr) {
+        touch_device->stopLvgl();
+    }
+
+    lvgl_port_remove_disp(lvglDisplay);
+    lvglDisplay = nullptr;
+    return true;
+}
+
+std::shared_ptr<tt::hal::display::DisplayDriver> EspLcdDisplay::getDisplayDriver() {
+    assert(lvglDisplay == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
+    if (displayDriver == nullptr) {
+        auto lvgl_port_config  = getLvglPortDisplayConfig(ioHandle, panelHandle);
+
+        tt::hal::display::ColorFormat color_format;
+        if (lvgl_port_config.color_format == LV_COLOR_FORMAT_I1) {
+            color_format = tt::hal::display::ColorFormat::Monochrome;
+        } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB565) {
+            if (rgbElementOrder == LCD_RGB_ELEMENT_ORDER_RGB) {
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::RGB565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::RGB565;
+                }
+            } else {
+                if (lvgl_port_config.flags.swap_bytes) {
+                    color_format = tt::hal::display::ColorFormat::BGR565Swapped;
+                } else {
+                    color_format = tt::hal::display::ColorFormat::BGR565;
+                }
+            }
+        } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB888) {
+            color_format = tt::hal::display::ColorFormat::RGB888;
+        } else {
+            tt_crash("unsupported driver");
+        }
+
+        displayDriver = std::make_shared<EspLcdDisplayDriver>(
+            panelHandle,
+            lock,
+            lvgl_port_config.hres,
+            lvgl_port_config.vres,
+            color_format
+        );
+    }
+    return displayDriver;
+}

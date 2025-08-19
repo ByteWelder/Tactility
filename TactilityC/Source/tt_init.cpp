@@ -6,7 +6,12 @@
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
 #include "tt_gps.h"
+#include "tt_hal_device.h"
+#include "tt_hal_display.h"
 #include "tt_hal_i2c.h"
+#include "tt_hal_touch.h"
+#include "tt_kernel.h"
+#include "tt_lvgl.h"
 #include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
@@ -38,7 +43,7 @@ extern double __muldf3 (double a, double b);
 extern double __divdf3 (double a, double b);
 extern int __nedf2 (double a, double b);
 
-const struct esp_elfsym elf_symbols[] {
+const esp_elfsym elf_symbols[] {
     // Hidden functions work-around
     ESP_ELFSYM_EXPORT(_ZdlPvj), // new?
     ESP_ELFSYM_EXPORT(_Znwj), // delete?
@@ -103,6 +108,9 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(esp_log_write),
     ESP_ELFSYM_EXPORT(esp_log_timestamp),
     // Tactility
+    ESP_ELFSYM_EXPORT(tt_app_start),
+    ESP_ELFSYM_EXPORT(tt_app_start_with_bundle),
+    ESP_ELFSYM_EXPORT(tt_app_stop),
     ESP_ELFSYM_EXPORT(tt_app_register),
     ESP_ELFSYM_EXPORT(tt_app_get_parameters),
     ESP_ELFSYM_EXPORT(tt_app_set_result),
@@ -121,6 +129,16 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
     ESP_ELFSYM_EXPORT(tt_gps_has_coordinates),
     ESP_ELFSYM_EXPORT(tt_gps_get_coordinates),
+    ESP_ELFSYM_EXPORT(tt_hal_device_find),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_alloc),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_draw_bitmap),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_free),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_colorformat),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_height),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_width),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_lock),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_unlock),
+    ESP_ELFSYM_EXPORT(tt_hal_display_driver_supported),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_start),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_stop),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_is_started),
@@ -132,6 +150,22 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_i2c_master_has_device_at_address),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_lock),
     ESP_ELFSYM_EXPORT(tt_hal_i2c_unlock),
+    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_supported),
+    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_alloc),
+    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_free),
+    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_get_touched_points),
+    ESP_ELFSYM_EXPORT(tt_kernel_delay_millis),
+    ESP_ELFSYM_EXPORT(tt_kernel_delay_micros),
+    ESP_ELFSYM_EXPORT(tt_kernel_delay_ticks),
+    ESP_ELFSYM_EXPORT(tt_kernel_get_ticks),
+    ESP_ELFSYM_EXPORT(tt_kernel_millis_to_ticks),
+    ESP_ELFSYM_EXPORT(tt_kernel_delay_until_tick),
+    ESP_ELFSYM_EXPORT(tt_kernel_get_tick_frequency),
+    ESP_ELFSYM_EXPORT(tt_kernel_get_millis),
+    ESP_ELFSYM_EXPORT(tt_kernel_get_micros),
+    ESP_ELFSYM_EXPORT(tt_lvgl_is_started),
+    ESP_ELFSYM_EXPORT(tt_lvgl_start),
+    ESP_ELFSYM_EXPORT(tt_lvgl_stop),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_hide),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_is_enabled),
@@ -139,7 +173,6 @@ const struct esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_deactivate),
     ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_is_available),
     ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
-    ESP_ELFSYM_EXPORT(tt_lvgl_keyboard_add_textarea),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),

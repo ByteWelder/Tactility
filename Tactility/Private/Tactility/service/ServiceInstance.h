@@ -5,26 +5,29 @@
 
 namespace tt::service {
 
-class ServiceInstance : public ServiceContext {
-
-private:
+class ServiceInstance final : public ServiceContext {
 
     Mutex mutex = Mutex(Mutex::Type::Normal);
     std::shared_ptr<const ServiceManifest> manifest;
     std::shared_ptr<Service> service;
+    State state = State::Stopped;
 
 public:
 
-    explicit ServiceInstance(std::shared_ptr<const service::ServiceManifest> manifest);
+    explicit ServiceInstance(std::shared_ptr<const ServiceManifest> manifest);
     ~ServiceInstance() override = default;
 
-    /** @return a reference ot the service's manifest */
-    const service::ServiceManifest& getManifest() const override;
+    /** @return a reference to the service's manifest */
+    const ServiceManifest& getManifest() const override;
 
     /** Retrieve the paths that are relevant to this service */
     std::unique_ptr<Paths> getPaths() const override;
 
     std::shared_ptr<Service> getService() const { return service; }
+
+    State getState() const { return state; }
+
+    void setState(State newState) { state = newState; }
 };
 
 }

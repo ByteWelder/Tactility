@@ -1,15 +1,15 @@
 #pragma once
 
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/spi/Spi.h>
 
-#include <driver/spi_common.h>
+#include <EspLcdDisplay.h>
+
 #include <driver/gpio.h>
-#include <esp_lcd_panel_io.h>
-#include <esp_lcd_types.h>
 #include <functional>
 #include <lvgl.h>
 
-class Ili9488Display final : public tt::hal::display::DisplayDevice {
+class Ili9488Display final : public EspLcdDisplay {
 
 public:
 
@@ -18,7 +18,7 @@ public:
     public:
 
         Configuration(
-            esp_lcd_spi_bus_handle_t spi_bus_handle,
+            spi_host_device_t spiHostDevice,
             gpio_num_t csPin,
             gpio_num_t dcPin,
             unsigned int horizontalResolution,
@@ -29,7 +29,7 @@ public:
             bool mirrorY = false,
             bool invertColor = false,
             uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/20 of the screen size
-        ) : spiBusHandle(spi_bus_handle),
+        ) : spiHostDevice(spiHostDevice),
             csPin(csPin),
             dcPin(dcPin),
             horizontalResolution(horizontalResolution),
@@ -39,10 +39,13 @@ public:
             mirrorY(mirrorY),
             invertColor(invertColor),
             bufferSize(bufferSize),
-            touch(std::move(touch))
-        {}
+            touch(std::move(touch)) {
+            if (this->bufferSize == 0) {
+                this->bufferSize = horizontalResolution * verticalResolution / 10;
+            }
+        }
 
-        esp_lcd_spi_bus_handle_t spiBusHandle;
+        spi_host_device_t spiHostDevice;
         gpio_num_t csPin;
         gpio_num_t dcPin;
         gpio_num_t resetPin = GPIO_NUM_NC;
@@ -62,34 +65,35 @@ public:
 private:
 
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_io_handle_t ioHandle = nullptr;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
-    lv_display_t* displayHandle = nullptr;
+
+    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;
+
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
+
+    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
 
 public:
 
-    explicit Ili9488Display(std::unique_ptr<Configuration> inConfiguration) : configuration(std::move(inConfiguration)) {
+    explicit Ili9488Display(std::unique_ptr<Configuration> inConfiguration) :
+        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
+        configuration(std::move(inConfiguration)
+    ) {
         assert(configuration != nullptr);
     }
 
-    std::string getName() const final { return "ILI9488"; }
-    std::string getDescription() const final { return "ILI9488 display"; }
+    std::string getName() const override { return "ILI9488"; }
 
-    bool start() final;
+    std::string getDescription() const override { return "ILI9488 display"; }
 
-    bool stop() final;
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { return configuration->touch; }
-
-    void setBacklightDuty(uint8_t backlightDuty) final {
+    void setBacklightDuty(uint8_t backlightDuty) override {
         if (configuration->backlightDutyFunction != nullptr) {
             configuration->backlightDutyFunction(backlightDuty);
         }
     }
 
-    bool supportsBacklightDuty() const final { return configuration->backlightDutyFunction != nullptr; }
-
-    lv_display_t* _Nullable getLvglDisplay() const final { return displayHandle; }
+    bool supportsBacklightDuty() const override { return configuration->backlightDutyFunction != nullptr; }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
