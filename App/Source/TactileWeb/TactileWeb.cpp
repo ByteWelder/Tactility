@@ -75,7 +75,6 @@ private:
     static void focus_url_cb(lv_event_t* e) {
         TactileWeb* app = static_cast<TactileWeb*>(lv_event_get_user_data(e));
         lv_obj_set_state(app->url_input, LV_STATE_FOCUSED, true);  // Added third argument
-        tt::lvgl::keyboard_add_textarea(app->url_input);
     }
 
     void loadLastUrl() {
@@ -239,7 +238,6 @@ public:
         lv_obj_add_event_cb(url_input, url_input_cb, LV_EVENT_READY, this);
         lv_obj_set_scrollbar_mode(url_input, LV_SCROLLBAR_MODE_OFF);
         lv_obj_set_scroll_dir(url_input, LV_DIR_NONE);
-        tt::lvgl::keyboard_add_textarea(url_input);
 
         text_container = lv_obj_create(parent);
         lv_obj_set_size(text_container, LV_HOR_RES - 20, LV_VER_RES - 80);
