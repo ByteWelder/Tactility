@@ -1,5 +1,6 @@
 #include "XPT2046-Bitbang.h"
 #include <algorithm>
+#include "esp_rom_sys.h"  // For esp_rom_delay_us
 
 XPT2046_Bitbang* XPT2046_Bitbang::instance = nullptr;
 
@@ -35,24 +36,24 @@ int XPT2046_Bitbang::readSPI(uint8_t cmd) {
     int value = 0;
 
     gpio_set_level(configuration->csPin, 0);
-    ets_delay_us(2);
+    esp_rom_delay_us(2);
 
     for (int i = 7; i >= 0; i--) {
         gpio_set_level(configuration->mosiPin, (cmd >> i) & 1);
         gpio_set_level(configuration->clkPin, 1);
-        ets_delay_us(2);
+        esp_rom_delay_us(2);
         gpio_set_level(configuration->clkPin, 0);
-        ets_delay_us(2);
+        esp_rom_delay_us(2);
     }
 
     for (int i = 15; i >= 0; i--) {
         gpio_set_level(configuration->clkPin, 1);
-        ets_delay_us(2);
+        esp_rom_delay_us(2);
         if (gpio_get_level(configuration->misoPin)) {
             value |= (1 << i);
         }
         gpio_set_level(configuration->clkPin, 0);
-        ets_delay_us(2);
+        esp_rom_delay_us(2);
     }
 
     gpio_set_level(configuration->csPin, 1);
@@ -74,8 +75,9 @@ void XPT2046_Bitbang::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data
     }
 }
 
-// -------------------- Start / Stop --------------------
-bool XPT2046_Bitbang::start(lv_display_t* display) {
+// -------------------- Start / Stop Methods --------------------
+bool XPT2046_Bitbang::start() {
+    // Initialize GPIO configuration
     gpio_config_t io_conf = {};
     io_conf.mode = GPIO_MODE_OUTPUT;
     io_conf.intr_type = GPIO_INTR_DISABLE;
@@ -93,12 +95,16 @@ bool XPT2046_Bitbang::start(lv_display_t* display) {
     gpio_set_level(configuration->clkPin, 0);
     gpio_set_level(configuration->mosiPin, 0);
 
+    instance = this;
+    return true;
+}
+
+bool XPT2046_Bitbang::startLvgl(lv_display_t* display) {
     deviceHandle = lv_indev_create();
     lv_indev_set_type(deviceHandle, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(deviceHandle, touchReadCallback);
     lv_indev_set_user_data(deviceHandle, this);
 
-    instance = this;
     return true;
 }
 
@@ -108,7 +114,14 @@ bool XPT2046_Bitbang::stop() {
     return true;
 }
 
-lv_indev_t* XPT2046_Bitbang::getLvglIndev() { return deviceHandle; }
+bool XPT2046_Bitbang::stopLvgl() {
+    cleanup();
+    return true;
+}
+
+lv_indev_t* XPT2046_Bitbang::getLvglIndev() { 
+    return deviceHandle; 
+}
 
 // -------------------- Touch --------------------
 bool XPT2046_Bitbang::isTouched() {
@@ -139,4 +152,3 @@ void XPT2046_Bitbang::cleanup() {
         deviceHandle = nullptr;
     }
 }
-
