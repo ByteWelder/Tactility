@@ -1,4 +1,4 @@
-#include "XPT2046_Bitbang.h"
+#include "XPT2046-Bitbang.h"
 #include <algorithm>
 
 XPT2046_Bitbang* XPT2046_Bitbang::instance = nullptr;
@@ -139,3 +139,4 @@ void XPT2046_Bitbang::cleanup() {
         deviceHandle = nullptr;
     }
 }
+
