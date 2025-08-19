@@ -24,8 +24,6 @@ extern const AppManifest manifest;
 
 class I2cScannerApp : public App {
 
-private:
-
     // Core
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::unique_ptr<Timer> scanTimer = nullptr;
@@ -286,7 +284,7 @@ void I2cScannerApp::startScanning() {
         lv_obj_clean(scanListWidget);
 
         scanState = ScanStateScanning;
-        scanTimer = std::make_unique<Timer>(Timer::Type::Once, [](){
+        scanTimer = std::make_unique<Timer>(Timer::Type::Once, []{
             onScanTimerCallback();
         });
         scanTimer->start(10);

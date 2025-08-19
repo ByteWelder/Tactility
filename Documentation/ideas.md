@@ -13,7 +13,6 @@
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
 - Expose app::Paths to TactilityC
-- Make a ledger for setting CPU affinity of various services and tasks
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
 - Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.

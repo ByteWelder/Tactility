@@ -11,6 +11,7 @@
 #include <Tactility/kernel/SystemEvents.h>
 
 #include <lvgl.h>
+#include <Tactility/CpuAffinity.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/app/crashdiagnostics/CrashDiagnostics.h"
@@ -30,7 +31,12 @@ static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
 
 class BootApp : public App {
 
-    Thread thread = Thread("boot", 4096, [] { return bootThreadCallback(); });
+    Thread thread = Thread(
+        "boot",
+        4096,
+        [] { return bootThreadCallback(); },
+        getCpuAffinityConfiguration().system
+    );
 
     static void setupDisplay() {
         const auto hal_display = getHalDisplay();

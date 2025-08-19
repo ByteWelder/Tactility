@@ -13,7 +13,7 @@ void Timer::onCallback(TimerHandle_t hTimer) {
     }
 }
 
-static inline TimerHandle_t createTimer(Timer::Type type, void* timerId, TimerCallbackFunction_t callback) {
+static TimerHandle_t createTimer(Timer::Type type, void* timerId, TimerCallbackFunction_t callback) {
     assert(timerId != nullptr);
     assert(callback != nullptr);
 

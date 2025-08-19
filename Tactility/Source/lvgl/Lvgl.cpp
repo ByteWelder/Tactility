@@ -13,7 +13,6 @@
 #endif
 
 #include <lvgl.h>
-#include <Tactility/Tactility.h>
 #include <Tactility/TactilityHeadless.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/ServiceRegistry.h>
