@@ -2,7 +2,6 @@
 #include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
 
-#include <Tactility/Check.h>
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
@@ -56,13 +55,10 @@ class LauncherApp : public App {
 
     void onCreate(TT_UNUSED AppContext& app) override {
         BootProperties boot_properties;
-        if (!loadBootProperties(boot_properties) || boot_properties.autoStartAppId.empty()) {
-            stop();
-            return;
+        if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
+            TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
+            service::loader::startApp(boot_properties.autoStartAppId);
         }
-
-        TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
-        service::loader::startApp(boot_properties.autoStartAppId);
     }
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
