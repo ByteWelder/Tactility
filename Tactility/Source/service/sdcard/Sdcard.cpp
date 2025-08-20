@@ -1,6 +1,6 @@
 #include "Tactility/service/ServiceContext.h"
 #include "Tactility/TactilityHeadless.h"
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>

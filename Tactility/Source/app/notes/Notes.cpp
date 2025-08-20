@@ -178,11 +178,6 @@ class NotesApp : public App {
         lv_label_set_text(uiCurrentFileName, "Untitled");
         lv_obj_align(uiCurrentFileName, LV_ALIGN_CENTER, 0, 0);
 
-        //TODO: Move this to SD Card?
-        if (!file::findOrCreateDirectory(context.getPaths()->getDataDirectory(), 0777)) {
-            TT_LOG_E(TAG, "Failed to find or create path %s", context.getPaths()->getDataDirectory().c_str());
-        }
-
         if (!filePath.empty()) {
             openFile(filePath);
         }

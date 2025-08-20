@@ -1,14 +1,8 @@
 #pragma once
 
-#include "Tactility/app/ManifestRegistry.h"
-
-#include <Tactility/CoreDefines.h>
-#include <Tactility/Bundle.h>
+#include "Tactility/app/AppRegistration.h"
 
 #include <string>
-
-// Forward declarations
-typedef struct _lv_obj_t lv_obj_t;
 
 namespace tt::app {
 
@@ -40,8 +34,6 @@ enum class Result {
 
 class Location {
 
-private:
-
     std::string path;
     Location() = default;
     explicit Location(const std::string& path) : path(path) {}
@@ -54,7 +46,13 @@ public:
         return Location(path);
     }
 
+    /** Internal apps are all apps that are part of the firmware release. */
     bool isInternal() const { return path.empty(); }
+
+    /**
+     * External apps are all apps that are not part of the firmware release.
+     * e.g. an application on the sd card or one that is installed in /data
+     */
     bool isExternal() const { return !path.empty(); }
     const std::string& getPath() const { return path; }
 };

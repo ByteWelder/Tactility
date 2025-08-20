@@ -9,7 +9,7 @@
 #include <Tactility/TactilityHeadless.h>
 #include <Tactility/Timer.h>
 #include <Tactility/service/ServiceContext.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 namespace tt::service::statusbar {

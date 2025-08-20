@@ -1,4 +1,4 @@
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 
 #include "Tactility/service/ServiceInstance.h"
 #include "Tactility/service/ServiceManifest.h"
@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 #include <Tactility/app/AppInstance.h>
+#include <Tactility/file/File.h>
 
 namespace tt::service {
 
@@ -22,14 +23,22 @@ static ServiceInstanceMap service_instance_map;
 static Mutex manifest_mutex(Mutex::Type::Normal);
 static Mutex instance_mutex(Mutex::Type::Normal);
 
+void ensureServerPathsExist(const ServiceManifest& manifest) {
+    std::string path = "/data/service/" + manifest.id;
+    if (!file::findOrCreateDirectory(path, 0777)) {
+        TT_LOG_E(TAG, "Failed to create service directory: %s", path.c_str());
+    }
+}
 void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart) {
+    assert(manifest != nullptr);
     // We'll move the manifest pointer, but we'll need to id later
-    std::string id = manifest->id;
+    const auto& id = manifest->id;
 
     TT_LOG_I(TAG, "Adding %s", id.c_str());
 
     manifest_mutex.lock();
     if (service_manifest_map[id] == nullptr) {
+        ensureServerPathsExist(*manifest);
         service_manifest_map[id] = std::move(manifest);
     } else {
         TT_LOG_E(TAG, "Service id in use: %s", id.c_str());

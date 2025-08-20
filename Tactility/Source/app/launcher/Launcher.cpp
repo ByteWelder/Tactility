@@ -1,5 +1,5 @@
 #include "Tactility/app/AppContext.h"
-#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/Check.h>

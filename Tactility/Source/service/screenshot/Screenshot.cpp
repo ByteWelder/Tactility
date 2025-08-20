@@ -5,7 +5,7 @@
 #include "Tactility/service/screenshot/Screenshot.h"
 
 #include <Tactility/service/ServiceContext.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 #include <memory>
 

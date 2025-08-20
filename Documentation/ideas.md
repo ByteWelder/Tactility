@@ -5,10 +5,9 @@
 - Store encrypted WiFi credentials in `/data/app/wifi/x.ap.properties` (fixes problem with long SSIDs)
 - Move WiFi settings from flash to `/data/apps/wifi/wifi.properties` (just the "start on boot")
 - Move Development settings from flash to `/data/apps/development/development.properties` (just the "start on boot")
-- Move Display settings from flash to `/data/apps/display/display.properties` (just the "start on boot")
+- Move Display settings from flash to `/data/apps/display/display.properties`
 - App data directory should be automatically created (and then we can remove the custom code from Notes.cpp)
 - When an external app fails to load (e.g. due to mapping error) then show an error dialog.
-- Add a Keyboard setting in `keyboard.properties` to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)
 - Expose app::Paths to TactilityC
 - Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
@@ -24,6 +23,7 @@
 - Explore LVGL9's FreeRTOS functionality
 - CrashHandler: use "corrupted" flag
 - CrashHandler: process other types of crashes (WDT?)
+- Add a Keyboard setting in `keyboard.properties` to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)
 - Use GPS time to set/update the current time
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
