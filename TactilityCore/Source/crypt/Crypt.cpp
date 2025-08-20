@@ -127,7 +127,7 @@ static void getKey(uint8_t key[32]) {
 }
 
 void getIv(const void* data, size_t dataLength, uint8_t iv[16]) {
-    memset((void*)iv, 0, 16);
+    memset(iv, 0, 16);
     auto* data_bytes = (uint8_t*)data;
     for (int i = 0; i < dataLength; ++i) {
         size_t safe_index = i % 16;
@@ -161,7 +161,7 @@ static int aes256CryptCbc(
     return result;
 }
 
-int encrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength) {
+int encrypt(const uint8_t iv[16], const uint8_t* inData, uint8_t* outData, size_t dataLength) {
     tt_check(dataLength % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     getKey(key);
@@ -173,7 +173,7 @@ int encrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t data
     return aes256CryptCbc(key, MBEDTLS_AES_ENCRYPT, dataLength, iv_copy, inData, outData);
 }
 
-int decrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength) {
+int decrypt(const uint8_t iv[16], const uint8_t* inData, uint8_t* outData, size_t dataLength) {
     tt_check(dataLength % 16 == 0, "Length is not a multiple of 16 bytes (for AES 256");
     uint8_t key[32];
     getKey(key);

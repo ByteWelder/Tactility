@@ -5,10 +5,11 @@
 #include "Tactility/lvgl/Spinner.h"
 
 #include <Tactility/TactilityCore.h>
-#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <lvgl.h>
 #include <cstring>
+#include <Tactility/service/wifi/WifiApSettings.h>
+#include <Tactility/service/wifi/WifiGlobals.h>
 
 namespace tt::app::wificonnect {
 
@@ -50,14 +51,14 @@ static void onConnect(TT_UNUSED lv_event_t* event) {
     view.setLoading(true);
 
     service::wifi::settings::WifiApSettings settings;
-    strcpy((char*)settings.password, password);
-    strcpy((char*)settings.ssid, ssid);
+    settings.password = password;
+    settings.ssid = ssid;
     settings.channel = 0;
-    settings.auto_connect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
+    settings.autoConnect = TT_WIFI_AUTO_CONNECT; // No UI yet, so use global setting:w
 
     auto* bindings = &wifi->getBindings();
     bindings->onConnectSsid(
-        &settings,
+        settings,
         store,
         bindings->onConnectSsidContext
     );

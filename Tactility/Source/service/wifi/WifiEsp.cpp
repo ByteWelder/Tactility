@@ -1,19 +1,19 @@
 #ifdef ESP_PLATFORM
 
-#include <lwip/esp_netif_net_stack.h>
 #include "Tactility/service/wifi/Wifi.h"
 
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceContext.h"
+#include "Tactility/service/wifi/WifiGlobals.h"
 #include "Tactility/service/wifi/WifiSettings.h"
 
+#include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/Timer.h>
 
+#include <lwip/esp_netif_net_stack.h>
 #include <freertos/FreeRTOS.h>
-
 #include <atomic>
 #include <cstring>
-#include <Tactility/kernel/SystemEvents.h>
 #include <sys/cdefs.h>
 
 namespace tt::service::wifi {
@@ -35,8 +35,6 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi);
 static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi);
 
 class Wifi {
-
-private:
 
     std::atomic<RadioState> radio_state = RadioState::Off;
     bool scan_active = false;
@@ -66,11 +64,7 @@ public:
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
     EventFlag connection_wait_flags;
-    settings::WifiApSettings connection_target = {
-        .ssid = { 0 },
-        .password = { 0 },
-        .auto_connect = false
-    };
+    settings::WifiApSettings connection_target;
     bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
     esp_netif_ip_info_t ip_info;
@@ -187,8 +181,8 @@ bool isScanning() {
     }
 }
 
-void connect(const settings::WifiApSettings* ap, bool remember) {
-    TT_LOG_I(TAG, "connect(%s, %d)", ap->ssid, remember);
+void connect(const settings::WifiApSettings& ap, bool remember) {
+    TT_LOG_I(TAG, "connect(%s, %d)", ap.ssid.c_str(), remember);
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -201,14 +195,14 @@ void connect(const settings::WifiApSettings* ap, bool remember) {
 
     // Manual connect (e.g. via app) should stop auto-connecting until the connection is established
     wifi->pause_auto_connect = true;
-    memcpy(&wifi->connection_target, ap, sizeof(settings::WifiApSettings));
+    wifi->connection_target = ap;
     wifi->connection_target_remember = remember;
 
     if (wifi->getRadioState() == RadioState::Off) {
-        getMainDispatcher().dispatch([wifi]() { dispatchEnable(wifi); });
+        getMainDispatcher().dispatch([wifi] { dispatchEnable(wifi); });
     }
 
-    getMainDispatcher().dispatch([wifi]() { dispatchConnect(wifi); });
+    getMainDispatcher().dispatch([wifi] { dispatchConnect(wifi); });
 }
 
 void disconnect() {
@@ -223,11 +217,7 @@ void disconnect() {
         return;
     }
 
-    wifi->connection_target = (settings::WifiApSettings) {
-        .ssid = { 0 },
-        .password = { 0 },
-        .auto_connect = false
-    };
+    wifi->connection_target = settings::WifiApSettings("", "");
     // Manual disconnect (e.g. via app) should stop auto-connecting until a new connection is established
     wifi->pause_auto_connect = true;
     getMainDispatcher().dispatch([wifi]() { dispatchDisconnectButKeepActive(wifi); });
@@ -307,9 +297,9 @@ void setEnabled(bool enabled) {
     }
 
     if (enabled) {
-        getMainDispatcher().dispatch([wifi]() { dispatchEnable(wifi); });
+        getMainDispatcher().dispatch([wifi] { dispatchEnable(wifi); });
     } else {
-        getMainDispatcher().dispatch([wifi]() { dispatchDisable(wifi); });
+        getMainDispatcher().dispatch([wifi] { dispatchDisable(wifi); });
     }
 
     wifi->pause_auto_connect = false;
@@ -431,8 +421,8 @@ static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSet
             auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
             if (settings::contains(ssid)) {
                 static_assert(sizeof(wifi->scan_list[i].ssid) == (TT_WIFI_SSID_LIMIT + 1), "SSID size mismatch");
-                if (settings::load(ssid, &settings)) {
-                    if (settings.auto_connect) {
+                if (settings::load(ssid, settings)) {
+                    if (settings.autoConnect) {
                         return true;
                     }
                 } else {
@@ -451,8 +441,8 @@ static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
 
     settings::WifiApSettings settings;
     if (find_auto_connect_ap(wifi, settings)) {
-        TT_LOG_I(TAG, "Auto-connecting to %s", settings.ssid);
-        connect(&settings, false);
+        TT_LOG_I(TAG, "Auto-connecting to %s", settings.ssid.c_str());
+        connect(settings, false);
         // TODO: We currently have to manually reset it because connect() sets it.
         // connect() assumes it's only being called by the user and not internally, so it disables auto-connect
         wifi->pause_auto_connect = false;
@@ -726,7 +716,7 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
         return;
     }
 
-    TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid);
+    TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid.c_str());
 
     // Stop radio first, if needed
     RadioState radio_state = wifi->getRadioState();
@@ -758,11 +748,10 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     config.sta.threshold.rssi = -127;
     config.sta.pmf_cfg.capable = true;
 
-    static_assert(sizeof(config.sta.ssid) == (sizeof(wifi_singleton->connection_target.ssid)-1), "SSID size mismatch");
-    memcpy(config.sta.ssid, wifi_singleton->connection_target.ssid, sizeof(config.sta.ssid));
+    memcpy(config.sta.ssid, wifi_singleton->connection_target.ssid.c_str(), wifi_singleton->connection_target.ssid.size());
 
     if (wifi_singleton->connection_target.password[0] != 0x00) {
-        memcpy(config.sta.password, wifi_singleton->connection_target.password, sizeof(config.sta.password));
+        memcpy(config.sta.password, wifi_singleton->connection_target.password.c_str(), wifi_singleton->connection_target.password.size());
         config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     }
 
@@ -794,9 +783,9 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
         wifi->setSecureConnection(config.sta.password[0] != 0x00U);
         wifi->setRadioState(RadioState::ConnectionActive);
         publish_event_simple(wifi, EventType::ConnectionSuccess);
-        TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid);
+        TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid.c_str());
         if (wifi->connection_target_remember) {
-            if (!settings::save(&wifi->connection_target)) {
+            if (!settings::save(wifi->connection_target)) {
                 TT_LOG_E(TAG, "Failed to store credentials");
             } else {
                 TT_LOG_I(TAG, "Stored credentials");
@@ -805,7 +794,7 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     } else if (bits & WIFI_FAIL_BIT) {
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::ConnectionFailed);
-        TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid);
+        TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid.c_str());
     } else {
         wifi->setRadioState(RadioState::On);
         publish_event_simple(wifi, EventType::ConnectionFailed);
