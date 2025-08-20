@@ -1,6 +1,5 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/Keyboard.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Assets.h>
 #include <lvgl.h>
@@ -8,10 +7,12 @@
 #include <Tactility/app/fileselection/FileSelection.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/loader/Loader.h>
 
 namespace tt::app::notes {
 
-constexpr const char* TAG = "Notes";
+constexpr auto* TAG = "Notes";
+constexpr auto* NOTES_FILE_ARGUMENT = "file";
 
 class NotesApp : public App {
 
@@ -109,11 +110,20 @@ class NotesApp : public App {
 
 #pragma endregion Open_Events_Functions
 
+    void onCreate(AppContext& appContext) override {
+        auto parameters = appContext.getParameters();
+        std::string file_path;
+        if (parameters != nullptr && parameters->optString(NOTES_FILE_ARGUMENT, file_path)) {
+            if (!file_path.empty()) {
+                filePath = file_path;
+            }
+        }
+    }
     void onShow(AppContext& context, lv_obj_t* parent) override {
         lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
-        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        lv_obj_t* toolbar = lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         uiDropDownMenu = lv_dropdown_create(toolbar);
@@ -172,6 +182,10 @@ class NotesApp : public App {
         if (!file::findOrCreateDirectory(context.getPaths()->getDataDirectory(), 0777)) {
             TT_LOG_E(TAG, "Failed to find or create path %s", context.getPaths()->getDataDirectory().c_str());
         }
+
+        if (!filePath.empty()) {
+            openFile(filePath);
+        }
     }
 
     void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> resultData) override {
@@ -202,4 +216,9 @@ extern const AppManifest manifest = {
     .createApp = create<NotesApp>
 };
 
+void start(const std::string& filePath) {
+    auto parameters = std::make_shared<Bundle>();
+    parameters->putString(NOTES_FILE_ARGUMENT, filePath);
+    service::loader::startApp(manifest.id, parameters);
+}
 } // namespace tt::app::notes

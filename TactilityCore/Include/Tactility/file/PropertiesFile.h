@@ -10,4 +10,6 @@ bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::
 
 bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback);
 
+bool savePropertiesFile(const std::string& filePath, const std::map<std::string, std::string>& properties);
+
 }

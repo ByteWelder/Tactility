@@ -1,2 +1,0 @@
-This file exists to test the partition.
-It can be deleted when the partition contains other files.

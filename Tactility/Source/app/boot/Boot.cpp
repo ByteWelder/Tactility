@@ -11,6 +11,7 @@
 #include <Tactility/kernel/SystemEvents.h>
 
 #include <lvgl.h>
+#include <Tactility/BootProperties.h>
 #include <Tactility/CpuAffinity.h>
 
 #ifdef ESP_PLATFORM
@@ -105,9 +106,14 @@ class BootApp : public App {
         }
 #endif
 
-        const auto* config = getConfiguration();
-        assert(!config->launcherAppId.empty());
-        service::loader::startApp(config->launcherAppId);
+        BootProperties boot_properties;
+        if (!loadBootProperties(boot_properties) || boot_properties.launcherAppId.empty()) {
+            TT_LOG_E(TAG, "Launcher not configured");
+            stop();
+            return;
+        }
+
+        service::loader::startApp(boot_properties.launcherAppId);
     }
 
 public:

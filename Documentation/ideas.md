@@ -1,40 +1,49 @@
 # TODOs
 
+## Higher Priority
+
+- Store encrypted WiFi credentials in `/data/app/wifi/x.ap.properties` (fixes problem with long SSIDs)
+- Move WiFi settings from flash to `/data/apps/wifi/wifi.properties` (just the "start on boot")
+- Move Development settings from flash to `/data/apps/development/development.properties` (just the "start on boot")
+- Move Display settings from flash to `/data/apps/display/display.properties` (just the "start on boot")
+- App data directory should be automatically created (and then we can remove the custom code from Notes.cpp)
 - When an external app fails to load (e.g. due to mapping error) then show an error dialog.
-- Revisit TinyUSB mouse idea: the bugs related to cleanup seem to be fixed in the library.
-- Bug: When a Wi-Fi SSID is too long, then it fails to save the credentials
-- Add a Keyboard setting app to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)
-- HAL for display touch calibration
+- Add a Keyboard setting in `keyboard.properties` to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)
+- Expose app::Paths to TactilityC
+- Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
+- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
+- Localization of texts (load in boot app from sd?)
+- App packaging
+- Create more unit tests for `tactility-core`
+- Make a URL handler. Use it for handling local files. Match file types with apps.
+
+## Lower Priority
+
+- Support hot-plugging SD card
+- Create more unit tests for `tactility`
+- Explore LVGL9's FreeRTOS functionality
+- CrashHandler: use "corrupted" flag
+- CrashHandler: process other types of crashes (WDT?)
+- Use GPS time to set/update the current time
+- All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
+- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - Start using non_null (either via MS GSL, or custom)
 - `hal/Configuration.h` defines C function types: Use C++ std::function instead
 - Fix system time to not be 1980 (use build year as a minimum). Consider keeping track of the last known time.
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
-- Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
-- Expose app::Paths to TactilityC
-- CrashHandler: use "corrupted" flag
-- CrashHandler: process other types of crashes (WDT?)
-- Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
 - Create different partition files for different ESP flash size targets (N4, N8, N16, N32)
 - T-Deck: Clear screen before turning on blacklight
 - T-Deck: Use knob for UI selection?
-- Crash monitoring: Keep track of which system phase the app crashed in (e.g. which app in which state)
-- App::onResult should pass the app id (or launch request id!) that was started, so we can differentiate between multiple types of apps being launched
-- Create more unit tests for `tactility-core` and `tactility` (PC-only for now)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
-- Localisation of texts (load in boot app from sd?)
-- Explore LVGL9's FreeRTOS functionality
-- External app loading: Check version of Tactility and check ESP target hardware to check for compatibility.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
-- Support hot-plugging SD card
-- All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
-- Use GPS time to set/update the current time
 - Remove flex_flow from app_container in Gui.cpp
 
 # Nice-to-haves
 
+- Considering the lack of callstack debugging for external apps: allow for some debugging to be exposed during a device crash. Apps could report their state (e.g. an integer value) which can be stored during app operation and retrieve after crash. The same can be done for various OS apps and states. We can keep an array of these numbers to keep track of the last X states, to get an idea of what's going on.
 - Give external app a different icon. Allow an external app to update their id, icon, type and name once they are running (and persist that info?). Loader will need to be able to find app by (external) location.
 - Audio player app
 - Audio recording app
@@ -51,6 +60,7 @@
 
 # App Ideas
 
+- Revisit TinyUSB mouse idea: the bugs related to cleanup seem to be fixed in the library.
 - Map widget:
   https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/application/ui/ui_geomap.cpp
   https://github.com/portapack-mayhem/mayhem-firmware/blob/b66d8b1aa178d8a9cd06436fea788d5d58cb4c8d/firmware/tools/generate_world_map.bin.py
@@ -67,3 +77,4 @@
 - Compile unix tools to ELF apps?
 - Todo list
 - Calendar
+- Display touch calibration
