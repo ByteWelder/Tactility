@@ -9,7 +9,7 @@
 #include <functional>
 #include <lvgl.h>
 
-class St7789I8080Display final : public tt::hal::display::DisplayDevice {
+class St7789I8080Display override : public tt::hal::display::DisplayDevice {
 public:
     class Configuration {
     public:
@@ -125,7 +125,7 @@ public:
     bool start() final;
     bool stop() final;
     
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() final { 
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override { 
         return configuration->touch; 
     }
     

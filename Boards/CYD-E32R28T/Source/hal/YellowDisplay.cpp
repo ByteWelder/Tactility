@@ -33,7 +33,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     touch = std::make_unique<XPT2046_Bitbang>(std::move(config));
 
     // Start the driver and load calibration from NVS
-    if (!touch->start(nullptr)) {
+    if (!touch->start()) {
         ESP_LOGE(TAG, "Touch driver start failed");
     }
 
