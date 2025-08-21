@@ -108,7 +108,7 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
 
 bool contains(const std::string& ssid) {
     const auto file_path = getApPropertiesFilePath(ssid);
-    return file::exists(file_path);
+    return file::isFile(file_path);
 }
 
 bool load(const std::string& ssid, WifiApSettings& apSettings) {
@@ -177,7 +177,7 @@ bool save(const WifiApSettings& apSettings) {
 
 bool remove(const std::string& ssid) {
     const auto path = getApPropertiesFilePath(ssid);
-    if (!file::exists(path)) {
+    if (!file::isFile(path)) {
         return false;
     }
     return ::remove(path.c_str()) == 0;

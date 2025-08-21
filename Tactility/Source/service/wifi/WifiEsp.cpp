@@ -6,6 +6,7 @@
 #include "Tactility/service/ServiceContext.h"
 #include "Tactility/service/wifi/WifiGlobals.h"
 #include "Tactility/service/wifi/WifiSettings.h"
+#include "Tactility/service/wifi/WifiBootSplashInit.h"
 
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/Timer.h>
@@ -68,6 +69,7 @@ public:
     bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
     esp_netif_ip_info_t ip_info;
+    kernel::SystemEventSubscription bootEventSubscription = kernel::NoSystemEventSubscription;
 
     RadioState getRadioState() const {
         auto lock = dataMutex.asScopedLock();
@@ -900,13 +902,17 @@ public:
         assert(wifi_singleton == nullptr);
         wifi_singleton = std::make_shared<Wifi>();
 
+        wifi_singleton->bootEventSubscription = kernel::subscribeSystemEvent(kernel::SystemEvent::BootSplash, [](auto) {
+            bootSplashInit();
+        });
+
         wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, []() { onAutoConnectTimer(); });
         // We want to try and scan more often in case of startup or scan lock failure
         wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
 
         if (settings::shouldEnableOnBoot()) {
             TT_LOG_I(TAG, "Auto-enabling due to setting");
-            getMainDispatcher().dispatch([]() { dispatchEnable(wifi_singleton); });
+            getMainDispatcher().dispatch([] { dispatchEnable(wifi_singleton); });
         }
     }
 
