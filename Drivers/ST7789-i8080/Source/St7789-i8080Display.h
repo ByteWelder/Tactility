@@ -9,7 +9,7 @@
 #include <functional>
 #include <lvgl.h>
 
-class St7789I8080Display override : public tt::hal::display::DisplayDevice {
+class St7789I8080Display : public tt::hal::display::DisplayDevice {
 public:
     class Configuration {
     public:
