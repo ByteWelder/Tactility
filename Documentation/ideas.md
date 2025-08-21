@@ -2,8 +2,6 @@
 
 ## Higher Priority
 
-- Store encrypted WiFi credentials in `/data/app/wifi/x.ap.properties` (fixes problem with long SSIDs)
-- Move WiFi settings from flash to `/data/apps/wifi/wifi.properties` (just the "start on boot")
 - Move Development settings from flash to `/data/apps/development/development.properties` (just the "start on boot")
 - Move Display settings from flash to `/data/apps/display/display.properties`
 - App data directory should be automatically created (and then we can remove the custom code from Notes.cpp)

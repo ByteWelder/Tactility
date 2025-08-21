@@ -5,7 +5,6 @@
 
 #include <unordered_map>
 #include <Tactility/file/File.h>
-#include <sys/stat.h>
 
 #define TAG "app"
 
@@ -16,20 +15,12 @@ typedef std::unordered_map<std::string, std::shared_ptr<AppManifest>> AppManifes
 static AppManifestMap app_manifest_map;
 static Mutex hash_mutex(Mutex::Type::Normal);
 
-void ensureAppPathsExist(const AppManifest& manifest) {
-    std::string path = "/data/app/" + manifest.id;
-    if (!file::findOrCreateDirectory(path, 0777)) {
-        TT_LOG_E(TAG, "Failed to create app directory: %s", path.c_str());
-    }
-}
-
 void addApp(const AppManifest& manifest) {
     TT_LOG_I(TAG, "Registering manifest %s", manifest.id.c_str());
 
     hash_mutex.lock();
 
     if (!app_manifest_map.contains(manifest.id)) {
-        ensureAppPathsExist(manifest);
         app_manifest_map[manifest.id] = std::make_shared<AppManifest>(manifest);
     } else {
         TT_LOG_E(TAG, "App id in use: %s", manifest.id.c_str());

@@ -1,7 +1,9 @@
 #include "Tactility/BootProperties.h"
 
-#include <Tactility/LogEsp.h>
+#include <Tactility/Log.h>
 #include <Tactility/file/PropertiesFile.h>
+
+#include <cassert>
 
 namespace tt {
 
