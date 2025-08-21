@@ -22,7 +22,7 @@ bool loadBootProperties(BootProperties& properties) {
     })) {
         TT_LOG_E(TAG, "Failed to load %s", PROPERTIES_FILE);
         return false;
-    };
+    }
 
     return !properties.launcherAppId.empty();
 }

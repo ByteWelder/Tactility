@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include <fstream>
+#include <unistd.h>
 
 namespace tt::file {
 
