@@ -125,7 +125,7 @@ public:
     bool start() final;
     bool stop() final;
     
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() override { 
+    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { 
         return configuration->touch; 
     }
     
