@@ -400,3 +400,36 @@ void XPT2046_Bitbang::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data
         data->state = LV_INDEV_STATE_RELEASED;
     }
 }
+
+
+// Zero-argument start
+bool XPT2046_Bitbang::start() {
+    // Default to LVGL-less startup if needed
+    return startLvgl(nullptr);
+}
+
+// Whether this device supports LVGL
+bool XPT2046_Bitbang::supportsLvgl() const {
+    return true;
+}
+
+// Start with LVGL display
+bool XPT2046_Bitbang::startLvgl(lv_display_t* display) {
+    return start(display);
+}
+
+// Stop LVGL
+bool XPT2046_Bitbang::stopLvgl() {
+    cleanup();
+    return true;
+}
+
+// Supports a separate touch driver? Yes/No
+bool XPT2046_Bitbang::supportsTouchDriver() {
+    return true;
+    }
+
+// Return driver instance if any
+std::shared_ptr<TouchDriver> XPT2046_Bitbang::getTouchDriver() {
+    return nullptr; // replace with actual driver later
+}

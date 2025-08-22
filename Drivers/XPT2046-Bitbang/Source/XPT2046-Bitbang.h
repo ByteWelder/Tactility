@@ -7,6 +7,8 @@
 #include <esp_err.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <memory>
+#include <string>
 
 #ifndef TFT_WIDTH
 #define TFT_WIDTH 240
@@ -61,7 +63,7 @@ private:
     static XPT2046_Bitbang* instance;
     std::unique_ptr<Configuration> configuration;
     lv_indev_t* deviceHandle = nullptr;
-    
+
     struct Calibration {
         int xMin;
         int xMax;
@@ -69,32 +71,37 @@ private:
         int yMax;
     } cal;
 
-    // Private methods
     int readSPI(uint8_t command);
     void cleanup();
     bool loadCalibration();
     void saveCalibration();
-
-    // LVGL input device callback
     static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data);
 
 public:
     explicit XPT2046_Bitbang(std::unique_ptr<Configuration> inConfiguration);
-    
-    // TouchDevice interface implementation
+
+    // TouchDevice interface
     std::string getName() const final { return "XPT2046_Bitbang"; }
     std::string getDescription() const final { return "Bitbang SPI touch driver"; }
-    
-    bool start(lv_display_t* display) override;
+
+    bool start() override;                        // zero-arg start
+    bool supportsLvgl() const override;
+    bool startLvgl(lv_display_t* display) override;
+    bool stopLvgl() override;
     bool stop() override;
+    bool supportsTouchDriver() override;
+    std::shared_ptr<TouchDriver> getTouchDriver() override;
     lv_indev_t* getLvglIndev() override { return deviceHandle; }
-    
-    // XPT2046 specific methods
+
+    // Original LVGL-specific start
+    bool start(lv_display_t* display);
+
+    // XPT2046-specific methods
     Point getTouch();
     void calibrate();
     void setCalibration(int xMin, int yMin, int xMax, int yMax);
     bool isTouched();
-    
+
     // Static instance access
     static XPT2046_Bitbang* getInstance() { return instance; }
 };
