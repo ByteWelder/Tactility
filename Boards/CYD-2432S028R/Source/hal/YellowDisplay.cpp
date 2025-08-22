@@ -21,7 +21,6 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_TOUCH_MISO_PIN,
         CYD_TOUCH_SCK_PIN,
         CYD_TOUCH_CS_PIN,
-        CYD_TOUCH_IRQ_PIN,
         CYD_DISPLAY_HORIZONTAL_RESOLUTION, // 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,   // 320
         false, // swapXY

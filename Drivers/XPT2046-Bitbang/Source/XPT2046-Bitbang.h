@@ -1,16 +1,17 @@
 #pragma once
+
 #include "Tactility/hal/touch/TouchDevice.h"
 #include <Tactility/TactilityCore.h>
 #include "lvgl.h"
 #include <driver/gpio.h>
+#include <esp_err.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <memory>
-#include <string>
 
 #ifndef TFT_WIDTH
 #define TFT_WIDTH 240
 #endif
+
 #ifndef TFT_HEIGHT
 #define TFT_HEIGHT 320
 #endif
@@ -29,19 +30,26 @@ public:
             gpio_num_t misoPin,
             gpio_num_t clkPin,
             gpio_num_t csPin,
-            gpio_num_t irqPin,
             uint16_t xMax = TFT_WIDTH,
             uint16_t yMax = TFT_HEIGHT,
             bool swapXy = false,
             bool mirrorX = false,
             bool mirrorY = false
-        );
-        
+        ) : mosiPin(mosiPin),
+            misoPin(misoPin),
+            clkPin(clkPin),
+            csPin(csPin),
+            xMax(xMax),
+            yMax(yMax),
+            swapXy(swapXy),
+            mirrorX(mirrorX),
+            mirrorY(mirrorY)
+        {}
+
         gpio_num_t mosiPin;
         gpio_num_t misoPin;
         gpio_num_t clkPin;
         gpio_num_t csPin;
-        gpio_num_t irqPin;
         uint16_t xMax;
         uint16_t yMax;
         bool swapXy;
@@ -54,32 +62,39 @@ private:
     std::unique_ptr<Configuration> configuration;
     lv_indev_t* deviceHandle = nullptr;
     
-    int readSPI(uint8_t cmd);
+    struct Calibration {
+        int xMin;
+        int xMax;
+        int yMin;
+        int yMax;
+    } cal;
+
+    // Private methods
+    int readSPI(uint8_t command);
     void cleanup();
+    bool loadCalibration();
+    void saveCalibration();
+
+    // LVGL input device callback
     static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data);
 
 public:
-    explicit XPT2046_Bitbang(std::unique_ptr<Configuration> cfg);
+    explicit XPT2046_Bitbang(std::unique_ptr<Configuration> inConfiguration);
     
-    // Override Device pure virtual methods
-    std::string getName() const override { return "XPT2046_Bitbang"; }
-    std::string getDescription() const override { return "XPT2046 Touch Controller (Bitbang SPI)"; }
+    // TouchDevice interface implementation
+    std::string getName() const final { return "XPT2046_Bitbang"; }
+    std::string getDescription() const final { return "Bitbang SPI touch driver"; }
     
-    // Override TouchDevice pure virtual methods
-    bool start() override;
+    bool start(lv_display_t* display) override;
     bool stop() override;
-    bool supportsLvgl() const override { return true; }
-    bool startLvgl(lv_display_t* display) override;
-    bool stopLvgl() override;
-    lv_indev_t* getLvglIndev() override;
-    bool supportsTouchDriver() override { return false; }
-    std::shared_ptr<tt::hal::touch::TouchDriver> getTouchDriver() override { return nullptr; }
+    lv_indev_t* getLvglIndev() override { return deviceHandle; }
     
     // XPT2046 specific methods
-    bool isTouched();
     Point getTouch();
     void calibrate();
     void setCalibration(int xMin, int yMin, int xMax, int yMax);
+    bool isTouched();
     
+    // Static instance access
     static XPT2046_Bitbang* getInstance() { return instance; }
 };
