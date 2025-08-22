@@ -178,7 +178,7 @@ void XPT2046_Bitbang::calibrate() {
     }
 
     TT_LOG_I(TAG, "Touch the top-left corner and hold...");
-    
+
     // Wait for touch with timeout
     int timeout = 30000; // 30 seconds
     int elapsed = 0;
@@ -186,26 +186,23 @@ void XPT2046_Bitbang::calibrate() {
         vTaskDelay(pdMS_TO_TICKS(100));
         elapsed += 100;
         
-        if (elapsed % 5000 == 0) { // Every 5 seconds
+        if (elapsed % 5000 == 0) {
             TT_LOG_I(TAG, "Still waiting for touch... (%d/%d seconds)", elapsed/1000, timeout/1000);
-            
-            // Log some raw readings to see what's happening
             int x = readSPI(CMD_READ_X);
             int y = readSPI(CMD_READ_Y);
             TT_LOG_I(TAG, "Current raw readings: X=%d, Y=%d", x, y);
         }
     }
-    
+
     if (elapsed >= timeout) {
         TT_LOG_E(TAG, "Calibration timeout! No touch detected.");
-        // Set some default values to prevent infinite loop
         cal.xMin = 300; cal.yMin = 300;
         cal.xMax = 3700; cal.yMax = 3700;
         return;
     }
 
     TT_LOG_I(TAG, "Touch detected! Sampling top-left corner...");
-    vTaskDelay(pdMS_TO_TICKS(500));  // Wait for stable touch
+    vTaskDelay(pdMS_TO_TICKS(500));  // wait for stable touch
 
     int xSum = 0, ySum = 0, samples = 8;
     for (int i = 0; i < samples; i++) {
@@ -225,14 +222,13 @@ void XPT2046_Bitbang::calibrate() {
     while (isTouched()) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-    vTaskDelay(pdMS_TO_TICKS(1000)); // Wait for full release
+    vTaskDelay(pdMS_TO_TICKS(1000)); // ensure full release
 
     // Wait for bottom-right touch
     elapsed = 0;
     while (!isTouched() && elapsed < timeout) {
         vTaskDelay(pdMS_TO_TICKS(100));
         elapsed += 100;
-        
         if (elapsed % 5000 == 0) {
             TT_LOG_I(TAG, "Waiting for bottom-right corner touch... (%d/%d seconds)", elapsed/1000, timeout/1000);
         }
@@ -243,8 +239,9 @@ void XPT2046_Bitbang::calibrate() {
         return;
     }
 
-    TT_LOG_I(TAG, "Bottom-right touch detected! Sampling...");
-    vTaskDelay(pdMS_TO_TICKS(500));
+    TT_LOG_I(TAG, "Bottom-right touch detected! Waiting for stable press...");
+    vTaskDelay(pdMS_TO_TICKS(100));  // new short settle delay
+    vTaskDelay(pdMS_TO_TICKS(500));  // same stable press delay as top-left
 
     xSum = 0; ySum = 0;
     for (int i = 0; i < samples; i++) {
@@ -262,25 +259,32 @@ void XPT2046_Bitbang::calibrate() {
              cal.xMin, cal.yMin, cal.xMax, cal.yMax);
 }
 
+// Add back when correct calibration
+// bool XPT2046_Bitbang::loadCalibration() {
+//     nvs_handle_t handle;
+//     esp_err_t err = nvs_open("xpt2046", NVS_READONLY, &handle);
+//     if (err != ESP_OK) {
+//         TT_LOG_W(TAG, "Calibration NVS namespace not found");
+//         return false;
+//     }
+
+//     size_t size = sizeof(cal);
+//     err = nvs_get_blob(handle, "cal", &cal, &size);
+//     nvs_close(handle);
+
+//     if (err != ESP_OK || size != sizeof(cal)) {
+//         TT_LOG_W(TAG, "Failed to read calibration from NVS (%s)", esp_err_to_name(err));
+//         return false;
+//     }
+
+//     return true;
+// }
+
 bool XPT2046_Bitbang::loadCalibration() {
-    nvs_handle_t handle;
-    esp_err_t err = nvs_open("xpt2046", NVS_READONLY, &handle);
-    if (err != ESP_OK) {
-        TT_LOG_W(TAG, "Calibration NVS namespace not found");
-        return false;
-    }
-
-    size_t size = sizeof(cal);
-    err = nvs_get_blob(handle, "cal", &cal, &size);
-    nvs_close(handle);
-
-    if (err != ESP_OK || size != sizeof(cal)) {
-        TT_LOG_W(TAG, "Failed to read calibration from NVS (%s)", esp_err_to_name(err));
-        return false;
-    }
-
-    return true;
+    TT_LOG_W(TAG, "Calibration load disabled (using fresh calibration only).");
+    return false;
 }
+
 
 void XPT2046_Bitbang::saveCalibration() {
     nvs_handle_t handle;
