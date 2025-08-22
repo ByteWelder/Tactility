@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tactility/hal/touch/TouchDevice.h"
+#include "Tactility/hal/touch/TouchDriver.h"
 #include <Tactility/TactilityCore.h>
 #include "lvgl.h"
 #include <driver/gpio.h>
@@ -90,7 +91,7 @@ public:
     bool stopLvgl() override;
     bool stop() override;
     bool supportsTouchDriver() override;
-    std::shared_ptr<TouchDriver> getTouchDriver() override;
+    std::shared_ptr<tt::hal::touch::TouchDriver> getTouchDriver() override;
     lv_indev_t* getLvglIndev() override { return deviceHandle; }
 
     // Original LVGL-specific start

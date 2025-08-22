@@ -430,6 +430,6 @@ bool XPT2046_Bitbang::supportsTouchDriver() {
     }
 
 // Return driver instance if any
-std::shared_ptr<TouchDriver> XPT2046_Bitbang::getTouchDriver() {
+std::shared_ptr<tt::hal::touch::TouchDriver> XPT2046_Bitbang::getTouchDriver() {
     return nullptr; // replace with actual driver later
 }
