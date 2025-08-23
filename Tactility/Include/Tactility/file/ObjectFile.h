@@ -1,17 +1,17 @@
 #pragma once
 
-#include "File.h"
+#include <Tactility/file/File.h>
 
-#include <cstdint>
-#include <functional>
 #include <string>
-#include <utility>
 
+#include "FileLock.h"
+
+/**
+ * @warning The functionality below does NOT safely acquire file locks. Use file::getLock() or file::withLock() when using the functionality below.
+ */
 namespace tt::file {
 
 class ObjectFileReader {
-
-private:
 
     const std::string filePath;
     const uint32_t recordSize = 0;
@@ -41,12 +41,11 @@ public:
 
 class ObjectFileWriter {
 
-private:
-
     const std::string filePath;
     const uint32_t recordSize;
     const uint32_t recordVersion;
     const bool append;
+    const std::shared_ptr<Lock> lock;
 
     std::unique_ptr<FILE, FileCloser> file;
     uint32_t recordsWritten = 0;
@@ -57,7 +56,8 @@ public:
         filePath(std::move(filePath)),
         recordSize(recordSize),
         recordVersion(recordVersion),
-        append(append)
+        append(append),
+        lock(getLock(filePath))
     {}
 
 

@@ -1,9 +1,8 @@
 #include "Tactility/file/PropertiesFile.h"
 
-#include "../../../Tactility/Include/Tactility/hal/sdcard/SdCardDevice.h"
-
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
+#include <Tactility/file/FileLock.h>
 
 namespace tt::file {
 
@@ -20,7 +19,7 @@ bool getKeyValuePair(const std::string& input, std::string& key, std::string& va
 }
 
 bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback) {
-    return hal::sdcard::withSdCardLock(filePath, std::function<bool()>([&filePath, &callback] {
+    return file::withLock<bool>(filePath, [&filePath, &callback] {
         TT_LOG_I(TAG, "Reading properties file %s", filePath.c_str());
         const auto input = readString(filePath);
         if (input == nullptr) {
@@ -46,7 +45,7 @@ bool loadPropertiesFile(const std::string& filePath, std::function<void(const st
         });
 
         return true;
-    }));
+    });
 }
 
 bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::string>& outProperties) {
@@ -56,7 +55,7 @@ bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::
 }
 
 bool savePropertiesFile(const std::string& filePath, const std::map<std::string, std::string>& properties) {
-    return hal::sdcard::withSdCardLock(filePath, std::function<bool()>([&filePath, &properties] {
+    return file::withLock<bool>(filePath, [filePath, &properties] {
         TT_LOG_I(TAG, "Saving properties file %s", filePath.c_str());
 
         FILE* file = fopen(filePath.c_str(), "w");
@@ -69,7 +68,7 @@ bool savePropertiesFile(const std::string& filePath, const std::map<std::string,
 
         fclose(file);
         return true;
-    }));
+    });
 }
 
 }

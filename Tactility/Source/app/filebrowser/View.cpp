@@ -164,7 +164,6 @@ void View::onDirEntryLongPressed(int32_t index) {
     }
 }
 
-
 void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
     tt_check(list);
     const char* symbol;

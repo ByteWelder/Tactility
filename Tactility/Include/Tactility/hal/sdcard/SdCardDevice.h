@@ -39,7 +39,8 @@ public:
     /** Return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
 
-    virtual Lock& getLock() const = 0;
+    /** Non-null lock */
+    virtual std::shared_ptr<Lock> getLock() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
     bool isMounted() const { return getState() == State::Mounted; }
@@ -48,19 +49,6 @@ public:
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
 std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
 
-/**
- * Acquires an SD card lock if the path is an SD card path.
- * Always calls the function, but doesn't lock if the path is not an SD card path.
- */
-template<typename ReturnType>
-ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
-    auto sdcard = find(path);
-    if (sdcard != nullptr) {
-        auto scoped_lockable = sdcard->getLock().asScopedLock();
-        scoped_lockable.lock(portMAX_DELAY);
-    }
-
-    return fn();
-}
+std::shared_ptr<Lock> findSdCardLockOrNull(const std::string& path);
 
 } // namespace tt::hal

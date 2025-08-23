@@ -2,9 +2,9 @@
 
 #include "Tactility/app/ElfApp.h"
 #include "Tactility/file/File.h"
+#include "Tactility/file/FileLock.h"
 #include "Tactility/service/loader/Loader.h"
 
-#include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Log.h>
 #include <Tactility/StringUtils.h>
 
@@ -15,7 +15,7 @@
 
 namespace tt::app {
 
-#define TAG "elf_app"
+constexpr auto* TAG = "ElfApp";
 
 struct ElfManifest {
     /** The user-readable name of the app. Used in UI. */
@@ -49,7 +49,7 @@ class ElfApp : public App {
         assert(elfFileData == nullptr);
 
         size_t size = 0;
-        hal::sdcard::withSdCardLock<void>(filePath, [this, &size](){
+        file::withLock<void>(filePath, [this, &size]{
             elfFileData = file::readBinary(filePath, size);
         });
 

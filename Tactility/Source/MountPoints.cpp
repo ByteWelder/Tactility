@@ -1,8 +1,8 @@
 #include "Tactility/MountPoints.h"
+#include "Tactility/hal/Device.h"
+#include "Tactility/hal/sdcard/SdCardDevice.h"
 
 #include <Tactility/file/File.h>
-#include <Tactility/hal/Device.h>
-#include <Tactility/hal/sdcard/SdCardDevice.h>
 
 #include <cstring>
 #include <vector>

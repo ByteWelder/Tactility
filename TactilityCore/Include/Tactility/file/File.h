@@ -7,6 +7,10 @@
 #include <sys/stat.h>
 #include <vector>
 
+/**
+ * @warning SD card access requires a locking mechanism:
+ * @warning When using this in the Tactility main project, use `file::getLock()` or `file::withLock()`
+ */
 namespace tt::file {
 
 /** File types for `dirent`'s `d_type`. */

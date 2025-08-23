@@ -1,10 +1,10 @@
 #include "Tactility/BootProperties.h"
+#include "Tactility/MountPoints.h"
+#include "Tactility/file/PropertiesFile.h"
+#include "Tactility/hal/sdcard/SdCardDevice.h"
 
 #include <Tactility/Log.h>
-#include <Tactility/MountPoints.h>
-#include <Tactility/file/PropertiesFile.h>
 #include <Tactility/file/File.h>
-#include <Tactility/hal/sdcard/SdCardDevice.h>
 
 #include <cassert>
 #include <format>

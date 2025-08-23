@@ -1,8 +1,8 @@
 #include "Tactility/service/wifi/WifiApSettings.h"
+#include "Tactility/file/PropertiesFile.h"
 
 #include <Tactility/crypt/Crypt.h>
 #include <Tactility/file/File.h>
-#include <Tactility/file/PropertiesFile.h>
 
 #include <cstring>
 #include <format>

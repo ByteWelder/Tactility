@@ -8,9 +8,9 @@
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
-#define TAG "spi_sdcard"
-
 namespace tt::hal::sdcard {
+
+constexpr auto* TAG = "SpiSdCardDevice";
 
 /**
  * Before we can initialize the sdcard's SPI communications, we have to set all
@@ -134,20 +134,27 @@ SdCardDevice::State SpiSdCardDevice::getState() const {
      * Writing and reading to the bus from 2 devices at the same time causes crashes.
      * This work-around ensures that this check is only happening when LVGL isn't rendering.
      */
-    auto lock = getLock().asScopedLock();
+    auto lock = getLock()->asScopedLock();
     bool locked = lock.lock(50); // TODO: Refactor to a more reliable locking mechanism
     if (!locked) {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
         return State::Unknown;
     }
 
-    bool result = sdmmc_get_status(card) == ESP_OK;
-
-    if (result) {
+    if (sdmmc_get_status(card) == ESP_OK) {
         return State::Mounted;
     } else {
         return State::Error;
     }
+}
+
+std::shared_ptr<Lock> findSdCardLockOrNull(const std::string& path) {
+    auto sdcard = find(path);
+    if (sdcard != nullptr) {
+        return sdcard->getLock();
+    }
+
+    return nullptr;
 }
 
 }

@@ -5,7 +5,7 @@
 #include <string>
 
 /**
- * @note All functions below safely acquire and release any SD card device locks. Manual locking isn't needed.
+ * @note The functionality below safely acquires and releases any SD card device locks. Manual locking isn't needed.
  */
 namespace tt::file {
 

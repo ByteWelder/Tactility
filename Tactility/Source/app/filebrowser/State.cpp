@@ -43,36 +43,20 @@ bool State::setEntriesForPath(const std::string& path) {
     TT_LOG_I(TAG, "Changing path: %s -> %s", current_path.c_str(), path.c_str());
 
     /**
-     * ESP32 does not have a root directory, so we have to create it manually.
-     * We'll add the NVS Flash partitions and the binding for the sdcard.
+     * On PC, the root entry point ("/") is a folder.
+     * On ESP32, the root entry point contains the various mount points.
      */
-    bool show_custom_root = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
-    if (show_custom_root) {
+    bool get_mount_points = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
+    if (get_mount_points) {
         TT_LOG_I(TAG, "Setting custom root");
         dir_entries = file::getMountPoints();
-
-        auto sdcards = tt::hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
-        for (auto& sdcard : sdcards) {
-            auto state = sdcard->getState();
-            if (state == hal::sdcard::SdCardDevice::State::Mounted) {
-                auto mount_name = sdcard->getMountPath().substr(1);
-                auto dir_entry = dirent {
-                    .d_ino = 2,
-                    .d_type = file::TT_DT_DIR,
-                    .d_name = { 0 }
-                };
-                assert(mount_name.length() < sizeof(dirent::d_name));
-                strcpy(dir_entry.d_name, mount_name.c_str());
-                dir_entries.push_back(dir_entry);
-            }
-        }
-
         current_path = path;
         selected_child_entry = "";
         action = ActionNone;
         return true;
     } else {
         dir_entries.clear();
+        // TODO: file Lock
         int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
         if (count >= 0) {
             TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);

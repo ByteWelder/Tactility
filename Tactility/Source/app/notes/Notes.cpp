@@ -1,13 +1,14 @@
-#include <Tactility/app/AppManifest.h>
-#include <Tactility/file/File.h>
-#include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Assets.h>
-#include <lvgl.h>
+#include "Tactility/app/AppManifest.h"
+#include "Tactility/app/fileselection/FileSelection.h"
+#include "Tactility/file/FileLock.h"
+#include "Tactility/lvgl/Toolbar.h"
+#include "Tactility/lvgl/LvglSync.h"
+#include "Tactility/service/loader/Loader.h"
+#include "Tactility/Assets.h"
 
-#include <Tactility/app/fileselection/FileSelection.h>
-#include <Tactility/hal/sdcard/SdCardDevice.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/service/loader/Loader.h>
+#include <Tactility/file/File.h>
+
+#include <lvgl.h>
 
 namespace tt::app::notes {
 
@@ -82,7 +83,7 @@ class NotesApp : public App {
 
     void openFile(const std::string& path) {
         // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-        hal::sdcard::withSdCardLock<void>(path, [this, path]() {
+        file::withLock<void>(path, [this, path] {
             auto data = file::readString(path);
             if (data != nullptr) {
                auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -97,7 +98,7 @@ class NotesApp : public App {
 
     bool saveFile(const std::string& path) {
         // We might be writing to SD card, which could share a SPI bus with other devices (display)
-        return hal::sdcard::withSdCardLock<bool>(path, [this, path]() {
+        return file::withLock<bool>(path, [this, path] {
            if (file::writeString(path, saveBuffer.c_str())) {
                TT_LOG_I(TAG, "Saved to %s", path.c_str());
                filePath = path;
