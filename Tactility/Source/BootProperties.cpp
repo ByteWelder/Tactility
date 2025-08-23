@@ -7,6 +7,7 @@
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
 #include <cassert>
+#include <format>
 #include <map>
 #include <string>
 #include <vector>
