@@ -49,6 +49,12 @@ public:
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
 std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
 
+/**
+ * Attempt to find an SD card that the specified belongs to,
+ * and returns its lock if the SD card is mounted. Otherwise it returns nullptr.
+ * @param[in] a path on a file system (e.g. file, directory, etc.)
+ * @return the lock of a mounted SD card or otherwise null
+ */
 std::shared_ptr<Lock> findSdCardLock(const std::string& path);
 
 } // namespace tt::hal
