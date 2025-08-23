@@ -6,7 +6,6 @@
 #include "Tactility/lvgl/LvglSync.h"
 
 namespace tt::app::wificonnect {
-
 #define TAG "wifi_connect"
 #define WIFI_CONNECT_PARAM_SSID "ssid" // String
 #define WIFI_CONNECT_PARAM_PASSWORD "password" // String
@@ -37,7 +36,7 @@ static void eventCallback(const void* message, void* context) {
     wifi->requestViewUpdate();
 }
 
-static void onConnect(const service::wifi::settings::WifiApSettings* ap_settings, bool remember, TT_UNUSED void* parameter) {
+static void onConnect(const service::wifi::settings::WifiApSettings& ap_settings, bool remember, TT_UNUSED void* parameter) {
     auto* wifi = static_cast<WifiConnect*>(parameter);
     wifi->getState().setApSettings(ap_settings);
     wifi->getState().setConnecting(true);

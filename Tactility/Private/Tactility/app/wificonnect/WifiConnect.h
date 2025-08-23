@@ -12,8 +12,6 @@ namespace tt::app::wificonnect {
 
 class WifiConnect : public App {
 
-private:
-
     Mutex mutex;
     State state;
     Bindings bindings = {

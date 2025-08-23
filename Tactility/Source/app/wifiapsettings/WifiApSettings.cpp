@@ -44,10 +44,10 @@ static void onToggleAutoConnect(lv_event_t* event) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
         std::string ssid = parameters->getString("ssid");
 
-        service::wifi::settings::WifiApSettings settings {};
-        if (service::wifi::settings::load(ssid.c_str(), &settings)) {
-            settings.auto_connect = is_on;
-            if (!service::wifi::settings::save(&settings)) {
+        service::wifi::settings::WifiApSettings settings;
+        if (service::wifi::settings::load(ssid.c_str(), settings)) {
+            settings.autoConnect = is_on;
+            if (!service::wifi::settings::save(settings)) {
                 TT_LOG_E(TAG, "Failed to save settings");
             }
         } else {
@@ -98,9 +98,9 @@ class WifiApSettings : public App {
         lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
         lv_label_set_text(forget_button_label, "Forget");
 
-        service::wifi::settings::WifiApSettings settings {};
-        if (service::wifi::settings::load(ssid.c_str(), &settings)) {
-            if (settings.auto_connect) {
+        service::wifi::settings::WifiApSettings settings;
+        if (service::wifi::settings::load(ssid.c_str(), settings)) {
+            if (settings.autoConnect) {
                 lv_obj_add_state(auto_connect_switch, LV_STATE_CHECKED);
             } else {
                 lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);

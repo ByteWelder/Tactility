@@ -34,10 +34,11 @@ void tt_wifi_set_enabled(bool enabled) {
 
 void tt_wifi_connect(const char* ssid, const char* password, int32_t channel, bool autoConnect, bool remember) {
     wifi::settings::WifiApSettings settings;
-    strcpy(settings.ssid, ssid);
-    strcpy(settings.password, password);
+    settings.ssid = ssid;
+    settings.password = password;
     settings.channel = channel;
-    settings.auto_connect = autoConnect;
+    settings.autoConnect = autoConnect;
+    wifi::connect(settings, remember);
 }
 
 void tt_wifi_disconnect() {

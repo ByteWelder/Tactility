@@ -35,7 +35,7 @@ void tt_app_stop();
 /**
  * Start an app by id and bundle.
  * @param[in] appId the app manifest id
-* @param[in] parameters the parameters to pass onto the starting app
+ * @param[in] parameters the parameters to pass onto the starting app
  */
 void tt_app_start_with_bundle(const char* appId, BundleHandle parameters);
 

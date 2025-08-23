@@ -1,4 +1,4 @@
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 
 #include "Tactility/service/ServiceInstance.h"
 #include "Tactility/service/ServiceManifest.h"
@@ -6,8 +6,6 @@
 #include <Tactility/Mutex.h>
 
 #include <string>
-#include <unordered_map>
-#include <Tactility/app/AppInstance.h>
 
 namespace tt::service {
 
@@ -23,8 +21,9 @@ static Mutex manifest_mutex(Mutex::Type::Normal);
 static Mutex instance_mutex(Mutex::Type::Normal);
 
 void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart) {
+    assert(manifest != nullptr);
     // We'll move the manifest pointer, but we'll need to id later
-    std::string id = manifest->id;
+    const auto& id = manifest->id;
 
     TT_LOG_I(TAG, "Adding %s", id.c_str());
 

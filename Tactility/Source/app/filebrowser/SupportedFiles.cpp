@@ -3,7 +3,7 @@
 
 namespace tt::app::filebrowser {
 
-#define TAG "filebrowser_app"
+constexpr auto* TAG = "FileBrowser";
 
 bool isSupportedExecutableFile(const std::string& filename) {
 #ifdef ESP_PLATFORM

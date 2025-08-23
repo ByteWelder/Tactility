@@ -14,7 +14,7 @@ public:
         Mounted,
         Unmounted,
         Error,
-        Unknown
+        Timeout // Failed to retrieve state due to timeout
     };
 
     enum class MountBehaviour {
@@ -35,32 +35,28 @@ public:
 
     virtual bool mount(const std::string& mountPath) = 0;
     virtual bool unmount() = 0;
-    virtual State getState() const = 0;
+    virtual State getState(TickType_t timeout = portMAX_DELAY) const = 0;
     /** Return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
 
-    virtual Lock& getLock() const = 0;
+    /** Non-null lock */
+    virtual std::shared_ptr<Lock> getLock() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
-    bool isMounted() const { return getState() == State::Mounted; }
+
+    /** @return true if the SD card was mounted, returns false when it was not or when a timeout happened. */
+    bool isMounted(TickType_t timeout = portMAX_DELAY) const { return getState(timeout) == State::Mounted; }
 };
 
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/
 std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
 
 /**
- * Acquires an SD card lock if the path is an SD card path.
- * Always calls the function, but doesn't lock if the path is not an SD card path.
+ * Attempt to find an SD card that the specified belongs to,
+ * and returns its lock if the SD card is mounted. Otherwise it returns nullptr.
+ * @param[in] a path on a file system (e.g. file, directory, etc.)
+ * @return the lock of a mounted SD card or otherwise null
  */
-template<typename ReturnType>
- ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
-    auto sdcard = find(path);
-    if (sdcard != nullptr) {
-        auto scoped_lockable = sdcard->getLock().asScopedLock();
-        scoped_lockable.lock(portMAX_DELAY);
-    }
-
-    return fn();
-}
+std::shared_ptr<Lock> findSdCardLock(const std::string& path);
 
 } // namespace tt::hal

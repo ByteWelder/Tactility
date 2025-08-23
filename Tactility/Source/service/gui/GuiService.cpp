@@ -6,7 +6,7 @@
 
 #include <Tactility/Tactility.h>
 #include <Tactility/app/AppInstance.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 namespace tt::service::gui {
 

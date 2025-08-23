@@ -66,7 +66,7 @@ bool isScanning() {
     return wifi->scan_active;
 }
 
-void connect(const settings::WifiApSettings* ap, bool remember) {
+void connect(const settings::WifiApSettings& ap, bool remember) {
     assert(wifi);
     // TODO: implement
 }

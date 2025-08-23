@@ -1,18 +1,13 @@
 #pragma once
 
 #include <Tactility/Mutex.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/service/wifi/WifiSettings.h>
+#include <Tactility/service/wifi/WifiApSettings.h>
 
 namespace tt::app::wificonnect {
 
 class State {
     Mutex lock;
-    service::wifi::settings::WifiApSettings apSettings = {
-        .ssid = { 0 },
-        .password = { 0 },
-        .auto_connect = false
-    };
+    service::wifi::settings::WifiApSettings apSettings;
     bool connectionError = false;
     bool connecting = false;
 public:
@@ -20,7 +15,7 @@ public:
     void setConnectionError(bool error);
     bool hasConnectionError() const;
 
-    void setApSettings(const service::wifi::settings::WifiApSettings* newSettings);
+    void setApSettings(const service::wifi::settings::WifiApSettings& newSettings);
 
     void setConnecting(bool isConnecting);
     bool isConnecting() const;

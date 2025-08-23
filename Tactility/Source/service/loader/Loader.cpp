@@ -1,12 +1,12 @@
 #include "Tactility/service/loader/Loader.h"
 #include "Tactility/app/AppInstance.h"
 #include "Tactility/app/AppManifest.h"
-#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/app/AppRegistration.h"
 
 #include <Tactility/RtosCompat.h>
 #include <Tactility/DispatcherThread.h>
 #include <Tactility/service/ServiceManifest.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 #include <stack>
 

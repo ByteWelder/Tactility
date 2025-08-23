@@ -5,7 +5,7 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/service/loader/Loader.h"
 
-#include <Tactility/Partitions.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Timer.h>
 
@@ -14,7 +14,7 @@
 
 namespace tt::app::timezone {
 
-#define TAG "timezone_select"
+constexpr auto* TAG = "TimeZone";
 
 #define RESULT_BUNDLE_CODE_INDEX "code"
 #define RESULT_BUNDLE_NAME_INDEX "name"
@@ -62,8 +62,7 @@ void setResultCode(Bundle& bundle, const std::string& code) {
 
 // endregion
 
-
-class TimeZoneApp : public App {
+class TimeZoneApp final : public App {
 
     Mutex mutex;
     std::vector<TimeZoneEntry> entries;
@@ -123,7 +122,7 @@ class TimeZoneApp : public App {
     }
 
     void readTimeZones(std::string filter) {
-        auto path = std::string(MOUNT_POINT_SYSTEM) + "/timezones.csv";
+        auto path = std::string(file::MOUNT_POINT_SYSTEM) + "/timezones.csv";
         auto* file = fopen(path.c_str(), "rb");
         if (file == nullptr) {
             TT_LOG_E(TAG, "Failed to open %s", path.c_str());
@@ -136,7 +135,7 @@ class TimeZoneApp : public App {
         std::vector<TimeZoneEntry> new_entries;
         while (fgets(line, 96, file)) {
             if (parseEntry(line, name, code)) {
-                if (tt::string::lowercase(name).find(filter) != std::string::npos) {
+                if (string::lowercase(name).find(filter) != std::string::npos) {
                     count++;
                     new_entries.push_back({.name = name, .code = code});
 
@@ -165,7 +164,7 @@ class TimeZoneApp : public App {
 
     void updateList() {
         if (lvgl::lock(100 / portTICK_PERIOD_MS)) {
-            std::string filter = tt::string::lowercase(std::string(lv_textarea_get_text(filterTextareaWidget)));
+            std::string filter = string::lowercase(std::string(lv_textarea_get_text(filterTextareaWidget)));
             readTimeZones(filter);
             lvgl::unlock();
         } else {
@@ -227,7 +226,7 @@ public:
     }
 
     void onCreate(AppContext& app) override {
-        updateTimer = std::make_unique<Timer>(Timer::Type::Once, []() { updateTimerCallback(); });
+        updateTimer = std::make_unique<Timer>(Timer::Type::Once, [] { updateTimerCallback(); });
     }
 };
 

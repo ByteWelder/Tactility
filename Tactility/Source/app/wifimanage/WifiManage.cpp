@@ -16,9 +16,9 @@ extern const AppManifest manifest;
 
 static void onConnect(const char* ssid) {
     service::wifi::settings::WifiApSettings settings;
-    if (service::wifi::settings::load(ssid, &settings)) {
+    if (service::wifi::settings::load(ssid, settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
-        service::wifi::connect(&settings, false);
+        service::wifi::connect(settings, false);
     } else {
         TT_LOG_I(TAG, "Starting connection dialog");
         wificonnect::start(ssid);

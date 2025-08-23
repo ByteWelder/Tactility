@@ -28,7 +28,7 @@ public:
             gpio_num_t spiPinWp,
             gpio_num_t spiPinInt,
             MountBehaviour mountBehaviourAtBoot,
-            /** When custom lock is nullptr, use the SPI default one */
+            /** When customLock is a nullptr, use the SPI default one */
             std::shared_ptr<Lock> _Nullable customLock = nullptr,
             std::vector<gpio_num_t> csPinWorkAround = std::vector<gpio_num_t>(),
             spi_host_device_t spiHost = SPI2_HOST,
@@ -49,7 +49,7 @@ public:
         gpio_num_t spiPinCd; // Card detect
         gpio_num_t spiPinWp; // Write-protect
         gpio_num_t spiPinInt; // Interrupt
-        SdCardDevice::MountBehaviour mountBehaviourAtBoot;
+        MountBehaviour mountBehaviourAtBoot;
         std::shared_ptr<Lock> _Nullable customLock;
         std::vector<gpio_num_t> csPinWorkAround;
         spi_host_device_t spiHost;
@@ -74,22 +74,22 @@ public:
         config(std::move(config))
     {}
 
-    std::string getName() const final { return "SD Card"; }
-    std::string getDescription() const final { return "SD card via SPI interface"; }
+    std::string getName() const override { return "SD Card"; }
+    std::string getDescription() const override { return "SD card via SPI interface"; }
 
-    bool mount(const std::string& mountPath) final;
-    bool unmount() final;
-    std::string getMountPath() const final { return mountPath; }
+    bool mount(const std::string& mountPath) override;
+    bool unmount() override;
+    std::string getMountPath() const override { return mountPath; }
 
-    Lock& getLock() const final {
-        if (config->customLock) {
-            return *config->customLock;
+    std::shared_ptr<Lock> getLock() const override {
+        if (config->customLock != nullptr) {
+            return config->customLock;
         } else {
-            return *spi::getLock(config->spiHost);
+            return spi::getLock(config->spiHost);
         }
     }
 
-    State getState() const override;
+    State getState(TickType_t timeout) const override;
 
     sdmmc_card_t* _Nullable getCard() { return card; }
 };

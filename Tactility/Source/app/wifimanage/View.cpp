@@ -11,6 +11,7 @@
 #include <format>
 #include <string>
 #include <set>
+#include <Tactility/service/wifi/WifiSettings.h>
 
 namespace tt::app::wifimanage {
 

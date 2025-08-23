@@ -8,8 +8,6 @@ using tt::hal::sdcard::SdCardDevice;
 
 class SimulatorSdCard final : public SdCardDevice {
 
-private:
-
     State state;
     std::shared_ptr<tt::Lock> lock;
     std::string mountPath;
@@ -21,10 +19,10 @@ public:
         lock(std::make_shared<tt::Mutex>())
     {}
 
-    std::string getName() const final { return "Mock SD Card"; }
-    std::string getDescription() const final { return ""; }
+    std::string getName() const override { return "Mock SD Card"; }
+    std::string getDescription() const override { return ""; }
 
-    bool mount(const std::string& newMountPath) final {
+    bool mount(const std::string& newMountPath) override {
         state = State::Mounted;
         mountPath = newMountPath;
         return true;
@@ -36,9 +34,9 @@ public:
         return true;
     }
 
-    std::string getMountPath() const final { return mountPath; };
+    std::string getMountPath() const override { return mountPath; }
 
-    tt::Lock& getLock() const final { return *lock; }
+    std::shared_ptr<tt::Lock> getLock() const override { return lock; }
 
-    State getState() const override { return state; }
+    State getState(TickType_t timeout) const override { return state; }
 };

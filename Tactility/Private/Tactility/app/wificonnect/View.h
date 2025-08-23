@@ -13,8 +13,6 @@ class WifiConnect;
 
 class View {
 
-private:
-
     Bindings* bindings;
     State* state;
 

@@ -148,7 +148,7 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
             // Add the GPIO number after the last item on a row
             auto* postfix = lv_label_create(row_wrapper);
             lv_label_set_text_fmt(postfix, "%02d", i);
-            lv_obj_set_pos(postfix, (int32_t)((column+1) * x_spacing + offset_from_left_label), 0);
+            lv_obj_set_pos(postfix, (column + 1) * x_spacing + offset_from_left_label, 0);
 
             // Add a new row wrapper underneath the last one
             auto* new_row_wrapper = createGpioRowWrapper(wrapper);

@@ -1,11 +1,11 @@
 #include "Tactility/Tactility.h"
 
-#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/app/AppRegistration.h"
 #include "Tactility/lvgl/LvglPrivate.h"
 #include "Tactility/service/ServiceManifest.h"
 
 #include <Tactility/TactilityHeadless.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/loader/Loader.h>
 
 namespace tt {
@@ -54,7 +54,6 @@ namespace app {
     namespace serialconsole { extern const AppManifest manifest; }
     namespace settings { extern const AppManifest manifest; }
     namespace systeminfo { extern const AppManifest manifest; }
-    namespace textviewer { extern const AppManifest manifest; }
     namespace timedatesettings { extern const AppManifest manifest; }
     namespace timezone { extern const AppManifest manifest; }
     namespace usbsettings { extern const AppManifest manifest; }
@@ -96,7 +95,6 @@ static void registerSystemApps() {
     addApp(app::settings::manifest);
     addApp(app::selectiondialog::manifest);
     addApp(app::systeminfo::manifest);
-    addApp(app::textviewer::manifest);
     addApp(app::timedatesettings::manifest);
     addApp(app::timezone::manifest);
     addApp(app::usbsettings::manifest);

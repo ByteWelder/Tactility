@@ -14,4 +14,13 @@ std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path) {
     return nullptr;
 }
 
+std::shared_ptr<Lock> findSdCardLock(const std::string& path) {
+    auto sdcard = find(path);
+    if (sdcard != nullptr) {
+        return sdcard->getLock();
+    }
+
+    return nullptr;
+}
+
 }
