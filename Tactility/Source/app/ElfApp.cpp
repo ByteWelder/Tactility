@@ -12,6 +12,7 @@
 
 #include <string>
 #include <utility>
+#include <Tactility/app/alertdialog/AlertDialog.h>
 
 namespace tt::app {
 
@@ -39,10 +40,18 @@ class ElfApp : public App {
 
     const std::string filePath;
     std::unique_ptr<uint8_t[]> elfFileData;
-    esp_elf_t elf;
+    esp_elf_t elf {
+        .psegment = nullptr,
+        .svaddr = 0,
+        .ptext = nullptr,
+        .pdata = nullptr,
+        .sec = { },
+        .entry = nullptr
+    };
     bool shouldCleanupElf = false; // Whether we have to clean up the above "elf" object
     std::unique_ptr<ElfManifest> manifest;
     void* data = nullptr;
+    std::string lastError = "";
 
     bool startElf() {
         TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
@@ -58,14 +67,17 @@ class ElfApp : public App {
         }
 
         if (esp_elf_init(&elf) != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to initialize");
+            lastError = "Failed to initialize";
+            TT_LOG_E(TAG, "%s", lastError.c_str());
             elfFileData  = nullptr;
             return false;
         }
 
-        if (esp_elf_relocate(&elf, elfFileData.get()) != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to load executable");
-            esp_elf_deinit(&elf);
+        auto relocate_result = esp_elf_relocate(&elf, elfFileData.get());
+        if (relocate_result != 0) {
+            // Note: the result code mapes to values from cstdlib's errno.h
+            lastError = std::format("Failed to load executable (error code {})", -relocate_result);
+            TT_LOG_E(TAG, "%s", lastError.c_str());
             elfFileData  = nullptr;
             return false;
         }
@@ -74,7 +86,8 @@ class ElfApp : public App {
         char* argv[] = {};
 
         if (esp_elf_request(&elf, 0, argc, argv) != ESP_OK) {
-            TT_LOG_W(TAG, "Executable returned error code");
+            lastError = "Executable returned error code";
+            TT_LOG_E(TAG, "%s", lastError.c_str());
             esp_elf_deinit(&elf);
             elfFileData  = nullptr;
             return false;
@@ -106,22 +119,29 @@ public:
         auto lock = elfManifestLock->asScopedLock();
         lock.lock();
 
-        auto initial_count = elfManifestSetCount;
-        if (startElf()) {
-            if (elfManifestSetCount > initial_count) {
-                manifest = std::make_unique<ElfManifest>(elfManifest);
-                lock.unlock();
-
-                if (manifest->createData != nullptr) {
-                    data = manifest->createData();
-                }
-
-                if (manifest->onCreate != nullptr) {
-                    manifest->onCreate(&appContext, data);
-                }
-            }
-        } else {
+        elfManifestSetCount = 0;
+        if (!startElf()) {
             service::loader::stopApp();
+            auto message = lastError.empty() ? "Application failed to start." : std::format("Application failed to start: {}", lastError);
+            alertdialog::start("Error", message);
+            return;
+        }
+
+        if (elfManifestSetCount == 0) {
+            service::loader::stopApp();
+            alertdialog::start("Error", "Application failed to start: application failed to register itself");
+            return;
+        }
+
+        manifest = std::make_unique<ElfManifest>(elfManifest);
+        lock.unlock();
+
+        if (manifest->createData != nullptr) {
+            data = manifest->createData();
+        }
+
+        if (manifest->onCreate != nullptr) {
+            manifest->onCreate(&appContext, data);
         }
     }
 
