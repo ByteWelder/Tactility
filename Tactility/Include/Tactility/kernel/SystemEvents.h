@@ -28,6 +28,7 @@ enum class SystemEvent {
 
 /** Value 0 mean "no subscription" */
 typedef uint32_t SystemEventSubscription;
+constexpr SystemEventSubscription NoSystemEventSubscription = 0U;
 
 typedef std::function<void(SystemEvent)> OnSystemEvent;
 

@@ -2,6 +2,11 @@
 
 #include <cstring>
 #include <fstream>
+#include <unistd.h>
+
+namespace tt::hal::sdcard {
+class SdCardDevice;
+}
 
 namespace tt::file {
 
@@ -206,6 +211,15 @@ bool findOrCreateDirectory(std::string path, mode_t mode) {
     }
 
     return true;
+}
+
+bool isFile(const std::string& path) {
+    return access(path.c_str(), F_OK) == 0;
+}
+
+bool isDirectory(const std::string& path) {
+    struct stat stat_result;
+    return stat(path.c_str(), &stat_result) == 0 && S_ISDIR(stat_result.st_mode);
 }
 
 }

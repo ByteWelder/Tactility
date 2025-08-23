@@ -1,9 +1,10 @@
-#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/app/AppRegistration.h"
 #include "Tactility/app/AppManifest.h"
 
 #include <Tactility/Mutex.h>
 
 #include <unordered_map>
+#include <Tactility/file/File.h>
 
 #define TAG "app"
 

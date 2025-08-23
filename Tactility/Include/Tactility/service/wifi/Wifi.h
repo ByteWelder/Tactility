@@ -1,17 +1,14 @@
 #pragma once
 
-#include "./WifiGlobals.h"
-#include "./WifiSettings.h"
-
 #include <Tactility/PubSub.h>
 
-#include <cstdio>
 #include <string>
 #include <vector>
 
+#include "WifiApSettings.h"
+
 #ifdef ESP_PLATFORM
 #include "esp_wifi.h"
-#include "WifiSettings.h"
 #else
 #include <cstdint>
 // From esp_wifi_types.h in ESP-IDF 5.2
@@ -124,7 +121,7 @@ std::string getIp();
  * @param[in] ap
  * @param[in] remember whether to save the ap data to the settings upon successful connection
  */
-void connect(const settings::WifiApSettings* ap, bool remember);
+void connect(const settings::WifiApSettings& ap, bool remember);
 
 /** @brief Disconnect from the access point. Doesn't have any effect when not connected. */
 void disconnect();

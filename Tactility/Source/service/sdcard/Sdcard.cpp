@@ -1,6 +1,6 @@
 #include "Tactility/service/ServiceContext.h"
 #include "Tactility/TactilityHeadless.h"
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
@@ -12,8 +12,6 @@ namespace tt::service::sdcard {
 extern const ServiceManifest manifest;
 
 class SdCardService final : public Service {
-
-private:
 
     Mutex mutex;
     std::unique_ptr<Timer> updateTimer;
@@ -28,14 +26,14 @@ private:
     }
 
     void update() {
-        auto sdcard = tt::hal::getConfiguration()->sdcard;
+        auto sdcard = hal::getConfiguration()->sdcard;
         assert(sdcard);
 
         if (lock(50)) {
             auto new_state = sdcard->getState();
 
             if (new_state == hal::sdcard::SdCardDevice::State::Error) {
-                TT_LOG_W(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
+                TT_LOG_E(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
                 sdcard->unmount();
             }
 
@@ -51,7 +49,7 @@ private:
 
 public:
 
-    void onStart(ServiceContext& serviceContext) final {
+    void onStart(ServiceContext& serviceContext) override {
         if (hal::getConfiguration()->sdcard != nullptr) {
             auto service = findServiceById<SdCardService>(manifest.id);
             updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
@@ -64,7 +62,7 @@ public:
         }
     }
 
-    void onStop(ServiceContext& serviceContext) final {
+    void onStop(ServiceContext& serviceContext) override {
         if (updateTimer != nullptr) {
             // Stop thread
             updateTimer->stop();

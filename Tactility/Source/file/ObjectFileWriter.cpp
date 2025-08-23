@@ -1,4 +1,4 @@
-#include "Tactility/file/ObjectFile.h"
+#include "../../Include/Tactility/file/ObjectFile.h"
 #include "Tactility/file/ObjectFilePrivate.h"
 
 #include <cstring>
@@ -7,7 +7,7 @@
 
 namespace tt::file {
 
-constexpr const char* TAG = "ObjectFileWriter";
+constexpr auto* TAG = "ObjectFileWriter";
 
 bool ObjectFileWriter::open() {
     bool edit_existing = append && access(filePath.c_str(), F_OK) == 0;

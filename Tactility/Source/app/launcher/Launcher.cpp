@@ -1,11 +1,11 @@
 #include "Tactility/app/AppContext.h"
-#include "Tactility/app/ManifestRegistry.h"
+#include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
 
-#include <Tactility/Check.h>
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
+#include <Tactility/BootProperties.h>
 
 #define TAG "launcher"
 
@@ -54,10 +54,10 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 class LauncherApp : public App {
 
     void onCreate(TT_UNUSED AppContext& app) override {
-        auto* config = getConfiguration();
-        if (!config->autoStartAppId.empty()) {
-            TT_LOG_I(TAG, "auto-starting %s", config->autoStartAppId.c_str());
-            service::loader::startApp(config->autoStartAppId);
+        BootProperties boot_properties;
+        if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
+            TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
+            service::loader::startApp(boot_properties.autoStartAppId);
         }
     }
 

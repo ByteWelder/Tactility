@@ -3,7 +3,7 @@
 #include "Tactility/hal/Hal_i.h"
 #include "Tactility/network/NtpPrivate.h"
 #include "Tactility/service/ServiceManifest.h"
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 
 #include <Tactility/Dispatcher.h>
 #include <Tactility/time/TimePrivate.h>

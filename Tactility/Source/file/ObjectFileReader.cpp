@@ -6,7 +6,7 @@
 
 namespace tt::file {
 
-constexpr const char* TAG = "ObjectFileReader";
+constexpr auto* TAG = "ObjectFileReader";
 
 bool ObjectFileReader::open() {
     auto opening_file = std::unique_ptr<FILE, FileCloser>(fopen(filePath.c_str(), "r"));

@@ -44,7 +44,7 @@ void getIv(const void* data, size_t dataLength, uint8_t iv[16]);
  * @param[in] dataLength data length, a multiple of 16 (for both inData and outData)
  * @return the result of esp_aes_crypt_cbc() (MBEDTLS_ERR_*)
  */
-int encrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength);
+int encrypt(const uint8_t iv[16], const uint8_t* inData, uint8_t* outData, size_t dataLength);
 
 /**
  * @brief Decrypt data.
@@ -58,6 +58,7 @@ int encrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t data
  * @param[in] dataLength data length, a multiple of 16 (for both inData and outData)
  * @return the result of esp_aes_crypt_cbc() (MBEDTLS_ERR_*)
  */
-int decrypt(const uint8_t iv[16], uint8_t* inData, uint8_t* outData, size_t dataLength);
+int decrypt(const uint8_t iv[16], const uint8_t* inData, uint8_t* outData, size_t dataLength);
+
 
 } // namespace

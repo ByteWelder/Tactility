@@ -11,6 +11,7 @@
 #include <Tactility/TactilityCore.h>
 
 #include <format>
+#include <Tactility/CpuAffinity.h>
 
 namespace tt::service::screenshot {
 
@@ -109,10 +110,11 @@ void ScreenshotTask::taskStart() {
     thread = new Thread(
         "screenshot",
         8192,
-        [this]() {
+        [this] {
             this->taskMain();
             return 0;
-        }
+        },
+        getCpuAffinityConfiguration().graphics
     );
     thread->start();
 }

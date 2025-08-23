@@ -20,7 +20,7 @@ class View {
     void showActionsForFile();
 
     void viewFile(const std::string&path, const std::string&filename);
-    void createDirEntryWidget(lv_obj_t* parent, struct dirent& dir_entry);
+    void createDirEntryWidget(lv_obj_t* parent, dirent& dir_entry);
     void onNavigate();
 
 public:

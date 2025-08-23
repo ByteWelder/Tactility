@@ -4,13 +4,14 @@
 #include "Tactility/app/alertdialog/AlertDialog.h"
 #include "Tactility/app/imageviewer/ImageViewer.h"
 #include "Tactility/app/inputdialog/InputDialog.h"
-#include "Tactility/app/textviewer/TextViewer.h"
+#include "Tactility/app/notes/Notes.h"
 #include "Tactility/app/ElfApp.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/lvgl/LvglSync.h"
 
 #include <Tactility/Tactility.h>
-#include "Tactility/file/File.h"
+#include <Tactility/file/File.h>
+#include <Tactility/Log.h>
 #include <Tactility/StringUtils.h>
 
 #include <cstring>
@@ -20,9 +21,9 @@
 #include "Tactility/service/loader/Loader.h"
 #endif
 
-#define TAG "filebrowser_app"
-
 namespace tt::app::filebrowser {
+
+constexpr auto* TAG = "FileBrowser";
 
 // region Callbacks
 
@@ -95,10 +96,10 @@ void View::viewFile(const std::string& path, const std::string& filename) {
         imageviewer::start(processed_filepath);
     } else if (isSupportedTextFile(filename)) {
         if (kernel::getPlatform() == kernel::PlatformEsp) {
-            textviewer::start(processed_filepath);
+            notes::start(processed_filepath);
         } else {
             // Remove forward slash, because we need a relative path
-            textviewer::start(processed_filepath.substr(1));
+            notes::start(processed_filepath.substr(1));
         }
     } else {
         TT_LOG_W(TAG, "opening files of this type is not supported");
@@ -162,7 +163,6 @@ void View::onDirEntryLongPressed(int32_t index) {
         }
     }
 }
-
 
 void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
     tt_check(list);

@@ -9,7 +9,7 @@
 #include <Tactility/TactilityHeadless.h>
 #include <Tactility/Timer.h>
 #include <Tactility/service/ServiceContext.h>
-#include <Tactility/service/ServiceRegistry.h>
+#include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 namespace tt::service::statusbar {
@@ -81,7 +81,7 @@ static const char* getSdCardStatusIcon(hal::sdcard::SdCardDevice::State state) {
             return STATUSBAR_ICON_SDCARD;
         case Error:
         case Unmounted:
-        case Unknown:
+        case Timeout:
             return STATUSBAR_ICON_SDCARD_ALERT;
         default:
             tt_crash("Unhandled SdCard state");
@@ -199,8 +199,8 @@ class StatusbarService final : public Service {
     void updateSdCardIcon() {
         auto sdcard = hal::getConfiguration()->sdcard;
         if (sdcard != nullptr) {
-            auto state = sdcard->getState();
-            if (state != hal::sdcard::SdCardDevice::State::Unknown) {
+            auto state = sdcard->getState(50 / portTICK_PERIOD_MS);
+            if (state != hal::sdcard::SdCardDevice::State::Timeout) {
                 auto* desired_icon = getSdCardStatusIcon(state);
                 if (sdcard_last_icon != desired_icon) {
                     auto icon_path = paths->getSystemPathLvgl(desired_icon);

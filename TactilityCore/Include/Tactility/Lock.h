@@ -66,7 +66,7 @@ public:
 
     explicit ScopedLock(const Lock& lockable) : lockable(lockable) {}
 
-    ~ScopedLock() final {
+    ~ScopedLock() override {
         lockable.unlock(); // We don't care whether it succeeded or not
     }
 

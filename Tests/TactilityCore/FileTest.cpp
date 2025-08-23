@@ -9,6 +9,6 @@ TEST_CASE("findOrCreateDirectory can create a directory tree without prefix") {
 }
 
 TEST_CASE("findOrCreateDirectory can create a directory tree with prefix") {
-    CHECK_EQ(file::findOrCreateDirectory("/test2/test2", 0777), true);
+    CHECK_EQ(file::findOrCreateDirectory("/tmp/test2", 0777), true);
     // TODO: delete dirs
 }

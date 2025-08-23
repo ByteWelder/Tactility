@@ -6,7 +6,7 @@
 #include "Tactility/network/Url.h"
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceManifest.h"
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 #include "Tactility/service/wifi/Wifi.h"
 
 #include <cstring>
@@ -17,7 +17,7 @@
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/App.h>
 #include <Tactility/app/ElfApp.h>
-#include <Tactility/app/ManifestRegistry.h>
+#include <Tactility/app/AppRegistration.h>
 
 namespace tt::service::development {
 

@@ -9,7 +9,7 @@
 
 namespace tt::app::filebrowser {
 
-#define TAG "filebrowser_app"
+constexpr auto* TAG = "FileBrowser";
 
 extern const AppManifest manifest;
 

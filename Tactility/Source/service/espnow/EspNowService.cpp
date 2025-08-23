@@ -3,7 +3,7 @@
 #include "Tactility/service/espnow/EspNowService.h"
 #include "Tactility/TactilityHeadless.h"
 #include "Tactility/service/ServiceManifest.h"
-#include "Tactility/service/ServiceRegistry.h"
+#include "Tactility/service/ServiceRegistration.h"
 #include "Tactility/service/espnow/EspNowWifi.h"
 #include <cstring>
 #include <esp_now.h>
