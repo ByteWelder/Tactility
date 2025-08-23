@@ -2,14 +2,17 @@
 #include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
 
+#include "Tactility/i18n/Launcher.h"
+
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 #include <Tactility/BootProperties.h>
-
-#define TAG "launcher"
+#include <Tactility/i18n/I18n.h>
 
 namespace tt::app::launcher {
+
+constexpr auto* TAG = "Launcher";
 
 static void onAppPressed(TT_UNUSED lv_event_t* e) {
     auto* appId = (const char*)lv_event_get_user_data(e);
@@ -52,8 +55,11 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 }
 
 class LauncherApp : public App {
+    std::shared_ptr<i18n::IndexedText> launcherText = i18n::loadIndexedText("/data/i18n/launcher");
 
     void onCreate(TT_UNUSED AppContext& app) override {
+        assert(launcherText != nullptr);
+
         BootProperties boot_properties;
         if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
             TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
@@ -87,9 +93,14 @@ class LauncherApp : public App {
         auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
         auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
         auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
-        createAppButton(wrapper, "Apps", apps_icon_path.c_str(), "AppList", 0);
-        createAppButton(wrapper, "Files", files_icon_path.c_str(), "Files", padding);
-        createAppButton(wrapper, "Settings", settings_icon_path.c_str(), "Settings", padding);
+
+        const auto& apps_title = launcherText->get(i18n::launcher::Text::APPS);
+        const auto& files_title = launcherText->get(i18n::launcher::Text::FILES);
+        const auto& settings_title = launcherText->get(i18n::launcher::Text::SETTINGS);
+
+        createAppButton(wrapper, apps_title.c_str(), apps_icon_path.c_str(), "AppList", 0);
+        createAppButton(wrapper, files_title.c_str(), files_icon_path.c_str(), "Files", padding);
+        createAppButton(wrapper, settings_title.c_str(), settings_icon_path.c_str(), "Settings", padding);
     }
 };
 
