@@ -4,8 +4,6 @@
 
 - Move Development settings from flash to `/data/apps/development/development.properties` (just the "start on boot")
 - Move Display settings from flash to `/data/apps/display/display.properties`
-- App data directory should be automatically created (and then we can remove the custom code from Notes.cpp)
-- When an external app fails to load (e.g. due to mapping error) then show an error dialog.
 - Expose app::Paths to TactilityC
 - Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
@@ -13,6 +11,7 @@
 - App packaging
 - Create more unit tests for `tactility-core`
 - Make a URL handler. Use it for handling local files. Match file types with apps.
+- Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
 
 ## Lower Priority
 
