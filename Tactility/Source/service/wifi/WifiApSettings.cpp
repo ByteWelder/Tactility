@@ -1,11 +1,15 @@
 #include "Tactility/service/wifi/WifiApSettings.h"
 
-#include <cstring>
-#include <iomanip>
-#include <ranges>
 #include <Tactility/crypt/Crypt.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
+
+#include <cstring>
+#include <format>
+#include <iomanip>
+#include <ranges>
+#include <sstream>
+#include <string>
 
 namespace tt::service::wifi::settings {
 
