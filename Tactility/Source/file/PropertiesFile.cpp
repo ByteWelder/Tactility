@@ -31,6 +31,7 @@ bool loadPropertiesFile(const std::string& filePath, std::function<void(const st
         const std::string input_string = input_start;
 
         uint16_t line_count = 0;
+        // TODO: Rewrite to use file::readLines()
         string::split(input_string, "\n", [&line_count, &filePath, &callback](auto token) {
             line_count++;
             std::string key, value;

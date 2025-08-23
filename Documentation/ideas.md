@@ -12,6 +12,7 @@
 - Create more unit tests for `tactility-core`
 - Make a URL handler. Use it for handling local files. Match file types with apps.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
+- Refactor `PropertiesFile.cpp` to use `tt::file::readLines()` (see TODO in code)
 
 ## Lower Priority
 

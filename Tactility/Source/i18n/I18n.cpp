@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <vector>
+#include <Tactility/file/File.h>
 
 namespace tt::i18n {
 
@@ -28,7 +29,7 @@ public:
 
 static std::string getDesiredLocale() {
     // TODO: Implement locale settings
-    return "nl-NL";
+    return "en-GB";
 }
 
 static std::string getFallbackLocale() {
@@ -36,42 +37,37 @@ static std::string getFallbackLocale() {
     return "en-GB";
 }
 
-static FILE* openI18nFile(const std::string& path) {
+static std::string getI18nDataFilePath(const std::string& path) {
     auto locale = getDesiredLocale();
     auto desired_file_path = std::format("{}/{}.i18n", path, locale);
-    auto* file = fopen(desired_file_path.c_str(), "r");
-    if (file == nullptr) {
-        auto fallback_locale = getFallbackLocale();
+    if (file::isFile(desired_file_path)) {
+        return desired_file_path;
+    } else {
         TT_LOG_W(TAG, "Translations not found for %s at %s", locale.c_str(), desired_file_path.c_str());
-        auto fallback_file_path = std::format("{}/{}.i18n", path, getFallbackLocale());
-        file = fopen(fallback_file_path.c_str(), "r");
-        if (file == nullptr) {
-            TT_LOG_W(TAG, "Fallback translations not found for %s at %s", fallback_locale.c_str(), fallback_file_path.c_str());
-        }
     }
-    return file;
+
+    auto fallback_locale = getFallbackLocale();
+    auto fallback_file_path = std::format("{}/{}.i18n", path, getFallbackLocale());
+    if (file::isFile(fallback_file_path)) {
+        return fallback_file_path;
+    } else {
+        TT_LOG_W(TAG, "Fallback translations not found for %s at %s", fallback_locale.c_str(), fallback_file_path.c_str());
+        return "";
+    }
 }
 
 std::shared_ptr<IndexedText> loadIndexedText(const std::string& path) {
     std::vector<std::string> data;
+    auto file_path = getI18nDataFilePath(path);
+    if (file_path.empty()) {
+        return nullptr;
+    }
 
     // We lock on folder level, because file is TBD
-    file::withLock<void>(path, [&path, &data] {
-        auto* file = openI18nFile(path);
-        if (file != nullptr) {
-            char line[1024];
-            // TODO: move to file::readLines(filePath, skipEndline, callback)
-            while (fgets(line, sizeof(line), file) != nullptr) {
-                // Strip newline
-                size_t line_length = strlen(line);
-                if (line_length > 0 && line[line_length - 1] == '\n') {
-                    line[line_length - 1] = '\0';
-                }
-                // Publish
-                data.push_back(line);
-            }
-            fclose(file);
-        }
+    file::withLock<void>(path, [&file_path, &data] {
+        file::readLines(file_path, true, [&data](const char* line) {
+            data.push_back(line);
+        });
     });
 
     if (data.empty()) {
