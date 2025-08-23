@@ -14,14 +14,12 @@ class NoLock : public Lock {
 static std::shared_ptr<Lock> noLock = std::make_shared<NoLock>();
 
 std::shared_ptr<Lock> getLock(const std::string& path) {
-    auto sdcards = tt::hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
-    for (const auto& sdcard : sdcards) {
-        if (sdcard->getState() == hal::sdcard::SdCardDevice::State::Mounted && path.starts_with(sdcard->getMountPath())) {
-            return sdcard->getLock();
-        }
+    auto sdcard_lock = hal::sdcard::findSdCardLock(path);
+    if (sdcard_lock != nullptr) {
+        return sdcard_lock;
+    } else {
+        return noLock;
     }
-
-    return noLock;
 }
 
 }

@@ -148,7 +148,7 @@ SdCardDevice::State SpiSdCardDevice::getState() const {
     }
 }
 
-std::shared_ptr<Lock> findSdCardLockOrNull(const std::string& path) {
+std::shared_ptr<Lock> findSdCardLock(const std::string& path) {
     auto sdcard = find(path);
     if (sdcard != nullptr) {
         return sdcard->getLock();
