@@ -53,7 +53,7 @@ std::shared_ptr<SdCardDevice> _Nullable find(const std::string& path);
  * Always calls the function, but doesn't lock if the path is not an SD card path.
  */
 template<typename ReturnType>
- ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
+ReturnType withSdCardLock(const std::string& path, std::function<ReturnType()> fn) {
     auto sdcard = find(path);
     if (sdcard != nullptr) {
         auto scoped_lockable = sdcard->getLock().asScopedLock();

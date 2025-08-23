@@ -3,7 +3,7 @@
 #include <Tactility/file/File.h>
 #include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Log.h>
-#include <Tactility/Partitions.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/kernel/Kernel.h>
 
 #include <cstring>
@@ -11,9 +11,9 @@
 #include <vector>
 #include <dirent.h>
 
-#define TAG "fileselection_app"
-
 namespace tt::app::fileselection {
+
+constexpr auto* TAG = "FileSelection";
 
 State::State() {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
@@ -49,34 +49,7 @@ bool State::setEntriesForPath(const std::string& path) {
     bool show_custom_root = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
     if (show_custom_root) {
         TT_LOG_I(TAG, "Setting custom root");
-        dir_entries.clear();
-        dir_entries.push_back(dirent{
-            .d_ino = 0,
-            .d_type = file::TT_DT_DIR,
-            .d_name = SYSTEM_PARTITION_NAME
-        });
-        dir_entries.push_back(dirent{
-            .d_ino = 1,
-            .d_type = file::TT_DT_DIR,
-            .d_name = DATA_PARTITION_NAME
-        });
-
-        auto sdcards = tt::hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
-        for (auto& sdcard : sdcards) {
-            auto state = sdcard->getState();
-            if (state == hal::sdcard::SdCardDevice::State::Mounted) {
-                auto mount_name = sdcard->getMountPath().substr(1);
-                auto dir_entry = dirent {
-                    .d_ino = 2,
-                    .d_type = file::TT_DT_DIR,
-                    .d_name = { 0 }
-                };
-                assert(mount_name.length() < sizeof(dirent::d_name));
-                strcpy(dir_entry.d_name, mount_name.c_str());
-                dir_entries.push_back(dir_entry);
-            }
-        }
-
+        dir_entries = file::getMountPoints();
         current_path = path;
         selected_child_entry = "";
         return true;

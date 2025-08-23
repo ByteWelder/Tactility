@@ -4,6 +4,10 @@
 #include <fstream>
 #include <unistd.h>
 
+namespace tt::hal::sdcard {
+class SdCardDevice;
+}
+
 namespace tt::file {
 
 #define TAG "file"

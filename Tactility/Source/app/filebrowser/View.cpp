@@ -21,9 +21,9 @@
 #include "Tactility/service/loader/Loader.h"
 #endif
 
-#define TAG "filebrowser_app"
-
 namespace tt::app::filebrowser {
+
+constexpr auto* TAG = "FileBrowser";
 
 // region Callbacks
 

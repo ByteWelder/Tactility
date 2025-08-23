@@ -15,9 +15,9 @@
 #include "Tactility/service/loader/Loader.h"
 #endif
 
-#define TAG "fileselection_app"
-
 namespace tt::app::fileselection {
+
+constexpr auto* TAG = "FileSelection";
 
 // region Callbacks
 

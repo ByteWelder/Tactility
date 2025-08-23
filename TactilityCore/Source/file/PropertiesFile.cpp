@@ -1,5 +1,7 @@
 #include "Tactility/file/PropertiesFile.h"
 
+#include "../../../Tactility/Include/Tactility/hal/sdcard/SdCardDevice.h"
+
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
 
@@ -18,33 +20,33 @@ bool getKeyValuePair(const std::string& input, std::string& key, std::string& va
 }
 
 bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback) {
-    auto input = readString(filePath);
-    if (input == nullptr) {
-        TT_LOG_E(TAG, "Failed to read file contents of %s", filePath.c_str());
-        return false;
-    }
-
-    const char* input_start = reinterpret_cast<const char*>(input.get());
-    std::string input_string;
-    input_string.assign(input_start);
-
-    uint16_t line_count = 0;
-    string::split(input_string, "\n", [&line_count, &filePath, &callback](auto token) {
-        line_count++;
-        std::string key, value;
-        auto trimmed_token = string::trim(token, " \t");
-        if (!trimmed_token.starts_with("#") ) {
-            if (getKeyValuePair(token, key, value)) {
-                std::string trimmed_key = string::trim(key, " \t");
-                std::string trimmed_value = string::trim(value, " \t");
-                callback(trimmed_key, trimmed_value);
-            } else {
-                TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str());
-            }
+    return hal::sdcard::withSdCardLock(filePath, std::function<bool()>([&filePath, &callback] {
+        TT_LOG_I(TAG, "Reading properties file %s", filePath.c_str());
+        const auto input = readString(filePath);
+        if (input == nullptr) {
+            TT_LOG_E(TAG, "Failed to read file contents of %s", filePath.c_str());
+            return false;
         }
-    });
 
-    return true;
+        const auto* input_start = reinterpret_cast<const char*>(input.get());
+        const std::string input_string = input_start;
+
+        uint16_t line_count = 0;
+        string::split(input_string, "\n", [&line_count, &filePath, &callback](auto token) {
+            line_count++;
+            std::string key, value;
+            auto trimmed_token = string::trim(token, " \t");
+            if (!trimmed_token.starts_with("#")) {
+                if (getKeyValuePair(token, key, value)) {
+                    std::string trimmed_key = string::trim(key, " \t");
+                    std::string trimmed_value = string::trim(value, " \t");
+                    callback(trimmed_key, trimmed_value);
+                } else { TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str()); }
+            }
+        });
+
+        return true;
+    }));
 }
 
 bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::string>& outProperties) {
@@ -53,20 +55,21 @@ bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::
     });
 }
 
-
 bool savePropertiesFile(const std::string& filePath, const std::map<std::string, std::string>& properties) {
-    FILE* file = fopen(filePath.c_str(), "w");
-    if (file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open %s", filePath.c_str());
-        return false;
-    }
+    return hal::sdcard::withSdCardLock(filePath, std::function<bool()>([&filePath, &properties] {
+        TT_LOG_I(TAG, "Saving properties file %s", filePath.c_str());
 
-    for (const auto& [key, value] : properties) {
-        fprintf(file, "%s=%s\n", key.c_str(), value.c_str());
-    }
+        FILE* file = fopen(filePath.c_str(), "w");
+        if (file == nullptr) {
+            TT_LOG_E(TAG, "Failed to open %s", filePath.c_str());
+            return false;
+        }
 
-    fclose(file);
-    return true;
+        for (const auto& [key, value]: properties) { fprintf(file, "%s=%s\n", key.c_str(), value.c_str()); }
+
+        fclose(file);
+        return true;
+    }));
 }
 
 }

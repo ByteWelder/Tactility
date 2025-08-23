@@ -4,6 +4,9 @@
 #include <map>
 #include <string>
 
+/**
+ * @note All functions below safely acquire and release any SD card device locks. Manual locking isn't needed.
+ */
 namespace tt::file {
 
 bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::string>& outProperties);

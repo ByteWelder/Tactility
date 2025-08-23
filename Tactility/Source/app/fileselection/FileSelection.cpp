@@ -10,7 +10,7 @@
 
 namespace tt::app::fileselection {
 
-#define TAG "fileselection_app"
+constexpr auto* TAG = "FileSelection";
 
 extern const AppManifest manifest;
 
