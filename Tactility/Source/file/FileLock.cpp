@@ -1,6 +1,5 @@
 #include "Tactility/file/FileLock.h"
 
-#include <Tactility/hal/Device.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/Mutex.h>
 

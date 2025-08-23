@@ -38,5 +38,5 @@ public:
 
     std::shared_ptr<tt::Lock> getLock() const override { return lock; }
 
-    State getState() const override { return state; }
+    State getState(TickType_t timeout) const override { return state; }
 };

@@ -149,15 +149,6 @@ SdCardDevice::State SpiSdCardDevice::getState(TickType_t timeout) const {
     return State::Mounted;
 }
 
-std::shared_ptr<Lock> findSdCardLock(const std::string& path) {
-    auto sdcard = find(path);
-    if (sdcard != nullptr) {
-        return sdcard->getLock();
-    }
-
-    return nullptr;
-}
-
 }
 
 #endif
