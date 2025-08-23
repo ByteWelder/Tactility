@@ -14,7 +14,7 @@ public:
         Mounted,
         Unmounted,
         Error,
-        Unknown
+        Timeout // Failed to retrieve state due to timeout
     };
 
     enum class MountBehaviour {
@@ -35,7 +35,7 @@ public:
 
     virtual bool mount(const std::string& mountPath) = 0;
     virtual bool unmount() = 0;
-    virtual State getState() const = 0;
+    virtual State getState(TickType_t timeout = portMAX_DELAY) const = 0;
     /** Return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
 
@@ -43,7 +43,9 @@ public:
     virtual std::shared_ptr<Lock> getLock() const = 0;
 
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
-    bool isMounted() const { return getState() == State::Mounted; }
+
+    /** @return true if the SD card was mounted, returns false when it was not or when a timeout happened. */
+    bool isMounted(TickType_t timeout = portMAX_DELAY) const { return getState(timeout) == State::Mounted; }
 };
 
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/

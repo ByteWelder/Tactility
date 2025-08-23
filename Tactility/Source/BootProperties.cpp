@@ -8,7 +8,6 @@
 
 #include <cassert>
 #include <format>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -44,15 +43,6 @@ bool loadBootProperties(BootProperties& properties) {
     }
 
     return !properties.launcherAppId.empty();
-}
-
-bool saveBootProperties(const BootProperties& bootProperties) {
-    assert(!bootProperties.launcherAppId.empty());
-    const std::string path = getPropertiesFilePath();
-    std::map<std::string, std::string> properties;
-    properties[PROPERTIES_KEY_AUTO_START_APP_ID] = bootProperties.autoStartAppId;
-    properties[PROPERTIES_KEY_LAUNCHER_APP_ID] = bootProperties.launcherAppId;
-    return file::savePropertiesFile(path, properties);
 }
 
 }

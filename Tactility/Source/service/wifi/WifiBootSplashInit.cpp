@@ -10,13 +10,11 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
 
 namespace tt::service::wifi {
 
 constexpr auto* TAG = "WifiBootSplashInit";
-
-// TODO: Avoid hard-coding this
-constexpr auto* AP_PROPERTIES_PATH = "/sdcard";
 
 constexpr auto* AP_PROPERTIES_KEY_SSID = "ssid";
 constexpr auto* AP_PROPERTIES_KEY_PASSWORD = "password";
@@ -79,14 +77,13 @@ static void importWifiAp(const std::string& filePath) {
     }
 }
 
-void bootSplashInit() {
-    if (!file::isDirectory(AP_PROPERTIES_PATH)) {
-        TT_LOG_I(TAG, "%s not available", AP_PROPERTIES_PATH);
-        return;
-    }
+static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
+    // auto lock = sdcard->getLock()->asScopedLock();
+    // lock.lock();
+    auto path = sdcard->getMountPath();
 
     std::vector<dirent> dirent_list;
-    if (file::scandir(AP_PROPERTIES_PATH, dirent_list, [](const dirent* entry) {
+    if (file::scandir(path, dirent_list, [](const dirent* entry) {
         switch (entry->d_type) {
             case file::TT_DT_DIR:
             case file::TT_DT_CHR:
@@ -107,12 +104,24 @@ void bootSplashInit() {
     }
 
     if (dirent_list.empty()) {
+        TT_LOG_W(TAG, "No AP files found at %s", sdcard->getMountPath().c_str());
         return;
     }
 
     for (auto& dirent : dirent_list) {
-        std::string absolute_path = std::format("{}/{}", AP_PROPERTIES_PATH, dirent.d_name);
+        std::string absolute_path = std::format("{}/{}", path, dirent.d_name);
         importWifiAp(absolute_path);
+    }
+}
+
+void bootSplashInit() {
+    const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+    for (auto& sdcard : sdcards) {
+        if (sdcard->isMounted()) {
+            importWifiApSettings(sdcard);
+        } else {
+            TT_LOG_W(TAG, "Skipping unmounted SD card %s", sdcard->getMountPath().c_str());
+        }
     }
 }
 

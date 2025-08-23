@@ -89,7 +89,7 @@ public:
         }
     }
 
-    State getState() const override;
+    State getState(TickType_t timeout) const override;
 
     sdmmc_card_t* _Nullable getCard() { return card; }
 };
