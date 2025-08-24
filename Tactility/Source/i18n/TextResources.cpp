@@ -4,6 +4,7 @@
 #include <Tactility/file/File.h>
 
 #include <cstring>
+#include <format>
 #include <utility>
 #include <Tactility/settings/Language.h>
 

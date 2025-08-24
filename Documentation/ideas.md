@@ -7,12 +7,12 @@
 - Expose app::Paths to TactilityC
 - Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
-- Localization of texts (load in boot app from sd?)
 - App packaging
 - Create more unit tests for `tactility-core`
 - Make a URL handler. Use it for handling local files. Match file types with apps.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
 - Refactor `PropertiesFile.cpp` to use `tt::file::readLines()` (see TODO in code)
+- Localize all apps
 
 ## Lower Priority
 
