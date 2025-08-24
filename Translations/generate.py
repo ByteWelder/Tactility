@@ -52,6 +52,7 @@ def close_i18n_files(files):
 def generate_header(filepath, namespace, rows):
     file = open(filepath, "w")
     file.write("#pragma once\n\n")
+    file.write("#include \"Tactility/i18n/TextResources.h\"\n\n")
     file.write("// WARNING: This file is auto-generated. Do not edit manually.\n\n")
     file.write(f"namespace {namespace}")
     file.write(" {\n\n")

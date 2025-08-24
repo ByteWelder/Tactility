@@ -16,15 +16,22 @@ def generate(csv_file, header_file, header_namespace, data_path):
 if __name__ == "__main__":
     # Core translations
     generate(
-        "system.csv",
+        "Core.csv",
         "Tactility/Include/Tactility/i18n/CoreTextResources.h",
         "tt::i18n::core",
         "Data/system/i18n/core"
     )
     # Launcher app
     generate(
-        "launcher.csv",
+        "Launcher.csv",
         "Tactility/Private/Tactility/app/launcher/TextResources.h",
         "tt::app::launcher::i18n",
         "Data/system/app/Launcher/i18n"
+    )
+    # LocaleSettings app
+    generate(
+        "LocaleSettings.csv",
+        "Tactility/Private/Tactility/app/localesettings/TextResources.h",
+        "tt::app::localesettings::i18n",
+        "Data/system/app/LocaleSettings/i18n"
     )

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Tactility/i18n/TextResources.h"
+
 // WARNING: This file is auto-generated. Do not edit manually.
 
 namespace tt::i18n::core {

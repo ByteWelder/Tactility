@@ -1,14 +1,12 @@
 #include "Tactility/app/AppContext.h"
+#include "Tactility/app/launcher/TextResources.h"
 #include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
-
-#include "Tactility/i18n/Launcher.h"
 
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 #include <Tactility/BootProperties.h>
-#include <Tactility/i18n/I18n.h>
 
 namespace tt::app::launcher {
 
@@ -55,11 +53,9 @@ static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char
 }
 
 class LauncherApp : public App {
-    std::shared_ptr<i18n::IndexedText> launcherText = i18n::loadIndexedText("/data/i18n/launcher");
+    tt::i18n::TextResources textResources = tt::i18n::TextResources("/system/app/Launcher/i18n");
 
     void onCreate(TT_UNUSED AppContext& app) override {
-        assert(launcherText != nullptr);
-
         BootProperties boot_properties;
         if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
             TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
@@ -68,6 +64,8 @@ class LauncherApp : public App {
     }
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        textResources.load();
+
         auto* wrapper = lv_obj_create(parent);
 
         lv_obj_align(wrapper, LV_ALIGN_CENTER, 0, 0);
@@ -94,9 +92,9 @@ class LauncherApp : public App {
         auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
         auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
 
-        const auto& apps_title = launcherText->get(i18n::launcher::Text::APPS);
-        const auto& files_title = launcherText->get(i18n::launcher::Text::FILES);
-        const auto& settings_title = launcherText->get(i18n::launcher::Text::SETTINGS);
+        const auto& apps_title = textResources[i18n::Text::APPS];
+        const auto& files_title = textResources[i18n::Text::FILES];
+        const auto& settings_title = textResources[i18n::Text::SETTINGS];
 
         createAppButton(wrapper, apps_title.c_str(), apps_icon_path.c_str(), "AppList", 0);
         createAppButton(wrapper, files_title.c_str(), files_icon_path.c_str(), "Files", padding);
