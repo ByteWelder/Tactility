@@ -1,6 +1,10 @@
 import csv
 import sys
+from pathlib import Path
 from typing import List
+
+def get_project_root():
+    return Path(__file__).parent.parent.resolve()
 
 def load_csv(path: str, delimiter: str = ",", quotechar: str = '"', encoding: str = "utf-8", skip_header: bool = False) -> List[List[str]]:
     """
@@ -45,7 +49,7 @@ def close_i18n_files(files):
     for file in files:
         file.close()
 
-def generate_header(filepath, rows, namespace):
+def generate_header(filepath, namespace, rows):
     file = open(filepath, "w")
     file.write("#pragma once\n\n")
     file.write("// WARNING: This file is auto-generated. Do not edit manually.\n\n")
@@ -74,15 +78,16 @@ if __name__ == "__main__":
     if len(sys.argv) != 5:
         print_help()
         sys.exit()
-    csv_file = sys.argv[1]
-    header_path = sys.argv[2]
+    project_root_path = get_project_root()
+    csv_file = f"{project_root_path}/Translations/{sys.argv[1]}"
+    header_path = f"{project_root_path}/{sys.argv[2]}"
     header_namespace = sys.argv[3]
-    i18n_path = sys.argv[4]
+    i18n_path = f"{project_root_path}/{sys.argv[4]}"
     rows = load_csv(csv_file)
     if len(rows) == 0:
         print("Error: CSV file is empty.")
         sys.exit(1)
-    generate_header(header_path, rows, header_namespace)
+    generate_header(header_path, header_namespace, rows)
     i18n_files = open_i18n_files(rows[0], i18n_path)
     for i in range(0, len(i18n_files)):
         i18n_file = i18n_files[i]
