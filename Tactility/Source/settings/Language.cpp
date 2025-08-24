@@ -1,4 +1,4 @@
-#include <Tactility/LogEsp.h>
+#include <Tactility/Log.h>
 #include <Tactility/settings/Language.h>
 #include <utility>
 #include <Tactility/settings/SettingsProperties.h>
