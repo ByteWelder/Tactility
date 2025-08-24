@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace tt::time {
+namespace tt::settings {
 
 /**
  * Set the timezone

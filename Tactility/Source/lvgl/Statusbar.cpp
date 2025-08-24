@@ -10,7 +10,7 @@
 #include <Tactility/PubSub.h>
 #include <Tactility/TactilityCore.h>
 #include <Tactility/Timer.h>
-#include <Tactility/time/Time.h>
+#include <Tactility/settings/Time.h>
 
 #include <lvgl.h>
 
@@ -199,7 +199,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
 static void update_time(Statusbar* statusbar) {
     if (statusbar_data.time_set) {
-        bool format24 = time::isTimeFormat24Hour();
+        bool format24 = settings::isTimeFormat24Hour();
         int hours = format24 ? statusbar_data.time_hours : statusbar_data.time_hours % 12;
         lv_label_set_text_fmt(statusbar->time, "%d:%02d", hours, statusbar_data.time_minutes);
     } else {

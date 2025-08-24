@@ -22,13 +22,27 @@ static esp_err_t initNvsFlashSafely() {
 
 static wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
 
+size_t getSectorSize() {
+#if defined(CONFIG_FATFS_SECTOR_512)
+    return 512;
+#elif defined(CONFIG_FATFS_SECTOR_1024)
+    return 1024;
+#elif defined(CONFIG_FATFS_SECTOR_2048)
+    return 2048;
+#elif defined(CONFIG_FATFS_SECTOR_4096)
+    return 4096;
+#else
+#error Not implemented
+#endif
+}
+
 esp_err_t initPartitionsEsp() {
     ESP_ERROR_CHECK(initNvsFlashSafely());
 
     const esp_vfs_fat_mount_config_t mount_config = {
         .format_if_mount_failed = false,
         .max_files = 4,
-        .allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
+        .allocation_unit_size = getSectorSize(),
         .disk_status_check_enable = false,
         .use_one_fat = true,
     };

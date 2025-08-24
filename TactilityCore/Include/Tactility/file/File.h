@@ -110,4 +110,6 @@ int scandir(
     ScandirSort _Nullable sort
 );
 
+bool readLines(const std::string& filePath, bool stripNewLine, std::function<void(const char* line)> callback);
+
 }

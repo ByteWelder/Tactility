@@ -222,4 +222,28 @@ bool isDirectory(const std::string& path) {
     return stat(path.c_str(), &stat_result) == 0 && S_ISDIR(stat_result.st_mode);
 }
 
+bool readLines(const std::string& filepath, bool stripNewLine, std::function<void(const char* line)> callback) {
+    auto* file = fopen(filepath.c_str(), "r");
+    if (file == nullptr) {
+        return false;
+    }
+
+    char line[1024];
+
+    while (fgets(line, sizeof(line), file) != nullptr) {
+        // Strip newline
+        if (stripNewLine) {
+            size_t line_length = strlen(line);
+            if (line_length > 0 && line[line_length - 1] == '\n') {
+                line[line_length - 1] = '\0';
+            }
+        }
+        // Publish
+        callback(line);
+    }
+
+    fclose(file);
+    return true;
+}
+
 }

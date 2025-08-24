@@ -1,12 +1,14 @@
-#include "Tactility/time/Time.h"
+#include "Tactility/settings/Time.h"
 #include "Tactility/kernel/SystemEvents.h"
+
+#include <Tactility/settings/SettingsProperties.h>
 
 #ifdef ESP_PLATFORM
 #include <ctime>
 #include "Tactility/Preferences.h"
 #endif
 
-namespace tt::time {
+namespace tt::settings {
 
 #ifdef ESP_PLATFORM
 
@@ -16,7 +18,7 @@ namespace tt::time {
 #define TIMEZONE_PREFERENCES_KEY_CODE "tz_code"
 #define TIMEZONE_PREFERENCES_KEY_TIME24 "tz_time24"
 
-void init() {
+void initTimeZone() {
     auto code= getTimeZoneCode();
     if (!code.empty()) {
         setenv("TZ", code.c_str(), 1);
@@ -55,19 +57,6 @@ std::string getTimeZoneCode() {
     }
 }
 
-bool isTimeFormat24Hour() {
-    Preferences preferences(TIME_SETTINGS_NAMESPACE);
-    bool show24Hour = true;
-    preferences.optBool(TIMEZONE_PREFERENCES_KEY_TIME24, show24Hour);
-    return show24Hour;
-}
-
-void setTimeFormat24Hour(bool show24Hour) {
-    Preferences preferences(TIME_SETTINGS_NAMESPACE);
-    preferences.putBool(TIMEZONE_PREFERENCES_KEY_TIME24, show24Hour);
-    kernel::publishSystemEvent(kernel::SystemEvent::Time);
-}
-
 #else
 
 static std::string timeZoneName;
@@ -90,15 +79,25 @@ std::string getTimeZoneCode() {
     return timeZoneCode;
 }
 
-bool isTimeFormat24Hour() {
-    return show24Hour;
-}
-
-void setTimeFormat24Hour(bool enabled) {
-    show24Hour = enabled;
-    kernel::publishSystemEvent(kernel::SystemEvent::Time);
-}
-
 #endif
+
+bool isTimeFormat24Hour() {
+    SettingsProperties properties;
+    if (!loadSettingsProperties(properties)) {
+        return true;
+    } else {
+        return properties.timeFormat24h;
+    }
+}
+
+void setTimeFormat24Hour(bool show24Hour) {
+    SettingsProperties properties;
+    if (!loadSettingsProperties(properties)) {
+        return;
+    }
+
+    properties.timeFormat24h = show24Hour;
+    saveSettingsProperties(properties);
+}
 
 }
