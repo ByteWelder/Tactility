@@ -109,7 +109,7 @@ private:
             lv_line_set_points(second_hand, second_points, 2);
         } else {
             char time_str[16];
-            if (tt::time::isTimeFormat24Hour()) {
+            if (settings::time::isTimeFormat24Hour()) {
                 strftime(time_str, sizeof(time_str), "%H:%M:%S", &timeinfo);
             } else {
                 strftime(time_str, sizeof(time_str), "%I:%M:%S %p", &timeinfo);
