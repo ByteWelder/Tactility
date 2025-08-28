@@ -3,7 +3,7 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/time/Time.h>
+#include <Tactility/settings/Time.h>
 #include <Tactility/Preferences.h>
 #include <lvgl.h>
 #include <ctime>
