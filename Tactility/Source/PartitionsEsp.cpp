@@ -9,7 +9,7 @@
 
 namespace tt {
 
-static const char* TAG = "partitions";
+static const char* TAG = "Partitions";
 
 static esp_err_t initNvsFlashSafely() {
     esp_err_t result = nvs_flash_init();
