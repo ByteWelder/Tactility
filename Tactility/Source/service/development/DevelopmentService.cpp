@@ -18,6 +18,7 @@
 #include <Tactility/app/App.h>
 #include <Tactility/app/ElfApp.h>
 #include <Tactility/app/AppRegistration.h>
+#include <Tactility/file/File.h>
 
 namespace tt::service::development {
 
@@ -198,6 +199,11 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
 
     auto app_id = id_key_pos->second;
     if (app_id.ends_with(".app.elf")) {
+        if (!file::isFile(app_id)) {
+            TT_LOG_W(TAG, "[400] /app/run cannot find app %s", app_id.c_str());
+            httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
+            return ESP_FAIL;
+        }
         app::registerElfApp(app_id);
         app_id = app::getElfAppId(app_id);
     } else if (!app::findAppById(app_id.c_str())) {

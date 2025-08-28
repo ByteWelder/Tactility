@@ -2,7 +2,7 @@
 #include "Tactility/Preferences.h"
 #include "Tactility/file/PropertiesFile.h"
 
-#include <Tactility/LogEsp.h>
+#include <Tactility/Log.h>
 #include <Tactility/file/File.h>
 
 namespace tt::service::wifi::settings {

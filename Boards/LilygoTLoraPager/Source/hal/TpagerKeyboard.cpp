@@ -239,12 +239,12 @@ void TpagerKeyboard::initEncoder(void) {
     }
 
     pcnt_chan_config_t chan_1_config = {
-        .edge_gpio_num = ENCODER_A,
-        .level_gpio_num = ENCODER_B,
-    };
-    pcnt_chan_config_t chan_2_config = {
         .edge_gpio_num = ENCODER_B,
         .level_gpio_num = ENCODER_A,
+    };
+    pcnt_chan_config_t chan_2_config = {
+        .edge_gpio_num = ENCODER_A,
+        .level_gpio_num = ENCODER_B,
     };
 
     pcnt_channel_handle_t pcnt_chan_1 = NULL;
