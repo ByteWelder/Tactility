@@ -21,14 +21,14 @@ runs:
       uses: espressif/esp-idf-ci-action@v1
       with:
         # NOTE: Update with ESP-IDF!
-        esp_idf_version: v5.4
+        esp_idf_version: v5.5
         target: ${{ inputs.arch }}
         path: './'
     - name: 'Release'
       shell: bash
       env:
         # NOTE: Update with ESP-IDF!
-        ESP_IDF_VERSION: '5.4'
+        ESP_IDF_VERSION: '5.5'
       run: Buildscripts/release-sdk.sh release/TactilitySDK
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
