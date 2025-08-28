@@ -24,7 +24,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         CYD_DISPLAY_HORIZONTAL_RESOLUTION, // 240
         CYD_DISPLAY_VERTICAL_RESOLUTION,   // 320
         false,  // swapXY
-        false,  // mirrorX
+        true,  // mirrorX
         false   // mirrorY
     );
 
