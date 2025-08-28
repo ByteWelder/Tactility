@@ -6,7 +6,7 @@
 #include "Tactility/service/ServiceRegistration.h"
 
 #include <Tactility/Dispatcher.h>
-#include <Tactility/time/TimePrivate.h>
+#include <Tactility/settings/TimePrivate.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/InitEsp.h"
@@ -45,7 +45,7 @@ void initHeadless(const hal::Configuration& config) {
     initEsp();
 #endif
     hardwareConfig = &config;
-    time::init();
+    settings::initTimeZone();
     hal::init(config);
     network::ntp::init();
     registerAndStartSystemServices();
