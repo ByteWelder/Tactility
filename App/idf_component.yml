@@ -19,4 +19,4 @@ dependencies:
     version: "1.7.6~1"
     rules:
       - if: "target == esp32s3"
-  idf: '5.4'
+  idf: '5.5'
