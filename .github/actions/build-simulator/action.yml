@@ -40,7 +40,10 @@ runs:
     # Prepare and Cache ccache
     - name: 'Prepare and Cache ccache'
       shell: bash
-      run: mkdir -p $HOME/.ccache-simulator
+      run: |
+        mkdir -p $HOME/.ccache-simulator
+        touch $HOME/.ccache-simulator/.dummy
+        
     - uses: actions/cache@v3
       with:
         path: $HOME/.ccache-simulator
