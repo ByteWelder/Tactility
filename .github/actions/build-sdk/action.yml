@@ -11,10 +11,12 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Checkout repository with submodules
     - uses: actions/checkout@v4
       with:
         submodules: recursive
 
+    # Select board sdkconfig
     - name: 'Board select'
       shell: bash
       run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
@@ -24,10 +26,13 @@ runs:
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y ccache
 
-    # Prepare and Cache ccache
-    - name: 'Prepare and Cache ccache'
+    # Prepare and Cache ccache (dummy file ensures cache exists)
+    - name: 'Prepare ccache directory'
       shell: bash
-      run: mkdir -p $HOME/.ccache-${{ inputs.board_id }}
+      run: |
+        mkdir -p $HOME/.ccache-${{ inputs.board_id }}
+        touch $HOME/.ccache-${{ inputs.board_id }}/.dummy
+
     - uses: actions/cache@v3
       with:
         path: $HOME/.ccache-${{ inputs.board_id }}
@@ -66,3 +71,4 @@ runs:
         name: TactilitySDK-${{ inputs.arch }}
         path: release/TactilitySDK
         retention-days: 30
+        
