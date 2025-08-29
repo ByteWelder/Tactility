@@ -25,10 +25,12 @@ runs:
       run: sudo apt-get update && sudo apt-get install -y ccache
 
     # Cache per-board ccache
-    - name: 'Cache ccache'
-      uses: actions/cache@v3
+    - name: 'Prepare and Cache ccache'
+      shell: bash
+      run: mkdir -p $HOME/.ccache-${{ inputs.board_id }}
+    - uses: actions/cache@v3
       with:
-        path: ~/.ccache-${{ inputs.board_id }}
+        path: $HOME/.ccache-${{ inputs.board_id }}
         key: ${{ runner.os }}-ccache-${{ inputs.board_id }}
         restore-keys: |
           ${{ runner.os }}-ccache-${{ inputs.board_id }}-
