@@ -19,11 +19,10 @@ runs:
       shell: bash
       run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
 
-    # Install ccache
     - name: 'Install ccache'
+      shell: bash
       run: sudo apt-get update && sudo apt-get install -y ccache
 
-    # Cache ccache between builds
     - name: 'Cache ccache'
       uses: actions/cache@v3
       with:
@@ -32,7 +31,6 @@ runs:
         restore-keys: |
           ${{ runner.os }}-ccache-
 
-    # Enable ccache for ESP-IDF
     - name: 'Enable ccache'
       shell: bash
       run: |
