@@ -23,11 +23,14 @@ runs:
     - name: 'Install ccache'
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y ccache
-
-    # Cache per-board ccache
-    - name: 'Prepare and Cache ccache'
+    
+    # Prepare and Cache ccache (dummy file ensures cache exists)
+    - name: 'Prepare ccache directory'
       shell: bash
-      run: mkdir -p $HOME/.ccache-${{ inputs.board_id }}
+      run: |
+        mkdir -p $HOME/.ccache-${{ inputs.board_id }}
+        touch $HOME/.ccache-${{ inputs.board_id }}/.dummy
+
     - uses: actions/cache@v3
       with:
         path: $HOME/.ccache-${{ inputs.board_id }}
