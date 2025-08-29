@@ -1,5 +1,4 @@
 #include "Tactility/app/AppContext.h"
-#include "Tactility/app/launcher/TextResources.h"
 #include "Tactility/app/AppRegistration.h"
 #include "Tactility/service/loader/Loader.h"
 
@@ -7,54 +6,49 @@
 
 #include <lvgl.h>
 #include <Tactility/BootProperties.h>
+#include <Tactility/hal/power/PowerDevice.h>
 
 namespace tt::app::launcher {
 
 constexpr auto* TAG = "Launcher";
+constexpr auto BUTTON_SIZE = 64;
 
 static void onAppPressed(TT_UNUSED lv_event_t* e) {
-    auto* appId = (const char*)lv_event_get_user_data(e);
+    auto* appId = static_cast<const char*>(lv_event_get_user_data(e));
     service::loader::startApp(appId);
 }
 
-static lv_obj_t* createAppButton(lv_obj_t* parent, const char* title, const char* imageFile, const char* appId, int32_t buttonPaddingLeft) {
-    auto* wrapper = lv_obj_create(parent);
-    lv_obj_set_size(wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_ver(wrapper, 0, 0);
-    lv_obj_set_style_pad_left(wrapper, buttonPaddingLeft, 0);
-    lv_obj_set_style_pad_right(wrapper, 0, 0);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
-
-    auto* apps_button = lv_button_create(wrapper);
-    lv_obj_set_style_pad_hor(apps_button, 0, 0);
-    lv_obj_set_style_pad_top(apps_button, 0, 0);
-    lv_obj_set_style_pad_bottom(apps_button, 8, 0);
-    lv_obj_set_style_shadow_width(apps_button, 0, 0);
-    lv_obj_set_style_border_width(apps_button, 0, 0);
+static lv_obj_t* createAppButton(lv_obj_t* parent, const char* imageFile, const char* appId, int32_t horizontalMargin) {
+    auto* apps_button = lv_button_create(parent);
+    lv_obj_set_style_pad_all(apps_button, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_margin_hor(apps_button, horizontalMargin, LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(apps_button, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(apps_button, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(apps_button, 0, LV_PART_MAIN);
 
     auto* button_image = lv_image_create(apps_button);
     lv_image_set_src(button_image, imageFile);
     lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
     lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
-    // Ensure buttons are still tappable when asset fails to load
+    // Ensure buttons are still tappable when the asset fails to load
     // Icon images are 40x40, so we get some extra padding too
-    lv_obj_set_size(button_image, 64, 64);
+    lv_obj_set_size(button_image, BUTTON_SIZE, BUTTON_SIZE);
 
-    auto* label = lv_label_create(wrapper);
-    lv_label_set_text(label, title);
-    lv_obj_align(label, LV_ALIGN_BOTTOM_MID, 0, 0);
-
-    lv_obj_add_event_cb(wrapper, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
     lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
-    lv_obj_add_event_cb(label, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
 
-    return wrapper;
+    return apps_button;
 }
 
 class LauncherApp : public App {
-    tt::i18n::TextResources textResources = tt::i18n::TextResources("/system/app/Launcher/i18n");
 
+    static void onPowerOffPressed(lv_event_t* e) {
+        auto power = hal::findFirstDevice<hal::power::PowerDevice>(hal::Device::Type::Power);
+        if (power != nullptr && power->supportsPowerOff()) {
+            power->powerOff();
+        }
+    }
+
+public:
     void onCreate(TT_UNUSED AppContext& app) override {
         BootProperties boot_properties;
         if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
@@ -64,41 +58,42 @@ class LauncherApp : public App {
     }
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
-        textResources.load();
+        auto* buttons_wrapper = lv_obj_create(parent);
 
-        auto* wrapper = lv_obj_create(parent);
+        lv_obj_align(buttons_wrapper, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_set_style_pad_all(buttons_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_size(buttons_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(buttons_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_flex_grow(buttons_wrapper, 1);
 
-        lv_obj_align(wrapper, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_pad_all(wrapper, 0, 0);
-        lv_obj_set_size(wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(wrapper, 0, 0);
-        lv_obj_set_flex_grow(wrapper, 1);
-
-        auto* display = lv_obj_get_display(parent);
-        auto horizontal_px = lv_display_get_horizontal_resolution(display);
-        auto vertical_px = lv_display_get_vertical_resolution(display);
-        bool is_landscape_display = horizontal_px >= vertical_px;
+        const auto* display = lv_obj_get_display(parent);
+        const auto horizontal_px = lv_display_get_horizontal_resolution(display);
+        const auto vertical_px = lv_display_get_vertical_resolution(display);
+        const bool is_landscape_display = horizontal_px >= vertical_px;
         if (is_landscape_display) {
-            lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
+            lv_obj_set_flex_flow(buttons_wrapper, LV_FLEX_FLOW_ROW);
         } else {
-            lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+            lv_obj_set_flex_flow(buttons_wrapper, LV_FLEX_FLOW_COLUMN);
         }
 
-        int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * 80);
-        int32_t padding = is_landscape_display ? std::min(available_width / 4, (int32_t)64) : 0;
+        const int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * BUTTON_SIZE);
+        const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, BUTTON_SIZE) : 0;
 
-        auto paths = app.getPaths();
-        auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
-        auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
-        auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
+        const auto paths = app.getPaths();
+        const auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
+        const auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
+        const auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
 
-        const auto& apps_title = textResources[i18n::Text::APPS];
-        const auto& files_title = textResources[i18n::Text::FILES];
-        const auto& settings_title = textResources[i18n::Text::SETTINGS];
+        createAppButton(buttons_wrapper, apps_icon_path.c_str(), "AppList", margin);
+        createAppButton(buttons_wrapper, files_icon_path.c_str(), "Files", margin);
+        createAppButton(buttons_wrapper, settings_icon_path.c_str(), "Settings", margin);
 
-        createAppButton(wrapper, apps_title.c_str(), apps_icon_path.c_str(), "AppList", 0);
-        createAppButton(wrapper, files_title.c_str(), files_icon_path.c_str(), "Files", padding);
-        createAppButton(wrapper, settings_title.c_str(), settings_icon_path.c_str(), "Settings", padding);
+        auto* power_button = lv_btn_create(parent);
+        lv_obj_set_style_pad_all(power_button, 8, 0);
+        lv_obj_align(power_button, LV_ALIGN_BOTTOM_MID, 0, -10);
+        lv_obj_add_event_cb(power_button, onPowerOffPressed, LV_EVENT_SHORT_CLICKED, nullptr);
+        auto* power_label = lv_label_create(power_button);
+        lv_label_set_text(power_label, LV_SYMBOL_POWER);
     }
 };
 

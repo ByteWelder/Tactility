@@ -1,5 +1,6 @@
 #include "TpagerPower.h"
 
+#include <Bq25896.h>
 #include <Tactility/Log.h>
 
 #define TAG "power"
@@ -46,7 +47,6 @@ bool TpagerPower::getMetric(MetricType type, MetricData& data) {
                 return true;
             }
             return false;
-            break;
         case Current:
             if (gauge->getCurrent(s16)) {
                 data.valueAsInt32 = s16;
@@ -54,7 +54,6 @@ bool TpagerPower::getMetric(MetricType type, MetricData& data) {
             } else {
                 return false;
             }
-            break;
         case BatteryVoltage:
             if (gauge->getVoltage(u16)) {
                 data.valueAsUint32 = u16;
@@ -62,7 +61,6 @@ bool TpagerPower::getMetric(MetricType type, MetricData& data) {
             } else {
                 return false;
             }
-            break;
         case ChargeLevel:
             if (gauge->getStateOfCharge(u16)) {
                 data.valueAsUint8 = u16;
@@ -70,13 +68,25 @@ bool TpagerPower::getMetric(MetricType type, MetricData& data) {
             } else {
                 return false;
             }
-            break;
         default:
             return false;
-            break;
+    }
+}
+
+void TpagerPower::powerOff() {
+    auto device = tt::hal::findDevice([](auto device) {
+        return device->getName() == "BQ25896";
+    });
+
+    if (device == nullptr) {
+        TT_LOG_E(TAG, "BQ25896 not found");
+        return;
     }
 
-    return false; // Safety guard for when new enum values are introduced
+    auto bq25896 = std::reinterpret_pointer_cast<Bq25896>(device);
+    if (bq25896 != nullptr) {
+        bq25896->powerOff();
+    }
 }
 
 static std::shared_ptr<PowerDevice> power;

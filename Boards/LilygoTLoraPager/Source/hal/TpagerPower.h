@@ -20,7 +20,8 @@ public:
     bool supportsMetric(MetricType type) const override;
     bool getMetric(MetricType type, MetricData& data) override;
 
-private:
+    bool supportsPowerOff() const override { return true; }
+    void powerOff() override;
 };
 
 std::shared_ptr<PowerDevice> tpager_get_power();

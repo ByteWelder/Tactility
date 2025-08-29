@@ -1,16 +1,16 @@
-#include "Tactility/Tactility.h"
+#include <Tactility/Tactility.h>
 
-#include "Tactility/app/AppRegistration.h"
-#include "Tactility/lvgl/LvglPrivate.h"
-#include "Tactility/service/ServiceManifest.h"
-
+#include <Tactility/app/AppRegistration.h>
+#include <Tactility/TactilityConfig.h>
 #include <Tactility/TactilityHeadless.h>
+#include <Tactility/lvgl/LvglPrivate.h>
+#include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/loader/Loader.h>
 
 namespace tt {
 
-#define TAG "tactility"
+#define TAG "Tactility"
 
 static const Configuration* config_instance = nullptr;
 

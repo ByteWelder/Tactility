@@ -1,22 +1,23 @@
-#include "PwmBacklight.h"
-#include "Tactility/kernel/SystemEvents.h"
-#include "Tactility/service/gps/GpsService.h"
-
 #include <Tactility/TactilityCore.h>
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/hal/gps/GpsConfiguration.h>
 
 #include <driver/gpio.h>
 
+#include <PwmBacklight.h>
+#include <Bq25896.h>
 #include <Bq27220.h>
 #include <Tca8418.h>
 
-#define TAG "tpager"
+#define TAG "TLoraPager"
 
 // Power on
-#define TDECK_POWERON_GPIO GPIO_NUM_10
+constexpr auto TDECK_POWERON_GPIO = GPIO_NUM_10;
 
 std::shared_ptr<Bq27220> bq27220;
 std::shared_ptr<Tca8418> tca8418;
+std::shared_ptr<Bq25896> bq25896;
 
 bool tpagerInit() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
@@ -35,6 +36,10 @@ bool tpagerInit() {
     tca8418 = std::make_shared<Tca8418>(I2C_NUM_0);
     tt::hal::registerDevice(tca8418);
 
+    bq25896 = std::make_shared<Bq25896>(I2C_NUM_0);
+    tt::hal::registerDevice(bq25896);
+    bq25896->powerOn();
+
     tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
         bq27220->configureCapacity(1500, 1500);
 
@@ -51,5 +56,6 @@ bool tpagerInit() {
             }
         }
     });
+
     return true;
 }
