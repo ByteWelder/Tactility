@@ -14,22 +14,50 @@ runs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+
     - name: 'Board select'
       shell: bash
       run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
+
+    # Install ccache
+    - name: 'Install ccache'
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y ccache
+
+    # Cache per-board ccache
+    - name: 'Cache ccache'
+      uses: actions/cache@v3
+      with:
+        path: ~/.ccache-${{ inputs.board_id }}
+        key: ${{ runner.os }}-ccache-${{ inputs.board_id }}-${{ hashFiles('**/*.c') }}-${{ hashFiles('**/*.h') }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-${{ inputs.board_id }}-
+
+    # Enable ccache for ESP-IDF build
+    - name: 'Enable ccache'
+      shell: bash
+      run: |
+        export CCACHE_DIR=$HOME/.ccache-${{ inputs.board_id }}
+        echo "IDF_CCACHE_ENABLE=1" >> $GITHUB_ENV
+        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
+        echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+
+    # ESP-IDF build
     - name: 'Build'
       uses: espressif/esp-idf-ci-action@v1
       with:
-        # NOTE: Update with ESP-IDF!
         esp_idf_version: v5.5
         target: ${{ inputs.arch }}
         path: './'
+
+    # Release
     - name: 'Release'
       shell: bash
       env:
-        # NOTE: Update with ESP-IDF!
         ESP_IDF_VERSION: '5.5'
       run: Buildscripts/release-sdk.sh release/TactilitySDK
+
+    # Upload artifact
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       with:
