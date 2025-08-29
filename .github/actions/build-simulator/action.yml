@@ -37,11 +37,13 @@ runs:
         WAYLAND_DISPLAY: wayland-1
         GTK_USE_PORTAL: 0
 
-    # Cache ccache
-    - name: 'Cache ccache'
-      uses: actions/cache@v3
+    # Prepare and Cache ccache
+    - name: 'Prepare and Cache ccache'
+      shell: bash
+      run: mkdir -p $HOME/.ccache-simulator
+    - uses: actions/cache@v3
       with:
-        path: ~/.ccache-simulator
+        path: $HOME/.ccache-simulator
         key: ${{ runner.os }}-ccache-simulator
         restore-keys: |
           ${{ runner.os }}-ccache-simulator
