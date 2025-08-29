@@ -151,12 +151,11 @@ private:
         showLoading();
         lv_textarea_set_text(text_area, "");
 
-        esp_http_client_config_t config = {
-            .url = url,
-            .method = HTTP_METHOD_GET,
-            .timeout_ms = 5000,
-            .skip_cert_common_name_check = true,
-        };
+        esp_http_client_config_t config = {};
+        config.url = url;
+        config.method = HTTP_METHOD_GET;
+        config.timeout_ms = 5000;
+        config.skip_cert_common_name_check = true;
         esp_http_client_handle_t client = esp_http_client_init(&config);
 
         char buffer[2048] = {0};
