@@ -72,11 +72,11 @@ private:
 
         // Construct the API URL
         std::string url = "https://script.google.com/macros/s/AKfycbzNv6bljLjuZJW4bd1Mo5IZaW5Ppo6heTA_ru5CJjL6gdQzpEIWz3_MH0ZMOnzx_4io/exec?deviceId=" + deviceId + "&category=general";
-
-        esp_http_client_config_t config = {
-            .url = url.c_str(),
-            .method = HTTP_METHOD_GET,
-        };
+        
+        esp_http_client_config_t config = {};
+        config.url = url.c_str();
+        config.method = HTTP_METHOD_GET;
+        
         esp_http_client_handle_t client = esp_http_client_init(&config);
         esp_err_t err_http = esp_http_client_perform(client);
 
