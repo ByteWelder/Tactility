@@ -29,7 +29,7 @@ runs:
       uses: actions/cache@v3
       with:
         path: ~/.ccache-${{ inputs.board_id }}
-        key: ${{ runner.os }}-ccache-${{ inputs.board_id }}-${{ hashFiles('**/*.c') }}-${{ hashFiles('**/*.h') }}
+        key: ${{ runner.os }}-ccache-${{ inputs.board_id }}
         restore-keys: |
           ${{ runner.os }}-ccache-${{ inputs.board_id }}-
 
