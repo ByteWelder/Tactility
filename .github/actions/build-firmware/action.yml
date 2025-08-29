@@ -19,25 +19,30 @@ runs:
       shell: bash
       run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
 
+    # Install ccache
     - name: 'Install ccache'
       shell: bash
       run: sudo apt-get update && sudo apt-get install -y ccache
 
+    # Cache per-board ccache
     - name: 'Cache ccache'
       uses: actions/cache@v3
       with:
-        path: ~/.ccache
-        key: ${{ runner.os }}-ccache-${{ hashFiles('**/*.c') }}-${{ hashFiles('**/*.h') }}
+        path: ~/.ccache-${{ inputs.board_id }}
+        key: ${{ runner.os }}-ccache-${{ inputs.board_id }}-${{ hashFiles('**/*.c') }}-${{ hashFiles('**/*.h') }}
         restore-keys: |
-          ${{ runner.os }}-ccache-
+          ${{ runner.os }}-ccache-${{ inputs.board_id }}-
 
+    # Enable ccache for ESP-IDF build
     - name: 'Enable ccache'
       shell: bash
       run: |
+        export CCACHE_DIR=$HOME/.ccache-${{ inputs.board_id }}
         echo "IDF_CCACHE_ENABLE=1" >> $GITHUB_ENV
-        echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+        echo "CCACHE_DIR=$CCACHE_DIR" >> $GITHUB_ENV
         echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
 
+    # ESP-IDF build
     - name: 'Build'
       uses: espressif/esp-idf-ci-action@v1
       with:
@@ -45,10 +50,12 @@ runs:
         target: ${{ inputs.arch }}
         path: './'
 
+    # Release
     - name: 'Release'
       shell: bash
       run: Buildscripts/release.sh ${{ inputs.board_id }}
 
+    # Upload artifacts
     - name: 'Upload Artifact: Release'
       uses: actions/upload-artifact@v4
       with:
