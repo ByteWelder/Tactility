@@ -197,7 +197,9 @@ class StatusbarService final : public Service {
     }
 
     void updateSdCardIcon() {
-        auto sdcard = hal::getConfiguration()->sdcard;
+        auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+        // TODO: Support multiple SD cards
+        auto sdcard = sdcards.empty() ? nullptr : sdcards[0];
         if (sdcard != nullptr) {
             auto state = sdcard->getState(50 / portTICK_PERIOD_MS);
             if (state != hal::sdcard::SdCardDevice::State::Timeout) {

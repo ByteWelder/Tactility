@@ -14,6 +14,52 @@
 
 namespace tt::hal {
 
+void initDevices(const Configuration& configuration) {
+    if (configuration.sdcard != nullptr) {
+        registerDevice(configuration.sdcard);
+    }
+
+    if (configuration.power != nullptr) {
+        std::shared_ptr<power::PowerDevice> power = configuration.power();
+        registerDevice(power);
+    }
+
+    if (configuration.createKeyboard) {
+        auto keyboard = configuration.createKeyboard();
+        if (keyboard != nullptr) {
+            registerDevice(std::reinterpret_pointer_cast<Device>(keyboard));
+        }
+    }
+
+    auto devices = configuration.createDevices();
+    for (auto& device : devices) {
+        registerDevice(device);
+    }
+
+    // TODO: Move
+    auto sdcards = hal::findDevices<sdcard::SdCardDevice>(Device::Type::SdCard);
+    if (!sdcards.empty()) {
+        if (sdcards.size() == 1) {
+            // Fixed mount path name
+            auto sdcard = sdcards[0];
+            TT_LOG_I(TAG, "Mounting sdcard at %s", TT_SDCARD_MOUNT_POINT);
+            if (!sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
+                TT_LOG_W(TAG, "SD card mount failed (init can continue)");
+            }
+        } else {
+            // Numbered mount path name
+            for (int i = 0; i < sdcards.size(); i++) {
+                auto sdcard = sdcards[i];
+                std::string mount_path = TT_SDCARD_MOUNT_POINT + std::to_string(i);
+                TT_LOG_I(TAG, "Mounting sdcard at %d", mount_path.c_str());
+                if (!sdcard->mount(mount_path)) {
+                    TT_LOG_W(TAG, "SD card mount failed (init can continue)");
+                }
+            }
+        }
+    }
+}
+
 void init(const Configuration& configuration) {
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalBegin);
 
@@ -34,18 +80,7 @@ void init(const Configuration& configuration) {
         tt_check(configuration.initBoot(), "Init power failed");
     }
 
-    if (configuration.sdcard != nullptr) {
-        TT_LOG_I(TAG, "Mounting sdcard");
-        if (!configuration.sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
-            TT_LOG_W(TAG, "SD card mount failed (init can continue)");
-        }
-        registerDevice(configuration.sdcard);
-    }
-
-    if (configuration.power != nullptr) {
-        std::shared_ptr<power::PowerDevice> power = configuration.power();
-        registerDevice(power);
-    }
+    initDevices(configuration);
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
 }

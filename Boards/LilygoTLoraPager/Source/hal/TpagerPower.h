@@ -11,7 +11,7 @@ class TpagerPower : public PowerDevice {
 
 public:
 
-    TpagerPower(std::shared_ptr<Bq27220> bq) : gauge(std::move(bq)) {}
+    TpagerPower(const std::shared_ptr<Bq27220>& bq) : gauge(bq) {}
     ~TpagerPower();
 
     std::string getName() const final { return "T-LoRa Pager Power measument"; }
@@ -23,5 +23,3 @@ public:
     bool supportsPowerOff() const override { return true; }
     void powerOff() override;
 };
-
-std::shared_ptr<PowerDevice> tpager_get_power();

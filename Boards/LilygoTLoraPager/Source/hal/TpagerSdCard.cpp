@@ -3,8 +3,6 @@
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 
-#include <esp_vfs_fat.h>
-
 using tt::hal::sdcard::SpiSdCardDevice;
 
 #define TPAGER_SDCARD_PIN_CS GPIO_NUM_21

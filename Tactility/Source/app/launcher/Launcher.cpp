@@ -13,33 +13,45 @@ namespace tt::app::launcher {
 constexpr auto* TAG = "Launcher";
 constexpr auto BUTTON_SIZE = 64;
 
-static void onAppPressed(TT_UNUSED lv_event_t* e) {
-    auto* appId = static_cast<const char*>(lv_event_get_user_data(e));
-    service::loader::startApp(appId);
-}
+class LauncherApp final : public App {
 
-static lv_obj_t* createAppButton(lv_obj_t* parent, const char* imageFile, const char* appId, int32_t horizontalMargin) {
-    auto* apps_button = lv_button_create(parent);
-    lv_obj_set_style_pad_all(apps_button, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_margin_hor(apps_button, horizontalMargin, LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(apps_button, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(apps_button, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(apps_button, 0, LV_PART_MAIN);
+    static lv_obj_t* createAppButton(lv_obj_t* parent, const char* imageFile, const char* appId, int32_t horizontalMargin) {
+        auto* apps_button = lv_button_create(parent);
+        lv_obj_set_style_pad_all(apps_button, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_margin_hor(apps_button, horizontalMargin, LV_STATE_DEFAULT);
+        lv_obj_set_style_shadow_width(apps_button, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_bg_opa(apps_button, 0, LV_STATE_DEFAULT);
 
-    auto* button_image = lv_image_create(apps_button);
-    lv_image_set_src(button_image, imageFile);
-    lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
-    lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
-    // Ensure buttons are still tappable when the asset fails to load
-    // Icon images are 40x40, so we get some extra padding too
-    lv_obj_set_size(button_image, BUTTON_SIZE, BUTTON_SIZE);
+        auto* button_image = lv_image_create(apps_button);
+        lv_image_set_src(button_image, imageFile);
+        lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
+        lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
+        // Ensure buttons are still tappable when the asset fails to load
+        // Icon images are 40x40, so we get some extra padding too
+        lv_obj_set_size(button_image, BUTTON_SIZE, BUTTON_SIZE);
 
-    lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
+        lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
 
-    return apps_button;
-}
+        return apps_button;
+    }
 
-class LauncherApp : public App {
+    static bool shouldShowPowerButton() {
+        bool show_power_button = false;
+        hal::findDevices<hal::power::PowerDevice>(hal::Device::Type::Power, [&show_power_button](const auto& device) {
+            if (device->supportsPowerOff()) {
+                show_power_button = true;
+                return false; // stop iterating
+            } else {
+                return true; // continue iterating
+            }
+        });
+        return show_power_button;
+    }
+
+    static void onAppPressed(TT_UNUSED lv_event_t* e) {
+        auto* appId = static_cast<const char*>(lv_event_get_user_data(e));
+        service::loader::startApp(appId);
+    }
 
     static void onPowerOffPressed(lv_event_t* e) {
         auto power = hal::findFirstDevice<hal::power::PowerDevice>(hal::Device::Type::Power);
@@ -49,6 +61,7 @@ class LauncherApp : public App {
     }
 
 public:
+
     void onCreate(TT_UNUSED AppContext& app) override {
         BootProperties boot_properties;
         if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
@@ -61,7 +74,7 @@ public:
         auto* buttons_wrapper = lv_obj_create(parent);
 
         lv_obj_align(buttons_wrapper, LV_ALIGN_CENTER, 0, 0);
-        lv_obj_set_style_pad_all(buttons_wrapper, 0, LV_STATE_DEFAULT);
+        // lv_obj_set_style_pad_all(buttons_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_size(buttons_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
         lv_obj_set_style_border_width(buttons_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_flex_grow(buttons_wrapper, 1);
@@ -88,12 +101,18 @@ public:
         createAppButton(buttons_wrapper, files_icon_path.c_str(), "Files", margin);
         createAppButton(buttons_wrapper, settings_icon_path.c_str(), "Settings", margin);
 
-        auto* power_button = lv_btn_create(parent);
-        lv_obj_set_style_pad_all(power_button, 8, 0);
-        lv_obj_align(power_button, LV_ALIGN_BOTTOM_MID, 0, -10);
-        lv_obj_add_event_cb(power_button, onPowerOffPressed, LV_EVENT_SHORT_CLICKED, nullptr);
-        auto* power_label = lv_label_create(power_button);
-        lv_label_set_text(power_label, LV_SYMBOL_POWER);
+        if (shouldShowPowerButton()) {
+            auto* power_button = lv_btn_create(parent);
+            lv_obj_set_style_pad_all(power_button, 8, 0);
+            lv_obj_align(power_button, LV_ALIGN_BOTTOM_MID, 0, -10);
+            lv_obj_add_event_cb(power_button, onPowerOffPressed, LV_EVENT_SHORT_CLICKED, nullptr);
+            lv_obj_set_style_shadow_width(power_button, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_bg_opa(power_button, 0, LV_PART_MAIN);
+
+            auto* power_label = lv_label_create(power_button);
+            lv_label_set_text(power_label, LV_SYMBOL_POWER);
+            lv_obj_set_style_text_color(power_label, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
+        }
     }
 };
 

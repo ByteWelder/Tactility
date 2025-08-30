@@ -3,14 +3,9 @@
 #include <Bq25896.h>
 #include <Tactility/Log.h>
 
-#define TAG "power"
+constexpr auto* TAG = "TpagerPower";
 
-#define TPAGER_GAUGE_I2C_BUS_HANDLE I2C_NUM_0
-
-/*
-TpagerPower::TpagerPower() : gauge(TPAGER_GAUGE_I2C_BUS_HANDLE) {
-    gauge->configureCapacity(1500, 1500);
-}*/
+constexpr auto TPAGER_GAUGE_I2C_BUS_HANDLE = I2C_NUM_0;
 
 TpagerPower::~TpagerPower() {}
 
@@ -30,12 +25,6 @@ bool TpagerPower::supportsMetric(MetricType type) const {
 }
 
 bool TpagerPower::getMetric(MetricType type, MetricData& data) {
-    /*    IsCharging, // bool
-    Current, // int32_t, mAh - battery current: either during charging (positive value) or discharging (negative value)
-    BatteryVoltage, // uint32_t, mV
-    ChargeLevel, // uint8_t [0, 100]
-*/
-
     uint16_t u16 = 0;
     int16_t s16 = 0;
     switch (type) {
@@ -87,14 +76,4 @@ void TpagerPower::powerOff() {
     if (bq25896 != nullptr) {
         bq25896->powerOff();
     }
-}
-
-static std::shared_ptr<PowerDevice> power;
-extern std::shared_ptr<Bq27220> bq27220;
-
-std::shared_ptr<PowerDevice> tpager_get_power() {
-    if (power == nullptr) {
-        power = std::make_shared<TpagerPower>(bq27220);
-    }
-    return power;
 }
