@@ -114,7 +114,7 @@ static void registerSystemApps() {
     addApp(app::development::manifest);
 #endif
 
-    if (getConfiguration()->hardware->power != nullptr) {
+    if (hal::findDevices(hal::Device::Type::Power).size() > 0) {
         addApp(app::power::manifest);
     }
 }

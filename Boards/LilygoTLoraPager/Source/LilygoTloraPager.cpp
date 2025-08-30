@@ -18,7 +18,6 @@ using namespace tt::hal;
 
 DeviceVector createDevices() {
     auto bq27220 = std::make_shared<Bq27220>(I2C_NUM_0);
-    bq27220->configureCapacity(1500, 1500);
     auto power = std::make_shared<TpagerPower>(bq27220);
 
     auto tca8418 = std::make_shared<Tca8418>(I2C_NUM_0);

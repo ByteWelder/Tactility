@@ -89,12 +89,19 @@ static const char* getSdCardStatusIcon(hal::sdcard::SdCardDevice::State state) {
 }
 
 static _Nullable const char* getPowerStatusIcon() {
-    auto get_power = getConfiguration()->hardware->power;
-    if (get_power == nullptr) {
+    // TODO: Support multiple power devices?
+    std::shared_ptr<hal::power::PowerDevice> power;
+    hal::findDevices<hal::power::PowerDevice>(hal::Device::Type::Power, [&power](const auto& device) {
+        if (device->supportsMetric(hal::power::PowerDevice::MetricType::ChargeLevel)) {
+            power = device;
+            return false;
+        }
+        return true;
+    });
+
+    if (power == nullptr) {
         return nullptr;
     }
-
-    auto power = get_power();
 
     hal::power::PowerDevice::MetricData charge_level;
     if (!power->getMetric(hal::power::PowerDevice::MetricType::ChargeLevel, charge_level)) {

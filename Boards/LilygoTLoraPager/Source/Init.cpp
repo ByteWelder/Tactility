@@ -1,3 +1,4 @@
+#include <Bq27220.h>
 #include <Tactility/TactilityCore.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/service/gps/GpsService.h>
@@ -21,6 +22,18 @@ bool tpagerInit() {
     }
 
     tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](auto) {
+        tt::hal::findDevices([](auto device) {
+            if (device->getName() == "BQ27220") {
+                auto bq27220 = std::reinterpret_pointer_cast<Bq27220>(device);
+                if (bq27220 != nullptr) {
+                    bq27220->configureCapacity(1500, 1500);
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
         auto gps_service = tt::service::gps::findGpsService();
         if (gps_service != nullptr) {
             std::vector<tt::hal::gps::GpsConfiguration> gps_configurations;
