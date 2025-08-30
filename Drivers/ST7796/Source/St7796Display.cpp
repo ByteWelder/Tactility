@@ -67,27 +67,12 @@ bool St7796Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
 
     const esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration->resetPin, // Set to -1 if not use
-#if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
-        .color_space = ESP_LCD_COLOR_SPACE_RGB,
-#else
         .color_space = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
-#endif
         .bits_per_pixel = 16,
         .vendor_config = &vendor_config
     };
-    /*
-    const esp_lcd_panel_dev_config_t panel_config = {
-        .reset_gpio_num = configuration->resetPin,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
-        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
-        .bits_per_pixel = 16,
-        .flags = {
-            .reset_active_high = false
-        },
-        .vendor_config = nullptr
-    };
-    */
+
     if (esp_lcd_new_panel_st7796(ioHandle, &panel_config, &panelHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create panel");
         return false;
@@ -148,7 +133,14 @@ lvgl_port_display_cfg_t St7796Display::getLvglPortDisplayConfig(esp_lcd_panel_io
             .mirror_y = configuration->mirrorY,
         },
         .color_format = LV_COLOR_FORMAT_NATIVE,
-        .flags = {.buff_dma = true, .buff_spiram = false, .sw_rotate = false, .swap_bytes = true, .full_refresh = false, .direct_mode = false}
+        .flags = {
+            .buff_dma = true,
+            .buff_spiram = false,
+            .sw_rotate = false,
+            .swap_bytes = true,
+            .full_refresh = false,
+            .direct_mode = false
+        }
     };
 }
 

@@ -6,7 +6,6 @@
 
 class Bq27220 final : public tt::hal::i2c::I2cDevice {
 
-private:
     uint32_t accessKey;
 
     bool unsealDevice();
@@ -15,7 +14,7 @@ private:
     bool sendSubCommand(uint16_t subCmd, bool waitConfirm = false);
     bool writeConfig16(uint16_t address, uint16_t value);
     bool configPreamble(bool &isSealed);
-    bool configEpilouge(const bool isSealed);
+    bool configEpilouge(bool isSealed);
 
     template<typename T>
     bool performConfigUpdate(T configUpdateFunc)
@@ -86,9 +85,9 @@ public:
         uint16_t full;
     };
 
-    std::string getName() const final { return "BQ27220"; }
+    std::string getName() const override { return "BQ27220"; }
 
-    std::string getDescription() const final { return "I2C-controlled CEDV battery fuel gauge"; }
+    std::string getDescription() const override { return "I2C-controlled CEDV battery fuel gauge"; }
 
     explicit Bq27220(i2c_port_t port) : I2cDevice(port, BQ27220_ADDRESS), accessKey(0xFFFFFFFF) {}
 

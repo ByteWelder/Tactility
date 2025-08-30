@@ -1,10 +1,13 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "hal/TpagerDisplay.h"
+#include "hal/TpagerEncoder.h"
 #include "hal/TpagerDisplayConstants.h"
 #include "hal/TpagerKeyboard.h"
 #include "hal/TpagerPower.h"
 #include "hal/TpagerSdCard.h"
 
+#include <Bq25896.h>
+#include <Drv2605.h>
 #include <Tactility/hal/Configuration.h>
 
 #define TPAGER_SPI_TRANSFER_SIZE_LIMIT (TPAGER_LCD_HORIZONTAL_RESOLUTION * TPAGER_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
@@ -13,18 +16,35 @@ bool tpagerInit();
 
 using namespace tt::hal;
 
+DeviceVector createDevices() {
+    auto bq27220 = std::make_shared<Bq27220>(I2C_NUM_0);
+    auto power = std::make_shared<TpagerPower>(bq27220);
+
+    auto tca8418 = std::make_shared<Tca8418>(I2C_NUM_0);
+    auto keyboard = std::make_shared<TpagerKeyboard>(tca8418);
+
+    return std::vector<std::shared_ptr<Device>> {
+        tca8418,
+        std::make_shared<Bq25896>(I2C_NUM_0),
+        bq27220,
+        std::make_shared<Drv2605>(I2C_NUM_0),
+        power,
+        createTpagerSdCard(),
+        createDisplay(),
+        keyboard,
+        std::make_shared<TpagerEncoder>()
+    };
+}
+
 extern const Configuration lilygo_tlora_pager = {
     .initBoot = tpagerInit,
-    .createDisplay = createDisplay,
-    .createKeyboard = createKeyboard,
-    .sdcard = createTpagerSdCard(),
-    .power = tpager_get_power,
+    .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
-            .name = "Shared",
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
-            .isMutable = true,
+            .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_3,
@@ -41,24 +61,28 @@ extern const Configuration lilygo_tlora_pager = {
     .spi {spi::Configuration {
         .device = SPI2_HOST,
         .dma = SPI_DMA_CH_AUTO,
-        .config = {.mosi_io_num = GPIO_NUM_34, .miso_io_num = GPIO_NUM_33, .sclk_io_num = GPIO_NUM_35,
-                   .quadwp_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
-                   .quadhd_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
-                   .data4_io_num = GPIO_NUM_NC,
-                   .data5_io_num = GPIO_NUM_NC,
-                   .data6_io_num = GPIO_NUM_NC,
-                   .data7_io_num = GPIO_NUM_NC,
-                   .data_io_default_level = false,
-                   .max_transfer_sz = TPAGER_SPI_TRANSFER_SIZE_LIMIT,
-                   .flags = 0,
-                   .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
-                   .intr_flags = 0},
+        .config = {
+            .mosi_io_num = GPIO_NUM_34,
+            .miso_io_num = GPIO_NUM_33,
+            .sclk_io_num = GPIO_NUM_35,
+            .quadwp_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
+            .quadhd_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
+            .data4_io_num = GPIO_NUM_NC,
+            .data5_io_num = GPIO_NUM_NC,
+            .data6_io_num = GPIO_NUM_NC,
+            .data7_io_num = GPIO_NUM_NC,
+            .data_io_default_level = false,
+            .max_transfer_sz = TPAGER_SPI_TRANSFER_SIZE_LIMIT,
+            .flags = 0,
+            .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
+            .intr_flags = 0
+        },
         .initMode = spi::InitMode::ByTactility,
         .isMutable = false,
         .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
     }},
     .uart {uart::Configuration {
-        .name = "Grove",
+        .name = "Internal",
         .port = UART_NUM_1,
         .rxPin = GPIO_NUM_4,
         .txPin = GPIO_NUM_12,
