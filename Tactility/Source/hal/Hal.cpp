@@ -8,11 +8,34 @@
 
 #include <Tactility/kernel/SystemEvents.h>
 
-#define TAG "hal"
-
-#define TT_SDCARD_MOUNT_POINT "/sdcard"
-
 namespace tt::hal {
+
+constexpr auto* TAG = "hal";
+
+void registerDevices(const Configuration& configuration) {
+    TT_LOG_I(TAG, "Registering devices");
+
+    if (configuration.sdcard != nullptr) {
+        registerDevice(configuration.sdcard);
+    }
+
+    if (configuration.power != nullptr) {
+        std::shared_ptr<power::PowerDevice> power = configuration.power();
+        registerDevice(power);
+    }
+
+    if (configuration.createKeyboard) {
+        auto keyboard = configuration.createKeyboard();
+        if (keyboard != nullptr) {
+            registerDevice(std::reinterpret_pointer_cast<Device>(keyboard));
+        }
+    }
+
+    auto devices = configuration.createDevices();
+    for (auto& device : devices) {
+        registerDevice(device);
+    }
+}
 
 void init(const Configuration& configuration) {
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalBegin);
@@ -34,18 +57,7 @@ void init(const Configuration& configuration) {
         tt_check(configuration.initBoot(), "Init power failed");
     }
 
-    if (configuration.sdcard != nullptr) {
-        TT_LOG_I(TAG, "Mounting sdcard");
-        if (!configuration.sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
-            TT_LOG_W(TAG, "SD card mount failed (init can continue)");
-        }
-        registerDevice(configuration.sdcard);
-    }
-
-    if (configuration.power != nullptr) {
-        std::shared_ptr<power::PowerDevice> power = configuration.power();
-        registerDevice(power);
-    }
+    registerDevices(configuration);
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
 }

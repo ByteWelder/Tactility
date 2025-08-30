@@ -24,7 +24,6 @@ namespace tt {
  * Calls can be done from ISR/IRQ mode unless otherwise specified.
  */
 class MessageQueue {
-private:
 
     struct QueueHandleDeleter {
         void operator()(QueueHandle_t handleToDelete) {

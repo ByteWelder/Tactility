@@ -16,7 +16,7 @@
 
 ## Lower Priority
 
-- Support hot-plugging SD card
+- Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Create more unit tests for `tactility`
 - Explore LVGL9's FreeRTOS functionality
 - CrashHandler: use "corrupted" flag

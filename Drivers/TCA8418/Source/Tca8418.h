@@ -9,8 +9,6 @@
 
 class Tca8418 final : public tt::hal::i2c::I2cDevice {
 
-private:
-
     uint8_t tca8418_address;
     uint32_t last_update_micros;
     uint32_t this_update_micros;

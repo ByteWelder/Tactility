@@ -37,7 +37,7 @@ class ScreenshotApp final : public App {
 public:
 
     ScreenshotApp();
-    ~ScreenshotApp();
+    ~ScreenshotApp() override;
 
     void onShow(AppContext& app, lv_obj_t* parent) override;
     void onStartPressed();
