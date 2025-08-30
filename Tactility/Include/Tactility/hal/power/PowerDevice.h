@@ -39,6 +39,9 @@ public:
     virtual bool supportsChargeControl() const { return false; }
     virtual bool isAllowedToCharge() const { return false; }
     virtual void setAllowedToCharge(bool canCharge) { /* NO-OP*/ }
+
+    virtual bool supportsPowerOff() const { return false; }
+    virtual void powerOff() { /* NO-OP*/ }
 };
 
 } // namespace tt

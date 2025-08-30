@@ -127,7 +127,7 @@ bool Bq27220::getCurrent(int16_t &value) {
     return false;
 }
 
-bool Bq27220::getBatteryStatus(Bq27220::BatteryStatus &batt_sta) {
+bool Bq27220::getBatteryStatus(BatteryStatus &batt_sta) {
     if (readRegister16(registers::CMD_BATTERY_STATUS, batt_sta.full)) {
         swapEndianess(batt_sta.full);
         return true;

@@ -111,7 +111,7 @@ static const lv_obj_class_t statusbar_class = {
 static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
     TT_LOG_D(TAG, "event");
     auto* statusbar = static_cast<Statusbar*>(obj);
-    if (lock(kernel::millisToTicks(100))) {
+    if (lock(portMAX_DELAY)) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
         unlock();
@@ -119,7 +119,7 @@ static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
 }
 
 static void onTimeChanged(TT_UNUSED kernel::SystemEvent event) {
-    if (statusbar_data.mutex.lock(100 / portTICK_PERIOD_MS)) {
+    if (statusbar_data.mutex.lock()) {
         statusbar_data.time_update_timer->stop();
         statusbar_data.time_update_timer->start(5);
 
@@ -136,7 +136,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe(&statusbar_pubsub_event, statusbar);
 
     if (!statusbar_data.time_update_timer->isRunning()) {
-        statusbar_data.time_update_timer->start(50 / portTICK_PERIOD_MS);
+        statusbar_data.time_update_timer->start(200 / portTICK_PERIOD_MS);
         statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
             kernel::SystemEvent::Time,
             onTimeChanged
@@ -210,7 +210,7 @@ static void update_time(Statusbar* statusbar) {
 static void update_main(Statusbar* statusbar) {
     update_time(statusbar);
 
-    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+    if (statusbar_lock(200 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
             update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
         }
@@ -270,7 +270,7 @@ void statusbar_icon_remove(int8_t id) {
 void statusbar_icon_set_image(int8_t id, const std::string& image) {
     TT_LOG_D(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+    if (statusbar_lock()) {
         StatusbarIcon* icon = &statusbar_data.icons[id];
         tt_check(icon->claimed);
         icon->image = image;
@@ -282,7 +282,7 @@ void statusbar_icon_set_image(int8_t id, const std::string& image) {
 void statusbar_icon_set_visibility(int8_t id, bool visible) {
     TT_LOG_D(TAG, "id %d: set visibility %d", id, visible);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    if (statusbar_lock(50 / portTICK_PERIOD_MS)) {
+    if (statusbar_lock()) {
         StatusbarIcon* icon = &statusbar_data.icons[id];
         tt_check(icon->claimed);
         icon->visible = visible;

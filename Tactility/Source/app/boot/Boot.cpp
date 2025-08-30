@@ -22,9 +22,9 @@
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
 
-#define TAG "boot"
-
 namespace tt::app::boot {
+
+constexpr auto* TAG = "Boot";
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -60,6 +60,7 @@ class BootApp : public App {
         }
     }
 
+
     static bool setupUsbBootMode() {
         if (!hal::usb::isUsbBootMode()) {
             return false;
@@ -86,7 +87,7 @@ class BootApp : public App {
 
         kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
-        setupDisplay();
+        setupDisplay(); // Set backlight
 
         if (!setupUsbBootMode()) {
             initFromBootApp();

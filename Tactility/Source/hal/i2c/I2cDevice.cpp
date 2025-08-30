@@ -5,11 +5,11 @@
 namespace tt::hal::i2c {
 
 bool I2cDevice::read(uint8_t* data, size_t dataSize, TickType_t timeout) {
-    return tt::hal::i2c::masterRead(port, address, data, dataSize, timeout);
+    return masterRead(port, address, data, dataSize, timeout);
 }
 
 bool I2cDevice::write(const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
-    return tt::hal::i2c::masterWrite(port, address, data, dataSize, timeout);
+    return masterWrite(port, address, data, dataSize, timeout);
 }
 
 bool I2cDevice::writeRead(const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
@@ -22,7 +22,7 @@ bool I2cDevice::writeRegister(uint8_t reg, const uint8_t* data, uint16_t dataSiz
 
 bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
+    if (masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = (data[0] & 0x0F) << 8 | data[1];
         return true;
     } else {
@@ -32,7 +32,7 @@ bool I2cDevice::readRegister12(uint8_t reg, float& out) const {
 
 bool I2cDevice::readRegister14(uint8_t reg, float& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
+    if (masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = (data[0] & 0x3F) << 8 | data[1];
         return true;
     } else {
@@ -42,7 +42,7 @@ bool I2cDevice::readRegister14(uint8_t reg, float& out) const {
 
 bool I2cDevice::readRegister16(uint8_t reg, uint16_t& out) const {
     std::uint8_t data[2] = {0};
-    if (tt::hal::i2c::masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
+    if (masterReadRegister(port, address, reg, data, 2, DEFAULT_TIMEOUT)) {
         out = data[0] << 8 | data[1];
         return true;
     } else {
@@ -51,11 +51,11 @@ bool I2cDevice::readRegister16(uint8_t reg, uint16_t& out) const {
 }
 
 bool I2cDevice::readRegister8(uint8_t reg, uint8_t& result) const {
-    return tt::hal::i2c::masterWriteRead(port, address, &reg, 1, &result, 1, DEFAULT_TIMEOUT);
+    return masterWriteRead(port, address, &reg, 1, &result, 1, DEFAULT_TIMEOUT);
 }
 
 bool I2cDevice::writeRegister8(uint8_t reg, uint8_t value) const {
-    return tt::hal::i2c::masterWriteRegister(port, address, reg, &value, 1, DEFAULT_TIMEOUT);
+    return masterWriteRegister(port, address, reg, &value, 1, DEFAULT_TIMEOUT);
 }
 
 bool I2cDevice::bitOn(uint8_t reg, uint8_t bitmask) const {

@@ -8,7 +8,7 @@
 using tt::hal::sdcard::SpiSdCardDevice;
 
 std::shared_ptr<SdCardDevice> createSdCard() {
-    auto* configuration = new SpiSdCardDevice::Config(
+    auto configuration = std::make_unique<SpiSdCardDevice::Config>(
         // See https://github.com/Elecrow-RD/CrowPanel-Advance-HMI-ESP32-AI-Display/blob/master/5.0/factory_code/factory_code.ino
         GPIO_NUM_0, // It's actually not connected, but in the demo pin 0 is used
         GPIO_NUM_NC,
@@ -17,9 +17,7 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         SdCardDevice::MountBehaviour::AtBoot
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    return std::make_shared<SpiSdCardDevice>(
+        std::move(configuration)
     );
-
-    return std::shared_ptr<SdCardDevice>(sdcard);
 }

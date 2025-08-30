@@ -33,7 +33,7 @@ bool tt_hal_device_find(DeviceType type, DeviceId* deviceIds, uint16_t* count, u
     int16_t currentIndex = -1;
     uint16_t maxIndex = maxCount - 1;
 
-    findDevices(toTactilityDeviceType(type), [&](const std::shared_ptr<tt::hal::Device>& device) {
+    findDevices<tt::hal::Device>(toTactilityDeviceType(type), [&](const auto& device) {
         currentIndex++;
         deviceIds[currentIndex] = device->getId();
         // Continue if there is storage capacity left

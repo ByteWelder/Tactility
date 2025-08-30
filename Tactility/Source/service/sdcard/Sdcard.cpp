@@ -26,8 +26,11 @@ class SdCardService final : public Service {
     }
 
     void update() {
-        auto sdcard = hal::getConfiguration()->sdcard;
-        assert(sdcard);
+        // TODO: Support multiple SD cards
+        auto sdcard = hal::findFirstDevice<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+        if (sdcard == nullptr) {
+            return;
+        }
 
         if (lock(50)) {
             auto new_state = sdcard->getState();
@@ -50,16 +53,12 @@ class SdCardService final : public Service {
 public:
 
     void onStart(ServiceContext& serviceContext) override {
-        if (hal::getConfiguration()->sdcard != nullptr) {
-            auto service = findServiceById<SdCardService>(manifest.id);
-            updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
-                service->update();
-            });
-            // We want to try and scan more often in case of startup or scan lock failure
-            updateTimer->start(1000);
-        } else {
-            TT_LOG_I(TAG, "Timer not started: no SD card config");
-        }
+        auto service = findServiceById<SdCardService>(manifest.id);
+        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
+            service->update();
+        });
+        // We want to try and scan more often in case of startup or scan lock failure
+        updateTimer->start(1000);
     }
 
     void onStop(ServiceContext& serviceContext) override {

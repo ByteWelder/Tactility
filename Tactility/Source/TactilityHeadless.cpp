@@ -6,6 +6,7 @@
 #include "Tactility/service/ServiceRegistration.h"
 
 #include <Tactility/Dispatcher.h>
+#include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/settings/TimePrivate.h>
 
 #ifdef ESP_PLATFORM
@@ -14,7 +15,7 @@
 
 namespace tt {
 
-#define TAG "tactility"
+constexpr auto* TAG = "Tactility";
 
 namespace service::gps { extern const ServiceManifest manifest; }
 namespace service::wifi { extern const ServiceManifest manifest; }
@@ -47,10 +48,10 @@ void initHeadless(const hal::Configuration& config) {
     hardwareConfig = &config;
     settings::initTimeZone();
     hal::init(config);
+    hal::sdcard::mountAll();
     network::ntp::init();
     registerAndStartSystemServices();
 }
-
 
 Dispatcher& getMainDispatcher() {
     return mainDispatcher;

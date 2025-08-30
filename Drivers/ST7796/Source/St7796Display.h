@@ -4,7 +4,6 @@
 #include <Tactility/hal/spi/Spi.h>
 
 #include <EspLcdDisplay.h>
-#include <driver/gpio.h>
 #include <functional>
 
 class St7796Display final : public EspLcdDisplay {

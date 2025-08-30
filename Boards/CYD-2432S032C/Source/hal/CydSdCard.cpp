@@ -9,7 +9,7 @@
 using tt::hal::sdcard::SpiSdCardDevice;
 
 std::shared_ptr<SdCardDevice> createSdCard() {
-    auto* configuration = new SpiSdCardDevice::Config(
+    auto configuration = std::make_unique<SpiSdCardDevice::Config>(
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
@@ -20,10 +20,8 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         SDCARD_SPI_HOST
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    return std::make_shared<SpiSdCardDevice>(
+        std::move(configuration)
     );
-
-    return std::shared_ptr<SdCardDevice>(sdcard);
 }
 

@@ -13,23 +13,21 @@
 using tt::hal::sdcard::SpiSdCardDevice;
 
 std::shared_ptr<SdCardDevice> createUnPhoneSdCard() {
-    auto* configuration = new SpiSdCardDevice::Config(
+    auto configuration = std::make_unique<SpiSdCardDevice::Config>(
         UNPHONE_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
         tt::lvgl::getSyncLock(),
-        {
+        std::vector {
             UNPHONE_LORA_PIN_CS,
             UNPHONE_LCD_PIN_CS,
             UNPHONE_TOUCH_PIN_CS
         }
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    return std::make_shared<SpiSdCardDevice>(
+        std::move(configuration)
     );
-
-    return std::shared_ptr<SdCardDevice>(sdcard);
 }

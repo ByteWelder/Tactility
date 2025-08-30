@@ -20,6 +20,7 @@ public:
         Touch,
         SdCard,
         Keyboard,
+        Encoder,
         Power,
         Gps
     };
@@ -95,7 +96,16 @@ std::vector<std::shared_ptr<DeviceType>> findDevices(Device::Type type) {
     }
 }
 
-void findDevices(Device::Type type, std::function<bool(const std::shared_ptr<Device>&)> onDeviceFound);
+template<class DeviceType>
+void findDevices(Device::Type type, std::function<bool(const std::shared_ptr<DeviceType>&)> onDeviceFound) {
+    auto devices_view = findDevices(type);
+    for (auto& device : devices_view) {
+        auto typed_device = std::static_pointer_cast<DeviceType>(device);
+        if (!onDeviceFound(typed_device)) {
+            break;
+        }
+    }
+}
 
 /** Find the first device of the specified type and cast it to the specified class */
 template<class DeviceType>
