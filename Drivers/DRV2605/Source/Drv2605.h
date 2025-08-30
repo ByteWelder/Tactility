@@ -7,6 +7,8 @@ class Drv2605 : public tt::hal::i2c::I2cDevice {
     static constexpr auto* TAG = "DRV2605";
     static constexpr auto ADDRESS = 0x5A;
 
+    bool autoPlayStartupBuzz;
+
     // Chip IDs
     enum class ChipId {
         DRV2604 = 0x04,     // Has RAM. Doesn't havew licensed ROM library.
@@ -61,9 +63,14 @@ class Drv2605 : public tt::hal::i2c::I2cDevice {
 
 public:
 
-    explicit Drv2605(i2c_port_t port) : I2cDevice(port, ADDRESS) {
+    explicit Drv2605(i2c_port_t port, bool autoPlayStartupBuzz = true) : I2cDevice(port, ADDRESS), autoPlayStartupBuzz(autoPlayStartupBuzz) {
         if (!init()) {
             TT_LOG_E(TAG, "Failed to initialize DRV2605");
+        }
+
+        if (autoPlayStartupBuzz) {
+            setWaveFormForBuzz();
+            startPlayback();
         }
     }
 
@@ -72,6 +79,14 @@ public:
 
     bool init();
 
+    void setWaveFormForBuzz();
+    void setWaveFormForClick();
+
+    /**
+     *
+     * @param slot a value from 0 to 7
+     * @param waveform
+     */
     void setWaveForm(uint8_t slot, uint8_t waveform);
     void selectLibrary(uint8_t library);
     void startPlayback();

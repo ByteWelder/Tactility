@@ -18,15 +18,8 @@ bool Drv2605::init() {
 
     writeRegister(Register::RealtimePlaybackInput, 0x00); // Disable
 
-    writeRegister(Register::WaveSequence1, 1); // Strong click
-    writeRegister(Register::WaveSequence2, 0); // End sequence
 
-    writeRegister(Register::OverdriveTimeOffset, 0); // No overdrive
-
-    writeRegister(Register::SustainTimeOffsetPostivie, 0);
-    writeRegister(Register::SustainTimeOffsetNegative, 0);
-    writeRegister(Register::BrakeTimeOffset, 0);
-    writeRegister(Register::AudioInputLevelMax, 0x64);
+    setWaveFormForClick();
 
     // ERM open loop
 
@@ -41,6 +34,34 @@ bool Drv2605::init() {
     bitOnByIndex(static_cast<uint8_t>(Register::Control3), 5); // ERM_OPEN_LOOP on
 
     return true;
+}
+
+void Drv2605::setWaveFormForBuzz() {
+    writeRegister(Register::WaveSequence1, 1); // Strong click
+    writeRegister(Register::WaveSequence2, 1); // Strong click
+    writeRegister(Register::WaveSequence3, 1); // Strong click
+    writeRegister(Register::WaveSequence4, 0); // End sequence
+
+    writeRegister(Register::OverdriveTimeOffset, 0); // No overdrive
+
+    writeRegister(Register::SustainTimeOffsetPostivie, 0);
+    writeRegister(Register::SustainTimeOffsetNegative, 0);
+    writeRegister(Register::BrakeTimeOffset, 0);
+
+    writeRegister(Register::AudioInputLevelMax, 0x64);
+}
+
+void Drv2605::setWaveFormForClick() {
+    writeRegister(Register::WaveSequence1, 1); // Strong click
+    writeRegister(Register::WaveSequence2, 0); // End sequence
+
+    writeRegister(Register::OverdriveTimeOffset, 0); // No overdrive
+
+    writeRegister(Register::SustainTimeOffsetPostivie, 0);
+    writeRegister(Register::SustainTimeOffsetNegative, 0);
+    writeRegister(Register::BrakeTimeOffset, 0);
+
+    writeRegister(Register::AudioInputLevelMax, 0x64);
 }
 
 void Drv2605::setWaveForm(uint8_t slot, uint8_t waveform) {
