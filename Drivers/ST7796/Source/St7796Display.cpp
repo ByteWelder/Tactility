@@ -133,7 +133,14 @@ lvgl_port_display_cfg_t St7796Display::getLvglPortDisplayConfig(esp_lcd_panel_io
             .mirror_y = configuration->mirrorY,
         },
         .color_format = LV_COLOR_FORMAT_NATIVE,
-        .flags = {.buff_dma = true, .buff_spiram = false, .sw_rotate = false, .swap_bytes = true, .full_refresh = false, .direct_mode = false}
+        .flags = {
+            .buff_dma = true,
+            .buff_spiram = false,
+            .sw_rotate = false,
+            .swap_bytes = true,
+            .full_refresh = false,
+            .direct_mode = false
+        }
     };
 }
 
