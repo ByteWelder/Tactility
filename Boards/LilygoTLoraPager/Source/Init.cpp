@@ -20,7 +20,7 @@ bool tpagerInit() {
         return false;
     }
 
-    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](auto) {
         auto gps_service = tt::service::gps::findGpsService();
         if (gps_service != nullptr) {
             std::vector<tt::hal::gps::GpsConfiguration> gps_configurations;
@@ -29,8 +29,8 @@ bool tpagerInit() {
                 if (gps_service->addGpsConfiguration(tt::hal::gps::GpsConfiguration {
                     .uartName = "Internal",
                     .baudRate = 38400,
-                    .model = tt::hal::gps::GpsModel::UBLOX10})
-                ) {
+                    .model = tt::hal::gps::GpsModel::UBLOX10
+                })) {
                     TT_LOG_I(TAG, "Configured internal GPS");
                 } else {
                     TT_LOG_E(TAG, "Failed to configure internal GPS");
