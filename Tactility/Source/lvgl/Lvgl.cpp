@@ -178,7 +178,7 @@ void start() {
 }
 
 void stop() {
-    TT_LOG_I(TAG, "Stop LVGL");
+    TT_LOG_I(TAG, "Stopping LVGL");
 
     if (!started) {
         TT_LOG_W(TAG, "Can't stop LVGL: not started");
@@ -195,6 +195,7 @@ void stop() {
 
     // Stop keyboards
 
+    TT_LOG_I(TAG, "Stopping keyboards");
     auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
     for (auto keyboard : keyboards) {
         if (keyboard->getLvglIndev() != nullptr) {
@@ -204,6 +205,7 @@ void stop() {
 
     // Stop touch
 
+    TT_LOG_I(TAG, "Stopping touch");
     // The display generally stops their own touch devices, but we'll clean up anything that didn't
     auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
     for (auto touch_device : touch_devices) {
@@ -212,8 +214,19 @@ void stop() {
         }
     }
 
+    // Stop encoders
+
+    TT_LOG_I(TAG, "Stopping encoders");
+    // The display generally stops their own touch devices, but we'll clean up anything that didn't
+    auto encoder_devices = hal::findDevices<hal::encoder::EncoderDevice>(hal::Device::Type::Encoder);
+    for (auto encoder_device : encoder_devices) {
+        if (encoder_device->getLvglIndev() != nullptr) {
+            encoder_device->stopLvgl();
+        }
+    }
     // Stop displays (and their touch devices)
 
+    TT_LOG_I(TAG, "Stopping displays");
     auto displays = hal::findDevices<hal::display::DisplayDevice>(hal::Device::Type::Display);
     for (auto display : displays) {
         if (display->supportsLvgl() && display->getLvglDisplay() != nullptr && !display->stopLvgl()) {
@@ -224,6 +237,8 @@ void stop() {
     started = false;
 
     kernel::publishSystemEvent(kernel::SystemEvent::LvglStopped);
+
+    TT_LOG_I(TAG, "Stopped LVGL");
 }
 
 } // namespace

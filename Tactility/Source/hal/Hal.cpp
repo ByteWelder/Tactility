@@ -8,13 +8,13 @@
 
 #include <Tactility/kernel/SystemEvents.h>
 
-#define TAG "hal"
-
-#define TT_SDCARD_MOUNT_POINT "/sdcard"
-
 namespace tt::hal {
 
-void initDevices(const Configuration& configuration) {
+constexpr auto* TAG = "hal";
+
+void registerDevices(const Configuration& configuration) {
+    TT_LOG_I(TAG, "Registering devices");
+
     if (configuration.sdcard != nullptr) {
         registerDevice(configuration.sdcard);
     }
@@ -34,29 +34,6 @@ void initDevices(const Configuration& configuration) {
     auto devices = configuration.createDevices();
     for (auto& device : devices) {
         registerDevice(device);
-    }
-
-    // TODO: Move
-    auto sdcards = hal::findDevices<sdcard::SdCardDevice>(Device::Type::SdCard);
-    if (!sdcards.empty()) {
-        if (sdcards.size() == 1) {
-            // Fixed mount path name
-            auto sdcard = sdcards[0];
-            TT_LOG_I(TAG, "Mounting sdcard at %s", TT_SDCARD_MOUNT_POINT);
-            if (!sdcard->mount(TT_SDCARD_MOUNT_POINT)) {
-                TT_LOG_W(TAG, "SD card mount failed (init can continue)");
-            }
-        } else {
-            // Numbered mount path name
-            for (int i = 0; i < sdcards.size(); i++) {
-                auto sdcard = sdcards[i];
-                std::string mount_path = TT_SDCARD_MOUNT_POINT + std::to_string(i);
-                TT_LOG_I(TAG, "Mounting sdcard at %d", mount_path.c_str());
-                if (!sdcard->mount(mount_path)) {
-                    TT_LOG_W(TAG, "SD card mount failed (init can continue)");
-                }
-            }
-        }
     }
 }
 
@@ -80,7 +57,7 @@ void init(const Configuration& configuration) {
         tt_check(configuration.initBoot(), "Init power failed");
     }
 
-    initDevices(configuration);
+    registerDevices(configuration);
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
 }

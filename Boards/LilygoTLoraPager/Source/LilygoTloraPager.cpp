@@ -41,10 +41,10 @@ extern const Configuration lilygo_tlora_pager = {
     .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
-            .name = "Shared",
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
-            .isMutable = true,
+            .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
                 .sda_io_num = GPIO_NUM_3,

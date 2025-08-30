@@ -43,7 +43,6 @@ void TpagerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     char keypress = 0;
 
     if (xQueueReceive(keyboard->queue, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
-        TT_LOG_I(TAG, "Keypress: %c", keypress);
         data->key = keypress;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
