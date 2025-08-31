@@ -1,12 +1,12 @@
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/AppRegistration.h"
-#include "Tactility/service/loader/Loader.h"
-
 #include <Tactility/Tactility.h>
 
-#include <lvgl.h>
-#include <Tactility/BootProperties.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppRegistration.h>
 #include <Tactility/hal/power/PowerDevice.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/settings/BootSettings.h>
+
+#include <lvgl.h>
 
 namespace tt::app::launcher {
 
@@ -63,8 +63,8 @@ class LauncherApp final : public App {
 public:
 
     void onCreate(TT_UNUSED AppContext& app) override {
-        BootProperties boot_properties;
-        if (loadBootProperties(boot_properties) && !boot_properties.autoStartAppId.empty()) {
+        settings::BootSettings boot_properties;
+        if (settings::loadBootSettings(boot_properties) && !boot_properties.autoStartAppId.empty()) {
             TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
             service::loader::startApp(boot_properties.autoStartAppId);
         }

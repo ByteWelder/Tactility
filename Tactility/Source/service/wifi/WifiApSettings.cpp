@@ -15,7 +15,7 @@ namespace tt::service::wifi::settings {
 
 constexpr auto* TAG = "WifiApSettings";
 
-constexpr auto* AP_SETTINGS_FORMAT = "/data/service/Wifi/{}.ap.properties";
+constexpr auto* AP_SETTINGS_FORMAT = "/data/settings/{}.ap.properties";
 
 constexpr auto* AP_PROPERTIES_KEY_SSID = "ssid";
 constexpr auto* AP_PROPERTIES_KEY_PASSWORD = "password";

@@ -78,9 +78,9 @@ static void importWifiAp(const std::string& filePath) {
 }
 
 static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
-    // auto lock = sdcard->getLock()->asScopedLock();
-    // lock.lock();
-    auto path = sdcard->getMountPath();
+    auto lock = sdcard->getLock()->asScopedLock();
+    lock.lock();
+    auto path = file::getChildPath(sdcard->getMountPath(), "settings");
 
     std::vector<dirent> dirent_list;
     if (file::scandir(path, dirent_list, [](const dirent* entry) {

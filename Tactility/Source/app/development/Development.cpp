@@ -1,17 +1,17 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/development/DevelopmentService.h"
-
-#include <Tactility/Timer.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <cstring>
-#include <lvgl.h>
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/development/DevelopmentService.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/Timer.h>
+
+#include <cstring>
+#include <lvgl.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
 
 namespace tt::app::development {
 
@@ -49,10 +49,9 @@ class DevelopmentApp final : public App {
         auto* widget = static_cast<lv_obj_t*>(lv_event_get_target(event));
         if (code == LV_EVENT_VALUE_CHANGED) {
             bool is_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
-            auto* app = static_cast<DevelopmentApp*>(lv_event_get_user_data(event));
-            bool is_changed = is_on != app->service->isEnabledOnStart();
+            bool is_changed = is_on != service::development::shouldEnableOnBoot();
             if (is_changed) {
-                app->service->setEnabledOnStart(is_on);
+                service::development::setEnableOnBoot(is_on);
             }
         }
     }
@@ -125,7 +124,7 @@ public:
         enableOnBootSwitch = lv_switch_create(wrapper);
         lv_obj_add_event_cb(enableOnBootSwitch, onEnableOnBootSwitchChanged, LV_EVENT_VALUE_CHANGED, this);
         lv_obj_align(enableOnBootSwitch, LV_ALIGN_TOP_RIGHT, 0, 0);
-        if (service->isEnabledOnStart()) {
+        if (service::development::shouldEnableOnBoot()) {
             lv_obj_add_state(enableOnBootSwitch, LV_STATE_CHECKED);
         } else {
             lv_obj_remove_state(enableOnBootSwitch, LV_STATE_CHECKED);
