@@ -1,44 +1,36 @@
 #include "YellowDisplay.h"
 #include "YellowDisplayConstants.h"
-#include "XPT2046-Bitbang.h"
+#include "Xpt2046Touch.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <esp_log.h>
-#include <string>
+#include <memory>
 
 static const char* TAG = "YellowDisplay";
 
-// Global to hold reference (only needed if calling stop() later)
-static std::unique_ptr<XPT2046_Bitbang> touch;
+// Global to hold reference if needed (is this needed?)
+static std::shared_ptr<Xpt2046Touch> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    ESP_LOGI(TAG, "Creating bitbang SPI touch");
+    ESP_LOGI(TAG, "Creating SPI touch");
 
-    // Create bitbang config object
-    auto config = std::make_unique<XPT2046_Bitbang::Configuration>(
-        CYD_TOUCH_MOSI_PIN,
-        CYD_TOUCH_MISO_PIN,
-        CYD_TOUCH_SCK_PIN,
-        CYD_TOUCH_CS_PIN,
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION, // 240
-        CYD_DISPLAY_VERTICAL_RESOLUTION,   // 320
+    // Create configuration object
+    auto config = std::make_unique<Xpt2046Touch::Configuration>(
+        CYD_DISPLAY_SPI_HOST,   // SPI bus handle
+        CYD_TOUCH_CS_PIN,       // Chip select
+        CYD_DISPLAY_HORIZONTAL_RESOLUTION, // xMax
+        CYD_DISPLAY_VERTICAL_RESOLUTION,   // yMax
         false,  // swapXY
-        true,  // mirrorX
+        true,   // mirrorX
         false   // mirrorY
     );
 
-    // Allocate the driver
-    touch = std::make_unique<XPT2046_Bitbang>(std::move(config));
+    // Allocate driver
+    touch = std::make_shared<Xpt2046Touch>(std::move(config));
 
-    // Start the driver and load calibration from NVS
-    if (!touch->start()) {
-        ESP_LOGE(TAG, "Touch driver start failed");
-    }
-
-    return std::shared_ptr<tt::hal::touch::TouchDevice>(touch.get(), [](tt::hal::touch::TouchDevice*) {
-        // No delete needed; `touch` is managed above
-    });
+    // No explicit start() required for Xpt2046Touch
+    return std::static_pointer_cast<tt::hal::touch::TouchDevice>(touch);
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -54,5 +46,6 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     configuration->mirrorX = true;
     configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     configuration->rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR;
+
     return std::make_shared<Ili934xDisplay>(std::move(configuration));
 }

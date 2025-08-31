@@ -15,7 +15,7 @@ bool initBoot() {
 const tt::hal::Configuration cyd_e32r28t_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
+    .sdcard = nullptr,
     .power = nullptr,
     .i2c = {},
     .spi = {

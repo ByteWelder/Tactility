@@ -8,18 +8,12 @@
 #if defined(CONFIG_TT_BOARD_LILYGO_TDECK)
 #include "LilygoTdeck.h"
 #define TT_BOARD_HARDWARE &lilygo_tdeck
-#elif defined(CONFIG_TT_BOARD_CYD_2432S022C)
-#include "CYD2432S022C.h"
-#define TT_BOARD_HARDWARE &cyd_2432s022c_config
 #elif defined(CONFIG_TT_BOARD_LILYGO_TLORA_PAGER)
 #include "LilygoTloraPager.h"
 #define TT_BOARD_HARDWARE &lilygo_tlora_pager
 #elif defined(CONFIG_TT_BOARD_CYD_2432S024C)
 #include "CYD2432S024C.h"
 #define TT_BOARD_HARDWARE &cyd_2432s024c_config
-#elif defined(CONFIG_TT_BOARD_CYD_2432S028R)
-#include "CYD2432S028R.h"
-#define TT_BOARD_HARDWARE &cyd_2432s028r_config
 #elif defined(CONFIG_TT_BOARD_CYD_E32R28T)
 #include "E32R28T.h"
 #define TT_BOARD_HARDWARE &cyd_e32r28t_config
