@@ -2,7 +2,7 @@
 
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/Preferences.h>
-#include <Tactility/settings/SettingsProperties.h>
+#include <Tactility/settings/SystemSettings.h>
 
 #ifdef ESP_PLATFORM
 #include <ctime>
@@ -60,8 +60,8 @@ std::string getTimeZoneCode() {
 }
 
 bool isTimeFormat24Hour() {
-    SettingsProperties properties;
-    if (!loadSettingsProperties(properties)) {
+    SystemSettings properties;
+    if (!loadSystemSettings(properties)) {
         return true;
     } else {
         return properties.timeFormat24h;
@@ -69,13 +69,13 @@ bool isTimeFormat24Hour() {
 }
 
 void setTimeFormat24Hour(bool show24Hour) {
-    SettingsProperties properties;
-    if (!loadSettingsProperties(properties)) {
+    SystemSettings properties;
+    if (!loadSystemSettings(properties)) {
         return;
     }
 
     properties.timeFormat24h = show24Hour;
-    saveSettingsProperties(properties);
+    saveSystemSettings(properties);
 }
 
 }

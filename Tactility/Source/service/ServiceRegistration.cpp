@@ -1,7 +1,7 @@
-#include "Tactility/service/ServiceRegistration.h"
+#include <Tactility/service/ServiceRegistration.h>
 
-#include "Tactility/service/ServiceInstance.h"
-#include "Tactility/service/ServiceManifest.h"
+#include <Tactility/service/ServiceInstance.h>
+#include <Tactility/service/ServiceManifest.h>
 
 #include <Tactility/Mutex.h>
 
@@ -9,7 +9,7 @@
 
 namespace tt::service {
 
-#define TAG "service_registry"
+constexpr auto* TAG = "ServiceRegistry";
 
 typedef std::unordered_map<std::string, std::shared_ptr<const ServiceManifest>> ManifestMap;
 typedef std::unordered_map<std::string, std::shared_ptr<ServiceInstance>> ServiceInstanceMap;
@@ -44,7 +44,7 @@ void addService(const ServiceManifest& manifest, bool autoStart) {
     addService(std::make_shared<const ServiceManifest>(manifest), autoStart);
 }
 
-std::shared_ptr<const ServiceManifest> _Nullable findManifestId(const std::string& id) {
+std::shared_ptr<const ServiceManifest> _Nullable findManifestById(const std::string& id) {
     manifest_mutex.lock();
     auto iterator = service_manifest_map.find(id);
     auto manifest = iterator != service_manifest_map.end() ? iterator->second : nullptr;
@@ -63,7 +63,7 @@ static std::shared_ptr<ServiceInstance> _Nullable findServiceInstanceById(const 
 // TODO: Return proper error/status instead of BOOL?
 bool startService(const std::string& id) {
     TT_LOG_I(TAG, "Starting %s", id.c_str());
-    auto manifest = findManifestId(id);
+    auto manifest = findManifestById(id);
     if (manifest == nullptr) {
         TT_LOG_E(TAG, "manifest not found for service %s", id.c_str());
         return false;

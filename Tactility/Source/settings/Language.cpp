@@ -1,25 +1,25 @@
 #include <Tactility/Log.h>
 #include <Tactility/settings/Language.h>
 #include <utility>
-#include <Tactility/settings/SettingsProperties.h>
+#include <Tactility/settings/SystemSettings.h>
 
 namespace tt::settings {
 
 constexpr auto* TAG = "Language";
 
 void setLanguage(Language newLanguage) {
-    SettingsProperties properties;
-    if (!loadSettingsProperties(properties)) {
+    SystemSettings properties;
+    if (!loadSystemSettings(properties)) {
         return;
     }
 
     properties.language = newLanguage;
-    saveSettingsProperties(properties);
+    saveSystemSettings(properties);
 }
 
 Language getLanguage() {
-    SettingsProperties properties;
-    if (!loadSettingsProperties(properties)) {
+    SystemSettings properties;
+    if (!loadSystemSettings(properties)) {
         return Language::en_US;
     } else {
         return properties.language;

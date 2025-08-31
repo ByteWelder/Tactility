@@ -158,16 +158,24 @@ void start() {
 
     // Restart services
 
-    if (service::getState("Gui") == service::State::Stopped) {
-        service::startService("Gui");
-    } else {
-        TT_LOG_E(TAG, "Gui service is not in Stopped state");
+    // We search for the manifest first, because during the initial start() during boot
+    // the service won't be registered yet.
+    if (service::findManifestById("Gui") != nullptr) {
+        if (service::getState("Gui") == service::State::Stopped) {
+            service::startService("Gui");
+        } else {
+            TT_LOG_E(TAG, "Gui service is not in Stopped state");
+        }
     }
 
-    if (service::getState("Statusbar") == service::State::Stopped) {
-        service::startService("Statusbar");
-    } else {
-        TT_LOG_E(TAG, "Statusbar service is not in Stopped state");
+    // We search for the manifest first, because during the initial start() during boot
+    // the service won't be registered yet.
+    if (service::findManifestById("Statusbar") != nullptr) {
+        if (service::getState("Statusbar") == service::State::Stopped) {
+            service::startService("Statusbar");
+        } else {
+            TT_LOG_E(TAG, "Statusbar service is not in Stopped state");
+        }
     }
 
     // Finalize

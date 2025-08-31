@@ -1,18 +1,16 @@
-#include "Tactility/TactilityCore.h"
-
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/display/DisplaySettings.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/lvgl/Style.h"
-
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/TactilityCore.h>
 #include <Tactility/TactilityPrivate.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/app/display/DisplaySettings.h>
+#include <Tactility/CpuAffinity.h>
+#include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/settings/BootSettings.h>
 
 #include <lvgl.h>
-#include <Tactility/BootProperties.h>
-#include <Tactility/CpuAffinity.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/app/crashdiagnostics/CrashDiagnostics.h"
@@ -107,8 +105,8 @@ class BootApp : public App {
         }
 #endif
 
-        BootProperties boot_properties;
-        if (!loadBootProperties(boot_properties) || boot_properties.launcherAppId.empty()) {
+        settings::BootSettings boot_properties;
+        if (!settings::loadBootSettings(boot_properties) || boot_properties.launcherAppId.empty()) {
             TT_LOG_E(TAG, "Launcher not configured");
             stop();
             return;
