@@ -11,7 +11,7 @@ Xpt2046Touch* Xpt2046Touch::instance = nullptr;
 
 bool Xpt2046Touch::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     const esp_lcd_panel_io_spi_config_t io_config = ESP_LCD_TOUCH_IO_SPI_XPT2046_CONFIG(configuration->spiPinCs);
-    return esp_lcd_new_panel_io_spi(SPI2_HOST, &io_config, &outHandle) == ESP_OK;
+    return esp_lcd_new_panel_io_spi(configuration->spiDevice, &io_config, &outHandle) == ESP_OK;
 }
 
 bool Xpt2046Touch::createTouchHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_touch_config_t& config, esp_lcd_touch_handle_t& panelHandle) {
