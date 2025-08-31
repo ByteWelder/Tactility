@@ -1,21 +1,21 @@
-#include "Tactility/service/wifi/WifiSettings.h"
-#include "Tactility/Preferences.h"
-#include "Tactility/file/PropertiesFile.h"
-
+#ifdef ESP_PLATFORM
+#include <Tactility/file/PropertiesFile.h>
 #include <Tactility/Log.h>
-#include <Tactility/file/File.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
+#include <map>
+#include <string>
 
-namespace tt::service::wifi::settings {
+namespace tt::service::development {
 
-constexpr auto* TAG = "WifiSettings";
-constexpr auto* SETTINGS_FILE = "/data/settings/wifi.properties";
+constexpr auto* TAG = "DevSettings";
+constexpr auto* SETTINGS_FILE = "/data/settings/development.properties";
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
-struct WifiSettings {
+struct DevelopmentSettings {
     bool enableOnBoot;
 };
 
-static bool load(WifiSettings& settings) {
+static bool load(DevelopmentSettings& settings) {
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(SETTINGS_FILE, map)) {
         return false;
@@ -30,25 +30,26 @@ static bool load(WifiSettings& settings) {
     return true;
 }
 
-static bool save(const WifiSettings& settings) {
+static bool save(const DevelopmentSettings& settings) {
     std::map<std::string, std::string> map;
     map[SETTINGS_KEY_ENABLE_ON_BOOT] = settings.enableOnBoot ? "true" : "false";
     return file::savePropertiesFile(SETTINGS_FILE, map);
 }
 
 void setEnableOnBoot(bool enable) {
-    WifiSettings settings { .enableOnBoot = enable };
-    if (!save(settings)) {
+    DevelopmentSettings properties { .enableOnBoot = enable };
+    if (!save(properties)) {
         TT_LOG_E(TAG, "Failed to save %s", SETTINGS_FILE);
     }
 }
 
 bool shouldEnableOnBoot() {
-    WifiSettings settings;
+    DevelopmentSettings settings;
     if (!load(settings)) {
         return false;
     }
     return settings.enableOnBoot;
 }
+}
 
-} // namespace
+#endif // ESP_PLATFORM

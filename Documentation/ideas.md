@@ -2,7 +2,6 @@
 
 ## Higher Priority
 
-- Move Development settings from flash to `/data/apps/development/development.properties` (just the "start on boot")
 - Move Display settings from flash to `/data/apps/display/display.properties`
 - Expose app::Paths to TactilityC
 - Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.

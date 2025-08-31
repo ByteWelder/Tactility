@@ -2,18 +2,18 @@
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/Language.h>
-#include <Tactility/settings/SettingsProperties.h>
+#include <Tactility/settings/SystemSettings.h>
 
 namespace tt::settings {
 
-constexpr auto* TAG = "SettingsProperties";
-constexpr auto* FILE_PATH = "/data/settings.properties";
+constexpr auto* TAG = "SystemSettings";
+constexpr auto* FILE_PATH = "/data/system.properties";
 
 static Mutex mutex = Mutex();
 static bool cached = false;
-static SettingsProperties cachedProperties;
+static SystemSettings cachedProperties;
 
-static bool loadSettingsPropertiesFromFile(SettingsProperties& properties) {
+static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     std::map<std::string, std::string> map;
     if (!file::withLock<bool>(FILE_PATH, [&map] {
         return file::loadPropertiesFile(FILE_PATH, map);
@@ -39,12 +39,12 @@ static bool loadSettingsPropertiesFromFile(SettingsProperties& properties) {
     return true;
 }
 
-bool loadSettingsProperties(SettingsProperties& properties) {
+bool loadSystemSettings(SystemSettings& properties) {
     auto scoped_lock = mutex.asScopedLock();
     scoped_lock.lock();
 
     if (!cached) {
-        if (!loadSettingsPropertiesFromFile(cachedProperties)) {
+        if (!loadSystemSettingsFromFile(cachedProperties)) {
             return false;
         }
         cached = true;
@@ -54,7 +54,7 @@ bool loadSettingsProperties(SettingsProperties& properties) {
     return true;
 }
 
-bool saveSettingsProperties(const SettingsProperties& properties) {
+bool saveSystemSettings(const SystemSettings& properties) {
     auto scoped_lock = mutex.asScopedLock();
     scoped_lock.lock();
 

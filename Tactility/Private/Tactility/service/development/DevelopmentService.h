@@ -74,17 +74,6 @@ public:
      */
     void setEnabled(bool enabled);
 
-    /**
-     * @return true if the service will enable itself when it is started (e.g. on boot, or manual start)
-     */
-    bool isEnabledOnStart() const;
-
-    /**
-     * Set whether the service should auto-enable when it is started.
-     * @param enabled
-     */
-    void setEnabledOnStart(bool enabled);
-
     bool isStarted() const;
 
     // region Internal API
