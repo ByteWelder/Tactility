@@ -1,4 +1,3 @@
-#include <Tactility/app/display/DisplaySettings.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/hal/encoder/EncoderDevice.h>
 #include <Tactility/hal/display/DisplayDevice.h>
@@ -9,6 +8,7 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/TactilityHeadless.h>
 
 #ifdef ESP_PLATFORM
@@ -93,7 +93,8 @@ void start() {
                 TT_LOG_I(TAG, "Started %s", display->getName().c_str());
                 auto lvgl_display = display->getLvglDisplay();
                 assert(lvgl_display != nullptr);
-                lv_display_rotation_t rotation = app::display::getRotation();
+                auto settings = settings::display::loadOrGetDefault();
+                lv_display_rotation_t rotation = settings::display::toLvglDisplayRotation(settings.orientation);
                 if (rotation != lv_display_get_rotation(lvgl_display)) {
                     lv_display_set_rotation(lvgl_display, rotation);
                 }

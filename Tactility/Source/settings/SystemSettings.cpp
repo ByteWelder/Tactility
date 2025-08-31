@@ -6,8 +6,8 @@
 
 namespace tt::settings {
 
-constexpr auto* TAG = "SettingsProperties";
-constexpr auto* FILE_PATH = "/data/settings.properties";
+constexpr auto* TAG = "SystemSettings";
+constexpr auto* FILE_PATH = "/data/system.properties";
 
 static Mutex mutex = Mutex();
 static bool cached = false;

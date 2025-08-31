@@ -8,7 +8,7 @@
 namespace tt::service::wifi::settings {
 
 constexpr auto* TAG = "WifiSettings";
-constexpr auto* SETTINGS_FILE = "/data/service/Wifi/wifi.properties";
+constexpr auto* SETTINGS_FILE = "/data/settings/wifi.properties";
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
 struct WifiSettings {

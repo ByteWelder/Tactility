@@ -8,7 +8,7 @@
 namespace tt::service::development {
 
 constexpr auto* TAG = "DevSettings";
-constexpr auto* SETTINGS_FILE = "/data/service/Development/development.properties";
+constexpr auto* SETTINGS_FILE = "/data/settings/development.properties";
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
 struct DevelopmentSettings {
