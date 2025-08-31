@@ -27,7 +27,7 @@ static std::string getPropertiesFilePath() {
     return std::format(PROPERTIES_FILE_FORMAT, file::MOUNT_POINT_DATA);
 }
 
-bool loadBootSettings(settings::BootSettings& properties) {
+bool loadBootSettings(BootSettings& properties) {
     const std::string path = getPropertiesFilePath();
     if (!file::loadPropertiesFile(path, [&properties](auto& key, auto& value) {
         if (key == PROPERTIES_KEY_AUTO_START_APP_ID) {
