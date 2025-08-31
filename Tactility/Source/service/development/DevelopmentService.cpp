@@ -1,24 +1,24 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/service/development/DevelopmentService.h"
+#include <Tactility/service/development/DevelopmentService.h>
 
-#include "Tactility/network/HttpdReq.h"
-#include "Tactility/network/Url.h"
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/service/ServiceManifest.h"
-#include "Tactility/service/ServiceRegistration.h"
-#include "Tactility/service/wifi/Wifi.h"
+#include <Tactility/app/App.h>
+#include <Tactility/app/AppRegistration.h>
+#include <Tactility/app/ElfApp.h>
+#include <Tactility/file/File.h>
+#include <Tactility/network/HttpdReq.h>
+#include <Tactility/network/Url.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/TactilityHeadless.h>
 
 #include <cstring>
 #include <esp_wifi.h>
 #include <ranges>
 #include <sstream>
-#include <Tactility/Preferences.h>
-#include <Tactility/StringUtils.h>
-#include <Tactility/app/App.h>
-#include <Tactility/app/ElfApp.h>
-#include <Tactility/app/AppRegistration.h>
-#include <Tactility/file/File.h>
 
 namespace tt::service::development {
 
@@ -39,7 +39,7 @@ void DevelopmentService::onStart(ServiceContext& service) {
         [this](kernel::SystemEvent) { onNetworkDisconnected(); }
     );
 
-    setEnabled(isEnabledOnStart());
+    setEnabled(shouldEnableOnBoot());
 }
 
 void DevelopmentService::onStop(ServiceContext& service) {
@@ -74,18 +74,6 @@ bool DevelopmentService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
     return enabled;
-}
-
-bool DevelopmentService::isEnabledOnStart() const {
-    Preferences preferences = Preferences(manifest.id.c_str());
-    bool enabled_on_boot = false;
-    preferences.optBool("enabledOnBoot", enabled_on_boot);
-    return enabled_on_boot;
-}
-
-void DevelopmentService::setEnabledOnStart(bool enabled) {
-    Preferences preferences = Preferences(manifest.id.c_str());
-    preferences.putBool("enabledOnBoot", enabled);
 }
 
 // region Enable/disable

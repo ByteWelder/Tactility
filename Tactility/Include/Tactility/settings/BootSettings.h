@@ -2,9 +2,9 @@
 
 #include <string>
 
-namespace tt {
+namespace tt::settings {
 
-struct BootProperties {
+struct BootSettings {
     /** App to start automatically after the splash screen. */
     std::string launcherAppId;
     /** App to start automatically from the launcher screen. */
@@ -12,13 +12,13 @@ struct BootProperties {
 };
 
 /**
- * Load the boot properties from the relevant file location(s).
+ * Load the boot properties file from the relevant file location(s).
  * It will first attempt to load them from the SD card and if no file was found,
  * then it will try to load the one from the data mount point.
  *
  * @param[out] properties the resulting properties
  * @return true when the properties were successfully loaded and the result was set
  */
-bool loadBootProperties(BootProperties& properties);
+bool loadBootSettings(BootSettings& properties);
 
 }

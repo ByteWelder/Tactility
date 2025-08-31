@@ -1,20 +1,18 @@
-#include "Tactility/BootProperties.h"
-#include "Tactility/MountPoints.h"
-#include "Tactility/file/PropertiesFile.h"
-#include "Tactility/hal/sdcard/SdCardDevice.h"
-
-#include <Tactility/Log.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
+#include <Tactility/file/PropertiesFile.h>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/Log.h>
+#include <Tactility/settings/BootSettings.h>
 
-#include <cassert>
 #include <format>
 #include <string>
 #include <vector>
 
-namespace tt {
+namespace tt::settings {
 
 constexpr auto* TAG = "BootProperties";
-constexpr auto* PROPERTIES_FILE_FORMAT = "{}/boot.properties";
+constexpr auto* PROPERTIES_FILE_FORMAT = "{}/settings/boot.properties";
 constexpr auto* PROPERTIES_KEY_LAUNCHER_APP_ID = "launcherAppId";
 constexpr auto* PROPERTIES_KEY_AUTO_START_APP_ID = "autoStartAppId";
 
@@ -29,7 +27,7 @@ static std::string getPropertiesFilePath() {
     return std::format(PROPERTIES_FILE_FORMAT, file::MOUNT_POINT_DATA);
 }
 
-bool loadBootProperties(BootProperties& properties) {
+bool loadBootSettings(BootSettings& properties) {
     const std::string path = getPropertiesFilePath();
     if (!file::loadPropertiesFile(path, [&properties](auto& key, auto& value) {
         if (key == PROPERTIES_KEY_AUTO_START_APP_ID) {
