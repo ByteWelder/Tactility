@@ -7,6 +7,7 @@ build-sim/
 cmake-build-*/
 CMakeCache.txt
 *.cbp
+CMakeFiles
 
 release/
 
@@ -16,3 +17,5 @@ sdkconfig.old
 managed_components/
 dependencies.lock
 
+.vscode/
+.gitpod.yml
