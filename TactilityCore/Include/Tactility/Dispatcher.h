@@ -19,7 +19,8 @@ namespace tt {
  * Generally, one task would dispatch the execution,
  * while the other thread consumes and executes the work.
  */
-class Dispatcher {
+class Dispatcher final {
+
 public:
 
     typedef std::function<void()> Function;

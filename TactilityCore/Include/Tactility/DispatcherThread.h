@@ -5,7 +5,7 @@
 namespace tt {
 
 /** Starts a Thread to process dispatched messages */
-class DispatcherThread {
+class DispatcherThread final {
 
     Dispatcher dispatcher;
     std::unique_ptr<Thread> thread;

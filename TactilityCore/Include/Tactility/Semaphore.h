@@ -21,8 +21,6 @@ namespace tt {
  */
 class Semaphore final : public Lock {
 
-private:
-
     struct SemaphoreHandleDeleter {
         void operator()(QueueHandle_t handleToDelete) {
             assert(!kernel::isIsr());

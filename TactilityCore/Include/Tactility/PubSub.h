@@ -7,7 +7,7 @@ namespace tt {
 
 /** Publish and subscribe to messages in a thread-safe manner. */
 template<typename DataType>
-class PubSub {
+class PubSub final {
 
     struct Subscription {
         uint64_t id;
