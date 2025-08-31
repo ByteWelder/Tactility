@@ -2,16 +2,16 @@
 
 #include <Tactility/Log.h>
 
-#define TAG "power"
+constexpr auto* TAG = "TdeckPower";
 
 /**
  * 2.0 ratio, but +.11 added as display voltage sag compensation.
  */
-#define ADC_MULTIPLIER 2.11
+constexpr auto ADC_MULTIPLIER = 2.11;
 
-#define ADC_REF_VOLTAGE 3.3f
-#define BATTERY_VOLTAGE_MIN 3.2f
-#define BATTERY_VOLTAGE_MAX 4.2f
+constexpr auto ADC_REF_VOLTAGE = 3.3f;
+constexpr auto BATTERY_VOLTAGE_MIN = 3.2f;
+constexpr auto BATTERY_VOLTAGE_MAX = 4.2f;
 
 static adc_oneshot_unit_init_cfg_t adcConfig = {
     .unit_id = ADC_UNIT_1,
@@ -62,8 +62,6 @@ bool TdeckPower::supportsMetric(MetricType type) const {
         default:
             return false;
     }
-
-    return false; // Safety guard for when new enum values are introduced
 }
 
 bool TdeckPower::getMetric(MetricType type, MetricData& data) {
@@ -81,8 +79,6 @@ bool TdeckPower::getMetric(MetricType type, MetricData& data) {
         default:
             return false;
     }
-
-    return false; // Safety guard for when new enum values are introduced
 }
 
 bool TdeckPower::readBatteryVoltageOnce(uint32_t& output) {
@@ -118,13 +114,3 @@ bool TdeckPower::readBatteryVoltageSampled(uint32_t& output) {
         return false;
     }
 }
-
-static std::shared_ptr<PowerDevice> power;
-
-std::shared_ptr<PowerDevice> tdeck_get_power() {
-    if (power == nullptr) {
-        power = std::make_shared<TdeckPower>();
-    }
-    return power;
-}
-

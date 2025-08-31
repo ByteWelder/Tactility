@@ -5,10 +5,6 @@
 #include <PwmBacklight.h>
 #include <St7789Display.h>
 
-#include <driver/spi_master.h>
-
-#define TAG "tdeck_display"
-
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
     auto configuration = std::make_unique<Gt911Touch::Configuration>(

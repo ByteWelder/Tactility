@@ -4,8 +4,8 @@
 
 #define TAG "tdeck_keyboard"
 
-#define TDECK_KEYBOARD_I2C_BUS_HANDLE I2C_NUM_0
-#define TDECK_KEYBOARD_SLAVE_ADDRESS 0x55
+constexpr auto TDECK_KEYBOARD_I2C_BUS_HANDLE = I2C_NUM_0;
+constexpr auto TDECK_KEYBOARD_SLAVE_ADDRESS = 0x55;
 
 static bool keyboard_i2c_read(uint8_t* output) {
     return tt::hal::i2c::masterRead(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, output, 1, 100 / portTICK_PERIOD_MS);
@@ -60,8 +60,4 @@ bool TdeckKeyboard::stopLvgl() {
 
 bool TdeckKeyboard::isAttached() const {
     return tt::hal::i2c::masterHasDeviceAtAddress(TDECK_KEYBOARD_I2C_BUS_HANDLE, TDECK_KEYBOARD_SLAVE_ADDRESS, 100);
-}
-
-std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard() {
-    return std::make_shared<TdeckKeyboard>();
 }

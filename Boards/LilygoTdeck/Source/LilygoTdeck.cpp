@@ -9,16 +9,22 @@
 
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
-bool tdeckInit();
+bool initBoot();
 
 using namespace tt::hal;
 
+static std::vector<std::shared_ptr<Device>> createDevices() {
+    return {
+        std::make_shared<TdeckPower>(),
+        createDisplay(),
+        std::make_shared<TdeckKeyboard>(),
+        createSdCard()
+    };
+}
+
 extern const Configuration lilygo_tdeck = {
-    .initBoot = tdeckInit,
-    .createDisplay = createDisplay,
-    .createKeyboard = createKeyboard,
-    .sdcard = createTdeckSdCard(),
-    .power = tdeck_get_power,
+    .initBoot = initBoot,
+    .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
             .name = "Internal",

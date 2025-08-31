@@ -30,7 +30,7 @@ static bool powerOn() {
     return true;
 }
 
-bool tdeckInit() {
+bool initBoot() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
     if (!powerOn()) {
         TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);

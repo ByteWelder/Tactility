@@ -9,6 +9,7 @@
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
 - Refactor `PropertiesFile.cpp` to use `tt::file::readLines()` (see TODO in code)
 - Localize all apps
+- Fix: Statusbar time updates result in errors when `system.properties` is not present.
 
 ## Lower Priority
 
