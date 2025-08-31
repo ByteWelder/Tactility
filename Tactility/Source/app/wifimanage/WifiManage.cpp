@@ -10,7 +10,7 @@
 
 namespace tt::app::wifimanage {
 
-#define TAG "wifi_manage"
+constexpr auto TAG = "WifiManage";
 
 extern const AppManifest manifest;
 
@@ -72,20 +72,18 @@ void WifiManage::requestViewUpdate() {
     unlock();
 }
 
-static void wifiManageEventCallback(const void* message, void* context) {
-    auto* event = (service::wifi::Event*)message;
-    auto* wifi = (WifiManage*)context;
+void WifiManage::onWifiEvent(service::wifi::WifiEvent event) {
     auto radio_state = service::wifi::getRadioState();
     TT_LOG_I(TAG, "Update with state %s", service::wifi::radioStateToString(radio_state));
-    wifi->getState().setRadioState(radio_state);
-    switch (event->type) {
-        using enum tt::service::wifi::EventType;
+    getState().setRadioState(radio_state);
+    switch (event) {
+        using enum service::wifi::WifiEvent;
         case ScanStarted:
-            wifi->getState().setScanning(true);
+            getState().setScanning(true);
             break;
         case ScanFinished:
-            wifi->getState().setScanning(false);
-            wifi->getState().updateApRecords();
+            getState().setScanning(false);
+            getState().updateApRecords();
             break;
         case RadioStateOn:
             if (!service::wifi::isScanning()) {
@@ -96,11 +94,13 @@ static void wifiManageEventCallback(const void* message, void* context) {
             break;
     }
 
-    wifi->requestViewUpdate();
+    requestViewUpdate();
 }
 
 void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
-    wifiSubscription = service::wifi::getPubsub()->subscribe(&wifiManageEventCallback, this);
+    wifiSubscription = service::wifi::getPubsub()->subscribe([this](auto event) {
+        onWifiEvent(event);
+    });
 
     // State update (it has its own locking)
     state.setRadioState(service::wifi::getRadioState());

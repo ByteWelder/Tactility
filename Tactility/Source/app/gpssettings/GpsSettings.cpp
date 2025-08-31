@@ -5,8 +5,9 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/gps/GpsUtil.h"
-#include "Tactility/service/loader/Loader.h"
 #include <Tactility/service/gps/GpsService.h>
+#include <Tactility/service/gps/GpsState.h>
+#include "Tactility/service/loader/Loader.h"
 
 #include <cstring>
 #include <format>
@@ -34,13 +35,8 @@ class GpsSettingsApp final : public App {
     lv_obj_t* gpsConfigWrapper = nullptr;
     lv_obj_t* addGpsWrapper = nullptr;
     bool hasSetInfo = false;
-    PubSub::SubscriptionHandle serviceStateSubscription = nullptr;
+    PubSub<service::gps::State>::SubscriptionHandle serviceStateSubscription = nullptr;
     std::shared_ptr<service::gps::GpsService> service;
-
-    static void onServiceStateChangedCallback(const void* data, void* context) {
-        auto* app = (GpsSettingsApp*)context;
-        app->onServiceStateChanged();
-    }
 
     void onServiceStateChanged() {
         auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -313,7 +309,9 @@ public:
         lv_obj_set_style_pad_all(infoContainerWidget, 0, 0);
         hasSetInfo = false;
 
-        serviceStateSubscription = service->getStatePubsub()->subscribe(onServiceStateChangedCallback, this);
+        serviceStateSubscription = service->getStatePubsub()->subscribe([this](auto) {
+            onServiceStateChanged();
+        });
 
         gpsConfigWrapper = lv_obj_create(main_wrapper);
         lv_obj_set_size(gpsConfigWrapper, LV_PCT(100), LV_SIZE_CONTENT);

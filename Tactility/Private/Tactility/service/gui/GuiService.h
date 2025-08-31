@@ -1,14 +1,13 @@
 #pragma once
 
+#include <Tactility/app/AppContext.h>
 #include <Tactility/MessageQueue.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/service/Service.h>
-
-#include "Tactility/app/AppContext.h"
+#include <Tactility/service/loader/Loader.h>
 
 #include <cstdio>
-
 #include <lvgl.h>
 
 namespace tt::service::gui {
@@ -23,7 +22,7 @@ class GuiService : public Service {
     // Thread and lock
     Thread* thread = nullptr;
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    PubSub::SubscriptionHandle loader_pubsub_subscription = nullptr;
+    PubSub<loader::LoaderEvent>::SubscriptionHandle loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas
     lv_obj_t* appRootWidget = nullptr;
@@ -37,9 +36,9 @@ class GuiService : public Service {
 
     bool isStarted = false;
 
-    static void onLoaderMessage(const void* message, TT_UNUSED void* context);
-
     static int32_t guiMain();
+
+    void onLoaderEvent(loader::LoaderEvent event);
 
     lv_obj_t* createAppViews(lv_obj_t* parent);
 
