@@ -13,7 +13,6 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/TactilityHeadless.h>
 
 #include <cstring>
 #include <esp_wifi.h>

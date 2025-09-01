@@ -22,9 +22,7 @@ namespace tt {
  * interrupt that will write to the buffer (the writer), and only one task or
  * interrupt that will read from the buffer (the reader).
  */
-class StreamBuffer {
-
-private:
+class StreamBuffer final {
 
     struct StreamBufferHandleDeleter {
         void operator()(StreamBufferHandle_t handleToDelete) {

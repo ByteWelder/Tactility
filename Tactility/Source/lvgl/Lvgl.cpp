@@ -9,7 +9,6 @@
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/DisplaySettings.h>
-#include <Tactility/TactilityHeadless.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/lvgl/EspLvglPort.h>

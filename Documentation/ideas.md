@@ -2,19 +2,18 @@
 
 ## Higher Priority
 
-- Move Display settings from flash to `/data/apps/display/display.properties`
-- Expose app::Paths to TactilityC
-- Call tt::lvgl::isSyncSet after HAL init and show an error (and crash?) when it is not set.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
-- App packaging
-- Create more unit tests for `tactility-core`
-- Make a URL handler. Use it for handling local files. Match file types with apps.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
-- Refactor `PropertiesFile.cpp` to use `tt::file::readLines()` (see TODO in code)
-- Localize all apps
+  Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
+- Make a URL handler. Use it for handling local files. Match file types with apps.
+  Create some kind of "intent" handler like on Android.
+  The intent can have an action (e.g. view), a URL and an optional bundle.
+  The manifest can provide the intent handler
+- App packaging
 
 ## Lower Priority
 
+- Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Create more unit tests for `tactility`
 - Explore LVGL9's FreeRTOS functionality

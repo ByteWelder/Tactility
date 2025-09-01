@@ -8,8 +8,7 @@ namespace tt {
 /**
  * Wrapper for FreeRTOS xEventGroup.
  */
-class EventFlag {
-private:
+class EventFlag final {
 
     struct EventGroupHandleDeleter {
         void operator()(EventGroupHandle_t handleToDelete) {

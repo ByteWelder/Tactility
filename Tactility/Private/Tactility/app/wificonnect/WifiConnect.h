@@ -19,8 +19,10 @@ class WifiConnect : public App {
         .onConnectSsidContext = nullptr
     };
     View view = View(&bindings, &state);
-    PubSub::SubscriptionHandle wifiSubscription;
+    PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription;
     bool view_enabled = false;
+
+    void onWifiEvent(service::wifi::WifiEvent event);
 
 public:
 

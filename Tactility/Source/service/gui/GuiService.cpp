@@ -12,22 +12,16 @@ namespace tt::service::gui {
 
 extern const ServiceManifest manifest;
 
-constexpr const char* TAG = "gui";
+constexpr auto* TAG = "GuiService";
 
 // region AppManifest
 
-void GuiService::onLoaderMessage(const void* message, TT_UNUSED void* context) {
-    auto service = findService();
-    if (service == nullptr) {
-        return;
-    }
-
-    auto* event = static_cast<const loader::LoaderEvent*>(message);
-    if (event->type == loader::LoaderEventTypeApplicationShowing) {
+void GuiService::onLoaderEvent(loader::LoaderEvent event) {
+    if (event == loader::LoaderEvent::ApplicationShowing) {
         auto app_instance = app::getCurrentAppContext();
-        service->showApp(app_instance);
-    } else if (event->type == loader::LoaderEventTypeApplicationHiding) {
-        service->hideApp();
+        showApp(app_instance);
+    } else if (event == loader::LoaderEvent::ApplicationHiding) {
+        hideApp();
     }
 }
 
@@ -124,7 +118,12 @@ void GuiService::onStart(TT_UNUSED ServiceContext& service) {
         4096, // Last known minimum was 2800 for launching desktop
         []() { return guiMain(); }
     );
-    loader_pubsub_subscription = loader::getPubsub()->subscribe(&onLoaderMessage, nullptr);
+
+    loader_pubsub_subscription = loader::getPubsub()->subscribe([this](auto event) {
+        onLoaderEvent(event);
+    });
+
+
     tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     keyboardGroup = lv_group_create();
     auto* screen_root = lv_screen_active();
