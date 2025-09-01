@@ -1,13 +1,12 @@
-#include "Tactility/lvgl/LvglSync.h"
-#include "hal/TdeckDisplay.h"
-#include "hal/TdeckDisplayConstants.h"
-#include "hal/TdeckKeyboard.h"
-#include "hal/TdeckPower.h"
-#include "hal/TdeckSdCard.h"
-
 #include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
-#define TDECK_SPI_TRANSFER_SIZE_LIMIT (TDECK_LCD_HORIZONTAL_RESOLUTION * TDECK_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#include "devices/Display.h"
+#include "devices/Power.h"
+#include "devices/Sdcard.h"
+#include "devices/TdeckKeyboard.h"
+
+#define TDECK_SPI_TRANSFER_SIZE_LIMIT (320 * 240 * (LV_COLOR_DEPTH / 8))
 
 bool initBoot();
 
@@ -15,7 +14,7 @@ using namespace tt::hal;
 
 static std::vector<std::shared_ptr<Device>> createDevices() {
     return {
-        std::make_shared<TdeckPower>(),
+        createPower(),
         createDisplay(),
         std::make_shared<TdeckKeyboard>(),
         createSdCard()

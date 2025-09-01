@@ -2,8 +2,7 @@
 #include <Tactility/hal/i2c/I2c.h>
 #include <driver/i2c.h>
 
-#define TAG "tdeck_keyboard"
-
+constexpr auto* TAG = "TdeckKeyboard";
 constexpr auto TDECK_KEYBOARD_I2C_BUS_HANDLE = I2C_NUM_0;
 constexpr auto TDECK_KEYBOARD_SLAVE_ADDRESS = 0x55;
 
