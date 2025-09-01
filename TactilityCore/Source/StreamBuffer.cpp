@@ -5,7 +5,7 @@
 
 namespace tt {
 
-inline static StreamBufferHandle_t createStreamBuffer(size_t size, size_t triggerLevel) {
+static StreamBufferHandle_t createStreamBuffer(size_t size, size_t triggerLevel) {
     assert(size != 0);
     return xStreamBufferCreate(size, triggerLevel);
 }

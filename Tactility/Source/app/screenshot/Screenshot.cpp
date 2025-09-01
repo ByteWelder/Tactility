@@ -1,19 +1,18 @@
-#include "Tactility/TactilityConfig.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/TactilityConfig.h>
 
 #include <Tactility/Timer.h>
 #include <Tactility/kernel/Kernel.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "Tactility/app/App.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/screenshot/Screenshot.h"
+#include <Tactility/app/App.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/screenshot/Screenshot.h>
 
-#include <Tactility/TactilityHeadless.h>
-
-#define TAG "screenshot"
+constexpr auto* TAG = "Screenshot";
 
 namespace tt::app::screenshot {
 

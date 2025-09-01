@@ -15,7 +15,7 @@ Dispatcher::~Dispatcher() {
     mutex.unlock();
 }
 
-void Dispatcher::dispatch(Function function, TickType_t timeout) {
+bool Dispatcher::dispatch(Function function, TickType_t timeout) {
     // Mutate
     if (mutex.lock(timeout)) {
         queue.push(std::move(function));
@@ -25,8 +25,10 @@ void Dispatcher::dispatch(Function function, TickType_t timeout) {
         tt_check(mutex.unlock());
         // Signal
         eventFlag.set(WAIT_FLAG);
+        return true;
     } else {
         TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        return false;
     }
 }
 

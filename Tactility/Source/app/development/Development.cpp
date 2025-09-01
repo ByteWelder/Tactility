@@ -1,17 +1,19 @@
 #ifdef ESP_PLATFORM
 
+#include <Tactility/Tactility.h>
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/development/DevelopmentService.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/Timer.h>
 
 #include <cstring>
 #include <lvgl.h>
-#include <Tactility/service/development/DevelopmentSettings.h>
 
 namespace tt::app::development {
 
@@ -51,7 +53,10 @@ class DevelopmentApp final : public App {
             bool is_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
             bool is_changed = is_on != service::development::shouldEnableOnBoot();
             if (is_changed) {
-                service::development::setEnableOnBoot(is_on);
+                // Dispatch it, so file IO doesn't block the UI
+                getMainDispatcher().dispatch([is_on] {
+                    service::development::setEnableOnBoot(is_on);
+                });
             }
         }
     }

@@ -1,8 +1,9 @@
+#include <Tactility/Tactility.h>
+
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Assets.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 
@@ -139,7 +140,11 @@ public:
 
     void onHide(TT_UNUSED AppContext& app) override {
         if (displaySettingsUpdated) {
-            settings::display::save(displaySettings);
+            // Dispatch it, so file IO doesn't block the UI
+            const settings::display::DisplaySettings settings_to_save = displaySettings;
+            getMainDispatcher().dispatch([settings_to_save] {
+                settings::display::save(settings_to_save);
+            });
         }
     }
 };

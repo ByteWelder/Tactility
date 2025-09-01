@@ -3,7 +3,6 @@
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/app/AppRegistration.h"
 
-#include <Tactility/RtosCompat.h>
 #include <Tactility/DispatcherThread.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -11,7 +10,6 @@
 #include <stack>
 
 #ifdef ESP_PLATFORM
-#include <Tactility/TactilityHeadless.h>
 #include <esp_heap_caps.h>
 #include <utility>
 #else
@@ -20,8 +18,8 @@
 
 namespace tt::service::loader {
 
-#define TAG "loader"
-#define LOADER_TIMEOUT (100 / portTICK_PERIOD_MS)
+constexpr auto* TAG = "Loader";
+constexpr auto LOADER_TIMEOUT = (100 / portTICK_PERIOD_MS);
 
 extern const ServiceManifest manifest;
 
@@ -47,7 +45,7 @@ static const char* appStateToString(app::State state) {
 
 class LoaderService final : public Service {
 
-    std::shared_ptr<PubSub> pubsubExternal = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub<LoaderEvent>> pubsubExternal = std::make_shared<PubSub<LoaderEvent>>();
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::stack<std::shared_ptr<app::AppInstance>> appStack;
     app::LaunchId nextLaunchId = 0;
@@ -64,13 +62,13 @@ class LoaderService final : public Service {
 
 public:
 
-    void onStart(TT_UNUSED ServiceContext& service) final {
+    void onStart(TT_UNUSED ServiceContext& service) override {
         dispatcherThread->start();
     }
 
-    void onStop(TT_UNUSED ServiceContext& service) final {
+    void onStop(TT_UNUSED ServiceContext& service) override {
         // Send stop signal to thread and wait for thread to finish
-        mutex.withLock([this]() {
+        mutex.withLock([this] {
             dispatcherThread->stop();
         });
     }
@@ -79,7 +77,7 @@ public:
     void stopApp();
     std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
 
-    std::shared_ptr<PubSub> getPubsub() const { return pubsubExternal; }
+    std::shared_ptr<PubSub<LoaderEvent>> getPubsub() const { return pubsubExternal; }
 };
 
 std::shared_ptr<LoaderService> _Nullable optScreenshotService() {
@@ -117,8 +115,7 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
 
     transitionAppToState(new_app, app::State::Showing);
 
-    LoaderEvent event_external = { .type = LoaderEventTypeApplicationStarted };
-    pubsubExternal->publish(&event_external);
+    pubsubExternal->publish(LoaderEvent::ApplicationStarted);
 }
 
 void LoaderService::onStopAppMessage(const std::string& id) {
@@ -188,8 +185,7 @@ void LoaderService::onStopAppMessage(const std::string& id) {
     lock.unlock();
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
 
-    LoaderEvent event_external = { .type = LoaderEventTypeApplicationStopped };
-    pubsubExternal->publish(&event_external);
+    pubsubExternal->publish(LoaderEvent::ApplicationStopped);
 
     if (instance_to_resume != nullptr) {
         if (result_set) {
@@ -240,13 +236,11 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
             app->getApp()->onCreate(*app);
             break;
         case Showing: {
-            LoaderEvent event_showing = { .type = LoaderEventTypeApplicationShowing };
-            pubsubExternal->publish(&event_showing);
+            pubsubExternal->publish(LoaderEvent::ApplicationShowing);
             break;
         }
         case Hiding: {
-            LoaderEvent event_hiding = { .type = LoaderEventTypeApplicationHiding };
-            pubsubExternal->publish(&event_hiding);
+            pubsubExternal->publish(LoaderEvent::ApplicationHiding);
             break;
         }
         case Stopped:
@@ -307,7 +301,7 @@ std::shared_ptr<app::App> _Nullable getCurrentApp() {
     return app_context != nullptr ? app_context->getApp() : nullptr;
 }
 
-std::shared_ptr<PubSub> getPubsub() {
+std::shared_ptr<PubSub<LoaderEvent>> getPubsub() {
     auto service = optScreenshotService();
     assert(service);
     return service->getPubsub();

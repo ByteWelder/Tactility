@@ -22,7 +22,7 @@ struct Wifi {
     /** @brief Locking mechanism for modifying the Wifi instance */
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     /** @brief The public event bus */
-    std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();
     /** @brief The internal message queue */
     bool scan_active = false;
     bool secure_connection = false;
@@ -34,16 +34,15 @@ static Wifi* wifi = nullptr;
 
 // region Static
 
-static void publish_event_simple(Wifi* wifi, EventType type) {
-    Event turning_on_event = { .type = type };
-    wifi->pubsub->publish(&turning_on_event);
+static void publish_event(WifiEvent event) {
+    wifi->pubsub->publish(event);
 }
 
 // endregion Static
 
 // region Public functions
 
-std::shared_ptr<PubSub> getPubsub() {
+std::shared_ptr<PubSub<WifiEvent>> getPubsub() {
     assert(wifi);
     return wifi->pubsub;
 }

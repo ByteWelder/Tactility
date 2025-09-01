@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Tactility/hal/sdcard/SdCardDevice.h"
-#include "Tactility/hal/spi/Spi.h"
-#include "Tactility/hal/uart/Uart.h"
+#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/hal/spi/Spi.h>
+#include <Tactility/hal/uart/Uart.h>
 #include "i2c/I2c.h"
 
 namespace tt::hal {

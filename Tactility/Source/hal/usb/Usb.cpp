@@ -1,17 +1,15 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/usb/Usb.h"
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/hal/sdcard/SpiSdCardDevice.h"
-#include "Tactility/hal/usb/UsbTusb.h"
+#include <Tactility/hal/usb/Usb.h>
+#include <Tactility/hal/sdcard/SpiSdCardDevice.h>
+#include <Tactility/hal/usb/UsbTusb.h>
 
 #include <Tactility/Log.h>
 
 namespace tt::hal::usb {
 
-#define TAG "usb"
-
-#define BOOT_FLAG 42
+constexpr auto* TAG = "usb";
+constexpr auto BOOT_FLAG = 42;
 
 struct BootMode {
     uint32_t flag = 0;

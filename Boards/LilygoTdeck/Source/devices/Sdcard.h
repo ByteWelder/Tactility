@@ -4,4 +4,4 @@
 
 using tt::hal::sdcard::SdCardDevice;
 
-std::shared_ptr<SdCardDevice> createTdeckSdCard();
+std::shared_ptr<SdCardDevice> createSdCard();

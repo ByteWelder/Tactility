@@ -5,11 +5,11 @@
 namespace tt {
 
 /** Starts a Thread to process dispatched messages */
-class DispatcherThread {
+class DispatcherThread final {
 
     Dispatcher dispatcher;
     std::unique_ptr<Thread> thread;
-    bool interruptThread = false;
+    bool interruptThread = true;
 
     int32_t threadMain();
 
@@ -21,13 +21,16 @@ public:
     /**
      * Dispatch a message.
      */
-    void dispatch(Dispatcher::Function function, TickType_t timeout = portMAX_DELAY);
+    bool dispatch(Dispatcher::Function function, TickType_t timeout = portMAX_DELAY);
 
     /** Start the thread (blocking). */
     void start();
 
     /** Stop the thread (blocking). */
     void stop();
+
+    /** @return true of the thread is started */
+    bool isStarted() const { return thread != nullptr && !interruptThread; }
 };
 
 }

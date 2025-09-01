@@ -1,6 +1,4 @@
-#include "Tactility/app/wificonnect/State.h"
-
-#include <cstring>
+#include <Tactility/app/wificonnect/State.h>
 
 namespace tt::app::wificonnect {
 

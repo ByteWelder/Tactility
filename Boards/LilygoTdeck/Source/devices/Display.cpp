@@ -1,13 +1,15 @@
-#include "TdeckDisplay.h"
-#include "TdeckDisplayConstants.h"
+#include "Display.h"
 
 #include <Gt911Touch.h>
 #include <PwmBacklight.h>
 #include <St7789Display.h>
 
-#include <driver/spi_master.h>
-
-#define TAG "tdeck_display"
+#define TDECK_LCD_SPI_HOST SPI2_HOST
+#define TDECK_LCD_PIN_CS GPIO_NUM_12
+#define TDECK_LCD_PIN_DC GPIO_NUM_11 // RS
+#define TDECK_LCD_HORIZONTAL_RESOLUTION 320
+#define TDECK_LCD_VERTICAL_RESOLUTION 240
+#define TDECK_LCD_SPI_TRANSFER_HEIGHT (TDECK_LCD_VERTICAL_RESOLUTION / 10)
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
