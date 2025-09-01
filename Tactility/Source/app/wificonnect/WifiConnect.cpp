@@ -1,15 +1,15 @@
-#include "Tactility/app/wificonnect/WifiConnect.h"
+#include <Tactility/app/wificonnect/WifiConnect.h>
 
-#include "Tactility/app/AppContext.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/service/wifi/Wifi.h"
-#include "Tactility/lvgl/LvglSync.h"
+#include <Tactility/app/AppContext.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 namespace tt::app::wificonnect {
 
-constexpr auto TAG = "WifiConnect";
-constexpr auto WIFI_CONNECT_PARAM_SSID = "ssid"; // String
-constexpr auto WIFI_CONNECT_PARAM_PASSWORD = "password"; // String
+constexpr auto* TAG = "WifiConnect";
+constexpr auto* WIFI_CONNECT_PARAM_SSID = "ssid"; // String
+constexpr auto* WIFI_CONNECT_PARAM_PASSWORD = "password"; // String
 
 extern const AppManifest manifest;
 

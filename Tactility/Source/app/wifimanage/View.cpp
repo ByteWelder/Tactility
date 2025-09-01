@@ -17,7 +17,7 @@
 
 namespace tt::app::wifimanage {
 
-constexpr auto* TAG = "WifiMainView";
+constexpr auto* TAG = "WifiManageView";
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
 
