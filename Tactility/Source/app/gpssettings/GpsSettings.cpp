@@ -1,13 +1,13 @@
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/Timer.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/alertdialog/AlertDialog.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/gps/GpsUtil.h"
+#include <Tactility/Tactility.h>
+
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/gps/GpsState.h>
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/Timer.h>
 
 #include <cstring>
 #include <format>

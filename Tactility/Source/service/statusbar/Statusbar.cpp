@@ -6,7 +6,6 @@
 #include "Tactility/service/gps/GpsService.h"
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
-#include <Tactility/TactilityHeadless.h>
 #include <Tactility/Timer.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -14,7 +13,7 @@
 
 namespace tt::service::statusbar {
 
-#define TAG "statusbar_service"
+constexpr auto* TAG = "StatusbarService";
 
 // SD card status
 #define STATUSBAR_ICON_SDCARD "sdcard.png"

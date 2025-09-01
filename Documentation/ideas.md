@@ -3,10 +3,13 @@
 ## Higher Priority
 
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
-- App packaging
-- Make a URL handler. Use it for handling local files. Match file types with apps.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
   Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
+- Make a URL handler. Use it for handling local files. Match file types with apps.
+  Create some kind of "intent" handler like on Android.
+  The intent can have an action (e.g. view), a URL and an optional bundle.
+  The manifest can provide the intent handler
+- App packaging
 
 ## Lower Priority
 

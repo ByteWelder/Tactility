@@ -1,14 +1,14 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/service/wifi/Wifi.h"
+#include <Tactility/service/wifi/Wifi.h>
 
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/service/ServiceContext.h"
-#include "Tactility/service/wifi/WifiGlobals.h"
-#include "Tactility/service/wifi/WifiSettings.h"
-#include "Tactility/service/wifi/WifiBootSplashInit.h"
-
+#include <Tactility/EventFlag.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/wifi/WifiGlobals.h>
+#include <Tactility/service/wifi/WifiSettings.h>
+#include <Tactility/service/wifi/WifiBootSplashInit.h>
 #include <Tactility/Timer.h>
 
 #include <lwip/esp_netif_net_stack.h>
@@ -19,10 +19,10 @@
 
 namespace tt::service::wifi {
 
-#define TAG "wifi_service"
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT BIT1
-#define AUTO_SCAN_INTERVAL 10000 // ms
+constexpr auto* TAG = "WifiService";
+constexpr auto WIFI_CONNECTED_BIT = BIT0;
+constexpr auto WIFI_FAIL_BIT = BIT1;
+constexpr auto AUTO_SCAN_INTERVAL = 10000; // ms
 
 // Forward declarations
 class Wifi;

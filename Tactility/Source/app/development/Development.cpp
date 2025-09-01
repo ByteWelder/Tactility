@@ -1,19 +1,19 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/TactilityHeadless.h"
+#include <Tactility/Tactility.h>
 
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/development/DevelopmentService.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/Timer.h>
 
 #include <cstring>
 #include <lvgl.h>
-#include <Tactility/service/development/DevelopmentSettings.h>
 
 namespace tt::app::development {
 

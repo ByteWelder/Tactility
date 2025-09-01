@@ -3,7 +3,6 @@
 #include "Tactility/app/AppManifest.h"
 #include "Tactility/app/AppRegistration.h"
 
-#include <Tactility/RtosCompat.h>
 #include <Tactility/DispatcherThread.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -11,7 +10,6 @@
 #include <stack>
 
 #ifdef ESP_PLATFORM
-#include <Tactility/TactilityHeadless.h>
 #include <esp_heap_caps.h>
 #include <utility>
 #else
@@ -20,8 +18,8 @@
 
 namespace tt::service::loader {
 
-#define TAG "loader"
-#define LOADER_TIMEOUT (100 / portTICK_PERIOD_MS)
+constexpr auto* TAG = "Loader";
+constexpr auto LOADER_TIMEOUT = (100 / portTICK_PERIOD_MS);
 
 extern const ServiceManifest manifest;
 

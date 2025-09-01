@@ -32,7 +32,7 @@ class BootApp : public App {
 
     Thread thread = Thread(
         "boot",
-        4096,
+        5120,
         [] { return bootThreadCallback(); },
         getCpuAffinityConfiguration().system
     );

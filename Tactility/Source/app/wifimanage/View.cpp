@@ -1,11 +1,11 @@
-#include "Tactility/app/wifimanage/View.h"
+#include <Tactility/app/wifimanage/View.h>
 
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/app/wifimanage/WifiManagePrivate.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/Spinner.h"
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/Spinner.h>
 
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
@@ -17,7 +17,7 @@
 
 namespace tt::app::wifimanage {
 
-#define TAG "wifi_main_view"
+constexpr auto* TAG = "WifiMainView";
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
 

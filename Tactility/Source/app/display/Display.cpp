@@ -1,10 +1,9 @@
-#include "Tactility/TactilityHeadless.h"
+#include <Tactility/Tactility.h>
 
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Assets.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 
