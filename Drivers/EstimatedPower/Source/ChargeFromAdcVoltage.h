@@ -7,6 +7,7 @@ class ChargeFromAdcVoltage {
 public:
 
     struct Configuration {
+        adc_channel_t adcChannel = ADC_CHANNEL_3;
         float adcMultiplier = 1.0f;
         float adcRefVoltage = 3.3f;
         float batteryVoltageMin = 3.2f;
@@ -35,7 +36,7 @@ public:
 
     uint8_t estimateChargeLevelFromVoltage(uint32_t milliVolt) const;
 
-    bool readBatteryVoltageSampled(uint32_t& output);
+    bool readBatteryVoltageSampled(uint32_t& output) const;
 
-    bool readBatteryVoltageOnce(uint32_t& output);
+    bool readBatteryVoltageOnce(uint32_t& output) const;
 };
