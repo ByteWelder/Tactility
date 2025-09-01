@@ -2,8 +2,6 @@
 
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
 #include <Tactility/TactilityCore.h>
-#include <esp_lcd_panel_io_interface.h>
-#include <esp_lcd_touch.h>
 
 class TdeckKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 
@@ -19,5 +17,3 @@ public:
     bool isAttached() const override;
     lv_indev_t* _Nullable getLvglIndev() override { return deviceHandle; }
 };
-
-std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard();

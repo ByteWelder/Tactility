@@ -11,15 +11,11 @@ namespace tt::service::loader {
 
 // region LoaderEvent for PubSub
 
-typedef enum {
-    LoaderEventTypeApplicationStarted,
-    LoaderEventTypeApplicationShowing,
-    LoaderEventTypeApplicationHiding,
-    LoaderEventTypeApplicationStopped
-} LoaderEventType;
-
-struct LoaderEvent {
-    LoaderEventType type;
+enum class LoaderEvent{
+    ApplicationStarted,
+    ApplicationShowing,
+    ApplicationHiding,
+    ApplicationStopped
 };
 
 // endregion LoaderEvent for PubSub
@@ -43,6 +39,6 @@ std::shared_ptr<app::App> _Nullable getCurrentApp();
 /**
  * @brief PubSub for LoaderEvent
  */
-std::shared_ptr<PubSub> getPubsub();
+std::shared_ptr<PubSub<LoaderEvent>> getPubsub();
 
 } // namespace

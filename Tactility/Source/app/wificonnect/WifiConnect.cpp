@@ -1,40 +1,17 @@
-#include "Tactility/app/wificonnect/WifiConnect.h"
+#include <Tactility/app/wificonnect/WifiConnect.h>
 
-#include "Tactility/app/AppContext.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/service/wifi/Wifi.h"
-#include "Tactility/lvgl/LvglSync.h"
+#include <Tactility/app/AppContext.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 namespace tt::app::wificonnect {
-#define TAG "wifi_connect"
-#define WIFI_CONNECT_PARAM_SSID "ssid" // String
-#define WIFI_CONNECT_PARAM_PASSWORD "password" // String
+
+constexpr auto* TAG = "WifiConnect";
+constexpr auto* WIFI_CONNECT_PARAM_SSID = "ssid"; // String
+constexpr auto* WIFI_CONNECT_PARAM_PASSWORD = "password"; // String
 
 extern const AppManifest manifest;
-
-static void eventCallback(const void* message, void* context) {
-    auto* event = static_cast<const service::wifi::Event*>(message);
-    auto* wifi = static_cast<WifiConnect*>(context);
-    State& state = wifi->getState();
-    switch (event->type) {
-        case service::wifi::EventType::ConnectionFailed:
-            if (state.isConnecting()) {
-                state.setConnecting(false);
-                state.setConnectionError(true);
-                wifi->requestViewUpdate();
-            }
-            break;
-        case service::wifi::EventType::ConnectionSuccess:
-            if (wifi->getState().isConnecting()) {
-                state.setConnecting(false);
-                service::loader::stopApp();
-            }
-            break;
-        default:
-            break;
-    }
-    wifi->requestViewUpdate();
-}
 
 static void onConnect(const service::wifi::settings::WifiApSettings& ap_settings, bool remember, TT_UNUSED void* parameter) {
     auto* wifi = static_cast<WifiConnect*>(parameter);
@@ -43,8 +20,33 @@ static void onConnect(const service::wifi::settings::WifiApSettings& ap_settings
     service::wifi::connect(ap_settings, remember);
 }
 
+void WifiConnect::onWifiEvent(service::wifi::WifiEvent event) {
+    State& state = getState();
+    switch (event) {
+        case service::wifi::WifiEvent::ConnectionFailed:
+            if (state.isConnecting()) {
+                state.setConnecting(false);
+                state.setConnectionError(true);
+                requestViewUpdate();
+            }
+            break;
+        case service::wifi::WifiEvent::ConnectionSuccess:
+            if (getState().isConnecting()) {
+                state.setConnecting(false);
+                service::loader::stopApp();
+            }
+            break;
+        default:
+            break;
+    }
+    requestViewUpdate();
+}
+
 WifiConnect::WifiConnect() {
-    wifiSubscription = service::wifi::getPubsub()->subscribe(&eventCallback, this);
+    wifiSubscription = service::wifi::getPubsub()->subscribe([this](auto event)  {
+        onWifiEvent(event);
+    });
+
     bindings = (Bindings) {
         .onConnectSsid = onConnect,
         .onConnectSsidContext = this,

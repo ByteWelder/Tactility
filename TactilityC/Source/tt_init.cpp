@@ -119,6 +119,8 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_get_result_index),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_get_result_index),
+    ESP_ELFSYM_EXPORT(tt_app_get_data_directory),
+    ESP_ELFSYM_EXPORT(tt_app_get_data_directory_lvgl),
     ESP_ELFSYM_EXPORT(tt_bundle_alloc),
     ESP_ELFSYM_EXPORT(tt_bundle_free),
     ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),

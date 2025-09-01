@@ -1,9 +1,11 @@
-#include "Tactility/app/wifimanage/View.h"
-#include "Tactility/app/wifimanage/WifiManagePrivate.h"
+#include <Tactility/app/wifimanage/View.h>
 
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/Spinner.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/app/wifimanage/WifiManagePrivate.h>
+
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/Spinner.h>
 
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
@@ -15,7 +17,7 @@
 
 namespace tt::app::wifimanage {
 
-#define TAG "wifi_main_view"
+constexpr auto* TAG = "WifiManageView";
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
 
@@ -49,7 +51,10 @@ static void on_enable_on_boot_switch_changed(lv_event_t* event) {
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
     if (code == LV_EVENT_VALUE_CHANGED) {
         bool is_on = lv_obj_has_state(enable_switch, LV_STATE_CHECKED);
-        service::wifi::settings::setEnableOnBoot(is_on);
+        // Dispatch it, so file IO doesn't block the UI
+        getMainDispatcher().dispatch([is_on] {
+            service::wifi::settings::setEnableOnBoot(is_on);
+        });
     }
 }
 

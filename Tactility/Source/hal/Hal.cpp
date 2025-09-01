@@ -1,3 +1,4 @@
+#include "Tactility/Tactility.h"
 #include "Tactility/hal/Configuration.h"
 #include "Tactility/hal/Device.h"
 #include "Tactility/hal/gps/GpsInit.h"
@@ -10,7 +11,7 @@
 
 namespace tt::hal {
 
-constexpr auto* TAG = "hal";
+constexpr auto* TAG = "Hal";
 
 void registerDevices(const Configuration& configuration) {
     TT_LOG_I(TAG, "Registering devices");
@@ -60,6 +61,10 @@ void init(const Configuration& configuration) {
     registerDevices(configuration);
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
+}
+
+const Configuration* getConfiguration() {
+    return tt::getConfiguration()->hardware;
 }
 
 } // namespace

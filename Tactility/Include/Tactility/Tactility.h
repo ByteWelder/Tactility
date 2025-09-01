@@ -1,13 +1,13 @@
 #pragma once
 
-#include "Tactility/app/AppManifest.h"
-
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/Dispatcher.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/service/ServiceManifest.h>
 
 namespace tt {
 
-namespace app::launcher { extern const app::AppManifest manifest; }
+namespace app::launcher { extern const AppManifest manifest; }
 
 /** @brief The configuration for the operating system
  * It contains the hardware configuration, apps and services
@@ -32,5 +32,8 @@ void run(const Configuration& config);
  * @return the Configuration instance that was passed on to tt_init() if init is successful
  */
 const Configuration* _Nullable getConfiguration();
+
+
+Dispatcher& getMainDispatcher();
 
 } // namespace

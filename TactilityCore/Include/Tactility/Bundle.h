@@ -13,9 +13,7 @@ namespace tt {
 /**
  * A dictionary that maps keys (strings) onto several atomary types.
  */
-class Bundle {
-
-private:
+class Bundle final {
 
     typedef uint32_t Hash;
 
