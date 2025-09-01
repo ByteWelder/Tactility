@@ -1,5 +1,7 @@
 #ifdef ESP_PLATFORM
 
+#include "Tactility/TactilityHeadless.h"
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
@@ -51,7 +53,10 @@ class DevelopmentApp final : public App {
             bool is_on = lv_obj_has_state(widget, LV_STATE_CHECKED);
             bool is_changed = is_on != service::development::shouldEnableOnBoot();
             if (is_changed) {
-                service::development::setEnableOnBoot(is_on);
+                // Dispatch it, so file IO doesn't block the UI
+                getMainDispatcher().dispatch([is_on] {
+                    service::development::setEnableOnBoot(is_on);
+                });
             }
         }
     }
