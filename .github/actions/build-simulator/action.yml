@@ -1,40 +1,56 @@
 name: Build
 
 inputs:
-  board_id:
-    description: The sdkconfig file to build
+  os_name:
+    description: A descriptive name for the operating system (e.g. linux, windows)
     required: true
-  arch:
-    description: The ESP32 SOC variant
+  platform_name:
+    description: A descriptive name for the target platform (e.g. amd64, aarch64, etc.)
+    required: true
+  publish:
+    description: A boolean that enables publishing of artifacts
     required: true
 
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - name: "Checkout repo"
+      uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: 'Board select'
+    - name: Install Linux Dependencies for SDL
+      if: ${{ runner.os == 'Linux' }}
       shell: bash
-      run: cp sdkconfig.board.${{ inputs.board_id }} sdkconfig
-    - name: 'Build'
-      uses: espressif/esp-idf-ci-action@v1
-      with:
-        esp_idf_version: v5.5
-        target: ${{ inputs.arch }}
-        path: './'
+      # See Libraries/SDL/docs/README-linux.md
+      run: >
+        sudo apt-get update && 
+        sudo apt-get install build-essential git make
+        pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev
+        libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev
+        libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev
+        libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
+        libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev
+        libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+      env:
+        WLR_BACKENDS: headless
+        WLR_LIBINPUT_NO_DEVICES: 1
+        WAYLAND_DISPLAY: wayland-1
+        GTK_USE_PORTAL: 0
+    - name: "Configure Project"
+      uses: threeal/cmake-action@v1.3.0
+    - name: "Prepare Project"
+      shell: bash
+      run: cmake -S ./ -B buildsim
+    - name: "Build Tests"
+      shell: bash
+      run: cmake --build buildsim --target AppSim
     - name: 'Release'
       shell: bash
-      run: Buildscripts/release.sh ${{ inputs.board_id }}
-    - name: 'Upload Artifact: Release'
+      run: Buildscripts/release-simulator.sh buildsim release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+    - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
+      if: ${{ inputs.publish == 'true' }}
       with:
-        name: Tactility-${{ inputs.board_id }}
-        path: release/Tactility-${{ inputs.board_id }}
-        retention-days: 30
-    - name: 'Upload Artifact: Release symbols'
-      uses: actions/upload-artifact@v4
-      with:
-        name: Tactility-${{ inputs.board_id }}-symbols
-        path: release/Tactility-${{ inputs.board_id }}-symbols
+        name: Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+        path: release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
         retention-days: 30
