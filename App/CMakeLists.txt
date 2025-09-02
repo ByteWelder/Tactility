@@ -25,7 +25,6 @@ else ()
 
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
-
     target_link_libraries(AppSim
         PRIVATE Tactility
         PRIVATE TactilityCore
