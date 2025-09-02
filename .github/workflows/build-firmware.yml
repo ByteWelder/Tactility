@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - CYD-E32R28T-only
   pull_request:
     types: [opened, synchronize, reopened]
 
