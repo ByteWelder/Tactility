@@ -1,12 +1,12 @@
-#include "CoreS3Display.h"
-#include "CoreS3Constants.h"
+#include "Display.h"
 
+#include <Axp2101.h>
 #include <Ft5x06Touch.h>
 #include <Ili934xDisplay.h>
 #include <Tactility/Log.h>
 #include <Tactility/hal/i2c/I2c.h>
 
-constexpr auto TAG = "CoreS3Display";
+constexpr auto* TAG = "CoreS3Display";
 
 static void setBacklightDuty(uint8_t backlightDuty) {
     const uint8_t voltage = 20 + ((8 * backlightDuty) / 255); // [0b00000, 0b11100] - under 20 is too dark

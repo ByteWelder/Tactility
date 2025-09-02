@@ -1,9 +1,7 @@
-#include "CoreS3SdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
-
-#include <esp_vfs_fat.h>
 
 constexpr auto CORES3_SDCARD_PIN_CS = GPIO_NUM_4;
 constexpr auto CORES3_LCD_PIN_CS = GPIO_NUM_3;

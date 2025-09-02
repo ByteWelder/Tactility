@@ -1,10 +1,9 @@
 #include "M5stackCoreS3.h"
 #include "InitBoot.h"
-#include "hal/CoreS3Display.h"
-#include "hal/CoreS3DisplayConstants.h"
-#include "hal/CoreS3Power.h"
-#include "hal/CoreS3SdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
+#include <Axp2101Power.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/uart/Uart.h>
 
@@ -12,11 +11,19 @@
 
 using namespace tt::hal;
 
+static DeviceVector createDevices() {
+    return {
+        axp2101,
+        aw9523,
+        std::make_shared<Axp2101Power>(axp2101),
+        createSdCard(),
+        createDisplay()
+    };
+}
+
 const Configuration m5stack_cores3 = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = createPower,
+    .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
             .name = "Internal",

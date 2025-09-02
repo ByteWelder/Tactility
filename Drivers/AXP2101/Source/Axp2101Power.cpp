@@ -1,6 +1,6 @@
-#include "CoreS3Power.h"
+#include "Axp2101Power.h"
 
-bool CoreS3Power::supportsMetric(MetricType type) const {
+bool Axp2101Power::supportsMetric(MetricType type) const {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -14,7 +14,7 @@ bool CoreS3Power::supportsMetric(MetricType type) const {
     return false; // Safety guard for when new enum values are introduced
 }
 
-bool CoreS3Power::getMetric(MetricType type, MetricData& data) {
+bool Axp2101Power::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage: {
@@ -57,7 +57,7 @@ bool CoreS3Power::getMetric(MetricType type, MetricData& data) {
     }
 }
 
-bool CoreS3Power::isAllowedToCharge() const {
+bool Axp2101Power::isAllowedToCharge() const {
     bool enabled;
     if (axpDevice->isChargingEnabled(enabled)) {
         return enabled;
@@ -66,17 +66,6 @@ bool CoreS3Power::isAllowedToCharge() const {
     }
 }
 
-void CoreS3Power::setAllowedToCharge(bool canCharge) {
+void Axp2101Power::setAllowedToCharge(bool canCharge) {
     axpDevice->setChargingEnabled(canCharge);
-}
-
-static std::shared_ptr<PowerDevice> power;
-extern std::shared_ptr<Axp2101> axp2101;
-
-std::shared_ptr<PowerDevice> createPower() {
-    if (power == nullptr) {
-        power = std::make_shared<CoreS3Power>(axp2101);
-    }
-
-    return power;
 }

@@ -7,17 +7,17 @@
 
 using tt::hal::power::PowerDevice;
 
-class CoreS3Power final : public PowerDevice {
+class Axp2101Power final : public PowerDevice {
 
     std::shared_ptr<Axp2101> axpDevice;
 
 public:
 
-    explicit CoreS3Power(std::shared_ptr<Axp2101> axp) : axpDevice(std::move(axp)) {}
-    ~CoreS3Power() override = default;
+    explicit Axp2101Power(std::shared_ptr<Axp2101> axp) : axpDevice(std::move(axp)) {}
+    ~Axp2101Power() override = default;
 
-    std::string getName() const final { return "AXP2101 Power"; }
-    std::string getDescription() const final { return "Power management via I2C"; }
+    std::string getName() const override { return "AXP2101 Power"; }
+    std::string getDescription() const override { return "Power management via AXP2101 over I2C"; }
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(MetricType type, MetricData& data) override;
@@ -26,5 +26,3 @@ public:
     bool isAllowedToCharge() const override;
     void setAllowedToCharge(bool canCharge) override;
 };
-
-std::shared_ptr<PowerDevice> createPower();
