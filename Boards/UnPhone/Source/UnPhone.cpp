@@ -7,7 +7,7 @@
 
 #define UNPHONE_SPI_TRANSFER_SIZE_LIMIT (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_SPI_TRANSFER_HEIGHT * LV_COLOR_DEPTH / 8)
 
-bool unPhoneInitPower();
+bool initBoot();
 
 static tt::hal::DeviceVector createDevices() {
     return {
@@ -18,7 +18,7 @@ static tt::hal::DeviceVector createDevices() {
 }
 
 extern const tt::hal::Configuration unPhone = {
-    .initBoot = unPhoneInitPower,
+    .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {
         tt::hal::i2c::Configuration {

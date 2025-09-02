@@ -182,7 +182,7 @@ static bool unPhonePowerOn() {
     return true;
 }
 
-bool unPhoneInitPower() {
+bool initBoot() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
 
     if (!unPhonePowerOn()) {
