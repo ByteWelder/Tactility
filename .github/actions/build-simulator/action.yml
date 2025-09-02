@@ -24,29 +24,57 @@ runs:
       # See Libraries/SDL/docs/README-linux.md
       run: >
         sudo apt-get update && 
-        sudo apt-get install build-essential git make
+        sudo apt-get install -y build-essential git make
         pkg-config cmake ninja-build gnome-desktop-testing libasound2-dev libpulse-dev
         libaudio-dev libjack-dev libsndio-dev libx11-dev libxext-dev
         libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev
         libxkbcommon-dev libdrm-dev libgbm-dev libgl1-mesa-dev libgles2-mesa-dev
         libegl1-mesa-dev libdbus-1-dev libibus-1.0-dev libudev-dev fcitx-libs-dev
-        libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev
+        libpipewire-0.3-dev libwayland-dev libdecor-0-dev liburing-dev ccache
       env:
         WLR_BACKENDS: headless
         WLR_LIBINPUT_NO_DEVICES: 1
         WAYLAND_DISPLAY: wayland-1
         GTK_USE_PORTAL: 0
+
+    # Prepare and Cache ccache
+    - name: 'Prepare and Cache ccache'
+      shell: bash
+      run: |
+        mkdir -p $HOME/.ccache-simulator
+        touch $HOME/.ccache-simulator/.dummy
+        
+    - uses: actions/cache@v3
+      with:
+        path: $HOME/.ccache-simulator
+        key: ${{ runner.os }}-ccache-simulator
+        restore-keys: |
+          ${{ runner.os }}-ccache-simulator
+
+    # Enable ccache
+    - name: 'Enable ccache'
+      shell: bash
+      run: |
+        export CCACHE_DIR=$HOME/.ccache-simulator
+        export CC="ccache gcc"
+        export CXX="ccache g++"
+        echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+
     - name: "Configure Project"
       uses: threeal/cmake-action@v1.3.0
+
     - name: "Prepare Project"
       shell: bash
       run: cmake -S ./ -B buildsim
+
     - name: "Build Tests"
       shell: bash
       run: cmake --build buildsim --target AppSim
+
     - name: 'Release'
       shell: bash
       run: Buildscripts/release-simulator.sh buildsim release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}
+
     - name: 'Upload Artifact'
       uses: actions/upload-artifact@v4
       if: ${{ inputs.publish == 'true' }}

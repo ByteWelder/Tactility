@@ -9,13 +9,23 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRC_DIRS "Source"
         "Source/HelloWorld"
+        "Source/Clock"
+        "Source/TactilityNews"
+        "Source/TactileWeb"
+        "Source/TactileWeb/html2text"
+        "Source/Tactiligotchi"
+        INCLUDE_DIRS 
+        "." 
+        "../Libraries/lvgl/src"
+        "../Libraries/lvgl/src/misc"
         REQUIRES ${BOARD_COMPONENTS}
-        REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
+        REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT} esp_http_client json
     )
 else ()
 
     file(GLOB_RECURSE SOURCES "Source/*.c*")
     add_executable(AppSim ${SOURCES})
+
     target_link_libraries(AppSim
         PRIVATE Tactility
         PRIVATE TactilityCore

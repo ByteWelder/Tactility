@@ -1,7 +1,6 @@
 #include "YellowSdCard.h"
-#include "YellowConstants.h"
+#include "YellowDisplayConstants.h"
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
@@ -17,10 +16,7 @@ std::shared_ptr<SdCardDevice> createYellowSdCard() {
         CYD2432S028R_SDCARD_SPI_HOST
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    return std::shared_ptr<SdCardDevice>(
+        new SpiSdCardDevice(std::unique_ptr<SpiSdCardDevice::Config>(configuration))
     );
-
-    return std::shared_ptr<SdCardDevice>(sdcard);
 }
-
