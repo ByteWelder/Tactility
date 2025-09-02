@@ -4,4 +4,4 @@
 
 using tt::hal::sdcard::SdCardDevice;
 
-std::shared_ptr<SdCardDevice> createUnPhoneSdCard();
+std::shared_ptr<SdCardDevice> createSdCard();

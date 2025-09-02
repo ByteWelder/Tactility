@@ -18,14 +18,11 @@ class Xpt2046Power : public PowerDevice {
 
 public:
 
-    ~Xpt2046Power() = default;
+    ~Xpt2046Power() override = default;
 
     std::string getName() const final { return "XPT2046 Power Measurement"; }
     std::string getDescription() const final { return "Power interface via XPT2046 voltage measurement"; }
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(MetricType type, MetricData& data) override;
-
 };
-
-std::shared_ptr<PowerDevice> getOrCreatePower();

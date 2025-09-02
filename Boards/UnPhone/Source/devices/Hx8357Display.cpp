@@ -1,20 +1,18 @@
-#include "UnPhoneDisplay.h"
-#include "UnPhoneDisplayConstants.h"
-#include "UnPhoneTouch.h"
-#include "UnPhoneFeatures.h"
+#include "Hx8357Display.h"
+#include "Touch.h"
 
+#include <UnPhoneFeatures.h>
 #include <Tactility/Log.h>
 
-#include <esp_err.h>
 #include <hx8357/disp_spi.h>
 #include <hx8357/hx8357.h>
 
-constexpr auto TAG = "UnPhoneDisplay";
+constexpr auto TAG = "Hx8357Display";
 constexpr auto BUFFER_SIZE = (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8);
 
 extern std::shared_ptr<UnPhoneFeatures> unPhoneFeatures;
 
-bool UnPhoneDisplay::start() {
+bool Hx8357Display::start() {
     TT_LOG_I(TAG, "start");
 
     disp_spi_add_device(SPI2_HOST);
@@ -27,13 +25,13 @@ bool UnPhoneDisplay::start() {
     return true;
 }
 
-bool UnPhoneDisplay::stop() {
+bool Hx8357Display::stop() {
     TT_LOG_I(TAG, "stop");
     disp_spi_remove_device();
     return true;
 }
 
-bool UnPhoneDisplay::startLvgl() {
+bool Hx8357Display::startLvgl() {
     TT_LOG_I(TAG, "startLvgl");
 
     if (lvglDisplay != nullptr) {
@@ -74,7 +72,7 @@ bool UnPhoneDisplay::startLvgl() {
     return true;
 }
 
-bool UnPhoneDisplay::stopLvgl() {
+bool Hx8357Display::stopLvgl() {
     TT_LOG_I(TAG, "stopLvgl");
 
     if (lvglDisplay == nullptr) {
@@ -100,7 +98,7 @@ bool UnPhoneDisplay::stopLvgl() {
     return true;
 }
 
-std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable UnPhoneDisplay::getTouchDevice() {
+std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable Hx8357Display::getTouchDevice() {
     if (touchDevice == nullptr) {
         touchDevice = std::reinterpret_pointer_cast<tt::hal::touch::TouchDevice>(createTouch());
         TT_LOG_I(TAG, "Created touch device");
@@ -110,10 +108,10 @@ std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable UnPhoneDisplay::getTouchD
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    return std::make_shared<UnPhoneDisplay>();
+    return std::make_shared<Hx8357Display>();
 }
 
-bool UnPhoneDisplay::UnPhoneDisplayDriver::drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) {
+bool Hx8357Display::Hx8357Driver::drawBitmap(int xStart, int yStart, int xEnd, int yEnd, const void* pixelData) {
     lv_area_t area = { xStart, yStart, xEnd, yEnd };
     hx8357_flush(nullptr, &area, (uint8_t*)pixelData);
     return true;

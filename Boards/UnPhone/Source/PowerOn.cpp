@@ -3,7 +3,7 @@
 #include <Tactility/TactilityCore.h>
 #include <esp_sleep.h>
 
-#define TAG "unphone"
+constexpr auto* TAG = "unPhone";
 
 std::shared_ptr<UnPhoneFeatures> unPhoneFeatures;
 static std::unique_ptr<tt::Thread> powerThread;
@@ -13,8 +13,6 @@ static const char* powerOffCountKey = "power_off_count";
 static const char* powerSleepKey = "power_sleep_key";
 
 class DeviceStats {
-
-private:
 
     tt::Preferences preferences = tt::Preferences("unphone");
 
@@ -161,7 +159,6 @@ static bool unPhonePowerOn() {
     bootStats.notifyBootStart();
 
     bq24295 = std::make_shared<Bq24295>(I2C_NUM_0);
-    tt::hal::registerDevice(bq24295);
 
     unPhoneFeatures = std::make_shared<UnPhoneFeatures>(bq24295);
 
