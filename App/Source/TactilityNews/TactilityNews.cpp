@@ -26,8 +26,8 @@ private:
     AppContext* context;
 
 #ifdef ESP_PLATFORM
-    std::shared_ptr<tt::PubSub> wifi_pubsub;
-    tt::PubSub::SubscriptionHandle wifi_subscription = nullptr;
+    std::shared_ptr<tt::PubSub<tt::service::wifi::WifiEvent>> wifi_pubsub;
+    tt::PubSub<tt::service::wifi::WifiEvent>::SubscriptionHandle wifi_subscription = nullptr;
 
     // Callback for "Connect to Wi-Fi" button
     static void wifi_connect_cb(lv_event_t* e) {
@@ -35,12 +35,11 @@ private:
     }
 
     // Wi-Fi event callback for PubSub
-    static void wifi_event_cb(const void* message, void* context) {
+    static void wifi_event_cb(tt::service::wifi::WifiEvent event, void* context) {
         auto* self = static_cast<TactilityNews*>(context);
-        const auto* event = static_cast<const tt::service::wifi::Event*>(message);
-        if (event->type == tt::service::wifi::EventType::ConnectionSuccess) {
+        if (event == tt::service::wifi::WifiEvent::ConnectionSuccess) {
             self->fetch_and_display_news();
-        } else if (event->type == tt::service::wifi::EventType::Disconnected) {
+        } else if (event == tt::service::wifi::WifiEvent::Disconnected) {
             self->redraw_ui();
         }
     }
