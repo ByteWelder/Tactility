@@ -1,11 +1,5 @@
 name: Build Firmware
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize, reopened]
-  workflow_dispatch:
+on: workflow_dispatch
 
 permissions: read-all
 
