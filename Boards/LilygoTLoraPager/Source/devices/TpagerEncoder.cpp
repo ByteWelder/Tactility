@@ -111,7 +111,7 @@ void TpagerEncoder::initEncoder() {
     }
 }
 
-int TpagerEncoder::getEncoderPulses() {
+int TpagerEncoder::getEncoderPulses() const {
     int pulses = 0;
     pcnt_unit_get_count(encPcntUnit, &pulses);
     return pulses;

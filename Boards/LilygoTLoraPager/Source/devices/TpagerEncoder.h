@@ -15,7 +15,7 @@ class TpagerEncoder final : public tt::hal::encoder::EncoderDevice {
 public:
 
     TpagerEncoder() {}
-    ~TpagerEncoder() {}
+    ~TpagerEncoder() override {}
 
     std::string getName() const override { return "T-Lora Pager Encoder"; }
     std::string getDescription() const override { return "The encoder wheel next to the display"; }
@@ -23,7 +23,7 @@ public:
     bool startLvgl(lv_display_t* display) override;
     bool stopLvgl() override;
 
-    int getEncoderPulses();
+    int getEncoderPulses() const;
 
     lv_indev_t* _Nullable getLvglIndev() override { return encHandle; }
 };
