@@ -1,5 +1,5 @@
 name: Build
-
+ 
 inputs:
   board_id:
     description: The sdkconfig file to build
