@@ -1,10 +1,10 @@
 #include "Tactility/lvgl/LvglSync.h"
-#include "hal/TpagerDisplay.h"
-#include "hal/TpagerEncoder.h"
-#include "hal/TpagerDisplayConstants.h"
-#include "hal/TpagerKeyboard.h"
-#include "hal/TpagerPower.h"
-#include "hal/TpagerSdCard.h"
+#include "devices/TpagerDisplay.h"
+#include "devices/TpagerEncoder.h"
+#include "devices/TpagerDisplayConstants.h"
+#include "devices/TpagerKeyboard.h"
+#include "devices/TpagerPower.h"
+#include "devices/TpagerSdCard.h"
 
 #include <Bq25896.h>
 #include <Drv2605.h>
