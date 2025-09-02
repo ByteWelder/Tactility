@@ -18,7 +18,6 @@ static tt::hal::DeviceVector createDevices() {
     };
 }
 
-
 const tt::hal::Configuration cyd_2432s024c_config = {
     .initBoot = initBoot,
     .createDevices = createDevices,

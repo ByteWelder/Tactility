@@ -1,13 +1,9 @@
-#include "YellowDisplay.h"
+#include "Display.h"
 #include "Xpt2046SoftSpi.h"
-#include "YellowConstants.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 
-static const char* TAG = "YellowDisplay";
-
-// Global to hold reference (only needed if calling stop() later)
-static std::unique_ptr<Xpt2046SoftSpi> touch;
+constexpr auto* TAG = "CYD";
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Xpt2046SoftSpi::Configuration>(
@@ -23,17 +19,15 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     );
 
     // Allocate the driver
-    touch = std::make_unique<Xpt2046SoftSpi>(std::move(configuration));
+    auto touch = std::make_shared<Xpt2046SoftSpi>(std::move(configuration));
     
     // Start the driver
     if (!touch->start()) {
         ESP_LOGE(TAG, "Touch driver start failed");
         return nullptr;
     }
-    
-    return std::shared_ptr<tt::hal::touch::TouchDevice>(touch.get(), [](tt::hal::touch::TouchDevice*) {
-        // No delete needed; `touch` is managed above
-    });
+
+    return touch;
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {

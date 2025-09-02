@@ -1,7 +1,7 @@
 #pragma once
 
-// Display backlight (PWM)
-#define CYD2432S028R_LCD_PIN_BACKLIGHT GPIO_NUM_21
+#include "Tactility/hal/display/DisplayDevice.h"
+#include <memory>
 
 // Display
 #define CYD2432S028R_LCD_SPI_HOST SPI2_HOST
@@ -12,10 +12,6 @@
 #define CYD2432S028R_LCD_PIN_CS GPIO_NUM_15
 #define CYD2432S028R_LCD_PIN_DC GPIO_NUM_2
 
-// Touch
-#define CYD2432S028R_TOUCH_SPI_HOST SPI3_HOST
-#define CYD2432S028R_TOUCH_PIN_CS GPIO_NUM_33
-
 // Touch (Software SPI)
 #define CYD_TOUCH_MISO_PIN GPIO_NUM_39
 #define CYD_TOUCH_MOSI_PIN GPIO_NUM_32
@@ -23,9 +19,4 @@
 #define CYD_TOUCH_CS_PIN GPIO_NUM_33
 #define CYD_TOUCH_IRQ_PIN GPIO_NUM_36
 
-// SDCard
-#define CYD2432S028R_SDCARD_SPI_HOST SPI3_HOST
-#define CYD2432S028R_SDCARD_PIN_CS GPIO_NUM_5
-
-// SPI Transfer
-#define CYD_SPI_TRANSFER_SIZE_LIMIT (CYD2432S028R_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
