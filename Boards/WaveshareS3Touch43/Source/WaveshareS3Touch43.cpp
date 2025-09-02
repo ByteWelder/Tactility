@@ -1,13 +1,19 @@
-#include "hal/WaveshareDisplay.h"
-#include "hal/WaveshareSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
 using namespace tt::hal;
 
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
+}
+
 extern const Configuration waveshare_s3_touch_43 = {
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
+    .createDevices = createDevices,
     .i2c = {
         // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)
         // Note: You could repurpose 1 or more UART interfaces as I2C interfaces
