@@ -418,7 +418,7 @@ public:
         // Initialize WiFi subscription with proper typing for new PubSub template
         wifi_pubsub = tt::service::wifi::getPubsub();
         if (wifi_pubsub) {
-            wifi_subscription = wifi_pubsub->subscribe([this](tt::service::wifi::Event event) {
+            wifi_subscription = wifi_pubsub->subscribe([this](tt::service::wifi::WifiEvent event) {
                 wifi_event_callback(event);
             });
         }
