@@ -1,21 +1,39 @@
 #include "YellowDisplay.h"
-#include "Xpt2046Touch.h"
+#include "XPT2046-Bitbang.h"
 #include "YellowConstants.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 
+static const char* TAG = "YellowDisplay";
+
+// Global to hold reference (only needed if calling stop() later)
+static std::unique_ptr<XPT2046_Bitbang> touch;
+
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    auto configuration = std::make_unique<Xpt2046Touch::Configuration>(
-        CYD2432S028R_TOUCH_SPI_HOST,
-        CYD2432S028R_TOUCH_PIN_CS,
-        240,
-        320,
-        false,
-        true,
-        false
+    auto configuration = std::make_unique<XPT2046_Bitbang::Configuration>(
+        CYD_TOUCH_MOSI_PIN,
+        CYD_TOUCH_MISO_PIN,
+        CYD_TOUCH_SCK_PIN,
+        CYD_TOUCH_CS_PIN,
+        CYD2432S028R_LCD_HORIZONTAL_RESOLUTION, // 240
+        CYD2432S028R_LCD_VERTICAL_RESOLUTION, // 320
+        false, // swapXY
+        true, // mirrorX
+        false // mirrorY
     );
 
-    return std::make_shared<Xpt2046Touch>(std::move(configuration));
+    // Allocate the driver
+    touch = std::make_unique<XPT2046_Bitbang>(std::move(configuration));
+    
+    // Start the driver
+    if (!touch->start()) {
+        ESP_LOGE(TAG, "Touch driver start failed");
+        return nullptr;
+    }
+    
+    return std::shared_ptr<tt::hal::touch::TouchDevice>(touch.get(), [](tt::hal::touch::TouchDevice*) {
+        // No delete needed; `touch` is managed above
+    });
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -28,9 +46,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CYD2432S028R_LCD_HORIZONTAL_RESOLUTION,
         CYD2432S028R_LCD_VERTICAL_RESOLUTION,
         touch,
-        false,
-        true,
-        false,
+        false, // swapXY
+        true, // mirrorX
+        false, // mirrorY
         false,
         CYD2432S028R_LCD_DRAW_BUFFER_SIZE
     );
