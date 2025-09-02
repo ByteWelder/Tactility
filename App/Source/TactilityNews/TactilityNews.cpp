@@ -238,7 +238,9 @@ public:
 #ifdef ESP_PLATFORM
         // Subscribe to Wi-Fi events
         wifi_pubsub = tt::service::wifi::getPubsub();
-        wifi_subscription = wifi_pubsub->subscribe(wifi_event_cb, this);
+        wifi_subscription = wifi_pubsub->subscribe([this](tt::service::wifi::WifiEvent event) {
+            wifi_event_cb(event, this);
+        });
 #endif
 
         redraw_ui();
