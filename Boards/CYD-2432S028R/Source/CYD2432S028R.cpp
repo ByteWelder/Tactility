@@ -1,7 +1,7 @@
 #include "CYD2432S028R.h"
-#include "hal/YellowSdCard.h"
 #include "hal/YellowDisplay.h"
-#include "hal/YellowDisplayConstants.h"
+#include "hal/YellowConstants.h"
+#include "hal/YellowSdCard.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/app/App.h>
 #include <PwmBacklight.h>
@@ -42,8 +42,10 @@ const tt::hal::Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        tt::hal::spi::Configuration {
-            .device = SPI3_HOST,
+      
+        // SDCard
+        spi::Configuration {
+            .device = CYD2432S028R_SDCARD_SPI_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
                 .mosi_io_num = GPIO_NUM_23,
