@@ -1,4 +1,4 @@
-#include "Core2Display.h"
+#include "Display.h"
 
 #include <Ft6x36Touch.h>
 #include <Ili934xDisplay.h>

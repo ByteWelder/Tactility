@@ -1,12 +1,10 @@
-#include "Core2SdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 
-#include <esp_vfs_fat.h>
-
-#define CORE2_SDCARD_PIN_CS GPIO_NUM_4
-#define CORE2_LCD_PIN_CS GPIO_NUM_5
+constexpr auto CORE2_SDCARD_PIN_CS = GPIO_NUM_4;
+constexpr auto CORE2_LCD_PIN_CS = GPIO_NUM_5;
 
 using tt::hal::sdcard::SpiSdCardDevice;
 

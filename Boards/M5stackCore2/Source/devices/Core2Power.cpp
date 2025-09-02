@@ -16,8 +16,6 @@ bool Core2Power::supportsMetric(MetricType type) const {
         default:
             return false;
     }
-
-    return false; // Safety guard for when new enum values are introduced
 }
 
 bool Core2Power::getMetric(MetricType type, MetricData& data) {

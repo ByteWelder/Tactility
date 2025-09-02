@@ -15,7 +15,7 @@ bool tpagerInit();
 
 using namespace tt::hal;
 
-DeviceVector createDevices() {
+static DeviceVector createDevices() {
     auto bq27220 = std::make_shared<Bq27220>(I2C_NUM_0);
     auto power = std::make_shared<TpagerPower>(bq27220);
 
