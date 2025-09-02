@@ -1,28 +1,46 @@
 #include <Tactility/Tactility.h>
+#include <Tactility/TactilityConfig.h>
 
 #include <Tactility/app/AppRegistration.h>
-#include <Tactility/TactilityConfig.h>
-#include <Tactility/TactilityHeadless.h>
+#include <Tactility/DispatcherThread.h>
+#include <Tactility/hal/HalPrivate.h>
+#include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/lvgl/LvglPrivate.h>
+#include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/loader/Loader.h>
+#include <Tactility/settings/TimePrivate.h>
+
+#ifdef ESP_PLATFORM
+#include <Tactility/InitEsp.h>
+#endif
 
 namespace tt {
 
-#define TAG "Tactility"
+constexpr auto* TAG = "Tactility";
 
 static const Configuration* config_instance = nullptr;
+static Dispatcher mainDispatcher;
 
 // region Default services
-
 namespace service {
+    // Primary
+    namespace gps { extern const ServiceManifest manifest; }
+    namespace wifi { extern const ServiceManifest manifest; }
+    namespace sdcard { extern const ServiceManifest manifest; }
+#ifdef ESP_PLATFORM
+    namespace development { extern const ServiceManifest manifest; }
+    namespace espnow { extern const ServiceManifest manifest; }
+#endif
+    // Secondary (UI)
     namespace gui { extern const ServiceManifest manifest; }
     namespace loader { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
+
 }
 
 // endregion
@@ -127,13 +145,24 @@ static void registerUserApps(const std::vector<const app::AppManifest*>& apps) {
     }
 }
 
-static void registerAndStartSystemServices() {
+static void registerAndStartSecondaryServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
+#endif
+}
+
+static void registerAndStartPrimaryServices() {
+    TT_LOG_I(TAG, "Registering and starting system services");
+    addService(service::gps::manifest);
+    addService(service::sdcard::manifest);
+    addService(service::wifi::manifest);
+#ifdef ESP_PLATFORM
+    addService(service::development::manifest);
+    addService(service::espnow::manifest);
 #endif
 }
 
@@ -165,11 +194,18 @@ void run(const Configuration& config) {
     // Assign early so starting services can use it
     config_instance = &config;
 
-    initHeadless(hardware);
+    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_BOARD_NAME, CONFIG_TT_BOARD_ID);
+#ifdef ESP_PLATFORM
+    initEsp();
+#endif
+    settings::initTimeZone();
+    hal::init(*config.hardware);
+    hal::sdcard::mountAll();
+    network::ntp::init();
 
+    registerAndStartPrimaryServices();
     lvgl::init(hardware);
-
-    registerAndStartSystemServices();
+    registerAndStartSecondaryServices();
 
     TT_LOG_I(TAG, "starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
@@ -180,12 +216,16 @@ void run(const Configuration& config) {
 
     TT_LOG_I(TAG, "Processing main dispatcher");
     while (true) {
-        getMainDispatcher().consume();
+        mainDispatcher.consume();
     }
 }
 
 const Configuration* _Nullable getConfiguration() {
     return config_instance;
+}
+
+Dispatcher& getMainDispatcher() {
+    return mainDispatcher;
 }
 
 } // namespace

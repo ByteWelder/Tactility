@@ -6,7 +6,7 @@ DispatcherThread::DispatcherThread(const std::string& threadName, size_t threadS
     thread = std::make_unique<Thread>(
         threadName,
         threadStackSize,
-        [this]() {
+        [this] {
             return threadMain();
         }
     );
@@ -30,8 +30,8 @@ int32_t DispatcherThread::threadMain() {
     return 0;
 }
 
-void DispatcherThread::dispatch(Dispatcher::Function function, TickType_t timeout) {
-    dispatcher.dispatch(function, timeout);
+bool DispatcherThread::dispatch(Dispatcher::Function function, TickType_t timeout) {
+    return dispatcher.dispatch(function, timeout);
 }
 
 void DispatcherThread::start() {

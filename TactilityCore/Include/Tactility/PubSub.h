@@ -1,7 +1,3 @@
-/**
- * @file pubsub.h
- * PubSub
- */
 #pragma once
 
 #include "Mutex.h"
@@ -9,18 +5,13 @@
 
 namespace tt {
 
-/** PubSub Callback type */
-typedef void (*PubSubCallback)(const void* message, void* context);
-
 /** Publish and subscribe to messages in a thread-safe manner. */
-class PubSub {
-
-private:
+template<typename DataType>
+class PubSub final {
 
     struct Subscription {
         uint64_t id;
-        PubSubCallback callback;
-        void* callbackParameter;
+        std::function<void(DataType)> callback;
     };
 
     typedef std::list<Subscription> Subscriptions;
@@ -42,21 +33,55 @@ public:
 
     /** Start receiving messages at the specified handle (Threadsafe, Re-entrable)
      * @param[in] callback
-     * @param[in] callbackParameter the data to pass to the callback
      * @return subscription instance
      */
-    SubscriptionHandle subscribe(PubSubCallback callback, void* callbackParameter);
+    SubscriptionHandle subscribe(std::function<void(DataType)> callback) {
+        mutex.lock();
+        items.push_back({
+            .id = (++lastId),
+            .callback = std::move(callback)
+        });
+
+        mutex.unlock();
+
+        return reinterpret_cast<SubscriptionHandle>(lastId);
+    }
 
     /** Stop receiving messages at the specified handle (Threadsafe, Re-entrable.)
      * No use of `tt_pubsub_subscription` allowed after call of this method
      * @param[in] subscription
      */
-    void unsubscribe(SubscriptionHandle subscription);
+    void unsubscribe(SubscriptionHandle subscription) {
+        assert(subscription);
 
-    /** Publish message to all subscribers (Threadsafe, Re-entrable.)
-     * @param[in] message message pointer to publish - it is passed as-is to the callback
+        mutex.lock();
+        bool result = false;
+        auto id = reinterpret_cast<uint64_t>(subscription);
+        for (auto it = items.begin(); it != items.end(); ++it) {
+            if (it->id == id) {
+                items.erase(it);
+                result = true;
+                break;
+            }
+        }
+
+        mutex.unlock();
+        tt_check(result);
+    }
+
+    /** Publish something to all subscribers (Threadsafe, Re-entrable.)
+     * @param[in] data the data to publish
      */
-    void publish(void* message);
+    void publish(DataType data) {
+        mutex.lock();
+
+        // Iterate over subscribers
+        for (auto& it : items) {
+            it.callback(data);
+        }
+
+        mutex.unlock();
+    }
 };
 
 

@@ -13,14 +13,14 @@ namespace tt::app::wifimanage {
 
 class WifiManage : public App {
 
-private:
-
-    PubSub::SubscriptionHandle wifiSubscription = nullptr;
+    PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription = nullptr;
     Mutex mutex;
     Bindings bindings = { };
     State state;
     View view = View(&bindings, &state);
     bool isViewEnabled = false;
+
+    void onWifiEvent(service::wifi::WifiEvent event);
 
 public:
 

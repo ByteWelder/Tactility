@@ -1,4 +1,4 @@
-#include "Tactility/app/wifimanage/WifiManagePrivate.h"
+#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 
 namespace tt::app::wifimanage {
 

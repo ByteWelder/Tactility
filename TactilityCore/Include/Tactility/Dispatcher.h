@@ -19,7 +19,8 @@ namespace tt {
  * Generally, one task would dispatch the execution,
  * while the other thread consumes and executes the work.
  */
-class Dispatcher {
+class Dispatcher final {
+
 public:
 
     typedef std::function<void()> Function;
@@ -38,8 +39,10 @@ public:
     /**
      * Queue a function to be consumed elsewhere.
      * @param[in] function the function to execute elsewhere
+     * @param[in] timeout lock acquisition timeout
+     * @return true if dispatching was successful (timeout not reached)
      */
-    void dispatch(Function function, TickType_t timeout = portMAX_DELAY);
+    bool dispatch(Function function, TickType_t timeout = portMAX_DELAY);
 
     /**
      * Consume 1 or more dispatched function (if any) until the queue is empty.

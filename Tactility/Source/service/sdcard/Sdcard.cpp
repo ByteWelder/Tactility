@@ -1,13 +1,13 @@
-#include "Tactility/service/ServiceContext.h"
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/service/ServiceRegistration.h"
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
-
-#define TAG "sdcard_service"
+#include <Tactility/hal/sdcard/SdCardDevice.h>
 
 namespace tt::service::sdcard {
+
+constexpr auto* TAG = "SdcardService";
 
 extern const ServiceManifest manifest;
 

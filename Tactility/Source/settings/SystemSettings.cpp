@@ -7,11 +7,11 @@
 namespace tt::settings {
 
 constexpr auto* TAG = "SystemSettings";
-constexpr auto* FILE_PATH = "/data/system.properties";
+constexpr auto* FILE_PATH = "/data/settings/system.properties";
 
 static Mutex mutex = Mutex();
 static bool cached = false;
-static SystemSettings cachedProperties;
+static SystemSettings cachedSettings;
 
 static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     std::map<std::string, std::string> map;
@@ -44,13 +44,13 @@ bool loadSystemSettings(SystemSettings& properties) {
     scoped_lock.lock();
 
     if (!cached) {
-        if (!loadSystemSettingsFromFile(cachedProperties)) {
+        if (!loadSystemSettingsFromFile(cachedSettings)) {
             return false;
         }
         cached = true;
     }
 
-    properties = cachedProperties;
+    properties = cachedSettings;
     return true;
 }
 
@@ -68,7 +68,7 @@ bool saveSystemSettings(const SystemSettings& properties) {
             return false;
         }
 
-        cachedProperties = properties;
+        cachedSettings = properties;
         cached = true;
         return true;
     });

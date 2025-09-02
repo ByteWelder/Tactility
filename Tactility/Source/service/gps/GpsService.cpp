@@ -208,7 +208,7 @@ void GpsService::setState(State newState) {
     lock.lock();
     state = newState;
     lock.unlock();
-    statePubSub->publish(&state);
+    statePubSub->publish(state);
 }
 
 bool GpsService::hasCoordinates() const {

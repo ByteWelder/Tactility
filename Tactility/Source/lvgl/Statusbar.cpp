@@ -28,9 +28,9 @@ struct StatusbarIcon {
 
 struct StatusbarData {
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    std::shared_ptr<PubSub> pubsub = std::make_shared<PubSub>();
+    std::shared_ptr<PubSub<void*>> pubsub = std::make_shared<PubSub<void*>>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, []() { onUpdateTime(); });
+    Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -44,7 +44,7 @@ typedef struct {
     lv_obj_t* time;
     lv_obj_t* icons[STATUSBAR_ICON_LIMIT];
     lv_obj_t* battery_icon;
-    PubSub::SubscriptionHandle pubsub_subscription;
+    PubSub<void*>::SubscriptionHandle pubsub_subscription;
 } Statusbar;
 
 static bool statusbar_lock(TickType_t timeoutTicks = portMAX_DELAY) {
@@ -108,9 +108,8 @@ static const lv_obj_class_t statusbar_class = {
     .theme_inheritable = false
 };
 
-static void statusbar_pubsub_event(TT_UNUSED const void* message, void* obj) {
-    TT_LOG_D(TAG, "event");
-    auto* statusbar = static_cast<Statusbar*>(obj);
+static void statusbar_pubsub_event(Statusbar* statusbar) {
+    TT_LOG_D(TAG, "Update event");
     if (lock(portMAX_DELAY)) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
@@ -133,7 +132,9 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     LV_TRACE_OBJ_CREATE("finished");
     auto* statusbar = (Statusbar*)obj;
-    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe(&statusbar_pubsub_event, statusbar);
+    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe([statusbar](auto) {
+        statusbar_pubsub_event(statusbar);
+    });
 
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start(200 / portTICK_PERIOD_MS);

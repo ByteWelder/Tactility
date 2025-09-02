@@ -21,31 +21,21 @@ bool getKeyValuePair(const std::string& input, std::string& key, std::string& va
 bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback) {
     return file::withLock<bool>(filePath, [&filePath, &callback] {
         TT_LOG_I(TAG, "Reading properties file %s", filePath.c_str());
-        const auto input = readString(filePath);
-        if (input == nullptr) {
-            TT_LOG_E(TAG, "Failed to read file contents of %s", filePath.c_str());
-            return false;
-        }
-
-        const auto* input_start = reinterpret_cast<const char*>(input.get());
-        const std::string input_string = input_start;
-
         uint16_t line_count = 0;
-        // TODO: Rewrite to use file::readLines()
-        string::split(input_string, "\n", [&line_count, &filePath, &callback](auto token) {
+        return readLines(filePath, true, [&line_count, &filePath, &callback](const std::string& line) {
             line_count++;
             std::string key, value;
-            auto trimmed_token = string::trim(token, " \t");
-            if (!trimmed_token.starts_with("#")) {
-                if (getKeyValuePair(token, key, value)) {
+            auto trimmed_line = string::trim(line, " \t");
+            if (!trimmed_line.starts_with("#")) {
+                if (getKeyValuePair(trimmed_line, key, value)) {
                     std::string trimmed_key = string::trim(key, " \t");
                     std::string trimmed_value = string::trim(value, " \t");
                     callback(trimmed_key, trimmed_value);
-                } else { TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str()); }
+                } else {
+                    TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str());
+                }
             }
         });
-
-        return true;
     });
 }
 

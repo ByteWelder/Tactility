@@ -5,13 +5,13 @@
 
 #include <ranges>
 #include <cstring>
+#include <Tactility/TactilityHeadless.h>
 
 #ifdef ESP_PLATFORM
-#include "Tactility/TactilityHeadless.h"
-#include "Tactility/hal/uart/UartEsp.h"
+#include <Tactility/hal/uart/UartEsp.h>
 #include <esp_check.h>
 #else
-#include "Tactility/hal/uart/UartPosix.h"
+#include <Tactility/hal/uart/UartPosix.h>
 #include <dirent.h>
 #endif
 
@@ -29,7 +29,7 @@ struct UartEntry {
 static std::vector<UartEntry> uartEntries = {};
 static uint32_t lastUartId = uartIdNotInUse;
 
-bool init(const std::vector<uart::Configuration>& configurations) {
+bool init(const std::vector<Configuration>& configurations) {
     TT_LOG_I(TAG, "Init");
     for (const auto& configuration: configurations) {
         uartEntries.push_back({
@@ -142,7 +142,7 @@ void close(uint32_t uartId) {
 std::vector<std::string> getNames() {
     std::vector<std::string> names;
 #ifdef ESP_PLATFORM
-    for (auto& config : getConfiguration()->uart) {
+    for (auto& config : hal::getConfiguration()->uart) {
         names.push_back(config.name);
     }
 #else

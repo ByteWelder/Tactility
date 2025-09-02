@@ -1,19 +1,18 @@
-#include "Tactility/app/wificonnect/View.h"
-#include "Tactility/app/wificonnect/WifiConnect.h"
-
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/Spinner.h"
-
 #include <Tactility/TactilityCore.h>
 
-#include <lvgl.h>
-#include <cstring>
+#include <Tactility/app/wificonnect/View.h>
+#include <Tactility/app/wificonnect/WifiConnect.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/Spinner.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
 
+#include <lvgl.h>
+#include <cstring>
+
 namespace tt::app::wificonnect {
 
-#define TAG "wifi_connect"
+constexpr auto* TAG = "WifiConnect";
 
 void View::resetErrors() {
     lv_obj_add_flag(password_error, LV_OBJ_FLAG_HIDDEN);

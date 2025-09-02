@@ -33,7 +33,7 @@ typedef enum {
 
 namespace tt::service::wifi {
 
-enum class EventType {
+enum class WifiEvent {
     /** Radio was turned on */
     RadioStateOn,
     /** Radio is turning on. */
@@ -61,10 +61,6 @@ enum class RadioState {
     Off,
 };
 
-struct Event {
-    EventType type;
-};
-
 struct ApRecord {
     std::string ssid;
     int8_t rssi;
@@ -76,7 +72,7 @@ struct ApRecord {
  * @brief Get wifi pubsub that broadcasts Event objects
  * @return PubSub
  */
-std::shared_ptr<PubSub> getPubsub();
+std::shared_ptr<PubSub<WifiEvent>> getPubsub();
 
 /** @return Get the current radio state */
 RadioState getRadioState();
