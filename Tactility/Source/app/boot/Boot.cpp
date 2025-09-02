@@ -1,18 +1,16 @@
-#include "Tactility/TactilityCore.h"
-
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/display/DisplaySettings.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/lvgl/Style.h"
-
-#include "Tactility/hal/display/DisplayDevice.h"
+#include <Tactility/TactilityCore.h>
 #include <Tactility/TactilityPrivate.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/CpuAffinity.h>
+#include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/settings/BootSettings.h>
+#include <Tactility/settings/DisplaySettings.h>
 
 #include <lvgl.h>
-#include <Tactility/BootProperties.h>
-#include <Tactility/CpuAffinity.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/app/crashdiagnostics/CrashDiagnostics.h"
@@ -22,9 +20,9 @@
 #define CONFIG_TT_SPLASH_DURATION 0
 #endif
 
-#define TAG "boot"
-
 namespace tt::app::boot {
+
+constexpr auto* TAG = "Boot";
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -42,21 +40,22 @@ class BootApp : public App {
     static void setupDisplay() {
         const auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);
-        if (hal_display->supportsBacklightDuty()) {
-            uint8_t backlight_duty = 200;
-            display::getBacklightDuty(backlight_duty);
-            TT_LOG_I(TAG, "backlight %du", backlight_duty);
-            hal_display->setBacklightDuty(backlight_duty);
+
+        settings::display::DisplaySettings settings;
+        if (settings::display::load(settings)) {
+            if (hal_display->getGammaCurveCount() > 0) {
+                hal_display->setGammaCurve(settings.gammaCurve);
+                TT_LOG_I(TAG, "Gamma curve %du", settings.gammaCurve);
+            }
         } else {
-            TT_LOG_I(TAG, "no backlight");
+            settings = settings::display::getDefault();
         }
 
-        if (hal_display->getGammaCurveCount() > 0) {
-            uint8_t gamma_curve;
-            if (display::getGammaCurve(gamma_curve)) {
-                hal_display->setGammaCurve(gamma_curve);
-                TT_LOG_I(TAG, "gamma %du", gamma_curve);
-            }
+        if (hal_display->supportsBacklightDuty()) {
+            TT_LOG_I(TAG, "Backlight %du", settings.backlightDuty);
+            hal_display->setBacklightDuty(settings.backlightDuty);
+        } else {
+            TT_LOG_I(TAG, "no backlight");
         }
     }
 
@@ -86,7 +85,7 @@ class BootApp : public App {
 
         kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
-        setupDisplay();
+        setupDisplay(); // Set backlight
 
         if (!setupUsbBootMode()) {
             initFromBootApp();
@@ -106,8 +105,8 @@ class BootApp : public App {
         }
 #endif
 
-        BootProperties boot_properties;
-        if (!loadBootProperties(boot_properties) || boot_properties.launcherAppId.empty()) {
+        settings::BootSettings boot_properties;
+        if (!settings::loadBootSettings(boot_properties) || boot_properties.launcherAppId.empty()) {
             TT_LOG_E(TAG, "Launcher not configured");
             stop();
             return;

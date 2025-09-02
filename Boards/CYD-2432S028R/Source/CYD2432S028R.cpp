@@ -54,7 +54,7 @@ const Configuration cyd_2432s028r_config = {
             .lock = tt::lvgl::getSyncLock()
         },
         
-        // Touch
+        // SDCard
         spi::Configuration {
             .device = CYD2432S028R_SDCARD_SPI_HOST,
             .dma = SPI_DMA_CH_AUTO,

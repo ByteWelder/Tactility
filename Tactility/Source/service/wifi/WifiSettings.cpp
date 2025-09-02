@@ -8,14 +8,14 @@
 namespace tt::service::wifi::settings {
 
 constexpr auto* TAG = "WifiSettings";
-constexpr auto* SETTINGS_FILE = "/data/service/Wifi/wifi.properties";
+constexpr auto* SETTINGS_FILE = "/data/settings/wifi.properties";
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
-struct WifiProperties {
+struct WifiSettings {
     bool enableOnBoot;
 };
 
-static bool load(WifiProperties& properties) {
+static bool load(WifiSettings& settings) {
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(SETTINGS_FILE, map)) {
         return false;
@@ -26,29 +26,29 @@ static bool load(WifiProperties& properties) {
     }
 
     auto enable_on_boot_string = map[SETTINGS_KEY_ENABLE_ON_BOOT];
-    properties.enableOnBoot = (enable_on_boot_string == "true");
+    settings.enableOnBoot = (enable_on_boot_string == "true");
     return true;
 }
 
-static bool save(const WifiProperties& properties) {
+static bool save(const WifiSettings& settings) {
     std::map<std::string, std::string> map;
-    map[SETTINGS_KEY_ENABLE_ON_BOOT] = properties.enableOnBoot ? "true" : "false";
+    map[SETTINGS_KEY_ENABLE_ON_BOOT] = settings.enableOnBoot ? "true" : "false";
     return file::savePropertiesFile(SETTINGS_FILE, map);
 }
 
 void setEnableOnBoot(bool enable) {
-    WifiProperties properties { .enableOnBoot = enable };
-    if (!save(properties)) {
+    WifiSettings settings { .enableOnBoot = enable };
+    if (!save(settings)) {
         TT_LOG_E(TAG, "Failed to save %s", SETTINGS_FILE);
     }
 }
 
 bool shouldEnableOnBoot() {
-    WifiProperties properties;
-    if (!load(properties)) {
+    WifiSettings settings;
+    if (!load(settings)) {
         return false;
     }
-    return properties.enableOnBoot;
+    return settings.enableOnBoot;
 }
 
 } // namespace

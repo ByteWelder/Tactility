@@ -7,15 +7,12 @@
 
 #include <Tactility/Log.h>
 
-#define TAG "tpager_keyboard"
+constexpr auto* TAG = "TpagerKeyboard";
 
-#define ENCODER_A GPIO_NUM_40
-#define ENCODER_B GPIO_NUM_41
-#define ENCODER_ENTER GPIO_NUM_7
-#define BACKLIGHT GPIO_NUM_46
+constexpr auto BACKLIGHT = GPIO_NUM_46;
 
-#define KB_ROWS 4
-#define KB_COLS 11
+constexpr auto KB_ROWS = 4;
+constexpr auto KB_COLS = 11;
 
 // Lowercase Keymap
 static constexpr char keymap_lc[KB_ROWS][KB_COLS] = {
@@ -41,58 +38,16 @@ static constexpr char keymap_sy[KB_ROWS][KB_COLS] = {
     {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
-static QueueHandle_t keyboardMsg;
-
-static void keyboard_read_callback(lv_indev_t* indev, lv_indev_data_t* data) {
-    TpagerKeyboard* kb = (TpagerKeyboard*)lv_indev_get_user_data(indev);
-    static bool enter_prev = false;
+void TpagerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
+    auto keyboard = static_cast<TpagerKeyboard*>(lv_indev_get_user_data(indev));
     char keypress = 0;
 
-    // Defaults
-    data->key = 0;
-    data->state = LV_INDEV_STATE_RELEASED;
-
-    if (xQueueReceive(keyboardMsg, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
+    if (xQueueReceive(keyboard->queue, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
         data->key = keypress;
         data->state = LV_INDEV_STATE_PRESSED;
-    }
-}
-
-static void encoder_read_callback(lv_indev_t* indev, lv_indev_data_t* data) {
-    TpagerKeyboard* kb = (TpagerKeyboard*)lv_indev_get_user_data(indev);
-    const int enter_filter_threshold = 2;
-    static int enter_filter = 0;
-    const int pulses_click = 4;
-    static int pulses_prev = 0;
-    bool anyinput = false;
-
-    // Defaults
-    data->enc_diff = 0;
-    data->state = LV_INDEV_STATE_RELEASED;
-
-    int pulses = kb->getEncoderPulses();
-    int pulse_diff = (pulses - pulses_prev);
-    if ((pulse_diff > pulses_click) || (pulse_diff < -pulses_click)) {
-        data->enc_diff = pulse_diff / pulses_click;
-        pulses_prev = pulses;
-        anyinput = true;
-    }
-
-    bool enter = !gpio_get_level(ENCODER_ENTER);
-    if (enter && (enter_filter < enter_filter_threshold)) {
-        enter_filter++;
-    }
-    if (!enter && (enter_filter > 0)) {
-        enter_filter--;
-    }
-
-    if (enter_filter == enter_filter_threshold) {
-        data->state = LV_INDEV_STATE_PRESSED;
-        anyinput = true;
-    }
-
-    if (anyinput) {
-        kb->makeBacklightImpulse();
+    } else {
+        data->key = 0;
+        data->state = LV_INDEV_STATE_RELEASED;
     }
 }
 
@@ -136,7 +91,7 @@ void TpagerKeyboard::processKeyboard() {
                 chr = keymap_lc[row][col];
             }
 
-            if (chr != '\0') xQueueSend(keyboardMsg, (void*)&chr, portMAX_DELAY);
+            if (chr != '\0') xQueueSend(queue, &chr, portMAX_DELAY);
         }
 
         for (int i = 0; i < keypad->released_key_count; i++) {
@@ -163,9 +118,7 @@ void TpagerKeyboard::processKeyboard() {
 
 bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     backlightOkay = initBacklight(BACKLIGHT, 30000, LEDC_TIMER_0, LEDC_CHANNEL_1);
-    initEncoder();
     keypad->init(KB_ROWS, KB_COLS);
-    gpio_input_enable(ENCODER_ENTER);
 
     assert(inputTimer == nullptr);
     inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
@@ -174,20 +127,14 @@ bool TpagerKeyboard::startLvgl(lv_display_t* display) {
 
     assert(backlightImpulseTimer == nullptr);
     backlightImpulseTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
-        processBacklightImpuse();
+        processBacklightImpulse();
     });
 
     kbHandle = lv_indev_create();
     lv_indev_set_type(kbHandle, LV_INDEV_TYPE_KEYPAD);
-    lv_indev_set_read_cb(kbHandle, &keyboard_read_callback);
+    lv_indev_set_read_cb(kbHandle, &readCallback);
     lv_indev_set_display(kbHandle, display);
     lv_indev_set_user_data(kbHandle, this);
-
-    encHandle = lv_indev_create();
-    lv_indev_set_type(encHandle, LV_INDEV_TYPE_ENCODER);
-    lv_indev_set_read_cb(encHandle, &encoder_read_callback);
-    lv_indev_set_display(encHandle, display);
-    lv_indev_set_user_data(encHandle, this);
 
     inputTimer->start(20 / portTICK_PERIOD_MS);
     backlightImpulseTimer->start(50 / portTICK_PERIOD_MS);
@@ -206,89 +153,12 @@ bool TpagerKeyboard::stopLvgl() {
 
     lv_indev_delete(kbHandle);
     kbHandle = nullptr;
-    lv_indev_delete(encHandle);
-    encHandle = nullptr;
     return true;
 }
 
 bool TpagerKeyboard::isAttached() const {
     return tt::hal::i2c::masterHasDeviceAtAddress(keypad->getPort(), keypad->getAddress(), 100);
 }
-
-void TpagerKeyboard::initEncoder(void) {
-    const int low_limit = -127;
-    const int high_limit = 126;
-
-    // Accum. count makes it that over- and underflows are automatically compensated.
-    // Prerequisite: watchpoints at low and high limit
-    pcnt_unit_config_t unit_config = {
-        .low_limit = low_limit,
-        .high_limit = high_limit,
-        .flags = {.accum_count = 1},
-    };
-
-    if (pcnt_new_unit(&unit_config, &encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter intialization failed");
-    }
-
-    pcnt_glitch_filter_config_t filter_config = {
-        .max_glitch_ns = 5000,
-    };
-    if (pcnt_unit_set_glitch_filter(encPcntUnit, &filter_config) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter glitch filter config failed");
-    }
-
-    pcnt_chan_config_t chan_1_config = {
-        .edge_gpio_num = ENCODER_B,
-        .level_gpio_num = ENCODER_A,
-    };
-    pcnt_chan_config_t chan_2_config = {
-        .edge_gpio_num = ENCODER_A,
-        .level_gpio_num = ENCODER_B,
-    };
-
-    pcnt_channel_handle_t pcnt_chan_1 = NULL;
-    pcnt_channel_handle_t pcnt_chan_2 = NULL;
-
-    if ((pcnt_new_channel(encPcntUnit, &chan_1_config, &pcnt_chan_1) != ESP_OK) ||
-        (pcnt_new_channel(encPcntUnit, &chan_2_config, &pcnt_chan_2) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter channel config failed");
-    }
-
-    // second argument is rising edge, third argument is falling edge
-    if ((pcnt_channel_set_edge_action(pcnt_chan_1, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE) != ESP_OK) ||
-        (pcnt_channel_set_edge_action(pcnt_chan_2, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter edge action config failed");
-    }
-
-    // second argument is low level, third argument is high level
-    if ((pcnt_channel_set_level_action(pcnt_chan_1, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK) ||
-        (pcnt_channel_set_level_action(pcnt_chan_2, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter level action config failed");
-    }
-
-    if ((pcnt_unit_add_watch_point(encPcntUnit, low_limit) != ESP_OK) ||
-        (pcnt_unit_add_watch_point(encPcntUnit, high_limit) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter watch point config failed");
-    }
-
-    if (pcnt_unit_enable(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be enabled");
-    }
-    if (pcnt_unit_clear_count(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be cleared");
-    }
-    if (pcnt_unit_start(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be started");
-    }
-}
-
-int TpagerKeyboard::getEncoderPulses() {
-    int pulses = 0;
-    pcnt_unit_get_count(encPcntUnit, &pulses);
-    return pulses;
-}
-
 
 bool TpagerKeyboard::initBacklight(gpio_num_t pin, uint32_t frequencyHz, ledc_timer_t timer, ledc_channel_t channel) {
     backlightPin = pin;
@@ -344,16 +214,9 @@ void TpagerKeyboard::makeBacklightImpulse() {
     setBacklightDuty(backlightImpulseDuty);
 }
 
-void TpagerKeyboard::processBacklightImpuse() {
+void TpagerKeyboard::processBacklightImpulse() {
     if (backlightImpulseDuty > 64) {
         backlightImpulseDuty--;
         setBacklightDuty(backlightImpulseDuty);
     }
-}
-
-extern std::shared_ptr<Tca8418> tca8418;
-std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard() {
-    keyboardMsg = xQueueCreate(20, sizeof(char));
-
-    return std::make_shared<TpagerKeyboard>(tca8418);
 }

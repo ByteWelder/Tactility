@@ -1,105 +1,70 @@
-#include "Tactility/app/display/DisplaySettings.h"
-
-#include "Tactility/hal/display/DisplayDevice.h"
-#include "Tactility/lvgl/Toolbar.h"
-
+#include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Assets.h>
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Tactility.h>
 
 #include <lvgl.h>
 
 namespace tt::app::display {
 
-#define TAG "display"
-
-static bool backlight_duty_set = false;
-static uint8_t backlight_duty = 255;
-
-static uint8_t gamma = 255;
-
-#define ROTATION_DEFAULT 0
-#define ROTATION_180 1
-#define ROTATION_270 2
-#define ROTATION_90 3
+constexpr auto* TAG = "Display";
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
 }
 
-static lv_display_rotation_t orientationSettingToDisplayRotation(uint32_t setting) {
-    switch (setting) {
-        case ROTATION_180:
-            return LV_DISPLAY_ROTATION_180;
-        case ROTATION_270:
-            return LV_DISPLAY_ROTATION_270;
-        case ROTATION_90:
-            return LV_DISPLAY_ROTATION_90;
-        default:
-            return LV_DISPLAY_ROTATION_0;
-    }
-}
+class DisplayApp final : public App {
 
-static uint32_t displayOrientationToOrientationSetting(lv_display_rotation_t orientation) {
-    switch (orientation) {
-        case LV_DISPLAY_ROTATION_90:
-            return ROTATION_90;
-        case LV_DISPLAY_ROTATION_180:
-            return ROTATION_180;
-        case LV_DISPLAY_ROTATION_270:
-            return ROTATION_270;
-        default:
-            return ROTATION_DEFAULT;
-    }
-}
-
-class DisplayApp : public App {
+    settings::display::DisplaySettings displaySettings;
+    bool displaySettingsUpdated = false;
 
     static void onBacklightSliderEvent(lv_event_t* event) {
         auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
-
+        auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
         auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);
 
         if (hal_display->supportsBacklightDuty()) {
             int32_t slider_value = lv_slider_get_value(slider);
-
-            backlight_duty = static_cast<uint8_t>(slider_value);
-            backlight_duty_set = true;
-
-            hal_display->setBacklightDuty(backlight_duty);
+            app->displaySettings.backlightDuty = static_cast<uint8_t>(slider_value);
+            app->displaySettingsUpdated = true;
+            hal_display->setBacklightDuty(app->displaySettings.backlightDuty);
         }
     }
 
     static void onGammaSliderEvent(lv_event_t* event) {
         auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
         auto hal_display = hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
+        auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
         assert(hal_display != nullptr);
 
         if (hal_display->getGammaCurveCount() > 0) {
             int32_t slider_value = lv_slider_get_value(slider);
-
-            gamma = static_cast<uint8_t>(slider_value);
-
-            hal_display->setGammaCurve(gamma);
-            setGammaCurve(gamma);
+            app->displaySettings.gammaCurve = static_cast<uint8_t>(slider_value);
+            app->displaySettingsUpdated = true;
+            hal_display->setGammaCurve(app->displaySettings.gammaCurve);
         }
     }
 
-
     static void onOrientationSet(lv_event_t* event) {
+        auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
         auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
-        uint32_t selected = lv_dropdown_get_selected(dropdown);
-        TT_LOG_I(TAG, "Selected %ld", selected);
-        lv_display_rotation_t rotation = orientationSettingToDisplayRotation(selected);
-        if (lv_display_get_rotation(lv_display_get_default()) != rotation) {
-            lv_display_set_rotation(lv_display_get_default(), rotation);
-            setRotation(rotation);
+        uint32_t selected_index = lv_dropdown_get_selected(dropdown);
+        TT_LOG_I(TAG, "Selected %ld", selected_index);
+        auto selected_orientation = static_cast<settings::display::Orientation>(selected_index);
+        if (selected_orientation != app->displaySettings.orientation) {
+            app->displaySettings.orientation = selected_orientation;
+            app->displaySettingsUpdated = true;
+            lv_display_set_rotation(lv_display_get_default(), settings::display::toLvglDisplayRotation(selected_orientation));
         }
     }
 
 public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
+        displaySettings = settings::display::loadOrGetDefault();
+
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
 
         auto hal_display = getHalDisplay();
@@ -126,14 +91,9 @@ public:
             lv_obj_set_width(brightness_slider, LV_PCT(50));
             lv_obj_align(brightness_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
             lv_slider_set_range(brightness_slider, 0, 255);
-            lv_obj_add_event_cb(brightness_slider, onBacklightSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
+            lv_obj_add_event_cb(brightness_slider, onBacklightSliderEvent, LV_EVENT_VALUE_CHANGED, this);
 
-            uint8_t value;
-            if (getBacklightDuty(value)) {
-                lv_slider_set_value(brightness_slider, value, LV_ANIM_OFF);
-            } else {
-                lv_slider_set_value(brightness_slider, 0, LV_ANIM_OFF);
-            }
+            lv_slider_set_value(brightness_slider, displaySettings.backlightDuty, LV_ANIM_OFF);
         }
 
         if (hal_display->getGammaCurveCount() > 0) {
@@ -151,14 +111,10 @@ public:
             lv_obj_set_width(gamma_slider, LV_PCT(50));
             lv_obj_align(gamma_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
             lv_slider_set_range(gamma_slider, 0, hal_display->getGammaCurveCount());
-            lv_obj_add_event_cb(gamma_slider, onGammaSliderEvent, LV_EVENT_VALUE_CHANGED, nullptr);
+            lv_obj_add_event_cb(gamma_slider, onGammaSliderEvent, LV_EVENT_VALUE_CHANGED, this);
 
-            uint8_t curve_index;
-            if (getGammaCurve(curve_index)) {
-                lv_slider_set_value(gamma_slider, curve_index, LV_ANIM_OFF);
-            } else {
-                lv_slider_set_value(gamma_slider, 0, LV_ANIM_OFF);
-            }
+            uint8_t curve_index = displaySettings.gammaCurve;
+            lv_slider_set_value(gamma_slider, curve_index, LV_ANIM_OFF);
         }
 
         auto* orientation_wrapper = lv_obj_create(main_wrapper);
@@ -170,31 +126,20 @@ public:
         lv_label_set_text(orientation_label, "Orientation");
         lv_obj_align(orientation_label, LV_ALIGN_TOP_LEFT, 0, 8);
 
-        auto lvgl_display = lv_obj_get_display(parent);
-        auto horizontal_px = lv_display_get_horizontal_resolution(lvgl_display);
-        auto vertical_px = lv_display_get_vertical_resolution(lvgl_display);
-        bool is_landscape_display = horizontal_px > vertical_px;
-
         auto* orientation_dropdown = lv_dropdown_create(orientation_wrapper);
-        if (is_landscape_display) {
-            lv_dropdown_set_options(orientation_dropdown, "Landscape\nLandscape (flipped)\nPortrait Left\nPortrait Right");
-        } else {
-            lv_dropdown_set_options(orientation_dropdown, "Portrait\nPortrait (flipped)\nLandscape Left\nLandscape Right");
-        }
-
+        // Note: order correlates with settings::display::Orientation item order
+        lv_dropdown_set_options(orientation_dropdown, "Landscape\nPortrait Right\nLandscape Flipped\nPortrait Left");
         lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_set_style_border_color(orientation_dropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(orientation_dropdown, 1, LV_PART_MAIN);
-        lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, nullptr);
-        uint32_t orientation_selected = displayOrientationToOrientationSetting(
-            lv_display_get_rotation(lv_display_get_default())
-        );
-        lv_dropdown_set_selected(orientation_dropdown, orientation_selected);
+        lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, this);
+        auto orientation = settings::display::toLvglDisplayRotation(displaySettings.orientation);
+        lv_dropdown_set_selected(orientation_dropdown, orientation);
     }
 
     void onHide(TT_UNUSED AppContext& app) override {
-        if (backlight_duty_set) {
-            setBacklightDuty(backlight_duty);
+        if (displaySettingsUpdated) {
+            settings::display::save(displaySettings);
         }
     }
 };

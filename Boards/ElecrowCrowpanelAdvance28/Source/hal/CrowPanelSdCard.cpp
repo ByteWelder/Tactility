@@ -7,23 +7,21 @@
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
-#define CROWPANEL_SDCARD_PIN_CS GPIO_NUM_7
+constexpr auto CROWPANEL_SDCARD_PIN_CS = GPIO_NUM_7;
 
 std::shared_ptr<SdCardDevice> createSdCard() {
-    auto* configuration = new SpiSdCardDevice::Config(
+    auto configuration = std::make_unique<SpiSdCardDevice::Config>(
         CROWPANEL_SDCARD_PIN_CS,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
         tt::lvgl::getSyncLock(),
-        {},
+        std::vector<gpio_num_t>(),
         SPI3_HOST
     );
 
-    auto* sdcard = (SdCardDevice*) new SpiSdCardDevice(
-        std::unique_ptr<SpiSdCardDevice::Config>(configuration)
+    return std::make_shared<SpiSdCardDevice>(
+        std::move(configuration)
     );
-
-    return std::shared_ptr<SdCardDevice>(sdcard);
 }
