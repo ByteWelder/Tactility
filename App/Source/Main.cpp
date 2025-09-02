@@ -41,4 +41,4 @@ void app_main() {
     tt::run(config);
 }
 
-} // extern "C"
+} // extern
