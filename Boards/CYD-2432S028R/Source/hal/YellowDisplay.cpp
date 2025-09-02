@@ -1,5 +1,5 @@
 #include "YellowDisplay.h"
-#include "XPT2046-Bitbang.h"
+#include "Xpt2046SoftSpi.h"
 #include "YellowConstants.h"
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
@@ -7,10 +7,10 @@
 static const char* TAG = "YellowDisplay";
 
 // Global to hold reference (only needed if calling stop() later)
-static std::unique_ptr<XPT2046_Bitbang> touch;
+static std::unique_ptr<Xpt2046SoftSpi> touch;
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
-    auto configuration = std::make_unique<XPT2046_Bitbang::Configuration>(
+    auto configuration = std::make_unique<Xpt2046SoftSpi::Configuration>(
         CYD_TOUCH_MOSI_PIN,
         CYD_TOUCH_MISO_PIN,
         CYD_TOUCH_SCK_PIN,
@@ -23,7 +23,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     );
 
     // Allocate the driver
-    touch = std::make_unique<XPT2046_Bitbang>(std::move(configuration));
+    touch = std::make_unique<Xpt2046SoftSpi>(std::move(configuration));
     
     // Start the driver
     if (!touch->start()) {

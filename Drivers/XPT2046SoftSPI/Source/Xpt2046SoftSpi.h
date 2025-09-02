@@ -24,7 +24,7 @@ struct Point {
     int y;
 };
 
-class XPT2046_Bitbang : public tt::hal::touch::TouchDevice {
+class Xpt2046SoftSpi : public tt::hal::touch::TouchDevice {
 public:
     class Configuration {
     public:
@@ -61,7 +61,7 @@ public:
     };
 
 private:
-    static XPT2046_Bitbang* instance;
+    static Xpt2046SoftSpi* instance;
     std::unique_ptr<Configuration> configuration;
     lv_indev_t* deviceHandle = nullptr;
 
@@ -72,11 +72,11 @@ private:
     static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data);
 
 public:
-    explicit XPT2046_Bitbang(std::unique_ptr<Configuration> inConfiguration);
+    explicit Xpt2046SoftSpi(std::unique_ptr<Configuration> inConfiguration);
 
     // TouchDevice interface
-    std::string getName() const final { return "XPT2046_Bitbang"; }
-    std::string getDescription() const final { return "Bitbang SPI touch driver"; }
+    std::string getName() const final { return "Xpt2046SoftSpi"; }
+    std::string getDescription() const final { return "Xpt2046 Soft SPI touch driver"; }
 
     bool start() override;                        // zero-arg start
     bool supportsLvgl() const override;
@@ -97,5 +97,5 @@ public:
     bool isTouched();
 
     // Static instance access
-    static XPT2046_Bitbang* getInstance() { return instance; }
+    static Xpt2046SoftSpi* getInstance() { return instance; }
 };

@@ -1,4 +1,4 @@
-#include "XPT2046-Bitbang.h"
+#include "Xpt2046SoftSpi.h"
 
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -13,7 +13,7 @@
 #include <nvs_flash.h>
 #include <rom/ets_sys.h>
 
-#define TAG "xpt2046_bitbang"
+#define TAG "Xpt2046SoftSpi"
 
 #define RERUN_CALIBRATE false
 #define CMD_READ_Y 0x90 // Try different commands if these don't work
@@ -33,9 +33,9 @@ Calibration cal = {
     .yMax = 1900
 };
 
-XPT2046_Bitbang* XPT2046_Bitbang::instance = nullptr;
+Xpt2046SoftSpi* Xpt2046SoftSpi::instance = nullptr;
 
-XPT2046_Bitbang::XPT2046_Bitbang(std::unique_ptr<Configuration> inConfiguration)
+Xpt2046SoftSpi::Xpt2046SoftSpi(std::unique_ptr<Configuration> inConfiguration)
     : configuration(std::move(inConfiguration)) {
     assert(configuration != nullptr);
 }
@@ -54,10 +54,10 @@ static void ensureNvsInitialized() {
     initialized = (result == ESP_OK);
 }
 
-bool XPT2046_Bitbang::start(lv_display_t* display) {
+bool Xpt2046SoftSpi::start(lv_display_t* display) {
     ensureNvsInitialized();
 
-    TT_LOG_I(TAG, "Starting XPT2046 Bitbang touch driver");
+    TT_LOG_I(TAG, "Starting Xpt2046SoftSpi touch driver");
 
     // Configure GPIO pins
     gpio_config_t io_conf = {};
@@ -122,25 +122,25 @@ bool XPT2046_Bitbang::start(lv_display_t* display) {
     lv_indev_set_user_data(deviceHandle, this);
 
     instance = this;
-    TT_LOG_I(TAG, "XPT2046 Bitbang touch driver started successfully");
+    TT_LOG_I(TAG, "Xpt2046SoftSpi touch driver started successfully");
     return true;
 }
 
-bool XPT2046_Bitbang::stop() {
-    TT_LOG_I(TAG, "Stopping XPT2046 Bitbang touch driver");
+bool Xpt2046SoftSpi::stop() {
+    TT_LOG_I(TAG, "Stopping Xpt2046SoftSpi touch driver");
     instance = nullptr;
     cleanup();
     return true;
 }
 
-void XPT2046_Bitbang::cleanup() {
+void Xpt2046SoftSpi::cleanup() {
     if (deviceHandle != nullptr) {
         lv_indev_delete(deviceHandle);
         deviceHandle = nullptr;
     }
 }
 
-int XPT2046_Bitbang::readSPI(uint8_t command) {
+int Xpt2046SoftSpi::readSPI(uint8_t command) {
     int result = 0;
 
     // Pull CS low for this transaction
@@ -172,7 +172,7 @@ int XPT2046_Bitbang::readSPI(uint8_t command) {
     return result;
 }
 
-void XPT2046_Bitbang::calibrate() {
+void Xpt2046SoftSpi::calibrate() {
     const int samples = 8; // More samples for better accuracy
 
     TT_LOG_I(TAG, "Calibration starting...");
@@ -214,12 +214,12 @@ void XPT2046_Bitbang::calibrate() {
     TT_LOG_I(TAG, "Calibration completed! xMin=%d, yMin=%d, xMax=%d, yMax=%d", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
 }
 
-bool XPT2046_Bitbang::loadCalibration() {
+bool Xpt2046SoftSpi::loadCalibration() {
     TT_LOG_W(TAG, "Calibration load disabled (using fresh calibration only).");
     return false;
 }
 
-void XPT2046_Bitbang::saveCalibration() {
+void Xpt2046SoftSpi::saveCalibration() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open("xpt2046", NVS_READWRITE, &handle);
     if (err != ESP_OK) {
@@ -238,7 +238,7 @@ void XPT2046_Bitbang::saveCalibration() {
     nvs_close(handle);
 }
 
-void XPT2046_Bitbang::setCalibration(int xMin, int yMin, int xMax, int yMax) {
+void Xpt2046SoftSpi::setCalibration(int xMin, int yMin, int xMax, int yMax) {
     cal.xMin = xMin;
     cal.yMin = yMin;
     cal.xMax = xMax;
@@ -246,7 +246,7 @@ void XPT2046_Bitbang::setCalibration(int xMin, int yMin, int xMax, int yMax) {
     TT_LOG_I(TAG, "Manual calibration set: xMin=%d, yMin=%d, xMax=%d, yMax=%d", xMin, yMin, xMax, yMax);
 }
 
-Point XPT2046_Bitbang::getTouch() {
+Point Xpt2046SoftSpi::getTouch() {
 
     const int samples = 8; // More samples for better accuracy
     int totalX = 0, totalY = 0;
@@ -294,7 +294,7 @@ Point XPT2046_Bitbang::getTouch() {
     return Point {x, y};
 }
 
-bool XPT2046_Bitbang::isTouched() {
+bool Xpt2046SoftSpi::isTouched() {
     const int samples = 3;
     int xTotal = 0, yTotal = 0;
     int validSamples = 0;
@@ -325,8 +325,8 @@ bool XPT2046_Bitbang::isTouched() {
     return touched;
 }
 
-void XPT2046_Bitbang::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
-    XPT2046_Bitbang* touch = static_cast<XPT2046_Bitbang*>(lv_indev_get_user_data(indev));
+void Xpt2046SoftSpi::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
+    Xpt2046SoftSpi* touch = static_cast<Xpt2046SoftSpi*>(lv_indev_get_user_data(indev));
 
     if (touch && touch->isTouched()) {
         Point point = touch->getTouch();
@@ -339,33 +339,33 @@ void XPT2046_Bitbang::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data
 }
 
 // Zero-argument start
-bool XPT2046_Bitbang::start() {
+bool Xpt2046SoftSpi::start() {
     // Default to LVGL-less startup if needed
     return startLvgl(nullptr);
 }
 
 // Whether this device supports LVGL
-bool XPT2046_Bitbang::supportsLvgl() const {
+bool Xpt2046SoftSpi::supportsLvgl() const {
     return true;
 }
 
 // Start with LVGL display
-bool XPT2046_Bitbang::startLvgl(lv_display_t* display) {
+bool Xpt2046SoftSpi::startLvgl(lv_display_t* display) {
     return start(display);
 }
 
 // Stop LVGL
-bool XPT2046_Bitbang::stopLvgl() {
+bool Xpt2046SoftSpi::stopLvgl() {
     cleanup();
     return true;
 }
 
 // Supports a separate touch driver? Yes/No
-bool XPT2046_Bitbang::supportsTouchDriver() {
+bool Xpt2046SoftSpi::supportsTouchDriver() {
     return true;
 }
 
 // Return driver instance if any
-std::shared_ptr<tt::hal::touch::TouchDriver> XPT2046_Bitbang::getTouchDriver() {
+std::shared_ptr<tt::hal::touch::TouchDriver> Xpt2046SoftSpi::getTouchDriver() {
     return nullptr; // replace with actual driver later
 }
