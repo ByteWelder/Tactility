@@ -18,6 +18,8 @@
 #include "html2text/html2text.h"
 #endif
 
+
+
 class TactileWeb : public tt::app::App {
 private:
     // UI Components
@@ -38,24 +40,24 @@ private:
     bool is_loading = false;
 
 #ifdef ESP_PLATFORM
-    // WiFi subscription management with proper typing
-    std::shared_ptr<tt::PubSub<tt::service::wifi::Event>> wifi_pubsub;
-    tt::PubSub<tt::service::wifi::Event>::SubscriptionHandle wifi_subscription = nullptr;
+    // WiFi subscription management with proper typing for new PubSub template
+    std::shared_ptr<tt::PubSub<tt::service::wifi::WifiEvent>> wifi_pubsub;
+    tt::PubSub<tt::service::wifi::WifiEvent>::SubscriptionHandle wifi_subscription = nullptr;
 
     // WiFi event callback with proper signature
-    void wifi_event_callback(const tt::service::wifi::Event& event) {
-        switch (event.type) {
-            case tt::service::wifi::EventType::ConnectionSuccess:
+    void wifi_event_callback(tt::service::wifi::WifiEvent event) {
+        switch (event) {
+            case tt::service::wifi::WifiEvent::ConnectionSuccess:
                 updateStatusLabel("WiFi Connected", LV_PALETTE_GREEN);
                 if (!last_url.empty() && isValidUrl(last_url.c_str())) {
                     fetchAndDisplay(last_url.c_str());
                 }
                 break;
-            case tt::service::wifi::EventType::Disconnected:
+            case tt::service::wifi::WifiEvent::Disconnected:
                 updateStatusLabel("WiFi Disconnected", LV_PALETTE_RED);
                 showWifiPrompt();
                 break;
-            case tt::service::wifi::EventType::Connecting:
+            case tt::service::wifi::WifiEvent::ConnectionPending:
                 updateStatusLabel("WiFi Connecting...", LV_PALETTE_YELLOW);
                 break;
             default:
@@ -317,11 +319,11 @@ private:
             return;
         }
 
-        // Convert HTML to plain text
+        // Convert HTML to plain text - removed try-catch for -fno-exceptions compatibility
         std::string plain_text;
-        try {
-            plain_text = html2text(html_content);
-        } catch (...) {
+        // Attempt HTML to text conversion, fall back to raw HTML if it fails
+        plain_text = html2text(html_content);
+        if (plain_text.empty()) {
             plain_text = html_content; // Fallback to raw HTML
         }
 
@@ -413,10 +415,10 @@ public:
         lv_textarea_set_text(url_input, initial_url.c_str());
 
 #ifdef ESP_PLATFORM
-        // Initialize WiFi subscription with proper typing
+        // Initialize WiFi subscription with proper typing for new PubSub template
         wifi_pubsub = tt::service::wifi::getPubsub();
         if (wifi_pubsub) {
-            wifi_subscription = wifi_pubsub->subscribe([this](const tt::service::wifi::Event& event) {
+            wifi_subscription = wifi_pubsub->subscribe([this](tt::service::wifi::Event event) {
                 wifi_event_callback(event);
             });
         }
