@@ -1,6 +1,7 @@
 #include "CYD2432S028R.h"
 #include "hal/YellowDisplay.h"
 #include "hal/YellowConstants.h"
+#include "hal/YellowSdCard.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/Configuration.h>
@@ -24,7 +25,7 @@ bool initBoot() {
 const Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
     .createDisplay = createDisplay,
-    .sdcard = nullptr,
+    .sdcard = createYellowSdCard(),
     .power = nullptr,
     .i2c = {},
     .spi {
@@ -53,14 +54,14 @@ const Configuration cyd_2432s028r_config = {
             .lock = tt::lvgl::getSyncLock()
         },
         
-        // Touch
+        // SDCard
         spi::Configuration {
-            .device = CYD2432S028R_TOUCH_SPI_HOST,
+            .device = CYD2432S028R_SDCARD_SPI_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_32,
-                .miso_io_num = GPIO_NUM_39,
-                .sclk_io_num = GPIO_NUM_25,
+                .mosi_io_num = GPIO_NUM_23,
+                .miso_io_num = GPIO_NUM_19,
+                .sclk_io_num = GPIO_NUM_18,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
