@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Tactility/hal/display/DisplayDevice.h"
+#include <memory>
+
 #define TWODOTFOUR_LCD_PIN_BACKLIGHT GPIO_NUM_27
 
 // Display
@@ -11,3 +14,4 @@
 #define TWODOTFOUR_LCD_PIN_CS GPIO_NUM_15
 #define TWODOTFOUR_LCD_PIN_DC GPIO_NUM_2
 
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

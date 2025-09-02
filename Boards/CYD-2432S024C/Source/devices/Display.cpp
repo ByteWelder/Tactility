@@ -1,6 +1,5 @@
-#include "YellowDisplay.h"
+#include "Display.h"
 #include "Cst816Touch.h"
-#include "YellowDisplayConstants.h"
 
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>

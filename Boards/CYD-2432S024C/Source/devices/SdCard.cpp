@@ -1,4 +1,4 @@
-#include "YellowSdCard.h"
+#include "SdCard.h"
 
 #define TAG "twodotfour_sdcard"
 
@@ -9,7 +9,7 @@ constexpr auto SDCARD_PIN_CS = GPIO_NUM_5;
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
-std::shared_ptr<SdCardDevice> createYellowSdCard() {
+std::shared_ptr<SdCardDevice> createSdCard() {
     auto configuration = std::make_unique<SpiSdCardDevice::Config>(
         SDCARD_PIN_CS,
         GPIO_NUM_NC,
