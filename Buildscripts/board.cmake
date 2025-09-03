@@ -23,8 +23,6 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
 
     if (board_id STREQUAL "cyd-2432s024c")
         set(TACTILITY_BOARD_PROJECT CYD-2432S024C)
-    elseif (board_id STREQUAL "cyd-2432s022c")
-        set(TACTILITY_BOARD_PROJECT CYD-2432S022C)
     elseif (board_id STREQUAL "cyd-2432s028r")
         set(TACTILITY_BOARD_PROJECT CYD-2432S028R)    
     elseif (board_id STREQUAL "cyd-e32r28t")
