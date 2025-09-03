@@ -1,5 +1,4 @@
-#include "CrowPanelDisplay.h"
-#include "CrowPanelDisplayConstants.h"
+#include "Display.h"
 
 #include <Ili934xDisplay.h>
 #include <Xpt2046Touch.h>
