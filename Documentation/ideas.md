@@ -2,9 +2,11 @@
 
 ## Higher Priority
 
-- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
   Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
+  Note: Consider installation path option in interface
+- Update ILI934x to v2.0.1
+- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
@@ -13,6 +15,7 @@
 
 ## Lower Priority
 
+- Try out ILI9342 https://github.com/jbrilha/esp_lcd_ili9342
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Create more unit tests for `tactility`
