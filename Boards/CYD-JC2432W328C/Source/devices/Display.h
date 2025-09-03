@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Tactility/hal/display/DisplayDevice.h"
+#include <memory>
+
 // Display backlight (PWM)
 #define JC2432W328C_LCD_PIN_BACKLIGHT GPIO_NUM_27
 
@@ -12,3 +15,4 @@
 #define JC2432W328C_LCD_PIN_CS GPIO_NUM_15
 #define JC2432W328C_LCD_PIN_DC GPIO_NUM_2
 
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

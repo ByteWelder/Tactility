@@ -5,7 +5,8 @@
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
+    // Display backlight
     return driver::pwmbacklight::init(GPIO_NUM_2, 200);
 }
 

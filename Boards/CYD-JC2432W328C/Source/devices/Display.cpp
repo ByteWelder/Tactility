@@ -1,9 +1,8 @@
-#include "YellowDisplay.h"
-#include "Cst816Touch.h"
-#include "YellowDisplayConstants.h"
+#include "Display.h"
 
-#include <St7789Display.h>
+#include <Cst816Touch.h>
 #include <PwmBacklight.h>
+#include <St7789Display.h>
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Cst816sTouch::Configuration>(
