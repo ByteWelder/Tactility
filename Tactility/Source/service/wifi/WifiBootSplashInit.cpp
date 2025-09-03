@@ -33,6 +33,7 @@ struct ApProperties {
 static void importWifiAp(const std::string& filePath) {
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(filePath, map)) {
+        TT_LOG_E(TAG, "Failed to load AP properties at %s", filePath.c_str());
         return;
     }
 
@@ -44,6 +45,7 @@ static void importWifiAp(const std::string& filePath) {
     const auto ssid = ssid_iterator->second;
 
     if (!settings::contains(ssid)) {
+
         const auto password_iterator = map.find(AP_PROPERTIES_KEY_PASSWORD);
         const auto password = password_iterator == map.end() ? "" : password_iterator->second;
 
@@ -78,10 +80,10 @@ static void importWifiAp(const std::string& filePath) {
 }
 
 static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
-    auto lock = sdcard->getLock()->asScopedLock();
-    lock.lock();
     auto path = file::getChildPath(sdcard->getMountPath(), "settings");
 
+    auto lock = sdcard->getLock()->asScopedLock();
+    lock.lock();
     std::vector<dirent> dirent_list;
     if (file::scandir(path, dirent_list, [](const dirent* entry) {
         switch (entry->d_type) {
@@ -102,6 +104,7 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
     }, nullptr) == 0) {
         return;
     }
+    lock.unlock();
 
     if (dirent_list.empty()) {
         TT_LOG_W(TAG, "No AP files found at %s", sdcard->getMountPath().c_str());
