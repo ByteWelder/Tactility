@@ -1,12 +1,12 @@
-#include "hal/CrowPanelDisplay.h"
-#include "hal/CrowPanelSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 #include <TCA9534.h>
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     TCA9534_IO_EXP io_expander = {
         .I2C_ADDR = 0x18,
         .i2c_master_port = I2C_NUM_0,
@@ -21,10 +21,16 @@ bool initBoot() {
     return true;
 }
 
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
+}
+
 extern const Configuration crowpanel_advance_50 = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
+    .createDevices = createDevices,
     .i2c = {
         // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)
         // Note: You could repurpose 1 or more UART interfaces as I2C interfaces

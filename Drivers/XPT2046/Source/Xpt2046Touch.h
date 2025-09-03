@@ -39,8 +39,6 @@ public:
 
 private:
 
-    static Xpt2046Touch* instance;
-
     std::unique_ptr<Configuration> configuration;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;

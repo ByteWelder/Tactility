@@ -1,22 +1,21 @@
 #include "Tactility/lvgl/LvglSync.h"
-#include "hal/TpagerDisplay.h"
-#include "hal/TpagerEncoder.h"
-#include "hal/TpagerDisplayConstants.h"
-#include "hal/TpagerKeyboard.h"
-#include "hal/TpagerPower.h"
-#include "hal/TpagerSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
+#include "devices/TpagerEncoder.h"
+#include "devices/TpagerKeyboard.h"
+#include "devices/TpagerPower.h"
 
 #include <Bq25896.h>
 #include <Drv2605.h>
 #include <Tactility/hal/Configuration.h>
 
-#define TPAGER_SPI_TRANSFER_SIZE_LIMIT (TPAGER_LCD_HORIZONTAL_RESOLUTION * TPAGER_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+#define TPAGER_SPI_TRANSFER_SIZE_LIMIT (480 * 222 * (LV_COLOR_DEPTH / 8))
 
 bool tpagerInit();
 
 using namespace tt::hal;
 
-DeviceVector createDevices() {
+static DeviceVector createDevices() {
     auto bq27220 = std::make_shared<Bq27220>(I2C_NUM_0);
     auto power = std::make_shared<TpagerPower>(bq27220);
 

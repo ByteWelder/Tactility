@@ -1,22 +1,26 @@
 #include "CYD2432S024C.h"
-#include "hal/YellowDisplay.h"
-#include "hal/YellowDisplayConstants.h"
-#include "hal/YellowSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 
 #define CYD_SPI_TRANSFER_SIZE_LIMIT (TWODOTFOUR_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(TWODOTFOUR_LCD_PIN_BACKLIGHT);
+}
+
+static tt::hal::DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
 }
 
 const tt::hal::Configuration cyd_2432s024c_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "First",

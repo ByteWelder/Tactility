@@ -13,11 +13,11 @@
 #include <nvs_flash.h>
 #include <rom/ets_sys.h>
 
-#define TAG "Xpt2046SoftSpi"
+constexpr auto* TAG = "Xpt2046SoftSpi";
 
-#define RERUN_CALIBRATE false
-#define CMD_READ_Y 0x90 // Try different commands if these don't work
-#define CMD_READ_X 0xD0 // Alternative: 0x98 for Y, 0xD8 for X
+constexpr auto RERUN_CALIBRATE = false;
+constexpr auto CMD_READ_Y = 0x90; // Try different commands if these don't work
+constexpr auto CMD_READ_X = 0xD0; // Alternative: 0x98 for Y, 0xD8 for X
 
 struct Calibration {
     int xMin;
@@ -32,8 +32,6 @@ Calibration cal = {
     .yMin = 100,
     .yMax = 1900
 };
-
-Xpt2046SoftSpi* Xpt2046SoftSpi::instance = nullptr;
 
 Xpt2046SoftSpi::Xpt2046SoftSpi(std::unique_ptr<Configuration> inConfiguration)
     : configuration(std::move(inConfiguration)) {
@@ -54,62 +52,7 @@ static void ensureNvsInitialized() {
     initialized = (result == ESP_OK);
 }
 
-bool Xpt2046SoftSpi::start(lv_display_t* display) {
-    ensureNvsInitialized();
-
-    TT_LOG_I(TAG, "Starting Xpt2046SoftSpi touch driver");
-
-    // Configure GPIO pins
-    gpio_config_t io_conf = {};
-
-    // Configure MOSI, CLK, CS as outputs
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << configuration->mosiPin) |
-        (1ULL << configuration->clkPin) |
-        (1ULL << configuration->csPin);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-
-    if (gpio_config(&io_conf) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to configure output pins");
-        return false;
-    }
-
-    // Configure MISO as input
-    io_conf.mode = GPIO_MODE_INPUT;
-    io_conf.pin_bit_mask = (1ULL << configuration->misoPin);
-    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-
-    if (gpio_config(&io_conf) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to configure input pin");
-        return false;
-    }
-
-    // Initialize pin states
-    gpio_set_level(configuration->csPin, 1); // CS high
-    gpio_set_level(configuration->clkPin, 0); // CLK low
-    gpio_set_level(configuration->mosiPin, 0); // MOSI low
-
-    TT_LOG_I(TAG, "GPIO configured: MOSI=%d, MISO=%d, CLK=%d, CS=%d", configuration->mosiPin, configuration->misoPin, configuration->clkPin, configuration->csPin);
-
-    // Load or perform calibration
-    bool calibrationValid = true; //loadCalibration() && !RERUN_CALIBRATE;
-        if (calibrationValid) {
-        // Check if calibration values are valid (xMin != xMax, yMin != yMax)
-        if (cal.xMin == cal.xMax || cal.yMin == cal.yMax) {
-            TT_LOG_W(TAG, "Invalid calibration detected: xMin=%d, xMax=%d, yMin=%d, yMax=%d", cal.xMin, cal.xMax, cal.yMin, cal.yMax);
-            calibrationValid = false;
-        }
-    }
-
-    if (!calibrationValid) {
-        TT_LOG_W(TAG, "Calibration data not found, invalid, or forced recalibration");
-        calibrate();
-        saveCalibration();
-    } else {
-        TT_LOG_I(TAG, "Loaded calibration: xMin=%d, yMin=%d, xMax=%d, yMax=%d", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
-    }
+bool Xpt2046SoftSpi::startLvgl(lv_display_t* display) {
 
     // Create LVGL input device
     deviceHandle = lv_indev_create();
@@ -117,27 +60,24 @@ bool Xpt2046SoftSpi::start(lv_display_t* display) {
         TT_LOG_E(TAG, "Failed to create LVGL input device");
         return false;
     }
+
     lv_indev_set_type(deviceHandle, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(deviceHandle, touchReadCallback);
     lv_indev_set_user_data(deviceHandle, this);
 
-    instance = this;
     TT_LOG_I(TAG, "Xpt2046SoftSpi touch driver started successfully");
     return true;
 }
 
 bool Xpt2046SoftSpi::stop() {
     TT_LOG_I(TAG, "Stopping Xpt2046SoftSpi touch driver");
-    instance = nullptr;
-    cleanup();
-    return true;
-}
 
-void Xpt2046SoftSpi::cleanup() {
+    // Stop LVLG if needed
     if (deviceHandle != nullptr) {
-        lv_indev_delete(deviceHandle);
-        deviceHandle = nullptr;
+        stopLvgl();
     }
+
+    return true;
 }
 
 int Xpt2046SoftSpi::readSPI(uint8_t command) {
@@ -338,10 +278,64 @@ void Xpt2046SoftSpi::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data)
     }
 }
 
-// Zero-argument start
 bool Xpt2046SoftSpi::start() {
-    // Default to LVGL-less startup if needed
-    return startLvgl(nullptr);
+    ensureNvsInitialized();;
+
+    TT_LOG_I(TAG, "Starting Xpt2046SoftSpi touch driver");
+
+    // Configure GPIO pins
+    gpio_config_t io_conf = {};
+
+    // Configure MOSI, CLK, CS as outputs
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = (1ULL << configuration->mosiPin) |
+        (1ULL << configuration->clkPin) |
+        (1ULL << configuration->csPin);
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+
+    if (gpio_config(&io_conf) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to configure output pins");
+        return false;
+    }
+
+    // Configure MISO as input
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pin_bit_mask = (1ULL << configuration->misoPin);
+    io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
+
+    if (gpio_config(&io_conf) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to configure input pin");
+        return false;
+    }
+
+    // Initialize pin states
+    gpio_set_level(configuration->csPin, 1); // CS high
+    gpio_set_level(configuration->clkPin, 0); // CLK low
+    gpio_set_level(configuration->mosiPin, 0); // MOSI low
+
+    TT_LOG_I(TAG, "GPIO configured: MOSI=%d, MISO=%d, CLK=%d, CS=%d", configuration->mosiPin, configuration->misoPin, configuration->clkPin, configuration->csPin);
+
+    // Load or perform calibration
+    bool calibrationValid = true; //loadCalibration() && !RERUN_CALIBRATE;
+        if (calibrationValid) {
+        // Check if calibration values are valid (xMin != xMax, yMin != yMax)
+        if (cal.xMin == cal.xMax || cal.yMin == cal.yMax) {
+            TT_LOG_W(TAG, "Invalid calibration detected: xMin=%d, xMax=%d, yMin=%d, yMax=%d", cal.xMin, cal.xMax, cal.yMin, cal.yMax);
+            calibrationValid = false;
+        }
+    }
+
+    if (!calibrationValid) {
+        TT_LOG_W(TAG, "Calibration data not found, invalid, or forced recalibration");
+        calibrate();
+        saveCalibration();
+    } else {
+        TT_LOG_I(TAG, "Loaded calibration: xMin=%d, yMin=%d, xMax=%d, yMax=%d", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
+    }
+
+    return true;
 }
 
 // Whether this device supports LVGL
@@ -349,19 +343,12 @@ bool Xpt2046SoftSpi::supportsLvgl() const {
     return true;
 }
 
-// Start with LVGL display
-bool Xpt2046SoftSpi::startLvgl(lv_display_t* display) {
-    return start(display);
-}
-
 // Stop LVGL
 bool Xpt2046SoftSpi::stopLvgl() {
-    cleanup();
-    return true;
-}
-
-// Supports a separate touch driver? Yes/No
-bool Xpt2046SoftSpi::supportsTouchDriver() {
+    if (deviceHandle != nullptr) {
+        lv_indev_delete(deviceHandle);
+        deviceHandle = nullptr;
+    }
     return true;
 }
 

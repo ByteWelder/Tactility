@@ -1,20 +1,25 @@
 #include "Tactility/lvgl/LvglSync.h"
 #include "UnPhoneFeatures.h"
 #include "Xpt2046Power.h"
-#include "hal/UnPhoneDisplay.h"
-#include "hal/UnPhoneDisplayConstants.h"
-#include "hal/UnPhoneSdCard.h"
+#include "devices/Hx8357Display.h"
+#include "devices/SdCard.h"
 #include <Tactility/hal/Configuration.h>
 
 #define UNPHONE_SPI_TRANSFER_SIZE_LIMIT (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_SPI_TRANSFER_HEIGHT * LV_COLOR_DEPTH / 8)
 
-bool unPhoneInitPower();
+bool initBoot();
+
+static tt::hal::DeviceVector createDevices() {
+    return {
+        std::make_shared<Xpt2046Power>(),
+        createDisplay(),
+        createSdCard()
+    };
+}
 
 extern const tt::hal::Configuration unPhone = {
-    .initBoot = unPhoneInitPower,
-    .createDisplay = createDisplay,
-    .sdcard = createUnPhoneSdCard(),
-    .power = getOrCreatePower,
+    .initBoot = initBoot,
+    .createDevices = createDevices,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",

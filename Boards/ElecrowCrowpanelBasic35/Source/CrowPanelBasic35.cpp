@@ -1,25 +1,30 @@
 #include "PwmBacklight.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "hal/CrowPanelDisplay.h"
-#include "hal/CrowPanelDisplayConstants.h"
-#include "hal/CrowPanelSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Xpt2046Power.h>
 #include <Tactility/hal/Configuration.h>
 
-#define CROWPANEL_SPI_TRANSFER_SIZE_LIMIT (CROWPANEL_LCD_HORIZONTAL_RESOLUTION * CROWPANEL_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
+constexpr auto CROWPANEL_SPI_TRANSFER_SIZE_LIMIT = (CROWPANEL_LCD_HORIZONTAL_RESOLUTION * CROWPANEL_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8));
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_27);
+}
+
+static DeviceVector createDevices() {
+    return {
+        std::make_shared<Xpt2046Power>(),
+        createDisplay(),
+        createSdCard(),
+    };
 }
 
 extern const Configuration crowpanel_basic_35 = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = getOrCreatePower,
+    .createDevices = createDevices,
     .i2c = {
         // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)
         // Note: You could repurpose 1 or more UART interfaces as I2C interfaces

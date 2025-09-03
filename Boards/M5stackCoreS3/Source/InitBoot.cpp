@@ -1,10 +1,9 @@
-#include <Axp2101.h>
-#include <Aw9523.h>
+#include "InitBoot.h"
 
 #include <Tactility/Log.h>
 #include <Tactility/kernel/Kernel.h>
 
-#define TAG "cores3"
+constexpr auto* TAG = "CoreS3";
 
 std::shared_ptr<Axp2101> axp2101;
 std::shared_ptr<Aw9523> aw9523;
@@ -148,9 +147,7 @@ bool initBoot() {
     TT_LOG_I(TAG, "initBoot()");
 
     axp2101 = std::make_shared<Axp2101>(I2C_NUM_0);
-    tt::hal::registerDevice(axp2101);
     aw9523 = std::make_shared<Aw9523>(I2C_NUM_0);
-    tt::hal::registerDevice(aw9523);
 
     return initPowerControl() && initGpioExpander();
 }

@@ -1,18 +1,16 @@
 #include "JC2432W328C.h"
-#include "hal/YellowDisplay.h"
-#include "hal/YellowDisplayConstants.h"
-#include "hal/YellowSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
-#include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
-
 #include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 using namespace tt::hal;
 
 #define CYD_SPI_TRANSFER_SIZE_LIMIT (JC2432W328C_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
-bool initBoot() {
+static bool initBoot() {
     //Set the RGB Led Pins to output and turn them off
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT)); //Red
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_16, GPIO_MODE_OUTPUT)); //Green
@@ -26,11 +24,16 @@ bool initBoot() {
     return driver::pwmbacklight::init(JC2432W328C_LCD_PIN_BACKLIGHT);
 }
 
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
+}
+
 const Configuration cyd_jc2432w328c_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {
         //Touch
         i2c::Configuration {
