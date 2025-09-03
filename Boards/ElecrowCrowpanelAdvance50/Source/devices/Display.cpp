@@ -1,4 +1,4 @@
-#include "CrowPanelDisplay.h"
+#include "Display.h"
 
 #include <Gt911Touch.h>
 #include <RgbDisplay.h>

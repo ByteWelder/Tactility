@@ -1,8 +1,7 @@
 #include "PwmBacklight.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "hal/CrowPanelDisplay.h"
-#include "hal/CrowPanelDisplayConstants.h"
-#include "hal/CrowPanelSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Tactility/hal/Configuration.h>
 
@@ -10,14 +9,20 @@
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_38);
+}
+
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
 }
 
 extern const Configuration crowpanel_advance_35 = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
+    .createDevices = createDevices,
     .i2c = {
         // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)
         // Note: You could repurpose 1 or more UART interfaces as I2C interfaces

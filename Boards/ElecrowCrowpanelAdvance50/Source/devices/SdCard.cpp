@@ -1,9 +1,7 @@
-#include "CrowPanelSdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
-
-#include <esp_vfs_fat.h>
 
 using tt::hal::sdcard::SpiSdCardDevice;
 

@@ -1,11 +1,8 @@
-#include "CrowPanelDisplay.h"
-#include "CrowPanelDisplayConstants.h"
+#include "Display.h"
 
 #include <Gt911Touch.h>
 #include <PwmBacklight.h>
 #include <Ili9488Display.h>
-
-#define TAG "crowpanel_display"
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
