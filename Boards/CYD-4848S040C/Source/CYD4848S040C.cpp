@@ -6,7 +6,7 @@
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_38, 1000);
 }
 

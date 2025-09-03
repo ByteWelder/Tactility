@@ -1,4 +1,4 @@
-#include "CydSdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>

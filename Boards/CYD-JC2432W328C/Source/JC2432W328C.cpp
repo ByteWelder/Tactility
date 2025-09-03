@@ -10,7 +10,7 @@ using namespace tt::hal;
 
 #define CYD_SPI_TRANSFER_SIZE_LIMIT (JC2432W328C_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
-bool initBoot() {
+static bool initBoot() {
     //Set the RGB Led Pins to output and turn them off
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT)); //Red
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_16, GPIO_MODE_OUTPUT)); //Green
