@@ -5,7 +5,7 @@
 #include <EspLcdDisplay.h>
 #include <lvgl.h>
 
-class CydDisplay final : public EspLcdDisplay {
+class St7701Display final : public EspLcdDisplay {
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable touchDevice;
 
@@ -21,7 +21,7 @@ class CydDisplay final : public EspLcdDisplay {
 
 public:
 
-    CydDisplay() : EspLcdDisplay(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive)) {}
+    St7701Display() : EspLcdDisplay(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive)) {}
 
     std::string getName() const override { return "ST7701S"; }
 
@@ -33,5 +33,3 @@ public:
 
     bool supportsBacklightDuty() const override { return true; }
 };
-
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
