@@ -1,4 +1,4 @@
-#include "CydDisplay.h"
+#include "Display.h"
 
 #include <Gt911Touch.h>
 #include <Ili934xDisplay.h>

@@ -1,10 +1,10 @@
-#include "CydSdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 
-#define SDCARD_SPI_HOST SPI3_HOST
-#define SDCARD_PIN_CS GPIO_NUM_5
+constexpr auto SDCARD_SPI_HOST = SPI3_HOST;
+constexpr auto SDCARD_PIN_CS = GPIO_NUM_5;
 
 using tt::hal::sdcard::SpiSdCardDevice;
 

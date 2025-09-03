@@ -1,7 +1,7 @@
 #include "CYD2432S032C.h"
 #include "Tactility/lvgl/LvglSync.h"
-#include "hal/CydDisplay.h"
-#include "hal/CydSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 #include <Tactility/kernel/SystemEvents.h>
 
@@ -25,11 +25,16 @@ bool initBoot() {
     return true;
 }
 
+static tt::hal::DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
+}
+
 const tt::hal::Configuration cyd_2432S032c_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "Internal",
