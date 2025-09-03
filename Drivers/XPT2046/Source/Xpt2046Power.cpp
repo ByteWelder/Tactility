@@ -102,13 +102,3 @@ bool Xpt2046Power::readBatteryVoltageSampled(uint32_t& output) {
         return false;
     }
 }
-
-static std::shared_ptr<PowerDevice> power;
-
-std::shared_ptr<PowerDevice> getOrCreatePower() {
-    if (power == nullptr) {
-        power = std::make_shared<Xpt2046Power>();
-    }
-    return power;
-}
-

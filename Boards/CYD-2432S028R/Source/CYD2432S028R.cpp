@@ -1,14 +1,18 @@
 #include "CYD2432S028R.h"
-#include "hal/YellowDisplay.h"
-#include "hal/YellowConstants.h"
-#include "hal/YellowSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/Configuration.h>
 
+// SPI Transfer
+#define CYD_SPI_TRANSFER_SIZE_LIMIT (CYD2432S028R_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
+// Display backlight (PWM)
+#define CYD2432S028R_LCD_PIN_BACKLIGHT GPIO_NUM_21
+
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     //Set the RGB Led Pins to output and turn them off
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT)); //Red
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_16, GPIO_MODE_OUTPUT)); //Green
@@ -22,16 +26,21 @@ bool initBoot() {
     return driver::pwmbacklight::init(CYD2432S028R_LCD_PIN_BACKLIGHT);
 }
 
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
+}
+
 const Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {},
     .spi {
         //Display
         spi::Configuration {
-            .device = CYD2432S028R_LCD_SPI_HOST,
+            .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
                 .mosi_io_num = GPIO_NUM_13,
@@ -56,7 +65,7 @@ const Configuration cyd_2432s028r_config = {
         
         // SDCard
         spi::Configuration {
-            .device = CYD2432S028R_SDCARD_SPI_HOST,
+            .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
                 .mosi_io_num = GPIO_NUM_23,
@@ -74,7 +83,7 @@ const Configuration cyd_2432s028r_config = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         },

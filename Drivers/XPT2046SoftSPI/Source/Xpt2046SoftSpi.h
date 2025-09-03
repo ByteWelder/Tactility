@@ -2,12 +2,8 @@
 
 #include "Tactility/hal/touch/TouchDevice.h"
 #include "Tactility/hal/touch/TouchDriver.h"
-#include <Tactility/TactilityCore.h>
 #include "lvgl.h"
 #include <driver/gpio.h>
-#include <esp_err.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <memory>
 #include <string>
 
@@ -61,12 +57,10 @@ public:
     };
 
 private:
-    static Xpt2046SoftSpi* instance;
     std::unique_ptr<Configuration> configuration;
     lv_indev_t* deviceHandle = nullptr;
 
     int readSPI(uint8_t command);
-    void cleanup();
     bool loadCalibration();
     void saveCalibration();
     static void touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data);
@@ -78,24 +72,20 @@ public:
     std::string getName() const final { return "Xpt2046SoftSpi"; }
     std::string getDescription() const final { return "Xpt2046 Soft SPI touch driver"; }
 
-    bool start() override;                        // zero-arg start
+    bool start() override;
+    bool stop() override;
+
     bool supportsLvgl() const override;
     bool startLvgl(lv_display_t* display) override;
     bool stopLvgl() override;
-    bool stop() override;
-    bool supportsTouchDriver() override;
+
+    bool supportsTouchDriver() override { return true; }
     std::shared_ptr<tt::hal::touch::TouchDriver> getTouchDriver() override;
     lv_indev_t* getLvglIndev() override { return deviceHandle; }
-
-    // Original LVGL-specific start
-    bool start(lv_display_t* display);
 
     // XPT2046-specific methods
     Point getTouch();
     void calibrate();
     void setCalibration(int xMin, int yMin, int xMax, int yMax);
     bool isTouched();
-
-    // Static instance access
-    static Xpt2046SoftSpi* getInstance() { return instance; }
 };

@@ -1,20 +1,25 @@
 #include "CYD4848S040C.h"
-#include "hal/CydDisplay.h"
-#include "hal/CydSdCard.h"
+#include "devices/St7701Display.h"
+#include "devices/SdCard.h"
 
 #include <PwmBacklight.h>
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(GPIO_NUM_38, 1000);
+}
+
+static DeviceVector createDevices() {
+    return {
+        std::reinterpret_pointer_cast<Device>(std::make_shared<St7701Display>()),
+        createSdCard()
+    };
 }
 
 const Configuration cyd_4848s040c_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {
         //Touch
         i2c::Configuration {

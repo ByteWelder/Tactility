@@ -1,21 +1,27 @@
 #include "CYD8048S043C.h" // Don't remove, or we get a linker error ("undefined reference to `cyd_8048s043c_config'" - GCC bug?)
 #include "PwmBacklight.h"
-#include "hal/CydDisplay.h"
-#include "hal/CydSdCard.h"
+#include "devices/Display.h"
+#include "devices/SdCard.h"
 
 using namespace tt::hal;
 
-bool initBoot() {
+static bool initBoot() {
+    // Display backlight
     return driver::pwmbacklight::init(GPIO_NUM_2, 200);
+}
+
+static DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
 }
 
 const Configuration cyd_8048s043c_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {
-        //Touch
+        // Touch
         i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
@@ -33,7 +39,7 @@ const Configuration cyd_8048s043c_config = {
                 .clk_flags = 0
             }
         },
-        //P4 header, JST SH 1.0, GND / 3.3V / IO17 / IO18
+        // P4 header, JST SH 1.0, GND / 3.3V / IO17 / IO18
         i2c::Configuration {
             .name = "External",
             .port = I2C_NUM_1,
@@ -53,7 +59,7 @@ const Configuration cyd_8048s043c_config = {
         }
     },
     .spi {
-        //SD Card
+        // SD Card
         spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -79,7 +85,7 @@ const Configuration cyd_8048s043c_config = {
         }
     },
     .uart {
-        //P4 header, JST SH 1.0, GND / 3.3V / IO17 / IO18
+        // P4 header, JST SH 1.0, GND / 3.3V / IO17 / IO18
         uart::Configuration {
             .name = "UART1",
             .port = UART_NUM_1,

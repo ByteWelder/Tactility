@@ -7,6 +7,8 @@
 #include "Tactility/hal/spi/SpiInit.h"
 #include "Tactility/hal/uart/UartInit.h"
 
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/touch/TouchDevice.h>
 #include <Tactility/kernel/SystemEvents.h>
 
 namespace tt::hal {
@@ -35,6 +37,16 @@ void registerDevices(const Configuration& configuration) {
     auto devices = configuration.createDevices();
     for (auto& device : devices) {
         registerDevice(device);
+
+        // Register attached devices
+        if (device->getType() == Device::Type::Display) {
+            const auto display = std::static_pointer_cast<display::DisplayDevice>(device);
+            assert(display != nullptr);
+            const std::shared_ptr<Device> touch = display->getTouchDevice();
+            if (touch != nullptr) {
+                registerDevice(touch);
+            }
+        }
     }
 }
 

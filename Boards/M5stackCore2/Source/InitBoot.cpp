@@ -7,7 +7,7 @@
 #include <driver/i2c.h>
 #include <driver/spi_master.h>
 
-#define TAG "core2"
+constexpr auto* TAG = "Core2";
 
 axp192_t axpDevice;
 

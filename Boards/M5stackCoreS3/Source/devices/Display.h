@@ -1,0 +1,14 @@
+#pragma once
+
+#include <Tactility/hal/display/DisplayDevice.h>
+
+// Display
+#define CORES3_LCD_SPI_HOST SPI3_HOST
+#define CORES3_LCD_PIN_CS GPIO_NUM_3
+#define CORES3_LCD_PIN_DC GPIO_NUM_35
+#define CORES3_LCD_HORIZONTAL_RESOLUTION 320
+#define CORES3_LCD_VERTICAL_RESOLUTION 240
+#define CORES3_LCD_DRAW_BUFFER_HEIGHT (CORES3_LCD_VERTICAL_RESOLUTION / 10)
+#define CORES3_LCD_DRAW_BUFFER_SIZE (CORES3_LCD_HORIZONTAL_RESOLUTION * CORES3_LCD_DRAW_BUFFER_HEIGHT)
+
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

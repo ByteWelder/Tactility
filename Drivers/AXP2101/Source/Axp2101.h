@@ -21,8 +21,8 @@ public:
 
     explicit Axp2101(i2c_port_t port) : I2cDevice(port, AXP2101_ADDRESS) {}
 
-    std::string getName() const final { return "AXP2101"; }
-    std::string getDescription() const final { return "Power management with I2C interface."; }
+    std::string getName() const override { return "AXP2101"; }
+    std::string getDescription() const override { return "Power management with I2C interface."; }
 
     bool setRegisters(uint8_t* bytePairs, size_t bytePairsSize) const;
 

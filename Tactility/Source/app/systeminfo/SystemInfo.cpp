@@ -142,8 +142,10 @@ class SystemInfoApp : public App {
         lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
 
-        addMemoryBar(memory_wrapper, "Heap", getHeapTotal() - getHeapFree(), getHeapTotal());
-        addMemoryBar(memory_wrapper, "SPI", getSpiTotal() - getSpiFree(), getSpiTotal());
+        addMemoryBar(memory_wrapper, "Internal", getHeapTotal() - getHeapFree(), getHeapTotal());
+        if (getSpiTotal() > 0) {
+            addMemoryBar(memory_wrapper, "External", getSpiTotal() - getSpiFree(), getSpiTotal());
+        }
 
 #if configUSE_TRACE_FACILITY
         auto* tasks_label = lv_label_create(wrapper);

@@ -1,8 +1,8 @@
 #include "M5stackCore2.h"
 #include "InitBoot.h"
-#include "hal/Core2Display.h"
-#include "hal/Core2Power.h"
-#include "hal/Core2SdCard.h"
+#include "devices/Display.h"
+#include "devices/Core2Power.h"
+#include "devices/SdCard.h"
 
 #include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -11,16 +11,22 @@
 
 using namespace tt::hal;
 
-extern const tt::hal::Configuration m5stack_core2 = {
+static DeviceVector createDevices() {
+    return {
+        createPower(),
+        createSdCard(),
+        createDisplay()
+    };
+}
+
+extern const Configuration m5stack_core2 = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createSdCard(),
-    .power = createPower,
+    .createDevices = createDevices,
     .i2c = {
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "Internal",
             .port = I2C_NUM_0,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .isMutable = false,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
@@ -34,10 +40,10 @@ extern const tt::hal::Configuration m5stack_core2 = {
                 .clk_flags = 0
             }
         },
-        tt::hal::i2c::Configuration {
+        i2c::Configuration {
             .name = "External", // (Grove)
             .port = I2C_NUM_1,
-            .initMode = tt::hal::i2c::InitMode::ByTactility,
+            .initMode = i2c::InitMode::ByTactility,
             .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
@@ -53,7 +59,7 @@ extern const tt::hal::Configuration m5stack_core2 = {
         }
     },
     .spi {
-        tt::hal::spi::Configuration {
+        spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
@@ -72,7 +78,7 @@ extern const tt::hal::Configuration m5stack_core2 = {
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
-            .initMode = tt::hal::spi::InitMode::ByTactility,
+            .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         }
