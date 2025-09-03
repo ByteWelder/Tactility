@@ -1,5 +1,4 @@
-#include "CrowPanelDisplay.h"
-#include "CrowPanelDisplayConstants.h"
+#include "Display.h"
 
 #include <Ft5x06Touch.h>
 #include <PwmBacklight.h>
@@ -11,8 +10,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         I2C_NUM_0,
         240,
         320,
-        true,
-        true,
+        false,
+        false,
         false
     );
 
@@ -26,11 +25,11 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         CROWPANEL_LCD_SPI_HOST,
         CROWPANEL_LCD_PIN_CS,
         CROWPANEL_LCD_PIN_DC,
-        320,
         240,
+        320,
         touch,
-        true,
-        true,
+        false,
+        false,
         false,
         true
     );
