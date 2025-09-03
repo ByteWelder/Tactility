@@ -1,4 +1,4 @@
-#include "CrowPanelSdCard.h"
+#include "SdCard.h"
 
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
