@@ -12,6 +12,7 @@
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
 - App packaging
+- Bug: GraphicsDemo should check if display supports the DisplayDriver interface (and same for touch) and show an AlertDialog error if there's a problem
 
 ## Lower Priority
 
@@ -39,6 +40,7 @@
 - Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
 - Scanning SD card for external apps and auto-register them (in a temporary register?)
 - Remove flex_flow from app_container in Gui.cpp
+- Bug: Turn on WiFi (when testing it wasn't connected/connecting - just active). Open chat. Observe crash.
 
 # Nice-to-haves
 
