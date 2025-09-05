@@ -5,14 +5,17 @@
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
   Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
   Note: Consider installation path option in interface
-- Update ILI934x to v2.0.1
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
-- App packaging
 - Bug: GraphicsDemo should check if display supports the DisplayDriver interface (and same for touch) and show an AlertDialog error if there's a problem
+- Update ILI934x to v2.0.1
+- App packaging
+- Create an "app install paths" settings app to add/remove paths.
+  Scan these paths on startup.
+  Make the AppList use the scan results.
 
 ## Lower Priority
 
