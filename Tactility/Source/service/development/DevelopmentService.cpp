@@ -251,7 +251,7 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     content_left -= content_read;
 
     // Write file
-    auto file_path = std::format("/sdcard/{}", filename_entry->second);
+    auto file_path = std::format("/data/{}", filename_entry->second);
     auto* file = fopen(file_path.c_str(), "wb");
     auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
     fclose(file);
