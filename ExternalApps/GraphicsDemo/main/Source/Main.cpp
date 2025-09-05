@@ -5,22 +5,55 @@
 #include <esp_log.h>
 
 #include <tt_app.h>
+#include <tt_app_alertdialog.h>
 #include <tt_lvgl.h>
 
 constexpr auto TAG = "Main";
 
-static void onCreate(AppHandle appHandle, void* data) {
+/** Find a DisplayDevice that supports the DisplayDriver interface */
+static bool findUsableDisplay(DeviceId& deviceId) {
     uint16_t display_count = 0;
+    if (!tt_hal_device_find(DEVICE_TYPE_DISPLAY, &deviceId, &display_count, 1)) {
+        ESP_LOGE(TAG, "No display device found");
+        return false;
+    }
+
+    if (!tt_hal_display_driver_supported(deviceId)) {
+        ESP_LOGE(TAG, "Display doesn't support driver mode");
+        return false;
+    }
+
+    return true;
+}
+
+/** Find a TouchDevice that supports the TouchDriver interface */
+static bool findUsableTouch(DeviceId& deviceId) {
+    uint16_t touch_count = 0;
+    if (!tt_hal_device_find(DEVICE_TYPE_TOUCH, &deviceId, &touch_count, 1)) {
+        ESP_LOGE(TAG, "No touch device found");
+        return false;
+    }
+
+    if (!tt_hal_touch_driver_supported(deviceId)) {
+        ESP_LOGE(TAG, "Touch doesn't support driver mode");
+        return false;
+    }
+
+    return true;
+}
+
+static void onCreate(AppHandle appHandle, void* data) {
     DeviceId display_id;
-    if (!tt_hal_device_find(DEVICE_TYPE_DISPLAY, &display_id, &display_count, 1)) {
-        ESP_LOGI(TAG, "No display device found");
+    if (!findUsableDisplay(display_id)) {
+        tt_app_stop();
+        tt_app_alertdialog_start("Error", "The display doesn't support the required features.", nullptr, 0);
         return;
     }
 
-    uint16_t touch_count = 0;
     DeviceId touch_id;
-    if (!tt_hal_device_find(DEVICE_TYPE_TOUCH, &touch_id, &touch_count, 1)) {
-        ESP_LOGI(TAG, "No touch device found");
+    if (!findUsableTouch(touch_id)) {
+        tt_app_stop();
+        tt_app_alertdialog_start("Error", "The touch driver doesn't support the required features.", nullptr, 0);
         return;
     }
 
