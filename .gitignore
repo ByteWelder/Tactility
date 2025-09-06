@@ -7,6 +7,7 @@ build-sim/
 cmake-build-*/
 CMakeCache.txt
 *.cbp
+CMakeFiles
 
 release/
 
@@ -17,4 +18,5 @@ managed_components/
 dependencies.lock
 
 .vscode/
+.gitpod.yml
 

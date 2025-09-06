@@ -8,7 +8,7 @@
 #include <esp_lvgl_port_disp.h>
 #include <Tactility/Check.h>
 
-class EspLcdDisplay : tt::hal::display::DisplayDevice {
+class EspLcdDisplay : public tt::hal::display::DisplayDevice {
 
     esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
     esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;
