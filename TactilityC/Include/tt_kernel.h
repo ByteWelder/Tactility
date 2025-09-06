@@ -8,6 +8,8 @@ extern "C" {
 
 typedef unsigned long TickType;
 
+#define MAX_TICKS INT32_MAX
+
 /**
  * Stall the current task for the specified amount of time.
  * @param milliseconds the time in milliseconds to stall.

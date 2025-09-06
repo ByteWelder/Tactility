@@ -56,7 +56,7 @@ public:
 
     // endregion
 
-    // region NativeDisplay
+    // region DisplayDriver
 
     bool supportsDisplayDriver() const override { return true; }
 

@@ -105,6 +105,7 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tolower),
     ESP_ELFSYM_EXPORT(toupper),
     // ESP-IDF
+    ESP_ELFSYM_EXPORT(esp_log),
     ESP_ELFSYM_EXPORT(esp_log_write),
     ESP_ELFSYM_EXPORT(esp_log_timestamp),
     // Tactility

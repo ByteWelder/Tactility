@@ -33,38 +33,40 @@ void tt_app_stop() {
     tt::app::stop();
 }
 
-void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t& size) {
+void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size) {
     assert(buffer != nullptr);
-    assert(size > 0);
+    assert(size != nullptr);
+    assert(*size > 0);
     auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
     auto data_path = paths->getDataDirectory();
     auto expected_length = data_path.length() + 1;
-    if (size < expected_length) {
+    if (*size < expected_length) {
         TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", size, expected_length);
-        size = 0;
+        *size = 0;
         buffer[0] = 0;
         return;
     }
 
     strcpy(buffer, data_path.c_str());
-    size = data_path.length();
+    *size = data_path.length();
 }
 
-void tt_app_get_data_directory_lvgl(AppPathsHandle handle, char* buffer, size_t& size) {
+void tt_app_get_data_directory_lvgl(AppPathsHandle handle, char* buffer, size_t* size) {
     assert(buffer != nullptr);
-    assert(size > 0);
+    assert(size != nullptr);
+    assert(*size > 0);
     auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
     auto data_path = paths->getDataDirectoryLvgl();
     auto expected_length = data_path.length() + 1;
-    if (size < expected_length) {
+    if (*size < expected_length) {
         TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", size, expected_length);
-        size = 0;
+        *size = 0;
         buffer[0] = 0;
         return;
     }
 
     strcpy(buffer, data_path.c_str());
-    size = data_path.length();
+    *size = data_path.length();
 }
 
 }
