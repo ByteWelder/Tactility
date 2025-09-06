@@ -1,5 +1,8 @@
 #pragma once
 
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <memory>
+
 // Display
 #define CYD_DISPLAY_SPI_HOST SPI2_HOST
 #define CYD_DISPLAY_PIN_CS GPIO_NUM_15
@@ -16,10 +19,7 @@
 #define CYD_TOUCH_CS_PIN GPIO_NUM_33
 #define CYD_TOUCH_IRQ_PIN GPIO_NUM_36
 
-// SD Card
-#define CYD_SDCARD_SPI_HOST SPI3_HOST
-#define CYD_SDCARD_PIN_CS GPIO_NUM_5
-
-
 // Backlight
 #define CYD_BACKLIGHT_PIN GPIO_NUM_21
+
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
