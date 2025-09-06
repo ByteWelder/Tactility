@@ -17,9 +17,17 @@
   Scan these paths on startup.
   Make the AppList use the scan results.
 
+## Medium Priority
+
+- Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
+- Try out ILI9342 https://github.com/jbrilha/esp_lcd_ili9342
+- All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
+- Create different partition files for different ESP flash size targets (N4, N8, N16, N32)
+  Consider a dev variant for quick flashing.
+- Bug: Turn on WiFi (when testing it wasn't connected/connecting - just active). Open chat. Observe crash.
+
 ## Lower Priority
 
-- Try out ILI9342 https://github.com/jbrilha/esp_lcd_ili9342
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Create more unit tests for `tactility`
@@ -28,22 +36,16 @@
 - CrashHandler: process other types of crashes (WDT?)
 - Add a Keyboard setting in `keyboard.properties` to override the behaviour of soft keyboard hiding (e.g. keyboard hardware is present, but the user wants to use a soft keyboard)
 - Use GPS time to set/update the current time
-- All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 - Fix bug in T-Deck/etc: esp_lvgl_port settings has a large stack size (~9kB) to fix an issue where the T-Deck would get a stackoverflow. This sometimes happens when WiFi is auto-enabled and you open the app while it is still connecting.
-- Start using non_null (either via MS GSL, or custom)
-- `hal/Configuration.h` defines C function types: Use C++ std::function instead
+- Consider using non_null (either via MS GSL, or custom)
 - Fix system time to not be 1980 (use build year as a minimum). Consider keeping track of the last known time.
 - Use std::span or string_view in StringUtils https://youtu.be/FRkJCvHWdwQ?t=2754 
 - Mutex: Implement give/take from ISR support (works only for non-recursive ones)
 - Extend unPhone power driver: add charging status, usb connection status, etc.
-- Create different partition files for different ESP flash size targets (N4, N8, N16, N32)
-- T-Deck: Clear screen before turning on blacklight
-- T-Deck: Use knob for UI selection?
+- Clear screen before turning on blacklight (e.g. T-Deck, CYD 2432S028R, etc.)
+- T-Deck: Use trackball as input device (with optional mouse functionality for LVGL)
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
-- Show a warning screen when a user plugs in the SD card on a device that only supports mounting at boot.
-- Scanning SD card for external apps and auto-register them (in a temporary register?)
 - Remove flex_flow from app_container in Gui.cpp
-- Bug: Turn on WiFi (when testing it wasn't connected/connecting - just active). Open chat. Observe crash.
 
 # Nice-to-haves
 
@@ -82,3 +84,5 @@
 - Todo list
 - Calendar
 - Display touch calibration
+- RSS reader
+- Static file web server (with option to specify path and port)
