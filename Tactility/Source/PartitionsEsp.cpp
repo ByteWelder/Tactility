@@ -9,7 +9,7 @@
 
 namespace tt {
 
-static const char* TAG = "Partitions";
+constexpr auto* TAG = "Partitions";
 
 static esp_err_t initNvsFlashSafely() {
     esp_err_t result = nvs_flash_init();
@@ -37,6 +37,7 @@ size_t getSectorSize() {
 }
 
 esp_err_t initPartitionsEsp() {
+    TT_LOG_I(TAG, "Init partitions");
     ESP_ERROR_CHECK(initNvsFlashSafely());
 
     const esp_vfs_fat_mount_config_t mount_config = {

@@ -9,21 +9,22 @@
 
 namespace tt {
 
-#define TAG "tactility"
+constexpr auto* TAG = "Tactility";
 
 // Initialize NVS
 static void initNvs() {
+    TT_LOG_I(TAG, "Init NVS");
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        TT_LOG_I(TAG, "nvs erasing");
+        TT_LOG_I(TAG, "NVS erasing");
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
-    TT_LOG_I(TAG, "nvs initialized");
 }
 
 static void initNetwork() {
+    TT_LOG_I(TAG, "Init network");
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 }

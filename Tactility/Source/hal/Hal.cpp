@@ -8,6 +8,7 @@
 #include "Tactility/hal/uart/UartInit.h"
 
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <Tactility/kernel/SystemEvents.h>
 
@@ -34,6 +35,13 @@ void registerDevices(const Configuration& configuration) {
         }
     }
 
+    if (configuration.createDisplay != nullptr) {
+        auto display = configuration.createDisplay();
+        if (display != nullptr) {
+            registerDevice(display);
+        }
+    }
+
     auto devices = configuration.createDevices();
     for (auto& device : devices) {
         registerDevice(device);
@@ -45,6 +53,29 @@ void registerDevices(const Configuration& configuration) {
             const std::shared_ptr<Device> touch = display->getTouchDevice();
             if (touch != nullptr) {
                 registerDevice(touch);
+            }
+        }
+    }
+}
+
+static void startDisplays() {
+    TT_LOG_I(TAG, "Start displays");
+    auto displays = hal::findDevices<display::DisplayDevice>(Device::Type::Display);
+    for (auto& display : displays) {
+        if (!display->start()) {
+            TT_LOG_E(TAG, "Display start failed");
+        } else {
+            TT_LOG_I(TAG, "Started %s", display->getName().c_str());
+
+            if (display->supportsBacklightDuty()) {
+                display->setBacklightDuty(0);
+            }
+
+            auto touch = display->getTouchDevice();
+            if (touch != nullptr && !touch->start()) {
+                TT_LOG_E(TAG, "Touch start failed");
+            } else {
+                TT_LOG_I(TAG, "Started %s", touch->getName().c_str());
             }
         }
     }
@@ -71,6 +102,10 @@ void init(const Configuration& configuration) {
     }
 
     registerDevices(configuration);
+
+    sdcard::mountAll(); // Warning: This needs to happen BEFORE displays are initialized on the SPI bus
+
+    startDisplays(); // Warning: SPI displays need to start after SPI SD cards are mounted
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
 }
