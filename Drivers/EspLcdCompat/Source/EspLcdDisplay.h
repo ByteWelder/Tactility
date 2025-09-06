@@ -58,8 +58,7 @@ public:
 
     // region DisplayDriver
 
-    // TODO: Find out why it crashes
-    bool supportsDisplayDriver() const override { return false; }
+    bool supportsDisplayDriver() const override { return true; }
 
     /** @return a NativeDisplay instance if this device supports it */
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() final;
