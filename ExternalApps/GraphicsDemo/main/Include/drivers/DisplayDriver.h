@@ -22,7 +22,7 @@ public:
         tt_hal_display_driver_free(handle);
     }
 
-    bool lock(TickType timeout = MAX_TICKS) const {
+    bool lock(TickType timeout = TT_MAX_TICKS) const {
         return tt_hal_display_driver_lock(handle, timeout);
     }
 
