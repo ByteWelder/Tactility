@@ -41,7 +41,7 @@ void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size
     auto data_path = paths->getDataDirectory();
     auto expected_length = data_path.length() + 1;
     if (*size < expected_length) {
-        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", size, expected_length);
+        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);
         *size = 0;
         buffer[0] = 0;
         return;
@@ -59,7 +59,7 @@ void tt_app_get_data_directory_lvgl(AppPathsHandle handle, char* buffer, size_t*
     auto data_path = paths->getDataDirectoryLvgl();
     auto expected_length = data_path.length() + 1;
     if (*size < expected_length) {
-        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", size, expected_length);
+        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);
         *size = 0;
         buffer[0] = 0;
         return;
