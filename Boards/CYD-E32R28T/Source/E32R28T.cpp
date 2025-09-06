@@ -1,22 +1,25 @@
 #include "E32R28T.h"
-#include "hal/YellowSdCard.h"
-#include "hal/YellowDisplay.h"
-#include "hal/YellowDisplayConstants.h"
+#include "devices/SdCard.h"
+#include "devices/Display.h"
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/app/App.h>
 #include <PwmBacklight.h>
 
 #define CYD_SPI_TRANSFER_SIZE_LIMIT (240 * 320 / 4 * 2)
 
-bool initBoot() {
+static bool initBoot() {
     return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN);
+}
+
+static tt::hal::DeviceVector createDevices() {
+    return {
+        createDisplay(),
+        createSdCard()
+    };
 }
 
 const tt::hal::Configuration cyd_e32r28t_config = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .sdcard = createYellowSdCard(),
-    .power = nullptr,
+    .createDevices = createDevices,
     .i2c = {},
     .spi = {
         tt::hal::spi::Configuration {
