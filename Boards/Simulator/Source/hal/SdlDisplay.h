@@ -13,19 +13,18 @@ public:
     std::string getName() const override { return "SDL Display"; }
     std::string getDescription() const override { return ""; }
 
-    bool start() override {
-        return displayHandle != nullptr;
-    }
-
+    bool start() override { return true; }
     bool stop() override { tt_crash("Not supported"); }
 
     bool supportsLvgl() const override { return true; }
-    bool startLvgl() override { return true; }
+    bool startLvgl() override { return displayHandle != nullptr; }
     bool stopLvgl() override { tt_crash("Not supported"); }
+    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return std::make_shared<SdlTouch>(); }
 
-    lv_display_t* _Nullable getLvglDisplay() const override { return displayHandle; }
+    bool supportsDisplayDriver() const override { return false; }
+    std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() override { return nullptr; }
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
