@@ -68,7 +68,7 @@ bool EspLcdDisplay::startLvgl() {
     }
 
     auto touch_device = getTouchDevice();
-    if (touch_device != nullptr) {
+    if (touch_device != nullptr && touch_device->supportsLvgl()) {
         touch_device->startLvgl(lvglDisplay);
     }
 

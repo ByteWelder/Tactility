@@ -57,8 +57,28 @@ public:
     };
 
 private:
+
+    class Xpt2046SoftSpiDriver final : public tt::hal::touch::TouchDriver {
+        Xpt2046SoftSpi* device;
+    public:
+        Xpt2046SoftSpiDriver(Xpt2046SoftSpi* device) : device(device) {}
+        bool getTouchedPoints(uint16_t* x, uint16_t* y, uint16_t* strength, uint8_t* pointCount, uint8_t maxPointCount) override {
+            Point point;
+            if (device->isTouched() && device->getTouchPoint(point)) {
+                *x = point.x;
+                *y = point.y;
+                *pointCount = 1;
+                return true;
+            } else {
+                *pointCount = 0;
+                return false;
+            }
+        }
+    };
+
     std::unique_ptr<Configuration> configuration;
-    lv_indev_t* deviceHandle = nullptr;
+    lv_indev_t* lvglDevice = nullptr;
+    std::shared_ptr<tt::hal::touch::TouchDriver> touchDriver;
 
     int readSPI(uint8_t command);
     bool loadCalibration();
@@ -75,16 +95,16 @@ public:
     bool start() override;
     bool stop() override;
 
-    bool supportsLvgl() const override;
+    bool supportsLvgl() const override { return true; }
     bool startLvgl(lv_display_t* display) override;
     bool stopLvgl() override;
 
     bool supportsTouchDriver() override { return true; }
     std::shared_ptr<tt::hal::touch::TouchDriver> getTouchDriver() override;
-    lv_indev_t* getLvglIndev() override { return deviceHandle; }
+    lv_indev_t* getLvglIndev() override { return lvglDevice; }
 
     // XPT2046-specific methods
-    Point getTouch();
+    bool getTouchPoint(Point& point);
     void calibrate();
     void setCalibration(int xMin, int yMin, int xMax, int yMax);
     bool isTouched();
