@@ -186,7 +186,7 @@ void initFromBootApp() {
 }
 
 void run(const Configuration& config) {
-    TT_LOG_D(TAG, "run");
+    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_BOARD_NAME, CONFIG_TT_BOARD_ID);
 
     assert(config.hardware);
     const hal::Configuration& hardware = *config.hardware;
@@ -194,27 +194,25 @@ void run(const Configuration& config) {
     // Assign early so starting services can use it
     config_instance = &config;
 
-    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_BOARD_NAME, CONFIG_TT_BOARD_ID);
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
     settings::initTimeZone();
     hal::init(*config.hardware);
-    hal::sdcard::mountAll();
     network::ntp::init();
 
     registerAndStartPrimaryServices();
     lvgl::init(hardware);
     registerAndStartSecondaryServices();
 
-    TT_LOG_I(TAG, "starting boot app");
+    TT_LOG_I(TAG, "Core systems ready");
+
+    TT_LOG_I(TAG, "Starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
     addApp(app::boot::manifest);
     service::loader::startApp(app::boot::manifest.id);
 
-    TT_LOG_I(TAG, "init complete");
-
-    TT_LOG_I(TAG, "Processing main dispatcher");
+    TT_LOG_I(TAG, "Main dispatcher ready");
     while (true) {
         mainDispatcher.consume();
     }

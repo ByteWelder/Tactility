@@ -22,35 +22,6 @@ constexpr auto* TAG = "Lvgl";
 
 static bool started = false;
 
-// TODO: Move to hal init
-static void initDisplays(const hal::Configuration& config) {
-    TT_LOG_I(TAG, "Init displays");
-    if (config.createDisplay != nullptr) {
-        auto display = config.createDisplay();
-        if (display != nullptr) {
-            hal::registerDevice(display);
-        }
-    }
-
-    TT_LOG_I(TAG, "Start displays");
-    auto displays = hal::findDevices<hal::display::DisplayDevice>(hal::Device::Type::Display);
-    for (auto& display : displays) {
-        if (!display->start()) {
-            TT_LOG_E(TAG, "Display start failed");
-        }
-
-        if (display->supportsBacklightDuty()) {
-            display->setBacklightDuty(0);
-        }
-
-        auto touch = display->getTouchDevice();
-        if (touch != nullptr) {
-            hal::registerDevice(touch);
-            touch->start();
-        }
-    }
-}
-
 void init(const hal::Configuration& config) {
     TT_LOG_I(TAG, "Init started");
 
@@ -59,8 +30,6 @@ void init(const hal::Configuration& config) {
         return;
     }
 #endif
-
-    initDisplays(config);
 
     start();
 
@@ -105,32 +74,30 @@ void start() {
 
     // Start touch
 
-    TT_LOG_I(TAG, "Start touch devices");
-    auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
-    for (auto touch_device : touch_devices) {
-        if (displays.size() > 0) {
-            // TODO: Consider implementing support for multiple displays
-            auto display = displays[0];
+    // TODO: Consider implementing support for multiple displays
+    auto primary_display = !displays.empty() ? displays[0] : nullptr;
+
+    // Start display-related peripherals
+    if (primary_display != nullptr) {
+        TT_LOG_I(TAG, "Start touch devices");
+        auto touch_devices = hal::findDevices<hal::touch::TouchDevice>(hal::Device::Type::Touch);
+        for (auto touch_device : touch_devices) {
             // Start any touch devices that haven't been started yet
             if (touch_device->supportsLvgl() && touch_device->getLvglIndev() == nullptr) {
-                if (touch_device->startLvgl(display->getLvglDisplay())) {
+                if (touch_device->startLvgl(primary_display->getLvglDisplay())) {
                     TT_LOG_I(TAG, "Started %s", touch_device->getName().c_str());
                 } else {
                     TT_LOG_E(TAG, "Start failed for %s", touch_device->getName().c_str());
                 }
             }
         }
-    }
 
-    // Start keyboards
-    TT_LOG_I(TAG, "Start keyboards");
-    auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
-    for (auto keyboard : keyboards) {
-        if (displays.size() > 0) {
-            // TODO: Consider implementing support for multiple displays
-            auto display = displays[0];
+        // Start keyboards
+        TT_LOG_I(TAG, "Start keyboards");
+        auto keyboards = hal::findDevices<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
+        for (auto keyboard : keyboards) {
             if (keyboard->isAttached()) {
-                if (keyboard->startLvgl(display->getLvglDisplay())) {
+                if (keyboard->startLvgl(primary_display->getLvglDisplay())) {
                     lv_indev_t* keyboard_indev = keyboard->getLvglIndev();
                     hardware_keyboard_set_indev(keyboard_indev);
                     TT_LOG_I(TAG, "Started %s", keyboard->getName().c_str());
@@ -139,16 +106,12 @@ void start() {
                 }
             }
         }
-    }
 
-    // Start encoders
-    TT_LOG_I(TAG, "Start encoders");
-    auto encoders = hal::findDevices<hal::encoder::EncoderDevice>(hal::Device::Type::Encoder);
-    for (auto encoder : encoders) {
-        if (displays.size() > 0) {
-            // TODO: Consider implementing support for multiple displays
-            auto display = displays[0];
-            if (encoder->startLvgl(display->getLvglDisplay())) {
+        // Start encoders
+        TT_LOG_I(TAG, "Start encoders");
+        auto encoders = hal::findDevices<hal::encoder::EncoderDevice>(hal::Device::Type::Encoder);
+        for (auto encoder : encoders) {
+            if (encoder->startLvgl(primary_display->getLvglDisplay())) {
                 TT_LOG_I(TAG, "Started %s", encoder->getName().c_str());
             } else {
                 TT_LOG_E(TAG, "Start failed for %s", encoder->getName().c_str());
