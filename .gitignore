@@ -20,3 +20,4 @@ dependencies.lock
 .vscode/
 .gitpod.yml
 
+sdkconfig.board.*.dev

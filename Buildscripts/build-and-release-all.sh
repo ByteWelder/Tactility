@@ -43,11 +43,20 @@ releaseSdk release/TactilitySDK-esp32s3
 build cyd-2432s024c
 release cyd-2432s024c
 
+build cyd-2432s028r
+release cyd-2432s028r
+
 build cyd-2432s032c
 release cyd-2432s032c
 
+build cyd-4848s040c
+release cyd-4848s040c
+
 build cyd-8048s043c
 release cyd-8048s043c
+
+build cyd-e32r28t
+release cyd-e32r28t
 
 build cyd-jc2432w328c
 release cyd-jc2432w328c
@@ -55,16 +64,19 @@ release cyd-jc2432w328c
 build cyd-jc8048w550c
 release cyd-jc8048w550c
 
-releaseSdk release/TactilitySDK-esp32
-
 build m5stack-core2
 release m5stack-core2
+
+releaseSdk release/TactilitySDK-esp32
 
 build m5stack-cores3
 release m5stack-cores3
 
 build waveshare-s3-touch-43
 release waveshare-s3-touch-43
+
+build unphone
+release unphone
 
 duration=$SECONDS
 

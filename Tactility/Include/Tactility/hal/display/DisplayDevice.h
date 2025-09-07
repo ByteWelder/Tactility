@@ -34,16 +34,16 @@ public:
 
     /** Set a value in the range [0, 255] */
     virtual void setGammaCurve(uint8_t index) { /* NO-OP */ }
-    virtual uint8_t getGammaCurveCount() const { return 0; };
+    virtual uint8_t getGammaCurveCount() const { return 0; }
 
-    virtual bool supportsLvgl() const { return false; }
-    virtual bool startLvgl() { return false; }
-    virtual bool stopLvgl() { return false; }
+    virtual bool supportsLvgl() const = 0;
+    virtual bool startLvgl() = 0;
+    virtual bool stopLvgl() = 0;
 
     virtual lv_display_t* _Nullable getLvglDisplay() const = 0;
 
-    virtual bool supportsDisplayDriver() const { return false; }
-    virtual std::shared_ptr<DisplayDriver> _Nullable getDisplayDriver() { return nullptr; }
+    virtual bool supportsDisplayDriver() const = 0;
+    virtual std::shared_ptr<DisplayDriver> _Nullable getDisplayDriver() = 0;
 };
 
 } // namespace tt::hal::display
