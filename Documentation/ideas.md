@@ -16,7 +16,8 @@
 - Create an "app install paths" settings app to add/remove paths.
   Scan these paths on startup.
   Make the AppList use the scan results.
-
+- Apps with update timer should check `lvgl::isStarted()`
+ 
 ## Medium Priority
 
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.

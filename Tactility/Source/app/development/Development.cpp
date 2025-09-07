@@ -1,5 +1,7 @@
 #ifdef ESP_PLATFORM
 
+#include "Tactility/lvgl/Lvgl.h"
+
 #include <Tactility/Tactility.h>
 
 #include <Tactility/app/AppManifest.h>
@@ -28,7 +30,7 @@ class DevelopmentApp final : public App {
 
     Timer timer = Timer(Timer::Type::Periodic, [this] {
         auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (lock.lock(lvgl::defaultLockTime)) {
+        if (lock.lock(lvgl::defaultLockTime) && lvgl::isStarted()) {
             updateViewState();
         }
     });
