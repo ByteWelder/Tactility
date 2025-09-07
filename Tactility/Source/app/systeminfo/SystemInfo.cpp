@@ -84,17 +84,17 @@ static std::string getStorageUnitString(StorageUnit unit) {
     }
 }
 
-static uint64_t getStorageValue(StorageUnit unit, uint64_t bytes) {
+static std::string getStorageValue(StorageUnit unit, uint64_t bytes) {
     using enum StorageUnit;
     switch (unit) {
         case Bytes:
-            return bytes;
+            return std::to_string(bytes);
         case Kilobytes:
-            return bytes / 1024;
+            return std::to_string(bytes / 1024);
         case Megabytes:
-            return bytes / 1024 / 1024;
+            return std::format("{:.1f}", static_cast<float>(bytes) / 1024.f / 1024.f);
         case Gigabytes:
-            return bytes / 1024 / 1024 / 1024;
+            return std::format("{:.1f}", static_cast<float>(bytes) / 1024.f / 1024.f / 1024.f);
         default:
             std::unreachable();
     }
@@ -137,7 +137,7 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, uint64_t free, uin
     const auto unit_label = getStorageUnitString(unit);
     const auto used_converted = getStorageValue(unit, used);
     const auto total_converted = getStorageValue(unit, total);
-    lv_label_set_text_fmt(bottom_label, "%llu / %llu %s used", used_converted, total_converted, unit_label.c_str());
+    lv_label_set_text_fmt(bottom_label, "%s / %s %s used", used_converted.c_str(), total_converted.c_str(), unit_label.c_str());
     lv_obj_set_width(bottom_label, LV_PCT(100));
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_set_style_pad_bottom(bottom_label, 12, LV_STATE_DEFAULT);
@@ -174,6 +174,7 @@ static void addRtosTasks(lv_obj_t* parent) {
     auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
     uint32_t totalRuntime = 0;
     UBaseType_t actual = uxTaskGetSystemState(tasks, count, &totalRuntime);
+
     for (int i = 0; i < actual; ++i) {
         const TaskStatus_t& task = tasks[i];
         addRtosTask(parent, task);
