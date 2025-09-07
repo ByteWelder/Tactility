@@ -25,4 +25,4 @@
 
 1. Mention on Discord
 2. Consider notifying vendors/stakeholders
-3. Remove dev versions in `sdk.json`from [TactilityTool](https://github.com/ByteWelder/TactilityTool) and upload it to [CDN](https://dash.cloudflare.com)
+3. Update SDK updates to CDN at [TactilityTool](https://github.com/ByteWelder/TactilityTool) and upload it to [CDN](https://dash.cloudflare.com)
