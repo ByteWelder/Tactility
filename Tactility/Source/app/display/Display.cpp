@@ -67,6 +67,7 @@ public:
         displaySettings = settings::display::loadOrGetDefault();
 
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         auto hal_display = getHalDisplay();
         assert(hal_display != nullptr);

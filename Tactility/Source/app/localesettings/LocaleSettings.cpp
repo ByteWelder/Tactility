@@ -85,6 +85,7 @@ public:
         textResources.load();
 
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         lvgl::toolbar_create(parent, app);
 

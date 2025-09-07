@@ -145,6 +145,7 @@ void Calculator::resetCalculator() {
 void Calculator::onShow(AppHandle appHandle, lv_obj_t* parent) {
     lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     lv_obj_t* toolbar = tt_lvgl_toolbar_create_for_app(parent, appHandle);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
