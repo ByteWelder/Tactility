@@ -59,23 +59,28 @@ void registerDevices(const Configuration& configuration) {
 }
 
 static void startDisplays() {
-    TT_LOG_I(TAG, "Start displays");
+    TT_LOG_I(TAG, "Starting displays & touch");
     auto displays = hal::findDevices<display::DisplayDevice>(Device::Type::Display);
     for (auto& display : displays) {
+        TT_LOG_I(TAG, "%s starting", display->getName().c_str());
         if (!display->start()) {
-            TT_LOG_E(TAG, "Display start failed");
+            TT_LOG_E(TAG, "%s start failed", display->getName().c_str());
         } else {
-            TT_LOG_I(TAG, "Started %s", display->getName().c_str());
+            TT_LOG_I(TAG, "%s started", display->getName().c_str());
 
             if (display->supportsBacklightDuty()) {
+                TT_LOG_I(TAG, "Setting backlight");
                 display->setBacklightDuty(0);
             }
 
             auto touch = display->getTouchDevice();
-            if (touch != nullptr && !touch->start()) {
-                TT_LOG_E(TAG, "Touch start failed");
-            } else {
-                TT_LOG_I(TAG, "Started %s", touch->getName().c_str());
+            if (touch != nullptr) {
+                TT_LOG_I(TAG, "%s starting", touch->getName().c_str());
+                if (!touch->start()) {
+                    TT_LOG_E(TAG, "%s start failed", touch->getName().c_str());
+                } else {
+                    TT_LOG_I(TAG, "%s started", touch->getName().c_str());
+                }
             }
         }
     }
