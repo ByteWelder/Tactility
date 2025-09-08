@@ -83,9 +83,17 @@ class BootApp : public App {
     static int32_t bootThreadCallback() {
         const auto start_time = kernel::getTicks();
 
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        // Give the UI some time to redraw
+        // If we don't do this, various init calls will read files and block SPI IO for the display
+        // This would result in a blank/black screen being shown during this phase of the boot process
+        // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
+        kernel::delayMillis(10);
 
         setupDisplay(); // Set backlight
+
+        // This event will likely block as other systems are initialized
+        // e.g. Wi-Fi reads AP configs from SD card
+        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
         if (!setupUsbBootMode()) {
             initFromBootApp();
