@@ -4,6 +4,7 @@
 #include <Tactility/hal/Device.h>
 #include <Tactility/Tactility.h>
 
+#include <format>
 #include <lvgl.h>
 #include <utility>
 
