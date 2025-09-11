@@ -9,11 +9,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
+#include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
+#include <Tactility/hal/Device.h>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
 
 constexpr auto* TAG = "App";
 
@@ -99,35 +102,86 @@ bool untar(const std::string& tarPath, const std::string& destinationPath) {
     return success;
 }
 
-bool install(const std::string& path) {
-    auto filename = file::getLastPathSegment(path);
-    const std::string target_path = std::format("/data/apps/{}", filename);
-    if (file::isDirectory(target_path) && !file::deleteRecursively(target_path)) {
-        TT_LOG_W(TAG, "Failed to delete %s", target_path.c_str());
-    }
+bool findFirstMountedSdCardPath(std::string& path) {
+    // const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+    bool is_set = false;
+    hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard, [&is_set, &path](const auto& device) {
+        if (device->isMounted()) {
+            path = device->getMountPath();
+            is_set = true;
+            return false; // stop iterating
+        } else {
+            return true;
+        }
+    });
+    return is_set;
+}
 
-    if (!file::findOrCreateDirectory(target_path, 0777)) {
-        TT_LOG_I(TAG, "Failed to create directory %s", target_path.c_str());
+std::string getTempPath() {
+    std::string root_path;
+    if (!findFirstMountedSdCardPath(root_path)) {
+        root_path = file::MOUNT_POINT_DATA;
+    }
+    return root_path + "/tmp";
+}
+
+std::string getInstallPath() {
+    std::string root_path;
+    if (!findFirstMountedSdCardPath(root_path)) {
+        root_path = file::MOUNT_POINT_DATA;
+    }
+    return root_path + "/apps";
+}
+
+bool install(const std::string& path) {
+    // TODO: Make better: lock for each path type properly (source vs target)
+
+    // We lock and unlock frequently because SPI SD card devices share
+    // the lock with the display. We don't want to lock the display for very long.
+
+    auto app_parent_path = getInstallPath();
+    TT_LOG_I(TAG, "Installing app %s to %s", path.c_str(), app_parent_path.c_str());
+
+    auto lock = file::getLock(app_parent_path)->asScopedLock();
+
+    lock.lock();
+    auto filename = file::getLastPathSegment(path);
+    const std::string app_target_path = std::format("{}/{}", app_parent_path, filename);
+    if (file::isDirectory(app_target_path) && !file::deleteRecursively(app_target_path)) {
+        TT_LOG_W(TAG, "Failed to delete %s", app_target_path.c_str());
+    }
+    lock.unlock();
+
+    lock.lock();
+    if (!file::findOrCreateDirectory(app_target_path, 0777)) {
+        TT_LOG_I(TAG, "Failed to create directory %s", app_target_path.c_str());
         return false;
     }
+    lock.unlock();
 
-    TT_LOG_I(TAG, "Extracting app from %s to %s", path.c_str(), target_path.c_str());
-    if (!untar(path, target_path)) {
+    lock.lock();
+    TT_LOG_I(TAG, "Extracting app from %s to %s", path.c_str(), app_target_path.c_str());
+    if (!untar(path, app_target_path)) {
         TT_LOG_E(TAG, "Failed to extract");
         return false;
     }
+    lock.unlock();
 
-    auto manifest_path = target_path + "/manifest.properties";
+    lock.lock();
+    auto manifest_path = app_target_path + "/manifest.properties";
     if (!file::isFile(manifest_path)) {
         TT_LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
         return false;
     }
+    lock.unlock();
 
+    lock.lock();
     std::map<std::string, std::string> properties;
     if (!file::loadPropertiesFile(manifest_path, properties)) {
         TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
         return false;
     }
+    lock.unlock();
 
     auto app_id_iterator = properties.find("[app]id");
     if (app_id_iterator == properties.end()) {
@@ -135,11 +189,22 @@ bool install(const std::string& path) {
         return false;
     }
 
-    const std::string renamed_target_path = std::format("/data/apps/{}", app_id_iterator->second);
-    if (rename(target_path.c_str(), renamed_target_path.c_str()) != 0) {
-        TT_LOG_E(TAG, "Failed to rename %s to %s", target_path.c_str(), app_id_iterator->second.c_str());
+    lock.lock();
+    const std::string renamed_target_path = std::format("{}/{}", app_parent_path, app_id_iterator->second);
+    if (file::isDirectory(renamed_target_path)) {
+        if (!file::deleteRecursively(renamed_target_path)) {
+            TT_LOG_W(TAG, "Failed to delete existing installation at %s", renamed_target_path.c_str());
+            return false;
+        }
+    }
+    lock.unlock();
+
+    lock.lock();
+    if (rename(app_target_path.c_str(), renamed_target_path.c_str()) != 0) {
+        TT_LOG_E(TAG, "Failed to rename %s to %s", app_target_path.c_str(), app_id_iterator->second.c_str());
         return false;
     }
+    lock.unlock();
 
     return true;
 }

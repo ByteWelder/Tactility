@@ -19,6 +19,7 @@
 #include <ranges>
 #include <sstream>
 #include <Tactility/Tactility.h>
+#include <Tactility/file/FileLock.h>
 
 namespace tt::service::development {
 
@@ -98,6 +99,7 @@ void DevelopmentService::startServer() {
     deviceResponse = stream.str();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.stack_size = 5120;
 
     config.server_port = 6666;
     config.uri_match_fn = httpd_uri_match_wildcard;
@@ -257,13 +259,19 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     }
     content_left -= content_read;
 
-    if (!file::findOrCreateDirectory("/data/tmp", 0777)) {
+    const std::string tmp_path = app::getTempPath();
+    auto lock = file::getLock(tmp_path)->asScopedLock();
+
+    lock.lock();
+    if (!file::findOrCreateDirectory(tmp_path, 0777)) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
         return ESP_FAIL;
     }
+    lock.unlock();
 
     // Write file
-    auto file_path = std::format("/data/tmp/{}", filename_entry->second);
+    lock.lock();
+    auto file_path = std::format("{}/{}", tmp_path, filename_entry->second);
     auto* file = fopen(file_path.c_str(), "wb");
     auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
     fclose(file);
@@ -271,6 +279,8 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
         return ESP_FAIL;
     }
+    lock.unlock();
+
 
     // Read and verify part
     if (!network::readAndDiscardOrSendError(request, part_after_file)) {
@@ -286,6 +296,12 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to install");
         return ESP_FAIL;
     }
+
+    lock.lock();
+    if (remove(file_path.c_str()) != 0) {
+        TT_LOG_W(TAG, "Failed to delete %s", file_path.c_str());
+    }
+    lock.unlock();
 
     TT_LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
 
