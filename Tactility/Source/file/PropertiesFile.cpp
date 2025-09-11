@@ -22,17 +22,22 @@ bool loadPropertiesFile(const std::string& filePath, std::function<void(const st
     return file::withLock<bool>(filePath, [&filePath, &callback] {
         TT_LOG_I(TAG, "Reading properties file %s", filePath.c_str());
         uint16_t line_count = 0;
-        return readLines(filePath, true, [&line_count, &filePath, &callback](const std::string& line) {
+        std::string key_prefix = "";
+        return readLines(filePath, true, [&key_prefix, &line_count, &filePath, &callback](const std::string& line) {
             line_count++;
             std::string key, value;
             auto trimmed_line = string::trim(line, " \t");
             if (!trimmed_line.starts_with("#")) {
-                if (getKeyValuePair(trimmed_line, key, value)) {
-                    std::string trimmed_key = string::trim(key, " \t");
-                    std::string trimmed_value = string::trim(value, " \t");
-                    callback(trimmed_key, trimmed_value);
+                if (trimmed_line.starts_with("[")) {
+                    key_prefix = trimmed_line;
                 } else {
-                    TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str());
+                    if (getKeyValuePair(trimmed_line, key, value)) {
+                       std::string trimmed_key = key_prefix + string::trim(key, " \t");
+                       std::string trimmed_value = string::trim(value, " \t");
+                       callback(trimmed_key, trimmed_value);
+                   } else {
+                       TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str());
+                   }
                 }
             }
         });

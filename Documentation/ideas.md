@@ -19,9 +19,12 @@
 - Apps with update timer should check `lvgl::isStarted()`
 - CrowPanel Basic 3.5": check why GraphicsDemo fails
 - CrowPanel Basic 3.5": check why System Info doesn't show storage info
+- Update to LVGL v9.3 stable
 
 ## Medium Priority
 
+- Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
+  This will be useful for devices without a screen, a small screen or a non-touch screen.
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
 - Try out ILI9342 https://github.com/jbrilha/esp_lcd_ili9342
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
@@ -63,6 +66,7 @@
 - Capacity based on voltage: estimation for various devices uses a linear voltage curve, but it should use some sort of battery discharge curve.
 - Statusbar widget to show how much memory is in use?
 - Wrapper for lvgl slider widget that shows "+" and "-" buttons, and also the value in a label.
+  Note: consider Spinbox
 - Files app: copy/paste actions
 - On crash, try to save the current log to flash or SD card? (this is risky, though, so ask in Discord first)
 - Support more than 1 hardware keyboard (see lvgl::hardware_keyboard_set_indev()). LVGL init currently calls keyboard init, but that part should probably be done from the KeyboardDevice base class.

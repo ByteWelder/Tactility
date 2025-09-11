@@ -67,7 +67,11 @@ bool writeString(const std::string& filepath, const std::string& content);
  * @param[in] mode the mode to use when creating directories
  * @return true when the specified path was found, or otherwise creates the directories recursively with the specified mode.
  */
-bool findOrCreateDirectory(std::string path, mode_t mode);
+bool findOrCreateDirectory(const std::string& path, mode_t mode);
+
+bool findOrCreateParentDirectory(const std::string& path, mode_t mode);
+
+bool deleteRecursively(const std::string& path);
 
 /**
  * Concatenate a child path with a parent path, ensuring proper slash inbetween
@@ -76,6 +80,8 @@ bool findOrCreateDirectory(std::string path, mode_t mode);
  * @return the concatenated path
  */
 std::string getChildPath(const std::string& basePath, const std::string& childPath);
+
+std::string getLastPathSegment(const std::string& path);
 
 typedef int (*ScandirFilter)(const dirent*);
 
@@ -106,8 +112,8 @@ bool isDirectory(const std::string& path);
 int scandir(
     const std::string& path,
     std::vector<dirent>& outList,
-    ScandirFilter _Nullable filter,
-    ScandirSort _Nullable sort
+    ScandirFilter _Nullable filter = nullptr,
+    ScandirSort _Nullable sort = nullptr
 );
 
 bool readLines(const std::string& filePath, bool stripNewLine, std::function<void(const char* line)> callback);

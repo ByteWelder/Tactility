@@ -94,4 +94,6 @@ std::shared_ptr<AppContext> _Nullable getCurrentAppContext();
 /** @return the currently running app (it is only ever null before the splash screen is shown) */
 std::shared_ptr<App> _Nullable getCurrentApp();
 
+bool install(const std::string& path);
+
 }

@@ -18,6 +18,7 @@
 #include <esp_wifi.h>
 #include <ranges>
 #include <sstream>
+#include <Tactility/Tactility.h>
 
 namespace tt::service::development {
 
@@ -154,6 +155,8 @@ void DevelopmentService::onNetworkDisconnected() {
 // region endpoints
 
 esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
+    TT_LOG_I(TAG, "GET /device");
+
     if (httpd_resp_set_type(request, "application/json") != ESP_OK) {
         TT_LOG_W(TAG, "Failed to send header");
         return ESP_FAIL;
@@ -171,6 +174,8 @@ esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
+    TT_LOG_I(TAG, "POST /app/run");
+
     std::string query;
     if (!network::getQueryOrSendError(request, query)) {
         return ESP_FAIL;
@@ -206,6 +211,8 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
+    TT_LOG_I(TAG, "PUT /app/install");
+
     std::string boundary;
     if (!network::getMultiPartBoundaryOrSendError(request, boundary)) {
         return false;
@@ -250,8 +257,13 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     }
     content_left -= content_read;
 
+    if (!file::findOrCreateDirectory("/data/tmp", 0777)) {
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
+        return ESP_FAIL;
+    }
+
     // Write file
-    auto file_path = std::format("/data/{}", filename_entry->second);
+    auto file_path = std::format("/data/tmp/{}", filename_entry->second);
     auto* file = fopen(file_path.c_str(), "wb");
     auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
     fclose(file);
@@ -270,9 +282,15 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         TT_LOG_W(TAG, "We have more bytes at the end of the request parsing?!");
     }
 
+    if (!app::install(file_path)) {
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to install");
+        return ESP_FAIL;
+    }
+
     TT_LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
 
     httpd_resp_send(request, nullptr, 0);
+
     return ESP_OK;
 }
 
