@@ -5,13 +5,8 @@ namespace tt::app::filebrowser {
 
 constexpr auto* TAG = "FileBrowser";
 
-bool isSupportedExecutableFile(const std::string& filename) {
-#ifdef ESP_PLATFORM
-    // Currently only the PNG library is built into Tactility
-    return filename.ends_with(".elf");
-#else
-    return false;
-#endif
+bool isSupportedAppFile(const std::string& filename) {
+    return filename.ends_with(".app");
 }
 
 bool isSupportedImageFile(const std::string& filename) {

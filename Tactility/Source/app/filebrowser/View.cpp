@@ -86,11 +86,12 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 
     TT_LOG_I(TAG, "Clicked %s", file_path.c_str());
 
-    if (isSupportedExecutableFile(filename)) {
+    if (isSupportedAppFile(filename)) {
 #ifdef ESP_PLATFORM
-        registerElfApp(processed_filepath);
-        auto app_id = getElfAppId(processed_filepath);
-        service::loader::startApp(app_id);
+        // install(filename);
+        auto message = std::format("Do you want to install {}?", filename);
+        installAppPath = processed_filepath;
+        installAppLaunchId = alertdialog::start("Install?", message, { "Yes", "No" });
 #endif
     } else if (isSupportedImageFile(filename)) {
         imageviewer::start(processed_filepath);
@@ -253,6 +254,7 @@ void View::update() {
 
 void View::init(lv_obj_t* parent) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     auto* toolbar = lvgl::toolbar_create(parent, "Files");
     navigate_up_button = lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
@@ -292,8 +294,17 @@ void View::onNavigate() {
     }
 }
 
-void View::onResult(Result result, std::unique_ptr<Bundle> bundle) {
+void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) {
     if (result != Result::Ok || bundle == nullptr) {
+        return;
+    }
+
+    if (
+        launchId == installAppLaunchId &&
+        result == Result::Ok &&
+        alertdialog::getResultIndex(*bundle) == 0
+    ) {
+        install(installAppPath);
         return;
     }
 

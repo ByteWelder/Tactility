@@ -16,7 +16,7 @@ public:
 
     SimulatorSdCard() : SdCardDevice(MountBehaviour::AtBoot),
         state(State::Unmounted),
-        lock(std::make_shared<tt::Mutex>())
+        lock(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive))
     {}
 
     std::string getName() const override { return "Mock SD Card"; }

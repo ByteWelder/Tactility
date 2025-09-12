@@ -2,16 +2,15 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
-#include "Tactility/service/screenshot/Screenshot.h"
-
-#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/screenshot/Screenshot.h>
 #include <Tactility/service/ServiceRegistration.h>
 
 #include <memory>
+#include <lvgl.h>
 
 namespace tt::service::screenshot {
 
-#define TAG "screenshot_service"
+constexpr auto* TAG = "ScreenshotService";
 
 extern const ServiceManifest manifest;
 
@@ -49,6 +48,15 @@ void ScreenshotService::startTimed(const std::string& path, uint8_t delayInSecon
     } else {
         TT_LOG_W(TAG, "Screenshot task already running");
     }
+}
+
+bool ScreenshotService::onStart(ServiceContext& serviceContext) {
+    if (lv_screen_active() == nullptr) {
+        TT_LOG_E(TAG, "No display found");
+        return false;
+    }
+
+    return true;
 }
 
 void ScreenshotService::stop() {

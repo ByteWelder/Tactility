@@ -166,8 +166,9 @@ class CalculatorApp : public App {
     void onShow(AppContext& context, lv_obj_t* parent) override {
         lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        lv_obj_t* toolbar = tt::lvgl::toolbar_create(parent, context);
+        lv_obj_t* toolbar = lvgl::toolbar_create(parent, context);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         lv_obj_t* wrapper = lv_obj_create(parent);
@@ -208,10 +209,9 @@ class CalculatorApp : public App {
         lv_obj_set_style_pad_all(btnm, 5, LV_PART_MAIN);
         lv_obj_set_style_pad_row(btnm, 10, LV_PART_MAIN);
         lv_obj_set_style_pad_column(btnm, 5, LV_PART_MAIN);
-        lv_obj_set_style_border_width(btnm, 0, LV_PART_MAIN);
+        lv_obj_set_style_border_width(btnm, 2, LV_PART_MAIN);
         lv_obj_set_style_bg_color(btnm, lv_palette_main(LV_PALETTE_BLUE), LV_PART_ITEMS);
 
-        lv_obj_set_style_border_width(btnm, 0, LV_PART_MAIN);
         if (lv_display_get_horizontal_resolution(nullptr) <= 240 || lv_display_get_vertical_resolution(nullptr) <= 240) { //small screens
             lv_obj_set_size(btnm, lv_pct(100), lv_pct(60));
         } else { //large screens

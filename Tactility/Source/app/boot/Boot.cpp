@@ -39,7 +39,9 @@ class BootApp : public App {
 
     static void setupDisplay() {
         const auto hal_display = getHalDisplay();
-        assert(hal_display != nullptr);
+        if (hal_display == nullptr) {
+            return;
+        }
 
         settings::display::DisplaySettings settings;
         if (settings::display::load(settings)) {
@@ -81,13 +83,27 @@ class BootApp : public App {
     }
 
     static int32_t bootThreadCallback() {
+        TT_LOG_I(TAG, "Starting boot thread");
         const auto start_time = kernel::getTicks();
 
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        // Give the UI some time to redraw
+        // If we don't do this, various init calls will read files and block SPI IO for the display
+        // This would result in a blank/black screen being shown during this phase of the boot process
+        // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
+        TT_LOG_I(TAG, "Delay");
+        kernel::delayMillis(10);
 
+        // TODO: Support for multiple displays
+        TT_LOG_I(TAG, "Setup display");
         setupDisplay(); // Set backlight
 
+        // This event will likely block as other systems are initialized
+        // e.g. Wi-Fi reads AP configs from SD card
+        TT_LOG_I(TAG, "Publish event");
+        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+
         if (!setupUsbBootMode()) {
+            TT_LOG_I(TAG, "initFromBootApp");
             initFromBootApp();
             waitForMinimalSplashDuration(start_time);
             service::loader::stopApp();
@@ -117,6 +133,17 @@ class BootApp : public App {
 
 public:
 
+    void onCreate(AppContext& app) override {
+        // Just in case this app is somehow resumed
+        if (thread.getState() == Thread::State::Stopped) {
+            thread.start();
+        }
+    }
+
+    void onDestroy(AppContext& app) override {
+        thread.join();
+    }
+
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
         auto* image = lv_image_create(parent);
         lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
@@ -128,15 +155,6 @@ public:
         lv_image_set_src(image, logo_path.c_str());
 
         lvgl::obj_set_style_bg_blacken(parent);
-
-        // Just in case this app is somehow resumed
-        if (thread.getState() == Thread::State::Stopped) {
-            thread.start();
-        }
-    }
-
-    void onDestroy(AppContext& app) override {
-        thread.join();
     }
 };
 

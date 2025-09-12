@@ -2,6 +2,7 @@
 #include <Tactility/service/ServiceRegistration.h>
 
 #include <Tactility/Mutex.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
@@ -52,13 +53,21 @@ class SdCardService final : public Service {
 
 public:
 
-    void onStart(ServiceContext& serviceContext) override {
+    bool onStart(ServiceContext& serviceContext) override {
+        if (hal::findFirstDevice<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard) == nullptr) {
+            TT_LOG_W(TAG, "No SD card device found - not starting Service");
+            return false;
+        }
+
         auto service = findServiceById<SdCardService>(manifest.id);
         updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
             service->update();
         });
+
         // We want to try and scan more often in case of startup or scan lock failure
         updateTimer->start(1000);
+
+        return true;
     }
 
     void onStop(ServiceContext& serviceContext) override {

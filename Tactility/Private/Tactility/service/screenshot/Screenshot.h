@@ -19,13 +19,13 @@ enum class Mode {
 
 class ScreenshotService final : public Service {
 
-private:
-
     Mutex mutex;
     std::unique_ptr<ScreenshotTask> task;
     Mode mode = Mode::None;
 
 public:
+
+    bool onStart(ServiceContext& serviceContext) override;
 
     bool isTaskStarted();
 

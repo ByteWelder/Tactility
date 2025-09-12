@@ -62,8 +62,9 @@ class LoaderService final : public Service {
 
 public:
 
-    void onStart(TT_UNUSED ServiceContext& service) override {
+    bool onStart(TT_UNUSED ServiceContext& service) override {
         dispatcherThread->start();
+        return true;
     }
 
     void onStop(TT_UNUSED ServiceContext& service) override {

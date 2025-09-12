@@ -249,7 +249,12 @@ public:
         lvgl::statusbar_icon_remove(gps_icon_id);
     }
 
-    void onStart(ServiceContext& serviceContext) override {
+    bool onStart(ServiceContext& serviceContext) override {
+        if (lv_screen_active() == nullptr) {
+            TT_LOG_E(TAG, "No display found");
+            return false;
+        }
+
         paths = serviceContext.getPaths();
 
         // TODO: Make thread-safe for LVGL
@@ -265,6 +270,8 @@ public:
 
         // We want to try and scan more often in case of startup or scan lock failure
         updateTimer->start(1000);
+
+        return true;
     }
 
     void onStop(ServiceContext& service) override{

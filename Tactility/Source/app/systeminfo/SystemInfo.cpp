@@ -4,6 +4,7 @@
 #include <Tactility/hal/Device.h>
 #include <Tactility/Tactility.h>
 
+#include <format>
 #include <lvgl.h>
 #include <utility>
 
@@ -84,17 +85,17 @@ static std::string getStorageUnitString(StorageUnit unit) {
     }
 }
 
-static uint64_t getStorageValue(StorageUnit unit, uint64_t bytes) {
+static std::string getStorageValue(StorageUnit unit, uint64_t bytes) {
     using enum StorageUnit;
     switch (unit) {
         case Bytes:
-            return bytes;
+            return std::to_string(bytes);
         case Kilobytes:
-            return bytes / 1024;
+            return std::to_string(bytes / 1024);
         case Megabytes:
-            return bytes / 1024 / 1024;
+            return std::format("{:.1f}", static_cast<float>(bytes) / 1024.f / 1024.f);
         case Gigabytes:
-            return bytes / 1024 / 1024 / 1024;
+            return std::format("{:.1f}", static_cast<float>(bytes) / 1024.f / 1024.f / 1024.f);
         default:
             std::unreachable();
     }
@@ -107,6 +108,7 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, uint64_t free, uin
     lv_obj_set_style_pad_all(container, 0, 0);
     lv_obj_set_style_border_width(container, 0, 0);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
+    lv_obj_set_style_bg_opa(container, 0, LV_STATE_DEFAULT);
 
     auto* left_label = lv_label_create(container);
     lv_label_set_text(left_label, label);
@@ -115,22 +117,31 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, uint64_t free, uin
     auto* bar = lv_bar_create(container);
     lv_obj_set_flex_grow(bar, 1);
 
+    // Scale down the uint64_t until it fits int32_t for the lv_bar
+    uint64_t free_scaled = free;
+    uint64_t total_scaled = total;
+    while (total_scaled > static_cast<uint64_t>(INT32_MAX)) {
+        free_scaled /= 1024;
+        total_scaled /= 1024;
+    }
+
     if (total > 0) {
-        lv_bar_set_range(bar, 0, (int32_t)total);
+        lv_bar_set_range(bar, 0, total_scaled);
     } else {
         lv_bar_set_range(bar, 0, 1);
     }
 
-    lv_bar_set_value(bar, (int32_t)used, LV_ANIM_OFF);
+    lv_bar_set_value(bar, (total_scaled - free_scaled), LV_ANIM_OFF);
 
     auto* bottom_label = lv_label_create(parent);
     const auto unit = getStorageUnit(total);
     const auto unit_label = getStorageUnitString(unit);
     const auto used_converted = getStorageValue(unit, used);
     const auto total_converted = getStorageValue(unit, total);
-    lv_label_set_text_fmt(bottom_label, "%llu / %llu %s", used_converted, total_converted, unit_label.c_str());
+    lv_label_set_text_fmt(bottom_label, "%s / %s %s used", used_converted.c_str(), total_converted.c_str(), unit_label.c_str());
     lv_obj_set_width(bottom_label, LV_PCT(100));
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_pad_bottom(bottom_label, 12, LV_STATE_DEFAULT);
 }
 
 #if configUSE_TRACE_FACILITY
@@ -164,6 +175,7 @@ static void addRtosTasks(lv_obj_t* parent) {
     auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
     uint32_t totalRuntime = 0;
     UBaseType_t actual = uxTaskGetSystemState(tasks, count, &totalRuntime);
+
     for (int i = 0; i < actual; ++i) {
         const TaskStatus_t& task = tasks[i];
         addRtosTask(parent, task);
@@ -189,6 +201,7 @@ class SystemInfoApp : public App {
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
         lvgl::toolbar_create(parent, app);
 
         // This wrapper automatically has its children added vertically underneath eachother
@@ -197,43 +210,54 @@ class SystemInfoApp : public App {
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
+        lv_obj_set_style_pad_all(wrapper, 0, LV_STATE_DEFAULT);
 
-        // Wrapper for the memory usage bars
-        auto* memory_label = lv_label_create(wrapper);
-        lv_label_set_text(memory_label, "Memory usage");
-        auto* memory_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(memory_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(memory_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        auto* tabview = lv_tabview_create(wrapper);
+        lv_tabview_set_tab_bar_position(tabview, LV_DIR_LEFT);
+        lv_tabview_set_tab_bar_size(tabview, 80);
 
-        addMemoryBar(memory_wrapper, "Internal", getHeapFree(), getHeapTotal());
+        // Tabs
+
+        auto* memory_tab = lv_tabview_add_tab(tabview, "Memory");
+        lv_obj_set_flex_flow(memory_tab, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(memory_tab, 0, LV_STATE_DEFAULT);
+        auto* storage_tab = lv_tabview_add_tab(tabview, "Storage");
+        lv_obj_set_flex_flow(storage_tab, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(storage_tab, 0, LV_STATE_DEFAULT);
+        auto* tasks_tab = lv_tabview_add_tab(tabview, "Tasks");
+        lv_obj_set_flex_flow(tasks_tab, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(tasks_tab, 4, LV_STATE_DEFAULT);
+        auto* devices_tab = lv_tabview_add_tab(tabview, "Devices");
+        lv_obj_set_flex_flow(devices_tab, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(devices_tab, 4, LV_STATE_DEFAULT);
+        auto* about_tab = lv_tabview_add_tab(tabview, "About");
+        lv_obj_set_flex_flow(about_tab, LV_FLEX_FLOW_COLUMN);
+
+        // Memory tab content
+
+        addMemoryBar(memory_tab, "Internal", getHeapFree(), getHeapTotal());
         if (getSpiTotal() > 0) {
-            addMemoryBar(memory_wrapper, "External", getSpiFree(), getSpiTotal());
+            addMemoryBar(memory_tab, "External", getSpiFree(), getSpiTotal());
         }
 
 #ifdef ESP_PLATFORM
         // Wrapper for the memory usage bars
-        auto* storage_label = lv_label_create(wrapper);
-        lv_label_set_text(storage_label, "Storage usage");
-        auto* storage_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(storage_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(storage_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-
         uint64_t storage_total = 0;
         uint64_t storage_free = 0;
 
         if (esp_vfs_fat_info(file::MOUNT_POINT_SYSTEM, &storage_total, &storage_free) == ESP_OK) {
-            addMemoryBar(storage_wrapper, file::MOUNT_POINT_SYSTEM, storage_free, storage_total);
+            addMemoryBar(storage_tab, file::MOUNT_POINT_SYSTEM, storage_free, storage_total);
         }
 
         if (esp_vfs_fat_info(file::MOUNT_POINT_DATA, &storage_total, &storage_free) == ESP_OK) {
-            addMemoryBar(storage_wrapper, file::MOUNT_POINT_DATA, storage_free, storage_total);
+            addMemoryBar(storage_tab, file::MOUNT_POINT_DATA, storage_free, storage_total);
         }
 
         const auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
         for (const auto& sdcard : sdcard_devices) {
             if (sdcard->isMounted() && esp_vfs_fat_info(sdcard->getMountPath().c_str(), &storage_total, &storage_free) == ESP_OK) {
                 addMemoryBar(
-                    storage_wrapper,
+                    storage_tab,
                     sdcard->getMountPath().c_str(),
                     storage_free,
                     storage_total
@@ -243,30 +267,17 @@ class SystemInfoApp : public App {
 #endif
 
 #if configUSE_TRACE_FACILITY
-        auto* tasks_label = lv_label_create(wrapper);
-        lv_label_set_text(tasks_label, "Tasks");
-        auto* tasks_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(tasks_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(tasks_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        addRtosTasks(tasks_wrapper);
+        addRtosTasks(tasks_tab);
 #endif
-        auto* devices_label = lv_label_create(wrapper);
-        lv_label_set_text(devices_label, "Devices");
-        auto* devices_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(devices_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(devices_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        addDevices(devices_wrapper);
 
-#ifdef ESP_PLATFORM
+        addDevices(devices_tab);
+
         // Build info
-        auto* build_info_label = lv_label_create(wrapper);
-        lv_label_set_text(build_info_label, "Build info");
-        auto* build_info_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_flex_flow(build_info_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_size(build_info_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-
-        auto* esp_idf_version = lv_label_create(build_info_wrapper);
-        lv_label_set_text_fmt(esp_idf_version, "IDF version: %d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
+        auto* tactility_version = lv_label_create(about_tab);
+        lv_label_set_text_fmt(tactility_version, "Tactility v%s", TT_VERSION);
+#ifdef ESP_PLATFORM
+        auto* esp_idf_version = lv_label_create(about_tab);
+        lv_label_set_text_fmt(esp_idf_version, "ESP-IDF v%d.%d.%d", ESP_IDF_VERSION_MAJOR, ESP_IDF_VERSION_MINOR, ESP_IDF_VERSION_PATCH);
 #endif
     }
 };

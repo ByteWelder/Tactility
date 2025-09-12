@@ -1,16 +1,20 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
-
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/DispatcherThread.h>
+#include <Tactility/MountPoints.h>
+#include <Tactility/file/File.h>
+#include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
-#include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/lvgl/LvglPrivate.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/TimePrivate.h>
+
+#include <map>
+#include <format>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/InitEsp.h>
@@ -137,6 +141,67 @@ static void registerSystemApps() {
     }
 }
 
+static void registerInstalledApp(std::string path) {
+    TT_LOG_I(TAG, "Registering app at %s", path.c_str());
+    std::string manifest_path = path + "/manifest.properties";
+    if (!file::isFile(manifest_path)) {
+        TT_LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
+        return;
+    }
+
+    std::map<std::string, std::string> manifest;
+    if (!file::loadPropertiesFile(manifest_path, manifest)) {
+        TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
+    }
+
+    auto app_id_entry = manifest.find("[app]id");
+    if (app_id_entry == manifest.end()) {
+        TT_LOG_E(TAG, "Failed to find app id in manifest");
+        return;
+    }
+
+    auto app_name_entry = manifest.find("[app]name");
+    if (app_name_entry == manifest.end()) {
+        TT_LOG_E(TAG, "Failed to find app name in manifest");
+        return;
+    }
+
+    app::addApp({
+        .id = app_id_entry->second,
+        .name = app_name_entry->second,
+        .type = app::Type::User,
+        .location = app::Location::external(path)
+    });
+}
+
+static void registerInstalledApps(const std::string& path) {
+    file::listDirectory(path, [&path](const auto& entry) {
+        auto absolute_path = std::format("{}/{}", path, entry.d_name);
+        if (file::isDirectory(absolute_path)) {
+            registerInstalledApp(absolute_path);
+        }
+    });
+}
+
+static void registerInstalledAppsFromSdCard(const std::shared_ptr<hal::sdcard::SdCardDevice>& sdcard) {
+    auto sdcard_root_path = sdcard->getMountPath();
+    auto app_path = std::format("{}/apps", sdcard_root_path);
+    sdcard->getLock()->lock();
+    if (file::isDirectory(app_path)) {
+        registerInstalledApps(app_path);
+    }
+    sdcard->getLock()->unlock();
+}
+
+static void registerInstalledAppsFromSdCards() {
+    auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+    for (const auto& sdcard : sdcard_devices) {
+        if (sdcard->isMounted()) {
+            registerInstalledAppsFromSdCard(sdcard);
+        }
+    }
+}
+
 static void registerUserApps(const std::vector<const app::AppManifest*>& apps) {
     TT_LOG_I(TAG, "Registering user apps");
     for (auto* manifest : apps) {
@@ -176,8 +241,13 @@ static void registerAndStartUserServices(const std::vector<const service::Servic
 
 void initFromBootApp() {
     auto configuration = getConfiguration();
-    // Then we register system apps. They are not used/started yet.
+    // Then we register apps. They are not used/started yet.
     registerSystemApps();
+    auto data_apps_path = std::format("{}/apps", file::MOUNT_POINT_DATA);
+    if (file::isDirectory(data_apps_path)) {
+        registerInstalledApps(data_apps_path);
+    }
+    registerInstalledAppsFromSdCards();
     // Then we register and start user services. They are started after system app
     // registration just in case they want to figure out which system apps are installed.
     registerAndStartUserServices(configuration->services);

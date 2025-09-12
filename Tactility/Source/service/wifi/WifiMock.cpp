@@ -144,9 +144,10 @@ class WifiService final : public Service {
 
 public:
 
-    void onStart(TT_UNUSED ServiceContext& service) final {
+    bool onStart(TT_UNUSED ServiceContext& service) final {
         tt_check(wifi == nullptr);
         wifi = new Wifi();
+        return true;
     }
 
     void onStop(TT_UNUSED ServiceContext& service) final {

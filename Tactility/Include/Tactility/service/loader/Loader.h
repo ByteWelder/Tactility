@@ -24,6 +24,7 @@ enum class LoaderEvent{
  * @brief Start an app
  * @param[in] id application name or id
  * @param[in] parameters optional parameters to pass onto the application
+ * @return the launch id
  */
 app::LaunchId startApp(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
 

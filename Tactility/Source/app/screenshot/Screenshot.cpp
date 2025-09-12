@@ -255,6 +255,8 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
     }
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
+
     auto* toolbar = lvgl::toolbar_create(parent, appContext);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 

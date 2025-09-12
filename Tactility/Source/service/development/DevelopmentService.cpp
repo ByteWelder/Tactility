@@ -18,6 +18,8 @@
 #include <esp_wifi.h>
 #include <ranges>
 #include <sstream>
+#include <Tactility/Tactility.h>
+#include <Tactility/file/FileLock.h>
 
 namespace tt::service::development {
 
@@ -25,7 +27,7 @@ extern const ServiceManifest manifest;
 
 constexpr const char* TAG = "DevService";
 
-void DevelopmentService::onStart(ServiceContext& service) {
+bool DevelopmentService::onStart(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -39,6 +41,8 @@ void DevelopmentService::onStart(ServiceContext& service) {
     );
 
     setEnabled(shouldEnableOnBoot());
+
+    return true;
 }
 
 void DevelopmentService::onStop(ServiceContext& service) {
@@ -97,6 +101,7 @@ void DevelopmentService::startServer() {
     deviceResponse = stream.str();
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    config.stack_size = 5120;
 
     config.server_port = 6666;
     config.uri_match_fn = httpd_uri_match_wildcard;
@@ -154,6 +159,8 @@ void DevelopmentService::onNetworkDisconnected() {
 // region endpoints
 
 esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
+    TT_LOG_I(TAG, "GET /device");
+
     if (httpd_resp_set_type(request, "application/json") != ESP_OK) {
         TT_LOG_W(TAG, "Failed to send header");
         return ESP_FAIL;
@@ -171,6 +178,8 @@ esp_err_t DevelopmentService::handleGetInfo(httpd_req_t* request) {
 }
 
 esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
+    TT_LOG_I(TAG, "POST /app/run");
+
     std::string query;
     if (!network::getQueryOrSendError(request, query)) {
         return ESP_FAIL;
@@ -184,28 +193,15 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    auto app_id = id_key_pos->second;
-    if (app_id.ends_with(".app.elf")) {
-        if (!file::isFile(app_id)) {
-            TT_LOG_W(TAG, "[400] /app/run cannot find app %s", app_id.c_str());
-            httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
-            return ESP_FAIL;
-        }
-        app::registerElfApp(app_id);
-        app_id = app::getElfAppId(app_id);
-    } else if (!app::findAppById(app_id.c_str())) {
-        TT_LOG_W(TAG, "[400] /app/run app not found");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
-        return ESP_FAIL;
-    }
-
-    app::start(app_id);
-    TT_LOG_I(TAG, "[200] /app/run %s", app_id.c_str());
+    app::start(id_key_pos->second);
+    TT_LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
     httpd_resp_send(request, nullptr, 0);
     return ESP_OK;
 }
 
 esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
+    TT_LOG_I(TAG, "PUT /app/install");
+
     std::string boundary;
     if (!network::getMultiPartBoundaryOrSendError(request, boundary)) {
         return false;
@@ -250,8 +246,19 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     }
     content_left -= content_read;
 
+    const std::string tmp_path = app::getTempPath();
+    auto lock = file::getLock(tmp_path)->asScopedLock();
+
+    lock.lock();
+    if (!file::findOrCreateDirectory(tmp_path, 0777)) {
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
+        return ESP_FAIL;
+    }
+    lock.unlock();
+
     // Write file
-    auto file_path = std::format("/data/{}", filename_entry->second);
+    lock.lock();
+    auto file_path = std::format("{}/{}", tmp_path, filename_entry->second);
     auto* file = fopen(file_path.c_str(), "wb");
     auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
     fclose(file);
@@ -259,6 +266,8 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
         return ESP_FAIL;
     }
+    lock.unlock();
+
 
     // Read and verify part
     if (!network::readAndDiscardOrSendError(request, part_after_file)) {
@@ -270,9 +279,21 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         TT_LOG_W(TAG, "We have more bytes at the end of the request parsing?!");
     }
 
+    if (!app::install(file_path)) {
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to install");
+        return ESP_FAIL;
+    }
+
+    lock.lock();
+    if (remove(file_path.c_str()) != 0) {
+        TT_LOG_W(TAG, "Failed to delete %s", file_path.c_str());
+    }
+    lock.unlock();
+
     TT_LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
 
     httpd_resp_send(request, nullptr, 0);
+
     return ESP_OK;
 }
 

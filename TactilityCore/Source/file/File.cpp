@@ -3,6 +3,7 @@
 #include <cstring>
 #include <fstream>
 #include <unistd.h>
+#include <Tactility/StringUtils.h>
 
 namespace tt::hal::sdcard {
 class SdCardDevice;
@@ -35,6 +36,28 @@ bool direntSortAlphaAndType(const dirent& left, const dirent& right) {
     }
 }
 
+bool listDirectory(
+    const std::string& path,
+    std::function<void(const dirent&)> onEntry
+) {
+    TT_LOG_I(TAG, "listDir start %s", path.c_str());
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
+        return false;
+    }
+
+    dirent* current_entry;
+    while ((current_entry = readdir(dir)) != nullptr) {
+        onEntry(*current_entry);
+    }
+
+    closedir(dir);
+
+    TT_LOG_I(TAG, "listDir stop %s", path.c_str());
+    return true;
+}
+
 int scandir(
     const std::string& path,
     std::vector<dirent>& outList,
@@ -50,7 +73,7 @@ int scandir(
 
     dirent* current_entry;
     while ((current_entry = readdir(dir)) != nullptr) {
-        if (filterMethod(current_entry) == 0) {
+        if (filterMethod == nullptr || filterMethod(current_entry) == 0) {
             outList.push_back(*current_entry);
         }
     }
@@ -184,7 +207,16 @@ static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
     return true;
 }
 
-bool findOrCreateDirectory(std::string path, mode_t mode) {
+std::string getLastPathSegment(const std::string& path) {
+    auto index = path.find_last_of('/');
+    if (index != std::string::npos) {
+        return path.substr(index + 1);
+    } else {
+        return "";
+    }
+}
+
+bool findOrCreateDirectory(const std::string& path, mode_t mode) {
     if (path.empty()) {
         return true;
     }
@@ -211,6 +243,45 @@ bool findOrCreateDirectory(std::string path, mode_t mode) {
     }
 
     return true;
+}
+
+bool findOrCreateParentDirectory(const std::string& path, mode_t mode) {
+    std::string parent;
+    if (!string::getPathParent(path, parent)) {
+        return false;
+    }
+    return findOrCreateDirectory(parent, mode);
+}
+
+bool deleteRecursively(const std::string& path) {
+    if (path.empty()) {
+        return true;
+    }
+
+    if (isDirectory(path)) {
+        std::vector<dirent> entries;
+        if (scandir(path, entries) < 0) {
+            TT_LOG_E(TAG, "Failed to scan directory %s", path.c_str());
+            return false;
+        }
+        for (const auto& entry : entries) {
+            auto child_path = path + "/" + entry.d_name;
+            if (!deleteRecursively(child_path)) {
+                return false;
+            }
+        }
+        TT_LOG_I(TAG, "Deleting %s", path.c_str());
+        return rmdir(path.c_str()) == 0;
+    } else if (isFile(path)) {
+        TT_LOG_I(TAG, "Deleting %s", path.c_str());
+        return remove(path.c_str()) == 0;
+    } else if (path == "/" || path == "." || path == "..") {
+        // No-op
+        return true;
+    } else {
+        TT_LOG_E(TAG, "Failed to delete \"%s\": unknown type", path.c_str());
+        return false;
+    }
 }
 
 bool isFile(const std::string& path) {

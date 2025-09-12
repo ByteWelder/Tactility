@@ -145,6 +145,7 @@ void Calculator::resetCalculator() {
 void Calculator::onShow(AppHandle appHandle, lv_obj_t* parent) {
     lv_obj_remove_flag(parent, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     lv_obj_t* toolbar = tt_lvgl_toolbar_create_for_app(parent, appHandle);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
@@ -187,10 +188,9 @@ void Calculator::onShow(AppHandle appHandle, lv_obj_t* parent) {
     lv_obj_set_style_pad_all(buttonmatrix, 5, LV_PART_MAIN);
     lv_obj_set_style_pad_row(buttonmatrix, 10, LV_PART_MAIN);
     lv_obj_set_style_pad_column(buttonmatrix, 5, LV_PART_MAIN);
-    lv_obj_set_style_border_width(buttonmatrix, 0, LV_PART_MAIN);
+    lv_obj_set_style_border_width(buttonmatrix, 2, LV_PART_MAIN);
     lv_obj_set_style_bg_color(buttonmatrix, lv_palette_main(LV_PALETTE_BLUE), LV_PART_ITEMS);
 
-    lv_obj_set_style_border_width(buttonmatrix, 0, LV_PART_MAIN);
     if (lv_display_get_horizontal_resolution(nullptr) <= 240 || lv_display_get_vertical_resolution(nullptr) <= 240) {
         //small screens
         lv_obj_set_size(buttonmatrix, lv_pct(100), lv_pct(60));

@@ -38,7 +38,7 @@ static std::shared_ptr<Lock> elfManifestLock = std::make_shared<Mutex>();
 
 class ElfApp : public App {
 
-    const std::string filePath;
+    const std::string appPath;
     std::unique_ptr<uint8_t[]> elfFileData;
     esp_elf_t elf {
         .psegment = nullptr,
@@ -54,12 +54,13 @@ class ElfApp : public App {
     std::string lastError = "";
 
     bool startElf() {
-        TT_LOG_I(TAG, "Starting ELF %s", filePath.c_str());
+        const std::string elf_path = std::format("{}/elf/{}.elf", appPath, CONFIG_IDF_TARGET);
+        TT_LOG_I(TAG, "Starting ELF %s", elf_path.c_str());
         assert(elfFileData == nullptr);
 
         size_t size = 0;
-        file::withLock<void>(filePath, [this, &size]{
-            elfFileData = file::readBinary(filePath, size);
+        file::withLock<void>(elf_path, [this, &elf_path, &size]{
+            elfFileData = file::readBinary(elf_path, size);
         });
 
         if (elfFileData == nullptr) {
@@ -111,7 +112,7 @@ class ElfApp : public App {
 
 public:
 
-    explicit ElfApp(std::string filePath) : filePath(std::move(filePath)) {}
+    explicit ElfApp(std::string appPath) : appPath(std::move(appPath)) {}
 
     void onCreate(AppContext& appContext) override {
         // Because we use global variables, we have to ensure that we are not starting 2 apps in parallel
@@ -203,22 +204,6 @@ void setElfAppManifest(
         .onResult = onResult
     };
     elfManifestSetCount++;
-}
-
-std::string getElfAppId(const std::string& filePath) {
-    return filePath;
-}
-
-void registerElfApp(const std::string& filePath) {
-    if (findAppById(filePath) == nullptr) {
-        auto manifest = AppManifest {
-            .id = getElfAppId(filePath),
-            .name = string::removeFileExtension(string::getLastPathSegment(filePath)),
-            .type = Type::User,
-            .location = Location::external(filePath)
-        };
-        addApp(manifest);
-    }
 }
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {

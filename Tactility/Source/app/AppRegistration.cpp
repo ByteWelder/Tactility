@@ -20,11 +20,11 @@ void addApp(const AppManifest& manifest) {
 
     hash_mutex.lock();
 
-    if (!app_manifest_map.contains(manifest.id)) {
-        app_manifest_map[manifest.id] = std::make_shared<AppManifest>(manifest);
-    } else {
-        TT_LOG_E(TAG, "App id in use: %s", manifest.id.c_str());
+    if (app_manifest_map.contains(manifest.id)) {
+        TT_LOG_W(TAG, "Overwriting existing manifest for %s", manifest.id.c_str());
     }
+
+    app_manifest_map[manifest.id] = std::make_shared<AppManifest>(manifest);
 
     hash_mutex.unlock();
 }

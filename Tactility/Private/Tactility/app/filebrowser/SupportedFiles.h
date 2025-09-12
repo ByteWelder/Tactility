@@ -4,7 +4,7 @@
 
 namespace tt::app::filebrowser {
 
-bool isSupportedExecutableFile(const std::string& filename);
+bool isSupportedAppFile(const std::string& filename);
 bool isSupportedImageFile(const std::string& filename);
 bool isSupportedTextFile(const std::string& filename);
 

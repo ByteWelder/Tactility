@@ -10,3 +10,6 @@
 [submodule "Libraries/SDL"]
 	path = Libraries/SDL
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "Libraries/minitar/minitar"]
+	path = Libraries/minitar/minitar
+	url = git@github.com:gabscoarnec/minitar.git

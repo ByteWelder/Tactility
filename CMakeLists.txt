@@ -41,6 +41,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Libraries/elf_loader"
         "Libraries/lvgl"
         "Libraries/lv_screenshot"
+        "Libraries/minitar"
         "Libraries/minmea"
         "Libraries/QRCode"
     )
@@ -78,6 +79,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
+    add_subdirectory(Libraries/minitar)
     add_subdirectory(Libraries/minmea)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel

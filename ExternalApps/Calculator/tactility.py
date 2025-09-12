@@ -8,22 +8,19 @@ import subprocess
 import time
 import urllib.request
 import zipfile
-
 import requests
+import tarfile
+import shutil
+import configparser
 
-# Targetable platforms that represent a specific hardware target
-platform_targets = ["esp32", "esp32s3"]
-# All valid platform commandline arguments
-platform_arguments = platform_targets.copy()
-platform_arguments.append("all")
 ttbuild_path = ".tactility"
-ttbuild_version = "1.2.1"
-ttbuild_properties_file = "tactility.properties"
+ttbuild_version = "2.0.0"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
 verbose = False
 use_local_sdk = False
+valid_platforms = ["esp32", "esp32s3"]
 
 spinner_pattern = [
     "⠋",
@@ -57,21 +54,24 @@ def print_help():
     print("Usage: python tactility.py [action] [options]")
     print("")
     print("Actions:")
-    print("  build [esp32,esp32s3,all,local]          Build the app for the specified platform")
+    print("  build [esp32,esp32s3]          Build the app. Optionally specify a platform.")
     print("    esp32:         ESP32")
     print("    esp32s3:       ESP32 S3")
-    print("    all:           all supported ESP platforms")
-    print("  clean                                    Clean the build folders")
-    print("  clearcache                               Clear the SDK cache")
-    print("  updateself                               Update this tool")
-    print("  run [ip] [app id]                        Run an application")
-    print("  install [ip] [esp32,esp32s3]             Install an application")
+    print("  clean                          Clean the build folders")
+    print("  clearcache                     Clear the SDK cache")
+    print("  updateself                     Update this tool")
+    print("  run [ip]                       Run an application")
+    print("  install [ip]                   Install an application")
+    print("  bir [ip] [esp32,esp32s3]       Build, install then run. Optionally specify a platform.")
+    print("  brrr [ip] [esp32,esp32s3]      Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
     print("")
     print("Options:")
-    print("  --help                                   Show this commandline info")
-    print("  --local-sdk                              Use SDK specified by environment variable TACTILITY_SDK_PATH")
-    print("  --skip-build                             Run everything except the idf.py/CMake commands")
-    print("  --verbose                                Show extra console output")
+    print("  --help                         Show this commandline info")
+    print("  --local-sdk                    Use SDK specified by environment variable TACTILITY_SDK_PATH")
+    print("  --skip-build                   Run everything except the idf.py/CMake commands")
+    print("  --verbose                      Show extra console output")
+
+# region Core
 
 def download_file(url, filepath):
     global verbose
@@ -108,25 +108,19 @@ def exit_with_error(message):
 def get_url(ip, path):
     return f"http://{ip}:{ttport}{path}"
 
-def is_valid_platform_name(name):
-    global platform_arguments
-    return name in platform_arguments
+def read_properties_file(path):
+    config = configparser.RawConfigParser()
+    config.read(path)
+    return config
 
-def validate_environment():
-    global ttbuild_properties_file, use_local_sdk
-    if os.environ.get("IDF_PATH") is None:
-        exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
-    if not os.path.exists(ttbuild_properties_file):
-        exit_with_error(f"{ttbuild_properties_file} file not found")
-    if use_local_sdk == False and os.environ.get("TACTILITY_SDK_PATH") is not None:
-        print_warning("TACTILITY_SDK_PATH is set, but will be ignored by this command.")
-        print_warning("If you want to use it, use the 'build local' parameters.")
-    elif use_local_sdk == True and os.environ.get("TACTILITY_SDK_PATH") is None:
-        exit_with_error("local build was requested, but TACTILITY_SDK_PATH environment variable is not set.")
+#endregion Core
 
-def setup_environment():
-    global ttbuild_path
-    os.makedirs(ttbuild_path, exist_ok=True)
+#region SDK helpers
+
+def read_sdk_json():
+    json_file_path = os.path.join(ttbuild_path, "sdk.json")
+    json_file = open(json_file_path)
+    return json.load(json_file)
 
 def get_sdk_dir(version, platform):
     global use_local_sdk
@@ -135,15 +129,6 @@ def get_sdk_dir(version, platform):
     else:
         global ttbuild_cdn
         return os.path.join(ttbuild_path, f"{version}-{platform}", "TactilitySDK")
-
-def get_sdk_version():
-    global ttbuild_properties_file
-    parser = configparser.RawConfigParser()
-    parser.read(ttbuild_properties_file)
-    sdk_dict = dict(parser.items("sdk"))
-    if not "version" in sdk_dict:
-        exit_with_error(f"Could not find 'version' in [sdk] section in {ttbuild_properties_file}")
-    return sdk_dict["version"]
 
 def get_sdk_root_dir(version, platform):
     global ttbuild_cdn
@@ -175,20 +160,34 @@ def update_sdk_json():
     json_filepath = os.path.join(ttbuild_path, "sdk.json")
     return download_file(json_url, json_filepath)
 
-def should_fetch_sdkconfig_files():
+def should_fetch_sdkconfig_files(platform_targets):
     for platform in platform_targets:
         sdkconfig_filename = f"sdkconfig.app.{platform}"
         if not os.path.exists(os.path.join(ttbuild_path, sdkconfig_filename)):
             return True
     return False
 
-def fetch_sdkconfig_files():
+def fetch_sdkconfig_files(platform_targets):
     for platform in platform_targets:
         sdkconfig_filename = f"sdkconfig.app.{platform}"
         target_path = os.path.join(ttbuild_path, sdkconfig_filename)
         if not download_file(f"{ttbuild_cdn}/{sdkconfig_filename}", target_path):
             exit_with_error(f"Failed to download sdkconfig file for {platform}")
 
+#endregion SDK helpers
+
+#region Validation
+
+def validate_environment():
+    if os.environ.get("IDF_PATH") is None:
+        exit_with_error("Cannot find the Espressif IDF SDK. Ensure it is installed and that it is activated via $PATH_TO_IDF_SDK/export.sh")
+    if not os.path.exists("manifest.properties"):
+        exit_with_error("manifest.properties not found")
+    if use_local_sdk == False and os.environ.get("TACTILITY_SDK_PATH") is not None:
+        print_warning("TACTILITY_SDK_PATH is set, but will be ignored by this command.")
+        print_warning("If you want to use it, use the 'build local' parameters.")
+    elif use_local_sdk == True and os.environ.get("TACTILITY_SDK_PATH") is None:
+        exit_with_error("local build was requested, but TACTILITY_SDK_PATH environment variable is not set.")
 
 def validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build):
     version_map = sdk_json["versions"]
@@ -217,6 +216,64 @@ def validate_self(sdk_json):
         print_error("Run 'tactility.py updateself' to update.")
         sys.exit(1)
 
+#endregion Validation
+
+#region Manifest
+
+def read_manifest():
+    return read_properties_file("manifest.properties")
+
+def validate_manifest(manifest):
+    # [manifest]
+    if not "manifest" in manifest:
+        exit_with_error("Invalid manifest format: [manifest] not found")
+    if not "version" in manifest["manifest"]:
+        exit_with_error("Invalid manifest format: [manifest] version not found")
+    # [target]
+    if not "target" in manifest:
+        exit_with_error("Invalid manifest format: [target] not found")
+    if not "sdk" in manifest["target"]:
+        exit_with_error("Invalid manifest format: [target] sdk not found")
+    if not "platforms" in manifest["target"]:
+        exit_with_error("Invalid manifest format: [target] platforms not found")
+    # [app]
+    if not "app" in manifest:
+        exit_with_error("Invalid manifest format: [app] not found")
+    if not "id" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] id not found")
+    if not "version" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] version not found")
+    if not "name" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] name not found")
+    if not "description" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] description not found")
+    # [author]
+    if not "author" in manifest:
+        exit_with_error("Invalid manifest format: [author] not found")
+    if not "name" in manifest["author"]:
+        exit_with_error("Invalid manifest format: [author] name not found")
+    if not "website" in manifest["author"]:
+        exit_with_error("Invalid manifest format: [author] website not found")
+
+def is_valid_manifest_platform(manifest, platform):
+    manifest_platforms = manifest["target"]["platforms"].split(",")
+    return platform in manifest_platforms
+
+def validate_manifest_platform(manifest, platform):
+    if not is_valid_manifest_platform(manifest, platform):
+        exit_with_error(f"Platform {platform} is not available in the manifest.")
+
+def get_manifest_target_platforms(manifest, requested_platform):
+    if requested_platform == "" or requested_platform is None:
+        return manifest["target"]["platforms"].split(",")
+    else:
+        validate_manifest_platform(manifest, requested_platform)
+        return [requested_platform]
+
+#endregion Manifest
+
+#region SDK download
+
 def sdk_download(version, platform):
     sdk_root_dir = get_sdk_root_dir(version, platform)
     os.makedirs(sdk_root_dir, exist_ok=True)
@@ -240,12 +297,19 @@ def sdk_download_all(version, platforms):
                 print(f"Using cached download for SDK version {version} and platform {platform}")
     return True
 
+#endregion SDK download
+
+#region Building
+
+def get_cmake_path(platform):
+    return os.path.join("build", f"cmake-build-{platform}")
+
 def find_elf_file(platform):
-    build_dir = f"build-{platform}"
-    if os.path.exists(build_dir):
-        for file in os.listdir(build_dir):
+    cmake_dir = get_cmake_path(platform)
+    if os.path.exists(cmake_dir):
+        for file in os.listdir(cmake_dir):
             if file.endswith(".app.elf"):
-                return os.path.join(build_dir, file)
+                return os.path.join(cmake_dir, file)
     return None
 
 def build_all(version, platforms, skip_build):
@@ -295,7 +359,8 @@ def build_first(version, platform, skip_build):
     if skip_build:
         return True
     print("Building first build")
-    with subprocess.Popen(["idf.py", "-B", f"build-{platform}", "build"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+    cmake_path = get_cmake_path(platform)
+    with subprocess.Popen(["idf.py", "-B", cmake_path, "build"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
         build_output = wait_for_build(process, platform)
         # The return code is never expected to be 0 due to a bug in the elf cmake script, but we keep it just in case
         if process.returncode == 0:
@@ -320,7 +385,8 @@ def build_consecutively(version, platform, skip_build):
     os.system(f"cp {sdkconfig_path} sdkconfig")
     if skip_build:
         return True
-    with subprocess.Popen(["idf.py", "-B", f"build-{platform}", "elf"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
+    cmake_path = get_cmake_path(platform)
+    with subprocess.Popen(["idf.py", "-B", cmake_path, "elf"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT) as process:
         build_output = wait_for_build(process, platform)
         if process.returncode == 0:
             print(f"{shell_color_green}Building for {platform} ✅{shell_color_reset}")
@@ -331,41 +397,85 @@ def build_consecutively(version, platform, skip_build):
             print(f"{shell_color_red}Building for {platform} failed ❌{shell_color_reset}")
             return False
 
-def read_sdk_json():
-    json_file_path = os.path.join(ttbuild_path, "sdk.json")
-    json_file = open(json_file_path)
-    return json.load(json_file)
+#endregion Building
 
-def build_action(platform_arg):
+#region Packaging
+
+def package_intermediate_manifest(target_path):
+    if not os.path.isfile("manifest.properties"):
+        print_error("manifest.properties not found")
+        return
+    shutil.copy("manifest.properties", os.path.join(target_path, "manifest.properties"))
+
+def package_intermediate_binaries(target_path, platforms):
+    elf_dir = os.path.join(target_path, "elf")
+    os.makedirs(elf_dir, exist_ok=True)
+    for platform in platforms:
+        elf_path = find_elf_file(platform)
+        if elf_path is None:
+            print_error(f"ELF file not found at {elf_path}")
+            return
+        shutil.copy(elf_path, os.path.join(elf_dir, f"{platform}.elf"))
+
+def package_intermediate_assets(target_path):
+    if os.path.isdir("assets"):
+        shutil.copytree("assets", os.path.join(target_path, "assets"), dirs_exist_ok=True)
+
+def package_intermediate(platforms):
+    target_path = os.path.join("build", "package-intermediate")
+    if os.path.isdir(target_path):
+        shutil.rmtree(target_path)
+    os.makedirs(target_path, exist_ok=True)
+    package_intermediate_manifest(target_path)
+    package_intermediate_binaries(target_path, platforms)
+    package_intermediate_assets(target_path)
+
+def package_name(platforms):
+    elf_path = find_elf_file(platforms[0])
+    elf_base_name = os.path.basename(elf_path).removesuffix(".app.elf")
+    return os.path.join("build", f"{elf_base_name}.app")
+
+def package_all(platforms):
+    print("Packaging app")
+    package_intermediate(platforms)
+    # Create build/something.app
+    tar_path = package_name(platforms)
+    tar = tarfile.open(tar_path, mode="w", format=tarfile.USTAR_FORMAT)
+    tar.add(os.path.join("build", "package-intermediate"), arcname="")
+    tar.close()
+
+#endregion Packaging
+
+def setup_environment():
+    global ttbuild_path
+    os.makedirs(ttbuild_path, exist_ok=True)
+
+def build_action(manifest, platform_arg):
     # Environment validation
     validate_environment()
-    platforms_to_build = platform_targets if platform_arg == "all" else [platform_arg]
-    if not is_valid_platform_name(platform_arg):
-        print_help()
-        exit_with_error("Invalid platform name")
+    platforms_to_build = get_manifest_target_platforms(manifest, platform_arg)
     if not use_local_sdk:
-        if should_fetch_sdkconfig_files():
-            fetch_sdkconfig_files()
+        if should_fetch_sdkconfig_files(platforms_to_build):
+            fetch_sdkconfig_files(platforms_to_build)
         sdk_json = read_sdk_json()
         validate_self(sdk_json)
         if not "versions" in sdk_json:
             exit_with_error("Version data not found in sdk.json")
     # Build
-    sdk_version = get_sdk_version()
+    sdk_version = manifest["target"]["sdk"]
     if not use_local_sdk:
         validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build)
         if not sdk_download_all(sdk_version, platforms_to_build):
             exit_with_error("Failed to download one or more SDKs")
     build_all(sdk_version, platforms_to_build, skip_build)  # Environment validation
+    if not skip_build:
+        package_all(platforms_to_build)
 
 def clean_action():
-    count = 0
-    for path in os.listdir("."):
-        if path.startswith("build-"):
-            print(f"Removing {path}/")
-            shutil.rmtree(path)
-            count = count + 1
-    if count == 0:
+    if os.path.exists("build"):
+        print(f"Removing build/")
+        shutil.rmtree("build")
+    else:
         print("Nothing to clean")
 
 def clear_cache_action():
@@ -396,7 +506,8 @@ def get_device_info(ip):
     except requests.RequestException as e:
         print(f"Request failed: {e}")
 
-def run_action(ip, app_id):
+def run_action(manifest, ip):
+    app_id = manifest["app"]["id"]
     print(f"Running {app_id} on {ip}")
     url = get_url(ip, "/app/run")
     params = {'id': app_id}
@@ -409,16 +520,17 @@ def run_action(ip, app_id):
     except requests.RequestException as e:
         print(f"Request failed: {e}")
 
-def install_action(ip, platform):
-    file_path = find_elf_file(platform)
-    if file_path is None:
-        print_error(f"File not found: {file_path}")
-        return
-    print(f"Installing {file_path} to {ip}")
+def install_action(ip, platforms):
+    for platform in platforms:
+        elf_path = find_elf_file(platform)
+        if elf_path is None:
+            exit_with_error(f"ELF file not built for {platform}")
+    package_path = package_name(platforms)
+    print(f"Installing {package_path} to {ip}")
     url = get_url(ip, "/app/install")
     try:
         # Prepare multipart form data
-        with open(file_path, 'rb') as file:
+        with open(package_path, 'rb') as file:
             files = {
                 'elf': file
             }
@@ -432,6 +544,7 @@ def install_action(ip, platform):
     except IOError as e:
         print_error(f"File error: {e}")
 
+#region Main
 
 if __name__ == "__main__":
     print(f"Tactility Build System v{ttbuild_version}")
@@ -448,15 +561,23 @@ if __name__ == "__main__":
     use_local_sdk = "--local-sdk" in sys.argv
     # Environment setup
     setup_environment()
+    if not os.path.isfile("manifest.properties"):
+        exit_with_error("manifest.properties not found")
+    manifest = read_manifest()
+    validate_manifest(manifest)
+    all_platform_targets = manifest["target"]["platforms"].split(",")
     # Update SDK cache (sdk.json)
     if should_update_sdk_json() and not update_sdk_json():
         exit_with_error("Failed to retrieve SDK info")
     # Actions
     if action_arg == "build":
-        if len(sys.argv) < 3:
+        if len(sys.argv) < 2:
             print_help()
             exit_with_error("Commandline parameter missing")
-        build_action(sys.argv[2])
+        platform = None
+        if len(sys.argv) > 2:
+            platform = sys.argv[2]
+        build_action(manifest, platform)
     elif action_arg == "clean":
         clean_action()
     elif action_arg == "clearcache":
@@ -464,15 +585,34 @@ if __name__ == "__main__":
     elif action_arg == "updateself":
         update_self_action()
     elif action_arg == "run":
-        if len(sys.argv) < 4:
+        if len(sys.argv) < 3:
             print_help()
             exit_with_error("Commandline parameter missing")
-        run_action(sys.argv[2], sys.argv[3])
+        run_action(manifest, sys.argv[2])
     elif action_arg == "install":
-        if len(sys.argv) < 4:
+        if len(sys.argv) < 3:
             print_help()
             exit_with_error("Commandline parameter missing")
-        install_action(sys.argv[2], sys.argv[3])
+        platform = None
+        platforms_to_install = all_platform_targets
+        if len(sys.argv) >= 4:
+            platform = sys.argv[3]
+            platforms_to_install = [platform]
+        install_action(sys.argv[2], platforms_to_install)
+    elif action_arg == "bir":
+        if len(sys.argv) < 3:
+            print_help()
+            exit_with_error("Commandline parameter missing")
+        platform = None
+        platforms_to_install = all_platform_targets
+        if len(sys.argv) >= 4:
+            platform = sys.argv[3]
+            platforms_to_install = [platform]
+        build_action(manifest, platform)
+        install_action(sys.argv[2], platforms_to_install)
+        run_action(manifest, sys.argv[2])
     else:
         print_help()
         exit_with_error("Unknown commandline parameter")
+
+#endregion Main

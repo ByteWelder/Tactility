@@ -31,7 +31,7 @@ struct EspNowConfig {
         bool longRange,
         bool encrypt
     ) : mode(mode), channel(channel), longRange(longRange), encrypt(encrypt) {
-        memcpy((void*)this->masterKey, (void*)masterKey, 16);
+        memcpy(this->masterKey, masterKey, 16);
     }
 };
 

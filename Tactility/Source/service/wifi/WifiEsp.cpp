@@ -414,10 +414,9 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
 }
 
 static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSettings& settings) {
+    TT_LOG_I(TAG, "find_auto_connect_ap()");
     auto lock = wifi->dataMutex.asScopedLock();
-
     if (lock.lock(10 / portTICK_PERIOD_MS)) {
-        TT_LOG_I(TAG, "auto_connect()");
         for (int i = 0; i < wifi->scan_list_count; ++i) {
             auto ssid = reinterpret_cast<const char*>(wifi->scan_list[i].ssid);
             if (settings::contains(ssid)) {
@@ -897,7 +896,7 @@ class WifiService final : public Service {
 
 public:
 
-    void onStart(ServiceContext& service) override {
+    bool onStart(ServiceContext& service) override {
         assert(wifi_singleton == nullptr);
         wifi_singleton = std::make_shared<Wifi>();
 
@@ -913,6 +912,8 @@ public:
             TT_LOG_I(TAG, "Auto-enabling due to setting");
             getMainDispatcher().dispatch([] { dispatchEnable(wifi_singleton); });
         }
+
+        return true;
     }
 
     void onStop(ServiceContext& service) override {
