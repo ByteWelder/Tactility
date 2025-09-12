@@ -26,7 +26,7 @@ constexpr auto* TAG = "App";
 
 namespace tt::app {
 
-static int untar_file(const minitar_entry* entry, const void* buf, const std::string& destinationPath) {
+static int untarFile(const minitar_entry* entry, const void* buf, const std::string& destinationPath) {
     auto absolute_path = destinationPath + "/" + entry->metadata.path;
     if (!file::findOrCreateDirectory(destinationPath, 0777)) return 1;
 
@@ -47,7 +47,7 @@ static bool untar_directory(const minitar_entry* entry, const std::string& desti
     return true;
 }
 
-bool untar(const std::string& tarPath, const std::string& destinationPath) {
+static bool untar(const std::string& tarPath, const std::string& destinationPath) {
     minitar mp;
     if (minitar_open(tarPath.c_str(), &mp) != 0) {
         perror(tarPath.c_str());
@@ -62,26 +62,23 @@ bool untar(const std::string& tarPath, const std::string& destinationPath) {
             if (entry.metadata.type == MTAR_DIRECTORY) {
                 if (!strcmp(entry.metadata.name, ".") || !strcmp(entry.metadata.name, "..") || !strcmp(entry.metadata.name, "/")) continue;
                 if (!untar_directory(&entry, destinationPath)) {
-                    fprintf(stderr, "Failed to create directory %s/%s: %s\n", destinationPath.c_str(), entry.metadata.name, strerror(errno));
+                    TT_LOG_E(TAG, "Failed to create directory %s/%s: %s", destinationPath.c_str(), entry.metadata.name, strerror(errno));
                     success = false;
                     break;
                 }
             } else if (entry.metadata.type == MTAR_REGULAR) {
-                auto ptr = static_cast<char*>(malloc(entry.metadata.size));
-                if (!ptr) {
-                    perror("malloc");
+                auto file_buffer = static_cast<char*>(malloc(entry.metadata.size));
+                if (!file_buffer) {
+                    TT_LOG_E(TAG, "Failed to allocate %d bytes for file %s", entry.metadata.size, entry.metadata.path);;
                     success = false;
                     break;
                 }
 
-                minitar_read_contents(&mp, &entry, ptr, entry.metadata.size);
-
-                int status = untar_file(&entry, ptr, destinationPath);
-
-                free(ptr);
-
+                minitar_read_contents(&mp, &entry, file_buffer, entry.metadata.size);
+                int status = untarFile(&entry, file_buffer, destinationPath);
+                free(file_buffer);
                 if (status != 0) {
-                    fprintf(stderr, "Failed to extract file %s: %s\n", entry.metadata.path, strerror(errno));
+                    TT_LOG_E(TAG, "Failed to extract file %s: %s", entry.metadata.path, strerror(errno));
                     success = false;
                     break;
                 }
@@ -96,7 +93,7 @@ bool untar(const std::string& tarPath, const std::string& destinationPath) {
             } else if (entry.metadata.type == MTAR_CHRDEV) {
                 TT_LOG_E(TAG, "CHRDEV not supported");
             } else {
-                fprintf(stderr, "error: unknown entry type: %d", entry.metadata.type);
+                TT_LOG_E(TAG, "Unknown entry type: %d", entry.metadata.type);
                 success = false;
                 break;
             }
