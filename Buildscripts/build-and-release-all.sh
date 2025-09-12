@@ -75,6 +75,9 @@ release m5stack-cores3
 build waveshare-s3-touch-43
 release waveshare-s3-touch-43
 
+build waveshare-s3-touch-lcd-147
+release waveshare-s3-touch-lcd-147
+
 build unphone
 release unphone
 

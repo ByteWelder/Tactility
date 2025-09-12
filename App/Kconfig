@@ -51,6 +51,8 @@ menu "Tactility App"
             bool "unPhone"
         config TT_BOARD_WAVESHARE_S3_TOUCH_43
             bool "Waveshare ESP32 S3 Touch LCD 4.3"
+        config TT_BOARD_WAVESHARE_S3_TOUCH_LCD_147
+            bool "Waveshare ESP32 S3 Touch LCD 1.47"
         help
             Select a board/hardware configuration.
             Use TT_BOARD_CUSTOM if you will manually configure the board in your project.
