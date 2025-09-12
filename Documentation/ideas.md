@@ -13,10 +13,6 @@
   The manifest can provide the intent handler
 - Bug: GraphicsDemo should check if display supports the DisplayDriver interface (and same for touch) and show an AlertDialog error if there's a problem
 - Update ILI934x to v2.0.1
-- App packaging
-- Create an "app install paths" settings app to add/remove paths.
-  Scan these paths on startup.
-  Make the AppList use the scan results.
 - Apps with update timer should check `lvgl::isStarted()`
 - CrowPanel Basic 3.5": check why GraphicsDemo fails
 - CrowPanel Basic 3.5": check why System Info doesn't show storage info
