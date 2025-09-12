@@ -6,7 +6,7 @@
 #include <Tactility/service/ServiceRegistration.h>
 
 #include <memory>
-#include <display/lv_display.h>
+#include <lvgl.h>
 
 namespace tt::service::screenshot {
 
