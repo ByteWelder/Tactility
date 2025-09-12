@@ -16,7 +16,7 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        std::make_shared<tt::Mutex>(),
+        std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive),
         std::vector<gpio_num_t>(),
         SDCARD_SPI_HOST
     );
