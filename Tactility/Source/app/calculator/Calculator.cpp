@@ -212,7 +212,6 @@ class CalculatorApp : public App {
         lv_obj_set_style_border_width(btnm, 2, LV_PART_MAIN);
         lv_obj_set_style_bg_color(btnm, lv_palette_main(LV_PALETTE_BLUE), LV_PART_ITEMS);
 
-        // lv_obj_set_style_border_width(btnm, 0, LV_PART_MAIN);
         if (lv_display_get_horizontal_resolution(nullptr) <= 240 || lv_display_get_vertical_resolution(nullptr) <= 240) { //small screens
             lv_obj_set_size(btnm, lv_pct(100), lv_pct(60));
         } else { //large screens
