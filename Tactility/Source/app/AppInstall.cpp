@@ -1,16 +1,5 @@
 #include <Tactility/app/App.h>
 
-#include <minitar.h>
-
-#include <errno.h>
-#include <fcntl.h>
-#include <libgen.h>
-#include <map>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppRegistration.h>
@@ -19,6 +8,19 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/Device.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
+
+#include <errno.h>
+#include <fcntl.h>
+#include <format>
+#include <libgen.h>
+#include <map>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include <minitar.h>
 
 constexpr auto* TAG = "App";
 
