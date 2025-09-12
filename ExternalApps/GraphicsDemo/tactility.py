@@ -63,6 +63,7 @@ def print_help():
     print("  run [ip]                       Run an application")
     print("  install [ip]                   Install an application")
     print("  bir [ip] [esp32,esp32s3]       Build, install then run. Optionally specify a platform.")
+    print("  brrr [ip] [esp32,esp32s3]      Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
     print("")
     print("Options:")
     print("  --help                         Show this commandline info")
