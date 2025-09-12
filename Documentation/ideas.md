@@ -16,6 +16,7 @@
 - CrowPanel Basic 3.5": check why System Info doesn't show storage info
 - Update to LVGL v9.3 stable
 - Files app: delete folder recursively
+- Create `app::getSettingsPath()` to get paths to properties files by first trying sd card and then trying `/data`
 
 ## Medium Priority
 
@@ -29,6 +30,7 @@
 
 ## Lower Priority
 
+- The boot button on some devices can be used as GPIO_NUM_0 at runtime
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Explore LVGL9's FreeRTOS functionality

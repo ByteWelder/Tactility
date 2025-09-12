@@ -2,9 +2,9 @@
 
 #include <Tactility/Mutex.h>
 
-#define TAG "spi"
-
 namespace tt::hal::spi {
+
+constexpr auto* TAG = "SPI";
 
 struct Data {
     std::shared_ptr<Lock> lock;
@@ -15,7 +15,7 @@ struct Data {
 
 static Data dataArray[SPI_HOST_MAX];
 
-bool init(const std::vector<spi::Configuration>& configurations) {
+bool init(const std::vector<Configuration>& configurations) {
     TT_LOG_I(TAG, "Init");
     for (const auto& configuration: configurations) {
         Data& data = dataArray[configuration.device];
@@ -24,7 +24,7 @@ bool init(const std::vector<spi::Configuration>& configurations) {
         if (configuration.lock != nullptr) {
             data.lock = configuration.lock;
         } else {
-            data.lock = std::make_shared<Mutex>();
+            data.lock = std::make_shared<Mutex>(Mutex::Type::Recursive);
         }
     }
 
@@ -76,7 +76,6 @@ bool start(spi_host_device_t device) {
 
 #ifdef ESP_PLATFORM
 
-    Configuration& config = data.configuration;
     auto result = spi_bus_initialize(device, &data.configuration.config, data.configuration.dma);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "(%d) Starting: Failed to initialize: %s", device, esp_err_to_name(result));

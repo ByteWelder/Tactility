@@ -23,7 +23,7 @@ struct Configuration {
     InitMode initMode;
     /** Whether configuration can be changed. */
     bool isMutable;
-    /** Optional custom lock */
+    /** Optional custom lock - otherwise creates one internally */
     std::shared_ptr<Lock> _Nullable lock;
 };
 
