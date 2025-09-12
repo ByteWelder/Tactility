@@ -191,23 +191,8 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    auto app_id = id_key_pos->second;
-    if (app_id.ends_with(".app.elf")) {
-        if (!file::isFile(app_id)) {
-            TT_LOG_W(TAG, "[400] /app/run cannot find app %s", app_id.c_str());
-            httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
-            return ESP_FAIL;
-        }
-        app::registerElfApp(app_id);
-        app_id = app::getElfAppId(app_id);
-    } else if (!app::findAppById(app_id.c_str())) {
-        TT_LOG_W(TAG, "[400] /app/run app not found");
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "app not found");
-        return ESP_FAIL;
-    }
-
-    app::start(app_id);
-    TT_LOG_I(TAG, "[200] /app/run %s", app_id.c_str());
+    app::start(id_key_pos->second);
+    TT_LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
     httpd_resp_send(request, nullptr, 0);
     return ESP_OK;
 }

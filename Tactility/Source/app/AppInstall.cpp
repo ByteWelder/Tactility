@@ -12,6 +12,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <Tactility/MountPoints.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
@@ -189,6 +191,12 @@ bool install(const std::string& path) {
         return false;
     }
 
+    auto app_name_entry = properties.find("[app]name");
+    if (app_name_entry == properties.end()) {
+        TT_LOG_E(TAG, "Failed to find app name in manifest");
+        return false;
+    }
+
     lock.lock();
     const std::string renamed_target_path = std::format("{}/{}", app_parent_path, app_id_iterator->second);
     if (file::isDirectory(renamed_target_path)) {
@@ -205,6 +213,13 @@ bool install(const std::string& path) {
         return false;
     }
     lock.unlock();
+
+    addApp({
+        .id = app_id_iterator->second,
+        .name = app_name_entry->second,
+        .type = Type::User,
+        .location = Location::external(renamed_target_path)
+    });
 
     return true;
 }

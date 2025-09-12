@@ -54,21 +54,22 @@ def print_help():
     print("Usage: python tactility.py [action] [options]")
     print("")
     print("Actions:")
-    print("  build [esp32,esp32s3,all,local]          Build the app for the specified platform")
+    print("  build [esp32,esp32s3]          Build the app. Optionally specify a platform.")
     print("    esp32:         ESP32")
     print("    esp32s3:       ESP32 S3")
-    print("    all:           all supported ESP platforms")
-    print("  clean                                    Clean the build folders")
-    print("  clearcache                               Clear the SDK cache")
-    print("  updateself                               Update this tool")
-    print("  run [ip] [app id]                        Run an application")
-    print("  install [ip] [esp32,esp32s3]             Install an application")
+    print("  clean                          Clean the build folders")
+    print("  clearcache                     Clear the SDK cache")
+    print("  updateself                     Update this tool")
+    print("  run [ip]                       Run an application")
+    print("  install [ip]                   Install an application")
+    print("  bir [ip] [esp32,esp32s3]       Build, install then run. Optionally specify a platform.")
+    print("  brr [ip] [esp32,esp32s3]       Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
     print("")
     print("Options:")
-    print("  --help                                   Show this commandline info")
-    print("  --local-sdk                              Use SDK specified by environment variable TACTILITY_SDK_PATH")
-    print("  --skip-build                             Run everything except the idf.py/CMake commands")
-    print("  --verbose                                Show extra console output")
+    print("  --help                         Show this commandline info")
+    print("  --local-sdk                    Use SDK specified by environment variable TACTILITY_SDK_PATH")
+    print("  --skip-build                   Run everything except the idf.py/CMake commands")
+    print("  --verbose                      Show extra console output")
 
 # region Core
 
@@ -466,8 +467,7 @@ def build_action(manifest, platform_arg):
         validate_version_and_platforms(sdk_json, sdk_version, platforms_to_build)
         if not sdk_download_all(sdk_version, platforms_to_build):
             exit_with_error("Failed to download one or more SDKs")
-    #TODO uncomment
-    #build_all(sdk_version, platforms_to_build, skip_build)  # Environment validation
+    build_all(sdk_version, platforms_to_build, skip_build)  # Environment validation
     if not skip_build:
         package_all(platforms_to_build)
 
@@ -520,7 +520,11 @@ def run_action(manifest, ip):
     except requests.RequestException as e:
         print(f"Request failed: {e}")
 
-def install_action(manifest, ip, platforms):
+def install_action(ip, platforms):
+    for platform in platforms:
+        elf_path = find_elf_file(platform)
+        if elf_path is None:
+            exit_with_error(f"ELF file not built for {platform}")
     package_path = package_name(platforms)
     print(f"Installing {package_path} to {ip}")
     url = get_url(ip, "/app/install")
@@ -581,15 +585,32 @@ if __name__ == "__main__":
     elif action_arg == "updateself":
         update_self_action()
     elif action_arg == "run":
-        if len(sys.argv) < 4:
+        if len(sys.argv) < 3:
             print_help()
             exit_with_error("Commandline parameter missing")
-        run_action(manifest, sys.argv[2], sys.argv[3])
+        run_action(manifest, sys.argv[2])
     elif action_arg == "install":
         if len(sys.argv) < 3:
             print_help()
             exit_with_error("Commandline parameter missing")
-        install_action(manifest, sys.argv[2], all_platform_targets)
+        platform = None
+        platforms_to_install = all_platform_targets
+        if len(sys.argv) >= 4:
+            platform = sys.argv[3]
+            platforms_to_install = [platform]
+        install_action(sys.argv[2], platforms_to_install)
+    elif action_arg == "bir":
+        if len(sys.argv) < 3:
+            print_help()
+            exit_with_error("Commandline parameter missing")
+        platform = None
+        platforms_to_install = all_platform_targets
+        if len(sys.argv) >= 4:
+            platform = sys.argv[3]
+            platforms_to_install = [platform]
+        build_action(manifest, platform)
+        install_action(sys.argv[2], platforms_to_install)
+        run_action(manifest, sys.argv[2])
     else:
         print_help()
         exit_with_error("Unknown commandline parameter")

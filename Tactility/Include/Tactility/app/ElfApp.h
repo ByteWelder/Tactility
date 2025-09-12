@@ -26,13 +26,6 @@ void setElfAppManifest(
     OnResult _Nullable onResult
 );
 
-/**
- * @return the app ID based on the executable's file path.
- */
-std::string getElfAppId(const std::string& filePath);
-
-void registerElfApp(const std::string& filePath);
-
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest);
 
 }

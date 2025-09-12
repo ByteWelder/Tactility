@@ -104,6 +104,21 @@ bool isDirectory(const std::string& path);
  * The caller is responsible for free-ing the memory of these.
  *
  * @param[in] path path the scan for files and directories
+ * @param[out] onEntry a pointer to a function that accepts an entry
+ * @return true if the directory exists and listing its contents was successful
+ */
+bool listDirectory(
+    const std::string& path,
+    std::function<void(const dirent&)> onEntry
+);
+
+/**
+ * A scandir()-like implementation that works on ESP32.
+ * It does not return "." and ".." items but otherwise functions the same.
+ * It returns an allocated output array with allocated dirent instances.
+ * The caller is responsible for free-ing the memory of these.
+ *
+ * @param[in] path path the scan for files and directories
  * @param[out] outList a pointer to vector of dirent
  * @param[in] filter an optional filter to filter out specific items
  * @param[in] sort an optional sorting function

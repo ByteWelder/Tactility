@@ -4,6 +4,7 @@
 
 #include <string>
 #include <vector>
+#include <Tactility/app/App.h>
 
 /**
  * Start the app by its ID and provide:
@@ -18,15 +19,17 @@ namespace tt::app::alertdialog {
      * @param[in] title the title to show in the toolbar
      * @param[in] message the message to display
      * @param[in] buttonLabels the buttons to show
+     * @return the launch id
      */
-    void start(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels);
+    LaunchId start(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels);
 
     /**
      * Show a dialog with the provided title, message and an OK button
      * @param[in] title the title to show in the toolbar
      * @param[in] message the message to display
+     * @return the launch id
      */
-    void start(const std::string& title, const std::string& message);
+    LaunchId start(const std::string& title, const std::string& message);
 
     /**
      * Get the index of the button that the user selected.

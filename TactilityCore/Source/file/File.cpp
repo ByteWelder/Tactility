@@ -36,6 +36,28 @@ bool direntSortAlphaAndType(const dirent& left, const dirent& right) {
     }
 }
 
+bool listDirectory(
+    const std::string& path,
+    std::function<void(const dirent&)> onEntry
+) {
+    TT_LOG_I(TAG, "listDir start %s", path.c_str());
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
+        return false;
+    }
+
+    dirent* current_entry;
+    while ((current_entry = readdir(dir)) != nullptr) {
+        onEntry(*current_entry);
+    }
+
+    closedir(dir);
+
+    TT_LOG_I(TAG, "listDir stop %s", path.c_str());
+    return true;
+}
+
 int scandir(
     const std::string& path,
     std::vector<dirent>& outList,

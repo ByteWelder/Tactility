@@ -28,7 +28,7 @@ public:
     }
 
     void onResult(AppContext& appContext, TT_UNUSED LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) override {
-        view->onResult(result, std::move(bundle));
+        view->onResult(launchId, result, std::move(bundle));
     }
 };
 

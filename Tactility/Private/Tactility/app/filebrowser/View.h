@@ -16,6 +16,9 @@ class View {
     lv_obj_t* action_list = nullptr;
     lv_obj_t* navigate_up_button = nullptr;
 
+    std::string installAppPath = { 0 };
+    LaunchId installAppLaunchId = 0;
+
     void showActionsForDirectory();
     void showActionsForFile();
 
@@ -36,7 +39,7 @@ public:
     void onRenamePressed();
     void onDeletePressed();
     void onDirEntryListScrollBegin();
-    void onResult(Result result, std::unique_ptr<Bundle> bundle);
+    void onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle);
 };
 
 }

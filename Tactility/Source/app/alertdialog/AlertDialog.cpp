@@ -22,21 +22,21 @@ namespace tt::app::alertdialog {
 
 extern const AppManifest manifest;
 
-void start(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels) {
+LaunchId start(const std::string& title, const std::string& message, const std::vector<std::string>& buttonLabels) {
     std::string items_joined = string::join(buttonLabels, PARAMETER_ITEM_CONCATENATION_TOKEN);
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_joined);
-    service::loader::startApp(manifest.id, bundle);
+    return service::loader::startApp(manifest.id, bundle);
 }
 
-void start(const std::string& title, const std::string& message) {
+LaunchId start(const std::string& title, const std::string& message) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, "OK");
-    service::loader::startApp(manifest.id, bundle);
+    return service::loader::startApp(manifest.id, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
