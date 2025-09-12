@@ -52,18 +52,17 @@ class GuiService : public Service {
         tt_check(mutex.unlock());
     }
 
-public:
-
-    void onStart(TT_UNUSED ServiceContext& service) override;
-
-    void onStop(TT_UNUSED ServiceContext& service) override;
-
-    void requestDraw();
-
     void showApp(std::shared_ptr<app::AppContext> app);
 
     void hideApp();
 
+public:
+
+    bool onStart(TT_UNUSED ServiceContext& service) override;
+
+    void onStop(TT_UNUSED ServiceContext& service) override;
+
+    void requestDraw();
 
     /**
      * Show the on-screen keyboard.

@@ -112,7 +112,13 @@ void GuiService::redraw() {
     unlock();
 }
 
-void GuiService::onStart(TT_UNUSED ServiceContext& service) {
+bool GuiService::onStart(TT_UNUSED ServiceContext& service) {
+    auto* screen_root = lv_screen_active();
+    if (screen_root == nullptr) {
+        TT_LOG_E(TAG, "No display found");
+        return false;
+    }
+
     thread = new Thread(
         "gui",
         4096, // Last known minimum was 2800 for launching desktop
@@ -123,12 +129,9 @@ void GuiService::onStart(TT_UNUSED ServiceContext& service) {
         onLoaderEvent(event);
     });
 
+    lvgl::lock(portMAX_DELAY);
 
-    tt_check(lvgl::lock(1000 / portTICK_PERIOD_MS));
     keyboardGroup = lv_group_create();
-    auto* screen_root = lv_screen_active();
-    assert(screen_root != nullptr);
-
     lvgl::obj_set_style_bg_blacken(screen_root);
 
     lv_obj_t* vertical_container = lv_obj_create(screen_root);
@@ -156,6 +159,8 @@ void GuiService::onStart(TT_UNUSED ServiceContext& service) {
 
     thread->setPriority(THREAD_PRIORITY_SERVICE);
     thread->start();
+
+    return true;
 }
 
 void GuiService::onStop(TT_UNUSED ServiceContext& service) {

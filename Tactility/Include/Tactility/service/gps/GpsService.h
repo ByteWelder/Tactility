@@ -44,7 +44,7 @@ class GpsService final : public Service {
 
 public:
 
-    void onStart(ServiceContext &serviceContext) override;
+    bool onStart(ServiceContext &serviceContext) override;
     void onStop(ServiceContext &serviceContext) override;
 
     bool addGpsConfiguration(hal::gps::GpsConfiguration configuration);

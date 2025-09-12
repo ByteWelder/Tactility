@@ -2,7 +2,6 @@
 
 ## Higher Priority
 
-- Fix GuiService crash when no screen is present.
 - Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
   Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
   Note: Consider installation path option in interface

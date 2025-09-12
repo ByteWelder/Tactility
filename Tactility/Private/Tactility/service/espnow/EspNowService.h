@@ -42,7 +42,7 @@ public:
 
     // region Overrides
 
-    void onStart(ServiceContext& service) override;
+    bool onStart(ServiceContext& service) override;
     void onStop(ServiceContext& service) override;
 
     // endregion Overrides

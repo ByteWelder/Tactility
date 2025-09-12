@@ -27,7 +27,7 @@ extern const ServiceManifest manifest;
 
 constexpr const char* TAG = "DevService";
 
-void DevelopmentService::onStart(ServiceContext& service) {
+bool DevelopmentService::onStart(ServiceContext& service) {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
@@ -41,6 +41,8 @@ void DevelopmentService::onStart(ServiceContext& service) {
     );
 
     setEnabled(shouldEnableOnBoot());
+
+    return true;
 }
 
 void DevelopmentService::onStop(ServiceContext& service) {

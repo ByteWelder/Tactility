@@ -77,8 +77,15 @@ bool startService(const std::string& id) {
     instance_mutex.unlock();
 
     service_instance->setState(State::Starting);
-    service_instance->getService()->onStart(*service_instance);
-    service_instance->setState(State::Started);
+    if (service_instance->getService()->onStart(*service_instance)) {
+        service_instance->setState(State::Started);
+    } else {
+        TT_LOG_E(TAG, "Starting %s failed", id.c_str());
+        service_instance->setState(State::Stopped);
+        instance_mutex.lock();
+        service_instance_map.erase(manifest->id);
+        instance_mutex.unlock();
+    }
 
     TT_LOG_I(TAG, "Started %s", id.c_str());
 
