@@ -138,12 +138,12 @@ void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
     scanListWidget = scan_list;
 
-    auto i2c_devices = tt::getConfiguration()->hardware->i2c;
-    if (selected_bus )
-    assert(selected_bus < i2c_devices.size());
-    port = i2c_devices[selected_bus].port;
-
-    selectBus(selected_bus);
+    auto i2c_devices = getConfiguration()->hardware->i2c;
+    if (!i2c_devices.empty()) {
+        assert(selected_bus < i2c_devices.size());
+        port = i2c_devices[selected_bus].port;
+        selectBus(selected_bus);
+    }
 }
 
 void I2cScannerApp::onHide(AppContext& app) {
@@ -311,7 +311,7 @@ void I2cScannerApp::onSelectBus(lv_event_t* event) {
 }
 
 void I2cScannerApp::selectBus(int32_t selected) {
-    auto i2c_devices = tt::getConfiguration()->hardware->i2c;
+    auto i2c_devices = getConfiguration()->hardware->i2c;
     assert(selected < i2c_devices.size());
 
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
@@ -322,7 +322,7 @@ void I2cScannerApp::selectBus(int32_t selected) {
     }
 
     TT_LOG_I(TAG, "Selected %ld", selected);
-    setLastBusIndex((int32_t)selected);
+    setLastBusIndex(selected);
 
     startScanning();
 

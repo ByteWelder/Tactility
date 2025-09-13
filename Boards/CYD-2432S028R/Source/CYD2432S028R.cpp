@@ -36,9 +36,27 @@ static DeviceVector createDevices() {
 const Configuration cyd_2432s028r_config = {
     .initBoot = initBoot,
     .createDevices = createDevices,
-    .i2c = {},
+    .i2c = {
+        i2c::Configuration {
+            .name = "CN1",
+            .port = I2C_NUM_0,
+            .initMode = i2c::InitMode::ByTactility,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_27,
+                .scl_io_num = GPIO_NUM_22,
+                .sda_pullup_en = false,
+                .scl_pullup_en = false,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
+        }
+    },
     .spi {
-        //Display
+        // Display
         spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -62,7 +80,6 @@ const Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock()
         },
-        
         // SDCard
         spi::Configuration {
             .device = SPI3_HOST,
@@ -87,5 +104,31 @@ const Configuration cyd_2432s028r_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         },
+    },
+
+    .uart {
+        uart::Configuration {
+            .name = "P1",
+            .port = UART_NUM_1,
+            .rxPin = GPIO_NUM_1,
+            .txPin = GPIO_NUM_3,
+            .rtsPin = GPIO_NUM_NC,
+            .ctsPin = GPIO_NUM_NC,
+            .rxBufferSize = 1024,
+            .txBufferSize = 1024,
+            .config = {
+                .baud_rate = 115200,
+                .data_bits = UART_DATA_8_BITS,
+                .parity    = UART_PARITY_DISABLE,
+                .stop_bits = UART_STOP_BITS_1,
+                .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+                .rx_flow_ctrl_thresh = 0,
+                .source_clk = UART_SCLK_DEFAULT,
+                .flags = {
+                    .allow_pd = 0,
+                    .backup_before_sleep = 0,
+                }
+            }
+        }
     }
 };
