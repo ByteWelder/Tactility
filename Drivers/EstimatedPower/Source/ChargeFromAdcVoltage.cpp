@@ -2,19 +2,14 @@
 #include <Tactility/Log.h>
 #include <algorithm>
 
-constexpr auto TAG = "EstimatePower";
+constexpr auto TAG = "ChargeFromAdcV";
 constexpr auto MAX_VOLTAGE_SAMPLES = 15;
 
-uint8_t ChargeFromAdcVoltage::estimateChargeLevelFromVoltage(uint32_t milliVolt) const {
-    const float volts = std::min((float)milliVolt / 1000.f, configuration.batteryVoltageMax);
-    const float voltage_percentage = (volts - configuration.batteryVoltageMin) / (configuration.batteryVoltageMax - configuration.batteryVoltageMin);
-    const float voltage_factor = std::min(1.0f, voltage_percentage);
-    const auto charge_level = (uint8_t) (voltage_factor * 100.f);
-    TT_LOG_V(TAG, "mV = %lu, scaled = %.2f, factor = %.2f, result = %d", milliVolt, volts, voltage_factor, charge_level);
-    return charge_level;
-}
-
-ChargeFromAdcVoltage::ChargeFromAdcVoltage(const Configuration& configuration) : configuration(configuration) {
+ChargeFromAdcVoltage::ChargeFromAdcVoltage(
+    const Configuration& configuration,
+    float voltageMin,
+    float voltageMax
+) : configuration(configuration), chargeFromVoltage(voltageMin, voltageMax) {
     if (adc_oneshot_new_unit(&configuration.adcConfig, &adcHandle) != ESP_OK) {
         TT_LOG_E(TAG, "ADC config failed");
         return;

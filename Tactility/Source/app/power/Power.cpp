@@ -31,8 +31,6 @@ std::shared_ptr<PowerApp> _Nullable optApp() {
 
 class PowerApp : public App {
 
-private:
-
     Timer update_timer = Timer(Timer::Type::Periodic, []() { onTimer(); });
 
     std::shared_ptr<hal::power::PowerDevice> power;
