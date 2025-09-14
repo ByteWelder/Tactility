@@ -81,6 +81,12 @@ release waveshare-s3-touch-43
 build waveshare-s3-touch-lcd-147
 release waveshare-s3-touch-lcd-147
 
+build waveshare-s3-touch-lcd-128
+release waveshare-s3-touch-lcd-128
+
+build waveshare-s3-lcd-13
+release waveshare-s3-lcd-13
+
 build unphone
 release unphone
 

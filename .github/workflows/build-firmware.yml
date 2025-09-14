@@ -207,3 +207,21 @@ jobs:
         with:
           board_id: waveshare-s3-touch-lcd-147
           arch: esp32s3
+  waveshare-s3-touch-lcd-128:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: "Build"
+      uses: ./.github/actions/build-firmware
+      with:
+        board_id: waveshare-s3-touch-lcd-128
+        arch: esp32s3
+  waveshare-s3-lcd-13:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: "Build"
+      uses: ./.github/actions/build-firmware
+      with:
+        board_id: waveshare-s3-lcd-13
+        arch: esp32s3
