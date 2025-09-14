@@ -69,6 +69,9 @@ release m5stack-core2
 
 releaseSdk release/TactilitySDK-esp32
 
+build m5stack-cardputer
+release m5stack-cardputer
+
 build m5stack-cores3
 release m5stack-cores3
 

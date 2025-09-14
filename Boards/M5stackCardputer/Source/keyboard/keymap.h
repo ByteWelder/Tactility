@@ -363,47 +363,4 @@ enum {
     KEY_CONSUMER_AC_PAN = 0x0238,
 };
 
-/**
- * keytable structure
- */
-typedef struct {
-    uint8_t scan1, scan2;  // scan code
-    uint8_t ascii;         // ASCII code
-    uint8_t hidcode;       // HID code for keyboard page
-} keytable_t;
-
-/**
- * FN functions
- */
-typedef enum {
-    FN_NOP = 0,
-    FN_FNLOCK,
-    FN_BACKLIGHT,
-} fn_function_t;
-
-/**
- * FN keytable structure
- */
-typedef struct {
-    uint8_t scan1, scan2;  // scan code
-    uint16_t hidcode;      // HID code for consumer page
-    fn_function_t fncode;  // fn function type
-} fn_keytable_t;
-
-/**
- * search the USB HID key based on scan code
- * @param scan1 scan code 1
- * @param scan2 scan code 2
- * @return -1 if not found
- */
-int search_hid_key(unsigned scan1, unsigned scan2);
-
-/**
- * search the FN function based on scan code
- * @param scan1 scan code 1
- * @param scan2 scan code 2
- * @return NULL if not found
- */
-fn_keytable_t* search_fn(unsigned scan1, unsigned scan2);
-
 #endif

@@ -11,13 +11,11 @@
 #include "keyboard.h"
 #include <driver/gpio.h>
 
-
 #define digitalWrite(pin, level) gpio_set_level((gpio_num_t)pin, level)
 #define digitalRead(pin) gpio_get_level((gpio_num_t)pin)
 
 
 using namespace KEYBOARD;
-
 
 void Keyboard::_set_output(const std::vector<int>& pinList, uint8_t output)
 {
@@ -47,21 +45,7 @@ uint8_t Keyboard::_get_input(const std::vector<int>& pinList)
 
 void Keyboard::init()
 {
-    // for (auto i : output_list) {
-    //     gpio_reset_pin((gpio_num_t)i);
-    //     pinMode(i, OUTPUT);
-    //     digitalWrite(i, 0);
-    // }
-
-    // for (auto i : input_list) {
-    //     gpio_reset_pin((gpio_num_t)i);
-    //     pinMode(i, INPUT_PULLUP);
-    // }
-
-    // _set_output(output_list, 0);
-
-
-    for (auto i : output_list) 
+    for (auto i : output_list)
     {
         gpio_reset_pin((gpio_num_t)i);
         gpio_set_direction((gpio_num_t)i, GPIO_MODE_OUTPUT);
@@ -140,40 +124,24 @@ void Keyboard::updateKeyList()
 {
     _key_list_buffer.clear();
 
-
     Point2D_t coor;
 
     uint8_t input_value = 0;
 
     for (int i = 0; i < 8; i++) {
         _set_output(output_list, i);
-        // printf("% 3d,\t", get_input(inputList));
-
         input_value = _get_input(input_list);
-        
 
         /* If key pressed */
         if (input_value) {
-
-            // printf("c: ");
-            
             /* Get X */
             for (int j = 0; j < 7; j++) {
-
-                // if (input_value == X_map_chart[j].value) {
-                //     coor.x = (i > 3) ? X_map_chart[j].x_1 : X_map_chart[j].x_2;
-                //     break;
-                // }
-
-
-
                 if (input_value & (0x01 << j)) {
                     coor.x = (i > 3) ? X_map_chart[j].x_1 : X_map_chart[j].x_2;
                 
                     /* Get Y */
                     coor.y = (i > 3) ? (i - 4) : i;
-                    // printf("%d,%d\t", coor.x, coor.y); 
-
+                    // printf("%d,%d\t", coor.x, coor.y);
 
                     /* Keep the same as picture */
                     coor.y = -coor.y;
@@ -181,15 +149,7 @@ void Keyboard::updateKeyList()
 
                     _key_list_buffer.push_back(coor);
                 }
-
-
             }
-
-            // printf("\n");
-
-
-            // /* Get Y */
-            // coor.y = (i > 3) ? (i - 4) : i;
         }
     }
 }

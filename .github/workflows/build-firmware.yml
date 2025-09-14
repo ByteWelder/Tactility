@@ -153,6 +153,15 @@ jobs:
         with:
           board_id: lilygo-tlora-pager
           arch: esp32s3
+  m5stack-cardputer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Build"
+        uses: ./.github/actions/build-firmware
+        with:
+          board_id: m5stack-cardputer
+          arch: esp32s3
   m5stack-core2:
     runs-on: ubuntu-latest
     steps:
