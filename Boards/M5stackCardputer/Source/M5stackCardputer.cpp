@@ -24,26 +24,6 @@ static DeviceVector createDevices() {
 extern const Configuration m5stack_cardputer = {
     .initBoot = initBoot,
     .createDevices = createDevices,
-    .i2c = {
-        // Only available on Cardputer Adv (enabling it breaks the keyboard on a Cardputer v1.1)
-        i2c::Configuration {
-            .name = "Internal",
-            .port = I2C_NUM_0,
-            .initMode = i2c::InitMode::Disabled,
-            .isMutable = true,
-            .config = (i2c_config_t) {
-                .mode = I2C_MODE_MASTER,
-                .sda_io_num = GPIO_NUM_8,
-                .scl_io_num = GPIO_NUM_9,
-                .sda_pullup_en = true,
-                .scl_pullup_en = true,
-                .master = {
-                    .clk_speed = 400000
-                },
-                .clk_flags = 0
-            }
-        }
-    },
     .spi {
         // Display
         spi::Configuration {
