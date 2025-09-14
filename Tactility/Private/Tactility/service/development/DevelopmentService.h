@@ -41,6 +41,13 @@ class DevelopmentService final : public Service {
         .user_ctx = this
     };
 
+    httpd_uri_t appUninstallEndpoint = {
+        .uri = "/app/uninstall",
+        .method = HTTP_PUT,
+        .handler = handleAppUninstall,
+        .user_ctx = this
+    };
+
     void onNetworkConnected();
     void onNetworkDisconnected();
 
@@ -50,6 +57,7 @@ class DevelopmentService final : public Service {
     static esp_err_t handleGetInfo(httpd_req_t* request);
     static esp_err_t handleAppRun(httpd_req_t* request);
     static esp_err_t handleAppInstall(httpd_req_t* request);
+    static esp_err_t handleAppUninstall(httpd_req_t* request);
 
 public:
 

@@ -29,6 +29,15 @@ void addApp(const AppManifest& manifest) {
     hash_mutex.unlock();
 }
 
+bool removeApp(const std::string& id) {
+    TT_LOG_I(TAG, "Removing manifest for  %s", id.c_str());
+
+    auto lock = hash_mutex.asScopedLock();
+    lock.lock();
+
+    return app_manifest_map.erase(id) == 1;
+}
+
 _Nullable std::shared_ptr<AppManifest> findAppById(const std::string& id) {
     hash_mutex.lock();
     auto result = app_manifest_map.find(id);
