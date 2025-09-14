@@ -22,6 +22,7 @@ static bool initBoot() {
 
 extern const Configuration waveshare_s3_touch_lcd_128 = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {

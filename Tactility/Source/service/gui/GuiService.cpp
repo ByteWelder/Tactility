@@ -27,7 +27,7 @@ void GuiService::onLoaderEvent(loader::LoaderEvent event) {
 
 int32_t GuiService::guiMain() {
     while (true) {
-        uint32_t flags = Thread::awaitFlags(GUI_THREAD_FLAG_ALL, EventFlag::WaitAny, (uint32_t)portMAX_DELAY);
+        uint32_t flags = Thread::awaitFlags(GUI_THREAD_FLAG_ALL, EventFlag::WaitAny, portMAX_DELAY);
 
         // When service not started or starting -> exit
         State service_state = getState(manifest.id);

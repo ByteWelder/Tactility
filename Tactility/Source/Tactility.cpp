@@ -107,21 +107,27 @@ static void registerSystemApps() {
     addApp(app::fileselection::manifest);
     addApp(app::gpio::manifest);
     addApp(app::gpssettings::manifest);
-    addApp(app::i2cscanner::manifest);
-    addApp(app::i2csettings::manifest);
+    if (!hal::getConfiguration()->i2c.empty()) {
+        addApp(app::i2cscanner::manifest);
+        addApp(app::i2csettings::manifest);
+    }
     addApp(app::imageviewer::manifest);
     addApp(app::inputdialog::manifest);
     addApp(app::launcher::manifest);
     addApp(app::localesettings::manifest);
     addApp(app::log::manifest);
     addApp(app::notes::manifest);
-    addApp(app::serialconsole::manifest);
+    if (!hal::getConfiguration()->uart.empty()) {
+        addApp(app::serialconsole::manifest);
+    }
     addApp(app::settings::manifest);
     addApp(app::selectiondialog::manifest);
     addApp(app::systeminfo::manifest);
     addApp(app::timedatesettings::manifest);
     addApp(app::timezone::manifest);
+#if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     addApp(app::usbsettings::manifest);
+#endif
     addApp(app::wifiapsettings::manifest);
     addApp(app::wificonnect::manifest);
     addApp(app::wifimanage::manifest);

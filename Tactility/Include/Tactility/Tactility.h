@@ -33,7 +33,17 @@ void run(const Configuration& config);
  */
 const Configuration* _Nullable getConfiguration();
 
-
+/** Provides access to the dispatcher that runs on the main task.
+ * @warning This dispatcher is used for WiFi and might block for some time during WiFi connection.
+ * @return the dispatcher
+ */
 Dispatcher& getMainDispatcher();
 
-} // namespace
+namespace hal {
+
+/** While technically this configuration is nullable, it's never null after initHeadless() is called. */
+const Configuration* _Nullable getConfiguration();
+
+} // namespace hal
+
+} // namespace tt

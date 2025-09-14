@@ -3,17 +3,13 @@
 #include "Tactility/lvgl/Toolbar.h"
 
 #include <Tactility/Assets.h>
-#include <Tactility/Check.h>
 
 #include <lvgl.h>
 #include <algorithm>
 
 namespace tt::app::applist {
 
-
 class AppListApp : public App {
-
-private:
 
     static void onAppPressed(lv_event_t* e) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
@@ -23,7 +19,7 @@ private:
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
         const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
         lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
-        lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest.get());
+        lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, manifest.get());
     }
 
 public:
@@ -41,7 +37,7 @@ public:
         lv_obj_set_height(list, parent_content_height - toolbar_height);
 
         auto manifests = getApps();
-        std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+        std::ranges::sort(manifests, SortAppManifestByName);
 
         for (const auto& manifest: manifests) {
             if (manifest->type == Type::User || manifest->type == Type::System) {
@@ -50,7 +46,6 @@ public:
         }
     }
 };
-
 
 extern const AppManifest manifest = {
     .id = "AppList",

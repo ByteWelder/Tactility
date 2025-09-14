@@ -101,10 +101,20 @@ void GpioApp::stopTask() {
 
 // endregion Task
 
+static int getSquareSpacing(hal::UiScale uiScale) {
+    if (uiScale == hal::UiScale::Smallest) {
+        return 0;
+    } else {
+        return 4;
+    }
+}
 
 void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
+    auto ui_scale = hal::getConfiguration()->uiScale;
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
+
     auto* toolbar = lvgl::toolbar_create(parent, app);
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -119,7 +129,9 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     auto vertical_px = lv_display_get_vertical_resolution(display);
     bool is_landscape_display = horizontal_px > vertical_px;
 
-    int32_t x_spacing = 20;
+    constexpr auto block_width = 16;
+    const auto square_spacing = getSquareSpacing(ui_scale);
+    int32_t x_spacing = block_width + square_spacing;
     uint8_t column = 0;
     const uint8_t offset_from_left_label = 4;
     const uint8_t column_limit = is_landscape_display ? 10 : 5;
@@ -138,7 +150,7 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
         // Add a new GPIO status indicator
         auto* status_label = lv_label_create(row_wrapper);
-        lv_obj_set_pos(status_label, (int32_t)((column+1) * x_spacing + offset_from_left_label), 0);
+        lv_obj_set_pos(status_label, (column+1) * x_spacing + offset_from_left_label, 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
         lv_obj_set_style_text_color(status_label, lv_color_background_darkest(), LV_STATE_DEFAULT);
         lvPins[i] = status_label;
@@ -153,7 +165,7 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
             // Add a new row wrapper underneath the last one
             auto* new_row_wrapper = createGpioRowWrapper(wrapper);
-            lv_obj_align_to(new_row_wrapper, row_wrapper, LV_ALIGN_BOTTOM_LEFT, 0, 4);
+            lv_obj_align_to(new_row_wrapper, row_wrapper, LV_ALIGN_BOTTOM_LEFT, 0, square_spacing);
             row_wrapper = new_row_wrapper;
 
             column = 0;

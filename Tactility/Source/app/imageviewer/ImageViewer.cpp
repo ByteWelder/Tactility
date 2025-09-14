@@ -30,7 +30,8 @@ class ImageViewerApp : public App {
         lv_obj_align_to(image_wrapper, toolbar, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
         lv_obj_set_width(image_wrapper, LV_PCT(100));
         auto parent_height = lv_obj_get_height(wrapper);
-        lv_obj_set_height(image_wrapper, parent_height - TOOLBAR_HEIGHT);
+        auto toolbar_height = lv_obj_get_height(toolbar);
+        lv_obj_set_height(image_wrapper, parent_height - toolbar_height);
         lv_obj_set_flex_flow(image_wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_flex_align(image_wrapper, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_style_pad_all(image_wrapper, 0, 0);

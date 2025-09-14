@@ -1,4 +1,6 @@
 #include "Tactility/MountPoints.h"
+
+#include "Tactility/TactilityConfig.h"
 #include "Tactility/hal/Device.h"
 #include "Tactility/hal/sdcard/SdCardDevice.h"
 
@@ -13,15 +15,6 @@ namespace tt::file {
 std::vector<dirent> getMountPoints() {
     std::vector<dirent> dir_entries;
     dir_entries.clear();
-
-    // System partition
-    auto system_dirent = dirent{
-        .d_ino = 0,
-        .d_type = TT_DT_DIR,
-        .d_name = { 0 }
-    };
-    strcpy(system_dirent.d_name, SYSTEM_PARTITION_NAME);
-    dir_entries.push_back(system_dirent);
 
     // Data partition
     auto data_dirent = dirent{
@@ -47,6 +40,17 @@ std::vector<dirent> getMountPoints() {
             strcpy(dir_entry.d_name, mount_name.c_str());
             dir_entries.push_back(dir_entry);
         }
+    }
+
+    if (config::SHOW_SYSTEM_PARTITION) {
+        // System partition
+        auto system_dirent = dirent{
+            .d_ino = 0,
+            .d_type = TT_DT_DIR,
+            .d_name = { 0 }
+        };
+        strcpy(system_dirent.d_name, SYSTEM_PARTITION_NAME);
+        dir_entries.push_back(system_dirent);
     }
 
     return dir_entries;

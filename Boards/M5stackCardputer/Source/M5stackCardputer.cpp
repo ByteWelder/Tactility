@@ -25,6 +25,7 @@ static DeviceVector createDevices() {
 
 extern const Configuration m5stack_cardputer = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .spi {
         // Display

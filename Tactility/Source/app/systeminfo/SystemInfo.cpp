@@ -1,3 +1,4 @@
+#include "Tactility/TactilityConfig.h"
 #include "Tactility/lvgl/Toolbar.h"
 
 #include <Tactility/Assets.h>
@@ -141,7 +142,12 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, uint64_t free, uin
     lv_label_set_text_fmt(bottom_label, "%s / %s %s used", used_converted.c_str(), total_converted.c_str(), unit_label.c_str());
     lv_obj_set_width(bottom_label, LV_PCT(100));
     lv_obj_set_style_text_align(bottom_label, LV_TEXT_ALIGN_RIGHT, 0);
-    lv_obj_set_style_pad_bottom(bottom_label, 12, LV_STATE_DEFAULT);
+
+    if (hal::getConfiguration()->uiScale == hal::UiScale::Smallest) {
+        lv_obj_set_style_pad_bottom(bottom_label, 2, LV_STATE_DEFAULT);
+    } else {
+        lv_obj_set_style_pad_bottom(bottom_label, 12, LV_STATE_DEFAULT);
+    }
 }
 
 #if configUSE_TRACE_FACILITY
@@ -245,9 +251,6 @@ class SystemInfoApp : public App {
         uint64_t storage_total = 0;
         uint64_t storage_free = 0;
 
-        if (esp_vfs_fat_info(file::MOUNT_POINT_SYSTEM, &storage_total, &storage_free) == ESP_OK) {
-            addMemoryBar(storage_tab, file::MOUNT_POINT_SYSTEM, storage_free, storage_total);
-        }
 
         if (esp_vfs_fat_info(file::MOUNT_POINT_DATA, &storage_total, &storage_free) == ESP_OK) {
             addMemoryBar(storage_tab, file::MOUNT_POINT_DATA, storage_free, storage_total);
@@ -264,6 +267,13 @@ class SystemInfoApp : public App {
                 );
             }
         }
+
+        if (config::SHOW_SYSTEM_PARTITION) {
+            if (esp_vfs_fat_info(file::MOUNT_POINT_SYSTEM, &storage_total, &storage_free) == ESP_OK) {
+                addMemoryBar(storage_tab, file::MOUNT_POINT_SYSTEM, storage_free, storage_total);
+            }
+        }
+
 #endif
 
 #if configUSE_TRACE_FACILITY

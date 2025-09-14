@@ -5,7 +5,7 @@
 
 #include <ranges>
 #include <cstring>
-#include <Tactility/TactilityHeadless.h>
+#include <Tactility/Tactility.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/hal/uart/UartEsp.h>
@@ -142,7 +142,7 @@ void close(uint32_t uartId) {
 std::vector<std::string> getNames() {
     std::vector<std::string> names;
 #ifdef ESP_PLATFORM
-    for (auto& config : hal::getConfiguration()->uart) {
+    for (auto& config : getConfiguration()->uart) {
         names.push_back(config.name);
     }
 #else

@@ -20,6 +20,7 @@ static bool initBoot() {
 
 extern const Configuration waveshare_s3_lcd_13 = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .i2c = {
         //IMU
