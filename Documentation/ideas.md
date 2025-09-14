@@ -20,6 +20,8 @@
 
 ## Medium Priority
 
+- Implement `uninstall` action in `tactility.py`
+- Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
 - Statusbar icon that shows low/critical memory warnings
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
   This will be useful for devices without a screen, a small screen or a non-touch screen.
@@ -27,6 +29,8 @@
 - Try out ILI9342 https://github.com/jbrilha/esp_lcd_ili9342
 - All drivers (e.g. display, touch, etc.) should call stop() in their destructor, or at least assert that they should not be running.
 - Bug: Turn on WiFi (when testing it wasn't connected/connecting - just active). Open chat. Observe crash.
+- Toolbar: when the title doesn't fit, scroll the text instead of splitting it onto a new line (try on Waveshare 1.47")
+- UI: create UI size classification (e.g. "compact" for tiny screens without touch)
 
 ## Lower Priority
 
