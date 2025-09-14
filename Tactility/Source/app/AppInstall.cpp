@@ -223,4 +223,25 @@ bool install(const std::string& path) {
     return true;
 }
 
+bool uninstall(const std::string& appId) {
+    TT_LOG_I(TAG, "Uninstalling app %s", appId.c_str());
+    auto app_path = getInstallPath() + "/" + appId;
+    return file::withLock<bool>(app_path, [&app_path, &appId]() {
+        if (!file::isDirectory(app_path)) {
+            TT_LOG_E(TAG, "App %s not found at ", app_path.c_str());
+            return false;
+        }
+
+        if (!file::deleteRecursively(app_path)) {
+            return false;
+        }
+
+        if (!removeApp(appId)) {
+            TT_LOG_W(TAG, "Failed to remove app %d from registry", appId.c_str());
+        }
+
+        return true;
+    });
+}
+
 } // namespace

@@ -110,6 +110,7 @@ void DevelopmentService::startServer() {
         httpd_register_uri_handler(server, &handleGetInfoEndpoint);
         httpd_register_uri_handler(server, &appRunEndpoint);
         httpd_register_uri_handler(server, &appInstallEndpoint);
+        httpd_register_uri_handler(server, &appUninstallEndpoint);
         TT_LOG_I(TAG, "Started on port %d", config.server_port);
     } else {
         TT_LOG_E(TAG, "Failed to start");
@@ -295,6 +296,39 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     httpd_resp_send(request, nullptr, 0);
 
     return ESP_OK;
+}
+
+esp_err_t DevelopmentService::handleAppUninstall(httpd_req_t* request) {
+    TT_LOG_I(TAG, "PUT /app/uninstall");
+
+    std::string query;
+    if (!network::getQueryOrSendError(request, query)) {
+        return ESP_FAIL;
+    }
+
+    auto parameters = network::parseUrlQuery(query);
+    auto id_key_pos = parameters.find("id");
+    if (id_key_pos == parameters.end()) {
+        TT_LOG_W(TAG, "[400] /app/uninstall id not specified");
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "id not specified");
+        return ESP_FAIL;
+    }
+
+    if (!app::findAppById(id_key_pos->second)) {
+        TT_LOG_I(TAG, "[200] /app/uninstall %s (app wasn't installed)", id_key_pos->second.c_str());
+        httpd_resp_send(request, nullptr, 0);
+        return ESP_OK;
+    }
+
+    if (app::uninstall(id_key_pos->second)) {
+        TT_LOG_I(TAG, "[200] /app/uninstall %s", id_key_pos->second.c_str());
+        httpd_resp_send(request, nullptr, 0);
+        return ESP_OK;
+    } else {
+        TT_LOG_W(TAG, "[500] /app/uninstall %s", id_key_pos->second.c_str());
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to uninstall");
+        return ESP_FAIL;
+    }
 }
 
 // endregion

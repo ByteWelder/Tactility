@@ -11,6 +11,9 @@ struct AppManifest;
 /** Register an application with its manifest */
 void addApp(const AppManifest& manifest);
 
+/** Remove an app from the registry */
+bool removeApp(const std::string& id);
+
 /** Find an application manifest by its id
  * @param[in] id the manifest id
  * @return the application manifest if it was found

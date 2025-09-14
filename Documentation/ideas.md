@@ -31,6 +31,7 @@
 - Bug: Turn on WiFi (when testing it wasn't connected/connecting - just active). Open chat. Observe crash.
 - Toolbar: when the title doesn't fit, scroll the text instead of splitting it onto a new line (try on Waveshare 1.47")
 - UI: create UI size classification (e.g. "compact" for tiny screens without touch)
+- Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
 
 ## Lower Priority
 

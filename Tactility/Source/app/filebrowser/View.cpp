@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include <unistd.h>
+#include <Tactility/file/FileLock.h>
 
 #ifdef ESP_PLATFORM
 #include "Tactility/service/loader/Loader.h"
@@ -215,6 +216,8 @@ void View::showActionsForDirectory() {
 
     auto* rename_button = lv_list_add_button(action_list, LV_SYMBOL_EDIT, "Rename");
     lv_obj_add_event_cb(rename_button, onRenamePressedCallback, LV_EVENT_SHORT_CLICKED, this);
+    auto* delete_button = lv_list_add_button(action_list, LV_SYMBOL_TRASH, "Delete");
+    lv_obj_add_event_cb(delete_button, onDeletePressedCallback, LV_EVENT_SHORT_CLICKED, this);
 
     lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
 }
@@ -314,12 +317,18 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
             if (alertdialog::getResultIndex(*bundle) == 0) {
-                int delete_count = remove(filepath.c_str());
-                if (delete_count > 0) {
-                    TT_LOG_I(TAG, "Deleted %d items", delete_count);
-                } else {
-                    TT_LOG_W(TAG, "Failed to delete %s", filepath.c_str());
-                }
+                file::withLock<void>(filepath, [&filepath] {
+                    if (file::isDirectory(filepath)) {
+                       if (!file::deleteRecursively(filepath)) {
+                           TT_LOG_W(TAG, "Failed to delete %s", filepath.c_str());
+                       }
+                   } else if (file::isFile(filepath)) {
+                       if (remove(filepath.c_str()) <= 0) {
+                           TT_LOG_W(TAG, "Failed to delete %s", filepath.c_str());
+                       }
+                   }
+                });
+
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
             }
@@ -328,12 +337,15 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
         case State::ActionRename: {
             auto new_name = inputdialog::getResult(*bundle);
             if (!new_name.empty() && new_name != state->getSelectedChildEntry()) {
-                std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
-                if (rename(filepath.c_str(), rename_to.c_str())) {
-                    TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
-                } else {
-                    TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
-                }
+                file::withLock<void>(filepath, [this, &filepath, &new_name] {
+                    std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
+                   if (rename(filepath.c_str(), rename_to.c_str())) {
+                       TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                   } else {
+                       TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                   }
+                });
+
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
             }

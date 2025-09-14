@@ -14,7 +14,7 @@ import shutil
 import configparser
 
 ttbuild_path = ".tactility"
-ttbuild_version = "2.0.0"
+ttbuild_version = "2.1.0"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -60,8 +60,9 @@ def print_help():
     print("  clean                          Clean the build folders")
     print("  clearcache                     Clear the SDK cache")
     print("  updateself                     Update this tool")
-    print("  run [ip]                       Run an application")
-    print("  install [ip]                   Install an application")
+    print("  run [ip]                       Run the application")
+    print("  install [ip]                   Install the application")
+    print("  uninstall [ip]                 Uninstall the application")
     print("  bir [ip] [esp32,esp32s3]       Build, install then run. Optionally specify a platform.")
     print("  brrr [ip] [esp32,esp32s3]      Functionally the same as \"bir\", but \"app goes brrr\" meme variant.")
     print("")
@@ -544,6 +545,19 @@ def install_action(ip, platforms):
     except IOError as e:
         print_error(f"File error: {e}")
 
+def uninstall_action(manifest, ip):
+    app_id = manifest["app"]["id"]
+    print(f"Uninstalling {app_id} on {ip}")
+    url = get_url(ip, "/app/uninstall")
+    params = {'id': app_id}
+    try:
+        response = requests.put(url, params=params)
+        if response.status_code != 200:
+            print_error("Uninstall failed")
+        else:
+            print(f"{shell_color_green}Uninstall successful ✅{shell_color_reset}")
+    except requests.RequestException as e:
+        print(f"Request failed: {e}")
 #region Main
 
 if __name__ == "__main__":
@@ -599,6 +613,11 @@ if __name__ == "__main__":
             platform = sys.argv[3]
             platforms_to_install = [platform]
         install_action(sys.argv[2], platforms_to_install)
+    elif action_arg == "uninstall":
+        if len(sys.argv) < 3:
+            print_help()
+            exit_with_error("Commandline parameter missing")
+        uninstall_action(manifest, sys.argv[2])
     elif action_arg == "bir":
         if len(sys.argv) < 3:
             print_help()

@@ -100,4 +100,6 @@ std::string getInstallPath();
 
 bool install(const std::string& path);
 
+bool uninstall(const std::string& appId);
+
 }
