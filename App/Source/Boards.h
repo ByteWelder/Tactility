@@ -71,6 +71,12 @@
 #elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH_LCD_147)
 #include "WaveshareS3TouchLcd147.h"
 #define TT_BOARD_HARDWARE &waveshare_s3_touch_lcd_147
+#elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_TOUCH_LCD_128)
+#include "WaveshareS3TouchLcd128.h"
+#define TT_BOARD_HARDWARE &waveshare_s3_touch_lcd_128
+#elif defined(CONFIG_TT_BOARD_WAVESHARE_S3_LCD_13)
+#include "WaveshareS3Lcd13.h"
+#define TT_BOARD_HARDWARE &waveshare_s3_lcd_13
 #else
 #define TT_BOARD_HARDWARE NULL
 #error Replace TT_BOARD_HARDWARE in main.c with your own. Or copy one of the ./sdkconfig.board.* files into ./sdkconfig.
