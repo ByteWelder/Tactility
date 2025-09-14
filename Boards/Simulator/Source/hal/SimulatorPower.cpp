@@ -1,6 +1,6 @@
 #include "SimulatorPower.h"
 
-#define TAG "simulator_power"
+constexpr auto* TAG = "SimulatorPower";
 
 bool SimulatorPower::supportsMetric(MetricType type) const {
     switch (type) {
@@ -34,13 +34,3 @@ bool SimulatorPower::getMetric(MetricType type, MetricData& data) {
 
     return false; // Safety guard for when new enum values are introduced
 }
-
-static std::shared_ptr<PowerDevice> power;
-
-std::shared_ptr<PowerDevice> simulatorPower() {
-    if (power == nullptr) {
-        power = std::make_shared<SimulatorPower>();
-    }
-    return power;
-}
-

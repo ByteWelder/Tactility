@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Tactility/hal/power/PowerDevice.h"
+#include <Tactility/hal/power/PowerDevice.h>
 #include <memory>
 
 using tt::hal::power::PowerDevice;
@@ -14,8 +14,8 @@ public:
     SimulatorPower() = default;
     ~SimulatorPower() override = default;
 
-    std::string getName() const final { return "Power Mock"; }
-    std::string getDescription() const final { return ""; }
+    std::string getName() const override { return "Power Mock"; }
+    std::string getDescription() const override { return ""; }
 
     bool supportsMetric(MetricType type) const override;
     bool getMetric(MetricType type, MetricData& data) override;
@@ -24,5 +24,3 @@ public:
     bool isAllowedToCharge() const override { return allowedToCharge; }
     void setAllowedToCharge(bool canCharge) override { allowedToCharge = canCharge; }
 };
-
-std::shared_ptr<PowerDevice> simulatorPower();
