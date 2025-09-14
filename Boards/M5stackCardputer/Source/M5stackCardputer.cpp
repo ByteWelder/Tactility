@@ -4,6 +4,7 @@
 #include "devices/SdCard.h"
 #include "devices/CardputerEncoder.h"
 #include "devices/CardputerKeyboard.h"
+#include "devices/CardputerPower.h"
 
 #include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -17,7 +18,8 @@ static DeviceVector createDevices() {
         createSdCard(),
         createDisplay(),
         std::make_shared<CardputerKeyboard>(),
-        std::make_shared<CardputerEncoder>()
+        std::make_shared<CardputerEncoder>(),
+        std::make_shared<CardputerPower>()
     };
 }
 
