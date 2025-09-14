@@ -41,11 +41,11 @@ public:
     ~LvglSync() override = default;
 
     bool lock(TickType_t timeoutTicks) const override {
-        return tt::lvgl::lock(timeoutTicks);
+        return lvgl::lock(timeoutTicks);
     }
 
     bool unlock() const override {
-        tt::lvgl::unlock();
+        lvgl::unlock();
         return true;
     }
 };
