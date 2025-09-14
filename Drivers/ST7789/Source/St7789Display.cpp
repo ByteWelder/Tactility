@@ -92,6 +92,13 @@ bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
         return false;
     }
 
+    int gap_x = configuration->swapXY ? configuration->gapY : configuration->gapX;
+    int gap_y = configuration->swapXY ? configuration->gapX : configuration->gapY;
+    if (esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel gap");
+        return false;
+    }
+
     return true;
 }
 

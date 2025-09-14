@@ -32,12 +32,16 @@ public:
             bool mirrorX = false,
             bool mirrorY = false,
             bool invertColor = false,
-            uint32_t bufferSize = 0 // Size in pixel count. 0 means default, which is 1/10 of the screen size
+            uint32_t bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size
+            int gapX = 0,
+            int gapY = 0
         ) : spiHostDevice(spiHostDevice),
             csPin(csPin),
             dcPin(dcPin),
             horizontalResolution(horizontalResolution),
             verticalResolution(verticalResolution),
+            gapX(gapX),
+            gapY(gapY),
             swapXY(swapXY),
             mirrorX(mirrorX),
             mirrorY(mirrorY),
@@ -58,6 +62,8 @@ public:
         size_t transactionQueueDepth = 10;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
+        int gapX;
+        int gapY;
         bool swapXY = false;
         bool mirrorX = false;
         bool mirrorY = false;

@@ -41,6 +41,9 @@
 #elif (defined(CONFIG_TT_BOARD_ELECROW_CROWPANEL_BASIC_50))
 #define TT_BOARD_HARDWARE &crowpanel_basic_50
 #include "CrowPanelBasic50.h"
+#elif defined(CONFIG_TT_BOARD_M5STACK_CARDPUTER)
+#include "M5stackCardputer.h"
+#define TT_BOARD_HARDWARE &m5stack_cardputer
 #elif defined(CONFIG_TT_BOARD_M5STACK_CORE2)
 #include "M5stackCore2.h"
 #define TT_BOARD_HARDWARE &m5stack_core2
