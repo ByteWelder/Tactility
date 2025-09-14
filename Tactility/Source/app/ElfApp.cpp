@@ -36,6 +36,17 @@ static size_t elfManifestSetCount = 0;
 static ElfManifest elfManifest;
 static std::shared_ptr<Lock> elfManifestLock = std::make_shared<Mutex>();
 
+static std::string getErrorCodeString(int error_code) {
+    switch (error_code) {
+        case ENOMEM:
+            return "out of memory";
+        case ENOSYS:
+            return "missing symbol";
+        default:
+            return std::format("code {}", error_code);
+    }
+}
+
 class ElfApp : public App {
 
     const std::string appPath;
@@ -77,8 +88,8 @@ class ElfApp : public App {
         auto relocate_result = esp_elf_relocate(&elf, elfFileData.get());
         if (relocate_result != 0) {
             // Note: the result code mapes to values from cstdlib's errno.h
-            lastError = std::format("Failed to load executable (error code {})", -relocate_result);
-            TT_LOG_E(TAG, "%s", lastError.c_str());
+            lastError = getErrorCodeString(-relocate_result);
+            TT_LOG_E(TAG, "Application failed to load: %s", lastError.c_str());
             elfFileData  = nullptr;
             return false;
         }
