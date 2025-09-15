@@ -25,7 +25,7 @@ lv_obj_t* __wrap_lv_obj_create(lv_obj_t* parent) {
         lv_obj_set_style_pad_column(obj, 2, LV_STATE_DEFAULT);
         lv_obj_set_style_pad_all(obj, 2, LV_STATE_DEFAULT);
         lv_obj_set_style_radius(obj, 3, LV_STATE_DEFAULT);
-        lv_obj_set_style_border_width(obj, 2, LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(obj, 1, LV_STATE_DEFAULT);
     }
     return obj;
 }
