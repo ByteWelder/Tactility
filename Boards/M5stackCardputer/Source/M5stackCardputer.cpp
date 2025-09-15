@@ -25,7 +25,27 @@ static DeviceVector createDevices() {
 
 extern const Configuration m5stack_cardputer = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
+    .i2c {
+        i2c::Configuration {
+            .name = "Port A", // Grove
+            .port = I2C_NUM_1,
+            .initMode = i2c::InitMode::Disabled,
+            .isMutable = true,
+            .config = (i2c_config_t) {
+                .mode = I2C_MODE_MASTER,
+                .sda_io_num = GPIO_NUM_2,
+                .scl_io_num = GPIO_NUM_1,
+                .sda_pullup_en = true,
+                .scl_pullup_en = true,
+                .master = {
+                    .clk_speed = 400000
+                },
+                .clk_flags = 0
+            }
+        },
+    },
     .spi {
         // Display
         spi::Configuration {
@@ -79,10 +99,10 @@ extern const Configuration m5stack_cardputer = {
     },
     .uart {
         uart::Configuration {
-            .name = "Grove",
+            .name = "Port A",
             .port = UART_NUM_1,
-            .rxPin = GPIO_NUM_32,
-            .txPin = GPIO_NUM_33,
+            .rxPin = GPIO_NUM_2,
+            .txPin = GPIO_NUM_1,
             .rtsPin = GPIO_NUM_NC,
             .ctsPin = GPIO_NUM_NC,
             .rxBufferSize = 1024,
@@ -100,6 +120,6 @@ extern const Configuration m5stack_cardputer = {
                     .backup_before_sleep = 0,
                 }
             }
-        },
+        }
     }
 };

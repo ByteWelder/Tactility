@@ -16,7 +16,7 @@ class EstimatedPower final : public PowerDevice {
 
 public:
 
-    EstimatedPower(ChargeFromAdcVoltage::Configuration configuration) :
+    explicit EstimatedPower(ChargeFromAdcVoltage::Configuration configuration) :
         chargeFromAdcVoltage(std::make_unique<ChargeFromAdcVoltage>(std::move(configuration))) {}
 
     std::string getName() const override { return "ADC Power Measurement"; }

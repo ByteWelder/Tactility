@@ -11,3 +11,9 @@
 #else // Sim
 #define TT_FEATURE_SCREENSHOT_ENABLED true
 #endif
+
+namespace tt::config {
+
+constexpr auto SHOW_SYSTEM_PARTITION = false;
+
+}

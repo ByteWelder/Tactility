@@ -13,6 +13,7 @@ static DeviceVector createDevices() {
 }
 
 extern const Configuration waveshare_s3_touch_43 = {
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .i2c = {
         // There is only 1 (internal for touch, and also serves as "I2C-OUT" port)

@@ -28,12 +28,18 @@ TT_UNUSED static void deinitPower() {
 #endif
 }
 
+static std::vector<std::shared_ptr<Device>> createDevices() {
+    return {
+        std::make_shared<SdlDisplay>(),
+        std::make_shared<SdlKeyboard>(),
+        std::make_shared<SimulatorPower>(),
+        std::make_shared<SimulatorSdCard>()
+    };
+}
+
 extern const Configuration hardware = {
     .initBoot = initBoot,
-    .createDisplay = createDisplay,
-    .createKeyboard = createKeyboard,
-    .sdcard = std::make_shared<SimulatorSdCard>(),
-    .power = simulatorPower,
+    .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
             .name = "Internal",

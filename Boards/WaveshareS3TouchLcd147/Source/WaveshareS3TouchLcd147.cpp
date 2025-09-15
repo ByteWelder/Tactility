@@ -19,6 +19,7 @@ static std::vector<std::shared_ptr<Device>> createDevices() {
 
 extern const Configuration waveshare_s3_touch_lcd_147 = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {

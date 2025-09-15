@@ -26,8 +26,3 @@ public:
     bool supportsDisplayDriver() const override { return false; }
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable getDisplayDriver() override { return nullptr; }
 };
-
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    return std::make_shared<SdlDisplay>();
-}
-

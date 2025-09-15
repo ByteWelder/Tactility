@@ -23,7 +23,3 @@ public:
 
     lv_indev_t* _Nullable getLvglIndev() override { return handle; }
 };
-
-std::shared_ptr<tt::hal::keyboard::KeyboardDevice> createKeyboard() {
-    return std::make_shared<SdlKeyboard>();
-}

@@ -11,11 +11,20 @@
 namespace tt::app::launcher {
 
 constexpr auto* TAG = "Launcher";
-constexpr auto BUTTON_SIZE = 64;
+
+static int getButtonSize(hal::UiScale scale) {
+    if (scale == hal::UiScale::Smallest) {
+        return 40;
+    } else {
+        return 64;
+    }
+}
 
 class LauncherApp final : public App {
 
-    static lv_obj_t* createAppButton(lv_obj_t* parent, const char* imageFile, const char* appId, int32_t horizontalMargin) {
+    static lv_obj_t* createAppButton(lv_obj_t* parent, hal::UiScale uiScale, const char* imageFile, const char* appId, int32_t horizontalMargin) {
+        auto button_size = getButtonSize(uiScale);
+
         auto* apps_button = lv_button_create(parent);
         lv_obj_set_style_pad_all(apps_button, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_margin_hor(apps_button, horizontalMargin, LV_STATE_DEFAULT);
@@ -28,7 +37,7 @@ class LauncherApp final : public App {
         lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
         // Ensure buttons are still tappable when the asset fails to load
         // Icon images are 40x40, so we get some extra padding too
-        lv_obj_set_size(button_image, BUTTON_SIZE, BUTTON_SIZE);
+        lv_obj_set_size(button_image, button_size, button_size);
 
         lv_obj_add_event_cb(apps_button, onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)appId);
 
@@ -73,6 +82,9 @@ public:
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
         auto* buttons_wrapper = lv_obj_create(parent);
 
+        auto ui_scale = hal::getConfiguration()->uiScale;
+        auto button_size = getButtonSize(ui_scale);
+
         lv_obj_align(buttons_wrapper, LV_ALIGN_CENTER, 0, 0);
         // lv_obj_set_style_pad_all(buttons_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_size(buttons_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -89,17 +101,17 @@ public:
             lv_obj_set_flex_flow(buttons_wrapper, LV_FLEX_FLOW_COLUMN);
         }
 
-        const int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * BUTTON_SIZE);
-        const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, BUTTON_SIZE) : 0;
+        const int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * button_size);
+        const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, button_size) : 0;
 
         const auto paths = app.getPaths();
-        const auto apps_icon_path = paths->getSystemPathLvgl("icon_apps.png");
-        const auto files_icon_path = paths->getSystemPathLvgl("icon_files.png");
-        const auto settings_icon_path = paths->getSystemPathLvgl("icon_settings.png");
+        const auto apps_icon_path = paths->getSystemPathLvgl("assets/icon_apps.png");
+        const auto files_icon_path = paths->getSystemPathLvgl("assets/icon_files.png");
+        const auto settings_icon_path = paths->getSystemPathLvgl("assets/icon_settings.png");
 
-        createAppButton(buttons_wrapper, apps_icon_path.c_str(), "AppList", margin);
-        createAppButton(buttons_wrapper, files_icon_path.c_str(), "Files", margin);
-        createAppButton(buttons_wrapper, settings_icon_path.c_str(), "Settings", margin);
+        createAppButton(buttons_wrapper, ui_scale, apps_icon_path.c_str(), "AppList", margin);
+        createAppButton(buttons_wrapper, ui_scale, files_icon_path.c_str(), "Files", margin);
+        createAppButton(buttons_wrapper, ui_scale, settings_icon_path.c_str(), "Settings", margin);
 
         if (shouldShowPowerButton()) {
             auto* power_button = lv_btn_create(parent);

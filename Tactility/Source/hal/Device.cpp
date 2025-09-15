@@ -92,4 +92,13 @@ std::vector<std::shared_ptr<Device>> getDevices() {
     return devices;
 }
 
+bool hasDevice(Device::Type type) {
+    auto scoped_mutex = mutex.asScopedLock();
+    scoped_mutex.lock();
+    auto result_set = devices | std::views::filter([&type](auto& device) {
+         return device->getType() == type;
+    });
+    return !result_set.empty();
+}
+
 }

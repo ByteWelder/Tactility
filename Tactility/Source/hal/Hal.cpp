@@ -19,29 +19,6 @@ constexpr auto* TAG = "Hal";
 void registerDevices(const Configuration& configuration) {
     TT_LOG_I(TAG, "Registering devices");
 
-    if (configuration.sdcard != nullptr) {
-        registerDevice(configuration.sdcard);
-    }
-
-    if (configuration.power != nullptr) {
-        std::shared_ptr<power::PowerDevice> power = configuration.power();
-        registerDevice(power);
-    }
-
-    if (configuration.createKeyboard) {
-        auto keyboard = configuration.createKeyboard();
-        if (keyboard != nullptr) {
-            registerDevice(std::reinterpret_pointer_cast<Device>(keyboard));
-        }
-    }
-
-    if (configuration.createDisplay != nullptr) {
-        auto display = configuration.createDisplay();
-        if (display != nullptr) {
-            registerDevice(display);
-        }
-    }
-
     auto devices = configuration.createDevices();
     for (auto& device : devices) {
         registerDevice(device);

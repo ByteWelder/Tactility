@@ -32,9 +32,11 @@
 - Toolbar: when the title doesn't fit, scroll the text instead of splitting it onto a new line (try on Waveshare 1.47")
 - UI: create UI size classification (e.g. "compact" for tiny screens without touch)
 - Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
+- I2C app should show error when I2C port is disabled when the scan button was manually pressed
 
 ## Lower Priority
 
+- Implement system suspend that turns off the screen
 - The boot button on some devices can be used as GPIO_NUM_0 at runtime
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
@@ -53,6 +55,10 @@
 - Show a warning screen if firmware encryption or secure boot are off when saving WiFi credentials.
 - Remove flex_flow from app_container in Gui.cpp
 - Files app: copy/cut/paste actions
+- ElfAppManifest: change name (remove "manifest" as it's confusing), remove icon and title, publish snapshot SDK on CDN
+- `UiScale` implementation for devices like the CYD 2432S032C
+- Bug: CYD 2432S032C screen rotation fails due to touch driver issue
+- Calculator app should show regular text input field on non-touch devices that have a keyboard (Cardputer, T-Lora Pager)
 
 # Nice-to-haves
 

@@ -98,7 +98,6 @@ namespace app {
 
 // List of all apps excluding Boot app (as Boot app calls this function indirectly)
 static void registerSystemApps() {
-    addApp(app::addgps::manifest);
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
     addApp(app::calculator::manifest);
@@ -106,25 +105,24 @@ static void registerSystemApps() {
     addApp(app::filebrowser::manifest);
     addApp(app::fileselection::manifest);
     addApp(app::gpio::manifest);
-    addApp(app::gpssettings::manifest);
-    addApp(app::i2cscanner::manifest);
-    addApp(app::i2csettings::manifest);
     addApp(app::imageviewer::manifest);
     addApp(app::inputdialog::manifest);
     addApp(app::launcher::manifest);
     addApp(app::localesettings::manifest);
     addApp(app::log::manifest);
     addApp(app::notes::manifest);
-    addApp(app::serialconsole::manifest);
     addApp(app::settings::manifest);
     addApp(app::selectiondialog::manifest);
     addApp(app::systeminfo::manifest);
     addApp(app::timedatesettings::manifest);
     addApp(app::timezone::manifest);
-    addApp(app::usbsettings::manifest);
     addApp(app::wifiapsettings::manifest);
     addApp(app::wificonnect::manifest);
     addApp(app::wifimanage::manifest);
+
+#if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
+    addApp(app::usbsettings::manifest);
+#endif
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addApp(app::screenshot::manifest);
@@ -136,7 +134,18 @@ static void registerSystemApps() {
     addApp(app::development::manifest);
 #endif
 
-    if (hal::findDevices(hal::Device::Type::Power).size() > 0) {
+    if (!hal::getConfiguration()->i2c.empty()) {
+        addApp(app::i2cscanner::manifest);
+        addApp(app::i2csettings::manifest);
+    }
+
+    if (!hal::getConfiguration()->uart.empty()) {
+        addApp(app::addgps::manifest);
+        addApp(app::gpssettings::manifest);
+        addApp(app::serialconsole::manifest);
+    }
+
+    if (hal::hasDevice(hal::Device::Type::Power)) {
         addApp(app::power::manifest);
     }
 }
