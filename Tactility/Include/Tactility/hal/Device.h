@@ -8,7 +8,6 @@
 #include <cassert>
 
 namespace tt::hal {
-
 /** Base class for HAL-related devices. */
 class Device {
 
@@ -118,5 +117,8 @@ std::shared_ptr<DeviceType> findFirstDevice(Device::Type type) {
         return std::static_pointer_cast<DeviceType>(first);
     }
 }
+
+/** @return true if there are 1 or more devices of the specified type */
+bool hasDevice(Device::Type type);
 
 }
