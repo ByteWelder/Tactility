@@ -12,6 +12,7 @@ lv_obj_t* __wrap_lv_dropdown_create(lv_obj_t* parent) {
     auto dropdown = __real_lv_dropdown_create(parent);
 
     if (tt::hal::getConfiguration()->uiScale == tt::hal::UiScale::Smallest) {
+        lv_obj_set_style_pad_all(dropdown, 2, LV_STATE_DEFAULT);
     }
 
     return dropdown;
