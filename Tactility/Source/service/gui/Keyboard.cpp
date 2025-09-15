@@ -59,12 +59,12 @@ void GuiService::keyboardAddTextArea(lv_obj_t* textarea) {
             lv_obj_add_event_cb(textarea, show_keyboard, LV_EVENT_FOCUSED, nullptr);
             lv_obj_add_event_cb(textarea, hide_keyboard, LV_EVENT_DEFOCUSED, nullptr);
             lv_obj_add_event_cb(textarea, hide_keyboard, LV_EVENT_READY, nullptr);
+
+            // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
+            lv_group_add_obj(keyboardGroup, textarea);
+
+            lvgl::software_keyboard_activate(keyboardGroup);
         }
-
-        // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
-        lv_group_add_obj(keyboardGroup, textarea);
-
-        lvgl::software_keyboard_activate(keyboardGroup);
 
         lvgl::unlock();
     }
