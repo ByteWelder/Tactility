@@ -110,9 +110,9 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/SDL) # Added as idf component for ESP and as library for other targets
 
     # LVGL
+    set(LV_BUILD_CONF_PATH ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h)
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     include_directories(lvgl PUBLIC ${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf)
-    target_compile_definitions(lvgl PUBLIC "-DLV_CONF_PATH=\"${PROJECT_SOURCE_DIR}/Libraries/lvgl_conf/lv_conf_simulator.h\"")
     target_link_libraries(lvgl PRIVATE SDL2-static)
 
 endif ()
