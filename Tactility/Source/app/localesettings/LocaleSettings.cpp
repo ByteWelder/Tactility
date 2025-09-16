@@ -82,6 +82,8 @@ class LocaleSettingsApp : public App {
 public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
+        auto ui_scale = hal::getConfiguration()->uiScale;
+
         textResources.load();
 
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -94,6 +96,8 @@ public:
         lv_obj_set_width(main_wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(main_wrapper, 1);
 
+        // Region
+
         auto* region_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_width(region_wrapper, LV_PCT(100));
         lv_obj_set_height(region_wrapper, LV_SIZE_CONTENT);
@@ -104,20 +108,23 @@ public:
         lv_label_set_text(regionLabel , textResources[i18n::Text::REGION].c_str());
         lv_obj_align(regionLabel , LV_ALIGN_LEFT_MID, 0, 0);
 
+        auto* region_button = lv_button_create(region_wrapper);
+        lv_obj_align(region_button, LV_ALIGN_RIGHT_MID, 0, 0);
+        auto* region_button_image = lv_image_create(region_button);
+        lv_obj_add_event_cb(region_button, onConfigureTimeZonePressed, LV_EVENT_SHORT_CLICKED, nullptr);
+        lv_image_set_src(region_button_image, LV_SYMBOL_SETTINGS);
+
         timeZoneLabel = lv_label_create(region_wrapper);
         std::string timeZoneName = settings::getTimeZoneName();
         if (timeZoneName.empty()) {
             timeZoneName = "not set";
         }
-        lv_label_set_text(timeZoneLabel, timeZoneName.c_str());
-        // TODO: Find out why Y offset is needed
-        lv_obj_align_to(timeZoneLabel, regionLabel, LV_ALIGN_OUT_RIGHT_MID, 10, 8);
 
-        auto* region_button = lv_button_create(region_wrapper);
-        lv_obj_align(region_button, LV_ALIGN_TOP_RIGHT, 0, 0);
-        auto* region_button_image = lv_image_create(region_button);
-        lv_obj_add_event_cb(region_button, onConfigureTimeZonePressed, LV_EVENT_SHORT_CLICKED, nullptr);
-        lv_image_set_src(region_button_image, LV_SYMBOL_SETTINGS);
+        lv_label_set_text(timeZoneLabel, timeZoneName.c_str());
+        const int offset = ui_scale == hal::UiScale::Smallest ? -2 : -10;
+        lv_obj_align_to(timeZoneLabel, region_button, LV_ALIGN_OUT_LEFT_MID, offset, 0);
+
+        // Language
 
         auto* language_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_width(language_wrapper, LV_PCT(100));

@@ -30,7 +30,7 @@ public:
 
     explicit View(const std::shared_ptr<State>& state) : state(state) {}
 
-    void init(lv_obj_t* parent);
+    void init(const AppContext& appContext, lv_obj_t* parent);
     void update();
 
     void onNavigateUpPressed();

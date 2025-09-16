@@ -91,6 +91,13 @@ public:
         lv_obj_set_style_border_width(buttons_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_flex_grow(buttons_wrapper, 1);
 
+        // Fix for button selection (problem with UiScale::Small on Cardputer)
+        if (!hal::hasDevice(hal::Device::Type::Touch)) {
+            lv_obj_set_style_pad_all(buttons_wrapper, 6, LV_STATE_DEFAULT);
+        } else {
+            lv_obj_set_style_pad_all(buttons_wrapper, 0, LV_STATE_DEFAULT);
+        }
+
         const auto* display = lv_obj_get_display(parent);
         const auto horizontal_px = lv_display_get_horizontal_resolution(display);
         const auto vertical_px = lv_display_get_vertical_resolution(display);

@@ -80,16 +80,16 @@ class WifiApSettings : public App {
 
         auto* auto_connect_wrapper = lv_obj_create(wrapper);
         lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_pad_all(auto_connect_wrapper, 0, 0);
-        lv_obj_set_style_pad_gap(auto_connect_wrapper, 0, 0);
-        lv_obj_set_style_border_width(auto_connect_wrapper, 0, 0);
+        lv_obj_set_style_pad_all(auto_connect_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_gap(auto_connect_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(auto_connect_wrapper, 0, LV_STATE_DEFAULT);
 
         auto* auto_connect_label = lv_label_create(auto_connect_wrapper);
         lv_label_set_text(auto_connect_label, "Auto-connect");
         lv_obj_align(auto_connect_label, LV_ALIGN_TOP_LEFT, 0, 6);
 
         auto* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
-        lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, (void*)&paremeters);
+        lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, &paremeters);
         lv_obj_align(auto_connect_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
 
         auto* forget_button = lv_button_create(wrapper);

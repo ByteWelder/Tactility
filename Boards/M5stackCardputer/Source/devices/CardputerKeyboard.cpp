@@ -62,11 +62,23 @@ void CardputerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
                 } else {
                     for (auto& i : self->keyboard.keysState().values) {
                         if (i == ';') { // Up
-                            data->key = LV_KEY_UP;
-                            data->state = LV_INDEV_STATE_PRESSED;
+                            /*
+                             * WARNING:
+                             * lv_switch picks up on this and toggles it, while the CardputerEncoder uses it for scrolling.
+                             * We disable the keypress so the encoder can work properly.
+                             */
+                            // TODO: Can we detect the active widget and ignore it in case it's a switch?
+                            // data->key = LV_KEY_UP;
+                            // data->state = LV_INDEV_STATE_PRESSED;
                         } else if (i == '.') { // Down
-                            data->key = LV_KEY_DOWN;
-                            data->state = LV_INDEV_STATE_PRESSED;
+                            /*
+                             * WARNING:
+                             * lv_switch picks up on this and toggles it, while the CardputerEncoder uses it for scrolling.
+                             * We disable the keypress so the encoder can work properly.
+                             */
+                            // TODO: Can we detect the active widget and ignore it in case it's a switch?
+                            // data->key = LV_KEY_DOWN;
+                            // data->state = LV_INDEV_STATE_PRESSED;
                         } else if (i == ',') { // Left
                             data->key = LV_KEY_LEFT;
                             data->state = LV_INDEV_STATE_PRESSED;

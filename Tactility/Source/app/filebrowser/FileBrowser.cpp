@@ -24,7 +24,7 @@ public:
     }
 
     void onShow(AppContext& appContext, lv_obj_t* parent) override {
-        view->init(parent);
+        view->init(appContext, parent);
     }
 
     void onResult(AppContext& appContext, TT_UNUSED LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle) override {

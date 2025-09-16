@@ -145,16 +145,19 @@ public:
     }
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        lvgl::obj_set_style_bg_blacken(parent);
+        lv_obj_set_style_border_width(parent, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_radius(parent, 0, LV_STATE_DEFAULT);
+
         auto* image = lv_image_create(parent);
-        lv_obj_set_size(image, LV_PCT(100), LV_PCT(100));
+        lv_obj_set_size(image, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
 
         const auto paths = app.getPaths();
         const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
         const auto logo_path = paths->getSystemPathLvgl(logo);
         TT_LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());
-
-        lvgl::obj_set_style_bg_blacken(parent);
     }
 };
 

@@ -1,26 +1,18 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "Tactility/lvgl/Toolbar.h"
+#include <Tactility/lvgl/Toolbar.h>
 
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Spinner.h"
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Spinner.h>
 
 namespace tt::lvgl {
 
 static int getToolbarHeight(hal::UiScale uiScale) {
     if (uiScale == hal::UiScale::Smallest) {
-        return 20;
+        return 22;
     } else {
         return 40;
-    }
-}
-
-static int getToolbarFontHeight(hal::UiScale uiScale) {
-    if (uiScale == hal::UiScale::Smallest) {
-        return 14;
-    } else {
-        return 18;
     }
 }
 
@@ -30,6 +22,20 @@ static const _lv_font_t* getToolbarFont(hal::UiScale uiScale) {
     } else {
         return &lv_font_montserrat_18;
     }
+}
+
+/**
+ * Helps with button expansion and also with vertical alignment of content,
+ * as the parent flex doesn't allow for vertical alignment
+ */
+static lv_obj_t* create_action_wrapper(lv_obj_t* parent) {
+    auto* wrapper = lv_obj_create(parent);
+    lv_obj_set_size(wrapper, LV_SIZE_CONTENT, getToolbarHeight(hal::getConfiguration()->uiScale));
+    lv_obj_set_style_pad_all(wrapper, 2, LV_STATE_DEFAULT); // For selection / click expansion
+    lv_obj_set_style_bg_opa(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_opa(wrapper, 0, LV_STATE_DEFAULT);
+    return wrapper;
 }
 
 typedef struct {
@@ -43,7 +49,7 @@ typedef struct {
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 
-static lv_obj_class_t toolbar_class = {
+static const lv_obj_class_t toolbar_class = {
     .base_class = &lv_obj_class,
     .constructor_cb = &toolbar_constructor,
     .destructor_cb = nullptr,
@@ -51,7 +57,7 @@ static lv_obj_class_t toolbar_class = {
     .user_data = nullptr,
     .name = nullptr,
     .width_def = LV_PCT(100),
-    .height_def = 40,
+    .height_def = LV_SIZE_CONTENT,
     .editable = false,
     .group_def = LV_OBJ_CLASS_GROUP_DEF_TRUE,
     .instance_size = sizeof(Toolbar),
@@ -74,45 +80,63 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     LV_LOG_INFO("begin");
     auto ui_scale = hal::getConfiguration()->uiScale;
     auto toolbar_height = getToolbarHeight(ui_scale);
-    toolbar_class.height_def = toolbar_height;
     lv_obj_t* obj = lv_obj_class_create_obj(&toolbar_class, parent);
     lv_obj_class_init_obj(obj);
+    lv_obj_set_height(obj, toolbar_height);
 
-    auto* toolbar = (Toolbar*)obj;
-
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+    lv_obj_set_width(obj, LV_PCT(100));
     lv_obj_set_style_pad_all(obj, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_gap(obj, 0, LV_STATE_DEFAULT);
 
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
 
-    toolbar->close_button = lv_button_create(obj);
+    auto* close_button_wrapper = lv_obj_create(obj);
+    lv_obj_set_size(close_button_wrapper, LV_SIZE_CONTENT, toolbar_height);
+    lv_obj_set_style_pad_all(close_button_wrapper, 2, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(close_button_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(close_button_wrapper, 0, LV_STATE_DEFAULT);
 
-    lv_obj_set_size(toolbar->close_button, toolbar_height - 4, toolbar_height - 4);
+    toolbar->close_button = lv_button_create(close_button_wrapper);
+
+    if (ui_scale == hal::UiScale::Smallest) {
+        lv_obj_set_size(toolbar->close_button, toolbar_height - 8, toolbar_height - 8);
+    } else {
+        lv_obj_set_size(toolbar->close_button, toolbar_height - 6, toolbar_height - 6);
+    }
+
     lv_obj_set_style_pad_all(toolbar->close_button, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_gap(toolbar->close_button, 0, LV_STATE_DEFAULT);
+    lv_obj_align(toolbar->close_button, LV_ALIGN_CENTER, 0, 0);
     toolbar->close_button_image = lv_image_create(toolbar->close_button);
     lv_obj_align(toolbar->close_button_image, LV_ALIGN_CENTER, 0, 0);
 
-    toolbar->title_label = lv_label_create(obj);
+    auto* title_wrapper = lv_obj_create(obj);
+    lv_obj_set_size(title_wrapper, LV_SIZE_CONTENT, LV_PCT(100));
+    lv_obj_set_style_bg_opa(title_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(title_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(title_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_flex_grow(title_wrapper, 1);
+
+    if (ui_scale == hal::UiScale::Smallest) {
+        lv_obj_set_style_pad_left(title_wrapper, 4, LV_STATE_DEFAULT);
+    } else {
+        lv_obj_set_style_pad_left(title_wrapper, 8, LV_STATE_DEFAULT);
+    }
+
+    toolbar->title_label = lv_label_create(title_wrapper);
     lv_obj_set_style_text_font(toolbar->title_label, getToolbarFont(ui_scale), LV_STATE_DEFAULT);
     lv_label_set_text(toolbar->title_label, title.c_str());
     lv_label_set_long_mode(toolbar->title_label, LV_LABEL_LONG_MODE_SCROLL);
     lv_obj_set_style_text_align(toolbar->title_label, LV_TEXT_ALIGN_LEFT, LV_STATE_DEFAULT);
-    lv_obj_set_flex_grow(toolbar->title_label, 1);
-    int32_t title_offset_x = (toolbar_height - getToolbarFontHeight(ui_scale) - 8) / 4 * 3;
-    // Margin top doesn't work
-    lv_obj_set_style_pad_top(toolbar->title_label, title_offset_x, LV_STATE_DEFAULT);
-    lv_obj_set_style_margin_left(toolbar->title_label, 8, LV_STATE_DEFAULT);
-    // Hack for margin bug where buttons in flex get rendered more narrowly
-    lv_obj_set_style_margin_right(toolbar->title_label, -8, LV_STATE_DEFAULT);
+    lv_obj_align(toolbar->title_label, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_obj_set_width(toolbar->title_label, LV_PCT(100));
 
     toolbar->action_container = lv_obj_create(obj);
     lv_obj_set_width(toolbar->action_container, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(toolbar->action_container, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_all(toolbar->action_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(toolbar->action_container, 0, LV_STATE_DEFAULT);
-    lv_obj_set_flex_align(toolbar->action_container, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    lv_obj_set_style_bg_opa(toolbar->action_container, 0, LV_STATE_DEFAULT);
 
     toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &stop_app, nullptr);
 
@@ -124,28 +148,35 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const app::AppContext& app) {
 }
 
 void toolbar_set_title(lv_obj_t* obj, const std::string& title) {
-    auto* toolbar = (Toolbar*)obj;
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     lv_label_set_text(toolbar->title_label, title.c_str());
 }
 
 void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
-    auto* toolbar = (Toolbar*)obj;
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     lv_obj_add_event_cb(toolbar->close_button, callback, LV_EVENT_SHORT_CLICKED, user_data);
     lv_image_set_src(toolbar->close_button_image, icon); // e.g. LV_SYMBOL_CLOSE
 }
 
 lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
-    auto* toolbar = (Toolbar*)obj;
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
     toolbar->action_count++;
 
     auto ui_scale = hal::getConfiguration()->uiScale;
     auto toolbar_height = getToolbarHeight(ui_scale);
 
-    lv_obj_t* action_button = lv_button_create(toolbar->action_container);
-    lv_obj_set_size(action_button, toolbar_height - 4, toolbar_height - 4);
+    auto* wrapper = create_action_wrapper(toolbar->action_container);
+
+    auto* action_button = lv_button_create(wrapper);
+    if (ui_scale == hal::UiScale::Smallest) {
+        lv_obj_set_size(action_button, toolbar_height - 8, toolbar_height - 8);
+    } else {
+        lv_obj_set_size(action_button, toolbar_height - 6, toolbar_height - 6);
+    }
     lv_obj_set_style_pad_all(action_button, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_pad_gap(action_button, 0, LV_STATE_DEFAULT);
+    lv_obj_align(action_button, LV_ALIGN_CENTER, 0, 0);
+
     lv_obj_add_event_cb(action_button, callback, LV_EVENT_SHORT_CLICKED, user_data);
     lv_obj_t* action_button_image = lv_image_create(action_button);
     lv_image_set_src(action_button_image, icon);
@@ -155,16 +186,24 @@ lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb
 }
 
 lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
-    auto* toolbar = (Toolbar*)obj;
-    lv_obj_t* widget = lv_switch_create(toolbar->action_container);
-    lv_obj_set_style_margin_top(widget, 4, LV_STATE_DEFAULT); // Because aligning doesn't work
-    lv_obj_set_style_margin_right(widget, 4, LV_STATE_DEFAULT);
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+
+    auto* wrapper = create_action_wrapper(toolbar->action_container);
+    lv_obj_set_style_pad_hor(wrapper, 4, LV_STATE_DEFAULT);
+
+    lv_obj_t* widget = lv_switch_create(wrapper);
+    lv_obj_set_align(widget, LV_ALIGN_CENTER);
     return widget;
 }
 
 lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
-    auto* toolbar = (Toolbar*)obj;
-    return spinner_create(toolbar->action_container);
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+
+    auto* wrapper = create_action_wrapper(toolbar->action_container);
+
+    auto* spinner = spinner_create(wrapper);
+    lv_obj_set_align(spinner, LV_ALIGN_CENTER);
+    return spinner;
 }
 
 } // namespace

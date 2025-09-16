@@ -77,6 +77,14 @@ bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
         return false;
     }
 
+    // Warning: it looks like LVGL rotation is broken when "gap" is set and the screen is moved to a non-default orientation
+    int gap_x = configuration->swapXY ? configuration->gapY : configuration->gapX;
+    int gap_y = configuration->swapXY ? configuration->gapX : configuration->gapY;
+    if (esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel gap");
+        return false;
+    }
+
     if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to swap XY ");
         return false;
@@ -89,13 +97,6 @@ bool St7789Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
 
     if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to turn display on");
-        return false;
-    }
-
-    int gap_x = configuration->swapXY ? configuration->gapY : configuration->gapX;
-    int gap_y = configuration->swapXY ? configuration->gapX : configuration->gapY;
-    if (esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to set panel gap");
         return false;
     }
 

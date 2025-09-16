@@ -1,14 +1,14 @@
 #pragma once
 
-#include "Tactility/app/AppContext.h"
+#include <Tactility/app/AppContext.h>
 
 #include <lvgl.h>
 
 namespace tt::lvgl {
 
-#define STATUSBAR_ICON_LIMIT 8
-#define STATUSBAR_ICON_SIZE 20
-#define STATUSBAR_HEIGHT (STATUSBAR_ICON_SIZE + 4) // 4 extra pixels for border and outline
+constexpr auto STATUSBAR_ICON_LIMIT = 8;
+constexpr auto STATUSBAR_ICON_SIZE = 20;
+constexpr auto STATUSBAR_HEIGHT = STATUSBAR_ICON_SIZE + 2;
 
 lv_obj_t* statusbar_create(lv_obj_t* parent);
 int8_t statusbar_icon_add(const std::string& image);
