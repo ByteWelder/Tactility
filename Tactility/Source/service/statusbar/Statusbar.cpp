@@ -1,9 +1,10 @@
-#include "Tactility/lvgl/Statusbar.h"
-#include "Tactility/lvgl/LvglSync.h"
+#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/lvgl/LvglSync.h>
 
-#include "Tactility/hal/power/PowerDevice.h"
-#include "Tactility/hal/sdcard/SdCardDevice.h"
-#include "Tactility/service/gps/GpsService.h"
+#include <Tactility/hal/power/PowerDevice.h>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/lvgl/Lvgl.h>
+#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
@@ -16,31 +17,31 @@ namespace tt::service::statusbar {
 constexpr auto* TAG = "StatusbarService";
 
 // SD card status
-#define STATUSBAR_ICON_SDCARD "sdcard.png"
-#define STATUSBAR_ICON_SDCARD_ALERT "sdcard_alert.png"
+constexpr auto* STATUSBAR_ICON_SDCARD = "sdcard.png";
+constexpr auto* STATUSBAR_ICON_SDCARD_ALERT = "sdcard_alert.png";
 
 // Wifi status
-#define STATUSBAR_ICON_WIFI_OFF_WHITE "wifi_off_white.png"
-#define STATUSBAR_ICON_WIFI_SCAN_WHITE "wifi_scan_white.png"
-#define STATUSBAR_ICON_WIFI_SIGNAL_WEAK_WHITE "wifi_signal_weak_white.png"
-#define STATUSBAR_ICON_WIFI_SIGNAL_MEDIUM_WHITE "wifi_signal_medium_white.png"
-#define STATUSBAR_ICON_WIFI_SIGNAL_STRONG_WHITE "wifi_signal_strong_white.png"
+constexpr auto* STATUSBAR_ICON_WIFI_OFF_WHITE = "wifi_off_white.png";
+constexpr auto* STATUSBAR_ICON_WIFI_SCAN_WHITE = "wifi_scan_white.png";
+constexpr auto* STATUSBAR_ICON_WIFI_SIGNAL_WEAK_WHITE = "wifi_signal_weak_white.png";
+constexpr auto* STATUSBAR_ICON_WIFI_SIGNAL_MEDIUM_WHITE = "wifi_signal_medium_white.png";
+constexpr auto* STATUSBAR_ICON_WIFI_SIGNAL_STRONG_WHITE = "wifi_signal_strong_white.png";
 
 // Power status
-#define STATUSBAR_ICON_POWER_0 "power_0.png"
-#define STATUSBAR_ICON_POWER_10 "power_10.png"
-#define STATUSBAR_ICON_POWER_20 "power_20.png"
-#define STATUSBAR_ICON_POWER_30 "power_30.png"
-#define STATUSBAR_ICON_POWER_40 "power_40.png"
-#define STATUSBAR_ICON_POWER_50 "power_50.png"
-#define STATUSBAR_ICON_POWER_60 "power_60.png"
-#define STATUSBAR_ICON_POWER_70 "power_70.png"
-#define STATUSBAR_ICON_POWER_80 "power_80.png"
-#define STATUSBAR_ICON_POWER_90 "power_90.png"
-#define STATUSBAR_ICON_POWER_100 "power_100.png"
+constexpr auto* STATUSBAR_ICON_POWER_0 = "power_0.png";
+constexpr auto* STATUSBAR_ICON_POWER_10 = "power_10.png";
+constexpr auto* STATUSBAR_ICON_POWER_20 = "power_20.png";
+constexpr auto* STATUSBAR_ICON_POWER_30 = "power_30.png";
+constexpr auto* STATUSBAR_ICON_POWER_40 = "power_40.png";
+constexpr auto* STATUSBAR_ICON_POWER_50 = "power_50.png";
+constexpr auto* STATUSBAR_ICON_POWER_60 = "power_60.png";
+constexpr auto* STATUSBAR_ICON_POWER_70 = "power_70.png";
+constexpr auto* STATUSBAR_ICON_POWER_80 = "power_80.png";
+constexpr auto* STATUSBAR_ICON_POWER_90 = "power_90.png";
+constexpr auto* STATUSBAR_ICON_POWER_100 = "power_100.png";
 
 // GPS
-#define STATUSBAR_ICON_GPS "location.png"
+constexpr auto* STATUSBAR_ICON_GPS = "location.png";
 
 extern const ServiceManifest manifest;
 
@@ -222,15 +223,15 @@ class StatusbarService final : public Service {
     }
 
     void update() {
-        // TODO: Make thread-safe for LVGL
-        updateGpsIcon();
-        updateWifiIcon();
-        updateSdCardIcon();
-        updatePowerStatusIcon();
-    }
-
-    static void onUpdate(const std::shared_ptr<StatusbarService>& service) {
-        service->update();
+        if (lvgl::isStarted()) {
+            if (lvgl::lock(100)) {
+                updateGpsIcon();
+                updateWifiIcon();
+                updateSdCardIcon();
+                updatePowerStatusIcon();
+                lvgl::unlock();
+            }
+        }
     }
 
 public:
@@ -262,10 +263,10 @@ public:
 
         auto service = findServiceById<StatusbarService>(manifest.id);
         assert(service);
-        onUpdate(service);
+        service->update();
 
         updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service] {
-            onUpdate(service);
+            service->update();
         });
 
         // We want to try and scan more often in case of startup or scan lock failure

@@ -12,10 +12,8 @@
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
 - Update ILI934x to v2.0.1
-- Apps with update timer in onCreate() should check `lvgl::isStarted()`
 - CrowPanel Basic 3.5": check why GraphicsDemo fails
 - CrowPanel Basic 3.5": check why System Info doesn't show storage info
-- Update to LVGL v9.3 stable
 - Create `app::getSettingsPath()` to get paths to properties files by first trying sd card and then trying `/data`
 
 ## Medium Priority
