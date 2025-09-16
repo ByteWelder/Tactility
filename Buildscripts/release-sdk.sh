@@ -36,7 +36,7 @@ cd -
 cp Libraries/lvgl/lvgl.h $find_target_dir
 cp Libraries/lvgl/lv_version.h $find_target_dir
 cp Libraries/lvgl/LICENCE.txt $lvgl_library_path/LICENSE.txt
-cp Libraries/lvgl_conf/lv_conf_kconfig.h $lvgl_library_path/Include/lv_conf.h
+cp Libraries/lvgl/src/lv_conf_kconfig.h $lvgl_library_path/Include/lv_conf.h
 
 # elf_loader
 elf_loader_library_path=$library_path/elf_loader

@@ -49,11 +49,12 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     set(EXCLUDE_COMPONENTS "Simulator")
 
     # LVGL
-    get_filename_component(
-        LVGL_CONFIG_FULL_PATH Libraries/lvgl_conf ABSOLUTE
-    )
+#    set(LV_CONF_PATH Libraries/lvgl/src/lv_conf_kconfig.h)
+#    get_filename_component(
+#        LV_CONF_PATH Libraries/lvgl/src/lv_conf_kconfig.h ABSOLUTE
+#    )
+#    add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}")
 
-    add_compile_definitions(LV_CONF_PATH="${LVGL_CONFIG_FULL_PATH}/lv_conf_kconfig.h")
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_log_write" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_button_create" APPEND)
