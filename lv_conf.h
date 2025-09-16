@@ -1,4 +1,8 @@
 /**
+ * WARNING: This is only used by the simulator!
+ */
+
+/**
  * @file lv_conf.h
  * Configuration file for v9.0.0
  */
