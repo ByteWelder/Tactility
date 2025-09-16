@@ -95,14 +95,16 @@ static void showDetails(lv_event_t* event) {
 }
 
 void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting) {
+    auto ui_scale = hal::getConfiguration()->uiScale;
+
     auto* wrapper = lv_obj_create(networks_list);
     lv_obj_add_event_cb(wrapper, &connect, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_set_user_data(wrapper, bindings);
     lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(wrapper, 0, 0);
-    lv_obj_set_style_pad_gap(wrapper, 0, 0);
-    lv_obj_set_style_margin_all(wrapper, 0, 0);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+    lv_obj_set_style_pad_all(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_gap(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_margin_all(wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
 
     auto* label = lv_label_create(wrapper);
     lv_obj_align(label, LV_ALIGN_LEFT_MID, 0, 0);
@@ -111,9 +113,17 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
     lv_obj_set_width(label, LV_PCT(70));
 
     auto* info_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_style_pad_all(info_wrapper, 0, 0);
-    lv_obj_set_style_margin_all(info_wrapper, 0, 0);
-    lv_obj_set_size(info_wrapper, 36, 36);
+    lv_obj_set_style_margin_all(info_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_align(info_wrapper, LV_ALIGN_RIGHT_MID);
+
+    if (ui_scale == hal::UiScale::Smallest) {
+        lv_obj_set_size(info_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_hor(info_wrapper, 4, LV_STATE_DEFAULT);
+    } else {
+        lv_obj_set_size(info_wrapper, 36, 36);
+        lv_obj_set_style_pad_all(info_wrapper, 0, LV_STATE_DEFAULT);
+    }
+
     lv_obj_set_style_border_color(info_wrapper, lv_theme_get_color_primary(info_wrapper), 0);
     lv_obj_add_event_cb(info_wrapper, &showDetails, LV_EVENT_SHORT_CLICKED, bindings);
     lv_obj_align(info_wrapper, LV_ALIGN_RIGHT_MID, 0, 0);
@@ -124,26 +134,28 @@ void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConn
     auto* ssid_label = lv_label_create(info_wrapper);
     lv_label_set_text(ssid_label, record.ssid.c_str());
     lv_obj_add_flag(ssid_label, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_set_style_text_color(info_label, lv_theme_get_color_primary(info_wrapper), 0);
+    lv_obj_set_style_text_color(info_label, lv_theme_get_color_primary(info_wrapper), LV_STATE_DEFAULT);
     lv_obj_align(info_label, LV_ALIGN_CENTER, 0, 0);
 
     if (isConnecting) {
-        auto* connecting_spinner = tt::lvgl::spinner_create(wrapper);
-        lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, -8, 0);
+        auto* connecting_spinner = lvgl::spinner_create(wrapper);
+        auto spinner_offset_x = (ui_scale == hal::UiScale::Smallest) ? -2 : -8;
+        lv_obj_align_to(connecting_spinner, info_wrapper, LV_ALIGN_OUT_LEFT_MID, spinner_offset_x, 0);
     } else {
         auto percentage = mapRssiToPercentage(record.rssi);
 
         std::string auth_info;
         if (record.auth_mode == WIFI_AUTH_OPEN) {
-            auth_info = "(open) ";
+            auth_info = "(open)";
         } else {
             auth_info = "";
         }
 
-        auto info = std::format("{}{}%", auth_info, percentage);
-        auto* open_label = lv_label_create(wrapper);
-        lv_label_set_text(open_label, info.c_str());
-        lv_obj_align(open_label, LV_ALIGN_RIGHT_MID, -42, 0);
+        auto signal = std::format("{}{}%", auth_info, percentage);
+        auto* signal_label = lv_label_create(wrapper);
+        lv_label_set_text(signal_label, signal.c_str());
+        auto info_label_offset = (ui_scale == hal::UiScale::Smallest) ? -4 : -16;
+        lv_obj_align_to(signal_label, info_wrapper, LV_ALIGN_OUT_LEFT_MID, info_label_offset, 0);
     }
 }
 
@@ -178,7 +190,7 @@ void View::updateNetworkList() {
 
             state->withApRecords([this, &connection_target](const std::vector<service::wifi::ApRecord>& apRecords){
                 bool is_connected = !connection_target.empty() &&
-                    state->getRadioState() == service::wifi::RadioState::ConnectionActive;
+                    state->getRadioState() == ConnectionActive;
                 bool added_connected = false;
                 if (is_connected && !apRecords.empty()) {
                     for (auto &record : apRecords) {
@@ -198,7 +210,7 @@ void View::updateNetworkList() {
                         if (used_ssids.find(record.ssid) == used_ssids.end()) {
                             bool connection_target_match = (record.ssid == connection_target);
                             bool is_connecting = connection_target_match
-                                && state->getRadioState() == service::wifi::RadioState::ConnectionPending &&
+                                && state->getRadioState() == ConnectionPending &&
                                 !connection_target.empty();
                             bool skip = connection_target_match && added_connected;
                             if (!skip) {
@@ -272,6 +284,8 @@ void View::updateEnableOnBootToggle() {
 // region Main
 
 void View::init(const AppContext& app, lv_obj_t* parent) {
+    auto ui_scale = hal::getConfiguration()->uiScale;
+
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
@@ -290,45 +304,52 @@ void View::init(const AppContext& app, lv_obj_t* parent) {
 
     // Wrappers
 
-    lv_obj_t* secondary_flex = lv_obj_create(parent);
-    lv_obj_set_width(secondary_flex, LV_PCT(100));
-    lv_obj_set_flex_grow(secondary_flex, 1);
-    lv_obj_set_flex_flow(secondary_flex, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_border_width(secondary_flex, 0, 0);
-    lv_obj_set_style_pad_all(secondary_flex, 0, 0);
-    lv_obj_set_style_pad_gap(secondary_flex, 0, 0);
-    lvgl::obj_set_style_bg_invisible(secondary_flex);
+    auto* flex_wrapper = lv_obj_create(parent);
+    lv_obj_set_width(flex_wrapper, LV_PCT(100));
+    lv_obj_set_flex_grow(flex_wrapper, 1);
+    lv_obj_set_flex_flow(flex_wrapper, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_border_width(flex_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(flex_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_gap(flex_wrapper, 0, LV_STATE_DEFAULT);
+    lvgl::obj_set_style_bg_invisible(flex_wrapper);
 
-    // align() methods don't work on flex, so we need this extra wrapper
-    lv_obj_t* wrapper = lv_obj_create(secondary_flex);
-    lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lvgl::obj_set_style_bg_invisible(wrapper);
-    lv_obj_set_style_border_width(wrapper, 0, 0);
+    // Fixed size content wrapper: align() methods don't work on flex, so we need this extra wrapper
+
+    auto* content_wrapper = lv_obj_create(flex_wrapper);
+    lv_obj_set_size(content_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lvgl::obj_set_style_bg_invisible(content_wrapper);
+    lv_obj_set_style_border_width(content_wrapper, 0, LV_STATE_DEFAULT);
 
     // Enable on boot
 
-    lv_obj_t* enable_label = lv_label_create(wrapper);
-    lv_label_set_text(enable_label, "Enable on boot");
-    lv_obj_align(enable_label, LV_ALIGN_TOP_LEFT, 0, 6);
+    auto* enable_on_boot_wrapper = lv_obj_create(content_wrapper);
+    lv_obj_set_size(enable_on_boot_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(enable_on_boot_wrapper, 0, LV_STATE_DEFAULT);
 
-    enable_on_boot_switch = lv_switch_create(wrapper);
+    auto* enable_label = lv_label_create(enable_on_boot_wrapper);
+    lv_label_set_text(enable_label, "Enable on boot");
+    lv_obj_align(enable_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+    enable_on_boot_switch = lv_switch_create(enable_on_boot_wrapper);
     lv_obj_add_event_cb(enable_on_boot_switch, on_enable_on_boot_switch_changed, LV_EVENT_VALUE_CHANGED, bindings);
-    lv_obj_align(enable_on_boot_switch, LV_ALIGN_TOP_RIGHT, 0, 0);
+    lv_obj_align(enable_on_boot_switch, LV_ALIGN_RIGHT_MID, 0, 0);
 
     // Networks
 
-    networks_list = lv_obj_create(wrapper);
+    networks_list = lv_obj_create(content_wrapper);
     lv_obj_set_flex_flow(networks_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_width(networks_list, LV_PCT(100));
     lv_obj_set_height(networks_list, LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_top(networks_list, 0, 0);
-    lv_obj_set_style_pad_bottom(networks_list, 0, 0);
-    lv_obj_align(networks_list, LV_ALIGN_TOP_LEFT, 0, 44);
+    lv_obj_set_style_pad_top(networks_list, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(networks_list, 0, LV_STATE_DEFAULT);
+    const int network_list_y_offset = ui_scale == hal::UiScale::Smallest ? 22 : 44;
+    lv_obj_align(networks_list, LV_ALIGN_TOP_LEFT, 0, network_list_y_offset);
 
-    connect_to_hidden = lv_button_create(secondary_flex);
+    connect_to_hidden = lv_button_create(flex_wrapper);
     lv_obj_set_width(connect_to_hidden, LV_PCT(100));
-    lv_obj_set_style_margin_bottom(connect_to_hidden, 8, 0);
-    lv_obj_set_style_margin_hor(connect_to_hidden, 12, 0);
+    lv_obj_set_style_margin_bottom(connect_to_hidden, 8, LV_STATE_DEFAULT);
+    lv_obj_set_style_margin_hor(connect_to_hidden, 12, LV_STATE_DEFAULT);
     lv_obj_add_event_cb(connect_to_hidden, onConnectToHiddenClicked, LV_EVENT_SHORT_CLICKED, bindings);
     auto* connect_to_hidden_label = lv_label_create(connect_to_hidden);
     lv_label_set_text(connect_to_hidden_label, "Connect to hidden SSID");

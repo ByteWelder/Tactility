@@ -1,21 +1,21 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/app/crashdiagnostics/QrHelpers.h"
-#include "Tactility/app/crashdiagnostics/QrUrl.h"
-#include "Tactility/app/launcher/Launcher.h"
-#include "Tactility/lvgl/Statusbar.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/app/crashdiagnostics/QrHelpers.h>
+#include <Tactility/app/crashdiagnostics/QrUrl.h>
+#include <Tactility/app/launcher/Launcher.h>
+#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <lvgl.h>
 #include <qrcode.h>
 
-#define TAG "crash_diagnostics"
+#define TAG "CrashDiagnostics"
 
 namespace tt::app::crashdiagnostics {
 
 void onContinuePressed(TT_UNUSED lv_event_t* event) {
-    tt::service::loader::stopApp();
-    tt::app::launcher::start();
+    service::loader::stopApp();
+    launcher::start();
 }
 
 class CrashDiagnosticsApp : public App {
@@ -24,7 +24,7 @@ public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         auto* display = lv_obj_get_display(parent);
-        int32_t parent_height = lv_display_get_vertical_resolution(display) - STATUSBAR_HEIGHT;
+        int32_t parent_height = lv_display_get_vertical_resolution(display) - lvgl::STATUSBAR_HEIGHT;
 
         lv_obj_add_event_cb(parent, onContinuePressed, LV_EVENT_SHORT_CLICKED, nullptr);
         auto* top_label = lv_label_create(parent);

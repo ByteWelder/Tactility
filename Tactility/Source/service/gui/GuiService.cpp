@@ -56,8 +56,9 @@ int32_t GuiService::guiMain() {
 lv_obj_t* GuiService::createAppViews(lv_obj_t* parent) {
     lv_obj_send_event(statusbarWidget, LV_EVENT_DRAW_MAIN, nullptr);
     lv_obj_t* child_container = lv_obj_create(parent);
-    lv_obj_set_style_pad_all(child_container, 0, 0);
+    lv_obj_set_style_pad_all(child_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_width(child_container, LV_PCT(100));
+    lv_obj_set_style_border_width(child_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_flex_grow(child_container, 1);
 
     if (softwareKeyboardIsEnabled()) {
@@ -132,21 +133,23 @@ bool GuiService::onStart(TT_UNUSED ServiceContext& service) {
     lvgl::lock(portMAX_DELAY);
 
     keyboardGroup = lv_group_create();
-    lvgl::obj_set_style_bg_blacken(screen_root);
+    lv_obj_set_style_border_width(screen_root, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_all(screen_root, 0, LV_STATE_DEFAULT);
 
     lv_obj_t* vertical_container = lv_obj_create(screen_root);
     lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
     lv_obj_set_flex_flow(vertical_container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_style_pad_all(vertical_container, 0, 0);
-    lv_obj_set_style_pad_gap(vertical_container, 0, 0);
-    lvgl::obj_set_style_bg_blacken(vertical_container);
+    lv_obj_set_style_pad_all(vertical_container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_gap(vertical_container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(vertical_container, lv_color_black(), LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(vertical_container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_radius(vertical_container, 0, LV_STATE_DEFAULT);
 
     statusbarWidget = lvgl::statusbar_create(vertical_container);
 
     auto* app_container = lv_obj_create(vertical_container);
-    lv_obj_set_style_pad_all(app_container, 0, 0);
-    lv_obj_set_style_border_width(app_container, 0, 0);
-    lvgl::obj_set_style_bg_blacken(app_container);
+    lv_obj_set_style_pad_all(app_container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(app_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_width(app_container, LV_PCT(100));
     lv_obj_set_flex_grow(app_container, 1);
     lv_obj_set_flex_flow(app_container, LV_FLEX_FLOW_COLUMN);

@@ -13,6 +13,7 @@
 #include <Tactility/settings/Time.h>
 
 #include <lvgl.h>
+#include <Tactility/Tactility.h>
 
 namespace tt::lvgl {
 
@@ -167,15 +168,15 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     auto* statusbar = (Statusbar*)obj;
 
     lv_obj_set_width(obj, LV_PCT(100));
-    lv_obj_set_height(obj, STATUSBAR_HEIGHT);
-    lv_obj_set_style_pad_all(obj, 0, 0);
+    lv_obj_set_style_pad_ver(obj, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_hor(obj, 2, LV_STATE_DEFAULT);
     lv_obj_center(obj);
     lv_obj_set_flex_flow(obj, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(obj, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     statusbar->time = lv_label_create(obj);
-    lv_obj_set_style_text_color(statusbar->time, lv_color_white(), 0);
-    lv_obj_set_style_margin_left(statusbar->time, 4, 0);
+    lv_obj_set_style_text_color(statusbar->time, lv_color_white(), LV_STATE_DEFAULT);
+    lv_obj_set_style_margin_left(statusbar->time, 4, LV_STATE_DEFAULT);
     update_time(statusbar);
 
     auto* left_spacer = lv_obj_create(obj);
@@ -187,7 +188,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
-        lv_obj_set_style_pad_all(image, 0, 0);
+        lv_obj_set_style_pad_all(image, 0, LV_STATE_DEFAULT);
         obj_set_style_bg_blacken(image);
         statusbar->icons[i] = image;
 

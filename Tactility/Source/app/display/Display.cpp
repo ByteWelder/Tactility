@@ -65,6 +65,7 @@ public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         displaySettings = settings::display::loadOrGetDefault();
+        auto ui_scale = hal::getConfiguration()->uiScale;
 
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
@@ -79,39 +80,49 @@ public:
         lv_obj_set_width(main_wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(main_wrapper, 1);
 
+        // Backlight slider
+
         if (hal_display->supportsBacklightDuty()) {
             auto* brightness_wrapper = lv_obj_create(main_wrapper);
             lv_obj_set_size(brightness_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-            lv_obj_set_style_pad_hor(brightness_wrapper, 0, 0);
-            lv_obj_set_style_pad_ver(brightness_wrapper, 6, 0);
-            lv_obj_set_style_border_width(brightness_wrapper, 0, 0);
+            lv_obj_set_style_pad_hor(brightness_wrapper, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(brightness_wrapper, 0, LV_STATE_DEFAULT);
+            if (ui_scale != hal::UiScale::Smallest) {
+                lv_obj_set_style_pad_ver(brightness_wrapper, 4, LV_STATE_DEFAULT);
+            }
 
             auto* brightness_label = lv_label_create(brightness_wrapper);
             lv_label_set_text(brightness_label, "Brightness");
+            lv_obj_align(brightness_label, LV_ALIGN_LEFT_MID, 0, 0);
 
             auto* brightness_slider = lv_slider_create(brightness_wrapper);
             lv_obj_set_width(brightness_slider, LV_PCT(50));
-            lv_obj_align(brightness_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
+            lv_obj_align(brightness_slider, LV_ALIGN_RIGHT_MID, 0, 0);
             lv_slider_set_range(brightness_slider, 0, 255);
             lv_obj_add_event_cb(brightness_slider, onBacklightSliderEvent, LV_EVENT_VALUE_CHANGED, this);
 
             lv_slider_set_value(brightness_slider, displaySettings.backlightDuty, LV_ANIM_OFF);
         }
 
+        // Gamma slider
+
         if (hal_display->getGammaCurveCount() > 0) {
             auto* gamma_wrapper = lv_obj_create(main_wrapper);
             lv_obj_set_size(gamma_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-            lv_obj_set_style_pad_hor(gamma_wrapper, 0, 0);
-            lv_obj_set_style_pad_ver(gamma_wrapper, 6, 0);
-            lv_obj_set_style_border_width(gamma_wrapper, 0, 0);
+            lv_obj_set_style_pad_hor(gamma_wrapper, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(gamma_wrapper, 0, LV_STATE_DEFAULT);
+            if (ui_scale != hal::UiScale::Smallest) {
+                lv_obj_set_style_pad_ver(gamma_wrapper, 4, LV_STATE_DEFAULT);
+            }
 
             auto* gamma_label = lv_label_create(gamma_wrapper);
             lv_label_set_text(gamma_label, "Gamma");
+            lv_obj_align(gamma_label, LV_ALIGN_LEFT_MID, 0, 0);
             lv_obj_set_y(gamma_label, 0);
 
             auto* gamma_slider = lv_slider_create(gamma_wrapper);
             lv_obj_set_width(gamma_slider, LV_PCT(50));
-            lv_obj_align(gamma_slider, LV_ALIGN_TOP_RIGHT, -8, 0);
+            lv_obj_align(gamma_slider, LV_ALIGN_RIGHT_MID, 0, 0);
             lv_slider_set_range(gamma_slider, 0, hal_display->getGammaCurveCount());
             lv_obj_add_event_cb(gamma_slider, onGammaSliderEvent, LV_EVENT_VALUE_CHANGED, this);
 
@@ -119,19 +130,21 @@ public:
             lv_slider_set_value(gamma_slider, curve_index, LV_ANIM_OFF);
         }
 
+        // Orientation
+
         auto* orientation_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_size(orientation_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_pad_all(orientation_wrapper, 0, 0);
-        lv_obj_set_style_border_width(orientation_wrapper, 0, 0);
+        lv_obj_set_style_pad_all(orientation_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(orientation_wrapper, 0, LV_STATE_DEFAULT);
 
         auto* orientation_label = lv_label_create(orientation_wrapper);
         lv_label_set_text(orientation_label, "Orientation");
-        lv_obj_align(orientation_label, LV_ALIGN_TOP_LEFT, 0, 8);
+        lv_obj_align(orientation_label, LV_ALIGN_LEFT_MID, 0, 0);
 
         auto* orientation_dropdown = lv_dropdown_create(orientation_wrapper);
         // Note: order correlates with settings::display::Orientation item order
         lv_dropdown_set_options(orientation_dropdown, "Landscape\nPortrait Right\nLandscape Flipped\nPortrait Left");
-        lv_obj_align(orientation_dropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_align(orientation_dropdown, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_set_style_border_color(orientation_dropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(orientation_dropdown, 1, LV_PART_MAIN);
         lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, this);

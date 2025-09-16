@@ -108,45 +108,45 @@ public:
 
         // Wrappers
 
-        lv_obj_t* secondary_flex = lv_obj_create(parent);
-        lv_obj_set_width(secondary_flex, LV_PCT(100));
-        lv_obj_set_flex_grow(secondary_flex, 1);
-        lv_obj_set_flex_flow(secondary_flex, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_border_width(secondary_flex, 0, 0);
-        lv_obj_set_style_pad_all(secondary_flex, 0, 0);
-        lv_obj_set_style_pad_gap(secondary_flex, 0, 0);
-        lvgl::obj_set_style_bg_invisible(secondary_flex);
-
-        // align() methods don't work on flex, so we need this extra wrapper
-        lv_obj_t* wrapper = lv_obj_create(secondary_flex);
-        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lvgl::obj_set_style_bg_invisible(wrapper);
-        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_t* content_wrapper = lv_obj_create(parent);
+        lv_obj_set_width(content_wrapper, LV_PCT(100));
+        lv_obj_set_flex_grow(content_wrapper, 1);
+        lv_obj_set_flex_flow(content_wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_border_width(content_wrapper, 0, LV_STATE_DEFAULT);
+        lvgl::obj_set_style_bg_invisible(content_wrapper);
 
         // Enable on boot
 
-        lv_obj_t* enable_label = lv_label_create(wrapper);
-        lv_label_set_text(enable_label, "Enable on boot");
-        lv_obj_align(enable_label, LV_ALIGN_TOP_LEFT, 0, 6);
+        lv_obj_t* enable_wrapper = lv_obj_create(content_wrapper);
+        lv_obj_set_size(enable_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lvgl::obj_set_style_bg_invisible(enable_wrapper);
+        lv_obj_set_style_border_width(enable_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_all(enable_wrapper, 0, LV_STATE_DEFAULT);
 
-        enableOnBootSwitch = lv_switch_create(wrapper);
+        lv_obj_t* enable_label = lv_label_create(enable_wrapper);
+        lv_label_set_text(enable_label, "Enable on boot");
+        lv_obj_align(enable_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+        enableOnBootSwitch = lv_switch_create(enable_wrapper);
         lv_obj_add_event_cb(enableOnBootSwitch, onEnableOnBootSwitchChanged, LV_EVENT_VALUE_CHANGED, this);
-        lv_obj_align(enableOnBootSwitch, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_align(enableOnBootSwitch, LV_ALIGN_RIGHT_MID, 0, 0);
         if (service::development::shouldEnableOnBoot()) {
             lv_obj_add_state(enableOnBootSwitch, LV_STATE_CHECKED);
         } else {
             lv_obj_remove_state(enableOnBootSwitch, LV_STATE_CHECKED);
         }
 
-        statusLabel = lv_label_create(wrapper);
-        lv_obj_align(statusLabel, LV_ALIGN_TOP_LEFT, 0, 50);
+        // Status
 
-        auto warning_label = lv_label_create(wrapper);
+        statusLabel = lv_label_create(content_wrapper);
+
+        // Warning
+
+        auto warning_label = lv_label_create(content_wrapper);
         lv_label_set_text(warning_label, "This feature is experimental and uses an unsecured http connection.");
         lv_obj_set_width(warning_label, LV_PCT(100));
         lv_label_set_long_mode(warning_label, LV_LABEL_LONG_WRAP);
         lv_obj_set_style_text_color(warning_label, lv_color_make(0xff, 0xff, 00), LV_STATE_DEFAULT);
-        lv_obj_align(warning_label, LV_ALIGN_TOP_LEFT, 0, 80);
 
         updateViewState();
 

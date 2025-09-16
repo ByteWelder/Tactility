@@ -1,8 +1,8 @@
-#include "Tactility/app/selectiondialog/SelectionDialog.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/app/selectiondialog/SelectionDialog.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <sstream>
 #include <vector>
@@ -10,18 +10,16 @@
 
 #include <lvgl.h>
 
-#define TAG "text_viewer"
-
 namespace tt::app::log {
 
 class LogApp : public App {
 
-private:
+    static constexpr auto* TAG = "LogApp";
 
     LogLevel filterLevel = LogLevel::Info;
     lv_obj_t* labelWidget = nullptr;
 
-    static inline bool shouldShowLog(LogLevel filterLevel, LogLevel logLevel) {
+    static bool shouldShowLog(LogLevel filterLevel, LogLevel logLevel) {
         return filterLevel >= logLevel;
     }
 
@@ -67,7 +65,8 @@ private:
             "Warning",
             "Error",
         };
-        app::selectiondialog::start("Log Level", items);
+
+        selectiondialog::start("Log Level", items);
     }
 
 public:

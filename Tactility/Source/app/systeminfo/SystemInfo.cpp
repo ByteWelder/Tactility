@@ -1,5 +1,5 @@
-#include "Tactility/TactilityConfig.h"
-#include "Tactility/lvgl/Toolbar.h"
+#include <Tactility/TactilityConfig.h>
+#include <Tactility/lvgl/Toolbar.h>
 
 #include <Tactility/Assets.h>
 #include <Tactility/hal/Device.h>
@@ -106,8 +106,8 @@ static void addMemoryBar(lv_obj_t* parent, const char* label, uint64_t free, uin
     uint64_t used = total - free;
     auto* container = lv_obj_create(parent);
     lv_obj_set_size(container, LV_PCT(100), LV_SIZE_CONTENT);
-    lv_obj_set_style_pad_all(container, 0, 0);
-    lv_obj_set_style_border_width(container, 0, 0);
+    lv_obj_set_style_pad_all(container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(container, 0, LV_STATE_DEFAULT);
     lv_obj_set_flex_flow(container, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_bg_opa(container, 0, LV_STATE_DEFAULT);
 
@@ -203,7 +203,15 @@ static void addDevices(lv_obj_t* parent) {
     }
 }
 
-class SystemInfoApp : public App {
+static lv_obj_t* createTab(lv_obj_t* tabview, const char* name) {
+    auto* tab = lv_tabview_add_tab(tabview, name);
+    lv_obj_set_flex_flow(tab, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(tab, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(tab, 0, LV_STATE_DEFAULT);
+    return tab;
+}
+
+class SystemInfoApp final : public App {
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -212,7 +220,7 @@ class SystemInfoApp : public App {
 
         // This wrapper automatically has its children added vertically underneath eachother
         auto* wrapper = lv_obj_create(parent);
-        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);
@@ -224,20 +232,11 @@ class SystemInfoApp : public App {
 
         // Tabs
 
-        auto* memory_tab = lv_tabview_add_tab(tabview, "Memory");
-        lv_obj_set_flex_flow(memory_tab, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_pad_row(memory_tab, 0, LV_STATE_DEFAULT);
-        auto* storage_tab = lv_tabview_add_tab(tabview, "Storage");
-        lv_obj_set_flex_flow(storage_tab, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_pad_row(storage_tab, 0, LV_STATE_DEFAULT);
-        auto* tasks_tab = lv_tabview_add_tab(tabview, "Tasks");
-        lv_obj_set_flex_flow(tasks_tab, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_pad_row(tasks_tab, 4, LV_STATE_DEFAULT);
-        auto* devices_tab = lv_tabview_add_tab(tabview, "Devices");
-        lv_obj_set_flex_flow(devices_tab, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_pad_row(devices_tab, 4, LV_STATE_DEFAULT);
-        auto* about_tab = lv_tabview_add_tab(tabview, "About");
-        lv_obj_set_flex_flow(about_tab, LV_FLEX_FLOW_COLUMN);
+        auto* memory_tab = createTab(tabview, "Memory");
+        auto* storage_tab = createTab(tabview, "Storage");
+        auto* tasks_tab = createTab(tabview, "Tasks");
+        auto* devices_tab = createTab(tabview, "Devices");
+        auto* about_tab = createTab(tabview, "About");
 
         // Memory tab content
 

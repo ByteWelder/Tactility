@@ -6,5 +6,5 @@ constexpr auto* TAG = "Cardputer";
 bool initBoot() {
     TT_LOG_I(TAG, "initBoot");
 
-    return driver::pwmbacklight::init(GPIO_NUM_38, 256);
+    return driver::pwmbacklight::init(GPIO_NUM_38, 512);
 }
