@@ -1,24 +1,26 @@
-#include "Tactility/app/filebrowser/View.h"
-#include "Tactility/app/filebrowser/State.h"
-#include "Tactility/app/AppContext.h"
+#include <Tactility/app/files/View.h>
+#include <Tactility/app/files/State.h>
+#include <Tactility/app/AppContext.h>
 
 #include <Tactility/Assets.h>
 #include <Tactility/service/loader/Loader.h>
 
 #include <memory>
 
-namespace tt::app::filebrowser {
-
-constexpr auto* TAG = "FileBrowser";
+namespace tt::app::files {
 
 extern const AppManifest manifest;
 
-class FileBrowser : public App {
+class FilesApp final : public App {
+
+    static constexpr auto* TAG = "Files";
+
     std::unique_ptr<View> view;
     std::shared_ptr<State> state;
 
 public:
-    FileBrowser() {
+
+    FilesApp() {
         state = std::make_shared<State>();
         view = std::make_unique<View>(state);
     }
@@ -37,7 +39,7 @@ extern const AppManifest manifest = {
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
     .type = Type::Hidden,
-    .createApp = create<FileBrowser>
+    .createApp = create<FilesApp>
 };
 
 void start() {

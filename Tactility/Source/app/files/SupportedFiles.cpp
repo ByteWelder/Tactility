@@ -1,9 +1,9 @@
 #include <Tactility/StringUtils.h>
 #include <Tactility/TactilityCore.h>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
-constexpr auto* TAG = "FileBrowser";
+constexpr auto* TAG = "Files";
 
 bool isSupportedAppFile(const std::string& filename) {
     return filename.ends_with(".app");

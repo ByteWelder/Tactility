@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/ElfApp.h"
+#include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/ElfApp.h>
 
 #include <Tactility/Bundle.h>
 #include <Tactility/Mutex.h>

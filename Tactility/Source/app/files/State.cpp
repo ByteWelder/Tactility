@@ -1,7 +1,8 @@
-#include "Tactility/app/filebrowser/State.h"
+#include <Tactility/app/files/State.h>
 
 #include <Tactility/file/File.h>
-#include "Tactility/hal/sdcard/SdCardDevice.h"
+#include <Tactility/file/FileLock.h>
+#include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/Log.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/kernel/Kernel.h>
@@ -10,11 +11,10 @@
 #include <unistd.h>
 #include <vector>
 #include <dirent.h>
-#include <Tactility/file/FileLock.h>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
-constexpr auto* TAG = "FileBrowser";
+constexpr auto* TAG = "Files";
 
 State::State() {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {

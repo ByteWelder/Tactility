@@ -2,12 +2,12 @@
 
 #include "./State.h"
 
-#include "Tactility/app/AppManifest.h"
+#include <Tactility/app/AppManifest.h>
 
 #include <lvgl.h>
 #include <memory>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
 class View {
     std::shared_ptr<State> state;

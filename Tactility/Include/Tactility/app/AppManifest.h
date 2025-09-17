@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Tactility/app/AppRegistration.h"
+#include <Tactility/app/AppRegistration.h>
 
 #include <string>
 
