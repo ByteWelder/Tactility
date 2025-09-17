@@ -13,8 +13,6 @@ extern const AppManifest manifest;
 
 class FilesApp final : public App {
 
-    static constexpr auto* TAG = "Files";
-
     std::unique_ptr<View> view;
     std::shared_ptr<State> state;
 
