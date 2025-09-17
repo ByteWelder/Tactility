@@ -96,7 +96,7 @@ extern const AppManifest manifest = {
     .id = "I2cSettings",
     .name = "I2C",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<I2cSettingsApp>
 };
 

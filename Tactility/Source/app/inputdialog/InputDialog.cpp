@@ -120,7 +120,8 @@ public:
 extern const AppManifest manifest = {
     .id = "InputDialog",
     .name = "Input Dialog",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<InputDialogApp>
 };
 

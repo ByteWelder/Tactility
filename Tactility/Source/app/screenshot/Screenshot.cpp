@@ -281,7 +281,7 @@ extern const AppManifest manifest = {
     .id = "Screenshot",
     .name = "Screenshot",
     .icon = LV_SYMBOL_IMAGE,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<ScreenshotApp>
 };
 

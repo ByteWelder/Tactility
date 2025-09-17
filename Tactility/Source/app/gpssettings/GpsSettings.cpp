@@ -19,11 +19,11 @@ extern AppManifest manifest;
 
 namespace tt::app::gpssettings {
 
-constexpr const char* TAG = "GpsSettings";
-
 extern const AppManifest manifest;
 
 class GpsSettingsApp final : public App {
+
+    static constexpr auto* TAG = "GpsSettings";
 
     std::unique_ptr<Timer> timer;
     std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
@@ -268,13 +268,13 @@ class GpsSettingsApp final : public App {
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this] {
             updateViews();
         });
         service = service::gps::findGpsService();
     }
 
-    void onShow(AppContext& app, lv_obj_t* parent) final {
+    void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
@@ -337,7 +337,7 @@ public:
         updateViews();
     }
 
-    void onHide(AppContext& app) final {
+    void onHide(AppContext& app) override {
         service->getStatePubsub()->unsubscribe(serviceStateSubscription);
         serviceStateSubscription = nullptr;
     }
@@ -347,7 +347,7 @@ extern const AppManifest manifest = {
     .id = "GpsSettings",
     .name = "GPS",
     .icon = LV_SYMBOL_GPS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<GpsSettingsApp>
 };
 

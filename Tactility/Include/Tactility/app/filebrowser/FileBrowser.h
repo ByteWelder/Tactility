@@ -1,6 +1,6 @@
 #pragma once
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
 void start();
 

@@ -14,7 +14,7 @@ import shutil
 import configparser
 
 ttbuild_path = ".tactility"
-ttbuild_version = "2.1.0"
+ttbuild_version = "2.1.1"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -618,7 +618,7 @@ if __name__ == "__main__":
             print_help()
             exit_with_error("Commandline parameter missing")
         uninstall_action(manifest, sys.argv[2])
-    elif action_arg == "bir":
+    elif action_arg == "bir" or action_arg == "brrr":
         if len(sys.argv) < 3:
             print_help()
             exit_with_error("Commandline parameter missing")

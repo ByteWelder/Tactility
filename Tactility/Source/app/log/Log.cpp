@@ -123,7 +123,7 @@ extern const AppManifest manifest = {
     .id = "Log",
     .name = "Log",
     .icon = LV_SYMBOL_LIST,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<LogApp>
 };
 

@@ -1,4 +1,4 @@
-#include "Tactility/app/serialconsole/ConnectView.h"
+#include "../../../Private/Tactility/app/serialconsole/ConnectView.h"
 #include "Tactility/app/serialconsole/ConsoleView.h"
 
 #include "Tactility/lvgl/Style.h"
@@ -88,7 +88,7 @@ extern const AppManifest manifest = {
     .id = "SerialConsole",
     .name = "Serial Console",
     .icon = LV_SYMBOL_LIST,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<SerialConsoleApp>
 };
 

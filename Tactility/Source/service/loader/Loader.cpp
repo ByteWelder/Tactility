@@ -103,7 +103,7 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
     auto previous_app = !appStack.empty() ? appStack.top() : nullptr;
     auto new_app = std::make_shared<app::AppInstance>(app_manifest, launchId, parameters);
 
-    new_app->mutableFlags().showStatusbar = (app_manifest->type != app::Type::Boot);
+    new_app->mutableFlags().hideStatusbar = (app_manifest->flags & app::AppManifest::Flags::HideStatusBar);
 
     appStack.push(new_app);
     transitionAppToState(new_app, app::State::Initial);
@@ -141,7 +141,7 @@ void LoaderService::onStopAppMessage(const std::string& id) {
         return;
     }
 
-    if (original_stack_size == 1 && app_to_stop->getManifest().type != app::Type::Boot) {
+    if (original_stack_size == 1 && app_to_stop->getManifest().name != "Boot") {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }

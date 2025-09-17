@@ -1,13 +1,12 @@
-#include "Tactility/app/i2cscanner/I2cScannerPrivate.h"
-#include "Tactility/app/i2cscanner/I2cScannerThread.h"
-#include "Tactility/app/i2cscanner/I2cHelpers.h"
+#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
+#include <Tactility/app/i2cscanner/I2cHelpers.h>
 
-#include "Tactility/Preferences.h"
-#include "Tactility/app/AppContext.h"
-#include "Tactility/hal/i2c/I2cDevice.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/Preferences.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/hal/i2c/I2cDevice.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <Tactility/Assets.h>
 #include <Tactility/Tactility.h>
@@ -15,14 +14,14 @@
 
 #include <format>
 
-#define START_SCAN_TEXT "Scan"
-#define STOP_SCAN_TEXT "Stop scan"
-
 namespace tt::app::i2cscanner {
 
 extern const AppManifest manifest;
 
-class I2cScannerApp : public App {
+class I2cScannerApp final : public App {
+
+    static constexpr auto* START_SCAN_TEXT = "Scan";
+    static constexpr auto* STOP_SCAN_TEXT = "Stop scan";
 
     // Core
     Mutex mutex = Mutex(Mutex::Type::Recursive);
@@ -181,13 +180,6 @@ void I2cScannerApp::onPressScanCallback(lv_event_t* event) {
     }
 }
 
-void I2cScannerApp::onScanTimerCallback() {
-    auto app = optApp();
-    if (app != nullptr) {
-        app->onScanTimer();
-    }
-}
-
 // endregion Callbacks
 
 bool I2cScannerApp::getPort(i2c_port_t* outPort) {
@@ -285,8 +277,8 @@ void I2cScannerApp::startScanning() {
         lv_obj_clean(scanListWidget);
 
         scanState = ScanStateScanning;
-        scanTimer = std::make_unique<Timer>(Timer::Type::Once, []{
-            onScanTimerCallback();
+        scanTimer = std::make_unique<Timer>(Timer::Type::Once, [this]{
+            onScanTimer();
         });
         scanTimer->start(10);
         mutex.unlock();
@@ -414,7 +406,7 @@ extern const AppManifest manifest = {
     .id = "I2cScanner",
     .name = "I2C Scanner",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<I2cScannerApp>
 };
 

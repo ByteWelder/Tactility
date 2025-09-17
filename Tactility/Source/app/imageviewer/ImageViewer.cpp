@@ -62,7 +62,8 @@ class ImageViewerApp : public App {
 extern const AppManifest manifest = {
     .id = "ImageViewer",
     .name = "Image Viewer",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<ImageViewerApp>
 };
 

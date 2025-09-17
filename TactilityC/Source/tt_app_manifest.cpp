@@ -3,18 +3,16 @@
 #include <Tactility/Check.h>
 #include <Tactility/app/ElfApp.h>
 
-#define TAG "tt_app"
-
 extern "C" {
+
+constexpr auto TAG = "tt_app";
 
 void tt_app_register(
     const ExternalAppManifest* manifest
 ) {
 #ifdef ESP_PLATFORM
     assert((manifest->createData == nullptr) == (manifest->destroyData == nullptr));
-    setElfAppManifest(
-        manifest->name,
-        manifest->icon,
+    tt::app::setElfAppParameters(
         manifest->createData,
         manifest->destroyData,
         manifest->onCreate,

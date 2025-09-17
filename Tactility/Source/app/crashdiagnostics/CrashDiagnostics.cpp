@@ -118,7 +118,8 @@ public:
 extern const AppManifest manifest = {
     .id = "CrashDiagnostics",
     .name = "Crash Diagnostics",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<CrashDiagnosticsApp>
 };
 

@@ -5,7 +5,7 @@
 
 namespace tt::app::wificonnect {
 
-class State {
+class State final {
     Mutex lock;
     service::wifi::settings::WifiApSettings apSettings;
     bool connectionError = false;

@@ -15,7 +15,6 @@ static void onShow(AppHandle app, void* data, lv_obj_t* parent) {
 }
 
 ExternalAppManifest manifest = {
-    .name = "Hello World",
     .onShow = onShow
 };
 

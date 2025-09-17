@@ -2,14 +2,14 @@
 
 #include "./State.h"
 
-#include "Tactility/app/AppManifest.h"
+#include <Tactility/app/AppManifest.h>
 
 #include <lvgl.h>
 #include <memory>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
-class View {
+class View final {
     std::shared_ptr<State> state;
 
     lv_obj_t* dir_entry_list = nullptr;

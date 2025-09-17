@@ -60,7 +60,7 @@ extern const AppManifest manifest = {
     .id = "TimeDateSettings",
     .name = "Time & Date",
     .icon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<TimeDateSettingsApp>
 };
 

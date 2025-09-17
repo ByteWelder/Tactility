@@ -97,7 +97,8 @@ extern const AppManifest manifest = {
     .id = "WifiConnect",
     .name = "Wi-Fi Connect",
     .icon = LV_SYMBOL_WIFI,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<WifiConnect>
 };
 

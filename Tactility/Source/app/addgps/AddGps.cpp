@@ -175,7 +175,8 @@ extern const AppManifest manifest = {
     .id = "AddGps",
     .name = "Add GPS",
     .icon = LV_SYMBOL_GPS,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<AddGpsApp>
 };
 

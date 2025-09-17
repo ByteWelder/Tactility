@@ -1,20 +1,18 @@
-#include "Tactility/app/wifiapsettings/WifiApSettings.h"
-
-#include "Tactility/app/App.h"
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/alertdialog/AlertDialog.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-
+#include <Tactility/service/wifi/WifiApSettings.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/app/App.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/TactilityCore.h>
-#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <lvgl.h>
 
 namespace tt::app::wifiapsettings {
 
-#define TAG "wifi_ap_settings"
+constexpr auto* TAG = "WifiApSettings";
 
 extern const AppManifest manifest;
 
@@ -146,7 +144,8 @@ extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<WifiApSettings>
 };
 

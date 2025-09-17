@@ -124,7 +124,6 @@ class BootApp : public App {
         settings::BootSettings boot_properties;
         if (!settings::loadBootSettings(boot_properties) || boot_properties.launcherAppId.empty()) {
             TT_LOG_E(TAG, "Launcher not configured");
-            stop();
             return;
         }
 
@@ -164,7 +163,8 @@ public:
 extern const AppManifest manifest = {
     .id = "Boot",
     .name = "Boot",
-    .type = Type::Boot,
+    .category = Category::System,
+    .flags = AppManifest::Flags::HideStatusBar | AppManifest::Flags::Hidden,
     .createApp = create<BootApp>
 };
 

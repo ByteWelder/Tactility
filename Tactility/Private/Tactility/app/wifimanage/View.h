@@ -3,19 +3,17 @@
 #include "./Bindings.h"
 #include "./State.h"
 
-#include "Tactility/app/AppContext.h"
+#include <Tactility/app/AppContext.h>
 
 #include <lvgl.h>
 
 namespace tt::app::wifimanage {
 
-class View {
-
-private:
+class View final {
 
     Bindings* bindings;
     State* state;
-    std::unique_ptr<app::Paths> paths;
+    std::unique_ptr<Paths> paths;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
     lv_obj_t* enable_on_boot_switch = nullptr;

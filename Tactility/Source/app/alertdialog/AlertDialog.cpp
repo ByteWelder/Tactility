@@ -128,7 +128,8 @@ public:
 extern const AppManifest manifest = {
     .id = "AlertDialog",
     .name = "Alert Dialog",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<AlertDialogApp>
 };
 

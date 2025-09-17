@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Tactility/app/AppRegistration.h"
+#include <Tactility/app/AppRegistration.h>
 
 #include <string>
 
@@ -10,13 +10,7 @@ class App;
 class AppContext;
 
 /** Application types */
-enum class Type {
-    /** Boot screen, shown before desktop is launched. */
-    Boot,
-    /** A launcher app sits at the root of the app stack after the boot splash is finished */
-    Launcher,
-    /** Apps that generally aren't started from the desktop (e.g. image viewer) */
-    Hidden,
+enum class Category {
     /** Standard apps, provided by the system. */
     System,
     /** The apps that are launched/shown by the Settings app. The Settings app itself is of type AppTypeSystem. */
@@ -60,6 +54,15 @@ public:
 typedef std::shared_ptr<App>(*CreateApp)();
 
 struct AppManifest {
+
+    struct Flags {
+        constexpr static uint32_t None = 0;
+        /** Don't show the statusbar */
+        constexpr static uint32_t HideStatusBar = 1 << 0;
+        /** Hint to other systems to not show this app (e.g. in launcher or settings) */
+        constexpr static uint32_t Hidden = 1 << 1;
+    };
+
     /** The identifier by which the app is launched by the system and other apps. */
     std::string id = {};
 
@@ -69,11 +72,14 @@ struct AppManifest {
     /** Optional icon. */
     std::string icon = {};
 
-    /** App type affects launch behaviour. */
-    Type type = Type::User;
+    /** App category helps with listing apps in Launcher, app list or settings apps. */
+    Category category = Category::User;
 
     /** Where the app is located */
     Location location = Location::internal();
+
+    /** Controls various settings */
+    uint32_t flags = Flags::None;
 
     /** Create the instance of the app */
     CreateApp createApp = nullptr;

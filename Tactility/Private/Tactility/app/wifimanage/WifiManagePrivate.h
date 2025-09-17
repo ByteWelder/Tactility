@@ -3,7 +3,7 @@
 #include "./View.h"
 #include "./State.h"
 
-#include "Tactility/app/App.h"
+#include <Tactility/app/App.h>
 
 #include <Tactility/PubSub.h>
 #include <Tactility/Mutex.h>
@@ -11,7 +11,7 @@
 
 namespace tt::app::wifimanage {
 
-class WifiManage : public App {
+class WifiManage final : public App {
 
     PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription = nullptr;
     Mutex mutex;

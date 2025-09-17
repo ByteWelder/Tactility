@@ -45,7 +45,7 @@ extern const AppManifest manifest = {
     .id = "UsbSettings",
     .name = "USB",
     .icon = LV_SYMBOL_USB,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<UsbSettingsApp>
 };
 

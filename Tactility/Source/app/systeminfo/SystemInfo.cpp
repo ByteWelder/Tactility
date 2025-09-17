@@ -295,7 +295,7 @@ extern const AppManifest manifest = {
     .id = "SystemInfo",
     .name = "System Info",
     .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<SystemInfoApp>
 };
 

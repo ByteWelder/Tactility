@@ -8,7 +8,7 @@ namespace tt::app::wifimanage {
 /**
  * View's state
  */
-class State {
+class State final {
 
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     bool scanning = false;
@@ -32,7 +32,7 @@ public:
 
     template <std::invocable<const std::vector<service::wifi::ApRecord>&> Func>
     void withApRecords(Func&& onApRecords) const {
-        mutex.withLock([&]() {
+        mutex.withLock([&] {
             std::invoke(std::forward<Func>(onApRecords), apRecords);
         });
     }

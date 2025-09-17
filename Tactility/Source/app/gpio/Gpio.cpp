@@ -191,7 +191,7 @@ extern const AppManifest manifest = {
     .id = "Gpio",
     .name = "GPIO",
     .icon = TT_ASSETS_APP_ICON_GPIO,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<GpioApp>
 };
 

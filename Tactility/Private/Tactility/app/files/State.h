@@ -6,9 +6,9 @@
 #include <vector>
 #include <dirent.h>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
-class State {
+class State final {
 
 public:
 
@@ -44,7 +44,7 @@ public:
 
     template <std::invocable<const std::vector<dirent> &> Func>
     void withEntries(Func&& onEntries) const {
-        mutex.withLock([&]() {
+        mutex.withLock([&] {
             std::invoke(std::forward<Func>(onEntries), dir_entries);
         });
     }
@@ -61,13 +61,9 @@ public:
 
     std::string getSelectedChildPath() const;
 
-    PendingAction getPendingAction() const {
-        return action;
-    }
+    PendingAction getPendingAction() const { return action; }
 
-    void setPendingAction(PendingAction newAction) {
-        action = newAction;
-    }
+    void setPendingAction(PendingAction newAction) { action = newAction; }
 };
 
 }

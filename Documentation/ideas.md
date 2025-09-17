@@ -3,20 +3,18 @@
 ## Higher Priority
 
 - Show a warning in the web installer when flashing CYD 28R board regarding v1/v2/v3
-- Fix Development service: when no SD card is present, the app fails to install. Consider installing to `/data`
-  Note: Change app install to "transfer file" functionality. We can have a proper install when we have app packaging.
-  Note: Consider installation path option in interface
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
-- Update ILI934x to v2.0.1
-- Apps with update timer in onCreate() should check `lvgl::isStarted()`
 - CrowPanel Basic 3.5": check why GraphicsDemo fails
 - CrowPanel Basic 3.5": check why System Info doesn't show storage info
-- Update to LVGL v9.3 stable
-- Create `app::getSettingsPath()` to get paths to properties files by first trying sd card and then trying `/data`
+- When an SD card is detected, check if it has been initialized and assigned as data partition.
+  If the user choses to select it, then copy files from /data over to it.
+  Write the user choice to a file on the card.
+  File contains 3 statuses: ignore, data, .. initdata?
+  The latter is used for auto-selecting it as data partition.
 
 ## Medium Priority
 
@@ -33,7 +31,6 @@
 
 ## Lower Priority
 
-- Rename `filebrowser` to `files` and `FileBrowser.cpp` to `Files.cpp`
 - Implement system suspend that turns off the screen
 - The boot button on some devices can be used as GPIO_NUM_0 at runtime
 - Localize all apps
@@ -95,3 +92,24 @@
 - Display touch calibration
 - RSS reader
 - Static file web server (with option to specify path and port)
+- Diceware
+
+# App Store
+
+- Register user
+    - Name
+    - Company
+    - Email
+    - Password
+- Create/destroy session
+- List apps
+    - Install app
+    - App ID
+    - App version
+- Add/remove API key
+- Upload app
+    - Category
+    - File
+    - Name
+    - Description
+- List apps

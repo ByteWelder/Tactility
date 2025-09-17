@@ -1,9 +1,9 @@
-#include "Tactility/app/AppContext.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/timezone/TimeZone.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/timezone/TimeZone.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <Tactility/MountPoints.h>
 #include <Tactility/StringUtils.h>
@@ -15,9 +15,8 @@
 namespace tt::app::timezone {
 
 constexpr auto* TAG = "TimeZone";
-
-#define RESULT_BUNDLE_CODE_INDEX "code"
-#define RESULT_BUNDLE_NAME_INDEX "name"
+constexpr auto* RESULT_BUNDLE_CODE_INDEX = "code";
+constexpr auto* RESULT_BUNDLE_NAME_INDEX = "name";
 
 extern const AppManifest manifest;
 
@@ -111,14 +110,6 @@ class TimeZoneApp final : public App {
     static void createListItem(lv_obj_t* list, const std::string& title, size_t index) {
         auto* btn = lv_list_add_button(list, nullptr, title.c_str());
         lv_obj_add_event_cb(btn, &onListItemSelectedCallback, LV_EVENT_SHORT_CLICKED, (void*)index);
-    }
-
-    static void updateTimerCallback() {
-        auto appContext = getCurrentAppContext();
-        if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
-            auto app = std::static_pointer_cast<TimeZoneApp>(appContext->getApp());
-            app->updateList();
-        }
     }
 
     void readTimeZones(std::string filter) {
@@ -228,14 +219,17 @@ public:
     }
 
     void onCreate(AppContext& app) override {
-        updateTimer = std::make_unique<Timer>(Timer::Type::Once, [] { updateTimerCallback(); });
+        updateTimer = std::make_unique<Timer>(Timer::Type::Once, [this] {
+            updateList();
+        });
     }
 };
 
 extern const AppManifest manifest = {
     .id = "TimeZone",
     .name = "Select timezone",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<TimeZoneApp>
 };
 

@@ -192,7 +192,7 @@ extern const AppManifest manifest = {
     .id = "Power",
     .name = "Power",
     .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<PowerApp>
 };
 

@@ -1,40 +1,21 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/app/ElfApp.h"
-#include "Tactility/file/File.h"
-#include "Tactility/file/FileLock.h"
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/app/ElfApp.h>
+#include <Tactility/file/File.h>
+#include <Tactility/file/FileLock.h>
 #include <Tactility/Log.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
 
-#include "esp_elf.h"
+#include <esp_elf.h>
 
 #include <string>
 #include <utility>
-#include <Tactility/app/alertdialog/AlertDialog.h>
 
 namespace tt::app {
 
 constexpr auto* TAG = "ElfApp";
-
-struct ElfManifest {
-    /** The user-readable name of the app. Used in UI. */
-    std::string name;
-    /** Optional icon. */
-    std::string icon;
-    CreateData _Nullable createData = nullptr;
-    DestroyData _Nullable destroyData = nullptr;
-    OnCreate _Nullable onCreate = nullptr;
-    OnDestroy _Nullable onDestroy = nullptr;
-    OnShow _Nullable onShow = nullptr;
-    OnHide _Nullable onHide = nullptr;
-    OnResult _Nullable onResult = nullptr;
-};
-
-static size_t elfManifestSetCount = 0;
-static ElfManifest elfManifest;
-static std::shared_ptr<Lock> elfManifestLock = std::make_shared<Mutex>();
 
 static std::string getErrorCodeString(int error_code) {
     switch (error_code) {
@@ -47,7 +28,30 @@ static std::string getErrorCodeString(int error_code) {
     }
 }
 
-class ElfApp : public App {
+class ElfApp final : public App {
+
+public:
+
+    struct Parameters {
+        CreateData _Nullable createData = nullptr;
+        DestroyData _Nullable destroyData = nullptr;
+        OnCreate _Nullable onCreate = nullptr;
+        OnDestroy _Nullable onDestroy = nullptr;
+        OnShow _Nullable onShow = nullptr;
+        OnHide _Nullable onHide = nullptr;
+        OnResult _Nullable onResult = nullptr;
+    };
+
+    static void setParameters(const Parameters& parameters) {
+        staticParameters = parameters;
+        staticParametersSetCount++;
+    }
+
+private:
+
+    static Parameters staticParameters;
+    static size_t staticParametersSetCount;
+    static std::shared_ptr<Lock> staticParametersLock;
 
     const std::string appPath;
     std::unique_ptr<uint8_t[]> elfFileData;
@@ -60,7 +64,7 @@ class ElfApp : public App {
         .entry = nullptr
     };
     bool shouldCleanupElf = false; // Whether we have to clean up the above "elf" object
-    std::unique_ptr<ElfManifest> manifest;
+    std::unique_ptr<Parameters> manifest;
     void* data = nullptr;
     std::string lastError = "";
 
@@ -128,10 +132,10 @@ public:
     void onCreate(AppContext& appContext) override {
         // Because we use global variables, we have to ensure that we are not starting 2 apps in parallel
         // We use a ScopedLock so we don't have to safeguard all branches
-        auto lock = elfManifestLock->asScopedLock();
+        auto lock = staticParametersLock->asScopedLock();
         lock.lock();
 
-        elfManifestSetCount = 0;
+        staticParametersSetCount = 0;
         if (!startElf()) {
             service::loader::stopApp();
             auto message = lastError.empty() ? "Application failed to start." : std::format("Application failed to start: {}", lastError);
@@ -139,13 +143,13 @@ public:
             return;
         }
 
-        if (elfManifestSetCount == 0) {
+        if (staticParametersSetCount == 0) {
             service::loader::stopApp();
             alertdialog::start("Error", "Application failed to start: application failed to register itself");
             return;
         }
 
-        manifest = std::make_unique<ElfManifest>(elfManifest);
+        manifest = std::make_unique<Parameters>(staticParameters);
         lock.unlock();
 
         if (manifest->createData != nullptr) {
@@ -192,9 +196,11 @@ public:
     }
 };
 
-void setElfAppManifest(
-    const char* name,
-    const char* _Nullable icon,
+ElfApp::Parameters ElfApp::staticParameters;
+size_t ElfApp::staticParametersSetCount = 0;
+std::shared_ptr<Lock> ElfApp::staticParametersLock = std::make_shared<Mutex>();
+
+void setElfAppParameters(
     CreateData _Nullable createData,
     DestroyData _Nullable destroyData,
     OnCreate _Nullable onCreate,
@@ -203,9 +209,7 @@ void setElfAppManifest(
     OnHide _Nullable onHide,
     OnResult _Nullable onResult
 ) {
-    elfManifest = ElfManifest {
-        .name = name ? name : "",
-        .icon = icon ? icon : "",
+    ElfApp::setParameters({
         .createData = createData,
         .destroyData = destroyData,
         .onCreate = onCreate,
@@ -213,8 +217,7 @@ void setElfAppManifest(
         .onShow = onShow,
         .onHide = onHide,
         .onResult = onResult
-    };
-    elfManifestSetCount++;
+    });
 }
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {

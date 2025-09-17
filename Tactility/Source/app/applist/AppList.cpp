@@ -40,7 +40,9 @@ public:
         std::ranges::sort(manifests, SortAppManifestByName);
 
         for (const auto& manifest: manifests) {
-            if (manifest->type == Type::User || manifest->type == Type::System) {
+            bool is_valid_category = (manifest->category == Category::User) || (manifest->category == Category::System);
+            bool is_visible = (manifest->flags & AppManifest::Flags::Hidden) == 0u;
+            if (is_valid_category && is_visible) {
                 createAppWidget(manifest, list);
             }
         }
@@ -50,7 +52,8 @@ public:
 extern const AppManifest manifest = {
     .id = "AppList",
     .name = "Apps",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<AppListApp>,
 };
 

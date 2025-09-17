@@ -3,7 +3,6 @@
 #include <Tactility/Bundle.h>
 
 #include <string>
-#include <vector>
 
 /**
  * Start the app by its ID and provide:

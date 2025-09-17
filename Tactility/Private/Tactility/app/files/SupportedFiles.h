@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
 bool isSupportedAppFile(const std::string& filename);
 bool isSupportedImageFile(const std::string& filename);

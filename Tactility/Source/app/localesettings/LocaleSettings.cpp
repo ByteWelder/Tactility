@@ -165,7 +165,7 @@ extern const AppManifest manifest = {
     .id = "LocaleSettings",
     .name = "Region & Language",
     .icon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<LocaleSettingsApp>
 };
 

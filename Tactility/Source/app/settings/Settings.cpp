@@ -38,7 +38,7 @@ class SettingsApp : public App {
         auto manifests = getApps();
         std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
         for (const auto& manifest: manifests) {
-            if (manifest->type == Type::Settings) {
+            if (manifest->category == Category::Settings) {
                 createWidget(manifest, list);
             }
         }
@@ -49,7 +49,8 @@ extern const AppManifest manifest = {
     .id = "Settings",
     .name = "Settings",
     .icon = TT_ASSETS_APP_ICON_SETTINGS,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<SettingsApp>
 };
 

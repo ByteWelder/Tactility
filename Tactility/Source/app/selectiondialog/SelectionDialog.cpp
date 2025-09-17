@@ -114,7 +114,8 @@ public:
 extern const AppManifest manifest = {
     .id = "SelectionDialog",
     .name = "Selection Dialog",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<SelectionDialogApp>
 };
 
