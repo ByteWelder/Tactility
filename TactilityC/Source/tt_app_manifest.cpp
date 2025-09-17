@@ -12,7 +12,7 @@ void tt_app_register(
 ) {
 #ifdef ESP_PLATFORM
     assert((manifest->createData == nullptr) == (manifest->destroyData == nullptr));
-    tt::app::setElfGuiAppParameters(
+    tt::app::setElfAppParameters(
         manifest->createData,
         manifest->destroyData,
         manifest->onCreate,

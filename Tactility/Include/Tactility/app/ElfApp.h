@@ -14,7 +14,7 @@ typedef void (*OnShow)(void* appContext, void* _Nullable data, lv_obj_t* parent)
 typedef void (*OnHide)(void* appContext, void* _Nullable data);
 typedef void (*OnResult)(void* appContext, void* _Nullable data, LaunchId launchId, Result result, Bundle* resultData);
 
-void setElfGuiAppParameters(
+void setElfAppParameters(
     CreateData _Nullable createData,
     DestroyData _Nullable destroyData,
     OnCreate _Nullable onCreate,

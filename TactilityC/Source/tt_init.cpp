@@ -90,6 +90,9 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(strstr),
     ESP_ELFSYM_EXPORT(memset),
     ESP_ELFSYM_EXPORT(memcpy),
+    ESP_ELFSYM_EXPORT(memcmp),
+    ESP_ELFSYM_EXPORT(memchr),
+    ESP_ELFSYM_EXPORT(memmove),
     // ctype
     ESP_ELFSYM_EXPORT(isalnum),
     ESP_ELFSYM_EXPORT(isalpha),
