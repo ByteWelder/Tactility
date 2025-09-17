@@ -178,7 +178,7 @@ static void registerInstalledApp(std::string path) {
     app::addApp({
         .id = app_id_entry->second,
         .name = app_name_entry->second,
-        .type = app::Type::User,
+        .category = app::Category::User,
         .location = app::Location::external(path)
     });
 }

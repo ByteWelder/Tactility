@@ -18,11 +18,7 @@ namespace tt::app {
 
 constexpr auto* TAG = "ElfApp";
 
-struct ElfManifest {
-    /** The user-readable name of the app. Used in UI. */
-    std::string name;
-    /** Optional icon. */
-    std::string icon;
+struct GuiAppParameters {
     CreateData _Nullable createData = nullptr;
     DestroyData _Nullable destroyData = nullptr;
     OnCreate _Nullable onCreate = nullptr;
@@ -32,9 +28,9 @@ struct ElfManifest {
     OnResult _Nullable onResult = nullptr;
 };
 
-static size_t elfManifestSetCount = 0;
-static ElfManifest elfManifest;
-static std::shared_ptr<Lock> elfManifestLock = std::make_shared<Mutex>();
+static size_t guiAppParametersSetCount = 0;
+static GuiAppParameters guiAppParameters;
+static std::shared_ptr<Lock> guiAppParametersLock = std::make_shared<Mutex>();
 
 static std::string getErrorCodeString(int error_code) {
     switch (error_code) {
@@ -47,7 +43,7 @@ static std::string getErrorCodeString(int error_code) {
     }
 }
 
-class ElfApp : public App {
+class ElfGuiApp : public App {
 
     const std::string appPath;
     std::unique_ptr<uint8_t[]> elfFileData;
@@ -60,7 +56,7 @@ class ElfApp : public App {
         .entry = nullptr
     };
     bool shouldCleanupElf = false; // Whether we have to clean up the above "elf" object
-    std::unique_ptr<ElfManifest> manifest;
+    std::unique_ptr<GuiAppParameters> manifest;
     void* data = nullptr;
     std::string lastError = "";
 
@@ -123,15 +119,15 @@ class ElfApp : public App {
 
 public:
 
-    explicit ElfApp(std::string appPath) : appPath(std::move(appPath)) {}
+    explicit ElfGuiApp(std::string appPath) : appPath(std::move(appPath)) {}
 
     void onCreate(AppContext& appContext) override {
         // Because we use global variables, we have to ensure that we are not starting 2 apps in parallel
         // We use a ScopedLock so we don't have to safeguard all branches
-        auto lock = elfManifestLock->asScopedLock();
+        auto lock = guiAppParametersLock->asScopedLock();
         lock.lock();
 
-        elfManifestSetCount = 0;
+        guiAppParametersSetCount = 0;
         if (!startElf()) {
             service::loader::stopApp();
             auto message = lastError.empty() ? "Application failed to start." : std::format("Application failed to start: {}", lastError);
@@ -139,13 +135,13 @@ public:
             return;
         }
 
-        if (elfManifestSetCount == 0) {
+        if (guiAppParametersSetCount == 0) {
             service::loader::stopApp();
             alertdialog::start("Error", "Application failed to start: application failed to register itself");
             return;
         }
 
-        manifest = std::make_unique<ElfManifest>(elfManifest);
+        manifest = std::make_unique<GuiAppParameters>(guiAppParameters);
         lock.unlock();
 
         if (manifest->createData != nullptr) {
@@ -192,9 +188,7 @@ public:
     }
 };
 
-void setElfAppManifest(
-    const char* name,
-    const char* _Nullable icon,
+void setElfGuiAppParameters(
     CreateData _Nullable createData,
     DestroyData _Nullable destroyData,
     OnCreate _Nullable onCreate,
@@ -203,9 +197,7 @@ void setElfAppManifest(
     OnHide _Nullable onHide,
     OnResult _Nullable onResult
 ) {
-    elfManifest = ElfManifest {
-        .name = name ? name : "",
-        .icon = icon ? icon : "",
+    guiAppParameters = GuiAppParameters {
         .createData = createData,
         .destroyData = destroyData,
         .onCreate = onCreate,
@@ -214,14 +206,14 @@ void setElfAppManifest(
         .onHide = onHide,
         .onResult = onResult
     };
-    elfManifestSetCount++;
+    guiAppParametersSetCount++;
 }
 
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {
     TT_LOG_I(TAG, "createElfApp");
     assert(manifest != nullptr);
     assert(manifest->location.isExternal());
-    return std::make_shared<ElfApp>(manifest->location.getPath());
+    return std::make_shared<ElfGuiApp>(manifest->location.getPath());
 }
 
 } // namespace

@@ -38,7 +38,8 @@ extern const AppManifest manifest = {
     .id = "Files",
     .name = "Files",
     .icon = TT_ASSETS_APP_ICON_FILES,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<FilesApp>
 };
 

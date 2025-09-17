@@ -164,7 +164,7 @@ public:
 extern const AppManifest manifest = {
     .id = "Development",
     .name = "Development",
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<DevelopmentApp>
 };
 

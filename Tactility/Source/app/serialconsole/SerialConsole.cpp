@@ -88,7 +88,7 @@ extern const AppManifest manifest = {
     .id = "SerialConsole",
     .name = "Serial Console",
     .icon = LV_SYMBOL_LIST,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<SerialConsoleApp>
 };
 

@@ -406,7 +406,7 @@ extern const AppManifest manifest = {
     .id = "I2cScanner",
     .name = "I2C Scanner",
     .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .type = Type::System,
+    .category = Category::System,
     .createApp = create<I2cScannerApp>
 };
 

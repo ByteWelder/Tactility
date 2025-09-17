@@ -347,7 +347,7 @@ extern const AppManifest manifest = {
     .id = "GpsSettings",
     .name = "GPS",
     .icon = LV_SYMBOL_GPS,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<GpsSettingsApp>
 };
 

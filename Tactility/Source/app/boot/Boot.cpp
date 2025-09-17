@@ -163,7 +163,8 @@ public:
 extern const AppManifest manifest = {
     .id = "Boot",
     .name = "Boot",
-    .type = Type::Boot,
+    .category = Category::System,
+    .flags = AppManifest::Flags::HideStatusBar | AppManifest::Flags::Hidden,
     .createApp = create<BootApp>
 };
 

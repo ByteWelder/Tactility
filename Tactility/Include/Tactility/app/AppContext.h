@@ -13,7 +13,7 @@ enum class Result;
 
 typedef union {
     struct {
-        bool showStatusbar : 1;
+        bool hideStatusbar : 1;
     };
     unsigned char flags;
 } Flags;

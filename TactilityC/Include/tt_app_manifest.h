@@ -28,10 +28,6 @@ typedef void (*AppOnHide)(AppHandle app, void* _Nullable data);
 typedef void (*AppOnResult)(AppHandle app, void* _Nullable data, AppLaunchId launchId, AppResult result, BundleHandle resultData);
 
 typedef struct {
-    /** The application's human-readable name */
-    const char* name;
-    /** The application icon (you can use LV_SYMBOL_* too) */
-    const char* _Nullable icon;
     /** The application can allocate data to re-use later (e.g. struct with state) */
     AppCreateData _Nullable createData;
     /** If createData is specified, this one must be specified too */

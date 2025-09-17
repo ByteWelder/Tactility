@@ -216,7 +216,7 @@ bool install(const std::string& path) {
     addApp({
         .id = app_id_iterator->second,
         .name = app_name_entry->second,
-        .type = Type::User,
+        .category = Category::User,
         .location = Location::external(renamed_target_path)
     });
 

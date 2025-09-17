@@ -144,7 +144,8 @@ extern const AppManifest manifest = {
     .id = "WifiApSettings",
     .name = "Wi-Fi AP Settings",
     .icon = LV_SYMBOL_WIFI,
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<WifiApSettings>
 };
 

@@ -136,7 +136,7 @@ extern const AppManifest manifest = {
     .id = "WifiManage",
     .name = "Wi-Fi",
     .icon = LV_SYMBOL_WIFI,
-    .type = Type::Settings,
+    .category = Category::Settings,
     .createApp = create<WifiManage>
 };
 

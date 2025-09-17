@@ -228,7 +228,8 @@ public:
 extern const AppManifest manifest = {
     .id = "TimeZone",
     .name = "Select timezone",
-    .type = Type::Hidden,
+    .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<TimeZoneApp>
 };
 

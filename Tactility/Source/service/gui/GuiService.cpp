@@ -1,7 +1,6 @@
 #include "Tactility/service/gui/GuiService.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "Tactility/lvgl/Statusbar.h"
-#include "Tactility/lvgl/Style.h"
 #include "Tactility/service/loader/Loader.h"
 
 #include <Tactility/Tactility.h>
@@ -92,10 +91,10 @@ void GuiService::redraw() {
             lv_group_set_default(group);
 
             app::Flags flags = std::static_pointer_cast<app::AppInstance>(appToRender)->getFlags();
-            if (flags.showStatusbar) {
-                lv_obj_remove_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
-            } else {
+            if (flags.hideStatusbar) {
                 lv_obj_add_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_remove_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
             }
 
             lv_obj_t* container = createAppViews(appRootWidget);
