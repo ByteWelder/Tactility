@@ -8,7 +8,7 @@
 
 namespace tt::app::files {
 
-class State {
+class State final {
 
 public:
 

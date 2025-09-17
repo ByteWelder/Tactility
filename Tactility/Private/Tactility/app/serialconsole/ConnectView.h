@@ -1,13 +1,13 @@
 #pragma once
 
-#include "./View.h"
+#include "View.h"
 
-#include "Tactility/Preferences.h"
-#include "Tactility/Tactility.h"
-#include "Tactility/app/alertdialog/AlertDialog.h"
-#include "Tactility/hal/uart/Uart.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Style.h"
+#include <Tactility/Preferences.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Style.h>
 
 #include <Tactility/StringUtils.h>
 #include <string>
@@ -127,7 +127,7 @@ public:
         lv_obj_add_event_cb(connect_button, onConnectCallback, LV_EVENT_SHORT_CLICKED, this);
     }
 
-    void onStop() {
+    void onStop() override {
         int speed = getSpeedInput();
         if (speed > 0) {
             preferences.putInt32("speed", speed);

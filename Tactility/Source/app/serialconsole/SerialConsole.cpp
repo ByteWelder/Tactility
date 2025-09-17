@@ -1,4 +1,4 @@
-#include "Tactility/app/serialconsole/ConnectView.h"
+#include "../../../Private/Tactility/app/serialconsole/ConnectView.h"
 #include "Tactility/app/serialconsole/ConsoleView.h"
 
 #include "Tactility/lvgl/Style.h"

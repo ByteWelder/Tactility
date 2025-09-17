@@ -60,7 +60,7 @@ namespace app {
     namespace chat { extern const AppManifest manifest; }
     namespace development { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
-    namespace filebrowser { extern const AppManifest manifest; }
+    namespace files { extern const AppManifest manifest; }
     namespace fileselection { extern const AppManifest manifest; }
     namespace gpio { extern const AppManifest manifest; }
     namespace gpssettings { extern const AppManifest manifest; }
@@ -102,7 +102,7 @@ static void registerSystemApps() {
     addApp(app::applist::manifest);
     addApp(app::calculator::manifest);
     addApp(app::display::manifest);
-    addApp(app::filebrowser::manifest);
+    addApp(app::files::manifest);
     addApp(app::fileselection::manifest);
     addApp(app::gpio::manifest);
     addApp(app::imageviewer::manifest);

@@ -1,20 +1,17 @@
 #pragma once
 
-#include "./View.h"
-#include "Tactility/Timer.h"
+#include <Tactility/app/serialconsole/View.h>
+#include <Tactility/Timer.h>
 #include <cstring>
 #include <sstream>
 
-#define TAG "SerialConsole"
-
 namespace tt::app::serialconsole {
 
+constexpr auto* TAG = "SerialConsole";
 constexpr size_t receiveBufferSize = 512;
 constexpr size_t renderBufferSize = receiveBufferSize + 2; // Leave space for newline at split and null terminator at the end
 
 class ConsoleView final : public View {
-
-private:
 
     lv_obj_t* _Nullable parent = nullptr;
     lv_obj_t* _Nullable logTextarea = nullptr;
@@ -215,7 +212,7 @@ public:
         viewThread = std::make_unique<Thread>(
             "SerConsView",
             4096,
-            [this]() {
+            [this] {
               return this->viewThreadMain();
             }
         );
@@ -276,7 +273,7 @@ public:
         startViews(parent);
     }
 
-    void onStop() final {
+    void onStop() override {
         stopViews();
         stopLogic();
         stopUart();

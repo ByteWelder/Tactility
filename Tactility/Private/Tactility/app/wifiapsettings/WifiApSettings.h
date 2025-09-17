@@ -1,8 +1,6 @@
 #pragma once
 
-#include <Tactility/Bundle.h>
-#include <Tactility/Mutex.h>
-#include <Tactility/service/wifi/Wifi.h>
+#include <string>
 
 namespace tt::app::wifiapsettings {
 

@@ -64,14 +64,14 @@ public:
         auto lock = getMutex().asScopedLock();
         lock.lock();
 
-        if (resultHolder != nullptr) {
-            outResult = resultHolder->result;
-            outBundle = std::move(resultHolder->resultData);
-            resultHolder = nullptr;
-            return true;
-        } else {
+        if (resultHolder == nullptr) {
             return false;
         }
+
+        outResult = resultHolder->result;
+        outBundle = std::move(resultHolder->resultData);
+        resultHolder = nullptr;
+        return true;
     }
 };
 

@@ -3,14 +3,14 @@
 #include "./State.h"
 #include "./FileSelectionPrivate.h"
 
-#include "Tactility/app/AppManifest.h"
+#include <Tactility/app/AppManifest.h>
 
 #include <lvgl.h>
 #include <memory>
 
 namespace tt::app::fileselection {
 
-class View {
+class View final {
     std::shared_ptr<State> state;
 
     lv_obj_t* dir_entry_list = nullptr;

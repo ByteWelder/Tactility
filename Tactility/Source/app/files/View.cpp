@@ -22,14 +22,14 @@
 #include <Tactility/service/loader/Loader.h>
 #endif
 
-namespace tt::app::filebrowser {
+namespace tt::app::files {
 
 constexpr auto* TAG = "Files";
 
 // region Callbacks
 
 static void dirEntryListScrollBeginCallback(lv_event_t* event) {
-    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    auto* view = static_cast<files::View*>(lv_event_get_user_data(event));
     view->onDirEntryListScrollBegin();
 }
 

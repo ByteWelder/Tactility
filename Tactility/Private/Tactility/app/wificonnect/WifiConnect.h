@@ -1,16 +1,16 @@
 #pragma once
 
-#include "Tactility/app/App.h"
-#include "Tactility/app/wificonnect/Bindings.h"
-#include "Tactility/app/wificonnect/State.h"
-#include "Tactility/app/wificonnect/View.h"
+#include <Tactility/app/App.h>
+#include <Tactility/app/wificonnect/Bindings.h>
+#include <Tactility/app/wificonnect/State.h>
+#include <Tactility/app/wificonnect/View.h>
 
 #include <Tactility/Mutex.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 namespace tt::app::wificonnect {
 
-class WifiConnect : public App {
+class WifiConnect final : public App {
 
     Mutex mutex;
     State state;
@@ -27,7 +27,7 @@ class WifiConnect : public App {
 public:
 
     WifiConnect();
-    ~WifiConnect();
+    ~WifiConnect() override;
 
     void lock();
     void unlock();
@@ -38,7 +38,6 @@ public:
     State& getState() { return state; }
     Bindings& getBindings() { return bindings; }
     View& getView() { return view; }
-
 
     void requestViewUpdate();
 };

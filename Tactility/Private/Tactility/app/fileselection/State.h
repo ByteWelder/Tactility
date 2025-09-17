@@ -8,7 +8,7 @@
 
 namespace tt::app::fileselection {
 
-class State {
+class State final {
 
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     std::vector<dirent> dir_entries;
