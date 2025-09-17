@@ -124,7 +124,6 @@ class BootApp : public App {
         settings::BootSettings boot_properties;
         if (!settings::loadBootSettings(boot_properties) || boot_properties.launcherAppId.empty()) {
             TT_LOG_E(TAG, "Launcher not configured");
-            stop();
             return;
         }
 
