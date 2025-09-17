@@ -89,7 +89,6 @@ static void onDestroy(AppHandle appHandle, void* data) {
 }
 
 ExternalAppManifest manifest = {
-    .name = "Hello World",
     .onCreate = onCreate,
     .onDestroy = onDestroy
 };

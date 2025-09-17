@@ -14,7 +14,6 @@ static void destroyApp(void* app) {
 }
 
 ExternalAppManifest manifest = {
-    .name = "Hello World",
     .createData = createApp,
     .destroyData = destroyApp,
     .onShow = onShow,
