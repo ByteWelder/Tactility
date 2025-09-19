@@ -72,7 +72,7 @@ static void onConnectToHiddenClicked(lv_event_t* event) {
 void View::connect(lv_event_t* event) {
     TT_LOG_D(TAG, "connect()");
     auto* widget = lv_event_get_current_target_obj(event);
-    auto index = reinterpret_cast<int>(lv_obj_get_user_data(widget));
+    auto index = reinterpret_cast<size_t>(lv_obj_get_user_data(widget));
     auto* self = static_cast<View*>(lv_event_get_user_data(event));
     auto ap_records = self->state->getApRecords();
 
@@ -94,7 +94,7 @@ void View::connect(lv_event_t* event) {
 void View::showDetails(lv_event_t* event) {
     TT_LOG_D(TAG, "showDetails()");
     auto* widget = lv_event_get_current_target_obj(event);
-    auto index = reinterpret_cast<int>(lv_obj_get_user_data(widget));
+    auto index = reinterpret_cast<size_t>(lv_obj_get_user_data(widget));
     auto* self = static_cast<View*>(lv_event_get_user_data(event));
     auto ap_records = self->state->getApRecords();
 
@@ -107,7 +107,7 @@ void View::showDetails(lv_event_t* event) {
     }
 }
 
-void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting, int index) {
+void View::createSsidListItem(const service::wifi::ApRecord& record, bool isConnecting, size_t index) {
     if (isConnecting) {
         auto* button = lv_list_add_button(networks_list, LV_SYMBOL_WIFI, record.ssid.c_str());
         lv_obj_add_event_cb(button, showDetails, LV_EVENT_SHORT_CLICKED, this);
