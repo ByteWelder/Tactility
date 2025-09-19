@@ -113,3 +113,7 @@
     - Name
     - Description
 - List apps
+
+# Notes on firmware size
+
+- adding esp_http_client (with esp_event) added about 100kB
