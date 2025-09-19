@@ -13,7 +13,7 @@ void __wrap_lv_obj_set_flex_flow(lv_obj_t* obj, lv_flex_flow_t flow) {
     __real_lv_obj_set_flex_flow(obj, flow);
 
     if (tt::hal::getConfiguration()->uiScale == tt::hal::UiScale::Smallest) {
-        lv_obj_set_style_pad_gap(obj, 2, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_gap(obj, 4, LV_STATE_DEFAULT);
     }
 }
 

@@ -130,6 +130,13 @@ class BootApp : public App {
         service::loader::startApp(boot_properties.launcherAppId);
     }
 
+    static int getSmallestDimension() {
+        auto* display = lv_display_get_default();
+        int width = lv_display_get_horizontal_resolution(display);
+        int height = lv_display_get_vertical_resolution(display);
+        return std::min(width, height);
+    }
+
 public:
 
     void onCreate(AppContext& app) override {
@@ -153,7 +160,13 @@ public:
         lv_obj_align(image, LV_ALIGN_CENTER, 0, 0);
 
         const auto paths = app.getPaths();
-        const char* logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
+        const char* logo;
+        // TODO: Replace with automatic asset buckets like on Android
+        if (getSmallestDimension() < 150) { // e.g. Cardputer
+            logo = hal::usb::isUsbBootMode() ? "assets/logo_usb.png" : "assets/logo_small.png";
+        } else {
+            logo = hal::usb::isUsbBootMode() ? "assets/logo_usb.png" : "assets/logo.png";
+        }
         const auto logo_path = paths->getSystemPathLvgl(logo);
         TT_LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());

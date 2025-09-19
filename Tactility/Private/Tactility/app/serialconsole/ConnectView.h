@@ -77,6 +77,14 @@ private:
         view->onConnect();
     }
 
+    static lv_obj_t* createRowWrapper(lv_obj_t* parent) {
+        auto* wrapper = lv_obj_create(parent);
+        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_all(wrapper, 0, LV_STATE_DEFAULT);
+        return wrapper;
+    }
+
 public:
 
     explicit ConnectView(OnConnectedFunction onConnected) : onConnected(std::move(onConnected)) {}
@@ -85,46 +93,55 @@ public:
         uartNames = hal::uart::getNames();
 
         auto* wrapper = lv_obj_create(parent);
-        lv_obj_set_size(wrapper, LV_PCT(100), LV_PCT(100));
-        lv_obj_set_style_pad_ver(wrapper, 0, 0);
-        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
         lvgl::obj_set_style_bg_invisible(wrapper);
 
-        busDropdown = lv_dropdown_create(wrapper);
+        // Bus selection
+
+        auto* bus_wrapper = createRowWrapper(wrapper);
+
+        busDropdown = lv_dropdown_create(bus_wrapper);
 
         auto bus_options = string::join(uartNames, "\n");
         lv_dropdown_set_options(busDropdown, bus_options.c_str());
-        lv_obj_align(busDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);
+        lv_obj_align(busDropdown, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_set_width(busDropdown, LV_PCT(50));
-        lv_obj_set_style_border_color(busDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
-        lv_obj_set_style_border_width(busDropdown, 1, LV_PART_MAIN);
+
         int32_t bus_index = 0;
         preferences.optInt32("bus", bus_index);
         if (bus_index < uartNames.size()) {
             lv_dropdown_set_selected(busDropdown, bus_index);
         }
 
-        auto* bus_label = lv_label_create(wrapper);
-        lv_obj_align(bus_label, LV_ALIGN_TOP_LEFT, 0, 10);
+        auto* bus_label = lv_label_create(bus_wrapper);
+        lv_obj_align(bus_label, LV_ALIGN_LEFT_MID, 0, 0);
         lv_label_set_text(bus_label, "Bus");
+
+        // Baud rate selection
+        auto* baud_wrapper = createRowWrapper(wrapper);
 
         int32_t speed = 115200;
         preferences.optInt32("speed", speed);
-        speedTextarea = lv_textarea_create(wrapper);
+        speedTextarea = lv_textarea_create(baud_wrapper);
         lv_textarea_set_text(speedTextarea, std::to_string(speed).c_str());
         lv_textarea_set_one_line(speedTextarea, true);
         lv_obj_set_width(speedTextarea, LV_PCT(50));
-        lv_obj_align(speedTextarea, LV_ALIGN_TOP_RIGHT, 0, 40);
+        lv_obj_align(speedTextarea, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-        auto* baud_rate_label = lv_label_create(wrapper);
-        lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 50);
+        auto* baud_rate_label = lv_label_create(baud_wrapper);
+        lv_obj_align(baud_rate_label, LV_ALIGN_TOP_LEFT, 0, 0);
         lv_label_set_text(baud_rate_label, "Baud");
 
-        auto* connect_button = lv_button_create(wrapper);
+        // Connect
+        auto* connect_wrapper = createRowWrapper(wrapper);
+
+        auto* connect_button = lv_button_create(connect_wrapper);
+        lv_obj_align(connect_button, LV_ALIGN_CENTER, 0, 0);
+        lv_obj_add_event_cb(connect_button, onConnectCallback, LV_EVENT_SHORT_CLICKED, this);
         auto* connect_label = lv_label_create(connect_button);
         lv_label_set_text(connect_label, "Connect");
-        lv_obj_align(connect_button, LV_ALIGN_TOP_MID, 0, 90);
-        lv_obj_add_event_cb(connect_button, onConnectCallback, LV_EVENT_SHORT_CLICKED, this);
     }
 
     void onStop() override {

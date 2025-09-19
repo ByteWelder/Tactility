@@ -37,6 +37,12 @@ public:
         });
     }
 
+    std::vector<service::wifi::ApRecord> getApRecords() const {
+        auto lock = mutex.asScopedLock();
+        lock.lock();
+        return apRecords;
+    }
+
     void setConnectSsid(const std::string& ssid);
     std::string getConnectSsid() const;
 };

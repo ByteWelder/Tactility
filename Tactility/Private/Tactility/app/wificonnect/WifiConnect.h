@@ -20,7 +20,7 @@ class WifiConnect final : public App {
     };
     View view = View(&bindings, &state);
     PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription;
-    bool view_enabled = false;
+    bool viewEnabled = false;
 
     void onWifiEvent(service::wifi::WifiEvent event);
 

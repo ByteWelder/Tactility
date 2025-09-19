@@ -13,7 +13,7 @@ constexpr auto TAG = "WifiManage";
 
 extern const AppManifest manifest;
 
-static void onConnect(const char* ssid) {
+static void onConnect(const std::string& ssid) {
     service::wifi::settings::WifiApSettings settings;
     if (service::wifi::settings::load(ssid, settings)) {
         TT_LOG_I(TAG, "Connecting with known credentials");
@@ -24,7 +24,7 @@ static void onConnect(const char* ssid) {
     }
 }
 
-static void onShowApSettings(const char* ssid) {
+static void onShowApSettings(const std::string& ssid) {
     wifiapsettings::start(ssid);
 }
 
