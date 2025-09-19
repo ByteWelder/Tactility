@@ -77,6 +77,14 @@ private:
         view->onConnect();
     }
 
+    static lv_obj_t* createRowWrapper(lv_obj_t* parent) {
+        auto* wrapper = lv_obj_create(parent);
+        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_border_width(wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_all(wrapper, 0, LV_STATE_DEFAULT);
+        return wrapper;
+    }
+
 public:
 
     explicit ConnectView(OnConnectedFunction onConnected) : onConnected(std::move(onConnected)) {}
@@ -92,9 +100,7 @@ public:
 
         // Bus selection
 
-        auto* bus_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_size(bus_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(bus_wrapper, 0, LV_STATE_DEFAULT);
+        auto* bus_wrapper = createRowWrapper(wrapper);
 
         busDropdown = lv_dropdown_create(bus_wrapper);
 
@@ -114,9 +120,7 @@ public:
         lv_label_set_text(bus_label, "Bus");
 
         // Baud rate selection
-        auto* baud_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_size(baud_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(baud_wrapper, 0, LV_STATE_DEFAULT);
+        auto* baud_wrapper = createRowWrapper(wrapper);
 
         int32_t speed = 115200;
         preferences.optInt32("speed", speed);
@@ -131,9 +135,7 @@ public:
         lv_label_set_text(baud_rate_label, "Baud");
 
         // Connect
-        auto* connect_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_size(connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(connect_wrapper, 0, LV_STATE_DEFAULT);
+        auto* connect_wrapper = createRowWrapper(wrapper);
 
         auto* connect_button = lv_button_create(connect_wrapper);
         lv_obj_align(connect_button, LV_ALIGN_CENTER, 0, 0);
