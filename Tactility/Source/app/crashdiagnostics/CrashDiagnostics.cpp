@@ -1,5 +1,7 @@
 #ifdef ESP_PLATFORM
 
+#include "Tactility/hal/Device.h"
+
 #include <Tactility/app/crashdiagnostics/QrHelpers.h>
 #include <Tactility/app/crashdiagnostics/QrUrl.h>
 #include <Tactility/app/launcher/Launcher.h>
@@ -32,7 +34,11 @@ public:
         lv_obj_align(top_label, LV_ALIGN_TOP_MID, 0, 2);
 
         auto* bottom_label = lv_label_create(parent);
-        lv_label_set_text(bottom_label, "Tap screen to continue");
+        if (hal::hasDevice(hal::Device::Type::Touch)) {
+            lv_label_set_text(bottom_label, "Tap screen to continue");
+        } else {
+            lv_label_set_text(bottom_label, "Reboot device to continue");
+        }
         lv_obj_align(bottom_label, LV_ALIGN_BOTTOM_MID, 0, -2);
 
         std::string url = getUrlFromCrashData();

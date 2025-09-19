@@ -93,8 +93,6 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        // Toolbar
-        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
         enableSwitch = lvgl::toolbar_add_switch_action(toolbar);

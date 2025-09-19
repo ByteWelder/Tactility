@@ -13,7 +13,7 @@ lv_obj_t* __wrap_lv_button_create(lv_obj_t* parent) {
 
     if (tt::hal::getConfiguration()->uiScale == tt::hal::UiScale::Smallest) {
         lv_obj_set_style_pad_all(button, 2, LV_STATE_DEFAULT);
-        lv_obj_set_style_radius(button, 2, LV_STATE_DEFAULT);
+        lv_obj_set_style_radius(button, 3, LV_STATE_DEFAULT);
     }
 
     return button;

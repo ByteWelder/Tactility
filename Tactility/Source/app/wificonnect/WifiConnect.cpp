@@ -67,7 +67,7 @@ void WifiConnect::unlock() {
 
 void WifiConnect::requestViewUpdate() {
     lock();
-    if (view_enabled) {
+    if (viewEnabled) {
         if (lvgl::lock(1000)) {
             view.update();
             lvgl::unlock();
@@ -80,7 +80,7 @@ void WifiConnect::requestViewUpdate() {
 
 void WifiConnect::onShow(AppContext& app, lv_obj_t* parent) {
     lock();
-    view_enabled = true;
+    viewEnabled = true;
     view.init(app, parent);
     view.update();
     unlock();
@@ -89,7 +89,7 @@ void WifiConnect::onShow(AppContext& app, lv_obj_t* parent) {
 void WifiConnect::onHide(TT_UNUSED AppContext& app) {
     // No need to lock view, as this is called from within Gui's LVGL context
     lock();
-    view_enabled = false;
+    viewEnabled = false;
     unlock();
 }
 
