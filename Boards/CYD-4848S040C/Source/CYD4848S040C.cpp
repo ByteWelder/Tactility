@@ -1,4 +1,7 @@
 #include "CYD4848S040C.h"
+
+#include "Tactility/kernel/SystemEvents.h"
+#include "Tactility/lvgl/LvglSync.h"
 #include "devices/St7701Display.h"
 #include "devices/SdCard.h"
 
@@ -12,7 +15,7 @@ static bool initBoot() {
 
 static DeviceVector createDevices() {
     return {
-        std::reinterpret_pointer_cast<Device>(std::make_shared<St7701Display>()),
+        std::make_shared<St7701Display>(),
         createSdCard()
     };
 }
@@ -59,7 +62,7 @@ const Configuration cyd_4848s040c_config = {
         }
     },
     .spi {
-        //SD Card
+        // SD Card & display init
         spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -68,20 +71,20 @@ const Configuration cyd_4848s040c_config = {
                 .miso_io_num = GPIO_NUM_41,
                 .sclk_io_num = GPIO_NUM_48,
                 .quadwp_io_num = -1,
-                .quadhd_io_num = -1,
+                .quadhd_io_num = GPIO_NUM_42,
                 .data4_io_num = -1,
                 .data5_io_num = -1,
                 .data6_io_num = -1,
                 .data7_io_num = -1,
                 .data_io_default_level = false,
-                .max_transfer_sz = 8192,
+                .max_transfer_sz = 1024 * 128,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
             },
             .initMode = spi::InitMode::ByTactility,
             .isMutable = false,
-            .lock = nullptr
+            .lock = tt::lvgl::getSyncLock()
         }
     }
 };

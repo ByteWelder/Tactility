@@ -11,7 +11,9 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         GPIO_NUM_NC,
-        SdCardDevice::MountBehaviour::AtBoot
+        SdCardDevice::MountBehaviour::AtBoot,
+        tt::lvgl::getSyncLock(),
+        std::vector { GPIO_NUM_39 }
     );
 
     auto sdcard = std::make_shared<SpiSdCardDevice>(
