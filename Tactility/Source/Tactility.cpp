@@ -176,10 +176,10 @@ static void registerInstalledApp(std::string path) {
     }
 
     app::addApp({
-        .id = app_id_entry->second,
-        .name = app_name_entry->second,
-        .category = app::Category::User,
-        .location = app::Location::external(path)
+        .appId = app_id_entry->second,
+        .appName = app_name_entry->second,
+        .appCategory = app::Category::User,
+        .appLocation = app::Location::external(path)
     });
 }
 
@@ -289,7 +289,7 @@ void run(const Configuration& config) {
     TT_LOG_I(TAG, "Starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
     addApp(app::boot::manifest);
-    service::loader::startApp(app::boot::manifest.id);
+    service::loader::startApp(app::boot::manifest.appId);
 
     TT_LOG_I(TAG, "Main dispatcher ready");
     while (true) {

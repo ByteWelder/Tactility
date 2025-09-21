@@ -58,7 +58,7 @@ class GpsSettingsApp final : public App {
     }
 
     void onAddGps() {
-        app::start(addgps::manifest.id);
+        app::start(addgps::manifest.appId);
     }
 
     void startReceivingUpdates() {
@@ -344,15 +344,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "GpsSettings",
-    .name = "GPS",
-    .icon = LV_SYMBOL_GPS,
-    .category = Category::Settings,
+    .appId = "GpsSettings",
+    .appName = "GPS",
+    .appIcon = LV_SYMBOL_GPS,
+    .appCategory = Category::Settings,
     .createApp = create<GpsSettingsApp>
 };
 
 void start() {
-    app::start(manifest.id);
+    app::start(manifest.appId);
 }
 
 } // namespace

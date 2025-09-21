@@ -60,17 +60,17 @@ class ImageViewerApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "ImageViewer",
-    .name = "Image Viewer",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "ImageViewer",
+    .appName = "Image Viewer",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<ImageViewerApp>
 };
 
 void start(const std::string& file) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(IMAGE_VIEWER_FILE_ARGUMENT, file);
-    service::loader::startApp(manifest.id, parameters);
+    service::loader::startApp(manifest.appId, parameters);
 }
 
 } // namespace

@@ -122,15 +122,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "CrashDiagnostics",
-    .name = "Crash Diagnostics",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "CrashDiagnostics",
+    .appName = "Crash Diagnostics",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<CrashDiagnosticsApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

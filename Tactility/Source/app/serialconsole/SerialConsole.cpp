@@ -85,10 +85,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "SerialConsole",
-    .name = "Serial Console",
-    .icon = LV_SYMBOL_LIST,
-    .category = Category::System,
+    .appId = "SerialConsole",
+    .appName = "Serial Console",
+    .appIcon = LV_SYMBOL_LIST,
+    .appCategory = Category::System,
     .createApp = create<SerialConsoleApp>
 };
 

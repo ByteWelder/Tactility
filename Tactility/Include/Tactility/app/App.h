@@ -94,8 +94,6 @@ std::shared_ptr<AppContext> _Nullable getCurrentAppContext();
 /** @return the currently running app (it is only ever null before the splash screen is shown) */
 std::shared_ptr<App> _Nullable getCurrentApp();
 
-bool isValidId(const std::string& id);
-
 bool install(const std::string& path);
 
 bool uninstall(const std::string& appId);

@@ -226,15 +226,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "TimeZone",
-    .name = "Select timezone",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "TimeZone",
+    .appName = "Select timezone",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<TimeZoneApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 }

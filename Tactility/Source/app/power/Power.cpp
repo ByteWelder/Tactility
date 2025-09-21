@@ -22,7 +22,7 @@ class PowerApp;
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<PowerApp> _Nullable optApp() {
     auto appContext = getCurrentAppContext();
-    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+    if (appContext != nullptr && appContext->getManifest().appId == manifest.appId) {
         return std::static_pointer_cast<PowerApp>(appContext->getApp());
     } else {
         return nullptr;
@@ -189,10 +189,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Power",
-    .name = "Power",
-    .icon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
-    .category = Category::Settings,
+    .appId = "Power",
+    .appName = "Power",
+    .appIcon = TT_ASSETS_APP_ICON_POWER_SETTINGS,
+    .appCategory = Category::Settings,
     .createApp = create<PowerApp>
 };
 

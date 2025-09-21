@@ -292,10 +292,10 @@ class SystemInfoApp final : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "SystemInfo",
-    .name = "System Info",
-    .icon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
-    .category = Category::System,
+    .appId = "SystemInfo",
+    .appName = "System Info",
+    .appIcon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
+    .appCategory = Category::System,
     .createApp = create<SystemInfoApp>
 };
 

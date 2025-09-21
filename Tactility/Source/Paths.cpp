@@ -1,8 +1,10 @@
 #include <Tactility/Paths.h>
 
-#include <Tactility/app/App.h>
+#include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
+
+#include <format>
 
 namespace tt {
 

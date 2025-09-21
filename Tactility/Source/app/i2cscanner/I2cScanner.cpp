@@ -69,7 +69,7 @@ public:
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<I2cScannerApp> _Nullable optApp() {
     auto appContext = getCurrentAppContext();
-    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+    if (appContext != nullptr && appContext->getManifest().appId == manifest.appId) {
         return std::static_pointer_cast<I2cScannerApp>(appContext->getApp());
     } else {
         return nullptr;
@@ -403,15 +403,15 @@ void I2cScannerApp::onScanTimerFinished() {
 }
 
 extern const AppManifest manifest = {
-    .id = "I2cScanner",
-    .name = "I2C Scanner",
-    .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .category = Category::System,
+    .appId = "I2cScanner",
+    .appName = "I2C Scanner",
+    .appIcon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
+    .appCategory = Category::System,
     .createApp = create<I2cScannerApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

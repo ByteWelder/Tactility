@@ -12,14 +12,14 @@ namespace tt::app::settings {
 
 static void onAppPressed(lv_event_t* e) {
     const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-    service::loader::startApp(manifest->id);
+    service::loader::startApp(manifest->appId);
 }
 
 static void createWidget(const std::shared_ptr<AppManifest>& manifest, void* parent) {
     tt_check(parent);
     auto* list = (lv_obj_t*)parent;
-    const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
-    auto* btn = lv_list_add_button(list, icon, manifest->name.c_str());
+    const void* icon = !manifest->appIcon.empty() ? manifest->appIcon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
+    auto* btn = lv_list_add_button(list, icon, manifest->appName.c_str());
     lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest.get());
 }
 
@@ -38,7 +38,7 @@ class SettingsApp : public App {
         auto manifests = getApps();
         std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
         for (const auto& manifest: manifests) {
-            if (manifest->category == Category::Settings) {
+            if (manifest->appCategory == Category::Settings) {
                 createWidget(manifest, list);
             }
         }
@@ -46,11 +46,11 @@ class SettingsApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "Settings",
-    .name = "Settings",
-    .icon = TT_ASSETS_APP_ICON_SETTINGS,
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "Settings",
+    .appName = "Settings",
+    .appIcon = TT_ASSETS_APP_ICON_SETTINGS,
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<SettingsApp>
 };
 

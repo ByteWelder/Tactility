@@ -14,7 +14,7 @@ import shutil
 import configparser
 
 ttbuild_path = ".tactility"
-ttbuild_version = "2.1.1"
+ttbuild_version = "2.2.0"
 ttbuild_cdn = "https://cdn.tactility.one"
 ttbuild_sdk_json_validity = 3600  # seconds
 ttport = 6666
@@ -242,19 +242,12 @@ def validate_manifest(manifest):
         exit_with_error("Invalid manifest format: [app] not found")
     if not "id" in manifest["app"]:
         exit_with_error("Invalid manifest format: [app] id not found")
-    if not "version" in manifest["app"]:
-        exit_with_error("Invalid manifest format: [app] version not found")
+    if not "versionName" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] versionName not found")
+    if not "versionCode" in manifest["app"]:
+        exit_with_error("Invalid manifest format: [app] versionCode not found")
     if not "name" in manifest["app"]:
         exit_with_error("Invalid manifest format: [app] name not found")
-    if not "description" in manifest["app"]:
-        exit_with_error("Invalid manifest format: [app] description not found")
-    # [author]
-    if not "author" in manifest:
-        exit_with_error("Invalid manifest format: [author] not found")
-    if not "name" in manifest["author"]:
-        exit_with_error("Invalid manifest format: [author] name not found")
-    if not "website" in manifest["author"]:
-        exit_with_error("Invalid manifest format: [author] website not found")
 
 def is_valid_manifest_platform(manifest, platform):
     manifest_platforms = manifest["target"]["platforms"].split(",")

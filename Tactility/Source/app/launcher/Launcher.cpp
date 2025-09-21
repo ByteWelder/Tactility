@@ -136,15 +136,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Launcher",
-    .name = "Launcher",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "Launcher",
+    .appName = "Launcher",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<LauncherApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

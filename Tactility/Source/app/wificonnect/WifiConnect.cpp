@@ -94,11 +94,11 @@ void WifiConnect::onHide(TT_UNUSED AppContext& app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "WifiConnect",
-    .name = "Wi-Fi Connect",
-    .icon = LV_SYMBOL_WIFI,
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "WifiConnect",
+    .appName = "Wi-Fi Connect",
+    .appIcon = LV_SYMBOL_WIFI,
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<WifiConnect>
 };
 
@@ -106,7 +106,7 @@ void start(const std::string& ssid, const std::string& password) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(WIFI_CONNECT_PARAM_SSID, ssid);
     parameters->putString(WIFI_CONNECT_PARAM_PASSWORD, password);
-    service::loader::startApp(manifest.id, parameters);
+    service::loader::startApp(manifest.appId, parameters);
 }
 
 bool optSsidParameter(const std::shared_ptr<const Bundle>& bundle, std::string& ssid) {

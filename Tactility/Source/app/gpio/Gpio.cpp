@@ -188,10 +188,10 @@ void GpioApp::onHide(AppContext& app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "Gpio",
-    .name = "GPIO",
-    .icon = TT_ASSETS_APP_ICON_GPIO,
-    .category = Category::System,
+    .appId = "Gpio",
+    .appName = "GPIO",
+    .appIcon = TT_ASSETS_APP_ICON_GPIO,
+    .appCategory = Category::System,
     .createApp = create<GpioApp>
 };
 

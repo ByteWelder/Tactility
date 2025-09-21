@@ -48,7 +48,7 @@ public:
 /** Returns the app data if the app is active. Note that this could clash if the same app is started twice and a background thread is slow. */
 std::shared_ptr<ScreenshotApp> _Nullable optApp() {
     auto appContext = getCurrentAppContext();
-    if (appContext != nullptr && appContext->getManifest().id == manifest.id) {
+    if (appContext != nullptr && appContext->getManifest().appId == manifest.appId) {
         return std::static_pointer_cast<ScreenshotApp>(appContext->getApp());
     } else {
         return nullptr;
@@ -278,10 +278,10 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
 }
 
 extern const AppManifest manifest = {
-    .id = "Screenshot",
-    .name = "Screenshot",
-    .icon = LV_SYMBOL_IMAGE,
-    .category = Category::System,
+    .appId = "Screenshot",
+    .appName = "Screenshot",
+    .appIcon = LV_SYMBOL_IMAGE,
+    .appCategory = Category::System,
     .createApp = create<ScreenshotApp>
 };
 
