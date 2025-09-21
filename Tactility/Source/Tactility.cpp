@@ -1,3 +1,5 @@
+#include "Tactility/app/AppManifestParsing.h"
+
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/app/AppRegistration.h>
@@ -158,29 +160,22 @@ static void registerInstalledApp(std::string path) {
         return;
     }
 
-    std::map<std::string, std::string> manifest;
-    if (!file::loadPropertiesFile(manifest_path, manifest)) {
+    std::map<std::string, std::string> properties;
+    if (!file::loadPropertiesFile(manifest_path, properties)) {
         TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
-    }
-
-    auto app_id_entry = manifest.find("[app]id");
-    if (app_id_entry == manifest.end()) {
-        TT_LOG_E(TAG, "Failed to find app id in manifest");
         return;
     }
 
-    auto app_name_entry = manifest.find("[app]name");
-    if (app_name_entry == manifest.end()) {
-        TT_LOG_E(TAG, "Failed to find app name in manifest");
+    app::AppManifest manifest;
+    if (!app::parseManifest(properties, manifest)) {
+        TT_LOG_E(TAG, "Failed to parse manifest at %s", manifest_path.c_str());
         return;
     }
 
-    app::addApp({
-        .appId = app_id_entry->second,
-        .appName = app_name_entry->second,
-        .appCategory = app::Category::User,
-        .appLocation = app::Location::external(path)
-    });
+    manifest.appCategory = app::Category::User;
+    manifest.appLocation = app::Location::external(path);
+
+    app::addApp(manifest);
 }
 
 static void registerInstalledApps(const std::string& path) {
