@@ -201,7 +201,7 @@ public:
         lv_obj_set_style_image_recolor_opa(icon, 255, 0);
         lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 
-        std::string icon_path = "A:" + app.getPaths()->getSystemPath("search.png");
+        std::string icon_path = "A:" + app.getPaths()->getAssetsPath("search.png");
         lv_image_set_src(icon, icon_path.c_str());
         lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 

@@ -17,12 +17,12 @@ bool GpsService::getConfigurationFilePath(std::string& output) const {
         return false;
     }
 
-    if (!file::findOrCreateDirectory(paths->getDataDirectory(), 0777)) {
-        TT_LOG_E(TAG, "Failed to find or create path %s", paths->getDataDirectory().c_str());
+    if (!file::findOrCreateDirectory(paths->getUserDataDirectory(), 0777)) {
+        TT_LOG_E(TAG, "Failed to find or create path %s", paths->getUserDataDirectory().c_str());
         return false;
     }
 
-    output = paths->getDataPath("config.bin");
+    output = paths->getUserDataPath("config.bin");
     return true;
 }
 

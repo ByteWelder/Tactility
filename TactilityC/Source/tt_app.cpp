@@ -39,7 +39,7 @@ void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size
     assert(size != nullptr);
     assert(*size > 0);
     auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
-    auto data_path = paths->getDataDirectory();
+    auto data_path = paths->getUserDataPath();
     auto expected_length = data_path.length() + 1;
     if (*size < expected_length) {
         TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);

@@ -216,6 +216,19 @@ std::string getLastPathSegment(const std::string& path) {
     }
 }
 
+std::string getFirstPathSegment(const std::string& path) {
+    if (path.empty()) {
+        return path;
+    }
+    auto start_index = path[0] == SEPARATOR ? 1 : 0;
+    auto index = path.find_first_of(SEPARATOR, start_index);
+    if (index != std::string::npos) {
+        return path.substr(0, index);
+    } else {
+        return path;
+    }
+}
+
 bool findOrCreateDirectory(const std::string& path, mode_t mode) {
     if (path.empty()) {
         return true;

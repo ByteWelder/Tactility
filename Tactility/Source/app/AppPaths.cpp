@@ -2,36 +2,43 @@
 
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/MountPoints.h>
+#include <Tactility/file/File.h>
 
-#define LVGL_PATH_PREFIX std::string("A:/")
+#include <format>
+
 #ifdef ESP_PLATFORM
-#define PARTITION_PREFIX std::string("/")
+constexpr auto PARTITION_PREFIX = std::string("/");
 #else
-#define PARTITION_PREFIX std::string("")
+constexpr auto PARTITION_PREFIX = std::string("");
 #endif
 
 namespace tt::app {
 
-std::string AppPaths::getDataDirectory() const {
+std::string AppPaths::getUserDataPath() const {
     if (manifest.appLocation.isInternal()) {
-
+        return std::format("{}{}/app/{}", PARTITION_PREFIX, file::DATA_PARTITION_NAME, manifest.appId);
+    } else {
+        return std::format("{}/user/{}", file::getFirstPathSegment(manifest.appLocation.getPath()), manifest.appId);
     }
-    return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/app/" + manifest.appId;
 }
 
-std::string AppPaths::getDataPath(const std::string& childPath) const {
+std::string AppPaths::getUserDataPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
-    return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/app/" + manifest.appId + '/' + childPath;
+    return getUserDataPath() + '/' + childPath;
 }
 
 
-std::string AppPaths::getSystemDirectory() const {
-    return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/app/" + manifest.appId;
+std::string AppPaths::getAssetsDirectory() const {
+    if (manifest.appLocation.isInternal()) {
+        return std::format("{}{}/app/{}/assets", PARTITION_PREFIX, file::SYSTEM_PARTITION_NAME, manifest.appId);
+    } else {
+        return std::format("{}/assets", manifest.appLocation.getPath());
+    }
 }
 
-std::string AppPaths::getSystemPath(const std::string& childPath) const {
+std::string AppPaths::getAssetsPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
-    return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/app/" + manifest.appId + '/' + childPath;
+    return std::format("{}/{}", getAssetsDirectory(), childPath);
 }
 
 }

@@ -3,32 +3,33 @@
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/MountPoints.h>
 
-#define LVGL_PATH_PREFIX std::string("A:/")
+#include <cassert>
+#include <format>
 
 #ifdef ESP_PLATFORM
-#define PARTITION_PREFIX std::string("/")
+constexpr auto PARTITION_PREFIX = std::string("/");
 #else
-#define PARTITION_PREFIX std::string("")
+constexpr auto PARTITION_PREFIX = std::string("");
 #endif
 
 namespace tt::service {
 
-std::string ServicePaths::getDataDirectory() const {
-    return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id;
+std::string ServicePaths::getUserDataDirectory() const {
+    return std::format("{}{}/service/{}", PARTITION_PREFIX, file::DATA_PARTITION_NAME, manifest->id);
 }
 
-std::string ServicePaths::getDataPath(const std::string& childPath) const {
+std::string ServicePaths::getUserDataPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
-    return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
+    return std::format("{}/{}", getUserDataDirectory(), childPath);
 }
 
-std::string ServicePaths::getSystemDirectory() const {
-    return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id;
+std::string ServicePaths::getAssetsDirectory() const {
+    return std::format("{}{}/service/{}/assets", PARTITION_PREFIX, file::SYSTEM_PARTITION_NAME, manifest->id);
 }
 
-std::string ServicePaths::getSystemPath(const std::string& childPath) const {
+std::string ServicePaths::getAssetsPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
-    return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
+    return std::format("{}/{}", getAssetsDirectory(), childPath);
 }
 
 }
