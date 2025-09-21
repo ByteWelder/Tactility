@@ -1,9 +1,10 @@
-#include "Tactility/service/gps/GpsService.h"
-#include "Tactility/service/ServiceManifest.h"
-#include "Tactility/service/ServiceRegistration.h"
+#include <Tactility/service/gps/GpsService.h>
 
-#include <Tactility/Log.h>
 #include <Tactility/file/File.h>
+#include <Tactility/Log.h>
+#include <Tactility/service/ServicePaths.h>
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 using tt::hal::gps::GpsDevice;
 

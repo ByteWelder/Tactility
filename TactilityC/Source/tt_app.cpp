@@ -1,5 +1,6 @@
 #include "tt_app.h"
 #include <Tactility/app/App.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppContext.h>
 
 extern "C" {

@@ -1,16 +1,16 @@
 #include <Tactility/lvgl/Statusbar.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/lvgl/Lvgl.h>
-#include <Tactility/service/gps/GpsService.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/Mutex.h>
-#include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
+#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/Timer.h>
 
 namespace tt::service::statusbar {
 
@@ -148,7 +148,7 @@ class StatusbarService final : public Service {
     int8_t power_icon_id;
     const char* power_last_icon = nullptr;
 
-    std::unique_ptr<Paths> paths;
+    std::unique_ptr<ServicePaths> paths;
 
     void lock() const {
         mutex.lock();

@@ -1,5 +1,5 @@
-#include "Tactility/app/AppInstance.h"
-#include "Tactility/app/AppInstancePaths.h"
+#include <Tactility/app/AppInstance.h>
+#include <Tactility/app/AppPaths.h>
 
 namespace tt::app {
 
@@ -49,9 +49,9 @@ std::shared_ptr<const Bundle> AppInstance::getParameters() const {
     return result;
 }
 
-std::unique_ptr<Paths> AppInstance::getPaths() const {
+std::unique_ptr<AppPaths> AppInstance::getPaths() const {
     assert(manifest != nullptr);
-    return std::make_unique<AppInstancePaths>(*manifest);
+    return std::make_unique<AppPaths>(*manifest);
 }
 
 } // namespace

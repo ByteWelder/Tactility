@@ -1,6 +1,7 @@
 #include <Tactility/Tactility.h>
 
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/service/loader/Loader.h>

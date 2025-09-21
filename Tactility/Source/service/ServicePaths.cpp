@@ -1,6 +1,7 @@
-#include "Tactility/service/ServiceInstancePaths.h"
+#include <Tactility/service/ServicePaths.h>
 
-#include "Tactility/MountPoints.h"
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/MountPoints.h>
 
 #define LVGL_PATH_PREFIX std::string("A:/")
 
@@ -12,20 +13,20 @@
 
 namespace tt::service {
 
-std::string ServiceInstancePaths::getDataDirectory() const {
+std::string ServicePaths::getDataDirectory() const {
     return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id;
 }
 
-std::string ServiceInstancePaths::getDataPath(const std::string& childPath) const {
+std::string ServicePaths::getDataPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
     return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
 }
 
-std::string ServiceInstancePaths::getSystemDirectory() const {
+std::string ServicePaths::getSystemDirectory() const {
     return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id;
 }
 
-std::string ServiceInstancePaths::getSystemPath(const std::string& childPath) const {
+std::string ServicePaths::getSystemPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
     return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
 }

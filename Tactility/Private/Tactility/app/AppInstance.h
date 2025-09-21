@@ -88,7 +88,7 @@ public:
 
     std::shared_ptr<const Bundle> getParameters() const override;
 
-    std::unique_ptr<Paths> getPaths() const override;
+    std::unique_ptr<AppPaths> getPaths() const override;
 
     std::shared_ptr<App> getApp() const override { return app; }
 };

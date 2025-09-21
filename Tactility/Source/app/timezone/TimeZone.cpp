@@ -1,5 +1,6 @@
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>

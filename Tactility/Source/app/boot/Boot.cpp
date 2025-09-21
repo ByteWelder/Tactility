@@ -1,6 +1,7 @@
 #include <Tactility/TactilityCore.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>

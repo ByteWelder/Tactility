@@ -1,6 +1,6 @@
-#include "Tactility/service/gps/GpsService.h"
-
-#include "Tactility/file/ObjectFile.h"
+#include <Tactility/file/ObjectFile.h>
+#include <Tactility/service/gps/GpsService.h>
+#include <Tactility/service/ServicePaths.h>
 
 #include <cstring>
 #include <unistd.h>
