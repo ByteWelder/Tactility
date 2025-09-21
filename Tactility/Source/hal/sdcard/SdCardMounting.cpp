@@ -1,6 +1,8 @@
 #include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
+#include <format>
+
 namespace tt::hal::sdcard {
 
 constexpr auto* TAG = "SdCardMounting";
@@ -20,7 +22,7 @@ static std::string getMountPath(int index, int count) {
 }
 
 void mountAll() {
-    auto sdcards = hal::findDevices<SdCardDevice>(Device::Type::SdCard);
+    const auto sdcards = hal::findDevices<SdCardDevice>(Device::Type::SdCard);
     // Numbered mount path name
     for (int i = 0; i < sdcards.size(); i++) {
         auto sdcard = sdcards[i];
