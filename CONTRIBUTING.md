@@ -1,39 +1,32 @@
 # Contributing
 
-## Accepted changes
+## New features and boards
 
-Before releasing version 1.0.0, the APIs are changing rapidly.
-I want to minimize the amount of changes that I have to maintain, because it limits the amount of breaking changes that I have to deal with when the APIs change.
+Feel free to open an [issue](https://github.com/ByteWelder/Tactility/issues/new)
+to discuss ideas you have regarding the implementation of new boards or features.
 
-### New features
+Keep in mind that the internal APIs are changing rapidly. They might change considerably in a short timespan.
+This means it's likely that you get merge conflicts while developing new features or boards.
 
-These are currently not accepted.
+## Fixing things
 
-### Visual / interaction design changes
-
-These are currently not accepted. I'm aware that there is a lot of room for improvement, but I want to mainly focusing on strong technical foundations before
-I start building further on top of that.
-Feel free to open an [issue](https://github.com/ByteWelder/Tactility/issues/new) to discuss ideas you have, if you feel like they will have a considerable impact.
-
-### Fixing things
-
-The general take here is that minor changes are not accepted at this stage. I don't want to spend my time reviewing and discussing these during the current stage of the project.
+The general take here is that minor changes are not accepted at this stage.
+I don't want to spend my time reviewing and discussing these during the current stage of the project.
 
 Only fixes for serious issues are accepted, like:
+
 - Bugs
 - Crashes
 - Security issues
 
 Some examples of non-serious issues include:
-- Documentation changes
+
+- Code documentation changes
 - Renaming code
-- Fixes for compiler warnings that have low impact on the actual application logic (e.g. only happens on simulator when calling a logging function)
+- Typographical errors
+- Fixes for compiler warnings that have a low impact on the actual application logic (e.g. only happens on simulator when calling a logging function)
 
-### New board implementations
-
-Please open an [issue](https://github.com/ByteWelder/Tactility/issues/new) on GitHub to discuss new boards.
-
-### Anything that doesn't fall in the above categories?
+## Anything that doesn't fall in the above categories?
 
 Please [contact me](https://tactility.one/#/support) first!
 
@@ -41,6 +34,13 @@ Please [contact me](https://tactility.one/#/support) first!
 
 Pull requests should only contain a single set of changes that are related to each other.
 That way, an approved set of changes will not be blocked by an unapproved set of changes.
+
+## Licensing
+
+All contributions to a Tactility (sub)project will be licensed under the license(s) of that project.
+
+When third party code is used, its license must be included.
+It's important that these third-party licenses are compatible with the relevant Tactility (sub)projects.
 
 ## Code Style
 

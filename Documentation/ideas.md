@@ -93,6 +93,7 @@
 - RSS reader
 - Static file web server (with option to specify path and port)
 - Diceware
+- Port TamaFi https://github.com/cifertech/TamaFi
 
 # App Store
 
