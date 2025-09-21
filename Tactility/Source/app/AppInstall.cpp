@@ -1,3 +1,5 @@
+#include "Tactility/Paths.h"
+
 #include <Tactility/app/App.h>
 
 #include <Tactility/MountPoints.h>
@@ -103,44 +105,13 @@ static bool untar(const std::string& tarPath, const std::string& destinationPath
     return success;
 }
 
-bool findFirstMountedSdCardPath(std::string& path) {
-    // const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
-    bool is_set = false;
-    hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard, [&is_set, &path](const auto& device) {
-        if (device->isMounted()) {
-            path = device->getMountPath();
-            is_set = true;
-            return false; // stop iterating
-        } else {
-            return true;
-        }
-    });
-    return is_set;
-}
-
-std::string getTempPath() {
-    std::string root_path;
-    if (!findFirstMountedSdCardPath(root_path)) {
-        root_path = file::MOUNT_POINT_DATA;
-    }
-    return root_path + "/tmp";
-}
-
-std::string getInstallPath() {
-    std::string root_path;
-    if (!findFirstMountedSdCardPath(root_path)) {
-        root_path = file::MOUNT_POINT_DATA;
-    }
-    return root_path + "/apps";
-}
-
 bool install(const std::string& path) {
     // TODO: Make better: lock for each path type properly (source vs target)
 
     // We lock and unlock frequently because SPI SD card devices share
     // the lock with the display. We don't want to lock the display for very long.
 
-    auto app_parent_path = getInstallPath();
+    auto app_parent_path = getAppInstallPath();
     TT_LOG_I(TAG, "Installing app %s to %s", path.c_str(), app_parent_path.c_str());
 
     auto lock = file::getLock(app_parent_path)->asScopedLock();
@@ -225,8 +196,8 @@ bool install(const std::string& path) {
 
 bool uninstall(const std::string& appId) {
     TT_LOG_I(TAG, "Uninstalling app %s", appId.c_str());
-    auto app_path = getInstallPath() + "/" + appId;
-    return file::withLock<bool>(app_path, [&app_path, &appId]() {
+    auto app_path = getAppInstallPath(appId);
+    return file::withLock<bool>(app_path, [&app_path, &appId] {
         if (!file::isDirectory(app_path)) {
             TT_LOG_E(TAG, "App %s not found at ", app_path.c_str());
             return false;

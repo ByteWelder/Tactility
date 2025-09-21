@@ -1,3 +1,4 @@
+#include <regex>
 #include <Tactility/app/App.h>
 #include <Tactility/service/loader/Loader.h>
 
@@ -17,6 +18,11 @@ std::shared_ptr<AppContext> _Nullable getCurrentAppContext() {
 
 std::shared_ptr<App> _Nullable getCurrentApp() {
     return service::loader::getCurrentApp();
+}
+
+bool isValidId(const std::string& id) {
+    const auto pattern = std::regex("^[a-zA-Z0-9_-\\.]+$");
+    return std::regex_match(id, pattern);
 }
 
 }

@@ -1,8 +1,21 @@
-//
-// Created by ken on 20/09/2025.
-//
+#pragma once
 
-#ifndef TACTILITY_PATHS_H
-#define TACTILITY_PATHS_H
+#include <string>
 
-#endif //TACTILITY_PATHS_H
+namespace tt {
+
+bool findFirstMountedSdCardPath(std::string& path);
+
+std::string getSystemRootPath();
+
+std::string getTempPath();
+
+std::string getAppInstallPath();
+
+std::string getAppInstallPath(const std::string& appId);
+
+std::string getUserPath();
+
+std::string getAppUserPath(const std::string& appId);
+
+}

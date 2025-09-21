@@ -72,6 +72,15 @@ struct AppManifest {
     /** Optional icon. */
     std::string icon = {};
 
+    /** Optional description */
+    std::string description = {};
+
+    /** Optional author name */
+    std::string authorName = {};
+
+    /** Optional author website */
+    std::string authorWebsite = {};
+
     /** App category helps with listing apps in Launcher, app list or settings apps. */
     Category category = Category::User;
 
