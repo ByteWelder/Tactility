@@ -174,8 +174,6 @@ bool install(const std::string& path) {
         return false;
     }
 
-    TT_LOG_I(TAG, "1");
-
     target_path_lock.lock();
     const std::string renamed_target_path = std::format("{}/{}", app_parent_path, manifest.appId);
     if (file::isDirectory(renamed_target_path)) {
@@ -187,7 +185,6 @@ bool install(const std::string& path) {
     }
     target_path_lock.unlock();
 
-    TT_LOG_I(TAG, "2");
     target_path_lock.lock();
     if (rename(app_target_path.c_str(), renamed_target_path.c_str()) != 0) {
         TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", app_target_path.c_str(), manifest.appId.c_str());
@@ -198,10 +195,8 @@ bool install(const std::string& path) {
 
     manifest.appLocation = Location::external(renamed_target_path);
 
-    TT_LOG_I(TAG, "3");
     addApp(manifest);
 
-    TT_LOG_I(TAG, "4");
     return true;
 }
 

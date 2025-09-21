@@ -64,55 +64,45 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
         return false;
     }
 
-    TT_LOG_I(TAG, "a");
-
     if (!isValidManifestVersion(manifest.manifestVersion)) {
         TT_LOG_E(TAG, "Invalid version");
         return false;
     }
 
-    TT_LOG_I(TAG, "b");
     // [app]
 
     if (!getValueFromManifest(map, "[app]id", manifest.appId)) {
         return false;
     }
 
-    TT_LOG_I(TAG, "c");
     if (!isValidId(manifest.appId)) {
         TT_LOG_E(TAG, "Invalid app id");
         return false;
     }
 
-    TT_LOG_I(TAG, "d");
     if (!getValueFromManifest(map, "[app]name", manifest.appName)) {
         return false;
     }
 
-    TT_LOG_I(TAG, "e");
     if (!isValidName(manifest.appName)) {
         TT_LOG_I(TAG, "Invalid app name");
         return false;
     }
 
-    TT_LOG_I(TAG, "f");
     if (!getValueFromManifest(map, "[app]versionName", manifest.appVersionName)) {
         return false;
     }
 
-    TT_LOG_I(TAG, "g");
     if (!isValidAppVersionName(manifest.appVersionName)) {
         TT_LOG_E(TAG, "Invalid app version name");
         return false;
     }
 
-    TT_LOG_I(TAG, "h");
     std::string version_code_string;
     if (!getValueFromManifest(map, "[app]versionCode", version_code_string)) {
         return false;
     }
 
-    TT_LOG_I(TAG, "i");
     if (!isValidAppVersionCode(version_code_string)) {
         TT_LOG_E(TAG, "Invalid app version code");
         return false;
@@ -122,17 +112,14 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
 
     // [target]
 
-    TT_LOG_I(TAG, "j");
     if (!getValueFromManifest(map, "[target]sdk", manifest.targetSdk)) {
         return false;
     }
-    TT_LOG_I(TAG, "k");
 
     if (!getValueFromManifest(map, "[target]platforms", manifest.targetPlatforms)) {
         return false;
     }
 
-    TT_LOG_I(TAG, "l");
     // Defaults
 
     manifest.appCategory = Category::User;
