@@ -139,6 +139,7 @@ extern const AppManifest manifest = {
     .id = "Launcher",
     .name = "Launcher",
     .category = Category::System,
+    .flags = AppManifest::Flags::Hidden,
     .createApp = create<LauncherApp>
 };
 
