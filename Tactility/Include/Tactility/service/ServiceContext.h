@@ -44,22 +44,12 @@ public:
     virtual std::string getDataDirectory() const = 0;
 
     /**
-     * @see getDataDirectory(), but with LVGL prefix.
-     */
-    virtual std::string getDataDirectoryLvgl() const = 0;
-
-    /**
      * Returns the full path for an entry inside the data location for a service.
      * The data directory is intended to survive OS upgrades.
      * Configuration data should be stored here.
      * @param[in] childPath the path without a "/" prefix
      */
     virtual std::string getDataPath(const std::string& childPath) const = 0;
-
-    /**
-     * @see getDataPath(), but with LVGL prefix.
-     */
-    virtual std::string getDataPathLvgl(const std::string& childPath) const = 0;
 
     /**
      * Returns the directory path for the system location for a service.
@@ -71,11 +61,6 @@ public:
     virtual std::string getSystemDirectory() const = 0;
 
     /**
-     * @see getSystemDirectory(), but with LVGL prefix.
-     */
-    virtual std::string getSystemDirectoryLvgl() const = 0;
-
-    /**
      * Returns the full path for an entry inside the system location for an app.
      * The data directory is not intended to survive OS upgrades.
      * You should not store configuration data here.
@@ -83,11 +68,6 @@ public:
      * @param[in] childPath the path without a "/" prefix
      */
     virtual std::string getSystemPath(const std::string& childPath) const = 0;
-
-    /**
-     * @see getSystemPath(), but with LVGL prefix.
-     */
-    virtual std::string getSystemPathLvgl(const std::string& childPath) const = 0;
 };
 
 } // namespace

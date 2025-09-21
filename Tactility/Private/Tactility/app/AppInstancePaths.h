@@ -14,13 +14,9 @@ public:
     ~AppInstancePaths() override = default;
 
     std::string getDataDirectory() const override;
-    std::string getDataDirectoryLvgl() const override;
     std::string getDataPath(const std::string& childPath) const override;
-    std::string getDataPathLvgl(const std::string& childPath) const override;
     std::string getSystemDirectory() const override;
-    std::string getSystemDirectoryLvgl() const override;
     std::string getSystemPath(const std::string& childPath) const override;
-    std::string getSystemPathLvgl(const std::string& childPath) const override;
 };
 
 }

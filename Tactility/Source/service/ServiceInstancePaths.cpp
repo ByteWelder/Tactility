@@ -16,35 +16,18 @@ std::string ServiceInstancePaths::getDataDirectory() const {
     return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id;
 }
 
-std::string ServiceInstancePaths::getDataDirectoryLvgl() const {
-    return LVGL_PATH_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id;
-}
-
 std::string ServiceInstancePaths::getDataPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
     return PARTITION_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
-}
-
-std::string ServiceInstancePaths::getDataPathLvgl(const std::string& childPath) const {
-    assert(!childPath.starts_with('/'));
-    return LVGL_PATH_PREFIX + file::DATA_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
 }
 
 std::string ServiceInstancePaths::getSystemDirectory() const {
     return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id;
 }
 
-std::string ServiceInstancePaths::getSystemDirectoryLvgl() const {
-    return LVGL_PATH_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id;
-}
-
 std::string ServiceInstancePaths::getSystemPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
     return PARTITION_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
-}
-
-std::string ServiceInstancePaths::getSystemPathLvgl(const std::string& childPath) const {
-    return LVGL_PATH_PREFIX + file::SYSTEM_PARTITION_NAME + "/service/" + manifest->id + '/' + childPath;
 }
 
 }
