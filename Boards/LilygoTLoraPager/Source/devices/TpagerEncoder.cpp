@@ -1,7 +1,7 @@
 #include "TpagerEncoder.h"
 
 #include <Tactility/Log.h>
-#include <Tactility/hal/Gpio.h>
+#include <driver/gpio.h>
 
 constexpr auto* TAG = "TpagerEncoder";
 constexpr auto ENCODER_A = GPIO_NUM_40;
