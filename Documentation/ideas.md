@@ -18,6 +18,7 @@
 
 ## Medium Priority
 
+- TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
 - Statusbar icon that shows low/critical memory warnings
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
