@@ -1,8 +1,12 @@
 #include <Tactility/hal/gpio/Gpio.h>
 
+#ifdef ESP_PLATFORM
 #include <driver/gpio.h>
+#endif
 
 namespace tt::hal::gpio {
+
+#ifdef ESP_PLATFORM
 
 constexpr gpio_num_t toEspPin(Pin pin) { return static_cast<gpio_num_t>(pin); }
 
@@ -23,6 +27,8 @@ constexpr gpio_mode_t toEspGpioMode(Mode mode) {
             return GPIO_MODE_DISABLE;
     }
 }
+
+#endif
 
 bool getLevel(Pin pin) {
 #ifdef ESP_PLATFORM
@@ -64,7 +70,11 @@ bool configureWithPinBitmask(uint64_t pinBitMask, Mode mode, bool pullUp, bool p
 }
 
 bool configure(Pin pin, Mode mode, bool pullUp, bool pullDown) {
+#ifdef ESP_PLATFORM
     return configureWithPinBitmask(BIT64(toEspPin(pin)), mode, pullUp, pullDown);
+#else
+    return true;
+#endif
 }
 
 bool setMode(Pin pin, Mode mode) {
