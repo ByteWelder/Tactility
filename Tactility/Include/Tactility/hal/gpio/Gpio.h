@@ -7,8 +7,9 @@ namespace tt::hal::gpio {
 typedef unsigned int Pin;
 constexpr Pin NO_PIN = -1;
 
+/** @warning The order must match GpioMode from tt_hal_gpio.h */
 enum class Mode {
-    Disable,
+    Disable = 0,
     Input,
     Output,
     OutputOpenDrain,

@@ -67,24 +67,9 @@ bool configure(Pin pin, Mode mode, bool pullUp, bool pullDown) {
     return configureWithPinBitmask(BIT64(toEspPin(pin)), mode, pullUp, pullDown);
 }
 
-bool setMode(Pin pin, Mode mode, bool pullUp, bool pullDown) {
+bool setMode(Pin pin, Mode mode) {
 #ifdef ESP_PLATFORM
-    if (gpio_set_direction(toEspPin(pin), toEspGpioMode(mode)) != ESP_OK) {
-        return false;
-    }
-
-    if (pullUp && gpio_pullup_en(toEspPin(pin)) != ESP_OK) {
-        return false;
-    } else if (gpio_pullup_dis(toEspPin(pin)) != ESP_OK) {
-        return false;
-    }
-
-    if (pullDown && gpio_pulldown_en(toEspPin(pin)) != ESP_OK) {
-        return false;
-    } else if (gpio_pulldown_dis(toEspPin(pin)) != ESP_OK) {
-        return false;
-    }
-
+    return gpio_set_direction(toEspPin(pin), toEspGpioMode(mode)) == ESP_OK;
 #endif
     return true;
 }

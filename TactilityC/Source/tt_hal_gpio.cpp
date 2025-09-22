@@ -6,15 +6,15 @@ extern "C" {
 using namespace tt::hal;
 
 bool tt_hal_gpio_configure(GpioPin pin, GpioMode mode, bool pullUp, bool pullDown) {
-    return gpio::configure(pin, mode, pullUp, pullDown);
+    return gpio::configure(pin, static_cast<gpio::Mode>(mode), pullUp, pullDown);
 }
 
 bool tt_hal_gpio_configure_with_pin_bitmask(uint64_t pinBitMask, GpioMode mode, bool pullUp, bool pullDown) {
-    return gpio::configureWithPinBitmask(pinBitMask, mode, pullUp, pullDown);
+    return gpio::configureWithPinBitmask(pinBitMask, static_cast<gpio::Mode>(mode), pullUp, pullDown);
 }
 
 bool tt_hal_gpio_set_mode(GpioPin pin, GpioMode mode) {
-    return gpio::setMode(pin, mode);
+    return gpio::setMode(pin, static_cast<gpio::Mode>(mode));
 }
 
 bool tt_hal_gpio_get_level(GpioPin pin) {

@@ -10,8 +10,9 @@ extern "C" {
 typedef unsigned int GpioPin;
 #define GPIO_NO_PIN -1
 
+/** @warning The order must match tt::hal::gpio::Mode */
 enum class GpioMode {
-    Disable,
+    Disable = 0,
     Input,
     Output,
     OutputOpenDrain,

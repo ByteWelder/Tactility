@@ -8,6 +8,8 @@
 
 #define SPI_HOST_MAX 3
 
+typedef tt::hal::gpio::Pin gpio_num_t;
+
 typedef int spi_host_device_t;
 struct spi_bus_config_t {
     gpio_num_t miso_io_num;
