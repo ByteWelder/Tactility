@@ -1,6 +1,6 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/Assets.h>
-#include <Tactility/app/gpio/GpioHal.h>
+#include <Tactility/hal/gpio/Gpio.h>
 #include "Tactility/lvgl/Toolbar.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Color.h>
@@ -13,8 +13,8 @@ extern const AppManifest manifest;
 
 class GpioApp : public App {
 
-    lv_obj_t* lvPins[GPIO_NUM_MAX] = { nullptr };
-    uint8_t pinStates[GPIO_NUM_MAX] = { 0 };
+    std::vector<lv_obj_t*> pinWidgets;
+    std::vector<bool> pinStates;
     std::unique_ptr<Timer> timer;
     Mutex mutex;
 
@@ -36,12 +36,8 @@ public:
 void GpioApp::updatePinStates() {
     mutex.lock();
     // Update pin states
-    for (int i = 0; i < GPIO_NUM_MAX; ++i) {
-#ifdef ESP_PLATFORM
-        pinStates[i] = gpio_get_level(static_cast<gpio_num_t>(i));
-#else
-        pinStates[i] = gpio_get_level(i);
-#endif
+    for (int i = 0; i < pinStates.size(); ++i) {
+        pinStates[i] = hal::gpio::getLevel(i);
     }
     mutex.unlock();
 }
@@ -50,9 +46,10 @@ void GpioApp::updatePinWidgets() {
     auto scoped_lvgl_lock = lvgl::getSyncLock()->asScopedLock();
     auto scoped_gpio_lock = mutex.asScopedLock();
     if (scoped_gpio_lock.lock() && scoped_lvgl_lock.lock(lvgl::defaultLockTime)) {
-        for (int j = 0; j < GPIO_NUM_MAX; ++j) {
+        assert(pinStates.size() == pinWidgets.size());
+        for (int j = 0; j < pinStates.size(); ++j) {
             int level = pinStates[j];
-            lv_obj_t* label = lvPins[j];
+            lv_obj_t* label = pinWidgets[j];
             void* label_user_data = lv_obj_get_user_data(label);
             // The user data stores the state, so we can avoid unnecessary updates
             if (reinterpret_cast<void*>(level) != label_user_data) {
@@ -146,7 +143,12 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_align(row_wrapper, LV_ALIGN_TOP_MID, 0, 0);
 
     mutex.lock();
-    for (int i = GPIO_NUM_MIN; i < GPIO_NUM_MAX; ++i) {
+
+    auto pin_count = hal::gpio::getPinCount();
+    pinStates.resize(pin_count);
+    pinWidgets.resize(pin_count);
+
+    for (int i = 0; i < pin_count; ++i) {
         constexpr uint8_t offset_from_left_label = 4;
 
         // Add the GPIO number before the first item on a row
@@ -160,7 +162,8 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
         lv_obj_set_pos(status_label, (column+1) * x_spacing + offset_from_left_label, 0);
         lv_label_set_text_fmt(status_label, "%s", LV_SYMBOL_STOP);
         lv_obj_set_style_text_color(status_label, lv_color_background_darkest(), LV_STATE_DEFAULT);
-        lvPins[i] = status_label;
+        pinWidgets[i] = status_label;
+        pinStates[i] = false;
 
         column++;
 
@@ -185,6 +188,11 @@ void GpioApp::onShow(AppContext& app, lv_obj_t* parent) {
 
 void GpioApp::onHide(AppContext& app) {
     stopTask();
+
+    mutex.lock();
+    pinWidgets.clear();
+    pinStates.clear();
+    mutex.unlock();
 }
 
 extern const AppManifest manifest = {

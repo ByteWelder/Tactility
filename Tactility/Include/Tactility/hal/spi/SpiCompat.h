@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Gpio.h"
+#include "../gpio/Gpio.h"
 
 #ifdef ESP_PLATFORM
 #include <driver/spi_common.h>
