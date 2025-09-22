@@ -63,9 +63,6 @@ struct AppManifest {
         constexpr static uint32_t Hidden = 1 << 1;
     };
 
-    /** The version of the manifest file format */
-    std::string manifestVersion = {};
-
     /** The SDK version that was used to compile this app. (e.g. "0.6.0") */
     std::string targetSdk = {};
 

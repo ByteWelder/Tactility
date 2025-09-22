@@ -1,10 +1,9 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/sdcard/SpiSdCardDevice.h"
-
+#include <Tactility/hal/gpio/Gpio.h>
+#include <Tactility/hal/sdcard/SpiSdCardDevice.h>
 #include <Tactility/Log.h>
 
-#include <driver/gpio.h>
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
 
@@ -27,21 +26,13 @@ bool SpiSdCardDevice::applyGpioWorkAround() {
         pin_bit_mask |= BIT64(pin);
     }
 
-    gpio_config_t sd_gpio_config = {
-        .pin_bit_mask = pin_bit_mask,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-
-    if (gpio_config(&sd_gpio_config) != ESP_OK) {
+    if (!gpio::configureWithPinBitmask(pin_bit_mask, gpio::Mode::Output, false, false)) {
         TT_LOG_E(TAG, "GPIO init failed");
         return false;
     }
 
     for (auto const& pin: config->csPinWorkAround) {
-        if (gpio_set_level(pin, 1) != ESP_OK) {
+        if (!gpio::setLevel(pin, true)) {
             TT_LOG_E(TAG, "Failed to set board CS pin high");
             return false;
         }
@@ -94,7 +85,7 @@ bool SpiSdCardDevice::mountInternal(const std::string& newMountPath) {
 
 bool SpiSdCardDevice::mount(const std::string& newMountPath) {
     if (!applyGpioWorkAround()) {
-        TT_LOG_E(TAG, "Failed to set SPI CS pins high. This is a pre-requisite for mounting.");
+        TT_LOG_E(TAG, "Failed to apply GPIO work-around");
         return false;
     }
 

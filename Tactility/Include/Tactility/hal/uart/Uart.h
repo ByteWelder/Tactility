@@ -2,7 +2,7 @@
 
 #include <Tactility/RtosCompat.h>
 
-#include "../Gpio.h"
+#include "../gpio/Gpio.h"
 #include "Tactility/Lock.h"
 #include "UartCompat.h"
 #include "Tactility/hal/uart/Configuration.h"

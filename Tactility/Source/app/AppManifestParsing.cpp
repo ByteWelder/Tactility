@@ -60,11 +60,12 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
 
     // [manifest]
 
-    if (!getValueFromManifest(map, "[manifest]version", manifest.manifestVersion)) {
+    std::string manifest_version;
+    if (!getValueFromManifest(map, "[manifest]version", manifest_version)) {
         return false;
     }
 
-    if (!isValidManifestVersion(manifest.manifestVersion)) {
+    if (!isValidManifestVersion(manifest_version)) {
         TT_LOG_E(TAG, "Invalid version");
         return false;
     }
