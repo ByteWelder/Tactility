@@ -28,7 +28,7 @@ LaunchId start(const std::string& title, const std::string& message, const std::
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_joined);
-    return service::loader::startApp(manifest.id, bundle);
+    return service::loader::startApp(manifest.appId, bundle);
 }
 
 LaunchId start(const std::string& title, const std::string& message) {
@@ -36,7 +36,7 @@ LaunchId start(const std::string& title, const std::string& message) {
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, "OK");
-    return service::loader::startApp(manifest.id, bundle);
+    return service::loader::startApp(manifest.appId, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
@@ -126,10 +126,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "AlertDialog",
-    .name = "Alert Dialog",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "AlertDialog",
+    .appName = "Alert Dialog",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<AlertDialogApp>
 };
 

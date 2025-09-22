@@ -16,15 +16,15 @@ static AppManifestMap app_manifest_map;
 static Mutex hash_mutex(Mutex::Type::Normal);
 
 void addApp(const AppManifest& manifest) {
-    TT_LOG_I(TAG, "Registering manifest %s", manifest.id.c_str());
+    TT_LOG_I(TAG, "Registering manifest %s", manifest.appId.c_str());
 
     hash_mutex.lock();
 
-    if (app_manifest_map.contains(manifest.id)) {
-        TT_LOG_W(TAG, "Overwriting existing manifest for %s", manifest.id.c_str());
+    if (app_manifest_map.contains(manifest.appId)) {
+        TT_LOG_W(TAG, "Overwriting existing manifest for %s", manifest.appId.c_str());
     }
 
-    app_manifest_map[manifest.id] = std::make_shared<AppManifest>(manifest);
+    app_manifest_map[manifest.appId] = std::make_shared<AppManifest>(manifest);
 
     hash_mutex.unlock();
 }

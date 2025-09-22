@@ -1,6 +1,7 @@
 #include <Tactility/Tactility.h>
 
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/service/loader/Loader.h>
@@ -112,9 +113,9 @@ public:
         const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, button_size) : 0;
 
         const auto paths = app.getPaths();
-        const auto apps_icon_path = paths->getSystemPathLvgl("assets/icon_apps.png");
-        const auto files_icon_path = paths->getSystemPathLvgl("assets/icon_files.png");
-        const auto settings_icon_path = paths->getSystemPathLvgl("assets/icon_settings.png");
+        const auto apps_icon_path = "A:" + paths->getAssetsPath("icon_apps.png");
+        const auto files_icon_path = "A:" + paths->getAssetsPath("icon_files.png");
+        const auto settings_icon_path = "A:" + paths->getAssetsPath("icon_settings.png");
 
         createAppButton(buttons_wrapper, ui_scale, apps_icon_path.c_str(), "AppList", margin);
         createAppButton(buttons_wrapper, ui_scale, files_icon_path.c_str(), "Files", margin);
@@ -136,14 +137,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Launcher",
-    .name = "Launcher",
-    .category = Category::System,
+    .appId = "Launcher",
+    .appName = "Launcher",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<LauncherApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

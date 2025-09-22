@@ -207,15 +207,15 @@ class NotesApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "Notes",
-    .name = "Notes",
-    .icon = TT_ASSETS_APP_ICON_NOTES,
+    .appId = "Notes",
+    .appName = "Notes",
+    .appIcon = TT_ASSETS_APP_ICON_NOTES,
     .createApp = create<NotesApp>
 };
 
 void start(const std::string& filePath) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(NOTES_FILE_ARGUMENT, filePath);
-    service::loader::startApp(manifest.id, parameters);
+    service::loader::startApp(manifest.appId, parameters);
 }
 } // namespace tt::app::notes

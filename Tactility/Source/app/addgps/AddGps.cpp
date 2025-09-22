@@ -172,16 +172,16 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "AddGps",
-    .name = "Add GPS",
-    .icon = LV_SYMBOL_GPS,
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "AddGps",
+    .appName = "Add GPS",
+    .appIcon = LV_SYMBOL_GPS,
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<AddGpsApp>
 };
 
 void start() {
-    app::start(manifest.id);
+    app::start(manifest.appId);
 }
 
 } // namespace

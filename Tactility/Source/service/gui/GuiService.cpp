@@ -193,7 +193,7 @@ void GuiService::requestDraw() {
 void GuiService::showApp(std::shared_ptr<app::AppContext> app) {
     lock();
     if (!isStarted) {
-        TT_LOG_W(TAG, "Failed to show app %s: GUI not started", app->getManifest().id.c_str());
+        TT_LOG_W(TAG, "Failed to show app %s: GUI not started", app->getManifest().appId.c_str());
     } else {
         // Ensure previous app triggers onHide() logic
         if (appToRender != nullptr) {

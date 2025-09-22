@@ -42,10 +42,10 @@ class UsbSettingsApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "UsbSettings",
-    .name = "USB",
-    .icon = LV_SYMBOL_USB,
-    .category = Category::Settings,
+    .appId = "UsbSettings",
+    .appName = "USB",
+    .appIcon = LV_SYMBOL_USB,
+    .appCategory = Category::Settings,
     .createApp = create<UsbSettingsApp>
 };
 

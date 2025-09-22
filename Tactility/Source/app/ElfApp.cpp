@@ -223,8 +223,8 @@ void setElfAppParameters(
 std::shared_ptr<App> createElfApp(const std::shared_ptr<AppManifest>& manifest) {
     TT_LOG_I(TAG, "createElfApp");
     assert(manifest != nullptr);
-    assert(manifest->location.isExternal());
-    return std::make_shared<ElfApp>(manifest->location.getPath());
+    assert(manifest->appLocation.isExternal());
+    return std::make_shared<ElfApp>(manifest->appLocation.getPath());
 }
 
 } // namespace

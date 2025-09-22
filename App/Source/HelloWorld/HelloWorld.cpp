@@ -17,7 +17,7 @@ class HelloWorldApp : public App {
 };
 
 extern const AppManifest hello_world_app = {
-    .id = "HelloWorld",
-    .name = "Hello World",
+    .appId = "HelloWorld",
+    .appName = "Hello World",
     .createApp = create<HelloWorldApp>
 };

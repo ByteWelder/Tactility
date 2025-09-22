@@ -13,12 +13,12 @@ class AppListApp : public App {
 
     static void onAppPressed(lv_event_t* e) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        service::loader::startApp(manifest->id);
+        service::loader::startApp(manifest->appId);
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
-        const void* icon = !manifest->icon.empty() ? manifest->icon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
-        lv_obj_t* btn = lv_list_add_button(list, icon, manifest->name.c_str());
+        const void* icon = !manifest->appIcon.empty() ? manifest->appIcon.c_str() : TT_ASSETS_APP_ICON_FALLBACK;
+        lv_obj_t* btn = lv_list_add_button(list, icon, manifest->appName.c_str());
         lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, manifest.get());
     }
 
@@ -40,8 +40,8 @@ public:
         std::ranges::sort(manifests, SortAppManifestByName);
 
         for (const auto& manifest: manifests) {
-            bool is_valid_category = (manifest->category == Category::User) || (manifest->category == Category::System);
-            bool is_visible = (manifest->flags & AppManifest::Flags::Hidden) == 0u;
+            bool is_valid_category = (manifest->appCategory == Category::User) || (manifest->appCategory == Category::System);
+            bool is_visible = (manifest->appFlags & AppManifest::Flags::Hidden) == 0u;
             if (is_valid_category && is_visible) {
                 createAppWidget(manifest, list);
             }
@@ -50,10 +50,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "AppList",
-    .name = "Apps",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "AppList",
+    .appName = "Apps",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<AppListApp>,
 };
 

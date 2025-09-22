@@ -4,6 +4,7 @@
 #include "./State.h"
 
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppPaths.h>
 
 #include <lvgl.h>
 
@@ -13,7 +14,7 @@ class View final {
 
     Bindings* bindings;
     State* state;
-    std::unique_ptr<Paths> paths;
+    std::unique_ptr<AppPaths> paths;
     lv_obj_t* root = nullptr;
     lv_obj_t* enable_switch = nullptr;
     lv_obj_t* enable_on_boot_switch = nullptr;

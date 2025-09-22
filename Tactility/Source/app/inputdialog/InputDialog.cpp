@@ -26,7 +26,7 @@ void start(const std::string& title, const std::string& message, const std::stri
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_PREFILLED, prefilled);
-    service::loader::startApp(manifest.id, bundle);
+    service::loader::startApp(manifest.appId, bundle);
 }
 
 std::string getResult(const Bundle& bundle) {
@@ -118,10 +118,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "InputDialog",
-    .name = "Input Dialog",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "InputDialog",
+    .appName = "Input Dialog",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<InputDialogApp>
 };
 

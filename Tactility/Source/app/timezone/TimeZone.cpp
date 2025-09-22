@@ -1,5 +1,6 @@
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -200,7 +201,7 @@ public:
         lv_obj_set_style_image_recolor_opa(icon, 255, 0);
         lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 
-        std::string icon_path = app.getPaths()->getSystemPathLvgl("search.png");
+        std::string icon_path = "A:" + app.getPaths()->getAssetsPath("search.png");
         lv_image_set_src(icon, icon_path.c_str());
         lv_obj_set_style_image_recolor(icon, lv_theme_get_color_primary(parent), 0);
 
@@ -226,15 +227,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "TimeZone",
-    .name = "Select timezone",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "TimeZone",
+    .appName = "Select timezone",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<TimeZoneApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 }

@@ -26,7 +26,7 @@ void start(const std::string& title, const std::vector<std::string>& items) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_ITEMS, items_joined);
-    service::loader::startApp(manifest.id, bundle);
+    service::loader::startApp(manifest.appId, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
@@ -112,10 +112,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "SelectionDialog",
-    .name = "Selection Dialog",
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "SelectionDialog",
+    .appName = "Selection Dialog",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<SelectionDialogApp>
 };
 

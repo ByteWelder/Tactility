@@ -164,10 +164,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Display",
-    .name = "Display",
-    .icon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
-    .category = Category::Settings,
+    .appId = "Display",
+    .appName = "Display",
+    .appIcon = TT_ASSETS_APP_ICON_DISPLAY_SETTINGS,
+    .appCategory = Category::Settings,
     .createApp = create<DisplayApp>
 };
 

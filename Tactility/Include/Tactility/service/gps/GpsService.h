@@ -24,7 +24,7 @@ class GpsService final : public Service {
     Mutex stateMutex;
     std::vector<GpsDeviceRecord> deviceRecords;
     std::shared_ptr<PubSub<State>> statePubSub = std::make_shared<PubSub<State>>();
-    std::unique_ptr<Paths> paths;
+    std::unique_ptr<ServicePaths> paths;
     State state = State::Off;
 
     bool startGpsDevice(GpsDeviceRecord& deviceRecord);

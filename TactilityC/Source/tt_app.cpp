@@ -1,5 +1,6 @@
 #include "tt_app.h"
 #include <Tactility/app/App.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppContext.h>
 
 extern "C" {
@@ -38,25 +39,7 @@ void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size
     assert(size != nullptr);
     assert(*size > 0);
     auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
-    auto data_path = paths->getDataDirectory();
-    auto expected_length = data_path.length() + 1;
-    if (*size < expected_length) {
-        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);
-        *size = 0;
-        buffer[0] = 0;
-        return;
-    }
-
-    strcpy(buffer, data_path.c_str());
-    *size = data_path.length();
-}
-
-void tt_app_get_data_directory_lvgl(AppPathsHandle handle, char* buffer, size_t* size) {
-    assert(buffer != nullptr);
-    assert(size != nullptr);
-    assert(*size > 0);
-    auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
-    auto data_path = paths->getDataDirectoryLvgl();
+    auto data_path = paths->getUserDataPath();
     auto expected_length = data_path.length() + 1;
     if (*size < expected_length) {
         TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);

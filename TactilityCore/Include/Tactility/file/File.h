@@ -83,6 +83,8 @@ std::string getChildPath(const std::string& basePath, const std::string& childPa
 
 std::string getLastPathSegment(const std::string& path);
 
+std::string getFirstPathSegment(const std::string& path);
+
 typedef int (*ScandirFilter)(const dirent*);
 
 typedef bool (*ScandirSort)(const dirent&, const dirent&);

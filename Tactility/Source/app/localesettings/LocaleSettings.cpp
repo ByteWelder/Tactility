@@ -162,15 +162,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "LocaleSettings",
-    .name = "Region & Language",
-    .icon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
-    .category = Category::Settings,
+    .appId = "LocaleSettings",
+    .appName = "Region & Language",
+    .appIcon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
+    .appCategory = Category::Settings,
     .createApp = create<LocaleSettingsApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

@@ -4,10 +4,10 @@
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppRegistration.h>
-#include <Tactility/app/ElfApp.h>
 #include <Tactility/file/File.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
+#include <Tactility/Paths.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -247,7 +247,7 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     }
     content_left -= content_read;
 
-    const std::string tmp_path = app::getTempPath();
+    const std::string tmp_path = getTempPath();
     auto lock = file::getLock(tmp_path)->asScopedLock();
 
     lock.lock();

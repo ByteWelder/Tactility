@@ -1,7 +1,10 @@
 #pragma once
 
-#include "Tactility/service/ServiceContext.h"
-#include "Tactility/service/Service.h"
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/Service.h>
+#include <Tactility/Mutex.h>
+
+#include <memory>
 
 namespace tt::service {
 
@@ -21,7 +24,7 @@ public:
     const ServiceManifest& getManifest() const override;
 
     /** Retrieve the paths that are relevant to this service */
-    std::unique_ptr<Paths> getPaths() const override;
+    std::unique_ptr<ServicePaths> getPaths() const override;
 
     std::shared_ptr<Service> getService() const { return service; }
 

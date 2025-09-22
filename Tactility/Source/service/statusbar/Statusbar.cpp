@@ -1,16 +1,16 @@
 #include <Tactility/lvgl/Statusbar.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/lvgl/Lvgl.h>
-#include <Tactility/service/gps/GpsService.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/Mutex.h>
-#include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
+#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/Timer.h>
 
 namespace tt::service::statusbar {
 
@@ -148,7 +148,7 @@ class StatusbarService final : public Service {
     int8_t power_icon_id;
     const char* power_last_icon = nullptr;
 
-    std::unique_ptr<Paths> paths;
+    std::unique_ptr<ServicePaths> paths;
 
     void lock() const {
         mutex.lock();
@@ -163,7 +163,7 @@ class StatusbarService final : public Service {
         bool show_icon = (gps_state == gps::State::OnPending) || (gps_state == gps::State::On);
         if (gps_last_state != show_icon) {
             if (show_icon) {
-                auto icon_path = paths->getSystemPathLvgl(STATUSBAR_ICON_GPS);
+                auto icon_path = "A:" + paths->getAssetsPath(STATUSBAR_ICON_GPS);
                 lvgl::statusbar_icon_set_image(gps_icon_id, icon_path);
                 lvgl::statusbar_icon_set_visibility(gps_icon_id, true);
             } else {
@@ -179,7 +179,7 @@ class StatusbarService final : public Service {
         const char* desired_icon = getWifiStatusIcon(radio_state, is_secure);
         if (wifi_last_icon != desired_icon) {
             if (desired_icon != nullptr) {
-                auto icon_path = paths->getSystemPathLvgl(desired_icon);
+                auto icon_path = "A:" + paths->getAssetsPath(desired_icon);
                 lvgl::statusbar_icon_set_image(wifi_icon_id, icon_path);
                 lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
             } else {
@@ -193,7 +193,7 @@ class StatusbarService final : public Service {
         const char* desired_icon = getPowerStatusIcon();
         if (power_last_icon != desired_icon) {
             if (desired_icon != nullptr) {
-                auto icon_path = paths->getSystemPathLvgl(desired_icon);
+                auto icon_path = "A:" + paths->getAssetsPath(desired_icon);
                 lvgl::statusbar_icon_set_image(power_icon_id, icon_path);
                 lvgl::statusbar_icon_set_visibility(power_icon_id, true);
             } else {
@@ -212,7 +212,7 @@ class StatusbarService final : public Service {
             if (state != hal::sdcard::SdCardDevice::State::Timeout) {
                 auto* desired_icon = getSdCardStatusIcon(state);
                 if (sdcard_last_icon != desired_icon) {
-                    auto icon_path = paths->getSystemPathLvgl(desired_icon);
+                    auto icon_path = "A:" + paths->getAssetsPath(desired_icon);
                     lvgl::statusbar_icon_set_image(sdcard_icon_id, icon_path);
                     lvgl::statusbar_icon_set_visibility(sdcard_icon_id, true);
                     sdcard_last_icon = desired_icon;

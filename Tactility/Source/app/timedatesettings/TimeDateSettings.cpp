@@ -57,15 +57,15 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "TimeDateSettings",
-    .name = "Time & Date",
-    .icon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
-    .category = Category::Settings,
+    .appId = "TimeDateSettings",
+    .appName = "Time & Date",
+    .appIcon = TT_ASSETS_APP_ICON_TIME_DATE_SETTINGS,
+    .appCategory = Category::Settings,
     .createApp = create<TimeDateSettingsApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

@@ -103,7 +103,7 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
     auto previous_app = !appStack.empty() ? appStack.top() : nullptr;
     auto new_app = std::make_shared<app::AppInstance>(app_manifest, launchId, parameters);
 
-    new_app->mutableFlags().hideStatusbar = (app_manifest->flags & app::AppManifest::Flags::HideStatusBar);
+    new_app->mutableFlags().hideStatusbar = (app_manifest->appFlags & app::AppManifest::Flags::HideStatusBar);
 
     appStack.push(new_app);
     transitionAppToState(new_app, app::State::Initial);
@@ -136,12 +136,12 @@ void LoaderService::onStopAppMessage(const std::string& id) {
     // Stop current app
     auto app_to_stop = appStack.top();
 
-    if (app_to_stop->getManifest().id != id) {
-        TT_LOG_E(TAG, "Stop app: id mismatch (wanted %s but found %s on top of stack)", id.c_str(), app_to_stop->getManifest().id.c_str());
+    if (app_to_stop->getManifest().appId != id) {
+        TT_LOG_E(TAG, "Stop app: id mismatch (wanted %s but found %s on top of stack)", id.c_str(), app_to_stop->getManifest().appId.c_str());
         return;
     }
 
-    if (original_stack_size == 1 && app_to_stop->getManifest().name != "Boot") {
+    if (original_stack_size == 1 && app_to_stop->getManifest().appName != "Boot") {
         TT_LOG_E(TAG, "Stop app: can't stop root app");
         return;
     }
@@ -162,12 +162,12 @@ void LoaderService::onStopAppMessage(const std::string& id) {
 
     // We only expect the app to be referenced within the current scope
     if (app_to_stop.use_count() > 1) {
-        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().id.c_str(), app_to_stop.use_count() - 1);
+        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().appId.c_str(), app_to_stop.use_count() - 1);
     }
 
     // Refcount is expected to be 2: 1 within app_to_stop and 1 within the current scope
     if (app_to_stop->getApp().use_count() > 2) {
-        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().id.c_str(), app_to_stop->getApp().use_count() - 2);
+        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().appId.c_str(), app_to_stop->getApp().use_count() - 2);
     }
 
 #ifdef ESP_PLATFORM
@@ -224,7 +224,7 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
     TT_LOG_I(
         TAG,
         "App \"%s\" state: %s -> %s",
-        app_manifest.id.c_str(),
+        app_manifest.appId.c_str(),
         appStateToString(old_state),
         appStateToString(state)
     );
@@ -263,7 +263,7 @@ app::LaunchId LoaderService::startApp(const std::string& id, std::shared_ptr<con
 
 void LoaderService::stopApp() {
     TT_LOG_I(TAG, "stopApp()");
-    auto id = getCurrentAppContext()->getManifest().id;
+    auto id = getCurrentAppContext()->getManifest().appId;
     dispatcherThread->dispatch([this, id]() {
         onStopAppMessage(id);
     });

@@ -63,30 +63,45 @@ struct AppManifest {
         constexpr static uint32_t Hidden = 1 << 1;
     };
 
+    /** The version of the manifest file format */
+    std::string manifestVersion = {};
+
+    /** The SDK version that was used to compile this app. (e.g. "0.6.0") */
+    std::string targetSdk = {};
+
+    /** Comma-separated list of platforms, e.g. "esp32,esp32s3" */
+    std::string targetPlatforms = {};
+
     /** The identifier by which the app is launched by the system and other apps. */
-    std::string id = {};
+    std::string appId = {};
 
     /** The user-readable name of the app. Used in UI. */
-    std::string name = {};
+    std::string appName = {};
 
     /** Optional icon. */
-    std::string icon = {};
+    std::string appIcon = {};
+
+    /** The version as it is displayed to the user (e.g. "1.2.0") */
+    std::string appVersionName = {};
+
+    /** The technical version (must be incremented with new releases of the app */
+    uint64_t appVersionCode = {};
 
     /** App category helps with listing apps in Launcher, app list or settings apps. */
-    Category category = Category::User;
+    Category appCategory = Category::User;
 
     /** Where the app is located */
-    Location location = Location::internal();
+    Location appLocation = Location::internal();
 
     /** Controls various settings */
-    uint32_t flags = Flags::None;
+    uint32_t appFlags = Flags::None;
 
     /** Create the instance of the app */
     CreateApp createApp = nullptr;
 };
 
 struct {
-    bool operator()(const std::shared_ptr<AppManifest>& left, const std::shared_ptr<AppManifest>& right) const { return left->name < right->name; }
+    bool operator()(const std::shared_ptr<AppManifest>& left, const std::shared_ptr<AppManifest>& right) const { return left->appName < right->appName; }
 } SortAppManifestByName;
 
 } // namespace

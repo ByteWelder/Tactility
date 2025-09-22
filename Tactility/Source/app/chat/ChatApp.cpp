@@ -136,9 +136,9 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Chat",
-    .name = "Chat",
-    .icon = TT_ASSETS_APP_ICON_CHAT,
+    .appId = "Chat",
+    .appName = "Chat",
+    .appIcon = TT_ASSETS_APP_ICON_CHAT,
     .createApp = create<ChatApp>
 };
 

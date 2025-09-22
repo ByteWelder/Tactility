@@ -31,14 +31,6 @@ bool tt_app_has_result(AppHandle handle);
  */
 void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size);
 
-/** Get the path to the data directory of this app, with LVGL drive letter prefix applied.
- * The recommended buffer size is 256 bytes.
- * @param[in] handle the app handle
- * @param[out] buffer the output buffer (recommended size is 256 bytes)
- * @param[inout] size used as input for maximum buffer size (including null terminator) and is set with the path string length by this function
- */
-void tt_app_get_data_directory_lvgl(AppPathsHandle handle, char* buffer, size_t* size);
-
 /**
  * Start an app by id.
  * @param[in] appId the app manifest id

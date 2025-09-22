@@ -120,10 +120,10 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Log",
-    .name = "Log",
-    .icon = LV_SYMBOL_LIST,
-    .category = Category::System,
+    .appId = "Log",
+    .appName = "Log",
+    .appIcon = LV_SYMBOL_LIST,
+    .appCategory = Category::System,
     .createApp = create<LogApp>
 };
 

@@ -33,16 +33,16 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Files",
-    .name = "Files",
-    .icon = TT_ASSETS_APP_ICON_FILES,
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "Files",
+    .appName = "Files",
+    .appIcon = TT_ASSETS_APP_ICON_FILES,
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<FilesApp>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

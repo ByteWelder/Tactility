@@ -93,10 +93,10 @@ class I2cSettingsApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "I2cSettings",
-    .name = "I2C",
-    .icon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
-    .category = Category::Settings,
+    .appId = "I2cSettings",
+    .appName = "I2C",
+    .appIcon = TT_ASSETS_APP_ICON_I2C_SETTINGS,
+    .appCategory = Category::Settings,
     .createApp = create<I2cSettingsApp>
 };
 

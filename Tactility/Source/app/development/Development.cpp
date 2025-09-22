@@ -160,14 +160,14 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "Development",
-    .name = "Development",
-    .category = Category::Settings,
+    .appId = "Development",
+    .appName = "Development",
+    .appCategory = Category::Settings,
     .createApp = create<DevelopmentApp>
 };
 
 void start() {
-    app::start(manifest.id);
+    app::start(manifest.appId);
 }
 
 } // namespace

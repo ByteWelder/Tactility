@@ -1,6 +1,8 @@
 #include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
+#include <format>
+
 namespace tt::hal::sdcard {
 
 constexpr auto* TAG = "SdCardMounting";
@@ -15,24 +17,18 @@ static void mount(const std::shared_ptr<SdCardDevice>& sdcard, const std::string
    });
 }
 
+static std::string getMountPath(int index, int count) {
+    return (count == 1) ? TT_SDCARD_MOUNT_POINT : std::format("{}{}", TT_SDCARD_MOUNT_POINT, index);
+}
+
 void mountAll() {
-    auto sdcards = hal::findDevices<SdCardDevice>(Device::Type::SdCard);
-    if (!sdcards.empty()) {
-        if (sdcards.size() == 1) {
-            // Fixed mount path name
-            auto sdcard = sdcards[0];
-            if (!sdcard->isMounted()) {
-                mount(sdcard, TT_SDCARD_MOUNT_POINT);
-            }
-        } else {
-            // Numbered mount path name
-            for (int i = 0; i < sdcards.size(); i++) {
-                auto sdcard = sdcards[i];
-                if (!sdcard->isMounted()) {
-                    std::string mount_path = TT_SDCARD_MOUNT_POINT + std::to_string(i);
-                    mount(sdcard, mount_path);
-                }
-            }
+    const auto sdcards = hal::findDevices<SdCardDevice>(Device::Type::SdCard);
+    // Numbered mount path name
+    for (int i = 0; i < sdcards.size(); i++) {
+        auto sdcard = sdcards[i];
+        if (!sdcard->isMounted() && sdcard->getMountBehaviour() == SdCardDevice::MountBehaviour::AtBoot) {
+            std::string mount_path = getMountPath(i, sdcards.size());
+            mount(sdcard, mount_path);
         }
     }
 }

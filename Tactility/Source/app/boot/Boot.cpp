@@ -1,6 +1,7 @@
 #include <Tactility/TactilityCore.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/AppPaths.h>
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>
@@ -163,21 +164,21 @@ public:
         const char* logo;
         // TODO: Replace with automatic asset buckets like on Android
         if (getSmallestDimension() < 150) { // e.g. Cardputer
-            logo = hal::usb::isUsbBootMode() ? "assets/logo_usb.png" : "assets/logo_small.png";
+            logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo_small.png";
         } else {
-            logo = hal::usb::isUsbBootMode() ? "assets/logo_usb.png" : "assets/logo.png";
+            logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
         }
-        const auto logo_path = paths->getSystemPathLvgl(logo);
+        const auto logo_path = "A:" + paths->getAssetsPath(logo);
         TT_LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());
     }
 };
 
 extern const AppManifest manifest = {
-    .id = "Boot",
-    .name = "Boot",
-    .category = Category::System,
-    .flags = AppManifest::Flags::HideStatusBar | AppManifest::Flags::Hidden,
+    .appId = "Boot",
+    .appName = "Boot",
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::HideStatusBar | AppManifest::Flags::Hidden,
     .createApp = create<BootApp>
 };
 

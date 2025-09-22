@@ -133,15 +133,15 @@ void WifiManage::onHide(TT_UNUSED AppContext& app) {
 }
 
 extern const AppManifest manifest = {
-    .id = "WifiManage",
-    .name = "Wi-Fi",
-    .icon = LV_SYMBOL_WIFI,
-    .category = Category::Settings,
+    .appId = "WifiManage",
+    .appName = "Wi-Fi",
+    .appIcon = LV_SYMBOL_WIFI,
+    .appCategory = Category::Settings,
     .createApp = create<WifiManage>
 };
 
 void start() {
-    service::loader::startApp(manifest.id);
+    service::loader::startApp(manifest.appId);
 }
 
 } // namespace

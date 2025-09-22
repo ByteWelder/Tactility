@@ -41,10 +41,10 @@ class AppInstance : public AppContext {
     static std::shared_ptr<App> createApp(
         const std::shared_ptr<AppManifest>& manifest
     ) {
-        if (manifest->location.isInternal()) {
+        if (manifest->appLocation.isInternal()) {
             assert(manifest->createApp != nullptr);
             return manifest->createApp();
-        } else if (manifest->location.isExternal()) {
+        } else if (manifest->appLocation.isExternal()) {
             if (manifest->createApp != nullptr) {
                 TT_LOG_W("", "Manifest specifies createApp, but this is not used with external apps");
             }
@@ -88,7 +88,7 @@ public:
 
     std::shared_ptr<const Bundle> getParameters() const override;
 
-    std::unique_ptr<Paths> getPaths() const override;
+    std::unique_ptr<AppPaths> getPaths() const override;
 
     std::shared_ptr<App> getApp() const override { return app; }
 };

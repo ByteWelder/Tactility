@@ -21,7 +21,7 @@ extern const AppManifest manifest;
 void start(const std::string& ssid) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString("ssid", ssid);
-    app::start(manifest.id, bundle);
+    app::start(manifest.appId, bundle);
 }
 
 class WifiApSettings : public App {
@@ -241,11 +241,11 @@ public:
 };
 
 extern const AppManifest manifest = {
-    .id = "WifiApSettings",
-    .name = "Wi-Fi AP Settings",
-    .icon = LV_SYMBOL_WIFI,
-    .category = Category::System,
-    .flags = AppManifest::Flags::Hidden,
+    .appId = "WifiApSettings",
+    .appName = "Wi-Fi AP Settings",
+    .appIcon = LV_SYMBOL_WIFI,
+    .appCategory = Category::System,
+    .appFlags = AppManifest::Flags::Hidden,
     .createApp = create<WifiApSettings>
 };
 

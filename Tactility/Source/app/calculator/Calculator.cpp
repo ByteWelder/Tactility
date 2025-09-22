@@ -224,9 +224,9 @@ class CalculatorApp : public App {
 };
 
 extern const AppManifest manifest = {
-    .id = "Calculator",
-    .name = "Calculator",
-    .icon = TT_ASSETS_APP_ICON_CALCULATOR,
+    .appId = "Calculator",
+    .appName = "Calculator",
+    .appIcon = TT_ASSETS_APP_ICON_CALCULATOR,
     .createApp = create<CalculatorApp>
 };
 
