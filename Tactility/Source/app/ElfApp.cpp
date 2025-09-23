@@ -91,7 +91,7 @@ private:
 
         auto relocate_result = esp_elf_relocate(&elf, elfFileData.get());
         if (relocate_result != 0) {
-            // Note: the result code mapes to values from cstdlib's errno.h
+            // Note: the result code maps to values from cstdlib's errno.h
             lastError = getErrorCodeString(-relocate_result);
             TT_LOG_E(TAG, "Application failed to load: %s", lastError.c_str());
             elfFileData  = nullptr;
