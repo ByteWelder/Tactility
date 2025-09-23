@@ -11,7 +11,7 @@ std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable createTouch() {
         240,
         false,
         true,
-        false,
+        true,
         GPIO_NUM_13,
         GPIO_NUM_5
     );
