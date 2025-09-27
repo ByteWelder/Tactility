@@ -23,6 +23,8 @@ static std::string getErrorCodeString(int error_code) {
             return "out of memory";
         case ENOSYS:
             return "missing symbol";
+        case EINVAL:
+            return "invalid argument or main() missing";
         default:
             return std::format("code {}", error_code);
     }
