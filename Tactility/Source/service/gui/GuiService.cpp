@@ -1,5 +1,3 @@
-#include "../../../../TactilityC/Include/tt_kernel.h"
-
 #include <Tactility/service/gui/GuiService.h>
 
 #include <Tactility/app/AppInstance.h>
@@ -236,7 +234,7 @@ void GuiService::hideApp() {
 
     // We must lock the LVGL port, because the viewport hide callbacks
     // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
-    lvgl::lock(TT_MAX_TICKS);
+    lvgl::lock(portMAX_DELAY);
     appToRender->getApp()->onHide(*appToRender);
     lvgl::unlock();
     appToRender = nullptr;
