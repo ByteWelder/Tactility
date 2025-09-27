@@ -526,6 +526,22 @@ const esp_elfsym elf_symbols[] {
     // lv_pct
     ESP_ELFSYM_EXPORT(lv_pct),
     ESP_ELFSYM_EXPORT(lv_pct_to_px),
+    // lv_spinbox
+    ESP_ELFSYM_EXPORT(lv_spinbox_create),
+    ESP_ELFSYM_EXPORT(lv_spinbox_decrement),
+    ESP_ELFSYM_EXPORT(lv_spinbox_get_rollover),
+    ESP_ELFSYM_EXPORT(lv_spinbox_get_step),
+    ESP_ELFSYM_EXPORT(lv_spinbox_get_value),
+    ESP_ELFSYM_EXPORT(lv_spinbox_increment),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_rollover),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_step),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_range),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_digit_format),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_digit_step_direction),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_value),
+    ESP_ELFSYM_EXPORT(lv_spinbox_set_cursor_pos),
+    ESP_ELFSYM_EXPORT(lv_spinbox_step_next),
+    ESP_ELFSYM_EXPORT(lv_spinbox_step_prev),
     // delimiter
     ESP_ELFSYM_END
 };
