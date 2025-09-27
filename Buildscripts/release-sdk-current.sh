@@ -5,5 +5,6 @@
 # This deployment is used when compiling apps in ./ExternalApps
 #
 
+rm -rf release/TactilitySDK
 ./Buildscripts/release-sdk.sh release/TactilitySDK
 

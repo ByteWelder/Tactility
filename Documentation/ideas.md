@@ -17,7 +17,6 @@
   The latter is used for auto-selecting it as data partition.
 - Support direct installation of an `.app` file with `tactility.py install helloworld.app <ip>`
 - Support `tactility.py target <ip>` to remember the device IP address.
-- Bug: `Buildscript/release-sdk-current.sh` should delete the currently released SDK. It should probably also output it with versioning and target platform naming so it can be referred to as if it is a real release.
 
 ## Medium Priority
 
