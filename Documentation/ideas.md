@@ -3,7 +3,8 @@
 ## Higher Priority
 
 - Show a warning in the web installer when flashing CYD 28R board regarding v1/v2/v3
-- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
+- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
+  Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
