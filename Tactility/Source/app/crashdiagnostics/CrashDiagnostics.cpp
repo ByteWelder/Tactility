@@ -15,8 +15,10 @@
 
 namespace tt::app::crashdiagnostics {
 
+extern const AppManifest manifest;
+
 void onContinuePressed(TT_UNUSED lv_event_t* event) {
-    service::loader::stopApp();
+    stop(manifest.appId);
     launcher::start();
 }
 
@@ -48,7 +50,7 @@ public:
         int qr_version;
         if (!getQrVersionForBinaryDataLength(url_length, qr_version)) {
             TT_LOG_E(TAG, "QR is too large");
-            service::loader::stopApp();
+            stop(manifest.appId);
             return;
         }
 
@@ -56,7 +58,7 @@ public:
         auto qrcodeData = std::make_shared<uint8_t[]>(qrcode_getBufferSize(qr_version));
         if (qrcodeData == nullptr) {
             TT_LOG_E(TAG, "Failed to allocate QR buffer");
-            service::loader::stopApp();
+            stop();
             return;
         }
 
@@ -64,7 +66,7 @@ public:
         TT_LOG_I(TAG, "QR init text");
         if (qrcode_initText(&qrcode, qrcodeData.get(), qr_version, ECC_LOW, url.c_str()) != 0) {
             TT_LOG_E(TAG, "QR init text  failed");
-            service::loader::stopApp();
+            stop(manifest.appId);
             return;
         }
 
@@ -84,7 +86,7 @@ public:
             pixel_size = 1;
         } else {
             TT_LOG_E(TAG, "QR code won't fit screen");
-            service::loader::stopApp();
+            stop(manifest.appId);
             return;
         }
 
@@ -99,7 +101,7 @@ public:
         auto* draw_buf = lv_draw_buf_create(pixel_size * qrcode.size, pixel_size * qrcode.size, LV_COLOR_FORMAT_RGB565, LV_STRIDE_AUTO);
         if (draw_buf == nullptr) {
             TT_LOG_E(TAG, "Draw buffer alloc");
-            service::loader::stopApp();
+            stop(manifest.appId);
             return;
         }
 
@@ -130,7 +132,7 @@ extern const AppManifest manifest = {
 };
 
 void start() {
-    service::loader::startApp(manifest.appId);
+    app::start(manifest.appId);
 }
 
 } // namespace

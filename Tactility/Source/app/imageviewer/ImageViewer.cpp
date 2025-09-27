@@ -1,7 +1,6 @@
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/TactilityCore.h>
 #include <Tactility/StringUtils.h>
 
@@ -11,10 +10,10 @@ namespace tt::app::imageviewer {
 
 extern const AppManifest manifest;
 
-#define TAG "image_viewer"
-#define IMAGE_VIEWER_FILE_ARGUMENT "file"
+constexpr auto* TAG = "ImageViewer";
+constexpr auto* IMAGE_VIEWER_FILE_ARGUMENT = "file";
 
-class ImageViewerApp : public App {
+class ImageViewerApp final : public App {
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         auto wrapper = lv_obj_create(parent);
@@ -67,10 +66,10 @@ extern const AppManifest manifest = {
     .createApp = create<ImageViewerApp>
 };
 
-void start(const std::string& file) {
+LaunchId start(const std::string& file) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(IMAGE_VIEWER_FILE_ARGUMENT, file);
-    service::loader::startApp(manifest.appId, parameters);
+    return app::start(manifest.appId, parameters);
 }
 
 } // namespace

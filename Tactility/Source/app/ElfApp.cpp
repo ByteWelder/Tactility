@@ -137,14 +137,14 @@ public:
 
         staticParametersSetCount = 0;
         if (!startElf()) {
-            service::loader::stopApp();
+            stop();
             auto message = lastError.empty() ? "Application failed to start." : std::format("Application failed to start: {}", lastError);
             alertdialog::start("Error", message);
             return;
         }
 
         if (staticParametersSetCount == 0) {
-            service::loader::stopApp();
+            stop();
             alertdialog::start("Error", "Application failed to start: application failed to register itself");
             return;
         }

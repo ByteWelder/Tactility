@@ -194,9 +194,16 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    app::start(id_key_pos->second);
+    const auto& app_id = id_key_pos->second;
+    if (app::isRunning(app_id)) {
+        app::stopAll(app_id);
+    }
+
+    app::start(app_id);
+
     TT_LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
     httpd_resp_send(request, nullptr, 0);
+
     return ESP_OK;
 }
 

@@ -1,25 +1,25 @@
-#include "Tactility/service/gui/GuiService.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Statusbar.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/service/gui/GuiService.h>
 
-#include <Tactility/Tactility.h>
 #include <Tactility/app/AppInstance.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/Tactility.h>
 
 namespace tt::service::gui {
 
 extern const ServiceManifest manifest;
-
 constexpr auto* TAG = "GuiService";
+using namespace loader;
 
 // region AppManifest
 
-void GuiService::onLoaderEvent(loader::LoaderEvent event) {
-    if (event == loader::LoaderEvent::ApplicationShowing) {
+void GuiService::onLoaderEvent(LoaderService::Event event) {
+    if (event == LoaderService::Event::ApplicationShowing) {
         auto app_instance = app::getCurrentAppContext();
         showApp(app_instance);
-    } else if (event == loader::LoaderEvent::ApplicationHiding) {
+    } else if (event == LoaderService::Event::ApplicationHiding) {
         hideApp();
     }
 }
@@ -125,7 +125,9 @@ bool GuiService::onStart(TT_UNUSED ServiceContext& service) {
         []() { return guiMain(); }
     );
 
-    loader_pubsub_subscription = loader::getPubsub()->subscribe([this](auto event) {
+    const auto loader = findLoaderService();
+    assert(loader != nullptr);
+    loader_pubsub_subscription = loader->getPubsub()->subscribe([this](auto event) {
         onLoaderEvent(event);
     });
 
@@ -168,7 +170,9 @@ bool GuiService::onStart(TT_UNUSED ServiceContext& service) {
 void GuiService::onStop(TT_UNUSED ServiceContext& service) {
     lock();
 
-    loader::getPubsub()->unsubscribe(loader_pubsub_subscription);
+    const auto loader = findLoaderService();
+    assert(loader != nullptr);
+    loader->getPubsub()->unsubscribe(loader_pubsub_subscription);
 
     appToRender = nullptr;
     isStarted = false;

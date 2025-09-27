@@ -65,7 +65,7 @@ static const lv_obj_class_t toolbar_class = {
 };
 
 static void stop_app(TT_UNUSED lv_event_t* event) {
-    service::loader::stopApp();
+    app::stop();
 }
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {

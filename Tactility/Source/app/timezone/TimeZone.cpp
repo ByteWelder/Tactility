@@ -104,8 +104,7 @@ class TimeZoneApp final : public App {
         setResultCode(*bundle, entry.code);
 
         setResult(Result::Ok, std::move(bundle));
-
-        service::loader::stopApp();
+        stop(manifest.appId);
     }
 
     static void createListItem(lv_obj_t* list, const std::string& title, size_t index) {
@@ -234,8 +233,8 @@ extern const AppManifest manifest = {
     .createApp = create<TimeZoneApp>
 };
 
-void start() {
-    service::loader::startApp(manifest.appId);
+LaunchId start() {
+    return app::start(manifest.appId);
 }
 
 }

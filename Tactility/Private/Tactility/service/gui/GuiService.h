@@ -17,12 +17,12 @@ namespace tt::service::gui {
 #define GUI_THREAD_FLAG_EXIT (1 << 2)
 #define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT)
 
-class GuiService : public Service {
+class GuiService final : public Service {
 
     // Thread and lock
     Thread* thread = nullptr;
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    PubSub<loader::LoaderEvent>::SubscriptionHandle loader_pubsub_subscription = nullptr;
+    PubSub<loader::LoaderService::Event>::SubscriptionHandle loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas
     lv_obj_t* appRootWidget = nullptr;
@@ -38,7 +38,7 @@ class GuiService : public Service {
 
     static int32_t guiMain();
 
-    void onLoaderEvent(loader::LoaderEvent event);
+    void onLoaderEvent(loader::LoaderService::Event event);
 
     lv_obj_t* createAppViews(lv_obj_t* parent);
 

@@ -1,7 +1,9 @@
 #pragma once
 
+#include <Tactility/app/App.h>
+
 namespace tt::app::imageviewer {
 
-void start(const std::string& file);
+LaunchId start(const std::string& file);
 
-};
+}

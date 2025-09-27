@@ -1,45 +1,99 @@
 #pragma once
 
-#include "Tactility/app/AppManifest.h"
-
+#include <Tactility/app/AppInstance.h>
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/Bundle.h>
+#include <Tactility/DispatcherThread.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/service/Service.h>
 
 #include <memory>
 
 namespace tt::service::loader {
 
-// region LoaderEvent for PubSub
 
-enum class LoaderEvent{
-    ApplicationStarted,
-    ApplicationShowing,
-    ApplicationHiding,
-    ApplicationStopped
+class LoaderService final : public Service {
+
+public:
+
+    enum class Event {
+        ApplicationStarted,
+        ApplicationShowing,
+        ApplicationHiding,
+        ApplicationStopped
+    };
+
+private:
+
+    std::shared_ptr<PubSub<Event>> pubsubExternal = std::make_shared<PubSub<Event>>();
+    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    std::vector<std::shared_ptr<app::AppInstance>> appStack;
+    app::LaunchId nextLaunchId = 0;
+
+    /** The dispatcher thread needs a callstack large enough to accommodate all the dispatched methods.
+     * This includes full LVGL redraw via Gui::redraw()
+     */
+    std::unique_ptr<DispatcherThread> dispatcherThread = std::make_unique<DispatcherThread>("loader_dispatcher", 6144); // Files app requires ~5k
+
+    void onStartAppMessage(const std::string& id, app::LaunchId launchId, std::shared_ptr<const Bundle> parameters);
+
+    void onStopTopAppMessage(const std::string& id);
+
+    void onStopAllAppMessage(const std::string& id);
+
+    void transitionAppToState(const std::shared_ptr<app::AppInstance>& app, app::State state);
+
+    int findAppInStack(const std::string& id) const;
+
+    bool onStart(TT_UNUSED ServiceContext& service) override {
+        dispatcherThread->start();
+        return true;
+    }
+
+    void onStop(TT_UNUSED ServiceContext& service) override {
+        // Send stop signal to thread and wait for thread to finish
+        mutex.withLock([this] {
+            dispatcherThread->stop();
+        });
+    }
+
+public:
+    /**
+     * @brief Start an app given an app id and an optional bundle with parameters
+     * @param id the app identifier
+     * @param parameters optional parameter bundle
+     * @return the launch id
+     */
+    app::LaunchId start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters);
+
+    /**
+     * @brief Stops the top-most app (the one that is currently active shown to the user
+     * @warning Avoid calling this directly and use stopTop(id) instead
+     */
+    void stopTop();
+
+    /**
+     * @brief Stops the top-most app if the id is still matching by the time the stop event arrives.
+     * @param id the id of the app to stop
+     */
+    void stopTop(const std::string& id);
+
+    /**
+     * @brief Stops all apps with the provided id and any apps that were pushed on top of the stack after the original app was started.
+     * @param id the id of the app to stop
+     */
+    void stopAll(const std::string& id);
+
+    /** @return the AppContext of the top-most application */
+    std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
+
+    /** @return true if the app is running anywhere in the app stack (the app does not have to be the top-most one for this to return true) */
+    bool isRunning(const std::string& id) const;
+
+    /** @return the PubSub object that is responsible for event publishing */
+    std::shared_ptr<PubSub<Event>> getPubsub() const { return pubsubExternal; }
 };
 
-// endregion LoaderEvent for PubSub
-
-/**
- * @brief Start an app
- * @param[in] id application name or id
- * @param[in] parameters optional parameters to pass onto the application
- * @return the launch id
- */
-app::LaunchId startApp(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters = nullptr);
-
-/** @brief Stop the currently showing app. Show the previous app if any app was still running. */
-void stopApp();
-
-/** @return the currently running app context (it is only ever null before the splash screen is shown) */
-std::shared_ptr<app::AppContext> _Nullable getCurrentAppContext();
-
-/** @return the currently running app (it is only ever null before the splash screen is shown) */
-std::shared_ptr<app::App> _Nullable getCurrentApp();
-
-/**
- * @brief PubSub for LoaderEvent
- */
-std::shared_ptr<PubSub<LoaderEvent>> getPubsub();
+std::shared_ptr<LoaderService> _Nullable findLoaderService();
 
 } // namespace

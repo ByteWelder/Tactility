@@ -28,7 +28,7 @@ LaunchId start(const std::string& title, const std::string& message, const std::
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_joined);
-    return service::loader::startApp(manifest.appId, bundle);
+    return app::start(manifest.appId, bundle);
 }
 
 LaunchId start(const std::string& title, const std::string& message) {
@@ -36,7 +36,7 @@ LaunchId start(const std::string& title, const std::string& message) {
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, "OK");
-    return service::loader::startApp(manifest.appId, bundle);
+    return app::start(manifest.appId, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
@@ -72,9 +72,9 @@ private:
 
         auto bundle = std::make_unique<Bundle>();
         bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);
-        setResult(app::Result::Ok, std::move(bundle));
+        setResult(Result::Ok, std::move(bundle));
 
-        service::loader::stopApp();
+        stop(manifest.appId);
     }
 
     static void createButton(lv_obj_t* parent, const std::string& text, size_t index) {

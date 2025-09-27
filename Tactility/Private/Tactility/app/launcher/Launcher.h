@@ -1,7 +1,9 @@
 #pragma once
 
+#include <Tactility/app/App.h>
+
 namespace tt::app::launcher {
 
-void start();
+LaunchId start();
 
 }

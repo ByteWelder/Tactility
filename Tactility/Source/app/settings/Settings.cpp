@@ -1,6 +1,6 @@
-#include "Tactility/app/AppRegistration.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/app/AppRegistration.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 
 #include <Tactility/Assets.h>
 #include <Tactility/Check.h>
@@ -12,7 +12,7 @@ namespace tt::app::settings {
 
 static void onAppPressed(lv_event_t* e) {
     const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-    service::loader::startApp(manifest->appId);
+    start(manifest->appId);
 }
 
 static void createWidget(const std::shared_ptr<AppManifest>& manifest, void* parent) {
@@ -23,7 +23,7 @@ static void createWidget(const std::shared_ptr<AppManifest>& manifest, void* par
     lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, (void*)manifest.get());
 }
 
-class SettingsApp : public App {
+class SettingsApp final : public App {
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
@@ -36,7 +36,7 @@ class SettingsApp : public App {
         lv_obj_set_flex_grow(list, 1);
 
         auto manifests = getApps();
-        std::sort(manifests.begin(), manifests.end(), SortAppManifestByName);
+        std::ranges::sort(manifests, SortAppManifestByName);
         for (const auto& manifest: manifests) {
             if (manifest->appCategory == Category::Settings) {
                 createWidget(manifest, list);

@@ -24,6 +24,7 @@
 namespace tt::app::boot {
 
 constexpr auto* TAG = "Boot";
+extern const AppManifest manifest;
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -107,7 +108,7 @@ class BootApp : public App {
             TT_LOG_I(TAG, "initFromBootApp");
             initFromBootApp();
             waitForMinimalSplashDuration(start_time);
-            service::loader::stopApp();
+            stop(manifest.appId);
             startNextApp();
         }
 
@@ -128,7 +129,7 @@ class BootApp : public App {
             return;
         }
 
-        service::loader::startApp(boot_properties.launcherAppId);
+        start(boot_properties.launcherAppId);
     }
 
     static int getSmallestDimension() {

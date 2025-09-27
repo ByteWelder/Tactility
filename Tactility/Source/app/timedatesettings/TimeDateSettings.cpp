@@ -12,7 +12,7 @@ constexpr auto* TAG = "TimeDate";
 
 extern const AppManifest manifest;
 
-class TimeDateSettingsApp : public App {
+class TimeDateSettingsApp final : public App {
 
     Mutex mutex = Mutex(Mutex::Type::Recursive);
 
@@ -64,8 +64,8 @@ extern const AppManifest manifest = {
     .createApp = create<TimeDateSettingsApp>
 };
 
-void start() {
-    service::loader::startApp(manifest.appId);
+LaunchId start() {
+    return app::start(manifest.appId);
 }
 
 } // namespace
