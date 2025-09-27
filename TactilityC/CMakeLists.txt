@@ -9,6 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Include/"
+        PRIV_INCLUDE_DIRS "Private/"
         REQUIRES lvgl
         PRIV_REQUIRES Tactility TactilityCore elf_loader
     )
@@ -21,16 +22,12 @@ else()
 
     add_library(TactilityC OBJECT)
 
-    target_sources(TactilityC
-        PRIVATE ${SOURCES}
-    )
-
-    target_include_directories(TactilityC
-        PUBLIC Include/
-    )
-
     add_definitions(-D_Nullable=)
     add_definitions(-D_Nonnull=)
+
+    target_sources(TactilityC PRIVATE ${SOURCES})
+    include_directories(TactilityC PRIVATE Private/)
+    target_include_directories(TactilityC PUBLIC Include/)
     target_link_libraries(TactilityC
         PRIVATE Tactility
         PRIVATE TactilityCore

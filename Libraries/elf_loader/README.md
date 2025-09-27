@@ -13,6 +13,7 @@ This ELF loader supports following SoCs:
 - ESP32-S3, support running ELF in PSRAM
 - ESP32-P4, support running ELF in PSRAM
 - ESP32-C6
+- ESP32-C61, support running ELF in PSRAM
 
 ### Usage
 
@@ -61,6 +62,29 @@ project_elf(XXXX)
 ```
 
 Build the project as an ordinary ESP-IDF project, and then the ELF file named `XXXX.app.elf` is in the build directory.
+
+### ELF APP Fast Build
+
+Users can enable ELF fast build functionality by configuring CMAKE's generator as Unit Makefile. The reference command is as follows:
+
+```bash
+idf.py -G 'Unix Makefiles' set-target <chip-name>
+```
+
+Then input the ELF APP build command as follows:
+
+```
+idf.py elf
+```
+
+The build system will only build ELF target components and show the following logs:
+
+```
+Building C object esp-idf/main/CMakeFiles/__idf_main.dir/main.c.obj
+Linking C static library libmain.a
+Build ELF: hello_world.app.elf
+Built target elf
+```
 
 ### Adding the Component to Your Project
 

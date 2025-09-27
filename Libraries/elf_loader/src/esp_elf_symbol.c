@@ -27,13 +27,6 @@ extern int __gtdf2(double a, double b);
 extern double __floatunsidf(unsigned int i);
 extern double __divdf3(double a, double b);
 
-// Tactility custom -->
-static const struct esp_elfsym* custom_symbols = NULL;
-void elf_set_custom_symbols(const struct esp_elfsym* symbols) {
-    custom_symbols = symbols;
-}
-// <-- Tactility custom
-
 /** @brief Libc public functions symbols look-up table */
 
 static const struct esp_elfsym g_esp_libc_elfsyms[] = {
@@ -163,7 +156,7 @@ static const struct esp_elfsym g_esp_espidf_elfsyms[] = {
  *
  * @return Symbol address if success or 0 if failed.
  */
-uintptr_t elf_find_sym(const char *sym_name)
+uintptr_t elf_find_sym_default(const char *sym_name)
 {
     const struct esp_elfsym *syms;
 
@@ -207,17 +200,6 @@ uintptr_t elf_find_sym(const char *sym_name)
         syms++;
     }
 #endif
-
-// Tactility custom -->
-    syms = custom_symbols;
-    while (syms->name) {
-        if (!strcmp(syms->name, sym_name)) {
-            return (uintptr_t)syms->sym;
-        }
-
-        syms++;
-    }
-// <-- Tactility custom
 
     return 0;
 }
