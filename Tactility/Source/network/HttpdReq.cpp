@@ -1,4 +1,4 @@
-#include "Tactility/network/HttpdReq.h"
+#include <Tactility/network/HttpdReq.h>
 
 #include <memory>
 #include <ranges>
@@ -8,9 +8,9 @@
 
 #ifdef ESP_PLATFORM
 
-#define TAG "network"
-
 namespace tt::network {
+
+constexpr auto* TAG = "HttpdReq";
 
 bool getHeaderOrSendError(httpd_req_t* request, const std::string& name, std::string& value) {
     size_t header_size = httpd_req_get_hdr_value_len(request, name.c_str());
@@ -73,11 +73,17 @@ std::unique_ptr<char[]> receiveByteArray(httpd_req_t* request, size_t length, si
     assert(length > 0);
     bytesRead = 0;
 
-    auto result = std::make_unique<char[]>(length);
+    // We have to use malloc() because make_unique() throws an exception
+    // and we don't have exceptions enabled in the compiler settings
+    auto* buffer = static_cast<char*>(malloc(length));
+    if (buffer == nullptr) {
+        TT_LOG_E(TAG, LOG_MESSAGE_ALLOC_FAILED_FMT, length);
+        return nullptr;
+    }
 
     while (bytesRead < length) {
         size_t read_size = length - bytesRead;
-        size_t bytes_received = httpd_req_recv(request, result.get() + bytesRead, read_size);
+        size_t bytes_received = httpd_req_recv(request, buffer + bytesRead, read_size);
         if (bytes_received <= 0) {
             TT_LOG_W(TAG, "Received %zu / %zu", bytesRead + bytes_received, length);
             return nullptr;
@@ -86,7 +92,7 @@ std::unique_ptr<char[]> receiveByteArray(httpd_req_t* request, size_t length, si
         bytesRead += bytes_received;
     }
 
-    return result;
+    return std::unique_ptr<char[]>(std::move(buffer));
 }
 
 std::string receiveTextUntil(httpd_req_t* request, const std::string& terminator) {

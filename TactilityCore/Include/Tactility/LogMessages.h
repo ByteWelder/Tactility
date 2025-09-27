@@ -4,8 +4,12 @@
  */
 #pragma once
 
+// Crashes
+#define LOG_MESSAGE_ILLEGAL_STATE "Illegal state"
+
 // Alloc
-#define LOG_MESSAGE_ALLOC_FAILED "Memory allocation failed"
+#define LOG_MESSAGE_ALLOC_FAILED "Out of memory"
+#define LOG_MESSAGE_ALLOC_FAILED_FMT "Out of memory (failed to allocated %zu bytes)"
 
 // Mutex
 #define LOG_MESSAGE_MUTEX_LOCK_FAILED "Mutex acquisition timeout"

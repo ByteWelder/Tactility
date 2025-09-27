@@ -13,11 +13,11 @@
 namespace tt::app {
 
 enum class State {
-    Initial, // App is being activated in loader
-    Started, // App is in memory
-    Showing, // App view is created
-    Hiding,  // App view is destroyed
-    Stopped  // App is not in memory
+    Initial, // AppInstance was created, but the state hasn't advanced yet
+    Created, // App was placed into memory
+    Showing, // App view was created
+    Hiding,  // App view was destroyed
+    Destroyed  // App was removed from memory
 };
 
 /**

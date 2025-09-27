@@ -8,8 +8,6 @@
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
-- CrowPanel Basic 3.5": check why GraphicsDemo fails
-- CrowPanel Basic 3.5": check why System Info doesn't show storage info
 - When an SD card is detected, check if it has been initialized and assigned as data partition.
   If the user choses to select it, then copy files from /data over to it.
   Write the user choice to a file on the card.

@@ -27,13 +27,13 @@ static const char* appStateToString(app::State state) {
         using enum app::State;
         case Initial:
             return "initial";
-        case Started:
+        case Created:
             return "started";
         case Showing:
             return "showing";
         case Hiding:
             return "hiding";
-        case Stopped:
+        case Destroyed:
             return "stopped";
         default:
             return "?";
@@ -60,18 +60,14 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
 
     new_app->mutableFlags().hideStatusbar = (app_manifest->appFlags & app::AppManifest::Flags::HideStatusBar);
 
-    appStack.push_back(new_app);
-    transitionAppToState(new_app, app::State::Initial);
-    transitionAppToState(new_app, app::State::Started);
-
     // We might have to hide the previous app first
     if (previous_app != nullptr) {
         transitionAppToState(previous_app, app::State::Hiding);
     }
 
+    appStack.push_back(new_app);
+    transitionAppToState(new_app, app::State::Created);
     transitionAppToState(new_app, app::State::Showing);
-
-    pubsubExternal->publish(Event::ApplicationStarted);
 }
 
 void LoaderService::onStopTopAppMessage(const std::string& id) {
@@ -111,7 +107,7 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
     auto app_to_stop_launch_id = app_to_stop->getLaunchId();
 
     transitionAppToState(app_to_stop, app::State::Hiding);
-    transitionAppToState(app_to_stop, app::State::Stopped);
+    transitionAppToState(app_to_stop, app::State::Destroyed);
 
     appStack.pop_back();
 
@@ -140,8 +136,6 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
     // Unlock so that we can send results to app and they can also start/stop new apps while processing these results
     lock.unlock();
     // WARNING: After this point we cannot change the app states from this method directly anymore as we don't have a lock!
-
-    pubsubExternal->publish(Event::ApplicationStopped);
 
     if (instance_to_resume != nullptr) {
         if (result_set) {
@@ -216,12 +210,10 @@ void LoaderService::onStopAllAppMessage(const std::string& id) {
         if (app_to_stop->getState() == app::State::Showing) {
             transitionAppToState(app_to_stop, app::State::Hiding);
         }
-        transitionAppToState(app_to_stop, app::State::Stopped);
+        transitionAppToState(app_to_stop, app::State::Destroyed);
         last_launch_id = app_to_stop->getLaunchId();
 
         appStack.pop_back();
-
-        pubsubExternal->publish(Event::ApplicationStopped);
     }
 
     if (instance_to_resume != nullptr) {
@@ -235,8 +227,6 @@ void LoaderService::onStopAllAppMessage(const std::string& id) {
             nullptr
         );
     }
-
-    pubsubExternal->publish(Event::ApplicationShowing);
 }
 
 void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>& app, app::State state) {
@@ -254,20 +244,25 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
     switch (state) {
         using enum app::State;
         case Initial:
-            break;
-        case Started:
+            tt_crash(LOG_MESSAGE_ILLEGAL_STATE);
+        case Created:
+            assert(app->getState() == app::State::Initial);
             app->getApp()->onCreate(*app);
+            pubsubExternal->publish(Event::ApplicationStarted);
             break;
         case Showing: {
+            assert(app->getState() == app::State::Hiding || app->getState() == app::State::Created);
             pubsubExternal->publish(Event::ApplicationShowing);
             break;
         }
         case Hiding: {
+            assert(app->getState() == app::State::Showing);
             pubsubExternal->publish(Event::ApplicationHiding);
             break;
         }
-        case Stopped:
+        case Destroyed:
             app->getApp()->onDestroy(*app);
+            pubsubExternal->publish(Event::ApplicationStopped);
             break;
     }
 

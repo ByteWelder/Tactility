@@ -1,3 +1,5 @@
+#include "../../../../TactilityC/Include/tt_kernel.h"
+
 #include <Tactility/service/gui/GuiService.h>
 
 #include <Tactility/app/AppInstance.h>
@@ -17,7 +19,7 @@ using namespace loader;
 
 void GuiService::onLoaderEvent(LoaderService::Event event) {
     if (event == LoaderService::Event::ApplicationShowing) {
-        auto app_instance = app::getCurrentAppContext();
+        auto app_instance = std::static_pointer_cast<app::AppInstance>(app::getCurrentAppContext());
         showApp(app_instance);
     } else if (event == LoaderService::Event::ApplicationHiding) {
         hideApp();
@@ -194,36 +196,50 @@ void GuiService::requestDraw() {
     Thread::setFlags(thread_id, GUI_THREAD_FLAG_DRAW);
 }
 
-void GuiService::showApp(std::shared_ptr<app::AppContext> app) {
-    lock();
+void GuiService::showApp(std::shared_ptr<app::AppInstance> app) {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+
     if (!isStarted) {
-        TT_LOG_W(TAG, "Failed to show app %s: GUI not started", app->getManifest().appId.c_str());
-    } else {
-        // Ensure previous app triggers onHide() logic
-        if (appToRender != nullptr) {
-            hideApp();
-        }
-        appToRender = std::move(app);
+        TT_LOG_E(TAG, "Failed to show app %s: GUI not started", app->getManifest().appId.c_str());
+        return;
     }
-    unlock();
+
+    if (appToRender != nullptr && appToRender->getLaunchId() == app->getLaunchId()) {
+        TT_LOG_W(TAG, "Already showing %s", app->getManifest().appId.c_str());
+        return;
+    }
+
+    TT_LOG_I(TAG, "Showing %s", app->getManifest().appId.c_str());
+    // Ensure previous app triggers onHide() logic
+    if (appToRender != nullptr) {
+        hideApp();
+    }
+
+    appToRender = std::move(app);
     requestDraw();
 }
 
 void GuiService::hideApp() {
-    lock();
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+
     if (!isStarted) {
-        TT_LOG_W(TAG, "Failed to hide app: GUI not started");
-    } else if (appToRender == nullptr) {
-        TT_LOG_W(TAG, "hideApp() called but no app is currently shown");
-    } else {
-        // We must lock the LVGL port, because the viewport hide callbacks
-        // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
-        tt_check(lvgl::lock(configTICK_RATE_HZ));
-        appToRender->getApp()->onHide(*appToRender);
-        lvgl::unlock();
-        appToRender = nullptr;
+        TT_LOG_E(TAG, "Failed to hide app: GUI not started");
+        return;
     }
-    unlock();
+
+    if (appToRender == nullptr) {
+        TT_LOG_W(TAG, "hideApp() called but no app is currently shown");
+        return;
+    }
+
+    // We must lock the LVGL port, because the viewport hide callbacks
+    // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
+    lvgl::lock(TT_MAX_TICKS);
+    appToRender->getApp()->onHide(*appToRender);
+    lvgl::unlock();
+    appToRender = nullptr;
 }
 
 std::shared_ptr<GuiService> findService() {

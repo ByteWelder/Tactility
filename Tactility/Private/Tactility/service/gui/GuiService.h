@@ -29,7 +29,7 @@ class GuiService final : public Service {
     lv_obj_t* statusbarWidget = nullptr;
 
     // App-specific
-    std::shared_ptr<app::AppContext> appToRender = nullptr;
+    std::shared_ptr<app::AppInstance> appToRender = nullptr;
 
     lv_obj_t* _Nullable keyboard = nullptr;
     lv_group_t* keyboardGroup = nullptr;
@@ -52,7 +52,7 @@ class GuiService final : public Service {
         tt_check(mutex.unlock());
     }
 
-    void showApp(std::shared_ptr<app::AppContext> app);
+    void showApp(std::shared_ptr<app::AppInstance> app);
 
     void hideApp();
 
