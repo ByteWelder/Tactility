@@ -42,7 +42,7 @@ extern const AppManifest manifest = {
 };
 
 void start() {
-    service::loader::startApp(manifest.appId);
+    app::start(manifest.appId);
 }
 
 } // namespace

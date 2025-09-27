@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tactility/app/App.h>
 #include <Tactility/Bundle.h>
 
 #include <string>
@@ -15,7 +16,7 @@
  */
 namespace tt::app::selectiondialog {
 
-void start(const std::string& title, const std::vector<std::string>& items);
+LaunchId start(const std::string& title, const std::vector<std::string>& items);
 
 /**
  * Get the index of the item that the user selected.

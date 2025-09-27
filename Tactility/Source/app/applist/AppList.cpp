@@ -1,6 +1,6 @@
-#include "Tactility/app/AppRegistration.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/lvgl/Toolbar.h"
+#include <Tactility/app/AppRegistration.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/lvgl/Toolbar.h>
 
 #include <Tactility/Assets.h>
 
@@ -9,11 +9,11 @@
 
 namespace tt::app::applist {
 
-class AppListApp : public App {
+class AppListApp final : public App {
 
     static void onAppPressed(lv_event_t* e) {
         const auto* manifest = static_cast<const AppManifest*>(lv_event_get_user_data(e));
-        service::loader::startApp(manifest->appId);
+        start(manifest->appId);
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {

@@ -1,7 +1,7 @@
 #pragma once
 #ifdef ESP_PLATFORM
 
-#include "Tactility/service/Service.h"
+#include <Tactility/service/Service.h>
 
 #include <Tactility/Mutex.h>
 

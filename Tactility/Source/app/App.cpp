@@ -3,20 +3,47 @@
 
 namespace tt::app {
 
+constexpr auto* TAG = "App";
+
 LaunchId start(const std::string& id, std::shared_ptr<const Bundle> _Nullable parameters) {
-    return service::loader::startApp(id, std::move(parameters));
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    return service->start(id, std::move(parameters));
 }
 
 void stop() {
-    service::loader::stopApp();
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    service->stopTop();
+}
+
+void stop(const std::string& id) {
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    service->stopTop(id);
+}
+
+void stopAll(const std::string& id) {
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    service->stopAll(id);
+}
+
+bool isRunning(const std::string& id) {
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    return service->isRunning(id);
 }
 
 std::shared_ptr<AppContext> _Nullable getCurrentAppContext() {
-    return service::loader::getCurrentAppContext();
+    const auto service = service::loader::findLoaderService();
+    assert(service != nullptr);
+    return service->getCurrentAppContext();
 }
 
 std::shared_ptr<App> _Nullable getCurrentApp() {
-    return service::loader::getCurrentApp();
+    const auto app_context = getCurrentAppContext();
+    return (app_context !=  nullptr) ? app_context->getApp() : nullptr;
 }
 
 }

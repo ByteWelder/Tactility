@@ -1,7 +1,9 @@
 #pragma once
 
+#include <Tactility/app/App.h>
+
 namespace tt::app::wifimanage {
 
-void start();
+LaunchId start();
 
 } // namespace

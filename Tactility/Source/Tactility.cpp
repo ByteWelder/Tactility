@@ -284,7 +284,7 @@ void run(const Configuration& config) {
     TT_LOG_I(TAG, "Starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
     addApp(app::boot::manifest);
-    service::loader::startApp(app::boot::manifest.appId);
+    app::start(app::boot::manifest.appId);
 
     TT_LOG_I(TAG, "Main dispatcher ready");
     while (true) {

@@ -88,6 +88,20 @@ LaunchId start(const std::string& id, std::shared_ptr<const Bundle> _Nullable pa
 /** @brief Stop the currently showing app. Show the previous app if any app was still running. */
 void stop();
 
+/** @brief Stop a specific app and any apps it might have launched on the stack.
+ * @param[in] id the app id
+ */
+void stop(const std::string& id);
+
+/** @brief Stop all app instances that match with this identifier and also stop the apps they started.
+ * @warning onResult() will only be called for the resulting app that gets shown (if any)
+ * @param[in] id the id of the app to stop
+ */
+void stopAll(const std::string& id);
+
+/** @return true if the app is running somewhere in the app stack (doesn't have to be the top-most app) */
+bool isRunning(const std::string& id);
+
 /** @return the currently running app context (it is only ever null before the splash screen is shown) */
 std::shared_ptr<AppContext> _Nullable getCurrentAppContext();
 

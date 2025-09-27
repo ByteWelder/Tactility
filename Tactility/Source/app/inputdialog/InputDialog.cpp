@@ -1,32 +1,31 @@
-#include "Tactility/app/inputdialog/InputDialog.h"
+#include <Tactility/app/inputdialog/InputDialog.h>
 
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/TactilityCore.h>
 
 #include <lvgl.h>
 
 namespace tt::app::inputdialog {
 
-#define PARAMETER_BUNDLE_KEY_TITLE "title"
-#define PARAMETER_BUNDLE_KEY_MESSAGE "message"
-#define PARAMETER_BUNDLE_KEY_PREFILLED "prefilled"
-#define RESULT_BUNDLE_KEY_RESULT "result"
+constexpr auto* PARAMETER_BUNDLE_KEY_TITLE = "title";
+constexpr auto* PARAMETER_BUNDLE_KEY_MESSAGE = "message";
+constexpr auto* PARAMETER_BUNDLE_KEY_PREFILLED = "prefilled";
+constexpr auto* RESULT_BUNDLE_KEY_RESULT = "result";
 
-#define DEFAULT_TITLE "Input"
+constexpr auto* DEFAULT_TITLE = "Input";
 
-#define TAG "input_dialog"
+constexpr auto* TAG = "InputDialog";
 
 extern const AppManifest manifest;
 class InputDialogApp;
 
-void start(const std::string& title, const std::string& message, const std::string& prefilled) {
+LaunchId start(const std::string& title, const std::string& message, const std::string& prefilled) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
     bundle->putString(PARAMETER_BUNDLE_KEY_PREFILLED, prefilled);
-    service::loader::startApp(manifest.appId, bundle);
+    return app::start(manifest.appId, bundle);
 }
 
 std::string getResult(const Bundle& bundle) {
@@ -44,7 +43,7 @@ static std::string getTitleParameter(const std::shared_ptr<const Bundle>& bundle
     }
 }
 
-class InputDialogApp : public App {
+class InputDialogApp final : public App {
 
     static void createButton(lv_obj_t* parent, const std::string& text, void* callbackContext) {
         lv_obj_t* button = lv_button_create(parent);
@@ -73,7 +72,7 @@ class InputDialogApp : public App {
             setResult(Result::Cancelled);
 
         }
-        service::loader::stopApp();
+        stop(manifest.appId);
     }
 
 public:

@@ -45,7 +45,7 @@ public:
             auto bundle = std::make_unique<Bundle>();
             bundle->putString("path", path);
             setResult(Result::Ok, std::move(bundle));
-            service::loader::stopApp();
+            stop(manifest.appId);
         });
     }
 
@@ -67,13 +67,13 @@ extern const AppManifest manifest = {
 LaunchId startForExistingFile() {
     auto bundle = std::make_shared<Bundle>();
     setMode(*bundle, Mode::Existing);
-    return service::loader::startApp(manifest.appId, bundle);
+    return start(manifest.appId, bundle);
 }
 
 LaunchId startForExistingOrNewFile() {
     auto bundle = std::make_shared<Bundle>();
     setMode(*bundle, Mode::ExistingOrNew);
-    return service::loader::startApp(manifest.appId, bundle);
+    return start(manifest.appId, bundle);
 }
 
 } // namespace

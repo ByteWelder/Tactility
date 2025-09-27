@@ -45,7 +45,7 @@ public:
 /**
  * Start the app with optional pre-filled fields.
  */
-void start(const std::string& ssid = "", const std::string& password = "");
+LaunchId start(const std::string& ssid = "", const std::string& password = "");
 
 bool optSsidParameter(const std::shared_ptr<const Bundle>& bundle, std::string& ssid);
 

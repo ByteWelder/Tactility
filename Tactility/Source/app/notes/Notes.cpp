@@ -1,10 +1,10 @@
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/fileselection/FileSelection.h"
-#include "Tactility/file/FileLock.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/loader/Loader.h"
-#include "Tactility/Assets.h"
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/fileselection/FileSelection.h>
+#include <Tactility/file/FileLock.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/Assets.h>
 
 #include <Tactility/file/File.h>
 
@@ -15,7 +15,7 @@ namespace tt::app::notes {
 constexpr auto* TAG = "Notes";
 constexpr auto* NOTES_FILE_ARGUMENT = "file";
 
-class NotesApp : public App {
+class NotesApp final : public App {
 
     lv_obj_t* uiCurrentFileName;
     lv_obj_t* uiDropDownMenu;
@@ -213,9 +213,10 @@ extern const AppManifest manifest = {
     .createApp = create<NotesApp>
 };
 
-void start(const std::string& filePath) {
+LaunchId start(const std::string& filePath) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(NOTES_FILE_ARGUMENT, filePath);
-    service::loader::startApp(manifest.appId, parameters);
+    return app::start(manifest.appId, parameters);
 }
+
 } // namespace tt::app::notes

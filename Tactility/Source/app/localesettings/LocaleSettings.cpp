@@ -5,12 +5,12 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/Time.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/settings/Language.h>
 
 #include <lvgl.h>
 #include <map>
 #include <sstream>
-#include <Tactility/StringUtils.h>
-#include <Tactility/settings/Language.h>
 
 namespace tt::app::localesettings {
 
@@ -18,7 +18,7 @@ constexpr auto* TAG = "LocaleSettings";
 
 extern const AppManifest manifest;
 
-class LocaleSettingsApp : public App {
+class LocaleSettingsApp final : public App {
     tt::i18n::TextResources textResources = tt::i18n::TextResources("/system/app/LocaleSettings/i18n");
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     lv_obj_t* timeZoneLabel = nullptr;
@@ -169,8 +169,8 @@ extern const AppManifest manifest = {
     .createApp = create<LocaleSettingsApp>
 };
 
-void start() {
-    service::loader::startApp(manifest.appId);
+LaunchId start() {
+    return app::start(manifest.appId);
 }
 
 } // namespace

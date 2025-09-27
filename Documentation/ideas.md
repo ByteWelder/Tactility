@@ -2,14 +2,12 @@
 
 ## Higher Priority
 
-- Show a warning in the web installer when flashing CYD 28R board regarding v1/v2/v3
-- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility.
+- External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
+  Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
 - Make a URL handler. Use it for handling local files. Match file types with apps.
   Create some kind of "intent" handler like on Android.
   The intent can have an action (e.g. view), a URL and an optional bundle.
   The manifest can provide the intent handler
-- CrowPanel Basic 3.5": check why GraphicsDemo fails
-- CrowPanel Basic 3.5": check why System Info doesn't show storage info
 - When an SD card is detected, check if it has been initialized and assigned as data partition.
   If the user choses to select it, then copy files from /data over to it.
   Write the user choice to a file on the card.
@@ -17,14 +15,6 @@
   The latter is used for auto-selecting it as data partition.
 - Support direct installation of an `.app` file with `tactility.py install helloworld.app <ip>`
 - Support `tactility.py target <ip>` to remember the device IP address.
-- External app error code 22 should warn that the user might've forgotten a `main()` entry point
-- Bug: `Buildscript/release-sdk-current.sh` should delete the currently released SDK. It should probably also output it with versioning and target platform naming so it can be referred to as if it is a real release.
-- Tactility docs: external app dev guide should explain [debugging](https://docs.zephyrproject.org/latest/services/llext/debug.html)
-- elf_loader changes/suggestions:
-    - Make entry-point optional (so we can build libraries, or have the `manifest` as a global symbol)
-    - Implement support for alternative symbol lists. e.g. a function pointer that resolves a single symbol.
-- Implement the entire list of [soft-float library functions](https://gcc.gnu.org/onlinedocs/gccint/Soft-float-library-routines.html) to `tt_init.cpp`
-- `tactility.py` should stop running applications when it is: uninstalling, installing, or running an application that is already running.
 
 ## Medium Priority
 
@@ -40,9 +30,11 @@
 - Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
 - I2C app should show error when I2C port is disabled when the scan button was manually pressed
 - TactilitySDK: Support automatic scanning of header files so that we can generate the `tt_init.cpp` symbols list.
+- elf_loader: split up symbol lists further (after radio support is implemented)
 
 ## Lower Priority
 
+- elf_loader: make main() entry-point optional (so we can build libraries, or have the `manifest` as a global symbol)
 - Implement system suspend that turns off the screen
 - The boot button on some devices can be used as GPIO_NUM_0 at runtime
 - Localize all apps

@@ -174,6 +174,11 @@ bool install(const std::string& path) {
         return false;
     }
 
+    // If the app was already running, then stop it
+    if (isRunning(manifest.appId)) {
+        stopAll(manifest.appId);
+    }
+
     target_path_lock.lock();
     const std::string renamed_target_path = std::format("{}/{}", app_parent_path, manifest.appId);
     if (file::isDirectory(renamed_target_path)) {
@@ -202,6 +207,12 @@ bool install(const std::string& path) {
 
 bool uninstall(const std::string& appId) {
     TT_LOG_I(TAG, "Uninstalling app %s", appId.c_str());
+
+    // If the app was running, then stop it
+    if (isRunning(appId)) {
+        stopAll(appId);
+    }
+
     auto app_path = getAppInstallPath(appId);
     return file::withLock<bool>(app_path, [&app_path, &appId] {
         if (!file::isDirectory(app_path)) {

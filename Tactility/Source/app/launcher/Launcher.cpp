@@ -60,7 +60,7 @@ class LauncherApp final : public App {
 
     static void onAppPressed(TT_UNUSED lv_event_t* e) {
         auto* appId = static_cast<const char*>(lv_event_get_user_data(e));
-        service::loader::startApp(appId);
+        start(appId);
     }
 
     static void onPowerOffPressed(lv_event_t* e) {
@@ -76,7 +76,7 @@ public:
         settings::BootSettings boot_properties;
         if (settings::loadBootSettings(boot_properties) && !boot_properties.autoStartAppId.empty()) {
             TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
-            service::loader::startApp(boot_properties.autoStartAppId);
+            start(boot_properties.autoStartAppId);
         }
     }
 
@@ -144,8 +144,8 @@ extern const AppManifest manifest = {
     .createApp = create<LauncherApp>
 };
 
-void start() {
-    service::loader::startApp(manifest.appId);
+LaunchId start() {
+    return app::start(manifest.appId);
 }
 
 } // namespace

@@ -1,8 +1,7 @@
-#include "Tactility/app/selectiondialog/SelectionDialog.h"
+#include <Tactility/app/selectiondialog/SelectionDialog.h>
 
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/TactilityCore.h>
 
@@ -10,23 +9,23 @@
 
 namespace tt::app::selectiondialog {
 
-#define PARAMETER_BUNDLE_KEY_TITLE "title"
-#define PARAMETER_BUNDLE_KEY_ITEMS "items"
-#define RESULT_BUNDLE_KEY_INDEX "index"
+constexpr auto* PARAMETER_BUNDLE_KEY_TITLE = "title";
+constexpr auto* PARAMETER_BUNDLE_KEY_ITEMS = "items";
+constexpr auto* RESULT_BUNDLE_KEY_INDEX = "index";
 
-#define PARAMETER_ITEM_CONCATENATION_TOKEN ";;"
-#define DEFAULT_TITLE "Select..."
+constexpr auto* PARAMETER_ITEM_CONCATENATION_TOKEN = ";;";
+constexpr auto* DEFAULT_TITLE = "Select...";
 
-#define TAG "selection_dialog"
+constexpr auto* TAG = "SelectionDialog";
 
 extern const AppManifest manifest;
 
-void start(const std::string& title, const std::vector<std::string>& items) {
+LaunchId start(const std::string& title, const std::vector<std::string>& items) {
     std::string items_joined = string::join(items, PARAMETER_ITEM_CONCATENATION_TOKEN);
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
     bundle->putString(PARAMETER_BUNDLE_KEY_ITEMS, items_joined);
-    service::loader::startApp(manifest.appId, bundle);
+    return app::start(manifest.appId, bundle);
 }
 
 int32_t getResultIndex(const Bundle& bundle) {
@@ -44,9 +43,7 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
     }
 }
 
-class SelectionDialogApp : public App {
-
-private:
+class SelectionDialogApp final : public App {
 
     static void onListItemSelectedCallback(lv_event_t* e) {
         auto app = std::static_pointer_cast<SelectionDialogApp>(getCurrentApp());
@@ -59,8 +56,8 @@ private:
         TT_LOG_I(TAG, "Selected item at index %d", index);
         auto bundle = std::make_unique<Bundle>();
         bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);
-        setResult(app::Result::Ok, std::move(bundle));
-        service::loader::stopApp();
+        setResult(Result::Ok, std::move(bundle));
+        stop(manifest.appId);
     }
 
     static void createChoiceItem(void* parent, const std::string& title, size_t index) {
@@ -90,12 +87,12 @@ public:
             if (items.empty() || items.front().empty()) {
                 TT_LOG_E(TAG, "No items provided");
                 setResult(Result::Error);
-                service::loader::stopApp();
+                stop(manifest.appId);
             } else if (items.size() == 1) {
                 auto result_bundle = std::make_unique<Bundle>();
                 result_bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, 0);
                 setResult(Result::Ok, std::move(result_bundle));
-                service::loader::stopApp();
+                stop(manifest.appId);
                 TT_LOG_W(TAG, "Auto-selecting single item");
             } else {
                 size_t index = 0;
@@ -106,7 +103,7 @@ public:
         } else {
             TT_LOG_E(TAG, "No items provided");
             setResult(Result::Error);
-            service::loader::stopApp();
+            stop(manifest.appId);
         }
     }
 };

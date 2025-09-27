@@ -140,8 +140,8 @@ extern const AppManifest manifest = {
     .createApp = create<WifiManage>
 };
 
-void start() {
-    service::loader::startApp(manifest.appId);
+LaunchId start() {
+    return app::start(manifest.appId);
 }
 
 } // namespace

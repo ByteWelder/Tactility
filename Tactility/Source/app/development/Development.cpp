@@ -1,10 +1,7 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/lvgl/Lvgl.h"
-
-#include <Tactility/Tactility.h>
-
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
@@ -12,6 +9,7 @@
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 
 #include <cstring>
@@ -20,6 +18,7 @@
 namespace tt::app::development {
 
 constexpr const char* TAG = "Development";
+extern const AppManifest manifest;
 
 class DevelopmentApp final : public App {
 
@@ -85,7 +84,7 @@ public:
         service = service::development::findService();
         if (service == nullptr) {
             TT_LOG_E(TAG, "Service not found");
-            service::loader::stopApp();
+            stop(manifest.appId);
         }
     }
 

@@ -33,7 +33,7 @@ void WifiConnect::onWifiEvent(service::wifi::WifiEvent event) {
         case service::wifi::WifiEvent::ConnectionSuccess:
             if (getState().isConnecting()) {
                 state.setConnecting(false);
-                service::loader::stopApp();
+                stop(manifest.appId);
             }
             break;
         default:
@@ -102,11 +102,11 @@ extern const AppManifest manifest = {
     .createApp = create<WifiConnect>
 };
 
-void start(const std::string& ssid, const std::string& password) {
+LaunchId start(const std::string& ssid, const std::string& password) {
     auto parameters = std::make_shared<Bundle>();
     parameters->putString(WIFI_CONNECT_PARAM_SSID, ssid);
     parameters->putString(WIFI_CONNECT_PARAM_PASSWORD, password);
-    service::loader::startApp(manifest.appId, parameters);
+    return app::start(manifest.appId, parameters);
 }
 
 bool optSsidParameter(const std::shared_ptr<const Bundle>& bundle, std::string& ssid) {
