@@ -1,8 +1,9 @@
 #include "UnPhoneFeatures.h"
 
+#include <Tactility/app/App.h>
 #include <Tactility/Log.h>
 #include <Tactility/kernel/Kernel.h>
-#include <Tactility/service/loader/Loader.h>
+
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
@@ -43,7 +44,7 @@ static int32_t buttonHandlingThreadMain(void* context) {
             // The buttons might generate more than 1 click because of how they are built
             TT_LOG_I(TAG, "Pressed button %d", pinNumber);
             if (pinNumber == pin::BUTTON1) {
-                tt::service::loader::stopApp();
+                tt::app::stop();
             }
 
             // Debounce all events for a short period of time
