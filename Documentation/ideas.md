@@ -34,6 +34,7 @@
 
 ## Lower Priority
 
+- Rename `Lock::lock()` and `Lock::unlock()` to `Lock::acquire()` and `Lock::release()`?
 - elf_loader: make main() entry-point optional (so we can build libraries, or have the `manifest` as a global symbol)
 - Implement system suspend that turns off the screen
 - The boot button on some devices can be used as GPIO_NUM_0 at runtime

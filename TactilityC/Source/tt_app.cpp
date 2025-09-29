@@ -2,6 +2,7 @@
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/file/FileLock.h>
 
 extern "C" {
 
@@ -34,13 +35,13 @@ void tt_app_stop() {
     tt::app::stop();
 }
 
-void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size) {
+void tt_app_get_user_data_path(AppHandle handle, char* buffer, size_t* size) {
     assert(buffer != nullptr);
     assert(size != nullptr);
     assert(*size > 0);
-    auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
-    auto data_path = paths->getUserDataPath();
-    auto expected_length = data_path.length() + 1;
+    const auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
+    const auto data_path = paths->getUserDataPath();
+    const auto expected_length = data_path.length() + 1;
     if (*size < expected_length) {
         TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);
         *size = 0;
@@ -50,6 +51,61 @@ void tt_app_get_data_directory(AppPathsHandle handle, char* buffer, size_t* size
 
     strcpy(buffer, data_path.c_str());
     *size = data_path.length();
+}
+
+void tt_app_get_user_data_child_path(AppHandle handle, const char* childPath, char* buffer, size_t* size) {
+    assert(buffer != nullptr);
+    assert(size != nullptr);
+    assert(*size > 0);
+    const auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
+    const auto resolved_path = paths->getUserDataPath(childPath);
+    const auto resolved_path_length = resolved_path.length();
+    if (*size < (resolved_path_length + 1)) {
+        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, (resolved_path_length + 1));
+        *size = 0;
+        buffer[0] = 0;
+        return;
+    }
+
+    strcpy(buffer, resolved_path.c_str());
+    *size = resolved_path_length;
+}
+
+void tt_app_get_assets_path(AppHandle handle, char* buffer, size_t* size) {
+    assert(buffer != nullptr);
+    assert(size != nullptr);
+    assert(*size > 0);
+    const auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
+    const auto assets_path = paths->getAssetsPath();
+    const auto expected_length = assets_path.length() + 1;
+    if (*size < expected_length) {
+        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, expected_length);
+        *size = 0;
+        buffer[0] = 0;
+        return;
+    }
+
+    strcpy(buffer, assets_path.c_str());
+    *size = assets_path.length();
+}
+
+void tt_app_get_assets_child_path(AppHandle handle, const char* childPath, char* buffer, size_t* size) {
+    assert(buffer != nullptr);
+    assert(size != nullptr);
+    assert(*size > 0);
+    const auto paths = HANDLE_AS_APP_CONTEXT(handle)->getPaths();
+    const auto resolved_path = paths->getAssetsPath(childPath);
+    const auto resolved_path_length = resolved_path.length();
+    if (*size < (resolved_path_length + 1)) {
+        TT_LOG_E(TAG, "Path buffer not large enough (%d < %d)", *size, (resolved_path_length + 1));
+        *size = 0;
+        buffer[0] = 0;
+        return;
+    }
+
+    strcpy(buffer, resolved_path.c_str());
+    *size = resolved_path_length;
+
 }
 
 }

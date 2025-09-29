@@ -1,6 +1,6 @@
 #pragma once
 
-#include <freertos/FreeRTOS.h>
+#include "tt_kernel.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,7 +33,7 @@ void tt_mutex_free(MutexHandle handle);
  * @param[in] timeout the maximum amount of ticks to wait when trying to lock
  * @return true when the lock was acquired
  */
-bool tt_mutex_lock(MutexHandle handle, TickType_t timeout);
+bool tt_mutex_lock(MutexHandle handle, TickType timeout);
 
 /**
  * Attempt to unlock a mutex.
