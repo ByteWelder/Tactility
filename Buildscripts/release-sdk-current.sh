@@ -5,9 +5,10 @@
 # This deployment is used when compiling new SDK features for apps.
 #
 
-config_idf_target=`cat sdkconfig | grep CONFIG_IDF_TARGET=`
-idf_target=${config_idf_target:19:-1}
-sdk_path=release/TactilitySDK-${idf_target}
+idf_target=`Buildscripts/get-idf-target.sh`
+version=`cat version.txt`
+sdk_path="release/TactilitySDK/${version}-${idf_target}/TactilitySDK"
+mkdir -p ${sdk_path}
+echo Cleaning up ${sdk_path}
 rm -rf ${sdk_path}
 ./Buildscripts/release-sdk.sh ${sdk_path}
-
