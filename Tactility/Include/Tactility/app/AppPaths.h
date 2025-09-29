@@ -34,7 +34,7 @@ public:
      * The path will not end with a "/".
      * This is mainly used for core apps (system/boot/settings type).
      */
-    std::string getAssetsDirectory() const;
+    std::string getAssetsPath() const;
 
     /**
      * You should not store configuration data here.

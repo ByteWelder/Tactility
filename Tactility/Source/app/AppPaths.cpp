@@ -28,7 +28,7 @@ std::string AppPaths::getUserDataPath(const std::string& childPath) const {
 }
 
 
-std::string AppPaths::getAssetsDirectory() const {
+std::string AppPaths::getAssetsPath() const {
     if (manifest.appLocation.isInternal()) {
         return std::format("{}{}/app/{}/assets", PARTITION_PREFIX, file::SYSTEM_PARTITION_NAME, manifest.appId);
     } else {
@@ -38,7 +38,7 @@ std::string AppPaths::getAssetsDirectory() const {
 
 std::string AppPaths::getAssetsPath(const std::string& childPath) const {
     assert(!childPath.starts_with('/'));
-    return std::format("{}/{}", getAssetsDirectory(), childPath);
+    return std::format("{}/{}", getAssetsPath(), childPath);
 }
 
 }

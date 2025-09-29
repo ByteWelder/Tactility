@@ -38,6 +38,7 @@
 #include <lvgl.h>
 #include <pthread.h>
 #include <setjmp.h>
+#include <tt_file.h>
 
 extern "C" {
 
@@ -54,6 +55,9 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(calloc),
     ESP_ELFSYM_EXPORT(realloc),
     ESP_ELFSYM_EXPORT(free),
+    ESP_ELFSYM_EXPORT(rand),
+    ESP_ELFSYM_EXPORT(srand),
+    ESP_ELFSYM_EXPORT(rand_r),
     // unistd.h
     ESP_ELFSYM_EXPORT(usleep),
     ESP_ELFSYM_EXPORT(sleep),
@@ -116,6 +120,7 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(snprintf),
     ESP_ELFSYM_EXPORT(sprintf),
     ESP_ELFSYM_EXPORT(vsprintf),
+    ESP_ELFSYM_EXPORT(vsnprintf),
     // cstring
     ESP_ELFSYM_EXPORT(strlen),
     ESP_ELFSYM_EXPORT(strcmp),
@@ -225,7 +230,14 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_get_result_index),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_get_result_index),
-    ESP_ELFSYM_EXPORT(tt_app_get_data_directory),
+    ESP_ELFSYM_EXPORT(tt_app_get_user_data_path),
+    ESP_ELFSYM_EXPORT(tt_app_get_user_data_child_path),
+    ESP_ELFSYM_EXPORT(tt_app_get_assets_path),
+    ESP_ELFSYM_EXPORT(tt_app_get_assets_child_path),
+    ESP_ELFSYM_EXPORT(tt_lock_alloc_for_file),
+    ESP_ELFSYM_EXPORT(tt_lock_acquire),
+    ESP_ELFSYM_EXPORT(tt_lock_release),
+    ESP_ELFSYM_EXPORT(tt_lock_free),
     ESP_ELFSYM_EXPORT(tt_bundle_alloc),
     ESP_ELFSYM_EXPORT(tt_bundle_free),
     ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),
