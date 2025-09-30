@@ -11,4 +11,16 @@ enum class LogLevel : int {
     Verbose /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 };
 
+#if not defined(ESP_PLATFORM) or (defined(CONFIG_SPIRAM_USE_MALLOC) && CONFIG_SPIRAM_USE_MALLOC  == 1)
+constexpr auto TT_LOG_TAG_SIZE = 16;
+constexpr auto TT_LOG_MESSAGE_SIZE = 128;
+constexpr auto TT_LOG_ENTRY_COUNT = 200;
+constexpr auto TT_LOG_STORAGE_LEVEL = LogLevel::Info;
+#else
+constexpr auto TT_LOG_TAG_SIZE = 16;
+constexpr auto TT_LOG_MESSAGE_SIZE = 50;
+constexpr auto TT_LOG_ENTRY_COUNT = 16;
+constexpr auto TT_LOG_STORAGE_LEVEL = LogLevel::Warning;
+#endif
+
 }

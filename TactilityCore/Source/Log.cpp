@@ -21,10 +21,14 @@ Mutex& getLogMutex() {
     return *logMutex;
 }
 
-void storeLog(LogLevel level, const char* format, va_list args) {
-    if (getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
+void storeLog(LogLevel level, const char* tag, const char* format, ...) {
+    if (TT_LOG_STORAGE_LEVEL >= level && getLogMutex().lock(5 / portTICK_PERIOD_MS)) {
         logEntries[nextLogEntryIndex].level = level;
+        va_list args;
+        va_start(args, format);
         vsnprintf(logEntries[nextLogEntryIndex].message, TT_LOG_MESSAGE_SIZE, format, args);
+        va_end(args);
+        strncpy(logEntries[nextLogEntryIndex].tag, tag, TT_LOG_TAG_SIZE);
 
         nextLogEntryIndex++;
         if (nextLogEntryIndex == TT_LOG_ENTRY_COUNT) {

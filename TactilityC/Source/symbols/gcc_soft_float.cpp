@@ -1,9 +1,9 @@
 #include <cstdlib>
 #include <symbols/gcc_soft_float.h>
 
-extern "C" {
-
 // Reference: https://gcc.gnu.org/onlinedocs/gccint/Soft-float-library-routines.html
+
+extern "C" {
 
 extern float __addsf3(float a, float b);
 extern double __adddf3(double a, double b);
@@ -138,6 +138,8 @@ int __ledf2(double a, double b);
 int __gtsf2(float a, float b);
 int __gtdf2(double a, double b);
 // int __gttf2(long double a, long double b);
+
+}
 
 const esp_elfsym gcc_soft_float_symbols[] = {
     ESP_ELFSYM_EXPORT(__addsf3),
@@ -276,5 +278,3 @@ const esp_elfsym gcc_soft_float_symbols[] = {
 
     ESP_ELFSYM_END
 };
-
-}

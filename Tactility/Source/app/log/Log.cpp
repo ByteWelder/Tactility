@@ -19,27 +19,27 @@ class LogApp : public App {
     LogLevel filterLevel = LogLevel::Info;
     lv_obj_t* labelWidget = nullptr;
 
-    static bool shouldShowLog(LogLevel filterLevel, LogLevel logLevel) {
-        return filterLevel >= logLevel;
+    static bool shouldShowLog(LogLevel desiredLevel, LogLevel entryLevel) {
+        return desiredLevel >= entryLevel;
     }
 
     void updateLogEntries() {
-        std::size_t next_log_index;
+        // The log rotates, so we have to take this into account when printing it out
+        std::size_t next_log_index = 0;
         auto entries = copyLogEntries(next_log_index);
         std::stringstream buffer;
 
         if (next_log_index != 0) {
-            long to_drop = TT_LOG_ENTRY_COUNT - next_log_index;
-            for (auto entry : std::views::drop(*entries, (long)next_log_index)) {
+            for (auto entry : *entries | std::views::drop(next_log_index)) {
                 if (shouldShowLog(filterLevel, entry.level) && entry.message[0] != 0x00) {
-                    buffer << entry.message;
+                    buffer << entry.tag << ": " << entry.message << std::endl;
                 }
             }
         }
 
-        for (auto entry : std::views::take(*entries, (long)next_log_index)) {
+        for (auto entry : *entries | std::views::take(next_log_index)) {
             if (shouldShowLog(filterLevel, entry.level) && entry.message[0] != 0x00) {
-                buffer << entry.message;
+                buffer << entry.tag << ": " << entry.message << std::endl;
             }
         }
 
@@ -59,8 +59,6 @@ class LogApp : public App {
 
     static void onLevelFilterPressedCallback(TT_UNUSED lv_event_t* event) {
         std::vector<std::string> items = {
-            "Verbose",
-            "Debug",
             "Info",
             "Warning",
             "Error",
@@ -96,18 +94,12 @@ public:
         if (result == Result::Ok && bundle != nullptr) {
             switch (selectiondialog::getResultIndex(*bundle)) {
                 case 0:
-                    filterLevel = LogLevel::Verbose;
-                    break;
-                case 1:
-                    filterLevel = LogLevel::Debug;
-                    break;
-                case 2:
                     filterLevel = LogLevel::Info;
                     break;
-                case 3:
+                case 1:
                     filterLevel = LogLevel::Warning;
                     break;
-                case 4:
+                case 2:
                     filterLevel = LogLevel::Error;
                     break;
                 default:
