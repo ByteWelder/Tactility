@@ -1,4 +1,6 @@
 #include "ChargeFromVoltage.h"
+
+#include <algorithm>
 #include <Tactility/Log.h>
 
 constexpr auto* TAG = "ChargeFromVoltage";

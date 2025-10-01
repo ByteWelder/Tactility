@@ -31,7 +31,6 @@
 - I2C app should show error when I2C port is disabled when the scan button was manually pressed
 - TactilitySDK: Support automatic scanning of header files so that we can generate the `tt_init.cpp` symbols list.
 - elf_loader: split up symbol lists further (after radio support is implemented)
-- Fix ugly logging defines that now call log+storeLog (make it a single call)
 
 ## Lower Priority
 
