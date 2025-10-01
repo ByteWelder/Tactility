@@ -47,7 +47,7 @@
 
 extern "C" {
 
-const esp_elfsym elf_symbols[] {
+const esp_elfsym main_symbols[] {
     // stdlib.h
     ESP_ELFSYM_EXPORT(malloc),
     ESP_ELFSYM_EXPORT(calloc),
@@ -502,6 +502,7 @@ uintptr_t resolve_symbol(const esp_elfsym* source, const char* symbolName) {
 
 uintptr_t tt_symbol_resolver(const char* symbolName) {
     static const std::vector all_symbols = {
+        main_symbols,
         gcc_soft_float_symbols,
         stl_symbols,
         esp_event_symbols,
