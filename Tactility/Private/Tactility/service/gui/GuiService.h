@@ -12,10 +12,10 @@
 
 namespace tt::service::gui {
 
-#define GUI_THREAD_FLAG_DRAW (1 << 0)
-#define GUI_THREAD_FLAG_INPUT (1 << 1)
-#define GUI_THREAD_FLAG_EXIT (1 << 2)
-#define GUI_THREAD_FLAG_ALL (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT)
+constexpr auto GUI_THREAD_FLAG_DRAW = (1 << 0);
+constexpr auto GUI_THREAD_FLAG_INPUT = (1 << 1);
+constexpr auto GUI_THREAD_FLAG_EXIT = (1 << 2);
+constexpr auto GUI_THREAD_FLAG_ALL = (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT);
 
 class GuiService final : public Service {
 
