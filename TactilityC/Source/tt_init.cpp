@@ -47,14 +47,7 @@
 
 extern "C" {
 
-// GCC internal new and delete
-extern void* _Znwj(uint32_t size);
-extern void _ZdlPvj(void* p, uint64_t size);
-
 const esp_elfsym elf_symbols[] {
-    // GCC internal
-    ESP_ELFSYM_EXPORT(_Znwj), // new
-    ESP_ELFSYM_EXPORT(_ZdlPvj), // delete
     // stdlib.h
     ESP_ELFSYM_EXPORT(malloc),
     ESP_ELFSYM_EXPORT(calloc),
