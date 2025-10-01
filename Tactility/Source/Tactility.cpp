@@ -72,7 +72,6 @@ namespace app {
     namespace inputdialog { extern const AppManifest manifest; }
     namespace launcher { extern const AppManifest manifest; }
     namespace localesettings { extern const AppManifest manifest; }
-    namespace log { extern const AppManifest manifest; }
     namespace notes { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
     namespace selectiondialog { extern const AppManifest manifest; }
@@ -111,7 +110,6 @@ static void registerSystemApps() {
     addApp(app::inputdialog::manifest);
     addApp(app::launcher::manifest);
     addApp(app::localesettings::manifest);
-    addApp(app::log::manifest);
     addApp(app::notes::manifest);
     addApp(app::settings::manifest);
     addApp(app::selectiondialog::manifest);

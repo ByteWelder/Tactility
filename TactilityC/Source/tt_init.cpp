@@ -5,6 +5,7 @@
 #include "tt_app_manifest.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
+#include "tt_file.h"
 #include "tt_gps.h"
 #include "tt_hal_device.h"
 #include "tt_hal_display.h"
@@ -25,31 +26,28 @@
 #include "tt_timer.h"
 #include "tt_wifi.h"
 
-#include <private/elf_symbol.h>
+#include "symbols/esp_event.h"
+#include "symbols/esp_http_client.h"
 #include "symbols/gcc_soft_float.h"
+#include "symbols/pthread.h"
+#include "symbols/stl.h"
 
 #include <cstring>
 #include <ctype.h>
 #include <esp_log.h>
-#include <esp_http_client.h>
 #include <cassert>
 #include <getopt.h>
+#include <time.h>
+#include <setjmp.h>
+#include <sys/errno.h>
+#include <sys/unistd.h>
 
 #include <lvgl.h>
-#include <pthread.h>
-#include <setjmp.h>
-#include <tt_file.h>
+#include <vector>
 
 extern "C" {
 
-// GCC internal new and delete
-extern void* _Znwj(uint32_t size);
-extern void _ZdlPvj(void* p, uint64_t size);
-
-const esp_elfsym elf_symbols[] {
-    // GCC internal
-    ESP_ELFSYM_EXPORT(_Znwj), // new
-    ESP_ELFSYM_EXPORT(_ZdlPvj), // delete
+const esp_elfsym main_symbols[] {
     // stdlib.h
     ESP_ELFSYM_EXPORT(malloc),
     ESP_ELFSYM_EXPORT(calloc),
@@ -66,13 +64,6 @@ const esp_elfsym elf_symbols[] {
     // time.h
     ESP_ELFSYM_EXPORT(clock_gettime),
     ESP_ELFSYM_EXPORT(strftime),
-    // pthread
-    ESP_ELFSYM_EXPORT(pthread_create),
-    ESP_ELFSYM_EXPORT(pthread_attr_init),
-    ESP_ELFSYM_EXPORT(pthread_attr_setstacksize),
-    ESP_ELFSYM_EXPORT(pthread_detach),
-    ESP_ELFSYM_EXPORT(pthread_join),
-    ESP_ELFSYM_EXPORT(pthread_exit),
     // sys/errno.h
     ESP_ELFSYM_EXPORT(__errno),
     // freertos_tasks_c_additions.h
@@ -158,66 +149,6 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(esp_log),
     ESP_ELFSYM_EXPORT(esp_log_write),
     ESP_ELFSYM_EXPORT(esp_log_timestamp),
-    // esp_http_client
-    ESP_ELFSYM_EXPORT(esp_http_client_init),
-    ESP_ELFSYM_EXPORT(esp_http_client_perform),
-    ESP_ELFSYM_EXPORT(esp_http_client_cancel_request),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_url),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_post_field),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_post_field),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_header),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_header),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_username),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_username),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_password),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_password),
-    ESP_ELFSYM_EXPORT(esp_http_client_cancel_request),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_authtype),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_user_data),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_user_data),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_errno),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_and_clear_last_tls_error),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_method),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_timeout_ms),
-    ESP_ELFSYM_EXPORT(esp_http_client_delete_header),
-    ESP_ELFSYM_EXPORT(esp_http_client_delete_all_headers),
-    ESP_ELFSYM_EXPORT(esp_http_client_open),
-    ESP_ELFSYM_EXPORT(esp_http_client_write),
-    ESP_ELFSYM_EXPORT(esp_http_client_fetch_headers),
-    ESP_ELFSYM_EXPORT(esp_http_client_is_chunked_response),
-    ESP_ELFSYM_EXPORT(esp_http_client_read),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_status_code),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_content_length),
-    ESP_ELFSYM_EXPORT(esp_http_client_close),
-    ESP_ELFSYM_EXPORT(esp_http_client_cleanup),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_transport_type),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_redirection),
-    ESP_ELFSYM_EXPORT(esp_http_client_reset_redirect_counter),
-    ESP_ELFSYM_EXPORT(esp_http_client_set_auth_data),
-    ESP_ELFSYM_EXPORT(esp_http_client_add_auth),
-    ESP_ELFSYM_EXPORT(esp_http_client_is_complete_data_received),
-    ESP_ELFSYM_EXPORT(esp_http_client_read_response),
-    ESP_ELFSYM_EXPORT(esp_http_client_flush_response),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_url),
-    ESP_ELFSYM_EXPORT(esp_http_client_get_chunk_length),
-    // esp_event
-    ESP_ELFSYM_EXPORT(esp_event_loop_create),
-    ESP_ELFSYM_EXPORT(esp_event_loop_delete),
-    ESP_ELFSYM_EXPORT(esp_event_loop_create_default),
-    ESP_ELFSYM_EXPORT(esp_event_loop_delete_default),
-    ESP_ELFSYM_EXPORT(esp_event_loop_run),
-    ESP_ELFSYM_EXPORT(esp_event_handler_register),
-    ESP_ELFSYM_EXPORT(esp_event_handler_register_with),
-    ESP_ELFSYM_EXPORT(esp_event_handler_instance_register_with),
-    ESP_ELFSYM_EXPORT(esp_event_handler_instance_register),
-    ESP_ELFSYM_EXPORT(esp_event_handler_unregister),
-    ESP_ELFSYM_EXPORT(esp_event_handler_unregister_with),
-    ESP_ELFSYM_EXPORT(esp_event_handler_instance_unregister_with),
-    ESP_ELFSYM_EXPORT(esp_event_handler_instance_unregister),
-    ESP_ELFSYM_EXPORT(esp_event_post),
-    ESP_ELFSYM_EXPORT(esp_event_post_to),
-    ESP_ELFSYM_EXPORT(esp_event_isr_post),
-    ESP_ELFSYM_EXPORT(esp_event_isr_post_to),
     // Tactility
     ESP_ELFSYM_EXPORT(tt_app_start),
     ESP_ELFSYM_EXPORT(tt_app_start_with_bundle),
@@ -289,6 +220,8 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_kernel_get_millis),
     ESP_ELFSYM_EXPORT(tt_kernel_get_micros),
     ESP_ELFSYM_EXPORT(tt_lvgl_is_started),
+    ESP_ELFSYM_EXPORT(tt_lvgl_lock),
+    ESP_ELFSYM_EXPORT(tt_lvgl_unlock),
     ESP_ELFSYM_EXPORT(tt_lvgl_start),
     ESP_ELFSYM_EXPORT(tt_lvgl_stop),
     ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
@@ -330,6 +263,7 @@ const esp_elfsym elf_symbols[] {
     ESP_ELFSYM_EXPORT(tt_thread_free),
     ESP_ELFSYM_EXPORT(tt_thread_set_name),
     ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
+    ESP_ELFSYM_EXPORT(tt_thread_set_affinity),
     ESP_ELFSYM_EXPORT(tt_thread_set_callback),
     ESP_ELFSYM_EXPORT(tt_thread_set_priority),
     ESP_ELFSYM_EXPORT(tt_thread_set_state_callback),
@@ -560,8 +494,8 @@ const esp_elfsym elf_symbols[] {
 
 uintptr_t resolve_symbol(const esp_elfsym* source, const char* symbolName) {
     const esp_elfsym* symbol_iterator = source;
-    while (symbol_iterator->name) {
-        if (!strcmp(symbol_iterator->name, symbolName)) {
+    while (symbol_iterator->name != nullptr) {
+        if (strcmp(symbol_iterator->name, symbolName) == 0) {
             return reinterpret_cast<uintptr_t>(symbol_iterator->sym);
         }
         symbol_iterator++;
@@ -570,11 +504,23 @@ uintptr_t resolve_symbol(const esp_elfsym* source, const char* symbolName) {
 }
 
 uintptr_t tt_symbol_resolver(const char* symbolName) {
-    uintptr_t address = resolve_symbol(elf_symbols, symbolName);
-    if (address != 0) {
-        return address;
+    static const std::vector all_symbols = {
+        main_symbols,
+        gcc_soft_float_symbols,
+        stl_symbols,
+        esp_event_symbols,
+        esp_http_client_symbols,
+        pthread_symbols
+    };
+
+    for (const auto* symbols : all_symbols) {
+        const uintptr_t address = resolve_symbol(symbols, symbolName);
+        if (address != 0) {
+            return address;
+        }
     }
-    return resolve_symbol(gcc_soft_float_symbols, symbolName);
+
+    return 0;
 }
 
 void tt_init_tactility_c() {

@@ -13,6 +13,12 @@ void tt_lvgl_start();
 /** Stop LVGL and related background services */
 void tt_lvgl_stop();
 
+/** Lock the LVGL context. Call this before doing LVGL-related operations from a non-LVLG thread */
+void tt_lvgl_lock();
+
+/** Unlock the LVGL context */
+void tt_lvgl_unlock();
+
 #ifdef __cplusplus
 }
 #endif

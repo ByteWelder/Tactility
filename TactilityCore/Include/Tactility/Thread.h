@@ -97,6 +97,11 @@ public:
      */
     void setStackSize(size_t stackSize);
 
+    /** Set CPU core pinning for this thread.
+     * @param[in] affinity -1 means not pinned, otherwise it's the core id (e.g. 0 or 1 on ESP32)
+     */
+    void setAffinity(portBASE_TYPE affinity);
+
     /** Set Thread callback
      * @param[in] callback ThreadCallback, called upon thread run
      * @param[in] callbackContext what to pass to the callback

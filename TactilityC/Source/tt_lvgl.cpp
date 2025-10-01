@@ -1,4 +1,5 @@
 #include <Tactility/lvgl/Lvgl.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 extern "C" {
 
@@ -12,6 +13,14 @@ void tt_lvgl_start() {
 
 void tt_lvgl_stop() {
     tt::lvgl::stop();
+}
+
+void tt_lvgl_lock() {
+    tt::lvgl::getSyncLock()->lock();
+}
+
+void tt_lvgl_unlock() {
+    tt::lvgl::getSyncLock()->unlock();
 }
 
 }

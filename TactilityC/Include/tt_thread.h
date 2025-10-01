@@ -88,6 +88,12 @@ void tt_thread_set_name(ThreadHandle handle, const char* name);
  */
 void tt_thread_set_stack_size(ThreadHandle handle, size_t size);
 
+/** Set CPu core affinity for this thread
+ * @param[in] handle the thread instance handle
+ * @param[in] affinity -1 means not pinned, otherwise it's the core id (e.g. 0 or 1 on ESP32)
+ */
+void tt_thread_set_affinity(ThreadHandle handle, int affinity);
+
 /**
  * Set the callback for a thread. This method is executed when the thread is started.
  * @param[in] handle the thread instance handle

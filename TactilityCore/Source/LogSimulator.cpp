@@ -9,8 +9,6 @@
 
 namespace tt {
 
-void storeLog(LogLevel level, const char* format, va_list args);
-
 static char toPrefix(LogLevel level) {
     using enum LogLevel;
     switch (level) {
@@ -80,10 +78,6 @@ void log(LogLevel level, const char* tag, const char* format, ...) {
     va_list args;
     va_start(args, format);
     vprintf(buffer.str().c_str(), args);
-    va_end(args);
-
-    va_start(args, format);
-    tt::storeLog(level, buffer.str().c_str(), args);
     va_end(args);
 }
 

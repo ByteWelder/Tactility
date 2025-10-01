@@ -95,9 +95,14 @@ void Thread::setStackSize(size_t newStackSize) {
     stackSize = newStackSize;
 }
 
+void Thread::setAffinity(portBASE_TYPE newAffinity) {
+    assert(state == State::Stopped);
+    affinity = newAffinity;
+}
+
 void Thread::setCallback(Callback callback, _Nullable void* callbackContext) {
     assert(state == State::Stopped);
-    mainFunction = [callback, callbackContext]() {
+    mainFunction = [callback, callbackContext] {
         return callback(callbackContext);
     };
 }
