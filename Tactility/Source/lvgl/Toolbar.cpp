@@ -158,7 +158,7 @@ void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callb
     lv_image_set_src(toolbar->close_button_image, icon); // e.g. LV_SYMBOL_CLOSE
 }
 
-lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* user_data) {
+lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* imageOrButton, bool isImage, lv_event_cb_t callback, void* user_data) {
     auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     tt_check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
     toolbar->action_count++;
@@ -178,11 +178,25 @@ lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb
     lv_obj_align(action_button, LV_ALIGN_CENTER, 0, 0);
 
     lv_obj_add_event_cb(action_button, callback, LV_EVENT_SHORT_CLICKED, user_data);
-    lv_obj_t* action_button_image = lv_image_create(action_button);
-    lv_image_set_src(action_button_image, icon);
-    lv_obj_align(action_button_image, LV_ALIGN_CENTER, 0, 0);
+    lv_obj_t* button_content;
+    if (isImage) {
+        button_content = lv_image_create(action_button);
+        lv_image_set_src(button_content, imageOrButton);
+    } else {
+        button_content = lv_label_create(action_button);
+        lv_label_set_text(button_content, imageOrButton);
+    }
+    lv_obj_align(button_content, LV_ALIGN_CENTER, 0, 0);
 
     return action_button;
+}
+
+lv_obj_t* toolbar_add_image_button_action(lv_obj_t* obj, const char* imagePath, lv_event_cb_t callback, void* user_data) {
+    return toolbar_add_button_action(obj, imagePath, true, callback, user_data);
+}
+
+lv_obj_t* toolbar_add_text_button_action(lv_obj_t* obj, const char* text, lv_event_cb_t callback, void* user_data) {
+    return toolbar_add_button_action(obj, text, false, callback, user_data);
 }
 
 lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {

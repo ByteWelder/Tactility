@@ -27,14 +27,24 @@ void toolbar_set_title(lv_obj_t* obj, const std::string& title);
 void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* userData);
 
 /**
- * Create and add an action button to the toolbar (aligned to the right of the toolbar)
+ * Create and add an action button with an image to the toolbar (aligned to the right of the toolbar)
  * @param[in] obj the toolbar instance
- * @param[in] icon the icon for the action
+ * @param[in] imagePath the path to an image file to shown on the button
  * @param[in] callback the callback for the click action of the button
- * @param[in] callbackEventUserData the user data that is attached to the callback event object
+ * @param[in] callbackUserData the user data that is passed to the callback
  * @return an lv_button instance
  */
-lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* userData);
+lv_obj_t* toolbar_add_image_button_action(lv_obj_t* obj, const char* imagePath, lv_event_cb_t callback, void* callbackUserData);
+
+/**
+ * Create and add an action button with text to the toolbar (aligned to the right of the toolbar)
+ * @param[in] obj the toolbar instance
+ * @param[in] text the button text
+ * @param[in] callback the callback for the click action of the button
+ * @param[in] callbackUserData the user data that is passed to the callback
+ * @return an lv_button instance
+ */
+lv_obj_t* toolbar_add_text_button_action(lv_obj_t* obj, const char* text, lv_event_cb_t callback, void* callbackUserData);
 
 /**
  * Create and add a switch to the toolbar actions.

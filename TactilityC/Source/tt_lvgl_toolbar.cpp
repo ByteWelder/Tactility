@@ -11,23 +11,27 @@ lv_obj_t* tt_lvgl_toolbar_create_for_app(lv_obj_t* parent, AppHandle context) {
     return tt::lvgl::toolbar_create(parent, *(tt::app::AppContext*)context);
 }
 
-void toolbar_set_title(lv_obj_t* obj, const char* title) {
+void tt_lvgl_toolbar_set_title(lv_obj_t* obj, const char* title) {
     tt::lvgl::toolbar_set_title(obj, title);
 }
 
-void toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* callbackEventUserData) {
+void tt_lvgl_toolbar_set_nav_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* callbackEventUserData) {
     tt::lvgl::toolbar_set_nav_action(obj, icon, callback, callbackEventUserData);
 }
 
-lv_obj_t* toolbar_add_button_action(lv_obj_t* obj, const char* icon, lv_event_cb_t callback, void* callbackEventUserData) {
-    return tt::lvgl::toolbar_add_button_action(obj, icon, callback, callbackEventUserData);
+lv_obj_t* tt_lvgl_toolbar_add_image_button_action(lv_obj_t* obj, const char* imagePath, lv_event_cb_t callback, void* callbackUserData) {
+    return tt::lvgl::toolbar_add_image_button_action(obj, imagePath, callback, callbackUserData);
 }
 
-lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj) {
+lv_obj_t* tt_lvgl_toolbar_add_text_button_action(lv_obj_t* obj, const char* text, lv_event_cb_t callback, void* callbackUserData) {
+    return tt::lvgl::toolbar_add_text_button_action(obj, text, callback, callbackUserData);
+}
+
+lv_obj_t* tt_lvgl_toolbar_add_switch_action(lv_obj_t* obj) {
     return tt::lvgl::toolbar_add_switch_action(obj);
 }
 
-lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
+lv_obj_t* tt_lvgl_toolbar_add_spinner_action(lv_obj_t* obj) {
     return tt::lvgl::toolbar_add_spinner_action(obj);
 }
 
