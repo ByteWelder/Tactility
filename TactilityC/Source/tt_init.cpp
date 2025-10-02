@@ -36,6 +36,7 @@
 #include <ctype.h>
 #include <esp_log.h>
 #include <cassert>
+#include <esp_random.h>
 #include <getopt.h>
 #include <time.h>
 #include <setjmp.h>
@@ -56,6 +57,9 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(rand),
     ESP_ELFSYM_EXPORT(srand),
     ESP_ELFSYM_EXPORT(rand_r),
+    // esp random
+    ESP_ELFSYM_EXPORT(esp_random),
+    ESP_ELFSYM_EXPORT(esp_fill_random),
     // unistd.h
     ESP_ELFSYM_EXPORT(usleep),
     ESP_ELFSYM_EXPORT(sleep),
@@ -233,6 +237,12 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_set_title),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_set_nav_action),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_image_button_action),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_text_button_action),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_switch_action),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_spinner_action),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
     ESP_ELFSYM_EXPORT(tt_message_queue_free),
     ESP_ELFSYM_EXPORT(tt_message_queue_put),
@@ -488,6 +498,13 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_spinbox_set_cursor_pos),
     ESP_ELFSYM_EXPORT(lv_spinbox_step_next),
     ESP_ELFSYM_EXPORT(lv_spinbox_step_prev),
+    // lv_indev
+    ESP_ELFSYM_EXPORT(lv_indev_get_type),
+    ESP_ELFSYM_EXPORT(lv_indev_get_point),
+    ESP_ELFSYM_EXPORT(lv_indev_get_display),
+    ESP_ELFSYM_EXPORT(lv_indev_get_key),
+    ESP_ELFSYM_EXPORT(lv_indev_get_gesture_dir),
+    ESP_ELFSYM_EXPORT(lv_indev_get_state),
     // delimiter
     ESP_ELFSYM_END
 };

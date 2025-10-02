@@ -178,7 +178,7 @@ void View::init(lv_obj_t* parent, Mode mode) {
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     auto* toolbar = lvgl::toolbar_create(parent, "Select File");
-    navigate_up_button = lvgl::toolbar_add_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
+    navigate_up_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
 
     auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
