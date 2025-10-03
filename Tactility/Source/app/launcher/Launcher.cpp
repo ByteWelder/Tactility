@@ -4,6 +4,7 @@
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/hal/power/PowerDevice.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/BootSettings.h>
 
@@ -113,9 +114,9 @@ public:
         const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, button_size) : 0;
 
         const auto paths = app.getPaths();
-        const auto apps_icon_path = "A:" + paths->getAssetsPath("icon_apps.png");
-        const auto files_icon_path = "A:" + paths->getAssetsPath("icon_files.png");
-        const auto settings_icon_path = "A:" + paths->getAssetsPath("icon_settings.png");
+        const auto apps_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_apps.png");
+        const auto files_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_files.png");
+        const auto settings_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_settings.png");
 
         createAppButton(buttons_wrapper, ui_scale, apps_icon_path.c_str(), "AppList", margin);
         createAppButton(buttons_wrapper, ui_scale, files_icon_path.c_str(), "Files", margin);

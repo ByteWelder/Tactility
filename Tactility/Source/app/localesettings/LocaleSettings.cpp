@@ -16,10 +16,16 @@ namespace tt::app::localesettings {
 
 constexpr auto* TAG = "LocaleSettings";
 
+#ifdef ESP_PLATFORM
+constexpr auto* TEXT_RESOURCE_PATH = "/system/app/LocaleSettings/i18n";
+#else
+constexpr auto* TEXT_RESOURCE_PATH = "system/app/LocaleSettings/i18n";
+#endif
+
 extern const AppManifest manifest;
 
 class LocaleSettingsApp final : public App {
-    tt::i18n::TextResources textResources = tt::i18n::TextResources("/system/app/LocaleSettings/i18n");
+    tt::i18n::TextResources textResources = tt::i18n::TextResources(TEXT_RESOURCE_PATH);
     Mutex mutex = Mutex(Mutex::Type::Recursive);
     lv_obj_t* timeZoneLabel = nullptr;
     lv_obj_t* regionLabel = nullptr;

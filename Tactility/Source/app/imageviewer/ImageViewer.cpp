@@ -1,3 +1,4 @@
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
@@ -47,7 +48,7 @@ class ImageViewerApp final : public App {
         tt_check(bundle != nullptr, "Parameters not set");
         std::string file_argument;
         if (bundle->optString(IMAGE_VIEWER_FILE_ARGUMENT, file_argument)) {
-            std::string prefixed_path = "A:" + file_argument;
+            std::string prefixed_path = lvgl::PATH_PREFIX + file_argument;
             TT_LOG_I(TAG, "Opening %s", prefixed_path.c_str());
             lv_img_set_src(image, prefixed_path.c_str());
             auto path = string::getLastPathSegment(file_argument);

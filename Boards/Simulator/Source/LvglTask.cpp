@@ -102,5 +102,6 @@ static void lvgl_task(TT_UNUSED void* arg) {
 
     lv_disp_remove(displayHandle);
     displayHandle = nullptr;
+    vTaskDelete(nullptr);
 }
 
