@@ -1,31 +1,36 @@
+#include <Tactility/MountPoints.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/Language.h>
 #include <Tactility/settings/SystemSettings.h>
 
+#include <format>
+
 namespace tt::settings {
 
 constexpr auto* TAG = "SystemSettings";
-constexpr auto* FILE_PATH = "/data/settings/system.properties";
+constexpr auto* FILE_PATH_FORMAT = "{}/settings/system.properties";
 
-static Mutex mutex = Mutex();
+static Mutex mutex;
 static bool cached = false;
 static SystemSettings cachedSettings;
 
 static bool loadSystemSettingsFromFile(SystemSettings& properties) {
+    auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
+    TT_LOG_I(TAG, "System settings loading from %s", file_path.c_str());
     std::map<std::string, std::string> map;
-    if (!file::withLock<bool>(FILE_PATH, [&map] {
-        return file::loadPropertiesFile(FILE_PATH, map);
+    if (!file::withLock<bool>(file_path, [&map, &file_path] {
+        return file::loadPropertiesFile(file_path, map);
     })) {
-        TT_LOG_E(TAG, "Failed to load %s", FILE_PATH);
+        TT_LOG_E(TAG, "Failed to load %s", file_path.c_str());
         return false;
     }
 
     auto language_entry = map.find("language");
     if (language_entry != map.end()) {
         if (!fromString(language_entry->second, properties.language)) {
-            TT_LOG_W(TAG, "Unknown language \"%s\" in %s", language_entry->second.c_str(), FILE_PATH);
+            TT_LOG_W(TAG, "Unknown language \"%s\" in %s", language_entry->second.c_str(), file_path.c_str());
             properties.language = Language::en_US;
         }
     } else {
@@ -36,6 +41,7 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     bool time_format_24h = time_format_entry == map.end() ? true : (time_format_entry->second == "true");
     properties.timeFormat24h = time_format_24h;
 
+    TT_LOG_I(TAG, "System settings loaded");
     return true;
 }
 
@@ -58,13 +64,14 @@ bool saveSystemSettings(const SystemSettings& properties) {
     auto scoped_lock = mutex.asScopedLock();
     scoped_lock.lock();
 
-    return file::withLock<bool>(FILE_PATH, [&properties] {
+    auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
+    return file::withLock<bool>(file_path, [&properties, &file_path] {
         std::map<std::string, std::string> map;
         map["language"] = toString(properties.language);
         map["timeFormat24h"] = properties.timeFormat24h ? "true" : "false";
 
-        if (!file::savePropertiesFile(FILE_PATH, map)) {
-            TT_LOG_E(TAG, "Failed to save %s", FILE_PATH);
+        if (!file::savePropertiesFile(file_path, map)) {
+            TT_LOG_E(TAG, "Failed to save %s", file_path.c_str());
             return false;
         }
 
