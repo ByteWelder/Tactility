@@ -1,6 +1,11 @@
 #pragma once
 
+/**
+ * Deprecated list of LVGL asset folder paths>
+ */
+
 #define TT_ASSET_FOLDER "A:/system/"
+
 #define TT_ASSET(file) TT_ASSET_FOLDER file
 
 // UI

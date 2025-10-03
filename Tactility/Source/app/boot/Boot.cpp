@@ -1,3 +1,5 @@
+#include "Tactility/lvgl/Lvgl.h"
+
 #include <Tactility/TactilityCore.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
@@ -169,7 +171,7 @@ public:
         } else {
             logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
         }
-        const auto logo_path = "A:" + paths->getAssetsPath(logo);
+        const auto logo_path = lvgl::PATH_PREFIX + paths->getAssetsPath(logo);
         TT_LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());
     }

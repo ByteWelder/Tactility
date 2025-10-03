@@ -8,6 +8,7 @@
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/screenshot/Screenshot.h>
@@ -204,13 +205,13 @@ void ScreenshotApp::createFilePathWidgets(lv_obj_t* parent) {
             TT_LOG_W(TAG, "Found multiple SD card devices - picking first");
         }
         if (!sdcard_devices.empty() && sdcard_devices.front()->isMounted()) {
-            std::string lvgl_mount_path = "A:" + sdcard_devices.front()->getMountPath();
+            std::string lvgl_mount_path = lvgl::PATH_PREFIX + sdcard_devices.front()->getMountPath();
             lv_textarea_set_text(pathTextArea, lvgl_mount_path.c_str());
         } else {
             lv_textarea_set_text(pathTextArea, "Error: no SD card");
         }
     } else { // PC
-        lv_textarea_set_text(pathTextArea, "A:");
+        lv_textarea_set_text(pathTextArea, lvgl::PATH_PREFIX);
     }
 }
 
