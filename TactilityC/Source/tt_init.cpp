@@ -2,7 +2,6 @@
 
 #include "tt_app.h"
 #include "tt_app_alertdialog.h"
-#include "tt_app_manifest.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
 #include "tt_file.h"
