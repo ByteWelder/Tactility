@@ -1,14 +1,15 @@
-#include "Tactility/app/AppManifestParsing.h"
-
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
+
+#include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/DispatcherThread.h>
-#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
+#include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
 #include <Tactility/lvgl/LvglPrivate.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -17,7 +18,6 @@
 
 #include <map>
 #include <format>
-#include <Tactility/file/FileLock.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/InitEsp.h>
@@ -97,7 +97,7 @@ namespace app {
 // endregion
 
 // List of all apps excluding Boot app (as Boot app calls this function indirectly)
-static void registerSystemApps() {
+static void registerInternalApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
     addApp(app::display::manifest);
@@ -199,14 +199,6 @@ static void registerInstalledAppsFromSdCards() {
     }
 }
 
-static void registerUserApps(const std::vector<const app::AppManifest*>& apps) {
-    TT_LOG_I(TAG, "Registering user apps");
-    for (auto* manifest : apps) {
-        assert(manifest != nullptr);
-        addApp(*manifest);
-    }
-}
-
 static void registerAndStartSecondaryServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::loader::manifest);
@@ -228,28 +220,13 @@ static void registerAndStartPrimaryServices() {
 #endif
 }
 
-static void registerAndStartUserServices(const std::vector<const service::ServiceManifest*>& manifests) {
-    TT_LOG_I(TAG, "Registering and starting user services");
-    for (auto* manifest : manifests) {
-        assert(manifest != nullptr);
-        addService(*manifest);
-    }
-}
-
 void initFromBootApp() {
-    auto configuration = getConfiguration();
-    // Then we register apps. They are not used/started yet.
-    registerSystemApps();
+    registerInternalApps();
     auto data_apps_path = std::format("{}/apps", file::MOUNT_POINT_DATA);
     if (file::isDirectory(data_apps_path)) {
         registerInstalledApps(data_apps_path);
     }
     registerInstalledAppsFromSdCards();
-    // Then we register and start user services. They are started after system app
-    // registration just in case they want to figure out which system apps are installed.
-    registerAndStartUserServices(configuration->services);
-    // Now we register the user apps, as they might rely on the user services.
-    registerUserApps(configuration->apps);
 }
 
 void run(const Configuration& config) {

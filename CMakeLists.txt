@@ -29,9 +29,9 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     init_tactility_globals("sdkconfig")
     get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
 
-    set(COMPONENTS App)
+    set(COMPONENTS Firmware)
     set(EXTRA_COMPONENT_DIRS
-        "App"
+        "Firmware"
         "Boards/${TACTILITY_BOARD_PROJECT}"
         "Drivers"
         "Tactility"
@@ -93,7 +93,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/mbedtls)
 
     # Sim app
-    add_subdirectory(App)
+    add_subdirectory(Firmware)
 
     # Tests
     add_subdirectory(Tests)
