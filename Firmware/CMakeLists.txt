@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
+file(GLOB_RECURSE SOURCE_FILES "Source/*.c*")
+
 if (DEFINED ENV{ESP_IDF_VERSION})
     # Read board id/project
     include("../Buildscripts/board.cmake")
@@ -7,15 +9,13 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     get_property(TACTILITY_BOARD_PROJECT GLOBAL PROPERTY TACTILITY_BOARD_PROJECT)
 
     idf_component_register(
-        SRC_DIRS "Source"
-        "Source/HelloWorld"
+        SRCS ${SOURCE_FILES}
         REQUIRES ${BOARD_COMPONENTS}
         REQUIRES Tactility TactilityC ${TACTILITY_BOARD_PROJECT}
     )
 else ()
 
-    file(GLOB_RECURSE SOURCES "Source/*.c*")
-    add_executable(AppSim ${SOURCES})
+    add_executable(AppSim ${SOURCE_FILES})
     target_link_libraries(AppSim
         PRIVATE Tactility
         PRIVATE TactilityCore

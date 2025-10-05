@@ -15,10 +15,6 @@ namespace app::launcher { extern const AppManifest manifest; }
 struct Configuration {
     /** HAL configuration (drivers) */
     const hal::Configuration* hardware = nullptr;
-    /** List of user applications */
-    const std::vector<const app::AppManifest*> apps = {};
-    /** List of user services */
-    const std::vector<const service::ServiceManifest*> services = {};
 };
 
 /**
