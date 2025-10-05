@@ -3,12 +3,12 @@
 #include "tt_thread.h"
 #include <freertos/FreeRTOS.h>
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <stdint.h>
-#include <stdbool.h>
 
 /** The handle that represents a timer instance */
 typedef void* TimerHandle;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tt_hal_device.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "tt_kernel.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
