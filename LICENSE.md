@@ -9,7 +9,7 @@ For other usages, [contact me](https://kenvanhoeylandt.net).
 
 # TactilityC & TactilitySDK
 
-TactilityC (source & binaries) and the TactilitySDK distribution files are available under an [MIT License](Documentation/license-tactilitysdk.md).
+TactilityC (source & binaries) and the TactilitySDK distribution files are available via the [Apache License Version 2.0](Documentation/license-tactilitysdk.md).
 
 # Other licenses & copyrights
 
