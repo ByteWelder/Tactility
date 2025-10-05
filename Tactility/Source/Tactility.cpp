@@ -59,13 +59,11 @@ namespace app {
     namespace alertdialog { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
-    namespace calculator { extern const AppManifest manifest; }
     namespace chat { extern const AppManifest manifest; }
     namespace development { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
     namespace fileselection { extern const AppManifest manifest; }
-    namespace gpio { extern const AppManifest manifest; }
     namespace gpssettings { extern const AppManifest manifest; }
     namespace i2cscanner { extern const AppManifest manifest; }
     namespace i2csettings { extern const AppManifest manifest; }
@@ -102,11 +100,9 @@ namespace app {
 static void registerSystemApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::applist::manifest);
-    addApp(app::calculator::manifest);
     addApp(app::display::manifest);
     addApp(app::files::manifest);
     addApp(app::fileselection::manifest);
-    addApp(app::gpio::manifest);
     addApp(app::imageviewer::manifest);
     addApp(app::inputdialog::manifest);
     addApp(app::launcher::manifest);
