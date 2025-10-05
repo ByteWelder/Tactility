@@ -177,7 +177,8 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     }
 
     while (bytes_received < length) {
-        size_t receive_chunk_size = httpd_req_recv(request, buffer, BUFFER_SIZE);
+        auto expected_chunk_size = std::min<size_t>(BUFFER_SIZE, length - bytes_received);
+        size_t receive_chunk_size = httpd_req_recv(request, buffer, expected_chunk_size);
         if (receive_chunk_size <= 0) {
             TT_LOG_E(TAG, "Receive failed");
             break;
