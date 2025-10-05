@@ -11,7 +11,33 @@ class SdCardDevice;
 
 namespace tt::file {
 
-#define TAG "file"
+constexpr auto* TAG = "file";
+
+class NoLock final : public Lock {
+    bool lock(TickType_t timeout) const override { return true; }
+    bool unlock() const override { return true; }
+};
+
+static std::shared_ptr<Lock> noLock = std::make_shared<NoLock>();
+static std::function<std::shared_ptr<Lock>(const std::string&)> findLockFunction = nullptr;
+
+std::shared_ptr<Lock> getLock(const std::string& path) {
+    if (findLockFunction == nullptr) {
+        TT_LOG_W(TAG, "File lock function not set!");
+        return noLock;
+    }
+
+    auto lock = findLockFunction(path);
+    if (lock == nullptr) {
+        return noLock;
+    }
+
+    return lock;
+}
+
+void setFindLockFunction(const FindLockFunction& function) {
+    findLockFunction = function;
+}
 
 std::string getChildPath(const std::string& basePath, const std::string& childPath) {
     // Postfix with "/" when the current path isn't "/"
@@ -40,6 +66,9 @@ bool listDirectory(
     const std::string& path,
     std::function<void(const dirent&)> onEntry
 ) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+
     TT_LOG_I(TAG, "listDir start %s", path.c_str());
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
@@ -64,6 +93,9 @@ int scandir(
     ScandirFilter _Nullable filterMethod,
     ScandirSort _Nullable sortMethod
 ) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+
     TT_LOG_I(TAG, "scandir start");
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
@@ -187,6 +219,9 @@ bool writeString(const std::string& filepath, const std::string& content) {
 }
 
 static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+
     struct stat dir_stat;
     if (mkdir(path.c_str(), mode) == 0) {
         return true;
@@ -277,6 +312,7 @@ bool deleteRecursively(const std::string& path) {
             TT_LOG_E(TAG, "Failed to scan directory %s", path.c_str());
             return false;
         }
+
         for (const auto& entry : entries) {
             auto child_path = path + "/" + entry.d_name;
             if (!deleteRecursively(child_path)) {
@@ -284,10 +320,10 @@ bool deleteRecursively(const std::string& path) {
             }
         }
         TT_LOG_I(TAG, "Deleting %s", path.c_str());
-        return rmdir(path.c_str()) == 0;
+        return deleteDirectory(path);
     } else if (isFile(path)) {
         TT_LOG_I(TAG, "Deleting %s", path.c_str());
-        return remove(path.c_str()) == 0;
+        return deleteFile(path);
     } else if (path == "/" || path == "." || path == "..") {
         // No-op
         return true;
@@ -297,17 +333,36 @@ bool deleteRecursively(const std::string& path) {
     }
 }
 
+bool deleteFile(const std::string& path) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+    return remove(path.c_str()) == 0;
+}
+
+bool deleteDirectory(const std::string& path) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+    return rmdir(path.c_str()) == 0;
+}
+
 bool isFile(const std::string& path) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
     return access(path.c_str(), F_OK) == 0;
 }
 
 bool isDirectory(const std::string& path) {
+    auto lock = getLock(path)->asScopedLock();
+    lock.lock();
     struct stat stat_result;
     return stat(path.c_str(), &stat_result) == 0 && S_ISDIR(stat_result.st_mode);
 }
 
-bool readLines(const std::string& filepath, bool stripNewLine, std::function<void(const char* line)> callback) {
-    auto* file = fopen(filepath.c_str(), "r");
+bool readLines(const std::string& filePath, bool stripNewLine, std::function<void(const char* line)> callback) {
+    auto lock = getLock(filePath)->asScopedLock();
+    lock.lock();
+
+    auto* file = fopen(filePath.c_str(), "r");
     if (file == nullptr) {
         return false;
     }

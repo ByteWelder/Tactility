@@ -34,12 +34,6 @@ std::string State::getSelectedChildPath() const {
 }
 
 bool State::setEntriesForPath(const std::string& path) {
-    auto lock = mutex.asScopedLock();
-    if (!lock.lock(100)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "setEntriesForPath");
-        return false;
-    }
-
     TT_LOG_I(TAG, "Changing path: %s -> %s", current_path.c_str(), path.c_str());
 
     /**

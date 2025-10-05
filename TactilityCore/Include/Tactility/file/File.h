@@ -1,3 +1,7 @@
+/**
+ * All functions in this file can be safely called without manually applying file locks.
+ * For calls to C stdlib APIs such as fopen(), always call file::getLock(path) first!
+ */
 #pragma once
 
 #include "Tactility/TactilityCore.h"
@@ -40,6 +44,28 @@ struct FileCloser {
     }
 };
 
+typedef std::function<std::shared_ptr<Lock>(const std::string&)> FindLockFunction;
+
+/**
+ * @param[in] path the path to get a lock for
+ * @return a lock instance (never null)
+ */
+std::shared_ptr<Lock> getLock(const std::string& path);
+
+void setFindLockFunction(const FindLockFunction& function);
+
+/**
+ * Acquires a lock, calls the function, then releases the lock.
+ * @param[in] path the path to find a lock for
+ * @param[in] fn the code to execute while the lock is acquired
+ */
+template<typename ReturnType>
+ReturnType withLock(const std::string& path, std::function<ReturnType()> fn) {
+    const auto lock = getLock(path)->asScopedLock();
+    lock.lock();
+    return fn();
+}
+
 long getSize(FILE* file);
 
 /** Read a file and return its data.
@@ -72,6 +98,10 @@ bool findOrCreateDirectory(const std::string& path, mode_t mode);
 bool findOrCreateParentDirectory(const std::string& path, mode_t mode);
 
 bool deleteRecursively(const std::string& path);
+
+bool deleteFile(const std::string& path);
+
+bool deleteDirectory(const std::string& path);
 
 /**
  * Concatenate a child path with a parent path, ensuring proper slash inbetween

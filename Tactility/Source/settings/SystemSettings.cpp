@@ -6,6 +6,7 @@
 #include <Tactility/settings/SystemSettings.h>
 
 #include <format>
+#include <Tactility/file/File.h>
 
 namespace tt::settings {
 
@@ -20,9 +21,7 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
     TT_LOG_I(TAG, "System settings loading from %s", file_path.c_str());
     std::map<std::string, std::string> map;
-    if (!file::withLock<bool>(file_path, [&map, &file_path] {
-        return file::loadPropertiesFile(file_path, map);
-    })) {
+    if (!file::loadPropertiesFile(file_path, map)) {
         TT_LOG_E(TAG, "Failed to load %s", file_path.c_str());
         return false;
     }
@@ -46,9 +45,6 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
 }
 
 bool loadSystemSettings(SystemSettings& properties) {
-    auto scoped_lock = mutex.asScopedLock();
-    scoped_lock.lock();
-
     if (!cached) {
         if (!loadSystemSettingsFromFile(cachedSettings)) {
             return false;
@@ -61,24 +57,19 @@ bool loadSystemSettings(SystemSettings& properties) {
 }
 
 bool saveSystemSettings(const SystemSettings& properties) {
-    auto scoped_lock = mutex.asScopedLock();
-    scoped_lock.lock();
-
     auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
-    return file::withLock<bool>(file_path, [&properties, &file_path] {
-        std::map<std::string, std::string> map;
-        map["language"] = toString(properties.language);
-        map["timeFormat24h"] = properties.timeFormat24h ? "true" : "false";
+    std::map<std::string, std::string> map;
+    map["language"] = toString(properties.language);
+    map["timeFormat24h"] = properties.timeFormat24h ? "true" : "false";
 
-        if (!file::savePropertiesFile(file_path, map)) {
-            TT_LOG_E(TAG, "Failed to save %s", file_path.c_str());
-            return false;
-        }
+    if (!file::savePropertiesFile(file_path, map)) {
+        TT_LOG_E(TAG, "Failed to save %s", file_path.c_str());
+        return false;
+    }
 
-        cachedSettings = properties;
-        cached = true;
-        return true;
-    });
+    cachedSettings = properties;
+    cached = true;
+    return true;
 }
 
 }

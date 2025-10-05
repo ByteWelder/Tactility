@@ -17,6 +17,7 @@
 
 #include <map>
 #include <format>
+#include <Tactility/file/FileLock.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/InitEsp.h>
@@ -188,11 +189,9 @@ static void registerInstalledApps(const std::string& path) {
 static void registerInstalledAppsFromSdCard(const std::shared_ptr<hal::sdcard::SdCardDevice>& sdcard) {
     auto sdcard_root_path = sdcard->getMountPath();
     auto app_path = std::format("{}/app", sdcard_root_path);
-    sdcard->getLock()->lock();
     if (file::isDirectory(app_path)) {
         registerInstalledApps(app_path);
     }
-    sdcard->getLock()->unlock();
 }
 
 static void registerInstalledAppsFromSdCards() {
@@ -269,6 +268,7 @@ void run(const Configuration& config) {
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
+    file::setFindLockFunction(file::findLock);
     settings::initTimeZone();
     hal::init(*config.hardware);
     network::ntp::init();

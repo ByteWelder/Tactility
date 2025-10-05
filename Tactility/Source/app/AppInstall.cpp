@@ -106,12 +106,9 @@ static bool untar(const std::string& tarPath, const std::string& destinationPath
 }
 
 void cleanupInstallDirectory(const std::string& path) {
-    const auto lock = file::getLock(path);
-    lock->lock();
     if (!file::deleteRecursively(path)) {
         TT_LOG_W(TAG, "Failed to delete existing installation at %s", path.c_str());
     }
-    lock->unlock();
 }
 
 bool install(const std::string& path) {
@@ -121,23 +118,18 @@ bool install(const std::string& path) {
     auto app_parent_path = getAppInstallPath();
     TT_LOG_I(TAG, "Installing app %s to %s", path.c_str(), app_parent_path.c_str());
 
-    auto target_path_lock = file::getLock(app_parent_path)->asScopedLock();
-
-    target_path_lock.lock();
     auto filename = file::getLastPathSegment(path);
     const std::string app_target_path = std::format("{}/{}", app_parent_path, filename);
     if (file::isDirectory(app_target_path) && !file::deleteRecursively(app_target_path)) {
         TT_LOG_W(TAG, "Failed to delete %s", app_target_path.c_str());
     }
-    target_path_lock.unlock();
 
-    target_path_lock.lock();
     if (!file::findOrCreateDirectory(app_target_path, 0777)) {
         TT_LOG_I(TAG, "Failed to create directory %s", app_target_path.c_str());
         return false;
     }
-    target_path_lock.unlock();
 
+    auto target_path_lock = file::getLock(app_parent_path)->asScopedLock();
     auto source_path_lock = file::getLock(path)->asScopedLock();
     target_path_lock.lock();
     source_path_lock.lock();
@@ -149,23 +141,19 @@ bool install(const std::string& path) {
     source_path_lock.unlock();
     target_path_lock.unlock();
 
-    target_path_lock.lock();
     auto manifest_path = app_target_path + "/manifest.properties";
     if (!file::isFile(manifest_path)) {
         TT_LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
         cleanupInstallDirectory(app_target_path);
         return false;
     }
-    target_path_lock.unlock();
 
-    target_path_lock.lock();
     std::map<std::string, std::string> properties;
     if (!file::loadPropertiesFile(manifest_path, properties)) {
         TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
         cleanupInstallDirectory(app_target_path);
         return false;
     }
-    target_path_lock.unlock();
 
     AppManifest manifest;
     if (!parseManifest(properties, manifest)) {
@@ -179,7 +167,6 @@ bool install(const std::string& path) {
         stopAll(manifest.appId);
     }
 
-    target_path_lock.lock();
     const std::string renamed_target_path = std::format("{}/{}", app_parent_path, manifest.appId);
     if (file::isDirectory(renamed_target_path)) {
         if (!file::deleteRecursively(renamed_target_path)) {
@@ -188,15 +175,16 @@ bool install(const std::string& path) {
             return false;
         }
     }
-    target_path_lock.unlock();
 
     target_path_lock.lock();
-    if (rename(app_target_path.c_str(), renamed_target_path.c_str()) != 0) {
+    bool rename_success = rename(app_target_path.c_str(), renamed_target_path.c_str()) == 0;
+    target_path_lock.unlock();
+
+    if (!rename_success) {
         TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", app_target_path.c_str(), manifest.appId.c_str());
         cleanupInstallDirectory(app_target_path);
         return false;
     }
-    target_path_lock.unlock();
 
     manifest.appLocation = Location::external(renamed_target_path);
 
@@ -214,22 +202,20 @@ bool uninstall(const std::string& appId) {
     }
 
     auto app_path = getAppInstallPath(appId);
-    return file::withLock<bool>(app_path, [&app_path, &appId] {
-        if (!file::isDirectory(app_path)) {
-            TT_LOG_E(TAG, "App %s not found at ", app_path.c_str());
-            return false;
-        }
+    if (!file::isDirectory(app_path)) {
+        TT_LOG_E(TAG, "App %s not found at ", app_path.c_str());
+        return false;
+    }
 
-        if (!file::deleteRecursively(app_path)) {
-            return false;
-        }
+    if (!file::deleteRecursively(app_path)) {
+        return false;
+    }
 
-        if (!removeApp(appId)) {
-            TT_LOG_W(TAG, "Failed to remove app %d from registry", appId.c_str());
-        }
+    if (!removeApp(appId)) {
+        TT_LOG_W(TAG, "Failed to remove app %d from registry", appId.c_str());
+    }
 
-        return true;
-    });
+    return true;
 }
 
 } // namespace

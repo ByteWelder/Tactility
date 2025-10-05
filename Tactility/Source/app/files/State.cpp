@@ -57,19 +57,17 @@ bool State::setEntriesForPath(const std::string& path) {
         return true;
     } else {
         dir_entries.clear();
-        return file::withLock<bool>(path, [this, &path] {
-            int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
-            if (count >= 0) {
-                TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);
-                current_path = path;
-                selected_child_entry = "";
-                action = ActionNone;
-                return true;
-            } else {
-                TT_LOG_E(TAG, "Failed to fetch entries for %s", path.c_str());
-                return false;
-            }
-        });
+        int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
+        if (count >= 0) {
+            TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);
+            current_path = path;
+            selected_child_entry = "";
+            action = ActionNone;
+            return true;
+        } else {
+            TT_LOG_E(TAG, "Failed to fetch entries for %s", path.c_str());
+            return false;
+        }
     }
 }
 

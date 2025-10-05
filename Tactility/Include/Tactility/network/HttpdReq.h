@@ -24,6 +24,8 @@ std::map<std::string, std::string> parseContentDisposition(const std::vector<std
 
 bool readAndDiscardOrSendError(httpd_req_t* request, const std::string& toRead);
 
+size_t receiveFile(httpd_req_t* request, size_t length, const std::string& filePath);
+
 }
 
 #endif // ESP_PLATFORM
