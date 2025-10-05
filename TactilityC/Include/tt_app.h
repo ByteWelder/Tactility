@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdio>
+#include <stdio.h>
 
 #include "tt_app_manifest.h"
 

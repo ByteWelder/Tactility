@@ -64,10 +64,8 @@ bool TextResources::load() {
         return false;
     }
 
-    file::withLock<void>(file_path, [&file_path, &new_data] {
-        file::readLines(file_path, true, [&new_data](const char* line) {
-            new_data.push_back(line);
-        });
+    file::readLines(file_path, true, [&new_data](const char* line) {
+        new_data.push_back(line);
     });
 
     if (new_data.empty()) {

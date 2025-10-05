@@ -1,6 +1,6 @@
 #include <tt_file.h>
 #include <tt_lock_private.h>
-#include <Tactility/file/FileLock.h>
+#include <Tactility/file/File.h>
 
 extern "C" {
 

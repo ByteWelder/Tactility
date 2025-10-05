@@ -243,45 +243,30 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    // Receive file
-    size_t content_read;
-    auto part_after_file = std::format("\r\n--{}--\r\n", boundary);
-    auto file_size = content_left - part_after_file.length();
-    auto buffer = network::receiveByteArray(request, file_size, content_read);
-    if (content_read != file_size) {
-        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "Multipart form error: file data not received");
-        return ESP_FAIL;
-    }
-    content_left -= content_read;
+    // Receive boundary
+    auto boundary_and_newlines_after_file = std::format("\r\n--{}--\r\n", boundary);
+    auto file_size = content_left - boundary_and_newlines_after_file.length();
 
+    // Create tmp directory
     const std::string tmp_path = getTempPath();
-    auto lock = file::getLock(tmp_path)->asScopedLock();
-
-    lock.lock();
     if (!file::findOrCreateDirectory(tmp_path, 0777)) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
         return ESP_FAIL;
     }
-    lock.unlock();
 
-    // Write file
-    lock.lock();
     auto file_path = std::format("{}/{}", tmp_path, filename_entry->second);
-    auto* file = fopen(file_path.c_str(), "wb");
-    auto file_bytes_written = fwrite(buffer.get(), 1, file_size, file);
-    fclose(file);
-    if (file_bytes_written != file_size) {
+    if (network::receiveFile(request, file_size, file_path) != file_size) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
         return ESP_FAIL;
     }
-    lock.unlock();
 
+    content_left -= file_size;
 
     // Read and verify part
-    if (!network::readAndDiscardOrSendError(request, part_after_file)) {
+    if (!network::readAndDiscardOrSendError(request, boundary_and_newlines_after_file)) {
         return ESP_FAIL;
     }
-    content_left -= part_after_file.length();
+    content_left -= boundary_and_newlines_after_file.length();
 
     if (content_left != 0) {
         TT_LOG_W(TAG, "We have more bytes at the end of the request parsing?!");
@@ -292,11 +277,9 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    lock.lock();
-    if (remove(file_path.c_str()) != 0) {
+    if (!file::deleteFile(file_path.c_str())) {
         TT_LOG_W(TAG, "Failed to delete %s", file_path.c_str());
     }
-    lock.unlock();
 
     TT_LOG_I(TAG, "[200] /app/install -> %s", file_path.c_str());
 

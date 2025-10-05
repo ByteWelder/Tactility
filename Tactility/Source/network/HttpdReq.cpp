@@ -5,6 +5,7 @@
 #include <sstream>
 #include <Tactility/Log.h>
 #include <Tactility/StringUtils.h>
+#include <Tactility/file/File.h>
 
 #ifdef ESP_PLATFORM
 
@@ -159,6 +160,39 @@ bool readAndDiscardOrSendError(httpd_req_t* request, const std::string& toRead) 
     }
 
     return true;
+}
+
+size_t receiveFile(httpd_req_t* request, size_t length, const std::string& filePath) {
+    constexpr auto BUFFER_SIZE = 512;
+    char buffer[BUFFER_SIZE];
+    size_t bytes_received = 0;
+
+    auto lock = file::getLock(filePath)->asScopedLock();
+    lock.lock();
+
+    auto* file = fopen(filePath.c_str(), "wb");
+    if (file == nullptr) {
+        TT_LOG_E(TAG, "Failed to open file for writing: %s", filePath.c_str());
+        return 0;
+    }
+
+    while (bytes_received < length) {
+        auto expected_chunk_size = std::min<size_t>(BUFFER_SIZE, length - bytes_received);
+        size_t receive_chunk_size = httpd_req_recv(request, buffer, expected_chunk_size);
+        if (receive_chunk_size <= 0) {
+            TT_LOG_E(TAG, "Receive failed");
+            break;
+        }
+        if (fwrite(buffer, 1, receive_chunk_size, file) != receive_chunk_size) {
+            TT_LOG_E(TAG, "Failed to write all bytes");
+            break;
+        }
+        bytes_received += receive_chunk_size;
+    }
+
+    // Write file
+    fclose(file);
+    return bytes_received;
 }
 
 }
