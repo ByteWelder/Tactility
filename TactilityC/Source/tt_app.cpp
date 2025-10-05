@@ -2,6 +2,7 @@
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/app/ElfApp.h>
 #include <Tactility/file/FileLock.h>
 
 extern "C" {
@@ -9,6 +10,25 @@ extern "C" {
 constexpr auto* TAG = "tt_app";
 
 #define HANDLE_AS_APP_CONTEXT(handle) ((tt::app::AppContext*)(handle))
+
+void tt_app_register(
+    const AppRegistration appRegistration
+) {
+#ifdef ESP_PLATFORM
+    assert((appRegistration.createData == nullptr) == (appRegistration.destroyData == nullptr));
+    tt::app::setElfAppParameters(
+        appRegistration.createData,
+        appRegistration.destroyData,
+        appRegistration.onCreate,
+        appRegistration.onDestroy,
+        appRegistration.onShow,
+        appRegistration.onHide,
+        reinterpret_cast<tt::app::OnResult>(appRegistration.onResult)
+    );
+#else
+    tt_crash("TactilityC is not intended for PC/Simulator");
+#endif
+}
 
 BundleHandle _Nullable tt_app_get_parameters(AppHandle handle) {
     return (BundleHandle)HANDLE_AS_APP_CONTEXT(handle)->getParameters().get();
