@@ -40,10 +40,18 @@ public:
         auto manifests = getApps();
         std::ranges::sort(manifests, SortAppManifestByName);
 
+        size_t app_count = 0;
         for (const auto& manifest: manifests) {
             if (manifest->appLocation.isExternal()) {
+                app_count++;
                 createAppWidget(manifest, list);
             }
+        }
+
+        if (app_count == 0) {
+            auto* no_apps_label = lv_label_create(parent);
+            lv_label_set_text(no_apps_label, "No apps installed");
+            lv_obj_align(no_apps_label, LV_ALIGN_CENTER, 0, 0);
         }
     }
 };

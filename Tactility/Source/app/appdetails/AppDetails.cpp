@@ -91,8 +91,7 @@ public:
             return;
         }
 
-        auto index = alertdialog::getResultIndex(*bundle);
-        if (index != 0) { // 0 = Yes
+        if (alertdialog::getResultIndex(*bundle) != 0) { // 0 = Yes
             return;
         }
 
