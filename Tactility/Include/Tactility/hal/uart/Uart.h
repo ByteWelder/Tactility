@@ -28,8 +28,6 @@ enum class Status {
 
 class Uart {
 
-private:
-
     uint32_t id;
 
 public:
@@ -37,7 +35,7 @@ public:
     Uart();
     virtual ~Uart();
 
-    inline uint32_t getId() const { return id; }
+    uint32_t getId() const { return id; }
 
     virtual bool start() = 0;
     virtual bool isStarted() const = 0;
@@ -60,11 +58,11 @@ public:
     /** Read a single byte */
     virtual bool readByte(std::byte* output, TickType_t timeout = defaultTimeout) = 0;
 
-    inline bool readByte(char* output, TickType_t timeout = defaultTimeout) {
+    bool readByte(char* output, TickType_t timeout = defaultTimeout) {
         return readByte(reinterpret_cast<std::byte*>(output), timeout);
     }
 
-    inline bool readByte(uint8_t* output, TickType_t timeout = defaultTimeout) {
+    bool readByte(uint8_t* output, TickType_t timeout = defaultTimeout) {
         return readByte(reinterpret_cast<std::byte*>(output), timeout);
     }
 
@@ -77,7 +75,7 @@ public:
      */
     virtual size_t writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) = 0;
 
-    inline size_t writeBytes(const std::uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) {
+    size_t writeBytes(const std::uint8_t* buffer, size_t bufferSize, TickType_t timeout = defaultTimeout) {
         return writeBytes(reinterpret_cast<const std::byte*>(buffer), bufferSize, timeout);
     }
 

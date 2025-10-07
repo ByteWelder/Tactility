@@ -12,6 +12,7 @@
 #include "tt_hal_gpio.h"
 #include "tt_hal_i2c.h"
 #include "tt_hal_touch.h"
+#include "tt_hal_uart.h"
 #include "tt_kernel.h"
 #include "tt_lvgl.h"
 #include "tt_lvgl_keyboard.h"
@@ -215,6 +216,20 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_touch_driver_alloc),
     ESP_ELFSYM_EXPORT(tt_hal_touch_driver_free),
     ESP_ELFSYM_EXPORT(tt_hal_touch_driver_get_touched_points),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_get_count),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_get_name),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_create),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_destroy),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_start),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_is_started),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_stop),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_read_bytes),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_read_byte),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_write_bytes),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_available),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_set_baud_rate),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_get_baud_rate),
+    ESP_ELFSYM_EXPORT(tt_hal_uart_flush_input),
     ESP_ELFSYM_EXPORT(tt_kernel_delay_millis),
     ESP_ELFSYM_EXPORT(tt_kernel_delay_micros),
     ESP_ELFSYM_EXPORT(tt_kernel_delay_ticks),
