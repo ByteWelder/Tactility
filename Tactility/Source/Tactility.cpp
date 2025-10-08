@@ -76,7 +76,6 @@ namespace app {
     namespace notes { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
     namespace selectiondialog { extern const AppManifest manifest; }
-    namespace serialconsole { extern const AppManifest manifest; }
     namespace settings { extern const AppManifest manifest; }
     namespace systeminfo { extern const AppManifest manifest; }
     namespace timedatesettings { extern const AppManifest manifest; }
@@ -143,7 +142,6 @@ static void registerInternalApps() {
     if (!hal::getConfiguration()->uart.empty()) {
         addApp(app::addgps::manifest);
         addApp(app::gpssettings::manifest);
-        addApp(app::serialconsole::manifest);
     }
 
     if (hal::hasDevice(hal::Device::Type::Power)) {
