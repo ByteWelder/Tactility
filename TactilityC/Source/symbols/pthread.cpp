@@ -1,4 +1,8 @@
+#include <private/elf_symbol.h>
+#include <cstddef>
+
 #include <symbols/pthread.h>
+
 #include <pthread.h>
 
 const esp_elfsym pthread_symbols[] = {
@@ -8,4 +12,6 @@ const esp_elfsym pthread_symbols[] = {
     ESP_ELFSYM_EXPORT(pthread_detach),
     ESP_ELFSYM_EXPORT(pthread_join),
     ESP_ELFSYM_EXPORT(pthread_exit),
+    // delimiter
+    ESP_ELFSYM_END
 };

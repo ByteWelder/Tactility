@@ -6,6 +6,8 @@
 extern "C" {
 #endif
 
+#define TT_LVGL_DEFAULT_LOCK_TIME 500 // 500 ticks = 500 ms
+
 /** @return true if LVGL is started and active */
 bool tt_lvgl_is_started();
 
@@ -16,7 +18,7 @@ void tt_lvgl_start();
 void tt_lvgl_stop();
 
 /** Lock the LVGL context. Call this before doing LVGL-related operations from a non-LVLG thread */
-void tt_lvgl_lock();
+bool tt_lvgl_lock(TickType timeout);
 
 /** Unlock the LVGL context */
 void tt_lvgl_unlock();

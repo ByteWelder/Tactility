@@ -9,8 +9,6 @@ namespace tt::hal::uart {
 
 class UartEsp final : public Uart {
 
-private:
-
     Mutex mutex;
     const Configuration& configuration;
     bool started = false;
@@ -19,16 +17,16 @@ public:
 
     explicit UartEsp(const Configuration& configuration) : configuration(configuration) {}
 
-    bool start() final;
-    bool isStarted() const final;
-    bool stop() final;
-    size_t readBytes(std::byte* buffer, size_t bufferSize, TickType_t timeout) final;
-    bool readByte(std::byte* output, TickType_t timeout) final;
-    size_t writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout) final;
-    size_t available(TickType_t timeout) final;
-    bool setBaudRate(uint32_t baudRate, TickType_t timeout) final;
-    uint32_t getBaudRate() final;
-    void flushInput() final;
+    bool start() override;
+    bool isStarted() const override;
+    bool stop() override;
+    size_t readBytes(std::byte* buffer, size_t bufferSize, TickType_t timeout) override;
+    bool readByte(std::byte* output, TickType_t timeout) override;
+    size_t writeBytes(const std::byte* buffer, size_t bufferSize, TickType_t timeout) override;
+    size_t available(TickType_t timeout) override;
+    bool setBaudRate(uint32_t baudRate, TickType_t timeout) override;
+    uint32_t getBaudRate() override;
+    void flushInput() override;
 };
 
 std::unique_ptr<Uart> create(const Configuration& configuration);
