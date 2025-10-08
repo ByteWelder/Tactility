@@ -1,3 +1,4 @@
+#include <tt_kernel.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 
@@ -15,8 +16,8 @@ void tt_lvgl_stop() {
     tt::lvgl::stop();
 }
 
-void tt_lvgl_lock() {
-    tt::lvgl::getSyncLock()->lock();
+void tt_lvgl_lock(TickType timeout) {
+    tt::lvgl::getSyncLock()->lock(timeout);
 }
 
 void tt_lvgl_unlock() {

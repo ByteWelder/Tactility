@@ -18,10 +18,10 @@ size_t tt_hal_uart_get_count() {
 bool tt_hal_uart_get_name(size_t index, char* name, size_t nameSizeLimit) {
     assert(index < uart::getNames().size());
     auto source_name = uart::getNames()[index];
-    return strncpy(name, source_name.c_str(), nameSizeLimit) == 0;
+    return strncpy(name, source_name.c_str(), nameSizeLimit) != nullptr;
 }
 
-UartHandle tt_hal_uart_create(size_t index) {
+UartHandle tt_hal_uart_alloc(size_t index) {
     assert(index < uart::getNames().size());
     auto* wrapper = new UartWrapper();
     auto name = uart::getNames()[index];
@@ -30,7 +30,7 @@ UartHandle tt_hal_uart_create(size_t index) {
     return wrapper;
 }
 
-void tt_hal_uart_destroy(UartHandle handle) {
+void tt_hal_uart_free(UartHandle handle) {
     auto* wrapper = static_cast<UartWrapper*>(handle);
     assert(wrapper->uart != nullptr);
     if (wrapper->uart->isStarted()) {

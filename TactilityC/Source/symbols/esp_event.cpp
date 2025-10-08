@@ -1,4 +1,8 @@
+#include <private/elf_symbol.h>
+#include <cstddef>
+
 #include <symbols/esp_event.h>
+
 #include <esp_event.h>
 
 const esp_elfsym esp_event_symbols[] = {
@@ -19,4 +23,6 @@ const esp_elfsym esp_event_symbols[] = {
     ESP_ELFSYM_EXPORT(esp_event_post_to),
     ESP_ELFSYM_EXPORT(esp_event_isr_post),
     ESP_ELFSYM_EXPORT(esp_event_isr_post_to),
+    // delimiter
+    ESP_ELFSYM_END
 };

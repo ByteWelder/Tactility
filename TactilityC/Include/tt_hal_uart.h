@@ -15,9 +15,9 @@ size_t tt_hal_uart_get_count();
 
 bool tt_hal_uart_get_name(size_t index, char* name, size_t nameSizeLimit);
 
-UartHandle tt_hal_uart_create(size_t index);
+UartHandle tt_hal_uart_alloc(size_t index);
 
-void tt_hal_uart_destroy(UartHandle handle);
+void tt_hal_uart_free(UartHandle handle);
 
 bool tt_hal_uart_start(UartHandle handle);
 

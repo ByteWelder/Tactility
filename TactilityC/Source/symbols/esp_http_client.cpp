@@ -1,4 +1,8 @@
+#include <private/elf_symbol.h>
+#include <cstddef>
+
 #include <symbols/esp_http_client.h>
+
 #include <esp_http_client.h>
 
 const esp_elfsym esp_http_client_symbols[] = {
@@ -43,4 +47,6 @@ const esp_elfsym esp_http_client_symbols[] = {
     ESP_ELFSYM_EXPORT(esp_http_client_flush_response),
     ESP_ELFSYM_EXPORT(esp_http_client_get_url),
     ESP_ELFSYM_EXPORT(esp_http_client_get_chunk_length),
+    // delimiter
+    ESP_ELFSYM_END
 };
