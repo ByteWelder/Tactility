@@ -83,7 +83,7 @@ class NotesApp final : public App {
 
     void openFile(const std::string& path) {
         // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-        file::withLock<void>(path, [this, path] {
+        file::getLock(path)->withLock([this, path] {
             auto data = file::readString(path);
             if (data != nullptr) {
                auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -98,15 +98,15 @@ class NotesApp final : public App {
 
     bool saveFile(const std::string& path) {
         // We might be writing to SD card, which could share a SPI bus with other devices (display)
-        return file::withLock<bool>(path, [this, path] {
+        bool result = false;
+        file::getLock(path)->withLock([&result, this, path] {
            if (file::writeString(path, saveBuffer.c_str())) {
                TT_LOG_I(TAG, "Saved to %s", path.c_str());
                filePath = path;
-               return true;
-           } else {
-               return false;
+               result = true;
            }
         });
+        return result;
     }
 
 #pragma endregion Open_Events_Functions

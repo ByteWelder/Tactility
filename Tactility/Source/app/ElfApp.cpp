@@ -76,7 +76,7 @@ private:
         assert(elfFileData == nullptr);
 
         size_t size = 0;
-        file::withLock<void>(elf_path, [this, &elf_path, &size]{
+        file::getLock(elf_path)->withLock([this, &elf_path, &size]{
             elfFileData = file::readBinary(elf_path, size);
         });
 
