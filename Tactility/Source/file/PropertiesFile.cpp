@@ -26,7 +26,7 @@ bool loadPropertiesFile(const std::string& filePath, std::function<void(const st
         line_count++;
         std::string key, value;
         auto trimmed_line = string::trim(line, " \t");
-        if (!trimmed_line.starts_with("#")) {
+        if (!trimmed_line.starts_with("#") && !trimmed_line.empty()) {
             if (trimmed_line.starts_with("[")) {
                 key_prefix = trimmed_line;
             } else {
