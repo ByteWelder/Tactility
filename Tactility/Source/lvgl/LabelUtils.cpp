@@ -7,8 +7,9 @@ namespace tt::lvgl {
 constexpr auto* TAG = "LabelUtils";
 
 bool label_set_text_file(lv_obj_t* label, const char* filepath) {
-    auto text = file::withLock<std::unique_ptr<uint8_t[]>>(std::string(filepath), [filepath] {
-        return file::readString(filepath);
+    std::unique_ptr<uint8_t[]> text;
+    file::getLock(filepath)->withLock([&text, filepath] {
+        text = file::readString(filepath);
     });
 
     if (text != nullptr) {

@@ -49,20 +49,22 @@ bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::
 }
 
 bool savePropertiesFile(const std::string& filePath, const std::map<std::string, std::string>& properties) {
-    return file::withLock<bool>(filePath, [filePath, &properties] {
+    bool result = false;
+    getLock(filePath)->withLock([&result, filePath, &properties] {
         TT_LOG_I(TAG, "Saving properties file %s", filePath.c_str());
 
         FILE* file = fopen(filePath.c_str(), "w");
         if (file == nullptr) {
             TT_LOG_E(TAG, "Failed to open %s", filePath.c_str());
-            return false;
+            return;
         }
 
         for (const auto& [key, value]: properties) { fprintf(file, "%s=%s\n", key.c_str(), value.c_str()); }
 
         fclose(file);
-        return true;
+        result = true;
     });
+    return result;
 }
 
 }
