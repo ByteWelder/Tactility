@@ -20,7 +20,10 @@ namespace tt {
 class Mutex final : public Lock {
 
 public:
-
+    /**
+     * A "Normal" mutex can only be locked once. Even from within the same task/thread.
+     * A "Recursive" mutex can be locked again from the same task/thread.
+     */
     enum class Type {
         Normal,
         Recursive,

@@ -1,6 +1,7 @@
 dependencies:
   espressif/esp_lcd_ili9341: "2.0.1"
   atanisoft/esp_lcd_ili9488: "1.0.10"
+  teriyakigod/esp_lcd_st7735: "0.0.1"
   espressif/esp_lcd_touch: "1.1.2"
   atanisoft/esp_lcd_touch_xpt2046: "1.0.5"
   espressif/esp_lcd_touch_cst816s: "1.0.3"

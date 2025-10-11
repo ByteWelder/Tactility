@@ -201,6 +201,13 @@ static void registerInstalledAppsFromSdCards() {
     }
 }
 
+static void registerInstalledAppsFromData() {
+    auto app_path = "/data/app";
+    if (file::isDirectory(app_path)) {
+        registerInstalledApps(app_path);
+    }
+}
+
 static void registerAndStartSecondaryServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::loader::manifest);
@@ -222,13 +229,14 @@ static void registerAndStartPrimaryServices() {
 #endif
 }
 
-void initFromBootApp() {
+void registerApps() {
     registerInternalApps();
     auto data_apps_path = std::format("{}/apps", file::MOUNT_POINT_DATA);
     if (file::isDirectory(data_apps_path)) {
         registerInstalledApps(data_apps_path);
     }
     registerInstalledAppsFromSdCards();
+    registerInstalledAppsFromData();
 }
 
 void run(const Configuration& config) {
