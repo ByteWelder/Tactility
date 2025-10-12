@@ -221,7 +221,9 @@ static void registerAndStartSecondaryServices() {
 static void registerAndStartPrimaryServices() {
     TT_LOG_I(TAG, "Registering and starting system services");
     addService(service::gps::manifest);
-    addService(service::sdcard::manifest);
+    if (hal::hasDevice(hal::Device::Type::SdCard)) {
+        addService(service::sdcard::manifest);
+    }
     addService(service::wifi::manifest);
 #ifdef ESP_PLATFORM
     addService(service::development::manifest);
