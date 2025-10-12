@@ -1,7 +1,8 @@
 #include "M5stackCore2.h"
+#include "InitBoot.h"
 #include "devices/Display.h"
+#include "devices/Core2Power.h"
 #include "devices/SdCard.h"
-#include "devices/Power.h"
 
 #include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -10,16 +11,9 @@
 
 using namespace tt::hal;
 
-constexpr auto* TAG = "Core2";
-
-bool initBoot() {
-    TT_LOG_I(TAG, "initBoot");
-    return initAxp();
-}
-
 static DeviceVector createDevices() {
     return {
-        getAxp192(),
+        createPower(),
         createSdCard(),
         createDisplay()
     };
