@@ -1,25 +1,36 @@
-#include "M5stackCore2.h"
-#include "InitBoot.h"
+#include "M5StackStickCPlus.h"
 #include "devices/Display.h"
-#include "devices/Core2Power.h"
-#include "devices/SdCard.h"
+#include "devices/Power.h"
+#include <ButtonControl.h>
 
-#include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 
-#define CORE2_SPI_TRANSFER_SIZE_LIMIT (CORE2_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
+#define SPI_TRANSFER_SIZE_LIMIT (LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
 using namespace tt::hal;
 
+constexpr auto* TAG = "StickCPlus";
+
+bool initBoot() {
+    TT_LOG_I(TAG, "initBoot");
+
+    // CH552 applies 4 V to GPIO 0, which reduces Wi-Fi sensitivity
+    // Setting output to high adds a bias of 3.3 V and suppresses over-voltage:
+    gpio::configure(0, gpio::Mode::Output, false, false);
+    gpio::setLevel(0, true);
+
+    return initAxp();
+}
+
 static DeviceVector createDevices() {
     return {
-        createPower(),
-        createSdCard(),
+        getAxp192(),
+        // ButtonControl::createTwoButtonControl(37, 39),
         createDisplay()
     };
 }
 
-extern const Configuration m5stack_core2 = {
+extern const Configuration m5stack_stickc_plus = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {
@@ -41,7 +52,7 @@ extern const Configuration m5stack_core2 = {
             }
         },
         i2c::Configuration {
-            .name = "External", // (Grove)
+            .name = "Grove",
             .port = I2C_NUM_1,
             .initMode = i2c::InitMode::ByTactility,
             .isMutable = true,
@@ -63,17 +74,17 @@ extern const Configuration m5stack_core2 = {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_23,
-                .miso_io_num = GPIO_NUM_38,
-                .sclk_io_num = GPIO_NUM_18,
-                .quadwp_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
-                .quadhd_io_num = GPIO_NUM_NC, // Quad SPI LCD driver is not yet supported
+                .mosi_io_num = GPIO_NUM_15,
+                .miso_io_num = GPIO_NUM_NC,
+                .sclk_io_num = GPIO_NUM_13,
+                .quadwp_io_num = GPIO_NUM_NC,
+                .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
                 .data5_io_num = GPIO_NUM_NC,
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CORE2_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
