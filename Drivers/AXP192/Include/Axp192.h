@@ -45,6 +45,8 @@ public:
         return isInitialized;
     }
 
+    axp192_t* getAxp192() { return &axpDevice; }
+
     std::string getName() const override { return "AXP192"; }
     std::string getDescription() const override { return "AXP192 power management via I2C"; }
 
