@@ -47,7 +47,7 @@ extern const Configuration m5stack_core2 = {
             }
         },
         i2c::Configuration {
-            .name = "External", // (Grove)
+            .name = "Port A", // Grove
             .port = I2C_NUM_1,
             .initMode = i2c::InitMode::ByTactility,
             .isMutable = true,
@@ -91,7 +91,7 @@ extern const Configuration m5stack_core2 = {
     },
     .uart {
         uart::Configuration {
-            .name = "Grove",
+            .name = "Port A", // Grove
             .port = UART_NUM_1,
             .rxPin = GPIO_NUM_32,
             .txPin = GPIO_NUM_33,
