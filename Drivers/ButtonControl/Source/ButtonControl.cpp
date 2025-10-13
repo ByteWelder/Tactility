@@ -27,7 +27,7 @@ void ButtonControl::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
 
     auto* self = static_cast<ButtonControl*>(lv_indev_get_driver_data(indev));
 
-    if (self->mutex.lock(20)) {
+    if (self->mutex.lock(100)) {
 
         for (int i = 0; i < self->pinConfigurations.size(); i++) {
             const auto& config = self->pinConfigurations[i];
@@ -73,7 +73,7 @@ void ButtonControl::updatePin(std::vector<PinConfiguration>::const_reference con
         if (state.pressState) {
             auto time_passed = tt::kernel::getMillis() - state.pressStartTime;
             if (time_passed < 500) {
-                TT_LOG_W(TAG, "Trigger short press");
+                TT_LOG_D(TAG, "Trigger short press");
                 state.triggerShortPress = true;
             }
             state.pressState = false;
