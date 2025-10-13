@@ -115,8 +115,14 @@ public:
             lv_obj_set_flex_flow(buttons_wrapper, LV_FLEX_FLOW_COLUMN);
         }
 
-        const int32_t available_width = std::max<int32_t>(0, lv_display_get_horizontal_resolution(display) - (3 * button_size));
-        const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, button_size) : 0;
+        int32_t margin;
+        if (is_landscape_display) {
+            const int32_t available_width = std::max<int32_t>(0, lv_display_get_horizontal_resolution(display) - (3 * button_size));
+            margin = std::min<int32_t>(available_width / 16, button_size);
+        } else {
+            const int32_t available_height = std::max<int32_t>(0, lv_display_get_vertical_resolution(display) - (3 * button_size));
+            margin = std::min<int32_t>(available_height / 16, button_size);
+        }
 
         const auto paths = app.getPaths();
         const auto apps_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_apps.png");
