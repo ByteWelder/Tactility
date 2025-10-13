@@ -25,13 +25,14 @@ bool initBoot() {
 static DeviceVector createDevices() {
     return {
         getAxp192(),
-        // ButtonControl::createTwoButtonControl(37, 39),
+        ButtonControl::createTwoButtonControl(37, 39),
         createDisplay()
     };
 }
 
 extern const Configuration m5stack_stickc_plus = {
     .initBoot = initBoot,
+    .uiScale = UiScale::Smallest,
     .createDevices = createDevices,
     .i2c = {
         i2c::Configuration {
