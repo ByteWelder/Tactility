@@ -35,8 +35,8 @@ Version: 0.6.0
 #include <stdarg.h>
 #include <stdint.h>
 
-#include "axp192_config.h"
-#include "axp192.h"
+#include "axp192/axp192_config.h"
+#include "axp192/axp192.h"
 
 static axp192_err_t read_coloumb_counter(const axp192_t *axp, float *buffer);
 static axp192_err_t read_battery_power(const axp192_t *axp, float *buffer);

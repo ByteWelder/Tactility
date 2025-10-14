@@ -24,12 +24,17 @@ static int getButtonSize(hal::UiScale scale) {
 
 class LauncherApp final : public App {
 
-    static lv_obj_t* createAppButton(lv_obj_t* parent, hal::UiScale uiScale, const char* imageFile, const char* appId, int32_t horizontalMargin) {
+    static lv_obj_t* createAppButton(lv_obj_t* parent, hal::UiScale uiScale, const char* imageFile, const char* appId, int32_t itemMargin, bool isLandscape) {
         auto button_size = getButtonSize(uiScale);
 
         auto* apps_button = lv_button_create(parent);
         lv_obj_set_style_pad_all(apps_button, 0, LV_STATE_DEFAULT);
-        lv_obj_set_style_margin_hor(apps_button, horizontalMargin, LV_STATE_DEFAULT);
+        if (isLandscape) {
+            lv_obj_set_style_margin_hor(apps_button, itemMargin, LV_STATE_DEFAULT);
+        } else {
+            lv_obj_set_style_margin_ver(apps_button, itemMargin, LV_STATE_DEFAULT);
+        }
+
         lv_obj_set_style_shadow_width(apps_button, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_bg_opa(apps_button, 0, LV_STATE_DEFAULT);
 
@@ -110,17 +115,23 @@ public:
             lv_obj_set_flex_flow(buttons_wrapper, LV_FLEX_FLOW_COLUMN);
         }
 
-        const int32_t available_width = lv_display_get_horizontal_resolution(display) - (3 * button_size);
-        const int32_t margin = is_landscape_display ? std::min<int32_t>(available_width / 16, button_size) : 0;
+        int32_t margin;
+        if (is_landscape_display) {
+            const int32_t available_width = std::max<int32_t>(0, lv_display_get_horizontal_resolution(display) - (3 * button_size));
+            margin = std::min<int32_t>(available_width / 16, button_size);
+        } else {
+            const int32_t available_height = std::max<int32_t>(0, lv_display_get_vertical_resolution(display) - (3 * button_size));
+            margin = std::min<int32_t>(available_height / 16, button_size);
+        }
 
         const auto paths = app.getPaths();
         const auto apps_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_apps.png");
         const auto files_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_files.png");
         const auto settings_icon_path = lvgl::PATH_PREFIX + paths->getAssetsPath("icon_settings.png");
 
-        createAppButton(buttons_wrapper, ui_scale, apps_icon_path.c_str(), "AppList", margin);
-        createAppButton(buttons_wrapper, ui_scale, files_icon_path.c_str(), "Files", margin);
-        createAppButton(buttons_wrapper, ui_scale, settings_icon_path.c_str(), "Settings", margin);
+        createAppButton(buttons_wrapper, ui_scale, apps_icon_path.c_str(), "AppList", margin, is_landscape_display);
+        createAppButton(buttons_wrapper, ui_scale, files_icon_path.c_str(), "Files", margin, is_landscape_display);
+        createAppButton(buttons_wrapper, ui_scale, settings_icon_path.c_str(), "Settings", margin, is_landscape_display);
 
         if (shouldShowPowerButton()) {
             auto* power_button = lv_btn_create(parent);

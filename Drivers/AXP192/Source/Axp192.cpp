@@ -1,12 +1,30 @@
-#include "Core2Power.h"
-#include <Tactility/TactilityCore.h>
-#include "axp192/axp192.h"
+#include "Axp192.h"
 
-constexpr auto TAG = "Core2Power";
+constexpr auto TAG = "Axp192Power";
 
-extern axp192_t axpDevice;
+int32_t Axp192::i2cRead(void* handle, uint8_t address, uint8_t reg, uint8_t* buffer, uint16_t size) {
+    const auto* device = static_cast<Axp192*>(handle);
+    if (tt::hal::i2c::masterReadRegister(device->configuration->port, address, reg, buffer, size, device->configuration->readTimeout)) {
+        return AXP192_OK;
+    } else {
+        return 1;
+    }
+}
 
-bool Core2Power::supportsMetric(MetricType type) const {
+int32_t Axp192::i2cWrite(void* handle, uint8_t address, uint8_t reg, const uint8_t* buffer, uint16_t size) {
+    const auto* device = static_cast<Axp192*>(handle);
+    if (tt::hal::i2c::masterWriteRegister(device->configuration->port, address, reg, buffer, size, device->configuration->writeTimeout)) {
+        return AXP192_OK;
+    } else {
+        return 1;
+    }
+}
+
+bool Axp192::supportsMetric(MetricType type) const {
+    if (!isInitialized) {
+        return false;
+    }
+
     switch (type) {
         using enum MetricType;
         case BatteryVoltage:
@@ -18,7 +36,7 @@ bool Core2Power::supportsMetric(MetricType type) const {
     }
 }
 
-bool Core2Power::getMetric(MetricType type, MetricData& data) {
+bool Axp192::getMetric(MetricType type, MetricData& data) {
     switch (type) {
         using enum MetricType;
         case BatteryVoltage: {
@@ -81,7 +99,7 @@ bool Core2Power::getMetric(MetricType type, MetricData& data) {
     }
 }
 
-bool Core2Power::isAllowedToCharge() const {
+bool Axp192::isAllowedToCharge() const {
     uint8_t buffer;
     if (axp192_read(&axpDevice, AXP192_CHARGE_CONTROL_1, &buffer) == ESP_OK) {
         return buffer & 0x80;
@@ -90,19 +108,10 @@ bool Core2Power::isAllowedToCharge() const {
     }
 }
 
-void Core2Power::setAllowedToCharge(bool canCharge) {
+void Axp192::setAllowedToCharge(bool canCharge) {
     uint8_t buffer;
     if (axp192_read(&axpDevice, AXP192_CHARGE_CONTROL_1, &buffer) == ESP_OK) {
         buffer = (buffer & 0x7F) + (canCharge ? 0x80 : 0x00);
         axp192_write(&axpDevice, AXP192_CHARGE_CONTROL_1, buffer);
     }
-}
-
-static std::shared_ptr<PowerDevice> power;
-
-std::shared_ptr<PowerDevice> createPower() {
-    if (power == nullptr) {
-        power = std::make_shared<Core2Power>();
-    }
-    return power;
 }

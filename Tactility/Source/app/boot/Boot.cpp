@@ -108,7 +108,7 @@ class BootApp : public App {
 
         if (!setupUsbBootMode()) {
             TT_LOG_I(TAG, "initFromBootApp");
-            initFromBootApp();
+            registerApps();
             waitForMinimalSplashDuration(start_time);
             stop(manifest.appId);
             startNextApp();

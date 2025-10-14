@@ -4,6 +4,6 @@
 
 namespace tt {
 
-void initFromBootApp();
+void registerApps();
 
 }

@@ -35,6 +35,9 @@ release elecrow-crowpanel-basic-50
 build lilygo-tdeck
 release lilygo-tdeck
 
+build lilygo-tdongle-s3
+release lilygo-tdongle-s3
+
 build lilygo-tlora-pager
 release lilygo-tlora-pager
 
@@ -74,6 +77,12 @@ release m5stack-cardputer
 
 build m5stack-cores3
 release m5stack-cores3
+
+build m5stack-stickc-plus
+release m5stack-stickc-plus
+
+build m5stack-stickc-plus2
+release m5stack-stickc-plus2
 
 build waveshare-s3-touch-43
 release waveshare-s3-touch-43

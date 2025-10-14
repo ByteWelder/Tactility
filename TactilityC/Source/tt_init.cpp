@@ -52,6 +52,8 @@
 
 extern "C" {
 
+extern double __floatsidf(int x);
+
 const esp_elfsym main_symbols[] {
     // stdlib.h
     ESP_ELFSYM_EXPORT(malloc),
@@ -66,6 +68,8 @@ const esp_elfsym main_symbols[] {
     // esp random
     ESP_ELFSYM_EXPORT(esp_random),
     ESP_ELFSYM_EXPORT(esp_fill_random),
+    // esp other
+    ESP_ELFSYM_EXPORT(__floatsidf),
     // unistd.h
     ESP_ELFSYM_EXPORT(usleep),
     ESP_ELFSYM_EXPORT(sleep),

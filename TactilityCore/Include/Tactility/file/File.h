@@ -54,18 +54,6 @@ std::shared_ptr<Lock> getLock(const std::string& path);
 
 void setFindLockFunction(const FindLockFunction& function);
 
-/**
- * Acquires a lock, calls the function, then releases the lock.
- * @param[in] path the path to find a lock for
- * @param[in] fn the code to execute while the lock is acquired
- */
-template<typename ReturnType>
-ReturnType withLock(const std::string& path, std::function<ReturnType()> fn) {
-    const auto lock = getLock(path)->asScopedLock();
-    lock.lock();
-    return fn();
-}
-
 long getSize(FILE* file);
 
 /** Read a file and return its data.

@@ -1,8 +1,7 @@
 #include "M5stackCore2.h"
-#include "InitBoot.h"
 #include "devices/Display.h"
-#include "devices/Core2Power.h"
 #include "devices/SdCard.h"
+#include "devices/Power.h"
 
 #include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -11,9 +10,16 @@
 
 using namespace tt::hal;
 
+constexpr auto* TAG = "Core2";
+
+bool initBoot() {
+    TT_LOG_I(TAG, "initBoot");
+    return initAxp();
+}
+
 static DeviceVector createDevices() {
     return {
-        createPower(),
+        getAxp192(),
         createSdCard(),
         createDisplay()
     };
@@ -41,7 +47,7 @@ extern const Configuration m5stack_core2 = {
             }
         },
         i2c::Configuration {
-            .name = "External", // (Grove)
+            .name = "Port A", // Grove
             .port = I2C_NUM_1,
             .initMode = i2c::InitMode::ByTactility,
             .isMutable = true,
@@ -85,7 +91,7 @@ extern const Configuration m5stack_core2 = {
     },
     .uart {
         uart::Configuration {
-            .name = "Grove",
+            .name = "Port A", // Grove
             .port = UART_NUM_1,
             .rxPin = GPIO_NUM_32,
             .txPin = GPIO_NUM_33,
