@@ -7,49 +7,44 @@
 
 #include <esp_event.h>
 #include <esp_http_server.h>
-#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/network/HttpServer.h>
 
 namespace tt::service::development {
 
 class DevelopmentService final : public Service {
 
     Mutex mutex = Mutex(Mutex::Type::Recursive);
-    httpd_handle_t server = nullptr;
-    bool enabled = false;
-    kernel::SystemEventSubscription networkConnectEventSubscription = 0;
-    kernel::SystemEventSubscription networkDisconnectEventSubscription = 0;
     std::string deviceResponse;
-
-    httpd_uri_t handleGetInfoEndpoint = {
-        .uri = "/info",
-        .method = HTTP_GET,
-        .handler = handleGetInfo,
-        .user_ctx = this
-    };
-
-    httpd_uri_t appRunEndpoint = {
-        .uri = "/app/run",
-        .method = HTTP_POST,
-        .handler = handleAppRun,
-        .user_ctx = this
-    };
-
-    httpd_uri_t appInstallEndpoint = {
-        .uri = "/app/install",
-        .method = HTTP_PUT,
-        .handler = handleAppInstall,
-        .user_ctx = this
-    };
-
-    httpd_uri_t appUninstallEndpoint = {
-        .uri = "/app/uninstall",
-        .method = HTTP_PUT,
-        .handler = handleAppUninstall,
-        .user_ctx = this
-    };
-
-    void onNetworkConnected();
-    void onNetworkDisconnected();
+    network::HttpServer httpServer = network::HttpServer(
+        6666,
+        "0.0.0.0",
+        std::vector<httpd_uri_t>{
+            {
+                .uri = "/info",
+                .method = HTTP_GET,
+                .handler = handleGetInfo,
+                .user_ctx = this
+            },
+            {
+                .uri = "/app/run",
+                .method = HTTP_POST,
+                .handler = handleAppRun,
+                .user_ctx = this
+            },
+            {
+                .uri = "/app/install",
+                .method = HTTP_PUT,
+                .handler = handleAppInstall,
+                .user_ctx = this
+            },
+            {
+                .uri = "/app/uninstall",
+                .method = HTTP_PUT,
+                .handler = handleAppUninstall,
+                .user_ctx = this
+            }
+        }
+    );
 
     void startServer();
     void stopServer();
@@ -64,6 +59,7 @@ public:
     // region Overrides
 
     bool onStart(ServiceContext& service) override;
+
     void onStop(ServiceContext& service) override;
 
     // endregion Overrides
@@ -81,10 +77,6 @@ public:
      * @param[in] enabled
      */
     void setEnabled(bool enabled);
-
-    bool isStarted() const;
-
-    // region Internal API
 };
 
 std::shared_ptr<DevelopmentService> findService();

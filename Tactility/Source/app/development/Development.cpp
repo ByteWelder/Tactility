@@ -65,14 +65,14 @@ class DevelopmentApp final : public App {
     void updateViewState() {
         if (!service->isEnabled()) {
             lv_label_set_text(statusLabel, "Service disabled");
-        } else if (!service->isStarted()) {
+        } else if (service::wifi::getRadioState() != service::wifi::RadioState::ConnectionActive) {
             lv_label_set_text(statusLabel, "Waiting for connection...");
-        } else { // enabled and started
+        } else { // enabled and connected to wifi
             auto ip = service::wifi::getIp();
             if (ip.empty()) {
                 lv_label_set_text(statusLabel, "Waiting for IP...");
             } else {
-                const std::string status = std::string("Available at ") + ip;
+                const std::string status = std::format("Available at {}", ip);
                 lv_label_set_text(statusLabel, status.c_str());
             }
         }

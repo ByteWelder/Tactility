@@ -9,17 +9,11 @@
 #include <Tactility/network/Url.h>
 #include <Tactility/Paths.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
-#include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/StringUtils.h>
 
-#include <cstring>
-#include <esp_wifi.h>
 #include <ranges>
 #include <sstream>
-#include <Tactility/Tactility.h>
-#include <Tactility/file/FileLock.h>
 
 namespace tt::service::development {
 
@@ -28,70 +22,6 @@ extern const ServiceManifest manifest;
 constexpr const char* TAG = "DevService";
 
 bool DevelopmentService::onStart(ServiceContext& service) {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-
-    networkConnectEventSubscription = kernel::subscribeSystemEvent(
-        kernel::SystemEvent::NetworkConnected,
-        [this](kernel::SystemEvent) { onNetworkConnected(); }
-    );
-    networkConnectEventSubscription = kernel::subscribeSystemEvent(
-        kernel::SystemEvent::NetworkDisconnected,
-        [this](kernel::SystemEvent) { onNetworkDisconnected(); }
-    );
-
-    setEnabled(shouldEnableOnBoot());
-
-    return true;
-}
-
-void DevelopmentService::onStop(ServiceContext& service) {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-
-    kernel::unsubscribeSystemEvent(networkConnectEventSubscription);
-    kernel::unsubscribeSystemEvent(networkDisconnectEventSubscription);
-
-    if (isEnabled()) {
-        setEnabled(false);
-    }
-}
-
-// region Enable/disable
-
-void DevelopmentService::setEnabled(bool enabled) {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    this->enabled = enabled;
-
-    // We might already have an IP address, so in case we do, we start the server manually
-    // Or we started the server while it shouldn't be
-    if (enabled && !isStarted() && wifi::getRadioState() == wifi::RadioState::ConnectionActive) {
-        startServer();
-    } else if (!enabled && isStarted()) {
-        stopServer();
-    }
-}
-
-bool DevelopmentService::isEnabled() const {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    return enabled;
-}
-
-// region Enable/disable
-
-void DevelopmentService::startServer() {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-
-    if (isStarted()) {
-        TT_LOG_W(TAG, "Already started");
-        return;
-    }
-
-    ESP_LOGI(TAG, "Starting server");
-
     std::stringstream stream;
     stream << "{";
     stream << "\"cpuFamily\":\"" << CONFIG_IDF_TARGET << "\", ";
@@ -100,61 +30,36 @@ void DevelopmentService::startServer() {
     stream << "}";
     deviceResponse = stream.str();
 
-    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.stack_size = 5120;
+    setEnabled(shouldEnableOnBoot());
 
-    config.server_port = 6666;
-    config.uri_match_fn = httpd_uri_match_wildcard;
+    return true;
+}
 
-    if (httpd_start(&server, &config) == ESP_OK) {
-        httpd_register_uri_handler(server, &handleGetInfoEndpoint);
-        httpd_register_uri_handler(server, &appRunEndpoint);
-        httpd_register_uri_handler(server, &appInstallEndpoint);
-        httpd_register_uri_handler(server, &appUninstallEndpoint);
-        TT_LOG_I(TAG, "Started on port %d", config.server_port);
+void DevelopmentService::onStop(ServiceContext& service) {
+    setEnabled(false);
+}
+
+// region Enable/disable
+
+void DevelopmentService::setEnabled(bool enabled) {
+    auto lock = mutex.asScopedLock();
+    lock.lock();
+
+    if (enabled) {
+        if (!httpServer.isStarted()) {
+            httpServer.start();
+        }
     } else {
-        TT_LOG_E(TAG, "Failed to start");
+        if (httpServer.isStarted()) {
+            httpServer.stop();
+        }
     }
 }
 
-void DevelopmentService::stopServer() {
+bool DevelopmentService::isEnabled() const {
     auto lock = mutex.asScopedLock();
     lock.lock();
-
-    if (!isStarted()) {
-        TT_LOG_W(TAG, "Not started");
-        return;
-    }
-
-    TT_LOG_I(TAG, "Stopping server");
-    if (httpd_stop(server) != ESP_OK) {
-        TT_LOG_W(TAG, "Error while stopping");
-    }
-    server = nullptr;
-}
-
-bool DevelopmentService::isStarted() const {
-    auto lock = mutex.asScopedLock();
-    lock.lock();
-    return server != nullptr;
-}
-
-void DevelopmentService::onNetworkConnected() {
-    TT_LOG_I(TAG, "onNetworkConnected");
-    mutex.withLock([this] {
-        if (isEnabled() && !isStarted()) {
-            startServer();
-        }
-    });
-}
-
-void DevelopmentService::onNetworkDisconnected() {
-    TT_LOG_I(TAG, "onNetworkDisconnected");
-    mutex.withLock([this] {
-        if (isStarted()) {
-            stopServer();
-        }
-    });
+    return httpServer.isStarted();
 }
 
 // region endpoints
