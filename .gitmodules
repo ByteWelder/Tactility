@@ -13,9 +13,6 @@
 [submodule "Libraries/minitar/minitar"]
 	path = Libraries/minitar/minitar
 	url = https://github.com/ByteWelder/minitar.git
-[submodule "Libraries/FastEPD"]
-	path = Libraries/FastEPD
-	url = https://github.com/bitbank2/FastEPD
 [submodule "Libraries/epdiy"]
 	path = Libraries/epdiy
 	url = https://github.com/fonix232/epdiy
