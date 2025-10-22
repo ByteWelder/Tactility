@@ -1,7 +1,14 @@
 # TODOs
 
+## Before release
+
+- App Hub
+- Fix Wi-Fi password(less) decryption crash
+- Make better esp_lcd driver (and test all devices)
+
 ## Higher Priority
 
+- Calculator bugs (see GitHub issue)
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)
 - Make a URL handler. Use it for handling local files. Match file types with apps.
