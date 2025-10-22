@@ -203,7 +203,7 @@ bool uninstall(const std::string& appId) {
 
     auto app_path = getAppInstallPath(appId);
     if (!file::isDirectory(app_path)) {
-        TT_LOG_E(TAG, "App %s not found at ", app_path.c_str());
+        TT_LOG_E(TAG, "App %s not found at %s", appId.c_str(), app_path.c_str());
         return false;
     }
 
@@ -212,7 +212,7 @@ bool uninstall(const std::string& appId) {
     }
 
     if (!removeApp(appId)) {
-        TT_LOG_W(TAG, "Failed to remove app %d from registry", appId.c_str());
+        TT_LOG_W(TAG, "Failed to remove app %s from registry", appId.c_str());
     }
 
     return true;
