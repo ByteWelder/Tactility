@@ -381,8 +381,9 @@ bool readLines(const std::string& filePath, bool stripNewLine, std::function<voi
         callback(line);
     }
 
+    bool success = feof(file);
     fclose(file);
-    return true;
+    return success;
 }
 
 }
