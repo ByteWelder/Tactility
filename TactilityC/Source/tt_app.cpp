@@ -5,6 +5,8 @@
 #include <Tactility/app/ElfApp.h>
 #include <Tactility/file/FileLock.h>
 
+#include <cstring>
+
 extern "C" {
 
 constexpr auto* TAG = "tt_app";

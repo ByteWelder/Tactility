@@ -29,6 +29,7 @@ class DevelopmentApp final : public App {
 
     Timer timer = Timer(Timer::Type::Periodic, [this] {
         auto lock = lvgl::getSyncLock()->asScopedLock();
+        // TODO: There's a crash when this is called when the app is being destroyed
         if (lock.lock(lvgl::defaultLockTime) && lvgl::isStarted()) {
             updateViewState();
         }

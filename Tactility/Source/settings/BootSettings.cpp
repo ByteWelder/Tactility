@@ -11,7 +11,7 @@
 
 namespace tt::settings {
 
-constexpr auto* TAG = "BootProperties";
+constexpr auto* TAG = "BootSettings";
 constexpr auto* PROPERTIES_FILE_FORMAT = "{}/settings/boot.properties";
 constexpr auto* PROPERTIES_KEY_LAUNCHER_APP_ID = "launcherAppId";
 constexpr auto* PROPERTIES_KEY_AUTO_START_APP_ID = "autoStartAppId";

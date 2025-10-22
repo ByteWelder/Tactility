@@ -1,6 +1,8 @@
 #include "tt_hal_uart.h"
 #include <Tactility/hal/uart/Uart.h>
 
+#include <cstring>
+
 using namespace tt::hal;
 
 struct UartWrapper {

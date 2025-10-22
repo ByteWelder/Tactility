@@ -126,12 +126,15 @@ class BootApp : public App {
 #endif
 
         settings::BootSettings boot_properties;
-        if (!settings::loadBootSettings(boot_properties) || boot_properties.launcherAppId.empty()) {
-            TT_LOG_E(TAG, "Launcher not configured");
-            return;
+        std::string launcher_app_id;
+        if (settings::loadBootSettings(boot_properties) && boot_properties.launcherAppId.empty()) {
+            TT_LOG_E(TAG, "Failed to load launcher configuration, or launcher not configured");
+            launcher_app_id = boot_properties.launcherAppId;
+        } else {
+            launcher_app_id = "Launcher";
         }
 
-        start(boot_properties.launcherAppId);
+        start(launcher_app_id);
     }
 
     static int getSmallestDimension() {
