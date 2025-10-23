@@ -104,7 +104,17 @@ class AppHubApp final : public App {
         lv_obj_remove_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         auto download_path = std::format("{}/app_hub.json", getTempPath());
-        network::http::download(getAppsJsonUrl(), "/system/certificates/WE1.pem", download_path);
+        network::http::download(
+            getAppsJsonUrl(),
+            "/system/certificates/WE1.pem",
+            download_path,
+            [] {
+                TT_LOG_I(TAG, "Request OK");
+            },
+            [] {
+                TT_LOG_E(TAG, "Request error");
+            }
+        );
     }
 
 public:
