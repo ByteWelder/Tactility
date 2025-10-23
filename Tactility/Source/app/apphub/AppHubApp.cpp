@@ -15,6 +15,8 @@ namespace tt::app::apphub {
 
 constexpr auto* TAG = "AppHub";
 
+extern const AppManifest manifest;
+
 static std::string getVersionWithoutPostfix() {
     std::string version(TT_VERSION);
     auto index = version.find_first_of('-');
@@ -47,6 +49,14 @@ class AppHubApp final : public App {
     std::string cachedAppsJsonFile = std::format("{}/apps.json", getTempPath());
     std::unique_ptr<Thread> thread;
 
+    static std::shared_ptr<AppHubApp> _Nullable findAppInstance() {
+        auto app_context = getCurrentAppContext();
+        if (app_context->getManifest().appId != manifest.appId) {
+            return nullptr;
+        }
+        return std::static_pointer_cast<AppHubApp>(app_context->getApp());
+    }
+
     enum class State {
         Refreshing,
         ErrorTimeSync,
@@ -61,6 +71,14 @@ class AppHubApp final : public App {
     static void onRefreshPressed(lv_event_t* e) {
         auto* self = static_cast<AppHubApp*>(lv_event_get_user_data(e));
         self->refresh();
+    }
+
+    void onRefreshSuccess() {
+        TT_LOG_I(TAG, "Request OK");
+    }
+
+    void onRefreshError() {
+        TT_LOG_E(TAG, "Request error");
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
@@ -109,10 +127,16 @@ class AppHubApp final : public App {
             "/system/certificates/WE1.pem",
             download_path,
             [] {
-                TT_LOG_I(TAG, "Request OK");
+                auto app = findAppInstance();
+                if (app != nullptr) {
+                    app->onRefreshSuccess();
+                }
             },
             [] {
-                TT_LOG_E(TAG, "Request error");
+                auto app = findAppInstance();
+                if (app != nullptr) {
+                    app->onRefreshError();
+                }
             }
         );
     }
