@@ -1,0 +1,10 @@
+#pragma once
+
+#include <esp_http_client.h>
+#include <string>
+
+namespace tt::network::http {
+
+void download(const std::string& url, const std::string& certFilePath, const std::string &downloadFilePath);
+
+}

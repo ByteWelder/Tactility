@@ -56,6 +56,8 @@ namespace service {
 
 namespace app {
     namespace addgps { extern const AppManifest manifest; }
+    namespace apphub { extern const AppManifest manifest; }
+    namespace apphubdetails { extern const AppManifest manifest; }
     namespace alertdialog { extern const AppManifest manifest; }
     namespace appdetails { extern const AppManifest manifest; }
     namespace applist { extern const AppManifest manifest; }
@@ -101,6 +103,8 @@ namespace app {
 static void registerInternalApps() {
     addApp(app::alertdialog::manifest);
     addApp(app::appdetails::manifest);
+    addApp(app::apphub::manifest);
+    addApp(app::apphubdetails::manifest);
     addApp(app::applist::manifest);
     addApp(app::appsettings::manifest);
     addApp(app::display::manifest);

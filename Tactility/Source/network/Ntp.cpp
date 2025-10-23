@@ -19,7 +19,7 @@ static void onTimeSynced(struct timeval* tv) {
 }
 
 void init() {
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.cloudflare.com");
     config.sync_cb = onTimeSynced;
     esp_netif_sntp_init(&config);
 }

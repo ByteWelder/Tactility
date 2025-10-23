@@ -15,6 +15,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         QRCode
         esp_http_server
         esp_http_client
+        esp-tls
         esp_lvgl_port
         esp_wifi
         minitar
