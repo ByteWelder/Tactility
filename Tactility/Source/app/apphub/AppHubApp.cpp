@@ -9,6 +9,8 @@
 
 #include <lvgl.h>
 #include <esp_sntp.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Spinner.h>
 #include <mbedtls/include/mbedtls/ssl_ciphersuites.h>
 
 namespace tt::app::apphub {
@@ -31,20 +33,8 @@ static std::string getAppsJsonUrl() {
     return std::format("https://cdn.tactility.one/apps/{}/apps.json", getVersionWithoutPostfix());
 }
 
-static std::string getAppsJsonHttpRequest() {
-    return std::format(
-        "GET {} HTTP/1.1\r\n"
-         "Host: cdn.tactility.one\r\n"
-         "User-Agent: Tactility/" TT_VERSION " " CONFIG_IDF_TARGET "\r\n"
-         "\r\n",
-         getAppsJsonUrl()
-    );
-}
-
 class AppHubApp final : public App {
 
-    lv_obj_t* spinner = nullptr;
-    lv_obj_t* refreshButton = nullptr;
     lv_obj_t* contentWrapper = nullptr;
     std::string cachedAppsJsonFile = std::format("{}/apps.json", getTempPath());
     std::unique_ptr<Thread> thread;
@@ -73,12 +63,31 @@ class AppHubApp final : public App {
         self->refresh();
     }
 
+    void createRefreshButton() {
+        auto* button = lv_button_create(contentWrapper);
+        lv_obj_add_event_cb(button, onRefreshPressed, LV_EVENT_SHORT_CLICKED,this);
+        auto* label = lv_label_create(button);
+        lv_label_set_text(label, LV_SYMBOL_REFRESH);
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    }
+
     void onRefreshSuccess() {
         TT_LOG_I(TAG, "Request OK");
+        auto lock = lvgl::getSyncLock()->asScopedLock();
+        lock.lock();
+
+        lv_obj_clean(contentWrapper);
+        auto* label = lv_label_create(contentWrapper);
+        lv_label_set_text(label, "Success!");
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
     }
 
     void onRefreshError() {
         TT_LOG_E(TAG, "Request error");
+        auto lock = lvgl::getSyncLock()->asScopedLock();
+        lock.lock();
+
+        showRefreshFailedError("Cannot reach server");
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
@@ -86,29 +95,31 @@ class AppHubApp final : public App {
         lv_obj_add_event_cb(btn, &onAppPressed, LV_EVENT_SHORT_CLICKED, manifest.get());
     }
 
-    void showNoInternet() {
-        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
+    void showRefreshFailedError(const char* message) {
         lv_obj_clean(contentWrapper);
+
         auto* label = lv_label_create(contentWrapper);
-        lv_label_set_text(label, "WiFi is not connected");
+        lv_label_set_text(label, message);
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        createRefreshButton();
+    }
+
+    void showNoInternet() {
+        showRefreshFailedError("No Internet Connection");
     }
 
     void showTimeNotSynced() {
-        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_clean(contentWrapper);
-        auto* label = lv_label_create(contentWrapper);
-        lv_label_set_text(label, "Time is not synced yet.\nIt's required to establish a secure connection.");
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        showRefreshFailedError("Time is not synced yet.\nIt's required to establish a secure connection.");
     }
 
     void showApps() {
-        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clean(contentWrapper);
     }
 
     void refresh() {
-        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clean(contentWrapper);
+        auto* spinner = lvgl::spinner_create(contentWrapper);
+        lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
 
         if (service::wifi::getRadioState() != service::wifi::RadioState::ConnectionActive) {
             showNoInternet();
@@ -118,8 +129,6 @@ class AppHubApp final : public App {
         if (file::isFile(cachedAppsJsonFile)) {
             showApps();
         }
-
-        lv_obj_remove_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         auto download_path = std::format("{}/app_hub.json", getTempPath());
         network::http::download(
@@ -146,9 +155,6 @@ public:
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
         auto* toolbar = lvgl::toolbar_create(parent, app);
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
-
-        spinner = lvgl::toolbar_add_spinner_action(toolbar);
-        refreshButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
 
         contentWrapper = lv_obj_create(parent);
         lv_obj_set_width(contentWrapper, LV_PCT(100));
