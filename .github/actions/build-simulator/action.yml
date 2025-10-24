@@ -39,7 +39,7 @@ runs:
     - name: Setup cmake
       uses: jwlawson/actions-setup-cmake@v2
       with:
-        cmake-version: '3.16.x'
+        cmake-version: '3.31.x'
     - name: "Prepare Project"
       shell: bash
       run: cmake -S ./ -B buildsim
