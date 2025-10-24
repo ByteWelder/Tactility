@@ -70,6 +70,7 @@ else()
     add_definitions(-D_Nonnull=)
 
     target_link_libraries(Tactility
+        PUBLIC cJSON
         PUBLIC TactilityCore
         PUBLIC freertos_kernel
         PUBLIC lvgl

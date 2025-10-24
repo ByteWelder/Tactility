@@ -1,4 +1,3 @@
-#include <esp_netif_sntp.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
@@ -12,8 +11,7 @@
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <lvgl.h>
-#include <esp_sntp.h>
-#include <mbedtls/include/mbedtls/ssl_ciphersuites.h>
+#include <format>
 
 namespace tt::app::apphub {
 
@@ -42,7 +40,11 @@ class AppHubApp final : public App {
         const auto* self = static_cast<AppHubApp*>(lv_event_get_user_data(e));
         auto* widget = lv_event_get_target_obj(e);
         const auto* user_data = lv_obj_get_user_data(widget);
+#ifdef ESP_PLATFORM
         const int index = reinterpret_cast<int>(user_data);
+#else
+        const long long index = reinterpret_cast<long long>(user_data);
+#endif
         self->mutex.lock();
         if (index < self->entries.size()) {
             apphubdetails::start(self->entries[index]);

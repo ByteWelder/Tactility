@@ -15,8 +15,8 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     )
 else ()
 
-    add_executable(AppSim ${SOURCE_FILES})
-    target_link_libraries(AppSim
+    add_executable(FirmwareSim ${SOURCE_FILES})
+    target_link_libraries(FirmwareSim
         PRIVATE Tactility
         PRIVATE TactilityCore
         PRIVATE Simulator

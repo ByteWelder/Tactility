@@ -1,9 +1,12 @@
-#include <esp_sntp.h>
-#include <esp_http_client.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/file/File.h>
 #include <Tactility/network/Http.h>
 #include <Tactility/network/EspHttpClient.h>
+
+#ifdef ESP_PLATFORM
+#include <esp_sntp.h>
+#include <esp_http_client.h>
+#endif
 
 namespace tt::network::http {
 
@@ -17,6 +20,7 @@ void download(
     std::function<void(const char* errorMessage)> onError
 ) {
     TT_LOG_I(TAG, "Downloading %s to %s", url.c_str(), downloadFilePath.c_str());
+#ifdef ESP_PLATFORM
     getMainDispatcher().dispatch([url, certFilePath, downloadFilePath, onSuccess, onError] {
         TT_LOG_I(TAG, "Loading certificate");
         auto certificate = file::readString(certFilePath);
@@ -88,6 +92,11 @@ void download(
         onSuccess();
         return 0;
     });
+#else
+    getMainDispatcher().dispatch([onError] {
+        onError("Not implemented");
+    });
+#endif
 }
 
 }
