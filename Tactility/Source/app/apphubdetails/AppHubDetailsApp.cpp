@@ -199,6 +199,8 @@ public:
         lv_obj_set_style_text_color(updateLabel, lv_color_make(0xff, 0xff, 00), LV_STATE_DEFAULT);
 
         auto* description_label = lv_label_create(wrapper);
+        lv_obj_set_width(description_label, LV_PCT(100));
+        lv_label_set_long_mode(description_label, LV_LABEL_LONG_MODE_WRAP);
         if (!entry.appDescription.empty()) {
             lv_label_set_text(description_label, entry.appDescription.c_str());
         } else {
