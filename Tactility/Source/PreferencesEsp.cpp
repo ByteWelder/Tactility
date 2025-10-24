@@ -1,13 +1,13 @@
 #ifdef ESP_PLATFORM
 
-#include "nvs_flash.h"
-#include "Tactility/Preferences.h"
-
+#include <Tactility/Preferences.h>
 #include <Tactility/TactilityCore.h>
 
-#define TAG "preferences"
+#include <nvs_flash.h>
 
 namespace tt {
+
+constexpr auto* TAG = "Preferences";
 
 bool Preferences::optBool(const std::string& key, bool& out) const {
     nvs_handle_t handle;
@@ -32,6 +32,18 @@ bool Preferences::optInt32(const std::string& key, int32_t& out) const {
         return false;
     } else {
         bool success = nvs_get_i32(handle, key.c_str(), &out) == ESP_OK;
+        nvs_close(handle);
+        return success;
+    }
+}
+
+bool Preferences::optInt64(const std::string& key, int64_t& out) const {
+    nvs_handle_t handle;
+    if (nvs_open(namespace_, NVS_READWRITE, &handle) != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to open namespace %s", namespace_);
+        return false;
+    } else {
+        bool success = nvs_get_i64(handle, key.c_str(), &out) == ESP_OK;
         nvs_close(handle);
         return success;
     }
@@ -63,6 +75,11 @@ bool Preferences::hasInt32(const std::string& key) const {
     return optInt32(key, temp);
 }
 
+bool Preferences::hasInt64(const std::string& key) const {
+    int64_t temp;
+    return optInt64(key, temp);
+}
+
 bool Preferences::hasString(const std::string& key) const {
     std::string temp;
     return optString(key, temp);
@@ -84,6 +101,18 @@ void Preferences::putInt32(const std::string& key, int32_t value) {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
         if (nvs_set_i32(handle, key.c_str(), value) != ESP_OK) {
+            TT_LOG_E(TAG, "Failed to write %s:%s", namespace_, key.c_str());
+        }
+        nvs_close(handle);
+    } else {
+        TT_LOG_E(TAG, "Failed to open namespace %s", namespace_);
+    }
+}
+
+void Preferences::putInt64(const std::string& key, int64_t value) {
+    nvs_handle_t handle;
+    if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
+        if (nvs_set_i64(handle, key.c_str(), value) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to write %s:%s", namespace_, key.c_str());
         }
         nvs_close(handle);
