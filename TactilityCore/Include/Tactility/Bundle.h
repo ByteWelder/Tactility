@@ -20,6 +20,7 @@ class Bundle final {
     enum class Type {
         Bool,
         Int32,
+        Int64,
         String,
     };
 
@@ -28,6 +29,7 @@ class Bundle final {
         union {
             bool value_bool;
             int32_t value_int32;
+            int64_t value_int64;
         };
         std::string value_string;
     } Value;
@@ -44,18 +46,22 @@ public:
 
     bool getBool(const std::string& key) const;
     int32_t getInt32(const std::string& key) const;
+    int64_t getInt64(const std::string& key) const;
     std::string getString(const std::string& key) const;
 
     bool hasBool(const std::string& key) const;
     bool hasInt32(const std::string& key) const;
+    bool hasInt64(const std::string& key) const;
     bool hasString(const std::string& key) const;
 
     bool optBool(const std::string& key, bool& out) const;
     bool optInt32(const std::string& key, int32_t& out) const;
+    bool optInt64(const std::string& key, int64_t& out) const;
     bool optString(const std::string& key, std::string& out) const;
 
     void putBool(const std::string& key, bool value);
     void putInt32(const std::string& key, int32_t value);
+    void putInt64(const std::string& key, int64_t value);
     void putString(const std::string& key, const std::string& value);
 };
 
