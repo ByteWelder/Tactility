@@ -15,7 +15,7 @@ typedef std::unordered_map<std::string, std::shared_ptr<AppManifest>> AppManifes
 static AppManifestMap app_manifest_map;
 static Mutex hash_mutex(Mutex::Type::Normal);
 
-void addApp(const AppManifest& manifest) {
+void addAppManifest(const AppManifest& manifest) {
     TT_LOG_I(TAG, "Registering manifest %s", manifest.appId.c_str());
 
     hash_mutex.lock();
@@ -29,7 +29,7 @@ void addApp(const AppManifest& manifest) {
     hash_mutex.unlock();
 }
 
-bool removeApp(const std::string& id) {
+bool removeAppManifest(const std::string& id) {
     TT_LOG_I(TAG, "Removing manifest for  %s", id.c_str());
 
     auto lock = hash_mutex.asScopedLock();
@@ -38,7 +38,7 @@ bool removeApp(const std::string& id) {
     return app_manifest_map.erase(id) == 1;
 }
 
-_Nullable std::shared_ptr<AppManifest> findAppById(const std::string& id) {
+_Nullable std::shared_ptr<AppManifest> findAppManifestById(const std::string& id) {
     hash_mutex.lock();
     auto result = app_manifest_map.find(id);
     hash_mutex.unlock();
@@ -49,7 +49,7 @@ _Nullable std::shared_ptr<AppManifest> findAppById(const std::string& id) {
     }
 }
 
-std::vector<std::shared_ptr<AppManifest>> getApps() {
+std::vector<std::shared_ptr<AppManifest>> getAppManifests() {
     std::vector<std::shared_ptr<AppManifest>> manifests;
     hash_mutex.lock();
     for (const auto& item: app_manifest_map) {

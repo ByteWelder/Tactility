@@ -18,6 +18,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         esp-tls
         esp_lvgl_port
         esp_wifi
+        json
         minitar
         minmea
         nvs_flash

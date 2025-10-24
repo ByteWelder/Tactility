@@ -42,7 +42,7 @@ public:
         const auto parameters = app.getParameters();
         tt_check(parameters != nullptr, "Parameters missing");
         auto app_id = parameters->getString("appId");
-        manifest = findAppById(app_id);
+        manifest = findAppManifestById(app_id);
         assert(manifest != nullptr);
     }
 

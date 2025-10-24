@@ -1,16 +1,18 @@
 #include <esp_netif_sntp.h>
-#include <Tactility/app/AppRegistration.h>
-#include <Tactility/service/loader/Loader.h>
-#include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/Paths.h>
+#include <Tactility/app/apphub/AppHub.h>
+#include <Tactility/app/apphub/AppHubEntry.h>
+#include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Spinner.h>
+#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/network/Http.h>
+#include <Tactility/Paths.h>
+#include <Tactility/service/loader/Loader.h>
+#include <Tactility/service/wifi/Wifi.h>
 
 #include <lvgl.h>
 #include <esp_sntp.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Spinner.h>
 #include <mbedtls/include/mbedtls/ssl_ciphersuites.h>
 
 namespace tt::app::apphub {
@@ -19,25 +21,14 @@ constexpr auto* TAG = "AppHub";
 
 extern const AppManifest manifest;
 
-static std::string getVersionWithoutPostfix() {
-    std::string version(TT_VERSION);
-    auto index = version.find_first_of('-');
-    if (index == std::string::npos) {
-        return version;
-    } else {
-        return version.substr(0, index);
-    }
-}
-
-static std::string getAppsJsonUrl() {
-    return std::format("https://cdn.tactility.one/apps/{}/apps.json", getVersionWithoutPostfix());
-}
-
 class AppHubApp final : public App {
 
     lv_obj_t* contentWrapper = nullptr;
-    std::string cachedAppsJsonFile = std::format("{}/apps.json", getTempPath());
+    lv_obj_t* refreshButton = nullptr;
+    std::string cachedAppsJsonFile = std::format("{}/app_hub.json", getTempPath());
     std::unique_ptr<Thread> thread;
+    std::vector<AppHubEntry> entries;
+    Mutex mutex;
 
     static std::shared_ptr<AppHubApp> _Nullable findAppInstance() {
         auto app_context = getCurrentAppContext();
@@ -47,15 +38,16 @@ class AppHubApp final : public App {
         return std::static_pointer_cast<AppHubApp>(app_context->getApp());
     }
 
-    enum class State {
-        Refreshing,
-        ErrorTimeSync,
-        ErrorConnection,
-        ShowApps
-    };
-
     static void onAppPressed(lv_event_t* e) {
-        auto* self = static_cast<AppHubApp*>(lv_event_get_user_data(e));
+        const auto* self = static_cast<AppHubApp*>(lv_event_get_user_data(e));
+        auto* widget = lv_event_get_target_obj(e);
+        const auto* user_data = lv_obj_get_user_data(widget);
+        const int index = reinterpret_cast<int>(user_data);
+        self->mutex.lock();
+        if (index < self->entries.size()) {
+            apphubdetails::start(self->entries[index]);
+        }
+        self->mutex.unlock();
     }
 
     static void onRefreshPressed(lv_event_t* e) {
@@ -63,27 +55,16 @@ class AppHubApp final : public App {
         self->refresh();
     }
 
-    void createRefreshButton() {
-        auto* button = lv_button_create(contentWrapper);
-        lv_obj_add_event_cb(button, onRefreshPressed, LV_EVENT_SHORT_CLICKED,this);
-        auto* label = lv_label_create(button);
-        lv_label_set_text(label, LV_SYMBOL_REFRESH);
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-    }
-
     void onRefreshSuccess() {
-        TT_LOG_I(TAG, "Request OK");
+        TT_LOG_I(TAG, "Request success");
         auto lock = lvgl::getSyncLock()->asScopedLock();
         lock.lock();
 
-        lv_obj_clean(contentWrapper);
-        auto* label = lv_label_create(contentWrapper);
-        lv_label_set_text(label, "Success!");
-        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+        showApps();
     }
 
-    void onRefreshError() {
-        TT_LOG_E(TAG, "Request error");
+    void onRefreshError(const char* error) {
+        TT_LOG_E(TAG, "Request failed: %s", error);
         auto lock = lvgl::getSyncLock()->asScopedLock();
         lock.lock();
 
@@ -101,7 +82,8 @@ class AppHubApp final : public App {
         auto* label = lv_label_create(contentWrapper);
         lv_label_set_text(label, message);
         lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-        createRefreshButton();
+
+        lv_obj_remove_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
     }
 
     void showNoInternet() {
@@ -114,12 +96,35 @@ class AppHubApp final : public App {
 
     void showApps() {
         lv_obj_clean(contentWrapper);
+        mutex.lock();
+        if (parseJson(cachedAppsJsonFile, entries)) {
+            std::ranges::sort(entries, [](auto left, auto right) {
+                return left.appName < right.appName;
+            });
+
+            auto* list = lv_list_create(contentWrapper);
+            lv_obj_set_style_pad_all(list, 0, LV_STATE_DEFAULT);
+            lv_obj_set_size(list, LV_PCT(100), LV_SIZE_CONTENT);
+            for (int i = 0; i < entries.size(); i++) {
+                auto& entry = entries[i];
+                TT_LOG_I(TAG, "Adding %s", entry.appName.c_str());
+                const char* icon = findAppManifestById(entry.appId) != nullptr ? LV_SYMBOL_OK : nullptr;
+                auto* entry_button = lv_list_add_button(list, icon, entry.appName.c_str());
+                lv_obj_set_user_data(entry_button, reinterpret_cast<void*>(i));
+                lv_obj_add_event_cb(entry_button, onAppPressed, LV_EVENT_SHORT_CLICKED, this);
+            }
+        } else {
+            showRefreshFailedError("Failed to load content");
+        }
+        mutex.unlock();
     }
 
     void refresh() {
         lv_obj_clean(contentWrapper);
         auto* spinner = lvgl::spinner_create(contentWrapper);
         lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
+
+        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         if (service::wifi::getRadioState() != service::wifi::RadioState::ConnectionActive) {
             showNoInternet();
@@ -130,21 +135,20 @@ class AppHubApp final : public App {
             showApps();
         }
 
-        auto download_path = std::format("{}/app_hub.json", getTempPath());
         network::http::download(
             getAppsJsonUrl(),
-            "/system/certificates/WE1.pem",
-            download_path,
+            CERTIFICATE_PATH,
+            cachedAppsJsonFile,
             [] {
                 auto app = findAppInstance();
                 if (app != nullptr) {
                     app->onRefreshSuccess();
                 }
             },
-            [] {
+            [](const char* error) {
                 auto app = findAppInstance();
                 if (app != nullptr) {
-                    app->onRefreshError();
+                    app->onRefreshError(error);
                 }
             }
         );
@@ -153,16 +157,18 @@ class AppHubApp final : public App {
 public:
 
     void onShow(TT_UNUSED AppContext& app, lv_obj_t* parent) override {
+        lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
+
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
+        refreshButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
+        lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         contentWrapper = lv_obj_create(parent);
         lv_obj_set_width(contentWrapper, LV_PCT(100));
-        lv_obj_align_to(contentWrapper, toolbar, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
-
-        auto toolbar_height = lv_obj_get_height(toolbar);
-        auto parent_content_height = lv_obj_get_content_height(parent);
-        lv_obj_set_height(contentWrapper, parent_content_height - toolbar_height);
+        lv_obj_set_flex_grow(contentWrapper, 1);
+        lv_obj_set_style_pad_all(contentWrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_pad_ver(contentWrapper, 0, LV_STATE_DEFAULT);
 
         refresh();
     }

@@ -31,6 +31,15 @@ LaunchId start(const std::string& title, const std::string& message, const std::
     return app::start(manifest.appId, bundle);
 }
 
+LaunchId start(const std::string& title, const std::string& message, const std::vector<const char*>& buttonLabels) {
+    std::string items_joined = string::join(buttonLabels, PARAMETER_ITEM_CONCATENATION_TOKEN);
+    auto bundle = std::make_shared<Bundle>();
+    bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
+    bundle->putString(PARAMETER_BUNDLE_KEY_MESSAGE, message);
+    bundle->putString(PARAMETER_BUNDLE_KEY_BUTTON_LABELS, items_joined);
+    return app::start(manifest.appId, bundle);
+}
+
 LaunchId start(const std::string& title, const std::string& message) {
     auto bundle = std::make_shared<Bundle>();
     bundle->putString(PARAMETER_BUNDLE_KEY_TITLE, title);
@@ -57,8 +66,6 @@ static std::string getTitleParameter(std::shared_ptr<const Bundle> bundle) {
 
 class AlertDialogApp : public App {
 
-private:
-
     static void onButtonClickedCallback(lv_event_t* e) {
         auto app = std::static_pointer_cast<AlertDialogApp>(getCurrentApp());
         assert(app != nullptr);
@@ -66,7 +73,6 @@ private:
     }
 
     void onButtonClicked(lv_event_t* e) {
-        lv_event_code_t code = lv_event_get_code(e);
         auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
         TT_LOG_I(TAG, "Selected item at index %d", index);
 

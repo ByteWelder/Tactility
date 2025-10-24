@@ -1,6 +1,5 @@
 #pragma once
 
-#include <esp_http_client.h>
 #include <string>
 
 namespace tt::network::http {
@@ -10,7 +9,7 @@ void download(
     const std::string& certFilePath,
     const std::string &downloadFilePath,
     std::function<void()> onSuccess,
-    std::function<void()> onError
+    std::function<void(const char* errorMessage)> onError
 );
 
 }

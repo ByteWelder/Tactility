@@ -247,7 +247,7 @@ std::string getLastPathSegment(const std::string& path) {
     if (index != std::string::npos) {
         return path.substr(index + 1);
     } else {
-        return "";
+        return path;
     }
 }
 

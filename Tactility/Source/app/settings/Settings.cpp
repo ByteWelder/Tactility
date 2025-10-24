@@ -35,7 +35,7 @@ class SettingsApp final : public App {
         lv_obj_set_width(list, LV_PCT(100));
         lv_obj_set_flex_grow(list, 1);
 
-        auto manifests = getApps();
+        auto manifests = getAppManifests();
         std::ranges::sort(manifests, SortAppManifestByName);
         for (const auto& manifest: manifests) {
             if (manifest->appCategory == Category::Settings) {

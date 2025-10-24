@@ -1,4 +1,5 @@
 #include <esp_sntp.h>
+#include <esp_http_client.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/file/File.h>
 #include <Tactility/network/Http.h>
@@ -13,9 +14,9 @@ void download(
     const std::string& certFilePath,
     const std::string &downloadFilePath,
     std::function<void()> onSuccess,
-    std::function<void()> onError
+    std::function<void(const char* errorMessage)> onError
 ) {
-    TT_LOG_I(TAG, "Download %s to %s", url.c_str(), downloadFilePath.c_str());
+    TT_LOG_I(TAG, "Downloading %s to %s", url.c_str(), downloadFilePath.c_str());
     getMainDispatcher().dispatch([url, certFilePath, downloadFilePath, onSuccess, onError] {
         TT_LOG_I(TAG, "Loading certificate");
         auto certificate = file::readString(certFilePath);
@@ -34,22 +35,22 @@ void download(
 
         auto client = std::make_unique<EspHttpClient>();
         if (!client->init(std::move(config))) {
-            onError();
+            onError("Failed to initialize client");
             return -1;
         }
 
         if (!client->open()) {
-            onError();
+            onError("Failed to open connection");
             return -1;
         }
 
         if (!client->fetchHeaders()) {
-            onError();
+            onError("Failed to get request headers");
             return -1;
         }
 
         if (!client->isStatusCodeOk()) {
-            onError();
+            onError("Server response is not OK");
             return -1;
         }
 
@@ -59,25 +60,31 @@ void download(
         lock.lock();
         auto file_exists = file::isFile(downloadFilePath);
         auto* file_mode = file_exists ? "r+" : "w";
+        TT_LOG_I(TAG, "opening %s with mode %s", downloadFilePath.c_str(), file_mode);
         auto* file = fopen(downloadFilePath.c_str(), file_mode);
+        if (file == nullptr) {
+            onError("Failed to open file");
+            return -1;
+        }
 
         TT_LOG_I(TAG, "Writing %d bytes to %s", bytes_left, downloadFilePath.c_str());
         char buffer[512];
         while (bytes_left > 0) {
             int data_read = client->read(buffer, 512);
             if (data_read <= 0) {
-                onError();
+                fclose(file);
+                onError("Failed to read data");
                 return -1;
             }
             bytes_left -= data_read;
             if (fwrite(buffer, 1, data_read, file) != data_read) {
-                TT_LOG_E(TAG, "Failed to write all bytes");
                 fclose(file);
-                onError();
+                onError("Failed to write all bytes");
                 return -1;
             }
         }
         fclose(file);
+        TT_LOG_I(TAG, "Downloaded %s to %s", url.c_str(), downloadFilePath.c_str());
         onSuccess();
         return 0;
     });

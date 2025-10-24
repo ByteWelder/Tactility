@@ -43,7 +43,7 @@ static const char* appStateToString(app::State state) {
 void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launchId, std::shared_ptr<const Bundle> parameters) {
     TT_LOG_I(TAG, "Start by id %s", id.c_str());
 
-    auto app_manifest = app::findAppById(id);
+    auto app_manifest = app::findAppManifestById(id);
     if (app_manifest == nullptr) {
         TT_LOG_E(TAG, "App not found: %s", id.c_str());
         return;

@@ -54,6 +54,28 @@ std::vector<std::string> split(const std::string&input, const std::string&delimi
     return result;
 }
 
+std::string join(const std::vector<const char*>& input, const std::string& delimiter) {
+    std::stringstream stream;
+    size_t size = input.size();
+
+    if (size == 0) {
+        return "";
+    } else if (size == 1) {
+        return input.front();
+    } else {
+        auto iterator = input.begin();
+        while (iterator != input.end()) {
+            stream << *iterator;
+            iterator++;
+            if (iterator != input.end()) {
+                stream << delimiter;
+            }
+        }
+    }
+
+    return stream.str();
+}
+
 std::string join(const std::vector<std::string>& input, const std::string& delimiter) {
     std::stringstream stream;
     size_t size = input.size();

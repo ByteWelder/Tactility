@@ -6,7 +6,6 @@
 #include <lvgl.h>
 
 namespace tt::lvgl {
-
 #define TOOLBAR_ACTION_LIMIT 4
 
 /** Create a toolbar widget that shows the app name as title */
@@ -59,5 +58,11 @@ lv_obj_t* toolbar_add_switch_action(lv_obj_t* obj);
  * @return an instance created by Tactility's spinner_create()
  */
 lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj);
+
+/**
+ * Remove all actions from the toolbar
+ * @param[in] obj the toolbar instance
+ */
+void toolbar_clear_actions(lv_obj_t* obj);
 
 } // namespace
