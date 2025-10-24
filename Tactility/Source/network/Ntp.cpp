@@ -1,5 +1,4 @@
-#include "Tactility/network/NtpPrivate.h"
-
+#include <Tactility/network/NtpPrivate.h>
 #include <Tactility/Preferences.h>
 
 #ifdef ESP_PLATFORM
@@ -9,10 +8,9 @@
 #include <esp_sntp.h>
 #endif
 
-#define TAG "ntp"
-
 namespace tt::network::ntp {
 
+constexpr auto* TAG = "NTP";
 static bool processedSyncEvent = false;
 
 #ifdef ESP_PLATFORM
