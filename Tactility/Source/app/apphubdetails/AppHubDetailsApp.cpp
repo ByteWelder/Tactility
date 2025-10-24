@@ -11,6 +11,7 @@
 #include <Tactility/StringUtils.h>
 
 #include <lvgl.h>
+#include <format>
 
 namespace tt::app::apphubdetails {
 
