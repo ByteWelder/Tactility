@@ -30,6 +30,11 @@ bool Preferences::hasInt32(const std::string& key) const {
     return preferences.hasInt32(bundle_key);
 }
 
+bool Preferences::hasInt64(const std::string& key) const {
+    std::string bundle_key = get_bundle_key(namespace_, key);
+    return preferences.hasInt64(bundle_key);
+}
+
 bool Preferences::hasString(const std::string& key) const {
     std::string bundle_key = get_bundle_key(namespace_, key);
     return preferences.hasString(bundle_key);
@@ -45,6 +50,11 @@ bool Preferences::optInt32(const std::string& key, int32_t& out) const {
     return preferences.optInt32(bundle_key, out);
 }
 
+bool Preferences::optInt64(const std::string& key, int64_t& out) const {
+    std::string bundle_key = get_bundle_key(namespace_, key);
+    return preferences.optInt64(bundle_key, out);
+}
+
 bool Preferences::optString(const std::string& key, std::string& out) const {
     std::string bundle_key = get_bundle_key(namespace_, key);
     return preferences.optString(bundle_key, out);
@@ -58,6 +68,11 @@ void Preferences::putBool(const std::string& key, bool value) {
 void Preferences::putInt32(const std::string& key, int32_t value) {
     std::string bundle_key = get_bundle_key(namespace_, key);
     return preferences.putInt32(bundle_key, value);
+}
+
+void Preferences::putInt64(const std::string& key, int64_t value) {
+    std::string bundle_key = get_bundle_key(namespace_, key);
+    return preferences.putInt64(bundle_key, value);
 }
 
 void Preferences::putString(const std::string& key, const std::string& value) {

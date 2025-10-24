@@ -99,8 +99,18 @@ bool deleteDirectory(const std::string& path);
  */
 std::string getChildPath(const std::string& basePath, const std::string& childPath);
 
+/**
+ * Find the last part of the path. This can either be the filename or the deepest folder name.
+ * @param path an absolute or relative path
+ * @return the last segment of the specified path
+ */
 std::string getLastPathSegment(const std::string& path);
 
+/**
+ * Find the first part of the path. This is either the root folder, or a file if the latter has no parent folder.
+ * @param path an absolute or relative path
+ * @return the first segment of the specified path
+ */
 std::string getFirstPathSegment(const std::string& path);
 
 typedef int (*ScandirFilter)(const dirent*);

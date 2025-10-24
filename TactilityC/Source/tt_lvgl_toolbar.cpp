@@ -35,4 +35,8 @@ lv_obj_t* tt_lvgl_toolbar_add_spinner_action(lv_obj_t* obj) {
     return tt::lvgl::toolbar_add_spinner_action(obj);
 }
 
+void tt_lvgl_toolbar_clear_actions(lv_obj_t* obj) {
+    tt::lvgl::toolbar_clear_actions(obj);
+}
+
 }

@@ -12,6 +12,6 @@ target_path=$2
 mkdir -p $target_path
 
 cp version.txt $target_path
-cp $build_path/App/AppSim $target_path/
+cp $build_path/Firmware/FirmwareSim $target_path/
 cp -r Data/data $target_path/
 cp -r Data/system $target_path/

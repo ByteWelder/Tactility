@@ -60,6 +60,13 @@ lv_obj_t* tt_lvgl_toolbar_add_switch_action(lv_obj_t* obj);
  */
 lv_obj_t* tt_lvgl_toolbar_add_spinner_action(lv_obj_t* obj);
 
+
+/**
+ * Remove all actions from the toolbar
+ * @param[in] obj the toolbar instance
+ */
+void tt_lvgl_toolbar_clear_actions(lv_obj_t* obj);
+
 #ifdef __cplusplus
 }
 #endif

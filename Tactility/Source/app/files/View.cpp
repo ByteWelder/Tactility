@@ -92,7 +92,8 @@ void View::viewFile(const std::string& path, const std::string& filename) {
         // install(filename);
         auto message = std::format("Do you want to install {}?", filename);
         installAppPath = processed_filepath;
-        installAppLaunchId = alertdialog::start("Install?", message, { "Yes", "No" });
+        auto choices = std::vector { "Yes", "No" };
+        installAppLaunchId = alertdialog::start("Install?", message, choices);
 #endif
     } else if (isSupportedImageFile(filename)) {
         imageviewer::start(processed_filepath);

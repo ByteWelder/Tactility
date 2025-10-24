@@ -36,14 +36,16 @@ runs:
         WLR_LIBINPUT_NO_DEVICES: 1
         WAYLAND_DISPLAY: wayland-1
         GTK_USE_PORTAL: 0
-    - name: "Configure Project"
-      uses: threeal/cmake-action@v1.3.0
+    - name: Setup cmake
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.31.x'
     - name: "Prepare Project"
       shell: bash
       run: cmake -S ./ -B buildsim
     - name: "Build Tests"
       shell: bash
-      run: cmake --build buildsim --target AppSim
+      run: cmake --build buildsim --target FirmwareSim
     - name: 'Release'
       shell: bash
       run: Buildscripts/release-simulator.sh buildsim release/Simulator-${{ inputs.os_name }}-${{ inputs.platform_name }}

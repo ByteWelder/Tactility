@@ -77,6 +77,8 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Boards/Simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
+
+    add_subdirectory(Libraries/cJSON)
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
@@ -92,18 +94,20 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     set(ENABLE_PROGRAMS OFF)
     add_subdirectory(Libraries/mbedtls)
 
+    # SDL
+    set(SDL_STATIC ON CACHE BOOL "" FORCE)
+    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+    add_subdirectory(Libraries/SDL) # Added as idf component for ESP and as library for other targets
+
+    # LVGL
+    add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
+    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
+    target_link_libraries(lvgl PRIVATE SDL2-static)
+
     # Sim app
     add_subdirectory(Firmware)
 
     # Tests
     add_subdirectory(Tests)
-
-    # SDL
-    add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
-    add_subdirectory(Libraries/SDL) # Added as idf component for ESP and as library for other targets
-
-    # LVGL
-    add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
-    target_link_libraries(lvgl PRIVATE SDL2-static)
 
 endif ()

@@ -36,7 +36,7 @@ public:
         auto parent_content_height = lv_obj_get_content_height(parent);
         lv_obj_set_height(list, parent_content_height - toolbar_height);
 
-        auto manifests = getApps();
+        auto manifests = getAppManifests();
         std::ranges::sort(manifests, SortAppManifestByName);
 
         for (const auto& manifest: manifests) {

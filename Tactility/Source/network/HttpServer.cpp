@@ -14,7 +14,7 @@ bool HttpServer::startInternal() {
     config.uri_match_fn = matchUri;
 
     if (httpd_start(&server, &config) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to start http server on port %d", port);
+        TT_LOG_E(TAG, "Failed to start http server on port %lu", port);
         return false;
     }
 

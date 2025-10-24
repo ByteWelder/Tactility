@@ -276,6 +276,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_text_button_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_switch_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_spinner_action),
+    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_clear_actions),
     ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
     ESP_ELFSYM_EXPORT(tt_message_queue_free),
     ESP_ELFSYM_EXPORT(tt_message_queue_put),

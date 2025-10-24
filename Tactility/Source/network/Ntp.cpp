@@ -1,4 +1,5 @@
-#include "Tactility/network/NtpPrivate.h"
+#include <Tactility/network/NtpPrivate.h>
+#include <Tactility/Preferences.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/kernel/SystemEvents.h>
@@ -7,19 +8,43 @@
 #include <esp_sntp.h>
 #endif
 
-#define TAG "ntp"
-
 namespace tt::network::ntp {
+
+constexpr auto* TAG = "NTP";
+static bool processedSyncEvent = false;
 
 #ifdef ESP_PLATFORM
 
-static void onTimeSynced(struct timeval* tv) {
+void storeTimeInNvs() {
+    time_t now;
+    time(&now);
+
+    auto preferences = std::make_unique<Preferences>("time");
+    preferences->putInt64("syncTime", now);
+    TT_LOG_I(TAG, "Stored time %llu", now);
+}
+
+void setTimeFromNvs() {
+    auto preferences = std::make_unique<Preferences>("time");
+    time_t synced_time;
+    if (preferences->optInt64("syncTime", synced_time)) {
+        TT_LOG_I(TAG, "Restoring last known time to %llu", synced_time);
+        timeval get_nvs_time;
+        get_nvs_time.tv_sec = synced_time;
+        settimeofday(&get_nvs_time, nullptr);
+    }
+}
+
+static void onTimeSynced(timeval* tv) {
     TT_LOG_I(TAG, "Time synced (%llu)", tv->tv_sec);
+    processedSyncEvent = true;
+    esp_netif_sntp_deinit();
+    storeTimeInNvs();
     kernel::publishSystemEvent(kernel::SystemEvent::Time);
 }
 
 void init() {
-    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");
+    esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.cloudflare.com");
     config.sync_cb = onTimeSynced;
     esp_netif_sntp_init(&config);
 }
@@ -27,8 +52,13 @@ void init() {
 #else
 
 void init() {
+    processedSyncEvent = true;
 }
 
 #endif
+
+bool isSynced() {
+    return processedSyncEvent;
+}
 
 }

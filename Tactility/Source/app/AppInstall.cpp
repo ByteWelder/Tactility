@@ -188,7 +188,7 @@ bool install(const std::string& path) {
 
     manifest.appLocation = Location::external(renamed_target_path);
 
-    addApp(manifest);
+    addAppManifest(manifest);
 
     return true;
 }
@@ -211,7 +211,7 @@ bool uninstall(const std::string& appId) {
         return false;
     }
 
-    if (!removeApp(appId)) {
+    if (!removeAppManifest(appId)) {
         TT_LOG_W(TAG, "Failed to remove app %s from registry", appId.c_str());
     }
 
