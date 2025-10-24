@@ -37,7 +37,7 @@ runs:
         WAYLAND_DISPLAY: wayland-1
         GTK_USE_PORTAL: 0
     - name: "Configure Project"
-      uses: threeal/cmake-action@v1.3.0
+      uses: threeal/cmake-action@v2.1.0
     - name: "Prepare Project"
       shell: bash
       run: cmake -S ./ -B buildsim
