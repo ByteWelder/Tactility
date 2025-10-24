@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ESP_PLATFORM
+
 #include <esp_http_client.h>
 
 namespace tt::network {
@@ -98,3 +100,5 @@ public:
 };
 
 }
+
+#endif

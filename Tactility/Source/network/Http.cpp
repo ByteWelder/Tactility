@@ -1,9 +1,9 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/file/File.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/network/EspHttpClient.h>
 
 #ifdef ESP_PLATFORM
+#include <Tactility/network/EspHttpClient.h>
 #include <esp_sntp.h>
 #include <esp_http_client.h>
 #endif
