@@ -15,4 +15,4 @@
 	url = https://github.com/ByteWelder/minitar.git
 [submodule "Libraries/cJSON/cJSON"]
 	path = Libraries/cJSON/cJSON
-	url = git@github.com:DaveGamble/cJSON.git
+	url = https://github.com/DaveGamble/cJSON.git
