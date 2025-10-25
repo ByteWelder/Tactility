@@ -57,22 +57,34 @@ runs:
     - name: Commit & push generated files
       if: ${{ inputs.commit == 'true' }}
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
-        # Only commit if there are changes
-        if ! git diff --quiet || ! git ls-files --others --exclude-standard --directory --no-empty-directory | grep -q .; then
+        # Only commit if there are changes (including untracked)
+        CHANGED=false
+        if ! git diff --quiet 2>/dev/null; then
+          CHANGED=true
+        fi
+        if [ "$CHANGED" = "false" ]; then
+          if git ls-files --others --exclude-standard --directory --no-empty-directory | grep -q .; then
+            CHANGED=true
+          fi
+        fi
+
+        if [ "$CHANGED" = "true" ]; then
           echo "Found changes, preparing to commit..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
-          # Determine branch name
+
+          # Determine branch name - fall back to main if GITHUB_REF not a branch ref
           BRANCH="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "$GITHUB_REF" ]; then
+            BRANCH="main"
+          fi
           echo "Detected branch: $BRANCH"
-          # Ensure we can push using the token even with repo restrictions
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Use the persisted checkout credentials (persist-credentials: true) to push.
           echo "Pushing to origin HEAD:$BRANCH"
           git push origin "HEAD:$BRANCH"
           echo "pushed=true" >> $GITHUB_OUTPUT
