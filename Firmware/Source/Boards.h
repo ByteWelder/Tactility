@@ -20,6 +20,9 @@
 #elif defined(CONFIG_TT_BOARD_CYD_2432S028R)
 #include "CYD2432S028R.h"
 #define TT_BOARD_HARDWARE &cyd_2432s028r_config
+#elif defined(CONFIG_TT_BOARD_CYD_2432S028RV3)
+#include "CYD2432S028RV3.h"
+#define TT_BOARD_HARDWARE &cyd_2432s028rv3_config
 #elif defined(CONFIG_TT_BOARD_CYD_E32R28T)
 #include "E32R28T.h"
 #define TT_BOARD_HARDWARE &cyd_e32r28t_config
