@@ -6,6 +6,11 @@
 
 namespace tt::hal::sdcard {
 
+/**
+ * Warning: getLock() does not have to be used when calling any of the functions of this class.
+ * The lock is only used for file access on the path where the SD card is mounted.
+ * This is mainly used when accessing the SD card on a shared SPI bus.
+ */
 class SdCardDevice : public Device {
 
 public:
@@ -33,15 +38,28 @@ public:
 
     Type getType() const final { return Type::SdCard; };
 
+    /**
+     * Mount the device.
+     * @param mountPath the path to mount at
+     * @return true on successful mount
+     */
     virtual bool mount(const std::string& mountPath) = 0;
+
+    /**
+     * Unmount the device.
+     * @return true on successful unmount
+     */
     virtual bool unmount() = 0;
+
     virtual State getState(TickType_t timeout = portMAX_DELAY) const = 0;
-    /** Return empty string when not mounted or the mount path if mounted */
+
+    /** @return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
 
-    /** Non-null lock */
+    /** @return non-null lock, used by code that wants to access files on the mount path of this SD card */
     virtual std::shared_ptr<Lock> getLock() const = 0;
 
+    /** @return the MountBehaviour of this device */
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
 
     /** @return true if the SD card was mounted, returns false when it was not or when a timeout happened. */

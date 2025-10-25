@@ -101,6 +101,8 @@ namespace app {
 
 // List of all apps excluding Boot app (as Boot app calls this function indirectly)
 static void registerInternalApps() {
+    TT_LOG_I(TAG, "Registering internal apps");
+
     addAppManifest(app::alertdialog::manifest);
     addAppManifest(app::appdetails::manifest);
     addAppManifest(app::apphub::manifest);
@@ -180,6 +182,8 @@ static void registerInstalledApp(std::string path) {
 }
 
 static void registerInstalledApps(const std::string& path) {
+    TT_LOG_I(TAG, "Registering apps from %s", path.c_str());
+
     file::listDirectory(path, [&path](const auto& entry) {
         auto absolute_path = std::format("{}/{}", path, entry.d_name);
         if (file::isDirectory(absolute_path)) {
@@ -200,15 +204,9 @@ static void registerInstalledAppsFromSdCards() {
     auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
     for (const auto& sdcard : sdcard_devices) {
         if (sdcard->isMounted()) {
+            TT_LOG_I(TAG, "Registering apps from %s", sdcard->getMountPath().c_str());
             registerInstalledAppsFromSdCard(sdcard);
         }
-    }
-}
-
-static void registerInstalledAppsFromData() {
-    auto app_path = "/data/app";
-    if (file::isDirectory(app_path)) {
-        registerInstalledApps(app_path);
     }
 }
 
@@ -242,7 +240,6 @@ void registerApps() {
         registerInstalledApps(data_apps_path);
     }
     registerInstalledAppsFromSdCards();
-    registerInstalledAppsFromData();
 }
 
 void run(const Configuration& config) {

@@ -58,6 +58,9 @@ bool SdmmcDevice::mountInternal(const std::string& newMountPath) {
 }
 
 bool SdmmcDevice::mount(const std::string& newMountPath) {
+    auto lock = getLock()->asScopedLock();
+    lock.lock();
+
     if (mountInternal(newMountPath)) {
         TT_LOG_I(TAG, "Mounted at %s", newMountPath.c_str());
         sdmmc_card_print_info(stdout, card);
@@ -69,6 +72,9 @@ bool SdmmcDevice::mount(const std::string& newMountPath) {
 }
 
 bool SdmmcDevice::unmount() {
+    auto lock = getLock()->asScopedLock();
+    lock.lock();
+
     if (card == nullptr) {
         TT_LOG_E(TAG, "Can't unmount: not mounted");
         return false;
