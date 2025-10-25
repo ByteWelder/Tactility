@@ -1,0 +1,7 @@
+Wrote /home/runner/work/Tactility/Tactility/Firmware/Kconfig
+Wrote /home/runner/work/Tactility/Tactility/Firmware/Source/Boards.h
+Wrote /home/runner/work/Tactility/Tactility/Buildscripts/board.cmake
+Wrote /home/runner/work/Tactility/Tactility/Buildscripts/build-and-release-all.sh
+
+=== Generator summary ===
+Some generated files changed. Commit those files to keep repository in sync.
