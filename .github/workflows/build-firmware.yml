@@ -31,7 +31,7 @@ jobs:
           { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
           { id: lilygo-tdeck, arch: esp32s3 },
           { id: lilygo-tdongle-s3, arch: esp32s3 },
-          { id: lilygo-tlore-pager, arch: esp32s3 },
+          { id: lilygo-tlora-pager, arch: esp32s3 },
           { id: m5stack-cardputer, arch: esp32s3 },
           { id: m5stack-core2, arch: esp32 },
           { id: m5stack-cores3, arch: esp32s3 },
