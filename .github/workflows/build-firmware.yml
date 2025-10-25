@@ -6,45 +6,55 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
-permissions: read-all
+# We need write permission so the workflow can commit generated files back to the repo
+permissions:
+  contents: write
 
 jobs:
+  prepare:
+    name: Prepare (generate files, commit if changed, build matrix)
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.make-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run board generator and commit changes (action)
+        uses: ./.github/actions/generate-boards
+        with:
+          commit: 'true'
+        # action will run the generator and push changes if there are any.
+
+      - name: Make matrix from Buildscripts/boards.json
+        id: make-matrix
+        run: |
+          if [ ! -f Buildscripts/boards.json ]; then
+            echo "matrix=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          # ensure jq is available
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          # Build matrix: each element contains id and arch (fallback arch if not specified)
+          MATRIX=$(jq -c '[.[] | {id: .id, arch: (.arch // "esp32s3")}]' Buildscripts/boards.json)
+          echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+
   build:
+    name: Build (per-board)
+    needs: prepare
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        board: [
-          { id: cyd-2432s024c, arch: esp32 },
-          { id: cyd-2432s028r, arch: esp32 },
-          { id: cyd-2432s028rv3, arch: esp32 },
-          { id: cyd-e32r28t, arch: esp32 },
-          { id: cyd-2432s032c, arch: esp32 },
-          { id: cyd-jc2432w328c, arch: esp32 },
-          { id: cyd-8048s043c, arch: esp32s3 },
-          { id: cyd-jc8048w550c, arch: esp32s3 },
-          { id: cyd-4848s040c, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-28, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-35, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-50, arch: esp32s3 },
-          { id: elecrow-crowpanel-basic-28, arch: esp32 },
-          { id: elecrow-crowpanel-basic-35, arch: esp32 },
-          { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
-          { id: lilygo-tdeck, arch: esp32s3 },
-          { id: lilygo-tdongle-s3, arch: esp32s3 },
-          { id: lilygo-tlora-pager, arch: esp32s3 },
-          { id: m5stack-cardputer, arch: esp32s3 },
-          { id: m5stack-core2, arch: esp32 },
-          { id: m5stack-cores3, arch: esp32s3 },
-          { id: m5stack-stickc-plus, arch: esp32 },
-          { id: m5stack-stickc-plus2, arch: esp32 },
-          { id: unphone, arch: esp32s3 },
-          { id: waveshare-s3-touch-43, arch: esp32s3 },
-          { id: waveshare-s3-touch-lcd-147, arch: esp32s3 },
-          { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
-          { id: waveshare-s3-lcd-13, arch: esp32s3 }
-        ]
-    runs-on: ubuntu-latest
+        board: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (fresh)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:

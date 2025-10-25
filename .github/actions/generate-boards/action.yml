@@ -1,0 +1,52 @@
+name: "Generate boards"
+description: "Run Buildscripts/generate_boards.py, commit and push generated files if changed."
+inputs:
+  commit:
+    description: "If 'true', commit and push generated changes back to the repository."
+    required: false
+    default: 'false'
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+
+    - name: Make generator executable (if present)
+      if: runner.os != 'Windows'
+      run: |
+        if [ -f Buildscripts/generate_boards.py ]; then
+          chmod +x Buildscripts/generate_boards.py
+        fi
+
+    - name: Run generator
+      id: run-generator
+      run: |
+        if [ -f Buildscripts/generate_boards.py ]; then
+          python3 Buildscripts/generate_boards.py
+          echo "ran-generator=true" >> $GITHUB_OUTPUT
+        else
+          echo "ran-generator=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Commit & push generated files
+      if: ${{ inputs.commit == 'true' }}
+      run: |
+        # Only commit if there are changes
+        if ! git diff --quiet; then
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
+          # Push with the token provided to the workflow (default GITHUB_TOKEN)
+          git push
+          echo "pushed=true" >> $GITHUB_OUTPUT
+        else
+          echo "pushed=false" >> $GITHUB_OUTPUT
+        fi

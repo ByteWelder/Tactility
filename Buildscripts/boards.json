@@ -1,0 +1,254 @@
+[
+    {
+        "id": "cyd-2432s024c",
+        "pretty_name": "CYD 2432S024C",
+        "project": "CYD-2432S024C",
+        "sdkconfig": "cyd-2432s024c",
+        "header": "CYD2432S024C.h",
+        "hardware_symbol": "cyd_2432s024c_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s028r",
+        "pretty_name": "CYD 2432S028R",
+        "project": "CYD-2432S028R",
+        "sdkconfig": "cyd-2432s028r",
+        "header": "CYD2432S028R.h",
+        "hardware_symbol": "cyd_2432s028r_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s028rv3",
+        "pretty_name": "CYD 2432S028RV3",
+        "project": "CYD-2432S028RV3",
+        "sdkconfig": "cyd-2432s028rv3",
+        "header": "CYD2432S028RV3.h",
+        "hardware_symbol": "cyd_2432s028rv3_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-e32r28t",
+        "pretty_name": "CYD E32R28T",
+        "project": "CYD-E32R28T",
+        "sdkconfig": "cyd-e32r28t",
+        "header": "E32R28T.h",
+        "hardware_symbol": "cyd_e32r28t_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s032c",
+        "pretty_name": "CYD 2432S032C",
+        "project": "CYD-2432S032C",
+        "sdkconfig": "cyd-2432s032c",
+        "header": "CYD2432S032C.h",
+        "hardware_symbol": "cyd_2432s032c_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-jc2432w328c",
+        "pretty_name": "CYD JC2432W328C",
+        "project": "CYD-JC2432W328C",
+        "sdkconfig": "cyd-jc2432w328c",
+        "header": "JC2432W328C.h",
+        "hardware_symbol": "cyd_jc2432w328c_config",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-8048s043c",
+        "pretty_name": "CYD 8048S043C",
+        "project": "CYD-8048S043C",
+        "sdkconfig": "cyd-8048s043c",
+        "header": "CYD8048S043C.h",
+        "hardware_symbol": "cyd_8048s043c_config",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "cyd-jc8048w550c",
+        "pretty_name": "CYD JC8048W550C",
+        "project": "CYD-JC8048W550C",
+        "sdkconfig": "cyd-jc8048w550c",
+        "header": "JC8048W550C.h",
+        "hardware_symbol": "cyd_jc8048w550c_config",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "cyd-4848s040c",
+        "pretty_name": "CYD 4848S040C",
+        "project": "CYD-4848S040C",
+        "sdkconfig": "cyd-4848s040c",
+        "header": "CYD4848S040C.h",
+        "hardware_symbol": "cyd_4848s040c_config",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-28",
+        "pretty_name": "Elecrow CrowPanel Advance 2.8",
+        "project": "ElecrowCrowpanelAdvance28",
+        "sdkconfig": "elecrow-crowpanel-advance-28",
+        "header": "CrowPanelAdvance28.h",
+        "hardware_symbol": "crowpanel_advance_28",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-35",
+        "pretty_name": "Elecrow CrowPanel Advance 3.5",
+        "project": "ElecrowCrowpanelAdvance35",
+        "sdkconfig": "elecrow-crowpanel-advance-35",
+        "header": "CrowPanelAdvance35.h",
+        "hardware_symbol": "crowpanel_advance_35",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-50",
+        "pretty_name": "Elecrow CrowPanel Advance 5.0",
+        "project": "ElecrowCrowpanelAdvance50",
+        "sdkconfig": "elecrow-crowpanel-advance-50",
+        "header": "CrowPanelAdvance50.h",
+        "hardware_symbol": "crowpanel_advance_50",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-28",
+        "pretty_name": "Elecrow CrowPanel Basic 2.8",
+        "project": "ElecrowCrowpanelBasic28",
+        "sdkconfig": "elecrow-crowpanel-basic-28",
+        "header": "CrowPanelBasic28.h",
+        "hardware_symbol": "crowpanel_basic_28",
+        "arch": "esp32"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-35",
+        "pretty_name": "Elecrow CrowPanel Basic 3.5",
+        "project": "ElecrowCrowpanelBasic35",
+        "sdkconfig": "elecrow-crowpanel-basic-35",
+        "header": "CrowPanelBasic35.h",
+        "hardware_symbol": "crowpanel_basic_35",
+        "arch": "esp32"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-50",
+        "pretty_name": "Elecrow CrowPanel Basic 5.0",
+        "project": "ElecrowCrowpanelBasic50",
+        "sdkconfig": "elecrow-crowpanel-basic-50",
+        "header": "CrowPanelBasic50.h",
+        "hardware_symbol": "crowpanel_basic_50",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tdeck",
+        "pretty_name": "LilyGo T-Deck",
+        "project": "LilygoTdeck",
+        "sdkconfig": "lilygo-tdeck",
+        "header": "LilygoTdeck.h",
+        "hardware_symbol": "lilygo_tdeck",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tdongle-s3",
+        "pretty_name": "LilyGo T-Dongle S3",
+        "project": "LilygoTdongleS3",
+        "sdkconfig": "lilygo-tdongle-s3",
+        "header": "LilygoTdongleS3.h",
+        "hardware_symbol": "lilygo_tdongle_s3",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tlora-pager",
+        "pretty_name": "LilyGo T-Lora Pager",
+        "project": "LilygoTLoraPager",
+        "sdkconfig": "lilygo-tlora-pager",
+        "header": "LilygoTloraPager.h",
+        "hardware_symbol": "lilygo_tlora_pager",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-cardputer",
+        "pretty_name": "M5Stack Cardputer",
+        "project": "M5stackCardputer",
+        "sdkconfig": "m5stack-cardputer",
+        "header": "M5stackCardputer.h",
+        "hardware_symbol": "m5stack_cardputer",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-core2",
+        "pretty_name": "M5Stack Core2",
+        "project": "M5stackCore2",
+        "sdkconfig": "m5stack-core2",
+        "header": "M5stackCore2.h",
+        "hardware_symbol": "m5stack_core2",
+        "arch": "esp32"
+    },
+    {
+        "id": "m5stack-cores3",
+        "pretty_name": "M5Stack CoreS3",
+        "project": "M5stackCoreS3",
+        "sdkconfig": "m5stack-cores3",
+        "header": "M5stackCoreS3.h",
+        "hardware_symbol": "m5stack_cores3",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-stickc-plus",
+        "pretty_name": "M5Stack StickC Plus",
+        "project": "M5stackStickCPlus",
+        "sdkconfig": "m5stack-stickc-plus",
+        "header": "M5StackStickCPlus.h",
+        "hardware_symbol": "m5stack_stickc_plus",
+        "arch": "esp32"
+    },
+    {
+        "id": "m5stack-stickc-plus2",
+        "pretty_name": "M5Stack StickC Plus2",
+        "project": "M5stackStickCPlus2",
+        "sdkconfig": "m5stack-stickc-plus2",
+        "header": "M5StackStickCPlus2.h",
+        "hardware_symbol": "m5stack_stickc_plus2",
+        "arch": "esp32"
+    },
+    {
+        "id": "unphone",
+        "pretty_name": "unPhone",
+        "project": "UnPhone",
+        "sdkconfig": "unphone",
+        "header": "UnPhone.h",
+        "hardware_symbol": "unPhone",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-43",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 4.3",
+        "project": "WaveshareS3Touch43",
+        "sdkconfig": "waveshare-s3-touch-43",
+        "header": "WaveshareS3Touch43.h",
+        "hardware_symbol": "waveshare_s3_touch_43",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-lcd-147",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 1.47",
+        "project": "WaveshareS3TouchLcd147",
+        "sdkconfig": "waveshare-s3-touch-lcd-147",
+        "header": "WaveshareS3TouchLcd147.h",
+        "hardware_symbol": "waveshare_s3_touch_lcd_147",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-lcd-128",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 1.28",
+        "project": "WaveshareS3TouchLcd128",
+        "sdkconfig": "waveshare-s3-touch-lcd-128",
+        "header": "WaveshareS3TouchLcd128.h",
+        "hardware_symbol": "waveshare_s3_touch_lcd_128",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-lcd-13",
+        "pretty_name": "Waveshare ESP32 S3 LCD 1.3",
+        "project": "WaveshareS3Lcd13",
+        "sdkconfig": "waveshare-s3-lcd-13",
+        "header": "WaveshareS3Lcd13.h",
+        "hardware_symbol": "waveshare_s3_lcd_13",
+        "arch": "esp32s3"
+    }
+]
