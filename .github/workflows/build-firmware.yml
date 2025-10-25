@@ -43,6 +43,7 @@ jobs:
           { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
           { id: waveshare-s3-lcd-13, arch: esp32s3 }
         ]
+    run-name: ${{ matrix.board.id }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
