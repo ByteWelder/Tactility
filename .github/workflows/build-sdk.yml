@@ -4,26 +4,23 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 permissions: read-all
 
 jobs:
-  esp32:
+  build:
+    strategy:
+      matrix:
+        board: [
+          { id: cyd-2432s028r, arch: esp32 },
+          { id: lilygo-tdeck, arch: esp32s3 },
+        ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
         uses: ./.github/actions/build-sdk
         with:
-          board_id: cyd-2432s024c
-          arch: esp32
-  esp32s3:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-sdk
-        with:
-          board_id: lilygo-tdeck
-          arch: esp32s3
+          board_id: ${{ matrix.board.id }}
+          arch: ${{ matrix.board.arch }}

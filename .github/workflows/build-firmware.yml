@@ -4,260 +4,49 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 
 permissions: read-all
 
 jobs:
-  cyd-2432s024c:
+  build:
+    strategy:
+      matrix:
+        board: [
+          { id: cyd-2432s024c, arch: esp32 },
+          { id: cyd-2432s028r, arch: esp32 },
+          { id: cyd-2432s028rv3, arch: esp32 },
+          { id: cyd-e32r28t, arch: esp32 },
+          { id: cyd-2432s032c, arch: esp32 },
+          { id: cyd-jc2432w328c, arch: esp32 },
+          { id: cyd-8048s043c, arch: esp32s3 },
+          { id: cyd-jc8048w550c, arch: esp32s3 },
+          { id: cyd-4848s040c, arch: esp32s3 },
+          { id: elecrow-crowpanel-advance-28, arch: esp32s3 },
+          { id: elecrow-crowpanel-advance-35, arch: esp32s3 },
+          { id: elecrow-crowpanel-advance-50, arch: esp32s3 },
+          { id: elecrow-crowpanel-basic-28, arch: esp32 },
+          { id: elecrow-crowpanel-basic-35, arch: esp32 },
+          { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
+          { id: lilygo-tdeck, arch: esp32s3 },
+          { id: lilygo-tdongle-s3, arch: esp32s3 },
+          { id: lilygo-tlora-pager, arch: esp32s3 },
+          { id: m5stack-cardputer, arch: esp32s3 },
+          { id: m5stack-core2, arch: esp32 },
+          { id: m5stack-cores3, arch: esp32s3 },
+          { id: m5stack-stickc-plus, arch: esp32 },
+          { id: m5stack-stickc-plus2, arch: esp32 },
+          { id: unphone, arch: esp32s3 },
+          { id: waveshare-s3-touch-43, arch: esp32s3 },
+          { id: waveshare-s3-touch-lcd-147, arch: esp32s3 },
+          { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
+          { id: waveshare-s3-lcd-13, arch: esp32s3 }
+        ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
         uses: ./.github/actions/build-firmware
         with:
-          board_id: cyd-2432s024c
-          arch: esp32
-  cyd-2432s028r:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-2432s028r
-          arch: esp32
-  cyd-2432s028rv3:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-2432s028rv3
-          arch: esp32
-  cyd-e32r28t:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-e32r28t
-          arch: esp32
-  cyd-2432s032c:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-2432s032c
-          arch: esp32
-  cyd-jc2432w328c:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-jc2432w328c
-          arch: esp32
-  cyd-8048s043c:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-8048s043c
-          arch: esp32s3
-  cyd-jc8048w550c:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-jc8048w550c
-          arch: esp32s3
-  cyd-4848s040c:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: cyd-4848s040c
-          arch: esp32s3
-  elecrow-crowpanel-advance-28:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-advance-28
-          arch: esp32s3
-  elecrow-crowpanel-advance-35:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-advance-35
-          arch: esp32s3
-  elecrow-crowpanel-advance-50:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-advance-50
-          arch: esp32s3
-  elecrow-crowpanel-basic-28:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-basic-28
-          arch: esp32
-  elecrow-crowpanel-basic-35:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-basic-35
-          arch: esp32
-  elecrow-crowpanel-basic-50:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: elecrow-crowpanel-basic-50
-          arch: esp32s3
-  lilygo-tdeck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: lilygo-tdeck
-          arch: esp32s3
-  lilygo-tdongle-s3:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: lilygo-tdongle-s3
-          arch: esp32s3
-  lilygo-tlora-pager:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: lilygo-tlora-pager
-          arch: esp32s3
-  m5stack-cardputer:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: m5stack-cardputer
-          arch: esp32s3
-  m5stack-core2:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: m5stack-core2
-          arch: esp32
-  m5stack-cores3:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: m5stack-cores3
-          arch: esp32s3
-  m5stack-stickc-plus:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: m5stack-stickc-plus
-          arch: esp32
-  m5stack-stickc-plus2:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: m5stack-stickc-plus2
-          arch: esp32
-  unphone:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: unphone
-          arch: esp32s3
-  waveshare-s3-touch-43:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: waveshare-s3-touch-43
-          arch: esp32s3
-  waveshare-s3-touch-lcd-147:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: "Build"
-        uses: ./.github/actions/build-firmware
-        with:
-          board_id: waveshare-s3-touch-lcd-147
-          arch: esp32s3
-  waveshare-s3-touch-lcd-128:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: "Build"
-      uses: ./.github/actions/build-firmware
-      with:
-        board_id: waveshare-s3-touch-lcd-128
-        arch: esp32s3
-  waveshare-s3-lcd-13:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - name: "Build"
-      uses: ./.github/actions/build-firmware
-      with:
-        board_id: waveshare-s3-lcd-13
-        arch: esp32s3
+          board_id: ${{ matrix.board.id }}
+          arch: ${{ matrix.board.arch }}

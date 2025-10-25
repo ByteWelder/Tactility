@@ -5,9 +5,9 @@ on:
     branches:
       - main
   pull_request:
-    types: [opened, synchronize, reopened]
+    types: [ opened, synchronize, reopened ]
 jobs:
-  Build-Simulator-Linux:
+  Linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +17,7 @@ jobs:
           os_name: linux
           platform_name: amd64
           publish: true
-  Build-Simulator-macOS:
+  macOS:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
