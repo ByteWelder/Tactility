@@ -26,23 +26,23 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    St7789Display::Configuration panel_configuration = {
+        .swapXY = true,
+        .mirrorX = true,
+        .mirrorY = false,
+        .invertColor = true,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty
+    };
 
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        TDECK_LCD_SPI_HOST,
-        TDECK_LCD_PIN_CS,
-        TDECK_LCD_PIN_DC,
-        320,
-        240,
-        touch,
-        true,
-        true,
-        false,
-        true
-    );
+    auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {
+        .spiHostDevice = TDECK_LCD_SPI_HOST,
+        .csPin = TDECK_LCD_PIN_CS,
+        .dcPin = TDECK_LCD_PIN_DC,
+        .pixelClockFrequency = 80'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<St7789Display>(std::move(configuration));
+    auto display = std::make_shared<St7789Display>(panel_configuration, spi_configuration);
     return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }
