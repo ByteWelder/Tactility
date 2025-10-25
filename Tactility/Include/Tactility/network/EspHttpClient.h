@@ -11,7 +11,7 @@ class EspHttpClient {
     static constexpr auto* TAG = "EspHttpClient";
 
     std::unique_ptr<esp_http_client_config_t> config = nullptr;
-    esp_http_client_handle_t client;
+    esp_http_client_handle_t client = nullptr;
     bool isOpen = false;
 
 public:
@@ -87,11 +87,15 @@ public:
     bool close() {
         assert(client != nullptr);
         TT_LOG_I(TAG, "close()");
-        return esp_http_client_close(client) == ESP_OK;
+        if (esp_http_client_close(client) == ESP_OK) {
+            isOpen = false;
+        }
+        return !isOpen;
     }
 
     bool cleanup() {
         assert(client != nullptr);
+        assert(!isOpen);
         TT_LOG_I(TAG, "cleanup()");
         const auto result = esp_http_client_cleanup(client);
         client = nullptr;

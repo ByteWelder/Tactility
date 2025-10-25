@@ -40,11 +40,7 @@ class AppHubApp final : public App {
         const auto* self = static_cast<AppHubApp*>(lv_event_get_user_data(e));
         auto* widget = lv_event_get_target_obj(e);
         const auto* user_data = lv_obj_get_user_data(widget);
-#ifdef ESP_PLATFORM
-        const int index = reinterpret_cast<int>(user_data);
-#else
-        const long long index = reinterpret_cast<long long>(user_data);
-#endif
+        const intptr_t index = reinterpret_cast<intptr_t>(user_data);
         self->mutex.lock();
         if (index < self->entries.size()) {
             apphubdetails::start(self->entries[index]);
@@ -112,7 +108,8 @@ class AppHubApp final : public App {
                 TT_LOG_I(TAG, "Adding %s", entry.appName.c_str());
                 const char* icon = findAppManifestById(entry.appId) != nullptr ? LV_SYMBOL_OK : nullptr;
                 auto* entry_button = lv_list_add_button(list, icon, entry.appName.c_str());
-                lv_obj_set_user_data(entry_button, reinterpret_cast<void*>(i));
+                auto int_as_voidptr = reinterpret_cast<void*>(i);
+                lv_obj_set_user_data(entry_button, int_as_voidptr);
                 lv_obj_add_event_cb(entry_button, onAppPressed, LV_EVENT_SHORT_CLICKED, this);
             }
         } else {

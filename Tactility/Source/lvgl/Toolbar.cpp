@@ -223,6 +223,7 @@ lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
 void toolbar_clear_actions(lv_obj_t* obj) {
     auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     lv_obj_clean(toolbar->action_container);
+    toolbar->action_count = 0;
 }
 
 } // namespace

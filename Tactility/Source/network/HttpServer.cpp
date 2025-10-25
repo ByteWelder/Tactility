@@ -22,7 +22,7 @@ bool HttpServer::startInternal() {
         httpd_register_uri_handler(server, &handler);
     }
 
-    TT_LOG_I(TAG, "Started on port %d", config.server_port);
+    TT_LOG_I(TAG, "Started on port %lu", config.server_port);
 
     return true;
 }

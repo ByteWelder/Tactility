@@ -44,6 +44,8 @@ static void onTimeSynced(timeval* tv) {
 }
 
 void init() {
+    setTimeFromNvs();
+
     esp_sntp_config_t config = ESP_NETIF_SNTP_DEFAULT_CONFIG("time.cloudflare.com");
     config.sync_cb = onTimeSynced;
     esp_netif_sntp_init(&config);

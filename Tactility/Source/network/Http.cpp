@@ -24,6 +24,11 @@ void download(
     getMainDispatcher().dispatch([url, certFilePath, downloadFilePath, onSuccess, onError] {
         TT_LOG_I(TAG, "Loading certificate");
         auto certificate = file::readString(certFilePath);
+        if (certificate == nullptr) {
+            onError("Failed to read certificate");
+            return;
+        }
+
         auto certificate_length = strlen(reinterpret_cast<const char*>(certificate.get())) + 1;
 
         auto config = std::make_unique<esp_http_client_config_t>(esp_http_client_config_t {
@@ -40,35 +45,33 @@ void download(
         auto client = std::make_unique<EspHttpClient>();
         if (!client->init(std::move(config))) {
             onError("Failed to initialize client");
-            return -1;
+            return;
         }
 
         if (!client->open()) {
             onError("Failed to open connection");
-            return -1;
+            return;
         }
 
         if (!client->fetchHeaders()) {
             onError("Failed to get request headers");
-            return -1;
+            return;
         }
 
         if (!client->isStatusCodeOk()) {
             onError("Server response is not OK");
-            return -1;
+            return;
         }
 
         auto bytes_left = client->getContentLength();
 
         auto lock = file::getLock(downloadFilePath)->asScopedLock();
         lock.lock();
-        auto file_exists = file::isFile(downloadFilePath);
-        auto* file_mode = file_exists ? "r+" : "w";
-        TT_LOG_I(TAG, "opening %s with mode %s", downloadFilePath.c_str(), file_mode);
-        auto* file = fopen(downloadFilePath.c_str(), file_mode);
+        TT_LOG_I(TAG, "opening %s", downloadFilePath.c_str());
+        auto* file = fopen(downloadFilePath.c_str(), "wb");
         if (file == nullptr) {
             onError("Failed to open file");
-            return -1;
+            return;
         }
 
         TT_LOG_I(TAG, "Writing %d bytes to %s", bytes_left, downloadFilePath.c_str());
@@ -78,19 +81,18 @@ void download(
             if (data_read <= 0) {
                 fclose(file);
                 onError("Failed to read data");
-                return -1;
+                return;
             }
             bytes_left -= data_read;
             if (fwrite(buffer, 1, data_read, file) != data_read) {
                 fclose(file);
                 onError("Failed to write all bytes");
-                return -1;
+                return;
             }
         }
         fclose(file);
         TT_LOG_I(TAG, "Downloaded %s to %s", url.c_str(), downloadFilePath.c_str());
         onSuccess();
-        return 0;
     });
 #else
     getMainDispatcher().dispatch([onError] {
