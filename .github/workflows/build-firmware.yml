@@ -9,7 +9,7 @@ on:
 permissions: read-all
 
 jobs:
-  Build-Firmware:
+  build:
     strategy:
       matrix:
         board: [
@@ -44,7 +44,6 @@ jobs:
           { id: waveshare-s3-lcd-13, arch: esp32s3 }
         ]
     runs-on: ubuntu-latest
-    run-name: ${{ matrix.board.id }}
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
