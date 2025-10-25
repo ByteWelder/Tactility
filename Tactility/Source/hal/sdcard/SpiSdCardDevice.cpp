@@ -84,6 +84,9 @@ bool SpiSdCardDevice::mountInternal(const std::string& newMountPath) {
 }
 
 bool SpiSdCardDevice::mount(const std::string& newMountPath) {
+    auto lock = getLock()->asScopedLock();
+    lock.lock();
+
     if (!applyGpioWorkAround()) {
         TT_LOG_E(TAG, "Failed to apply GPIO work-around");
         return false;
@@ -100,6 +103,9 @@ bool SpiSdCardDevice::mount(const std::string& newMountPath) {
 }
 
 bool SpiSdCardDevice::unmount() {
+    auto lock = getLock()->asScopedLock();
+    lock.lock();
+
     if (card == nullptr) {
         TT_LOG_E(TAG, "Can't unmount: not mounted");
         return false;

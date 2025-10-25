@@ -9,12 +9,10 @@ constexpr auto* TAG = "SdCardMounting";
 constexpr auto* TT_SDCARD_MOUNT_POINT = "/sdcard";
 
 static void mount(const std::shared_ptr<SdCardDevice>& sdcard, const std::string& path) {
-    sdcard->getLock()->withLock([&sdcard, &path] {
-       TT_LOG_I(TAG, "Mounting sdcard at %s", path.c_str());
-       if (!sdcard->mount(path)) {
-           TT_LOG_W(TAG, "SD card mount failed for %s (init can continue)", path.c_str());
-       }
-   });
+   TT_LOG_I(TAG, "Mounting sdcard at %s", path.c_str());
+   if (!sdcard->mount(path)) {
+       TT_LOG_W(TAG, "SD card mount failed for %s (init can continue)", path.c_str());
+   }
 }
 
 static std::string getMountPath(int index, int count) {
