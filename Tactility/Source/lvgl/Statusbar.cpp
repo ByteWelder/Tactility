@@ -48,14 +48,6 @@ typedef struct {
     PubSub<void*>::SubscriptionHandle pubsub_subscription;
 } Statusbar;
 
-static bool statusbar_lock(TickType_t timeoutTicks = portMAX_DELAY) {
-    return statusbar_data.mutex.lock(timeoutTicks);
-}
-
-static bool statusbar_unlock() {
-    return statusbar_data.mutex.unlock();
-}
-
 static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_destructor(const lv_obj_class_t* class_p, lv_obj_t* obj);
 static void statusbar_event(const lv_obj_class_t* class_p, lv_event_t* event);
@@ -111,10 +103,12 @@ static const lv_obj_class_t statusbar_class = {
 
 static void statusbar_pubsub_event(Statusbar* statusbar) {
     TT_LOG_D(TAG, "Update event");
-    if (lock(portMAX_DELAY)) {
+    if (lock(defaultLockTime)) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
         unlock();
+    } else {
+        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "Statusbar");
     }
 }
 
@@ -184,7 +178,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_lock(portMAX_DELAY);
+    statusbar_data.mutex.lock(portMAX_DELAY);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
@@ -194,7 +188,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
         update_icon(image, &(statusbar_data.icons[i]));
     }
-    statusbar_unlock();
+    statusbar_data.mutex.unlock();
 
     return obj;
 }
@@ -212,11 +206,11 @@ static void update_time(Statusbar* statusbar) {
 static void update_main(Statusbar* statusbar) {
     update_time(statusbar);
 
-    if (statusbar_lock(200 / portTICK_PERIOD_MS)) {
+    if (statusbar_data.mutex.lock(200 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
             update_icon(statusbar->icons[i], &(statusbar_data.icons[i]));
         }
-        statusbar_unlock();
+        statusbar_data.mutex.unlock();
     }
 }
 
@@ -236,7 +230,7 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
 }
 
 int8_t statusbar_icon_add(const std::string& image) {
-    statusbar_lock();
+    statusbar_data.mutex.lock();
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
@@ -248,8 +242,8 @@ int8_t statusbar_icon_add(const std::string& image) {
             break;
         }
     }
+    statusbar_data.mutex.unlock();
     statusbar_data.pubsub->publish(nullptr);
-    statusbar_unlock();
     return result;
 }
 
@@ -260,37 +254,35 @@ int8_t statusbar_icon_add() {
 void statusbar_icon_remove(int8_t id) {
     TT_LOG_D(TAG, "id %d: remove", id);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    statusbar_lock();
+    statusbar_data.mutex.lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];
     icon->claimed = false;
     icon->visible = false;
     icon->image = "";
+    statusbar_data.mutex.unlock();
     statusbar_data.pubsub->publish(nullptr);
-    statusbar_unlock();
 }
 
 void statusbar_icon_set_image(int8_t id, const std::string& image) {
     TT_LOG_D(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    if (statusbar_lock()) {
-        StatusbarIcon* icon = &statusbar_data.icons[id];
-        tt_check(icon->claimed);
-        icon->image = image;
-        statusbar_data.pubsub->publish(nullptr);
-        statusbar_unlock();
-    }
+    statusbar_data.mutex.lock();
+    StatusbarIcon* icon = &statusbar_data.icons[id];
+    tt_check(icon->claimed);
+    icon->image = image;
+    statusbar_data.mutex.unlock();
+    statusbar_data.pubsub->publish(nullptr);
 }
 
 void statusbar_icon_set_visibility(int8_t id, bool visible) {
     TT_LOG_D(TAG, "id %d: set visibility %d", id, visible);
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
-    if (statusbar_lock()) {
-        StatusbarIcon* icon = &statusbar_data.icons[id];
-        tt_check(icon->claimed);
-        icon->visible = visible;
-        statusbar_data.pubsub->publish(nullptr);
-        statusbar_unlock();
-    }
+    statusbar_data.mutex.lock();
+    StatusbarIcon* icon = &statusbar_data.icons[id];
+    tt_check(icon->claimed);
+    icon->visible = visible;
+    statusbar_data.mutex.unlock();
+    statusbar_data.pubsub->publish(nullptr);
 }
 
 } // namespace
