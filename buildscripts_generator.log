@@ -1,7 +1,7 @@
-Wrote /home/runner/work/Tactility/Tactility/Firmware/Kconfig
-Wrote /home/runner/work/Tactility/Tactility/Firmware/Source/Boards.h
-Wrote /home/runner/work/Tactility/Tactility/Buildscripts/board.cmake
-Wrote /home/runner/work/Tactility/Tactility/Buildscripts/build-and-release-all.sh
+Unchanged: /home/runner/work/Tactility/Tactility/Firmware/Kconfig
+Unchanged: /home/runner/work/Tactility/Tactility/Firmware/Source/Boards.h
+Unchanged: /home/runner/work/Tactility/Tactility/Buildscripts/board.cmake
+Unchanged: /home/runner/work/Tactility/Tactility/Buildscripts/build-and-release-all.sh
 
 === Generator summary ===
-Some generated files changed. Commit those files to keep repository in sync.
+No changes, generated files are up-to-date.
