@@ -23,6 +23,11 @@ bool parseJson(const std::string& filePath, std::vector<AppHubEntry>& entries) {
     lock.lock();
 
     auto data = file::readString(filePath);
+    if (data == nullptr) {
+        TT_LOG_E(TAG, "Failed to read %s", filePath.c_str());
+        return false;
+    }
+
     auto data_ptr = reinterpret_cast<const char*>(data.get());
     auto* json = cJSON_Parse(data_ptr);
     if (json == nullptr) {

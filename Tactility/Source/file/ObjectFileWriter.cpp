@@ -16,10 +16,9 @@ bool ObjectFileWriter::open() {
     }
 
     // Edit existing or create a new file
-    auto* mode = edit_existing ? "r+" : "w";
-    auto opening_file = std::unique_ptr<FILE, FileCloser>(std::fopen(filePath.c_str(), mode));
+    auto opening_file = std::unique_ptr<FILE, FileCloser>(std::fopen(filePath.c_str(), "wb"));
     if (opening_file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open file %s in %s mode", filePath.c_str(), mode);
+        TT_LOG_E(TAG, "Failed to open file %s", filePath.c_str());
         return false;
     }
 

@@ -46,7 +46,7 @@ public:
     bool readNumber(const char* key, double& output) const {
         const auto* child = cJSON_GetObjectItemCaseSensitive(root, key);
         if (!cJSON_IsNumber(child)) {
-            TT_LOG_E(TAG, "%s is not a string", key);
+            TT_LOG_E(TAG, "%s is not a number", key);
             return false;
         }
         output = cJSON_GetNumberValue(child);

@@ -61,7 +61,7 @@ bool Bundle::optInt32(const std::string& key, int32_t& out) const {
 bool Bundle::optInt64(const std::string& key, int64_t& out) const {
     auto entry = this->entries.find(key);
     if (entry != std::end(this->entries) && entry->second.type == Type::Int64) {
-        out = entry->second.value_int32;
+        out = entry->second.value_int64;
         return true;
     } else {
         return false;
