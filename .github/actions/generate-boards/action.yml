@@ -1,5 +1,5 @@
 name: "Generate boards"
-description: "Run Buildscripts/generate_boards.py, commit and push generated files if changed."
+description: "Run Buildscripts/generate_boards.py, commit and push generated files if changed. This variant adds verbose debug logging for troubleshooting."
 
 inputs:
   commit:
@@ -25,41 +25,105 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
+        set -euo pipefail
         if [ -f Buildscripts/generate_boards.py ]; then
           chmod +x Buildscripts/generate_boards.py
         fi
 
-    - name: Run generator
+    - name: Run generator (verbose)
       id: run-generator
       shell: bash
       run: |
+        # Fail fast but show everything (-x) for debugging. Capture stdout/stderr to a log and print key bits.
         set -euo pipefail
+        set -x
+
+        echo "==== ENV (limited) ===="
+        echo "GITHUB_ACTION: $GITHUB_ACTION"
+        echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+        echo "GITHUB_REF: $GITHUB_REF"
+        echo "RUNNER_OS: $RUNNER_OS"
+        echo "PWD: $(pwd)"
+        echo "Python:"
+        python3 --version || true
+        echo "Which python3: $(which python3 || true)"
+        echo "Listing tree (top 2 levels):"
+        find . -maxdepth 2 -type f -printf "%p %s bytes\n" || true
+
+        LOG=buildscripts_generator.log
+        rm -f "$LOG"
+
         if [ -f Buildscripts/generate_boards.py ]; then
-          echo "Running generator..."
-          python3 Buildscripts/generate_boards.py
-          echo "ran-generator=true" >> $GITHUB_OUTPUT
+          echo "Running Buildscripts/generate_boards.py..."
+          # run and tee output so we can inspect it in logs
+          python3 Buildscripts/generate_boards.py 2>&1 | tee "$LOG"
+          RC=${PIPESTATUS[0]:-0}
+          echo "Generator exit code: $RC"
         else
-          echo "No generator found at Buildscripts/generate_boards.py"
-          echo "ran-generator=false" >> $GITHUB_OUTPUT
+          echo "Generator not found at Buildscripts/generate_boards.py"
+          RC=127
+          echo "ran-generator=false" >> $GITHUB_OUTPUT || true
         fi
+
+        echo "==== tail of generator log (last 200 lines) ===="
+        if [ -f "$LOG" ]; then
+          tail -n 200 "$LOG" || true
+        fi
+
+        # show the generated files if they exist
+        echo "==== show generated files summary ===="
+        for f in Firmware/Kconfig Firmware/Source/Boards.h Buildscripts/board.cmake Buildscripts/build-and-release-all.sh; do
+          if [ -f "$f" ]; then
+            echo "---- $f (first 60 lines) ----"
+            sed -n '1,60p' "$f" || true
+            echo "---- $f (last 20 lines) ----"
+            tail -n 20 "$f" || true
+          else
+            echo "MISSING: $f"
+          fi
+        done
+
+        # Always expose what changed in git worktree to aid debugging
+        echo "==== git status (porcelain) ===="
+        git status --porcelain --untracked-files=all || true
+        echo "==== git diff (name & stat) ===="
+        git --no-pager diff --name-status || true
+
+        if [ "$RC" -ne 0 ]; then
+          echo "Generator failed with exit code $RC - aborting (this will surface as error 1 in the action logs)."
+          exit $RC
+        fi
+
+        echo "Generator completed successfully."
 
     - name: Show repo status & changed files (debug)
       if: ${{ always() }}
       shell: bash
       run: |
+        set -euo pipefail
+        echo "=== git config user / remote ==="
+        git config --list | grep user || true
+        git remote -v || true
         echo "=== git status ==="
         git status --porcelain --untracked-files=all || true
         echo "=== changed files (if any) ==="
         git --no-pager diff --name-only || true
         echo "=== ls -la repository root ==="
-        ls -la
+        ls -la || true
+        echo "=== ls -la Buildscripts and Firmware dirs ==="
+        ls -la Buildscripts || true
+        ls -la Firmware || true
+        echo "=== Disk usage (repo) ==="
+        du -sh . || true
 
-    - name: Commit & push generated files
+    - name: Commit & push generated files (verbose)
       if: ${{ inputs.commit == 'true' }}
       shell: bash
       run: |
         set -euo pipefail
-        # Only commit if there are changes (including untracked)
+        set -x
+
+        # Detect any changes (staged/unstaged/untracked)
         CHANGED=false
         if ! git diff --quiet 2>/dev/null; then
           CHANGED=true
@@ -74,8 +138,15 @@ runs:
           echo "Found changes, preparing to commit..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          echo "=== git status before add ==="
+          git status --porcelain --untracked-files=all || true
+
           git add -A
           git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
+
+          echo "=== git log -1 ==="
+          git --no-pager log -1 --stat || true
 
           # Determine branch name - fall back to main if GITHUB_REF not a branch ref
           BRANCH="${GITHUB_REF#refs/heads/}"
@@ -84,11 +155,24 @@ runs:
           fi
           echo "Detected branch: $BRANCH"
 
-          # Use the persisted checkout credentials (persist-credentials: true) to push.
+          echo "=== git remote -v ==="
+          git remote -v || true
+
           echo "Pushing to origin HEAD:$BRANCH"
-          git push origin "HEAD:$BRANCH"
-          echo "pushed=true" >> $GITHUB_OUTPUT
+          # rely on persisted credentials (persist-credentials: true) from checkout
+          # capture push output for debugging
+          if git push origin "HEAD:$BRANCH" 2>&1 | tee push.log; then
+            echo "push succeeded"
+            cat push.log || true
+            echo "pushed=true" >> $GITHUB_OUTPUT || true
+          else
+            echo "push failed - see push.log"
+            cat push.log || true
+            echo "pushed=false" >> $GITHUB_OUTPUT || true
+            # propagate failure so CI clearly shows the problem
+            exit 1
+          fi
         else
           echo "No changes to commit/push."
-          echo "pushed=false" >> $GITHUB_OUTPUT
+          echo "pushed=false" >> $GITHUB_OUTPUT || true
         fi
