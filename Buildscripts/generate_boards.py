@@ -234,7 +234,14 @@ def main():
     changed |= write_boards_h(boards)
     changed |= write_board_cmake(boards)
     changed |= write_build_and_release(boards)
-    return 1 if changed else 0
+
+    if changed:
+        print("\n=== Generator summary ===")
+        print("Some generated files changed. Commit those files to keep repository in sync.")
+    else:
+        print("\n=== Generator summary ===")
+        print("No changes; generated files are up-to-date.")
+    return 0
 
 
 if __name__ == "__main__":
