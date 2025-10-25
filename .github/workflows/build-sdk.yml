@@ -17,7 +17,6 @@ jobs:
           { id: lilygo-tdeck, arch: esp32s3 },
         ]
     runs-on: ubuntu-latest
-    run-name: ${{ matrix.board.arch }}
     steps:
       - uses: actions/checkout@v4
       - name: "Build"
