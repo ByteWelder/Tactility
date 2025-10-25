@@ -240,7 +240,7 @@ def main():
         print("Some generated files changed. Commit those files to keep repository in sync.")
     else:
         print("\n=== Generator summary ===")
-        print("No changes; generated files are up-to-date.")
+        print("No changes, generated files are up-to-date.")
     return 0
 
 
