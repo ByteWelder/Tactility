@@ -10,6 +10,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <Tactility/Tactility.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
 namespace tt::service::wifi {
@@ -115,14 +116,16 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
 }
 
 void bootSplashInit() {
-    const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
-    for (auto& sdcard : sdcards) {
-        if (sdcard->isMounted()) {
-            importWifiApSettings(sdcard);
-        } else {
-            TT_LOG_W(TAG, "Skipping unmounted SD card %s", sdcard->getMountPath().c_str());
+    getMainDispatcher().dispatch([] {
+        const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+        for (auto& sdcard : sdcards) {
+            if (sdcard->isMounted()) {
+                importWifiApSettings(sdcard);
+            } else {
+                TT_LOG_W(TAG, "Skipping unmounted SD card %s", sdcard->getMountPath().c_str());
+            }
         }
-    }
+    });
 }
 
 }
