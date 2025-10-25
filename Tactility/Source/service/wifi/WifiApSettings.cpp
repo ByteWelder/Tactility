@@ -132,7 +132,10 @@ bool load(const std::string& ssid, WifiApSettings& apSettings) {
 
     if (map.contains(AP_PROPERTIES_KEY_PASSWORD)) {
         std::string password_decrypted;
-        if (decrypt(map[AP_PROPERTIES_KEY_PASSWORD], password_decrypted)) {
+        const auto& encrypted_password = map[AP_PROPERTIES_KEY_PASSWORD];
+        if (encrypted_password.empty()) {
+            apSettings.password = "";
+        } else if (decrypt(encrypted_password, password_decrypted)) {
             apSettings.password = password_decrypted;
         } else {
             return false;
@@ -148,7 +151,7 @@ bool load(const std::string& ssid, WifiApSettings& apSettings) {
     }
 
     if (map.contains(AP_PROPERTIES_KEY_CHANNEL)) {
-        apSettings.channel = std::stoi(map[AP_PROPERTIES_KEY_CHANNEL].c_str());
+        apSettings.channel = std::stoi(map[AP_PROPERTIES_KEY_CHANNEL]);
     } else {
         apSettings.channel = 0;
     }
@@ -167,8 +170,12 @@ bool save(const WifiApSettings& apSettings) {
     std::map<std::string, std::string> map;
 
     std::string password_encrypted;
-    if (!encrypt(apSettings.password, password_encrypted)) {
-        return false;
+    if (!apSettings.password.empty()) {
+        if (!encrypt(apSettings.password, password_encrypted)) {
+            return false;
+        }
+    } else {
+        password_encrypted = "";
     }
 
     map[AP_PROPERTIES_KEY_PASSWORD] = password_encrypted;

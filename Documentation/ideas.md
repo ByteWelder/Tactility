@@ -2,7 +2,6 @@
 
 ## Before release
 
-- Fix Wi-Fi password(less) decryption crash
 - Make better esp_lcd driver (and test all devices)
 
 ## Higher Priority
