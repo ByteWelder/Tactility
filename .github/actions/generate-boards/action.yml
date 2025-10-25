@@ -14,6 +14,7 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        persist-credentials: true
 
     - name: Setup Python
       uses: actions/setup-python@v4
@@ -32,26 +33,50 @@ runs:
       id: run-generator
       shell: bash
       run: |
+        set -euo pipefail
         if [ -f Buildscripts/generate_boards.py ]; then
+          echo "Running generator..."
           python3 Buildscripts/generate_boards.py
           echo "ran-generator=true" >> $GITHUB_OUTPUT
         else
+          echo "No generator found at Buildscripts/generate_boards.py"
           echo "ran-generator=false" >> $GITHUB_OUTPUT
         fi
+
+    - name: Show repo status & changed files (debug)
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        echo "=== git status ==="
+        git status --porcelain --untracked-files=all || true
+        echo "=== changed files (if any) ==="
+        git --no-pager diff --name-only || true
+        echo "=== ls -la repository root ==="
+        ls -la
 
     - name: Commit & push generated files
       if: ${{ inputs.commit == 'true' }}
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        set -euo pipefail
         # Only commit if there are changes
-        if ! git diff --quiet; then
+        if ! git diff --quiet || ! git ls-files --others --exclude-standard --directory --no-empty-directory | grep -q .; then
+          echo "Found changes, preparing to commit..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
-          # Push with the token provided to the workflow (default GITHUB_TOKEN)
-          git push
+          # Determine branch name
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          echo "Detected branch: $BRANCH"
+          # Ensure we can push using the token even with repo restrictions
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          echo "Pushing to origin HEAD:$BRANCH"
+          git push origin "HEAD:$BRANCH"
           echo "pushed=true" >> $GITHUB_OUTPUT
         else
+          echo "No changes to commit/push."
           echo "pushed=false" >> $GITHUB_OUTPUT
         fi
