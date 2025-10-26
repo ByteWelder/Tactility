@@ -11,6 +11,7 @@
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <lvgl.h>
+#include <algorithm>
 #include <format>
 
 namespace tt::app::apphub {
