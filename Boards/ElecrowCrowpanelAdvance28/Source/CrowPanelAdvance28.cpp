@@ -1,11 +1,9 @@
 #include "PwmBacklight.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/Configuration.h>
-
-#define CROWPANEL_SPI_TRANSFER_SIZE_LIMIT (CROWPANEL_LCD_HORIZONTAL_RESOLUTION * CROWPANEL_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8))
 
 using namespace tt::hal;
 
@@ -60,7 +58,7 @@ extern const Configuration crowpanel_advance_28 = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CROWPANEL_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

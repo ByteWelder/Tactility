@@ -17,12 +17,18 @@ public:
 
     /** Minimal set of overrides for EspLcdConfiguration */
     struct Configuration {
+        unsigned int horizontalResolution;
+        unsigned int verticalResolution;
+        int gapX;
+        int gapY;
         bool swapXY;
         bool mirrorX;
         bool mirrorY;
         bool invertColor;
+        uint32_t bufferSize; // Pixel count, not byte count. Set to 0 for default (1/10th of display size)
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction;
+        gpio_num_t resetPin;
     };
 
 private:

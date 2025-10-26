@@ -3,6 +3,7 @@
 ## Before release
 
 - Make better esp_lcd driver (and test all devices)
+- AppInstall.cpp fails to untar large files on Cardputer (EFF large word list doesn't fit in memory). Make a buffered reader & writer.
 
 ## Higher Priority
 

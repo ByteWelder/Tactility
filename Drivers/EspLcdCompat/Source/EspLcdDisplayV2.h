@@ -8,16 +8,18 @@
 #include <esp_lcd_types.h>
 #include <esp_lvgl_port_disp.h>
 
+constexpr auto DEFAULT_BUFFER_SIZE = 0;
+
 struct EspLcdConfiguration {
     unsigned int horizontalResolution;
     unsigned int verticalResolution;
+    int gapX;
+    int gapY;
     bool monochrome;
     bool swapXY;
     bool mirrorX;
     bool mirrorY;
     bool invertColor;
-    int gapX;
-    int gapY;
     uint32_t bufferSize; // Size in pixel count. 0 means default, which is 1/10 of the screen size
     std::shared_ptr<tt::hal::touch::TouchDevice> touch;
     std::function<void(uint8_t)> _Nullable backlightDutyFunction;

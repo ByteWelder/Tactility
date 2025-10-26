@@ -7,7 +7,15 @@
 #include <Tactility/LogEsp.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 
-constexpr const char* TAG = "EspLcdDispV2";
+constexpr auto* TAG = "EspLcdDispV2";
+
+inline unsigned int getBufferSize(const std::shared_ptr<EspLcdConfiguration>& configuration) {
+    if (configuration->bufferSize != DEFAULT_BUFFER_SIZE) {
+        return configuration->bufferSize;
+    } else {
+        return configuration->horizontalResolution * (configuration->verticalResolution / 10);
+    }
+}
 
 EspLcdDisplayV2::~EspLcdDisplayV2() {
     if (displayDriver != nullptr && displayDriver.use_count() > 1) {
@@ -153,7 +161,7 @@ lvgl_port_display_cfg_t EspLcdDisplayV2::getLvglPortDisplayConfig(std::shared_pt
         .io_handle = ioHandle,
         .panel_handle = panelHandle,
         .control_handle = nullptr,
-        .buffer_size =  configuration->bufferSize ? configuration->bufferSize : (configuration->horizontalResolution * configuration->verticalResolution / 10),
+        .buffer_size = getBufferSize(configuration),
         .double_buffer = false,
         .trans_size = 0,
         .hres = configuration->horizontalResolution,

@@ -4,19 +4,19 @@
 
 std::shared_ptr<EspLcdConfiguration> St7789Display::createEspLcdConfiguration(const Configuration& configuration) {
     return std::make_shared<EspLcdConfiguration>(EspLcdConfiguration {
-        .horizontalResolution = 320,
-        .verticalResolution = 240,
+        .horizontalResolution = configuration.horizontalResolution,
+        .verticalResolution = configuration.verticalResolution,
+        .gapX = configuration.gapX,
+        .gapY = configuration.gapY,
         .monochrome = false,
         .swapXY = configuration.swapXY,
         .mirrorX = configuration.mirrorX,
         .mirrorY = configuration.mirrorY,
         .invertColor = configuration.invertColor,
-        .gapX = 0,
-        .gapY = 0,
-        .bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size
+        .bufferSize = configuration.bufferSize,
         .touch = configuration.touch,
         .backlightDutyFunction = configuration.backlightDutyFunction,
-        .resetPin = GPIO_NUM_NC,
+        .resetPin = configuration.resetPin
     });
 }
 
