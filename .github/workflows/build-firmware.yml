@@ -56,7 +56,20 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      - name: "Build"
+      - name: Update to latest commit
+        # ensure the build job uses the branch tip that prepare may have pushed
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          if [ -z "$BRANCH" ] || [ "$BRANCH" = "$GITHUB_REF" ]; then
+            BRANCH="main"
+          fi
+          echo "Fetching origin/${BRANCH} and resetting workspace to it..."
+          git fetch origin "${BRANCH}"
+          git reset --hard "origin/${BRANCH}"
+
+      - name: Build
         uses: ./.github/actions/build-firmware
         with:
           board_id: ${{ matrix.board.id }}
