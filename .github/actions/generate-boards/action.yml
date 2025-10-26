@@ -7,6 +7,14 @@ inputs:
     required: false
     default: 'false'
 
+outputs:
+  ran-generator:
+    description: "Whether the generator script was found and executed"
+    value: ${{ steps.run-generator.outputs.ran-generator }}
+  pushed:
+    description: "Whether changes were committed and pushed"
+    value: ${{ steps.commit-push.outputs.pushed }}
+
 runs:
   using: "composite"
   steps:
@@ -44,6 +52,7 @@ runs:
 
     - name: Commit & push generated files
       if: ${{ inputs.commit == 'true' }}
+      id: commit-push
       shell: bash
       run: |
         set -euo pipefail
@@ -64,13 +73,14 @@ runs:
           git add -A
           git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
 
-          # Determine branch name - fall back to main if GITHUB_REF not a branch ref
+          # Determine branch name, error if GITHUB_REF not a branch ref
           BRANCH="${GITHUB_REF#refs/heads/}"
           if [ -z "$BRANCH" ] || [ "$BRANCH" = "$GITHUB_REF" ]; then
-            BRANCH="main"
+            echo "ERROR: Could not determine branch from GITHUB_REF=${GITHUB_REF}" >&2
+            exit 1
           fi
 
-          # Push using persisted checkout credentials (persist-credentials: true on checkout)
+          # Push using persisted checkout credentials
           git push origin "HEAD:$BRANCH"
           echo "pushed=true" >> $GITHUB_OUTPUT
         else
