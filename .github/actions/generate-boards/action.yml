@@ -73,11 +73,10 @@ runs:
           git add -A
           git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
 
-          # Determine branch name, error if GITHUB_REF not a branch ref
+          # Determine branch name - fall back to main if GITHUB_REF not a branch ref
           BRANCH="${GITHUB_REF#refs/heads/}"
           if [ -z "$BRANCH" ] || [ "$BRANCH" = "$GITHUB_REF" ]; then
-            echo "ERROR: Could not determine branch from GITHUB_REF=${GITHUB_REF}" >&2
-            exit 1
+            BRANCH="main"
           fi
 
           # Push using persisted checkout credentials
