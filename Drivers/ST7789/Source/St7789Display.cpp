@@ -18,7 +18,9 @@ std::shared_ptr<EspLcdConfiguration> St7789Display::createEspLcdConfiguration(co
         .backlightDutyFunction = configuration.backlightDutyFunction,
         .resetPin = configuration.resetPin,
         .lvglColorFormat = LV_COLOR_FORMAT_RGB565,
-        .lvglSwapBytes = false
+        .lvglSwapBytes = false,
+        .rgbElementOrder = configuration.rgbElementOrder,
+        .bitsPerPixel = configuration.bitsPerPixel,
     });
 }
 
@@ -27,7 +29,7 @@ esp_lcd_panel_dev_config_t St7789Display::createPanelConfig(std::shared_ptr<EspL
         .reset_gpio_num = resetPin,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
-        .bits_per_pixel = 16,
+        .bits_per_pixel = espLcdConfiguration->bitsPerPixel,
         .flags = {
             .reset_active_high = false
         },

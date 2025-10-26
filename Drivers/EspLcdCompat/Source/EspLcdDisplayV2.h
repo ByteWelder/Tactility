@@ -26,6 +26,8 @@ struct EspLcdConfiguration {
     gpio_num_t resetPin;
     lv_color_format_t lvglColorFormat;
     bool lvglSwapBytes;
+    lcd_rgb_element_order_t rgbElementOrder;
+    uint32_t bitsPerPixel;
 };
 
 class EspLcdDisplayV2 : public tt::hal::display::DisplayDevice {
