@@ -32,7 +32,7 @@ static tt::hal::DeviceVector createDevices() {
     };
 }
 
-const tt::hal::Configuration cyd_2432s032c_config = {
+const tt::hal::Configuration cyd_2432S032c_config = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {
