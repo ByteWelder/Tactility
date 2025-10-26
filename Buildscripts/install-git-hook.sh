@@ -14,11 +14,18 @@ if [ -f Buildscripts/generate-boards.py ]; then
 fi
 
 # If generator changed files, add them so they are included in the commit.
-# Optionally you can abort instead of auto-adding.
-if ! git diff --quiet || git ls-files --others --exclude-standard | grep -q .; then
-    echo "Auto-staging generated files..."
-    git add -A
-fi
+# Only stage the specific generated files, not all changes.
+GENERATED_FILES=(
+    "Firmware/Kconfig"
+    "Firmware/Source/Boards.h"
+    "Buildscripts/board.cmake"
+)
+for file in "${GENERATED_FILES[@]}"; do
+    if [ -f "$file" ] && ! git diff --quiet -- "$file" 2>/dev/null; then
+        echo "Auto-staging generated file: $file"
+        git add "$file"
+    fi
+done
 HOOK
 
 chmod +x "${HOOK_FILE}"
