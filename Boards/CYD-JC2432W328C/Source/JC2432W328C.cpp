@@ -8,8 +8,6 @@
 
 using namespace tt::hal;
 
-#define CYD_SPI_TRANSFER_SIZE_LIMIT (JC2432W328C_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
-
 static bool initBoot() {
     //Set the RGB Led Pins to output and turn them off
     ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT)); //Red
@@ -21,7 +19,7 @@ static bool initBoot() {
     ESP_ERROR_CHECK(gpio_set_level(GPIO_NUM_16, 1)); //Green
     ESP_ERROR_CHECK(gpio_set_level(GPIO_NUM_17, 1)); //Blue
 
-    return driver::pwmbacklight::init(JC2432W328C_LCD_PIN_BACKLIGHT);
+    return driver::pwmbacklight::init(LCD_PIN_BACKLIGHT);
 }
 
 static DeviceVector createDevices() {
@@ -88,7 +86,7 @@ const Configuration cyd_jc2432w328c_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CYD_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

@@ -5,15 +5,9 @@
 #include <PwmBacklight.h>
 #include <Tactility/lvgl/LvglSync.h>
 
-#define SPI_TRANSFER_SIZE_LIMIT (LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
-
 using namespace tt::hal;
 
-constexpr auto* TAG = "StickCPlus2";
-
 bool initBoot() {
-    TT_LOG_I(TAG, "initBoot");
-
     // CH552 applies 4 V to GPIO 0, which reduces Wi-Fi sensitivity
     // Setting output to high adds a bias of 3.3 V and suppresses over-voltage:
     gpio::configure(0, gpio::Mode::Output, false, false);
@@ -87,7 +81,7 @@ extern const Configuration m5stack_stickc_plus2 = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

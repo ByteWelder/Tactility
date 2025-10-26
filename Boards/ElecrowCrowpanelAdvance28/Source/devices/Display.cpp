@@ -8,8 +8,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     // Note for future changes: Reset pin is 48 and interrupt pin is 47
     auto configuration = std::make_unique<Ft5x06Touch::Configuration>(
         I2C_NUM_0,
-        240,
-        320,
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION,
         false,
         false,
         false
@@ -19,23 +19,28 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    St7789Display::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = false,
+        .mirrorY = false,
+        .invertColor = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC
+    };
 
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        CROWPANEL_LCD_SPI_HOST,
-        CROWPANEL_LCD_PIN_CS,
-        CROWPANEL_LCD_PIN_DC,
-        240,
-        320,
-        touch,
-        false,
-        false,
-        false,
-        true
-    );
+    auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 80'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<St7789Display>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<St7789Display>(panel_configuration, spi_configuration);
 }

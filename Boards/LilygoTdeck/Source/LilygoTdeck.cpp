@@ -6,8 +6,6 @@
 #include "devices/Sdcard.h"
 #include "devices/TdeckKeyboard.h"
 
-#define TDECK_SPI_TRANSFER_SIZE_LIMIT (320 * 240 * (LV_COLOR_DEPTH / 8))
-
 bool initBoot();
 
 using namespace tt::hal;
@@ -75,7 +73,7 @@ extern const Configuration lilygo_tdeck = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = TDECK_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

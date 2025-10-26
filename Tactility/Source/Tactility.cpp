@@ -233,6 +233,38 @@ static void registerAndStartPrimaryServices() {
 #endif
 }
 
+void createTempDirectory(const std::string& rootPath) {
+    auto temp_path = std::format("{}/tmp", rootPath);
+    if (!file::isDirectory(temp_path)) {
+        auto lock = file::getLock(rootPath)->asScopedLock();
+        if (lock.lock(1000 / portTICK_PERIOD_MS)) {
+            if (mkdir(temp_path.c_str(), 0777) == 0) {
+                TT_LOG_I(TAG, "Created %s", temp_path.c_str());
+            } else {
+                TT_LOG_E(TAG, "Failed to create %s", temp_path.c_str());
+            }
+        } else {
+            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, rootPath.c_str());
+        }
+    } else {
+        TT_LOG_I(TAG, "Found existing %s", temp_path.c_str());
+    }
+}
+
+void prepareFileSystems() {
+    // Temporary directories for SD cards
+    auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
+    for (const auto& sdcard : sdcard_devices) {
+        if (sdcard->isMounted()) {
+            createTempDirectory(sdcard->getMountPath());
+        }
+    }
+    // Temporary directory for /data
+    if (file::isDirectory(file::MOUNT_POINT_DATA)) {
+        createTempDirectory(file::MOUNT_POINT_DATA);
+    }
+}
+
 void registerApps() {
     registerInternalApps();
     auto data_apps_path = std::format("{}/apps", file::MOUNT_POINT_DATA);
