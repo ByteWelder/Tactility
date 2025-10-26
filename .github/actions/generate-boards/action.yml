@@ -1,19 +1,5 @@
 name: "Generate boards"
-description: "Run generate_boards.py, commit and push generated files if changed."
-
-inputs:
-  commit:
-    description: "If 'true', commit and push generated changes back to the repository."
-    required: false
-    default: 'false'
-
-outputs:
-  ran-generator:
-    description: "Whether the generator script was found and executed"
-    value: ${{ steps.run-generator.outputs.ran-generator }}
-  pushed:
-    description: "Whether changes were committed and pushed"
-    value: ${{ steps.commit-push.outputs.pushed }}
+description: "Run Buildscripts/generate_boards.py, print results."
 
 runs:
   using: "composite"
@@ -48,44 +34,4 @@ runs:
           echo "ran-generator=true" >> $GITHUB_OUTPUT
         else
           echo "ran-generator=false" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Commit & push generated files
-      if: ${{ inputs.commit == 'true' }}
-      id: commit-push
-      shell: bash
-      run: |
-        set -euo pipefail
-        # Detect any changes (staged/unstaged/untracked)
-        CHANGED=false
-        if ! git diff --quiet 2>/dev/null; then
-          CHANGED=true
-        fi
-        if [ "$CHANGED" = "false" ]; then
-          if git ls-files --others --exclude-standard --directory --no-empty-directory | grep -q .; then
-            CHANGED=true
-          fi
-        fi
-
-        if [ "$CHANGED" = "true" ]; then
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Auto-generated board files from Buildscripts/boards.json [ci skip]" || true
-
-          # Determine branch name, error if GITHUB_REF not a branch ref
-          BRANCH="${GITHUB_REF#refs/heads/}"
-          if [ -z "$BRANCH" ] || [ "$BRANCH" = "$GITHUB_REF" ]; then
-            echo "ERROR: Could not determine branch from GITHUB_REF=${GITHUB_REF}" >&2
-            exit 1
-          fi
-
-          # Push using persisted checkout credentials
-          if ! git push origin "HEAD:$BRANCH"; then
-            echo "ERROR: Failed to push changes to branch '$BRANCH'" >&2
-            exit 1
-          fi
-          echo "pushed=true" >> $GITHUB_OUTPUT
-        else
-          echo "pushed=false" >> $GITHUB_OUTPUT
         fi
