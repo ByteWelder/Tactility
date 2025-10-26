@@ -218,6 +218,9 @@ SECONDS=0
         lines.append(f'build {sdk}')
         lines.append(f'release {sdk}\n')
     footer = '''
+releaseSdk release/TactilitySDK-esp32
+releaseSdk release/TactilitySDK-esp32s3
+
 duration=$SECONDS
 
 echo "Finished in $((duration / 60)) minutes and $((duration % 60)) seconds."
