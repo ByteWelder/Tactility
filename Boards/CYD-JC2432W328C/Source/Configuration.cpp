@@ -28,7 +28,7 @@ static DeviceVector createDevices() {
     };
 }
 
-const Configuration hardwareConfiguration = {
+extern const Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {
