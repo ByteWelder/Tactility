@@ -11,23 +11,14 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
         TOUCH_MISO_PIN,
         TOUCH_SCK_PIN,
         TOUCH_CS_PIN,
-        LCD_HORIZONTAL_RESOLUTION, // 240
-        LCD_VERTICAL_RESOLUTION, // 320
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION,
         false, // swapXY
         true, // mirrorX
         false // mirrorY
     );
 
-    // Allocate the driver
-    auto touch = std::make_shared<Xpt2046SoftSpi>(std::move(configuration));
-    
-    // Start the driver
-    if (!touch->start()) {
-        ESP_LOGE(TAG, "Touch driver start failed");
-        return nullptr;
-    }
-
-    return touch;
+    return std::make_shared<Xpt2046SoftSpi>(std::move(configuration));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
@@ -50,7 +41,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .spiHostDevice = LCD_SPI_HOST,
         .csPin = LCD_PIN_CS,
         .dcPin = LCD_PIN_DC,
-        .pixelClockFrequency = 80'000'000,
+        .pixelClockFrequency = 62'500'000,
         .transactionQueueDepth = 10
     });
 

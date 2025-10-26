@@ -37,7 +37,7 @@ static std::vector<std::shared_ptr<Device>> createDevices() {
     };
 }
 
-extern const Configuration hardware = {
+extern const Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {

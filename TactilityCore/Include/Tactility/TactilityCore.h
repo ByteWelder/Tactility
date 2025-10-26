@@ -4,7 +4,6 @@
 
 #include "Check.h"
 #include "CoreDefines.h"
-#include "CoreExtraDefines.h"
 #include "EventFlag.h"
 #include "kernel/Kernel.h"
 #include "kernel/critical/Critical.h"

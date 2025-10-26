@@ -1,107 +1,55 @@
 #pragma once
 
-#include <Tactility/hal/display/DisplayDevice.h>
-#include <Tactility/hal/spi/Spi.h>
-
-#include <EspLcdDisplay.h>
+#include <EspLcdSpiDisplay.h>
 
 #include <driver/gpio.h>
-#include <esp_lcd_panel_io.h>
-#include <esp_lcd_types.h>
 #include <functional>
 #include <lvgl.h>
 
-class Ili934xDisplay final : public EspLcdDisplay {
+class Ili934xDisplay final : public EspLcdSpiDisplay {
+
+    std::shared_ptr<tt::Lock> lock;
 
 public:
 
-    class Configuration {
-
-    public:
-
-        Configuration(
-            spi_host_device_t spiHostDevice,
-            gpio_num_t csPin,
-            gpio_num_t dcPin,
-            unsigned int horizontalResolution,
-            unsigned int verticalResolution,
-            std::shared_ptr<tt::hal::touch::TouchDevice> touch,
-            bool swapXY = false,
-            bool mirrorX = false,
-            bool mirrorY = false,
-            bool invertColor = false,
-            uint32_t bufferSize = 0, // Size in pixel count. 0 means default, which is 1/10 of the screen size,
-            lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
-        ) : spiHostDevice(spiHostDevice),
-            csPin(csPin),
-            dcPin(dcPin),
-            horizontalResolution(horizontalResolution),
-            verticalResolution(verticalResolution),
-            swapXY(swapXY),
-            mirrorX(mirrorX),
-            mirrorY(mirrorY),
-            invertColor(invertColor),
-            bufferSize(bufferSize),
-            rgbElementOrder(rgbElementOrder),
-            touch(std::move(touch)
-        ) {
-            if (this->bufferSize == 0) {
-                this->bufferSize = horizontalResolution * verticalResolution / 10;
-            }
-        }
-
-        spi_host_device_t spiHostDevice;
-        gpio_num_t csPin;
-        gpio_num_t dcPin;
-        gpio_num_t resetPin = GPIO_NUM_NC;
-        unsigned int pixelClockFrequency = 40'000'000; // Hertz
-        size_t transactionQueueDepth = 10;
+    /** Minimal set of overrides for EspLcdConfiguration */
+    struct Configuration {
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
-        bool swapXY = false;
-        bool mirrorX = false;
-        bool mirrorY = false;
-        bool invertColor = false;
-        uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is 1/10 of the screen size
-        lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR;
+        int gapX;
+        int gapY;
+        bool swapXY;
+        bool mirrorX;
+        bool mirrorY;
+        bool invertColor;
+        bool swapBytes;
+        uint32_t bufferSize; // Pixel count, not byte count. Set to 0 for default (1/10th of display size)
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        std::function<void(uint8_t)> _Nullable backlightDutyFunction = nullptr;
+        std::function<void(uint8_t)> _Nullable backlightDutyFunction;
+        gpio_num_t resetPin;
+        lcd_rgb_element_order_t rgbElementOrder;
     };
 
 private:
 
-    std::unique_ptr<Configuration> configuration;
+    static std::shared_ptr<EspLcdConfiguration> createEspLcdConfiguration(const Configuration& configuration);
 
-    bool createIoHandle(esp_lcd_panel_io_handle_t& outHandle) override;
+    esp_lcd_panel_dev_config_t createPanelConfig(std::shared_ptr<EspLcdConfiguration> espLcdConfiguration, gpio_num_t resetPin) override;
 
-    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t& panelHandle) override;
-
-    lvgl_port_display_cfg_t getLvglPortDisplayConfig(esp_lcd_panel_io_handle_t ioHandle, esp_lcd_panel_handle_t panelHandle) override;
+    bool createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_panel_dev_config_t& panelConfig, esp_lcd_panel_handle_t& panelHandle) override;
 
 public:
 
-    explicit Ili934xDisplay(std::unique_ptr<Configuration> inConfiguration) :
-        EspLcdDisplay(tt::hal::spi::getLock(inConfiguration->spiHostDevice)),
-        configuration(std::move(inConfiguration)
-    ) {
-        assert(configuration != nullptr);
+    explicit Ili934xDisplay(const Configuration& configuration, const std::shared_ptr<SpiConfiguration>& spiConfiguration, bool hasGammaCurves) :
+        EspLcdSpiDisplay(
+            createEspLcdConfiguration(configuration),
+            spiConfiguration,
+            (hasGammaCurves ? 4 : 0)
+        )
+    {
     }
 
     std::string getName() const override { return "ILI934x"; }
 
     std::string getDescription() const override { return "ILI934x display"; }
-
-    std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
-
-    void setBacklightDuty(uint8_t backlightDuty) override {
-        if (configuration->backlightDutyFunction != nullptr) {
-            configuration->backlightDutyFunction(backlightDuty);
-        }
-    }
-
-    bool supportsBacklightDuty() const override { return configuration->backlightDutyFunction != nullptr; }
-
-    void setGammaCurve(uint8_t index) override;
-
-    uint8_t getGammaCurveCount() const override { return 4; };
 };

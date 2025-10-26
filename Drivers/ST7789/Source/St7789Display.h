@@ -1,9 +1,6 @@
 #pragma once
 
-#include "Tactility/hal/spi/Spi.h"
-
 #include <EspLcdSpiDisplay.h>
-#include <Tactility/hal/display/DisplayDevice.h>
 
 #include <driver/gpio.h>
 #include <functional>

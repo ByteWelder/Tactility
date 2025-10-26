@@ -1,13 +1,17 @@
 #pragma once
 
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <driver/gpio.h>
+#include <driver/spi_common.h>
 
-#define CROWPANEL_LCD_SPI_HOST SPI2_HOST
-#define CROWPANEL_LCD_PIN_CS GPIO_NUM_15
-#define CROWPANEL_TOUCH_PIN_CS GPIO_NUM_33
-#define CROWPANEL_LCD_PIN_DC GPIO_NUM_2 // RS
-#define CROWPANEL_LCD_HORIZONTAL_RESOLUTION 320
-#define CROWPANEL_LCD_VERTICAL_RESOLUTION 240
-#define CROWPANEL_LCD_SPI_TRANSFER_HEIGHT (CROWPANEL_LCD_VERTICAL_RESOLUTION / 10)
+constexpr auto LCD_SPI_HOST = SPI2_HOST;
+constexpr auto LCD_PIN_CS = GPIO_NUM_15;
+constexpr auto TOUCH_PIN_CS = GPIO_NUM_33;
+constexpr auto LCD_PIN_DC = GPIO_NUM_2; // RS
+constexpr auto LCD_HORIZONTAL_RESOLUTION = 240;
+constexpr auto LCD_VERTICAL_RESOLUTION = 320;
+constexpr auto LCD_BUFFER_HEIGHT = LCD_VERTICAL_RESOLUTION / 10;
+constexpr auto LCD_BUFFER_SIZE = LCD_HORIZONTAL_RESOLUTION * LCD_BUFFER_HEIGHT;
+constexpr auto LCD_SPI_TRANSFER_SIZE_LIMIT = LCD_BUFFER_SIZE * LV_COLOR_DEPTH / 8;
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

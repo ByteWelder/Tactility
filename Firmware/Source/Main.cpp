@@ -1,11 +1,11 @@
-#include "Boards.h"
 #include <Tactility/Tactility.h>
 
 #ifdef ESP_PLATFORM
-#include "tt_init.h"
+#include <tt_init.h>
 #endif
 
-extern const tt::app::AppManifest hello_world_app;
+// Each board project declares this variable
+extern const tt::hal::Configuration hardwareConfiguration;
 
 extern "C" {
 
@@ -15,7 +15,7 @@ void app_main() {
          * Auto-select a board based on the ./sdkconfig.board.* file
          * that you copied to ./sdkconfig before you opened this project.
          */
-        .hardware = TT_BOARD_HARDWARE
+        .hardware = &hardwareConfiguration
     };
 
 #ifdef ESP_PLATFORM

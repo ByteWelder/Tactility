@@ -7,12 +7,12 @@
 
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto config = std::make_unique<Xpt2046SoftSpi::Configuration>(
-        CYD_TOUCH_MOSI_PIN,
-        CYD_TOUCH_MISO_PIN,
-        CYD_TOUCH_SCK_PIN,
-        CYD_TOUCH_CS_PIN,
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION,
-        CYD_DISPLAY_VERTICAL_RESOLUTION,
+        TOUCH_MOSI_PIN,
+        TOUCH_MISO_PIN,
+        TOUCH_SCK_PIN,
+        TOUCH_CS_PIN,
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION,
         false,
         true,
         false
@@ -22,20 +22,30 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
-        CYD_DISPLAY_SPI_HOST,
-        CYD_DISPLAY_PIN_CS,
-        CYD_DISPLAY_PIN_DC,
-        CYD_DISPLAY_HORIZONTAL_RESOLUTION,
-        CYD_DISPLAY_VERTICAL_RESOLUTION,
-        createTouch(),
-        false,
-        true,
-        false,
-        false,
-        0,
-        LCD_RGB_ELEMENT_ORDER_BGR
-    );
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-    return std::make_shared<Ili934xDisplay>(std::move(configuration));
+    Ili934xDisplay::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = true,
+        .mirrorY = false,
+        .invertColor = false,
+        .swapBytes = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
+    };
+
+    auto spi_configuration = std::make_shared<Ili934xDisplay::SpiConfiguration>(Ili934xDisplay::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
+
+    return std::make_shared<Ili934xDisplay>(panel_configuration, spi_configuration, true);
 }

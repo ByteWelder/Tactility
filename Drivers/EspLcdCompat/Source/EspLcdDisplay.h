@@ -1,14 +1,13 @@
 #pragma once
 
-#include "Tactility/Lock.h"
-
+#include <Tactility/Lock.h>
+#include <Tactility/Check.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 
 #include <esp_lcd_types.h>
 #include <esp_lvgl_port_disp.h>
-#include <Tactility/Check.h>
 
-class EspLcdDisplay : public tt::hal::display::DisplayDevice {
+class TT_DEPRECATED EspLcdDisplay : public tt::hal::display::DisplayDevice {
 
     esp_lcd_panel_io_handle_t _Nullable ioHandle = nullptr;
     esp_lcd_panel_handle_t _Nullable panelHandle = nullptr;

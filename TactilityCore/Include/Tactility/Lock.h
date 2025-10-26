@@ -4,7 +4,6 @@
 #include "RtosCompat.h"
 #include <memory>
 #include <functional>
-#include <algorithm>
 
 namespace tt {
 

@@ -1,13 +1,11 @@
 #include "Tactility/kernel/SystemEvents.h"
 
 #include <Tactility/Mutex.h>
-#include <Tactility/CoreExtraDefines.h>
-
 #include <list>
 
-#define TAG "system_event"
-
 namespace tt::kernel {
+
+constexpr auto* TAG = "SystemEvents";
 
 struct SubscriptionData {
     SystemEventSubscription id;

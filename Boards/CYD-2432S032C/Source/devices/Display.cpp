@@ -7,34 +7,38 @@
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Gt911Touch::Configuration>(
         I2C_NUM_0,
-        240,
-        320
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION
     );
 
     return std::make_shared<Gt911Touch>(std::move(configuration));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
+    Ili934xDisplay::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = true,
+        .mirrorX = true,
+        .mirrorY = true,
+        .invertColor = true,
+        .swapBytes = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB
+    };
 
-    auto touch = createTouch();
+    auto spi_configuration = std::make_shared<Ili934xDisplay::SpiConfiguration>(Ili934xDisplay::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
-        SPI2_HOST,
-        GPIO_NUM_15,
-        GPIO_NUM_2,
-        240,
-        320,
-        touch,
-        true,
-        true,
-        true,
-        true,
-        0,
-        LCD_RGB_ELEMENT_ORDER_RGB
-    );
-
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<Ili934xDisplay>(panel_configuration, spi_configuration, true);
 }

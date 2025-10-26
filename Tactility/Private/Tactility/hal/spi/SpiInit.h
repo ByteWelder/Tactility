@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Tactility/hal/spi/Spi.h"
+#include <Tactility/hal/spi/Spi.h>
 
 #include <vector>
 #include <memory>
@@ -12,6 +12,6 @@ namespace tt::hal::spi {
  * @param[in] configurations HAL configuration for a board
  * @return true on success
  */
-bool init(const std::vector<spi::Configuration>& configurations);
+bool init(const std::vector<Configuration>& configurations);
 
 }

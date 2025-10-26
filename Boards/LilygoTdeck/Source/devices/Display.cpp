@@ -38,7 +38,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .spiHostDevice = LCD_SPI_HOST,
         .csPin = LCD_PIN_CS,
         .dcPin = LCD_PIN_DC,
-        .pixelClockFrequency = 80'000'000,
+        .pixelClockFrequency = 62'500'000,
         .transactionQueueDepth = 10
     });
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "CoreExtraDefines.h"
-
 #define TT_UNUSED __attribute__((unused))
+
+#define TT_STRINGIFY(x) #x
 
 // region Variable arguments support
 
@@ -17,3 +17,12 @@
 #define _TT_ARGCOUNT4(X,...) _TT_ARGCOUNT ## __VA_OPT__(5(__VA_ARGS__) TT_ARG_IGNORE) (4)
 #define _TT_ARGCOUNT5(X,...) 5
 #define _TT_ARGCOUNT(X) X
+
+#if defined(__GNUC__) || defined(__clang__)
+#define TT_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+#define TT_DEPRECATED __declspec(deprecated)
+#else
+#pragma message("WARNING: TT_DEPRECATED is not implemented for this compiler")
+#define TT_DEPRECATED
+#endif

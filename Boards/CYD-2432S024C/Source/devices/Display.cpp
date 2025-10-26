@@ -16,21 +16,30 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
+    Ili934xDisplay::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = true,
+        .mirrorY = false,
+        .invertColor = false,
+        .swapBytes = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
+    };
 
-    auto touch = createTouch();
+    auto spi_configuration = std::make_shared<Ili934xDisplay::SpiConfiguration>(Ili934xDisplay::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
-        TWODOTFOUR_LCD_SPI_HOST,
-        TWODOTFOUR_LCD_PIN_CS,
-        TWODOTFOUR_LCD_PIN_DC,
-        TWODOTFOUR_LCD_HORIZONTAL_RESOLUTION,
-        TWODOTFOUR_LCD_VERTICAL_RESOLUTION,
-        touch
-    );
-
-    configuration->mirrorX = true;
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<Ili934xDisplay>(panel_configuration, spi_configuration, true);
 }

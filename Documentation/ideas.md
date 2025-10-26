@@ -2,11 +2,11 @@
 
 ## Before release
 
-- Make better esp_lcd driver (and test all devices)
-- AppInstall.cpp fails to untar large files on Cardputer (EFF large word list doesn't fit in memory). Make a buffered reader & writer.
+- Convert Ili934x driver to EspLcdSpiDisplay
 
 ## Higher Priority
 
+- Logging with a function that uses std::format
 - Calculator bugs (see GitHub issue)
 - Expose http::download() and main dispatcher to TactiltyC.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
@@ -22,6 +22,7 @@
   The latter is used for auto-selecting it as data partition.
 - Support direct installation of an `.app` file with `tactility.py install helloworld.app <ip>`
 - Support `tactility.py target <ip>` to remember the device IP address.
+- minitar/untarFile(): "entry->metadata.path" can escape its confined path (e.g. "../something")
 
 ## Medium Priority
 
