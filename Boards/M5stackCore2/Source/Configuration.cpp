@@ -1,4 +1,3 @@
-#include "M5stackCore2.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 #include "devices/Power.h"

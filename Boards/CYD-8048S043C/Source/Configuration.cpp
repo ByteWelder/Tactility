@@ -1,4 +1,3 @@
-#include "CYD8048S043C.h" // Don't remove, or we get a linker error ("undefined reference to `cyd_8048s043c_config'" - GCC bug?)
 #include "PwmBacklight.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"

@@ -1,4 +1,3 @@
-#include "CYD2432S028RV3.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 #include <Tactility/lvgl/LvglSync.h>

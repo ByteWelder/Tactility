@@ -1,4 +1,3 @@
-#include "JC2432W328C.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 

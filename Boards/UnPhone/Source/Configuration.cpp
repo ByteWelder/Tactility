@@ -1,9 +1,10 @@
-#include "Tactility/lvgl/LvglSync.h"
 #include "UnPhoneFeatures.h"
-#include "Xpt2046Power.h"
 #include "devices/Hx8357Display.h"
 #include "devices/SdCard.h"
+
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/Configuration.h>
+#include <Xpt2046Power.h>
 
 #define UNPHONE_SPI_TRANSFER_SIZE_LIMIT (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_SPI_TRANSFER_HEIGHT * LV_COLOR_DEPTH / 8)
 

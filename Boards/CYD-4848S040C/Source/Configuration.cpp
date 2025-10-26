@@ -1,5 +1,3 @@
-#include "CYD4848S040C.h"
-
 #include "Tactility/kernel/SystemEvents.h"
 #include "Tactility/lvgl/LvglSync.h"
 #include "devices/St7701Display.h"

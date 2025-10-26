@@ -1,10 +1,8 @@
-#include "CYD2432S028R.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 #include <Tactility/hal/Configuration.h>
-
 
 using namespace tt::hal;
 

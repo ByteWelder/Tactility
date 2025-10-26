@@ -1,4 +1,3 @@
-#include "M5stackCardputer.h"
 #include "InitBoot.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"

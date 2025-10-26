@@ -1,4 +1,3 @@
-#include "Tactility/lvgl/LvglSync.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 #include "devices/TpagerEncoder.h"
@@ -8,6 +7,7 @@
 #include <Bq25896.h>
 #include <Drv2605.h>
 #include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #define TPAGER_SPI_TRANSFER_SIZE_LIMIT (480 * 222 * (LV_COLOR_DEPTH / 8))
 

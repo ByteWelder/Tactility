@@ -1,4 +1,3 @@
-#include "M5StackStickCPlus2.h"
 #include "devices/Display.h"
 
 #include <ButtonControl.h>

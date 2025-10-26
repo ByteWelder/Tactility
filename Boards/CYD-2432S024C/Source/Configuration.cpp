@@ -1,4 +1,3 @@
-#include "CYD2432S024C.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
