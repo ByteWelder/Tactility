@@ -100,11 +100,7 @@ class BootApp : public App {
         // TODO: Support for multiple displays
         TT_LOG_I(TAG, "Setup display");
         setupDisplay(); // Set backlight
-
-        // This event will likely block as other systems are initialized
-        // e.g. Wi-Fi reads AP configs from SD card
-        TT_LOG_I(TAG, "Publish event");
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        prepareFileSystems();
 
         if (!setupUsbBootMode()) {
             TT_LOG_I(TAG, "initFromBootApp");
@@ -113,6 +109,11 @@ class BootApp : public App {
             stop(manifest.appId);
             startNextApp();
         }
+
+        // This event will likely block as other systems are initialized
+        // e.g. Wi-Fi reads AP configs from SD card
+        TT_LOG_I(TAG, "Publish event");
+        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
         return 0;
     }
