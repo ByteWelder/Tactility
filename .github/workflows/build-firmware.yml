@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - CYD-E32R32P-only
   pull_request:
     types: [ opened, synchronize, reopened ]
 
@@ -17,6 +18,7 @@ jobs:
           { id: cyd-2432s028r, arch: esp32 },
           { id: cyd-2432s028rv3, arch: esp32 },
           { id: cyd-e32r28t, arch: esp32 },
+          { id: cyd-e32r32p, arch: esp32 },
           { id: cyd-2432s032c, arch: esp32 },
           { id: cyd-jc2432w328c, arch: esp32 },
           { id: cyd-8048s043c, arch: esp32s3 },

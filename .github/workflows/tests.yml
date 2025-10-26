@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - CYD-E32R32P-only
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:

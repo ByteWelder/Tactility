@@ -1,0 +1,25 @@
+#pragma once
+
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <memory>
+
+// Display (ST7789P3 on this board)
+#define CYD_DISPLAY_SPI_HOST SPI2_HOST
+#define CYD_DISPLAY_PIN_CS GPIO_NUM_15
+#define CYD_DISPLAY_PIN_DC GPIO_NUM_2
+#define CYD_DISPLAY_HORIZONTAL_RESOLUTION 240
+#define CYD_DISPLAY_VERTICAL_RESOLUTION 320
+#define CYD_DISPLAY_DRAW_BUFFER_HEIGHT (CYD_DISPLAY_VERTICAL_RESOLUTION / 10)
+#define CYD_DISPLAY_DRAW_BUFFER_SIZE (CYD_DISPLAY_HORIZONTAL_RESOLUTION * CYD_DISPLAY_DRAW_BUFFER_HEIGHT)
+
+// Touch (XPT2046, resistive, shared SPI with display)
+#define CYD_TOUCH_MISO_PIN GPIO_NUM_12
+#define CYD_TOUCH_MOSI_PIN GPIO_NUM_13
+#define CYD_TOUCH_SCK_PIN  GPIO_NUM_14
+#define CYD_TOUCH_CS_PIN   GPIO_NUM_33
+#define CYD_TOUCH_IRQ_PIN  GPIO_NUM_36
+
+// Backlight
+#define CYD_BACKLIGHT_PIN GPIO_NUM_27
+
+std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
