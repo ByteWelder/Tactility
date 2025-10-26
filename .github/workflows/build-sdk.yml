@@ -27,6 +27,7 @@ jobs:
         # action will run the generator and push changes if there are any.
 
   build:
+    needs: prepare
     strategy:
       matrix:
         board: [
