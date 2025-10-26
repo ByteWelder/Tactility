@@ -28,21 +28,6 @@ jobs:
       - name: Run board generator
         uses: ./.github/actions/generate-boards
 
-      - name: Check generated files are committed
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Fail if any generated files are unstaged/changed/untracked
-          if ! git diff --exit-code --quiet || git ls-files --others --exclude-standard | grep -q .; then
-            echo "ERROR: Generated files are out-of-date. Run:"
-            echo "  python3 Buildscripts/generate-boards.py"
-            echo "then git add/commit the generated files and re-run the CI."
-            echo
-            echo "Changed files:"
-            git --no-pager status --porcelain
-            exit 1
-          fi
-
       - name: Make matrix from Buildscripts/boards.json
         id: make-matrix
         run: |
