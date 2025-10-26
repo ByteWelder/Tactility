@@ -8,7 +8,7 @@ on:
     types: [ opened, synchronize, reopened ]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   prepare:
@@ -39,7 +39,10 @@ jobs:
           sudo apt-get update -y
           sudo apt-get install -y jq
           # Build matrix: each element contains id and arch (fallback arch if not specified)
-          MATRIX=$(jq -c '[.[] | {id: .id, arch: (.arch // "esp32s3")}]' "Buildscripts/boards.json")
+          if ! MATRIX=$(jq -c '[.[] | {id: .id, arch: (.arch // "esp32s3")}]' "Buildscripts/boards.json" 2>&1); then
+            echo "ERROR: Failed to parse boards.json: ${MATRIX}" >&2
+            exit 1
+          fi
           echo "matrix=${MATRIX}" >> "$GITHUB_OUTPUT"
 
   build:
