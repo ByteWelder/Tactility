@@ -30,7 +30,7 @@ runs:
       run: |
         set -euo pipefail
         if [ -f Buildscripts/generate-boards.py ]; then
-          python3 Buildscripts/generate-boards.py --list-changed
+          python3 Buildscripts/generate-boards.py
           echo "ran-generator=true" >> $GITHUB_OUTPUT
         else
           echo "ran-generator=false" >> $GITHUB_OUTPUT
