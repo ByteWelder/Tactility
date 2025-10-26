@@ -33,7 +33,7 @@ jobs:
           # Fail if any generated files are unstaged/changed/untracked
           if ! git diff --exit-code --quiet || git ls-files --others --exclude-standard | grep -q .; then
             echo "ERROR: Generated files are out-of-date. Run:"
-            echo "  python3 Buildscripts/generate_boards.py"
+            echo "  python3 Buildscripts/generate-boards.py"
             echo "then git add/commit the generated files and re-run the CI."
             echo
             echo "Changed files:"
