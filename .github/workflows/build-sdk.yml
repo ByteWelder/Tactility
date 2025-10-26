@@ -10,6 +10,22 @@ on:
 permissions: read-all
 
 jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Run board generator and commit changes (action)
+        uses: ./.github/actions/generate-boards
+        with:
+          commit: 'true'
+        # action will run the generator and push changes if there are any.
+
   build:
     strategy:
       matrix:

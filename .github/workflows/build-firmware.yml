@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   prepare:
-    name: Prepare (generate files, commit if changed, build matrix)
+    name: Prepare
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.make-matrix.outputs.matrix }}
@@ -45,7 +45,7 @@ jobs:
           echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
 
   build:
-    name: Build (per-board)
+    name: Build Firmware
     needs: prepare
     runs-on: ubuntu-latest
     strategy:
