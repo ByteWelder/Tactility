@@ -3,52 +3,47 @@
 #include <Ili934xDisplay.h>
 #include <PwmBacklight.h>
 
-constexpr auto* TAG = "CYD";
-
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Xpt2046SoftSpi::Configuration>(
-        CYD_TOUCH_MOSI_PIN,
-        CYD_TOUCH_MISO_PIN,
-        CYD_TOUCH_SCK_PIN,
-        CYD_TOUCH_CS_PIN,
-        CYD2432S028R_LCD_HORIZONTAL_RESOLUTION, // 240
-        CYD2432S028R_LCD_VERTICAL_RESOLUTION, // 320
+        TOUCH_MOSI_PIN,
+        TOUCH_MISO_PIN,
+        TOUCH_SCK_PIN,
+        TOUCH_CS_PIN,
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION,
         false, // swapXY
         true, // mirrorX
         false // mirrorY
     );
 
-    // Allocate the driver
-    auto touch = std::make_shared<Xpt2046SoftSpi>(std::move(configuration));
-    
-    // Start the driver
-    if (!touch->start()) {
-        ESP_LOGE(TAG, "Touch driver start failed");
-        return nullptr;
-    }
-
-    return touch;
+    return std::make_shared<Xpt2046SoftSpi>(std::move(configuration));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    Ili934xDisplay::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = true,
+        .mirrorY = false,
+        .invertColor = false,
+        .swapBytes = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
+    };
 
-    auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
-        CYD2432S028R_LCD_SPI_HOST,
-        CYD2432S028R_LCD_PIN_CS,
-        CYD2432S028R_LCD_PIN_DC,
-        CYD2432S028R_LCD_HORIZONTAL_RESOLUTION,
-        CYD2432S028R_LCD_VERTICAL_RESOLUTION,
-        touch,
-        false, // swapXY
-        true, // mirrorX
-        false, // mirrorY
-        false,
-        CYD2432S028R_LCD_DRAW_BUFFER_SIZE
-    );
+    auto spi_configuration = std::make_shared<Ili934xDisplay::SpiConfiguration>(Ili934xDisplay::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<Ili934xDisplay>(panel_configuration, spi_configuration, true);
 }

@@ -4,10 +4,8 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 
-#define CYD_SPI_TRANSFER_SIZE_LIMIT (240 * 320 / 4 * 2)
-
 static bool initBoot() {
-    return driver::pwmbacklight::init(CYD_BACKLIGHT_PIN);
+    return driver::pwmbacklight::init(LCD_BACKLIGHT_PIN);
 }
 
 static tt::hal::DeviceVector createDevices() {
@@ -36,7 +34,7 @@ const tt::hal::Configuration cyd_e32r28t_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CYD_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
@@ -59,7 +57,7 @@ const tt::hal::Configuration cyd_e32r28t_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CYD_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = 0,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

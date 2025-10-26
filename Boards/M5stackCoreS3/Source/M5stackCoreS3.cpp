@@ -7,8 +7,6 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/uart/Uart.h>
 
-#define CORES3_TRANSACTION_SIZE (CORES3_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
-
 using namespace tt::hal;
 
 static DeviceVector createDevices() {
@@ -109,7 +107,7 @@ const Configuration m5stack_cores3 = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CORES3_TRANSACTION_SIZE,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

@@ -3,17 +3,11 @@
 #include "devices/SdCard.h"
 #include "devices/Power.h"
 
-#include <lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
-
-#define CORE2_SPI_TRANSFER_SIZE_LIMIT (CORE2_LCD_DRAW_BUFFER_SIZE * LV_COLOR_DEPTH / 8)
 
 using namespace tt::hal;
 
-constexpr auto* TAG = "Core2";
-
 bool initBoot() {
-    TT_LOG_I(TAG, "initBoot");
     return initAxp();
 }
 
@@ -79,7 +73,7 @@ extern const Configuration m5stack_core2 = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = CORE2_SPI_TRANSFER_SIZE_LIMIT,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

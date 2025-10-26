@@ -1,16 +1,26 @@
 #include "CYD2432S032C.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #include <PwmBacklight.h>
 
 bool initBoot() {
-    if (!driver::pwmbacklight::init(GPIO_NUM_27)) {
+    if (!driver::pwmbacklight::init(LCD_PIN_BACKLIGHT)) {
         return false;
     }
+
+    // Set the RGB LED Pins to output and turn them off
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT)); // Red
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_16, GPIO_MODE_OUTPUT)); // Green
+    ESP_ERROR_CHECK(gpio_set_direction(GPIO_NUM_17, GPIO_MODE_OUTPUT)); // Blue
+
+    // 0 on, 1 off
+    ESP_ERROR_CHECK(gpio_set_level(GPIO_NUM_4, 1)); // Red
+    ESP_ERROR_CHECK(gpio_set_level(GPIO_NUM_16, 1)); // Green
+    ESP_ERROR_CHECK(gpio_set_level(GPIO_NUM_17, 1)); // Blue
 
     // This display has a weird glitch with gamma during boot, which results in uneven dark gray colours.
     // Setting gamma curve index to 0 doesn't work at boot for an unknown reason, so we set the curve index to 1:
@@ -55,6 +65,7 @@ const tt::hal::Configuration cyd_2432S032c_config = {
         }
     },
     .spi {
+        // Display
         tt::hal::spi::Configuration {
             .device = SPI2_HOST,
             .dma = SPI_DMA_CH_AUTO,
@@ -69,7 +80,7 @@ const tt::hal::Configuration cyd_2432S032c_config = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = 0,
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0
@@ -78,6 +89,7 @@ const tt::hal::Configuration cyd_2432S032c_config = {
             .isMutable = false,
             .lock = tt::lvgl::getSyncLock() // esp_lvgl_port owns the lock for the display
         },
+        // SD card
         tt::hal::spi::Configuration {
             .device = SPI3_HOST,
             .dma = SPI_DMA_CH_AUTO,
