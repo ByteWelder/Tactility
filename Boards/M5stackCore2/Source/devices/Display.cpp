@@ -7,8 +7,8 @@ std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Ft6x36Touch::Configuration>(
         I2C_NUM_0,
         GPIO_NUM_39,
-        CORE2_LCD_HORIZONTAL_RESOLUTION,
-        CORE2_LCD_VERTICAL_RESOLUTION
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION
     );
 
     auto touch = std::make_shared<Ft6x36Touch>(std::move(configuration));
@@ -16,21 +16,30 @@ std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    Ili934xDisplay::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = false,
+        .mirrorY = false,
+        .invertColor = true,
+        .swapBytes = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = nullptr,
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR
+    };
 
-    auto configuration = std::make_unique<Ili934xDisplay::Configuration>(
-        CORE2_LCD_SPI_HOST,
-        CORE2_LCD_PIN_CS,
-        CORE2_LCD_PIN_DC,
-        CORE2_LCD_HORIZONTAL_RESOLUTION,
-        CORE2_LCD_VERTICAL_RESOLUTION,
-        touch,
-        false,
-        false,
-        false,
-        true
-    );
+    auto spi_configuration = std::make_shared<Ili934xDisplay::SpiConfiguration>(Ili934xDisplay::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    auto display = std::make_shared<Ili934xDisplay>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<Ili934xDisplay>(panel_configuration, spi_configuration, true);
 }

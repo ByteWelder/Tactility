@@ -23,7 +23,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .spiHostDevice = SPI2_HOST,
         .csPin = GPIO_NUM_39,
         .dcPin = GPIO_NUM_38,
-        .pixelClockFrequency = 80'000'000,
+        .pixelClockFrequency = 62'500'000,
         .transactionQueueDepth = 10
     });
 
