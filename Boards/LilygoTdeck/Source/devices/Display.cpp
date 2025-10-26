@@ -42,6 +42,5 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .transactionQueueDepth = 10
     });
 
-    auto display = std::make_shared<St7789Display>(panel_configuration, spi_configuration);
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<St7789Display>(panel_configuration, spi_configuration);
 }

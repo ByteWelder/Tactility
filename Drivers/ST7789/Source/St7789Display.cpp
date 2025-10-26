@@ -16,7 +16,9 @@ std::shared_ptr<EspLcdConfiguration> St7789Display::createEspLcdConfiguration(co
         .bufferSize = configuration.bufferSize,
         .touch = configuration.touch,
         .backlightDutyFunction = configuration.backlightDutyFunction,
-        .resetPin = configuration.resetPin
+        .resetPin = configuration.resetPin,
+        .lvglColorFormat = LV_COLOR_FORMAT_RGB565,
+        .lvglSwapBytes = false
     });
 }
 

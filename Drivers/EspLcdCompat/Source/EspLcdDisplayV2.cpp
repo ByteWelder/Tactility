@@ -172,12 +172,12 @@ lvgl_port_display_cfg_t EspLcdDisplayV2::getLvglPortDisplayConfig(std::shared_pt
             .mirror_x = configuration->mirrorX,
             .mirror_y = configuration->mirrorY,
         },
-        .color_format = LV_COLOR_FORMAT_RGB565,
+        .color_format = configuration->lvglColorFormat,
         .flags = {
             .buff_dma = 1,
             .buff_spiram = 0,
             .sw_rotate = 0,
-            .swap_bytes = 0,
+            .swap_bytes = configuration->lvglSwapBytes,
             .full_refresh = 0,
             .direct_mode = 0
         }
@@ -188,12 +188,13 @@ std::shared_ptr<tt::hal::display::DisplayDriver> EspLcdDisplayV2::getDisplayDriv
     assert(lvglDisplay == nullptr); // Still attached to LVGL context. Call stopLvgl() first.
     if (displayDriver == nullptr) {
         auto lvgl_port_config  = getLvglPortDisplayConfig(configuration, ioHandle, panelHandle);
+        auto panel_config = createPanelConfig(configuration, GPIO_NUM_NC);
 
         tt::hal::display::ColorFormat color_format;
         if (lvgl_port_config.color_format == LV_COLOR_FORMAT_I1) {
             color_format = tt::hal::display::ColorFormat::Monochrome;
         } else if (lvgl_port_config.color_format == LV_COLOR_FORMAT_RGB565) {
-            if (rgbElementOrder == LCD_RGB_ELEMENT_ORDER_RGB) {
+            if (panel_config.rgb_ele_order == LCD_RGB_ELEMENT_ORDER_RGB) {
                 if (lvgl_port_config.flags.swap_bytes) {
                     color_format = tt::hal::display::ColorFormat::RGB565Swapped;
                 } else {

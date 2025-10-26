@@ -260,7 +260,9 @@ void prepareFileSystems() {
         }
     }
     // Temporary directory for /data
-    createTempDirectory(file::MOUNT_POINT_DATA);
+    if (file::isDirectory(file::MOUNT_POINT_DATA)) {
+        createTempDirectory(file::MOUNT_POINT_DATA);
+    }
 }
 
 void registerApps() {

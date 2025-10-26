@@ -24,6 +24,8 @@ struct EspLcdConfiguration {
     std::shared_ptr<tt::hal::touch::TouchDevice> touch;
     std::function<void(uint8_t)> _Nullable backlightDutyFunction;
     gpio_num_t resetPin;
+    lv_color_format_t lvglColorFormat;
+    bool lvglSwapBytes;
 };
 
 class EspLcdDisplayV2 : public tt::hal::display::DisplayDevice {
@@ -33,7 +35,6 @@ class EspLcdDisplayV2 : public tt::hal::display::DisplayDevice {
     std::shared_ptr<tt::hal::display::DisplayDriver> _Nullable displayDriver;
     std::shared_ptr<tt::Lock> lock;
     std::shared_ptr<EspLcdConfiguration> configuration;
-    lcd_rgb_element_order_t rgbElementOrder;
 
     bool applyConfiguration() const;
 

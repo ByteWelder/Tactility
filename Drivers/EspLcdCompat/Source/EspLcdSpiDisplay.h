@@ -26,9 +26,7 @@ public:
         EspLcdDisplayV2(configuration, tt::hal::spi::getLock(spiConfiguration->spiHostDevice)),
         spiConfiguration(spiConfiguration),
         gammaCurveCount(gammaCurveCount)
-    {
-        assert(spiConfiguration != nullptr);
-    }
+    {}
 
 private:
 
