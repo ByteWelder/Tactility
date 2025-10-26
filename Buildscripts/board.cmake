@@ -7,6 +7,7 @@ else ()
     set(ColorReset "")
     set(Cyan "")
 endif ()
+
 function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
     get_filename_component(SDKCONFIG_FILE_ABS ${SDKCONFIG_FILE} ABSOLUTE)
     # Find the board identifier in the sdkconfig file
@@ -79,6 +80,7 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
     else ()
         set(TACTILITY_BOARD_PROJECT "")
     endif ()
+
     if (TACTILITY_BOARD_PROJECT STREQUAL "")
         message(FATAL_ERROR "No subproject mapped to "${board_id}" in root Buildscripts/board.cmake")
     else ()
