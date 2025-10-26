@@ -39,5 +39,5 @@ esp_lcd_panel_dev_config_t Ili934xDisplay::createPanelConfig(std::shared_ptr<Esp
 }
 
 bool Ili934xDisplay::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_panel_dev_config_t& panelConfig, esp_lcd_panel_handle_t& panelHandle) {
-    return esp_lcd_new_panel_st7789(ioHandle, &panelConfig, &panelHandle) == ESP_OK;
+    return esp_lcd_new_panel_ili9341(ioHandle, &panelConfig, &panelHandle) == ESP_OK;
 }

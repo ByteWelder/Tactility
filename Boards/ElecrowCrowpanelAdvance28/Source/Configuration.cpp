@@ -2,8 +2,8 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 using namespace tt::hal;
 

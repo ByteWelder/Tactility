@@ -1,8 +1,8 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
-#include <PwmBacklight.h>
 #include <Tactility/hal/Configuration.h>
+#include <PwmBacklight.h>
 
 using namespace tt::hal;
 

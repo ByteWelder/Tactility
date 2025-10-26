@@ -4,10 +4,10 @@
 #include "devices/TpagerKeyboard.h"
 #include "devices/TpagerPower.h"
 
-#include <Bq25896.h>
-#include <Drv2605.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Bq25896.h>
+#include <Drv2605.h>
 
 #define TPAGER_SPI_TRANSFER_SIZE_LIMIT (480 * 222 * (LV_COLOR_DEPTH / 8))
 

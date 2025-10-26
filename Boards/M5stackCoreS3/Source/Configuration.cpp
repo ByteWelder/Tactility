@@ -2,9 +2,10 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
-#include <Axp2101Power.h>
-#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/hal/Configuration.h>
 #include <Tactility/hal/uart/Uart.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Axp2101Power.h>
 
 using namespace tt::hal;
 
@@ -18,7 +19,7 @@ static DeviceVector createDevices() {
     };
 }
 
-const Configuration hardwareConfiguration = {
+extern const Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {

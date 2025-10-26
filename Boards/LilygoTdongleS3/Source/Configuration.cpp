@@ -1,8 +1,8 @@
-#include <Tactility/hal/Configuration.h>
-#include <Tactility/lvgl/LvglSync.h>
-
 #include "devices/Display.h"
 #include "devices/Sdcard.h"
+
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #define TDECK_SPI_TRANSFER_SIZE_LIMIT (80 * 160 * (LV_COLOR_DEPTH / 8))
 

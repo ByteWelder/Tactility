@@ -1,10 +1,10 @@
-#include <Tactility/hal/Configuration.h>
-#include <Tactility/lvgl/LvglSync.h>
-
 #include "devices/Display.h"
 #include "devices/Power.h"
 #include "devices/Sdcard.h"
 #include "devices/TdeckKeyboard.h"
+
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 bool initBoot();
 

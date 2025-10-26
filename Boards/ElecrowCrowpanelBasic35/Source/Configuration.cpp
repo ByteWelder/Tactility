@@ -3,8 +3,8 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
-#include <Xpt2046Power.h>
 #include <Tactility/hal/Configuration.h>
+#include <Xpt2046Power.h>
 
 constexpr auto CROWPANEL_SPI_TRANSFER_SIZE_LIMIT = (CROWPANEL_LCD_HORIZONTAL_RESOLUTION * CROWPANEL_LCD_SPI_TRANSFER_HEIGHT * (LV_COLOR_DEPTH / 8));
 

@@ -5,8 +5,9 @@
 #include "devices/CardputerKeyboard.h"
 #include "devices/CardputerPower.h"
 
-#include <lvgl.h>
+#include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <lvgl.h>
 
 using namespace tt::hal;
 

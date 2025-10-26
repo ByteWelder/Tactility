@@ -1,8 +1,9 @@
 #include "devices/Display.h"
 
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <ButtonControl.h>
 #include <PwmBacklight.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 using namespace tt::hal;
 

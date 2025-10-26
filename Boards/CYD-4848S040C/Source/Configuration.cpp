@@ -1,8 +1,9 @@
-#include "Tactility/kernel/SystemEvents.h"
-#include "Tactility/lvgl/LvglSync.h"
 #include "devices/St7701Display.h"
 #include "devices/SdCard.h"
 
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <PwmBacklight.h>
 
 using namespace tt::hal;
@@ -18,7 +19,7 @@ static DeviceVector createDevices() {
     };
 }
 
-const Configuration hardwareConfiguration = {
+extern const Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {

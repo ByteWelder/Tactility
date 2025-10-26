@@ -1,6 +1,7 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
+#include <Tactility/hal/Configuration.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/lvgl/LvglSync.h>
 
@@ -41,7 +42,7 @@ static tt::hal::DeviceVector createDevices() {
     };
 }
 
-const tt::hal::Configuration hardwareConfiguration = {
+extern const tt::hal::Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {

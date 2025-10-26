@@ -2,9 +2,9 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
-#include <Xpt2046Power.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Xpt2046Power.h>
 
 using namespace tt::hal;
 

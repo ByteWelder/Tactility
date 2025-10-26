@@ -2,6 +2,8 @@
 #include "devices/Display.h"
 #include "devices/SdCard.h"
 
+#include <Tactility/hal/Configuration.h>
+
 using namespace tt::hal;
 
 static bool initBoot() {
@@ -16,7 +18,7 @@ static DeviceVector createDevices() {
     };
 }
 
-const Configuration hardwareConfiguration = {
+extern const Configuration hardwareConfiguration = {
     .initBoot = initBoot,
     .createDevices = createDevices,
     .i2c = {

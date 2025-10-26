@@ -53,5 +53,3 @@ public:
 
     std::string getDescription() const override { return "ILI934x display"; }
 };
-
-std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
