@@ -2,14 +2,17 @@
 
 #include "Tactility/hal/display/DisplayDevice.h"
 #include <memory>
+#include <driver/gpio.h>
+#include <driver/spi_common.h>
 
-#define LCD_SPI_HOST SPI2_HOST
-#define LCD_PIN_CS GPIO_NUM_5
-#define LCD_PIN_DC GPIO_NUM_14
-#define LCD_PIN_RESET GPIO_NUM_12
-#define LCD_HORIZONTAL_RESOLUTION 135
-#define LCD_VERTICAL_RESOLUTION 240
-#define LCD_DRAW_BUFFER_HEIGHT (LCD_VERTICAL_RESOLUTION / 3)
-#define LCD_DRAW_BUFFER_SIZE (LCD_HORIZONTAL_RESOLUTION * LCD_DRAW_BUFFER_HEIGHT)
+constexpr auto LCD_SPI_HOST = SPI2_HOST;
+constexpr auto LCD_PIN_CS = GPIO_NUM_5;
+constexpr auto LCD_PIN_DC = GPIO_NUM_14;
+constexpr auto LCD_PIN_RESET = GPIO_NUM_12;
+constexpr auto LCD_HORIZONTAL_RESOLUTION = 135;
+constexpr auto LCD_VERTICAL_RESOLUTION = 240;
+constexpr auto LCD_BUFFER_HEIGHT = LCD_VERTICAL_RESOLUTION / 3;
+constexpr auto LCD_BUFFER_SIZE = LCD_HORIZONTAL_RESOLUTION * LCD_BUFFER_HEIGHT;
+constexpr auto LCD_SPI_TRANSFER_SIZE_LIMIT = LCD_BUFFER_SIZE * LV_COLOR_DEPTH / 8;
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();

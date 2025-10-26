@@ -4,26 +4,28 @@
 #include <St7789Display.h>
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        LCD_SPI_HOST,
-        LCD_PIN_CS,
-        LCD_PIN_DC,
-        LCD_HORIZONTAL_RESOLUTION,
-        LCD_VERTICAL_RESOLUTION,
-        nullptr,
-        false,
-        false,
-        false,
-        true,
-        LCD_DRAW_BUFFER_SIZE,
-        52,
-        40
-    );
+    St7789Display::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 52,
+        .gapY = 40,
+        .swapXY = false,
+        .mirrorX = false,
+        .mirrorY = false,
+        .invertColor = true,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = nullptr,
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = LCD_PIN_RESET
+    };
 
-    configuration->pixelClockFrequency = 40'000'000;
-    configuration->resetPin = LCD_PIN_RESET;
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
+    auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    const auto display = std::make_shared<St7789Display>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<St7789Display>(panel_configuration, spi_configuration);
 }

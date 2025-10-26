@@ -88,8 +88,8 @@ bool Preferences::hasString(const std::string& key) const {
 void Preferences::putBool(const std::string& key, bool value) {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
-        if (nvs_set_u8(handle, key.c_str(), (uint8_t)value) != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to write %s:%s", namespace_, key.c_str());
+        if (nvs_set_u8(handle, key.c_str(), value) != ESP_OK) {
+            TT_LOG_E(TAG, "Failed to set %s:%s", namespace_, key.c_str());
         } else if (nvs_commit(handle) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to commit %s:%s", namespace_, key.c_str());
         }
@@ -103,7 +103,7 @@ void Preferences::putInt32(const std::string& key, int32_t value) {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
         if (nvs_set_i32(handle, key.c_str(), value) != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to write %s:%s", namespace_, key.c_str());
+            TT_LOG_E(TAG, "Failed to set %s:%s", namespace_, key.c_str());
         } else if (nvs_commit(handle) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to commit %s:%s", namespace_, key.c_str());
         }
@@ -117,7 +117,7 @@ void Preferences::putInt64(const std::string& key, int64_t value) {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
         if (nvs_set_i64(handle, key.c_str(), value) != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to write %s:%s", namespace_, key.c_str());
+            TT_LOG_E(TAG, "Failed to set %s:%s", namespace_, key.c_str());
         } else if (nvs_commit(handle) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to commit %s:%s", namespace_, key.c_str());
         }
@@ -130,8 +130,9 @@ void Preferences::putInt64(const std::string& key, int64_t value) {
 void Preferences::putString(const std::string& key, const std::string& text) {
     nvs_handle_t handle;
     if (nvs_open(namespace_, NVS_READWRITE, &handle) == ESP_OK) {
-        nvs_set_str(handle, key.c_str(), text.c_str());
-        if (nvs_commit(handle) != ESP_OK) {
+        if (nvs_set_str(handle, key.c_str(), text.c_str()) != ESP_OK) {
+            TT_LOG_E(TAG, "Failed to set %s:%s", namespace_, key.c_str());
+        } else if (nvs_commit(handle) != ESP_OK) {
             TT_LOG_E(TAG, "Failed to commit %s:%s", namespace_, key.c_str());
         }
         nvs_close(handle);

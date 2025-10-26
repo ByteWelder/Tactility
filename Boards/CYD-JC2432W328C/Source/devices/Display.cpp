@@ -7,32 +7,36 @@
 static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
     auto configuration = std::make_unique<Cst816sTouch::Configuration>(
         I2C_NUM_0,
-        240,
-        320
+        LCD_HORIZONTAL_RESOLUTION,
+        LCD_VERTICAL_RESOLUTION
     );
 
     return std::make_shared<Cst816sTouch>(std::move(configuration));
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto touch = createTouch();
+    St7789Display::Configuration panel_configuration = {
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = 0,
+        .gapY = 0,
+        .swapXY = false,
+        .mirrorX = false,
+        .mirrorY = false,
+        .invertColor = false,
+        .bufferSize = LCD_BUFFER_SIZE,
+        .touch = createTouch(),
+        .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
+        .resetPin = GPIO_NUM_NC
+    };
 
-    auto configuration = std::make_unique<St7789Display::Configuration>(
-        JC2432W328C_LCD_SPI_HOST,
-        JC2432W328C_LCD_PIN_CS,
-        JC2432W328C_LCD_PIN_DC,
-        JC2432W328C_LCD_HORIZONTAL_RESOLUTION,
-        JC2432W328C_LCD_VERTICAL_RESOLUTION,
-        touch,
-        false,
-        false,
-        false,
-        false,
-        JC2432W328C_LCD_DRAW_BUFFER_SIZE
-    );
+    auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = 80'000'000,
+        .transactionQueueDepth = 10
+    });
 
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-
-    auto display = std::make_shared<St7789Display>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::make_shared<St7789Display>(panel_configuration, spi_configuration);
 }
