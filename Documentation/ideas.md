@@ -3,10 +3,10 @@
 ## Before release
 
 - Convert Ili934x driver to EspLcdSpiDisplay
-- AppInstall.cpp fails to untar large files on Cardputer (EFF large word list doesn't fit in memory). Make a buffered reader & writer.
 
 ## Higher Priority
 
+- Logging with a function that uses std::format
 - Calculator bugs (see GitHub issue)
 - Expose http::download() and main dispatcher to TactiltyC.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
