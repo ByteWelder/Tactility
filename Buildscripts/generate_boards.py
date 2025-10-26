@@ -62,9 +62,11 @@ menu "Tactility App"
         prompt "Board"
 '''
     body = []
-    if boards:
-        first_macro = "TT_BOARD_" + re.sub(r'[^a-z0-9]+', '_', boards[0]['id'].lower()).upper()
-        body.append(f'        default {first_macro}\n')
+    # Make "Custom" the default and put it first
+    body.append('        default TT_BOARD_CUSTOM\n')
+    body.append('        config TT_BOARD_CUSTOM\n')
+    body.append('            bool "Custom"\n')
+
     for b in boards:
         macro = "TT_BOARD_" + re.sub(r'[^a-z0-9]+', '_', b['id'].lower()).upper()
         pretty = b.get('pretty_name', b['id'])

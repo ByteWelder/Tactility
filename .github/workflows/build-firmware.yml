@@ -7,7 +7,6 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
-# We need write permission so the workflow can commit generated files back to the repo
 permissions:
   contents: write
 

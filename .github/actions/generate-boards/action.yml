@@ -21,7 +21,7 @@ runs:
       with:
         python-version: "3.x"
 
-    - name: Make generator executable (if present)
+    - name: Make generator executable
       if: runner.os != 'Windows'
       shell: bash
       run: |
