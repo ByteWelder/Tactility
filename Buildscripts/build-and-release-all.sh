@@ -100,6 +100,9 @@ release waveshare-s3-touch-lcd-128
 build waveshare-s3-lcd-13
 release waveshare-s3-lcd-13
 
+releaseSdk release/TactilitySDK-esp32
+releaseSdk release/TactilitySDK-esp32s3
+
 duration=$SECONDS
 
 echo "Finished in $((duration / 60)) minutes and $((duration % 60)) seconds."
