@@ -198,15 +198,15 @@ def write_build_and_release(boards):
 set -e
 
 function build() {
-    Buildscripts/build.sh $1
+    Buildscripts/build.sh "$1"
 }
 
 function release() {
-    Buildscripts/release.sh $1
+    Buildscripts/release.sh "$1"
 }
 
 function releaseSdk() {
-    Buildscripts/release-sdk.sh $1
+    Buildscripts/release-sdk.sh "$1"
 }
 
 SECONDS=0
