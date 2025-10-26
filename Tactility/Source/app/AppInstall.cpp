@@ -1,8 +1,5 @@
-#include "Tactility/Paths.h"
-
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifestParsing.h>
-
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
@@ -10,15 +7,15 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/Device.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/Paths.h>
 
-#include <errno.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <fcntl.h>
 #include <format>
 #include <libgen.h>
 #include <map>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -28,22 +25,28 @@ constexpr auto* TAG = "App";
 
 namespace tt::app {
 
-static int untarFile(const minitar_entry* entry, const void* buf, const std::string& destinationPath) {
-    auto absolute_path = destinationPath + "/" + entry->metadata.path;
-    if (!file::findOrCreateDirectory(destinationPath, 0777)) return 1;
+static bool untarFile(minitar mp, const minitar_entry* entry, const std::string& destinationPath) {
+    const auto absolute_path = destinationPath + "/" + entry->metadata.path;
+    if (!file::findOrCreateDirectory(destinationPath, 0777)) {
+        TT_LOG_E(TAG, "Can't find or create directory %s", destinationPath.c_str());
+        return false;
+    }
 
-    int fd = open(absolute_path.c_str(), O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0644);
-    if (fd < 0) return 1;
-
-    if (write(fd, buf, entry->metadata.size) < 0) return 1;
+    // minitar_read_contents(&mp, &entry, file_buffer, entry.metadata.size);
+    if (minitar_read_contents_to_file(&mp, entry, absolute_path.c_str()) <= 0) {
+        TT_LOG_E(TAG, "Failed to write data to %s", absolute_path.c_str());
+        return false;
+    }
 
     // Note: fchmod() doesn't exist on ESP-IDF and chmod() does nothing on that platform
-    if (chmod(absolute_path.c_str(), entry->metadata.mode) < 0) return 1;
+    if (chmod(absolute_path.c_str(), entry->metadata.mode) < 0) {
+        return false;
+    }
 
-    return close(fd);
+    return true;
 }
 
-static bool untar_directory(const minitar_entry* entry, const std::string& destinationPath) {
+static bool untarDirectory(const minitar_entry* entry, const std::string& destinationPath) {
     auto absolute_path = destinationPath + "/" + entry->metadata.path;
     if (!file::findOrCreateDirectory(absolute_path, 0777)) return false;
     return true;
@@ -63,23 +66,13 @@ static bool untar(const std::string& tarPath, const std::string& destinationPath
             TT_LOG_I(TAG, "Extracting %s", entry.metadata.path);
             if (entry.metadata.type == MTAR_DIRECTORY) {
                 if (!strcmp(entry.metadata.name, ".") || !strcmp(entry.metadata.name, "..") || !strcmp(entry.metadata.name, "/")) continue;
-                if (!untar_directory(&entry, destinationPath)) {
+                if (!untarDirectory(&entry, destinationPath)) {
                     TT_LOG_E(TAG, "Failed to create directory %s/%s: %s", destinationPath.c_str(), entry.metadata.name, strerror(errno));
                     success = false;
                     break;
                 }
             } else if (entry.metadata.type == MTAR_REGULAR) {
-                auto file_buffer = static_cast<char*>(malloc(entry.metadata.size));
-                if (!file_buffer) {
-                    TT_LOG_E(TAG, "Failed to allocate %d bytes for file %s", entry.metadata.size, entry.metadata.path);;
-                    success = false;
-                    break;
-                }
-
-                minitar_read_contents(&mp, &entry, file_buffer, entry.metadata.size);
-                int status = untarFile(&entry, file_buffer, destinationPath);
-                free(file_buffer);
-                if (status != 0) {
+                if (!untarFile(mp, &entry, destinationPath)) {
                     TT_LOG_E(TAG, "Failed to extract file %s: %s", entry.metadata.path, strerror(errno));
                     success = false;
                     break;
