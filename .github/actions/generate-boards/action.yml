@@ -1,5 +1,5 @@
 name: "Generate boards"
-description: "Run Buildscripts/generate_boards.py, commit and push generated files if changed."
+description: "Run generate_boards.py, commit and push generated files if changed."
 
 inputs:
   commit:

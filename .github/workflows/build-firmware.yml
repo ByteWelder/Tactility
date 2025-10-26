@@ -51,7 +51,7 @@ jobs:
       matrix:
         board: ${{ fromJson(needs.prepare.outputs.matrix) }}
     steps:
-      - name: Checkout (fresh)
+      - name: Checkout 
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
