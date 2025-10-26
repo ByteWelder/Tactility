@@ -81,7 +81,10 @@ runs:
           fi
 
           # Push using persisted checkout credentials
-          git push origin "HEAD:$BRANCH"
+          if ! git push origin "HEAD:$BRANCH"; then
+            echo "ERROR: Failed to push changes to branch '$BRANCH'" >&2
+            exit 1
+          fi
           echo "pushed=true" >> $GITHUB_OUTPUT
         else
           echo "pushed=false" >> $GITHUB_OUTPUT

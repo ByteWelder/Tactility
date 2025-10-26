@@ -13,6 +13,8 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       matrix: ${{ steps.make-matrix.outputs.matrix }}
     steps:
@@ -32,8 +34,8 @@ jobs:
         id: make-matrix
         run: |
           if [ ! -f Buildscripts/boards.json ]; then
-            echo "matrix=[]" >> "$GITHUB_OUTPUT"
-            exit 0
+            echo "ERROR: Buildscripts/boards.json not found!" >&2
+            exit 1
           fi
           # ensure jq is available
           sudo apt-get update -y
