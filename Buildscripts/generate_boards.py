@@ -170,9 +170,9 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
         bid = b['id']
         proj = b['project']
         if i == 0:
-            mapping_lines.append(f'    if (board_id STREQUAL "{bid}")\n        set(TACTILITY_BOARD_PROJECT {proj})')
+            mapping_lines.append(f'    if (board_id STREQUAL "{bid}")\n        set(TACTILITY_BOARD_PROJECT "{proj}")')
         else:
-            mapping_lines.append(f'    elseif (board_id STREQUAL "{bid}")\n        set(TACTILITY_BOARD_PROJECT {proj})')
+            mapping_lines.append(f'    elseif (board_id STREQUAL "{bid}")\n        set(TACTILITY_BOARD_PROJECT "{proj}")')
     mapping = "\n".join(mapping_lines)
     footer = '''
     else ()
@@ -180,7 +180,7 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
     endif ()
 
     if (TACTILITY_BOARD_PROJECT STREQUAL "")
-        message(FATAL_ERROR "No subproject mapped to \\"${TACTILITY_BOARD_ID}\\" in root Buildscripts/board.cmake")
+        message(FATAL_ERROR "No subproject mapped to \"${board_id}\" in root Buildscripts/board.cmake")
     else ()
         message("Board path: ${Cyan}Boards/${TACTILITY_BOARD_PROJECT}${ColorReset}\\n")
         set_property(GLOBAL PROPERTY TACTILITY_BOARD_PROJECT ${TACTILITY_BOARD_PROJECT})
