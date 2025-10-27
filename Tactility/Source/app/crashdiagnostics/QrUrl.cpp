@@ -5,7 +5,11 @@
 #include <Tactility/kernel/PanicHandler.h>
 
 #include <sstream>
+#include <esp_cpu.h>
+
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
 #include <esp_cpu_utils.h>
+#endif
 
 #include <sdkconfig.h>
 
@@ -14,7 +18,11 @@ std::string getUrlFromCrashData() {
     auto* stack_buffer = (uint32_t*) malloc(crash_data.callstackLength * 2 * sizeof(uint32_t));
     for (int i = 0; i < crash_data.callstackLength; ++i) {
         const CallstackFrame&frame = crash_data.callstack[i];
+#if CONFIG_IDF_TARGET_ARCH_XTENSA
         uint32_t pc = esp_cpu_process_stack_pc(frame.pc);
+#else
+        uint32_t pc = frame.pc;  // No processing needed on RISC-V
+#endif
 #if CRASH_DATA_INCLUDES_SP
         uint32_t sp = frame.sp;
 #endif

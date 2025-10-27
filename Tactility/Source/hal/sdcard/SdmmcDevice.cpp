@@ -1,4 +1,4 @@
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM) && defined(SOC_SDMMC_HOST_SUPPORTED)
 
 #include <Tactility/hal/sdcard/SdmmcDevice.h>
 #include <Tactility/Log.h>
