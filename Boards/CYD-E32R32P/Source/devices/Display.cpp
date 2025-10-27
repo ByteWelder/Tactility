@@ -21,8 +21,8 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 }
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    // Create the ST7789 display configuration
-    auto configuration = St7789Display::Configuration {
+    // Create the ST7789 panel configuration
+    St7789Display::Configuration panel_configuration = {
         .horizontalResolution = CYD_DISPLAY_HORIZONTAL_RESOLUTION,
         .verticalResolution = CYD_DISPLAY_VERTICAL_RESOLUTION,
         .gapX = 0,
@@ -31,19 +31,21 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .mirrorX = false,
         .mirrorY = false,
         .invertColor = false,
-        .bufferSize = 0, 
+        .bufferSize = 0,  // 0 -> default 1/10 screen
         .touch = createTouch(),
         .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
-        .resetPin = GPIO_NUM_NC  // No reset pin control
+        .resetPin = GPIO_NUM_NC,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR  // BGR for this display
     };
 
-    // Create the SPI configuration
-    auto spiConfiguration = std::make_shared<SpiConfiguration>(SpiConfiguration {
-        .spiHost = CYD_DISPLAY_SPI_HOST,
+    // Create the SPI configuration (from EspLcdSpiDisplay base class)
+    auto spi_configuration = std::make_shared<EspLcdSpiDisplay::SpiConfiguration>(EspLcdSpiDisplay::SpiConfiguration {
+        .spiHostDevice = CYD_DISPLAY_SPI_HOST,
         .csPin = CYD_DISPLAY_PIN_CS,
         .dcPin = CYD_DISPLAY_PIN_DC,
-        .colorOrder = LCD_RGB_ELEMENT_ORDER_BGR
+        .pixelClockFrequency = 40'000'000,
+        .transactionQueueDepth = 10
     });
 
-    return std::make_shared<St7789Display>(configuration, spiConfiguration);
+    return std::make_shared<St7789Display>(panel_configuration, spi_configuration);
 }
