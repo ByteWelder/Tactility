@@ -19,7 +19,7 @@ std::shared_ptr<EspLcdConfiguration> St7789Display::createEspLcdConfiguration(co
         .resetPin = configuration.resetPin,
         .lvglColorFormat = LV_COLOR_FORMAT_RGB565,
         .lvglSwapBytes = false,
-        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB,
+        .rgbElementOrder = configuration.rgbElementOrder,
         .bitsPerPixel = 16,
     });
 }
