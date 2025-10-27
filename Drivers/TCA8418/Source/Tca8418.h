@@ -4,9 +4,12 @@
 
 #include <Tactility/hal/i2c/I2cDevice.h>
 
-#define TCA8418_ADDRESS 0x34U
-#define KEY_EVENT_LIST_SIZE 10
+constexpr auto TCA8418_ADDRESS = 0x34U;
+constexpr auto KEY_EVENT_LIST_SIZE = 10;
 
+/**
+ * See https://www.ti.com/lit/ds/symlink/tca8418.pdf
+ */
 class Tca8418 final : public tt::hal::i2c::I2cDevice {
 
     uint8_t tca8418_address;
@@ -22,6 +25,8 @@ class Tca8418 final : public tt::hal::i2c::I2cDevice {
     void remove_pressed_key(uint8_t row, uint8_t col);
     void write(uint8_t register_address, uint8_t data);
     bool read(uint8_t register_address, uint8_t* data);
+
+    bool initMatrix(uint8_t rows, uint8_t columns);
 
 public:
 

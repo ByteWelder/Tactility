@@ -16,25 +16,25 @@ constexpr auto KB_COLS = 11;
 
 // Lowercase Keymap
 static constexpr char keymap_lc[KB_ROWS][KB_COLS] = {
-    {'\0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
-    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '\n', '\0'},
-    {'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
+    {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\0'},
+    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', LV_KEY_ENTER, '\0'},
+    {'\0', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE, ' '},
     {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Uppercase Keymap
 static constexpr char keymap_uc[KB_ROWS][KB_COLS] = {
-    {'\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
-    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '\n', '\0'},
-    {'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
+    {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '\0'},
+    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', LV_KEY_ENTER, '\0'},
+    {'\0', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE, ' '},
     {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Symbol Keymap
 static constexpr char keymap_sy[KB_ROWS][KB_COLS] = {
-    {'\0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
+    {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\0'},
     {'.', '/', '+', '-', '=', ':', '\'', '"', '@', '\t', '\0'},
-    {'_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
+    {'\0', '_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE, ' '},
     {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
@@ -65,10 +65,10 @@ void TpagerKeyboard::processKeyboard() {
             auto col = keypad->pressed_list[i].col;
             auto hold = keypad->pressed_list[i].hold_time;
 
-            if ((row == 1) && (col == 10)) {
+            if ((row == 2) && (col == 0)) {
                 sym_pressed = true;
             }
-            if ((row == 2) && (col == 7)) {
+            if ((row == 2) && (col == 8)) {
                 shift_pressed = true;
             }
         }
@@ -98,10 +98,10 @@ void TpagerKeyboard::processKeyboard() {
             auto row = keypad->released_list[i].row;
             auto col = keypad->released_list[i].col;
 
-            if ((row == 1) && (col == 10)) {
+            if ((row == 2) && (col == 0)) {
                 sym_pressed = false;
             }
-            if ((row == 2) && (col == 7)) {
+            if ((row == 2) && (col == 8)) {
                 shift_pressed = false;
             }
         }

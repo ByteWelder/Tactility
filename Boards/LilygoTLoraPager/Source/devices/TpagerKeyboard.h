@@ -30,11 +30,11 @@ class TpagerKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 
 public:
 
-    TpagerKeyboard(const std::shared_ptr<Tca8418>& tca) : keypad(tca) {
+    explicit TpagerKeyboard(const std::shared_ptr<Tca8418>& tca) : keypad(tca) {
         queue = xQueueCreate(20, sizeof(char));
     }
 
-    ~TpagerKeyboard() {
+    ~TpagerKeyboard() override {
         vQueueDelete(queue);
     }
 
