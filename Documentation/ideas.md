@@ -6,6 +6,7 @@
 
 ## Higher Priority
 
+- Fix Cardputer (original): use LV_KEY_NEXT and _PREV in keyboard mapping instead of encoder driver hack (and check GPIO app if it then hangs too)
 - Logging with a function that uses std::format
 - Calculator bugs (see GitHub issue)
 - Expose http::download() and main dispatcher to TactiltyC.
