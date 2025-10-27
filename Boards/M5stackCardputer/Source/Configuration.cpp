@@ -5,11 +5,15 @@
 #include "devices/CardputerKeyboard.h"
 #include "devices/CardputerPower.h"
 
+#include <PwmBacklight.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <lvgl.h>
 
 using namespace tt::hal;
+
+bool initBoot() {
+    return driver::pwmbacklight::init(LCD_PIN_BACKLIGHT, 512);
+}
 
 static DeviceVector createDevices() {
     return {
@@ -28,7 +32,7 @@ extern const Configuration hardwareConfiguration = {
     .i2c {
         i2c::Configuration {
             .name = "Port A", // Grove
-            .port = I2C_NUM_1,
+            .port = I2C_NUM_0,
             .initMode = i2c::InitMode::Disabled,
             .isMutable = true,
             .config = (i2c_config_t) {
