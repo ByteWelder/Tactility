@@ -5,7 +5,7 @@
 using tt::hal::sdcard::SdCardDevice;
 
 // SD card (microSD)
-constexpr auto SD_CS_PIN = GPIO_NUM_5
-constexpr auto SD_SPI_HOST = SPI3_HOST
+constexpr auto SD_CS_PIN = GPIO_NUM_5;
+constexpr auto SD_SPI_HOST = SPI3_HOST;
 
 std::shared_ptr<SdCardDevice> createSdCard();
