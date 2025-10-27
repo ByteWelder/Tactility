@@ -42,7 +42,7 @@ void TpagerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto keyboard = static_cast<TpagerKeyboard*>(lv_indev_get_user_data(indev));
     char keypress = 0;
 
-    if (xQueueReceive(keyboard->queue, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
+    if (xQueueReceive(keyboard->queue, &keypress, 0) == pdPASS) {
         data->key = keypress;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
@@ -91,7 +91,7 @@ void TpagerKeyboard::processKeyboard() {
                 chr = keymap_lc[row][col];
             }
 
-            if (chr != '\0') xQueueSend(queue, &chr, portMAX_DELAY);
+            if (chr != '\0') xQueueSend(queue, &chr, 50 / portTICK_PERIOD_MS);
         }
 
         for (int i = 0; i < keypad->released_key_count; i++) {

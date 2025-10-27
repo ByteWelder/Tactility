@@ -3,8 +3,6 @@
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
 
 #include <Tca8418.h>
-#include <driver/gpio.h>
-#include <driver/ledc.h>
 
 #include <Tactility/Timer.h>
 

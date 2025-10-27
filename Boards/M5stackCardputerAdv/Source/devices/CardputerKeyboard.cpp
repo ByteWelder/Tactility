@@ -1,9 +1,7 @@
 #include "CardputerKeyboard.h"
 #include <Tactility/hal/i2c/I2c.h>
-#include <driver/i2c.h>
 
-#include "driver/gpio.h"
-#include "freertos/queue.h"
+#include <freertos/queue.h>
 
 constexpr auto* TAG = "CardputerKeyb";
 
@@ -40,7 +38,7 @@ void CardputerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto keyboard = static_cast<CardputerKeyboard*>(lv_indev_get_user_data(indev));
     char keypress = 0;
 
-    if (xQueueReceive(keyboard->queue, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
+    if (xQueueReceive(keyboard->queue, &keypress, 0) == pdPASS) {
         data->key = keypress;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
@@ -66,18 +64,14 @@ void CardputerKeyboard::processKeyboard() {
     static bool sym_pressed = false;
     static bool cap_toggle = false;
     static bool cap_toggle_armed = true;
-    bool anykey_pressed = false;
 
     if (keypad->update()) {
-        anykey_pressed = (keypad->pressed_key_count > 0);
-
         // Check if symbol or shift is pressed
         for (int i = 0; i < keypad->pressed_key_count; i++) {
             // Swap rows and columns
             uint8_t row = keypad->pressed_list[i].row;
             uint8_t column = keypad->pressed_list[i].col;
             remap(row, column);
-            auto hold = keypad->pressed_list[i].hold_time;
 
             if ((row == 2) && (column == 0)) {
                 sym_pressed = true;
@@ -98,7 +92,6 @@ void CardputerKeyboard::processKeyboard() {
             auto row = keypad->pressed_list[i].row;
             auto column = keypad->pressed_list[i].col;
             remap(row, column);
-            auto hold = keypad->pressed_list[i].hold_time;
             char chr = '\0';
             if (sym_pressed) {
                 chr = keymap_sy[row][column];
@@ -108,7 +101,7 @@ void CardputerKeyboard::processKeyboard() {
                 chr = keymap_lc[row][column];
             }
 
-            if (chr != '\0') xQueueSend(queue, &chr, portMAX_DELAY);
+            if (chr != '\0') xQueueSend(queue, &chr, 50 / portTICK_PERIOD_MS);
         }
 
         for (int i = 0; i < keypad->released_key_count; i++) {
