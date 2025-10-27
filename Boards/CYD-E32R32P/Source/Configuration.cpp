@@ -1,5 +1,6 @@
 #include "devices/SdCard.h"
 #include "devices/Display.h"
+#include "devices/Power.h"
 
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -13,6 +14,7 @@ static bool initBoot() {
 
 static tt::hal::DeviceVector createDevices() {
     return {
+        createPower(),
         createDisplay(),
         createSdCard()
     };
