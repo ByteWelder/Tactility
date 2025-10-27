@@ -11,30 +11,30 @@ constexpr auto* TAG = "TpagerKeyboard";
 constexpr auto BACKLIGHT = GPIO_NUM_46;
 
 constexpr auto KB_ROWS = 4;
-constexpr auto KB_COLS = 11;
+constexpr auto KB_COLS = 10;
 
 // Lowercase Keymap
 static constexpr char keymap_lc[KB_ROWS][KB_COLS] = {
-    {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '\0'},
-    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', LV_KEY_ENTER, '\0'},
-    {'\0', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE, ' '},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', LV_KEY_ENTER},
+    {'\0', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Uppercase Keymap
 static constexpr char keymap_uc[KB_ROWS][KB_COLS] = {
-    {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '\0'},
-    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', LV_KEY_ENTER, '\0'},
-    {'\0', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE, ' '},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
+    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', LV_KEY_ENTER},
+    {'\0', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Symbol Keymap
 static constexpr char keymap_sy[KB_ROWS][KB_COLS] = {
-    {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '\0'},
-    {'.', '/', '+', '-', '=', ':', '\'', '"', '@', '\t', '\0'},
-    {'\0', '_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE, ' '},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
+    {'.', '/', '+', '-', '=', ':', '\'', '"', '@', '\t'},
+    {'\0', '_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 void TpagerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
