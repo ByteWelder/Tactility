@@ -24,6 +24,12 @@
         "arch": "esp32"
     },
     {
+        "id": "cyd-e32r32p",
+        "pretty_name": "CYD E32R32P",
+        "project": "CYD-E32R32P",
+        "arch": "esp32"
+    },
+    {
         "id": "cyd-2432s032c",
         "pretty_name": "CYD 2432S032C",
         "project": "CYD-2432S032C",
