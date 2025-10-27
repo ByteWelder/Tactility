@@ -89,7 +89,7 @@ extern const Configuration hardwareConfiguration = {
             },
             .initMode = tt::hal::spi::InitMode::ByTactility,
             .isMutable = false,
-            .lock = tt::lvgl::getSyncLock()
+            .lock = nullptr
         },
 
     }
