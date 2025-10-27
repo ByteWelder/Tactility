@@ -3,13 +3,31 @@ on:
   push:
     branches:
       - main
+      - SSOT-board-config
   pull_request:
     types: [ opened, synchronize, reopened ]
 
-permissions: read-all
+permissions: 
+  contents: read
 
 jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Run board generator
+        uses: ./.github/actions/generate-boards
+
   build:
+    needs: prepare
     strategy:
       matrix:
         board: [
@@ -18,7 +36,12 @@ jobs:
         ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout 
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
       - name: "Build"
         uses: ./.github/actions/build-sdk
         with:

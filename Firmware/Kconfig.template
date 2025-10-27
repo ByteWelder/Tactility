@@ -1,0 +1,27 @@
+# Kconfig file for Tactility example app
+menu "Tactility App"
+    config TT_BOARD_NAME
+        string "Board Name"
+        default ""
+    config TT_BOARD_ID
+        string "Board ID"
+        default ""
+    choice
+        prompt "Board"
+        default TT_BOARD_CUSTOM
+        config TT_BOARD_CUSTOM
+            bool "Custom"
+{{BOARD_CONFIGS}}
+        help
+            Select a board/hardware configuration.
+            Use TT_BOARD_CUSTOM if you will manually configure the board in your project.
+    endchoice
+
+    config TT_SPLASH_DURATION
+        int "Splash Duration (ms)"
+        default 1000
+        range 0 3000
+        help
+            The minimum time to show the splash screen in milliseconds.
+            When set to 0, startup will continue to desktop as soon as boot operations are finished.
+endmenu

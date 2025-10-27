@@ -1,0 +1,170 @@
+[
+    {
+        "id": "cyd-2432s024c",
+        "pretty_name": "CYD 2432S024C",
+        "project": "CYD-2432S024C",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s028r",
+        "pretty_name": "CYD 2432S028R",
+        "project": "CYD-2432S028R",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s028rv3",
+        "pretty_name": "CYD 2432S028RV3",
+        "project": "CYD-2432S028RV3",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-e32r28t",
+        "pretty_name": "CYD E32R28T",
+        "project": "CYD-E32R28T",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-2432s032c",
+        "pretty_name": "CYD 2432S032C",
+        "project": "CYD-2432S032C",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-jc2432w328c",
+        "pretty_name": "CYD JC2432W328C",
+        "project": "CYD-JC2432W328C",
+        "arch": "esp32"
+    },
+    {
+        "id": "cyd-8048s043c",
+        "pretty_name": "CYD 8048S043C",
+        "project": "CYD-8048S043C",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "cyd-jc8048w550c",
+        "pretty_name": "CYD JC8048W550C",
+        "project": "CYD-JC8048W550C",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "cyd-4848s040c",
+        "pretty_name": "CYD 4848S040C",
+        "project": "CYD-4848S040C",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-28",
+        "pretty_name": "Elecrow CrowPanel Advance 2.8",
+        "project": "ElecrowCrowpanelAdvance28",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-35",
+        "pretty_name": "Elecrow CrowPanel Advance 3.5",
+        "project": "ElecrowCrowpanelAdvance35",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-advance-50",
+        "pretty_name": "Elecrow CrowPanel Advance 5.0",
+        "project": "ElecrowCrowpanelAdvance50",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-28",
+        "pretty_name": "Elecrow CrowPanel Basic 2.8",
+        "project": "ElecrowCrowpanelBasic28",
+        "arch": "esp32"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-35",
+        "pretty_name": "Elecrow CrowPanel Basic 3.5",
+        "project": "ElecrowCrowpanelBasic35",
+        "arch": "esp32"
+    },
+    {
+        "id": "elecrow-crowpanel-basic-50",
+        "pretty_name": "Elecrow CrowPanel Basic 5.0",
+        "project": "ElecrowCrowpanelBasic50",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tdeck",
+        "pretty_name": "LilyGo T-Deck",
+        "project": "LilygoTdeck",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tdongle-s3",
+        "pretty_name": "LilyGo T-Dongle S3",
+        "project": "LilygoTdongleS3",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "lilygo-tlora-pager",
+        "pretty_name": "LilyGo T-Lora Pager",
+        "project": "LilygoTLoraPager",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-cardputer",
+        "pretty_name": "M5Stack Cardputer",
+        "project": "M5stackCardputer",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-core2",
+        "pretty_name": "M5Stack Core2",
+        "project": "M5stackCore2",
+        "arch": "esp32"
+    },
+    {
+        "id": "m5stack-cores3",
+        "pretty_name": "M5Stack CoreS3",
+        "project": "M5stackCoreS3",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "m5stack-stickc-plus",
+        "pretty_name": "M5Stack StickC Plus",
+        "project": "M5stackStickCPlus",
+        "arch": "esp32"
+    },
+    {
+        "id": "m5stack-stickc-plus2",
+        "pretty_name": "M5Stack StickC Plus2",
+        "project": "M5stackStickCPlus2",
+        "arch": "esp32"
+    },
+    {
+        "id": "unphone",
+        "pretty_name": "unPhone",
+        "project": "UnPhone",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-43",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 4.3",
+        "project": "WaveshareS3Touch43",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-lcd-147",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 1.47",
+        "project": "WaveshareS3TouchLcd147",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-touch-lcd-128",
+        "pretty_name": "Waveshare ESP32 S3 Touch LCD 1.28",
+        "project": "WaveshareS3TouchLcd128",
+        "arch": "esp32s3"
+    },
+    {
+        "id": "waveshare-s3-lcd-13",
+        "pretty_name": "Waveshare ESP32 S3 LCD 1.3",
+        "project": "WaveshareS3Lcd13",
+        "arch": "esp32s3"
+    }
+]

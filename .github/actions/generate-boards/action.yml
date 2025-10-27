@@ -1,0 +1,61 @@
+name: "Generate boards"
+description: "Run Buildscripts/generate-boards.py and validate generated files are committed"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        persist-credentials: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+
+    - name: Check generator exists
+      shell: bash
+      run: |
+        if [ ! -f Buildscripts/generate-boards.py ]; then
+          echo "ERROR: Buildscripts/generate-boards.py not found!"
+          exit 1
+        fi
+        if [ ! -f Buildscripts/boards.json ]; then
+          echo "ERROR: Buildscripts/boards.json not found!"
+          exit 1
+        fi
+
+    - name: Run generator
+      shell: bash
+      run: |
+        echo "Running board generator..."
+        python3 Buildscripts/generate-boards.py
+
+    - name: Validate generated files are committed
+      shell: bash
+      run: |
+        GENERATED_FILE="Firmware/Kconfig"
+        BOARDS_JSON="Buildscripts/boards.json"
+        KCONFIG_TEMPLATE="Firmware/Kconfig.template"
+        GENERATOR="Buildscripts/generate-boards.py"
+
+        # Check for uncommitted changes
+        if ! git diff --quiet HEAD; then
+          echo "ERROR: Generated file is out of sync with boards.json"
+          echo ""
+          echo "The following files have uncommitted changes:"
+          git diff --name-only HEAD
+          echo ""
+          echo "To fix this:"
+          echo "  1. Run: python3 Buildscripts/generate-boards.py"
+          echo "  2. Review: git diff $GENERATED_FILE"
+          echo "  3. Commit: git add $GENERATED_FILE && git commit -m 'Update generated Kconfig'"
+          echo ""
+          echo "Changes detected:"
+          git --no-pager diff HEAD
+          exit 1
+        fi
+
+        echo "All generated files are up-to-date!"
