@@ -1,12 +1,12 @@
 #pragma once
 
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
+#include <Tactility/Timer.h>
 
 #include <Tca8418.h>
 #include <driver/gpio.h>
 #include <driver/ledc.h>
-
-#include <Tactility/Timer.h>
+#include <freertos/queue.h>
 
 class TpagerKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 
@@ -16,7 +16,7 @@ class TpagerKeyboard final : public tt::hal::keyboard::KeyboardDevice {
     ledc_channel_t backlightChannel;
     bool backlightOkay = false;
     int backlightImpulseDuty = 0;
-    QueueHandle_t queue;
+    QueueHandle_t queue = nullptr;
 
     std::shared_ptr<Tca8418> keypad;
     std::unique_ptr<tt::Timer> inputTimer;

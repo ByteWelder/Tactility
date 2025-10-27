@@ -3,6 +3,7 @@
 #include <Tactility/hal/power/PowerDevice.h>
 #include <ChargeFromVoltage.h>
 #include <esp_adc_cal.h>
+#include <string>
 
 using tt::hal::power::PowerDevice;
 

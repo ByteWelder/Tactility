@@ -5,11 +5,12 @@
 #include <Tca8418.h>
 
 #include <Tactility/Timer.h>
+#include <freertos/queue.h>
 
 class CardputerKeyboard final : public tt::hal::keyboard::KeyboardDevice {
 
     lv_indev_t* _Nullable kbHandle = nullptr;
-    QueueHandle_t queue;
+    QueueHandle_t queue = nullptr;
 
     std::shared_ptr<Tca8418> keypad;
     std::unique_ptr<tt::Timer> inputTimer;

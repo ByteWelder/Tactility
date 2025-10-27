@@ -2,8 +2,7 @@
 #include <Tactility/hal/i2c/I2c.h>
 #include <driver/i2c.h>
 
-#include "driver/gpio.h"
-#include "freertos/queue.h"
+#include <driver/gpio.h>
 
 #include <Tactility/Log.h>
 

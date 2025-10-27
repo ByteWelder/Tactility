@@ -1,8 +1,6 @@
 #include "CardputerKeyboard.h"
 #include <Tactility/hal/i2c/I2c.h>
 
-#include <freertos/queue.h>
-
 constexpr auto* TAG = "CardputerKeyb";
 
 constexpr auto BACKLIGHT = GPIO_NUM_46;
