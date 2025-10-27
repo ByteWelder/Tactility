@@ -1,4 +1,3 @@
-# .github/actions/generate-boards/action.yml
 name: "Generate boards"
 description: "Run Buildscripts/generate-boards.py and validate generated files are committed"
 
@@ -15,26 +14,6 @@ runs:
       uses: actions/setup-python@v4
       with:
         python-version: "3.x"
-
-    - name: Make generator executable
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        if [ -f Buildscripts/generate-boards.py ]; then
-          chmod +x Buildscripts/generate-boards.py
-        fi
-    
-    - name: commit chmod change
-      if: runner.os != 'Windows'
-      shell: bash
-      run: |
-        if [ -f Buildscripts/generate-boards.py ]; then
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Buildscripts/generate-boards.py
-          git commit -m "Make generate-boards.py executable [ci skip]" || echo "No changes to commit"
-          git push origin HEAD || echo "No changes to push"
-        fi
 
     - name: Check generator exists
       shell: bash

@@ -21,6 +21,8 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
         message(FATAL_ERROR "CONFIG_TT_BOARD_ID not found in sdkconfig:\nMake sure you copied one of the sdkconfig.board.* files into sdkconfig")
     endif ()
     
+    # Extract board_id from CONFIG_TT_BOARD_ID="board_id"
+    # Skip first 20 chars (CONFIG_TT_BOARD_ID=") and trim last char (")
     string(LENGTH ${sdkconfig_board_id} sdkconfig_board_id_length)
     set(id_length 0)
     math(EXPR id_length "${sdkconfig_board_id_length} - 21")

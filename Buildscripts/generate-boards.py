@@ -113,6 +113,9 @@ def generate_kconfig(boards, list_changed=False):
     
     # Replace placeholder in template
     board_configs_text = "\n".join(board_configs)
+    if "{{BOARD_CONFIGS}}" not in template:
+        print(f"ERROR: Placeholder {{{{BOARD_CONFIGS}}}} not found in {KCONFIG_TEMPLATE}")
+        sys.exit(1)
     content = template.replace("{{BOARD_CONFIGS}}", board_configs_text)
     
     # Add generation notice at the top if not already present
