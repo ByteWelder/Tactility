@@ -33,6 +33,7 @@ jobs:
           { id: lilygo-tdongle-s3, arch: esp32s3 },
           { id: lilygo-tlora-pager, arch: esp32s3 },
           { id: m5stack-cardputer, arch: esp32s3 },
+          { id: m5stack-cardputer-adv, arch: esp32s3 },
           { id: m5stack-core2, arch: esp32 },
           { id: m5stack-cores3, arch: esp32s3 },
           { id: m5stack-stickc-plus, arch: esp32 },
