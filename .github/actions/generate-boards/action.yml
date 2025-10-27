@@ -31,9 +31,9 @@ runs:
         set -euo pipefail
         if [ -f Buildscripts/generate_boards.py ]; then
           python3 Buildscripts/generate_boards.py --list-changed
-          echo "ran-generator=true" >> $GITHUB_OUTPUT
+          echo "ran-generator=true" >> "$GITHUB_OUTPUT"
         else
-          echo "ran-generator=false" >> $GITHUB_OUTPUT
+          echo "ran-generator=false" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Check generated files are committed
@@ -101,9 +101,12 @@ runs:
           echo
           echo "Changed generated files:"
           for gf in "${GENERATED_FILES[@]}"; do
-            if git --no-pager status --porcelain --untracked-files=all | awk '{print $2}' | grep -xq "$gf"; then
-              echo "  $gf"
-            fi
+            for changed_file in "${CHANGED[@]}"; do
+              if [ "$gf" = "$changed_file" ]; then
+                echo "  $gf"
+                break
+              fi
+            done
           done
           exit 1
         fi
