@@ -1,6 +1,6 @@
 # .github/actions/generate-boards/action.yml
 name: "Generate boards"
-description: "Run Buildscripts/generate_boards.py and validate generated files are committed"
+description: "Run Buildscripts/generate-boards.py and validate generated files are committed"
 
 runs:
   using: "composite"
@@ -20,26 +20,26 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        if [ -f Buildscripts/generate_boards.py ]; then
-          chmod +x Buildscripts/generate_boards.py
+        if [ -f Buildscripts/generate-boards.py ]; then
+          chmod +x Buildscripts/generate-boards.py
         fi
     
     - name: commit chmod change
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        if [ -f Buildscripts/generate_boards.py ]; then
+        if [ -f Buildscripts/generate-boards.py ]; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Buildscripts/generate_boards.py
-          git commit -m "Make generate_boards.py executable [ci skip]" || echo "No changes to commit"
+          git add Buildscripts/generate-boards.py
+          git commit -m "Make generate-boards.py executable [ci skip]" || echo "No changes to commit"
         fi
 
     - name: Check generator exists
       shell: bash
       run: |
-        if [ ! -f Buildscripts/generate_boards.py ]; then
-          echo "ERROR: Buildscripts/generate_boards.py not found!"
+        if [ ! -f Buildscripts/generate-boards.py ]; then
+          echo "ERROR: Buildscripts/generate-boards.py not found!"
           exit 1
         fi
         if [ ! -f Buildscripts/boards.json ]; then
@@ -51,7 +51,7 @@ runs:
       shell: bash
       run: |
         echo "Running board generator..."
-        python3 Buildscripts/generate_boards.py --list-changed
+        python3 Buildscripts/generate-boards.py --list-changed
 
     - name: Validate generated files are committed
       shell: bash
@@ -59,7 +59,7 @@ runs:
         GENERATED_FILE="Firmware/Kconfig"
         BOARDS_JSON="Buildscripts/boards.json"
         KCONFIG_TEMPLATE="Firmware/Kconfig.template"
-        GENERATOR="Buildscripts/generate_boards.py"
+        GENERATOR="Buildscripts/generate-boards.py"
 
         # Check for uncommitted changes
         if ! git diff --quiet HEAD; then
@@ -69,7 +69,7 @@ runs:
           git diff --name-only HEAD
           echo ""
           echo "To fix this:"
-          echo "  1. Run: python3 Buildscripts/generate_boards.py"
+          echo "  1. Run: python3 Buildscripts/generate-boards.py"
           echo "  2. Review: git diff $GENERATED_FILE"
           echo "  3. Commit: git add $GENERATED_FILE && git commit -m 'Update generated Kconfig'"
           echo ""

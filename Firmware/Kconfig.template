@@ -1,5 +1,5 @@
 # Firmware/Kconfig.template
-# Template for Kconfig - run generate_boards.py to update Firmware/Kconfig
+# Template for Kconfig - run generate-boards.py to update Firmware/Kconfig
 menu "Tactility App"
     config TT_BOARD_NAME
         string "Board Name"
