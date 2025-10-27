@@ -2,8 +2,7 @@
 #include <Tactility/hal/i2c/I2c.h>
 #include <driver/i2c.h>
 
-#include "driver/gpio.h"
-#include "freertos/queue.h"
+#include <driver/gpio.h>
 
 #include <Tactility/Log.h>
 
@@ -12,37 +11,37 @@ constexpr auto* TAG = "TpagerKeyboard";
 constexpr auto BACKLIGHT = GPIO_NUM_46;
 
 constexpr auto KB_ROWS = 4;
-constexpr auto KB_COLS = 11;
+constexpr auto KB_COLS = 10;
 
 // Lowercase Keymap
 static constexpr char keymap_lc[KB_ROWS][KB_COLS] = {
-    {'\0', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
-    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', '\n', '\0'},
-    {'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+    {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', LV_KEY_ENTER},
+    {'\0', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Uppercase Keymap
 static constexpr char keymap_uc[KB_ROWS][KB_COLS] = {
-    {'\0', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
-    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', '\n', '\0'},
-    {'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'},
+    {'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', LV_KEY_ENTER},
+    {'\0', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 // Symbol Keymap
 static constexpr char keymap_sy[KB_ROWS][KB_COLS] = {
-    {'\0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
-    {'.', '/', '+', '-', '=', ':', '\'', '"', '@', '\t', '\0'},
-    {'_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE, ' ', '\0'},
-    {'\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
+    {'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'},
+    {'.', '/', '+', '-', '=', ':', '\'', '"', '@', '\t'},
+    {'\0', '_', '$', ';', '?', '!', ',', '.', '\0', LV_KEY_BACKSPACE},
+    {' ', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0', '\0'}
 };
 
 void TpagerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto keyboard = static_cast<TpagerKeyboard*>(lv_indev_get_user_data(indev));
     char keypress = 0;
 
-    if (xQueueReceive(keyboard->queue, &keypress, pdMS_TO_TICKS(50)) == pdPASS) {
+    if (xQueueReceive(keyboard->queue, &keypress, 0) == pdPASS) {
         data->key = keypress;
         data->state = LV_INDEV_STATE_PRESSED;
     } else {
@@ -65,10 +64,10 @@ void TpagerKeyboard::processKeyboard() {
             auto col = keypad->pressed_list[i].col;
             auto hold = keypad->pressed_list[i].hold_time;
 
-            if ((row == 1) && (col == 10)) {
+            if ((row == 2) && (col == 0)) {
                 sym_pressed = true;
             }
-            if ((row == 2) && (col == 7)) {
+            if ((row == 2) && (col == 8)) {
                 shift_pressed = true;
             }
         }
@@ -91,17 +90,17 @@ void TpagerKeyboard::processKeyboard() {
                 chr = keymap_lc[row][col];
             }
 
-            if (chr != '\0') xQueueSend(queue, &chr, portMAX_DELAY);
+            if (chr != '\0') xQueueSend(queue, &chr, 50 / portTICK_PERIOD_MS);
         }
 
         for (int i = 0; i < keypad->released_key_count; i++) {
             auto row = keypad->released_list[i].row;
             auto col = keypad->released_list[i].col;
 
-            if ((row == 1) && (col == 10)) {
+            if ((row == 2) && (col == 0)) {
                 sym_pressed = false;
             }
-            if ((row == 2) && (col == 7)) {
+            if ((row == 2) && (col == 8)) {
                 shift_pressed = false;
             }
         }
