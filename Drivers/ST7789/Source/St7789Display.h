@@ -26,7 +26,7 @@ public:
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         std::function<void(uint8_t)> _Nullable backlightDutyFunction;
         gpio_num_t resetPin;
-        lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;  // ADD THIS LINE
+        lcd_rgb_element_order_t rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB;
     };
 
 private:
