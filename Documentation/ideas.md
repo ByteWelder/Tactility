@@ -27,6 +27,7 @@
 
 ## Medium Priority
 
+- Create PwmRgbLedDevice class and implement it for all CYD boards
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
 - Statusbar icon that shows low/critical memory warnings
