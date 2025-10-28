@@ -102,6 +102,9 @@ private:
 
 public:
     explicit St7789i8080Display(const Configuration& config);
+    
+    // Add destructor declaration
+    virtual ~St7789i8080Display();
 
     // DisplayDevice interface
     bool startLvgl() override;
