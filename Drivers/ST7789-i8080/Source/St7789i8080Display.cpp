@@ -235,17 +235,6 @@ bool St7789i8080Display::initializeHardware() {
         return false;
     }
 
-    // Configure backlight
-    gpio_config_t bk_gpio_cfg = {
-        .pin_bit_mask = 1ULL << static_cast<uint32_t>(configuration.backlightPin),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&bk_gpio_cfg);
-    gpio_set_level(configuration.backlightPin, 1);
-
     TT_LOG_I(TAG, "Display hardware initialized");
     return true;
 }
@@ -325,8 +314,10 @@ bool St7789i8080Display::start() {
 
 bool St7789i8080Display::stop() {
     // Turn off backlight
-    gpio_set_level(configuration.backlightPin, 0);
-    
+    if (configuration.backlightDutyFunction) {
+        configuration.backlightDutyFunction(0);
+    }
+
     // Turn off display power
     gpio_set_level((gpio_num_t)15, 0);
     

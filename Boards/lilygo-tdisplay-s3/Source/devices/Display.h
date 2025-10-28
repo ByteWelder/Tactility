@@ -8,7 +8,7 @@ class St7789i8080Display;
 constexpr auto DISPLAY_CS = GPIO_NUM_6;
 constexpr auto DISPLAY_DC = GPIO_NUM_7;
 constexpr auto DISPLAY_WR = GPIO_NUM_8;
-constexpr auto DISPLAY_RD = GPIO_NUM_9
+constexpr auto DISPLAY_RD = GPIO_NUM_9;
 constexpr auto DISPLAY_RST = GPIO_NUM_5;
 constexpr auto DISPLAY_BL = GPIO_NUM_38;
 constexpr auto DISPLAY_I80_D0 = GPIO_NUM_39;

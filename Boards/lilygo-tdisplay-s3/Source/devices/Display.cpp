@@ -1,5 +1,7 @@
 #include "Display.h"
+
 #include "St7789i8080Display.h"
+#include "PwmBacklight.h"
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Create configuration
@@ -17,8 +19,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Set resolution explicitly
     config.horizontalResolution = DISPLAY_HORIZONTAL_RESOLUTION;
     config.verticalResolution = DISPLAY_VERTICAL_RESOLUTION;
-    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
-    
+    config.backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
+
     // Adjust other settings as needed
     config.gapX = 35;  // ST7789 has a 35 pixel gap on X axis
     config.pixelClockFrequency = 10 * 1000 * 1000; // 10MHz for better stability
