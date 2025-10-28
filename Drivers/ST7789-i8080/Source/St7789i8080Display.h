@@ -3,6 +3,7 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_types.h>
+#include <esp_lcd_panel_st7789.h>
 #include <array>
 #include <memory>
 #include <functional>
@@ -70,7 +71,7 @@ private:
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* lvglDisplay = nullptr;
-    std::shared_ptr<tt::Lock> lock;
+    std::shared_ptr<std::mutex> lock;
 
     // Internal initialization methods
     bool initializeHardware();
