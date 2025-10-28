@@ -207,19 +207,6 @@ bool St7789i8080Display::configurePanel() {
 bool St7789i8080Display::initializeHardware() {
     TT_LOG_I(TAG, "Initializing I8080 ST7789 Display hardware...");
 
-    // Power on the display first!
-    gpio_config_t pwr_gpio_cfg = {
-        .pin_bit_mask = 1ULL << 15,  // PIN_POWER_ON
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    gpio_config(&pwr_gpio_cfg);
-    gpio_set_level((gpio_num_t)15, 1);
-    vTaskDelay(pdMS_TO_TICKS(10));
-    TT_LOG_I(TAG, "Display power enabled");
-
     // Configure RD pin if needed
     if (configuration.rdPin != GPIO_NUM_NC) {
         gpio_config_t rd_gpio_config = {
