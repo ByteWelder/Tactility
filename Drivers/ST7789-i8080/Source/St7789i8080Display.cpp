@@ -54,27 +54,10 @@ St7789i8080Display::St7789i8080Display(const Configuration& config)
         TT_LOG_E(TAG, "Invalid configuration: resolution must be set");
         return;
     }
-    
-    // Calculate buffer size if needed
-    configuration.calculateBufferSize();
-    
-    // Allocate buffer based on resolution
-    size_t buffer_size = configuration.bufferSize * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565);
-    buf1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
-    if (!buf1) {
-        TT_LOG_E(TAG, "Failed to allocate display buffer");
-    }
 }
 
-St7789i8080Display::~St7789i8080Display() {
-    if (buf1) {
-        heap_caps_free(buf1);
-        buf1 = nullptr;
-    }
-}
-
-bool St7789i8080Display::configureI80Bus() {
-    TT_LOG_I(TAG, "Configuring I80 bus");
+bool St7789i8080Display::createI80Bus() {
+    TT_LOG_I(TAG, "Creating I80 bus");
     
     // Create I80 bus configuration
     esp_lcd_i80_bus_config_t bus_cfg = {
@@ -102,8 +85,8 @@ bool St7789i8080Display::configureI80Bus() {
     return true;
 }
 
-bool St7789i8080Display::configurePanelIO() {
-    TT_LOG_I(TAG, "Configuring panel IO");
+bool St7789i8080Display::createPanelIO() {
+    TT_LOG_I(TAG, "Creating panel IO");
     
     // Create panel IO with proper callback
     esp_lcd_panel_io_i80_config_t io_cfg = {
@@ -138,7 +121,7 @@ bool St7789i8080Display::configurePanelIO() {
     return true;
 }
 
-bool St7789i8080Display::configurePanel() {
+bool St7789i8080Display::createPanel() {
     TT_LOG_I(TAG, "Configuring panel");
     
     // Create ST7789 panel
@@ -204,7 +187,17 @@ bool St7789i8080Display::configurePanel() {
     return true;
 }
 
-bool St7789i8080Display::initializeHardware() {
+void St7789i8080Display::sendInitCommands() {
+    TT_LOG_I(TAG, "Sending ST7789 init commands");
+    for (const auto& cmd : st7789_init_cmds) {
+        esp_lcd_panel_io_tx_param(ioHandle, cmd.cmd, cmd.data, cmd.len & 0x7F);
+        if (cmd.len & 0x80) {
+            vTaskDelay(pdMS_TO_TICKS(120));
+        }
+    }
+}
+
+bool St7789i8080Display::start() {
     TT_LOG_I(TAG, "Initializing I8080 ST7789 Display hardware...");
 
     // Configure RD pin if needed
@@ -220,18 +213,29 @@ bool St7789i8080Display::initializeHardware() {
         gpio_set_level(configuration.rdPin, 1);
     }
 
-    // Configure I80 bus
-    if (!configureI80Bus()) {
+    // Calculate buffer size if needed
+    configuration.calculateBufferSize();
+    
+    // Allocate buffer based on resolution
+    size_t buffer_size = configuration.bufferSize * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565);
+    buf1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
+    if (!buf1) {
+        TT_LOG_E(TAG, "Failed to allocate display buffer");
+        return false;
+    }
+
+    // Create I80 bus
+    if (!createI80Bus()) {
         return false;
     }
     
-    // Configure panel IO
-    if (!configurePanelIO()) {
+    // Create panel IO
+    if (!createPanelIO()) {
         return false;
     }
     
-    // Configure panel
-    if (!configurePanel()) {
+    // Create panel
+    if (!createPanel()) {
         return false;
     }
 
@@ -239,23 +243,47 @@ bool St7789i8080Display::initializeHardware() {
     return true;
 }
 
-void St7789i8080Display::sendInitCommands() {
-    TT_LOG_I(TAG, "Sending ST7789 init commands");
-    for (const auto& cmd : st7789_init_cmds) {
-        esp_lcd_panel_io_tx_param(ioHandle, cmd.cmd, cmd.data, cmd.len & 0x7F);
-        if (cmd.len & 0x80) {
-            vTaskDelay(pdMS_TO_TICKS(120));
-        }
+bool St7789i8080Display::stop() {
+    // Turn off display
+    if (panelHandle) {
+        esp_lcd_panel_disp_on_off(panelHandle, false);
     }
+
+    // Destroy in reverse order: panel, IO, bus
+    if (panelHandle) {
+        esp_lcd_panel_del(panelHandle);
+        panelHandle = nullptr;
+    }
+    if (ioHandle) {
+        esp_lcd_panel_io_del(ioHandle);
+        ioHandle = nullptr;
+    }
+    if (i80BusHandle) {
+        esp_lcd_del_i80_bus(i80BusHandle);
+        i80BusHandle = nullptr;
+    }
+
+    // Free buffer
+    if (buf1) {
+        heap_caps_free(buf1);
+        buf1 = nullptr;
+    }
+
+    // Turn off backlight
+    if (configuration.backlightDutyFunction) {
+        configuration.backlightDutyFunction(0);
+    }
+
+    return true;
 }
 
-bool St7789i8080Display::initializeLvgl() {
+bool St7789i8080Display::startLvgl() {
     TT_LOG_I(TAG, "Initializing LVGL for ST7789 display");
 
     // Don't reinitialize hardware if it's already done
     if (!ioHandle) {
-        TT_LOG_I(TAG, "Hardware not initialized, calling initializeHardware()");
-        if (!initializeHardware()) {
+        TT_LOG_I(TAG, "Hardware not initialized, calling start()");
+        if (!start()) {
             TT_LOG_E(TAG, "Hardware initialization failed");
             return false;
         }
@@ -308,32 +336,10 @@ bool St7789i8080Display::initializeLvgl() {
     return true;
 }
 
-bool St7789i8080Display::start() {
-    return initializeHardware();
-}
-
-bool St7789i8080Display::stop() {
-    // Turn off backlight
-    if (configuration.backlightDutyFunction) {
-        configuration.backlightDutyFunction(0);
-    }
-    
-    return true;
-}
-
-bool St7789i8080Display::startLvgl() {
-    // Don't call initializeHardware here - it will be called in initializeLvgl if needed
-    return initializeLvgl();
-}
-
 bool St7789i8080Display::stopLvgl() {
     if (lvglDisplay) {
         lvgl_port_remove_disp(lvglDisplay);
         lvglDisplay = nullptr;
     }
     return true;
-}
-
-lv_display_t* St7789i8080Display::getLvglDisplay() const {
-    return lvglDisplay;
 }

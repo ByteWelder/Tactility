@@ -94,28 +94,22 @@ private:
     uint8_t* buf1 = nullptr;
 
     // Internal initialization methods
-    bool initializeHardware();
-    bool initializeLvgl();
     void sendInitCommands();
-    bool configureI80Bus();
-    bool configurePanelIO();
-    bool configurePanel();
+    bool createI80Bus();
+    bool createPanelIO();
+    bool createPanel();
 
 public:
     explicit St7789i8080Display(const Configuration& config);
-    
-    // Add destructor declaration
     virtual ~St7789i8080Display();
-
-    // DisplayDevice interface
-    bool startLvgl() override;
-    lv_display_t* getLvglDisplay() const override;
+    lv_display_t* getLvglDisplay() const override { return lvglDisplay; }
     std::string getName() const override { return "I8080 ST7789"; }
     std::string getDescription() const override { return "I8080-based ST7789 display"; }
     
     // Lifecycle
     bool start() override;
     bool stop() override;
+    bool startLvgl() override;
     bool stopLvgl() override;
     
     // Capabilities
