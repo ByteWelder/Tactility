@@ -48,7 +48,138 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
 }
 
 St7789i8080Display::St7789i8080Display(const Configuration& config) 
-    : configuration(config), lock(std::make_shared<tt::Lock>()) {
+    : configuration(config), lock(std::make_shared<std::mutex>()) {
+}
+
+bool St7789i8080Display::configureI80Bus() {
+    TT_LOG_I(TAG, "Configuring I80 bus");
+    
+    // Create I80 bus configuration
+    esp_lcd_i80_bus_config_t bus_cfg = {
+        .dc_gpio_num = configuration.dcPin,
+        .wr_gpio_num = configuration.wrPin,
+        .clk_src = LCD_CLK_SRC_DEFAULT,
+        .data_gpio_nums = {
+            configuration.dataPins[0], configuration.dataPins[1], 
+            configuration.dataPins[2], configuration.dataPins[3],
+            configuration.dataPins[4], configuration.dataPins[5], 
+            configuration.dataPins[6], configuration.dataPins[7],
+        },
+        .bus_width = configuration.busWidth,
+        .max_transfer_bytes = configuration.bufferSize * sizeof(uint16_t),
+        .psram_trans_align = 64,
+        .sram_trans_align = 4
+    };
+    
+    esp_err_t ret = esp_lcd_new_i80_bus(&bus_cfg, &i80BusHandle);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create I80 bus: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    return true;
+}
+
+bool St7789i8080Display::configurePanelIO() {
+    TT_LOG_I(TAG, "Configuring panel IO");
+    
+    // Create panel IO with proper callback
+    esp_lcd_panel_io_i80_config_t io_cfg = {
+        .cs_gpio_num = configuration.csPin,
+        .pclk_hz = configuration.pixelClockFrequency,
+        .trans_queue_depth = configuration.transactionQueueDepth,
+        .on_color_trans_done = notify_lvgl_flush_ready,  // Use proper callback
+        .user_ctx = nullptr,  // Will be set when LVGL display is created
+        .lcd_cmd_bits = configuration.lcdCmdBits,
+        .lcd_param_bits = configuration.lcdParamBits,
+        .dc_levels = {
+            .dc_idle_level = configuration.dcLevels.dcIdleLevel,
+            .dc_cmd_level = configuration.dcLevels.dcCmdLevel,
+            .dc_dummy_level = configuration.dcLevels.dcDummyLevel,
+            .dc_data_level = configuration.dcLevels.dcDataLevel,
+        },
+        .flags = {
+            .cs_active_high = configuration.flags.csActiveHigh,
+            .reverse_color_bits = configuration.flags.reverseColorBits,
+            .swap_color_bytes = configuration.flags.swapColorBytes,
+            .pclk_active_neg = configuration.flags.pclkActiveNeg,
+            .pclk_idle_low = configuration.flags.pclkIdleLow
+        }
+    };
+
+    esp_err_t ret = esp_lcd_new_panel_io_i80(i80BusHandle, &io_cfg, &ioHandle);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create panel IO: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    return true;
+}
+
+bool St7789i8080Display::configurePanel() {
+    TT_LOG_I(TAG, "Configuring panel");
+    
+    // Create ST7789 panel
+    esp_lcd_panel_dev_config_t panel_config = {
+        .reset_gpio_num = configuration.resetPin,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
+        .bits_per_pixel = 16,
+        .flags = {
+            .reset_active_high = false
+        },
+        .vendor_config = nullptr
+    };
+    
+    esp_err_t ret = esp_lcd_new_panel_st7789(ioHandle, &panel_config, &panelHandle);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to create ST7789 panel: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Reset panel
+    ret = esp_lcd_panel_reset(panelHandle);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to reset panel: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Initialize panel
+    ret = esp_lcd_panel_init(panelHandle);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to init panel: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Set gap
+    ret = esp_lcd_panel_set_gap(panelHandle, configuration.gapX, configuration.gapY);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel gap: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Set inversion
+    ret = esp_lcd_panel_invert_color(panelHandle, configuration.invertColor);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel inversion: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Set mirror
+    ret = esp_lcd_panel_mirror(panelHandle, configuration.mirrorX, configuration.mirrorY);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to set panel mirror: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    // Turn on display
+    ret = esp_lcd_panel_disp_on_off(panelHandle, true);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to turn display on: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
+    return true;
 }
 
 bool St7789i8080Display::initializeHardware() {
@@ -67,7 +198,7 @@ bool St7789i8080Display::initializeHardware() {
     vTaskDelay(pdMS_TO_TICKS(10));
     TT_LOG_I(TAG, "Display power enabled");
 
-    // Configure RD pin
+    // Configure RD pin if needed
     if (configuration.rdPin != GPIO_NUM_NC) {
         gpio_config_t rd_gpio_config = {
             .pin_bit_mask = (1ULL << static_cast<uint32_t>(configuration.rdPin)),
@@ -80,77 +211,20 @@ bool St7789i8080Display::initializeHardware() {
         gpio_set_level(configuration.rdPin, 1);
     }
 
-    // Create I80 bus
-    size_t max_bytes = configuration.bufferSize * sizeof(uint16_t);
-    esp_lcd_i80_bus_config_t bus_cfg = {
-        .dc_gpio_num = configuration.dcPin,
-        .wr_gpio_num = configuration.wrPin,
-        .clk_src = LCD_CLK_SRC_DEFAULT,
-        .data_gpio_nums = {
-            configuration.dataPins[0], configuration.dataPins[1], 
-            configuration.dataPins[2], configuration.dataPins[3],
-            configuration.dataPins[4], configuration.dataPins[5], 
-            configuration.dataPins[6], configuration.dataPins[7],
-        },
-        .bus_width = 8,
-        .max_transfer_bytes = max_bytes,
-        .psram_trans_align = 64,
-        .sram_trans_align = 4
-    };
+    // Configure I80 bus
+    if (!configureI80Bus()) {
+        return false;
+    }
     
-    if (esp_lcd_new_i80_bus(&bus_cfg, &i80BusHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create I80 bus");
+    // Configure panel IO
+    if (!configurePanelIO()) {
         return false;
     }
-
-    // Create panel IO with proper callback
-    esp_lcd_panel_io_i80_config_t io_cfg = {
-        .cs_gpio_num = configuration.csPin,
-        .pclk_hz = configuration.pixelClockFrequency,
-        .trans_queue_depth = configuration.transactionQueueDepth,
-        .on_color_trans_done = notify_lvgl_flush_ready,  // Use proper callback
-        .user_ctx = nullptr,  // Will be set when LVGL display is created
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
-        .dc_levels = {
-            .dc_idle_level = 0,
-            .dc_cmd_level = 0,
-            .dc_dummy_level = 0,
-            .dc_data_level = 1,
-        },
-        .flags = {
-            .cs_active_high = 0,
-            .reverse_color_bits = 0,
-            .swap_color_bytes = 1,
-            .pclk_active_neg = 0,
-            .pclk_idle_low = 0
-        }
-    };
-
-    if (esp_lcd_new_panel_io_i80(i80BusHandle, &io_cfg, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel IO");
+    
+    // Configure panel
+    if (!configurePanel()) {
         return false;
     }
-
-    // Hardware reset
-    if (configuration.resetPin != GPIO_NUM_NC) {
-        gpio_config_t rst_gpio_cfg = {
-            .pin_bit_mask = 1ULL << static_cast<uint32_t>(configuration.resetPin),
-            .mode = GPIO_MODE_OUTPUT,
-            .pull_up_en = GPIO_PULLUP_DISABLE,
-            .pull_down_en = GPIO_PULLDOWN_DISABLE,
-            .intr_type = GPIO_INTR_DISABLE,
-        };
-        gpio_config(&rst_gpio_cfg);
-        
-        gpio_set_level(configuration.resetPin, 0);
-        vTaskDelay(pdMS_TO_TICKS(20));
-        gpio_set_level(configuration.resetPin, 1);
-        vTaskDelay(pdMS_TO_TICKS(120));
-    }
-
-    // Send initialization commands
-    sendInitCommands();
 
     // Configure backlight
     gpio_config_t bk_gpio_cfg = {
@@ -212,14 +286,6 @@ bool St7789i8080Display::initializeLvgl() {
     if (!lvglDisplay) {
         TT_LOG_E(TAG, "Failed to create LVGL display");
         return false;
-    }
-
-    // Set the gap for the ST7789 (35 pixels on X axis)
-    lv_display_set_gap(lvglDisplay, configuration.gapX, configuration.gapY);
-    
-    // Set inversion
-    if (configuration.invertColor) {
-        esp_lcd_panel_invert_color(panelHandle, true);
     }
 
     // Update the user context in the IO handle to point to our LVGL display
