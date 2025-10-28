@@ -120,6 +120,12 @@
         "arch": "esp32s3"
     },
     {
+        "id": "m5stack-cardputer-adv",
+        "pretty_name": "M5Stack Cardputer Adv",
+        "project": "M5stackCardputerAdv",
+        "arch": "esp32s3"
+    },
+    {
         "id": "m5stack-core2",
         "pretty_name": "M5Stack Core2",
         "project": "M5stackCore2",
