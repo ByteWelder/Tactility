@@ -319,7 +319,7 @@ bool St7789i8080Display::stop() {
     }
 
     // Turn off display power
-    gpio_set_level((gpio_num_t)15, 0);
+    gpio_set_level(configuration.backlightPin, 0);
     
     return true;
 }
