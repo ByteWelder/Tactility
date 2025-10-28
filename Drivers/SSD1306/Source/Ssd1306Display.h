@@ -39,14 +39,14 @@ public:
         gpio_num_t resetPin = GPIO_NUM_NC;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
-        bool invertColor = false;
+        bool invertColor = false;  // Note: We'll handle inversion in the driver regardless of this setting
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
         uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is full screen for monochrome
         int gapX = 0;
         int gapY = 0;
 
         // Debug helpers (runtime toggles)
-        bool debugDumpPxMap = true;
+        bool debugDumpPxMap = false;  // Changed default to false
         bool debugForceFullPageWrites = false;
     };
 
@@ -70,9 +70,6 @@ public:
         if (configuration->bufferSize == 0) {
             configuration->bufferSize = configuration->horizontalResolution * configuration->verticalResolution;
         }
-
-        // Apply gap offsets to the driver
-        setDriverColumnOffset(configuration->gapX);
     }
 
     std::string getName() const override { return "SSD1306"; }
