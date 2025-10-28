@@ -21,7 +21,7 @@ constexpr auto TAG = "SSD1306";
 #define SSD1306_CMD_SET_START_LINE 0x40
 #define SSD1306_CMD_CHARGE_PUMP 0x8D
 #define SSD1306_CMD_MEM_ADDR_MODE 0x20
-#define SSD1306_CMD_SEG_REMAP 0xA1
+#define SSD1306_CMD_SEG_REMAP 0xA0
 #define SSD1306_CMD_COM_SCAN_DEC 0xC8
 #define SSD1306_CMD_COM_PINS 0xDA
 #define SSD1306_CMD_SET_CONTRAST 0x81
@@ -69,6 +69,8 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_MEM_ADDR_MODE);
     ssd1306_i2c_send_cmd(port, addr, 0x00); // Horizontal mode
 
+    // Use normal segment mapping (0xA0, not 0xA1)
+    // The 0xA1 causes a 4-pixel offset that leads to page wrapping issues
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SEG_REMAP);
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_COM_SCAN_DEC);
 
@@ -85,6 +87,9 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
     ssd1306_i2c_send_cmd(port, addr, 0x40);
 
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_NORMAL_DISPLAY);
+    
+    ssd1306_i2c_send_cmd(port, addr, 0xA7); // SSD1306_CMD_INVERT_ON
+    
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_DISPLAY_ON);
 
     TT_LOG_I(TAG, "Heltec V3 init sequence complete");
