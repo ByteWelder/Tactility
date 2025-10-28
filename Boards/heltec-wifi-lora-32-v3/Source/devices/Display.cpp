@@ -3,7 +3,6 @@
 #include <Ssd1306Display.h>
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-
     auto configuration = std::make_unique<Ssd1306Display::Configuration>(
         HELTEC_LCD_I2C_PORT,
         HELTEC_LCD_I2C_ADDRESS,
