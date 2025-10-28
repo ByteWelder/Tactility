@@ -64,14 +64,23 @@ public:
         std::shared_ptr<tt::hal::touch::TouchDevice> touch = nullptr;
         std::function<void(uint8_t)> backlightDutyFunction = nullptr;
 
+        // Basic constructor - requires resolution to be set separately
         Configuration(gpio_num_t cs, gpio_num_t dc, gpio_num_t wr, gpio_num_t rd,
                       std::array<gpio_num_t, 8> data, gpio_num_t rst, gpio_num_t bl)
             : csPin(cs), dcPin(dc), wrPin(wr), rdPin(rd),
-              dataPins(data), resetPin(rst), backlightPin(bl) {
-            // Calculate default buffer size if not specified
-            if (bufferSize == 0) {
+              dataPins(data), resetPin(rst), backlightPin(bl),
+              horizontalResolution(0), verticalResolution(0) {}  // Initialize to 0
+        
+        // Method to calculate buffer size after resolution is set
+        void calculateBufferSize() {
+            if (bufferSize == 0 && horizontalResolution > 0 && verticalResolution > 0) {
                 bufferSize = horizontalResolution * verticalResolution / 10;
             }
+        }
+        
+        // Validation method
+        bool isValid() const {
+            return horizontalResolution > 0 && verticalResolution > 0;
         }
     };
 

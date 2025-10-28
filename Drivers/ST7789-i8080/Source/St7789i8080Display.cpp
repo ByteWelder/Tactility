@@ -51,6 +51,15 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
 St7789i8080Display::St7789i8080Display(const Configuration& config) 
     : configuration(config), lock(std::make_shared<std::mutex>()) {
     
+    // Validate configuration
+    if (!configuration.isValid()) {
+        TT_LOG_E(TAG, "Invalid configuration: resolution must be set");
+        return;
+    }
+    
+    // Calculate buffer size if needed
+    configuration.calculateBufferSize();
+    
     // Allocate buffer based on resolution
     size_t buffer_size = configuration.bufferSize * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565);
     buf1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
