@@ -3,8 +3,7 @@ name: Build Simulator
 on:
   push:
     branches:
-      - main
-      - tdisplay-only
+      - mainz
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
