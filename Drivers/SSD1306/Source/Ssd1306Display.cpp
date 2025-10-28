@@ -12,6 +12,85 @@
 
 constexpr auto TAG = "SSD1306";
 
+// SSD1306 Commands for manual initialization
+#define SSD1306_CMD_DISPLAY_OFF 0xAE
+#define SSD1306_CMD_DISPLAY_ON 0xAF
+#define SSD1306_CMD_SET_CLOCK_DIV 0xD5
+#define SSD1306_CMD_SET_MUX_RATIO 0xA8
+#define SSD1306_CMD_SET_DISPLAY_OFFSET 0xD3
+#define SSD1306_CMD_SET_START_LINE 0x40
+#define SSD1306_CMD_CHARGE_PUMP 0x8D
+#define SSD1306_CMD_MEM_ADDR_MODE 0x20
+#define SSD1306_CMD_SEG_REMAP 0xA1
+#define SSD1306_CMD_COM_SCAN_DEC 0xC8
+#define SSD1306_CMD_COM_PINS 0xDA
+#define SSD1306_CMD_SET_CONTRAST 0x81
+#define SSD1306_CMD_SET_PRECHARGE 0xD9
+#define SSD1306_CMD_SET_VCOMH 0xDB
+#define SSD1306_CMD_NORMAL_DISPLAY 0xA6
+
+// I2C control byte
+#define I2C_CONTROL_BYTE_CMD_SINGLE 0x80
+
+static esp_err_t ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
+    i2c_cmd_handle_t handle = i2c_cmd_link_create();
+    if (!handle) return ESP_ERR_NO_MEM;
+
+    i2c_master_start(handle);
+    i2c_master_write_byte(handle, (addr << 1) | I2C_MASTER_WRITE, true);
+    i2c_master_write_byte(handle, I2C_CONTROL_BYTE_CMD_SINGLE, true);
+    i2c_master_write_byte(handle, cmd, true);
+    i2c_master_stop(handle);
+    esp_err_t ret = i2c_master_cmd_begin(port, handle, pdMS_TO_TICKS(100));
+    i2c_cmd_link_delete(handle);
+    return ret;
+}
+
+static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr, uint8_t height) {
+    TT_LOG_I(TAG, "Sending Heltec V3 custom init sequence for %d height...", height);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_DISPLAY_OFF);
+    vTaskDelay(pdMS_TO_TICKS(10));
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_CLOCK_DIV);
+    ssd1306_i2c_send_cmd(port, addr, 0x80);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_MUX_RATIO);
+    ssd1306_i2c_send_cmd(port, addr, height - 1);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_DISPLAY_OFFSET);
+    ssd1306_i2c_send_cmd(port, addr, 0x00);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_START_LINE);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_CHARGE_PUMP);
+    ssd1306_i2c_send_cmd(port, addr, 0x14);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_MEM_ADDR_MODE);
+    ssd1306_i2c_send_cmd(port, addr, 0x00); // Horizontal mode
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SEG_REMAP);
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_COM_SCAN_DEC);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_COM_PINS);
+    ssd1306_i2c_send_cmd(port, addr, height == 64 ? 0x12 : 0x02);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_CONTRAST);
+    ssd1306_i2c_send_cmd(port, addr, 0xCF);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_PRECHARGE);
+    ssd1306_i2c_send_cmd(port, addr, 0xF1);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_VCOMH);
+    ssd1306_i2c_send_cmd(port, addr, 0x40);
+
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_NORMAL_DISPLAY);
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_DISPLAY_ON);
+
+    TT_LOG_I(TAG, "Heltec V3 init sequence complete");
+    return ESP_OK;
+}
+
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     TT_LOG_I(TAG, "Creating I2C IO handle");
 
@@ -69,50 +148,44 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
 
     TT_LOG_I(TAG, "SSD1306 panel created");
 
-    // Reset the panel
-    ret = esp_lcd_panel_reset(panelHandle);
+    // Hardware reset manually (critical for Heltec V3)
+    if (configuration->resetPin != GPIO_NUM_NC) {
+        gpio_config_t rst_cfg = {
+            .pin_bit_mask = 1ULL << configuration->resetPin,
+            .mode = GPIO_MODE_OUTPUT,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        gpio_config(&rst_cfg);
+
+        TT_LOG_I(TAG, "Performing hardware reset on pin %d", configuration->resetPin);
+        gpio_set_level(configuration->resetPin, 0);
+        vTaskDelay(pdMS_TO_TICKS(10));
+        gpio_set_level(configuration->resetPin, 1);
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    // Send Heltec V3 specific init sequence via I2C
+    // This bypasses the ESP-IDF driver's init which doesn't work well with Heltec V3
+    ret = ssd1306_send_heltec_init_sequence(
+        configuration->port,
+        configuration->deviceAddress,
+        configuration->verticalResolution
+    );
+    
     if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Panel reset failed: %s", esp_err_to_name(ret));
+        TT_LOG_E(TAG, "Heltec init sequence failed: %s", esp_err_to_name(ret));
         return false;
     }
     
-    // Initialize the panel using ESP-IDF driver
-    ret = esp_lcd_panel_init(panelHandle);
-    if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Panel init failed: %s", esp_err_to_name(ret));
-        return false;
-    }
-    
-    // Apply Heltec-specific hardware configuration
-    // The Heltec v3 needs segment remap enabled (mirror X)
-    TT_LOG_I(TAG, "Applying Heltec-specific display configuration");
-    ret = esp_lcd_panel_mirror(panelHandle, true, false);
-    if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Mirror configuration failed: %s", esp_err_to_name(ret));
-        return false;
-    }
-    
-    // Invert colors to get white on black
-    ret = esp_lcd_panel_invert_color(panelHandle, !configuration->invertColor);
-    if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Color inversion failed: %s", esp_err_to_name(ret));
-        return false;
-    }
-    
-    // Apply gap offsets if needed
+    // Apply gap offsets if needed (through driver for proper buffering)
     if (configuration->gapX != 0 || configuration->gapY != 0) {
         ret = esp_lcd_panel_set_gap(panelHandle, configuration->gapX, configuration->gapY);
         if (ret != ESP_OK) {
             TT_LOG_E(TAG, "Set gap failed: %s", esp_err_to_name(ret));
             return false;
         }
-    }
-    
-    // Turn on the display
-    ret = esp_lcd_panel_disp_on_off(panelHandle, true);
-    if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Display on failed: %s", esp_err_to_name(ret));
-        return false;
     }
     
     TT_LOG_I(TAG, "Panel initialization complete");
