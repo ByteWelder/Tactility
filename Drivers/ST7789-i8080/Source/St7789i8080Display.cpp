@@ -10,7 +10,6 @@
 
 constexpr auto TAG = "St7789i8080Display";
 static St7789i8080Display* g_display_instance = nullptr;
-// Use a dynamic buffer based on resolution
 static uint8_t* buf1 = nullptr;
 
 // ST7789 initialization commands
