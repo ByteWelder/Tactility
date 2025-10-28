@@ -36,7 +36,7 @@ bool initBoot() {
         return false;
     }
 
-    if (!driver::pwmbacklight::init(GPIO_NUM_2, 30000)) {
+    if (!driver::pwmbacklight::init(GPIO_NUM_38, 30000)) {
         ESP_LOGE(TAG, "Failed to initialize backlight.");
         return false;
     }
