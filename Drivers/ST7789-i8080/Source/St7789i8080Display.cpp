@@ -288,8 +288,10 @@ bool St7789i8080Display::initializeLvgl() {
         return false;
     }
 
-    // Update the user context in the IO handle to point to our LVGL display
-    esp_lcd_panel_io_handle_event(ioHandle, lvglDisplay, nullptr);
+    // Set the user context for the callback
+    esp_lcd_panel_io_register_event_callbacks(ioHandle, &(esp_lcd_panel_io_event_callbacks_t){
+        .on_color_trans_done = notify_lvgl_flush_ready,
+    }, lvglDisplay);
 
     g_display_instance = this;
     TT_LOG_I(TAG, "LVGL display created successfully");

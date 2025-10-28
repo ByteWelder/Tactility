@@ -7,6 +7,7 @@
 #include <array>
 #include <memory>
 #include <functional>
+#include <mutex>
 
 class St7789i8080Display : public tt::hal::display::DisplayDevice {
 public:
@@ -27,8 +28,8 @@ public:
         size_t bufferSize = 170 * 320;                         // full frame buffer
         
         // LCD command/parameter configuration
-        size_t lcdCmdBits = 8;
-        size_t lcdParamBits = 8;
+        int lcdCmdBits = 8;
+        int lcdParamBits = 8;
         
         // DC line level configuration
         struct {
