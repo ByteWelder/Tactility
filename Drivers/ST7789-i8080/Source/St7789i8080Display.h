@@ -7,7 +7,7 @@
 #include <memory>
 #include <functional>
 
-class I8080St7789Display : public tt::hal::display::DisplayDevice {
+class St7789i8080Display : public tt::hal::display::DisplayDevice {
 public:
     struct Configuration {
         gpio_num_t csPin;
@@ -49,7 +49,7 @@ private:
     void sendInitCommands();
 
 public:
-    explicit I8080St7789Display(const Configuration& config);
+    explicit St7789i8080Display(const Configuration& config);
 
     // DisplayDevice interface
     bool startLvgl() override;

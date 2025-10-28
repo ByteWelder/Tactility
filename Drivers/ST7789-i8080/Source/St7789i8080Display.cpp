@@ -1,4 +1,4 @@
-#include "I8080St7789Display.h"
+#include "St7789i8080Display.h"
 #include <Tactility/Log.h>
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
@@ -8,8 +8,8 @@
 #include <freertos/task.h>
 #include <lvgl.h>
 
-constexpr auto TAG = "I8080St7789Display";
-static I8080St7789Display* g_display_instance = nullptr;
+constexpr auto TAG = "St7789i8080Display";
+static St7789i8080Display* g_display_instance = nullptr;
 static DRAM_ATTR uint8_t buf1[170 * 320 / 10 * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)];
 
 // ST7789 initialization commands
@@ -47,11 +47,11 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
     return false;
 }
 
-I8080St7789Display::I8080St7789Display(const Configuration& config) 
+St7789i8080Display::St7789i8080Display(const Configuration& config) 
     : configuration(config), lock(std::make_shared<tt::Lock>()) {
 }
 
-bool I8080St7789Display::initializeHardware() {
+bool St7789i8080Display::initializeHardware() {
     TT_LOG_I(TAG, "Initializing I8080 ST7789 Display hardware...");
 
     // Power on the display first!
@@ -167,7 +167,7 @@ bool I8080St7789Display::initializeHardware() {
     return true;
 }
 
-void I8080St7789Display::sendInitCommands() {
+void St7789i8080Display::sendInitCommands() {
     TT_LOG_I(TAG, "Sending ST7789 init commands");
     for (const auto& cmd : st7789_init_cmds) {
         esp_lcd_panel_io_tx_param(ioHandle, cmd.cmd, cmd.data, cmd.len & 0x7F);
@@ -177,7 +177,7 @@ void I8080St7789Display::sendInitCommands() {
     }
 }
 
-bool I8080St7789Display::initializeLvgl() {
+bool St7789i8080Display::initializeLvgl() {
     TT_LOG_I(TAG, "Initializing LVGL for ST7789 display");
 
     // Create LVGL display using lvgl_port
@@ -230,11 +230,11 @@ bool I8080St7789Display::initializeLvgl() {
     return true;
 }
 
-bool I8080St7789Display::start() {
+bool St7789i8080Display::start() {
     return initializeHardware();
 }
 
-bool I8080St7789Display::stop() {
+bool St7789i8080Display::stop() {
     // Turn off backlight
     gpio_set_level(configuration.backlightPin, 0);
     
@@ -244,7 +244,7 @@ bool I8080St7789Display::stop() {
     return true;
 }
 
-bool I8080St7789Display::startLvgl() {
+bool St7789i8080Display::startLvgl() {
     if (!initializeHardware()) {
         return false;
     }
@@ -252,7 +252,7 @@ bool I8080St7789Display::startLvgl() {
     return initializeLvgl();
 }
 
-bool I8080St7789Display::stopLvgl() {
+bool St7789i8080Display::stopLvgl() {
     if (lvglDisplay) {
         lvgl_port_remove_disp(lvglDisplay);
         lvglDisplay = nullptr;
@@ -260,6 +260,6 @@ bool I8080St7789Display::stopLvgl() {
     return true;
 }
 
-lv_display_t* I8080St7789Display::getLvglDisplay() const {
+lv_display_t* St7789i8080Display::getLvglDisplay() const {
     return lvglDisplay;
 }

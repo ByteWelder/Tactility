@@ -1,9 +1,9 @@
 #include "Display.h"
-#include "I8080St7789Display.h"
+#include <St7789i8080Display.h>
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
-    auto display = std::make_shared<I8080St7789Display>(
-        I8080St7789Display::Configuration(
+    auto display = std::make_shared<St7789i8080Display>(
+        St7789i8080Display::Configuration(
             GPIO_NUM_6,   // CS
             GPIO_NUM_7,   // DC
             GPIO_NUM_8,   // WR
