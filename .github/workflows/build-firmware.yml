@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - tdisplay-only
   pull_request:
     types: [ opened, synchronize, reopened ]
 
@@ -31,6 +32,7 @@ jobs:
           { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
           { id: lilygo-tdeck, arch: esp32s3 },
           { id: lilygo-tdongle-s3, arch: esp32s3 },
+          { id: lilygo-tdisplay-s3, arch: esp32s3 },
           { id: lilygo-tlora-pager, arch: esp32s3 },
           { id: m5stack-cardputer, arch: esp32s3 },
           { id: m5stack-cardputer-adv, arch: esp32s3 },
