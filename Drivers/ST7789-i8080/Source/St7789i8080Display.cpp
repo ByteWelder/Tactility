@@ -317,9 +317,6 @@ bool St7789i8080Display::stop() {
     if (configuration.backlightDutyFunction) {
         configuration.backlightDutyFunction(0);
     }
-
-    // Turn off display power
-    gpio_set_level(configuration.backlightPin, 0);
     
     return true;
 }
