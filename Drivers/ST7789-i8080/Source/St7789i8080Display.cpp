@@ -279,9 +279,13 @@ bool St7789i8080Display::initializeLvgl() {
 
     // Don't reinitialize hardware if it's already done
     if (!ioHandle) {
+        TT_LOG_I(TAG, "Hardware not initialized, calling initializeHardware()");
         if (!initializeHardware()) {
+            TT_LOG_E(TAG, "Hardware initialization failed");
             return false;
         }
+    } else {
+        TT_LOG_I(TAG, "Hardware already initialized, skipping");
     }
 
     // Create LVGL display using lvgl_port
@@ -344,10 +348,7 @@ bool St7789i8080Display::stop() {
 }
 
 bool St7789i8080Display::startLvgl() {
-    if (!initializeHardware()) {
-        return false;
-    }
-    
+    // Don't call initializeHardware here - it will be called in initializeLvgl if needed
     return initializeLvgl();
 }
 
