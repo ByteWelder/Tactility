@@ -12,7 +12,6 @@
 constexpr auto TAG = "I8080St7789Display";
 static I8080St7789Display* g_display_instance = nullptr;
 static DRAM_ATTR uint8_t buf1[170 * 320 / 10 * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)];
-static volatile bool g_transfer_done = true;
 
 // ST7789 initialization commands
 typedef struct {
@@ -187,16 +186,21 @@ static void st7789_send_cmd_cb(lv_display_t*, const uint8_t* cmd, size_t, const 
 // The i8080 interface on T-Display S3 seems to require an immediate flush_ready call
 // with a small delay. Multiple approaches were tested (DMA callbacks, buffer
 // tuning, clock adjustment) but only this janky approach works
-static void st7789_send_color_cb(lv_display_t* disp, const uint8_t* cmd, size_t, const uint8_t* param, size_t param_size) {
-    if (!g_display_instance || !g_display_instance->getIoHandle() || !disp) return;
+static void st7789_send_color_cb(lv_display_t* disp, const uint8_t* cmd, size_t, uint8_t* param, size_t param_size) {
+    if (!g_display_instance || !g_display_instance->getIoHandle()) {
+        return;
+    }
     
-    // Wait for previous transfer (should already be done in practice)
-    while (!g_transfer_done) { vTaskDelay(1); }
+    if (!disp) {
+        TT_LOG_E(TAG, "Display context is NULL in color callback!");
+        return;
+    }
     
-    g_transfer_done = false;
-    esp_lcd_panel_io_tx_color(g_display_instance->getIoHandle(), *cmd, (uint8_t*)param, param_size);
-    g_transfer_done = true;  // Set immediately for your "janky but works" pattern
-    
+    esp_lcd_panel_io_tx_color(g_display_instance->getIoHandle(), *cmd, param, param_size);
+
+    vTaskDelay(1);  // Small delay to ensure command is processed fully
+
+    // Call flush_ready immediately - the DMA will handle the actual transfer
     lv_display_flush_ready(disp);
 }
 
