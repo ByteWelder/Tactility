@@ -12,10 +12,10 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // - 12MHz SPI clock
 
     St7789Display::Configuration panel_configuration = {
-        .horizontalResolution = 172,
-        .verticalResolution = 320,
-        .gapX = 34,  // X offset for 1.47" display
-        .gapY = 0,
+        .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
+        .verticalResolution = LCD_VERTICAL_RESOLUTION,
+        .gapX = LCD_GAP_X,
+        .gapY = LCD_GAP_Y,
         .swapXY = false,
         .mirrorX = false,  // disabled to fix inverted text
         .mirrorY = false,
@@ -23,14 +23,14 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .bufferSize = 0,  // default = 1/10 of screen
         .touch = nullptr,
         .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
-        .resetPin = GPIO_NUM_21
+        .resetPin = LCD_PIN_RESET
     };
 
     auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {
-        .spiHostDevice = SPI2_HOST,
-        .csPin = GPIO_NUM_14,
-        .dcPin = GPIO_NUM_15,
-        .pixelClockFrequency = 12'000'000,  // 12 MHz as in demo
+        .spiHostDevice = LCD_SPI_HOST,
+        .csPin = LCD_PIN_CS,
+        .dcPin = LCD_PIN_DC,
+        .pixelClockFrequency = LCD_PIXEL_CLOCK_HZ,
         .transactionQueueDepth = 10
     });
 

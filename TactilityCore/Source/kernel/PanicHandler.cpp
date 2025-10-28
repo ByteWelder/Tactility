@@ -53,6 +53,15 @@ void __wrap_esp_panic_handler(void* info) {
         && crashData.callstackLength < CRASH_DATA_CALLSTACK_LIMIT
     ) {
         if (esp_backtrace_get_next_frame(&frame)) {
+            // Validate the current frame
+            uint32_t processed_frame_pc = esp_cpu_process_stack_pc(frame.pc);
+            bool frame_pc_is_valid = esp_ptr_executable((void *)processed_frame_pc);
+
+            if (!esp_stack_ptr_is_sane(frame.sp) || !frame_pc_is_valid) {
+                crashData.callstackCorrupted = true;
+                break;
+            }
+
             crashData.callstack[crashData.callstackLength].pc = frame.pc;
 #if CRASH_DATA_INCLUDES_SP
             crashData.callstack[crashData.callstackLength].sp = frame.sp;

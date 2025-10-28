@@ -26,12 +26,12 @@ extern const Configuration hardwareConfiguration = {
     .spi {
         // Display and SD card (shared SPI bus)
         spi::Configuration {
-            .device = SPI2_HOST,
+            .device = LCD_SPI_HOST,
             .dma = SPI_DMA_CH_AUTO,
             .config = {
-                .mosi_io_num = GPIO_NUM_6,
-                .miso_io_num = GPIO_NUM_5,
-                .sclk_io_num = GPIO_NUM_7,
+                .mosi_io_num = LCD_PIN_MOSI,
+                .miso_io_num = LCD_PIN_MISO,
+                .sclk_io_num = LCD_PIN_SCLK,
                 .quadwp_io_num = GPIO_NUM_NC,
                 .quadhd_io_num = GPIO_NUM_NC,
                 .data4_io_num = GPIO_NUM_NC,
@@ -39,7 +39,7 @@ extern const Configuration hardwareConfiguration = {
                 .data6_io_num = GPIO_NUM_NC,
                 .data7_io_num = GPIO_NUM_NC,
                 .data_io_default_level = false,
-                .max_transfer_sz = ((172 * (320 / 10)) * LV_COLOR_DEPTH / 8),
+                .max_transfer_sz = LCD_SPI_TRANSFER_SIZE_LIMIT,
                 .flags = 0,
                 .isr_cpu_id = ESP_INTR_CPU_AFFINITY_AUTO,
                 .intr_flags = 0

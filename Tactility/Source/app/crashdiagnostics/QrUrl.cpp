@@ -5,6 +5,7 @@
 #include <Tactility/kernel/PanicHandler.h>
 
 #include <sstream>
+#include <vector>
 #include <esp_cpu.h>
 
 #if CONFIG_IDF_TARGET_ARCH_XTENSA
@@ -15,7 +16,8 @@
 
 std::string getUrlFromCrashData() {
     auto crash_data = getRtcCrashData();
-    auto* stack_buffer = (uint32_t*) malloc(crash_data.callstackLength * 2 * sizeof(uint32_t));
+    std::vector<uint32_t> stack_buffer(crash_data.callstackLength * 2);
+
     for (int i = 0; i < crash_data.callstackLength; ++i) {
         const CallstackFrame&frame = crash_data.callstack[i];
 #if CONFIG_IDF_TARGET_ARCH_XTENSA
@@ -48,8 +50,6 @@ std::string getUrlFromCrashData() {
         stream << std::hex << sp;
 #endif
     }
-
-    free(stack_buffer);
 
     return stream.str();
 }
