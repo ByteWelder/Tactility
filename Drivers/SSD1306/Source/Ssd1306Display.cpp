@@ -83,18 +83,29 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         return false;
     }
     
+    // Apply Heltec-specific hardware configuration
+    // The Heltec v3 needs segment remap enabled (mirror X)
+    TT_LOG_I(TAG, "Applying Heltec-specific display configuration");
+    ret = esp_lcd_panel_mirror(panelHandle, true, false);
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Mirror configuration failed: %s", esp_err_to_name(ret));
+        return false;
+    }
+    
     // Invert colors to get white on black
-    ret = esp_lcd_panel_invert_color(panelHandle, true);
+    ret = esp_lcd_panel_invert_color(panelHandle, !configuration->invertColor);
     if (ret != ESP_OK) {
         TT_LOG_E(TAG, "Color inversion failed: %s", esp_err_to_name(ret));
         return false;
     }
     
-    // Set the gap to fix the partial page wrapping issue
-    ret = esp_lcd_panel_set_gap(panelHandle, configuration->gapX, configuration->gapY);
-    if (ret != ESP_OK) {
-        TT_LOG_E(TAG, "Set gap failed: %s", esp_err_to_name(ret));
-        return false;
+    // Apply gap offsets if needed
+    if (configuration->gapX != 0 || configuration->gapY != 0) {
+        ret = esp_lcd_panel_set_gap(panelHandle, configuration->gapX, configuration->gapY);
+        if (ret != ESP_OK) {
+            TT_LOG_E(TAG, "Set gap failed: %s", esp_err_to_name(ret));
+            return false;
+        }
     }
     
     // Turn on the display
@@ -135,7 +146,7 @@ lvgl_port_display_cfg_t Ssd1306Display::getLvglPortDisplayConfig(esp_lcd_panel_i
             .buff_spiram = false,
             .sw_rotate = false,
             .swap_bytes = false,
-            .full_refresh = true, // Force full refresh to prevent partial update issues
+            .full_refresh = false,
             .direct_mode = false
         }
     };
