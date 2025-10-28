@@ -43,6 +43,8 @@ menu "Tactility App"
             bool "Elecrow CrowPanel Basic 3.5"
         config TT_BOARD_ELECROW_CROWPANEL_BASIC_50
             bool "Elecrow CrowPanel Basic 5.0"
+        config TT_BOARD_HELTEC_V3
+            bool "Heltec v3"
         config TT_BOARD_LILYGO_TDECK
             bool "LilyGo T-Deck"
         config TT_BOARD_LILYGO_TDONGLE_S3
