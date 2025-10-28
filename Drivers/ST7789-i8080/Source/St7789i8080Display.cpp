@@ -10,7 +10,8 @@
 
 constexpr auto TAG = "St7789i8080Display";
 static St7789i8080Display* g_display_instance = nullptr;
-static DRAM_ATTR uint8_t buf1[170 * 320 / 10 * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)];
+// Use a dynamic buffer based on resolution
+static uint8_t* buf1 = nullptr;
 
 // ST7789 initialization commands
 typedef struct {
@@ -49,6 +50,20 @@ static bool notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io,
 
 St7789i8080Display::St7789i8080Display(const Configuration& config) 
     : configuration(config), lock(std::make_shared<std::mutex>()) {
+    
+    // Allocate buffer based on resolution
+    size_t buffer_size = configuration.bufferSize * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565);
+    buf1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
+    if (!buf1) {
+        TT_LOG_E(TAG, "Failed to allocate display buffer");
+    }
+}
+
+St7789i8080Display::~St7789i8080Display() {
+    if (buf1) {
+        heap_caps_free(buf1);
+        buf1 = nullptr;
+    }
 }
 
 bool St7789i8080Display::configureI80Bus() {
@@ -122,7 +137,7 @@ bool St7789i8080Display::configurePanel() {
     // Create ST7789 panel
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = configuration.resetPin,
-        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
+        .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
         .data_endian = LCD_RGB_DATA_ENDIAN_LITTLE,
         .bits_per_pixel = 16,
         .flags = {
@@ -254,6 +269,13 @@ void St7789i8080Display::sendInitCommands() {
 bool St7789i8080Display::initializeLvgl() {
     TT_LOG_I(TAG, "Initializing LVGL for ST7789 display");
 
+    // Don't reinitialize hardware if it's already done
+    if (!ioHandle) {
+        if (!initializeHardware()) {
+            return false;
+        }
+    }
+
     // Create LVGL display using lvgl_port
     lvgl_port_display_cfg_t display_cfg = {
         .io_handle = ioHandle,
@@ -262,8 +284,8 @@ bool St7789i8080Display::initializeLvgl() {
         .buffer_size = configuration.bufferSize,
         .double_buffer = false,
         .trans_size = 0,
-        .hres = 170,
-        .vres = 320,
+        .hres = configuration.horizontalResolution,
+        .vres = configuration.verticalResolution,
         .monochrome = false,
         .rotation = {
             .swap_xy = configuration.swapXY,

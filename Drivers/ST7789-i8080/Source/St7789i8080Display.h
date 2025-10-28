@@ -21,11 +21,15 @@ public:
         gpio_num_t resetPin;
         gpio_num_t backlightPin;
         
+        // Display resolution configuration
+        uint16_t horizontalResolution;
+        uint16_t verticalResolution;
+        
         // Bus configuration
         unsigned int pixelClockFrequency = 16 * 1000 * 1000;   // 16MHz default
         size_t busWidth = 8;                                  // 8-bit bus
         size_t transactionQueueDepth = 40;
-        size_t bufferSize = 170 * 320;                         // full frame buffer
+        size_t bufferSize = 0;                                 // Will be calculated if 0
         
         // LCD command/parameter configuration
         int lcdCmdBits = 8;
@@ -49,7 +53,7 @@ public:
         } flags;
         
         // Display configuration
-        int gapX = 35;                                         // ST7789 has a 35 pixel gap on X axis
+        int gapX = 0;
         int gapY = 0;
         bool swapXY = false;
         bool mirrorX = false;
@@ -63,7 +67,12 @@ public:
         Configuration(gpio_num_t cs, gpio_num_t dc, gpio_num_t wr, gpio_num_t rd,
                       std::array<gpio_num_t, 8> data, gpio_num_t rst, gpio_num_t bl)
             : csPin(cs), dcPin(dc), wrPin(wr), rdPin(rd),
-              dataPins(data), resetPin(rst), backlightPin(bl) {}
+              dataPins(data), resetPin(rst), backlightPin(bl) {
+            // Calculate default buffer size if not specified
+            if (bufferSize == 0) {
+                bufferSize = horizontalResolution * verticalResolution / 10;
+            }
+        }
     };
 
 private:
@@ -114,6 +123,10 @@ public:
     // Hardware access methods
     esp_lcd_panel_io_handle_t getIoHandle() const { return ioHandle; }
     esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
+    
+    // Resolution access methods
+    uint16_t getHorizontalResolution() const { return configuration.horizontalResolution; }
+    uint16_t getVerticalResolution() const { return configuration.verticalResolution; }
 };
 
 // Factory function for registration
