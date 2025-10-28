@@ -180,6 +180,12 @@ static void st7789_send_cmd_cb(lv_display_t*, const uint8_t* cmd, size_t, const 
 }
 
 // LVGL color data callback
+// IMPORTANT: T-Display S3 hardware quirk workaround
+// Standard approach (registering on_color_trans_done callback and calling
+// lv_display_flush_ready from there) causes display to just not work on this board.
+// The i8080 interface on T-Display S3 seems to require an immediate flush_ready call
+// with a small delay. Multiple approaches were tested (DMA callbacks, buffer
+// tuning, clock adjustment) but only this janky approach works
 static void st7789_send_color_cb(lv_display_t* disp, const uint8_t* cmd, size_t, uint8_t* param, size_t param_size) {
     if (!g_display_instance || !g_display_instance->getIoHandle()) {
         return;
