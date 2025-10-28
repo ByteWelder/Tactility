@@ -52,6 +52,8 @@ menu "Tactility App"
             bool "LilyGo T-Lora Pager"
         config TT_BOARD_M5STACK_CARDPUTER
             bool "M5Stack Cardputer"
+        config TT_BOARD_M5STACK_CARDPUTER_ADV
+            bool "M5Stack Cardputer Adv"
         config TT_BOARD_M5STACK_CORE2
             bool "M5Stack Core2"
         config TT_BOARD_M5STACK_CORES3

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Tactility/hal/sdcard/SdCardDevice.h"
+#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <memory>
 
 using tt::hal::sdcard::SdCardDevice;
 

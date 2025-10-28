@@ -1,7 +1,7 @@
 #include "Tca8418.h"
 #include <Tactility/Log.h>
 
-#define TAG "tca8418"
+constexpr auto TAG = "TCA8418";
 
 namespace registers {
 static const uint8_t CFG = 0x01U;
@@ -22,6 +22,38 @@ static const uint8_t KEY_EVENT_J = 0x0DU;
 } // namespace registers
 
 
+/** From https://github.com/adafruit/Adafruit_TCA8418/blob/main/Adafruit_TCA8418.cpp */
+bool Tca8418::initMatrix(uint8_t rows, uint8_t columns) {
+    if ((rows > 8) || (columns > 10))
+        return false;
+
+    if ((rows != 0) && (columns != 0)) {
+        // Configure the keypad matrix.
+        uint8_t mask = 0x00;
+        for (int r = 0; r < rows; r++) {
+            mask <<= 1;
+            mask |= 1;
+        }
+        writeRegister(registers::KP_GPIO1, &mask, 1);
+
+        mask = 0x00;
+        for (int c = 0; c < columns && c < 8; c++) {
+            mask <<= 1;
+            mask |= 1;
+        }
+        writeRegister(registers::KP_GPIO2, &mask, 1);
+
+        if (columns > 8) {
+            if (columns == 9)
+                mask = 0x01;
+            else
+                mask = 0x03;
+            writeRegister(registers::KP_GPIO3, &mask, 1);
+        }
+    }
+
+    return true;
+}
 void Tca8418::init(uint8_t numrows, uint8_t numcols) {
     /*
      *   | ADDRESS | REGISTER NAME | REGISTER DESCRIPTION | BIT7 | BIT6 | BIT5 | BIT4 | BIT3 | BIT2 | BIT1 | BIT0 |
@@ -34,13 +66,7 @@ void Tca8418::init(uint8_t numrows, uint8_t numcols) {
     num_rows = numrows;
     num_cols = numcols;
 
-    // everything enabled in key scan mode
-    uint8_t enabled_rows = 0x3F;
-    uint16_t enabled_cols = 0x3FF;
-
-    writeRegister8(registers::KP_GPIO1, enabled_rows);
-    writeRegister8(registers::KP_GPIO2, (uint8_t)(0xFF & enabled_cols));
-    writeRegister8(registers::KP_GPIO3, (uint8_t)(0x03 & (enabled_cols >> 8)));
+    initMatrix(num_rows, num_cols);
 
     /*
      *   BIT: NAME
@@ -97,7 +123,7 @@ void Tca8418::init(uint8_t numrows, uint8_t numcols) {
 
 bool Tca8418::update() {
     last_update_micros = this_update_micros;
-    uint8_t key_code, key_down, key_event, key_row, key_col;
+    uint8_t key_down, key_event, key_row, key_col;
 
     key_event = get_key_event();
     // TODO: read gpio R7/R6 status? 0x14 bits 7&6
@@ -108,10 +134,12 @@ bool Tca8418::update() {
     delta_micros = this_update_micros - last_update_micros;
 
     if (key_event > 0) {
-        key_code = key_event & 0x7F;
-        key_down = (key_event & 0x80) >> 7;
-        key_row = key_code / num_cols;
-        key_col = key_code % num_cols;
+        key_down = (key_event & 0x80);
+        uint16_t buffer = key_event;
+        buffer &= 0x7F;
+        buffer--;
+        key_row = buffer / 10;
+        key_col = buffer % 10;
 
         // always clear the released list
         clear_released_list();
