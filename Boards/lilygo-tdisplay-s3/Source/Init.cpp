@@ -1,13 +1,15 @@
+#include "devices/Power.h"
+#include "devices/Display.h"
+
 #include "PwmBacklight.h"
 #include "Tactility/kernel/SystemEvents.h"
-
 #include <Tactility/TactilityCore.h>
 #include <Tactility/hal/spi/Spi.h>
 
 #define TAG "tdisplay-s3"
 
 // Power on
-#define TDISPLAY_S3_POWERON_GPIO GPIO_NUM_15
+
 
 static bool powerOn() {
     gpio_config_t power_signal_config = {
@@ -36,7 +38,7 @@ bool initBoot() {
         return false;
     }
 
-    if (!driver::pwmbacklight::init(GPIO_NUM_38, 30000)) {
+    if (!driver::pwmbacklight::init(DISPLAY_BL, 30000)) {
         ESP_LOGE(TAG, "Failed to initialize backlight.");
         return false;
     }

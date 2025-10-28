@@ -91,6 +91,7 @@ private:
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* lvglDisplay = nullptr;
     std::shared_ptr<std::mutex> lock;
+    uint8_t* buf1 = nullptr;
 
     // Internal initialization methods
     bool initializeHardware();

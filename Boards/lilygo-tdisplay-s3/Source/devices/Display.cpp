@@ -4,19 +4,20 @@
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Create configuration
     auto config = St7789i8080Display::Configuration(
-        GPIO_NUM_6,   // CS
-        GPIO_NUM_7,   // DC
-        GPIO_NUM_8,   // WR
-        GPIO_NUM_9,   // RD
-        { GPIO_NUM_39, GPIO_NUM_40, GPIO_NUM_41, GPIO_NUM_42,
-          GPIO_NUM_45, GPIO_NUM_46, GPIO_NUM_47, GPIO_NUM_48 }, // D0..D7
-        GPIO_NUM_5,   // RST
-        GPIO_NUM_38   // BL
+        DISPLAY_CS,   // CS
+        DISPLAY_DC,   // DC
+        DISPLAY_WR,   // WR
+        DISPLAY_RD,   // RD
+        { DISPLAY_I80_D0, DISPLAY_I80_D1, DISPLAY_I80_D2, DISPLAY_I80_D3,
+          DISPLAY_I80_D4, DISPLAY_I80_D5, DISPLAY_I80_D6, DISPLAY_I80_D7 }, // D0..D7
+        DISPLAY_RST,   // RST
+        DISPLAY_BL   // BL
     );
     
     // Set resolution explicitly
-    config.horizontalResolution = 170;
-    config.verticalResolution = 320;
+    config.horizontalResolution = DISPLAY_HORIZONTAL_RESOLUTION;
+    config.verticalResolution = DISPLAY_VERTICAL_RESOLUTION;
+    configuration->backlightDutyFunction = driver::pwmbacklight::setBacklightDuty;
     
     // Adjust other settings as needed
     config.gapX = 35;  // ST7789 has a 35 pixel gap on X axis

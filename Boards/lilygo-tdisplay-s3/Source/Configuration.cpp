@@ -29,7 +29,7 @@ extern const Configuration hardwareConfiguration = {
                 .mosi_io_num = GPIO_NUM_7,
                 .miso_io_num = GPIO_NUM_NC,
                 .sclk_io_num = GPIO_NUM_6,
-                .max_transfer_sz = 320 * 170 * 2,
+                .max_transfer_sz = DISPLAY_HORIZONTAL_RESOLUTION * DISPLAY_VERTICAL_RESOLUTION * 2,
                 .flags = 0
             },
             .initMode = spi::InitMode::ByTactility,
