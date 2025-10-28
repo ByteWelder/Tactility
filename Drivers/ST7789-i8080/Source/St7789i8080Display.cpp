@@ -288,10 +288,11 @@ bool St7789i8080Display::initializeLvgl() {
         return false;
     }
 
-    // Set the user context for the callback
-    esp_lcd_panel_io_register_event_callbacks(ioHandle, &(esp_lcd_panel_io_event_callbacks_t){
+    // Register the callback for color transfer completion
+    esp_lcd_panel_io_callbacks_t cbs = {
         .on_color_trans_done = notify_lvgl_flush_ready,
-    }, lvglDisplay);
+    };
+    esp_lcd_panel_io_register_event_callbacks(ioHandle, &cbs, lvglDisplay);
 
     g_display_instance = this;
     TT_LOG_I(TAG, "LVGL display created successfully");
