@@ -56,7 +56,7 @@ jobs:
   Bundle:
     runs-on: ubuntu-latest
     needs: [ Build ]
-    if: startsWith(github.ref, 'ref/head/release')
+    if: startsWith(github.ref, 'refs/heads/release')
     steps:
       - uses: actions/checkout@v4
       - name: "Bundle"
