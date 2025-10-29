@@ -28,6 +28,8 @@ constexpr auto TAG = "SSD1306";
 #define SSD1306_CMD_SET_PRECHARGE 0xD9
 #define SSD1306_CMD_SET_VCOMH 0xDB
 #define SSD1306_CMD_NORMAL_DISPLAY 0xA6
+#define SSD1306_CMD_SET_COLUMN_RANGE 0x21
+#define SSD1306_CMD_SET_PAGE_RANGE 0x22
 
 // I2C control byte
 #define I2C_CONTROL_BYTE_CMD_SINGLE 0x80
@@ -87,6 +89,16 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_NORMAL_DISPLAY);
     
     ssd1306_i2c_send_cmd(port, addr, 0xA7); // SSD1306_CMD_INVERT_ON
+    
+    // Set default column and page range to full screen
+    // This prevents wraparound issues when LVGL draws partial updates
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_COLUMN_RANGE);
+    ssd1306_i2c_send_cmd(port, addr, 0);
+    ssd1306_i2c_send_cmd(port, addr, 127);
+    
+    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_PAGE_RANGE);
+    ssd1306_i2c_send_cmd(port, addr, 0);                 // Page start = 0
+    ssd1306_i2c_send_cmd(port, addr, (height / 8) - 1);  // Page end based on height
     
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_DISPLAY_ON);
 
@@ -170,7 +182,6 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
     }
 
     // Send Heltec V3 specific init sequence via I2C
-    // This bypasses the ESP-IDF driver's init which doesn't work well with Heltec V3
     ret = ssd1306_send_heltec_init_sequence(
         configuration->port,
         configuration->deviceAddress,
@@ -180,15 +191,6 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
     if (ret != ESP_OK) {
         TT_LOG_E(TAG, "Heltec init sequence failed: %s", esp_err_to_name(ret));
         return false;
-    }
-    
-    // Apply gap offsets if needed (through driver for proper buffering)
-    if (configuration->gapX != 0 || configuration->gapY != 0) {
-        ret = esp_lcd_panel_set_gap(panelHandle, configuration->gapX, configuration->gapY);
-        if (ret != ESP_OK) {
-            TT_LOG_E(TAG, "Set gap failed: %s", esp_err_to_name(ret));
-            return false;
-        }
     }
     
     TT_LOG_I(TAG, "Panel initialization complete");
@@ -222,7 +224,7 @@ lvgl_port_display_cfg_t Ssd1306Display::getLvglPortDisplayConfig(esp_lcd_panel_i
             .buff_spiram = false,
             .sw_rotate = false,
             .swap_bytes = false,
-            .full_refresh = false,
+            .full_refresh = true, // Use full refresh to avoid partial update issues
             .direct_mode = false
         }
     };
