@@ -9,37 +9,37 @@ on:
 permissions: read-all
 
 jobs:
-  build:
+  Build:
     strategy:
       matrix:
         board: [
-          { id: cyd-2432s024c, arch: esp32 },
-          { id: cyd-2432s028r, arch: esp32 },
-          { id: cyd-2432s028rv3, arch: esp32 },
-          { id: cyd-e32r28t, arch: esp32 },
-          { id: cyd-e32r32p, arch: esp32 },
-          { id: cyd-2432s032c, arch: esp32 },
-          { id: cyd-jc2432w328c, arch: esp32 },
-          { id: cyd-8048s043c, arch: esp32s3 },
-          { id: cyd-jc8048w550c, arch: esp32s3 },
-          { id: cyd-4848s040c, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-28, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-35, arch: esp32s3 },
-          { id: elecrow-crowpanel-advance-50, arch: esp32s3 },
-          { id: elecrow-crowpanel-basic-28, arch: esp32 },
-          { id: elecrow-crowpanel-basic-35, arch: esp32 },
-          { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
-          { id: lilygo-tdeck, arch: esp32s3 },
-          { id: lilygo-tdongle-s3, arch: esp32s3 },
-          { id: lilygo-tdisplay-s3, arch: esp32s3 },
-          { id: lilygo-tlora-pager, arch: esp32s3 },
-          { id: m5stack-cardputer, arch: esp32s3 },
-          { id: m5stack-cardputer-adv, arch: esp32s3 },
-          { id: m5stack-core2, arch: esp32 },
-          { id: m5stack-cores3, arch: esp32s3 },
-          { id: m5stack-stickc-plus, arch: esp32 },
-          { id: m5stack-stickc-plus2, arch: esp32 },
-          { id: unphone, arch: esp32s3 },
+#          { id: cyd-2432s024c, arch: esp32 },
+#          { id: cyd-2432s028r, arch: esp32 },
+#          { id: cyd-2432s028rv3, arch: esp32 },
+#          { id: cyd-e32r28t, arch: esp32 },
+#          { id: cyd-e32r32p, arch: esp32 },
+#          { id: cyd-2432s032c, arch: esp32 },
+#          { id: cyd-jc2432w328c, arch: esp32 },
+#          { id: cyd-8048s043c, arch: esp32s3 },
+#          { id: cyd-jc8048w550c, arch: esp32s3 },
+#          { id: cyd-4848s040c, arch: esp32s3 },
+#          { id: elecrow-crowpanel-advance-28, arch: esp32s3 },
+#          { id: elecrow-crowpanel-advance-35, arch: esp32s3 },
+#          { id: elecrow-crowpanel-advance-50, arch: esp32s3 },
+#          { id: elecrow-crowpanel-basic-28, arch: esp32 },
+#          { id: elecrow-crowpanel-basic-35, arch: esp32 },
+#          { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
+#          { id: lilygo-tdeck, arch: esp32s3 },
+#          { id: lilygo-tdongle-s3, arch: esp32s3 },
+#          { id: lilygo-tdisplay-s3, arch: esp32s3 },
+#          { id: lilygo-tlora-pager, arch: esp32s3 },
+#          { id: m5stack-cardputer, arch: esp32s3 },
+#          { id: m5stack-cardputer-adv, arch: esp32s3 },
+#          { id: m5stack-core2, arch: esp32 },
+#          { id: m5stack-cores3, arch: esp32s3 },
+#          { id: m5stack-stickc-plus, arch: esp32 },
+#          { id: m5stack-stickc-plus2, arch: esp32 },
+#          { id: unphone, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-43, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-147, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
@@ -53,3 +53,11 @@ jobs:
         with:
           board_id: ${{ matrix.board.id }}
           arch: ${{ matrix.board.arch }}
+  Bundle:
+    runs-on: ubuntu-latest
+    needs: [ Build ]
+    if: startsWith(github.ref, 'ref/head/release')
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Bundle"
+        uses: ./.github/actions/bundle-firmware
