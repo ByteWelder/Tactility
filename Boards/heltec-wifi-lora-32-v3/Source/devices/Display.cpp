@@ -7,7 +7,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         HELTEC_LCD_I2C_PORT,
         HELTEC_LCD_I2C_ADDRESS,
         HELTEC_LCD_PIN_RST,
-        HELTEC_LCD_HORIZONTAL_RESOLUTION,
+        HELTEC_LCD_HORIZONTAL_RESOLUTION - 4,  // Reduce width by 4 pixels 
         HELTEC_LCD_VERTICAL_RESOLUTION,
         nullptr, // no touch
         false // invert
