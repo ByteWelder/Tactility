@@ -2,7 +2,10 @@
 
 ## Before release
 
-- Convert Ili934x driver to EspLcdSpiDisplay
+- Automate release process more
+- Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
+- App Hub crashes if you close it while an app is being installed
+- Fix glitches when installing app via App Hub with 4.3" Waveshare
 
 ## Higher Priority
 
@@ -27,6 +30,7 @@
 
 ## Medium Priority
 
+- Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - Create PwmRgbLedDevice class and implement it for all CYD boards
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
