@@ -6,11 +6,14 @@ namespace tt {
 
 #ifdef ESP_PLATFORM
 
+#if CONFIG_FREERTOS_NUMBER_OF_CORES == 2
 static CpuAffinity getEspWifiAffinity() {
 #ifdef CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0
     return 0;
 #elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
+#else
+    return 0;  // Default to core 0 if not specified
 #endif
 }
 
@@ -20,8 +23,11 @@ static CpuAffinity getEspMainSchedulerAffinity() {
     return 0;
 #elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
+#else
+    return 0;  // Default to core 0 if not specified
 #endif
 }
+#endif // CONFIG_FREERTOS_NUMBER_OF_CORES == 2
 
 static CpuAffinity getFreeRtosTimerAffinity() {
 #if defined(CONFIG_FREERTOS_TIMER_TASK_NO_AFFINITY)

@@ -1,4 +1,4 @@
-#ifdef ESP_PLATFORM
+#if defined(ESP_PLATFORM) && defined(SOC_SDMMC_HOST_SUPPORTED)
 
 #include <Tactility/hal/sdcard/SdmmcDevice.h>
 #include <Tactility/Log.h>
@@ -97,9 +97,9 @@ SdmmcDevice::State SdmmcDevice::getState(TickType_t timeout) const {
     }
 
     /**
-     * The SD card and the screen are on the same SPI bus.
-     * Writing and reading to the bus from 2 devices at the same time causes crashes.
-     * This work-around ensures that this check is only happening when LVGL isn't rendering.
+     * Use locking to prevent concurrent access to the SD card during display rendering.
+     * This ensures that SD card status checks only happen when LVGL isn't actively rendering,
+     * preventing potential timing issues or resource conflicts.
      */
     auto lock = getLock()->asScopedLock();
     bool locked = lock.lock(timeout);
