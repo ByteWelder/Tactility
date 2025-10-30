@@ -12,4 +12,4 @@ runs:
       with:
         name: 'all-firmwares'
         path: firmwares/
-        retention-days: 7
+        retention-days: 3
