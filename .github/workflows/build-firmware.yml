@@ -56,7 +56,7 @@ jobs:
   Bundle:
     runs-on: ubuntu-latest
     needs: [ Build ]
-    if: startsWith(github.head_ref, 'release')
+    if: (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
     steps:
       - uses: actions/checkout@v4
       - name: "Bundle"
