@@ -43,7 +43,8 @@ jobs:
           { id: waveshare-s3-touch-lcd-43, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-147, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
-          { id: waveshare-s3-lcd-13, arch: esp32s3 }
+          { id: waveshare-s3-lcd-13, arch: esp32s3 },
+          { id: btt-panda-touch, arch: esp32s3 }
         ]
     runs-on: ubuntu-latest
     steps:
