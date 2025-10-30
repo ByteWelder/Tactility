@@ -33,6 +33,7 @@ jobs:
           { id: heltec-wifi-lora-32-v3, arch: esp32s3 },
           { id: lilygo-tdeck, arch: esp32s3 },
           { id: lilygo-tdongle-s3, arch: esp32s3 },
+          { id: lilygo-tdisplay-s3, arch: esp32s3 },
           { id: lilygo-tlora-pager, arch: esp32s3 },
           { id: m5stack-cardputer, arch: esp32s3 },
           { id: m5stack-cardputer-adv, arch: esp32s3 },
