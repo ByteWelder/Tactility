@@ -1,0 +1,15 @@
+name: Bundle All
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Download artifacts'
+      uses: actions/download-artifact@v4
+      with:
+        path: firmwares
+    - name: 'Upload Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'all-firmwares'
+        path: firmwares/
+        retention-days: 3
