@@ -2,6 +2,7 @@
 
 ## Before release
 
+- Issue with `enum DeviceType` when compiling from C (check all TactilityC enums!)
 - Automate release process more
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
@@ -9,6 +10,8 @@
 
 ## Higher Priority
 
+- Wi-Fi should connect to the access point with the strongest signal over similarly named APs
+- Wi-Fi connect app should focus on password field when SSID was passed on
 - Fix Cardputer (original): use LV_KEY_NEXT and _PREV in keyboard mapping instead of encoder driver hack (and check GPIO app if it then hangs too)
 - Logging with a function that uses std::format
 - Calculator bugs (see GitHub issue)

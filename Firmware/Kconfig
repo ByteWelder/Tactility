@@ -73,6 +73,8 @@ menu "Tactility App"
             bool "Waveshare ESP32 S3 Touch LCD 1.28"
         config TT_BOARD_WAVESHARE_S3_LCD_13
             bool "Waveshare ESP32 S3 LCD 1.3"
+        config TT_BOARD_BTT_PANDA_TOUCH
+            bool "BigTreeTech Panda Touch"
         help
             Select a board/hardware configuration.
             Use TT_BOARD_CUSTOM if you will manually configure the board in your project.

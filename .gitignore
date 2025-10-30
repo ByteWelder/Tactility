@@ -18,6 +18,7 @@ managed_components/
 dependencies.lock
 
 .vscode/
+*.code-workspace
 .gitpod.yml
 
 sdkconfig.board.*.dev

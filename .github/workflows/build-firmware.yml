@@ -10,7 +10,7 @@ on:
 permissions: read-all
 
 jobs:
-  build:
+  Build:
     strategy:
       matrix:
         board: [
@@ -45,7 +45,8 @@ jobs:
           { id: waveshare-s3-touch-lcd-43, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-147, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
-          { id: waveshare-s3-lcd-13, arch: esp32s3 }
+          { id: waveshare-s3-lcd-13, arch: esp32s3 },
+          { id: btt-panda-touch, arch: esp32s3 }
         ]
     runs-on: ubuntu-latest
     steps:
@@ -55,3 +56,11 @@ jobs:
         with:
           board_id: ${{ matrix.board.id }}
           arch: ${{ matrix.board.arch }}
+  Bundle:
+    runs-on: ubuntu-latest
+    needs: [ Build ]
+    if: (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Bundle"
+        uses: ./.github/actions/bundle-firmware

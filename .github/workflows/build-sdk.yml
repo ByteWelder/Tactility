@@ -10,7 +10,7 @@ on:
 permissions: read-all
 
 jobs:
-  build:
+  Build:
     strategy:
       matrix:
         board: [
