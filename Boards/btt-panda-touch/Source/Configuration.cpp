@@ -1,7 +1,10 @@
-#include "PwmBacklight.h"
+#include <PwmBacklight.h>
 #include "devices/Display.h"
 
 #include <Tactility/hal/Configuration.h>
+#include <driver/gpio.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 using namespace tt::hal;
 
