@@ -57,8 +57,21 @@ jobs:
   Bundle:
     runs-on: ubuntu-latest
     needs: [ Build ]
-    if: (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
+#    if: |
+#      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release')) ||
+#      (github.event_name == 'push' && github.ref == 'refs/heads/main')) || #      (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
     steps:
       - uses: actions/checkout@v4
       - name: "Bundle"
         uses: ./.github/actions/bundle-firmware
+  PublishSnapshot:
+    runs-on: ubuntu-latest
+    needs: [ Bundle ]
+#    if: |
+#      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release')) ||
+#      (github.event_name == 'push' && github.ref == 'refs/heads/main')) ||
+#      (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Publish Snapshot"
+        uses: ./.github/actions/publish-snapshot

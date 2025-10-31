@@ -1,0 +1,19 @@
+name: Bundle All
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Download all-firmwares'
+      uses: actions/download-artifact@v4
+      with:
+        name: 'all-firmwares'
+        path: firmwares
+    - name: 'Install boto3'
+      shell: bash
+      run: npm install boto3
+    - name: 'Generate files'
+      shell: bash
+      run: python Buildscripts/CDN/generate-files.py all-firmwares all-firmwares-cdn snapshot
+    - name: 'Upload files'
+      shell: bash
+      run: python Buildscripts/CDN/upload-files.py all-firmwares-cdn snapshot ${{ secrets.CDN_ID }} ${{ secrets.CDN_TOKEN_NAME }} ${{ secrets.CDN_TOKEN_VALUE }}
