@@ -9,6 +9,12 @@ enum class Mode {
     MassStorageFlash  // For internal flash /data partition
 };
 
+enum class BootMode {
+    None,
+    Sdmmc,
+    Flash
+};
+
 bool startMassStorageWithSdmmc();
 void stop();
 Mode getMode();
@@ -18,6 +24,8 @@ bool canRebootIntoMassStorageSdmmc();
 void rebootIntoMassStorageSdmmc();
 bool isUsbBootMode();
 void resetUsbBootMode();
+
+BootMode getUsbBootMode();
 
 // Flash-based mass storage
 bool startMassStorageWithFlash();
