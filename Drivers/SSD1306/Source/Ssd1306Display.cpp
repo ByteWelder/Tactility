@@ -9,6 +9,7 @@
 #include <driver/i2c.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <lvgl.h>
 
 constexpr auto TAG = "SSD1306";
 
@@ -33,6 +34,10 @@ constexpr auto TAG = "SSD1306";
 
 // I2C control byte
 #define I2C_CONTROL_BYTE_CMD_SINGLE 0x80
+
+// Static buffer for vtiled conversion
+static uint8_t* vtiled_buffer = nullptr;
+static size_t vtiled_buffer_size = 0;
 
 static esp_err_t ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
     i2c_cmd_handle_t handle = i2c_cmd_link_create();
@@ -90,20 +95,48 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
     
     ssd1306_i2c_send_cmd(port, addr, 0xA7); // SSD1306_CMD_INVERT_ON
     
-    // Set default column and page range to full screen
-    // This prevents wraparound issues when LVGL draws partial updates
-    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_COLUMN_RANGE);
-    ssd1306_i2c_send_cmd(port, addr, 0);
-    ssd1306_i2c_send_cmd(port, addr, 127);
-    
-    ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_SET_PAGE_RANGE);
-    ssd1306_i2c_send_cmd(port, addr, 0);                 // Page start = 0
-    ssd1306_i2c_send_cmd(port, addr, (height / 8) - 1);  // Page end based on height
-    
     ssd1306_i2c_send_cmd(port, addr, SSD1306_CMD_DISPLAY_ON);
 
     TT_LOG_I(TAG, "Heltec V3 init sequence complete");
     return ESP_OK;
+}
+
+// Custom flush callback that converts htiled to vtiled format
+static void ssd1306_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
+    
+    const int32_t w = lv_area_get_width(area);
+    const int32_t h = lv_area_get_height(area);
+    
+    TT_LOG_D(TAG, "Flush: x=%d-%d, y=%d-%d, w=%d, h=%d", 
+             area->x1, area->x2, area->y1, area->y2, w, h);
+    
+    // Calculate buffer size needed (w * h bits, converted to bytes)
+    const size_t buf_size = (w * h) / 8;
+    
+    // Allocate vtiled buffer if needed
+    if (vtiled_buffer == nullptr || vtiled_buffer_size < buf_size) {
+        if (vtiled_buffer != nullptr) {
+            free(vtiled_buffer);
+        }
+        vtiled_buffer_size = buf_size;
+        vtiled_buffer = (uint8_t*)malloc(vtiled_buffer_size);
+        if (vtiled_buffer == nullptr) {
+            TT_LOG_E(TAG, "Failed to allocate vtiled buffer!");
+            lv_display_flush_ready(disp);
+            return;
+        }
+        TT_LOG_I(TAG, "Allocated vtiled buffer: %d bytes", vtiled_buffer_size);
+    }
+    
+    // Convert htiled (LVGL's I1 format) to vtiled (SSD1306's format)
+    // Use LSB bit order for SSD1306
+    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w, h, vtiled_buffer, vtiled_buffer_size, true);
+    
+    // Send the converted buffer to the display
+    esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, vtiled_buffer);
+    
+    lv_display_flush_ready(disp);
 }
 
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
@@ -231,4 +264,14 @@ lvgl_port_display_cfg_t Ssd1306Display::getLvglPortDisplayConfig(esp_lcd_panel_i
 
     TT_LOG_I(TAG, "LVGL config ready");
     return config;
+}
+
+void Ssd1306Display::onDisplayCreated(lv_display_t* display) {
+    TT_LOG_I(TAG, "Setting custom flush callback for htiled->vtiled conversion");
+    
+    // Store panel handle in display user data for the flush callback
+    lv_display_set_user_data(display, getPanelHandle());
+    
+    // Set our custom flush callback that does the htiled->vtiled conversion
+    lv_display_set_flush_cb(display, ssd1306_flush_cb);
 }
