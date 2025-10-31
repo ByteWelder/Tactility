@@ -20,7 +20,7 @@ static esp_err_t initNvsFlashSafely() {
     return result;
 }
 
-static wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
+wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
 
 size_t getSectorSize() {
 #if defined(CONFIG_FATFS_SECTOR_512)

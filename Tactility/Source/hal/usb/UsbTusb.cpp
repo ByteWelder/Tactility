@@ -9,14 +9,18 @@
 #include <Tactility/Log.h>
 #include <tinyusb.h>
 #include <tusb_msc_storage.h>
+#include <wear_levelling.h>
 
 #define TAG "usb"
 #define EPNUM_MSC 1
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define SECTOR_SIZE 512
 
 namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
 }
+
+extern wl_handle_t data_wl_handle;  // EXTERN from PartitionsEsp.cpp
 
 enum {
     ITF_NUM_MSC = 0,
@@ -158,24 +162,47 @@ bool tusbStartMassStorageWithSdmmc() {
     return result == ESP_OK;
 }
 
+// Flash MSC callbacks (block device level)
+static bool flash_read_cb(uint8_t lun, uint32_t lba, uint32_t offset, void* buffer, uint32_t bufsize) {
+    if (bufsize != SECTOR_SIZE) return false;
+    size_t bytes_read;
+    esp_err_t err = wl_read(data_wl_handle, lba * SECTOR_SIZE + offset, buffer, bufsize);
+    return err == ESP_OK;
+}
+
+static bool flash_write_cb(uint8_t lun, uint32_t lba, uint32_t offset, uint8_t* buffer, uint32_t bufsize) {
+    if (bufsize != SECTOR_SIZE) return false;
+    esp_err_t err = wl_write(data_wl_handle, lba * SECTOR_SIZE + offset, buffer, bufsize);
+    return err == ESP_OK;
+}
+
+static void flash_flush_cb(uint8_t lun) {
+    wl_flush(data_wl_handle);
+}
+
+static uint32_t flash_get_block_count() {
+    size_t size;
+    wl_size(data_wl_handle, &size);
+    return size / SECTOR_SIZE;
+}
+
 bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
-    const tinyusb_msc_spiflash_config_t config_flash = {
-        .partition_label = "data",
-        .base_path = "/data",
-        .callback_mount_changed = storage_mount_changed_cb,
-        .callback_premount_changed = nullptr,
-        .mount_config = {
-            .format_if_mount_failed = false,
-            .max_files = 5,
-            .allocation_unit_size = 0,
-            .disk_status_check_enable = false,
-            .use_one_fat = false
-        }
+    const tinyusb_msc_storage_config_t config_flash = {
+        .pdrv = 0,  // Use a custom pdrv, not FatFs drive
+        .cb_read = flash_read_cb,
+        .cb_write = flash_write_cb,
+        .cb_flush = flash_flush_cb,
+        .cb_mount_changed = storage_mount_changed_cb,
+        .block_count = flash_get_block_count(),
+        .block_size = SECTOR_SIZE,
+        .vendor_id = "Tactility",
+        .product_id = "Flash Storage",
+        .product_rev = "1.0"
     };
 
-    esp_err_t result = tinyusb_msc_spiflash_mount(&config_flash);
+    esp_err_t result = tinyusb_msc_storage_init(&config_flash);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
     }
