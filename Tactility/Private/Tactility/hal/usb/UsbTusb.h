@@ -2,4 +2,5 @@
 
 bool tusbIsSupported();
 bool tusbStartMassStorageWithSdmmc();
+bool tusbStartMassStorageWithFlash();
 void tusbStop();
