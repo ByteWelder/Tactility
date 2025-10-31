@@ -31,6 +31,8 @@ def exit_with_error(message):
     sys.exit(1)
 
 def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: str, cloudflare_token_value: str, index_only: bool):
+    if not os.path.exists(path):
+        exit_with_error(f"Path not found: {path}")
     s3 = boto3.client(
         service_name="s3",
         endpoint_url=f"https://{cloudflare_account_id}.r2.cloudflarestorage.com",
@@ -39,7 +41,7 @@ def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: 
         region_name="auto"
     )
     files_to_upload = os.listdir(path)
-    counter = 1;
+    counter = 1
     total = len(files_to_upload)
     for file_name in files_to_upload:
         if not index_only or file_name == 'index.json':
