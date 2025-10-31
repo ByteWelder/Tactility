@@ -15,4 +15,4 @@ runs:
       run: python Buildscripts/CDN/generate-files.py firmwares firmwares-cdn snapshot
     - name: 'Upload files'
       shell: bash
-      run: python Buildscripts/CDN/upload-files.py firmwares-cdn snapshot ${{ secrets.CDN_ID }} ${{ secrets.CDN_TOKEN_NAME }} ${{ secrets.CDN_TOKEN_VALUE }}
+      run: python Buildscripts/CDN/upload-files.py firmwares-cdn snapshot ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}
