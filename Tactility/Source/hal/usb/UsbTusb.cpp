@@ -9,13 +9,17 @@
 #include <Tactility/Log.h>
 #include <tinyusb.h>
 #include <tusb_msc_storage.h>
+#include <esp_vfs_fat.h>
+#include <wear_levelling.h>  // For WL access
 
 #define TAG "usb"
 #define EPNUM_MSC 1
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define SECTOR_SIZE 512  // Standard
 
 namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
+    extern wl_handle_t data_wl_handle;  // From PartitionsEsp.cpp
 }
 
 enum {
@@ -158,6 +162,29 @@ bool tusbStartMassStorageWithSdmmc() {
     return result == ESP_OK;
 }
 
+bool tusbStartMassStorageWithFlash() {
+    ensureDriverInstalled();
+
+    const tinyusb_msc_storage_config_t config_flash = {
+        .pdrv = 1,  // FatFs drive 1 (/data)
+        .cb_read = flash_read_cb,
+        .cb_write = flash_write_cb,
+        .cb_flush = flash_flush_cb,
+        .cb_mount_changed = storage_mount_changed_cb,
+        .block_count = flash_get_block_count(),
+        .block_size = SECTOR_SIZE,
+        .vendor_id = "Tactility",
+        .product_id = "Flash Storage",
+        .product_rev = "1.0"
+    };
+
+    esp_err_t result = tinyusb_msc_storage_init(&config_flash);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
+    }
+    return result == ESP_OK;
+}
+
 void tusbStop() {
     tinyusb_msc_storage_deinit();
 }
@@ -166,6 +193,7 @@ void tusbStop() {
 
 bool tusbIsSupported() { return false; }
 bool tusbStartMassStorageWithSdmmc() { return false; }
+bool tusbStartMassStorageWithFlash() { return false; }
 void tusbStop() {}
 
 #endif // TinyUSB enabled

@@ -9,7 +9,8 @@
 namespace tt::hal::usb {
 
 constexpr auto* TAG = "usb";
-constexpr auto BOOT_FLAG = 42;
+constexpr auto BOOT_FLAG_SDMMC = 42;  // Existing
+constexpr auto BOOT_FLAG_FLASH = 43;  //  For flash mode
 
 struct BootMode {
     uint32_t flag = 0;
@@ -87,17 +88,44 @@ bool canRebootIntoMassStorageSdmmc() {
 
 void rebootIntoMassStorageSdmmc() {
     if (tusbIsSupported()) {
-        bootMode.flag = BOOT_FLAG;
+        bootMode.flag = BOOT_FLAG_SDMMC;
         esp_restart();
     }
 }
 
 bool isUsbBootMode() {
-    return bootMode.flag == BOOT_FLAG;
+    return bootMode.flag == BOOT_FLAG_SDMMC || bootMode.flag == BOOT_FLAG_FLASH;  // Support both
 }
 
 void resetUsbBootMode() {
     bootMode.flag = 0;
+}
+
+// Flash mass storage functions
+bool startMassStorageWithFlash() {
+    if (!canStartNewMode()) {
+        TT_LOG_E(TAG, "Can't start flash mass storage");
+        return false;
+    }
+
+    if (tusbStartMassStorageWithFlash()) {
+        currentMode = Mode::MassStorageFlash;
+        return true;
+    } else {
+        TT_LOG_E(TAG, "Failed to init flash mass storage");
+        return false;
+    }
+}
+
+bool canRebootIntoMassStorageFlash() {
+    return tusbIsSupported();  // No SD card needed, just TinyUSB support
+}
+
+void rebootIntoMassStorageFlash() {
+    if (tusbIsSupported()) {
+        bootMode.flag = BOOT_FLAG_FLASH;
+        esp_restart();
+    }
 }
 
 }
