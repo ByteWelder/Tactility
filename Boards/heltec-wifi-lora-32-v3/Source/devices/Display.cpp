@@ -12,10 +12,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         nullptr, // no touch
         false // invert - managed in init sequence now
     );
-
-    // tried: 0, 8
-    // try: 2, 4, 16, 32
-    configuration->gapX = 8;
+    
+    configuration->gapX = 0;
     configuration->gapY = 0;
     
     auto display = std::make_shared<Ssd1306Display>(std::move(configuration));
