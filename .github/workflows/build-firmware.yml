@@ -59,7 +59,8 @@ jobs:
     needs: [ Build ]
 #    if: |
 #      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release')) ||
-#      (github.event_name == 'push' && github.ref == 'refs/heads/main')) || #      (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
+#      (github.event_name == 'push' && github.ref == 'refs/heads/main')) ||
+#      (github.event_name == 'pull_request' && startsWith(github.head_ref, 'release'))
     steps:
       - uses: actions/checkout@v4
       - name: "Bundle"
