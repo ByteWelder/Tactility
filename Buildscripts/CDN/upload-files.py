@@ -24,6 +24,7 @@ def print_help():
     print("")
     print("Options:")
     print("  --verbose                      Show extra console output")
+    print("  --index-only                   Upload only index.json")
 
 def exit_with_error(message):
     print_error(message)

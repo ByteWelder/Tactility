@@ -12,7 +12,7 @@ runs:
       run: pip install boto3
     - name: 'Generate files'
       shell: bash
-      run: python Buildscripts/CDN/generate-files.py firmwares firmwares-cdn snapshot
+      run: version=`cat version.txt` && python Buildscripts/CDN/generate-files.py firmwares firmwares-cdn $version
     - name: 'Upload files'
       shell: bash
-      run: version=`cat version.txt` && python Buildscripts/CDN/upload-files.py firmwares-cdn $version ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}
+      run: python Buildscripts/CDN/upload-files.py firmwares-cdn snapshot ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}
