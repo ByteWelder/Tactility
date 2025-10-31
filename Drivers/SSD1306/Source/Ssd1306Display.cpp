@@ -194,6 +194,8 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         return false;
     }
 
+    this->panelHandle = panelHandle;
+
     TT_LOG_I(TAG, "SSD1306 panel created");
 
     // Hardware reset manually (critical for Heltec V3)

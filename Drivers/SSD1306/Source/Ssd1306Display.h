@@ -3,6 +3,7 @@
 #include <EspLcdDisplay.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 
+#include <cassert>
 #include <driver/gpio.h>
 #include <driver/i2c.h>
 #include <esp_lcd_panel_io.h>
@@ -12,6 +13,8 @@
 #include <freertos/task.h>
 #include <functional>
 #include <lvgl.h>
+#include <memory>
+#include <string>
 
 class Ssd1306Display final : public EspLcdDisplay {
 
@@ -54,6 +57,7 @@ public:
 
 private:
     std::unique_ptr<Configuration> configuration;
+    esp_lcd_panel_handle_t panelHandle = nullptr;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
 
@@ -90,6 +94,8 @@ public:
     }
 
     uint8_t getGammaCurveCount() const override { return 0; }
+
+    esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
 
     void onDisplayCreated(lv_display_t* display);
 
