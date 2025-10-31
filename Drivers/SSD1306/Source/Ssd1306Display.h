@@ -4,8 +4,12 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 
 #include <driver/gpio.h>
+#include <driver/i2c.h>
 #include <esp_lcd_panel_io.h>
+#include <esp_lcd_panel_ssd1306.h>
 #include <esp_lcd_types.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <functional>
 #include <lvgl.h>
 
@@ -39,19 +43,16 @@ public:
         gpio_num_t resetPin = GPIO_NUM_NC;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
-        bool invertColor = false;  // Note: We'll handle inversion in the driver regardless of this setting
+        bool invertColor = false;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is full screen for monochrome
+        uint32_t bufferSize = 0;
         int gapX = 0;
         int gapY = 0;
-
-        // Debug helpers (runtime toggles)
-        bool debugDumpPxMap = false;  // Changed default to false
+        bool debugDumpPxMap = false;
         bool debugForceFullPageWrites = false;
     };
 
 private:
-
     std::unique_ptr<Configuration> configuration;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
