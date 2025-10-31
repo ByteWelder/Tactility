@@ -89,6 +89,9 @@ public:
     }
 
     uint8_t getGammaCurveCount() const override { return 0; }
+
+    void onDisplayCreated(lv_display_t* display);
+
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
