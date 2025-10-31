@@ -9,17 +9,13 @@
 #include <Tactility/Log.h>
 #include <tinyusb.h>
 #include <tusb_msc_storage.h>
-#include <esp_vfs_fat.h>
-#include <wear_levelling.h>  // For WL access
 
 #define TAG "usb"
 #define EPNUM_MSC 1
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
-#define SECTOR_SIZE 512  // Standard
 
 namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
-    extern wl_handle_t data_wl_handle;  // From PartitionsEsp.cpp
 }
 
 enum {
@@ -165,11 +161,9 @@ bool tusbStartMassStorageWithSdmmc() {
 bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
-    // Use ESP-IDF's SPI flash MSC function
     const tinyusb_msc_spiflash_config_t config_flash = {
-        .wl_handle = data_wl_handle,
-        .base_path = "/data",
         .partition_label = "data",
+        .base_path = "/data",
         .callback_mount_changed = storage_mount_changed_cb,
         .callback_premount_changed = nullptr,
         .mount_config = {
