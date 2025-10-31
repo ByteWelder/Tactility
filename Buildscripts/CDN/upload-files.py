@@ -46,7 +46,7 @@ def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: 
             object_path = f"firmware/{version}/{file_name}"
             print(f"[{counter}/{total}] Uploading {file_name} to {object_path}")
             file_path = os.path.join(path, file_name)
-            s3.upload_fileobj(file_path, "tactility", object_path)
+            s3.upload_file(file_path, "tactility", object_path)
             counter += 1
 
 if __name__ == "__main__":
