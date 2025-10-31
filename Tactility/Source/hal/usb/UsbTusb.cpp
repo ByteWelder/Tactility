@@ -165,20 +165,23 @@ bool tusbStartMassStorageWithSdmmc() {
 bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
-    const tinyusb_msc_storage_config_t config_flash = {
-        .pdrv = 1,  // FatFs drive 1 (/data)
-        .cb_read = flash_read_cb,
-        .cb_write = flash_write_cb,
-        .cb_flush = flash_flush_cb,
-        .cb_mount_changed = storage_mount_changed_cb,
-        .block_count = flash_get_block_count(),
-        .block_size = SECTOR_SIZE,
-        .vendor_id = "Tactility",
-        .product_id = "Flash Storage",
-        .product_rev = "1.0"
+    // Use ESP-IDF's SPI flash MSC function
+    const tinyusb_msc_spiflash_config_t config_flash = {
+        .wl_handle = data_wl_handle,
+        .base_path = "/data",
+        .partition_label = "data",
+        .callback_mount_changed = storage_mount_changed_cb,
+        .callback_premount_changed = nullptr,
+        .mount_config = {
+            .format_if_mount_failed = false,
+            .max_files = 5,
+            .allocation_unit_size = 0,
+            .disk_status_check_enable = false,
+            .use_one_fat = false
+        }
     };
 
-    esp_err_t result = tinyusb_msc_storage_init(&config_flash);
+    esp_err_t result = tinyusb_msc_spiflash_mount(&config_flash);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
     }
