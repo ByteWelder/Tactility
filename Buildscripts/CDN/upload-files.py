@@ -31,6 +31,14 @@ def exit_with_error(message):
     sys.exit(1)
 
 def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: str, cloudflare_token_value: str, index_only: bool):
+    print("-============-")
+    print("-============-")
+    print(cloudflare_account_id[:2])
+    print(cloudflare_token_name[:2])
+    print(cloudflare_token_value[:2])
+    print("-============-")
+    print("-============-")
+    exit_with_error("test")
     s3 = boto3.client(
         service_name="s3",
         endpoint_url=f"https://{cloudflare_account_id}.r2.cloudflarestorage.com",
