@@ -38,10 +38,22 @@ class LauncherApp final : public App {
         lv_obj_set_style_shadow_width(apps_button, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_bg_opa(apps_button, 0, LV_STATE_DEFAULT);
 
+        // create the image first
         auto* button_image = lv_image_create(apps_button);
         lv_image_set_src(button_image, imageFile);
+
+        // Recolor handling:
+        // For color builds use theme primary color
+        // For 1-bit/monochrome builds force a visible color (black)
+        #if LV_COLOR_DEPTH == 1
+        // Try forcing black recolor on monochrome builds
+        lv_obj_set_style_image_recolor(button_image, lv_color_black(), LV_STATE_DEFAULT);
+        lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
+        #else
         lv_obj_set_style_image_recolor(button_image, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
         lv_obj_set_style_image_recolor_opa(button_image, LV_OPA_COVER, LV_STATE_DEFAULT);
+        #endif
+
         // Ensure buttons are still tappable when the asset fails to load
         // Icon images are 40x40, so we get some extra padding too
         lv_obj_set_size(button_image, button_size, button_size);
