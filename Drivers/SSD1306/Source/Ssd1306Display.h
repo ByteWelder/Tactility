@@ -3,18 +3,11 @@
 #include <EspLcdDisplay.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 
-#include <cassert>
 #include <driver/gpio.h>
-#include <driver/i2c.h>
 #include <esp_lcd_panel_io.h>
-#include <esp_lcd_panel_ssd1306.h>
 #include <esp_lcd_types.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <functional>
 #include <lvgl.h>
-#include <memory>
-#include <string>
 
 class Ssd1306Display final : public EspLcdDisplay {
 
@@ -46,18 +39,16 @@ public:
         gpio_num_t resetPin = GPIO_NUM_NC;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
-        bool invertColor = false;
+        bool invertColor = false;  // Note: Inversion handled in init sequence
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        uint32_t bufferSize = 0;
+        uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is full screen for monochrome
         int gapX = 0;
         int gapY = 0;
-        bool debugDumpPxMap = false;
-        bool debugForceFullPageWrites = false;
     };
 
 private:
+
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
 
@@ -79,9 +70,12 @@ public:
 
     std::string getName() const override { return "SSD1306"; }
 
-    std::string getDescription() const override { return "SSD1306 monochrome OLED display"; }
+    std::string getDescription() const override { return "SSD1306 monochrome OLED display with htiled->vtiled conversion"; }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
+
+    // Override to set custom flush callback that handles htiled->vtiled conversion
+    void onDisplayCreated(lv_display_t* display) override;
 
     void setBacklightDuty(uint8_t backlightDuty) override {
         // SSD1306 does not have backlight control
@@ -94,11 +88,6 @@ public:
     }
 
     uint8_t getGammaCurveCount() const override { return 0; }
-
-    esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
-
-    void onDisplayCreated(lv_display_t* display);
-
 };
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay();
