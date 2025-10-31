@@ -1,5 +1,4 @@
-name: Bundle All
-
+name: Publish Snapshot
 runs:
   using: 'composite'
   steps:
@@ -10,7 +9,7 @@ runs:
         path: firmwares
     - name: 'Install boto3'
       shell: bash
-      run: npm install boto3
+      run: pip install boto3
     - name: 'Generate files'
       shell: bash
       run: python Buildscripts/CDN/generate-files.py all-firmwares all-firmwares-cdn snapshot

@@ -1,7 +1,6 @@
 import io
 import os
 import sys
-from pathlib import Path
 import boto3
 
 verbose = False
@@ -46,12 +45,9 @@ def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: 
         if not index_only or file_name == 'index.json':
             object_path = f"firmware/{version}/{file_name}"
             print(f"[{counter}/{total}] Uploading {file_name} to {object_path}")
-            counter += 1
             file_path = os.path.join(path, file_name)
-            file = open(file_path, 'rb')
-            file_data = file.read()
-            file.close()
-            s3.upload_fileobj(io.BytesIO(file_data), "tactility", object_path)
+            s3.upload_fileobj(file_path, "tactility", object_path)
+            counter += 1
 
 if __name__ == "__main__":
     print("Tactility CDN Uploader")

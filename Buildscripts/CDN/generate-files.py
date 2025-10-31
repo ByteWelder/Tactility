@@ -152,7 +152,7 @@ def main(in_path: str, out_path: str, version: str):
     for device_directory in device_directories:
         if not device_directory.endswith("-symbols"):
             device_id = device_directory[10:]
-            if not device_id in mapping.sections():
+            if device_id not in mapping.sections():
                 exit_with_error(f"Mapping for {device_id} not found in mapping file")
             device_properties = mapping[device_id]
             process_board(in_path, out_path, device_directory, device_id, device_properties, version)
