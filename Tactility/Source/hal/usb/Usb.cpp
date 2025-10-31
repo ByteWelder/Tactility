@@ -10,7 +10,7 @@ namespace tt::hal::usb {
 
 constexpr auto* TAG = "usb";
 constexpr auto BOOT_FLAG_SDMMC = 42;  // Existing
-constexpr auto BOOT_FLAG_FLASH = 43;: For flash mode
+constexpr auto BOOT_FLAG_FLASH = 43;  // For flash mode
 
 struct BootModeStruct {
     uint32_t flag = 0;
