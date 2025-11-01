@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-enum DeviceType {
+typedef enum {
     DEVICE_TYPE_I2C,
     DEVICE_TYPE_DISPLAY,
     DEVICE_TYPE_TOUCH,
@@ -15,7 +15,7 @@ enum DeviceType {
     DEVICE_TYPE_KEYBOARD,
     DEVICE_TYPE_POWER,
     DEVICE_TYPE_GPS
-};
+} DeviceType;
 
 typedef uint32_t DeviceId;
 

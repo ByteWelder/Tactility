@@ -10,14 +10,14 @@ extern "C" {
 
 typedef void* DisplayDriverHandle;
 
-enum ColorFormat {
+typedef enum {
     COLOR_FORMAT_MONOCHROME, // 1 bpp
     COLOR_FORMAT_BGR565,
     COLOR_FORMAT_BGR565_SWAPPED,
     COLOR_FORMAT_RGB565,
     COLOR_FORMAT_RGB565_SWAPPED,
     COLOR_FORMAT_RGB888
-};
+} ColorFormat;
 
 /**
  * Check if the display driver interface is supported for this device.

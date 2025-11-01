@@ -2,8 +2,6 @@
 
 ## Before release
 
-- Issue with `enum DeviceType` when compiling from C (check all TactilityC enums!)
-- Automate release process more
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
 - Fix glitches when installing app via App Hub with 4.3" Waveshare
