@@ -20,7 +20,7 @@ typedef enum {
  * @param[in] type specify if the mutex is either a normal one, or whether it can recursively (re)lock
  * @return the allocated lock handle
  */
-LockHandle tt_lock_alloc_mutex(enum TtMutexType type);
+LockHandle tt_lock_alloc_mutex(TtMutexType type);
 
 /**
  * Allocate a lock for a file or folder.
