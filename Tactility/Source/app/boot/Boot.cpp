@@ -71,8 +71,19 @@ class BootApp : public App {
         }
 
         TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+        auto mode = hal::usb::getUsbBootMode();  // Get mode before reset
         hal::usb::resetUsbBootMode();
-        hal::usb::startMassStorageWithSdmmc();
+        if (mode == hal::usb::BootMode::Flash) {
+            if (!hal::usb::startMassStorageWithFlash()) {
+                TT_LOG_E(TAG, "Unable to start flash mass storage");
+                return false;
+            }
+        } else if (mode == hal::usb::BootMode::Sdmmc) {
+            if (!hal::usb::startMassStorageWithSdmmc()) {
+                TT_LOG_E(TAG, "Unable to start SD mass storage");
+                return false;
+            }
+        }
 
         return true;
     }

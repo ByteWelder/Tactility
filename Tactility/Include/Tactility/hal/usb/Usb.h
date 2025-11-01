@@ -5,7 +5,14 @@ namespace tt::hal::usb {
 enum class Mode {
     Default, // Default state of USB stack
     None, // State after TinyUSB was used and (partially) deinitialized
-    MassStorageSdmmc
+    MassStorageSdmmc,
+    MassStorageFlash  // For internal flash /data partition
+};
+
+enum class BootMode {
+    None,
+    Sdmmc,
+    Flash
 };
 
 bool startMassStorageWithSdmmc();
@@ -17,5 +24,12 @@ bool canRebootIntoMassStorageSdmmc();
 void rebootIntoMassStorageSdmmc();
 bool isUsbBootMode();
 void resetUsbBootMode();
+
+BootMode getUsbBootMode();
+
+// Flash-based mass storage
+bool startMassStorageWithFlash();
+bool canRebootIntoMassStorageFlash();
+void rebootIntoMassStorageFlash();
 
 }
