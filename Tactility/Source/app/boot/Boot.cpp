@@ -71,9 +71,8 @@ class BootApp : public App {
         }
 
         TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+        auto mode = hal::usb::getUsbBootMode();  // Get mode before reset
         hal::usb::resetUsbBootMode();
-        // Check specific boot mode
-        auto mode = hal::usb::getUsbBootMode();
         if (mode == hal::usb::BootMode::Flash) {
             hal::usb::startMassStorageWithFlash();
         } else if (mode == hal::usb::BootMode::Sdmmc) {
