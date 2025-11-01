@@ -12,12 +12,12 @@ constexpr auto* TAG = "usb";
 constexpr auto BOOT_FLAG_SDMMC = 42;  // Existing
 constexpr auto BOOT_FLAG_FLASH = 43;  // For flash mode
 
-struct BootModeStruct {
+struct BootModeData {
     uint32_t flag = 0;
 };
 
 static Mode currentMode = Mode::Default;
-static RTC_NOINIT_ATTR BootModeStruct bootModeStruct;
+static RTC_NOINIT_ATTR BootModeData bootModeData;
 
 sdmmc_card_t* _Nullable getCard() {
     auto sdcards = findDevices<sdcard::SpiSdCardDevice>(Device::Type::SdCard);
@@ -88,7 +88,7 @@ bool canRebootIntoMassStorageSdmmc() {
 
 void rebootIntoMassStorageSdmmc() {
     if (tusbIsSupported()) {
-        bootModeStruct.flag = BOOT_FLAG_SDMMC;
+        bootModeData.flag = BOOT_FLAG_SDMMC;
         esp_restart();
     }
 }
@@ -115,23 +115,28 @@ bool canRebootIntoMassStorageFlash() {
 
 void rebootIntoMassStorageFlash() {
     if (tusbCanStartMassStorageWithFlash()) {
-        bootModeStruct.flag = BOOT_FLAG_FLASH;
+        bootModeData.flag = BOOT_FLAG_FLASH;
         esp_restart();
     }
 }
 
 bool isUsbBootMode() {
-    return bootModeStruct.flag == BOOT_FLAG_SDMMC || bootModeStruct.flag == BOOT_FLAG_FLASH;  // Support both
+    return bootModeData.flag == BOOT_FLAG_SDMMC || bootModeData.flag == BOOT_FLAG_FLASH;  // Support both
 }
 
 BootMode getUsbBootMode() {
-    if (bootModeStruct.flag == BOOT_FLAG_SDMMC) return BootMode::Sdmmc;
-    if (bootModeStruct.flag == BOOT_FLAG_FLASH) return BootMode::Flash;
-    return BootMode::None;
+    switch (bootModeStruct.flag) {
+        case BOOT_FLAG_SDMMC:
+            return BootMode::Sdmmc;
+        case BOOT_FLAG_FLASH:
+            return BootMode::Flash;
+        default:
+            return BootMode::None;
+    }
 }
 
 void resetUsbBootMode() {
-    bootModeStruct.flag = 0;
+    bootModeData.flag = 0;
 }
 
 }

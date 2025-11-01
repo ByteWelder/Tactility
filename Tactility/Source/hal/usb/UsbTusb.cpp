@@ -1,6 +1,7 @@
 #ifdef ESP_PLATFORM
 
 #include "Tactility/hal/usb/UsbTusb.h"
+#include <Tactility/PartitionsEsp.h>
 
 #include <sdkconfig.h>
 
@@ -18,10 +19,6 @@
 
 namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
-}
-
-namespace tt {
-extern wl_handle_t data_wl_handle;
 }
 
 enum {
@@ -170,13 +167,14 @@ bool tusbStartMassStorageWithFlash() {
     TT_LOG_I(TAG, "Starting flash MSC");
     ensureDriverInstalled();
 
-    if (tt::data_wl_handle == WL_INVALID_HANDLE) {
+    wl_handle_t handle = tt::getDataPartitionWlHandle();
+    if (handle == WL_INVALID_HANDLE) {
         TT_LOG_E(TAG, "WL not mounted for /data");
         return false;
     }
 
     const tinyusb_msc_spiflash_config_t config_flash = {
-        .wl_handle = tt::data_wl_handle,
+        .wl_handle = handle,
         .callback_mount_changed = storage_mount_changed_cb,
         .callback_premount_changed = nullptr,
         .mount_config = {
@@ -201,9 +199,8 @@ void tusbStop() {
     tinyusb_msc_storage_deinit();
 }
 
-// New wrapper function definition
 bool tusbCanStartMassStorageWithFlash() {
-    return tusbIsSupported() && (tt::data_wl_handle != WL_INVALID_HANDLE);
+    return tusbIsSupported() && (tt::getDataPartitionWlHandle() != WL_INVALID_HANDLE);
 }
 
 #else
@@ -212,10 +209,8 @@ bool tusbIsSupported() { return false; }
 bool tusbStartMassStorageWithSdmmc() { return false; }
 bool tusbStartMassStorageWithFlash() { return false; }
 void tusbStop() {}
-
-// Define the new wrapper to return false in this case
 bool tusbCanStartMassStorageWithFlash() { return false; }
 
-#endif // TinyUSB enabled
+#endif // CONFIG_TINYUSB_MSC_ENABLED
 
 #endif // ESP_PLATFORM

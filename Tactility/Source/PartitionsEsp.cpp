@@ -20,8 +20,11 @@ static esp_err_t initNvsFlashSafely() {
     return result;
 }
 
-// Removed static so it's global
-wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
+static wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
+
+wl_handle_t getDataPartitionWlHandle() {
+    return data_wl_handle;
+}
 
 size_t getSectorSize() {
 #if defined(CONFIG_FATFS_SECTOR_512)

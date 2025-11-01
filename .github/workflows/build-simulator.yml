@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - usb-mass-storage-flash
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
