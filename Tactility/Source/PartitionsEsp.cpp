@@ -20,6 +20,7 @@ static esp_err_t initNvsFlashSafely() {
     return result;
 }
 
+// Removed static so it's global
 wl_handle_t data_wl_handle = WL_INVALID_HANDLE;
 
 size_t getSectorSize() {

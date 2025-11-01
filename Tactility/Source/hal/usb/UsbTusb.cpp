@@ -21,6 +21,8 @@ namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
 }
 
+extern wl_handle_t data_wl_handle;  // from PartitionsEsp.cpp
+
 enum {
     ITF_NUM_MSC = 0,
     ITF_NUM_TOTAL
@@ -164,23 +166,13 @@ bool tusbStartMassStorageWithSdmmc() {
 bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
-    // Find the data partition by label "data"
-    const esp_partition_t* data_partition = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "data");
-    if (data_partition == nullptr) {
-        TT_LOG_E(TAG, "Data partition not found");
-        return false;
-    }
-
-    // Mount wear-levelling on the partition to obtain a wl_handle
-    wl_handle_t wl_handle = WL_INVALID_HANDLE;
-    esp_err_t wl_res = wl_mount(data_partition, &wl_handle);
-    if (wl_res != ESP_OK) {
-        TT_LOG_E(TAG, "wl_mount failed: %s", esp_err_to_name(wl_res));
+    if (data_wl_handle == WL_INVALID_HANDLE) {
+        TT_LOG_E(TAG, "WL not mounted for /data");
         return false;
     }
 
     const tinyusb_msc_spiflash_config_t config_flash = {
-        .wl_handle = wl_handle,
+        .wl_handle = data_wl_handle,
         .callback_mount_changed = storage_mount_changed_cb,
         .callback_premount_changed = nullptr,
         .mount_config = {
@@ -192,11 +184,9 @@ bool tusbStartMassStorageWithFlash() {
         }
     };
 
-    esp_err_t result = tinyusb_msc_storage_init_spiflash(&config_flash);
+    esp_err_t result = tinyusb_msc_spiflash_mount(&config_flash);
     if (result != ESP_OK) {
         TT_LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
-        // Cleanup: unmount wl since initialization failed
-        wl_unmount(wl_handle);
     }
     return result == ESP_OK;
 }
