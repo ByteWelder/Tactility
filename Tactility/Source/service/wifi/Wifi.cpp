@@ -14,7 +14,7 @@ const char* radioStateToString(RadioState state) {
         case ConnectionActive:
             return TT_STRINGIFY(ConnectionActive);
         case OffPending:
-            return TT_STRINGIFY(OnPending);
+            return TT_STRINGIFY(OffPending);
         case Off:
             return TT_STRINGIFY(Off);
     }
