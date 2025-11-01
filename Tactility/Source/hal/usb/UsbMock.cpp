@@ -13,6 +13,9 @@ bool isSupported() { return false; }
 
 bool canRebootIntoMassStorageSdmmc() { return false; }
 void rebootIntoMassStorageSdmmc() {}
+bool startMassStorageWithFlash() { return false; }
+bool canRebootIntoMassStorageFlash() { return false; }
+void rebootIntoMassStorageFlash() {}
 bool isUsbBootMode() { return false; }
 void resetUsbBootMode() {}
 
