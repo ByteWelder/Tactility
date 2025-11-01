@@ -12,12 +12,12 @@ extern "C" {
 
 /** Important: These values must map to tt::service::wifi::RadioState values exactly */
 typedef enum {
-    WIFI_RADIO_STATE_ON_PENDING,
-    WIFI_RADIO_STATE_ON,
-    WIFI_RADIO_STATE_CONNECTION_PENDING,
-    WIFI_RADIO_STATE_CONNECTION_ACTIVE,
-    WIFI_RADIO_STATE_OFF_PENDING,
-    WIFI_RADIO_STATE_OFF,
+    WifiRadioStateOnPending,
+    WifiRadioStateOn,
+    WifiRadioStateConnectionPending,
+    WifiRadioStateConnectionActive,
+    WifiRadioStateOffPending,
+    WifiRadioStateOff,
 } WifiRadioState;
 
 /** @return the state of the WiFi radio */

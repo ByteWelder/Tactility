@@ -15,7 +15,7 @@ typedef unsigned int GpioPin;
 /** GPIO pin mode used by the HAL.
  * @warning The order must match tt::hal::gpio::Mode
  */
-enum GpioMode {
+typedef enum {
     /** Pin is disabled (high-impedance). */
     GpioModeDisable = 0,
     /** Pin configured as input only. */
@@ -28,7 +28,7 @@ enum GpioMode {
     GpioModeInputOutput,
     /** Pin configured for both input and output (open-drain). */
     GpioModeInputOutputOpenDrain
-};
+} GpioMode;
 
 /** Configure a single GPIO pin.
  * @param[in] pin      GPIO number to configure.

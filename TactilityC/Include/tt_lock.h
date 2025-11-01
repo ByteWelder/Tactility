@@ -10,10 +10,10 @@ extern "C" {
 /** A handle that represents a lock instance. A lock could be a Mutex or similar construct */
 typedef void* LockHandle;
 
-enum TtMutexType {
+typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive
-};
+} TtMutexType;
 
 /**
  * Allocate a new mutex instance
