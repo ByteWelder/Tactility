@@ -110,11 +110,11 @@ bool startMassStorageWithFlash() {
 }
 
 bool canRebootIntoMassStorageFlash() {
-    return tusbIsSupported();  // No SD card needed, just TinyUSB support
+    return tusbCanStartMassStorageWithFlash();
 }
 
 void rebootIntoMassStorageFlash() {
-    if (tusbIsSupported()) {
+    if (tusbCanStartMassStorageWithFlash()) {
         bootModeStruct.flag = BOOT_FLAG_FLASH;
         esp_restart();
     }

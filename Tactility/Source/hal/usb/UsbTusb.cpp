@@ -201,12 +201,20 @@ void tusbStop() {
     tinyusb_msc_storage_deinit();
 }
 
+// New wrapper function definition
+bool tusbCanStartMassStorageWithFlash() {
+    return tusbIsSupported() && (tt::data_wl_handle != WL_INVALID_HANDLE);
+}
+
 #else
 
 bool tusbIsSupported() { return false; }
 bool tusbStartMassStorageWithSdmmc() { return false; }
 bool tusbStartMassStorageWithFlash() { return false; }
 void tusbStop() {}
+
+// Define the new wrapper to return false in this case
+bool tusbCanStartMassStorageWithFlash() { return false; }
 
 #endif // TinyUSB enabled
 
