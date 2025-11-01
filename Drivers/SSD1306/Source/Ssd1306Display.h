@@ -75,8 +75,11 @@ public:
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
-    // Override to set custom flush callback that handles htiled->vtiled conversion
-    void onDisplayCreated(lv_display_t* display) override;
+    // Override startLvgl to set up vtiled conversion after display is created
+    bool startLvgl() override;
+
+    // Custom method called after LVGL display is created
+    void onDisplayCreated(lv_display_t* display);
 
     void setBacklightDuty(uint8_t backlightDuty) override {
         // SSD1306 does not have backlight control

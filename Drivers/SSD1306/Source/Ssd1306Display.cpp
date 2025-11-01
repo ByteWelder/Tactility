@@ -209,7 +209,7 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
 
     TT_LOG_I(TAG, "SSD1306 panel created");
 
-    // Hardware reset manually
+    // Hardware reset manually (critical for Heltec V3)
     if (configuration->resetPin != GPIO_NUM_NC) {
         gpio_config_t rst_cfg = {
             .pin_bit_mask = 1ULL << configuration->resetPin,
@@ -283,7 +283,6 @@ void Ssd1306Display::onDisplayCreated(lv_display_t* display) {
     TT_LOG_I(TAG, "Setting custom flush callback for htiled->vtiled conversion");
     
     // Store panel handle in display user data for the flush callback
-    // Make absolutely sure we're using the correct panel handle
     if (panelHandle == nullptr) {
         TT_LOG_E(TAG, "Panel handle is NULL! Cannot set up custom flush callback!");
         return;
@@ -298,4 +297,23 @@ void Ssd1306Display::onDisplayCreated(lv_display_t* display) {
     
     // Set our custom flush callback that does the htiled->vtiled conversion
     lv_display_set_flush_cb(display, ssd1306_flush_cb);
+}
+
+bool Ssd1306Display::startLvgl() {
+    // Call parent class startLvgl - this creates the LVGL display
+    if (!EspLcdDisplay::startLvgl()) {
+        TT_LOG_E(TAG, "Parent startLvgl failed");
+        return false;
+    }
+    
+    // Now get the LVGL display that was just created and set up vtiled conversion
+    lv_display_t* display = getLvglDisplay();
+    if (display != nullptr) {
+        onDisplayCreated(display);
+    } else {
+        TT_LOG_E(TAG, "Failed to get LVGL display after parent startLvgl!");
+        return false;
+    }
+    
+    return true;
 }
