@@ -29,15 +29,17 @@ constexpr auto TAG = "SSD1306";
 #define SSD1306_CMD_SET_PRECHARGE 0xD9
 #define SSD1306_CMD_SET_VCOMH 0xDB
 #define SSD1306_CMD_NORMAL_DISPLAY 0xA6
-#define SSD1306_CMD_SET_COLUMN_RANGE 0x21
-#define SSD1306_CMD_SET_PAGE_RANGE 0x22
 
 // I2C control byte
 #define I2C_CONTROL_BYTE_CMD_SINGLE 0x80
 
-// Static buffer for vtiled conversion
-static uint8_t* vtiled_buffer = nullptr;
-static size_t vtiled_buffer_size = 0;
+// Wrapper panel structure to intercept draw_bitmap
+typedef struct {
+    esp_lcd_panel_t base;
+    esp_lcd_panel_t *real_panel;
+    uint8_t *vtiled_buffer;
+    size_t vtiled_buffer_size;
+} ssd1306_wrapper_panel_t;
 
 static esp_err_t ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
     i2c_cmd_handle_t handle = i2c_cmd_link_create();
@@ -101,58 +103,93 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
     return ESP_OK;
 }
 
-// Custom flush callback that converts htiled to vtiled format
-static void ssd1306_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
-    esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
+// Wrapper draw_bitmap that converts htiled to vtiled
+static esp_err_t wrapper_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_start, int x_end, int y_end, const void *color_data) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
     
-    if (panel_handle == nullptr) {
-        TT_LOG_E(TAG, "Panel handle is NULL in flush callback!");
-        lv_display_flush_ready(disp);
-        return;
-    }
-    
-    int32_t w = lv_area_get_width(area);
-    int32_t h = lv_area_get_height(area);
+    int32_t w = x_end - x_start;
+    int32_t h = y_end - y_start;
     
     // Round width and height to multiples of 8 for vtiled conversion
-    const int32_t w_rounded = (w + 7) & ~7;  // Round up to nearest multiple of 8
-    const int32_t h_rounded = (h + 7) & ~7;  // Round up to nearest multiple of 8
+    const int32_t w_rounded = (w + 7) & ~7;
+    const int32_t h_rounded = (h + 7) & ~7;
     
-    TT_LOG_D(TAG, "Flush: x=%d-%d, y=%d-%d, w=%d->%d, h=%d->%d", 
-             area->x1, area->x2, area->y1, area->y2, w, w_rounded, h, h_rounded);
+    TT_LOG_D(TAG, "Draw: x=%d-%d, y=%d-%d, w=%d->%d, h=%d->%d", 
+             x_start, x_end, y_start, y_end, w, w_rounded, h, h_rounded);
     
-    // Calculate buffer size needed (w * h bits, converted to bytes)
     const size_t buf_size = (w_rounded * h_rounded) / 8;
     
     // Allocate vtiled buffer if needed
-    if (vtiled_buffer == nullptr || vtiled_buffer_size < buf_size) {
-        if (vtiled_buffer != nullptr) {
-            free(vtiled_buffer);
+    if (wrapper->vtiled_buffer == nullptr || wrapper->vtiled_buffer_size < buf_size) {
+        if (wrapper->vtiled_buffer != nullptr) {
+            free(wrapper->vtiled_buffer);
         }
-        vtiled_buffer_size = buf_size;
-        vtiled_buffer = (uint8_t*)malloc(vtiled_buffer_size);
-        if (vtiled_buffer == nullptr) {
+        wrapper->vtiled_buffer_size = buf_size;
+        wrapper->vtiled_buffer = (uint8_t*)malloc(wrapper->vtiled_buffer_size);
+        if (wrapper->vtiled_buffer == nullptr) {
             TT_LOG_E(TAG, "Failed to allocate vtiled buffer!");
-            lv_display_flush_ready(disp);
-            return;
+            return ESP_ERR_NO_MEM;
         }
-        TT_LOG_I(TAG, "Allocated vtiled buffer: %d bytes", vtiled_buffer_size);
+        TT_LOG_I(TAG, "Allocated vtiled buffer: %d bytes", wrapper->vtiled_buffer_size);
     }
     
     // Convert htiled (LVGL's I1 format) to vtiled (SSD1306's format)
-    // Use MSB bit order for SSD1306
-    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w_rounded, h_rounded, vtiled_buffer, vtiled_buffer_size, false);
+    lv_draw_sw_i1_convert_to_vtiled((const void*)color_data, buf_size, w_rounded, h_rounded, 
+                                     wrapper->vtiled_buffer, wrapper->vtiled_buffer_size, false);
     
-    // Send the converted buffer to the display
-    esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, vtiled_buffer);
-    
-    lv_display_flush_ready(disp);
+    // Call the real panel's draw_bitmap with converted data
+    return wrapper->real_panel->draw_bitmap(wrapper->real_panel, x_start, y_start, x_end, y_end, wrapper->vtiled_buffer);
+}
+
+// Pass-through functions to real panel
+static esp_err_t wrapper_reset(esp_lcd_panel_t *panel) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->reset ? wrapper->real_panel->reset(wrapper->real_panel) : ESP_OK;
+}
+
+static esp_err_t wrapper_init(esp_lcd_panel_t *panel) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->init ? wrapper->real_panel->init(wrapper->real_panel) : ESP_OK;
+}
+
+static esp_err_t wrapper_del(esp_lcd_panel_t *panel) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    if (wrapper->vtiled_buffer) {
+        free(wrapper->vtiled_buffer);
+    }
+    esp_err_t ret = wrapper->real_panel->del(wrapper->real_panel);
+    free(wrapper);
+    return ret;
+}
+
+static esp_err_t wrapper_invert_color(esp_lcd_panel_t *panel, bool invert) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->invert_color ? wrapper->real_panel->invert_color(wrapper->real_panel, invert) : ESP_OK;
+}
+
+static esp_err_t wrapper_mirror(esp_lcd_panel_t *panel, bool mirror_x, bool mirror_y) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->mirror ? wrapper->real_panel->mirror(wrapper->real_panel, mirror_x, mirror_y) : ESP_OK;
+}
+
+static esp_err_t wrapper_swap_xy(esp_lcd_panel_t *panel, bool swap_axes) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->swap_xy ? wrapper->real_panel->swap_xy(wrapper->real_panel, swap_axes) : ESP_OK;
+}
+
+static esp_err_t wrapper_set_gap(esp_lcd_panel_t *panel, int x_gap, int y_gap) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->set_gap ? wrapper->real_panel->set_gap(wrapper->real_panel, x_gap, y_gap) : ESP_OK;
+}
+
+static esp_err_t wrapper_disp_on_off(esp_lcd_panel_t *panel, bool on_off) {
+    ssd1306_wrapper_panel_t *wrapper = __containerof(panel, ssd1306_wrapper_panel_t, base);
+    return wrapper->real_panel->disp_on_off ? wrapper->real_panel->disp_on_off(wrapper->real_panel, on_off) : ESP_OK;
 }
 
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     TT_LOG_I(TAG, "Creating I2C IO handle");
 
-    // Give the display time to power up
     vTaskDelay(pdMS_TO_TICKS(200));
 
     const esp_lcd_panel_io_i2c_config_t panel_io_config = {
@@ -197,19 +234,17 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         .vendor_config = &ssd1306_config
     };
 
-    esp_err_t ret = esp_lcd_new_panel_ssd1306(ioHandle, &panel_config, &panelHandle);
+    esp_lcd_panel_handle_t real_panel;
+    esp_err_t ret = esp_lcd_new_panel_ssd1306(ioHandle, &panel_config, &real_panel);
     
     if (ret != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create SSD1306 panel. Error code: 0x%X (%s)", ret, esp_err_to_name(ret));
         return false;
     }
 
-    // Store the panel handle in our member variable so we can use it later
-    this->panelHandle = panelHandle;
+    TT_LOG_I(TAG, "SSD1306 panel created, wrapping with vtiled converter");
 
-    TT_LOG_I(TAG, "SSD1306 panel created");
-
-    // Hardware reset manually (critical for Heltec V3)
+    // Hardware reset manually
     if (configuration->resetPin != GPIO_NUM_NC) {
         gpio_config_t rst_cfg = {
             .pin_bit_mask = 1ULL << configuration->resetPin,
@@ -227,7 +262,7 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    // Send Heltec V3 specific init sequence via I2C
+    // Send Heltec V3 specific init sequence
     ret = ssd1306_send_heltec_init_sequence(
         configuration->port,
         configuration->deviceAddress,
@@ -238,8 +273,32 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         TT_LOG_E(TAG, "Heltec init sequence failed: %s", esp_err_to_name(ret));
         return false;
     }
+
+    // Create wrapper panel
+    ssd1306_wrapper_panel_t *wrapper = (ssd1306_wrapper_panel_t*)calloc(1, sizeof(ssd1306_wrapper_panel_t));
+    if (!wrapper) {
+        esp_lcd_panel_del(real_panel);
+        return false;
+    }
+
+    wrapper->real_panel = real_panel;
+    wrapper->vtiled_buffer = nullptr;
+    wrapper->vtiled_buffer_size = 0;
     
-    TT_LOG_I(TAG, "Panel initialization complete");
+    // Set up wrapper function pointers
+    wrapper->base.del = wrapper_del;
+    wrapper->base.reset = wrapper_reset;
+    wrapper->base.init = wrapper_init;
+    wrapper->base.draw_bitmap = wrapper_draw_bitmap;
+    wrapper->base.invert_color = wrapper_invert_color;
+    wrapper->base.mirror = wrapper_mirror;
+    wrapper->base.swap_xy = wrapper_swap_xy;
+    wrapper->base.set_gap = wrapper_set_gap;
+    wrapper->base.disp_on_off = wrapper_disp_on_off;
+    
+    panelHandle = &wrapper->base;
+    
+    TT_LOG_I(TAG, "Panel initialization complete with vtiled wrapper");
     return true;
 }
 
@@ -270,50 +329,11 @@ lvgl_port_display_cfg_t Ssd1306Display::getLvglPortDisplayConfig(esp_lcd_panel_i
             .buff_spiram = false,
             .sw_rotate = false,
             .swap_bytes = false,
-            .full_refresh = true, // Use full refresh to avoid partial update issues
+            .full_refresh = true,
             .direct_mode = false
         }
     };
 
     TT_LOG_I(TAG, "LVGL config ready");
     return config;
-}
-
-void Ssd1306Display::onDisplayCreated(lv_display_t* display) {
-    TT_LOG_I(TAG, "Setting custom flush callback for htiled->vtiled conversion");
-    
-    // Store panel handle in display user data for the flush callback
-    if (panelHandle == nullptr) {
-        TT_LOG_E(TAG, "Panel handle is NULL! Cannot set up custom flush callback!");
-        return;
-    }
-    
-    TT_LOG_I(TAG, "Panel handle: %p", panelHandle);
-    lv_display_set_user_data(display, panelHandle);
-    
-    // Verify it was set correctly
-    void* check = lv_display_get_user_data(display);
-    TT_LOG_I(TAG, "User data verification: %p (should match panel handle)", check);
-    
-    // Set our custom flush callback that does the htiled->vtiled conversion
-    lv_display_set_flush_cb(display, ssd1306_flush_cb);
-}
-
-bool Ssd1306Display::startLvgl() {
-    // Call parent class startLvgl - this creates the LVGL display
-    if (!EspLcdDisplay::startLvgl()) {
-        TT_LOG_E(TAG, "Parent startLvgl failed");
-        return false;
-    }
-    
-    // Now get the LVGL display that was just created and set up vtiled conversion
-    lv_display_t* display = getLvglDisplay();
-    if (display != nullptr) {
-        onDisplayCreated(display);
-    } else {
-        TT_LOG_E(TAG, "Failed to get LVGL display after parent startLvgl!");
-        return false;
-    }
-    
-    return true;
 }
