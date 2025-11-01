@@ -49,6 +49,7 @@ public:
 private:
 
     std::unique_ptr<Configuration> configuration;
+    esp_lcd_panel_handle_t panelHandle = nullptr;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
 

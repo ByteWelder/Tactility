@@ -105,14 +105,24 @@ static esp_err_t ssd1306_send_heltec_init_sequence(i2c_port_t port, uint8_t addr
 static void ssd1306_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t)lv_display_get_user_data(disp);
     
-    const int32_t w = lv_area_get_width(area);
-    const int32_t h = lv_area_get_height(area);
+    if (panel_handle == nullptr) {
+        TT_LOG_E(TAG, "Panel handle is NULL in flush callback!");
+        lv_display_flush_ready(disp);
+        return;
+    }
     
-    TT_LOG_D(TAG, "Flush: x=%d-%d, y=%d-%d, w=%d, h=%d", 
-             area->x1, area->x2, area->y1, area->y2, w, h);
+    int32_t w = lv_area_get_width(area);
+    int32_t h = lv_area_get_height(area);
+    
+    // Round width and height to multiples of 8 for vtiled conversion
+    const int32_t w_rounded = (w + 7) & ~7;  // Round up to nearest multiple of 8
+    const int32_t h_rounded = (h + 7) & ~7;  // Round up to nearest multiple of 8
+    
+    TT_LOG_D(TAG, "Flush: x=%d-%d, y=%d-%d, w=%d->%d, h=%d->%d", 
+             area->x1, area->x2, area->y1, area->y2, w, w_rounded, h, h_rounded);
     
     // Calculate buffer size needed (w * h bits, converted to bytes)
-    const size_t buf_size = (w * h) / 8;
+    const size_t buf_size = (w_rounded * h_rounded) / 8;
     
     // Allocate vtiled buffer if needed
     if (vtiled_buffer == nullptr || vtiled_buffer_size < buf_size) {
@@ -130,8 +140,8 @@ static void ssd1306_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t 
     }
     
     // Convert htiled (LVGL's I1 format) to vtiled (SSD1306's format)
-    // Try MSB bit order instead of LSB for SSD1306
-    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w, h, vtiled_buffer, vtiled_buffer_size, false); // MSB first!
+    // Use MSB bit order for SSD1306
+    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w_rounded, h_rounded, vtiled_buffer, vtiled_buffer_size, false);
     
     // Send the converted buffer to the display
     esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, vtiled_buffer);
@@ -194,9 +204,12 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         return false;
     }
 
+    // Store the panel handle in our member variable so we can use it later
+    this->panelHandle = panelHandle;
+
     TT_LOG_I(TAG, "SSD1306 panel created");
 
-    // Hardware reset manually (critical for Heltec V3)
+    // Hardware reset manually
     if (configuration->resetPin != GPIO_NUM_NC) {
         gpio_config_t rst_cfg = {
             .pin_bit_mask = 1ULL << configuration->resetPin,
@@ -270,7 +283,18 @@ void Ssd1306Display::onDisplayCreated(lv_display_t* display) {
     TT_LOG_I(TAG, "Setting custom flush callback for htiled->vtiled conversion");
     
     // Store panel handle in display user data for the flush callback
-    lv_display_set_user_data(display, getPanelHandle());
+    // Make absolutely sure we're using the correct panel handle
+    if (panelHandle == nullptr) {
+        TT_LOG_E(TAG, "Panel handle is NULL! Cannot set up custom flush callback!");
+        return;
+    }
+    
+    TT_LOG_I(TAG, "Panel handle: %p", panelHandle);
+    lv_display_set_user_data(display, panelHandle);
+    
+    // Verify it was set correctly
+    void* check = lv_display_get_user_data(display);
+    TT_LOG_I(TAG, "User data verification: %p (should match panel handle)", check);
     
     // Set our custom flush callback that does the htiled->vtiled conversion
     lv_display_set_flush_cb(display, ssd1306_flush_cb);

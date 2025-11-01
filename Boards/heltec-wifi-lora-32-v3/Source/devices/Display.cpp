@@ -10,12 +10,9 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         HELTEC_LCD_HORIZONTAL_RESOLUTION,
         HELTEC_LCD_VERTICAL_RESOLUTION,
         nullptr, // no touch
-        false // invert - managed in init sequence now
+        false // invert
     );
-    
-    configuration->gapX = 0;
-    configuration->gapY = 0;
-    
+
     auto display = std::make_shared<Ssd1306Display>(std::move(configuration));
     return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }
