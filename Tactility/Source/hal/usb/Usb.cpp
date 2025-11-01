@@ -125,7 +125,7 @@ bool isUsbBootMode() {
 }
 
 BootMode getUsbBootMode() {
-    switch (bootModeStruct.flag) {
+    switch (bootModeData.flag) {
         case BOOT_FLAG_SDMMC:
             return BootMode::Sdmmc;
         case BOOT_FLAG_FLASH:
