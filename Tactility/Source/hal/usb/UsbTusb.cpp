@@ -19,7 +19,9 @@ namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
 }
 
+namespace tt {
 extern wl_handle_t data_wl_handle;
+}
 
 enum {
     ITF_NUM_MSC = 0,
@@ -164,13 +166,13 @@ bool tusbStartMassStorageWithSdmmc() {
 bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
-    if (data_wl_handle == WL_INVALID_HANDLE) {
+    if (tt::data_wl_handle == WL_INVALID_HANDLE) {
         TT_LOG_E(TAG, "WL not mounted for /data");
         return false;
     }
 
     const tinyusb_msc_spiflash_config_t config_flash = {
-        .wl_handle = data_wl_handle,
+        .wl_handle = tt::data_wl_handle,
         .callback_mount_changed = storage_mount_changed_cb,
         .callback_premount_changed = nullptr,
         .mount_config = {
