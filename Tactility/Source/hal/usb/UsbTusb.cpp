@@ -162,7 +162,6 @@ bool tusbStartMassStorageWithFlash() {
     ensureDriverInstalled();
 
     const tinyusb_msc_spiflash_config_t config_flash = {
-        .partition_label = "data",
         .base_path = "/data",
         .callback_mount_changed = storage_mount_changed_cb,
         .callback_premount_changed = nullptr,
