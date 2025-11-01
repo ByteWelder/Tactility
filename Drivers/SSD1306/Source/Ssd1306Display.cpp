@@ -130,8 +130,8 @@ static void ssd1306_flush_cb(lv_display_t *disp, const lv_area_t *area, uint8_t 
     }
     
     // Convert htiled (LVGL's I1 format) to vtiled (SSD1306's format)
-    // Use LSB bit order for SSD1306
-    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w, h, vtiled_buffer, vtiled_buffer_size, true);
+    // Try MSB bit order instead of LSB for SSD1306
+    lv_draw_sw_i1_convert_to_vtiled(px_map, buf_size, w, h, vtiled_buffer, vtiled_buffer_size, false); // MSB first!
     
     // Send the converted buffer to the display
     esp_lcd_panel_draw_bitmap(panel_handle, area->x1, area->y1, area->x2 + 1, area->y2 + 1, vtiled_buffer);
@@ -193,8 +193,6 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
         TT_LOG_E(TAG, "Failed to create SSD1306 panel. Error code: 0x%X (%s)", ret, esp_err_to_name(ret));
         return false;
     }
-
-    this->panelHandle = panelHandle;
 
     TT_LOG_I(TAG, "SSD1306 panel created");
 
