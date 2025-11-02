@@ -35,6 +35,7 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .touch = createTouch(),
         .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
         .resetPin = GPIO_NUM_NC,
+        .lvglSwapBytes = false,
         .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR  // BGR for this display
     };
 
