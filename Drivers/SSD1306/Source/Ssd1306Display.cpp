@@ -35,17 +35,15 @@ static void ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {
     const esp_lcd_panel_io_i2c_config_t io_config = {
         .dev_addr = configuration->deviceAddress,
-        .scl_speed_hz = 400000, // 400 KHz
         .control_phase_bytes = 1,
-        .lcd_cmd_bits = 8,
-        .lcd_param_bits = 8,
         .dc_bit_offset = 6,
         .flags = {
-            .disable_control_phase = 0,
-        }
+            .dc_low_on_data = false,
+            .disable_control_phase = false,
+        },
     };
 
-    if (esp_lcd_new_panel_io_i2c_v1(configuration->port, &io_config, &ioHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)configuration->port, &io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create IO handle");
         return false;
     }
