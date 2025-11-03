@@ -27,9 +27,14 @@
 #define SSD1306_CMD_SET_PAGE_RANGE 0x22
 
 // Helper to send I2C commands directly
-static void ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
+static bool ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
     uint8_t data[2] = {0x00, cmd}; // 0x00 = command mode
-    i2c_master_write_to_device(port, addr, data, sizeof(data), pdMS_TO_TICKS(1000));
+    esp_err_t ret = i2c_master_write_to_device(port, addr, data, sizeof(data), pdMS_TO_TICKS(1000));
+    if (ret != ESP_OK) {
+        TT_LOG_E(TAG, "Failed to send command 0x%02X: %d", cmd, ret);
+        return false;
+    }
+    return true;
 }
 
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {

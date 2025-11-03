@@ -16,10 +16,5 @@ std::shared_ptr<tt::hal::power::PowerDevice> createPower() {
     // Configure the ADC enable pin as an output
     tt::hal::gpio::configure(ADC_CTRL, tt::hal::gpio::Mode::Output, false, false);
 
-    // Set up the enable pin callback to control ADC_CTRL
-    configuration.enablePin = [](bool enable) {
-        tt::hal::gpio::setLevel(ADC_CTRL, enable);
-    };
-
     return std::make_shared<EstimatedPower>(configuration);
 }
