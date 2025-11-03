@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - heltec-v3-only
   pull_request:
     types: [ opened, synchronize, reopened ]
 
