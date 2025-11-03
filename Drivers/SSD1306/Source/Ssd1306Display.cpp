@@ -48,13 +48,7 @@ bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {
         },
     };
 
-    esp_lcd_i2c_bus_handle_t busHandle = tt::hal::i2c::getBusHandle(configuration->port);
-    if (busHandle == nullptr) {
-        TT_LOG_E(TAG, "I2C bus %d has not been initialized", configuration->port);
-        return false;
-    }
-
-    if (esp_lcd_new_panel_io_i2c(busHandle, &io_config, &ioHandle) != ESP_OK) {
+    if (esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)configuration->port, &io_config, &ioHandle) != ESP_OK) {
         TT_LOG_E(TAG, "Failed to create IO handle");
         return false;
     }
