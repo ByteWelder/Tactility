@@ -4,6 +4,7 @@
 #include <esp_lcd_panel_commands.h>
 #include <esp_lcd_panel_dev.h>
 #include <esp_lcd_panel_ssd1306.h>
+#include <esp_lcd_panel_interface.h>
 #include <esp_lvgl_port.h>
 #include <esp_lcd_panel_ops.h>
 #include <driver/i2c.h>
