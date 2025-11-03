@@ -14,5 +14,5 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     );
 
     auto display = std::make_shared<Ssd1306Display>(std::move(configuration));
-    return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
+    return std::static_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }
