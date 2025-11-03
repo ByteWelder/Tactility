@@ -71,7 +71,7 @@ public:
 
     std::string getName() const override { return "SSD1306"; }
 
-    std::string getDescription() const override { return "SSD1306 monochrome OLED display with htiled->vtiled conversion"; }
+    std::string getDescription() const override { return "SSD1306 monochrome OLED display"; }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
