@@ -16,11 +16,11 @@ static void enableOledPower() {
     gpio_config_t io_conf;
     io_conf.intr_type = GPIO_INTR_DISABLE;
     io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << HELTEC_LCD_PIN_POWER);
+    io_conf.pin_bit_mask = (1ULL << DISPLAY_PIN_POWER);
     io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE; // The board has an external pull-up
     gpio_config(&io_conf);
-    gpio_set_level(HELTEC_LCD_PIN_POWER, 0); // Active low
+    gpio_set_level(DISPLAY_PIN_POWER, 0); // Active low
 
     vTaskDelay(pdMS_TO_TICKS(500)); // Add a small delay for power to stabilize
     ESP_LOGI("OLED_POWER", "OLED power enabled");
@@ -50,17 +50,17 @@ extern const Configuration hardwareConfiguration = {
     .i2c = {
         tt::hal::i2c::Configuration {
             .name = "SSD1306_I2C",
-            .port = HELTEC_LCD_I2C_PORT,
+            .port = DISPLAY_I2C_PORT,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
             .isMutable = true,
             .config = (i2c_config_t) {
                 .mode = I2C_MODE_MASTER,
-                .sda_io_num = HELTEC_LCD_PIN_SDA,
-                .scl_io_num = HELTEC_LCD_PIN_SCL,
+                .sda_io_num = DISPLAY_PIN_SDA,
+                .scl_io_num = DISPLAY_PIN_SCL,
                 .sda_pullup_en = GPIO_PULLUP_ENABLE,
                 .scl_pullup_en = GPIO_PULLUP_ENABLE,
                 .master = {
-                    .clk_speed = HELTEC_LCD_I2C_SPEED
+                    .clk_speed = DISPLAY_I2C_SPEED
                 },
                 .clk_flags = 0
             }

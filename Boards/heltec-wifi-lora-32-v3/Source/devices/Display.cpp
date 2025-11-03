@@ -4,11 +4,11 @@
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     auto configuration = std::make_unique<Ssd1306Display::Configuration>(
-        HELTEC_LCD_I2C_PORT,
-        HELTEC_LCD_I2C_ADDRESS,
-        HELTEC_LCD_PIN_RST,
-        HELTEC_LCD_HORIZONTAL_RESOLUTION,
-        HELTEC_LCD_VERTICAL_RESOLUTION,
+        DISPLAY_I2C_PORT,
+        DISPLAY_I2C_ADDRESS,
+        DISPLAY_PIN_RST,
+        DISPLAY_HORIZONTAL_RESOLUTION,
+        DISPLAY_VERTICAL_RESOLUTION,
         nullptr, // no touch
         false // invert
     );
