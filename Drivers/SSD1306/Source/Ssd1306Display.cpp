@@ -72,6 +72,8 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
     // Create ESP-IDF panel (but don't call init - we'll do custom init)
     esp_lcd_panel_dev_config_t panel_config = {
         .reset_gpio_num = GPIO_NUM_NC, // Already handled above
+        .color_space = ESP_LCD_COLOR_SPACE_MONOCHROME,
+        .bits_per_pixel = 1, // Must be 1 for monochrome
         .flags = {
             .reset_active_high = false,
         },
