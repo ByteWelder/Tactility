@@ -118,14 +118,17 @@ static esp_err_t wrapper_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_
     TT_LOG_D(TAG, "Draw: x=%d-%d, y=%d-%d, w=%d->%d, h=%d->%d", 
              x_start, x_end, y_start, y_end, w, w_rounded, h, h_rounded);
     
-    const size_t buf_size = (w_rounded * h_rounded) / 8;
+    // Input buffer size is based on actual dimensions, not rounded!
+    const size_t input_buf_size = (w * h) / 8;
+    // Output buffer size uses rounded dimensions
+    const size_t output_buf_size = (w_rounded * h_rounded) / 8;
     
     // Allocate vtiled buffer if needed
-    if (wrapper->vtiled_buffer == nullptr || wrapper->vtiled_buffer_size < buf_size) {
+    if (wrapper->vtiled_buffer == nullptr || wrapper->vtiled_buffer_size < output_buf_size) {
         if (wrapper->vtiled_buffer != nullptr) {
             free(wrapper->vtiled_buffer);
         }
-        wrapper->vtiled_buffer_size = buf_size;
+        wrapper->vtiled_buffer_size = output_buf_size;
         wrapper->vtiled_buffer = (uint8_t*)malloc(wrapper->vtiled_buffer_size);
         if (wrapper->vtiled_buffer == nullptr) {
             TT_LOG_E(TAG, "Failed to allocate vtiled buffer!");
@@ -135,8 +138,9 @@ static esp_err_t wrapper_draw_bitmap(esp_lcd_panel_t *panel, int x_start, int y_
     }
     
     // Convert htiled (LVGL's I1 format) to vtiled (SSD1306's format)
-    lv_draw_sw_i1_convert_to_vtiled((const void*)color_data, buf_size, w_rounded, h_rounded, 
-                                     wrapper->vtiled_buffer, wrapper->vtiled_buffer_size, false);
+    // Try LSB bit order for SSD1306
+    lv_draw_sw_i1_convert_to_vtiled((const void*)color_data, input_buf_size, w, h, 
+                                     wrapper->vtiled_buffer, wrapper->vtiled_buffer_size, true); // LSB!
     
     // Call the real panel's draw_bitmap with converted data
     return wrapper->real_panel->draw_bitmap(wrapper->real_panel, x_start, y_start, x_end, y_end, wrapper->vtiled_buffer);
