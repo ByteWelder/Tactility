@@ -51,6 +51,8 @@ menu "Tactility App"
             bool "LilyGo T-Dongle S3"
         config TT_BOARD_LILYGO_TLORA_PAGER
             bool "LilyGo T-Lora Pager"
+        config TT_BOARD_LILYGO_TDISPLAY
+            bool "LilyGo T-Display"
         config TT_BOARD_M5STACK_CARDPUTER
             bool "M5Stack Cardputer"
         config TT_BOARD_M5STACK_CARDPUTER_ADV

@@ -50,7 +50,8 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .bufferSize = LCD_BUFFER_SIZE,
         .touch = nullptr,
         .backlightDutyFunction = setBrightness,
-        .resetPin = LCD_PIN_RESET
+        .resetPin = LCD_PIN_RESET,
+        .lvglSwapBytes = false
     };
 
     auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {

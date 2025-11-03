@@ -1,6 +1,7 @@
 #ifdef ESP_PLATFORM
 
 #include "Tactility/hal/usb/UsbTusb.h"
+#include <Tactility/PartitionsEsp.h>
 
 #include <sdkconfig.h>
 
@@ -9,10 +10,12 @@
 #include <Tactility/Log.h>
 #include <tinyusb.h>
 #include <tusb_msc_storage.h>
+#include <wear_levelling.h>
 
 #define TAG "usb"
 #define EPNUM_MSC 1
 #define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
+#define SECTOR_SIZE 512
 
 namespace tt::hal::usb {
     extern sdmmc_card_t* _Nullable getCard();
@@ -90,9 +93,9 @@ static uint8_t const msc_hs_configuration_desc[] = {
 
 static void storage_mount_changed_cb(tinyusb_msc_event_t* event) {
     if (event->mount_changed_data.is_mounted) {
-        TT_LOG_I(TAG, "Mounted");
+        TT_LOG_I(TAG, "MSC Mounted");
     } else {
-        TT_LOG_I(TAG, "Unmounted");
+        TT_LOG_I(TAG, "MSC Unmounted");
     }
 }
 
@@ -152,9 +155,43 @@ bool tusbStartMassStorageWithSdmmc() {
 
     auto result = tinyusb_msc_storage_init_sdmmc(&config_sdmmc);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "TinyUSB init failed: %s", esp_err_to_name(result));
+        TT_LOG_E(TAG, "TinyUSB SDMMC init failed: %s", esp_err_to_name(result));
+    } else {
+        TT_LOG_I(TAG, "TinyUSB SDMMC init success");
     }
 
+    return result == ESP_OK;
+}
+
+bool tusbStartMassStorageWithFlash() {
+    TT_LOG_I(TAG, "Starting flash MSC");
+    ensureDriverInstalled();
+
+    wl_handle_t handle = tt::getDataPartitionWlHandle();
+    if (handle == WL_INVALID_HANDLE) {
+        TT_LOG_E(TAG, "WL not mounted for /data");
+        return false;
+    }
+
+    const tinyusb_msc_spiflash_config_t config_flash = {
+        .wl_handle = handle,
+        .callback_mount_changed = storage_mount_changed_cb,
+        .callback_premount_changed = nullptr,
+        .mount_config = {
+            .format_if_mount_failed = false,
+            .max_files = 5,
+            .allocation_unit_size = 0,
+            .disk_status_check_enable = false,
+            .use_one_fat = false
+        }
+    };
+
+    esp_err_t result = tinyusb_msc_storage_init_spiflash(&config_flash);
+    if (result != ESP_OK) {
+        TT_LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
+    } else {
+        TT_LOG_I(TAG, "TinyUSB flash init success");
+    }
     return result == ESP_OK;
 }
 
@@ -162,12 +199,18 @@ void tusbStop() {
     tinyusb_msc_storage_deinit();
 }
 
+bool tusbCanStartMassStorageWithFlash() {
+    return tusbIsSupported() && (tt::getDataPartitionWlHandle() != WL_INVALID_HANDLE);
+}
+
 #else
 
 bool tusbIsSupported() { return false; }
 bool tusbStartMassStorageWithSdmmc() { return false; }
+bool tusbStartMassStorageWithFlash() { return false; }
 void tusbStop() {}
+bool tusbCanStartMassStorageWithFlash() { return false; }
 
-#endif // TinyUSB enabled
+#endif // CONFIG_TINYUSB_MSC_ENABLED
 
 #endif // ESP_PLATFORM

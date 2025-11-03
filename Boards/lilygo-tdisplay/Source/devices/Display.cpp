@@ -7,17 +7,17 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     St7789Display::Configuration panel_configuration = {
         .horizontalResolution = LCD_HORIZONTAL_RESOLUTION,
         .verticalResolution = LCD_VERTICAL_RESOLUTION,
-        .gapX = 53, // Should be 52 according to https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp but this leaves a gap at the bottom
+        .gapX = 52,
         .gapY = 40,
-        .swapXY = true,
-        .mirrorX = true,
+        .swapXY = false,
+        .mirrorX = false,
         .mirrorY = false,
         .invertColor = true,
         .bufferSize = LCD_BUFFER_SIZE,
         .touch = nullptr,
         .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
         .resetPin = LCD_PIN_RESET,
-        .lvglSwapBytes = false
+        .lvglSwapBytes = true
     };
 
     auto spi_configuration = std::make_shared<St7789Display::SpiConfiguration>(St7789Display::SpiConfiguration {

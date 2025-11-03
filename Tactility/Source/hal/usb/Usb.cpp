@@ -9,14 +9,15 @@
 namespace tt::hal::usb {
 
 constexpr auto* TAG = "usb";
-constexpr auto BOOT_FLAG = 42;
+constexpr auto BOOT_FLAG_SDMMC = 42;  // Existing
+constexpr auto BOOT_FLAG_FLASH = 43;  // For flash mode
 
-struct BootMode {
+struct BootModeData {
     uint32_t flag = 0;
 };
 
 static Mode currentMode = Mode::Default;
-static RTC_NOINIT_ATTR BootMode bootMode;
+static RTC_NOINIT_ATTR BootModeData bootModeData;
 
 sdmmc_card_t* _Nullable getCard() {
     auto sdcards = findDevices<sdcard::SpiSdCardDevice>(Device::Type::SdCard);
@@ -87,17 +88,55 @@ bool canRebootIntoMassStorageSdmmc() {
 
 void rebootIntoMassStorageSdmmc() {
     if (tusbIsSupported()) {
-        bootMode.flag = BOOT_FLAG;
+        bootModeData.flag = BOOT_FLAG_SDMMC;
+        esp_restart();
+    }
+}
+
+// NEW: Flash mass storage functions
+bool startMassStorageWithFlash() {
+    if (!canStartNewMode()) {
+        TT_LOG_E(TAG, "Can't start flash mass storage");
+        return false;
+    }
+
+    if (tusbStartMassStorageWithFlash()) {
+        currentMode = Mode::MassStorageFlash;
+        return true;
+    } else {
+        TT_LOG_E(TAG, "Failed to init flash mass storage");
+        return false;
+    }
+}
+
+bool canRebootIntoMassStorageFlash() {
+    return tusbCanStartMassStorageWithFlash();
+}
+
+void rebootIntoMassStorageFlash() {
+    if (tusbCanStartMassStorageWithFlash()) {
+        bootModeData.flag = BOOT_FLAG_FLASH;
         esp_restart();
     }
 }
 
 bool isUsbBootMode() {
-    return bootMode.flag == BOOT_FLAG;
+    return bootModeData.flag == BOOT_FLAG_SDMMC || bootModeData.flag == BOOT_FLAG_FLASH;  // Support both
+}
+
+BootMode getUsbBootMode() {
+    switch (bootModeData.flag) {
+        case BOOT_FLAG_SDMMC:
+            return BootMode::Sdmmc;
+        case BOOT_FLAG_FLASH:
+            return BootMode::Flash;
+        default:
+            return BootMode::None;
+    }
 }
 
 void resetUsbBootMode() {
-    bootMode.flag = 0;
+    bootModeData.flag = 0;
 }
 
 }
