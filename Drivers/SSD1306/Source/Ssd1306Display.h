@@ -62,9 +62,9 @@ public:
     {
         assert(configuration != nullptr);
         if (configuration->bufferSize == 0) {
-            // For monochrome displays with the monochrome flag, buffer is 1 bit per pixel
-            // So we need (width * height) / 8 bytes, but ESP-LVGL-PORT expects pixel count
-            configuration->bufferSize = configuration->horizontalResolution * configuration->verticalResolution / 8;
+            // For monochrome displays, ESP-LVGL-PORT expects full pixel count
+            // It handles the monochrome conversion internally
+            configuration->bufferSize = configuration->horizontalResolution * configuration->verticalResolution;
         }
     }
 
