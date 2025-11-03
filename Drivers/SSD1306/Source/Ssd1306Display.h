@@ -6,8 +6,6 @@
 #include <driver/gpio.h>
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_types.h>
-#include <functional>
-#include <lvgl.h>
 
 class Ssd1306Display final : public EspLcdDisplay {
 
@@ -39,17 +37,16 @@ public:
         gpio_num_t resetPin = GPIO_NUM_NC;
         unsigned int horizontalResolution;
         unsigned int verticalResolution;
-        bool invertColor = false;  // Note: Inversion handled in init sequence
+        bool invertColor = false;
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
-        uint32_t bufferSize = 0; // Size in pixel count. 0 means default, which is full screen for monochrome
-        int gapX = 0;
-        int gapY = 0;
+        uint32_t bufferSize = 0; // Size in pixel count. 0 means default (full screen / 8)
+        int gapX = 0; // Column offset
+        int gapY = 0; // Not used for SSD1306
     };
 
 private:
 
     std::unique_ptr<Configuration> configuration;
-    esp_lcd_panel_handle_t panelHandle = nullptr;
 
     bool createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) override;
 
@@ -65,13 +62,15 @@ public:
     {
         assert(configuration != nullptr);
         if (configuration->bufferSize == 0) {
-            configuration->bufferSize = configuration->horizontalResolution * configuration->verticalResolution;
+            // For monochrome displays with the monochrome flag, buffer is 1 bit per pixel
+            // So we need (width * height) / 8 bytes, but ESP-LVGL-PORT expects pixel count
+            configuration->bufferSize = configuration->horizontalResolution * configuration->verticalResolution / 8;
         }
     }
 
     std::string getName() const override { return "SSD1306"; }
 
-    std::string getDescription() const override { return "SSD1306 monochrome OLED display"; }
+    std::string getDescription() const override { return "SSD1306 monochrome OLED display with ESP-LVGL-PORT monochrome support"; }
 
     std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable getTouchDevice() override { return configuration->touch; }
 
