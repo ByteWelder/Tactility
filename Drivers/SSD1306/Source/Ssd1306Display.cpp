@@ -35,8 +35,7 @@ static void ssd1306_i2c_send_cmd(i2c_port_t port, uint8_t addr, uint8_t cmd) {
 bool Ssd1306Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {
     const esp_lcd_panel_io_i2c_config_t io_config = {
         .dev_addr = configuration->deviceAddress,
-        .on_color_trans_done = nullptr,
-        .user_ctx = nullptr,
+        .scl_speed_hz = 400000, // 400 KHz
         .control_phase_bytes = 1,
         .lcd_cmd_bits = 8,
         .lcd_param_bits = 8,
@@ -83,7 +82,7 @@ bool Ssd1306Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_l
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     esp_lcd_panel_ssd1306_config_t ssd1306_config = {
-        .height = configuration->verticalResolution,
+        .height = static_cast<uint8_t>(configuration->verticalResolution),
     };
     panel_config.vendor_config = &ssd1306_config;
 #endif
