@@ -1,8 +1,8 @@
 #pragma once
 
-#include "driver/gpio.h"
-#include "driver/i2c.h"
-#include "driver/spi_common.h"
+#include <driver/gpio.h>
+#include <driver/i2c.h>
+#include <driver/spi_common.h>
 
 // Display
 constexpr auto DISPLAY_I2C_ADDRESS = 0x3C;

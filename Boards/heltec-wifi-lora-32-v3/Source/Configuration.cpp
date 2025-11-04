@@ -8,22 +8,23 @@
 
 #include "driver/gpio.h"
 #include "driver/i2c.h"
-#include "esp_log.h"
+#include <Tactility/Log.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
 static void enableOledPower() {
-    gpio_config_t io_conf;
-    io_conf.intr_type = GPIO_INTR_DISABLE;
-    io_conf.mode = GPIO_MODE_OUTPUT;
-    io_conf.pin_bit_mask = (1ULL << DISPLAY_PIN_POWER);
-    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_conf.pull_up_en = GPIO_PULLUP_DISABLE; // The board has an external pull-up
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << DISPLAY_PIN_POWER),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE, // The board has an external pull-up
+    };
     gpio_config(&io_conf);
     gpio_set_level(DISPLAY_PIN_POWER, 0); // Active low
 
     vTaskDelay(pdMS_TO_TICKS(500)); // Add a small delay for power to stabilize
-    ESP_LOGI("OLED_POWER", "OLED power enabled");
+    TT_LOG_I("OLED_POWER", "OLED power enabled");
 }
 
 static bool initBoot() {
@@ -49,7 +50,7 @@ extern const Configuration hardwareConfiguration = {
     .createDevices = createDevices,
     .i2c = {
         tt::hal::i2c::Configuration {
-            .name = "SSD1306_I2C",
+            .name = "Internal",
             .port = DISPLAY_I2C_PORT,
             .initMode = tt::hal::i2c::InitMode::ByTactility,
             .isMutable = true,

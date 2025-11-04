@@ -1,5 +1,6 @@
 #include "Display.h"
 #include "Constants.h"
+
 #include <Ssd1306Display.h>
 
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
