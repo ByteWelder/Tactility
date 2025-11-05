@@ -31,6 +31,7 @@ jobs:
           { id: elecrow-crowpanel-basic-28, arch: esp32 },
           { id: elecrow-crowpanel-basic-35, arch: esp32 },
           { id: elecrow-crowpanel-basic-50, arch: esp32s3 },
+          { id: heltec-wifi-lora-32-v3, arch: esp32s3 },
           { id: lilygo-tdeck, arch: esp32s3 },
           { id: lilygo-tdongle-s3, arch: esp32s3 },
           { id: lilygo-tdisplay-s3, arch: esp32s3 },
