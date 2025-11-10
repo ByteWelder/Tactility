@@ -2,17 +2,21 @@
 
 ## Before release
 
+- Change ButtonControl to work with interrupts ans xQueue
+- TCA9534 keyboards should use interrupts
+- GT911 drivers should use interrupts if it's stable
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
 - Fix glitches when installing app via App Hub with 4.3" Waveshare
+- Wi-Fi should connect to the access point with the strongest signal over similarly named APs
+- Wi-Fi connect app should focus on password field when SSID was passed on
+- Auto-select the close button of an app by default on non-touch devices?
+- Calculator bugs (see GitHub issue)
 
 ## Higher Priority
 
-- Wi-Fi should connect to the access point with the strongest signal over similarly named APs
-- Wi-Fi connect app should focus on password field when SSID was passed on
 - Fix Cardputer (original): use LV_KEY_NEXT and _PREV in keyboard mapping instead of encoder driver hack (and check GPIO app if it then hangs too)
 - Logging with a function that uses std::format
-- Calculator bugs (see GitHub issue)
 - Expose http::download() and main dispatcher to TactiltyC.
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
   Check during installation process, but also when starting (SD card might have old app install from before Tactility OS update)

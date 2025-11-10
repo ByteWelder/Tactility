@@ -71,8 +71,8 @@ def read_properties_file(path):
     config.read(path)
     return config
 
-def read_mapping_file():
-    mapping_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "devices.properties")
+def read_device_properties(device_id):
+    mapping_file_path = os.path.join("Boards", device_id, "devices.properties")
     if not os.path.isfile(mapping_file_path):
         exit_with_error(f"Mapping file not found: {mapping_file_path}")
     return read_properties_file(mapping_file_path)
@@ -97,7 +97,7 @@ def to_manifest_chip_name(name):
         return ""
 
 
-def process_board(in_path: str, out_path: str, device_directory: str, device_id: str, device_mapping: configparser, version: str):
+def process_device(in_path: str, out_path: str, device_directory: str, device_id: str, device_properties: configparser, version: str):
     in_device_path = os.path.join(in_path, device_directory)
     in_device_binaries_path = os.path.join(in_device_path, "Binaries")
     assert os.path.isdir(in_device_binaries_path)
@@ -108,7 +108,7 @@ def process_board(in_path: str, out_path: str, device_directory: str, device_id:
         json_data.close()
         flash_files = flasher_args["flash_files"]
         manifest = Manifest(
-            name=f"Tactility for {device_mapping["vendor"]} {device_mapping["boardName"]}",
+            name=f"Tactility for {device_properties["general"]["vendor"]} {device_properties["general"]["boardName"]}",
             version=version,
             new_install_prompt_erase="true",
             funding_url="https://github.com/sponsors/ByteWelder",
@@ -146,34 +146,35 @@ def main(in_path: str, out_path: str, version: str):
     if os.path.exists(out_path):
         shutil.rmtree(out_path)
     os.mkdir(out_path)
-    mapping = read_mapping_file()
     device_directories = os.listdir(in_path)
     device_index = DeviceIndex(version, [])
     for device_directory in device_directories:
         if not device_directory.endswith("-symbols"):
             device_id = device_directory[10:]
-            if device_id not in mapping.sections():
+            device_properties = read_device_properties(device_id)
+            if device_id not in device_properties.sections():
                 exit_with_error(f"Mapping for {device_id} not found in mapping file")
-            device_properties = mapping[device_id]
-            process_board(in_path, out_path, device_directory, device_id, device_properties, version)
-            if "warningMessage" in device_properties.keys():
-                warning_message = device_properties["warningMessage"]
+            device_properties_general = device_properties["general"]
+            device_properties_cdn = device_properties["cdn"]
+            process_device(in_path, out_path, device_directory, device_id, device_properties, version)
+            if "warningMessage" in device_properties_cdn.keys():
+                warning_message = device_properties_cdn["warningMessage"]
             else:
                 warning_message = None
-            if "infoMessage" in device_properties.keys():
-                info_message = device_properties["infoMessage"]
+            if "infoMessage" in device_properties_cdn.keys():
+                info_message = device_properties_cdn["infoMessage"]
             else:
                 info_message = None
-            if "incubating" in device_properties.keys():
-                incubating = device_properties["incubating"].lower() == 'true'
+            if "incubating" in device_properties_general.keys():
+                incubating = device_properties_general["incubating"].lower() == 'true'
             else:
                 incubating = False
-            board_names = device_properties["boardName"].split(',')
-            for board_name in board_names:
+            device_names = device_names["name"].split(',')
+            for device_name in device_names:
                 device_index.devices.append(asdict(IndexEntry(
                     id=device_id,
-                    name=board_name,
-                    vendor=device_properties["vendor"],
+                    name=device_name,
+                    vendor=device_properties_general["vendor"],
                     incubating=incubating,
                     warningMessage=warning_message,
                     infoMessage=info_message
