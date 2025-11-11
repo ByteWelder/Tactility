@@ -2,7 +2,6 @@ import configparser
 import os
 import sys
 from configparser import ConfigParser
-from os import write
 
 if sys.platform == "win32":
     shell_color_red = ""
@@ -50,23 +49,23 @@ def read_device_properties(device_id):
     return read_properties_file(device_file_path)
 
 def get_property_or_exit(properties: ConfigParser, group: str, key: str):
-    if not group in properties.sections():
+    if group not in properties.sections():
         exit_with_error(f"Device properties does not contain group: {group}")
-    if not key in properties[group].keys():
+    if key not in properties[group].keys():
         exit_with_error(f"Device properties does not contain key: {key}")
     return properties[group][key]
 
 def get_property_or_none(properties: ConfigParser, group: str, key: str):
-    if not group in properties.sections():
+    if group not in properties.sections():
         return None
-    if not key in properties[group].keys():
+    if key not in properties[group].keys():
         return None
     return properties[group][key]
 
 def get_boolean_property_or_false(properties: ConfigParser, group: str, key: str):
-    if not group in properties.sections():
+    if group not in properties.sections():
         return False
-    if not key in properties[group].keys():
+    if key not in properties[group].keys():
         return False
     return properties[group][key] == "true"
 
@@ -79,6 +78,7 @@ def write_partition_table(output_file, device_properties: ConfigParser):
     if not flash_size.endswith("MB"):
         exit_with_error("Flash size should be written as xMB or xxMB (e.g. 4MB, 16MB)")
     flash_size_number = flash_size[:-2]
+    output_file.write("# Partition Table\n")
     output_file.write("CONFIG_PARTITION_TABLE_CUSTOM=y\n")
     output_file.write(f"CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions-{flash_size_number}mb.csv\"\n")
     output_file.write(f"CONFIG_PARTITION_TABLE_FILENAME=\"partitions-{flash_size_number}mb.csv\"\n")
@@ -97,6 +97,7 @@ def write_tactility_variables(output_file, device_properties: ConfigParser, devi
 
 def write_target_variables(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target")
+    output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target.lower()}\"\n")
     output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
     output_file.write("CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y\n")
@@ -105,6 +106,7 @@ def write_flash_variables(output_file, device_properties: ConfigParser):
     flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
     if not flash_size.endswith("MB"):
         exit_with_error("Flash size should be written as xMB or xxMB (e.g. 4MB, 16MB)")
+    output_file.write("# Flash\n")
     flash_size_number = flash_size[:-2]
     output_file.write(f"CONFIG_ESPTOOLPY_FLASHSIZE_{flash_size_number}MB=y\n")
     flash_mode = get_property_or_none(device_properties, "hardware", "flashMode")
@@ -121,7 +123,7 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     has_spiram = get_property_or_exit(device_properties, "hardware", "spiRam")
     if has_spiram != "true":
         return
-    output_file.write("# Hardware: SPIRAM\n")
+    output_file.write("# SPIRAM\n")
     # Enable
     if idf_target == "ESP32S3":
         output_file.write("CONFIG_ESP32S3_SPIRAM_SUPPORT=y\n")
@@ -165,7 +167,7 @@ def write_lvgl_variables(output_file, device_properties: ConfigParser):
 def write_iram_fix(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target")
     if idf_target == "ESP32":
-        output_file.write("# Fix for IRAM\n")
+        output_file.write("# Free up IRAM on ESP32\n")
         output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
         output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
         output_file.write("CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y\n")
@@ -174,12 +176,13 @@ def write_iram_fix(output_file, device_properties: ConfigParser):
 def write_usb_variables(output_file, device_properties: ConfigParser):
     has_tiny_usb = get_property_or_exit(device_properties, "hardware", "tinyUsb")
     if has_tiny_usb == "true":
-        output_file.write("# USB\n")
+        output_file.write("# TinyUSB\n")
         output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
         output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
 
 def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
     if "sdkconfig" in device_properties.sections():
+        output_file.write("# Custom\n")
         section = device_properties["sdkconfig"]
         for key in section.keys():
             value = section[key].replace("\"", "\\\"")
