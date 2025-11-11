@@ -42,6 +42,8 @@ def read_file(path: str):
 
 def read_properties_file(path):
     config = configparser.RawConfigParser()
+    # Don't convert keys to lowercase
+    config.optionxform = str
     config.read(path)
     return config
 
@@ -200,7 +202,7 @@ def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
         section = device_properties["sdkconfig"]
         for key in section.keys():
             value = section[key].replace("\"", "\\\"")
-            output_file.write(f"{key.upper()}={value}\n")
+            output_file.write(f"{key}={value}\n")
 
 def write_properties(output_file, device_properties: ConfigParser, device_id: str, is_dev: bool):
     write_defaults(output_file)
