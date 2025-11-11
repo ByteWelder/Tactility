@@ -12,6 +12,8 @@ else:
     shell_color_orange = "\033[93m"
     shell_color_reset = "\033[m"
 
+devices_directory = "Boards"
+
 def print_warning(message):
     print(f"{shell_color_orange}WARNING: {message}{shell_color_reset}")
 
@@ -23,13 +25,14 @@ def exit_with_error(message):
     sys.exit(1)
 
 def print_help():
-    print("Usage: python device.py [device_id]\n\n")
-    print("\t[device_id]            the device identifier (folder name in Boards/)")
+    print("Usage: python device.py [device_id] [arguments]\n\n")
+    print(f"\t[device_id]            the device identifier (folder name in {devices_directory}/)")
+    print("\n")
+    print("Optional arguments:\n")
+    print("\t--dev                   developer options (limit to 4MB partition table)")
 
-def list_devices():
-    boards = os.listdir("Boards")
-    boards.remove("simulator")
-    return boards
+def get_properties_file_path(device_id: str):
+    return os.path.join(devices_directory, device_id, "device.properties")
 
 def read_file(path: str):
     with open(path, "r") as file:
@@ -43,7 +46,7 @@ def read_properties_file(path):
     return config
 
 def read_device_properties(device_id):
-    device_file_path = os.path.join("Boards", device_id, "device.properties")
+    device_file_path = get_properties_file_path(device_id)
     if not os.path.isfile(device_file_path):
         exit_with_error(f"Device file not found: {device_file_path}")
     return read_properties_file(device_file_path)
@@ -73,11 +76,14 @@ def write_defaults(output_file):
     default_properties = read_file("Buildscripts/sdkconfig/default.properties")
     output_file.write(default_properties)
 
-def write_partition_table(output_file, device_properties: ConfigParser):
-    flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
-    if not flash_size.endswith("MB"):
-        exit_with_error("Flash size should be written as xMB or xxMB (e.g. 4MB, 16MB)")
-    flash_size_number = flash_size[:-2]
+def write_partition_table(output_file, device_properties: ConfigParser, is_dev: bool):
+    if is_dev:
+        flash_size_number = 4
+    else:
+        flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
+        if not flash_size.endswith("MB"):
+            exit_with_error("Flash size should be written as xMB or xxMB (e.g. 4MB, 16MB)")
+        flash_size_number = flash_size[:-2]
     output_file.write("# Partition Table\n")
     output_file.write("CONFIG_PARTITION_TABLE_CUSTOM=y\n")
     output_file.write(f"CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions-{flash_size_number}mb.csv\"\n")
@@ -146,6 +152,12 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     # Boot speed optimization
     output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
 
+def write_rgb_display_glitch_fix(output_file, device_properties: ConfigParser):
+    enabled = get_boolean_property_or_false(device_properties, "hardware", "fixRgbDisplayGlitch")
+    if enabled:
+        output_file.write("# Fixes glitches in the display driver when rendering new screens/apps\n")
+        output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
+
 def write_lvgl_variables(output_file, device_properties: ConfigParser):
     dpi = get_property_or_exit(device_properties, "display", "dpi")
     output_file.write("# LVGL\n")
@@ -190,45 +202,38 @@ def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
             value = section[key].replace("\"", "\\\"")
             output_file.write(f"{key.upper()}={value}\n")
 
-def write_rgb_display_glitch_fix(output_file, device_properties: ConfigParser):
-    enabled = get_boolean_property_or_false(device_properties, "hardware", "fixRgbDisplayGlitch")
-    if enabled:
-        output_file.write("# Fixes glitches in the display driver when rendering new screens/apps\n")
-        output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
-
-def write_properties(output_file, device_properties: ConfigParser, device_id: str):
+def write_properties(output_file, device_properties: ConfigParser, device_id: str, is_dev: bool):
     write_defaults(output_file)
     output_file.write("\n\n")
-    write_partition_table(output_file, device_properties)
+    write_partition_table(output_file, device_properties, is_dev)
     write_tactility_variables(output_file, device_properties, device_id)
     write_target_variables(output_file, device_properties)
     write_flash_variables(output_file, device_properties)
     write_spiram_variables(output_file, device_properties)
+    write_rgb_display_glitch_fix(output_file, device_properties)
     write_lvgl_variables(output_file, device_properties)
     write_iram_fix(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
     write_custom_sdkconfig(output_file, device_properties)
-    write_rgb_display_glitch_fix(output_file, device_properties)
 
-def main(device_id: str):
-    devices = list_devices()
-    # if device_id not in devices:
-    #     exit_with_error(f"{device_id} is not a valid device identifier")
-    for device_id in devices:
-        print(device_id)
-        output_file_path = f"sdkconfig.board.{device_id}"
-        if os.path.isfile(output_file_path):
-            os.remove(output_file_path)
-        device_properties = read_device_properties(device_id)
-        with open(output_file_path, "w") as output_file:
-            write_properties(output_file, device_properties, device_id)
-            output_file.close()
+def main(device_id: str, is_dev: bool):
+    device_properties_path = get_properties_file_path(device_id)
+    if not os.path.isfile(device_properties_path):
+        exit_with_error(f"{device_id} is not a valid device identifier (could not found {device_properties_path})")
+    output_file_path = "sdkconfig"
+    if os.path.isfile(output_file_path):
+        os.remove(output_file_path)
+    device_properties = read_device_properties(device_id)
+    with open(output_file_path, "w") as output_file:
+        write_properties(output_file, device_properties, device_id, is_dev)
+        output_file.close()
 
 if __name__ == "__main__":
     if "--help" in sys.argv:
         print_help()
         sys.exit()
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         print_help()
         sys.exit()
-    main(sys.argv[1])
+    is_dev = "--dev" in sys.argv
+    main(sys.argv[1], is_dev)
