@@ -6,6 +6,7 @@ import json
 import shutil
 
 verbose = False
+devices_folder = "Boards"
 
 @dataclass
 class IndexEntry:
@@ -72,7 +73,7 @@ def read_properties_file(path):
     return config
 
 def read_device_properties(device_id):
-    mapping_file_path = os.path.join("Boards", device_id, "devices.properties")
+    mapping_file_path = os.path.join(devices_folder, device_id, "device.properties")
     if not os.path.isfile(mapping_file_path):
         exit_with_error(f"Mapping file not found: {mapping_file_path}")
     return read_properties_file(mapping_file_path)
@@ -108,7 +109,7 @@ def process_device(in_path: str, out_path: str, device_directory: str, device_id
         json_data.close()
         flash_files = flasher_args["flash_files"]
         manifest = Manifest(
-            name=f"Tactility for {device_properties["general"]["vendor"]} {device_properties["general"]["boardName"]}",
+            name=f"Tactility for {device_properties["general"]["vendor"]} {device_properties["general"]["name"]}",
             version=version,
             new_install_prompt_erase="true",
             funding_url="https://github.com/sponsors/ByteWelder",
@@ -152,8 +153,6 @@ def main(in_path: str, out_path: str, version: str):
         if not device_directory.endswith("-symbols"):
             device_id = device_directory[10:]
             device_properties = read_device_properties(device_id)
-            if device_id not in device_properties.sections():
-                exit_with_error(f"Mapping for {device_id} not found in mapping file")
             device_properties_general = device_properties["general"]
             device_properties_cdn = device_properties["cdn"]
             process_device(in_path, out_path, device_directory, device_id, device_properties, version)
@@ -169,7 +168,7 @@ def main(in_path: str, out_path: str, version: str):
                 incubating = device_properties_general["incubating"].lower() == 'true'
             else:
                 incubating = False
-            device_names = device_names["name"].split(',')
+            device_names = device_properties_general["name"].split(',')
             for device_name in device_names:
                 device_index.devices.append(asdict(IndexEntry(
                     id=device_id,
