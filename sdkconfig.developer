@@ -1,3 +1,5 @@
+# This is just used as a reference/reminder
+
 CONFIG_STACK_CHECK_STRONG=y
 
 CONFIG_LV_USE_SYSMON=y
