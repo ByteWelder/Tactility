@@ -139,6 +139,7 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     speed = get_property_or_exit(device_properties, "hardware", "spiRamSpeed")
     # Speed
     output_file.write(f"CONFIG_SPIRAM_SPEED_{speed}=y\n")
+    output_file.write(f"CONFIG_SPIRAM_SPEED={speed}\n")
     # IRAM memory optimization
     output_file.write("CONFIG_SPIRAM_USE_MALLOC=y\n")
     output_file.write("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y\n")
@@ -167,6 +168,7 @@ def write_lvgl_variables(output_file, device_properties: ConfigParser):
 def write_iram_fix(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target")
     if idf_target == "ESP32":
+        # TODO: Try on ESP32S3
         output_file.write("# Free up IRAM on ESP32\n")
         output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
         output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
@@ -196,7 +198,7 @@ def write_rgb_display_glitch_fix(output_file, device_properties: ConfigParser):
 
 def write_properties(output_file, device_properties: ConfigParser, device_id: str):
     write_defaults(output_file)
-    output_file.write("\n\n# Hardware: Main\n")
+    output_file.write("\n\n")
     write_partition_table(output_file, device_properties)
     write_tactility_variables(output_file, device_properties, device_id)
     write_target_variables(output_file, device_properties)

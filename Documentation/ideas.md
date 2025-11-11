@@ -2,7 +2,7 @@
 
 ## Before release
 
-- Change ButtonControl to work with interrupts ans xQueue
+- Change ButtonControl to work with interrupts and xQueue
 - TCA9534 keyboards should use interrupts
 - GT911 drivers should use interrupts if it's stable
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
