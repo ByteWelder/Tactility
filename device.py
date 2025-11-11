@@ -131,7 +131,7 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     mode = get_property_or_exit(device_properties, "hardware", "spiRamMode")
     # Mode
     if mode is not "AUTO":
-        output_file.write(f"CONFIG_SPIRAM_TYPE_{mode}=y\n")
+        output_file.write(f"CONFIG_SPIRAM_MODE_{mode}=y\n")
     else:
         output_file.write("CONFIG_SPIRAM_TYPE_AUTO=y\n")
     speed = get_property_or_exit(device_properties, "hardware", "spiRamSpeed")
@@ -178,6 +178,13 @@ def write_usb_variables(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
         output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
 
+def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
+    if "sdkconfig" in device_properties.sections():
+        section = device_properties["sdkconfig"]
+        for key in section.keys():
+            value = section[key].replace("\"", "\\\"")
+            output_file.write(f"{key.upper()}={value}\n")
+
 def write_properties(output_file, device_properties: ConfigParser, device_id: str):
     write_defaults(output_file)
     output_file.write("\n\n# Hardware: Main\n")
@@ -189,6 +196,7 @@ def write_properties(output_file, device_properties: ConfigParser, device_id: st
     write_lvgl_variables(output_file, device_properties)
     write_iram_fix(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
+    write_custom_sdkconfig(output_file, device_properties)
 
 def main(device_id: str):
     devices = list_devices()
