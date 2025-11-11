@@ -14,6 +14,9 @@ runs:
     - uses: actions/checkout@v4
       with:
         submodules: recursive
+    - name: 'Test'
+      shell: bash
+      run: ls -lha
     - name: 'Board select'
       shell: bash
       run: python device.py ${{ inputs.board_id }}
