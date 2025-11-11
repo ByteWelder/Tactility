@@ -130,7 +130,7 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_SPIRAM=y\n")
     mode = get_property_or_exit(device_properties, "hardware", "spiRamMode")
     # Mode
-    if mode is not "AUTO":
+    if mode != "AUTO":
         output_file.write(f"CONFIG_SPIRAM_MODE_{mode}=y\n")
     else:
         output_file.write("CONFIG_SPIRAM_TYPE_AUTO=y\n")
@@ -185,6 +185,12 @@ def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
             value = section[key].replace("\"", "\\\"")
             output_file.write(f"{key.upper()}={value}\n")
 
+def write_rgb_display_glitch_fix(output_file, device_properties: ConfigParser):
+    enabled = get_boolean_property_or_false(device_properties, "hardware", "fixRgbDisplayGlitch")
+    if enabled:
+        output_file.write("# Fixes glitches in the display driver when rendering new screens/apps\n")
+        output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
+
 def write_properties(output_file, device_properties: ConfigParser, device_id: str):
     write_defaults(output_file)
     output_file.write("\n\n# Hardware: Main\n")
@@ -197,6 +203,7 @@ def write_properties(output_file, device_properties: ConfigParser, device_id: st
     write_iram_fix(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
     write_custom_sdkconfig(output_file, device_properties)
+    write_rgb_display_glitch_fix(output_file, device_properties)
 
 def main(device_id: str):
     devices = list_devices()

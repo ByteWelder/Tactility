@@ -57,3 +57,5 @@ CONFIG_LV_DPI_DEF=139
 CONFIG_LV_COLOR_DEPTH=16
 CONFIG_LV_COLOR_DEPTH_16=y
 CONFIG_LV_THEME_DEFAULT_DARK=y
+# Fixes glitches in the display driver when rendering new screens/apps
+CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y
