@@ -75,7 +75,8 @@ def get_boolean_property_or_false(properties: ConfigParser, group: str, key: str
     return properties[group][key] == "true"
 
 def write_defaults(output_file):
-    default_properties = read_file("Buildscripts/sdkconfig/default.properties")
+    default_propertie_path = os.path.join("Buildscripts", "sdkconfig", "default.properties")
+    default_properties = read_file(default_propertie_path)
     output_file.write(default_properties)
 
 def write_partition_table(output_file, device_properties: ConfigParser, is_dev: bool):
