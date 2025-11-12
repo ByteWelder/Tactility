@@ -104,12 +104,16 @@ def write_tactility_variables(output_file, device_properties: ConfigParser, devi
         output_file.write(f"CONFIG_TT_BOARD_NAME=\"{board_vendor} {board_name}\"\n")
     output_file.write(f"CONFIG_TT_BOARD_ID=\"{device_id}\"\n")
 
-def write_target_variables(output_file, device_properties: ConfigParser):
+def write_core_variables(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target")
     output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target.lower()}\"\n")
+    output_file.write("# CPU\n")
+    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
+    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_240=y\n")
     output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ_240=y\n")
     output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_240=y\n")
+    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ=240\n")
 
 def write_flash_variables(output_file, device_properties: ConfigParser):
     flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
@@ -205,10 +209,10 @@ def write_custom_sdkconfig(output_file, device_properties: ConfigParser):
 def write_properties(output_file, device_properties: ConfigParser, device_id: str, is_dev: bool):
     write_defaults(output_file)
     output_file.write("\n\n")
-    write_partition_table(output_file, device_properties, is_dev)
     write_tactility_variables(output_file, device_properties, device_id)
-    write_target_variables(output_file, device_properties)
+    write_core_variables(output_file, device_properties)
     write_flash_variables(output_file, device_properties)
+    write_partition_table(output_file, device_properties, is_dev)
     write_spiram_variables(output_file, device_properties)
     write_rgb_display_glitch_fix(output_file, device_properties)
     write_lvgl_variables(output_file, device_properties)
