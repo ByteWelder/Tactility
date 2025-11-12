@@ -12,6 +12,8 @@
 - Wi-Fi connect app should focus on password field when SSID was passed on
 - Auto-select the close button of an app by default on non-touch devices?
 - Calculator bugs (see GitHub issue)
+- Try out speed optimizations: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html
+  (relates to CONFIG_ESP32S3_DATA_CACHE_LINE_64B that is in use for RGB displays via the `device.properties` fix/workaround)
 
 ## Higher Priority
 

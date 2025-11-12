@@ -108,8 +108,8 @@ def write_target_variables(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target")
     output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target.lower()}\"\n")
-    output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
-    output_file.write("CONFIG_ESP32_DEFAULT_CPU_FREQ_240=y\n")
+    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ_240=y\n")
+    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_240=y\n")
 
 def write_flash_variables(output_file, device_properties: ConfigParser):
     flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
@@ -134,11 +134,8 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
         return
     output_file.write("# SPIRAM\n")
     # Enable
-    if idf_target == "ESP32S3":
-        output_file.write("CONFIG_ESP32S3_SPIRAM_SUPPORT=y\n")
-    else:
-        output_file.write("CONFIG_ESP32_SPIRAM_SUPPORT=y\n")
-        output_file.write("CONFIG_SPIRAM=y\n")
+    output_file.write("CONFIG_SPIRAM=y\n")
+    output_file.write(f"CONFIG_{idf_target}_SPIRAM_SUPPORT=y\n")
     mode = get_property_or_exit(device_properties, "hardware", "spiRamMode")
     # Mode
     if mode != "AUTO":
