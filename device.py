@@ -110,8 +110,7 @@ def write_core_variables(output_file, device_properties: ConfigParser):
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target.lower()}\"\n")
     output_file.write("# CPU\n")
     output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
-    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_240=y\n")
-    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ_240=y\n")
+    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
     output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_240=y\n")
     output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ=240\n")
 
