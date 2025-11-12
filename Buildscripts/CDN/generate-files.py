@@ -4,6 +4,7 @@ import configparser
 from dataclasses import dataclass, asdict
 import json
 import shutil
+from configparser import ConfigParser, RawConfigParser
 
 VERBOSE = False
 DEVICES_FOLDER = "Boards"
@@ -69,8 +70,31 @@ def exit_with_error(message):
 
 def read_properties_file(path):
     config = configparser.RawConfigParser()
+    # Don't convert keys to lowercase
+    config.optionxform = str
     config.read(path)
     return config
+
+def get_property_or_none(properties: RawConfigParser, group: str, key: str):
+    if group not in properties.sections():
+        return None
+    if key not in properties[group].keys():
+        return None
+    return properties[group][key]
+
+def get_boolean_property_or_false(properties: RawConfigParser, group: str, key: str):
+    if group not in properties.sections():
+        return False
+    if key not in properties[group].keys():
+        return False
+    return properties[group][key] == "true"
+
+def get_property_or_exit(properties: RawConfigParser, group: str, key: str):
+    if group not in properties.sections():
+        exit_with_error(f"Device properties does not contain group: {group}")
+    if key not in properties[group].keys():
+        exit_with_error(f"Device properties does not contain key: {key}")
+    return properties[group][key]
 
 def read_device_properties(device_id):
     mapping_file_path = os.path.join(DEVICES_FOLDER, device_id, "device.properties")
@@ -106,18 +130,21 @@ def to_manifest_chip_name(name):
         return ""
 
 
-def process_device(in_path: str, out_path: str, device_directory: str, device_id: str, device_properties: configparser, version: str):
+def process_device(in_path: str, out_path: str, device_directory: str, device_id: str, device_properties: RawConfigParser, version: str):
     in_device_path = os.path.join(in_path, device_directory)
     in_device_binaries_path = os.path.join(in_device_path, "Binaries")
-    assert os.path.isdir(in_device_binaries_path)
+    if not os.path.isdir(in_device_binaries_path):
+        exit_with_error(f"Could not find directory {in_device_binaries_path}")
     flasher_args_path = os.path.join(in_device_binaries_path, "flasher_args.json")
-    assert os.path.isfile(flasher_args_path)
+    if not os.path.isfile(flasher_args_path):
+        exit_with_error(f"Could not find flasher arguments path {flasher_args_path}")
     with open(flasher_args_path) as json_data:
         flasher_args = json.load(json_data)
-        json_data.close()
         flash_files = flasher_args["flash_files"]
+        device_vendor = get_property_or_exit(device_properties, "general", "vendor")
+        device_name = get_property_or_exit(device_properties, "general", "name")
         manifest = Manifest(
-            name=f"Tactility for {device_properties["general"]["vendor"]} {device_properties["general"]["name"]}",
+            name=f"Tactility for {device_vendor} {device_name}",
             version=version,
             new_install_prompt_erase="true",
             funding_url="https://github.com/sponsors/ByteWelder",
@@ -143,11 +170,9 @@ def process_device(in_path: str, out_path: str, device_directory: str, device_id
                     offset=int(offset, 16)
                 )
             )
-
         json_manifest_path = os.path.join(out_path, f"{device_id}.json")
         with open(json_manifest_path, 'w') as json_manifest_file:
             json.dump(asdict(manifest), json_manifest_file, indent=2)
-            json_manifest_file.close()
 
 def main(in_path: str, out_path: str, version: str):
     if not os.path.exists(in_path):
@@ -158,39 +183,29 @@ def main(in_path: str, out_path: str, version: str):
     device_directories = os.listdir(in_path)
     device_index = DeviceIndex(version, [])
     for device_directory in device_directories:
-        if not device_directory.endswith("-symbols"):
-            device_id = device_directory[10:]
-            device_properties = read_device_properties(device_id)
-            device_properties_general = device_properties["general"]
-            process_device(in_path, out_path, device_directory, device_id, device_properties, version)
-            if device_properties.has_section("cdn"):
-                device_properties_cdn = device_properties["cdn"]
-                if "warningMessage" in device_properties_cdn.keys():
-                    warning_message = device_properties_cdn["warningMessage"]
-                else:
-                    warning_message = None
-                if "infoMessage" in device_properties_cdn.keys():
-                    info_message = device_properties_cdn["infoMessage"]
-                else:
-                    info_message = None
-            if "incubating" in device_properties_general.keys():
-                incubating = device_properties_general["incubating"].lower() == 'true'
-            else:
-                incubating = False
-            device_names = device_properties_general["name"].split(',')
-            for device_name in device_names:
-                device_index.devices.append(asdict(IndexEntry(
-                    id=device_id,
-                    name=device_name,
-                    vendor=device_properties_general["vendor"],
-                    incubating=incubating,
-                    warningMessage=warning_message,
-                    infoMessage=info_message
-                )))
+        if device_directory.endswith("-symbols"):
+            continue
+        device_id = device_directory.removeprefix("Tactility-")
+        if not device_id:
+            exit_with_error(f"Cannot derive device id from directory: {device_directory}")
+        device_properties = read_device_properties(device_id)
+        process_device(in_path, out_path, device_directory, device_id, device_properties, version)
+        warning_message = get_property_or_none(device_properties, "cdn", "warningMessage")
+        info_message = get_property_or_none(device_properties, "cdn", "infoMessage")
+        incubating = get_boolean_property_or_false(device_properties, "general", "incubating")
+        device_names = get_property_or_exit(device_properties, "general", "name").split(',')
+        for device_name in device_names:
+            device_index.devices.append(asdict(IndexEntry(
+                id=device_id,
+                name=device_name.strip(),
+                vendor=get_property_or_exit(device_properties, "general", "vendor"),
+                incubating=incubating,
+                warningMessage=warning_message,
+                infoMessage=info_message
+            )))
     index_file_path = os.path.join(out_path, "index.json")
     with open(index_file_path, "w") as index_file:
         json.dump(asdict(device_index), index_file, indent=2)
-        index_file.close()
 
 if __name__ == "__main__":
     print("Tactility CDN File Generator")
