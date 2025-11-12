@@ -37,7 +37,6 @@ def get_properties_file_path(device_id: str):
 def read_file(path: str):
     with open(path, "r") as file:
         result = file.read()
-        file.close()
         return result
 
 def read_properties_file(path):
@@ -229,7 +228,6 @@ def main(device_id: str, is_dev: bool):
     device_properties = read_device_properties(device_id)
     with open(output_file_path, "w") as output_file:
         write_properties(output_file, device_properties, device_id, is_dev)
-        output_file.close()
 
 if __name__ == "__main__":
     if "--help" in sys.argv:
