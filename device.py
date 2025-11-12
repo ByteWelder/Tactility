@@ -4,21 +4,21 @@ import sys
 from configparser import ConfigParser
 
 if sys.platform == "win32":
-    shell_color_red = ""
-    shell_color_orange = ""
-    shell_color_reset = ""
+    SHELL_COLOR_RED = ""
+    SHELL_COLOR_ORANGE = ""
+    SHELL_COLOR_RESET = ""
 else:
-    shell_color_red = "\033[91m"
-    shell_color_orange = "\033[93m"
-    shell_color_reset = "\033[m"
+    SHELL_COLOR_RED = "\033[91m"
+    SHELL_COLOR_ORANGE = "\033[93m"
+    SHELL_COLOR_RESET = "\033[m"
 
-devices_directory = "Boards"
+DEVICES_DIRECTORY = "Boards"
 
 def print_warning(message):
-    print(f"{shell_color_orange}WARNING: {message}{shell_color_reset}")
+    print(f"{SHELL_COLOR_ORANGE}WARNING: {message}{SHELL_COLOR_RESET}")
 
 def print_error(message):
-    print(f"{shell_color_red}ERROR: {message}{shell_color_reset}")
+    print(f"{SHELL_COLOR_RED}ERROR: {message}{SHELL_COLOR_RESET}")
 
 def exit_with_error(message):
     print_error(message)
@@ -26,13 +26,13 @@ def exit_with_error(message):
 
 def print_help():
     print("Usage: python device.py [device_id] [arguments]\n\n")
-    print(f"\t[device_id]            the device identifier (folder name in {devices_directory}/)")
+    print(f"\t[device_id]            the device identifier (folder name in {DEVICES_DIRECTORY}/)")
     print("\n")
     print("Optional arguments:\n")
     print("\t--dev                   developer options (limit to 4MB partition table)")
 
 def get_properties_file_path(device_id: str):
-    return os.path.join(devices_directory, device_id, "device.properties")
+    return os.path.join(DEVICES_DIRECTORY, device_id, "device.properties")
 
 def read_file(path: str):
     with open(path, "r") as file:
@@ -169,8 +169,8 @@ def write_lvgl_variables(output_file, device_properties: ConfigParser):
     color_depth = get_property_or_exit(device_properties, "lvgl", "colorDepth")
     output_file.write(f"CONFIG_LV_COLOR_DEPTH={color_depth}\n")
     output_file.write(f"CONFIG_LV_COLOR_DEPTH_{color_depth}=y\n")
-    theme = get_property_or_exit(device_properties, "lvgl", "theme")
-    if theme == "DefaultDark":
+    theme = get_property_or_none(device_properties, "lvgl", "theme")
+    if theme is None or theme == "DefaultDark":
         output_file.write("CONFIG_LV_THEME_DEFAULT_DARK=y\n")
     elif theme == "DefaultLight":
         output_file.write("CONFIG_LV_THEME_DEFAULT_LIGHT=y\n")
@@ -191,8 +191,8 @@ def write_iram_fix(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_RINGBUF_PLACE_FUNCTIONS_INTO_FLASH=y\n")
 
 def write_usb_variables(output_file, device_properties: ConfigParser):
-    has_tiny_usb = get_property_or_exit(device_properties, "hardware", "tinyUsb")
-    if has_tiny_usb == "true":
+    has_tiny_usb = get_boolean_property_or_false(device_properties, "hardware", "tinyUsb")
+    if has_tiny_usb:
         output_file.write("# TinyUSB\n")
         output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
         output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
