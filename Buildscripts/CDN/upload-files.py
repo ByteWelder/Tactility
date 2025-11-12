@@ -2,28 +2,25 @@ import os
 import sys
 import boto3
 
-verbose = False
-
 if sys.platform == "win32":
-    shell_color_red = ""
-    shell_color_orange = ""
-    shell_color_reset = ""
+    SHELL_COLOR_RED = ""
+    SHELL_COLOR_ORANGE = ""
+    SHELL_COLOR_RESET = ""
 else:
-    shell_color_red = "\033[91m"
-    shell_color_orange = "\033[93m"
-    shell_color_reset = "\033[m"
+    SHELL_COLOR_RED = "\033[91m"
+    SHELL_COLOR_ORANGE = "\033[93m"
+    SHELL_COLOR_RESET = "\033[m"
 
 def print_warning(message):
-    print(f"{shell_color_orange}WARNING: {message}{shell_color_reset}")
+    print(f"{SHELL_COLOR_ORANGE}WARNING: {message}{SHELL_COLOR_RESET}")
 
 def print_error(message):
-    print(f"{shell_color_red}ERROR: {message}{shell_color_reset}")
+    print(f"{SHELL_COLOR_RED}ERROR: {message}{SHELL_COLOR_RESET}")
 
 def print_help():
     print("Usage: python upload-files.py [path] [version] [cloudflareAccountId] [cloudflareTokenName] [cloudflareTokenValue]")
     print("")
     print("Options:")
-    print("  --verbose                      Show extra console output")
     print("  --index-only                   Upload only index.json")
 
 def exit_with_error(message):
@@ -63,9 +60,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 6:
         print_help()
         sys.exit()
-    if "--verbose" in sys.argv:
-        verbose = True
-        sys.argv.remove("--verbose")
     main(
         path=sys.argv[1],
         version=sys.argv[2],
