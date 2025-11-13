@@ -47,7 +47,7 @@
 ## Medium Priority
 
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
-- Create PwmRgbLedDevice class and implement it for all CYD boards
+- Create PwmRgbLedDevice class and implement it for all CYD devices
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
@@ -95,7 +95,7 @@
 - Audio player app
 - Audio recording app
 - OTA updates
-- T-Deck Plus: Create separate board config?
+- T-Deck Plus: Create separate device config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - If present, use LED to show boot/wifi status
 - Capacity based on voltage: estimation for various devices uses a linear voltage curve, but it should use a battery discharge curve.
