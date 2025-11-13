@@ -1,10 +1,12 @@
+import subprocess
+from datetime import datetime, UTC
 import os
 import sys
 import configparser
 from dataclasses import dataclass, asdict
 import json
 import shutil
-from configparser import ConfigParser, RawConfigParser
+from configparser import RawConfigParser
 
 VERBOSE = False
 DEVICES_FOLDER = "Devices"
@@ -39,6 +41,8 @@ class ManifestBuildPart:
 @dataclass
 class DeviceIndex:
     version: str
+    created: str
+    gitCommit: str
     devices: list
 
 if sys.platform == "win32":
@@ -174,6 +178,10 @@ def process_device(in_path: str, out_path: str, device_directory: str, device_id
         with open(json_manifest_path, 'w') as json_manifest_file:
             json.dump(asdict(manifest), json_manifest_file, indent=2)
 
+
+def get_git_commit_hash():
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
+
 def main(in_path: str, out_path: str, version: str):
     if not os.path.exists(in_path):
         exit_with_error(f"Input path not found: {in_path}")
@@ -181,7 +189,12 @@ def main(in_path: str, out_path: str, version: str):
         shutil.rmtree(out_path)
     os.mkdir(out_path)
     device_directories = os.listdir(in_path)
-    device_index = DeviceIndex(version, [])
+    device_index = DeviceIndex(
+        version=version,
+        created=datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S'),
+        gitCommit=get_git_commit_hash(),
+        devices=[]
+    )
     for device_directory in device_directories:
         if device_directory.endswith("-symbols"):
             continue
