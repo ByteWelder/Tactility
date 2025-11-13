@@ -2,6 +2,11 @@
 
 ## Before release
 
+- Create function that tests available memory and logs when it's low:
+    - Add low memory warning when calling DevelopmentService::handleAppInstall()
+    - Add low memory warning when calling tt::app::install
+    - Add statusbar icon that shows low/critical memory warnings
+- CDN upload should mention upload timestamp (at least for snapshot builds)
 - Change ButtonControl to work with interrupts and xQueue
 - TCA9534 keyboards should use interrupts
 - GT911 drivers should use interrupts if it's stable
@@ -42,10 +47,9 @@
 ## Medium Priority
 
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
-- Create PwmRgbLedDevice class and implement it for all CYD boards
+- Create PwmRgbLedDevice class and implement it for all CYD devices
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
-- Statusbar icon that shows low/critical memory warnings
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
   This will be useful for devices without a screen, a small screen or a non-touch screen.
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
@@ -91,7 +95,7 @@
 - Audio player app
 - Audio recording app
 - OTA updates
-- T-Deck Plus: Create separate board config?
+- T-Deck Plus: Create separate device config?
 - Support for displays with different DPI. Consider the layer-based system like on Android.
 - If present, use LED to show boot/wifi status
 - Capacity based on voltage: estimation for various devices uses a linear voltage curve, but it should use a battery discharge curve.
