@@ -7,7 +7,7 @@ import shutil
 from configparser import ConfigParser, RawConfigParser
 
 VERBOSE = False
-DEVICES_FOLDER = "Boards"
+DEVICES_FOLDER = "Devices"
 
 @dataclass
 class IndexEntry:

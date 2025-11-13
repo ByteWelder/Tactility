@@ -2,6 +2,11 @@
 
 ## Before release
 
+- Create function that tests available memory and logs when it's low:
+    - Add low memory warning when calling DevelopmentService::handleAppInstall()
+    - Add low memory warning when calling tt::app::install
+    - Add statusbar icon that shows low/critical memory warnings
+- CDN upload should mention upload timestamp (at least for snapshot builds)
 - Change ButtonControl to work with interrupts and xQueue
 - TCA9534 keyboards should use interrupts
 - GT911 drivers should use interrupts if it's stable
@@ -45,7 +50,6 @@
 - Create PwmRgbLedDevice class and implement it for all CYD boards
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
-- Statusbar icon that shows low/critical memory warnings
 - Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
   This will be useful for devices without a screen, a small screen or a non-touch screen.
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
