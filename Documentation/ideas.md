@@ -6,7 +6,6 @@
     - Add low memory warning when calling DevelopmentService::handleAppInstall()
     - Add low memory warning when calling tt::app::install
     - Add statusbar icon that shows low/critical memory warnings
-- CDN upload should mention upload timestamp (at least for snapshot builds)
 - Change ButtonControl to work with interrupts and xQueue
 - TCA9534 keyboards should use interrupts
 - GT911 drivers should use interrupts if it's stable
