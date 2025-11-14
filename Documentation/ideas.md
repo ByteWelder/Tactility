@@ -8,7 +8,6 @@
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
 - Fix glitches when installing app via App Hub with 4.3" Waveshare
-- Auto-select the close button of an app by default on non-touch devices?
 - Calculator bugs (see GitHub issue)
 - Try out speed optimizations: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html
   (relates to CONFIG_ESP32S3_DATA_CACHE_LINE_64B that is in use for RGB displays via the `device.properties` fix/workaround)
