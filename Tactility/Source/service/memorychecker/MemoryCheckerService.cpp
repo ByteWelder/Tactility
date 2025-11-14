@@ -10,14 +10,17 @@ namespace tt::service::memorychecker {
 constexpr const char* TAG = "MemoryChecker";
 constexpr TickType_t TIMER_UPDATE_INTERVAL = 1000U / portTICK_PERIOD_MS;
 
-constexpr auto FREE_THRESHOLD = 10'000;
-constexpr auto FREE_BLOCK_THRESHOLD = 2'000;
+// Total memory (in bytes) that should be free before warnings occur
+constexpr auto TOTAL_FREE_THRESHOLD = 10'000;
+// Smallest memory block size (in bytes) that should be available before warnings occur
+constexpr auto LARGEST_FREE_BLOCK_THRESHOLD = 2'000;
 
 static size_t getInternalFree() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 #else
-    return 4096 * 1024;
+    // PC mock data
+    return 1024 * 1024;
 #endif
 }
 
@@ -25,19 +28,22 @@ static size_t getInternalLargestFreeBlock() {
 #ifdef ESP_PLATFORM
     return heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
 #else
+    // PC mock data
     return 1024 * 1024;
 #endif
 }
 
-bool MemoryCheckerService::isMemoryLow() const {
+static bool isMemoryLow() {
     bool memory_low = false;
-    if (getInternalFree() < FREE_THRESHOLD) {
-        TT_LOG_W(TAG, "Internal memory low: %d bytes", getInternalFree());
+    auto total_free = getInternalFree();
+    if (total_free < TOTAL_FREE_THRESHOLD) {
+        TT_LOG_W(TAG, "Internal memory low: %d bytes", total_free);
         memory_low = true;
     }
 
-    if (getInternalLargestFreeBlock() < FREE_BLOCK_THRESHOLD) {
-        TT_LOG_W(TAG, "Largest free internal memory block is %d bytes", getInternalLargestFreeBlock());
+    auto largest_block = getInternalLargestFreeBlock();
+    if (largest_block < LARGEST_FREE_BLOCK_THRESHOLD) {
+        TT_LOG_W(TAG, "Largest free internal memory block is %d bytes", largest_block);
         memory_low = true;
     }
 
