@@ -192,6 +192,10 @@ void View::init(AppContext& app, lv_obj_t* parent) {
         std::string ssid;
         if (optSsidParameter(bundle, ssid)) {
             lv_textarea_set_text(ssid_textarea, ssid.c_str());
+
+            if (!ssid.empty()) {
+                lv_group_focus_obj(password_textarea);
+            }
         }
 
         std::string password;

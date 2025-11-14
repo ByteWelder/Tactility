@@ -8,7 +8,7 @@
 #include "WifiApSettings.h"
 
 #ifdef ESP_PLATFORM
-#include "esp_wifi.h"
+#include <esp_wifi.h>
 #else
 #include <cstdint>
 // From esp_wifi_types.h in ESP-IDF 5.2

@@ -1,5 +1,7 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
+#include <Tactility/TactilityConfig.h>
+#include <Tactility/lvgl/Keyboard.h>
 #include <Tactility/lvgl/Toolbar.h>
 
 #include <Tactility/service/loader/Loader.h>
@@ -139,6 +141,13 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     lv_obj_set_style_bg_opa(toolbar->action_container, 0, LV_STATE_DEFAULT);
 
     toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &stop_app, nullptr);
+
+    // If we don't have a touch device, we assume there's some other kind of input like a keyboard, an encoder or button control
+    // In that scenario we want to automatically have the close button selected so the user doesn't have to press the widget selection
+    // an extra time for every screen.
+    if (!hal::hasDevice(hal::Device::Type::Touch)) {
+        lv_group_focus_obj(toolbar->close_button);
+    }
 
     return obj;
 }

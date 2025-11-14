@@ -228,6 +228,11 @@ def main(device_id: str, is_dev: bool):
     device_properties = read_device_properties(device_id)
     with open(output_file_path, "w") as output_file:
         write_properties(output_file, device_properties, device_id, is_dev)
+    if is_dev:
+        dev_mode_postfix = " in dev mode"
+    else:
+        dev_mode_postfix = ""
+    print(f"Created sdkconfig for {device_id}{dev_mode_postfix}")
 
 if __name__ == "__main__":
     if "--help" in sys.argv:
