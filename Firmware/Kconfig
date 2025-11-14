@@ -79,6 +79,8 @@ menu "Tactility App"
             bool "Waveshare ESP32 S3 Touch LCD 1.28"
         config TT_DEVICE_WAVESHARE_S3_LCD_13
             bool "Waveshare ESP32 S3 LCD 1.3"
+        config TT_DEVICE_WIRELESS_TAG_WT32_SC01_PLUS
+            bool "Wireless Tag WT32-SC01 Plus"
 
         help
             Select a device.
