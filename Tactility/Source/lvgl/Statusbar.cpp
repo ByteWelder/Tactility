@@ -229,13 +229,13 @@ static void statusbar_event(TT_UNUSED const lv_obj_class_t* class_p, lv_event_t*
     }
 }
 
-int8_t statusbar_icon_add(const std::string& image) {
+int8_t statusbar_icon_add(const std::string& image, bool visible) {
     statusbar_data.mutex.lock();
     int8_t result = -1;
     for (int8_t i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         if (!statusbar_data.icons[i].claimed) {
             statusbar_data.icons[i].claimed = true;
-            statusbar_data.icons[i].visible = !image.empty();
+            statusbar_data.icons[i].visible = visible;
             statusbar_data.icons[i].image = image;
             result = i;
             TT_LOG_D(TAG, "id %d: added", i);
@@ -248,7 +248,7 @@ int8_t statusbar_icon_add(const std::string& image) {
 }
 
 int8_t statusbar_icon_add() {
-    return statusbar_icon_add("");
+    return statusbar_icon_add("", false);
 }
 
 void statusbar_icon_remove(int8_t id) {
