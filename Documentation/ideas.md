@@ -2,18 +2,12 @@
 
 ## Before release
 
-- Create function that tests available memory and logs when it's low:
-    - Add low memory warning when calling DevelopmentService::handleAppInstall()
-    - Add low memory warning when calling tt::app::install
-    - Add statusbar icon that shows low/critical memory warnings
 - Change ButtonControl to work with interrupts and xQueue
 - TCA9534 keyboards should use interrupts
 - GT911 drivers should use interrupts if it's stable
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
 - Fix glitches when installing app via App Hub with 4.3" Waveshare
-- Wi-Fi should connect to the access point with the strongest signal over similarly named APs
-- Wi-Fi connect app should focus on password field when SSID was passed on
 - Auto-select the close button of an app by default on non-touch devices?
 - Calculator bugs (see GitHub issue)
 - Try out speed optimizations: https://docs.espressif.com/projects/esp-faq/en/latest/software-framework/peripherals/lcd.html

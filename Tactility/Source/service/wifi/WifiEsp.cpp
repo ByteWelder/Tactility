@@ -195,7 +195,7 @@ void connect(const settings::WifiApSettings& ap, bool remember) {
         return;
     }
 
-    // Manual connect (e.g. via app) should stop auto-connecting until the connection is established
+    // Stop auto-connecting until the connection is established
     wifi->pause_auto_connect = true;
     wifi->connection_target = ap;
     wifi->connection_target_remember = remember;
@@ -274,11 +274,12 @@ std::vector<ApRecord> getScanResults() {
     if (wifi->scan_list_count > 0) {
         uint16_t i = 0;
         for (; i < wifi->scan_list_count; ++i) {
+            const auto& scanned_item = wifi->scan_list[i];
             records.push_back((ApRecord) {
-                .ssid = (const char*)wifi->scan_list[i].ssid,
-                .rssi = wifi->scan_list[i].rssi,
-                .channel = wifi->scan_list[i].primary,
-                .auth_mode = wifi->scan_list[i].authmode
+                .ssid = reinterpret_cast<const char*>(scanned_item.ssid),
+                .rssi = scanned_item.rssi,
+                .channel = scanned_item.primary,
+                .auth_mode = scanned_item.authmode
             });
         }
     }
@@ -404,7 +405,17 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
         TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
             wifi_ap_record_t* record = &wifi->scan_list[i];
-            TT_LOG_I(TAG, " - SSID %s (RSSI %d, channel %d)", record->ssid, record->rssi, record->primary);
+            TT_LOG_I(TAG, " - SSID %s, RSSI %d, channel %d, BSSID %02X%02X%02X%02X%02X%02X",
+                record->ssid,
+                record->rssi,
+                record->primary,
+                record->bssid[0],
+                record->bssid[1],
+                record->bssid[2],
+                record->bssid[3],
+                record->bssid[4],
+                record->bssid[5]
+            );
         }
         return true;
     } else {
