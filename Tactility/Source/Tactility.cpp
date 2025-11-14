@@ -43,6 +43,7 @@ namespace service {
     // Secondary (UI)
     namespace gui { extern const ServiceManifest manifest; }
     namespace loader { extern const ServiceManifest manifest; }
+    namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
@@ -215,6 +216,7 @@ static void registerAndStartSecondaryServices() {
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
+    addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
 #endif
