@@ -151,9 +151,11 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     # Reduce IRAM usage
     output_file.write("CONFIG_SPIRAM_USE_MALLOC=y\n")
     output_file.write("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y\n")
-    output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y\n")
-    output_file.write("CONFIG_SPIRAM_RODATA=y\n")
-    output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
+    # Performance improvements
+    if idf_target == "esp32s3":
+        output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y\n")
+        output_file.write("CONFIG_SPIRAM_RODATA=y\n")
+        output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
 def write_performance_improvements(output_file):
     output_file.write("# Free up IRAM\n")
