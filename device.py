@@ -209,7 +209,7 @@ def write_properties(output_file, device_properties: ConfigParser, device_id: st
     write_partition_table(output_file, device_properties, is_dev)
     write_spiram_variables(output_file, device_properties)
     write_lvgl_variables(output_file, device_properties)
-    write_performance_improvements(output_file, device_properties)
+    write_performance_improvements(output_file)
     write_usb_variables(output_file, device_properties)
     write_custom_sdkconfig(output_file, device_properties)
 

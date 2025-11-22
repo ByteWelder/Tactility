@@ -100,7 +100,7 @@ size_t Uart::readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, 
     }
 }
 
-static std::unique_ptr<Uart> open(UartEntry entry) {
+static std::unique_ptr<Uart> open(UartEntry& entry) {
     if (entry.usageId != uartIdNotInUse) {
         TT_LOG_E(TAG, "UART in use: %s", entry.configuration.name.c_str());
         return nullptr;
