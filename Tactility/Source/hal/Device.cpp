@@ -1,7 +1,7 @@
 #include "Tactility/hal/Device.h"
 
 #include <Tactility/Mutex.h>
-#include <bits/stl_algo.h>
+#include <algorithm>
 
 namespace tt::hal {
 
