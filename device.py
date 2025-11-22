@@ -148,16 +148,26 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     # Speed
     output_file.write(f"CONFIG_SPIRAM_SPEED_{speed}=y\n")
     output_file.write(f"CONFIG_SPIRAM_SPEED={speed}\n")
-    # IRAM memory optimization
+    # Reduce IRAM usage
     output_file.write("CONFIG_SPIRAM_USE_MALLOC=y\n")
     output_file.write("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y\n")
-    # Boot speed optimization
-    output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
+    # Performance improvements
+    if idf_target == "esp32s3":
+        output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y\n")
+        output_file.write("CONFIG_SPIRAM_RODATA=y\n")
+        output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
-def write_rgb_display_glitch_fix(output_file, device_properties: ConfigParser):
-    enabled = get_boolean_property_or_false(device_properties, "hardware", "fixRgbDisplayGlitch")
-    if enabled:
-        output_file.write("# Fixes glitches in the display driver when rendering new screens/apps\n")
+def write_performance_improvements(output_file, device_properties: ConfigParser):
+    idf_target = get_property_or_exit(device_properties, "hardware", "target")
+    output_file.write("# Free up IRAM\n")
+    output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
+    output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
+    output_file.write("CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y\n")
+    output_file.write("CONFIG_RINGBUF_PLACE_FUNCTIONS_INTO_FLASH=y\n")
+    output_file.write("# Boot speed optimization\n")
+    output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
+    if idf_target == "esp32s3":
+        output_file.write("# Performance improvement: Fixes glitches in the RGB display driver when rendering new screens/apps\n")
         output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
 
 def write_lvgl_variables(output_file, device_properties: ConfigParser):
@@ -178,16 +188,6 @@ def write_lvgl_variables(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_LV_THEME_MONO=y\n")
     else:
         exit_with_error(f"Unknown theme: {theme}")
-
-def write_iram_fix(output_file, device_properties: ConfigParser):
-    idf_target = get_property_or_exit(device_properties, "hardware", "target")
-    if idf_target == "ESP32":
-        # TODO: Try on ESP32S3
-        output_file.write("# Free up IRAM on ESP32\n")
-        output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
-        output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
-        output_file.write("CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y\n")
-        output_file.write("CONFIG_RINGBUF_PLACE_FUNCTIONS_INTO_FLASH=y\n")
 
 def write_usb_variables(output_file, device_properties: ConfigParser):
     has_tiny_usb = get_boolean_property_or_false(device_properties, "hardware", "tinyUsb")
@@ -212,9 +212,8 @@ def write_properties(output_file, device_properties: ConfigParser, device_id: st
     write_flash_variables(output_file, device_properties)
     write_partition_table(output_file, device_properties, is_dev)
     write_spiram_variables(output_file, device_properties)
-    write_rgb_display_glitch_fix(output_file, device_properties)
     write_lvgl_variables(output_file, device_properties)
-    write_iram_fix(output_file, device_properties)
+    write_performance_improvements(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
     write_custom_sdkconfig(output_file, device_properties)
 

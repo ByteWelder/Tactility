@@ -119,6 +119,13 @@ public:
  */
 std::unique_ptr<Uart> open(std::string name);
 
+/**
+ * Opens a UART.
+ * @param[in] port the UART port as specified in the board configuration.
+ * @return the UART when it was successfully opened, or nullptr when it is in use.
+ */
+std::unique_ptr<Uart> open(uart_port_t port);
+
 std::vector<std::string> getNames();
 
 } // namespace tt::hal::uart

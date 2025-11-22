@@ -82,7 +82,7 @@ struct AppManifest {
     std::string appVersionName = {};
 
     /** The technical version (must be incremented with new releases of the app */
-    uint64_t appVersionCode = {};
+    uint64_t appVersionCode = 0;
 
     /** App category helps with listing apps in Launcher, app list or settings apps. */
     Category appCategory = Category::User;
@@ -91,7 +91,7 @@ struct AppManifest {
     Location appLocation = Location::internal();
 
     /** Controls various settings */
-    uint32_t appFlags = Flags::None;
+    uint16_t appFlags = Flags::None;
 
     /** Create the instance of the app */
     CreateApp createApp = nullptr;
