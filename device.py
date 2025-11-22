@@ -157,16 +157,18 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_SPIRAM_RODATA=y\n")
         output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
-def write_performance_improvements(output_file):
+def write_performance_improvements(output_file, device_properties: ConfigParser):
+    idf_target = get_property_or_exit(device_properties, "hardware", "target")
     output_file.write("# Free up IRAM\n")
     output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
     output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
     output_file.write("CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y\n")
     output_file.write("CONFIG_RINGBUF_PLACE_FUNCTIONS_INTO_FLASH=y\n")
-    output_file.write("# Fixes glitches in the display driver when rendering new screens/apps\n")
-    output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
     output_file.write("# Boot speed optimization\n")
     output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
+    if idf_target == "esp32s3":
+        output_file.write("# Performance improvement: Fixes glitches in the RGB display driver when rendering new screens/apps\n")
+        output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")
 
 def write_lvgl_variables(output_file, device_properties: ConfigParser):
     dpi = get_property_or_exit(device_properties, "display", "dpi")
