@@ -31,10 +31,6 @@
 - Support direct installation of an `.app` file with `tactility.py install helloworld.app <ip>`
 - Support `tactility.py target <ip>` to remember the device IP address.
 - minitar/untarFile(): "entry->metadata.path" can escape its confined path (e.g. "../something")
-- Consider these defaults when PSRAM is present:
-  CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y
-  CONFIG_SPIRAM_RODATA=y
-  CONFIG_SPIRAM_XIP_FROM_PSRAM=y
 
 ## Medium Priority
 
