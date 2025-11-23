@@ -25,7 +25,7 @@ constexpr auto* TAG = "App";
 
 namespace tt::app {
 
-static bool untarFile(minitar mp, const minitar_entry* entry, const std::string& destinationPath) {
+static bool untarFile(minitar* mp, const minitar_entry* entry, const std::string& destinationPath) {
     const auto absolute_path = destinationPath + "/" + entry->metadata.path;
     if (!file::findOrCreateDirectory(destinationPath, 0777)) {
         TT_LOG_E(TAG, "Can't find or create directory %s", destinationPath.c_str());
@@ -33,7 +33,7 @@ static bool untarFile(minitar mp, const minitar_entry* entry, const std::string&
     }
 
     // minitar_read_contents(&mp, &entry, file_buffer, entry.metadata.size);
-    if (minitar_read_contents_to_file(&mp, entry, absolute_path.c_str()) <= 0) {
+    if (!minitar_read_contents_to_file(mp, entry, absolute_path.c_str())) {
         TT_LOG_E(TAG, "Failed to write data to %s", absolute_path.c_str());
         return false;
     }
@@ -72,7 +72,7 @@ static bool untar(const std::string& tarPath, const std::string& destinationPath
                     break;
                 }
             } else if (entry.metadata.type == MTAR_REGULAR) {
-                if (!untarFile(mp, &entry, destinationPath)) {
+                if (!untarFile(&mp, &entry, destinationPath)) {
                     TT_LOG_E(TAG, "Failed to extract file %s: %s", entry.metadata.path, strerror(errno));
                     success = false;
                     break;
