@@ -1,8 +1,8 @@
 #ifdef ESP_PLATFORM
-#include <sdkconfig.h>
+#include <soc/soc_caps.h>
 #endif
 
-#if defined(ESP_PLATFORM) && defined(CONFIG_SOC_SDMMC_HOST_SUPPORTED)
+#if defined(ESP_PLATFORM) && defined(SOC_SDMMC_HOST_SUPPORTED)
 
 #include <Tactility/hal/sdcard/SdmmcDevice.h>
 #include <Tactility/Log.h>
