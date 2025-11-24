@@ -15,9 +15,9 @@ namespace tt {
 static CpuAffinity getEspWifiAffinity() {
 #if CONFIG_FREERTOS_NUMBER_OF_CORES == 1
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_0)
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
 #else // Assume core 0 (risky, but safer than "None")
     return 0;
@@ -30,9 +30,9 @@ static CpuAffinity getEspWifiAffinity() {
 static CpuAffinity getEspMainSchedulerAffinity() {
 #if CONFIG_FREERTOS_NUMBER_OF_CORES == 1
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_0)
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
 #else
     return None;
