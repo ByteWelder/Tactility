@@ -52,6 +52,9 @@ def read_device_properties(device_id):
         exit_with_error(f"Device file not found: {device_file_path}")
     return read_properties_file(device_file_path)
 
+def has_group(properties: ConfigParser, group: str):
+    return group in properties.sections()
+
 def get_property_or_exit(properties: ConfigParser, group: str, key: str):
     if group not in properties.sections():
         exit_with_error(f"Device properties does not contain group: {group}")
@@ -212,10 +215,11 @@ def write_properties(output_file, device_properties: ConfigParser, device_id: st
     write_flash_variables(output_file, device_properties)
     write_partition_table(output_file, device_properties, is_dev)
     write_spiram_variables(output_file, device_properties)
-    write_lvgl_variables(output_file, device_properties)
     write_performance_improvements(output_file, device_properties)
     write_usb_variables(output_file, device_properties)
     write_custom_sdkconfig(output_file, device_properties)
+    if has_group(device_properties, "display"):
+        write_lvgl_variables(output_file, device_properties)
 
 def main(device_id: str, is_dev: bool):
     device_properties_path = get_properties_file_path(device_id)

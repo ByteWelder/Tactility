@@ -48,7 +48,11 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     set(EXCLUDE_COMPONENTS "Simulator")
 
-    idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
+    # Panic handler wrapping is only available on Xtensa architecture
+    if (CONFIG_IDF_TARGET_ARCH_XTENSA)
+        idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=esp_panic_handler" APPEND)
+    endif ()
+
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_button_create" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_dropdown_create" APPEND)
     idf_build_set_property(LINK_OPTIONS "-Wl,--wrap=lv_list_create" APPEND)

@@ -1,4 +1,4 @@
-#ifndef ESP_PLATFORM
+#ifndef CONFIG_ESP_WIFI_ENABLED
 
 #include <Tactility/service/wifi/Wifi.h>
 
