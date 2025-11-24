@@ -1,9 +1,13 @@
 #pragma once
-#ifdef ESP_PLATFORM
 
-#include "Tactility/MessageQueue.h"
-#include "Tactility/service/Service.h"
-#include "Tactility/service/espnow/EspNow.h"
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
+#ifdef CONFIG_ESP_WIFI_ENABLED
+
+#include <Tactility/service/Service.h>
+#include <Tactility/service/espnow/EspNow.h>
 
 #include <Tactility/Mutex.h>
 
@@ -12,8 +16,6 @@
 namespace tt::service::espnow {
 
 class EspNowService final : public Service {
-
-private:
 
     struct ReceiverSubscriptionData {
         ReceiverSubscription id;

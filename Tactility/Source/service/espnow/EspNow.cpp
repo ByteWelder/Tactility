@@ -1,4 +1,8 @@
 #ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
+#ifdef CONFIG_ESP_WIFI_ENABLED
 
 #include "Tactility/service/espnow/EspNow.h"
 #include "Tactility/service/espnow/EspNowService.h"

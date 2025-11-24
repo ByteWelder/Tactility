@@ -1,3 +1,7 @@
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
 #include "Tactility/CpuAffinity.h"
 
 #include <Tactility/Check.h>
@@ -6,25 +10,39 @@ namespace tt {
 
 #ifdef ESP_PLATFORM
 
+#ifdef CONFIG_ESP_WIFI_ENABLED
+
 static CpuAffinity getEspWifiAffinity() {
-#ifdef CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0
+#if CONFIG_FREERTOS_NUMBER_OF_CORES == 1
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_0)
+    return 0;
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
+#else // Assume core 0 (risky, but safer than "None")
+    return 0;
 #endif
 }
 
+#endif
+
 // Warning: Must watch ESP WiFi, as this task is used by WiFi
 static CpuAffinity getEspMainSchedulerAffinity() {
-#ifdef CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0
+#if CONFIG_FREERTOS_NUMBER_OF_CORES == 1
     return 0;
-#elif defined(CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_1)
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_0)
+    return 0;
+#elif defined(CONFIG_ESP_WIFI_TASK_PINNED_TO_CORE_1)
     return 1;
+#else
+    return None;
 #endif
 }
 
 static CpuAffinity getFreeRtosTimerAffinity() {
-#if defined(CONFIG_FREERTOS_TIMER_TASK_NO_AFFINITY)
+#if CONFIG_FREERTOS_NUMBER_OF_CORES == 1
+    return 0;
+#elif defined(CONFIG_FREERTOS_TIMER_TASK_NO_AFFINITY)
     return None;
 #elif defined(CONFIG_FREERTOS_TIMER_TASK_AFFINITY_CPU0)
     return 0;
@@ -48,7 +66,11 @@ static const CpuAffinityConfiguration esp = {
 static const CpuAffinityConfiguration esp = {
     .system = 0,
     .graphics = 1,
+#ifdef CONFIG_ESP_WIFI_ENABLED
     .wifi = getEspWifiAffinity(),
+#else
+    .wifi = 0,
+#endif
     .mainDispatcher = getEspMainSchedulerAffinity(),
     .apps = 1,
     .timer = getFreeRtosTimerAffinity()

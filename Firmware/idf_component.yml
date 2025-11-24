@@ -1,9 +1,21 @@
 dependencies:
-  espressif/esp_lcd_ili9341: "2.0.1"
-  atanisoft/esp_lcd_ili9488: "1.0.10"
-  teriyakigod/esp_lcd_st7735: "0.0.1"
+  espressif/esp_lcd_ili9341:
+    version: "2.0.1"
+    rules:
+      - if: "target in [esp32, esp32s3]"
+  atanisoft/esp_lcd_ili9488:
+    version: "1.0.10"
+    rules:
+      - if: "target in [esp32, esp32s3]"
+  teriyakigod/esp_lcd_st7735:
+    version: "0.0.1"
+    rules:
+      - if: "target in [esp32, esp32s3]"
   espressif/esp_lcd_touch: "1.1.2"
-  atanisoft/esp_lcd_touch_xpt2046: "1.0.5"
+  atanisoft/esp_lcd_touch_xpt2046:
+    version: "1.0.5"
+    rules:
+      - if: "target in [esp32, esp32s3]"
   espressif/esp_lcd_touch_cst816s: "1.0.3"
   espressif/esp_lcd_touch_gt911: "1.1.3"
   espressif/esp_lcd_touch_ft5x06: "1.0.6~1"
@@ -15,6 +27,8 @@ dependencies:
       - if: "target in [esp32s3, esp32p4]"
   espressif/esp_lcd_st7796:
     version: "1.3.4"
+    rules:
+      - if: "target in [esp32, esp32s3]"
   espressif/esp_lcd_gc9a01: "2.0.3"
   espressif/esp_lcd_panel_io_additions: "1.0.1"
   espressif/esp_tinyusb:
