@@ -313,7 +313,7 @@ bool St7789i8080Display::startLvgl() {
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
-            .buff_dma = true,
+            .buff_dma = !has_psram,
             .buff_spiram = has_psram,  // Use SPIRAM for buffers if available
             .sw_rotate = true,
             .swap_bytes = true,
