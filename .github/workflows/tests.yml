@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - sw_rotate_tdisplay-s3
   pull_request:
     types: [ opened, synchronize, reopened ]
 jobs:
