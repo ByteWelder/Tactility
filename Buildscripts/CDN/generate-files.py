@@ -188,21 +188,21 @@ def main(in_path: str, out_path: str, version: str):
     if os.path.exists(out_path):
         shutil.rmtree(out_path)
     os.mkdir(out_path)
-    device_directories = os.listdir(in_path)
+    artifact_directories = os.listdir(in_path)
     device_index = DeviceIndex(
         version=version,
         created=datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%S'),
         gitCommit=get_git_commit_hash(),
         devices=[]
     )
-    for device_directory in device_directories:
-        if device_directory.endswith("-symbols"):
+    for artifact_directory in artifact_directories:
+        if artifact_directory.endswith("-symbols") or artifact_directory.startswith("TactilitySDK-"):
             continue
-        device_id = device_directory.removeprefix("Tactility-")
+        device_id = artifact_directory.removeprefix("Tactility-")
         if not device_id:
-            exit_with_error(f"Cannot derive device id from directory: {device_directory}")
+            exit_with_error(f"Cannot derive device id from directory: {artifact_directory}")
         device_properties = read_device_properties(device_id)
-        process_device(in_path, out_path, device_directory, device_id, device_properties, version)
+        process_device(in_path, out_path, artifact_directory, device_id, device_properties, version)
         warning_message = get_property_or_none(device_properties, "cdn", "warningMessage")
         info_message = get_property_or_none(device_properties, "cdn", "infoMessage")
         incubating = get_boolean_property_or_false(device_properties, "general", "incubating")
