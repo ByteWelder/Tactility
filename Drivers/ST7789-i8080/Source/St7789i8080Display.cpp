@@ -4,7 +4,6 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port.h>
-#include <esp_psram.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <lvgl.h>
@@ -292,9 +291,6 @@ bool St7789i8080Display::startLvgl() {
         TT_LOG_I(TAG, "Hardware already initialized, skipping");
     }
 
-    // Detect if PSRAM is available for rotation buffer
-    bool has_psram = esp_psram_get_size() > 0;
-    
     // Create LVGL display using lvgl_port
     lvgl_port_display_cfg_t display_cfg = {
         .io_handle = ioHandle,
@@ -313,8 +309,8 @@ bool St7789i8080Display::startLvgl() {
         },
         .color_format = LV_COLOR_FORMAT_RGB565,
         .flags = {
-            .buff_dma = !has_psram,
-            .buff_spiram = has_psram,  // Use SPIRAM for buffers if available
+            .buff_dma = true,
+            .buff_spiram = false,
             .sw_rotate = true,
             .swap_bytes = true,
             .full_refresh = false,
