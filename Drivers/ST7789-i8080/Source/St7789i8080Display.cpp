@@ -311,7 +311,7 @@ bool St7789i8080Display::startLvgl() {
         .flags = {
             .buff_dma = true,
             .buff_spiram = false,
-            .sw_rotate = false,
+            .sw_rotate = true,
             .swap_bytes = true,
             .full_refresh = false,
             .direct_mode = false
