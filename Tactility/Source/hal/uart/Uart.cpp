@@ -100,6 +100,34 @@ size_t Uart::readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, 
     }
 }
 
+static std::unique_ptr<Uart> open(UartEntry& entry) {
+    if (entry.usageId != uartIdNotInUse) {
+        TT_LOG_E(TAG, "UART in use: %s", entry.configuration.name.c_str());
+        return nullptr;
+    }
+
+    auto uart = create(entry.configuration);
+    assert(uart != nullptr);
+    entry.usageId = uart->getId();
+    TT_LOG_I(TAG, "Opened %lu", entry.usageId);
+    return uart;
+}
+
+std::unique_ptr<Uart> open(uart_port_t port) {
+    TT_LOG_I(TAG, "Open %d", port);
+
+    auto result = std::views::filter(uartEntries, [port](auto& entry) {
+        return entry.configuration.port == port;
+    });
+
+    if (result.empty()) {
+        TT_LOG_E(TAG, "UART not found: %d", port);
+        return nullptr;
+    }
+
+    return open(*result.begin());
+}
+
 std::unique_ptr<Uart> open(std::string name) {
     TT_LOG_I(TAG, "Open %s", name.c_str());
 
@@ -112,17 +140,7 @@ std::unique_ptr<Uart> open(std::string name) {
         return nullptr;
     }
 
-    auto& entry = *result.begin();
-    if (entry.usageId != uartIdNotInUse) {
-        TT_LOG_E(TAG, "UART in use: %s", name.c_str());
-        return nullptr;
-    }
-
-    auto uart = create(entry.configuration);
-    assert(uart != nullptr);
-    entry.usageId = uart->getId();
-    TT_LOG_I(TAG, "Opened %lu", entry.usageId);
-    return uart;
+    return open(*result.begin());
 }
 
 void close(uint32_t uartId) {

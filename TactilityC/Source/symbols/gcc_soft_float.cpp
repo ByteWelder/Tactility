@@ -1,3 +1,5 @@
+#ifndef CONFIG_IDF_TARGET_ESP32P4
+
 #include <private/elf_symbol.h>
 #include <cstddef>
 
@@ -282,3 +284,5 @@ const esp_elfsym gcc_soft_float_symbols[] = {
 
     ESP_ELFSYM_END
 };
+
+#endif

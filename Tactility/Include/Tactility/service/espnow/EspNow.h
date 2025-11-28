@@ -1,5 +1,10 @@
 #pragma once
+
 #ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
+#ifdef CONFIG_ESP_WIFI_ENABLED
 
 #include <cstdint>
 #include <cstring>

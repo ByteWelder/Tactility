@@ -148,8 +148,8 @@ public:
         lv_obj_set_style_border_color(orientation_dropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
         lv_obj_set_style_border_width(orientation_dropdown, 1, LV_PART_MAIN);
         lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, this);
-        auto orientation = settings::display::toLvglDisplayRotation(displaySettings.orientation);
-        lv_dropdown_set_selected(orientation_dropdown, orientation);
+        // Set the dropdown to match current orientation enum
+        lv_dropdown_set_selected(orientation_dropdown, static_cast<uint16_t>(displaySettings.orientation));
     }
 
     void onHide(TT_UNUSED AppContext& app) override {

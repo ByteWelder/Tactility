@@ -1,5 +1,7 @@
 #pragma once
 
+#include "UartCompat.h"
+
 namespace tt::hal::uart {
 
 #ifdef ESP_PLATFORM
@@ -7,7 +9,7 @@ namespace tt::hal::uart {
 struct Configuration {
     /** The unique name for this UART */
     std::string name;
-    /** The port idenitifier (e.g. UART_NUM_0) */
+    /** The port identifier (e.g. UART_NUM_0) */
     uart_port_t port;
     /** Receive GPIO pin */
     gpio_num_t rxPin;
@@ -25,12 +27,13 @@ struct Configuration {
     uart_config_t config;
 };
 
-
 #else
 
 struct Configuration {
     /** The unique name for this UART */
     std::string name;
+    /** The port identifier (e.g. UART_NUM_0) */
+    uart_port_t port;
     /** Initial baud rate in bits per second */
     uint32_t baudRate;
 };

@@ -269,6 +269,8 @@ public:
             service->update();
         });
 
+        updateTimer->setThreadPriority(Thread::Priority::Lower);
+
         // We want to try and scan more often in case of startup or scan lock failure
         updateTimer->start(1000);
 

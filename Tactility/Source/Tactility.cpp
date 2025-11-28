@@ -1,3 +1,7 @@
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
 
@@ -38,11 +42,14 @@ namespace service {
     namespace sdcard { extern const ServiceManifest manifest; }
 #ifdef ESP_PLATFORM
     namespace development { extern const ServiceManifest manifest; }
+#endif
+#ifdef CONFIG_ESP_WIFI_ENABLED
     namespace espnow { extern const ServiceManifest manifest; }
 #endif
     // Secondary (UI)
     namespace gui { extern const ServiceManifest manifest; }
     namespace loader { extern const ServiceManifest manifest; }
+    namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
@@ -63,7 +70,9 @@ namespace app {
     namespace applist { extern const AppManifest manifest; }
     namespace appsettings { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
+#ifdef CONFIG_ESP_WIFI_ENABLED
     namespace chat { extern const AppManifest manifest; }
+#endif
     namespace development { extern const AppManifest manifest; }
     namespace display { extern const AppManifest manifest; }
     namespace files { extern const AppManifest manifest; }
@@ -134,8 +143,11 @@ static void registerInternalApps() {
     addAppManifest(app::screenshot::manifest);
 #endif
 
-#ifdef ESP_PLATFORM
+#ifdef CONFIG_ESP_WIFI_ENABLED
     addAppManifest(app::chat::manifest);
+#endif
+
+#ifdef ESP_PLATFORM
     addAppManifest(app::crashdiagnostics::manifest);
     addAppManifest(app::development::manifest);
 #endif
@@ -215,6 +227,7 @@ static void registerAndStartSecondaryServices() {
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
+    addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
 #endif
@@ -229,6 +242,9 @@ static void registerAndStartPrimaryServices() {
     addService(service::wifi::manifest);
 #ifdef ESP_PLATFORM
     addService(service::development::manifest);
+#endif
+
+#ifdef CONFIG_ESP_WIFI_ENABLED
     addService(service::espnow::manifest);
 #endif
 }
