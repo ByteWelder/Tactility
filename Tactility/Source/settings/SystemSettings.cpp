@@ -4,6 +4,7 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/Language.h>
 #include <Tactility/settings/SystemSettings.h>
+#include <Tactility/settings/Time.h>
 
 #include <format>
 #include <Tactility/file/File.h>
@@ -39,6 +40,21 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     auto time_format_entry = map.find("timeFormat24h");
     bool time_format_24h = time_format_entry == map.end() ? true : (time_format_entry->second == "true");
     properties.timeFormat24h = time_format_24h;
+
+    // Allow system.properties to set the timezone on boot.
+    // Recognized keys:
+    //  - timeZoneCode: the TZ code string
+    //  - timeZoneName: a human name
+    // If timeZoneCode is present we call settings::setTimeZone(name, code).
+    auto tz_code_iter = map.find("timeZoneCode");
+    if (tz_code_iter != map.end()) {
+        std::string tz_name;
+        auto tz_name_iter = map.find("timeZoneName");
+        if (tz_name_iter != map.end()) {
+            tz_name = tz_name_iter->second;
+        }
+        settings::setTimeZone(tz_name, tz_code_iter->second);
+    }
 
     TT_LOG_I(TAG, "System settings loaded");
     return true;
