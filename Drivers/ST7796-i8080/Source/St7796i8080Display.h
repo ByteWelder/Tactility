@@ -9,6 +9,7 @@
 #include <memory>
 #include <functional>
 #include <mutex>
+#include <string>
 
 class St7796i8080Display : public tt::hal::display::DisplayDevice {
 public:
@@ -88,8 +89,7 @@ private:
     esp_lcd_panel_handle_t panelHandle = nullptr;
     lv_display_t* lvglDisplay = nullptr;
     std::shared_ptr<std::mutex> lock;
-    uint8_t* buf1 = nullptr;
-    uint8_t* buf2 = nullptr;
+    uint8_t* displayBuffer = nullptr;
 
     // Internal initialization methods
     bool createI80Bus();

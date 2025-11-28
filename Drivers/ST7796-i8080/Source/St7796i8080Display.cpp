@@ -151,24 +151,27 @@ bool St7796i8080Display::start() {
 
     // Allocate buffer
     size_t buffer_size = configuration.bufferSize * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565);
-    buf1 = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
-    if (!buf1) {
+    displayBuffer = (uint8_t*)heap_caps_malloc(buffer_size, MALLOC_CAP_DMA);
+    if (!displayBuffer) {
         TT_LOG_E(TAG, "Failed to allocate display buffer");
         return false;
     }
 
     // Create I80 bus
     if (!createI80Bus()) {
+        stop();
         return false;
     }
     
     // Create panel IO
     if (!createPanelIO()) {
+        stop();
         return false;
     }
     
     // Create panel
     if (!createPanel()) {
+        stop();
         return false;
     }
 
@@ -197,9 +200,9 @@ bool St7796i8080Display::stop() {
     }
 
     // Free buffer 1
-    if (buf1) {
-        heap_caps_free(buf1);
-        buf1 = nullptr;
+    if (displayBuffer) {
+        heap_caps_free(displayBuffer);
+        displayBuffer = nullptr;
     }
 
     // Turn off backlight
