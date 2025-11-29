@@ -1,6 +1,7 @@
 #include "Tactility/service/wifi/WifiBootSplashInit.h"
 #include "Tactility/file/PropertiesFile.h"
 
+#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
@@ -115,17 +116,19 @@ static void importWifiApSettingsFromDir(const std::string& path) {
 }
 
 static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
-    auto path = file::getChildPath(sdcard->getMountPath(), "settings");
-    importWifiApSettingsFromDir(path);
+    const std::string settings_path = file::getChildPath(sdcard->getMountPath(), "settings");
+
+    // If the settings directory doesn't exist on this card, skip it.
+    if (!file::exists(settings_path)) {
+        TT_LOG_D(TAG, "SD card %s has no settings directory, skipping", sdcard->getMountPath().c_str());
+        return;
+    }
+
+    importWifiApSettingsFromDir(settings_path);
 }
 
 static void importWifiApSettingsFromData() {
-    // scan both /data and /data/settings for manual provisioning files.
-    // This lets users without an SD card provide [ssid].ap.properties directly.
-    const std::string data_root = "/data";
-    const std::string data_settings = file::getChildPath(data_root, "settings");
-
-    importWifiApSettingsFromDir(data_root);
+    const std::string data_settings = file::getChildPath(file::MOUNT_POINT_DATA, "settings");
     importWifiApSettingsFromDir(data_settings);
 }
 

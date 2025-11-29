@@ -8,6 +8,8 @@
 
 #include <format>
 #include <Tactility/file/File.h>
+#include <cstdio>
+#include <string>
 
 namespace tt::settings {
 
@@ -17,6 +19,40 @@ constexpr auto* FILE_PATH_FORMAT = "{}/settings/system.properties";
 static Mutex mutex;
 static bool cached = false;
 static SystemSettings cachedSettings;
+
+static bool parseEntry(const std::string& input, std::string& outName, std::string& outCode) {
+    std::string partial_strip = input.substr(1, input.size() - 3);
+    auto first_end_quote = partial_strip.find('"');
+    if (first_end_quote == std::string::npos) {
+        return false;
+    } else {
+        outName = partial_strip.substr(0, first_end_quote);
+        outCode = partial_strip.substr(first_end_quote + 3);
+        return true;
+    }
+}
+
+static std::string findTimeZoneName(const std::string& code) {
+    auto path = std::string(file::MOUNT_POINT_SYSTEM) + "/timezones.csv";
+    auto* file = fopen(path.c_str(), "rb");
+    if (file == nullptr) {
+        TT_LOG_E(TAG, "Failed to open %s", path.c_str());
+        return "";
+    }
+    char line[96];
+    std::string name;
+    std::string parsedCode;
+    while (fgets(line, 96, file)) {
+        if (parseEntry(line, name, parsedCode)) {
+            if (parsedCode == code) {
+                fclose(file);
+                return name;
+            }
+        }
+    }
+    fclose(file);
+    return "";
+}
 
 static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
@@ -41,19 +77,20 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     bool time_format_24h = time_format_entry == map.end() ? true : (time_format_entry->second == "true");
     properties.timeFormat24h = time_format_24h;
 
-    // Allow system.properties to set the timezone on boot.
-    // Recognized keys:
-    //  - timeZoneCode: the TZ code string
-    //  - timeZoneName: a human name
-    // If timeZoneCode is present we call settings::setTimeZone(name, code).
+    // Allow system.properties to set the timezone on boot using timeZoneCode
+    // If timeZoneCode is present and non-empty, derive the name and set it.
     auto tz_code_iter = map.find("timeZoneCode");
-    if (tz_code_iter != map.end()) {
-        std::string tz_name;
-        auto tz_name_iter = map.find("timeZoneName");
-        if (tz_name_iter != map.end()) {
-            tz_name = tz_name_iter->second;
+    if (tz_code_iter != map.end() && !tz_code_iter->second.empty()) {
+        std::string tz_name = findTimeZoneName(tz_code_iter->second);
+        if (!tz_name.empty()) {
+            settings::setTimeZone(tz_name, tz_code_iter->second);
+            properties.timeZoneCode = tz_code_iter->second;
+        } else {
+            TT_LOG_W(TAG, "Unknown timezone code \"%s\" in %s", tz_code_iter->second.c_str(), file_path.c_str());
+            properties.timeZoneCode.clear();
         }
-        settings::setTimeZone(tz_name, tz_code_iter->second);
+    } else {
+        properties.timeZoneCode.clear();
     }
 
     TT_LOG_I(TAG, "System settings loaded");
@@ -77,6 +114,9 @@ bool saveSystemSettings(const SystemSettings& properties) {
     std::map<std::string, std::string> map;
     map["language"] = toString(properties.language);
     map["timeFormat24h"] = properties.timeFormat24h ? "true" : "false";
+    if (!properties.timeZoneCode.empty()) {
+        map["timeZoneCode"] = properties.timeZoneCode;
+    }
 
     if (!file::savePropertiesFile(file_path, map)) {
         TT_LOG_E(TAG, "Failed to save %s", file_path.c_str());
