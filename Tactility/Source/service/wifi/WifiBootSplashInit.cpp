@@ -117,18 +117,17 @@ static void importWifiApSettingsFromDir(const std::string& path) {
 
 static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
     const std::string settings_path = file::getChildPath(sdcard->getMountPath(), "settings");
-
-    // If the settings directory doesn't exist on this card, skip it.
-    if (!file::isDirectory(settings_path)) {
-        TT_LOG_D(TAG, "SD card %s has no settings directory, skipping", sdcard->getMountPath().c_str());
-        return;
-    }
-
     importWifiApSettingsFromDir(settings_path);
 }
 
 static void importWifiApSettingsFromData() {
-    const std::string data_settings = file::getChildPath(file::MOUNT_POINT_DATA, "settings");
+    const std::string data_settings = file::getChildPath(tt::file::MOUNT_POINT_DATA, "settings");
+
+    if (!file::isDirectory(data_settings)) {
+        TT_LOG_D(TAG, "No data settings directory at %s, skipping", data_settings.c_str());
+        return;
+    }
+
     importWifiApSettingsFromDir(data_settings);
 }
 
