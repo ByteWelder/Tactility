@@ -119,7 +119,7 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
     const std::string settings_path = file::getChildPath(sdcard->getMountPath(), "settings");
 
     // If the settings directory doesn't exist on this card, skip it.
-    if (!file::exists(settings_path)) {
+    if (!file::isDirectory(settings_path)) {
         TT_LOG_D(TAG, "SD card %s has no settings directory, skipping", sdcard->getMountPath().c_str());
         return;
     }
