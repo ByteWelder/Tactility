@@ -1,6 +1,7 @@
 #include "Tactility/service/wifi/WifiBootSplashInit.h"
 #include "Tactility/file/PropertiesFile.h"
 
+#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
@@ -80,9 +81,7 @@ static void importWifiAp(const std::string& filePath) {
     }
 }
 
-static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
-    auto path = file::getChildPath(sdcard->getMountPath(), "settings");
-
+static void importWifiApSettingsFromDir(const std::string& path) {
     std::vector<dirent> dirent_list;
     if (file::scandir(path, dirent_list, [](const dirent* entry) {
         switch (entry->d_type) {
@@ -101,11 +100,12 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
             }
         }
     }, nullptr) == 0) {
+        // keep original behavior: if scandir returns 0, give up silently
         return;
     }
 
     if (dirent_list.empty()) {
-        TT_LOG_W(TAG, "No AP files found at %s", sdcard->getMountPath().c_str());
+        TT_LOG_W(TAG, "No AP files found at %s", path.c_str());
         return;
     }
 
@@ -115,8 +115,21 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
     }
 }
 
+static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdcard) {
+    const std::string settings_path = file::getChildPath(sdcard->getMountPath(), "settings");
+    importWifiApSettingsFromDir(settings_path);
+}
+
+static void importWifiApSettingsFromData() {
+    importWifiApSettingsFromDir(tt::file::MOUNT_POINT_DATA);
+}
+
 void bootSplashInit() {
     getMainDispatcher().dispatch([] {
+        // First import any provisioning files placed on the system data partition.
+        importWifiApSettingsFromData();
+
+        // Then scan attached SD cards as before.
         const auto sdcards = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
         for (auto& sdcard : sdcards) {
             if (sdcard->isMounted()) {

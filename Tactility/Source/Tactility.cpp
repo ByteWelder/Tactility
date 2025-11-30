@@ -283,7 +283,7 @@ void prepareFileSystems() {
 
 void registerApps() {
     registerInternalApps();
-    auto data_apps_path = std::format("{}/apps", file::MOUNT_POINT_DATA);
+    auto data_apps_path = std::format("{}/app", file::MOUNT_POINT_DATA);
     if (file::isDirectory(data_apps_path)) {
         registerInstalledApps(data_apps_path);
     }
