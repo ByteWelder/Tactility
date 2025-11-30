@@ -121,14 +121,7 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
 }
 
 static void importWifiApSettingsFromData() {
-    const std::string data_settings = file::getChildPath(tt::file::MOUNT_POINT_DATA, "settings");
-
-    if (!file::isDirectory(data_settings)) {
-        TT_LOG_D(TAG, "No data settings directory at %s, skipping", data_settings.c_str());
-        return;
-    }
-
-    importWifiApSettingsFromDir(data_settings);
+    importWifiApSettingsFromDir(tt::file::MOUNT_POINT_DATA);
 }
 
 void bootSplashInit() {
