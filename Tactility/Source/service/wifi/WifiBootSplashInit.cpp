@@ -1,7 +1,6 @@
 #include "Tactility/service/wifi/WifiBootSplashInit.h"
 #include "Tactility/file/PropertiesFile.h"
 
-#include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
 #include <Tactility/Log.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
@@ -121,8 +120,12 @@ static void importWifiApSettings(std::shared_ptr<hal::sdcard::SdCardDevice> sdca
 }
 
 static void importWifiApSettingsFromData() {
-    const std::string data_settings = file::getChildPath(tt::file::MOUNT_POINT_DATA, "settings");
+    // scan both /data and /data/settings for manual provisioning files.
+    // This lets users without an SD card provide [ssid].ap.properties directly.
+    const std::string data_root = "/data";
+    const std::string data_settings = file::getChildPath(data_root, "settings");
 
+    importWifiApSettingsFromDir(data_root);
     importWifiApSettingsFromDir(data_settings);
 }
 
