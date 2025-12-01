@@ -138,6 +138,7 @@ const esp_elfsym main_symbols[] {
     // cstring
     ESP_ELFSYM_EXPORT(strlen),
     ESP_ELFSYM_EXPORT(strcmp),
+    ESP_ELFSYM_EXPORT(strncmp),
     ESP_ELFSYM_EXPORT(strncpy),
     ESP_ELFSYM_EXPORT(strcpy),
     ESP_ELFSYM_EXPORT(strcat),
@@ -388,6 +389,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_obj_get_style_layout),
     ESP_ELFSYM_EXPORT(lv_obj_update_layout),
     ESP_ELFSYM_EXPORT(lv_obj_set_scroll_dir),
+    ESP_ELFSYM_EXPORT(lv_obj_scroll_to_view),
     ESP_ELFSYM_EXPORT(lv_obj_set_style_radius),
     ESP_ELFSYM_EXPORT(lv_obj_set_style_border_width),
     ESP_ELFSYM_EXPORT(lv_obj_set_style_border_color),
