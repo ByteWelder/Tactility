@@ -542,6 +542,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_palette_darken),
     ESP_ELFSYM_EXPORT(lv_palette_lighten),
     // lv_display
+    ESP_ELFSYM_EXPORT(lv_display_get_default),
     ESP_ELFSYM_EXPORT(lv_display_get_horizontal_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_vertical_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_physical_horizontal_resolution),
