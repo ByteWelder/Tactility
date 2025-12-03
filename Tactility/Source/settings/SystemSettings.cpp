@@ -79,19 +79,19 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
 
     // Allow system.properties to set the timezone on boot using timeZoneCode
     // If timeZoneCode is present and non-empty, derive the name and set it.
-    auto tz_code_iter = map.find("timeZoneCode");
-    if (tz_code_iter != map.end() && !tz_code_iter->second.empty()) {
-        std::string tz_name = findTimeZoneName(tz_code_iter->second);
-        if (!tz_name.empty()) {
-            settings::setTimeZone(tz_name, tz_code_iter->second);
-            properties.timeZoneCode = tz_code_iter->second;
-        } else {
-            TT_LOG_W(TAG, "Unknown timezone code \"%s\" in %s", tz_code_iter->second.c_str(), file_path.c_str());
-            properties.timeZoneCode.clear();
-        }
-    } else {
-        properties.timeZoneCode.clear();
-    }
+    // auto tz_code_iter = map.find("timeZoneCode");
+    // if (tz_code_iter != map.end() && !tz_code_iter->second.empty()) {
+    //     std::string tz_name = findTimeZoneName(tz_code_iter->second);
+    //     if (!tz_name.empty()) {
+    //         settings::setTimeZone(tz_name, tz_code_iter->second);
+    //         properties.timeZoneCode = tz_code_iter->second;
+    //     } else {
+    //         TT_LOG_W(TAG, "Unknown timezone code \"%s\" in %s", tz_code_iter->second.c_str(), file_path.c_str());
+    //         properties.timeZoneCode.clear();
+    //     }
+    // } else {
+    //     properties.timeZoneCode.clear();
+    // }
 
     TT_LOG_I(TAG, "System settings loaded");
     return true;
