@@ -107,9 +107,9 @@ def write_tactility_variables(output_file, device_properties: ConfigParser, devi
     output_file.write(f"CONFIG_TT_DEVICE_ID=\"{device_id}\"\n")
 
 def write_core_variables(output_file, device_properties: ConfigParser):
-    idf_target = get_property_or_exit(device_properties, "hardware", "target")
+    idf_target = get_property_or_exit(device_properties, "hardware", "target").lower()
     output_file.write("# Target\n")
-    output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target.lower()}\"\n")
+    output_file.write(f"CONFIG_IDF_TARGET=\"{idf_targetI don't get how the }\"\n")
     output_file.write("# CPU\n")
     output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
     output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
@@ -133,7 +133,7 @@ def write_flash_variables(output_file, device_properties: ConfigParser):
         output_file.write(f"CONFIG_ESPTOOLPY_FLASHFREQ_{esptool_flash_freq}=y\n")
 
 def write_spiram_variables(output_file, device_properties: ConfigParser):
-    idf_target = get_property_or_exit(device_properties, "hardware", "target")
+    idf_target = get_property_or_exit(device_properties, "hardware", "target").lower()
     has_spiram = get_property_or_exit(device_properties, "hardware", "spiRam")
     if has_spiram != "true":
         return
@@ -161,7 +161,7 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
         output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
 def write_performance_improvements(output_file, device_properties: ConfigParser):
-    idf_target = get_property_or_exit(device_properties, "hardware", "target")
+    idf_target = get_property_or_exit(device_properties, "hardware", "target").lower()
     output_file.write("# Free up IRAM\n")
     output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
     output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
