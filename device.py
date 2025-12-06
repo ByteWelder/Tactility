@@ -109,7 +109,7 @@ def write_tactility_variables(output_file, device_properties: ConfigParser, devi
 def write_core_variables(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target").lower()
     output_file.write("# Target\n")
-    output_file.write(f"CONFIG_IDF_TARGET=\"{idf_targetI don't get how the }\"\n")
+    output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target}\"\n")
     output_file.write("# CPU\n")
     output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
     output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
