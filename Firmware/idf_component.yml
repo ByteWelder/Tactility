@@ -1,4 +1,12 @@
 dependencies:
+  espressif/esp_hosted:
+    version: "*"
+    rules:
+      - if: "target == esp32p4"
+  espressif/esp_wifi_remote:
+    version: "*"
+    rules:
+      - if: "target == esp32p4"
   espressif/esp_lcd_ili9341:
     version: "2.0.1"
     rules:

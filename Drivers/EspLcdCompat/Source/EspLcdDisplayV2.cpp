@@ -24,17 +24,22 @@ EspLcdDisplayV2::~EspLcdDisplayV2() {
 }
 
 bool EspLcdDisplayV2::applyConfiguration() const {
-    if (esp_lcd_panel_reset(panelHandle) != ESP_OK) {
+    esp_err_t result;
+    
+    result = esp_lcd_panel_reset(panelHandle);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to reset panel");
         return false;
     }
 
-    if (esp_lcd_panel_init(panelHandle) != ESP_OK) {
+    result = esp_lcd_panel_init(panelHandle);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to init panel");
         return false;
     }
 
-    if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
+    result = esp_lcd_panel_invert_color(panelHandle, configuration->invertColor);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to set panel to invert");
         return false;
     }
@@ -42,27 +47,32 @@ bool EspLcdDisplayV2::applyConfiguration() const {
     // Warning: it looks like LVGL rotation is broken when "gap" is set and the screen is moved to a non-default orientation
     int gap_x = configuration->swapXY ? configuration->gapY : configuration->gapX;
     int gap_y = configuration->swapXY ? configuration->gapX : configuration->gapY;
-    if (esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y) != ESP_OK) {
+    result = esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to set panel gap");
         return false;
     }
 
-    if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
+    result = esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to swap XY ");
         return false;
     }
 
-    if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
+    result = esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to set panel to mirror");
         return false;
     }
 
-    if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
+    result = esp_lcd_panel_invert_color(panelHandle, configuration->invertColor);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to set panel to invert");
         return false;
     }
 
-    if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
+    result = esp_lcd_panel_disp_on_off(panelHandle, true);
+    if (result != ESP_OK && result != ESP_ERR_NOT_SUPPORTED) {
         TT_LOG_E(TAG, "Failed to turn display on");
         return false;
     }
@@ -126,11 +136,14 @@ bool EspLcdDisplayV2::startLvgl() {
 
     auto lvgl_port_config  = getLvglPortDisplayConfig(configuration, ioHandle, panelHandle);
 
-    if (isRgbPanel()) {
+    if (useDsiPanel()) {
+        auto dsi_config = getLvglPortDisplayDsiConfig(ioHandle, panelHandle);
+        lvglDisplay = lvgl_port_add_disp_dsi(&lvgl_port_config, &dsi_config);
+    } else if (isRgbPanel()) {
         auto rgb_config = getLvglPortDisplayRgbConfig(ioHandle, panelHandle);
-        lvglDisplay = lvgl_port_add_disp_rgb(&lvgl_port_config , &rgb_config);
+        lvglDisplay = lvgl_port_add_disp_rgb(&lvgl_port_config, &rgb_config);
     } else {
-        lvglDisplay = lvgl_port_add_disp(&lvgl_port_config );
+        lvglDisplay = lvgl_port_add_disp(&lvgl_port_config);
     }
 
     auto touch_device = getTouchDevice();
