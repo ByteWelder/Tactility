@@ -49,6 +49,7 @@
 #include <esp_log.h>
 #include <esp_random.h>
 #include <esp_sntp.h>
+#include <esp_netif.h>
 #include <esp_wifi.h>
 #include <dirent.h>
 #include <sys/stat.h>
@@ -83,11 +84,14 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(sleep),
     ESP_ELFSYM_EXPORT(exit),
     ESP_ELFSYM_EXPORT(close),
+    ESP_ELFSYM_EXPORT(rmdir),
+    ESP_ELFSYM_EXPORT(unlink),
     // time.h
     ESP_ELFSYM_EXPORT(clock_gettime),
     ESP_ELFSYM_EXPORT(strftime),
     ESP_ELFSYM_EXPORT(time),
     ESP_ELFSYM_EXPORT(localtime_r),
+    ESP_ELFSYM_EXPORT(localtime),
     // esp_sntp.h
     ESP_ELFSYM_EXPORT(sntp_get_sync_status),
     // math.h
@@ -612,13 +616,15 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_line_create),
     ESP_ELFSYM_EXPORT(lv_line_set_points),
     ESP_ELFSYM_EXPORT(lv_line_set_points_mutable),
-
-    // misc
+    // stdio.h
     ESP_ELFSYM_EXPORT(rename),
-    ESP_ELFSYM_EXPORT(unlink),
-    ESP_ELFSYM_EXPORT(rmdir),
-    ESP_ELFSYM_EXPORT(mkdir),
+    // dirent.h
+    ESP_ELFSYM_EXPORT(opendir),
+    ESP_ELFSYM_EXPORT(closedir),
+    ESP_ELFSYM_EXPORT(readdir),
+    // fcntl.h
     ESP_ELFSYM_EXPORT(fcntl),
+    // lwip/sockets.h
     ESP_ELFSYM_EXPORT(lwip_setsockopt),
     ESP_ELFSYM_EXPORT(lwip_socket),
     ESP_ELFSYM_EXPORT(lwip_recv),
@@ -629,11 +635,10 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lwip_accept),
     ESP_ELFSYM_EXPORT(lwip_getsockname),
     ESP_ELFSYM_EXPORT(lwip_send),
-    ESP_ELFSYM_EXPORT(localtime),
+    // sys/stat.h
     ESP_ELFSYM_EXPORT(stat),
-    ESP_ELFSYM_EXPORT(opendir),
-    ESP_ELFSYM_EXPORT(closedir),
-    ESP_ELFSYM_EXPORT(readdir),
+    ESP_ELFSYM_EXPORT(mkdir),
+    // esp_netif.h
     ESP_ELFSYM_EXPORT(esp_netif_get_ip_info),
     ESP_ELFSYM_EXPORT(esp_netif_get_handle_from_ifkey),
     // delimiter
