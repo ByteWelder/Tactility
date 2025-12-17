@@ -54,6 +54,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <time.h>
+#include <fcntl.h>
 #include <lwip/sockets.h>
 
 #include <lvgl.h>
