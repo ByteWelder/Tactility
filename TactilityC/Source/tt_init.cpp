@@ -31,6 +31,7 @@
 #include "symbols/pthread.h"
 #include "symbols/stl.h"
 #include "symbols/cplusplus.h"
+#include "symbols/freertos.h"
 #ifndef CONFIG_IDF_TARGET_ESP32P4
 #include "symbols/gcc_soft_float.h"
 #endif
@@ -48,6 +49,13 @@
 #include <esp_log.h>
 #include <esp_random.h>
 #include <esp_sntp.h>
+#include <esp_netif.h>
+#include <esp_wifi.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <fcntl.h>
+#include <lwip/sockets.h>
 
 #include <lvgl.h>
 #include <vector>
@@ -77,11 +85,14 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(sleep),
     ESP_ELFSYM_EXPORT(exit),
     ESP_ELFSYM_EXPORT(close),
+    ESP_ELFSYM_EXPORT(rmdir),
+    ESP_ELFSYM_EXPORT(unlink),
     // time.h
     ESP_ELFSYM_EXPORT(clock_gettime),
     ESP_ELFSYM_EXPORT(strftime),
     ESP_ELFSYM_EXPORT(time),
     ESP_ELFSYM_EXPORT(localtime_r),
+    ESP_ELFSYM_EXPORT(localtime),
     // esp_sntp.h
     ESP_ELFSYM_EXPORT(sntp_get_sync_status),
     // math.h
@@ -606,6 +617,31 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_line_create),
     ESP_ELFSYM_EXPORT(lv_line_set_points),
     ESP_ELFSYM_EXPORT(lv_line_set_points_mutable),
+    // stdio.h
+    ESP_ELFSYM_EXPORT(rename),
+    // dirent.h
+    ESP_ELFSYM_EXPORT(opendir),
+    ESP_ELFSYM_EXPORT(closedir),
+    ESP_ELFSYM_EXPORT(readdir),
+    // fcntl.h
+    ESP_ELFSYM_EXPORT(fcntl),
+    // lwip/sockets.h
+    ESP_ELFSYM_EXPORT(lwip_setsockopt),
+    ESP_ELFSYM_EXPORT(lwip_socket),
+    ESP_ELFSYM_EXPORT(lwip_recv),
+    ESP_ELFSYM_EXPORT(lwip_getpeername),
+    ESP_ELFSYM_EXPORT(lwip_bind),
+    ESP_ELFSYM_EXPORT(lwip_listen),
+    ESP_ELFSYM_EXPORT(lwip_close),
+    ESP_ELFSYM_EXPORT(lwip_accept),
+    ESP_ELFSYM_EXPORT(lwip_getsockname),
+    ESP_ELFSYM_EXPORT(lwip_send),
+    // sys/stat.h
+    ESP_ELFSYM_EXPORT(stat),
+    ESP_ELFSYM_EXPORT(mkdir),
+    // esp_netif.h
+    ESP_ELFSYM_EXPORT(esp_netif_get_ip_info),
+    ESP_ELFSYM_EXPORT(esp_netif_get_handle_from_ifkey),
     // delimiter
     ESP_ELFSYM_END
 };
@@ -632,6 +668,7 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
         esp_event_symbols,
         esp_http_client_symbols,
         pthread_symbols,
+        freertos_symbols,
     };
 
     for (const auto* symbols : all_symbols) {
