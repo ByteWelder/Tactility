@@ -16,3 +16,6 @@
 [submodule "Libraries/cJSON/cJSON"]
 	path = Libraries/cJSON/cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+[submodule "Libraries/LovyanGFX"]
+	path = Libraries/LovyanGFX
+	url = https://github.com/lovyan03/LovyanGFX

@@ -69,6 +69,8 @@ menu "Tactility App"
             bool "M5Stack StickC Plus2"
         config TT_DEVICE_UNPHONE
             bool "unPhone"
+        config TT_DEVICE_VOID_S3_LGFX
+            bool "VOID S3 LGFX"
         config TT_DEVICE_WAVESHARE_ESP32_S3_GEEK
             bool "Waveshare ESP32 S3 GEEK"
         config TT_DEVICE_WAVESHARE_S3_TOUCH_43

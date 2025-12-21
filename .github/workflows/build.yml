@@ -62,6 +62,7 @@ jobs:
           { id: m5stack-stickc-plus, arch: esp32 },
           { id: m5stack-stickc-plus2, arch: esp32 },
           { id: unphone, arch: esp32s3 },
+          { id: void-s3-lgfx, arch: esp32s3 },
           { id: waveshare-esp32-s3-geek, arch: esp32s3 },
           { id: waveshare-s3-lcd-13, arch: esp32s3 },
           { id: waveshare-s3-touch-lcd-128, arch: esp32s3 },
