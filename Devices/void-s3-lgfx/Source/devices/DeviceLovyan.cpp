@@ -75,6 +75,14 @@ bool lovyan_lvgl_bind(void) {
     lv_display_set_buffers(disp, draw_buf, nullptr, DRAW_BUF_SIZE, LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     indev = lv_indev_create();
+    if (!indev) {
+        ESP_LOGE(TAG, "Failed to create LVGL input device");
+        lv_display_delete(disp);
+        disp = nullptr;
+        heap_caps_free(draw_buf);
+        draw_buf = nullptr;
+        return false;
+    }
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, my_touch_read);
 

@@ -1,14 +1,27 @@
 #include "devices/Display.h"
 #include "devices/Touch.h"
 #include "Tactility/Log.h"
+#include "DeviceLovyan.h"
 
 namespace tt::hal::display {
 
 static const char *TAG = "LovyanDisplay";
+static bool hw_initialized = false;
 
 bool LovyanDisplay::start() {
     TT_LOG_I(TAG, "start");
-    return lovyan_hw_init();
+    if (hw_initialized) {
+        TT_LOG_W(TAG, "hardware already initialized");
+        return true;
+    }
+
+    bool ok = lovyan_hw_init();
+    if (ok) {
+        hw_initialized = true;
+    } else {
+        TT_LOG_E(TAG, "lovyan_hw_init failed");
+    }
+    return ok;
 }
 
 bool LovyanDisplay::stop() {

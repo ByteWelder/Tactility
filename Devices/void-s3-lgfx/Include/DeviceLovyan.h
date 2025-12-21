@@ -7,8 +7,6 @@
 extern "C" {
 #endif
 
-LGFX &getLovyan();
-
 /**
  * Initialize hardware (LCD, touch). This does not call lv_init().
  * Returns true on success.
@@ -30,4 +28,8 @@ void lovyan_set_backlight(uint8_t duty);
 
 #ifdef __cplusplus
 }
+#endif
+
+#ifdef __cplusplus
+LGFX &getLovyan();
 #endif
