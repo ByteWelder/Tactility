@@ -167,7 +167,7 @@
 #define LV_USE_DRAW_DAVE2D 0
 
 /* Draw using cached SDL textures*/
-#define LV_USE_DRAW_SDL 0
+#define LV_USE_DRAW_SDL 1
 
 /* Use VG-Lite GPU. */
 #define LV_USE_DRAW_VG_LITE 0
@@ -902,11 +902,13 @@
 *==================*/
 
 /*Enable the examples to be built with the library*/
-#define LV_BUILD_EXAMPLES 1
+#define LV_BUILD_EXAMPLES 0
 
 /*===================
  * DEMO USAGE
  ====================*/
+
+#define LV_BUILD_DEMOS 0
 
 /*Show some widget. It might be required to increase `LV_MEM_SIZE` */
 #define LV_USE_DEMO_WIDGETS 0

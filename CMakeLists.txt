@@ -104,7 +104,9 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/SDL) # Added as idf component for ESP and as library for other targets
 
     # LVGL
-    add_compile_definitions($<$<BOOL:${LV_USE_DRAW_SDL}>:LV_USE_DRAW_SDL=1>)
+    set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+    set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(CONFIG_LV_USE_DRAW_SDL ON CACHE BOOL "" FORCE)
     add_subdirectory(Libraries/lvgl) # Added as idf component for ESP and as library for other targets
     target_link_libraries(lvgl PRIVATE SDL2-static)
 
