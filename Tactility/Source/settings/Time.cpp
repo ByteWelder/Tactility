@@ -45,7 +45,7 @@ std::string getTimeZoneName() {
     if (preferences.optString(TIMEZONE_PREFERENCES_KEY_NAME, result)) {
         return result;
     } else {
-        return {};
+        return "America/Los_Angeles";  // Default: Pacific Time (PST/PDT)
     }
 }
 
@@ -55,7 +55,7 @@ std::string getTimeZoneCode() {
     if (preferences.optString(TIMEZONE_PREFERENCES_KEY_CODE, result)) {
         return result;
     } else {
-        return {};
+        return "PST8PDT,M3.2.0,M11.1.0";  // Default: Pacific Time POSIX string
     }
 }
 

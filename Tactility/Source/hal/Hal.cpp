@@ -63,6 +63,16 @@ static void startDisplays() {
     }
 }
 
+static void startI2cDevices() {
+    // Start I2C peripheral devices by calling a callback if provided
+    // This allows device-specific initialization without coupling to device implementations
+    const auto* config = getConfiguration();
+    if (config && config->initI2cDevices) {
+        TT_LOG_I(TAG, "Starting I2C devices");
+        config->initI2cDevices();
+    }
+}
+
 void init(const Configuration& configuration) {
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalBegin);
 
@@ -88,6 +98,8 @@ void init(const Configuration& configuration) {
     sdcard::mountAll(); // Warning: This needs to happen BEFORE displays are initialized on the SPI bus
 
     startDisplays(); // Warning: SPI displays need to start after SPI SD cards are mounted
+
+    startI2cDevices(); // Start I2C peripheral devices after displays (they might depend on display being ready)
 
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
 }

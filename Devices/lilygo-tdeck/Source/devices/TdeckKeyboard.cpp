@@ -1,6 +1,14 @@
 #include "TdeckKeyboard.h"
 #include <Tactility/hal/i2c/I2c.h>
 #include <driver/i2c.h>
+#include <lvgl.h>
+#include <Tactility/settings/KeyboardSettings.h>
+#include <Tactility/settings/DisplaySettings.h>
+#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/hal/Device.h>
+#include <KeyboardBacklight.h>
+
+using tt::hal::findFirstDevice;
 
 constexpr auto* TAG = "TdeckKeyboard";
 constexpr auto TDECK_KEYBOARD_I2C_BUS_HANDLE = I2C_NUM_0;
@@ -36,6 +44,24 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
             TT_LOG_D(TAG, "Pressed %d", read_buffer);
             data->key = read_buffer;
             data->state = LV_INDEV_STATE_PRESSED;
+            // Ensure LVGL activity is triggered so idle services can wake the display
+            lv_disp_trig_activity(nullptr);
+
+            // Actively wake display/backlights immediately on key press (independent of idle tick)
+            // Restore display backlight if off (we assume duty 0 means dimmed)
+            auto display = findFirstDevice<tt::hal::display::DisplayDevice>(tt::hal::Device::Type::Display);
+            if (display && display->supportsBacklightDuty()) {
+                // Load display settings for target duty
+                auto dsettings = tt::settings::display::loadOrGetDefault();
+                // Always set duty, harmless if already on
+                display->setBacklightDuty(dsettings.backlightDuty);
+            }
+
+            // Restore keyboard backlight if enabled in settings
+            auto ksettings = tt::settings::keyboard::loadOrGetDefault();
+            if (ksettings.backlightEnabled) {
+                driver::keyboardbacklight::setBrightness(ksettings.backlightBrightness);
+            }
         }
     }
 

@@ -10,6 +10,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         TactilityCore
         lvgl
         driver
+        KeyboardBacklight
         elf_loader
         lv_screenshot
         QRCode

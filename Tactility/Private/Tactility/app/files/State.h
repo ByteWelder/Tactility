@@ -15,7 +15,9 @@ public:
     enum PendingAction {
         ActionNone,
         ActionDelete,
-        ActionRename
+        ActionRename,
+        ActionCreateFile,
+        ActionCreateFolder
     };
 
 private:

@@ -8,6 +8,7 @@
 namespace tt::hal {
 
 typedef bool (*InitBoot)();
+typedef void (*InitI2cDevices) ();
 
 typedef std::vector<std::shared_ptr<Device>> DeviceVector;
 
@@ -32,6 +33,12 @@ struct Configuration {
      * Used for powering on the peripherals manually.
      */
     const InitBoot _Nullable initBoot = nullptr;
+
+    /**
+     * Called after I2C bus is initialized and devices are registered.
+     * Used for starting I2C peripheral devices (e.g., keyboard backlight, trackball).
+     */
+    const InitI2cDevices _Nullable initI2cDevices = nullptr;
 
     /** Init behaviour: default (esp_lvgl_port for ESP32, nothing for PC) or None (nothing on any platform). Only used in Tactility, not in TactilityHeadless. */
     const LvglInit lvglInit = LvglInit::Default;
