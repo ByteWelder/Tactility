@@ -701,7 +701,7 @@ extern const AppManifest manifest = {
     .appId = "SystemInfo",
     .appName = "System Info",
     .appIcon = TT_ASSETS_APP_ICON_SYSTEM_INFO,
-    .appCategory = Category::Settings,  // Show in Settings submenu for easy access to memory/tasks/devices
+    .appCategory = Category::System,
     .createApp = create<SystemInfoApp>
 };
 
