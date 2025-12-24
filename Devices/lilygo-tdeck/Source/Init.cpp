@@ -4,6 +4,12 @@
 
 #include <Tactility/TactilityCore.h>
 #include <Tactility/hal/gps/GpsConfiguration.h>
+#include <Tactility/settings/KeyboardSettings.h>
+
+#include "devices/KeyboardBacklight.h"
+#include "devices/TrackballDevice.h"
+#include <KeyboardBacklight.h>
+#include <Trackball.h>
 
 #define TAG "tdeck"
 
@@ -26,6 +32,68 @@ static bool powerOn() {
     if (gpio_set_level(TDECK_POWERON_GPIO, 1) != ESP_OK) {
         return false;
     }
+
+    return true;
+}
+
+static void initI2cDevices() {
+    // Defer I2C device startup to avoid heap corruption during early boot
+    // Use a one-shot FreeRTOS timer to delay initialization
+    static TimerHandle_t initTimer = xTimerCreate(
+        "I2CInit",
+        pdMS_TO_TICKS(500), // 500ms delay
+        pdFALSE, // One-shot
+        nullptr,
+        [](TimerHandle_t timer) {
+            TT_LOG_I(TAG, "Starting deferred I2C devices");
+            
+            // Start keyboard backlight device
+            auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
+            if (kbBacklight) {
+                TT_LOG_I(TAG, "%s starting", kbBacklight->getName().c_str());
+                auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
+                if (kbDevice->start()) {
+                    TT_LOG_I(TAG, "%s started", kbBacklight->getName().c_str());
+                } else {
+                    TT_LOG_E(TAG, "%s start failed", kbBacklight->getName().c_str());
+                }
+            }
+            
+            // Small delay between I2C device inits to avoid concurrent transactions
+            vTaskDelay(pdMS_TO_TICKS(50));
+            
+            // Start trackball device
+            auto trackball = tt::hal::findDevice("Trackball");
+            if (trackball) {
+                TT_LOG_I(TAG, "%s starting", trackball->getName().c_str());
+                auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
+                if (tbDevice->start()) {
+                    TT_LOG_I(TAG, "%s started", trackball->getName().c_str());
+                } else {
+                    TT_LOG_E(TAG, "%s start failed", trackball->getName().c_str());
+                }
+            }
+            
+            TT_LOG_I(TAG, "Deferred I2C devices completed");
+        }
+    );
+    
+    if (initTimer != nullptr) {
+        xTimerStart(initTimer, 0);
+    }
+}
+
+static bool keyboardInit() {
+    auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
+
+    auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
+    bool result = driver::keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
+
+    if (!result) {
+        TT_LOG_W(TAG, "Failed to set keyboard backlight brightness");
+    }
+
+    driver::trackball::setEnabled(kbSettings.trackballEnabled);
 
     return true;
 }
@@ -59,5 +127,8 @@ bool initBoot() {
             }
         }
     });
+
+    initI2cDevices();
+    keyboardInit();
     return true;
 }

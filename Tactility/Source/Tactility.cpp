@@ -52,7 +52,6 @@ namespace service {
     namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
     namespace displayidle { extern const ServiceManifest manifest; }
-    namespace keyboardinit { extern const ServiceManifest manifest; }
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
@@ -232,7 +231,6 @@ static void registerAndStartSecondaryServices() {
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
     addService(service::displayidle::manifest);
-    addService(service::keyboardinit::manifest);
     addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);

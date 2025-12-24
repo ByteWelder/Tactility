@@ -436,11 +436,14 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             auto foldername = inputdialog::getResult(*bundle);
             if (!foldername.empty()) {
                 std::string new_folder_path = file::getChildPath(state->getCurrentPath(), foldername);
+                auto lock = file::getLock(new_folder_path);
+                lock->lock();
                 if (mkdir(new_folder_path.c_str(), 0755) == 0) {
                     TT_LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
                 } else {
                     TT_LOG_E(TAG, "Failed to create folder \"%s\"", new_folder_path.c_str());
                 }
+                lock->unlock();
 
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
