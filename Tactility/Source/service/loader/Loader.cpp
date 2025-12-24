@@ -8,6 +8,7 @@
 #include <Tactility/service/ServiceRegistration.h>
 
 #include <vector>
+#include <malloc.h>  // For malloc_trim() to release heap fragmentation after app destruction
 
 #ifdef ESP_PLATFORM
 #include <esp_heap_caps.h>
@@ -263,6 +264,12 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
         case Destroyed:
             app->getApp()->onDestroy(*app);
             pubsubExternal->publish(Event::ApplicationStopped);
+            
+            // Consolidate and release heap fragmentation after app destruction
+            // This ensures internal memory is returned to the free pool
+            // malloc_trim(0) releases empty heap pages and compacts the heap
+            TT_LOG_I(TAG, "Releasing heap fragmentation after app destruction");
+            malloc_trim(0);
             break;
     }
 
