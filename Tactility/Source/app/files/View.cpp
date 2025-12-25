@@ -415,14 +415,15 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             auto filename = inputdialog::getResult(*bundle);
             if (!filename.empty()) {
                 std::string new_file_path = file::getChildPath(state->getCurrentPath(), filename);
+
+                auto lock = file::getLock(new_file_path);
+                lock->lock();
+
                 struct stat st;
                 if (stat(new_file_path.c_str(), &st) == 0) {
                     TT_LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
                     break;
                 }
-
-                auto lock = file::getLock(new_file_path);
-                lock->lock();
 
                 FILE* new_file = fopen(new_file_path.c_str(), "w");
                 if (new_file) {
@@ -442,8 +443,16 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             auto foldername = inputdialog::getResult(*bundle);
             if (!foldername.empty()) {
                 std::string new_folder_path = file::getChildPath(state->getCurrentPath(), foldername);
+
                 auto lock = file::getLock(new_folder_path);
                 lock->lock();
+
+                struct stat st;
+                if (stat(new_folder_path.c_str(), &st) == 0) {
+                    TT_LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
+                    break;
+                }
+
                 if (mkdir(new_folder_path.c_str(), 0755) == 0) {
                     TT_LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
                 } else {
