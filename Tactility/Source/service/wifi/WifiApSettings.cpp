@@ -48,6 +48,7 @@ bool readHex(const std::string& input, uint8_t* buffer, int length) {
     return true;
 }
 
+// TODO: The SSID could contain invalid filename characters (e.g. "/", "\" and more) so we have to refactor this.
 static std::string getApPropertiesFilePath(std::shared_ptr<ServicePaths> paths, const std::string& ssid) {
     return std::format(AP_SETTINGS_FORMAT, paths->getUserDataDirectory(), ssid);
 }
