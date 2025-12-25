@@ -214,8 +214,8 @@ static void addRtosTask(lv_obj_t* parent, const TaskStatus_t& task, uint32_t tot
         float cpu_percent = (task.ulRunTimeCounter * 100.0f) / totalRuntime;
         lv_label_set_text_fmt(label, "%s: %.1f%%", name, cpu_percent);
     } else {
-    lv_label_set_text_fmt(label, "%s (%s)", name, getTaskState(task));
-}
+        lv_label_set_text_fmt(label, "%s (%s)", name, getTaskState(task));
+    }
 }
 
 static void updateRtosTasks(lv_obj_t* parent, bool showCpuPercent) {
@@ -308,8 +308,8 @@ class SystemInfoApp final : public App {
     lv_obj_t* cpuContainer = nullptr;
     lv_obj_t* psramContainer = nullptr;
     lv_obj_t* cpuSummaryLabel = nullptr;  // Shows overall CPU utilization
-    lv_obj_t* cpuCore0Label = nullptr;    // Shows Core 0 tasks
-    lv_obj_t* cpuCore1Label = nullptr;    // Shows Core 1 tasks
+    lv_obj_t* taskCountLabel = nullptr;   // Shows active task count
+    lv_obj_t* uptimeLabel = nullptr;      // Shows system uptime
 
     bool hasExternalMem = false;
     bool hasDataStorage = false;
@@ -367,7 +367,7 @@ class SystemInfoApp final : public App {
             // Update CPU summary at top of tab
             // Note: FreeRTOS runtime stats accumulate since boot, so percentages 
             // are averages over entire uptime, not instantaneous usage
-            if (cpuSummaryLabel && cpuCore0Label && cpuCore1Label) {
+            if (cpuSummaryLabel && taskCountLabel && uptimeLabel) {
                 UBaseType_t count = uxTaskGetNumberOfTasks();
                 auto* tasks = (TaskStatus_t*)heap_caps_malloc(sizeof(TaskStatus_t) * count, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
                 if (!tasks) tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
@@ -391,17 +391,17 @@ class SystemInfoApp final : public App {
                         
                         // Show total task count
                         auto core_text = std::format("Active Tasks: {} total", actual);
-                        lv_label_set_text(cpuCore0Label, core_text.c_str());
+                        lv_label_set_text(taskCountLabel, core_text.c_str());
                         
-                        // Show uptime estimate (runtime is in ticks, typically 1 tick = 10us)
-                        // totalRuntime accumulates across all cores/tasks
-                        float uptime_sec = totalRuntime / (configTICK_RATE_HZ * 100000.0f);
+                        // Use actual system tick count for uptime
+                        TickType_t ticks = xTaskGetTickCount();
+                        float uptime_sec = static_cast<float>(ticks) / configTICK_RATE_HZ;
                         auto uptime_text = std::format("System Uptime: {:.1f} min", uptime_sec / 60.0f);
-                        lv_label_set_text(cpuCore1Label, uptime_text.c_str());
+                        lv_label_set_text(uptimeLabel, uptime_text.c_str());
                     } else {
                         lv_label_set_text(cpuSummaryLabel, "Overall CPU Usage: --.-%");
-                        lv_label_set_text(cpuCore0Label, "Active Tasks: --");
-                        lv_label_set_text(cpuCore1Label, "System Uptime: --");
+                        lv_label_set_text(taskCountLabel, "Active Tasks: --");
+                        lv_label_set_text(uptimeLabel, "System Uptime: --");
                     }
                     
                     free(tasks);
@@ -646,12 +646,12 @@ class SystemInfoApp final : public App {
         lv_obj_set_style_text_font(cpuSummaryLabel, &lv_font_montserrat_14, 0);
         lv_obj_set_style_pad_bottom(cpuSummaryLabel, 4, 0);
         
-        cpuCore0Label = lv_label_create(cpu_tab);
-        lv_label_set_text(cpuCore0Label, "Core 0: --.-%");
+        taskCountLabel = lv_label_create(cpu_tab);
+        lv_label_set_text(taskCountLabel, "Active Tasks: --.-%");
         
-        cpuCore1Label = lv_label_create(cpu_tab);
-        lv_label_set_text(cpuCore1Label, "Core 1: --.-%");
-        lv_obj_set_style_pad_bottom(cpuCore1Label, 8, 0);
+        uptimeLabel = lv_label_create(cpu_tab);
+        lv_label_set_text(uptimeLabel, "System Uptime: --.-%");
+        lv_obj_set_style_pad_bottom(uptimeLabel, 8, 0);
         
         // CPU tab - container for task list (dynamic updates)
         cpuContainer = lv_obj_create(cpu_tab);

@@ -5,7 +5,7 @@
 
 class TrackballDevice : public tt::hal::Device {
 public:
-    tt::hal::Device::Type getType() const override { return tt::hal::Device::Type::I2c; }
+    tt::hal::Device::Type getType() const override { return tt::hal::Device::Type::Other; }
     std::string getName() const override { return "Trackball"; }
     std::string getDescription() const override { return "5-way GPIO trackball navigation"; }
     

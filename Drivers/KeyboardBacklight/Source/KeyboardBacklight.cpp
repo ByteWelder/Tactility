@@ -13,6 +13,7 @@ static i2c_port_t g_i2cPort = I2C_NUM_MAX;
 static uint8_t g_slaveAddress = 0x55;
 static uint8_t g_currentBrightness = 127;
 
+// TODO: Umm...something. Calls xxxBrightness, ignores return values.
 bool init(i2c_port_t i2cPort, uint8_t slaveAddress) {
     g_i2cPort = i2cPort;
     g_slaveAddress = slaveAddress;

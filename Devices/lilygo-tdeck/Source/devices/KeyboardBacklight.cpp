@@ -2,6 +2,7 @@
 #include <KeyboardBacklight.h>  // Driver
 #include <Tactility/hal/i2c/I2c.h>
 
+// TODO: Add Mutex and consider refactoring into a class
 bool KeyboardBacklightDevice::start() {
     if (initialized) {
         return true;
