@@ -25,9 +25,8 @@ function(INIT_TACTILITY_GLOBALS SDKCONFIG_FILE)
     # Skip 'CONFIG_TT_DEVICE_ID="' then read the relevant (remaining) chars
     string(SUBSTRING ${sdkconfig_device_id} 21 ${id_length} device_id)
     # Validate device id
-    string(REGEX MATCH "[a-z0-9\-]*" sdkconfig_device_id device_id_validation)
-    if (device_id_validation STREQUAL "")
-        message(FATAL_ERROR "Device identifier ${sdkconfig_device_id} contains invalid characters. Valid characters: a-z 0-9 "-"")
+    if (NOT device_id MATCHES "^[a-z0-9\-]*$")
+        message(FATAL_ERROR "Device identifier ${device_id} contains invalid characters. Valid characters: a-z 0-9 \"-\"")
     endif ()
     # Output results
     message("Device identifier: ${Cyan}${device_id}${ColorReset}")
