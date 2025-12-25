@@ -31,8 +31,7 @@ class KeyboardSettingsApp final : public App {
     lv_obj_t* sliderBrightness = nullptr;
     lv_obj_t* switchTrackball = nullptr;
     lv_obj_t* switchTimeoutEnable = nullptr;
-    lv_obj_t* sliderTimeoutSeconds = nullptr;
-    lv_obj_t* labelTimeoutValue = nullptr;
+    lv_obj_t* timeoutDropdown = nullptr;
 
     static void onBacklightSwitch(lv_event_t* e) {
         auto* app = static_cast<KeyboardSettingsApp*>(lv_event_get_user_data(e));
@@ -69,20 +68,24 @@ class KeyboardSettingsApp final : public App {
         bool enabled = lv_obj_has_state(app->switchTimeoutEnable, LV_STATE_CHECKED);
         app->kbSettings.backlightTimeoutEnabled = enabled;
         app->updated = true;
-        if (app->sliderTimeoutSeconds) {
-            if (enabled) lv_obj_clear_state(app->sliderTimeoutSeconds, LV_STATE_DISABLED);
-            else lv_obj_add_state(app->sliderTimeoutSeconds, LV_STATE_DISABLED);
+        if (app->timeoutDropdown) {
+            if (enabled) {
+                lv_obj_clear_state(app->timeoutDropdown, LV_STATE_DISABLED);
+            } else {
+                lv_obj_add_state(app->timeoutDropdown, LV_STATE_DISABLED);
+            }
         }
     }
 
-    static void onTimeoutSliderChanged(lv_event_t* e) {
-        auto* app = static_cast<KeyboardSettingsApp*>(lv_event_get_user_data(e));
-        if (!app->sliderTimeoutSeconds) return;
-        int32_t seconds = lv_slider_get_value(app->sliderTimeoutSeconds);
-        app->kbSettings.backlightTimeoutMs = static_cast<uint32_t>(seconds) * 1000;
+    static void onTimeoutChanged(lv_event_t* event) {
+        auto* app = static_cast<KeyboardSettingsApp*>(lv_event_get_user_data(event));
+        auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
+        uint32_t idx = lv_dropdown_get_selected(dropdown);
+        // Map dropdown index to ms: 0=15s,1=30s,2=1m,3=2m,4=5m,5=Never
+        static const uint32_t values_ms[] = {15000, 30000, 60000, 120000, 300000, 0};
+        if (idx < (sizeof(values_ms)/sizeof(values_ms[0]))) {
+            app->kbSettings.backlightTimeoutMs = values_ms[idx];
         app->updated = true;
-        if (app->labelTimeoutValue) {
-            lv_label_set_text_fmt(app->labelTimeoutValue, "%ld s", seconds);
         }
     }
 
@@ -105,6 +108,7 @@ public:
         lv_obj_set_size(bl_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         lv_obj_set_style_pad_all(bl_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(bl_wrapper, 0, LV_STATE_DEFAULT);
+
         auto* bl_label = lv_label_create(bl_wrapper);
         lv_label_set_text(bl_label, "Keyboard backlight");
         lv_obj_align(bl_label, LV_ALIGN_LEFT_MID, 0, 0);
@@ -118,6 +122,7 @@ public:
         lv_obj_set_size(br_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         lv_obj_set_style_pad_all(br_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(br_wrapper, 0, LV_STATE_DEFAULT);
+
         auto* br_label = lv_label_create(br_wrapper);
         lv_label_set_text(br_label, "Brightness");
         lv_obj_align(br_label, LV_ALIGN_LEFT_MID, 0, 0);
@@ -134,6 +139,7 @@ public:
         lv_obj_set_size(tb_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         lv_obj_set_style_pad_all(tb_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(tb_wrapper, 0, LV_STATE_DEFAULT);
+
         auto* tb_label = lv_label_create(tb_wrapper);
         lv_label_set_text(tb_label, "Trackball");
         lv_obj_align(tb_label, LV_ALIGN_LEFT_MID, 0, 0);
@@ -147,35 +153,39 @@ public:
         lv_obj_set_size(to_enable_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
         lv_obj_set_style_pad_all(to_enable_wrapper, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(to_enable_wrapper, 0, LV_STATE_DEFAULT);
+
         auto* to_enable_label = lv_label_create(to_enable_wrapper);
-        lv_label_set_text(to_enable_label, "Backlight timeout");
+        lv_label_set_text(to_enable_label, "Auto backlight off");
         lv_obj_align(to_enable_label, LV_ALIGN_LEFT_MID, 0, 0);
         switchTimeoutEnable = lv_switch_create(to_enable_wrapper);
         if (kbSettings.backlightTimeoutEnabled) lv_obj_add_state(switchTimeoutEnable, LV_STATE_CHECKED);
         lv_obj_align(switchTimeoutEnable, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_add_event_cb(switchTimeoutEnable, onTimeoutEnableSwitch, LV_EVENT_VALUE_CHANGED, this);
 
+        auto* timeout_select_wrapper = lv_obj_create(main_wrapper);
+        lv_obj_set_size(timeout_select_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_style_pad_all(timeout_select_wrapper, 0, LV_STATE_DEFAULT);
+        lv_obj_set_style_border_width(timeout_select_wrapper, 0, LV_STATE_DEFAULT);
+
+        auto* timeout_value_label = lv_label_create(timeout_select_wrapper);
+        lv_label_set_text(timeout_value_label, "Timeout");
+        lv_obj_align(timeout_value_label, LV_ALIGN_LEFT_MID, 0, 0);
+
         // Backlight timeout value (seconds)
-        auto* to_value_wrapper = lv_obj_create(main_wrapper);
-        lv_obj_set_size(to_value_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_pad_all(to_value_wrapper, 0, LV_STATE_DEFAULT);
-        lv_obj_set_style_border_width(to_value_wrapper, 0, LV_STATE_DEFAULT);
-        auto* to_value_label = lv_label_create(to_value_wrapper);
-        lv_label_set_text(to_value_label, "Timeout (s)");
-        lv_obj_align(to_value_label, LV_ALIGN_LEFT_MID, 0, 0);
-        labelTimeoutValue = lv_label_create(to_value_wrapper);
-        uint32_t timeoutSeconds = kbSettings.backlightTimeoutMs / 1000;
-        lv_label_set_text_fmt(labelTimeoutValue, "%lu s", (unsigned long)timeoutSeconds);
-        lv_obj_align(labelTimeoutValue, LV_ALIGN_RIGHT_MID, -60, 0); // leave room for slider
-        sliderTimeoutSeconds = lv_slider_create(to_value_wrapper);
-        lv_obj_set_width(sliderTimeoutSeconds, 120);
-        lv_obj_align(sliderTimeoutSeconds, LV_ALIGN_RIGHT_MID, 0, 0);
-        lv_slider_set_range(sliderTimeoutSeconds, 5, 600); // 5s to 10 minutes
-        if (timeoutSeconds < 5) timeoutSeconds = 5;
-        if (timeoutSeconds > 600) timeoutSeconds = 600;
-        lv_slider_set_value(sliderTimeoutSeconds, (int32_t)timeoutSeconds, LV_ANIM_OFF);
-        if (!kbSettings.backlightTimeoutEnabled) lv_obj_add_state(sliderTimeoutSeconds, LV_STATE_DISABLED);
-        lv_obj_add_event_cb(sliderTimeoutSeconds, onTimeoutSliderChanged, LV_EVENT_VALUE_CHANGED, this);
+        timeoutDropdown = lv_dropdown_create(timeout_select_wrapper);
+        lv_dropdown_set_options(timeoutDropdown, "15 seconds\n30 seconds\n1 minute\n2 minutes\n5 minutes\nNever");
+        lv_obj_align(timeoutDropdown, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_set_style_border_color(timeoutDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
+        lv_obj_set_style_border_width(timeoutDropdown, 1, LV_PART_MAIN);
+        lv_obj_add_event_cb(timeoutDropdown, onTimeoutChanged, LV_EVENT_VALUE_CHANGED, this);
+        // Initialize dropdown selection from settings
+        uint32_t ms = kbSettings.backlightTimeoutMs;
+        uint32_t idx = 2; // default 1 minute
+        if (ms == 15000) idx = 0; else if (ms == 30000) idx = 1; else if (ms == 60000) idx = 2; else if (ms == 120000) idx = 3; else if (ms == 300000) idx = 4; else if (ms == 0) idx = 5;
+        lv_dropdown_set_selected(timeoutDropdown, idx);
+        if (!kbSettings.backlightTimeoutEnabled) {
+            lv_obj_add_state(timeoutDropdown, LV_STATE_DISABLED);
+        }
     }
 
     void onHide(TT_UNUSED AppContext& app) override {

@@ -8,10 +8,6 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
 
-#ifdef ESP_PLATFORM
-#include <Tactility/service/development/DevelopmentSettings.h>
-#endif
-
 // Forward declare driver functions
 namespace driver::keyboardbacklight {
     bool setBrightness(uint8_t brightness);
@@ -35,11 +31,6 @@ class DisplayIdleService final : public Service {
 
     static std::shared_ptr<hal::keyboard::KeyboardDevice> getKeyboard() {
         return hal::findFirstDevice<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
-    }
-
-    void reloadSettings() {
-        cachedDisplaySettings = settings::display::loadOrGetDefault();
-        cachedKeyboardSettings = settings::keyboard::loadOrGetDefault();
     }
 
     void tick() {

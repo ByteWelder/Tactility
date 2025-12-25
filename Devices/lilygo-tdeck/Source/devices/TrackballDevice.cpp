@@ -28,6 +28,7 @@ bool TrackballDevice::start() {
 bool TrackballDevice::stop() {
     if (initialized) {
         // LVGL will handle indev cleanup
+        driver::trackball::deinit();
         indev = nullptr;
         initialized = false;
     }

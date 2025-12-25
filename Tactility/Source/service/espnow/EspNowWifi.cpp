@@ -111,8 +111,6 @@ bool deinitWifi() {
 
     TT_LOG_I(TAG, "ESP-NOW WiFi deinitialized (WiFi service continues independently)");
     return true;
-
-    return true;
 }
 
 } // namespace tt::service::espnow

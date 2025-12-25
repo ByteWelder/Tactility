@@ -75,11 +75,16 @@ static void initI2cDevices() {
             }
             
             TT_LOG_I(TAG, "Deferred I2C devices completed");
+
+            // Clean up the one-shot timer
+            xTimerDelete(timer, 0);
         }
     );
     
     if (initTimer != nullptr) {
         xTimerStart(initTimer, 0);
+    } else {
+        TT_LOG_E(TAG, "Failed to create I2C init timer");
     }
 }
 
