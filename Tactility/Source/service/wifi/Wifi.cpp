@@ -1,5 +1,8 @@
 #include "Tactility/service/wifi/Wifi.h"
 
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
+
 namespace tt::service::wifi {
 
 const char* radioStateToString(RadioState state) {
@@ -19,6 +22,12 @@ const char* radioStateToString(RadioState state) {
             return TT_STRINGIFY(Off);
     }
     tt_crash("not implemented");
+}
+
+extern const ServiceManifest manifest;
+
+std::shared_ptr<ServiceContext> findServiceContext() {
+    return findServiceContextById(manifest.id);
 }
 
 }
