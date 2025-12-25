@@ -42,19 +42,19 @@ static void read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     
     // Right pressed (rising edge)
     if (currentStates[0] && !g_lastState[0]) {
-        diff += 1;
+        diff += g_config.movementStep;
     }
     // Up pressed (rising edge)
     if (currentStates[1] && !g_lastState[1]) {
-        diff -= 1;
+        diff -= g_config.movementStep;
     }
     // Left pressed (rising edge)
     if (currentStates[2] && !g_lastState[2]) {
-        diff -= 1;
+        diff -= g_config.movementStep;
     }
     // Down pressed (rising edge)
     if (currentStates[3] && !g_lastState[3]) {
-        diff += 1;
+        diff += g_config.movementStep;
     }
     
     // Update last states

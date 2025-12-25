@@ -36,73 +36,6 @@ static bool powerOn() {
     return true;
 }
 
-static void initI2cDevices() {
-    // Defer I2C device startup to avoid heap corruption during early boot
-    // Use a one-shot FreeRTOS timer to delay initialization
-    static TimerHandle_t initTimer = xTimerCreate(
-        "I2CInit",
-        pdMS_TO_TICKS(500), // 500ms delay
-        pdFALSE, // One-shot
-        nullptr,
-        [](TimerHandle_t timer) {
-            TT_LOG_I(TAG, "Starting deferred I2C devices");
-            
-            // Start keyboard backlight device
-            auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
-            if (kbBacklight) {
-                TT_LOG_I(TAG, "%s starting", kbBacklight->getName().c_str());
-                auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
-                if (kbDevice->start()) {
-                    TT_LOG_I(TAG, "%s started", kbBacklight->getName().c_str());
-                } else {
-                    TT_LOG_E(TAG, "%s start failed", kbBacklight->getName().c_str());
-                }
-            }
-            
-            // Small delay between I2C device inits to avoid concurrent transactions
-            vTaskDelay(pdMS_TO_TICKS(50));
-            
-            // Start trackball device
-            auto trackball = tt::hal::findDevice("Trackball");
-            if (trackball) {
-                TT_LOG_I(TAG, "%s starting", trackball->getName().c_str());
-                auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
-                if (tbDevice->start()) {
-                    TT_LOG_I(TAG, "%s started", trackball->getName().c_str());
-                } else {
-                    TT_LOG_E(TAG, "%s start failed", trackball->getName().c_str());
-                }
-            }
-            
-            TT_LOG_I(TAG, "Deferred I2C devices completed");
-
-            // Clean up the one-shot timer
-            xTimerDelete(timer, 0);
-        }
-    );
-    
-    if (initTimer != nullptr) {
-        xTimerStart(initTimer, 0);
-    } else {
-        TT_LOG_E(TAG, "Failed to create I2C init timer");
-    }
-}
-
-static bool keyboardInit() {
-    auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
-
-    auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
-    bool result = driver::keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
-
-    if (!result) {
-        TT_LOG_W(TAG, "Failed to set keyboard backlight brightness");
-    }
-
-    driver::trackball::setEnabled(kbSettings.trackballEnabled);
-
-    return true;
-}
-
 bool initBoot() {
     ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
     if (!powerOn()) {
@@ -132,8 +65,41 @@ bool initBoot() {
             }
         }
     });
+            
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
+            auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
+        if (kbBacklight != nullptr) {
+                TT_LOG_I(TAG, "%s starting", kbBacklight->getName().c_str());
+                auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
+                if (kbDevice->start()) {
+                    TT_LOG_I(TAG, "%s started", kbBacklight->getName().c_str());
+                } else {
+                    TT_LOG_E(TAG, "%s start failed", kbBacklight->getName().c_str());
+                }
+            }
+            
+            auto trackball = tt::hal::findDevice("Trackball");
+        if (trackball != nullptr) {
+                TT_LOG_I(TAG, "%s starting", trackball->getName().c_str());
+                auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
+                if (tbDevice->start()) {
+                    TT_LOG_I(TAG, "%s started", trackball->getName().c_str());
+                } else {
+                    TT_LOG_E(TAG, "%s start failed", trackball->getName().c_str());
+                }
+            }
+            
+        //Backlight doesn't seem to turn on until toggled on and off from keyboard settings...
+        // Or let the display and backlight sleep then wake it up.
+        //Then it works fine...until reboot, then you need to toggle again.
+    auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
+    bool result = driver::keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
+    if (!result) {
+        TT_LOG_W(TAG, "Failed to set keyboard backlight brightness");
+    }
 
-    initI2cDevices();
-    keyboardInit();
+    driver::trackball::setEnabled(kbSettings.trackballEnabled);
+    });
+
     return true;
 }

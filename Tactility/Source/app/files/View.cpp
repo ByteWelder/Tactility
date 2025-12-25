@@ -415,6 +415,12 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             auto filename = inputdialog::getResult(*bundle);
             if (!filename.empty()) {
                 std::string new_file_path = file::getChildPath(state->getCurrentPath(), filename);
+                struct stat st;
+                if (stat(new_file_path.c_str(), &st) == 0) {
+                    TT_LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
+                    break;
+                }
+
                 auto lock = file::getLock(new_file_path);
                 lock->lock();
 

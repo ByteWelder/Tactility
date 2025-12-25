@@ -40,7 +40,7 @@ KeyboardSettings getDefault() {
         .backlightBrightness = 127,
         .trackballEnabled = true,
         .backlightTimeoutEnabled = true,
-        .backlightTimeoutMs = 30000 // 30 seconds default
+        .backlightTimeoutMs = 60000 // 60 seconds default
     };
 }
 

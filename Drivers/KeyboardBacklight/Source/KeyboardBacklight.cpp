@@ -21,8 +21,15 @@ bool init(i2c_port_t i2cPort, uint8_t slaveAddress) {
     ESP_LOGI(TAG, "Keyboard backlight initialized on I2C port %d, address 0x%02X", g_i2cPort, g_slaveAddress);
     
     // Set a reasonable default brightness
-    setDefaultBrightness(127);
-    setBrightness(127);
+    if (!setDefaultBrightness(127)) {
+        ESP_LOGE(TAG, "Failed to set default brightness");
+        return false;
+    }
+
+    if (!setBrightness(127)) {
+        ESP_LOGE(TAG, "Failed to set brightness");
+        return false;
+    }
     
     return true;
 }
@@ -91,6 +98,11 @@ bool setDefaultBrightness(uint8_t brightness) {
 }
 
 uint8_t getBrightness() {
+    if (g_i2cPort >= I2C_NUM_MAX) {
+        ESP_LOGE(TAG, "Keyboard backlight not initialized");
+        return 0;
+    }
+
     return g_currentBrightness;
 }
 

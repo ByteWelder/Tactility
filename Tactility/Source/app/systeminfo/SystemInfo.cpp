@@ -1,5 +1,6 @@
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #include <Tactility/Assets.h>
 #include <Tactility/hal/Device.h>
@@ -322,7 +323,9 @@ class SystemInfoApp final : public App {
         updateMemoryBar(internalMemBar, getHeapFree(), getHeapTotal());
 
         if (hasExternalMem) {
+            lvgl::getSyncLock()->lock();
             updateMemoryBar(externalMemBar, getSpiFree(), getSpiTotal());
+            lvgl::getSyncLock()->unlock();
         }
     }
 
