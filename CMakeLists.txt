@@ -82,6 +82,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
     set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
 
+    add_subdirectory(Libraries/cJSON)
     add_subdirectory(Libraries/FreeRTOS-Kernel)
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
@@ -91,11 +92,6 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     target_include_directories(freertos_kernel
         PUBLIC Devices/Simulator/Source # for FreeRTOSConfig.h
     )
-
-    # cJSON
-    set(ENABLE_CJSON_TEST OFF)
-    add_compile_definitions($<$<BOOL:${ENABLE_CJSON_TEST}>:ENABLE_CJSON_TEST=0>)
-    add_subdirectory(Libraries/cJSON)
 
     # EmbedTLS
     set(ENABLE_TESTING OFF)
