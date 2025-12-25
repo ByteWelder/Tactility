@@ -153,7 +153,7 @@ public:
 };
 
 extern const ServiceManifest manifest = {
-    .id = "Wifi",
+    .id = "wifi",
     .createService = create<WifiService>
 };
 
