@@ -13,7 +13,7 @@ bool TrackballDevice::start() {
         .pinLeft = GPIO_NUM_1,    // BOARD_TBOX_G04
         .pinDown = GPIO_NUM_15,   // BOARD_TBOX_G03
         .pinClick = GPIO_NUM_0,   // BOARD_BOOT_PIN
-        .movementStep = 10  // pixels per movement
+        .movementStep = 1  // pixels per movement
     };
     
     indev = driver::trackball::init(config);
