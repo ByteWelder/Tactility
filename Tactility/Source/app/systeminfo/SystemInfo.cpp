@@ -289,14 +289,20 @@ class SystemInfoApp final : public App {
     Timer memoryTimer = Timer(Timer::Type::Periodic, []() {
         auto app = optApp();
         if (app) {
+            lvgl::getSyncLock()->lock();
             app->updateMemory();
             app->updatePsram();
+            lvgl::getSyncLock()->unlock();
         }
     });
 
     Timer tasksTimer = Timer(Timer::Type::Periodic, []() {
         auto app = optApp();
-        if (app) app->updateTasks();
+        if (app) {
+            lvgl::getSyncLock()->lock();
+            app->updateTasks();
+            lvgl::getSyncLock()->unlock();
+        }
     });
 
     MemoryBarWidgets internalMemBar;

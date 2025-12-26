@@ -195,7 +195,7 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
     // Get file size for regular files
     std::string label_text = dir_entry.d_name;
     if (dir_entry.d_type == file::TT_DT_REG) {
-        std::string file_path = state->getCurrentPath() + "/" + dir_entry.d_name;
+        std::string file_path = file::getChildPath(state->getCurrentPath(), dir_entry.d_name);
         struct stat st;
         if (stat(file_path.c_str(), &st) == 0) {
             // Format file size in human-readable format
