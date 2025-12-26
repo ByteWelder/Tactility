@@ -7,6 +7,7 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 
+#include <algorithm>
 #include <format>
 #include <lvgl.h>
 #include <utility>
@@ -324,14 +325,10 @@ class SystemInfoApp final : public App {
     bool hasSystemStorage = false;
 
     void updateMemory() {
-        // Timer callbacks run in a task context (not ISR), so we can use LVGL lock
-        // Don't use kernel::lock() from timer callbacks - causes scheduler assertion
         updateMemoryBar(internalMemBar, getHeapFree(), getHeapTotal());
 
         if (hasExternalMem) {
-            lvgl::getSyncLock()->lock();
             updateMemoryBar(externalMemBar, getSpiFree(), getSpiTotal());
-            lvgl::getSyncLock()->unlock();
         }
     }
 
