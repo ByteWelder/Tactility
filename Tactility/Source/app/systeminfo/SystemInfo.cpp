@@ -289,19 +289,19 @@ class SystemInfoApp final : public App {
     Timer memoryTimer = Timer(Timer::Type::Periodic, []() {
         auto app = optApp();
         if (app) {
-            lvgl::getSyncLock()->lock();
+            auto lock = lvgl::getSyncLock()->asScopedLock();
+            lock.lock();
             app->updateMemory();
             app->updatePsram();
-            lvgl::getSyncLock()->unlock();
         }
     });
 
     Timer tasksTimer = Timer(Timer::Type::Periodic, []() {
         auto app = optApp();
         if (app) {
-            lvgl::getSyncLock()->lock();
+            auto lock = lvgl::getSyncLock()->asScopedLock();
+            lock.lock();
             app->updateTasks();
-            lvgl::getSyncLock()->unlock();
         }
     });
 

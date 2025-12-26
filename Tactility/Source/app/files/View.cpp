@@ -422,6 +422,7 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 struct stat st;
                 if (stat(new_file_path.c_str(), &st) == 0) {
                     TT_LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
+                    lock->unlock();
                     break;
                 }
 
@@ -450,6 +451,7 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 struct stat st;
                 if (stat(new_folder_path.c_str(), &st) == 0) {
                     TT_LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
+                    lock->unlock();
                     break;
                 }
 
