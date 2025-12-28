@@ -17,8 +17,8 @@ typedef std::unordered_map<std::string, std::shared_ptr<ServiceInstance>> Servic
 static ManifestMap service_manifest_map;
 static ServiceInstanceMap service_instance_map;
 
-static Mutex manifest_mutex(Mutex::Type::Normal);
-static Mutex instance_mutex(Mutex::Type::Normal);
+static Mutex manifest_mutex;
+static Mutex instance_mutex;
 
 void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart) {
     assert(manifest != nullptr);

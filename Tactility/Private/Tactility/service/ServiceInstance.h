@@ -10,7 +10,7 @@ namespace tt::service {
 
 class ServiceInstance final : public ServiceContext {
 
-    Mutex mutex = Mutex(Mutex::Type::Normal);
+    Mutex mutex;
     std::shared_ptr<const ServiceManifest> manifest;
     std::shared_ptr<Service> service;
     State state = State::Stopped;

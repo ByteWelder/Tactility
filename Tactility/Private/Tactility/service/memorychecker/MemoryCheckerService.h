@@ -2,7 +2,7 @@
 
 #include "Tactility/service/Service.h"
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Timer.h>
 
 namespace tt::service::memorychecker {
@@ -13,7 +13,7 @@ namespace tt::service::memorychecker {
  */
 class MemoryCheckerService final : public Service {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     Timer timer = Timer(Timer::Type::Periodic, [this] { onTimerUpdate(); });
 
     // LVGL Statusbar icon

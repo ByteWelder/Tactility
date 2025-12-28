@@ -3,6 +3,7 @@
 #define TAG "twodotfour_sdcard"
 
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
+#include <Tactility/RecursiveMutex.h>
 
 constexpr auto SDCARD_SPI_HOST = SPI3_HOST;
 constexpr auto SDCARD_PIN_CS = GPIO_NUM_5;
@@ -16,7 +17,7 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive),
+        std::make_shared<tt::RecursiveMutex>(),
         std::vector<gpio_num_t>(),
         SDCARD_SPI_HOST
     );

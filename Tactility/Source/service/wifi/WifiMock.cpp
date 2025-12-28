@@ -4,8 +4,8 @@
 
 #include <Tactility/Check.h>
 #include <Tactility/Log.h>
-#include <Tactility/Mutex.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/ServiceManifest.h>
 
@@ -15,7 +15,7 @@ constexpr auto* TAG = "Wifi";
 
 struct Wifi {
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     /** @brief The public event bus */
     std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();
     /** @brief The internal message queue */

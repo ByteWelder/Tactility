@@ -1,6 +1,7 @@
 #include <Tactility/Assets.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/Time.h>
 
@@ -14,7 +15,7 @@ extern const AppManifest manifest;
 
 class TimeDateSettingsApp final : public App {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
 
     static void onTimeFormatChanged(lv_event_t* event) {
         auto* widget = lv_event_get_target_obj(event);

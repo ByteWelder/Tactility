@@ -9,6 +9,7 @@
 #include <Tactility/service/loader/Loader.h>
 
 #include <Tactility/Assets.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 
@@ -24,7 +25,7 @@ class I2cScannerApp final : public App {
     static constexpr auto* STOP_SCAN_TEXT = "Stop scan";
 
     // Core
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::unique_ptr<Timer> scanTimer = nullptr;
     // State
     ScanState scanState = ScanStateInitial;

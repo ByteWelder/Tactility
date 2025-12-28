@@ -9,6 +9,7 @@
 #include <Tactility/EventFlag.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
 #include <Tactility/service/wifi/WifiSettings.h>
@@ -48,8 +49,8 @@ class Wifi {
 public:
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex radioMutex = Mutex(Mutex::Type::Recursive);
-    Mutex dataMutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex radioMutex;
+    RecursiveMutex dataMutex;
     std::unique_ptr<Timer> autoConnectTimer;
     /** @brief The public event bus */
     std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();

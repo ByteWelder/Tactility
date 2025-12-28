@@ -1,5 +1,5 @@
 /**
- * @file Mutex.h
+ * @file RecursiveMutex.h
  * Mutex
  */
 #pragma once
@@ -8,7 +8,6 @@
 #include "RtosCompatSemaphore.h"
 #include "Thread.h"
 #include "kernel/Kernel.h"
-
 #include <memory>
 #include <cassert>
 
@@ -18,7 +17,7 @@ namespace tt {
  * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
  * Cannot be used in IRQ mode (within ISR context)
  */
-class Mutex final : public Lock {
+class RecursiveMutex final : public Lock {
 
 private:
 
@@ -29,17 +28,17 @@ private:
         }
     };
 
-    std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter> handle = std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter>(xSemaphoreCreateMutex());
+    std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter> handle = std::unique_ptr<std::remove_pointer_t<QueueHandle_t>, SemaphoreHandleDeleter>(xSemaphoreCreateRecursiveMutex());
 
 public:
 
     using Lock::lock;
 
-    explicit Mutex() {
+    explicit RecursiveMutex() {
         assert(handle != nullptr);
     }
 
-    ~Mutex() override = default;
+    ~RecursiveMutex() override = default;
 
     /** Attempt to lock the mutex. Blocks until timeout passes or lock is acquired.
      * @param[in] timeout
@@ -47,7 +46,7 @@ public:
      */
     bool lock(TickType_t timeout) const override {
         assert(!kernel::isIsr());
-        return xSemaphoreTake(handle.get(), timeout) == pdPASS;
+        return xSemaphoreTakeRecursive(handle.get(), timeout) == pdPASS;
     }
 
     /** Attempt to unlock the mutex.
@@ -55,7 +54,7 @@ public:
      */
     bool unlock() const override {
         assert(!kernel::isIsr());
-        return xSemaphoreGive(handle.get()) == pdPASS;
+        return xSemaphoreGiveRecursive(handle.get()) == pdPASS;
     }
 
     /** @return the owner of the thread */
@@ -65,4 +64,4 @@ public:
     }
 };
 
-} // namespace tt
+} // namespace

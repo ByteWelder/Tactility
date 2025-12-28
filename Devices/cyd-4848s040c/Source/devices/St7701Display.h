@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <EspLcdDisplay.h>
 #include <lvgl.h>
@@ -21,7 +21,7 @@ class St7701Display final : public EspLcdDisplay {
 
 public:
 
-    St7701Display() : EspLcdDisplay(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive)) {}
+    St7701Display() : EspLcdDisplay(std::make_shared<tt::MutexRecursive>()) {}
 
     std::string getName() const override { return "ST7701S"; }
 

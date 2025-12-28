@@ -3,7 +3,7 @@
 
 #include <Tactility/service/Service.h>
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <esp_event.h>
 #include <esp_http_server.h>
@@ -13,7 +13,7 @@ namespace tt::service::development {
 
 class DevelopmentService final : public Service {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::string deviceResponse;
     network::HttpServer httpServer = network::HttpServer(
         6666,
