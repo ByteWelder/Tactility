@@ -15,7 +15,7 @@
 namespace tt {
 
 /**
- * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
+ * Wrapper for FreeRTOS xSemaphoreCreateMutex
  * Cannot be used in IRQ mode (within ISR context)
  */
 class Mutex final : public Lock {

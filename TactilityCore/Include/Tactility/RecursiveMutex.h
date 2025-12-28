@@ -1,6 +1,6 @@
 /**
  * @file RecursiveMutex.h
- * Mutex
+ * RecursiveMutex
  */
 #pragma once
 
@@ -14,7 +14,7 @@
 namespace tt {
 
 /**
- * Wrapper for FreeRTOS xSemaphoreCreateMutex and xSemaphoreCreateRecursiveMutex
+ * Wrapper for FreeRTOS xSemaphoreCreateRecursiveMutex
  * Cannot be used in IRQ mode (within ISR context)
  */
 class RecursiveMutex final : public Lock {
