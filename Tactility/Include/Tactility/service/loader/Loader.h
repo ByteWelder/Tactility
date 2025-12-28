@@ -5,6 +5,7 @@
 #include <Tactility/Bundle.h>
 #include <Tactility/DispatcherThread.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/Service.h>
 
 #include <memory>
@@ -26,7 +27,7 @@ public:
 private:
 
     std::shared_ptr<PubSub<Event>> pubsubExternal = std::make_shared<PubSub<Event>>();
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::vector<std::shared_ptr<app::AppInstance>> appStack;
     app::LaunchId nextLaunchId = 0;
 

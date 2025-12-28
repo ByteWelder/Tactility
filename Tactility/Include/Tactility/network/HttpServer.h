@@ -2,7 +2,7 @@
 #ifdef ESP_PLATFORM
 
 #include <esp_http_server.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/kernel/SystemEvents.h>
 
 namespace tt::network {
@@ -33,7 +33,7 @@ private:
 
     std::vector<httpd_uri_t> handlers;
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     httpd_handle_t server = nullptr;
 
     bool startInternal();

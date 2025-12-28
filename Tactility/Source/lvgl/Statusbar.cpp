@@ -1,23 +1,22 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "Tactility/lvgl/Statusbar.h"
-
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/LvglSync.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/TactilityCore.h>
 
 #include <Tactility/kernel/SystemEvents.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/PubSub.h>
-#include <Tactility/TactilityCore.h>
-#include <Tactility/Timer.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/settings/Time.h>
+#include <Tactility/Timer.h>
 
 #include <lvgl.h>
-#include <Tactility/Tactility.h>
 
 namespace tt::lvgl {
 
-#define TAG "statusbar"
+constexpr auto TAG = "statusbar";
 
 static void onUpdateTime();
 
@@ -28,7 +27,7 @@ struct StatusbarIcon {
 };
 
 struct StatusbarData {
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::shared_ptr<PubSub<void*>> pubsub = std::make_shared<PubSub<void*>>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
     Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });

@@ -13,7 +13,7 @@ namespace tt::service::memorychecker {
  */
 class MemoryCheckerService final : public Service {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    Mutex mutex;
     Timer timer = Timer(Timer::Type::Periodic, [this] { onTimerUpdate(); });
 
     // LVGL Statusbar icon

@@ -25,7 +25,7 @@ enum class State {
  */
 class AppInstance : public AppContext {
 
-    Mutex mutex = Mutex(Mutex::Type::Normal);
+    Mutex mutex;
     const std::shared_ptr<AppManifest> manifest;
     State state = State::Initial;
     LaunchId launchId;

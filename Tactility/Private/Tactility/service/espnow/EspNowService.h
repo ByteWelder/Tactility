@@ -9,7 +9,7 @@
 #include <Tactility/service/Service.h>
 #include <Tactility/service/espnow/EspNow.h>
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <functional>
 
@@ -27,7 +27,7 @@ class EspNowService final : public Service {
         bool success;
     };
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::vector<ReceiverSubscriptionData> subscriptions;
     ReceiverSubscription lastSubscriptionId = 0;
     bool enabled = false;

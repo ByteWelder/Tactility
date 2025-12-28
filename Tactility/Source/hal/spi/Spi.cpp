@@ -1,6 +1,6 @@
 #include "Tactility/hal/spi/Spi.h"
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 namespace tt::hal::spi {
 
@@ -24,7 +24,7 @@ bool init(const std::vector<Configuration>& configurations) {
         if (configuration.lock != nullptr) {
             data.lock = configuration.lock;
         } else {
-            data.lock = std::make_shared<Mutex>(Mutex::Type::Recursive);
+            data.lock = std::make_shared<RecursiveMutex>();
         }
     }
 
