@@ -2,7 +2,7 @@
 
 #include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Thread.h>
 
 #include <lvgl.h>
@@ -10,8 +10,8 @@
 #define TAG "lvgl_task"
 
 // Mutex for LVGL drawing
-static tt::Mutex lvgl_mutex(tt::Mutex::Type::Recursive);
-static tt::Mutex task_mutex(tt::Mutex::Type::Recursive);
+static tt::RecursiveMutex lvgl_mutex;
+static tt::RecursiveMutex task_mutex;
 
 static uint32_t task_max_sleep_ms = 10;
 // Mutex for LVGL task state (to modify task_running state)

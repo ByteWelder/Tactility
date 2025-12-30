@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 namespace tt::app::wifimanage {
 
@@ -10,7 +10,7 @@ namespace tt::app::wifimanage {
  */
 class State final {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     bool scanning = false;
     bool scannedAfterRadioOn = false;
     service::wifi::RadioState radioState;

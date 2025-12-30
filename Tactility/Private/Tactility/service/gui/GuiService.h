@@ -2,7 +2,7 @@
 
 #include <Tactility/app/AppContext.h>
 #include <Tactility/MessageQueue.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/loader/Loader.h>
@@ -21,7 +21,7 @@ class GuiService final : public Service {
 
     // Thread and lock
     Thread* thread = nullptr;
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     PubSub<loader::LoaderService::Event>::SubscriptionHandle loader_pubsub_subscription = nullptr;
 
     // Layers and Canvas

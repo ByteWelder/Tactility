@@ -5,7 +5,7 @@
 using namespace tt;
 
 TEST_CASE("a mutex can block a thread") {
-    auto mutex = Mutex(Mutex::Type::Normal);
+    auto mutex = Mutex();
     mutex.lock(portMAX_DELAY);
 
     Thread thread = Thread(
@@ -30,19 +30,19 @@ TEST_CASE("a mutex can block a thread") {
 }
 
 TEST_CASE("a Mutex can be locked exactly once") {
-    auto mutex = Mutex(Mutex::Type::Normal);
+    Mutex mutex;
     CHECK_EQ(mutex.lock(0), true);
     CHECK_EQ(mutex.lock(0), false);
     CHECK_EQ(mutex.unlock(), true);
 }
 
 TEST_CASE("unlocking a Mutex without locking returns false") {
-    auto mutex = Mutex(Mutex::Type::Normal);
+    Mutex mutex;
     CHECK_EQ(mutex.unlock(), false);
 }
 
 TEST_CASE("unlocking a Mutex twice returns false on the second attempt") {
-    auto mutex = Mutex(Mutex::Type::Normal);
+    Mutex mutex;
     CHECK_EQ(mutex.lock(0), true);
     CHECK_EQ(mutex.unlock(), true);
     CHECK_EQ(mutex.unlock(), false);

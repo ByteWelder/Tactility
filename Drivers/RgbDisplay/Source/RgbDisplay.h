@@ -1,13 +1,14 @@
 #pragma once
 
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/RecursiveMutex.h>
 #include <EspLcdDisplayDriver.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lvgl_port_disp.h>
 
 class RgbDisplay final : public tt::hal::display::DisplayDevice {
 
-    std::shared_ptr<tt::Lock> lock = std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive);
+    std::shared_ptr<tt::Lock> lock = std::make_shared<tt::RecursiveMutex>();
 
 public:
 

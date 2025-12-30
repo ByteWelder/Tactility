@@ -1,7 +1,8 @@
+#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/file/File.h>
 #include <tt_lock.h>
 #include <tt_lock_private.h>
-#include <Tactility/Mutex.h>
-#include <Tactility/file/File.h>
 
 #define HANDLE_AS_LOCK(handle) (static_cast<LockHolder*>(handle)->lock)
 
@@ -11,10 +12,10 @@ LockHandle tt_lock_alloc_mutex(TtMutexType type) {
     auto* lock_holder = new LockHolder();
     switch (type) {
         case MutexTypeNormal:
-            lock_holder->lock = std::make_shared<tt::Mutex>(tt::Mutex::Type::Normal);
+            lock_holder->lock = std::make_shared<tt::Mutex>();
             break;
         case MutexTypeRecursive:
-            lock_holder->lock = std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive);
+            lock_holder->lock = std::make_shared<tt::RecursiveMutex>();
             break;
         default:
             tt_crash("Type not supported");

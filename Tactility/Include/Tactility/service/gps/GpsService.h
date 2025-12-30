@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Tactility/Mutex.h"
+#include "Tactility/RecursiveMutex.h"
 #include "Tactility/PubSub.h"
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/service/Service.h"
@@ -20,7 +21,7 @@ class GpsService final : public Service {
     minmea_sentence_rmc rmcRecord;
     TickType_t rmcTime = 0;
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     Mutex stateMutex;
     std::vector<GpsDeviceRecord> deviceRecords;
     std::shared_ptr<PubSub<State>> statePubSub = std::make_shared<PubSub<State>>();

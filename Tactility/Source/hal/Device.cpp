@@ -1,12 +1,12 @@
 #include "Tactility/hal/Device.h"
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <algorithm>
 
 namespace tt::hal {
 
 std::vector<std::shared_ptr<Device>> devices;
-Mutex mutex = Mutex(Mutex::Type::Recursive);
+RecursiveMutex mutex;
 static Device::Id nextId = 0;
 
 #define TAG "devices"
