@@ -11,6 +11,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         lvgl
         driver
         KeyboardBacklight
+        Trackball
         elf_loader
         lv_screenshot
         QRCode

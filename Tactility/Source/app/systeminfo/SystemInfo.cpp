@@ -11,6 +11,7 @@
 #include <format>
 #include <lvgl.h>
 #include <utility>
+#include <cstring>
 
 #ifdef ESP_PLATFORM
 #include <esp_vfs_fat.h>
@@ -224,8 +225,7 @@ static void updateRtosTasks(lv_obj_t* parent, bool showCpuPercent) {
     clearContainer(parent);
 
     UBaseType_t count = uxTaskGetNumberOfTasks();
-    // Allocate task list in PSRAM to save internal RAM
-    auto* tasks = (TaskStatus_t*)heap_caps_malloc(sizeof(TaskStatus_t) * count, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    auto* tasks = malloc(sizeof(TaskStatus_t) * count);
     if (!tasks) {
         // Fallback to internal RAM if PSRAM allocation fails
         tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
@@ -375,7 +375,7 @@ class SystemInfoApp final : public App {
             // are averages over entire uptime, not instantaneous usage
             if (cpuSummaryLabel && taskCountLabel && uptimeLabel) {
                 UBaseType_t count = uxTaskGetNumberOfTasks();
-                auto* tasks = (TaskStatus_t*)heap_caps_malloc(sizeof(TaskStatus_t) * count, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+                auto* tasks = malloc(sizeof(TaskStatus_t) * count);
                 if (!tasks) tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
                 if (tasks) {
                     uint32_t totalRuntime = 0;
