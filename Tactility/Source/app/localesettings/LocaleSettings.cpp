@@ -1,4 +1,5 @@
 #include <Tactility/Assets.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/app/localesettings/TextResources.h>
 #include <Tactility/lvgl/Toolbar.h>
@@ -27,7 +28,7 @@ extern const AppManifest manifest;
 
 class LocaleSettingsApp final : public App {
     tt::i18n::TextResources textResources = tt::i18n::TextResources(TEXT_RESOURCE_PATH);
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     lv_obj_t* regionTextArea = nullptr;
     lv_obj_t* languageDropdown = nullptr;
     bool settingsUpdated = false;

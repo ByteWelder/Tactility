@@ -227,10 +227,6 @@ static void updateRtosTasks(lv_obj_t* parent, bool showCpuPercent) {
     UBaseType_t count = uxTaskGetNumberOfTasks();
     auto* tasks = malloc(sizeof(TaskStatus_t) * count);
     if (!tasks) {
-        // Fallback to internal RAM if PSRAM allocation fails
-        tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
-    }
-    if (!tasks) {
         auto* error_label = lv_label_create(parent);
         lv_label_set_text(error_label, "Failed to allocate memory for task list");
         return;

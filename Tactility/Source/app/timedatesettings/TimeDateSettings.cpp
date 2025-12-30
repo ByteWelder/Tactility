@@ -2,6 +2,7 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/Time.h>
@@ -17,7 +18,7 @@ extern const AppManifest manifest;
 
 class TimeDateSettingsApp final : public App {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     lv_obj_t* timeZoneLabel = nullptr;
     lv_obj_t* dateFormatDropdown = nullptr;
 
