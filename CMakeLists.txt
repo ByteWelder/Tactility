@@ -39,6 +39,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "TactilityCore"
         "Libraries/esp_lvgl_port"
         "Libraries/elf_loader"
+        "Libraries/epdiy"
         "Libraries/lvgl"
         "Libraries/lv_screenshot"
         "Libraries/minitar"
