@@ -372,7 +372,6 @@ class SystemInfoApp final : public App {
             if (cpuSummaryLabel && taskCountLabel && uptimeLabel) {
                 UBaseType_t count = uxTaskGetNumberOfTasks();
                 auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
-                if (!tasks) tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
                 if (tasks) {
                     uint32_t totalRuntime = 0;
                     UBaseType_t actual = uxTaskGetSystemState(tasks, count, &totalRuntime);
