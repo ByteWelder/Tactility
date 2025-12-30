@@ -225,7 +225,7 @@ static void updateRtosTasks(lv_obj_t* parent, bool showCpuPercent) {
     clearContainer(parent);
 
     UBaseType_t count = uxTaskGetNumberOfTasks();
-    auto* tasks = malloc(sizeof(TaskStatus_t) * count);
+    auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
     if (!tasks) {
         auto* error_label = lv_label_create(parent);
         lv_label_set_text(error_label, "Failed to allocate memory for task list");
@@ -371,7 +371,7 @@ class SystemInfoApp final : public App {
             // are averages over entire uptime, not instantaneous usage
             if (cpuSummaryLabel && taskCountLabel && uptimeLabel) {
                 UBaseType_t count = uxTaskGetNumberOfTasks();
-                auto* tasks = malloc(sizeof(TaskStatus_t) * count);
+                auto* tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
                 if (!tasks) tasks = (TaskStatus_t*)malloc(sizeof(TaskStatus_t) * count);
                 if (tasks) {
                     uint32_t totalRuntime = 0;
