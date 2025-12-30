@@ -79,6 +79,8 @@ else()
         PUBLIC lv_screenshot
         PUBLIC minmea
         PUBLIC minitar
+        PUBLIC KeyboardBacklight
+        PUBLIC Trackball
     )
 endif()
 

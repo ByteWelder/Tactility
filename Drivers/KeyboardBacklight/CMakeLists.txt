@@ -1,5 +1,24 @@
-idf_component_register(
-    SRC_DIRS "Source"
-    INCLUDE_DIRS "Source"
-    REQUIRES TactilityCore driver
-)
+cmake_minimum_required(VERSION 3.20)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (DEFINED ENV{ESP_IDF_VERSION})
+    idf_component_register(
+        SRC_DIRS "Source/"
+        INCLUDE_DIRS "Source/"
+        REQUIRES TactilityCore driver
+    )
+
+else()
+    file(GLOB SOURCES "Source/*.c*")
+    file(GLOB HEADERS "Source/*.h*")
+
+    add_library(KeyboardBacklight STATIC)
+
+    target_sources(KeyboardBacklight PRIVATE ${SOURCES})
+    include_directories(KeyboardBacklight "Source/")
+    target_include_directories(KeyboardBacklight PUBLIC "Source/")
+
+endif()
