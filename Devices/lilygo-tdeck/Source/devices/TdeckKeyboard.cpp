@@ -6,7 +6,7 @@
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/Device.h>
-#include <KeyboardBacklight.h>
+#include <KeyboardBacklight/KeyboardBacklight.h>
 
 using tt::hal::findFirstDevice;
 
@@ -60,7 +60,7 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
             // Restore keyboard backlight if enabled in settings
             auto ksettings = tt::settings::keyboard::loadOrGetDefault();
             if (ksettings.backlightEnabled) {
-                driver::keyboardbacklight::setBrightness(ksettings.backlightBrightness);
+                keyboardbacklight::setBrightness(ksettings.backlightBrightness);
             }
         }
     }

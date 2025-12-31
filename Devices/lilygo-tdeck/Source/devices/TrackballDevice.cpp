@@ -1,5 +1,5 @@
 #include "TrackballDevice.h"
-#include <Trackball.h>  // Driver
+#include <Trackball/Trackball.h>  // Driver
 
 bool TrackballDevice::start() {
     if (initialized) {
@@ -7,7 +7,7 @@ bool TrackballDevice::start() {
     }
     
     // T-Deck trackball GPIO configuration from LilyGo reference
-    driver::trackball::TrackballConfig config = {
+    trackball::TrackballConfig config = {
         .pinRight = GPIO_NUM_2,   // BOARD_TBOX_G02
         .pinUp = GPIO_NUM_3,      // BOARD_TBOX_G01
         .pinLeft = GPIO_NUM_1,    // BOARD_TBOX_G04
@@ -16,7 +16,7 @@ bool TrackballDevice::start() {
         .movementStep = 1  // pixels per movement
     };
     
-    indev = driver::trackball::init(config);
+    indev = trackball::init(config);
     if (indev != nullptr) {
         initialized = true;
         return true;
@@ -28,7 +28,7 @@ bool TrackballDevice::start() {
 bool TrackballDevice::stop() {
     if (initialized) {
         // LVGL will handle indev cleanup
-        driver::trackball::deinit();
+        trackball::deinit();
         indev = nullptr;
         initialized = false;
     }

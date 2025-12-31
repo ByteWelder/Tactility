@@ -4,7 +4,7 @@
 
 static const char* TAG = "KeyboardBacklight";
 
-namespace driver::keyboardbacklight {
+namespace keyboardbacklight {
 
 static const uint8_t CMD_BRIGHTNESS = 0x01;
 static const uint8_t CMD_DEFAULT_BRIGHTNESS = 0x02;

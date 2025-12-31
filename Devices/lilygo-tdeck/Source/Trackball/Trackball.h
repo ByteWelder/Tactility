@@ -3,7 +3,7 @@
 #include <driver/gpio.h>
 #include <lvgl.h>
 
-namespace driver::trackball {
+namespace trackball {
 
 /**
  * @brief Trackball configuration structure

@@ -3,7 +3,7 @@
 
 static const char* TAG = "Trackball";
 
-namespace driver::trackball {
+namespace trackball {
 
 static TrackballConfig g_config;
 static lv_indev_t* g_indev = nullptr;

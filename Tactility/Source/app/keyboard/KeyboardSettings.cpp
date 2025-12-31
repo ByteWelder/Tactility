@@ -1,3 +1,5 @@
+#ifdef ESP_PLATFORM
+
 #include <Tactility/Tactility.h>
 
 #include <Tactility/settings/KeyboardSettings.h>
@@ -7,11 +9,11 @@
 #include <lvgl.h>
 
 // Forward declare driver functions
-namespace driver::keyboardbacklight {
+namespace keyboardbacklight {
     bool setBrightness(uint8_t brightness);
 }
 
-namespace driver::trackball {
+namespace trackball {
     void setEnabled(bool enabled);
 }
 
@@ -20,7 +22,7 @@ namespace tt::app::keyboardsettings {
 constexpr auto* TAG = "KeyboardSettings";
 
 static void applyKeyboardBacklight(bool enabled, uint8_t brightness) {
-    driver::keyboardbacklight::setBrightness(enabled ? brightness : 0);
+    keyboardbacklight::setBrightness(enabled ? brightness : 0);
 }
 
 class KeyboardSettingsApp final : public App {
@@ -28,8 +30,8 @@ class KeyboardSettingsApp final : public App {
     settings::keyboard::KeyboardSettings kbSettings;
     bool updated = false;
     lv_obj_t* switchBacklight = nullptr;
-    lv_obj_t* sliderBrightness = nullptr;
     lv_obj_t* switchTrackball = nullptr;
+    lv_obj_t* sliderBrightness = nullptr;
     lv_obj_t* switchTimeoutEnable = nullptr;
     lv_obj_t* timeoutDropdown = nullptr;
 
@@ -60,7 +62,7 @@ class KeyboardSettingsApp final : public App {
         bool enabled = lv_obj_has_state(app->switchTrackball, LV_STATE_CHECKED);
         app->kbSettings.trackballEnabled = enabled;
         app->updated = true;
-        driver::trackball::setEnabled(enabled);
+        trackball::setEnabled(enabled);
     }
 
     static void onTimeoutEnableSwitch(lv_event_t* e) {
@@ -161,6 +163,8 @@ public:
         if (kbSettings.backlightTimeoutEnabled) lv_obj_add_state(switchTimeoutEnable, LV_STATE_CHECKED);
         lv_obj_align(switchTimeoutEnable, LV_ALIGN_RIGHT_MID, 0, 0);
         lv_obj_add_event_cb(switchTimeoutEnable, onTimeoutEnableSwitch, LV_EVENT_VALUE_CHANGED, this);
+        // Remove this state once implemented properly to sync with display backlight
+        lv_obj_add_state(switchTimeoutEnable, LV_STATE_DISABLED);
 
         auto* timeout_select_wrapper = lv_obj_create(main_wrapper);
         lv_obj_set_size(timeout_select_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
@@ -183,9 +187,11 @@ public:
         uint32_t idx = 2; // default 1 minute
         if (ms == 15000) idx = 0; else if (ms == 30000) idx = 1; else if (ms == 60000) idx = 2; else if (ms == 120000) idx = 3; else if (ms == 300000) idx = 4; else if (ms == 0) idx = 5;
         lv_dropdown_set_selected(timeoutDropdown, idx);
-        if (!kbSettings.backlightTimeoutEnabled) {
-            lv_obj_add_state(timeoutDropdown, LV_STATE_DISABLED);
-        }
+        //if (!kbSettings.backlightTimeoutEnabled) {
+            //lv_obj_add_state(timeoutDropdown, LV_STATE_DISABLED);
+        //}
+        // Remove this state and uncomment above once implemented properly to sync with display backlight
+        lv_obj_add_state(timeoutDropdown, LV_STATE_DISABLED);
     }
 
     void onHide(TT_UNUSED AppContext& app) override {
@@ -205,3 +211,5 @@ extern const AppManifest manifest = {
 };
 
 }
+
+#endif

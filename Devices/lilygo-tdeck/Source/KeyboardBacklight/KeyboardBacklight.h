@@ -3,7 +3,7 @@
 #include <driver/i2c.h>
 #include <cstdint>
 
-namespace driver::keyboardbacklight {
+namespace keyboardbacklight {
 
 /**
  * @brief Initialize keyboard backlight control

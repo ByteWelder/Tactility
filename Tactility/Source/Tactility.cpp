@@ -84,7 +84,9 @@ namespace app {
     namespace imageviewer { extern const AppManifest manifest; }
     namespace inputdialog { extern const AppManifest manifest; }
     namespace launcher { extern const AppManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
     namespace keyboardsettings { extern const AppManifest manifest; }
+#endif
     namespace localesettings { extern const AppManifest manifest; }
     namespace notes { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
@@ -126,7 +128,9 @@ static void registerInternalApps() {
     addAppManifest(app::imageviewer::manifest);
     addAppManifest(app::inputdialog::manifest);
     addAppManifest(app::launcher::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
     addAppManifest(app::keyboardsettings::manifest);
+#endif
     addAppManifest(app::localesettings::manifest);
     addAppManifest(app::notes::manifest);
     addAppManifest(app::settings::manifest);
