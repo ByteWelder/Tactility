@@ -12,8 +12,6 @@ static bool g_enabled = true;
 
 // Track last GPIO states for edge detection
 static bool g_lastState[5] = {false, false, false, false, false};
-// Encoder diff accumulator for navigation
-static int16_t g_encDiff = 0;
 
 static void read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     if (!g_initialized || !g_enabled) {

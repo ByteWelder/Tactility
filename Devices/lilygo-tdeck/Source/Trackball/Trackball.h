@@ -31,7 +31,7 @@ void deinit();
 
 /**
  * @brief Set movement step size
- * @param step Pixels to move per trackball event
+ * @param step Encoder steps per trackball event
  */
 void setMovementStep(uint8_t step);
 
