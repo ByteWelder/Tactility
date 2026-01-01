@@ -4,16 +4,7 @@
 #include <Tactility/Timer.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/settings/DisplaySettings.h>
-//#include <Tactility/settings/KeyboardSettings.h>
 #include <Tactility/hal/display/DisplayDevice.h>
-//#include <Tactility/hal/keyboard/KeyboardDevice.h>
-
-// TODO: KEYBOARD STUFF COMMENTED OUT FOR FUTURE REFERENCE!!
-
-// Forward declare driver functions
-/* namespace driver::keyboardbacklight {
-    bool setBrightness(uint8_t brightness);
-} */
 
 namespace tt::service::displayidle {
 
@@ -23,17 +14,11 @@ class DisplayIdleService final : public Service {
 
     std::unique_ptr<Timer> timer;
     bool displayDimmed = false;
-    //bool keyboardDimmed = false;
     settings::display::DisplaySettings cachedDisplaySettings;
-    //settings::keyboard::KeyboardSettings cachedKeyboardSettings;
 
     static std::shared_ptr<hal::display::DisplayDevice> getDisplay() {
         return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
     }
-
-/*     static std::shared_ptr<hal::keyboard::KeyboardDevice> getKeyboard() {
-        return hal::findFirstDevice<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
-    } */
 
     void tick() {
         // Settings are now cached and event-driven (no file I/O in timer callback!)
@@ -65,25 +50,6 @@ class DisplayIdleService final : public Service {
                 }
             }
         }
-
-        // Handle keyboard backlight
-/*         auto keyboard = getKeyboard();
-        if (keyboard != nullptr && keyboard->isAttached()) {
-            if (!cachedKeyboardSettings.backlightTimeoutEnabled || cachedKeyboardSettings.backlightTimeoutMs == 0) {
-                if (keyboardDimmed) {
-                    driver::keyboardbacklight::setBrightness(cachedKeyboardSettings.backlightEnabled ? cachedKeyboardSettings.backlightBrightness : 0);
-                    keyboardDimmed = false;
-                }
-            } else {
-                if (!keyboardDimmed && inactive_ms >= cachedKeyboardSettings.backlightTimeoutMs) {
-                    driver::keyboardbacklight::setBrightness(0);
-                    keyboardDimmed = true;
-                } else if (keyboardDimmed && inactive_ms < 100) {
-                    driver::keyboardbacklight::setBrightness(cachedKeyboardSettings.backlightEnabled ? cachedKeyboardSettings.backlightBrightness : 0);
-                    keyboardDimmed = false;
-                }
-            }
-        } */
     }
 
 public:
@@ -91,10 +57,9 @@ public:
         // Load settings once at startup and cache them
         // This eliminates file I/O from timer callback (prevents watchdog timeout)
         cachedDisplaySettings = settings::display::loadOrGetDefault();
-        //cachedKeyboardSettings = settings::keyboard::loadOrGetDefault();
         
         // Note: Settings changes require service restart to take effect
-        // TODO: Add DisplaySettingsChanged/KeyboardSettingsChanged events for dynamic updates
+        // TODO: Add DisplaySettingsChanged events for dynamic updates
         
         timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]{ this->tick(); });
         timer->setThreadPriority(Thread::Priority::Lower);
@@ -113,12 +78,6 @@ public:
             display->setBacklightDuty(cachedDisplaySettings.backlightDuty);
             displayDimmed = false;
         }
-        // Ensure keyboard backlight restored on stop
-/*         auto keyboard = getKeyboard();
-        if (keyboard && keyboardDimmed) {
-            driver::keyboardbacklight::setBrightness(cachedKeyboardSettings.backlightEnabled ? cachedKeyboardSettings.backlightBrightness : 0);
-            keyboardDimmed = false;
-        } */
     }
 };
 

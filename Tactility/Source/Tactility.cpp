@@ -52,6 +52,9 @@ namespace service {
     namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
     namespace displayidle { extern const ServiceManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    namespace keyboardidle { extern const ServiceManifest manifest; }
+#endif
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
@@ -235,6 +238,9 @@ static void registerAndStartSecondaryServices() {
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
     addService(service::displayidle::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    addService(service::keyboardidle::manifest);
+#endif
     addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
