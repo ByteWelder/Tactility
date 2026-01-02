@@ -1,4 +1,4 @@
-#include "Tactility/TactilityConfig.h"
+#include <Tactility/TactilityConfig.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 

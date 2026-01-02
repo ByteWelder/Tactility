@@ -1,9 +1,9 @@
-#include "Tactility/Check.h"
+#include <Tactility/Check.h>
 
-#include "Tactility/Log.h"
-#include "Tactility/RtosCompatTask.h"
+#include <Tactility/Log.h>
+#include <Tactility/freertoscompat/Task.h>
 
-#define TAG "kernel"
+constexpr auto TAG = "kernel";
 
 static void logMemoryInfo() {
 #ifdef ESP_PLATFORM

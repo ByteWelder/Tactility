@@ -22,14 +22,14 @@ void syncSet(LvglLock lock, LvglUnlock unlock) {
     auto old_unlock = unlock_singleton;
 
     // Ensure the old lock is not engaged when changing locks
-    old_lock((uint32_t)portMAX_DELAY);
+    old_lock((uint32_t)kernel::MAX_TICKS);
     lock_singleton = lock;
     unlock_singleton = unlock;
     old_unlock();
 }
 
 bool lock(TickType_t timeout) {
-    return lock_singleton(pdMS_TO_TICKS(timeout == 0 ? portMAX_DELAY : timeout));
+    return lock_singleton(pdMS_TO_TICKS(timeout == 0 ? kernel::MAX_TICKS : timeout));
 }
 
 void unlock() {
@@ -44,9 +44,8 @@ public:
         return lvgl::lock(timeoutTicks);
     }
 
-    bool unlock() const override {
+    void unlock() const override {
         lvgl::unlock();
-        return true;
     }
 };
 

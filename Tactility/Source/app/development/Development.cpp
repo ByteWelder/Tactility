@@ -1,5 +1,7 @@
 #ifdef ESP_PLATFORM
 
+#include <Tactility/Timer.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -9,8 +11,6 @@
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
 
 #include <cstring>
 #include <lvgl.h>
@@ -27,7 +27,7 @@ class DevelopmentApp final : public App {
     lv_obj_t* statusLabel = nullptr;
     std::shared_ptr<service::development::DevelopmentService> service;
 
-    Timer timer = Timer(Timer::Type::Periodic, [this] {
+    Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] {
         auto lock = lvgl::getSyncLock()->asScopedLock();
         // TODO: There's a crash when this is called when the app is being destroyed
         if (lock.lock(lvgl::defaultLockTime) && lvgl::isStarted()) {
@@ -148,7 +148,7 @@ public:
 
         updateViewState();
 
-        timer.start(1000);
+        timer.start();
     }
 
     void onHide(AppContext& appContext) override {

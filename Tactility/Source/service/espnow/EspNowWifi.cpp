@@ -4,9 +4,10 @@
 
 #ifdef CONFIG_ESP_WIFI_ENABLED
 
-#include "Tactility/service/espnow/EspNow.h"
-#include "Tactility/service/wifi/Wifi.h"
+#include <Tactility/kernel/Kernel.h>
 #include <Tactility/Log.h>
+#include <Tactility/service/espnow/EspNow.h>
+#include <Tactility/service/wifi/Wifi.h>
 
 #include <esp_now.h>
 #include <esp_wifi.h>

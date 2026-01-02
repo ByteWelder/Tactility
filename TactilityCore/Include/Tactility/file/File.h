@@ -4,7 +4,8 @@
  */
 #pragma once
 
-#include "Tactility/TactilityCore.h"
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Lock.h>
 
 #include <cstdio>
 #include <dirent.h>

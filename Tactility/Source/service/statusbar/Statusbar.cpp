@@ -1,16 +1,16 @@
 #include <Tactility/lvgl/Statusbar.h>
 
+#include <Tactility/Timer.h>
+#include <Tactility/Mutex.h>
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Mutex.h>
-#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/Timer.h>
 
 namespace tt::service::statusbar {
 
@@ -265,14 +265,14 @@ public:
         assert(service);
         service->update();
 
-        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service] {
+        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [service] {
             service->update();
         });
 
-        updateTimer->setThreadPriority(Thread::Priority::Lower);
+        updateTimer->setCallbackPriority(Thread::Priority::Lower);
 
         // We want to try and scan more often in case of startup or scan lock failure
-        updateTimer->start(1000);
+        updateTimer->start();
 
         return true;
     }

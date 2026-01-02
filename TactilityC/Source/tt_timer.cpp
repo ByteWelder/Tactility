@@ -9,9 +9,9 @@ struct TimerWrapper {
 
 extern "C" {
 
-TimerHandle tt_timer_alloc(TimerType type, TimerCallback callback, void* callbackContext) {
+TimerHandle tt_timer_alloc(TimerType type, TickType ticks, TimerCallback callback, void* callbackContext) {
     auto wrapper = new TimerWrapper;
-    wrapper->timer = std::make_unique<tt::Timer>(static_cast<tt::Timer::Type>(type), [callback, callbackContext](){ callback(callbackContext); });
+    wrapper->timer = std::make_unique<tt::Timer>(static_cast<tt::Timer::Type>(type), ticks, [callback, callbackContext](){ callback(callbackContext); });
     return wrapper;
 }
 
@@ -21,12 +21,16 @@ void tt_timer_free(TimerHandle handle) {
     delete wrapper;
 }
 
-bool tt_timer_start(TimerHandle handle, TickType_t intervalTicks) {
-    return HANDLE_TO_WRAPPER(handle)->timer->start(intervalTicks);
+bool tt_timer_start(TimerHandle handle) {
+    return HANDLE_TO_WRAPPER(handle)->timer->start();
 }
 
-bool tt_timer_restart(TimerHandle handle, TickType_t intervalTicks) {
-    return HANDLE_TO_WRAPPER(handle)->timer->restart(intervalTicks);
+bool tt_timer_reset(TimerHandle handle) {
+    return HANDLE_TO_WRAPPER(handle)->timer->reset();
+}
+
+bool tt_timer_reset_with_interval(TimerHandle handle, TickType interval) {
+    return HANDLE_TO_WRAPPER(handle)->timer->reset(interval);
 }
 
 bool tt_timer_stop(TimerHandle handle) {
@@ -37,8 +41,8 @@ bool tt_timer_is_running(TimerHandle handle) {
     return HANDLE_TO_WRAPPER(handle)->timer->isRunning();
 }
 
-uint32_t tt_timer_get_expire_time(TimerHandle handle) {
-    return HANDLE_TO_WRAPPER(handle)->timer->getExpireTime();
+uint32_t tt_timer_get_expiry_time(TimerHandle handle) {
+    return HANDLE_TO_WRAPPER(handle)->timer->getExpiryTime();
 }
 
 bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback callback, void* callbackContext, uint32_t callbackArg, TickType_t timeoutTicks) {
@@ -46,12 +50,12 @@ bool tt_timer_set_pending_callback(TimerHandle handle, TimerPendingCallback call
         callback,
         callbackContext,
         callbackArg,
-        (TickType_t)timeoutTicks
+        timeoutTicks
     );
 }
 
 void tt_timer_set_thread_priority(TimerHandle handle, ThreadPriority priority) {
-    HANDLE_TO_WRAPPER(handle)->timer->setThreadPriority(static_cast<tt::Thread::Priority>(priority));
+    HANDLE_TO_WRAPPER(handle)->timer->setCallbackPriority(static_cast<tt::Thread::Priority>(priority));
 }
 
 }

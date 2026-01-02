@@ -1,5 +1,6 @@
 #include <Tactility/app/AppManifestParsing.h>
 
+#include <Tactility/Log.h>
 #include <regex>
 
 namespace tt::app {

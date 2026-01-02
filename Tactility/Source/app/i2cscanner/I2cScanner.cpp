@@ -8,10 +8,10 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 
+#include <Tactility/Timer.h>
 #include <Tactility/Assets.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
 
 #include <format>
 
@@ -278,10 +278,10 @@ void I2cScannerApp::startScanning() {
         lv_obj_clean(scanListWidget);
 
         scanState = ScanStateScanning;
-        scanTimer = std::make_unique<Timer>(Timer::Type::Once, [this]{
+        scanTimer = std::make_unique<Timer>(Timer::Type::Once, 10, [this]{
             onScanTimer();
         });
-        scanTimer->start(10);
+        scanTimer->start();
         mutex.unlock();
     } else {
         TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "startScanning");

@@ -1,11 +1,15 @@
-#include "Tactility/hal/gps/Cas.h"
-#include "Tactility/hal/gps/GpsDevice.h"
-#include "Tactility/hal/gps/Ublox.h"
+#include <Tactility/Check.h>
+#include <Tactility/hal/gps/Cas.h>
+#include <Tactility/hal/gps/GpsDevice.h>
+#include <Tactility/hal/gps/Ublox.h>
+#include <Tactility/kernel/Kernel.h>
+#include <Tactility/Log.h>
+
 #include <cstring>
 
-#define TAG "gps"
-
 namespace tt::hal::gps {
+
+constexpr auto TAG = "gps";
 
 bool initMtk(uart::Uart& uart);
 bool initMtkL76b(uart::Uart& uart);

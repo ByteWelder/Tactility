@@ -8,6 +8,7 @@
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/kernel/Platform.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
@@ -71,7 +72,7 @@ static void onModeSetCallback(TT_UNUSED lv_event_t* event) {
 }
 
 ScreenshotApp::ScreenshotApp() {
-    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, 500 / portTICK_PERIOD_MS, [this] {
         onTimerTick();
     });
 }
@@ -274,7 +275,7 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
     updateScreenshotMode();
 
     if (!updateTimer->isRunning()) {
-        updateTimer->start(500 / portTICK_PERIOD_MS);
+        updateTimer->start();
     }
 }
 

@@ -1,12 +1,12 @@
-#include "Tactility/app/AppContext.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
+#include <Tactility/app/AppContext.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
 
-#include "Tactility/hal/power/PowerDevice.h"
-#include <Tactility/Assets.h>
+#include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/Timer.h>
+#include <Tactility/Assets.h>
 #include <Tactility/hal/Device.h>
 
 #include <lvgl.h>
@@ -31,7 +31,7 @@ std::shared_ptr<PowerApp> _Nullable optApp() {
 
 class PowerApp : public App {
 
-    Timer update_timer = Timer(Timer::Type::Periodic, []() { onTimer(); });
+    Timer update_timer = Timer(Timer::Type::Periodic, kernel::millisToTicks(1000),[]() { onTimer(); });
 
     std::shared_ptr<hal::power::PowerDevice> power;
 
@@ -180,7 +180,7 @@ public:
 
         updateUi();
 
-        update_timer.start(kernel::millisToTicks(1000));
+        update_timer.start();
     }
 
     void onHide(TT_UNUSED AppContext& app) override {

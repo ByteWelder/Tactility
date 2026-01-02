@@ -2,14 +2,11 @@
 
 #include <Tactility/Log.h>
 #include <Tactility/Mutex.h>
-
-#ifdef ESP_PLATFORM
-#include <esp_check.h>
-#endif // ESP_PLATFORM
-
-#define TAG "i2c"
+#include <Tactility/Check.h>
 
 namespace tt::hal::i2c {
+
+constexpr auto TAG = "i2c";
 
 struct Data {
     Mutex mutex;

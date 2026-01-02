@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Tactility/app/AppContext.h>
 #include <Tactility/MessageQueue.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/app/AppContext.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/loader/Loader.h>
 
@@ -21,6 +21,7 @@ class GuiService final : public Service {
 
     // Thread and lock
     Thread* thread = nullptr;
+    EventGroup threadFlags;
     RecursiveMutex mutex;
     PubSub<loader::LoaderService::Event>::SubscriptionHandle loader_pubsub_subscription = nullptr;
 
@@ -49,7 +50,7 @@ class GuiService final : public Service {
     }
 
     void unlock() const {
-        tt_check(mutex.unlock());
+        mutex.unlock();
     }
 
     void showApp(std::shared_ptr<app::AppInstance> app);

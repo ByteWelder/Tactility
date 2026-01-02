@@ -7,9 +7,9 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 
+#include <Tactility/Timer.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/Timer.h>
 
 #include <lvgl.h>
 #include <memory>
@@ -82,7 +82,7 @@ class TimeZoneApp final : public App {
                 updateTimer->stop();
             }
 
-            updateTimer->start(500 / portTICK_PERIOD_MS);
+            updateTimer->start();
 
             mutex.unlock();
         }
@@ -220,7 +220,7 @@ public:
     }
 
     void onCreate(AppContext& app) override {
-        updateTimer = std::make_unique<Timer>(Timer::Type::Once, [this] {
+        updateTimer = std::make_unique<Timer>(Timer::Type::Once, 500 / portTICK_PERIOD_MS, [this] {
             updateList();
         });
     }

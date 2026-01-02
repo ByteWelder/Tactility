@@ -3,7 +3,7 @@
 
 #include <symbols/freertos.h>
 
-#include <Tactility/RtosCompat.h>
+#include <Tactility/freertoscompat/RTOS.h>
 #include <freertos/task.h>
 #include <freertos/event_groups.h>
 

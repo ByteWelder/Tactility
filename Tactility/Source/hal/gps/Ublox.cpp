@@ -1,11 +1,14 @@
-#include "Tactility/hal/gps/Ublox.h"
-#include "Tactility/hal/gps/UbloxMessages.h"
-#include "Tactility/hal/uart/Uart.h"
+#include <Tactility/hal/gps/Ublox.h>
+#include <Tactility/hal/gps/UbloxMessages.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/kernel/Kernel.h>
+#include <Tactility/Log.h>
+
 #include <cstring>
 
-#define TAG "ublox"
-
 namespace tt::hal::gps::ublox {
+
+constexpr auto TAG = "ublox";
 
 bool initUblox6(uart::Uart& uart);
 bool initUblox789(uart::Uart& uart, GpsModel model);

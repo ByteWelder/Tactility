@@ -4,7 +4,7 @@
 #include "Tactility/hal/sdcard/SdCardDevice.h"
 #include <Tactility/Log.h>
 #include <Tactility/MountPoints.h>
-#include <Tactility/kernel/Kernel.h>
+#include <Tactility/kernel/Platform.h>
 
 #include <cstring>
 #include <unistd.h>

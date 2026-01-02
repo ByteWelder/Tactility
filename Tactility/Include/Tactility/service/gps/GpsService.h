@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Tactility/Mutex.h"
-#include "Tactility/RecursiveMutex.h"
-#include "Tactility/PubSub.h"
-#include "Tactility/hal/gps/GpsDevice.h"
-#include "Tactility/service/Service.h"
-#include "Tactility/service/ServiceContext.h"
-#include "Tactility/service/gps/GpsState.h"
+#include <Tactility/PubSub.h>
+#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/hal/gps/GpsDevice.h>
+#include <Tactility/service/Service.h>
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/gps/GpsState.h>
 
 namespace tt::service::gps {
 

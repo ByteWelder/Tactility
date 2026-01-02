@@ -1,6 +1,8 @@
 #ifdef ESP_PLATFORM
 
 #include <Tactility/network/HttpServer.h>
+
+#include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 namespace tt::network {

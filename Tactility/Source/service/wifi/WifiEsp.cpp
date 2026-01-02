@@ -6,15 +6,15 @@
 
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <Tactility/EventFlag.h>
+#include <Tactility/Timer.h>
+#include <Tactility/EventGroup.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/kernel/SystemEvents.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/wifi/WifiBootSplashInit.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
 #include <Tactility/service/wifi/WifiSettings.h>
-#include <Tactility/service/wifi/WifiBootSplashInit.h>
-#include <Tactility/Timer.h>
 
 #include <lwip/esp_netif_net_stack.h>
 #include <freertos/FreeRTOS.h>
@@ -66,10 +66,10 @@ public:
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
     /** @brief when we last requested a scan. Loops around every 50 days. */
-    TickType_t last_scan_time = portMAX_DELAY;
+    TickType_t last_scan_time = kernel::MAX_TICKS;
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
-    EventFlag connection_wait_flags;
+    EventGroup connection_wait_flags;
     settings::WifiApSettings connection_target;
     bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
@@ -792,32 +792,34 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
      * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
      * The bits are set by wifi_event_handler() */
-    uint32_t bits = wifi_singleton->connection_wait_flags.wait(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
-    TT_LOG_I(TAG, "Waiting for EventFlag by event_handler()");
+    uint32_t bits;
+    if (wifi_singleton->connection_wait_flags.wait(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT, false, true, kernel::MAX_TICKS, &bits)) {
+        TT_LOG_I(TAG, "Waiting for EventGroup by event_handler()");
 
-    if (bits & WIFI_CONNECTED_BIT) {
-        wifi->setSecureConnection(config.sta.password[0] != 0x00U);
-        wifi->setRadioState(RadioState::ConnectionActive);
-        publish_event(wifi, WifiEvent::ConnectionSuccess);
-        TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid.c_str());
-        if (wifi->connection_target_remember) {
-            if (!settings::save(wifi->connection_target)) {
-                TT_LOG_E(TAG, "Failed to store credentials");
-            } else {
-                TT_LOG_I(TAG, "Stored credentials");
+        if (bits & WIFI_CONNECTED_BIT) {
+            wifi->setSecureConnection(config.sta.password[0] != 0x00U);
+            wifi->setRadioState(RadioState::ConnectionActive);
+            publish_event(wifi, WifiEvent::ConnectionSuccess);
+            TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid.c_str());
+            if (wifi->connection_target_remember) {
+                if (!settings::save(wifi->connection_target)) {
+                    TT_LOG_E(TAG, "Failed to store credentials");
+                } else {
+                    TT_LOG_I(TAG, "Stored credentials");
+                }
             }
+        } else if (bits & WIFI_FAIL_BIT) {
+            wifi->setRadioState(RadioState::On);
+            publish_event(wifi, WifiEvent::ConnectionFailed);
+            TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid.c_str());
+        } else {
+            wifi->setRadioState(RadioState::On);
+            publish_event(wifi, WifiEvent::ConnectionFailed);
+            TT_LOG_E(TAG, "UNEXPECTED EVENT");
         }
-    } else if (bits & WIFI_FAIL_BIT) {
-        wifi->setRadioState(RadioState::On);
-        publish_event(wifi, WifiEvent::ConnectionFailed);
-        TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid.c_str());
-    } else {
-        wifi->setRadioState(RadioState::On);
-        publish_event(wifi, WifiEvent::ConnectionFailed);
-        TT_LOG_E(TAG, "UNEXPECTED EVENT");
-    }
 
-    wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
+        wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
+    }
 }
 
 static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
@@ -920,9 +922,10 @@ public:
             bootSplashInit();
         });
 
-        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, []() { onAutoConnectTimer(); });
+        auto timer_interval = std::min(2000, AUTO_SCAN_INTERVAL);
+        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, timer_interval, [] { onAutoConnectTimer(); });
         // We want to try and scan more often in case of startup or scan lock failure
-        wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
+        wifi_singleton->autoConnectTimer->start();
 
         if (settings::shouldEnableOnBoot()) {
             TT_LOG_I(TAG, "Auto-enabling due to setting");

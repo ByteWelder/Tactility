@@ -12,7 +12,6 @@
 #include "tt_hal_i2c.h"
 #include "tt_hal_touch.h"
 #include "tt_hal_uart.h"
-#include "tt_kernel.h"
 #include <tt_lock.h>
 #include "tt_lvgl.h"
 #include "tt_lvgl_keyboard.h"
@@ -261,15 +260,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_uart_set_baud_rate),
     ESP_ELFSYM_EXPORT(tt_hal_uart_get_baud_rate),
     ESP_ELFSYM_EXPORT(tt_hal_uart_flush_input),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_millis),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_micros),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_millis_to_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_until_tick),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_tick_frequency),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_millis),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_micros),
     ESP_ELFSYM_EXPORT(tt_lvgl_is_started),
     ESP_ELFSYM_EXPORT(tt_lvgl_lock),
     ESP_ELFSYM_EXPORT(tt_lvgl_unlock),
@@ -295,8 +285,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_message_queue_free),
     ESP_ELFSYM_EXPORT(tt_message_queue_put),
     ESP_ELFSYM_EXPORT(tt_message_queue_get),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_capacity),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_message_size),
     ESP_ELFSYM_EXPORT(tt_message_queue_get_count),
     ESP_ELFSYM_EXPORT(tt_message_queue_reset),
     ESP_ELFSYM_EXPORT(tt_preferences_alloc),
@@ -324,15 +312,16 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_thread_get_state),
     ESP_ELFSYM_EXPORT(tt_thread_start),
     ESP_ELFSYM_EXPORT(tt_thread_join),
-    ESP_ELFSYM_EXPORT(tt_thread_get_id),
+    ESP_ELFSYM_EXPORT(tt_thread_get_task_handle),
     ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
     ESP_ELFSYM_EXPORT(tt_timer_alloc),
     ESP_ELFSYM_EXPORT(tt_timer_free),
     ESP_ELFSYM_EXPORT(tt_timer_start),
-    ESP_ELFSYM_EXPORT(tt_timer_restart),
+    ESP_ELFSYM_EXPORT(tt_timer_reset),
+    ESP_ELFSYM_EXPORT(tt_timer_reset_with_interval),
     ESP_ELFSYM_EXPORT(tt_timer_stop),
     ESP_ELFSYM_EXPORT(tt_timer_is_running),
-    ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
+    ESP_ELFSYM_EXPORT(tt_timer_get_expiry_time),
     ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
     ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     ESP_ELFSYM_EXPORT(tt_timezone_set),

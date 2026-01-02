@@ -1,9 +1,12 @@
 #ifdef ESP_PLATFORM
 
-#include <Tactility/lvgl/LvglSync.h>
-#include <esp_lvgl_port.h>
+#include <Tactility/Thread.h>
 #include <Tactility/CpuAffinity.h>
+#include <Tactility/Log.h>
 #include <Tactility/Mutex.h>
+#include <Tactility/lvgl/LvglSync.h>
+
+#include <esp_lvgl_port.h>
 
 // LVGL
 // The minimum task stack seems to be about 3500, but that crashes the wifi app in some scenarios

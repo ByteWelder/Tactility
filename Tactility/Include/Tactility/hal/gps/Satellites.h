@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/RtosCompat.h>
+#include <Tactility/freertoscompat/RTOS.h>
 #include <Tactility/RecursiveMutex.h>
 
 #include <minmea.h>

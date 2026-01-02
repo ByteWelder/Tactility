@@ -1,12 +1,14 @@
-#include "Tactility/hal/gps/Satellites.h"
+#include <Tactility/hal/gps/Satellites.h>
+#include <Tactility/kernel/Kernel.h>
+#include <Tactility/Log.h>
 
 #include <algorithm>
 
-#define TAG "satellites"
-
 namespace tt::hal::gps {
 
-constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
+constexpr auto TAG = "Satellites";
+
+constexpr bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
     return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
 }
 
@@ -45,7 +47,7 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
     lock.lock();
 
     int candidate_index = -1;
-    auto candidate_age = portMAX_DELAY;
+    auto candidate_age = kernel::MAX_TICKS;
     TickType_t expire_duration = kernel::secondsToTicks(recycleTimeSeconds);
     TickType_t now = kernel::getTicks();
     for (int i = 0; i < records.size(); ++i) {

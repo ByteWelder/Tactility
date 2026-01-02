@@ -19,6 +19,7 @@ else ()
     target_link_libraries(FirmwareSim
         PRIVATE Tactility
         PRIVATE TactilityCore
+        PRIVATE TactilityFreeRtos
         PRIVATE Simulator
         PRIVATE SDL2::SDL2-static SDL2-static
     )

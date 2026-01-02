@@ -1,9 +1,9 @@
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceRegistration.h>
 
+#include <Tactility/Timer.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
 namespace tt::service::sdcard {
@@ -60,12 +60,12 @@ public:
         }
 
         auto service = findServiceById<SdCardService>(manifest.id);
-        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [service]() {
+        updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, 1000, [service] {
             service->update();
         });
 
         // We want to try and scan more often in case of startup or scan lock failure
-        updateTimer->start(1000);
+        updateTimer->start();
 
         return true;
     }

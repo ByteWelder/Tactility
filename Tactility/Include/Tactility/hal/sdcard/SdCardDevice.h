@@ -3,6 +3,7 @@
 #include "../Device.h"
 
 #include <Tactility/TactilityCore.h>
+#include <Tactility/Lock.h>
 
 namespace tt::hal::sdcard {
 
@@ -51,7 +52,7 @@ public:
      */
     virtual bool unmount() = 0;
 
-    virtual State getState(TickType_t timeout = portMAX_DELAY) const = 0;
+    virtual State getState(TickType_t timeout = kernel::MAX_TICKS) const = 0;
 
     /** @return empty string when not mounted or the mount path if mounted */
     virtual std::string getMountPath() const = 0;
@@ -63,7 +64,7 @@ public:
     virtual MountBehaviour getMountBehaviour() const { return mountBehaviour; }
 
     /** @return true if the SD card was mounted, returns false when it was not or when a timeout happened. */
-    bool isMounted(TickType_t timeout = portMAX_DELAY) const { return getState(timeout) == State::Mounted; }
+    bool isMounted(TickType_t timeout = kernel::MAX_TICKS) const { return getState(timeout) == State::Mounted; }
 };
 
 /** Return the SdCard device if the path is within the SdCard mounted path (path std::string::starts_with() check)*/

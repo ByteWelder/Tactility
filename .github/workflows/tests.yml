@@ -21,5 +21,7 @@ jobs:
         run: cmake --build build --target build-tests
       - name: "Run TactilityCore Tests"
         run: build/Tests/TactilityCore/TactilityCoreTests --exit
+      - name: "Run TactilityFreertos Tests"
+        run: build/Tests/TactilityFreertos/TactilityFreertosTests --exit
       - name: "Run TactilityHeadless Tests"
         run: build/Tests/Tactility/TactilityTests --exit

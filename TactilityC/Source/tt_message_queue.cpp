@@ -21,23 +21,11 @@ bool tt_message_queue_get(MessageQueueHandle handle, void* message, TickType_t t
     return HANDLE_TO_MESSAGE_QUEUE(handle)->get(message, timeout);
 }
 
-uint32_t tt_message_queue_get_capacity(MessageQueueHandle handle) {
-    return HANDLE_TO_MESSAGE_QUEUE(handle)->getCapacity();
-}
-
-uint32_t tt_message_queue_get_message_size(MessageQueueHandle handle) {
-    return HANDLE_TO_MESSAGE_QUEUE(handle)->getMessageSize();
-}
-
 uint32_t tt_message_queue_get_count(MessageQueueHandle handle) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->getCount();
 }
 
-uint32_t tt_message_queue_get_space(MessageQueueHandle handle) {
-    return HANDLE_TO_MESSAGE_QUEUE(handle)->getSpace();
-}
-
-bool tt_message_queue_reset(MessageQueueHandle handle) {
+void tt_message_queue_reset(MessageQueueHandle handle) {
     return HANDLE_TO_MESSAGE_QUEUE(handle)->reset();
 }
 

@@ -4,7 +4,7 @@
 
 namespace tt::app::i2cscanner {
 
-#define TAG "i2cscanner"
+static constexpr auto TAG = "i2cscanner";
 
 enum ScanState {
     ScanStateInitial,
