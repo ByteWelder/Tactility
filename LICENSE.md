@@ -1,15 +1,20 @@
-# Tactility
+# Tactility: Main License
 
-The Tactility project is available under the [GNU General Public License v3](Documentation/license-tactility.md).
+The Tactility project code is available under the [GNU General Public License v3](Documentation/license-tactility.md).
 Distributions and forks must adhere to the license terms.
 
 The Tactility logo copyrights are owned by Ken Van Hoeylandt.
 Firmwares built from [the original repository](https://github.com/ByteWelder/Tactility) can be redistributed with the Tactility logo.
 For other usages, [contact me](https://kenvanhoeylandt.net).
 
-# TactilityC & TactilitySDK
+Third-party projects that were included in Tactility retain their licenses.
 
-TactilityC (source & binaries) and the TactilitySDK distribution files are available via the [Apache License Version 2.0](Documentation/license-tactilitysdk.md).
+# Tactility: Secondary License
+
+The following projects are also available under [Apache License Version 2.0](Documentation/license-tactilitysdk.md):
+- TactilityC
+- TactilityFreeRtos
+- TactilitySDK (source and binaries)
 
 # Other licenses & copyrights
 

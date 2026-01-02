@@ -9,7 +9,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
     idf_component_register(
         SRCS ${SOURCE_FILES}
         INCLUDE_DIRS "Include/"
-        REQUIRES mbedtls nvs_flash esp_rom esp_timer
+        REQUIRES TactilityFreeRtos mbedtls nvs_flash esp_rom
     )
 
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -32,7 +32,7 @@ else()
     add_definitions(-D_Nonnull=)
 
     target_link_libraries(TactilityCore
+        PUBLIC TactilityFreeRtos
         PUBLIC mbedtls
-        PUBLIC freertos_kernel
     )
 endif()

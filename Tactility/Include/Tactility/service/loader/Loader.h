@@ -1,11 +1,11 @@
 #pragma once
 
-#include <Tactility/app/AppInstance.h>
-#include <Tactility/app/AppManifest.h>
-#include <Tactility/Bundle.h>
 #include <Tactility/DispatcherThread.h>
+#include <Tactility/Bundle.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
+#include <Tactility/app/AppInstance.h>
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/service/Service.h>
 
 #include <memory>

@@ -1,12 +1,13 @@
 #ifdef ESP_PLATFORM
 
-#include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/service/ServiceManifest.h>
-#include <Tactility/service/ServiceContext.h>
-#include <Tactility/Timer.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/settings/KeyboardSettings.h>
+#include <Tactility/CoreDefines.h>
 #include <Tactility/hal/keyboard/KeyboardDevice.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/settings/KeyboardSettings.h>
+#include <Tactility/Timer.h>
 
 namespace keyboardbacklight {
     bool setBrightness(uint8_t brightness);
@@ -67,9 +68,9 @@ public:
         // Note: Settings changes require service restart to take effect
         // TODO: Add KeyboardSettingsChanged events for dynamic updates
         
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]{ this->tick(); });
-        timer->setThreadPriority(Thread::Priority::Lower);
-        timer->start(250); // check 4x per second for snappy restore
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::millisToTicks(250), [this]{ this->tick(); });
+        timer->setCallbackPriority(Thread::Priority::Lower);
+        timer->start();
         return true;
     }
 

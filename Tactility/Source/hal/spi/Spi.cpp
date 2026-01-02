@@ -1,5 +1,6 @@
-#include "Tactility/hal/spi/Spi.h"
+#include <Tactility/hal/spi/Spi.h>
 
+#include <Tactility/Log.h>
 #include <Tactility/RecursiveMutex.h>
 
 namespace tt::hal::spi {

@@ -1,5 +1,6 @@
 #include <Tactility/Tactility.h>
 
+#include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -7,7 +8,6 @@
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/gps/GpsState.h>
 #include <Tactility/service/loader/Loader.h>
-#include <Tactility/Timer.h>
 
 #include <cstring>
 #include <format>
@@ -62,7 +62,7 @@ class GpsSettingsApp final : public App {
     }
 
     void startReceivingUpdates() {
-        timer->start(kernel::secondsToTicks(1));
+        timer->start();
         updateViews();
     }
 
@@ -268,7 +268,7 @@ class GpsSettingsApp final : public App {
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this] {
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::secondsToTicks(1), [this] {
             updateViews();
         });
         service = service::gps::findGpsService();

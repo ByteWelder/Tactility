@@ -1,13 +1,14 @@
 #include "LvglTask.h"
 
-#include <Tactility/Log.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Thread.h>
+#include <Tactility/Log.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/lvgl/LvglSync.h>
 
+#include <Tactility/Check.h>
 #include <lvgl.h>
 
-#define TAG "lvgl_task"
+constexpr auto TAG = "lvgl_task";
 
 // Mutex for LVGL drawing
 static tt::RecursiveMutex lvgl_mutex;

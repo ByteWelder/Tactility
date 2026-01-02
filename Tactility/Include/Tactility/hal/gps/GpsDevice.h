@@ -4,8 +4,8 @@
 #include "GpsConfiguration.h"
 #include "Satellites.h"
 
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Thread.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <minmea.h>
 #include <utility>

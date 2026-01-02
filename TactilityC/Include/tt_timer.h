@@ -1,7 +1,7 @@
 #pragma once
 
+#include "tt_kernel.h"
 #include "tt_thread.h"
-#include <freertos/FreeRTOS.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -15,8 +15,8 @@ typedef void* TimerHandle;
 
 /** The behaviour of the timer */
 typedef enum {
-    TimerTypeOnce = 0,    ///< One-shot timer.
-    TimerTypePeriodic = 1 ///< Repeating timer.
+    TimerTypeOnce = 0, // Timer triggers once after time has passed
+    TimerTypePeriodic = 1 // Timer triggers repeatedly after time has passed
 } TimerType;
 
 typedef void (*TimerCallback)(void* context);
@@ -27,7 +27,7 @@ typedef void (*TimerPendingCallback)(void* context, uint32_t arg);
  * @param[in] callback the callback to call when the timer expires
  * @param[in] callbackContext the data to pass to the callback
  */
-TimerHandle tt_timer_alloc(TimerType type, TimerCallback callback, void* callbackContext);
+TimerHandle tt_timer_alloc(TimerType type, TickType ticks, TimerCallback callback, void* callbackContext);
 
 /** Free up the memory of a timer instance */
 void tt_timer_free(TimerHandle handle);
@@ -35,18 +35,24 @@ void tt_timer_free(TimerHandle handle);
 /**
  * Start the timer
  * @param[in] handle the timer instance handle
- * @parma[in] interval the interval of the timer
  * @return true when the timer was successfully started
  */
-bool tt_timer_start(TimerHandle handle, TickType_t interval);
+bool tt_timer_start(TimerHandle handle);
 
 /**
  * Restart an already started timer
  * @param[in] handle the timer instance handle
- * @parma[in] interval the interval of the timer
+ * @param[in] interval the timer new interval
  * @return true when the timer was successfully restarted
  */
-bool tt_timer_restart(TimerHandle handle, TickType_t interval);
+bool tt_timer_reset_with_interval(TimerHandle handle, TickType interval);
+
+    /**
+ * Restart an already started timer
+ * @param[in] handle the timer instance handle
+ * @return true when the timer was successfully restarted
+ */
+bool tt_timer_reset(TimerHandle handle);
 
 /**
  * Stop a started timer
@@ -63,11 +69,11 @@ bool tt_timer_stop(TimerHandle handle);
 bool tt_timer_is_running(TimerHandle handle);
 
 /**
- * Get the expire time of a timer
+ * Get the expiry time of a timer
  * @param[in] handle the timer instance handle
  * @return the absolute timestamp at which the timer will expire
  */
-uint32_t tt_timer_get_expire_time(TimerHandle handle);
+uint32_t tt_timer_get_expiry_time(TimerHandle handle);
 
 /**
  * Set the pending callback for a timer

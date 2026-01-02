@@ -2,8 +2,8 @@
 
 #include "Tactility/service/Service.h"
 
-#include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
+#include <Tactility/Mutex.h>
 
 namespace tt::service::memorychecker {
 
@@ -14,7 +14,7 @@ namespace tt::service::memorychecker {
 class MemoryCheckerService final : public Service {
 
     Mutex mutex;
-    Timer timer = Timer(Timer::Type::Periodic, [this] { onTimerUpdate(); });
+    Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] { onTimerUpdate(); });
 
     // LVGL Statusbar icon
     int8_t statusbarIconId = -1;

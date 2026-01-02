@@ -32,8 +32,8 @@ bool tt_lock_acquire(LockHandle handle, TickType timeout) {
     return HANDLE_AS_LOCK(handle)->lock(timeout);
 }
 
-bool tt_lock_release(LockHandle handle) {
-    return HANDLE_AS_LOCK(handle)->unlock();
+void tt_lock_release(LockHandle handle) {
+    HANDLE_AS_LOCK(handle)->unlock();
 }
 
 void tt_lock_free(LockHandle handle) {

@@ -1,5 +1,6 @@
-#include "Tactility/hal/Device.h"
+#include <Tactility/hal/Device.h>
 
+#include <Tactility/Log.h>
 #include <Tactility/RecursiveMutex.h>
 #include <algorithm>
 
@@ -9,7 +10,7 @@ std::vector<std::shared_ptr<Device>> devices;
 RecursiveMutex mutex;
 static Device::Id nextId = 0;
 
-#define TAG "devices"
+constexpr auto TAG = "devices";
 
 Device::Device() : id(nextId++) {}
 

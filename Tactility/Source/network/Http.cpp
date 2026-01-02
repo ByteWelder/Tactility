@@ -31,6 +31,7 @@ void download(
 
         auto certificate_length = strlen(reinterpret_cast<const char*>(certificate.get())) + 1;
 
+        // TODO: Fix for missing initializer warnings
         auto config = std::make_unique<esp_http_client_config_t>(esp_http_client_config_t {
             .url = url.c_str(),
             .auth_type = HTTP_AUTH_TYPE_NONE,

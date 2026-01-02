@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Tactility/app/AppManifest.h>
 #include <Tactility/Dispatcher.h>
+#include <Tactility/app/AppManifest.h>
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/service/ServiceManifest.h>
 

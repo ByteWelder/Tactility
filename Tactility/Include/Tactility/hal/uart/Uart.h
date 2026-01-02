@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/RtosCompat.h>
+#include <Tactility/freertoscompat/RTOS.h>
 
 #include "../gpio/Gpio.h"
 #include "Tactility/Lock.h"

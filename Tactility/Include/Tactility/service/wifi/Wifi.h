@@ -2,6 +2,7 @@
 
 #include <Tactility/PubSub.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 

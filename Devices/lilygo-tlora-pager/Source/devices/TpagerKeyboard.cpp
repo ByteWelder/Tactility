@@ -1,10 +1,10 @@
 #include "TpagerKeyboard.h"
+
 #include <Tactility/hal/i2c/I2c.h>
-#include <driver/i2c.h>
-
-#include <driver/gpio.h>
-
 #include <Tactility/Log.h>
+
+#include <driver/i2c.h>
+#include <driver/gpio.h>
 
 constexpr auto* TAG = "TpagerKeyboard";
 
@@ -120,12 +120,12 @@ bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     keypad->init(KB_ROWS, KB_COLS);
 
     assert(inputTimer == nullptr);
-    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
+    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, tt::kernel::millisToTicks(20), [this] {
         processKeyboard();
     });
 
     assert(backlightImpulseTimer == nullptr);
-    backlightImpulseTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
+    backlightImpulseTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, tt::kernel::millisToTicks(50), [this] {
         processBacklightImpulse();
     });
 
@@ -135,8 +135,8 @@ bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     lv_indev_set_display(kbHandle, display);
     lv_indev_set_user_data(kbHandle, this);
 
-    inputTimer->start(20 / portTICK_PERIOD_MS);
-    backlightImpulseTimer->start(50 / portTICK_PERIOD_MS);
+    inputTimer->start();
+    backlightImpulseTimer->start();
 
     return true;
 }

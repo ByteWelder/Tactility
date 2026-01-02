@@ -125,7 +125,7 @@ bool CardputerKeyboard::startLvgl(lv_display_t* display) {
     keypad->init(7, 8);
 
     assert(inputTimer == nullptr);
-    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
+    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, pdMS_TO_TICKS(20), [this] {
         processKeyboard();
     });
 
@@ -135,7 +135,7 @@ bool CardputerKeyboard::startLvgl(lv_display_t* display) {
     lv_indev_set_display(kbHandle, display);
     lv_indev_set_user_data(kbHandle, this);
 
-    inputTimer->start(20 / portTICK_PERIOD_MS);
+    inputTimer->start();
 
     return true;
 }

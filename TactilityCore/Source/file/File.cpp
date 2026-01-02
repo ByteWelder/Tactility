@@ -15,7 +15,7 @@ constexpr auto* TAG = "file";
 
 class NoLock final : public Lock {
     bool lock(TickType_t timeout) const override { return true; }
-    bool unlock() const override { return true; }
+    void unlock() const override { /* NO-OP */ }
 };
 
 static std::shared_ptr<Lock> noLock = std::make_shared<NoLock>();

@@ -2,11 +2,13 @@
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
+#include <Tactility/Log.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/service/screenshot/Screenshot.h>
 #include <Tactility/service/ServiceRegistration.h>
 
-#include <memory>
 #include <lvgl.h>
+#include <memory>
 
 namespace tt::service::screenshot {
 

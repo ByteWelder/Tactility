@@ -283,7 +283,7 @@ static std::shared_ptr<SystemInfoApp> _Nullable optApp() {
 }
 
 class SystemInfoApp final : public App {
-    Timer memoryTimer = Timer(Timer::Type::Periodic, []() {
+    Timer memoryTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(10000), [] {
         auto app = optApp();
         if (app) {
             auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -293,7 +293,7 @@ class SystemInfoApp final : public App {
         }
     });
 
-    Timer tasksTimer = Timer(Timer::Type::Periodic, []() {
+    Timer tasksTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(15000), [] {
         auto app = optApp();
         if (app) {
             auto lock = lvgl::getSyncLock()->asScopedLock();
@@ -688,8 +688,8 @@ class SystemInfoApp final : public App {
         updatePsram();    // PSRAM: detailed breakdown
 
         // Start timers (only run while app is visible, stopped in onHide)
-        memoryTimer.start(kernel::millisToTicks(10000));   // Memory & PSRAM: every 10s
-        tasksTimer.start(kernel::millisToTicks(15000));    // Tasks/CPU: every 15s
+        memoryTimer.start();   // Memory & PSRAM: every 10s
+        tasksTimer.start();    // Tasks/CPU: every 15s
     }
 
     void onHide(TT_UNUSED AppContext& app) override {

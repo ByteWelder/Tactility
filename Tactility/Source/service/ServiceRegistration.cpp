@@ -1,9 +1,9 @@
 #include <Tactility/service/ServiceRegistration.h>
 
+#include <Tactility/Log.h>
+#include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceInstance.h>
 #include <Tactility/service/ServiceManifest.h>
-
-#include <Tactility/Mutex.h>
 
 #include <string>
 

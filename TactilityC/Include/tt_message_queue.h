@@ -41,23 +41,13 @@ bool tt_message_queue_put(MessageQueueHandle handle, const void* message, TickTy
  */
 bool tt_message_queue_get(MessageQueueHandle handle, void* message, TickType_t timeout);
 
-/** @return the total amount of messages that this queue can hold */
-uint32_t tt_message_queue_get_capacity(MessageQueueHandle handle);
-
-/** @return the size of a single message in the queue */
-uint32_t tt_message_queue_get_message_size(MessageQueueHandle handle);
-
 /** @return the current amount of items in the queue */
 uint32_t tt_message_queue_get_count(MessageQueueHandle handle);
 
-/** @return the remaining capacity in the queue */
-uint32_t tt_message_queue_get_space(MessageQueueHandle handle);
-
 /**
  * Remove all items from the queue (if any)
- * @return true on failure
  */
-bool tt_message_queue_reset(MessageQueueHandle handle);
+void tt_message_queue_reset(MessageQueueHandle handle);
 
 #ifdef __cplusplus
 }

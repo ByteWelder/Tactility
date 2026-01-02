@@ -2,9 +2,9 @@
 
 #include <Tactility/service/wifi/Wifi.h>
 
+#include <Tactility/PubSub.h>
 #include <Tactility/Check.h>
 #include <Tactility/Log.h>
-#include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/ServiceManifest.h>
@@ -81,26 +81,31 @@ std::vector<ApRecord> getScanResults() {
     records.push_back((ApRecord) {
         .ssid = "Home Wifi",
         .rssi = -30,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "No place like 127.0.0.1",
         .rssi = -67,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "Pretty fly for a Wi-Fi",
         .rssi = -70,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "An AP with a really, really long name",
         .rssi = -80,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "Bad Reception",
         .rssi = -90,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_OPEN
     });
 

@@ -3,7 +3,7 @@
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/ElfApp.h>
-#include <Tactility/file/FileLock.h>
+#include <Tactility/Log.h>
 
 #include <cstring>
 

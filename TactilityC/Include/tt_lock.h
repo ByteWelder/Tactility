@@ -41,9 +41,8 @@ bool tt_lock_acquire(LockHandle handle, TickType timeout);
 /**
  * Attempt to unlock the lock.
  * @param[in] handle the handle that represents the mutex instance
- * @return true when the lock was unlocked
  */
-bool tt_lock_release(LockHandle handle);
+void tt_lock_release(LockHandle handle);
 
 /** Free the memory for this lock
  * This does not auto-release the lock.

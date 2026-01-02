@@ -103,9 +103,8 @@ bool tt_hal_i2c_lock(i2c_port_t port, TickType_t timeout);
 /**
  * Used to unlock an I2C port.
  * This is useful for creating thread-safe I2C calls while calling ESP-IDF directly of third party I2C APIs.
- * @param[in] port the I2C port to unlock
  */
-bool tt_hal_i2c_unlock(i2c_port_t port);
+void tt_hal_i2c_unlock(i2c_port_t port);
 
 #ifdef __cplusplus
 }

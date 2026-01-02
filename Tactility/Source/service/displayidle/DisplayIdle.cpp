@@ -1,10 +1,11 @@
-#include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/service/ServiceManifest.h>
-#include <Tactility/service/ServiceContext.h>
+#include <Tactility/CoreDefines.h>
 #include <Tactility/Timer.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
+#include <Tactility/settings/DisplaySettings.h>
 
 namespace tt::service::displayidle {
 
@@ -61,9 +62,9 @@ public:
         // Note: Settings changes require service restart to take effect
         // TODO: Add DisplaySettingsChanged events for dynamic updates
         
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this]{ this->tick(); });
-        timer->setThreadPriority(Thread::Priority::Lower);
-        timer->start(250); // check 4x per second for snappy restore
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::millisToTicks(250), [this]{ this->tick(); });
+        timer->setCallbackPriority(Thread::Priority::Lower);
+        timer->start();
         return true;
     }
 

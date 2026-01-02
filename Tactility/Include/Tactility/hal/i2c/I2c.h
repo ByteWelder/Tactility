@@ -3,7 +3,7 @@
 #include "./I2cCompat.h"
 #include "Tactility/Lock.h"
 
-#include <Tactility/RtosCompat.h>
+#include <Tactility/freertoscompat/RTOS.h>
 
 #include <climits>
 #include <string>

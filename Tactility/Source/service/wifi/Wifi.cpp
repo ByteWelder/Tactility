@@ -1,5 +1,6 @@
-#include "Tactility/service/wifi/Wifi.h"
+#include <Tactility/service/wifi/Wifi.h>
 
+#include <Tactility/Check.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 

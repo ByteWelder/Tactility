@@ -1,7 +1,9 @@
-#include "Tactility/hal/gps/GpsDevice.h"
-#include "Tactility/hal/gps/GpsInit.h"
-#include "Tactility/hal/gps/Probe.h"
-#include "Tactility/hal/uart/Uart.h"
+#include <Tactility/hal/gps/GpsDevice.h>
+#include <Tactility/hal/gps/GpsInit.h>
+#include <Tactility/hal/gps/Probe.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/Log.h>
+
 #include <cstring>
 #include <minmea.h>
 

@@ -27,7 +27,7 @@ typedef enum {
 } ThreadState;
 
 /** The identifier that represents the thread */
-typedef TaskHandle_t ThreadId;
+typedef TaskHandle_t TaskHandle;
 
 /** ThreadCallback Your callback to run in new thread
  * @warning never use osThreadExit in Thread
@@ -132,16 +132,16 @@ void tt_thread_start(ThreadHandle handle);
 /**
  * Wait (block) for the thread to finish.
  * @param[in] handle the thread instance handle
- * @warning make sure you manually interrupt any logic in your thread (e.g. by an EventFlag or boolean+Mutex)
+ * @warning make sure you manually interrupt any logic in your thread (e.g. by an EventGroup or boolean+Mutex)
  */
 bool tt_thread_join(ThreadHandle handle, TickType_t timeout);
 
 /**
- * Get thread id
+ * Get thread task handle
  * @param[in] handle the thread instance handle
- * @return the ThreadId of a thread
+ * @return the task handle of a thread
  * */
-ThreadId tt_thread_get_id(ThreadHandle handle);
+TaskHandle tt_thread_get_task_handle(ThreadHandle handle);
 
 /**
  * Get the return code of a thread

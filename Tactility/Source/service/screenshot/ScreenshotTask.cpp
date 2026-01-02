@@ -159,7 +159,7 @@ void ScreenshotTask::stop() {
     if (thread != nullptr) {
         if (mutex.lock(50 / portTICK_PERIOD_MS)) {
             interrupted = true;
-            tt_check(mutex.unlock());
+            mutex.unlock();
         }
 
         thread->join();
@@ -167,7 +167,7 @@ void ScreenshotTask::stop() {
         if (mutex.lock(50 / portTICK_PERIOD_MS)) {
             delete thread;
             thread = nullptr;
-            tt_check(mutex.unlock());
+            mutex.unlock();
         }
     }
 }

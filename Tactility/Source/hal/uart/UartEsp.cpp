@@ -1,16 +1,17 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/uart/UartEsp.h"
+#include <Tactility/hal/uart/UartEsp.h>
 
 #include <Tactility/Log.h>
+#include <Tactility/kernel/Kernel.h>
 #include <Tactility/Mutex.h>
 
-#include <sstream>
 #include <esp_check.h>
-
-#define TAG "uart"
+#include <sstream>
 
 namespace tt::hal::uart {
+
+constexpr auto TAG  = "uart";
 
 bool UartEsp::start() {
     TT_LOG_I(TAG, "[%s] Starting", configuration.name.c_str());

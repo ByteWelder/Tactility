@@ -43,8 +43,8 @@ bool tt_hal_i2c_lock(i2c_port_t port, TickType_t timeout) {
     return tt::hal::i2c::getLock(port).lock(timeout);
 }
 
-bool tt_hal_i2c_unlock(i2c_port_t port) {
-    return tt::hal::i2c::getLock(port).unlock();
+void tt_hal_i2c_unlock(i2c_port_t port) {
+    tt::hal::i2c::getLock(port).unlock();
 }
 
 }

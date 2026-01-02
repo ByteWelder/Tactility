@@ -5,15 +5,15 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
 
+#include <Tactility/DispatcherThread.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
-#include <Tactility/DispatcherThread.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
 #include <Tactility/lvgl/LvglPrivate.h>
-#include <Tactility/MountPoints.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>

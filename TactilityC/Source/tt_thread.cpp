@@ -66,8 +66,8 @@ bool tt_thread_join(ThreadHandle handle, TickType_t timeout) {
     return HANDLE_AS_THREAD(handle)->join(timeout);
 }
 
-ThreadId tt_thread_get_id(ThreadHandle handle) {
-    return HANDLE_AS_THREAD(handle)->getId();
+TaskHandle tt_thread_get_task_handle(ThreadHandle handle) {
+    return HANDLE_AS_THREAD(handle)->getTaskHandle();
 }
 
 int32_t tt_thread_get_return_code(ThreadHandle handle) {

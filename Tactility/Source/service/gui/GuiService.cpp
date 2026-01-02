@@ -25,27 +25,30 @@ void GuiService::onLoaderEvent(LoaderService::Event event) {
 }
 
 int32_t GuiService::guiMain() {
+    auto service = findServiceById<GuiService>(manifest.id);
+
     while (true) {
-        uint32_t flags = Thread::awaitFlags(GUI_THREAD_FLAG_ALL, EventFlag::WaitAny, portMAX_DELAY);
-
-        // When service not started or starting -> exit
-        State service_state = getState(manifest.id);
-        if (service_state != State::Started && service_state != State::Starting) {
-            break;
-        }
-
-        // Process and dispatch draw call
-        if (flags & GUI_THREAD_FLAG_DRAW) {
-            Thread::clearFlags(GUI_THREAD_FLAG_DRAW);
-            auto service = findService();
-            if (service != nullptr) {
-                service->redraw();
+        uint32_t flags = 0;
+        if (service->threadFlags.wait(GUI_THREAD_FLAG_ALL, false, true, portMAX_DELAY, &flags)) {
+            // When service not started or starting -> exit
+            State service_state = getState(manifest.id);
+            if (service_state != State::Started && service_state != State::Starting) {
+                break;
             }
-        }
 
-        if (flags & GUI_THREAD_FLAG_EXIT) {
-            Thread::clearFlags(GUI_THREAD_FLAG_EXIT);
-            break;
+            // Process and dispatch draw call
+            if (flags & GUI_THREAD_FLAG_DRAW) {
+                service->threadFlags.clear(GUI_THREAD_FLAG_DRAW);
+                auto service = findService();
+                if (service != nullptr) {
+                    service->redraw();
+                }
+            }
+
+            if (flags & GUI_THREAD_FLAG_EXIT) {
+                service->threadFlags.clear(GUI_THREAD_FLAG_EXIT);
+                break;
+            }
         }
     }
 
@@ -177,8 +180,8 @@ void GuiService::onStop(TT_UNUSED ServiceContext& service) {
     appToRender = nullptr;
     isStarted = false;
 
-    ThreadId thread_id = thread->getId();
-    Thread::setFlags(thread_id, GUI_THREAD_FLAG_EXIT);
+    auto task_handle = thread->getTaskHandle();
+    threadFlags.set(GUI_THREAD_FLAG_EXIT);
     thread->join();
     delete thread;
 
@@ -190,8 +193,8 @@ void GuiService::onStop(TT_UNUSED ServiceContext& service) {
 }
 
 void GuiService::requestDraw() {
-    ThreadId thread_id = thread->getId();
-    Thread::setFlags(thread_id, GUI_THREAD_FLAG_DRAW);
+    auto task_handle = thread->getTaskHandle();
+    threadFlags.set(GUI_THREAD_FLAG_DRAW);
 }
 
 void GuiService::showApp(std::shared_ptr<app::AppInstance> app) {

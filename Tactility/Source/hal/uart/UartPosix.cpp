@@ -1,8 +1,8 @@
 #ifndef ESP_PLATFORM
 
-#include "Tactility/hal/uart/UartPosix.h"
-#include "Tactility/hal/uart/Uart.h"
-
+#include <Tactility/hal/uart/UartPosix.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/kernel/Kernel.h>
 #include <Tactility/Log.h>
 
 #include <cstring>
@@ -10,9 +10,9 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#define TAG "uart"
-
 namespace tt::hal::uart {
+
+constexpr auto TAG = "uart";
 
 bool UartPosix::start() {
     auto lock = mutex.asScopedLock();

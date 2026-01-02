@@ -5,6 +5,8 @@
 #include <Tactility/app/ElfApp.h>
 
 #include <Tactility/Bundle.h>
+#include <Tactility/Check.h>
+#include <Tactility/Log.h>
 #include <Tactility/Mutex.h>
 
 #include <memory>

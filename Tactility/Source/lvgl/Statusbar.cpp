@@ -3,14 +3,14 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityCore.h>
 
+#include <Tactility/PubSub.h>
+#include <Tactility/Timer.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/PubSub.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/settings/Time.h>
-#include <Tactility/Timer.h>
 
 #include <lvgl.h>
 
@@ -30,7 +30,7 @@ struct StatusbarData {
     RecursiveMutex mutex;
     std::shared_ptr<PubSub<void*>> pubsub = std::make_shared<PubSub<void*>>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });
+    Timer* time_update_timer = new Timer(Timer::Type::Once, 200 / portTICK_PERIOD_MS, [] { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -73,12 +73,12 @@ static void onUpdateTime() {
             statusbar_data.time_set = true;
 
             // Reschedule
-            statusbar_data.time_update_timer->start(getNextUpdateTime());
+            statusbar_data.time_update_timer->reset(getNextUpdateTime());
 
             // Notify widget
             statusbar_data.pubsub->publish(nullptr);
         } else {
-            statusbar_data.time_update_timer->start(pdMS_TO_TICKS(60000U));
+            statusbar_data.time_update_timer->reset(pdMS_TO_TICKS(60000U));
         }
 
         statusbar_data.mutex.unlock();
@@ -113,9 +113,7 @@ static void statusbar_pubsub_event(Statusbar* statusbar) {
 
 static void onTimeChanged(TT_UNUSED kernel::SystemEvent event) {
     if (statusbar_data.mutex.lock()) {
-        statusbar_data.time_update_timer->stop();
-        statusbar_data.time_update_timer->start(5);
-
+        statusbar_data.time_update_timer->reset(5);
         statusbar_data.mutex.unlock();
     }
 }
@@ -131,7 +129,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     });
 
     if (!statusbar_data.time_update_timer->isRunning()) {
-        statusbar_data.time_update_timer->start(200 / portTICK_PERIOD_MS);
+        statusbar_data.time_update_timer->start();
         statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
             kernel::SystemEvent::Time,
             onTimeChanged
@@ -177,7 +175,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_data.mutex.lock(portMAX_DELAY);
+    statusbar_data.mutex.lock(kernel::MAX_TICKS);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
