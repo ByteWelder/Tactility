@@ -1,11 +1,12 @@
 #include "UnPhoneFeatures.h"
 
-#include <Tactility/app/App.h>
 #include <Tactility/Log.h>
+#include <Tactility/app/App.h>
 #include <Tactility/kernel/Kernel.h>
 
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
+#include <esp_io_expander.h>
 #include <esp_sleep.h>
 
 namespace pin {
@@ -36,8 +37,7 @@ static void IRAM_ATTR navButtonInterruptHandler(void* args) {
     xQueueSendFromISR(interruptQueue, &pinNumber, NULL);
 }
 
-static int32_t buttonHandlingThreadMain(void* context) {
-    auto* interrupted = (bool*)context;
+static int32_t buttonHandlingThreadMain(const bool* interrupted) {
     int pinNumber;
     while (!*interrupted) {
         if (xQueueReceive(interruptQueue, &pinNumber, portMAX_DELAY)) {
@@ -99,7 +99,11 @@ bool UnPhoneFeatures::initNavButtons() {
     buttonHandlingThread.setName("unphone_buttons");
     buttonHandlingThread.setPriority(tt::Thread::Priority::High);
     buttonHandlingThread.setStackSize(3072);
-    buttonHandlingThread.setCallback(buttonHandlingThreadMain, &buttonHandlingThreadInterruptRequest);
+    buttonHandlingThread.setMainFunction(
+        [this] {
+            return buttonHandlingThreadMain(&this->buttonHandlingThreadInterruptRequest);
+        }
+    );
     buttonHandlingThread.start();
 
     uint64_t pin_mask =
