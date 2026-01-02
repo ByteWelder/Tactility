@@ -15,6 +15,8 @@ class View final {
     lv_obj_t* dir_entry_list = nullptr;
     lv_obj_t* action_list = nullptr;
     lv_obj_t* navigate_up_button = nullptr;
+    lv_obj_t* new_file_button = nullptr;
+    lv_obj_t* new_folder_button = nullptr;
 
     std::string installAppPath = { 0 };
     LaunchId installAppLaunchId = 0;
@@ -38,6 +40,8 @@ public:
     void onDirEntryLongPressed(int32_t index);
     void onRenamePressed();
     void onDeletePressed();
+    void onNewFilePressed();
+    void onNewFolderPressed();
     void onDirEntryListScrollBegin();
     void onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bundle);
 };

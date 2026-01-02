@@ -21,7 +21,8 @@ public:
         Keyboard,
         Encoder,
         Power,
-        Gps
+        Gps,
+        Other
     };
 
     typedef uint32_t Id;

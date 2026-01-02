@@ -16,6 +16,7 @@
 #include <Tactility/Tactility.h>
 
 #include <cstring>
+#include <cstdio>
 #include <unistd.h>
 
 #ifdef ESP_PLATFORM
@@ -60,6 +61,16 @@ static void onDeletePressedCallback(lv_event_t* event) {
 static void onNavigateUpPressedCallback(TT_UNUSED lv_event_t* event) {
     auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onNavigateUpPressed();
+}
+
+static void onNewFilePressedCallback(lv_event_t* event) {
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    view->onNewFilePressed();
+}
+
+static void onNewFolderPressedCallback(lv_event_t* event) {
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    view->onNewFolderPressed();
 }
 
 // endregion
@@ -179,7 +190,38 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
     } else {
         symbol = LV_SYMBOL_FILE;
     }
-    lv_obj_t* button = lv_list_add_button(list, symbol, dir_entry.d_name);
+
+    // Get file size for regular files
+    std::string label_text = dir_entry.d_name;
+    if (dir_entry.d_type == file::TT_DT_REG) {
+        std::string file_path = file::getChildPath(state->getCurrentPath(), dir_entry.d_name);
+        struct stat st;
+        if (stat(file_path.c_str(), &st) == 0) {
+            // Format file size in human-readable format
+            const char* size_suffix;
+            double size;
+            if (st.st_size < 1024) {
+                size = st.st_size;
+                size_suffix = " B";
+            } else if (st.st_size < 1024 * 1024) {
+                size = st.st_size / 1024.0;
+                size_suffix = " KB";
+            } else {
+                size = st.st_size / (1024.0 * 1024.0);
+                size_suffix = " MB";
+            }
+
+            char size_str[32];
+            if (st.st_size < 1024) {
+                snprintf(size_str, sizeof(size_str), " (%d%s)", (int)size, size_suffix);
+            } else {
+                snprintf(size_str, sizeof(size_str), " (%.1f%s)", size, size_suffix);
+            }
+            label_text += size_str;
+        }
+    }
+
+    lv_obj_t* button = lv_list_add_button(list, symbol, label_text.c_str());
     lv_obj_add_event_cb(button, &onDirEntryPressedCallback, LV_EVENT_SHORT_CLICKED, this);
     lv_obj_add_event_cb(button, &onDirEntryLongPressedCallback, LV_EVENT_LONG_PRESSED, this);
 }
@@ -210,6 +252,18 @@ void View::onDeletePressed() {
     std::string message = "Do you want to delete this?\n" + file_path;
     const std::vector<std::string> choices = { "Yes", "No" };
     alertdialog::start("Are you sure?", message, choices);
+}
+
+void View::onNewFilePressed() {
+    TT_LOG_I(TAG, "Creating new file");
+    state->setPendingAction(State::ActionCreateFile);
+    inputdialog::start("New File", "Enter filename:", "");
+}
+
+void View::onNewFolderPressed() {
+    TT_LOG_I(TAG, "Creating new folder");
+    state->setPendingAction(State::ActionCreateFolder);
+    inputdialog::start("New Folder", "Enter folder name:", "");
 }
 
 void View::showActionsForDirectory() {
@@ -262,6 +316,8 @@ void View::init(const AppContext& appContext, lv_obj_t* parent) {
 
     auto* toolbar = lvgl::toolbar_create(parent, appContext);
     navigate_up_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
+    new_file_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_FILE, &onNewFilePressedCallback, this);
+    new_folder_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_DIRECTORY, &onNewFolderPressedCallback, this);
 
     auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));
@@ -346,6 +402,62 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                     TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
                 } else {
                     TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                }
+                lock->unlock();
+
+                state->setEntriesForPath(state->getCurrentPath());
+                update();
+            }
+            break;
+        }
+        case State::ActionCreateFile: {
+            auto filename = inputdialog::getResult(*bundle);
+            if (!filename.empty()) {
+                std::string new_file_path = file::getChildPath(state->getCurrentPath(), filename);
+
+                auto lock = file::getLock(new_file_path);
+                lock->lock();
+
+                struct stat st;
+                if (stat(new_file_path.c_str(), &st) == 0) {
+                    TT_LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
+                    lock->unlock();
+                    break;
+                }
+
+                FILE* new_file = fopen(new_file_path.c_str(), "w");
+                if (new_file) {
+                    fclose(new_file);
+                    TT_LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
+                } else {
+                    TT_LOG_E(TAG, "Failed to create file \"%s\"", new_file_path.c_str());
+                }
+                lock->unlock();
+
+                state->setEntriesForPath(state->getCurrentPath());
+                update();
+            }
+            break;
+        }
+        case State::ActionCreateFolder: {
+            auto foldername = inputdialog::getResult(*bundle);
+            if (!foldername.empty()) {
+                std::string new_folder_path = file::getChildPath(state->getCurrentPath(), foldername);
+
+                auto lock = file::getLock(new_folder_path);
+                lock->lock();
+
+                struct stat st;
+                if (stat(new_folder_path.c_str(), &st) == 0) {
+                    TT_LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
+                    lock->unlock();
+                    break;
+                }
+
+                if (mkdir(new_folder_path.c_str(), 0755) == 0) {
+                    TT_LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
+                } else {
+                    TT_LOG_E(TAG, "Failed to create folder \"%s\"", new_folder_path.c_str());
                 }
                 lock->unlock();
 

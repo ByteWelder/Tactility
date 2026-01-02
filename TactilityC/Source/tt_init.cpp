@@ -351,6 +351,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_event_get_target_obj),
     ESP_ELFSYM_EXPORT(lv_event_get_target),
     ESP_ELFSYM_EXPORT(lv_event_get_current_target_obj),
+    ESP_ELFSYM_EXPORT(lv_event_get_draw_task),
     // lv_obj
     ESP_ELFSYM_EXPORT(lv_color_hex),
     ESP_ELFSYM_EXPORT(lv_color_make),
@@ -448,6 +449,11 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_obj_set_size),
     ESP_ELFSYM_EXPORT(lv_obj_set_width),
     ESP_ELFSYM_EXPORT(lv_obj_set_height),
+    ESP_ELFSYM_EXPORT(lv_obj_send_event),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_color),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_width),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_pad),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_opa),
     // lv_font
     ESP_ELFSYM_EXPORT(lv_font_get_default),
     // lv_theme
@@ -552,6 +558,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_display_get_vertical_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_physical_horizontal_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_physical_vertical_resolution),
+    ESP_ELFSYM_EXPORT(lv_display_dpx),
     // lv_pct
     ESP_ELFSYM_EXPORT(lv_pct),
     ESP_ELFSYM_EXPORT(lv_pct_to_px),
@@ -578,6 +585,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_indev_get_key),
     ESP_ELFSYM_EXPORT(lv_indev_get_gesture_dir),
     ESP_ELFSYM_EXPORT(lv_indev_get_state),
+    ESP_ELFSYM_EXPORT(lv_indev_active),
     // lv_timer
     ESP_ELFSYM_EXPORT(lv_timer_handler),
     ESP_ELFSYM_EXPORT(lv_timer_handler_run_in_period),
@@ -606,6 +614,18 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_line_create),
     ESP_ELFSYM_EXPORT(lv_line_set_points),
     ESP_ELFSYM_EXPORT(lv_line_set_points_mutable),
+    // lv_group
+    ESP_ELFSYM_EXPORT(lv_group_remove_obj),
+    // lv_mem
+    ESP_ELFSYM_EXPORT(lv_free),
+    ESP_ELFSYM_EXPORT(lv_malloc),
+    // lv_draw
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_draw_dsc),
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_label_dsc),
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_fill_dsc),
+    // lv_image
+    ESP_ELFSYM_EXPORT(lv_image_create),
+    ESP_ELFSYM_EXPORT(lv_image_set_src),
     // stdio.h
     ESP_ELFSYM_EXPORT(rename),
     // dirent.h
