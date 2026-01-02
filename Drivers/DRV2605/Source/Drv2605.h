@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tactility/hal/i2c/I2cDevice.h>
+#include <Tactility/Log.h>
 
 class Drv2605 : public tt::hal::i2c::I2cDevice {
 

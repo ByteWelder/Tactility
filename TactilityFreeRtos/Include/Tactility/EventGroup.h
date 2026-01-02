@@ -79,7 +79,7 @@ public:
      * @param[out] outError optional error output: this is set when the return value is false
      * @return true on success
      */
-    uint32_t clear(uint32_t flags, uint32_t* outFlags = nullptr, Error* outError = nullptr) const {
+    bool clear(uint32_t flags, uint32_t* outFlags = nullptr, Error* outError = nullptr) const {
         if (xPortInIsrContext() == pdTRUE) {
             uint32_t result = xEventGroupGetBitsFromISR(handle.get());
             if (xEventGroupClearBitsFromISR(handle.get(), flags) == pdFAIL) {

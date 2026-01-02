@@ -37,14 +37,17 @@ private:
     Mutex mutex;
     std::queue<Function> queue = {};
     EventGroup eventFlag;
+    bool shutdown = false;
 
 public:
 
     explicit Dispatcher() = default;
 
     ~Dispatcher() {
-        mutex.lock();
-		mutex.unlock();
+        shutdown = true;
+        if (mutex.lock()) {
+		    mutex.unlock();
+        }
     }
 
     /**
@@ -59,6 +62,10 @@ public:
 #ifdef ESP_PLATFORM
             ESP_LOGE(TAG, "Mutex acquisition timeout");
 #endif
+            return false;
+        }
+
+        if (shutdown) {
             return false;
         }
 
@@ -89,6 +96,10 @@ public:
             return 0;
         }
 
+        if (shutdown) {
+            return 0;
+        }
+
         // Mutate
         bool processing = true;
         uint32_t consumed = 0;
@@ -112,7 +123,7 @@ public:
 #endif
             }
 
-        } while (processing);
+        } while (processing && !shutdown);
 
         return consumed;
     }

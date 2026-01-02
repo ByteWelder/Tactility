@@ -48,6 +48,8 @@ int main(int argc, char** argv) {
     assert(task_result == pdPASS);
 
     vTaskStartScheduler();
+
+    return data.result;
 }
 
 extern "C" {

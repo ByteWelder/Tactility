@@ -88,11 +88,12 @@ private:
     portBASE_TYPE affinity = -1;
 
     void setState(State newState) {
-        // mutex.lock();
+        mutex.lock();
         state = newState;
         if (stateCallback) {
             stateCallback(state, stateCallbackContext);
         }
+        mutex.unlock();
     }
 
 public:
@@ -127,7 +128,7 @@ public:
     void setStackSize(size_t newStackSize) {
         mutex.lock();
         assert(state == State::Stopped);
-        assert(stackSize % 4 == 0);
+        assert(newStackSize % 4 == 0);
         stackSize = newStackSize;
         mutex.unlock();
     }

@@ -6,8 +6,10 @@
 #ifdef ESP_PLATFORM
 static portMUX_TYPE critical_mutex;
 #define TT_ENTER_CRITICAL() taskENTER_CRITICAL(&critical_mutex)
+#define TT_EXIT_CRITICAL() taskEXIT_CRITICAL(&critical_mutex)
 #else
 #define TT_ENTER_CRITICAL() taskENTER_CRITICAL()
+#define TT_EXIT_CRITICAL() taskEXIT_CRITICAL()
 #endif
 
 namespace tt::kernel::critical {
@@ -34,7 +36,7 @@ void exit(CriticalInfo info) {
     if (info.fromIsr) {
         taskEXIT_CRITICAL_FROM_ISR(info.isrm);
     } else if (info.kernelRunning) {
-        TT_ENTER_CRITICAL();
+        TT_EXIT_CRITICAL();
     } else {
         portENABLE_INTERRUPTS();
     }

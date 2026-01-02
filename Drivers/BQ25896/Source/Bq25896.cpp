@@ -1,6 +1,8 @@
 #include "Bq25896.h"
 
-#define TAG "BQ27220"
+#include <Tactility/Log.h>
+
+constexpr auto* TAG = "BQ27220";
 
 void Bq25896::powerOff() {
     TT_LOG_I(TAG, "Power off");

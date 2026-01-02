@@ -35,13 +35,13 @@ constexpr TickType_t getTicks() {
 
 /** @return the amount of milliseconds that has passed in the main kernel tasks */
 constexpr size_t getMillis() {
-    return getTicks() / portTICK_PERIOD_MS;
+    return getTicks() * portTICK_PERIOD_MS;
 }
 
 /** @return the microseconds that have passed since boot */
 constexpr int64_t getMicrosSinceBoot() {
 #ifdef ESP_PLATFORM
-    return static_cast<unsigned long>(esp_timer_get_time());
+    return esp_timer_get_time();
 #else
     timeval tv;
     gettimeofday(&tv, nullptr);
