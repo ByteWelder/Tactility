@@ -47,7 +47,7 @@ private:
 
     static constexpr auto TAG = "Thread";
 
-    static_assert(static_cast<UBaseType_t>(Priority::Critical) <= configMAX_PRIORITIES, "Highest thread priority is higher than max priority");
+    static_assert(static_cast<UBaseType_t>(Priority::Critical) < configMAX_PRIORITIES, "Highest thread priority is higher than max priority");
 
     static void mainBody(void* context) {
         assert(context != nullptr);
@@ -112,7 +112,7 @@ public:
         affinity(affinity)
     {}
 
-    /** @warning If thread is running, you mjust call join() first */
+    /** @warning If thread is running, you just call join() first */
     ~Thread() {
         assert(state == State::Stopped);
         assert(taskHandle == nullptr);

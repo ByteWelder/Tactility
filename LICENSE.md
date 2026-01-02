@@ -13,7 +13,7 @@ Third party projects that were included in Tactility retain their licenses.
 
 The following projects are also available under [Apache License Version 2.0](Documentation/license-tactilitysdk.md):
 - TactilityC
-- TactilityFreertos
+- TactilityFreeRtos
 - TactilitySDK (source and binaries)
 
 # Other licenses & copyrights

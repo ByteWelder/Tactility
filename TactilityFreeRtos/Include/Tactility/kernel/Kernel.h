@@ -24,7 +24,7 @@ constexpr uint32_t getTickFrequency() {
 }
 
 /** @return the amount of ticks that has passed in the main kernel task */
-constexpr TickType_t getTicks() {
+inline TickType_t getTicks() {
     if (xPortInIsrContext() == pdTRUE) {
         return xTaskGetTickCountFromISR();
     } else {
@@ -34,12 +34,12 @@ constexpr TickType_t getTicks() {
 
 
 /** @return the amount of milliseconds that has passed in the main kernel tasks */
-constexpr size_t getMillis() {
+inline size_t getMillis() {
     return getTicks() * portTICK_PERIOD_MS;
 }
 
 /** @return the microseconds that have passed since boot */
-constexpr int64_t getMicrosSinceBoot() {
+inline int64_t getMicrosSinceBoot() {
 #ifdef ESP_PLATFORM
     return esp_timer_get_time();
 #else
@@ -50,12 +50,12 @@ constexpr int64_t getMicrosSinceBoot() {
 }
 
 /** Convert seconds to ticks */
-constexpr TickType_t secondsToTicks(uint32_t seconds) {
-    return static_cast<TickType_t>(seconds) * 1000U / portTICK_PERIOD_MS;
+inline TickType_t secondsToTicks(uint32_t seconds) {
+    return static_cast<uint64_t>(seconds) * 1000U / portTICK_PERIOD_MS;
 }
 
 /** Convert milliseconds to ticks */
-constexpr TickType_t millisToTicks(uint32_t milliSeconds) {
+inline TickType_t millisToTicks(uint32_t milliSeconds) {
 #if configTICK_RATE_HZ == 1000
     return static_cast<TickType_t>(milliSeconds);
 #else
@@ -67,7 +67,7 @@ constexpr TickType_t millisToTicks(uint32_t milliSeconds) {
  * Delay the current task for the specified amount of ticks
  * @warning Does not work in ISR context
  */
-constexpr void delayTicks(TickType_t ticks) {
+inline void delayTicks(TickType_t ticks) {
     assert(xPortInIsrContext() == pdFALSE);
     if (ticks == 0U) {
         taskYIELD();
@@ -80,7 +80,7 @@ constexpr void delayTicks(TickType_t ticks) {
  * Delay the current task for the specified amount of milliseconds
  * @warning Does not work in ISR context
  */
-constexpr void delayMillis(uint32_t milliSeconds) {
+inline void delayMillis(uint32_t milliSeconds) {
     delayTicks(millisToTicks(milliSeconds));
 }
 
@@ -88,7 +88,7 @@ constexpr void delayMillis(uint32_t milliSeconds) {
  * Stall the currently active CPU core for the specified amount of microseconds.
  * This does not allow other tasks to run on the stalled CPU core.
  */
-constexpr void delayMicros(uint32_t microseconds) {
+inline void delayMicros(uint32_t microseconds) {
 #ifdef ESP_PLATFORM
     ets_delay_us(microseconds);
 #else

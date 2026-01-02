@@ -87,12 +87,12 @@ public:
                     *outError = Error::Resource;
                 }
                 return false;
-            } else {
-                if (outFlags != nullptr) {
-                    *outFlags = result;
-                }
-                return true;
             }
+            if (outFlags != nullptr) {
+                *outFlags = result;
+            }
+            portYIELD_FROM_ISR(pdTRUE);
+            return true;
         } else {
             auto result = xEventGroupClearBits(handle.get(), flags);
             if (outFlags != nullptr) {
