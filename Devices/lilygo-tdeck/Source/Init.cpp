@@ -4,6 +4,12 @@
 
 #include <Tactility/TactilityCore.h>
 #include <Tactility/hal/gps/GpsConfiguration.h>
+#include <Tactility/settings/KeyboardSettings.h>
+
+#include "devices/KeyboardBacklight.h"
+#include "devices/TrackballDevice.h"
+#include <KeyboardBacklight/KeyboardBacklight.h>
+#include <Trackball/Trackball.h>
 
 #define TAG "tdeck"
 
@@ -59,5 +65,45 @@ bool initBoot() {
             }
         }
     });
+
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
+        auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
+        if (kbBacklight != nullptr) {
+            TT_LOG_I(TAG, "%s starting", kbBacklight->getName().c_str());
+            auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
+            if (kbDevice->start()) {
+                TT_LOG_I(TAG, "%s started", kbBacklight->getName().c_str());
+            } else {
+                TT_LOG_E(TAG, "%s start failed", kbBacklight->getName().c_str());
+            }
+        }
+
+        auto trackball = tt::hal::findDevice("Trackball");
+        if (trackball != nullptr) {
+            TT_LOG_I(TAG, "%s starting", trackball->getName().c_str());
+            auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
+            if (tbDevice->start()) {
+                TT_LOG_I(TAG, "%s started", trackball->getName().c_str());
+            } else {
+                TT_LOG_E(TAG, "%s start failed", trackball->getName().c_str());
+            }
+        }
+
+        // Backlight doesn't seem to turn on until toggled on and off from keyboard settings...
+        // Or let the display and backlight sleep then wake it up.
+        // Then it works fine...until reboot, then you need to toggle again.
+        // The current keyboard firmware sets backlight duty to 0 on boot.
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/firmware/T-Keyboard_Keyboard_ESP32C3_250620.bin
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/Keyboard_ESP32C3/Keyboard_ESP32C3.ino#L25
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/Keyboard_ESP32C3/Keyboard_ESP32C3.ino#L217
+        auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
+        bool result = keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
+        if (!result) {
+            TT_LOG_W(TAG, "Failed to set keyboard backlight brightness");
+        }
+
+        trackball::setEnabled(kbSettings.trackballEnabled);
+    });
+
     return true;
 }

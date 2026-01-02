@@ -51,6 +51,10 @@ namespace service {
     namespace loader { extern const ServiceManifest manifest; }
     namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
+    namespace displayidle { extern const ServiceManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    namespace keyboardidle { extern const ServiceManifest manifest; }
+#endif
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
@@ -83,6 +87,9 @@ namespace app {
     namespace imageviewer { extern const AppManifest manifest; }
     namespace inputdialog { extern const AppManifest manifest; }
     namespace launcher { extern const AppManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    namespace keyboardsettings { extern const AppManifest manifest; }
+#endif
     namespace localesettings { extern const AppManifest manifest; }
     namespace notes { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
@@ -124,6 +131,9 @@ static void registerInternalApps() {
     addAppManifest(app::imageviewer::manifest);
     addAppManifest(app::inputdialog::manifest);
     addAppManifest(app::launcher::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    addAppManifest(app::keyboardsettings::manifest);
+#endif
     addAppManifest(app::localesettings::manifest);
     addAppManifest(app::notes::manifest);
     addAppManifest(app::settings::manifest);
@@ -227,6 +237,10 @@ static void registerAndStartSecondaryServices() {
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
+    addService(service::displayidle::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    addService(service::keyboardidle::manifest);
+#endif
     addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);

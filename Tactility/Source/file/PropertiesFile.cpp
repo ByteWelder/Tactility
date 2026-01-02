@@ -19,13 +19,17 @@ bool getKeyValuePair(const std::string& input, std::string& key, std::string& va
 }
 
 bool loadPropertiesFile(const std::string& filePath, std::function<void(const std::string& key, const std::string& value)> callback) {
-    TT_LOG_I(TAG, "Reading properties file %s", filePath.c_str());
+    // Reading properties is a common operation; make this debug-level to avoid
+    // flooding the serial console under frequent polling.
+    TT_LOG_D(TAG, "Reading properties file %s", filePath.c_str());
     uint16_t line_count = 0;
     std::string key_prefix = "";
+    // Malformed lines are skipped, valid lines are loaded and callback is called
     return readLines(filePath, true, [&key_prefix, &line_count, &filePath, &callback](const std::string& line) {
         line_count++;
         std::string key, value;
-        auto trimmed_line = string::trim(line, " \t");
+        // Trim all whitespace including \r\n (Windows line endings)
+        auto trimmed_line = string::trim(line, " \t\r\n");
         if (!trimmed_line.starts_with("#") && !trimmed_line.empty()) {
             if (trimmed_line.starts_with("[")) {
                 key_prefix = trimmed_line;
@@ -35,7 +39,8 @@ bool loadPropertiesFile(const std::string& filePath, std::function<void(const st
                    std::string trimmed_value = string::trim(value, " \t");
                    callback(trimmed_key, trimmed_value);
                } else {
-                   TT_LOG_E(TAG, "Failed to parse line %d of %s", line_count, filePath.c_str());
+                   TT_LOG_E(TAG, "Failed to parse line %d of %s (skipped)", line_count, filePath.c_str());
+                   // Continue loading other lines
                }
             }
         }

@@ -8,7 +8,7 @@
 namespace tt::service::memorychecker {
 
 constexpr const char* TAG = "MemoryChecker";
-constexpr TickType_t TIMER_UPDATE_INTERVAL = 1000U / portTICK_PERIOD_MS;
+constexpr TickType_t TIMER_UPDATE_INTERVAL = 2000U / portTICK_PERIOD_MS;
 
 // Total memory (in bytes) that should be free before warnings occur
 constexpr auto TOTAL_FREE_THRESHOLD = 10'000;
