@@ -44,6 +44,7 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
             TT_LOG_D(TAG, "Pressed %d", read_buffer);
             data->key = read_buffer;
             data->state = LV_INDEV_STATE_PRESSED;
+            // TODO: Avoid performance hit by calling loadOrGetDefault() on each key press
             // Ensure LVGL activity is triggered so idle services can wake the display
             lv_disp_trig_activity(nullptr);
 
