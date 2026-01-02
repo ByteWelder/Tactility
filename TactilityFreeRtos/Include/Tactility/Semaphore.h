@@ -24,8 +24,12 @@ class Semaphore final : public Lock {
         assert(initialAvailable <= maxCount);
 
         if (maxCount == 1U) {
-            assert(initialAvailable == maxCount); // TODO: Consider supporting this deviation
-            return xSemaphoreCreateBinary();
+            auto result = xSemaphoreCreateBinary();
+            if (initialAvailable != 0U) {
+                auto give_result = xSemaphoreGive(result);
+                assert(give_result == pdPASS);
+            }
+            return result;
         } else {
             return xSemaphoreCreateCounting(maxCount, initialAvailable);
         }
