@@ -27,7 +27,7 @@ typedef void (*TimerPendingCallback)(void* context, uint32_t arg);
  * @param[in] callback the callback to call when the timer expires
  * @param[in] callbackContext the data to pass to the callback
  */
-TimerHandle tt_timer_alloc(TimerType type, TickType ticks, TimerCallback callback, void* callbackContext);
+TimerHandle tt_timer_alloc(TimerType type, TickType_t ticks, TimerCallback callback, void* callbackContext);
 
 /** Free up the memory of a timer instance */
 void tt_timer_free(TimerHandle handle);
@@ -45,7 +45,7 @@ bool tt_timer_start(TimerHandle handle);
  * @param[in] interval the timer new interval
  * @return true when the timer was successfully restarted
  */
-bool tt_timer_reset_with_interval(TimerHandle handle, TickType interval);
+bool tt_timer_reset_with_interval(TimerHandle handle, TickType_t interval);
 
     /**
  * Restart an already started timer

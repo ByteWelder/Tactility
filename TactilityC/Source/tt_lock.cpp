@@ -28,7 +28,7 @@ LockHandle tt_lock_alloc_for_path(const char* path) {
     return new LockHolder(lock);
 }
 
-bool tt_lock_acquire(LockHandle handle, TickType timeout) {
+bool tt_lock_acquire(LockHandle handle, TickType_t timeout) {
     return HANDLE_AS_LOCK(handle)->lock(timeout);
 }
 

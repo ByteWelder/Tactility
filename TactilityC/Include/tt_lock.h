@@ -36,7 +36,7 @@ LockHandle tt_lock_alloc_for_path(const char* path);
  * @param[in] timeout the maximum amount of ticks to wait when trying to lock
  * @return true when the lock was acquired
  */
-bool tt_lock_acquire(LockHandle handle, TickType timeout);
+bool tt_lock_acquire(LockHandle handle, TickType_t timeout);
 
 /**
  * Attempt to unlock the lock.

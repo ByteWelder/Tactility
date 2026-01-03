@@ -18,7 +18,7 @@ void tt_lvgl_start();
 void tt_lvgl_stop();
 
 /** Lock the LVGL context. Call this before doing LVGL-related operations from a non-LVLG thread */
-bool tt_lvgl_lock(TickType timeout);
+bool tt_lvgl_lock(TickType_t timeout);
 
 /** Unlock the LVGL context */
 void tt_lvgl_unlock();

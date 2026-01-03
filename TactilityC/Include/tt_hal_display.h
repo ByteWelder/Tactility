@@ -48,7 +48,7 @@ void tt_hal_display_driver_free(DisplayDriverHandle handle);
  * @param[in] timeout the maximum amount of ticks to wait for getting a lock
  * @return true if the lock was acquired
  */
-bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType timeout);
+bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType_t timeout);
 
 /**
  * Unlock the display device. Must be called exactly once after locking.

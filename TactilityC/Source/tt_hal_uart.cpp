@@ -53,15 +53,15 @@ bool tt_hal_uart_stop(UartHandle handle) {
     return HANDLE_AS_UART(handle)->stop();
 }
 
-size_t tt_hal_uart_read_bytes(UartHandle handle, char* buffer, size_t bufferSize, TickType timeout) {
+size_t tt_hal_uart_read_bytes(UartHandle handle, char* buffer, size_t bufferSize, TickType_t timeout) {
     return HANDLE_AS_UART(handle)->readBytes(reinterpret_cast<std::byte*>(buffer), bufferSize, timeout);
 }
 
-bool tt_hal_uart_read_byte(UartHandle handle, char* output, TickType timeout) {
+bool tt_hal_uart_read_byte(UartHandle handle, char* output, TickType_t timeout) {
     return HANDLE_AS_UART(handle)->readByte(reinterpret_cast<std::byte*>(output), timeout);
 }
 
-size_t tt_hal_uart_write_bytes(UartHandle handle, const char* buffer, size_t bufferSize, TickType timeout) {
+size_t tt_hal_uart_write_bytes(UartHandle handle, const char* buffer, size_t bufferSize, TickType_t timeout) {
     return HANDLE_AS_UART(handle)->writeBytes(reinterpret_cast<const std::byte*>(buffer), bufferSize, timeout);
 }
 

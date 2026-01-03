@@ -16,7 +16,7 @@ void tt_lvgl_stop() {
     tt::lvgl::stop();
 }
 
-void tt_lvgl_lock(TickType timeout) {
+void tt_lvgl_lock(TickType_t timeout) {
     tt::lvgl::getSyncLock()->lock(timeout);
 }
 

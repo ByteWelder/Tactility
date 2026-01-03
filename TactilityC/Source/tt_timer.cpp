@@ -9,7 +9,7 @@ struct TimerWrapper {
 
 extern "C" {
 
-TimerHandle tt_timer_alloc(TimerType type, TickType ticks, TimerCallback callback, void* callbackContext) {
+TimerHandle tt_timer_alloc(TimerType type, TickType_t ticks, TimerCallback callback, void* callbackContext) {
     auto wrapper = new TimerWrapper;
     wrapper->timer = std::make_unique<tt::Timer>(static_cast<tt::Timer::Type>(type), ticks, [callback, callbackContext](){ callback(callbackContext); });
     return wrapper;
@@ -29,7 +29,7 @@ bool tt_timer_reset(TimerHandle handle) {
     return HANDLE_TO_WRAPPER(handle)->timer->reset();
 }
 
-bool tt_timer_reset_with_interval(TimerHandle handle, TickType interval) {
+bool tt_timer_reset_with_interval(TimerHandle handle, TickType_t interval) {
     return HANDLE_TO_WRAPPER(handle)->timer->reset(interval);
 }
 
