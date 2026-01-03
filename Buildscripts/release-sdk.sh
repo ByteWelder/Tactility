@@ -24,6 +24,13 @@ find_target_dir=$build_dir/$tactility_library_path/Include/
 cp TactilityC/Include/* $find_target_dir
 cp Documentation/license-tactilitysdk.md $build_dir/$tactility_library_path/LICENSE.md
 
+# TactilityFreeRtos
+tactilityfreertos_library_path=$library_path/TactilityFreeRtos
+mkdir -p $tactilityfreertos_library_path/Include
+find_target_dir=$build_dir/$tactilityfreertos_library_path/Include/
+cp -r TactilityFreeRtos/Include/* $find_target_dir
+cp Documentation/license-tactilitysdk.md $build_dir/$tactilityfreertos_library_path/LICENSE.md
+
 # lvgl
 lvgl_library_path=$library_path/lvgl
 mkdir -p $lvgl_library_path/Binary

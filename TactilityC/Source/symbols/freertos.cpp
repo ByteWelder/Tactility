@@ -3,12 +3,20 @@
 
 #include <symbols/freertos.h>
 
-#include <Tactility/freertoscompat/RTOS.h>
-#include <freertos/task.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+#include <freertos/task.h>
+#include <freertos/timers.h>
 
 const esp_elfsym freertos_symbols[] = {
     // Task
+    ESP_ELFSYM_EXPORT(uxTaskGetStackHighWaterMark),
+    ESP_ELFSYM_EXPORT(uxTaskGetNumberOfTasks),
+    ESP_ELFSYM_EXPORT(uxTaskGetTaskNumber),
+    ESP_ELFSYM_EXPORT(uxTaskPriorityGet),
+    ESP_ELFSYM_EXPORT(uxTaskPriorityGetFromISR),
     ESP_ELFSYM_EXPORT(vTaskDelay),
     ESP_ELFSYM_EXPORT(vTaskDelete),
     ESP_ELFSYM_EXPORT(vTaskDeleteWithCaps),
@@ -28,13 +36,10 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xTaskDelayUntil),
     ESP_ELFSYM_EXPORT(xTaskGenericNotify),
     ESP_ELFSYM_EXPORT(xTaskGenericNotifyFromISR),
+    ESP_ELFSYM_EXPORT(xTaskGetTickCount),
+    ESP_ELFSYM_EXPORT(xTaskGetTickCountFromISR),
     ESP_ELFSYM_EXPORT(pvTaskGetThreadLocalStoragePointer),
     ESP_ELFSYM_EXPORT(pvTaskIncrementMutexHeldCount),
-    ESP_ELFSYM_EXPORT(uxTaskGetStackHighWaterMark),
-    ESP_ELFSYM_EXPORT(uxTaskGetNumberOfTasks),
-    ESP_ELFSYM_EXPORT(uxTaskGetTaskNumber),
-    ESP_ELFSYM_EXPORT(uxTaskPriorityGet),
-    ESP_ELFSYM_EXPORT(uxTaskPriorityGetFromISR),
     // EventGroup
     ESP_ELFSYM_EXPORT(xEventGroupCreate),
     ESP_ELFSYM_EXPORT(xEventGroupCreateWithCaps),
@@ -49,11 +54,6 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xEventGroupSync),
     ESP_ELFSYM_EXPORT(xEventGroupWaitBits),
     // Queue
-    ESP_ELFSYM_EXPORT(xQueueGenericCreate),
-    ESP_ELFSYM_EXPORT(xQueueGenericCreateStatic),
-    ESP_ELFSYM_EXPORT(xQueueGenericReset),
-    ESP_ELFSYM_EXPORT(xQueueGenericSend),
-    ESP_ELFSYM_EXPORT(xQueueGenericSendFromISR),
     ESP_ELFSYM_EXPORT(vQueueDelete),
     ESP_ELFSYM_EXPORT(vQueueDeleteWithCaps),
     ESP_ELFSYM_EXPORT(vQueueSetQueueNumber),
@@ -62,6 +62,21 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(uxQueueMessagesWaiting),
     ESP_ELFSYM_EXPORT(uxQueueMessagesWaitingFromISR),
     ESP_ELFSYM_EXPORT(uxQueueSpacesAvailable),
+    ESP_ELFSYM_EXPORT(xQueueCreateCountingSemaphore),
+    ESP_ELFSYM_EXPORT(xQueueCreateCountingSemaphoreStatic),
+    ESP_ELFSYM_EXPORT(xQueueCreateMutex),
+    ESP_ELFSYM_EXPORT(xQueueCreateMutexStatic),
+    ESP_ELFSYM_EXPORT(xQueueCreateSet),
+    ESP_ELFSYM_EXPORT(xQueueGetMutexHolder),
+    ESP_ELFSYM_EXPORT(xQueueGetMutexHolderFromISR),
+    ESP_ELFSYM_EXPORT(xQueueGiveMutexRecursive),
+    ESP_ELFSYM_EXPORT(xQueueTakeMutexRecursive),
+    ESP_ELFSYM_EXPORT(xQueueGenericCreate),
+    ESP_ELFSYM_EXPORT(xQueueGenericCreateStatic),
+    ESP_ELFSYM_EXPORT(xQueueGenericReset),
+    ESP_ELFSYM_EXPORT(xQueueGenericSend),
+    ESP_ELFSYM_EXPORT(xQueueGenericSendFromISR),
+    ESP_ELFSYM_EXPORT(xQueueSemaphoreTake),
     // Timer
     ESP_ELFSYM_EXPORT(xTimerCreate),
     ESP_ELFSYM_EXPORT(xTimerCreateStatic),
@@ -72,6 +87,9 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xTimerPendFunctionCallFromISR),
     ESP_ELFSYM_EXPORT(xTimerGetPeriod),
     // portmacro.h
+    ESP_ELFSYM_EXPORT(vPortYield),
+    ESP_ELFSYM_EXPORT(vPortEnterCritical),
+    ESP_ELFSYM_EXPORT(vPortExitCritical),
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
     ESP_ELFSYM_EXPORT(xPortCanYield),
     ESP_ELFSYM_EXPORT(xPortGetCoreID),

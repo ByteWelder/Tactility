@@ -1,21 +1,14 @@
 cmake_minimum_required(VERSION 3.20)
 
-add_definitions(-DTT_DEBUG)
-
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_ASM_COMPILE_OBJECT "${CMAKE_CXX_COMPILER_TARGET}")
 
 include("Buildscripts/logo.cmake")
 
-if (NOT WIN32)
-    string(ASCII 27 Esc)
-    set(ColorReset "${Esc}[m")
-    set(Cyan "${Esc}[36m")
-else ()
-    set(ColorReset "")
-    set(Cyan "")
-endif ()
+string(ASCII 27 Esc)
+set(ColorReset "${Esc}[m")
+set(Cyan "${Esc}[36m")
 
 file(READ version.txt TACTILITY_VERSION)
 add_compile_definitions(TT_VERSION="${TACTILITY_VERSION}")
@@ -77,19 +70,16 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(TactilityCore)
     add_subdirectory(TactilityFreeRtos)
     add_subdirectory(Devices/simulator)
-endif ()
-
-if (NOT DEFINED ENV{ESP_IDF_VERSION})
-    # FreeRTOS
-    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
-    set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
-
     add_subdirectory(Libraries/cJSON)
-    add_subdirectory(Libraries/FreeRTOS-Kernel)
     add_subdirectory(Libraries/lv_screenshot)
     add_subdirectory(Libraries/QRCode)
     add_subdirectory(Libraries/minitar)
     add_subdirectory(Libraries/minmea)
+
+    # FreeRTOS
+    set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")
+    set(FREERTOS_PORT GCC_POSIX CACHE STRING "")
+    add_subdirectory(Libraries/FreeRTOS-Kernel)
     target_compile_definitions(freertos_kernel PUBLIC "projCOVERAGE_TEST=0")
     target_include_directories(freertos_kernel
         PUBLIC Devices/Simulator/Source # for FreeRTOSConfig.h

@@ -11,6 +11,7 @@ const esp_elfsym stl_symbols[] = {
     { "_ZSt28__throw_bad_array_new_lengthv", (void*)&(std::__throw_bad_array_new_length) },
     { "_ZSt25__throw_bad_function_callv", (void*)&(std::__throw_bad_function_call) },
     { "_ZSt20__throw_length_errorPKc", (void*)&(std::__throw_length_error) },
+    { "_ZSt19__throw_logic_errorPKc", (void*)&std::__throw_logic_error },
     // { "", (void*)&(std::) },
     // delimiter
     ESP_ELFSYM_END

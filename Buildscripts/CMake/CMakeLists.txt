@@ -1,5 +1,6 @@
 idf_component_register(
-    INCLUDE_DIRS "Libraries/TactilityC/Include" "Libraries/lvgl/Include"
+    INCLUDE_DIRS "Libraries/TactilityC/Include" "Libraries/lvgl/Include" "Libraries/TactilityFreeRtos/Include"
+    REQUIRES esp_timer
 )
 
 add_prebuilt_library(TactilityC Libraries/TactilityC/Binary/libTactilityC.a)

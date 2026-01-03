@@ -2,14 +2,9 @@ import os
 import sys
 import boto3
 
-if sys.platform == "win32":
-    SHELL_COLOR_RED = ""
-    SHELL_COLOR_ORANGE = ""
-    SHELL_COLOR_RESET = ""
-else:
-    SHELL_COLOR_RED = "\033[91m"
-    SHELL_COLOR_ORANGE = "\033[93m"
-    SHELL_COLOR_RESET = "\033[m"
+SHELL_COLOR_RED = "\033[91m"
+SHELL_COLOR_ORANGE = "\033[93m"
+SHELL_COLOR_RESET = "\033[m"
 
 def print_warning(message):
     print(f"{SHELL_COLOR_ORANGE}WARNING: {message}{SHELL_COLOR_RESET}")
@@ -18,7 +13,7 @@ def print_error(message):
     print(f"{SHELL_COLOR_RED}ERROR: {message}{SHELL_COLOR_RESET}")
 
 def print_help():
-    print("Usage: python upload-files.py [path] [version] [cloudflareAccountId] [cloudflareTokenName] [cloudflareTokenValue]")
+    print("Usage: python upload-firmware-files.py [path] [version] [cloudflareAccountId] [cloudflareTokenName] [cloudflareTokenValue]")
     print("")
     print("Options:")
     print("  --index-only                   Upload only index.json")
@@ -52,14 +47,14 @@ def main(path: str, version: str, cloudflare_account_id, cloudflare_token_name: 
             counter += 1
 
 if __name__ == "__main__":
-    print("Tactility CDN Uploader")
+    print("Tactility CDN Firmware Uploader")
     if "--help" in sys.argv:
         print_help()
         sys.exit()
     # Argument validation
     if len(sys.argv) < 6:
         print_help()
-        sys.exit()
+        sys.exit(1)
     main(
         path=sys.argv[1],
         version=sys.argv[2],
