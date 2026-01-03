@@ -3,9 +3,12 @@
 
 #include <symbols/freertos.h>
 
-#include <Tactility/freertoscompat/RTOS.h>
-#include <freertos/task.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <freertos/queue.h>
+#include <freertos/semphr.h>
+#include <freertos/task.h>
+#include <freertos/timers.h>
 
 const esp_elfsym freertos_symbols[] = {
     // Task
