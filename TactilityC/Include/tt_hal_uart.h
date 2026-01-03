@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <tt_kernel.h>
+#include <freertos/FreeRTOS.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,7 +91,7 @@ bool tt_hal_uart_stop(UartHandle handle);
  *                to wait indefinitely.
  * @return The number of bytes read (0 on timeout with no data). Never exceeds bufferSize.
  */
-size_t tt_hal_uart_read_bytes(UartHandle handle, char* buffer, size_t bufferSize, TickType timeout);
+size_t tt_hal_uart_read_bytes(UartHandle handle, char* buffer, size_t bufferSize, TickType_t timeout);
 
 /**
  * @brief Read a single byte.
@@ -102,7 +102,7 @@ size_t tt_hal_uart_read_bytes(UartHandle handle, char* buffer, size_t bufferSize
  *                to wait indefinitely.
  * @return true if a byte was read and stored in output; false on timeout or failure.
  */
-bool tt_hal_uart_read_byte(UartHandle handle, char* output, TickType timeout);
+bool tt_hal_uart_read_byte(UartHandle handle, char* output, TickType_t timeout);
 
 /**
  * @brief Write up to bufferSize bytes from buffer.
@@ -117,7 +117,7 @@ bool tt_hal_uart_read_byte(UartHandle handle, char* output, TickType timeout);
  *                to wait indefinitely.
  * @return The number of bytes written (may be less than bufferSize on timeout).
  */
-size_t tt_hal_uart_write_bytes(UartHandle handle, const char* buffer, size_t bufferSize, TickType timeout);
+size_t tt_hal_uart_write_bytes(UartHandle handle, const char* buffer, size_t bufferSize, TickType_t timeout);
 
 /**
  * @brief Get the number of bytes currently available to read without blocking.

@@ -8,27 +8,12 @@
 
 extern "C" {
 
-LockHandle tt_lock_alloc_mutex(TtMutexType type) {
-    auto* lock_holder = new LockHolder();
-    switch (type) {
-        case MutexTypeNormal:
-            lock_holder->lock = std::make_shared<tt::Mutex>();
-            break;
-        case MutexTypeRecursive:
-            lock_holder->lock = std::make_shared<tt::RecursiveMutex>();
-            break;
-        default:
-            tt_crash("Type not supported");
-    }
-    return lock_holder;
-}
-
 LockHandle tt_lock_alloc_for_path(const char* path) {
     const auto lock = tt::file::getLock(path);
     return new LockHolder(lock);
 }
 
-bool tt_lock_acquire(LockHandle handle, TickType timeout) {
+bool tt_lock_acquire(LockHandle handle, TickType_t timeout) {
     return HANDLE_AS_LOCK(handle)->lock(timeout);
 }
 

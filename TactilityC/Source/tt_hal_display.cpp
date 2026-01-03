@@ -55,7 +55,7 @@ void tt_hal_display_driver_free(DisplayDriverHandle handle) {
     delete wrapper;
 }
 
-bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType timeout) {
+bool tt_hal_display_driver_lock(DisplayDriverHandle handle, TickType_t timeout) {
     auto wrapper = static_cast<DriverWrapper*>(handle);
     return wrapper->driver->getLock()->lock(timeout);
 }
