@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # Argument validation
     if len(sys.argv) < 6:
         print_help()
-        sys.exit()
+        sys.exit(1)
     main(
         path=sys.argv[1],
         version=sys.argv[2],

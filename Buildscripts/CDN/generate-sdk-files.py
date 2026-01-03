@@ -13,7 +13,7 @@ class SdkIndex:
     version: str
     created: str
     gitCommit: str
-    platforms: dictionary
+    platforms: dict
 
 shell_color_red = "\033[91m"
 shell_color_orange = "\033[93m"
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Argument validation
     if len(sys.argv) < 4:
         print_help()
-        sys.exit()
+        sys.exit(1)
     if "--verbose" in sys.argv:
         VERBOSE = True
         sys.argv.remove("--verbose")

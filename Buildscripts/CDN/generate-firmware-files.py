@@ -223,7 +223,7 @@ if __name__ == "__main__":
     # Argument validation
     if len(sys.argv) < 4:
         print_help()
-        sys.exit()
+        sys.exit(1)
     if "--verbose" in sys.argv:
         VERBOSE = True
         sys.argv.remove("--verbose")
