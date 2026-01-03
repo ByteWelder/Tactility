@@ -86,11 +86,7 @@ const esp_elfsym freertos_symbols[] = {
     // portmacro.h
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
-    ESP_ELFSYM_EXPORT(vPortEnterCriticalSafe),
-    ESP_ELFSYM_EXPORT(vPortEnterCriticalCompliance),
     ESP_ELFSYM_EXPORT(vPortExitCritical),
-    ESP_ELFSYM_EXPORT(vPortExitCriticalSafe),
-    ESP_ELFSYM_EXPORT(vPortExitCriticalCompliance),
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
     ESP_ELFSYM_EXPORT(xPortCanYield),
     ESP_ELFSYM_EXPORT(xPortGetCoreID),
