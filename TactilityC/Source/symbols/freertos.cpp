@@ -78,6 +78,7 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xQueueGenericSendFromISR),
     ESP_ELFSYM_EXPORT(xQueueSemaphoreTake),
     // Timer
+    ESP_ELFSYM_EXPORT(pvTimerGetTimerID),
     ESP_ELFSYM_EXPORT(xTimerCreate),
     ESP_ELFSYM_EXPORT(xTimerCreateStatic),
     ESP_ELFSYM_EXPORT(xTimerGenericCommand),
@@ -86,6 +87,11 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xTimerPendFunctionCall),
     ESP_ELFSYM_EXPORT(xTimerPendFunctionCallFromISR),
     ESP_ELFSYM_EXPORT(xTimerGetPeriod),
+    ESP_ELFSYM_EXPORT(uxTimerGetReloadMode),
+    ESP_ELFSYM_EXPORT(uxTimerGetTimerNumber),
+    ESP_ELFSYM_EXPORT(vTimerSetReloadMode),
+    ESP_ELFSYM_EXPORT(vTimerSetTimerID),
+    ESP_ELFSYM_EXPORT(vTimerSetTimerNumber),
     // portmacro.h
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
