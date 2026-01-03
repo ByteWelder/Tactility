@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tt_kernel.h"
 #include <stdbool.h>
+#include <freertos/FreeRTOS.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,13 +14,6 @@ typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive
 } TtMutexType;
-
-/**
- * Allocate a new mutex instance
- * @param[in] type specify if the mutex is either a normal one, or whether it can recursively (re)lock
- * @return the allocated lock handle
- */
-LockHandle tt_lock_alloc_mutex(TtMutexType type);
 
 /**
  * Allocate a lock for a file or folder.

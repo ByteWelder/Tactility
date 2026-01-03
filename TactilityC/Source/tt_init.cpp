@@ -17,12 +17,8 @@
 #include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
-#include "tt_message_queue.h"
 #include "tt_preferences.h"
-#include "tt_semaphore.h"
-#include "tt_thread.h"
 #include "tt_time.h"
-#include "tt_timer.h"
 #include "tt_wifi.h"
 
 #include "symbols/esp_event.h"
@@ -49,7 +45,6 @@
 #include <esp_random.h>
 #include <esp_sntp.h>
 #include <esp_netif.h>
-#include <esp_wifi.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -199,7 +194,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_get_user_data_child_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_child_path),
-    ESP_ELFSYM_EXPORT(tt_lock_alloc_mutex),
     ESP_ELFSYM_EXPORT(tt_lock_alloc_for_path),
     ESP_ELFSYM_EXPORT(tt_lock_acquire),
     ESP_ELFSYM_EXPORT(tt_lock_release),
@@ -281,12 +275,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_switch_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_spinner_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_clear_actions),
-    ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
-    ESP_ELFSYM_EXPORT(tt_message_queue_free),
-    ESP_ELFSYM_EXPORT(tt_message_queue_put),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_count),
-    ESP_ELFSYM_EXPORT(tt_message_queue_reset),
     ESP_ELFSYM_EXPORT(tt_preferences_alloc),
     ESP_ELFSYM_EXPORT(tt_preferences_free),
     ESP_ELFSYM_EXPORT(tt_preferences_opt_bool),
@@ -295,35 +283,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_preferences_put_bool),
     ESP_ELFSYM_EXPORT(tt_preferences_put_int32),
     ESP_ELFSYM_EXPORT(tt_preferences_put_string),
-    ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
-    ESP_ELFSYM_EXPORT(tt_semaphore_free),
-    ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
-    ESP_ELFSYM_EXPORT(tt_semaphore_release),
-    ESP_ELFSYM_EXPORT(tt_semaphore_get_count),
-    ESP_ELFSYM_EXPORT(tt_thread_alloc),
-    ESP_ELFSYM_EXPORT(tt_thread_alloc_ext),
-    ESP_ELFSYM_EXPORT(tt_thread_free),
-    ESP_ELFSYM_EXPORT(tt_thread_set_name),
-    ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
-    ESP_ELFSYM_EXPORT(tt_thread_set_affinity),
-    ESP_ELFSYM_EXPORT(tt_thread_set_callback),
-    ESP_ELFSYM_EXPORT(tt_thread_set_priority),
-    ESP_ELFSYM_EXPORT(tt_thread_set_state_callback),
-    ESP_ELFSYM_EXPORT(tt_thread_get_state),
-    ESP_ELFSYM_EXPORT(tt_thread_start),
-    ESP_ELFSYM_EXPORT(tt_thread_join),
-    ESP_ELFSYM_EXPORT(tt_thread_get_task_handle),
-    ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
-    ESP_ELFSYM_EXPORT(tt_timer_alloc),
-    ESP_ELFSYM_EXPORT(tt_timer_free),
-    ESP_ELFSYM_EXPORT(tt_timer_start),
-    ESP_ELFSYM_EXPORT(tt_timer_reset),
-    ESP_ELFSYM_EXPORT(tt_timer_reset_with_interval),
-    ESP_ELFSYM_EXPORT(tt_timer_stop),
-    ESP_ELFSYM_EXPORT(tt_timer_is_running),
-    ESP_ELFSYM_EXPORT(tt_timer_get_expiry_time),
-    ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
-    ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     ESP_ELFSYM_EXPORT(tt_timezone_set),
     ESP_ELFSYM_EXPORT(tt_timezone_get_name),
     ESP_ELFSYM_EXPORT(tt_timezone_get_code),
