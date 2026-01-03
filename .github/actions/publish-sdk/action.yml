@@ -1,0 +1,19 @@
+name: Publish SDK
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 'Download all-artifacts'
+      uses: actions/download-artifact@v4
+      with:
+        name: 'all-artifacts'
+        path: artifacts
+    - name: 'Install boto3'
+      shell: bash
+      run: pip install boto3
+    - name: 'Generate files'
+      shell: bash
+      run: version=`cat version.txt` && python Buildscripts/CDN/generate-sdk-files.py artifacts artifacts-cdn $version
+    - name: 'Upload files'
+      shell: bash
+      run: version=`cat version.txt` && python Buildscripts/CDN/upload-sdk-files.py artifacts-cdn $version ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}

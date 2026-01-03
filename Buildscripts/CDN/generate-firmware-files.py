@@ -45,14 +45,9 @@ class DeviceIndex:
     gitCommit: str
     devices: list
 
-if sys.platform == "win32":
-    shell_color_red = ""
-    shell_color_orange = ""
-    shell_color_reset = ""
-else:
-    shell_color_red = "\033[91m"
-    shell_color_orange = "\033[93m"
-    shell_color_reset = "\033[m"
+shell_color_red = "\033[91m"
+shell_color_orange = "\033[93m"
+shell_color_reset = "\033[m"
 
 def print_warning(message):
     print(f"{shell_color_orange}WARNING: {message}{shell_color_reset}")
@@ -61,7 +56,7 @@ def print_error(message):
     print(f"{shell_color_red}ERROR: {message}{shell_color_reset}")
 
 def print_help():
-    print("Usage: python generate-files.py [inPath] [outPath] [version]")
+    print("Usage: python generate-firmware-files.py [inPath] [outPath] [version]")
     print("     inPath   path with the extracted release files")
     print("     outPath  path where the CDN files will become available")
     print("     version  technical version name (e.g. 1.2.0)")
