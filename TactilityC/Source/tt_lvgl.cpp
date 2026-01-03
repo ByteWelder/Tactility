@@ -1,4 +1,3 @@
-#include <tt_kernel.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 
