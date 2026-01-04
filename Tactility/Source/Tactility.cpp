@@ -5,15 +5,16 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
 
-#include <Tactility/DispatcherThread.h>
-#include <Tactility/MountPoints.h>
 #include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
+#include <Tactility/DispatcherThread.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/LvglPrivate.h>
+#include <Tactility/MountPoints.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -29,7 +30,7 @@
 
 namespace tt {
 
-constexpr auto* TAG = "Tactility";
+static auto logger = Logger("Tactility");
 
 static const Configuration* config_instance = nullptr;
 static Dispatcher mainDispatcher;
@@ -117,7 +118,7 @@ namespace app {
 
 // List of all apps excluding Boot app (as Boot app calls this function indirectly)
 static void registerInternalApps() {
-    TT_LOG_I(TAG, "Registering internal apps");
+    logger.info("Registering internal apps");
 
     addAppManifest(app::alertdialog::manifest);
     addAppManifest(app::appdetails::manifest);
@@ -178,22 +179,22 @@ static void registerInternalApps() {
 }
 
 static void registerInstalledApp(std::string path) {
-    TT_LOG_I(TAG, "Registering app at %s", path.c_str());
+    logger.info("Registering app at {}", path);
     std::string manifest_path = path + "/manifest.properties";
     if (!file::isFile(manifest_path)) {
-        TT_LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
+        logger.error("Manifest not found at {}", manifest_path);
         return;
     }
 
     std::map<std::string, std::string> properties;
     if (!file::loadPropertiesFile(manifest_path, properties)) {
-        TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
+        logger.error("Failed to load manifest at {}", manifest_path);
         return;
     }
 
     app::AppManifest manifest;
     if (!app::parseManifest(properties, manifest)) {
-        TT_LOG_E(TAG, "Failed to parse manifest at %s", manifest_path.c_str());
+        logger.error("Failed to parse manifest at {}", manifest_path);
         return;
     }
 
@@ -204,7 +205,7 @@ static void registerInstalledApp(std::string path) {
 }
 
 static void registerInstalledApps(const std::string& path) {
-    TT_LOG_I(TAG, "Registering apps from %s", path.c_str());
+    logger.info("Registering apps from {}", path);
 
     file::listDirectory(path, [&path](const auto& entry) {
         auto absolute_path = std::format("{}/{}", path, entry.d_name);
@@ -226,14 +227,14 @@ static void registerInstalledAppsFromSdCards() {
     auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
     for (const auto& sdcard : sdcard_devices) {
         if (sdcard->isMounted()) {
-            TT_LOG_I(TAG, "Registering apps from %s", sdcard->getMountPath().c_str());
+            logger.info("Registering apps from {}", sdcard->getMountPath());
             registerInstalledAppsFromSdCard(sdcard);
         }
     }
 }
 
 static void registerAndStartSecondaryServices() {
-    TT_LOG_I(TAG, "Registering and starting system services");
+    logger.info("Registering and starting system services");
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
@@ -248,7 +249,7 @@ static void registerAndStartSecondaryServices() {
 }
 
 static void registerAndStartPrimaryServices() {
-    TT_LOG_I(TAG, "Registering and starting system services");
+    logger.info("Registering and starting system services");
     addService(service::gps::manifest);
     if (hal::hasDevice(hal::Device::Type::SdCard)) {
         addService(service::sdcard::manifest);
@@ -269,15 +270,15 @@ void createTempDirectory(const std::string& rootPath) {
         auto lock = file::getLock(rootPath)->asScopedLock();
         if (lock.lock(1000 / portTICK_PERIOD_MS)) {
             if (mkdir(temp_path.c_str(), 0777) == 0) {
-                TT_LOG_I(TAG, "Created %s", temp_path.c_str());
+                logger.info("Created {}", temp_path);
             } else {
-                TT_LOG_E(TAG, "Failed to create %s", temp_path.c_str());
+                logger.error("Failed to create {}", temp_path);
             }
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, rootPath.c_str());
+            logger.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, rootPath);
         }
     } else {
-        TT_LOG_I(TAG, "Found existing %s", temp_path.c_str());
+        logger.info("Found existing {}", temp_path);
     }
 }
 
@@ -305,7 +306,7 @@ void registerApps() {
 }
 
 void run(const Configuration& config) {
-    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
+    logger.info("Tactility v{} on {} ({})", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
     assert(config.hardware);
     const hal::Configuration& hardware = *config.hardware;
@@ -325,14 +326,14 @@ void run(const Configuration& config) {
     lvgl::init(hardware);
     registerAndStartSecondaryServices();
 
-    TT_LOG_I(TAG, "Core systems ready");
+    logger.info("Core systems ready");
 
-    TT_LOG_I(TAG, "Starting boot app");
+    logger.info("Starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
     addAppManifest(app::boot::manifest);
     app::start(app::boot::manifest.appId);
 
-    TT_LOG_I(TAG, "Main dispatcher ready");
+    logger.info("Main dispatcher ready");
     while (true) {
         mainDispatcher.consume();
     }

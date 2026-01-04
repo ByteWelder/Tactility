@@ -1,6 +1,6 @@
 #include "Tactility/hal/uart/Uart.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/Mutex.h>
 
 #include <ranges>
@@ -15,9 +15,9 @@
 #include <dirent.h>
 #endif
 
-#define TAG "uart"
-
 namespace tt::hal::uart {
+
+static const auto LOGGER = Logger("SPI");
 
 constexpr uint32_t uartIdNotInUse = 0;
 
@@ -30,7 +30,7 @@ static std::vector<UartEntry> uartEntries = {};
 static uint32_t lastUartId = uartIdNotInUse;
 
 bool init(const std::vector<Configuration>& configurations) {
-    TT_LOG_I(TAG, "Init");
+    LOGGER.info("Init");
     for (const auto& configuration: configurations) {
         uartEntries.push_back({
             .usageId = uartIdNotInUse,
@@ -78,7 +78,7 @@ size_t Uart::readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, 
         TickType_t now = kernel::getTicks();
         if (now > (start_time + timeout)) {
 #ifdef DEBUG_READ_UNTIL
-            TT_LOG_W(TAG, "readUntil() timeout");
+            LOGGER.warn("readUntil() timeout");
 #endif
             break;
         } else {
@@ -102,26 +102,26 @@ size_t Uart::readUntil(std::byte* buffer, size_t bufferSize, uint8_t untilByte, 
 
 static std::unique_ptr<Uart> open(UartEntry& entry) {
     if (entry.usageId != uartIdNotInUse) {
-        TT_LOG_E(TAG, "UART in use: %s", entry.configuration.name.c_str());
+        LOGGER.error("UART in use: {}", entry.configuration.name);
         return nullptr;
     }
 
     auto uart = create(entry.configuration);
     assert(uart != nullptr);
     entry.usageId = uart->getId();
-    TT_LOG_I(TAG, "Opened %lu", entry.usageId);
+    LOGGER.info("Opened {}", entry.usageId);
     return uart;
 }
 
 std::unique_ptr<Uart> open(uart_port_t port) {
-    TT_LOG_I(TAG, "Open %d", port);
+    LOGGER.info("Open {}", static_cast<int>(port));
 
     auto result = std::views::filter(uartEntries, [port](auto& entry) {
         return entry.configuration.port == port;
     });
 
     if (result.empty()) {
-        TT_LOG_E(TAG, "UART not found: %d", port);
+        LOGGER.error("UART not found: {}", static_cast<int>(port));
         return nullptr;
     }
 
@@ -129,14 +129,14 @@ std::unique_ptr<Uart> open(uart_port_t port) {
 }
 
 std::unique_ptr<Uart> open(std::string name) {
-    TT_LOG_I(TAG, "Open %s", name.c_str());
+    LOGGER.info("Open %s", name.c_str());
 
     auto result = std::views::filter(uartEntries, [&name](auto& entry) {
         return entry.configuration.name == name;
     });
 
     if (result.empty()) {
-        TT_LOG_E(TAG, "UART not found: %s", name.c_str());
+        LOGGER.error("UART not found: {}", name);
         return nullptr;
     }
 
@@ -144,7 +144,7 @@ std::unique_ptr<Uart> open(std::string name) {
 }
 
 void close(uint32_t uartId) {
-    TT_LOG_I(TAG, "Close %lu", uartId);
+    LOGGER.info("Close {}", uartId);
     auto result = std::views::filter(uartEntries, [&uartId](auto& entry) {
       return entry.usageId == uartId;
     });
@@ -153,7 +153,7 @@ void close(uint32_t uartId) {
         auto& entry = *result.begin();
         entry.usageId = uartIdNotInUse;
     } else {
-        TT_LOG_W(TAG, "Auto-closing UART, but can't find it");
+        LOGGER.warn("Auto-closing UART, but can't find it");
     }
 }
 
@@ -166,7 +166,7 @@ std::vector<std::string> getNames() {
 #else
     DIR* dir = opendir("/dev");
     if (dir == nullptr) {
-        TT_LOG_E(TAG, "Failed to read /dev");
+        LOGGER.error("Failed to read /dev");
         return names;
     }
     struct dirent* current_entry;

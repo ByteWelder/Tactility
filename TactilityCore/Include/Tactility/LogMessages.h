@@ -14,6 +14,7 @@
 // Mutex
 #define LOG_MESSAGE_MUTEX_LOCK_FAILED "Mutex acquisition timeout"
 #define LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT "Mutex acquisition timeout (%s)"
+#define LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP "Mutex acquisition timeout ({})"
 
 // SPI
 #define LOG_MESSAGE_SPI_INIT_START_FMT "SPI %d init"

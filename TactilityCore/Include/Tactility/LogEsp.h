@@ -2,8 +2,8 @@
 
 #ifdef ESP_PLATFORM
 
+#include "LogCommon.h"
 #include <esp_log.h>
-#include "Tactility/LogCommon.h"
 
 #define TT_LOG_E(tag, format, ...) \
     ESP_LOGE(tag, format, ##__VA_ARGS__)

@@ -7,4 +7,3 @@
 #endif
 
 #include "LogMessages.h"
-#include "LogCommon.h"

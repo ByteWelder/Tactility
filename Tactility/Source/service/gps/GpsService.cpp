@@ -1,7 +1,7 @@
 #include <Tactility/service/gps/GpsService.h>
 
 #include <Tactility/file/File.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
@@ -10,7 +10,7 @@ using tt::hal::gps::GpsDevice;
 
 namespace tt::service::gps {
 
-constexpr const char* TAG = "GpsService";
+static const auto LOGGER = Logger("GpsService");
 extern const ServiceManifest manifest;
 
 constexpr bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
@@ -73,7 +73,7 @@ void GpsService::onStop(ServiceContext& serviceContext) {
 }
 
 bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
-    TT_LOG_I(TAG, "[device %lu] starting", record.device->getId());
+    LOGGER.info("[device {}] starting", record.device->getId());
 
     auto lock = mutex.asScopedLock();
     lock.lock();
@@ -81,7 +81,7 @@ bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
     auto device = record.device;
 
     if (!device->start()) {
-        TT_LOG_E(TAG, "[device %lu] starting failed", record.device->getId());
+        LOGGER.error("[device {}] starting failed", record.device->getId());
         return false;
     }
 
@@ -105,7 +105,7 @@ bool GpsService::startGpsDevice(GpsDeviceRecord& record) {
 }
 
 bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
-    TT_LOG_I(TAG, "[device %lu] stopping", record.device->getId());
+    LOGGER.info("[device {}] stopping", record.device->getId());
 
     auto device = record.device;
 
@@ -116,7 +116,7 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
     record.rmcSubscriptionId = -1;
 
     if (!device->stop()) {
-        TT_LOG_E(TAG, "[device %lu] stopping failed", record.device->getId());
+        LOGGER.error("[device {}] stopping failed", record.device->getId());
         return false;
     }
 
@@ -124,10 +124,10 @@ bool GpsService::stopGpsDevice(GpsDeviceRecord& record) {
 }
 
 bool GpsService::startReceiving() {
-    TT_LOG_I(TAG, "Start receiving");
+    LOGGER.info("Start receiving");
 
     if (getState() != State::Off) {
-        TT_LOG_E(TAG, "Already receiving");
+        LOGGER.error("Already receiving");
         return false;
     }
 
@@ -140,13 +140,13 @@ bool GpsService::startReceiving() {
 
     std::vector<hal::gps::GpsConfiguration> configurations;
     if (!getGpsConfigurations(configurations)) {
-        TT_LOG_E(TAG, "Failed to get GPS configurations");
+        LOGGER.error("Failed to get GPS configurations");
         setState(State::Off);
         return false;
     }
 
     if (configurations.empty()) {
-        TT_LOG_E(TAG, "No GPS configurations");
+        LOGGER.error("No GPS configurations");
         setState(State::Off);
         return false;
     }
@@ -174,7 +174,7 @@ bool GpsService::startReceiving() {
 }
 
 void GpsService::stopReceiving() {
-    TT_LOG_I(TAG, "Stop receiving");
+    LOGGER.info("Stop receiving");
 
     setState(State::OffPending);
 
@@ -191,11 +191,11 @@ void GpsService::stopReceiving() {
 }
 
 void GpsService::onGgaSentence(hal::Device::Id deviceId, const minmea_sentence_gga& gga) {
-    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, satellites: %d", deviceId, minmea_tocoord(&gga.latitude), minmea_tocoord(&gga.longitude), gga.satellites_tracked);
+    LOGGER.debug("[device {}] LAT {} LON {}, satellites: {}", deviceId, minmea_tocoord(&gga.latitude), minmea_tocoord(&gga.longitude), gga.satellites_tracked);
 }
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
-    TT_LOG_D(TAG, "[device %lu] LAT %f LON %f, speed: %.2f", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
+    LOGGER.debug("[device {}] LAT {} LON %f, speed: {}", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
 }
 
 State GpsService::getState() const {

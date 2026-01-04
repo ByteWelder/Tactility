@@ -5,7 +5,9 @@
 #include "LogCommon.h"
 
 #include <cstdarg>
+#include <cstdint>
 #include <cstdio>
+#include <sys/time.h>
 
 namespace tt {
 

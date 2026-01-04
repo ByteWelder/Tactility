@@ -1,17 +1,19 @@
 #include <Tactility/hal/sdcard/SdCardMounting.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 
+#include <Tactility/Logger.h>
+
 #include <format>
 
 namespace tt::hal::sdcard {
 
-constexpr auto* TAG = "SdCardMounting";
+static const auto LOGGER = Logger("EspLcdDisplay");
 constexpr auto* TT_SDCARD_MOUNT_POINT = "/sdcard";
 
 static void mount(const std::shared_ptr<SdCardDevice>& sdcard, const std::string& path) {
-   TT_LOG_I(TAG, "Mounting sdcard at %s", path.c_str());
+   LOGGER.info("Mounting sdcard at {}", path);
    if (!sdcard->mount(path)) {
-       TT_LOG_W(TAG, "SD card mount failed for %s (init can continue)", path.c_str());
+       LOGGER.warn("SD card mount failed for {} (init can continue)", path);
    }
 }
 

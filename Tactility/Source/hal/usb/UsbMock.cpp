@@ -2,8 +2,6 @@
 
 #include "Tactility/hal/usb/Usb.h"
 
-#define TAG "usb"
-
 namespace tt::hal::usb {
 
 bool startMassStorageWithSdmmc() { return false; }

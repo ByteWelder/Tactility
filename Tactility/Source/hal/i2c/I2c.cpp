@@ -1,12 +1,12 @@
-#include "Tactility/hal/i2c/I2c.h"
+#include <Tactility/hal/i2c/I2c.h>
 
-#include <Tactility/Log.h>
-#include <Tactility/Mutex.h>
 #include <Tactility/Check.h>
+#include <Tactility/Logger.h>
+#include <Tactility/Mutex.h>
 
 namespace tt::hal::i2c {
 
-constexpr auto TAG = "i2c";
+static const auto LOGGER = Logger("I2C");
 
 struct Data {
     Mutex mutex;
@@ -18,12 +18,12 @@ struct Data {
 static const uint8_t ACK_CHECK_EN = 1;
 static Data dataArray[I2C_NUM_MAX];
 
-bool init(const std::vector<i2c::Configuration>& configurations) {
-   TT_LOG_I(TAG, "Init");
+bool init(const std::vector<Configuration>& configurations) {
+   LOGGER.info("Init");
    for (const auto& configuration: configurations) {
 #ifdef ESP_PLATFORM
        if (configuration.config.mode != I2C_MODE_MASTER) {
-           TT_LOG_E(TAG, "Currently only master mode is supported");
+           LOGGER.error("Currently only master mode is supported");
            return false;
        }
 #endif // ESP_PLATFORM
@@ -51,10 +51,10 @@ bool configure(i2c_port_t port, const i2c_config_t& configuration) {
 
     Data& data = dataArray[port];
     if (data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", port);
+        LOGGER.error("({}) Cannot reconfigure while interface is started", static_cast<int>(port));
         return false;
     } else if (!data.configuration.isMutable) {
-        TT_LOG_E(TAG, "(%d) Mutation not allowed because configuration is immutable", port);
+        LOGGER.error("({}) Mutation not allowed because configuration is immutable", static_cast<int>(port));
         return false;
     } else {
         data.configuration.config = configuration;
@@ -70,32 +70,32 @@ bool start(i2c_port_t port) {
     Configuration& config = data.configuration;
 
     if (data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Starting: Already started", port);
+        LOGGER.error("({}) Starting: Already started", static_cast<int>(port));
         return false;
     }
 
     if (!data.isConfigured) {
-        TT_LOG_E(TAG, "(%d) Starting: Not configured", port);
+        LOGGER.error("({}) Starting: Not configured", static_cast<int>(port));
         return false;
     }
 
 #ifdef ESP_PLATFORM
     esp_err_t result = i2c_param_config(port, &config.config);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to configure: %s", port, esp_err_to_name(result));
+        LOGGER.error("({}) Starting: Failed to configure: {}", static_cast<int>(port), esp_err_to_name(result));
         return false;
     }
 
     result = i2c_driver_install(port, config.config.mode, 0, 0, 0);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to install driver: %s", port, esp_err_to_name(result));
+        LOGGER.error("({}) Starting: Failed to install driver: {}", static_cast<int>(port), esp_err_to_name(result));
         return false;
     }
 #endif // ESP_PLATFORM
 
     data.isStarted = true;
 
-    TT_LOG_I(TAG, "(%d) Started", port);
+    LOGGER.info("({}) Started", static_cast<int>(port));
     return true;
 }
 
@@ -107,26 +107,26 @@ bool stop(i2c_port_t port) {
     Configuration& config = data.configuration;
 
     if (!config.isMutable) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not allowed for immutable configuration", port);
+        LOGGER.error("({}) Stopping: Not allowed for immutable configuration", static_cast<int>(port));
         return false;
     }
 
     if (!data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not started", port);
+        LOGGER.error("({}) Stopping: Not started", static_cast<int>(port));
         return false;
     }
 
 #ifdef ESP_PLATFORM
     esp_err_t result = i2c_driver_delete(port);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Stopping: Failed to delete driver: %s", port, esp_err_to_name(result));
+        LOGGER.error("({}) Stopping: Failed to delete driver: {}", static_cast<int>(port), esp_err_to_name(result));
         return false;
     }
 #endif // ESP_PLATFORM
 
     data.isStarted = false;
 
-    TT_LOG_I(TAG, "(%d) Stopped", port);
+    LOGGER.info("({}) Stopped", static_cast<int>(port));
     return true;
 }
 
@@ -139,7 +139,7 @@ bool isStarted(i2c_port_t port) {
 bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize, TickType_t timeout) {
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
@@ -155,7 +155,7 @@ bool masterRead(i2c_port_t port, uint8_t address, uint8_t* data, size_t dataSize
 bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* data, size_t dataSize, TickType_t timeout) {
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
@@ -188,7 +188,7 @@ bool masterReadRegister(i2c_port_t port, uint8_t address, uint8_t reg, uint8_t* 
 bool masterWrite(i2c_port_t port, uint8_t address, const uint8_t* data, uint16_t dataSize, TickType_t timeout) {
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
@@ -206,7 +206,7 @@ bool masterWriteRegister(i2c_port_t port, uint8_t address, uint8_t reg, const ui
 
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
@@ -248,7 +248,7 @@ bool masterWriteRegisterArray(i2c_port_t port, uint8_t address, const uint8_t* d
 bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData, size_t writeDataSize, uint8_t* readData, size_t readDataSize, TickType_t timeout) {
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
@@ -264,7 +264,7 @@ bool masterWriteRead(i2c_port_t port, uint8_t address, const uint8_t* writeData,
 bool masterHasDeviceAtAddress(i2c_port_t port, uint8_t address, TickType_t timeout) {
     auto lock = getLock(port).asScopedLock();
     if (!lock.lock(timeout)) {
-        TT_LOG_E(TAG, "(%d) Mutex timeout", port);
+        LOGGER.error("({}) Mutex timeout", static_cast<int>(port));
         return false;
     }
 
