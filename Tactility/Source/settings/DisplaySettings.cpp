@@ -118,7 +118,7 @@ DisplaySettings getDefault() {
         .orientation = getDefaultOrientation(),
         .gammaCurve = 1,
         .backlightDuty = 200,
-        .backlightTimeoutEnabled = true,
+        .backlightTimeoutEnabled = false,
         .backlightTimeoutMs = 60000
     };
 }
