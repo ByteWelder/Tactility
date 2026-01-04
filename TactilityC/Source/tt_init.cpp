@@ -25,6 +25,7 @@
 #include "symbols/esp_http_client.h"
 #include "symbols/pthread.h"
 #include "symbols/stl.h"
+#include "symbols/string.h"
 #include "symbols/cplusplus.h"
 #include "symbols/freertos.h"
 #ifndef CONFIG_IDF_TARGET_ESP32P4
@@ -633,10 +634,11 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
 #endif
         stl_symbols,
         cplusplus_symbols,
-        esp_event_symbols,
-        esp_http_client_symbols,
         pthread_symbols,
         freertos_symbols,
+        string_symbols,
+        esp_event_symbols,
+        esp_http_client_symbols,
     };
 
     for (const auto* symbols : all_symbols) {

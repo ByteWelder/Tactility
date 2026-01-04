@@ -25,13 +25,20 @@ class DisplayIdleService final : public Service {
         // Settings are now cached and event-driven (no file I/O in timer callback!)
         // This prevents watchdog timeout from blocking the Timer Service task
 
+        if (lv_disp_get_default() == nullptr) {
+            return;
+        }
+
         // Query LVGL inactivity once for both checks
         uint32_t inactive_ms = 0;
         if (lvgl::lock(100)) {
             inactive_ms = lv_disp_get_inactive_time(nullptr);
             lvgl::unlock();
+        } else {
+            return;
         }
 
+        // TODO: The following logic only works with the first display. There might be multiple displays.
         // Handle display backlight
         auto display = getDisplay();
         if (display != nullptr && display->supportsBacklightDuty()) {
