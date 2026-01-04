@@ -1,20 +1,21 @@
 #include <Tactility/lvgl/Statusbar.h>
 
-#include <Tactility/Timer.h>
-#include <Tactility/Mutex.h>
 #include <Tactility/hal/power/PowerDevice.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/Timer.h>
 
 namespace tt::service::statusbar {
 
-constexpr auto* TAG = "StatusbarService";
+static const auto LOGGER = Logger("StatusbarService");
 
 // SD card status
 constexpr auto* STATUSBAR_ICON_SDCARD = "sdcard.png";
@@ -252,7 +253,7 @@ public:
 
     bool onStart(ServiceContext& serviceContext) override {
         if (lv_screen_active() == nullptr) {
-            TT_LOG_E(TAG, "No display found");
+            LOGGER.error("No display found");
             return false;
         }
 

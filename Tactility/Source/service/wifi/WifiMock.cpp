@@ -8,14 +8,11 @@
 
 #include <Tactility/PubSub.h>
 #include <Tactility/Check.h>
-#include <Tactility/Log.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/ServiceManifest.h>
 
 namespace tt::service::wifi {
-
-constexpr auto* TAG = "Wifi";
 
 struct Wifi {
     /** @brief Locking mechanism for modifying the Wifi instance */

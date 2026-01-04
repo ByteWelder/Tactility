@@ -3,12 +3,13 @@
 #ifdef ESP_PLATFORM
 
 #include <esp_http_client.h>
+#include <Tactility/Logger.h>
 
 namespace tt::network {
 
 class EspHttpClient {
 
-    static constexpr auto* TAG = "EspHttpClient";
+    const Logger logger = Logger("EspHttpClient");
 
     std::unique_ptr<esp_http_client_config_t> config = nullptr;
     esp_http_client_handle_t client = nullptr;
@@ -27,7 +28,7 @@ public:
     }
 
     bool init(std::unique_ptr<esp_http_client_config_t> inConfig) {
-        TT_LOG_I(TAG, "init(%s)", inConfig->url);
+        logger.info("init(%s)", inConfig->url);
         assert(this->config == nullptr);
         config = std::move(inConfig);
         client = esp_http_client_init(config.get());
@@ -36,11 +37,11 @@ public:
 
     bool open() {
         assert(client != nullptr);
-        TT_LOG_I(TAG, "open()");
+        logger.info("open()");
         auto result = esp_http_client_open(client, 0);
 
         if (result != ESP_OK) {
-            TT_LOG_E(TAG, "open() failed: %s", esp_err_to_name(result));
+            logger.error("open() failed: %s", esp_err_to_name(result));
             return false;
         }
 
@@ -50,7 +51,7 @@ public:
 
     bool fetchHeaders() const {
         assert(client != nullptr);
-        TT_LOG_I(TAG, "fetchHeaders()");
+        logger.info("fetchHeaders()");
         return esp_http_client_fetch_headers(client) >= 0;
     }
 
@@ -63,7 +64,7 @@ public:
     int getStatusCode() const {
         assert(client != nullptr);
         const auto status_code = esp_http_client_get_status_code(client);
-        TT_LOG_I(TAG, "Status code %d", status_code);
+        logger.info("Status code {}", status_code);
         return status_code;
     }
 
@@ -74,19 +75,19 @@ public:
 
     int read(char* bytes, int size) const {
         assert(client != nullptr);
-        TT_LOG_I(TAG, "read(%d)", size);
+        logger.info("read({})", size);
         return esp_http_client_read(client, bytes, size);
     }
 
     int readResponse(char* bytes, int size) const {
         assert(client != nullptr);
-        TT_LOG_I(TAG, "readResponse(%d)", size);
+        logger.info("readResponse({})", size);
         return esp_http_client_read_response(client, bytes, size);
     }
 
     bool close() {
         assert(client != nullptr);
-        TT_LOG_I(TAG, "close()");
+        logger.info("close()");
         if (esp_http_client_close(client) == ESP_OK) {
             isOpen = false;
         }
@@ -96,7 +97,7 @@ public:
     bool cleanup() {
         assert(client != nullptr);
         assert(!isOpen);
-        TT_LOG_I(TAG, "cleanup()");
+        logger.info("cleanup()");
         const auto result = esp_http_client_cleanup(client);
         client = nullptr;
         return result == ESP_OK;

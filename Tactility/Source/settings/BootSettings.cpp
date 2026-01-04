@@ -2,7 +2,7 @@
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/settings/BootSettings.h>
 
 #include <format>
@@ -11,7 +11,8 @@
 
 namespace tt::settings {
 
-constexpr auto* TAG = "BootSettings";
+static const auto LOGGER = Logger("BootSettings");
+
 constexpr auto* PROPERTIES_FILE_FORMAT = "{}/settings/boot.properties";
 constexpr auto* PROPERTIES_KEY_LAUNCHER_APP_ID = "launcherAppId";
 constexpr auto* PROPERTIES_KEY_AUTO_START_APP_ID = "autoStartAppId";
@@ -36,7 +37,7 @@ bool loadBootSettings(BootSettings& properties) {
             properties.launcherAppId = value;
         }
     })) {
-        TT_LOG_E(TAG, "Failed to load %s", path.c_str());
+        LOGGER.error("Failed to load {}", path);
         return false;
     }
 

@@ -17,8 +17,8 @@ namespace tt::network::http {
     const std::string& url,
     const std::string& certFilePath,
     const std::string &downloadFilePath,
-    std::function<void()> onSuccess,
-    std::function<void(const char* errorMessage)> onError
+    const std::function<void()>& onSuccess,
+    const std::function<void(const char* errorMessage)>& onError
 );
 
 }

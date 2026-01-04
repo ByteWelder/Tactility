@@ -1,14 +1,14 @@
+#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/Logger.h>
+#include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceRegistration.h>
-
-#include <Tactility/Timer.h>
-#include <Tactility/Mutex.h>
 #include <Tactility/Tactility.h>
-#include <Tactility/hal/sdcard/SdCardDevice.h>
+#include <Tactility/Timer.h>
 
 namespace tt::service::sdcard {
 
-constexpr auto* TAG = "SdcardService";
+static const auto LOGGER = Logger("SdcardService");
 
 extern const ServiceManifest manifest;
 
@@ -37,7 +37,7 @@ class SdCardService final : public Service {
             auto new_state = sdcard->getState();
 
             if (new_state == hal::sdcard::SdCardDevice::State::Error) {
-                TT_LOG_E(TAG, "Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
+                LOGGER.error("Sdcard error - unmounting. Did you eject the card in an unsafe manner?");
                 sdcard->unmount();
             }
 
@@ -47,7 +47,7 @@ class SdCardService final : public Service {
 
             unlock();
         } else {
-            TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+            LOGGER.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         }
     }
 
@@ -55,7 +55,7 @@ public:
 
     bool onStart(ServiceContext& serviceContext) override {
         if (hal::findFirstDevice<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard) == nullptr) {
-            TT_LOG_W(TAG, "No SD card device found - not starting Service");
+            LOGGER.warn("No SD card device found - not starting Service");
             return false;
         }
 

@@ -16,8 +16,6 @@ constexpr const char* TAG = "AddGps";
 
 class AddGpsApp final : public App {
 
-private:
-
     lv_obj_t* uartDropdown = nullptr;
     lv_obj_t* modelDropdown = nullptr;
     lv_obj_t* baudDropdown = nullptr;

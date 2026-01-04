@@ -409,7 +409,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     if (scan_result == ESP_OK) {
         uint16_t safe_record_count = std::min(wifi->scan_list_limit, record_count);
         wifi->scan_list_count = safe_record_count;
-        LOGGER.info("Scanned %u APs. Showing %u:", record_count, safe_record_count);
+        LOGGER.info("Scanned {} APs. Showing {}:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
             wifi_ap_record_t* record = &wifi->scan_list[i];
             LOGGER.info(" - SSID {}, RSSI {}, channel {}, BSSID {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
@@ -505,7 +505,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         memcpy(&wifi->ip_info, &event->ip_info, sizeof(esp_netif_ip_info_t));
-        LOGGER.info("eventHandler: got ip: {} {}", IPSTR, IP2STR(&event->ip_info.ip));
+        LOGGER.info("eventHandler: got ip: {}.{}.{}.{}", IP2STR(&event->ip_info.ip));
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
             wifi->connection_wait_flags.set(WIFI_CONNECTED_BIT);
             // We resume auto-connecting only when there was an explicit request by the user for the connection
@@ -802,7 +802,7 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
             wifi->setSecureConnection(config.sta.password[0] != 0x00U);
             wifi->setRadioState(RadioState::ConnectionActive);
             publish_event(wifi, WifiEvent::ConnectionSuccess);
-            LOGGER.info("Connected to %s", wifi->connection_target.ssid.c_str());
+            LOGGER.info("Connected to {}", wifi->connection_target.ssid.c_str());
             if (wifi->connection_target_remember) {
                 if (!settings::save(wifi->connection_target)) {
                     LOGGER.error("Failed to store credentials");

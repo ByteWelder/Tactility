@@ -5,6 +5,6 @@
 
 namespace tt {
 
-typedef std::function<void(LogLevel, const char* tag, const char*)> LoggerAdapter;
+typedef std::function<void(LogLevel level, const char* tag, const char* message)> LoggerAdapter;
 
 }

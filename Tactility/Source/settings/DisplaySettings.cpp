@@ -10,7 +10,6 @@
 
 namespace tt::settings::display {
 
-constexpr auto* TAG = "DisplaySettings";
 constexpr auto* SETTINGS_FILE = "/data/settings/display.properties";
 constexpr auto* SETTINGS_KEY_ORIENTATION = "orientation";
 constexpr auto* SETTINGS_KEY_GAMMA_CURVE = "gammaCurve";

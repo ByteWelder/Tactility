@@ -1,14 +1,14 @@
 #include <Tactility/service/wifi/WifiSettings.h>
 
-#include <Tactility/Log.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/wifi/WifiPrivate.h>
 
 namespace tt::service::wifi::settings {
 
-constexpr auto* TAG = "WifiSettings";
+static const auto LOGGER = Logger("WifiSettings");
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
 struct WifiSettings {
@@ -56,7 +56,7 @@ static bool save(const WifiSettings& settings) {
 WifiSettings getCachedOrLoad() {
     if (!cached) {
         if (!load(cachedSettings)) {
-            TT_LOG_E(TAG, "Failed to load");
+            LOGGER.error("Failed to load");
         } else {
             cached = true;
         }
@@ -68,7 +68,7 @@ WifiSettings getCachedOrLoad() {
 void setEnableOnBoot(bool enable) {
     cachedSettings.enableOnBoot = enable;
     if (!save(cachedSettings)) {
-        TT_LOG_E(TAG, "Failed to save");
+        LOGGER.error("Failed to save");
     }
 }
 

@@ -1,5 +1,5 @@
 #include <Tactility/network/HttpdReq.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
 
@@ -11,7 +11,7 @@
 
 namespace tt::network {
 
-constexpr auto* TAG = "HttpdReq";
+static const auto LOGGER = Logger("HttpdReq");
 
 bool getHeaderOrSendError(httpd_req_t* request, const std::string& name, std::string& value) {
     size_t header_size = httpd_req_get_hdr_value_len(request, name.c_str());
@@ -22,7 +22,7 @@ bool getHeaderOrSendError(httpd_req_t* request, const std::string& name, std::st
 
     auto header_buffer = std::make_unique<char[]>(header_size + 1);
     if (header_buffer == nullptr) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         httpd_resp_send_500(request);
         return false;
     }
@@ -78,7 +78,7 @@ std::unique_ptr<char[]> receiveByteArray(httpd_req_t* request, size_t length, si
     // and we don't have exceptions enabled in the compiler settings
     auto* buffer = static_cast<char*>(malloc(length));
     if (buffer == nullptr) {
-        TT_LOG_E(TAG, LOG_MESSAGE_ALLOC_FAILED_FMT, length);
+        LOGGER.error(LOG_MESSAGE_ALLOC_FAILED_FMT, length);
         return nullptr;
     }
 
@@ -86,7 +86,7 @@ std::unique_ptr<char[]> receiveByteArray(httpd_req_t* request, size_t length, si
         size_t read_size = length - bytesRead;
         size_t bytes_received = httpd_req_recv(request, buffer + bytesRead, read_size);
         if (bytes_received <= 0) {
-            TT_LOG_W(TAG, "Received %zu / %zu", bytesRead + bytes_received, length);
+            LOGGER.warn("Received {} / {}", bytesRead + bytes_received, length);
             return nullptr;
         }
 
@@ -172,7 +172,7 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
 
     auto* file = fopen(filePath.c_str(), "wb");
     if (file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open file for writing: %s", filePath.c_str());
+        LOGGER.error("Failed to open file for writing: {}", filePath);
         return 0;
     }
 
@@ -180,11 +180,11 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
         auto expected_chunk_size = std::min<size_t>(BUFFER_SIZE, length - bytes_received);
         size_t receive_chunk_size = httpd_req_recv(request, buffer, expected_chunk_size);
         if (receive_chunk_size <= 0) {
-            TT_LOG_E(TAG, "Receive failed");
+            LOGGER.error("Receive failed");
             break;
         }
         if (fwrite(buffer, 1, receive_chunk_size, file) != receive_chunk_size) {
-            TT_LOG_E(TAG, "Failed to write all bytes");
+            LOGGER.error("Failed to write all bytes");
             break;
         }
         bytes_received += receive_chunk_size;
