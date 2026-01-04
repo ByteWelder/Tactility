@@ -6,11 +6,13 @@
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/Device.h>
+#include <Tactility/Logger.h>
 #include <KeyboardBacklight/KeyboardBacklight.h>
 
 using tt::hal::findFirstDevice;
 
-constexpr auto* TAG = "TdeckKeyboard";
+static const auto LOGGER = tt::Logger("TdeckKeyboard");
+
 constexpr auto TDECK_KEYBOARD_I2C_BUS_HANDLE = I2C_NUM_0;
 constexpr auto TDECK_KEYBOARD_SLAVE_ADDRESS = 0x55;
 
@@ -37,11 +39,15 @@ static void keyboard_read_callback(TT_UNUSED lv_indev_t* indev, lv_indev_data_t*
 
     if (keyboard_i2c_read(&read_buffer)) {
         if (read_buffer == 0 && read_buffer != last_buffer) {
-            TT_LOG_D(TAG, "Released %d", last_buffer);
+            if (LOGGER.isLoggingDebug()) {
+                LOGGER.debug("Released {}", last_buffer);
+            }
             data->key = last_buffer;
             data->state = LV_INDEV_STATE_RELEASED;
         } else if (read_buffer != 0) {
-            TT_LOG_D(TAG, "Pressed %d", read_buffer);
+            if (LOGGER.isLoggingDebug()) {
+                LOGGER.debug("Pressed {}", read_buffer);
+            }
             data->key = read_buffer;
             data->state = LV_INDEV_STATE_PRESSED;
             // TODO: Avoid performance hit by calling loadOrGetDefault() on each key press

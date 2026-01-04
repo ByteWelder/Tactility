@@ -1,9 +1,10 @@
 #include "TpagerEncoder.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <driver/gpio.h>
 
-constexpr auto* TAG = "TpagerEncoder";
+static const auto LOGGER = tt::Logger("TpagerEncoder");
+
 constexpr auto ENCODER_A = GPIO_NUM_40;
 constexpr auto ENCODER_B = GPIO_NUM_41;
 constexpr auto ENCODER_ENTER = GPIO_NUM_7;
@@ -52,7 +53,7 @@ void TpagerEncoder::initEncoder() {
     };
 
     if (pcnt_new_unit(&unit_config, &encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter intialization failed");
+        LOGGER.error("Pulsecounter intialization failed");
     }
 
     pcnt_glitch_filter_config_t filter_config = {
@@ -60,7 +61,7 @@ void TpagerEncoder::initEncoder() {
     };
 
     if (pcnt_unit_set_glitch_filter(encPcntUnit, &filter_config) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter glitch filter config failed");
+        LOGGER.error("Pulsecounter glitch filter config failed");
     }
 
     pcnt_chan_config_t chan_1_config = {
@@ -78,36 +79,36 @@ void TpagerEncoder::initEncoder() {
 
     if ((pcnt_new_channel(encPcntUnit, &chan_1_config, &pcnt_chan_1) != ESP_OK) ||
         (pcnt_new_channel(encPcntUnit, &chan_2_config, &pcnt_chan_2) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter channel config failed");
+        LOGGER.error("Pulsecounter channel config failed");
     }
 
     // Second argument is rising edge, third argument is falling edge
     if ((pcnt_channel_set_edge_action(pcnt_chan_1, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE) != ESP_OK) ||
         (pcnt_channel_set_edge_action(pcnt_chan_2, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter edge action config failed");
+        LOGGER.error("Pulsecounter edge action config failed");
     }
 
     // Second argument is low level, third argument is high level
     if ((pcnt_channel_set_level_action(pcnt_chan_1, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK) ||
         (pcnt_channel_set_level_action(pcnt_chan_2, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter level action config failed");
+        LOGGER.error("Pulsecounter level action config failed");
     }
 
     if ((pcnt_unit_add_watch_point(encPcntUnit, LOW_LIMIT) != ESP_OK) ||
         (pcnt_unit_add_watch_point(encPcntUnit, HIGH_LIMIT) != ESP_OK)) {
-        TT_LOG_E(TAG, "Pulsecounter watch point config failed");
+        LOGGER.error("Pulsecounter watch point config failed");
     }
 
     if (pcnt_unit_enable(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be enabled");
+        LOGGER.error("Pulsecounter could not be enabled");
     }
 
     if (pcnt_unit_clear_count(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be cleared");
+        LOGGER.error("Pulsecounter could not be cleared");
     }
 
     if (pcnt_unit_start(encPcntUnit) != ESP_OK) {
-        TT_LOG_E(TAG, "Pulsecounter could not be started");
+        LOGGER.error("Pulsecounter could not be started");
     }
 }
 
