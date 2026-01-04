@@ -67,7 +67,7 @@ public:
         for (int i = 0; i < size; ++i) {
             const auto string_json = cJSON_GetArrayItem(child, i);
             if (!cJSON_IsString(string_json)) {
-                logger.error("array child of %s is not a string", key);
+                logger.error("Array child of {} is not a string", key);
                 return false;
             }
             output[i] = cJSON_GetStringValue(string_json);

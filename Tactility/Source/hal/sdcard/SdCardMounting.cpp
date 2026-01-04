@@ -7,7 +7,7 @@
 
 namespace tt::hal::sdcard {
 
-static const auto LOGGER = Logger("EspLcdDisplay");
+static const auto LOGGER = Logger("SdCardMounting");
 constexpr auto* TT_SDCARD_MOUNT_POINT = "/sdcard";
 
 static void mount(const std::shared_ptr<SdCardDevice>& sdcard, const std::string& path) {

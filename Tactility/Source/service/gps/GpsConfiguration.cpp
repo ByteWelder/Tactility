@@ -39,7 +39,7 @@ bool GpsService::getGpsConfigurations(std::vector<hal::gps::GpsConfiguration>& c
         return true;
     }
 
-    LOGGER.info("Reading configuration file %s", path.c_str());
+    LOGGER.info("Reading configuration file {}", path);
     auto reader = file::ObjectFileReader(path, sizeof(hal::gps::GpsConfiguration));
     if (!reader.open()) {
         LOGGER.error("Failed to open configuration file");

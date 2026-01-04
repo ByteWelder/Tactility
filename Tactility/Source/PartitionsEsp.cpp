@@ -53,14 +53,14 @@ esp_err_t initPartitionsEsp() {
 
     auto system_result = esp_vfs_fat_spiflash_mount_ro("/system", "system", &mount_config);
     if (system_result != ESP_OK) {
-        LOGGER.error("Failed to mount /system (%s)", esp_err_to_name(system_result));
+        LOGGER.error("Failed to mount /system ({})", esp_err_to_name(system_result));
     } else {
         LOGGER.info("Mounted /system");
     }
 
     auto data_result = esp_vfs_fat_spiflash_mount_rw_wl("/data", "data", &mount_config, &data_wl_handle);
     if (data_result != ESP_OK) {
-        LOGGER.error("Failed to mount /data (%s)", esp_err_to_name(data_result));
+        LOGGER.error("Failed to mount /data ({})", esp_err_to_name(data_result));
     } else {
         LOGGER.info("Mounted /data");
     }

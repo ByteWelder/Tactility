@@ -39,7 +39,7 @@ bool ObjectFileWriter::open() {
         }
 
         if (file_header.version != OBJECT_FILE_VERSION) {
-            LOGGER.error("Unknown version for {}: {}", filePath, file_header.identifier);
+            LOGGER.error("Unknown version for {}: {}", filePath, file_header.version);
             return false;
         }
 

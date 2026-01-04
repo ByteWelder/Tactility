@@ -22,7 +22,7 @@ bool getHeaderOrSendError(httpd_req_t* request, const std::string& name, std::st
 
     auto header_buffer = std::make_unique<char[]>(header_size + 1);
     if (header_buffer == nullptr) {
-        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error( LOG_MESSAGE_ALLOC_FAILED);
         httpd_resp_send_500(request);
         return false;
     }

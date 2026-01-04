@@ -33,7 +33,7 @@ bool UartEsp::start() {
 
     esp_err_t result = uart_param_config(configuration.port, &configuration.config);
     if (result != ESP_OK) {
-        LOGGER.error("[{}] Starting: Failed to configure: %s", configuration.name, esp_err_to_name(result));
+        LOGGER.error("[{}] Starting: Failed to configure: {}", configuration.name, esp_err_to_name(result));
         return false;
     }
 

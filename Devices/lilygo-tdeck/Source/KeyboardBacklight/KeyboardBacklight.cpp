@@ -65,7 +65,7 @@ bool setBrightness(uint8_t brightness) {
         LOGGER.info("Successfully set brightness to {}", brightness);
         return true;
     } else {
-        LOGGER.error("Failed to set brightness: {} (0x%x)", esp_err_to_name(ret), ret);
+        LOGGER.error("Failed to set brightness: {} (0x{:02X})", esp_err_to_name(ret), ret);
         return false;
     }
 }

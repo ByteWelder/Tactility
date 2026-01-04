@@ -17,7 +17,7 @@
 
 namespace tt::hal::uart {
 
-static const auto LOGGER = Logger("SPI");
+static const auto LOGGER = Logger("UART");
 
 constexpr uint32_t uartIdNotInUse = 0;
 

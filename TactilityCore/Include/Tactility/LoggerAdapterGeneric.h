@@ -3,6 +3,8 @@
 #include "LoggerAdapter.h"
 #include "LoggerAdapterShared.h"
 
+#include <cstdint>
+#include <mutex>
 #include <sstream>
 #include <sys/time.h>
 
@@ -10,12 +12,13 @@ namespace tt {
 
 static uint64_t getLogTimestamp() {
     static uint64_t base = 0U;
+    static std::once_flag init_flag;
     timeval time {};
     gettimeofday(&time, nullptr);
     uint64_t now = ((uint64_t)time.tv_sec * 1000U) + (time.tv_usec / 1000U);
-    if (base == 0U) {
+    std::call_once(init_flag, [now]() {
         base = now;
-    }
+    });
     return now - base;
 }
 

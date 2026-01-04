@@ -21,8 +21,8 @@ static void logMemoryInfo() {
 static void logTaskInfo() {
     const char* name = pcTaskGetName(nullptr);
     const char* safe_name = name ? name : "main";
-    LOGGER.error("Task: %s", safe_name);
-    LOGGER.error("Stack watermark: %u", uxTaskGetStackHighWaterMark(NULL) * 4);
+    LOGGER.error("Task: {}", safe_name);
+    LOGGER.error("Stack watermark: {}", uxTaskGetStackHighWaterMark(NULL) * 4);
 }
 
 namespace tt {

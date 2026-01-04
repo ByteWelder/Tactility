@@ -459,7 +459,7 @@ static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
 
     settings::WifiApSettings settings;
     if (find_auto_connect_ap(wifi, settings)) {
-        LOGGER.info("Auto-connecting to %s", settings.ssid.c_str());
+        LOGGER.info("Auto-connecting to {}", settings.ssid);
         connect(settings, false);
         // TODO: We currently have to manually reset it because connect() sets it.
         // connect() assumes it's only being called by the user and not internally, so it disables auto-connect
@@ -475,18 +475,18 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
     }
 
     if (event_base == WIFI_EVENT) {
-        LOGGER.info("eventHandler: WIFI_EVENT ({})", event_id);
+        LOGGER.info("eventHandler: WIFI_EVENT {}", event_id);
     } else if (event_base == IP_EVENT) {
-        LOGGER.info("eventHandler: IP_EVENT ({})", event_id);
+        LOGGER.info("eventHandler: IP_EVENT {}", event_id);
     }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        LOGGER.info("eventHandler: sta start");
+        LOGGER.info("eventHandler: STA_START");
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
             esp_wifi_connect();
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        LOGGER.info("eventHandler: disconnected");
+        LOGGER.info("eventHandler: STA_DISCONNECTED");
         clearIp();
         switch (wifi->getRadioState()) {
             case RadioState::ConnectionPending:

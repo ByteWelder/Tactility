@@ -28,7 +28,7 @@ public:
     }
 
     bool init(std::unique_ptr<esp_http_client_config_t> inConfig) {
-        logger.info("init(%s)", inConfig->url);
+        logger.info("init({})", inConfig->url);
         assert(this->config == nullptr);
         config = std::move(inConfig);
         client = esp_http_client_init(config.get());
@@ -41,7 +41,7 @@ public:
         auto result = esp_http_client_open(client, 0);
 
         if (result != ESP_OK) {
-            logger.error("open() failed: %s", esp_err_to_name(result));
+            logger.error("open() failed: {}", esp_err_to_name(result));
             return false;
         }
 

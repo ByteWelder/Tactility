@@ -195,7 +195,7 @@ void GpsService::onGgaSentence(hal::Device::Id deviceId, const minmea_sentence_g
 }
 
 void GpsService::onRmcSentence(hal::Device::Id deviceId, const minmea_sentence_rmc& rmc) {
-    LOGGER.debug("[device {}] LAT {} LON %f, speed: {}", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
+    LOGGER.debug("[device {}] LAT {} LON {}, speed: {}", deviceId, minmea_tocoord(&rmc.latitude), minmea_tocoord(&rmc.longitude), minmea_tofloat(&rmc.speed));
 }
 
 State GpsService::getState() const {

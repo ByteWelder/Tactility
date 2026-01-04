@@ -106,7 +106,7 @@ bool install(const std::string& path) {
     // the lock with the display. We don't want to lock the display for very long.
 
     auto app_parent_path = getAppInstallPath();
-    LOGGER.info("Installing app %s to {}", path, app_parent_path);
+    LOGGER.info("Installing app {} to {}", path, app_parent_path);
 
     auto filename = file::getLastPathSegment(path);
     const std::string app_target_path = std::format("{}/{}", app_parent_path, filename);
