@@ -92,7 +92,7 @@ bool load(DisplaySettings& settings) {
         }
     }
 
-    bool timeout_enabled = true;
+    bool timeout_enabled = false;
     auto timeout_enabled_entry = map.find(SETTINGS_KEY_TIMEOUT_ENABLED);
     if (timeout_enabled_entry != map.end()) {
         timeout_enabled = (timeout_enabled_entry->second == "1" || timeout_enabled_entry->second == "true" || timeout_enabled_entry->second == "True");
@@ -118,7 +118,7 @@ DisplaySettings getDefault() {
         .orientation = getDefaultOrientation(),
         .gammaCurve = 1,
         .backlightDuty = 200,
-        .backlightTimeoutEnabled = true,
+        .backlightTimeoutEnabled = false,
         .backlightTimeoutMs = 60000
     };
 }

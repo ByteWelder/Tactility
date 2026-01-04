@@ -111,10 +111,14 @@ def write_core_variables(output_file, device_properties: ConfigParser):
     output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target}\"\n")
     output_file.write("# CPU\n")
-    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
-    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
+    output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
+    output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
     output_file.write(f"CONFIG_{idf_target.upper()}_DEFAULT_CPU_FREQ_240=y\n")
     output_file.write(f"CONFIG_{idf_target.upper()}_DEFAULT_CPU_FREQ_MHZ=240\n")
+    if idf_target != "esp32": # Not available on original ESP32
+        output_file.write("# Enable usage of MALLOC_CAP_EXEC on IRAM:\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE=n\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE_LOCK=n\n")
 
 def write_flash_variables(output_file, device_properties: ConfigParser):
     flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
