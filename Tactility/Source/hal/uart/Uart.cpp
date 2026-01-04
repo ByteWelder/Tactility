@@ -129,7 +129,7 @@ std::unique_ptr<Uart> open(uart_port_t port) {
 }
 
 std::unique_ptr<Uart> open(std::string name) {
-    LOGGER.info("Open %s", name.c_str());
+    LOGGER.info("Open {}", name.c_str());
 
     auto result = std::views::filter(uartEntries, [&name](auto& entry) {
         return entry.configuration.name == name;
