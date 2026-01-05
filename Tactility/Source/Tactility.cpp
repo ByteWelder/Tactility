@@ -235,7 +235,7 @@ static void registerInstalledAppsFromSdCards() {
 }
 
 static void registerAndStartSecondaryServices() {
-    LOGGER.info("Registering and starting system services");
+    LOGGER.info("Registering and starting secondary system services");
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
@@ -250,7 +250,7 @@ static void registerAndStartSecondaryServices() {
 }
 
 static void registerAndStartPrimaryServices() {
-    LOGGER.info("Registering and starting system services");
+    LOGGER.info("Registering and starting primary system services");
     addService(service::gps::manifest);
     if (hal::hasDevice(hal::Device::Type::SdCard)) {
         addService(service::sdcard::manifest);

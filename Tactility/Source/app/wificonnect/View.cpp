@@ -200,7 +200,7 @@ void View::init(AppContext& app, lv_obj_t* parent) {
         }
 
         std::string password;
-        if (optPasswordParameter(bundle, ssid)) {
+        if (optPasswordParameter(bundle, password)) {
             lv_textarea_set_text(password_textarea, password.c_str());
         }
     }

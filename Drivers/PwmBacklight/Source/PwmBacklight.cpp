@@ -47,6 +47,7 @@ bool init(gpio_num_t pin, uint32_t frequencyHz, ledc_timer_t timer, ledc_channel
 
     if (ledc_channel_config(&ledc_channel) != ESP_OK) {
         LOGGER.error("Channel config failed");
+        return false;
     }
 
     isBacklightInitialized = true;

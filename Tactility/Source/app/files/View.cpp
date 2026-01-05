@@ -116,7 +116,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             notes::start(processed_filepath.substr(1));
         }
     } else {
-        LOGGER.warn("opening files of this type is not supported");
+        LOGGER.warn("Opening files of this type is not supported");
     }
 
     onNavigate();

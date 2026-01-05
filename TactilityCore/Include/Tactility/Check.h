@@ -52,9 +52,9 @@ namespace tt {
         if (!(__e)) {                      \
             tt::Logger("Kernel").error("Check failed: {}", #__e); \
             if (__m) {                     \
-                tt_crash_internal(__m);   \
+                tt_crash(__m);   \
             } else {                       \
-                tt_crash_internal("");     \
+                tt_crash("");     \
             }                              \
         }                                  \
     } while (0)
