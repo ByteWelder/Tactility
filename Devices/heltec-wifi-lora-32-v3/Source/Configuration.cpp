@@ -7,8 +7,6 @@
 #include <Tactility/Logger.h>
 #include <ButtonControl.h>
 
-#include <Tactility/Logger.h>
-
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"

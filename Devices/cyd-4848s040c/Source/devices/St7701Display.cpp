@@ -169,12 +169,14 @@ bool St7701Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
 
     if (esp_lcd_panel_invert_color(panelHandle, false) != ESP_OK) {
         LOGGER.error("Failed to invert color");
+        return false;
     }
 
     esp_lcd_panel_set_gap(panelHandle, 0, 0);
 
     if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
         LOGGER.error("Failed to turn display on");
+        return false;
     }
 
     return true;

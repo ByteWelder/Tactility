@@ -42,7 +42,7 @@ static int32_t buttonHandlingThreadMain(const bool* interrupted) {
     while (!*interrupted) {
         if (xQueueReceive(interruptQueue, &pinNumber, portMAX_DELAY)) {
             // The buttons might generate more than 1 click because of how they are built
-            LOGGER.info("Pressed button %d", pinNumber);
+            LOGGER.info("Pressed button {}", pinNumber);
             if (pinNumber == pin::BUTTON1) {
                 tt::app::stop();
             }
@@ -231,7 +231,7 @@ void UnPhoneFeatures::printInfo() const {
     batteryManagement->printInfo();
     bool backlight_power;
     const char* backlight_power_state = getBacklightPower(backlight_power) && backlight_power ? "on" : "off";
-    LOGGER.info("Backlight: %s", backlight_power_state);
+    LOGGER.info("Backlight: {}", backlight_power_state);
 }
 
 bool UnPhoneFeatures::setRgbLed(bool red, bool green, bool blue) const {

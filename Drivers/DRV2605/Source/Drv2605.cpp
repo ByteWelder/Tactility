@@ -14,7 +14,7 @@ bool Drv2605::init() {
 
     ChipId chip_id = static_cast<ChipId>(status);
     if (chip_id != ChipId::DRV2604 && chip_id != ChipId::DRV2604L && chip_id != ChipId::DRV2605 && chip_id != ChipId::DRV2605L) {
-        LOGGER.error("Unknown chip id {:02x}", chip_id);
+        LOGGER.error("Unknown chip id {:02x}", static_cast<uint8_t>(chip_id));
         return false;
     }
 

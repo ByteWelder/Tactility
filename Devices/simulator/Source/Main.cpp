@@ -46,10 +46,8 @@ void freertosMain() {
  * It allows you to set breakpoints and debug asserts.
  */
 void vAssertCalled(unsigned long line, const char* const file) {
-    static portBASE_TYPE xPrinted = pdFALSE;
     volatile uint32_t set_to_nonzero_in_debugger_to_continue = 0;
-
-    LOGGER.error("assert triggered at %s:%d", file, line);
+    LOGGER.error("Assert triggered at {}:{}", file, line);
     taskENTER_CRITICAL();
     {
         // Step out by attaching a debugger and setting set_to_nonzero_in_debugger_to_continue

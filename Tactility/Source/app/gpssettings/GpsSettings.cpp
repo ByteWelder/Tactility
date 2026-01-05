@@ -94,7 +94,7 @@ class GpsSettingsApp final : public App {
         auto gps_service = service::gps::findGpsService();
         if (gps_service && gps_service->getGpsConfigurations(configurations)) {
             Logger("GpsSettings").info("Found service and configs {} {}", index, configurations.size());
-            if (index <= configurations.size()) {
+            if (index < configurations.size()) {
                 if (gps_service->removeGpsConfiguration(configurations[index])) {
                     app->updateViews();
                 } else {

@@ -89,7 +89,12 @@ bool Xpt2046SoftSpi::start() {
     gpio_set_level(configuration->clkPin, 0); // CLK low
     gpio_set_level(configuration->mosiPin, 0); // MOSI low
 
-    LOGGER.info("GPIO configured: MOSI={}, MISO={}, CLK={}, CS={}", configuration->mosiPin, configuration->misoPin, configuration->clkPin, configuration->csPin);
+    LOGGER.info("GPIO configured: MOSI={}, MISO={}, CLK={}, CS={}",
+        static_cast<int>(configuration->mosiPin),
+        static_cast<int>(configuration->misoPin),
+        static_cast<int>(configuration->clkPin),
+        static_cast<int>(configuration->csPin)
+    );
 
     // Load or perform calibration
     bool calibrationValid = true; //loadCalibration() && !RERUN_CALIBRATE;

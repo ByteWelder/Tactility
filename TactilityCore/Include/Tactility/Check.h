@@ -64,5 +64,4 @@ namespace tt {
  * @param[in] condition to check
  * @param[in] optional message (const char*)
  */
-
-#define tt_check(x, ...) if (!(x)) { tt::Logger("Kernel").error("Check failed: {}", #x); tt::_crash(); }
+#define tt_check(...) tt_check_internal(__VA_ARGS__)

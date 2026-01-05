@@ -1,12 +1,11 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/Device.h"
-
 #include <Tactility/app/crashdiagnostics/QrHelpers.h>
 #include <Tactility/app/crashdiagnostics/QrUrl.h>
 #include <Tactility/app/launcher/Launcher.h>
-#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/hal/Device.h>
 #include <Tactility/Logger.h>
+#include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/service/loader/Loader.h>
 
 #include <lvgl.h>
@@ -66,7 +65,7 @@ public:
         QRCode qrcode;
         LOGGER.info("QR init text");
         if (qrcode_initText(&qrcode, qrcodeData.get(), qr_version, ECC_LOW, url.c_str()) != 0) {
-            LOGGER.error("QR init text  failed");
+            LOGGER.error("QR init text failed");
             stop(manifest.appId);
             return;
         }
@@ -101,7 +100,7 @@ public:
         LOGGER.info("Create draw buffer");
         auto* draw_buf = lv_draw_buf_create(pixel_size * qrcode.size, pixel_size * qrcode.size, LV_COLOR_FORMAT_RGB565, LV_STRIDE_AUTO);
         if (draw_buf == nullptr) {
-            LOGGER.error("Draw buffer alloc");
+            LOGGER.error("Failed to allocate draw buffer");
             stop(manifest.appId);
             return;
         }

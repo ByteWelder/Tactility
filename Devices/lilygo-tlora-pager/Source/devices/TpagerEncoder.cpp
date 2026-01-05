@@ -53,7 +53,7 @@ void TpagerEncoder::initEncoder() {
     };
 
     if (pcnt_new_unit(&unit_config, &encPcntUnit) != ESP_OK) {
-        LOGGER.error("Pulsecounter intialization failed");
+        LOGGER.error("Pulsecounter initialization failed");
     }
 
     pcnt_glitch_filter_config_t filter_config = {

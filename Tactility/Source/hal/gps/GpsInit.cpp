@@ -112,7 +112,7 @@ GpsResponse getACKCas(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32
             // Check for an ACK-ACK for the specified class and message id
             if ((msg_cls == 0x05) && (msg_msg_id == 0x01) && payload_cls == class_id && payload_msg == msg_id) {
 #ifdef GPS_DEBUG
-                LOGGER.info("Got ACK for class {:02X} message {:02X} in {} ms", class_id, msg_id, millis() - startTime);
+                LOGGER.info("Got ACK for class {:02X} message {:02X} in {} ms", class_id, msg_id, kernel::getMillis() - startTime);
 #endif
                 return GpsResponse::Ok;
             }

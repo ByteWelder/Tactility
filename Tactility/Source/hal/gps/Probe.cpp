@@ -67,7 +67,7 @@ GpsResponse getAck(uart::Uart& uart, const char* message, uint32_t waitMillis) {
                 } else {
                     bytesRead = 0;
 #ifdef GPS_DEBUG
-                    LOGGER.debug(debugmsg);
+                    LOGGER.debug("{}", debugmsg);
 #endif
                 }
             }
@@ -134,7 +134,7 @@ GpsModel probe(uart::Uart& uart) {
     if (ublox_result != GpsModel::Unknown) {
         return ublox_result;
     } else {
-        LOGGER.warn("No GNSS Module (baudrate %lu)", uart.getBaudRate());
+        LOGGER.warn("No GNSS Module (baud rate {})", uart.getBaudRate());
         return GpsModel::Unknown;
     }
 }

@@ -75,7 +75,7 @@ bool initGpioExpander() {
     if (axp2101->isVBus()) {
         float voltage = 0.0f;
         axp2101->getVBusVoltage(voltage);
-        LOGGER.info("AXP2101: VBus at %.2f", voltage);
+        LOGGER.info("AXP2101: VBus at {:.2f}", voltage);
     } else {
         LOGGER.warn("AXP2101: VBus disabled");
     }

@@ -52,7 +52,7 @@ class NotesApp final : public App {
                         saveBuffer = lv_textarea_get_text(uiNoteText);
                         lvgl::getSyncLock()->unlock();
                         saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                        LOGGER.info("launched with id {}", loadFileLaunchId);
+                        LOGGER.info("launched with id {}", saveFileLaunchId);
                         break;
                     case 3: // Load
                         loadFileLaunchId = fileselection::startForExistingFile();
@@ -64,7 +64,7 @@ class NotesApp final : public App {
                 if (obj == cont) return;
                 if (lv_obj_get_child(cont, 1)) {
                     saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                    LOGGER.info("launched with id {}", loadFileLaunchId);
+                    LOGGER.info("launched with id {}", saveFileLaunchId);
                 } else { //Reset
                     resetFileContent();
                 }
@@ -91,7 +91,7 @@ class NotesApp final : public App {
                lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
                lv_label_set_text(uiCurrentFileName, path.c_str());
                filePath = path;
-               LOGGER.info("Loaded from %s", path.c_str());
+               LOGGER.info("Loaded from {}", path);
             }
         });
     }
@@ -101,7 +101,7 @@ class NotesApp final : public App {
         bool result = false;
         file::getLock(path)->withLock([&result, this, path] {
            if (file::writeString(path, saveBuffer.c_str())) {
-               LOGGER.info("Saved to %s", path.c_str());
+               LOGGER.info("Saved to {}", path);
                filePath = path;
                result = true;
            }
