@@ -28,6 +28,7 @@ namespace tt {
     TT_NORETURN void _crash();
 }
 
+// TODO: Move crash logic to kernel namespace and consider refactoring to C++
 /** Crash system with message. */
 #define tt_crash(...) TT_ARG_CAT(_tt_crash,TT_ARGCOUNT(__VA_ARGS__))(__VA_ARGS__)
 

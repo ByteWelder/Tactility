@@ -11,7 +11,7 @@
 #include <esp_lcd_panel_io_additions.h>
 #include <esp_lcd_st7701.h>
 
-static const auto LOGGER = Logger("St7701Display");
+static const auto LOGGER = tt::Logger("St7701Display");
 
 static const st7701_lcd_init_cmd_t st7701_lcd_init_cmds[] = {
     //  {cmd, { data }, data_size, delay_ms}
