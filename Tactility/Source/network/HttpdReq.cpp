@@ -87,7 +87,7 @@ std::unique_ptr<char[]> receiveByteArray(httpd_req_t* request, size_t length, si
         size_t read_size = length - bytesRead;
         size_t bytes_received = httpd_req_recv(request, buffer + bytesRead, read_size);
         if (bytes_received <= 0) {
-            LOGGER.warn("Received {} / {}", bytesRead + bytes_received, length);
+            LOGGER.warn("Received error {} after reading {}/{} bytes", bytes_received, bytesRead, length);
             return nullptr;
         }
 
