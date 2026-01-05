@@ -15,7 +15,7 @@ constexpr auto* RESULT_BUNDLE_KEY_RESULT = "result";
 
 constexpr auto* DEFAULT_TITLE = "Input";
 
-constexpr auto* TAG = "InputDialog";
+static const auto LOGGER = Logger("InputDialog");
 
 extern const AppManifest manifest;
 class InputDialogApp;
@@ -62,7 +62,7 @@ class InputDialogApp final : public App {
     void onButtonClicked(lv_event_t* e) {
         auto user_data = lv_event_get_user_data(e);
         int index = (user_data != 0) ? 0 : 1;
-        TT_LOG_I(TAG, "Selected item at index %d", index);
+        LOGGER.info("Selected item at index {}", index);
         if (index == 0) {
             auto bundle = std::make_unique<Bundle>();
             const char* text = lv_textarea_get_text((lv_obj_t*)user_data);

@@ -1,16 +1,20 @@
 #include "Drv2605.h"
 
+#include <Tactility/Logger.h>
+
+static const auto LOGGER = tt::Logger("DRV2605");
+
 bool Drv2605::init() {
     uint8_t status;
     if (!readRegister8(static_cast<uint8_t>(Register::Status), status)) {
-        TT_LOG_E(TAG, "Failed to read status");
+        LOGGER.error("Failed to read status");
         return false;
     }
     status >>= 5;
 
     ChipId chip_id = static_cast<ChipId>(status);
     if (chip_id != ChipId::DRV2604 && chip_id != ChipId::DRV2604L && chip_id != ChipId::DRV2605 && chip_id != ChipId::DRV2605L) {
-        TT_LOG_E(TAG, "Unknown chip id %02x", chip_id);
+        LOGGER.error("Unknown chip id {:02x}", chip_id);
         return false;
     }
 
@@ -25,7 +29,7 @@ bool Drv2605::init() {
 
     uint8_t feedback;
     if (!readRegister(Register::Feedback, feedback)) {
-        TT_LOG_E(TAG, "Failed to read feedback");
+        LOGGER.error("Failed to read feedback");
         return false;
     }
 

@@ -1,18 +1,19 @@
-#include "Tactility/StringUtils.h"
-#include "Tactility/app/AppManifest.h"
-#include "Tactility/app/alertdialog/AlertDialog.h"
-#include "Tactility/hal/gps/GpsDevice.h"
-#include "Tactility/hal/uart/Uart.h"
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/gps/GpsService.h"
+#include <Tactility/Logger.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/app/AppManifest.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/hal/gps/GpsDevice.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/lvgl/Style.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/gps/GpsService.h>
 
 #include <cstring>
 #include <lvgl.h>
 
 namespace tt::app::addgps {
 
-constexpr const char* TAG = "AddGps";
+static const auto LOGGER = Logger("AddGps");
 
 class AddGpsApp final : public App {
 
@@ -46,7 +47,7 @@ class AddGpsApp final : public App {
             return;
         }
 
-        TT_LOG_I(TAG, "Saving: uart=%s, model=%lu, baud=%lu", new_configuration.uartName, (uint32_t)new_configuration.model, new_configuration.baudRate);
+        LOGGER.info("Saving: uart={}, model={}, baud={}", new_configuration.uartName, (uint32_t)new_configuration.model, new_configuration.baudRate);
 
         auto service = service::gps::findGpsService();
         std::vector<tt::hal::gps::GpsConfiguration> configurations;

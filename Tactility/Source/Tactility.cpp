@@ -13,6 +13,7 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglPrivate.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/network/NtpPrivate.h>
@@ -275,7 +276,7 @@ void createTempDirectory(const std::string& rootPath) {
                 LOGGER.error("Failed to create {}", temp_path);
             }
         } else {
-            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, rootPath);
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, rootPath);
         }
     } else {
         LOGGER.info("Found existing {}", temp_path);

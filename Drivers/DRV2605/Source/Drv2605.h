@@ -1,11 +1,10 @@
 #pragma once
 
 #include <Tactility/hal/i2c/I2cDevice.h>
-#include <Tactility/Log.h>
 
 class Drv2605 : public tt::hal::i2c::I2cDevice {
 
-    static constexpr auto* TAG = "DRV2605";
+    const tt::Logger logger = tt::Logger("DRV2605");
     static constexpr auto ADDRESS = 0x5A;
 
     bool autoPlayStartupBuzz;
@@ -66,7 +65,7 @@ public:
 
     explicit Drv2605(i2c_port_t port, bool autoPlayStartupBuzz = true) : I2cDevice(port, ADDRESS), autoPlayStartupBuzz(autoPlayStartupBuzz) {
         if (!init()) {
-            TT_LOG_E(TAG, "Failed to initialize DRV2605");
+            logger.error("Failed to initialize DRV2605");
         }
 
         if (autoPlayStartupBuzz) {

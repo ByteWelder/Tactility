@@ -5,6 +5,7 @@
 
 #include <Tactility/DispatcherThread.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 

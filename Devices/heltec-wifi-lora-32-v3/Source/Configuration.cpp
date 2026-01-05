@@ -7,6 +7,8 @@
 #include <Tactility/Logger.h>
 #include <ButtonControl.h>
 
+#include <Tactility/Logger.h>
+
 #include "driver/gpio.h"
 #include "driver/i2c.h"
 #include "freertos/FreeRTOS.h"
@@ -24,7 +26,7 @@ static void enableOledPower() {
     gpio_set_level(DISPLAY_PIN_POWER, 0); // Active low
 
     vTaskDelay(pdMS_TO_TICKS(500)); // Add a small delay for power to stabilize
-    Logger("HeltecV3").info("OLED power enabled");
+    tt::Logger("HeltecV3").info("OLED power enabled");
 }
 
 static bool initBoot() {

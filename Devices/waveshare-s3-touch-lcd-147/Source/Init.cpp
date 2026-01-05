@@ -1,3 +1,4 @@
+#include <Tactility/LogMessages.h>
 #include <Tactility/TactilityCore.h>
 #include <driver/ledc.h>
 

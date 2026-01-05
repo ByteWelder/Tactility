@@ -1,17 +1,17 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/Tactility.h>
-#include <Tactility/TactilityCore.h>
-
-#include <Tactility/Logger.h>
-#include <Tactility/PubSub.h>
-#include <Tactility/Timer.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/Style.h>
+#include <Tactility/PubSub.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/settings/Time.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/TactilityCore.h>
+#include <Tactility/Timer.h>
 
 #include <lvgl.h>
 
@@ -112,7 +112,7 @@ static void statusbar_pubsub_event(Statusbar* statusbar) {
         lv_obj_invalidate(&statusbar->obj);
         unlock();
     } else {
-        LOGGER.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, "Statusbar");
+        LOGGER.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "Statusbar");
     }
 }
 

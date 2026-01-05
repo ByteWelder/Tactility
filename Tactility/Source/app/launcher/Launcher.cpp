@@ -12,7 +12,7 @@
 
 namespace tt::app::launcher {
 
-constexpr auto* TAG = "Launcher";
+static const auto LOGGER = Logger("Launcher");
 
 static int getButtonSize(hal::UiScale scale) {
     if (scale == hal::UiScale::Smallest) {
@@ -93,7 +93,7 @@ public:
     void onCreate(TT_UNUSED AppContext& app) override {
         settings::BootSettings boot_properties;
         if (settings::loadBootSettings(boot_properties) && !boot_properties.autoStartAppId.empty()) {
-            TT_LOG_I(TAG, "Starting %s", boot_properties.autoStartAppId.c_str());
+            LOGGER.info("Starting {}", boot_properties.autoStartAppId);
             start(boot_properties.autoStartAppId);
         }
     }

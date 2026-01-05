@@ -28,7 +28,7 @@ static const LoggerAdapter espLoggerAdapter = [](LogLevel level, const char* tag
     constexpr auto COLOR_RESET = "\033[0m";
     constexpr auto COLOR_GREY = "\033[37m";
     std::stringstream buffer;
-    buffer << COLOR_GREY << esp_log_timestamp() << " [" << toTagColour(level) << toPrefix(level) << COLOR_GREY << "] [" << COLOR_RESET << tag << COLOR_GREY << "] " << toMessageColour(level) << message << COLOR_RESET << std::endl;
+    buffer << COLOR_GREY << esp_log_timestamp() << ' ' << toTagColour(level) << toPrefix(level) << COLOR_GREY << " [" << COLOR_RESET << tag << COLOR_GREY << "] " << toMessageColour(level) << message << COLOR_RESET << std::endl;
     esp_log_write(toEspLogLevel(level), tag, "%s", buffer.str().c_str());
 };
 

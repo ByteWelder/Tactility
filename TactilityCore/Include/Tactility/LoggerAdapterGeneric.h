@@ -28,7 +28,7 @@ static const LoggerAdapter genericLoggerAdapter = [](LogLevel level, const char*
     constexpr auto COLOR_RESET = "\033[0m";
     constexpr auto COLOR_GREY = "\033[37m";
     std::stringstream buffer;
-    buffer << COLOR_GREY << getLogTimestamp() << " [" << toTagColour(level) << toPrefix(level) << COLOR_GREY << "] [" << COLOR_RESET << tag << COLOR_GREY << "] " << toMessageColour(level) << message << COLOR_RESET << std::endl;
+    buffer << COLOR_GREY << getLogTimestamp() << ' ' << toTagColour(level) << toPrefix(level) << COLOR_GREY << " [" << COLOR_RESET << tag << COLOR_GREY << "] " << toMessageColour(level) << message << COLOR_RESET << std::endl;
     printf(buffer.str().c_str());
 };
 

@@ -3,13 +3,13 @@
 #include <Tactility/hal/gps/GpsDevice.h>
 #include <Tactility/hal/gps/Ublox.h>
 #include <Tactility/kernel/Kernel.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <cstring>
 
 namespace tt::hal::gps {
 
-constexpr auto TAG = "gps";
+static const auto LOGGER = Logger("Gps");
 
 bool initMtk(uart::Uart& uart);
 bool initMtkL76b(uart::Uart& uart);
@@ -112,7 +112,7 @@ GpsResponse getACKCas(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32
             // Check for an ACK-ACK for the specified class and message id
             if ((msg_cls == 0x05) && (msg_msg_id == 0x01) && payload_cls == class_id && payload_msg == msg_id) {
 #ifdef GPS_DEBUG
-                LOG_INFO("Got ACK for class %02X message %02X in %dms", class_id, msg_id, millis() - startTime);
+                LOGGER.info("Got ACK for class {:02X} message {:02X} in {} ms", class_id, msg_id, millis() - startTime);
 #endif
                 return GpsResponse::Ok;
             }
@@ -120,7 +120,7 @@ GpsResponse getACKCas(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32
             // Check for an ACK-NACK for the specified class and message id
             if ((msg_cls == 0x05) && (msg_msg_id == 0x00) && payload_cls == class_id && payload_msg == msg_id) {
 #ifdef GPS_DEBUG
-                LOG_WARN("Got NACK for class %02X message %02X in %dms", class_id, msg_id, millis() - startTime);
+                LOGGER.warn("Got NACK for class {:02X} message {:02X} in {} ms", class_id, msg_id, millis() - startTime);
 #endif
                 return GpsResponse::NotAck;
             }
@@ -163,7 +163,7 @@ bool init(uart::Uart& uart, GpsModel type) {
             return initUc6580(uart);
     }
 
-    TT_LOG_I(TAG, "Init not implemented %d", static_cast<int>(type));
+    LOGGER.info("Init not implemented {}", static_cast<int>(type));
     return false;
 }
 
@@ -213,14 +213,14 @@ bool initAtgm336h(uart::Uart& uart) {
     int msglen = makeCASPacket(buffer, 0x06, 0x07, sizeof(_message_CAS_CFG_NAVX_CONF), _message_CAS_CFG_NAVX_CONF);
     uart.writeBytes(buffer, msglen);
     if (getACKCas(uart, 0x06, 0x07, 250) != GpsResponse::Ok) {
-        TT_LOG_W(TAG, "ATGM336H: Could not set Config");
+        LOGGER.warn("ATGM336H: Could not set Config");
     }
 
     // Set the update frequence to 1Hz
     msglen = makeCASPacket(buffer, 0x06, 0x04, sizeof(_message_CAS_CFG_RATE_1HZ), _message_CAS_CFG_RATE_1HZ);
     uart.writeBytes(buffer, msglen);
     if (getACKCas(uart, 0x06, 0x04, 250) != GpsResponse::Ok) {
-        TT_LOG_W(TAG, "ATGM336H: Could not set Update Frequency");
+        LOGGER.warn("ATGM336H: Could not set Update Frequency");
     }
 
     // Set the NEMA output messages
@@ -232,7 +232,7 @@ bool initAtgm336h(uart::Uart& uart) {
         msglen = makeCASPacket(buffer, 0x06, 0x01, sizeof(cas_cfg_msg_packet), cas_cfg_msg_packet);
         uart.writeBytes(buffer, msglen);
         if (getACKCas(uart, 0x06, 0x01, 250) != GpsResponse::Ok) {
-            TT_LOG_W(TAG, "ATGM336H: Could not enable NMEA MSG: %d", fields[i]);
+            LOGGER.warn("ATGM336H: Could not enable NMEA MSG: {}", fields[i]);
         }
     }
     return true;

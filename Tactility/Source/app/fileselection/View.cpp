@@ -1,14 +1,15 @@
 #include <Tactility/app/fileselection/View.h>
 
 #include <Tactility/app/alertdialog/AlertDialog.h>
+#include <Tactility/file/File.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
-
-#include <Tactility/Tactility.h>
-#include <Tactility/file/File.h>
-#include <Tactility/StringUtils.h>
-
 #include <Tactility/kernel/Platform.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/Tactility.h>
+
 #include <cstring>
 #include <unistd.h>
 
@@ -18,7 +19,7 @@
 
 namespace tt::app::fileselection {
 
-constexpr auto* TAG = "FileSelection";
+const static Logger LOGGER = Logger("FileSelection");
 
 // region Callbacks
 
@@ -45,11 +46,11 @@ void View::onTapFile(const std::string& path, const std::string& filename) {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) == nullptr) {
-            TT_LOG_E(TAG, "Failed to get current working directory");
+            LOGGER.error("Failed to get current working directory");
             return;
         }
         if (!file_path.starts_with(cwd)) {
-            TT_LOG_E(TAG, "Can only work with files in working directory %s", cwd);
+            LOGGER.error("Can only work with files in working directory {}", cwd);
             return;
         }
         processed_filepath = file_path.substr(strlen(cwd));
@@ -57,7 +58,7 @@ void View::onTapFile(const std::string& path, const std::string& filename) {
         processed_filepath = file_path;
     }
 
-    TT_LOG_I(TAG, "Clicked %s", processed_filepath.c_str());
+    LOGGER.info("Clicked {}", processed_filepath);
 
     lv_textarea_set_text(path_textarea, processed_filepath.c_str());
 }
@@ -65,7 +66,7 @@ void View::onTapFile(const std::string& path, const std::string& filename) {
 void View::onDirEntryPressed(uint32_t index) {
     dirent dir_entry;
     if (state->getDirent(index, dir_entry)) {
-        TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
+        LOGGER.info("Pressed {} {}", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
         using namespace tt::file;
         switch (dir_entry.d_type) {
@@ -76,7 +77,7 @@ void View::onDirEntryPressed(uint32_t index) {
                 update();
                 break;
             case TT_DT_LNK:
-                TT_LOG_W(TAG, "opening links is not supported");
+                LOGGER.warn("Opening links is not supported");
                 break;
             case TT_DT_REG:
                 onTapFile(state->getCurrentPath(), dir_entry.d_name);
@@ -94,7 +95,7 @@ void View::onSelectButtonPressed(lv_event_t* event) {
     auto* view = static_cast<View*>(lv_event_get_user_data(event));
     const char* path = lv_textarea_get_text(view->path_textarea);
     if (path == nullptr || strlen(path) == 0) {
-        TT_LOG_W(TAG, "Select pressed, but not path found in textarea");
+        LOGGER.warn("Select pressed, but not path found in textarea");
         return;
     }
 
@@ -138,7 +139,7 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
 
 void View::onNavigateUpPressed() {
     if (state->getCurrentPath() != "/") {
-        TT_LOG_I(TAG, "Navigating upwards");
+        LOGGER.info("Navigating upwards");
         std::string new_absolute_path;
         if (string::getPathParent(state->getCurrentPath(), new_absolute_path)) {
             state->setEntriesForPath(new_absolute_path);
@@ -159,7 +160,7 @@ void View::update() {
 
         state->withEntries([this](const std::vector<dirent>& entries) {
             for (auto entry : entries) {
-                TT_LOG_D(TAG, "Entry: %s %d", entry.d_name, entry.d_type);
+                LOGGER.debug("Entry: {} {}", entry.d_name, entry.d_type);
                 createDirEntryWidget(dir_entry_list, entry);
             }
         });
@@ -170,7 +171,7 @@ void View::update() {
             lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
         }
     } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "lvgl");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "lvgl");
     }
 }
 

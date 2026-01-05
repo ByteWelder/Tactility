@@ -5,6 +5,7 @@
 #include <Tactility/file/File.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Logger.h>
 #include <Tactility/network/Http.h>
 #include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
@@ -15,8 +16,9 @@
 
 namespace tt::app::apphubdetails {
 
+static const auto LOGGER = Logger("AppHubDetails");
+
 extern const AppManifest manifest;
-constexpr auto* TAG = "AppHubDetails";
 
 static std::shared_ptr<Bundle> toBundle(const apphub::AppHubEntry& entry) {
     auto bundle = std::make_shared<Bundle>();
@@ -83,7 +85,7 @@ class AppHubDetailsApp final : public App {
     }
 
     void uninstallApp() {
-        TT_LOG_I(TAG, "Uninstall");
+        LOGGER.info("Uninstall");
 
         lvgl::getSyncLock()->lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
@@ -107,10 +109,10 @@ class AppHubDetailsApp final : public App {
             [this, temp_file_path] {
                 install(temp_file_path);
 
-                if (!file::deleteFile(temp_file_path.c_str())) {
-                    TT_LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
+                if (!file::deleteFile(temp_file_path)) {
+                    LOGGER.warn("Failed to remove {}", temp_file_path);
                 } else {
-                    TT_LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
+                    LOGGER.info("Deleted temporary file {}", temp_file_path);
                 }
 
                 lvgl::getSyncLock()->lock();
@@ -118,18 +120,18 @@ class AppHubDetailsApp final : public App {
                 lvgl::getSyncLock()->unlock();
             },
             [temp_file_path](const char* errorMessage) {
-                TT_LOG_E(TAG, "Download failed: %s", errorMessage);
+                LOGGER.error("Download failed: {}", errorMessage);
                 alertdialog::start("Error", "Failed to install app");
 
                 if (file::isFile(temp_file_path) && !file::deleteFile(temp_file_path.c_str())) {
-                    TT_LOG_W(TAG, "Failed to remove %s", temp_file_path.c_str());
+                    LOGGER.warn("Failed to remove {}", temp_file_path);
                 }
             }
         );
     }
 
     void installApp() {
-        TT_LOG_I(TAG, "Install");
+        LOGGER.info("Install");
 
         lvgl::getSyncLock()->lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
@@ -139,15 +141,15 @@ class AppHubDetailsApp final : public App {
     }
 
     void updateApp() {
-        TT_LOG_I(TAG, "Update");
+        LOGGER.info("Update");
 
         lvgl::getSyncLock()->lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
         lvgl::getSyncLock()->unlock();
 
-        TT_LOG_I(TAG, "Removing previous version");
+        LOGGER.info("Removing previous version");
         uninstall(entry.appId);
-        TT_LOG_I(TAG, "Installing new version");
+        LOGGER.info("Installing new version");
         doInstall();
     }
 
@@ -173,13 +175,13 @@ public:
     void onCreate(AppContext& appContext) override {
         auto parameters = appContext.getParameters();
         if (parameters == nullptr) {
-            TT_LOG_E(TAG, "No parameters");
+            LOGGER.error("No parameters");
             stop();
             return;
         }
 
         if (!fromBundle(*parameters.get(), entry)) {
-            TT_LOG_E(TAG, "Invalid parameters");
+            LOGGER.error("Invalid parameters");
             stop();
         }
     }

@@ -1,24 +1,20 @@
 #include <Tactility/network/HttpdReq.h>
 
 #include <Tactility/app/wifimanage/View.h>
-
-#include <Tactility/Tactility.h>
 #include <Tactility/app/wifimanage/WifiManagePrivate.h>
-
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
-
-#include <Tactility/Log.h>
 #include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <format>
 #include <string>
 #include <set>
-#include <Tactility/service/wifi/WifiSettings.h>
 
 namespace tt::app::wifimanage {
 
-constexpr auto* TAG = "WifiManageView";
+static const auto LOGGER = Logger("WifiManageView");
 
 std::shared_ptr<WifiManage> _Nullable optWifiManage();
 
@@ -70,16 +66,16 @@ static void onConnectToHiddenClicked(lv_event_t* event) {
 // region Secondary updates
 
 void View::connect(lv_event_t* event) {
-    TT_LOG_D(TAG, "connect()");
+    LOGGER.debug("connect()");
     auto* widget = lv_event_get_current_target_obj(event);
     auto index = reinterpret_cast<size_t>(lv_obj_get_user_data(widget));
     auto* self = static_cast<View*>(lv_event_get_user_data(event));
     auto ap_records = self->state->getApRecords();
 
     if (index < ap_records.size()) {
-        TT_LOG_I(TAG, "Clicked %d/%d", index, ap_records.size() - 1);
+        LOGGER.info("Clicked {}/{}", index, ap_records.size() - 1);
         auto& ssid = ap_records[index].ssid;
-        TT_LOG_I(TAG, "Clicked AP: %s", ssid.c_str());
+        LOGGER.info("Clicked AP: {}", ssid);
         std::string connection_target = service::wifi::getConnectionTarget();
         if (connection_target == ssid) {
             self->bindings->onDisconnect();
@@ -87,12 +83,12 @@ void View::connect(lv_event_t* event) {
             self->bindings->onConnectSsid(ssid);
         }
     } else {
-        TT_LOG_W(TAG, "Clicked AP: record %d/%d does not exist", index, ap_records.size() - 1);
+        LOGGER.warn("Clicked AP: record {}/{} does not exist", index, ap_records.size() - 1);
     }
 }
 
 void View::showDetails(lv_event_t* event) {
-    TT_LOG_D(TAG, "showDetails()");
+    LOGGER.debug("showDetails()");
     auto* widget = lv_event_get_current_target_obj(event);
     auto index = reinterpret_cast<size_t>(lv_obj_get_user_data(widget));
     auto* self = static_cast<View*>(lv_event_get_user_data(event));
@@ -100,10 +96,10 @@ void View::showDetails(lv_event_t* event) {
 
     if (index < ap_records.size()) {
         auto& ssid = ap_records[index].ssid;
-        TT_LOG_I(TAG, "Clicked AP: %s", ssid.c_str());
+        LOGGER.info("Clicked AP: {}", ssid);
         self->bindings->onShowApSettings(ssid);
     } else {
-        TT_LOG_W(TAG, "Clicked AP: record %d/%d does not exist", index, ap_records.size() - 1);
+        LOGGER.warn("Clicked AP: record {}/{} does not exist", index, ap_records.size() - 1);
     }
 }
 

@@ -5,6 +5,7 @@
 #include <Tactility/hal/gps/GpsConfiguration.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/settings/KeyboardSettings.h>
 #include <Trackball/Trackball.h>

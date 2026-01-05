@@ -8,6 +8,7 @@
 
 #include <Tactility/EventGroup.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
@@ -631,7 +632,7 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
-        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, "disable()");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "disable()");
         return;
     }
 
@@ -730,7 +731,7 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
-        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, "dispatchConnect()");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "dispatchConnect()");
         return;
     }
 

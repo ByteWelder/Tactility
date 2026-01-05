@@ -1,7 +1,4 @@
 #include "Tca8418.h"
-#include <Tactility/Log.h>
-
-constexpr auto TAG = "TCA8418";
 
 namespace registers {
 static const uint8_t CFG = 0x01U;

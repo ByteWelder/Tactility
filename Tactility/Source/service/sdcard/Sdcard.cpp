@@ -1,5 +1,6 @@
 #include <Tactility/hal/sdcard/SdCardDevice.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceRegistration.h>

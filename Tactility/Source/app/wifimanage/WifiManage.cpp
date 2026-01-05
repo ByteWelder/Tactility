@@ -4,22 +4,24 @@
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/wifiapsettings/WifiApSettings.h>
 #include <Tactility/app/wificonnect/WifiConnect.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 
 namespace tt::app::wifimanage {
 
-constexpr auto TAG = "WifiManage";
+static const auto LOGGER = Logger("WifiManage");
 
 extern const AppManifest manifest;
 
 static void onConnect(const std::string& ssid) {
     service::wifi::settings::WifiApSettings settings;
     if (service::wifi::settings::load(ssid, settings)) {
-        TT_LOG_I(TAG, "Connecting with known credentials");
+        LOGGER.info("Connecting with known credentials");
         service::wifi::connect(settings, false);
     } else {
-        TT_LOG_I(TAG, "Starting connection dialog");
+        LOGGER.info("Starting connection dialog");
         wificonnect::start(ssid);
     }
 }
@@ -65,7 +67,7 @@ void WifiManage::requestViewUpdate() {
             view.update();
             lvgl::unlock();
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
         }
     }
     unlock();
@@ -73,7 +75,7 @@ void WifiManage::requestViewUpdate() {
 
 void WifiManage::onWifiEvent(service::wifi::WifiEvent event) {
     auto radio_state = service::wifi::getRadioState();
-    TT_LOG_I(TAG, "Update with state %s", service::wifi::radioStateToString(radio_state));
+    LOGGER.info("Update with state {}", service::wifi::radioStateToString(radio_state));
     getState().setRadioState(radio_state);
     switch (event) {
         using enum service::wifi::WifiEvent;
@@ -118,7 +120,7 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     bool can_scan = radio_state == service::wifi::RadioState::On ||
         radio_state == service::wifi::RadioState::ConnectionPending ||
         radio_state == service::wifi::RadioState::ConnectionActive;
-    TT_LOG_I(TAG, "%s %d", service::wifi::radioStateToString(radio_state), (int)service::wifi::isScanning());
+    LOGGER.info("{} {}", service::wifi::radioStateToString(radio_state), service::wifi::isScanning());
     if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }

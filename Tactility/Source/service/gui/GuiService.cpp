@@ -2,6 +2,7 @@
 
 #include <Tactility/app/AppInstance.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/service/loader/Loader.h>
@@ -107,7 +108,7 @@ void GuiService::redraw() {
         // Unlock GUI and LVGL
         lvgl::unlock();
     } else {
-        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT_CPP, "LVGL");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
     }
 
     unlock();

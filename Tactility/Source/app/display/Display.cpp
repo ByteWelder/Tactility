@@ -3,13 +3,14 @@
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Assets.h>
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Toolbar.h>
 
 #include <lvgl.h>
 
 namespace tt::app::display {
 
-constexpr auto* TAG = "Display";
+static const auto LOGGER = Logger("Display");
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -54,7 +55,7 @@ class DisplayApp final : public App {
         auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
         auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
         uint32_t selected_index = lv_dropdown_get_selected(dropdown);
-        TT_LOG_I(TAG, "Selected %ld", selected_index);
+        LOGGER.info("Selected {}", selected_index);
         auto selected_orientation = static_cast<settings::display::Orientation>(selected_index);
         if (selected_orientation != app->displaySettings.orientation) {
             app->displaySettings.orientation = selected_orientation;

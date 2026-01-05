@@ -2,6 +2,8 @@
 #include <Tactility/Logger.h>
 #include <Tactility/Preferences.h>
 
+#include <memory>
+
 #ifdef ESP_PLATFORM
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/TactilityCore.h>

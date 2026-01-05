@@ -5,6 +5,7 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Spinner.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Logger.h>
 #include <Tactility/network/Http.h>
 #include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
@@ -16,7 +17,7 @@
 
 namespace tt::app::apphub {
 
-constexpr auto* TAG = "AppHub";
+static const auto LOGGER = Logger("AppHub");
 
 extern const AppManifest manifest;
 
@@ -55,7 +56,7 @@ class AppHubApp final : public App {
     }
 
     void onRefreshSuccess() {
-        TT_LOG_I(TAG, "Request success");
+        LOGGER.info("Request success");
         auto lock = lvgl::getSyncLock()->asScopedLock();
         lock.lock();
 
@@ -63,7 +64,7 @@ class AppHubApp final : public App {
     }
 
     void onRefreshError(const char* error) {
-        TT_LOG_E(TAG, "Request failed: %s", error);
+        LOGGER.error("Request failed: {}", error);
         auto lock = lvgl::getSyncLock()->asScopedLock();
         lock.lock();
 
@@ -106,7 +107,7 @@ class AppHubApp final : public App {
             lv_obj_set_size(list, LV_PCT(100), LV_SIZE_CONTENT);
             for (int i = 0; i < entries.size(); i++) {
                 auto& entry = entries[i];
-                TT_LOG_I(TAG, "Adding %s", entry.appName.c_str());
+                LOGGER.info("Adding {}", entry.appName.c_str());
                 const char* icon = findAppManifestById(entry.appId) != nullptr ? LV_SYMBOL_OK : nullptr;
                 auto* entry_button = lv_list_add_button(list, icon, entry.appName.c_str());
                 auto int_as_voidptr = reinterpret_cast<void*>(i);

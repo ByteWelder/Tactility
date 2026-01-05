@@ -4,6 +4,7 @@
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/screenshot/ScreenshotTask.h>
 #include <Tactility/service/loader/Loader.h>

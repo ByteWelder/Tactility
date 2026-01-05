@@ -1,5 +1,6 @@
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
 

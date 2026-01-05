@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LogCommon.h"
+#include "LoggerCommon.h"
 #include <functional>
 
 namespace tt {

@@ -1,7 +1,5 @@
 #include "Tactility/network/Url.h"
 
-#include <Tactility/Log.h>
-
 namespace tt::network {
 
 std::map<std::string, std::string> parseUrlQuery(std::string query) {

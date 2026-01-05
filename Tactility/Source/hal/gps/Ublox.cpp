@@ -93,7 +93,7 @@ GpsResponse getAck(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32_t 
                 if (sCounter == 26) {
 #ifdef GPS_DEBUG
 
-                    TT_LOG_I(TAG, "%s", debugmsg.c_str());
+                    LOGGER.info("%s", debugmsg.c_str());
 #endif
                     return GpsResponse::FrameErrors;
                 }
@@ -108,7 +108,7 @@ GpsResponse getAck(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32_t 
             } else {
                 if (ack == 3 && b == 0x00) { // UBX-ACK-NAK message
 #ifdef GPS_DEBUG
-                    TT_LOG_I(TAG, "%s", debugmsg.c_str());
+                    LOGGER.info("%s", debugmsg.c_str());
 #endif
                     LOGGER.warn("Got NAK for class {:02X} message {:02X}", class_id, msg_id);
                     return GpsResponse::NotAck; // NAK received
@@ -118,8 +118,8 @@ GpsResponse getAck(uart::Uart& uart, uint8_t class_id, uint8_t msg_id, uint32_t 
         }
     }
 #ifdef GPS_DEBUG
-    TT_LOG_I(TAG, "%s", debugmsg.c_str());
-    TT_LOG_W(TAG, "No response for class %02X message %02X", class_id, msg_id);
+    LOGGER.info("%s", debugmsg.c_str());
+    LOGGER.warn("No response for class %02X message %02X", class_id, msg_id);
 #endif
     return GpsResponse::None; // No response received within timeout
 }

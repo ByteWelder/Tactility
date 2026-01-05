@@ -2,18 +2,19 @@
 #include "Touch.h"
 
 #include <UnPhoneFeatures.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <hx8357/disp_spi.h>
 #include <hx8357/hx8357.h>
 
-constexpr auto TAG = "Hx8357Display";
+static const auto LOGGER = tt::Logger("Hx8357Display");
+
 constexpr auto BUFFER_SIZE = (UNPHONE_LCD_HORIZONTAL_RESOLUTION * UNPHONE_LCD_DRAW_BUFFER_HEIGHT * LV_COLOR_DEPTH / 8);
 
 extern std::shared_ptr<UnPhoneFeatures> unPhoneFeatures;
 
 bool Hx8357Display::start() {
-    TT_LOG_I(TAG, "start");
+    LOGGER.info("start");
 
     disp_spi_add_device(SPI2_HOST);
 
@@ -26,16 +27,16 @@ bool Hx8357Display::start() {
 }
 
 bool Hx8357Display::stop() {
-    TT_LOG_I(TAG, "stop");
+    LOGGER.info("stop");
     disp_spi_remove_device();
     return true;
 }
 
 bool Hx8357Display::startLvgl() {
-    TT_LOG_I(TAG, "startLvgl");
+    LOGGER.info("startLvgl");
 
     if (lvglDisplay != nullptr) {
-        TT_LOG_W(TAG, "LVGL was already started");
+        LOGGER.warn("LVGL was already started");
         return false;
     }
 
@@ -58,7 +59,7 @@ bool Hx8357Display::startLvgl() {
     lv_display_set_flush_cb(lvglDisplay, hx8357_flush);
 
     if (lvglDisplay == nullptr) {
-        TT_LOG_I(TAG, "Failed");
+        LOGGER.info("Failed");
         return false;
     }
 
@@ -73,10 +74,10 @@ bool Hx8357Display::startLvgl() {
 }
 
 bool Hx8357Display::stopLvgl() {
-    TT_LOG_I(TAG, "stopLvgl");
+    LOGGER.info("stopLvgl");
 
     if (lvglDisplay == nullptr) {
-        TT_LOG_W(TAG, "LVGL was already stopped");
+        LOGGER.warn("LVGL was already stopped");
         return false;
     }
 
@@ -85,7 +86,7 @@ bool Hx8357Display::stopLvgl() {
 
     auto touch_device = getTouchDevice();
     if (touch_device != nullptr && touch_device->getLvglIndev() != nullptr) {
-        TT_LOG_I(TAG, "Stopping touch device");
+        LOGGER.info("Stopping touch device");
         touch_device->stopLvgl();
     }
 
@@ -101,7 +102,7 @@ bool Hx8357Display::stopLvgl() {
 std::shared_ptr<tt::hal::touch::TouchDevice> _Nullable Hx8357Display::getTouchDevice() {
     if (touchDevice == nullptr) {
         touchDevice = std::reinterpret_pointer_cast<tt::hal::touch::TouchDevice>(createTouch());
-        TT_LOG_I(TAG, "Created touch device");
+        LOGGER.info("Created touch device");
     }
 
     return touchDevice;

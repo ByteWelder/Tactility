@@ -1,8 +1,8 @@
 #include "CardputerKeyboard.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
-constexpr auto* TAG = "Keyboard";
+static const auto LOGGER = tt::Logger("Keyboard");
 
 bool CardputerKeyboard::startLvgl(lv_display_t* display) {
     keyboard.init();
@@ -56,7 +56,7 @@ void CardputerKeyboard::readCallback(lv_indev_t* indev, lv_indev_data_t* data) {
                 }
             } else {
                 if (self->keyboard.keysState().del) {
-                    TT_LOG_I(TAG, "del");
+                    LOGGER.info("del");
                     data->key = LV_KEY_DEL;
                     data->state = LV_INDEV_STATE_PRESSED;
                 } else {

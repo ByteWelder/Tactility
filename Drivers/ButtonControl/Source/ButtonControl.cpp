@@ -1,10 +1,10 @@
 #include "ButtonControl.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <esp_lvgl_port.h>
 
-constexpr auto* TAG = "ButtonControl";
+static const auto LOGGER = tt::Logger("ButtonControl");
 
 ButtonControl::ButtonControl(const std::vector<PinConfiguration>& pinConfigurations) : pinConfigurations(pinConfigurations) {
     pinStates.resize(pinConfigurations.size());
@@ -73,7 +73,7 @@ void ButtonControl::updatePin(std::vector<PinConfiguration>::const_reference con
         if (state.pressState) {
             auto time_passed = tt::kernel::getMillis() - state.pressStartTime;
             if (time_passed < 500) {
-                TT_LOG_D(TAG, "Trigger short press");
+                LOGGER.debug("Trigger short press");
                 state.triggerShortPress = true;
             }
             state.pressState = false;
@@ -103,7 +103,7 @@ bool ButtonControl::shouldInterruptDriverThread() const {
 }
 
 void ButtonControl::startThread() {
-    TT_LOG_I(TAG, "Start");
+    LOGGER.info("Start");
 
     mutex.lock();
 
@@ -120,7 +120,7 @@ void ButtonControl::startThread() {
 }
 
 void ButtonControl::stopThread() {
-    TT_LOG_I(TAG, "Stop");
+    LOGGER.info("Stop");
 
     mutex.lock();
     interruptDriverThread = true;

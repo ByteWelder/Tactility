@@ -1,9 +1,10 @@
 #include <Tactility/Assets.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/timezone/TimeZone.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/RecursiveMutex.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/Time.h>
 #include <Tactility/settings/SystemSettings.h>
@@ -12,7 +13,7 @@
 
 namespace tt::app::timedatesettings {
 
-constexpr auto* TAG = "TimeDate";
+static const auto LOGGER = Logger("TimeDate");
 
 extern const AppManifest manifest;
 
@@ -137,7 +138,7 @@ public:
         if (result == Result::Ok && bundle != nullptr) {
             const auto name = timezone::getResultName(*bundle);
             const auto code = timezone::getResultCode(*bundle);
-            TT_LOG_I(TAG, "Result name=%s code=%s", name.c_str(), code.c_str());
+            LOGGER.info("Result name={} code={}", name, code);
             settings::setTimeZone(name, code);
 
             if (!name.empty()) {

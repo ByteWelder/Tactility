@@ -2,7 +2,7 @@
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
-#include <Tactility/TactilityCore.h>
+#include <Tactility/Logger.h>
 #include <Tactility/StringUtils.h>
 
 #include <lvgl.h>
@@ -11,7 +11,7 @@ namespace tt::app::imageviewer {
 
 extern const AppManifest manifest;
 
-constexpr auto* TAG = "ImageViewer";
+static const auto LOGGER = Logger("ImageViewer");
 constexpr auto* IMAGE_VIEWER_FILE_ARGUMENT = "file";
 
 class ImageViewerApp final : public App {
@@ -49,7 +49,7 @@ class ImageViewerApp final : public App {
         std::string file_argument;
         if (bundle->optString(IMAGE_VIEWER_FILE_ARGUMENT, file_argument)) {
             std::string prefixed_path = lvgl::PATH_PREFIX + file_argument;
-            TT_LOG_I(TAG, "Opening %s", prefixed_path.c_str());
+            LOGGER.info("Opening {}", prefixed_path);
             lv_img_set_src(image, prefixed_path.c_str());
             auto path = string::getLastPathSegment(file_argument);
             lv_label_set_text(file_label, path.c_str());

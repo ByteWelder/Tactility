@@ -14,7 +14,7 @@
 #pragma once
 
 #include "CoreDefines.h"
-#include "Log.h"
+#include "Logger.h"
 
 #include <cassert>
 
@@ -32,13 +32,13 @@ namespace tt {
 #define tt_crash(...) TT_ARG_CAT(_tt_crash,TT_ARGCOUNT(__VA_ARGS__))(__VA_ARGS__)
 
 #define _tt_crash0()  do {                                                  \
-        TT_LOG_E("crash", "at %s:%d", __FILE__, __LINE__);                  \
+        tt::Logger("Kernel").error("Crash at {}:{}", __FILE__, __LINE__);   \
         tt::_crash();                                                       \
     } while (0)
 
-#define _tt_crash1(message) do {                                            \
-        TT_LOG_E("crash", "%s\n\tat %s:%d", message, __FILE__, __LINE__);   \
-        tt::_crash();                                                       \
+#define _tt_crash1(message) do {                                                            \
+        tt::Logger("Kernel").error("Crash: {}\n\tat {}:{}", message, __FILE__, __LINE__);   \
+        tt::_crash();                                                                       \
     } while (0)
 
 /** Halt the system
@@ -50,7 +50,7 @@ namespace tt {
 #define tt_check_internal(__e, __m)        \
     do {                                   \
         if (!(__e)) {                      \
-            TT_LOG_E("check", "%s", #__e); \
+            tt::Logger("Kernel").error("Check failed: {}", #__e); \
             if (__m) {                     \
                 tt_crash_internal(#__m);   \
             } else {                       \
@@ -65,4 +65,4 @@ namespace tt {
  * @param[in] optional message (const char*)
  */
 
-#define tt_check(x, ...) if (!(x)) { TT_LOG_E("check", "Failed: %s", #x); tt::_crash(); }
+#define tt_check(x, ...) if (!(x)) { tt::Logger("Kernel").error("Check failed: {}", #x); tt::_crash(); }
