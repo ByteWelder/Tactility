@@ -4,6 +4,17 @@
 
 static const auto LOGGER = tt::Logger("DRV2605");
 
+Drv2605::Drv2605(i2c_port_t port, bool autoPlayStartupBuzz) : I2cDevice(port, ADDRESS), autoPlayStartupBuzz(autoPlayStartupBuzz) {
+    if (!init()) {
+        LOGGER.error("Failed to initialize DRV2605");
+    }
+
+    if (autoPlayStartupBuzz) {
+        setWaveFormForBuzz();
+        startPlayback();
+    }
+}
+
 bool Drv2605::init() {
     uint8_t status;
     if (!readRegister8(static_cast<uint8_t>(Register::Status), status)) {

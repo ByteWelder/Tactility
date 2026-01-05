@@ -4,7 +4,6 @@
 
 class Drv2605 : public tt::hal::i2c::I2cDevice {
 
-    const tt::Logger logger = tt::Logger("DRV2605");
     static constexpr auto ADDRESS = 0x5A;
 
     bool autoPlayStartupBuzz;
@@ -63,16 +62,7 @@ class Drv2605 : public tt::hal::i2c::I2cDevice {
 
 public:
 
-    explicit Drv2605(i2c_port_t port, bool autoPlayStartupBuzz = true) : I2cDevice(port, ADDRESS), autoPlayStartupBuzz(autoPlayStartupBuzz) {
-        if (!init()) {
-            logger.error("Failed to initialize DRV2605");
-        }
-
-        if (autoPlayStartupBuzz) {
-            setWaveFormForBuzz();
-            startPlayback();
-        }
-    }
+    explicit Drv2605(i2c_port_t port, bool autoPlayStartupBuzz = true);
 
     std::string getName() const final { return "DRV2605"; }
     std::string getDescription() const final { return "Haptic driver for ERM/LRA with waveform library & auto-resonance tracking"; }
@@ -83,7 +73,6 @@ public:
     void setWaveFormForClick();
 
     /**
-     *
      * @param slot a value from 0 to 7
      * @param waveform
      */
