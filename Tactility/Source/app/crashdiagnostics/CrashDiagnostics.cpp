@@ -58,7 +58,7 @@ public:
         auto qrcodeData = std::make_shared<uint8_t[]>(qrcode_getBufferSize(qr_version));
         if (qrcodeData == nullptr) {
             LOGGER.error("Failed to allocate QR buffer");
-            stop();
+            stop(manifest.appId);
             return;
         }
 
