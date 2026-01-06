@@ -8,6 +8,7 @@
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/BootSettings.h>
@@ -25,7 +26,8 @@
 
 namespace tt::app::boot {
 
-constexpr auto* TAG = "Boot";
+static const auto LOGGER = Logger("Boot");
+
 extern const AppManifest manifest;
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
@@ -51,17 +53,17 @@ class BootApp : public App {
         if (settings::display::load(settings)) {
             if (hal_display->getGammaCurveCount() > 0) {
                 hal_display->setGammaCurve(settings.gammaCurve);
-                TT_LOG_I(TAG, "Gamma curve %du", settings.gammaCurve);
+                LOGGER.info("Gamma curve {}", settings.gammaCurve);
             }
         } else {
             settings = settings::display::getDefault();
         }
 
         if (hal_display->supportsBacklightDuty()) {
-            TT_LOG_I(TAG, "Backlight %du", settings.backlightDuty);
+            LOGGER.info("Backlight {}", settings.backlightDuty);
             hal_display->setBacklightDuty(settings.backlightDuty);
         } else {
-            TT_LOG_I(TAG, "no backlight");
+            LOGGER.info("No backlight");
         }
     }
 
@@ -70,17 +72,17 @@ class BootApp : public App {
             return false;
         }
 
-        TT_LOG_I(TAG, "Rebooting into mass storage device mode");
+        LOGGER.info("Rebooting into mass storage device mode");
         auto mode = hal::usb::getUsbBootMode();  // Get mode before reset
         hal::usb::resetUsbBootMode();
         if (mode == hal::usb::BootMode::Flash) {
             if (!hal::usb::startMassStorageWithFlash()) {
-                TT_LOG_E(TAG, "Unable to start flash mass storage");
+                LOGGER.error("Unable to start flash mass storage");
                 return false;
             }
         } else if (mode == hal::usb::BootMode::Sdmmc) {
             if (!hal::usb::startMassStorageWithSdmmc()) {
-                TT_LOG_E(TAG, "Unable to start SD mass storage");
+                LOGGER.error("Unable to start SD mass storage");
                 return false;
             }
         }
@@ -98,23 +100,22 @@ class BootApp : public App {
     }
 
     static int32_t bootThreadCallback() {
-        TT_LOG_I(TAG, "Starting boot thread");
+        LOGGER.info("Starting boot thread");
         const auto start_time = kernel::getTicks();
 
         // Give the UI some time to redraw
         // If we don't do this, various init calls will read files and block SPI IO for the display
         // This would result in a blank/black screen being shown during this phase of the boot process
         // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
-        TT_LOG_I(TAG, "Delay");
         kernel::delayMillis(10);
 
         // TODO: Support for multiple displays
-        TT_LOG_I(TAG, "Setup display");
+        LOGGER.info("Setup display");
         setupDisplay(); // Set backlight
         prepareFileSystems();
 
         if (!setupUsbBootMode()) {
-            TT_LOG_I(TAG, "initFromBootApp");
+            LOGGER.info("initFromBootApp");
             registerApps();
             waitForMinimalSplashDuration(start_time);
             stop(manifest.appId);
@@ -123,7 +124,7 @@ class BootApp : public App {
 
         // This event will likely block as other systems are initialized
         // e.g. Wi-Fi reads AP configs from SD card
-        TT_LOG_I(TAG, "Publish event");
+        LOGGER.info("Publish event");
         kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
 
         return 0;
@@ -140,7 +141,7 @@ class BootApp : public App {
         settings::BootSettings boot_properties;
         std::string launcher_app_id;
         if (settings::loadBootSettings(boot_properties) && boot_properties.launcherAppId.empty()) {
-            TT_LOG_E(TAG, "Failed to load launcher configuration, or launcher not configured");
+            LOGGER.error("Failed to load launcher configuration, or launcher not configured");
             launcher_app_id = boot_properties.launcherAppId;
         } else {
             launcher_app_id = "Launcher";
@@ -187,7 +188,7 @@ public:
             logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
         }
         const auto logo_path = lvgl::PATH_PREFIX + paths->getAssetsPath(logo);
-        TT_LOG_I(TAG, "%s", logo_path.c_str());
+        LOGGER.info("{}", logo_path);
         lv_image_set_src(image, logo_path.c_str());
     }
 };

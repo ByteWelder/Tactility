@@ -1,13 +1,15 @@
 #include <Tactility/app/wificonnect/WifiConnect.h>
 
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/app/AppContext.h>
+#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 namespace tt::app::wificonnect {
 
-constexpr auto* TAG = "WifiConnect";
+static const auto LOGGER = Logger("WifiConnect");
 constexpr auto* WIFI_CONNECT_PARAM_SSID = "ssid"; // String
 constexpr auto* WIFI_CONNECT_PARAM_PASSWORD = "password"; // String
 
@@ -72,7 +74,7 @@ void WifiConnect::requestViewUpdate() {
             view.update();
             lvgl::unlock();
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
         }
     }
     unlock();

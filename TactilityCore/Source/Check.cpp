@@ -1,28 +1,28 @@
 #include <Tactility/Check.h>
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/freertoscompat/Task.h>
 
-constexpr auto TAG = "kernel";
+static const auto LOGGER = tt::Logger("kernel");
 
 static void logMemoryInfo() {
 #ifdef ESP_PLATFORM
-    TT_LOG_E(TAG, "default caps:");
-    TT_LOG_E(TAG, "  total: %u", heap_caps_get_total_size(MALLOC_CAP_DEFAULT));
-    TT_LOG_E(TAG, "  free: %u", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
-    TT_LOG_E(TAG, "  min free: %u", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
-    TT_LOG_E(TAG, "internal caps:");
-    TT_LOG_E(TAG, "  total: %u", heap_caps_get_total_size(MALLOC_CAP_INTERNAL));
-    TT_LOG_E(TAG, "  free: %u", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
-    TT_LOG_E(TAG, "  min free: %u", heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL));
+    LOGGER.error("default caps:");
+    LOGGER.error("  total: {}", heap_caps_get_total_size(MALLOC_CAP_DEFAULT));
+    LOGGER.error("  free: {}", heap_caps_get_free_size(MALLOC_CAP_DEFAULT));
+    LOGGER.error("  min free: {}", heap_caps_get_minimum_free_size(MALLOC_CAP_DEFAULT));
+    LOGGER.error("internal caps:");
+    LOGGER.error("  total: {}", heap_caps_get_total_size(MALLOC_CAP_INTERNAL));
+    LOGGER.error("  free: {}", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    LOGGER.error("  min free: {}", heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL));
 #endif
 }
 
 static void logTaskInfo() {
     const char* name = pcTaskGetName(nullptr);
     const char* safe_name = name ? name : "main";
-    TT_LOG_E(TAG, "Task: %s", safe_name);
-    TT_LOG_E(TAG, "Stack watermark: %u", uxTaskGetStackHighWaterMark(NULL) * 4);
+    LOGGER.error("Task: {}", safe_name);
+    LOGGER.error("Stack watermark: {}", uxTaskGetStackHighWaterMark(NULL) * 4);
 }
 
 namespace tt {

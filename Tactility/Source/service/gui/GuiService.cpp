@@ -1,6 +1,8 @@
 #include <Tactility/service/gui/GuiService.h>
 
 #include <Tactility/app/AppInstance.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/service/loader/Loader.h>
@@ -10,7 +12,7 @@
 namespace tt::service::gui {
 
 extern const ServiceManifest manifest;
-constexpr auto* TAG = "GuiService";
+static const auto LOGGER = Logger("GuiService");
 using namespace loader;
 
 // region AppManifest
@@ -39,10 +41,7 @@ int32_t GuiService::guiMain() {
             // Process and dispatch draw call
             if (flags & GUI_THREAD_FLAG_DRAW) {
                 service->threadFlags.clear(GUI_THREAD_FLAG_DRAW);
-                auto service = findService();
-                if (service != nullptr) {
-                    service->redraw();
-                }
+                service->redraw();
             }
 
             if (flags & GUI_THREAD_FLAG_EXIT) {
@@ -103,13 +102,13 @@ void GuiService::redraw() {
             lv_obj_t* container = createAppViews(appRootWidget);
             appToRender->getApp()->onShow(*appToRender, container);
         } else {
-            TT_LOG_W(TAG, "nothing to draw");
+            LOGGER.warn("nothing to draw");
         }
 
         // Unlock GUI and LVGL
         lvgl::unlock();
     } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
     }
 
     unlock();
@@ -118,7 +117,7 @@ void GuiService::redraw() {
 bool GuiService::onStart(TT_UNUSED ServiceContext& service) {
     auto* screen_root = lv_screen_active();
     if (screen_root == nullptr) {
-        TT_LOG_E(TAG, "No display found");
+        LOGGER.error("No display found");
         return false;
     }
 
@@ -202,16 +201,16 @@ void GuiService::showApp(std::shared_ptr<app::AppInstance> app) {
     lock.lock();
 
     if (!isStarted) {
-        TT_LOG_E(TAG, "Failed to show app %s: GUI not started", app->getManifest().appId.c_str());
+        LOGGER.error("Failed to show app {}: GUI not started", app->getManifest().appId);
         return;
     }
 
     if (appToRender != nullptr && appToRender->getLaunchId() == app->getLaunchId()) {
-        TT_LOG_W(TAG, "Already showing %s", app->getManifest().appId.c_str());
+        LOGGER.warn("Already showing {}", app->getManifest().appId);
         return;
     }
 
-    TT_LOG_I(TAG, "Showing %s", app->getManifest().appId.c_str());
+    LOGGER.info("Showing {}", app->getManifest().appId);
     // Ensure previous app triggers onHide() logic
     if (appToRender != nullptr) {
         hideApp();
@@ -226,12 +225,12 @@ void GuiService::hideApp() {
     lock.lock();
 
     if (!isStarted) {
-        TT_LOG_E(TAG, "Failed to hide app: GUI not started");
+        LOGGER.error("Failed to hide app: GUI not started");
         return;
     }
 
     if (appToRender == nullptr) {
-        TT_LOG_W(TAG, "hideApp() called but no app is currently shown");
+        LOGGER.warn("hideApp() called but no app is currently shown");
         return;
     }
 

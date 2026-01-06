@@ -1,20 +1,21 @@
 #include "PwmBacklight.h"
-#include "Tactility/kernel/SystemEvents.h"
-#include "Tactility/service/gps/GpsService.h"
-
-#include <Tactility/TactilityCore.h>
-#include <Tactility/hal/gps/GpsConfiguration.h>
-#include <Tactility/settings/KeyboardSettings.h>
-
 #include "devices/KeyboardBacklight.h"
 #include "devices/TrackballDevice.h"
-#include <KeyboardBacklight/KeyboardBacklight.h>
+
+#include <Tactility/hal/gps/GpsConfiguration.h>
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/service/gps/GpsService.h>
+#include <Tactility/settings/KeyboardSettings.h>
 #include <Trackball/Trackball.h>
 
-#define TAG "tdeck"
+#include <KeyboardBacklight/KeyboardBacklight.h>
+
+static const auto LOGGER = tt::Logger("T-Deck");
 
 // Power on
-#define TDECK_POWERON_GPIO GPIO_NUM_10
+constexpr auto TDECK_POWERON_GPIO = GPIO_NUM_10;
 
 static bool powerOn() {
     gpio_config_t device_power_signal_config = {
@@ -37,9 +38,9 @@ static bool powerOn() {
 }
 
 bool initBoot() {
-    ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
+    LOGGER.info(LOG_MESSAGE_POWER_ON_START);
     if (!powerOn()) {
-        TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
+        LOGGER.error(LOG_MESSAGE_POWER_ON_FAILED);
         return false;
     }
 
@@ -47,7 +48,7 @@ bool initBoot() {
      * when moving the brightness slider rapidly from a lower setting to 100%.
      * This is not a slider bug (data was debug-traced) */
     if (!driver::pwmbacklight::init(GPIO_NUM_42, 30000)) {
-        TT_LOG_E(TAG, "Backlight init failed");
+        LOGGER.error("Backlight init failed");
         return false;
     }
 
@@ -58,9 +59,9 @@ bool initBoot() {
             gps_service->getGpsConfigurations(gps_configurations);
             if (gps_configurations.empty()) {
                 if (gps_service->addGpsConfiguration(tt::hal::gps::GpsConfiguration {.uartName = "Grove", .baudRate = 38400, .model = tt::hal::gps::GpsModel::UBLOX10})) {
-                    TT_LOG_I(TAG, "Configured internal GPS");
+                    LOGGER.info("Configured internal GPS");
                 } else {
-                    TT_LOG_E(TAG, "Failed to configure internal GPS");
+                    LOGGER.error("Failed to configure internal GPS");
                 }
             }
         }
@@ -69,23 +70,23 @@ bool initBoot() {
     tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
         auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
         if (kbBacklight != nullptr) {
-            TT_LOG_I(TAG, "%s starting", kbBacklight->getName().c_str());
+            LOGGER.info("{} starting", kbBacklight->getName());
             auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
             if (kbDevice->start()) {
-                TT_LOG_I(TAG, "%s started", kbBacklight->getName().c_str());
+                LOGGER.info("{} started", kbBacklight->getName());
             } else {
-                TT_LOG_E(TAG, "%s start failed", kbBacklight->getName().c_str());
+                LOGGER.error("{} start failed", kbBacklight->getName());
             }
         }
 
         auto trackball = tt::hal::findDevice("Trackball");
         if (trackball != nullptr) {
-            TT_LOG_I(TAG, "%s starting", trackball->getName().c_str());
+            LOGGER.info("{} starting", trackball->getName());
             auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
             if (tbDevice->start()) {
-                TT_LOG_I(TAG, "%s started", trackball->getName().c_str());
+                LOGGER.info("{} started", trackball->getName());
             } else {
-                TT_LOG_E(TAG, "%s start failed", trackball->getName().c_str());
+                LOGGER.error("{} start failed", trackball->getName());
             }
         }
 
@@ -99,7 +100,7 @@ bool initBoot() {
         auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
         bool result = keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
         if (!result) {
-            TT_LOG_W(TAG, "Failed to set keyboard backlight brightness");
+            LOGGER.warn("Failed to set keyboard backlight brightness");
         }
 
         trackball::setEnabled(kbSettings.trackballEnabled);

@@ -2,21 +2,23 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/timezone/TimeZone.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/service/loader/Loader.h>
-
-#include <Tactility/Timer.h>
 #include <Tactility/MountPoints.h>
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
+#include <Tactility/Timer.h>
 
 #include <lvgl.h>
 #include <memory>
 
 namespace tt::app::timezone {
 
-constexpr auto* TAG = "TimeZone";
+static const auto LOGGER = Logger("TimeZone");
+
 constexpr auto* RESULT_BUNDLE_CODE_INDEX = "code";
 constexpr auto* RESULT_BUNDLE_NAME_INDEX = "name";
 
@@ -96,7 +98,7 @@ class TimeZoneApp final : public App {
     }
 
     void onListItemSelected(std::size_t index) {
-        TT_LOG_I(TAG, "Selected item at index %zu", index);
+        LOGGER.info("Selected item at index {}", index);
 
         auto& entry = entries[index];
 
@@ -117,7 +119,7 @@ class TimeZoneApp final : public App {
         auto path = std::string(file::MOUNT_POINT_SYSTEM) + "/timezones.csv";
         auto* file = fopen(path.c_str(), "rb");
         if (file == nullptr) {
-            TT_LOG_E(TAG, "Failed to open %s", path.c_str());
+            LOGGER.error("Failed to open {}", path);
             return;
         }
         char line[96];
@@ -138,7 +140,7 @@ class TimeZoneApp final : public App {
                     }
                 }
             } else {
-                TT_LOG_E(TAG, "Parse error at line %lu", count);
+                LOGGER.error("Parse error at line {}", count);
             }
         }
 
@@ -148,10 +150,10 @@ class TimeZoneApp final : public App {
             entries = std::move(new_entries);
             mutex.unlock();
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         }
 
-        TT_LOG_I(TAG, "Processed %lu entries", count);
+        LOGGER.info("Processed {} entries", count);
     }
 
     void updateList() {
@@ -160,7 +162,7 @@ class TimeZoneApp final : public App {
             readTimeZones(filter);
             lvgl::unlock();
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
             return;
         }
 

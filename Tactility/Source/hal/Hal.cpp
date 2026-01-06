@@ -1,11 +1,12 @@
-#include "Tactility/Tactility.h"
-#include "Tactility/hal/Configuration.h"
-#include "Tactility/hal/Device.h"
-#include "Tactility/hal/gps/GpsInit.h"
-#include "Tactility/hal/i2c/I2cInit.h"
-#include "Tactility/hal/power/PowerDevice.h"
-#include "Tactility/hal/spi/SpiInit.h"
-#include "Tactility/hal/uart/UartInit.h"
+#include <Tactility/Tactility.h>
+#include <Tactility/hal/Configuration.h>
+#include <Tactility/hal/Device.h>
+#include <Tactility/hal/gps/GpsInit.h>
+#include <Tactility/hal/i2c/I2cInit.h>
+#include <Tactility/hal/power/PowerDevice.h>
+#include <Tactility/hal/spi/SpiInit.h>
+#include <Tactility/hal/uart/UartInit.h>
+#include <Tactility/Logger.h>
 
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/sdcard/SdCardMounting.h>
@@ -14,10 +15,10 @@
 
 namespace tt::hal {
 
-constexpr auto* TAG = "Hal";
+static const auto LOGGER = Logger("Hal");
 
 void registerDevices(const Configuration& configuration) {
-    TT_LOG_I(TAG, "Registering devices");
+    LOGGER.info("Registering devices");
 
     auto devices = configuration.createDevices();
     for (auto& device : devices) {
@@ -36,27 +37,27 @@ void registerDevices(const Configuration& configuration) {
 }
 
 static void startDisplays() {
-    TT_LOG_I(TAG, "Starting displays & touch");
+    LOGGER.info("Starting displays & touch");
     auto displays = hal::findDevices<display::DisplayDevice>(Device::Type::Display);
     for (auto& display : displays) {
-        TT_LOG_I(TAG, "%s starting", display->getName().c_str());
+        LOGGER.info("{} starting", display->getName());
         if (!display->start()) {
-            TT_LOG_E(TAG, "%s start failed", display->getName().c_str());
+            LOGGER.error("{} start failed", display->getName());
         } else {
-            TT_LOG_I(TAG, "%s started", display->getName().c_str());
+            LOGGER.info("{} started", display->getName());
 
             if (display->supportsBacklightDuty()) {
-                TT_LOG_I(TAG, "Setting backlight");
+                LOGGER.info("Setting backlight");
                 display->setBacklightDuty(0);
             }
 
             auto touch = display->getTouchDevice();
             if (touch != nullptr) {
-                TT_LOG_I(TAG, "%s starting", touch->getName().c_str());
+                LOGGER.info("{} starting", touch->getName());
                 if (!touch->start()) {
-                    TT_LOG_E(TAG, "%s start failed", touch->getName().c_str());
+                    LOGGER.error("{} start failed", touch->getName());
                 } else {
-                    TT_LOG_I(TAG, "%s started", touch->getName().c_str());
+                    LOGGER.info("{} started", touch->getName());
                 }
             }
         }
@@ -79,7 +80,7 @@ void init(const Configuration& configuration) {
     kernel::publishSystemEvent(kernel::SystemEvent::BootInitUartEnd);
 
     if (configuration.initBoot != nullptr) {
-        TT_LOG_I(TAG, "Init power");
+        LOGGER.info("Init power");
         tt_check(configuration.initBoot(), "Init power failed");
     }
 

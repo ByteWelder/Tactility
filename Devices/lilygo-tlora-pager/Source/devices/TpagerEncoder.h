@@ -8,7 +8,8 @@ class TpagerEncoder final : public tt::hal::encoder::EncoderDevice {
     lv_indev_t* _Nullable encHandle = nullptr;
     pcnt_unit_handle_t encPcntUnit = nullptr;
 
-    void initEncoder();
+    bool initEncoder();
+    bool deinitEncoder();
 
     static void readCallback(lv_indev_t* indev, lv_indev_data_t* data);
 

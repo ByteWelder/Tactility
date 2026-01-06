@@ -1,5 +1,4 @@
 #include "Axp2101.h"
-#include <Tactility/Log.h>
 
 bool Axp2101::getBatteryVoltage(float& vbatMillis) const {
     return readRegister14(0x34, vbatMillis);

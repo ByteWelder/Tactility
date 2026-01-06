@@ -7,6 +7,7 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Assets.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/espnow/EspNow.h>
 
 #include "Tactility/lvgl/LvglSync.h"
@@ -18,7 +19,7 @@
 
 namespace tt::app::chat {
 
-constexpr const char* TAG = "ChatApp";
+static const auto LOGGER = Logger("ChatApp");
 constexpr uint8_t BROADCAST_ADDRESS[ESP_NOW_ETH_ALEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 class ChatApp : public App {
@@ -46,7 +47,7 @@ class ChatApp : public App {
             self->addMessage(msg);
 
             if (!service::espnow::send(BROADCAST_ADDRESS, reinterpret_cast<const uint8_t*>(msg), msg_len)) {
-                TT_LOG_E(TAG, "Failed to send message");
+                LOGGER.error("Failed to send message");
             }
 
             lv_textarea_set_text(self->input_field, "");

@@ -1,9 +1,9 @@
 #include <Tactility/app/selectiondialog/SelectionDialog.h>
 
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/TactilityCore.h>
 
 #include <lvgl.h>
 
@@ -16,7 +16,7 @@ constexpr auto* RESULT_BUNDLE_KEY_INDEX = "index";
 constexpr auto* PARAMETER_ITEM_CONCATENATION_TOKEN = ";;";
 constexpr auto* DEFAULT_TITLE = "Select...";
 
-constexpr auto* TAG = "SelectionDialog";
+static const auto LOGGER = Logger("SelectionDialog");
 
 extern const AppManifest manifest;
 
@@ -53,7 +53,7 @@ class SelectionDialogApp final : public App {
 
     void onListItemSelected(lv_event_t* e) {
         auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        TT_LOG_I(TAG, "Selected item at index %d", index);
+        LOGGER.info("Selected item at index {}", index);
         auto bundle = std::make_unique<Bundle>();
         bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);
         setResult(Result::Ok, std::move(bundle));
@@ -85,7 +85,7 @@ public:
         if (parameters->optString(PARAMETER_BUNDLE_KEY_ITEMS, items_concatenated)) {
             std::vector<std::string> items = string::split(items_concatenated, PARAMETER_ITEM_CONCATENATION_TOKEN);
             if (items.empty() || items.front().empty()) {
-                TT_LOG_E(TAG, "No items provided");
+                LOGGER.error("No items provided");
                 setResult(Result::Error);
                 stop(manifest.appId);
             } else if (items.size() == 1) {
@@ -93,7 +93,7 @@ public:
                 result_bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, 0);
                 setResult(Result::Ok, std::move(result_bundle));
                 stop(manifest.appId);
-                TT_LOG_W(TAG, "Auto-selecting single item");
+                LOGGER.warn("Auto-selecting single item");
             } else {
                 size_t index = 0;
                 for (const auto& item: items) {
@@ -101,7 +101,7 @@ public:
                 }
             }
         } else {
-            TT_LOG_E(TAG, "No items provided");
+            LOGGER.error("No items provided");
             setResult(Result::Error);
             stop(manifest.appId);
         }

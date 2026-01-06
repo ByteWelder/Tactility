@@ -1,15 +1,14 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/PartitionsEsp.h"
-
-#include <Tactility/Log.h>
+#include <Tactility/PartitionsEsp.h>
+#include <Tactility/Logger.h>
 
 #include <esp_vfs_fat.h>
 #include <nvs_flash.h>
 
 namespace tt {
 
-constexpr auto* TAG = "Partitions";
+static const auto LOGGER = Logger("Partitions");
 
 static esp_err_t initNvsFlashSafely() {
     esp_err_t result = nvs_flash_init();
@@ -41,7 +40,7 @@ size_t getSectorSize() {
 }
 
 esp_err_t initPartitionsEsp() {
-    TT_LOG_I(TAG, "Init partitions");
+    LOGGER.info("Init partitions");
     ESP_ERROR_CHECK(initNvsFlashSafely());
 
     const esp_vfs_fat_mount_config_t mount_config = {
@@ -54,16 +53,16 @@ esp_err_t initPartitionsEsp() {
 
     auto system_result = esp_vfs_fat_spiflash_mount_ro("/system", "system", &mount_config);
     if (system_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to mount /system (%s)", esp_err_to_name(system_result));
+        LOGGER.error("Failed to mount /system ({})", esp_err_to_name(system_result));
     } else {
-        TT_LOG_I(TAG, "Mounted /system");
+        LOGGER.info("Mounted /system");
     }
 
     auto data_result = esp_vfs_fat_spiflash_mount_rw_wl("/data", "data", &mount_config, &data_wl_handle);
     if (data_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to mount /data (%s)", esp_err_to_name(data_result));
+        LOGGER.error("Failed to mount /data ({})", esp_err_to_name(data_result));
     } else {
-        TT_LOG_I(TAG, "Mounted /data");
+        LOGGER.info("Mounted /data");
     }
 
     return system_result == ESP_OK && data_result == ESP_OK;

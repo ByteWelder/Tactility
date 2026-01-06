@@ -2,6 +2,7 @@
 
 #include <Tactility/hal/touch/TouchDevice.h>
 #include <Tactility/TactilityCore.h>
+#include <Tactility/Thread.h>
 #include <driver/i2c.h>
 
 #include "ft6x36/FT6X36.h"

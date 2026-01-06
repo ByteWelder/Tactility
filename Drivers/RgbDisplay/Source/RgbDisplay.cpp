@@ -1,15 +1,15 @@
 #include "RgbDisplay.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Check.h>
+#include <Tactility/hal/touch/TouchDevice.h>
+#include <Tactility/Logger.h>
 
 #include <esp_err.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lcd_panel_ops.h>
 #include <esp_lvgl_port.h>
-#include <Tactility/Check.h>
-#include <Tactility/hal/touch/TouchDevice.h>
 
-constexpr auto TAG = "RgbDisplay";
+static const auto LOGGER = tt::Logger("RgbDisplay");
 
 RgbDisplay::~RgbDisplay() {
     if (displayDriver != nullptr && displayDriver.use_count() > 1) {
@@ -18,35 +18,35 @@ RgbDisplay::~RgbDisplay() {
 }
 
 bool RgbDisplay::start() {
-    TT_LOG_I(TAG, "Starting");
+    LOGGER.info("Starting");
 
     if (esp_lcd_new_rgb_panel(&configuration->panelConfig, &panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel");
+        LOGGER.error("Failed to create panel");
         return false;
     }
 
     if (esp_lcd_panel_reset(panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to reset panel");
+        LOGGER.error("Failed to reset panel");
         return false;
     }
 
     if (esp_lcd_panel_init(panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to init panel");
+        LOGGER.error("Failed to init panel");
         return false;
     }
 
     if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to swap XY");
+        LOGGER.error("Failed to swap XY");
         return false;
     }
 
     if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to set panel to mirror");
+        LOGGER.error("Failed to set panel to mirror");
         return false;
     }
 
     if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to set panel to invert");
+        LOGGER.error("Failed to set panel to invert");
         return false;
     }
 
@@ -64,7 +64,7 @@ bool RgbDisplay::stop() {
     }
 
     if (displayDriver != nullptr && displayDriver.use_count() > 1) {
-        TT_LOG_W(TAG, "DisplayDriver is still in use.");
+        LOGGER.warn("DisplayDriver is still in use.");
     }
 
     auto touch_device = getTouchDevice();
@@ -80,7 +80,7 @@ bool RgbDisplay::startLvgl() {
     assert(lvglDisplay == nullptr);
 
     if (displayDriver != nullptr && displayDriver.use_count() > 1) {
-        TT_LOG_W(TAG, "DisplayDriver is still in use.");
+        LOGGER.warn("DisplayDriver is still in use.");
     }
 
     auto display_config = getLvglPortDisplayConfig();
@@ -93,7 +93,7 @@ bool RgbDisplay::startLvgl() {
     };
 
     lvglDisplay = lvgl_port_add_disp_rgb(&display_config, &rgb_config);
-    TT_LOG_I(TAG, "Finished");
+    LOGGER.info("Finished");
 
     auto touch_device = getTouchDevice();
     if (touch_device != nullptr) {

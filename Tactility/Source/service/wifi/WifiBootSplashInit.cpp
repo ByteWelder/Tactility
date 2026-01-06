@@ -3,7 +3,7 @@
 
 #include <Tactility/MountPoints.h>
 #include <Tactility/file/File.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 
 #include <dirent.h>
@@ -16,7 +16,7 @@
 
 namespace tt::service::wifi {
 
-constexpr auto* TAG = "WifiBootSplashInit";
+static const auto LOGGER = Logger("WifiBootSplashInit");
 
 constexpr auto* AP_PROPERTIES_KEY_SSID = "ssid";
 constexpr auto* AP_PROPERTIES_KEY_PASSWORD = "password";
@@ -35,13 +35,13 @@ struct ApProperties {
 static void importWifiAp(const std::string& filePath) {
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(filePath, map)) {
-        TT_LOG_E(TAG, "Failed to load AP properties at %s", filePath.c_str());
+        LOGGER.error("Failed to load AP properties at {}", filePath);
         return;
     }
 
     const auto ssid_iterator = map.find(AP_PROPERTIES_KEY_SSID);
     if (ssid_iterator == map.end()) {
-        TT_LOG_E(TAG, "%s is missing ssid", filePath.c_str());
+        LOGGER.error("{} is missing ssid", filePath);
         return;
     }
     const auto ssid = ssid_iterator->second;
@@ -65,18 +65,18 @@ static void importWifiAp(const std::string& filePath) {
         );
 
         if (!settings::save(settings)) {
-            TT_LOG_E(TAG, "Failed to save settings for %s", ssid.c_str());
+            LOGGER.error("Failed to save settings for {}", ssid);
         } else {
-            TT_LOG_I(TAG, "Imported %s from %s", ssid.c_str(), filePath.c_str());
+            LOGGER.info("Imported {} from {}", ssid, filePath);
         }
     }
 
     const auto auto_remove_iterator = map.find(AP_PROPERTIES_KEY_AUTO_REMOVE);
     if (auto_remove_iterator != map.end() && auto_remove_iterator->second == "true") {
         if (!remove(filePath.c_str())) {
-            TT_LOG_E(TAG, "Failed to auto-remove %s", filePath.c_str());
+            LOGGER.error("Failed to auto-remove {}", filePath);
         } else {
-            TT_LOG_I(TAG, "Auto-removed %s", filePath.c_str());
+            LOGGER.info("Auto-removed {}", filePath);
         }
     }
 }
@@ -105,7 +105,7 @@ static void importWifiApSettingsFromDir(const std::string& path) {
     }
 
     if (dirent_list.empty()) {
-        TT_LOG_W(TAG, "No AP files found at %s", path.c_str());
+        LOGGER.warn("No AP files found at {}", path);
         return;
     }
 
@@ -128,7 +128,7 @@ void bootSplashInit() {
                 const std::string settings_path = file::getChildPath(sdcard->getMountPath(), "settings");
                 importWifiApSettingsFromDir(settings_path);
             } else {
-                TT_LOG_W(TAG, "Skipping unmounted SD card %s", sdcard->getMountPath().c_str());
+                LOGGER.warn("Skipping unmounted SD card {}", sdcard->getMountPath());
             }
         }
     });

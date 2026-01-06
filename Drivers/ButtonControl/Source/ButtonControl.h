@@ -3,6 +3,7 @@
 #include <Tactility/hal/encoder/EncoderDevice.h>
 #include <Tactility/hal/gpio/Gpio.h>
 #include <Tactility/TactilityCore.h>
+#include <Tactility/Thread.h>
 
 class ButtonControl final : public tt::hal::encoder::EncoderDevice {
 

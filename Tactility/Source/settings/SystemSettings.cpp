@@ -1,3 +1,4 @@
+#include <Tactility/Logger.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/file/FileLock.h>
@@ -6,11 +7,11 @@
 #include <Tactility/settings/SystemSettings.h>
 
 #include <format>
-#include <Tactility/file/File.h>
 
 namespace tt::settings {
 
-constexpr auto* TAG = "SystemSettings";
+static const auto LOGGER = Logger("SystemSettings");
+
 constexpr auto* FILE_PATH_FORMAT = "{}/settings/system.properties";
 
 static Mutex mutex;
@@ -19,17 +20,17 @@ static SystemSettings cachedSettings;
 
 static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     auto file_path = std::format(FILE_PATH_FORMAT, file::MOUNT_POINT_DATA);
-    TT_LOG_I(TAG, "System settings loading from %s", file_path.c_str());
+    LOGGER.info("System settings loading from {}", file_path);
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(file_path, map)) {
-        TT_LOG_E(TAG, "Failed to load %s", file_path.c_str());
+        LOGGER.error("Failed to load {}", file_path);
         return false;
     }
 
     auto language_entry = map.find("language");
     if (language_entry != map.end()) {
         if (!fromString(language_entry->second, properties.language)) {
-            TT_LOG_W(TAG, "Unknown language \"%s\" in %s", language_entry->second.c_str(), file_path.c_str());
+            LOGGER.warn("Unknown language \"{}\" in {}", language_entry->second, file_path);
             properties.language = Language::en_US;
         }
     } else {
@@ -46,7 +47,7 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     if (date_format_entry != map.end() && !date_format_entry->second.empty()) {
         properties.dateFormat = date_format_entry->second;
     } else {
-        TT_LOG_I(TAG, "dateFormat missing or empty, using default MM/DD/YYYY (likely from older system.properties)");
+        LOGGER.info("dateFormat missing or empty, using default MM/DD/YYYY (likely from older system.properties)");
         properties.dateFormat = "MM/DD/YYYY";
     }
 
@@ -55,11 +56,11 @@ static bool loadSystemSettingsFromFile(SystemSettings& properties) {
     if (region_entry != map.end() && !region_entry->second.empty()) {
         properties.region = region_entry->second;
     } else {
-        TT_LOG_I(TAG, "region missing or empty, using default US");
-        properties.region = "US";
+        LOGGER.info("Region missing or empty, using default EU");
+        properties.region = "EU";
     }
 
-    TT_LOG_I(TAG, "System settings loaded");
+    LOGGER.info("System settings loaded");
     return true;
 }
 
@@ -84,7 +85,7 @@ bool saveSystemSettings(const SystemSettings& properties) {
     map["region"] = properties.region;
 
     if (!file::savePropertiesFile(file_path, map)) {
-        TT_LOG_E(TAG, "Failed to save %s", file_path.c_str());
+        LOGGER.error("Failed to save {}", file_path);
         return false;
     }
 

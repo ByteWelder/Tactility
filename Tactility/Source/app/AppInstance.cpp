@@ -3,8 +3,6 @@
 
 namespace tt::app {
 
-#define TAG "app"
-
 void AppInstance::setState(State newState) {
     mutex.lock();
     state = newState;

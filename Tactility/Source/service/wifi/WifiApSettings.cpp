@@ -4,6 +4,7 @@
 
 #include <Tactility/crypt/Crypt.h>
 #include <Tactility/file/File.h>
+#include <Tactility/Logger.h>
 
 #include <Tactility/service/ServicePaths.h>
 #include <format>
@@ -14,7 +15,7 @@
 
 namespace tt::service::wifi::settings {
 
-constexpr auto* TAG = "WifiApSettings";
+static const auto LOGGER = Logger("WifiApSettings");
 
 constexpr auto* AP_SETTINGS_FORMAT = "{}/{}.ap.properties";
 
@@ -33,7 +34,7 @@ std::string toHexString(const uint8_t *data, int length) {
 
 bool readHex(const std::string& input, uint8_t* buffer, int length) {
     if (input.size() / 2 != length) {
-        TT_LOG_E(TAG, "readHex() length mismatch");
+        LOGGER.error("readHex() length mismatch");
         return false;
     }
 
@@ -63,7 +64,7 @@ static bool encrypt(const std::string& ssidInput, std::string& ssidOutput) {
 
     crypt::getIv(ssidInput.c_str(), ssidInput.size(), iv);
     if (crypt::encrypt(iv, reinterpret_cast<const uint8_t*>(ssidInput.c_str()), buffer, encrypted_length) != 0) {
-        TT_LOG_E(TAG, "Failed to encrypt");
+        LOGGER.error("Failed to encrypt");
         free(buffer);
         return false;
     }
@@ -79,7 +80,7 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
     assert(ssidInput.size() % 2 == 0);
     auto* data = static_cast<uint8_t*>(malloc(ssidInput.size() / 2));
     if (!readHex(ssidInput, data, ssidInput.size() / 2)) {
-        TT_LOG_E(TAG, "Failed to read hex");
+        LOGGER.error("Failed to read hex");
         return false;
     }
 
@@ -101,7 +102,7 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
     free(data);
 
     if (decrypt_result != 0) {
-        TT_LOG_E(TAG, "Failed to decrypt credentials for \"%s\": %d", ssidInput.c_str(), decrypt_result);
+        LOGGER.error("Failed to decrypt credentials for \"{}s\": {}", ssidInput, decrypt_result);
         free(result);
         return false;
     }

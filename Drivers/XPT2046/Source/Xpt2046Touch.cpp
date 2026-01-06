@@ -1,6 +1,5 @@
 #include "Xpt2046Touch.h"
 
-#include <Tactility/Log.h>
 #include <Tactility/lvgl/LvglSync.h>
 
 #include <esp_err.h>

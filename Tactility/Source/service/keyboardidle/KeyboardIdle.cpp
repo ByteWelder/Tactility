@@ -15,8 +15,6 @@ namespace keyboardbacklight {
 
 namespace tt::service::keyboardidle {
 
-constexpr auto* TAG = "KeyboardIdle";
-
 class KeyboardIdleService final : public Service {
 
     std::unique_ptr<Timer> timer;

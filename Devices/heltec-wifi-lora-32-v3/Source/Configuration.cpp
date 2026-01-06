@@ -4,11 +4,11 @@
 
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Logger.h>
 #include <ButtonControl.h>
 
 #include "driver/gpio.h"
 #include "driver/i2c.h"
-#include <Tactility/Log.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -24,7 +24,7 @@ static void enableOledPower() {
     gpio_set_level(DISPLAY_PIN_POWER, 0); // Active low
 
     vTaskDelay(pdMS_TO_TICKS(500)); // Add a small delay for power to stabilize
-    TT_LOG_I("OLED_POWER", "OLED power enabled");
+    tt::Logger("HeltecV3").info("OLED power enabled");
 }
 
 static bool initBoot() {

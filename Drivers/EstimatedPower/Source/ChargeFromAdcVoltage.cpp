@@ -1,8 +1,7 @@
 #include "ChargeFromAdcVoltage.h"
-#include <Tactility/Log.h>
-#include <algorithm>
+#include <Tactility/Logger.h>
 
-constexpr auto TAG = "ChargeFromAdcV";
+static const auto LOGGER = tt::Logger("ChargeFromAdcV");
 constexpr auto MAX_VOLTAGE_SAMPLES = 15;
 
 ChargeFromAdcVoltage::ChargeFromAdcVoltage(
@@ -11,12 +10,12 @@ ChargeFromAdcVoltage::ChargeFromAdcVoltage(
     float voltageMax
 ) : configuration(configuration), chargeFromVoltage(voltageMin, voltageMax) {
     if (adc_oneshot_new_unit(&configuration.adcConfig, &adcHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "ADC config failed");
+        LOGGER.error("ADC config failed");
         return;
     }
 
     if (adc_oneshot_config_channel(adcHandle, configuration.adcChannel, &configuration.adcChannelConfig) != ESP_OK) {
-        TT_LOG_E(TAG, "ADC channel config failed");
+        LOGGER.error("ADC channel config failed");
 
         adc_oneshot_del_unit(adcHandle);
         return;
@@ -33,10 +32,12 @@ bool ChargeFromAdcVoltage::readBatteryVoltageOnce(uint32_t& output) const {
     int raw;
     if (adc_oneshot_read(adcHandle, configuration.adcChannel, &raw) == ESP_OK) {
         output = configuration.adcMultiplier * ((1000.f * configuration.adcRefVoltage) / 4096.f) * (float)raw;
-        TT_LOG_V(TAG, "Raw = %d, voltage = %lu", raw, output);
+        if (LOGGER.isLoggingVerbose()) {
+            LOGGER.verbose("Raw = {}, voltage = {}", raw, output);
+        }
         return true;
     } else {
-        TT_LOG_E(TAG, "Read failed");
+        LOGGER.error("Read failed");
         return false;
     }
 }

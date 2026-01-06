@@ -1,11 +1,13 @@
 #include "Tactility/hal/gps/GpsDevice.h"
 #include "Tactility/hal/gps/Ublox.h"
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/hal/uart/Uart.h>
 #include <Tactility/kernel/Kernel.h>
+
 #include <cstring>
 
-#define TAG "gps"
+static const auto LOGGER = tt::Logger("Gps");
+
 #define GPS_UART_BUFFER_SIZE 256
 
 using namespace tt;
@@ -59,13 +61,13 @@ GpsResponse getAck(uart::Uart& uart, const char* message, uint32_t waitMillis) {
             if ((bytesRead == 767) || (b == '\r')) {
                 if (strnstr((char*)buffer, message, bytesRead) != nullptr) {
 #ifdef GPS_DEBUG
-                    LOG_DEBUG("Found: %s", message); // Log the found message
+                    LOGGER.debug("Found: {}", message); // Log the found message
 #endif
                     return GpsResponse::Ok;
                 } else {
                     bytesRead = 0;
 #ifdef GPS_DEBUG
-                    LOG_DEBUG(debugmsg.c_str());
+                    LOGGER.debug("{}", debugmsg);
 #endif
                 }
             }
@@ -77,15 +79,15 @@ GpsResponse getAck(uart::Uart& uart, const char* message, uint32_t waitMillis) {
 /**
  * From: https://github.com/meshtastic/firmware/blob/f81d3b045dd1b7e3ca7870af3da915ff4399ea98/src/gps/GPS.cpp
  */
-#define PROBE_SIMPLE(UART, CHIP, TOWRITE, RESPONSE, DRIVER, TIMEOUT, ...) \
-    do {                                                                  \
-        TT_LOG_I(TAG, "Probing for %s (%s)", CHIP, TOWRITE);              \
-        UART.flushInput();                                           \
-        UART.writeString(TOWRITE "\r\n", TIMEOUT);                 \
-        if (getAck(UART, RESPONSE, TIMEOUT) == GpsResponse::Ok) {        \
-            TT_LOG_I(TAG, "Probe detected %s %s", CHIP, #DRIVER);         \
-            return DRIVER;                                                \
-        }                                                                 \
+#define PROBE_SIMPLE(UART, CHIP, TOWRITE, RESPONSE, DRIVER, TIMEOUT, ...)   \
+    do {                                                                    \
+        LOGGER.info("Probing for {} ({})", CHIP, TOWRITE);                  \
+        UART.flushInput();                                                  \
+        UART.writeString(TOWRITE "\r\n", TIMEOUT);                          \
+        if (getAck(UART, RESPONSE, TIMEOUT) == GpsResponse::Ok) {           \
+            LOGGER.info("Probe detected {} {}", CHIP, #DRIVER);             \
+            return DRIVER;                                                  \
+        }                                                                   \
     } while (0)
 
 /**
@@ -132,7 +134,7 @@ GpsModel probe(uart::Uart& uart) {
     if (ublox_result != GpsModel::Unknown) {
         return ublox_result;
     } else {
-        TT_LOG_W(TAG, "No GNSS Module (baudrate %lu)", uart.getBaudRate());
+        LOGGER.warn("No GNSS Module (baud rate {})", uart.getBaudRate());
         return GpsModel::Unknown;
     }
 }

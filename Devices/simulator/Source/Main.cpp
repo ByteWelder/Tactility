@@ -5,7 +5,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
-#define TAG "freertos"
+static const auto LOGGER = tt::Logger("FreeRTOS");
 
 namespace simulator {
 
@@ -16,10 +16,10 @@ void setMain(MainFunction newMainFunction) {
 }
 
 static void freertosMainTask(TT_UNUSED void* parameter) {
-    TT_LOG_I(TAG, "starting app_main()");
+    LOGGER.info("starting app_main()");
     assert(simulator::mainFunction);
     mainFunction();
-    TT_LOG_I(TAG, "returned from app_main()");
+    LOGGER.info("returned from app_main()");
     vTaskDelete(nullptr);
 }
 
@@ -46,10 +46,8 @@ void freertosMain() {
  * It allows you to set breakpoints and debug asserts.
  */
 void vAssertCalled(unsigned long line, const char* const file) {
-    static portBASE_TYPE xPrinted = pdFALSE;
     volatile uint32_t set_to_nonzero_in_debugger_to_continue = 0;
-
-    TT_LOG_E(TAG, "assert triggered at %s:%d", file, line);
+    LOGGER.error("Assert triggered at {}:{}", file, line);
     taskENTER_CRITICAL();
     {
         // Step out by attaching a debugger and setting set_to_nonzero_in_debugger_to_continue

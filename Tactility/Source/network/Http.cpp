@@ -1,28 +1,28 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/file/File.h>
+#include <Tactility/Logger.h>
 #include <Tactility/network/Http.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/network/EspHttpClient.h>
-#include <esp_sntp.h>
 #include <esp_http_client.h>
 #endif
 
 namespace tt::network::http {
 
-constexpr auto* TAG = "HTTP";
+static const auto LOGGER = Logger("HTTP");
 
 void download(
     const std::string& url,
     const std::string& certFilePath,
     const std::string &downloadFilePath,
-    std::function<void()> onSuccess,
-    std::function<void(const char* errorMessage)> onError
+    const std::function<void()>& onSuccess,
+    const std::function<void(const char* errorMessage)>& onError
 ) {
-    TT_LOG_I(TAG, "Downloading %s to %s", url.c_str(), downloadFilePath.c_str());
+    LOGGER.info("Downloading {} to {}", url, downloadFilePath);
 #ifdef ESP_PLATFORM
     getMainDispatcher().dispatch([url, certFilePath, downloadFilePath, onSuccess, onError] {
-        TT_LOG_I(TAG, "Loading certificate");
+        LOGGER.info("Loading certificate");
         auto certificate = file::readString(certFilePath);
         if (certificate == nullptr) {
             onError("Failed to read certificate");
@@ -68,14 +68,14 @@ void download(
 
         auto lock = file::getLock(downloadFilePath)->asScopedLock();
         lock.lock();
-        TT_LOG_I(TAG, "opening %s", downloadFilePath.c_str());
+        LOGGER.info("opening {}", downloadFilePath);
         auto* file = fopen(downloadFilePath.c_str(), "wb");
         if (file == nullptr) {
             onError("Failed to open file");
             return;
         }
 
-        TT_LOG_I(TAG, "Writing %d bytes to %s", bytes_left, downloadFilePath.c_str());
+        LOGGER.info("Writing {} bytes to {}", bytes_left, downloadFilePath);
         char buffer[512];
         while (bytes_left > 0) {
             int data_read = client->read(buffer, 512);
@@ -92,7 +92,7 @@ void download(
             }
         }
         fclose(file);
-        TT_LOG_I(TAG, "Downloaded %s to %s", url.c_str(), downloadFilePath.c_str());
+        LOGGER.info("Downloaded {} to {}", url, downloadFilePath);
         onSuccess();
     });
 #else

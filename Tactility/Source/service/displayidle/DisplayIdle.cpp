@@ -1,15 +1,13 @@
 #include <Tactility/CoreDefines.h>
-#include <Tactility/Timer.h>
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/DisplaySettings.h>
+#include <Tactility/Timer.h>
 
 namespace tt::service::displayidle {
-
-constexpr auto* TAG = "DisplayIdle";
 
 class DisplayIdleService final : public Service {
 

@@ -2,21 +2,21 @@
 #include <Tactility/app/files/SupportedFiles.h>
 
 #include <Tactility/file/File.h>
-#include <Tactility/file/FileLock.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/imageviewer/ImageViewer.h>
 #include <Tactility/app/inputdialog/InputDialog.h>
 #include <Tactility/app/notes/Notes.h>
 #include <Tactility/app/ElfApp.h>
 #include <Tactility/kernel/Platform.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Tactility.h>
 
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 #include <unistd.h>
 
 #ifdef ESP_PLATFORM
@@ -25,7 +25,7 @@
 
 namespace tt::app::files {
 
-constexpr auto* TAG = "Files";
+static const auto LOGGER = Logger("Files");
 
 // region Callbacks
 
@@ -84,11 +84,11 @@ void View::viewFile(const std::string& path, const std::string& filename) {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
         char cwd[PATH_MAX];
         if (getcwd(cwd, sizeof(cwd)) == nullptr) {
-            TT_LOG_E(TAG, "Failed to get current working directory");
+            LOGGER.error("Failed to get current working directory");
             return;
         }
         if (!file_path.starts_with(cwd)) {
-            TT_LOG_E(TAG, "Can only work with files in working directory %s", cwd);
+            LOGGER.error("Can only work with files in working directory {}", cwd);
             return;
         }
         processed_filepath = file_path.substr(strlen(cwd));
@@ -96,7 +96,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
         processed_filepath = file_path;
     }
 
-    TT_LOG_I(TAG, "Clicked %s", file_path.c_str());
+    LOGGER.info("Clicked {}", file_path);
 
     if (isSupportedAppFile(filename)) {
 #ifdef ESP_PLATFORM
@@ -116,7 +116,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
             notes::start(processed_filepath.substr(1));
         }
     } else {
-        TT_LOG_W(TAG, "opening files of this type is not supported");
+        LOGGER.warn("Opening files of this type is not supported");
     }
 
     onNavigate();
@@ -125,7 +125,7 @@ void View::viewFile(const std::string& path, const std::string& filename) {
 void View::onDirEntryPressed(uint32_t index) {
     dirent dir_entry;
     if (state->getDirent(index, dir_entry)) {
-        TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
+        LOGGER.info("Pressed {} {}", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
         using namespace tt::file;
         switch (dir_entry.d_type) {
@@ -136,7 +136,7 @@ void View::onDirEntryPressed(uint32_t index) {
                 update();
                 break;
             case TT_DT_LNK:
-                TT_LOG_W(TAG, "opening links is not supported");
+                LOGGER.warn("opening links is not supported");
                 break;
             case TT_DT_REG:
                 viewFile(state->getCurrentPath(), dir_entry.d_name);
@@ -155,7 +155,7 @@ void View::onDirEntryPressed(uint32_t index) {
 void View::onDirEntryLongPressed(int32_t index) {
     dirent dir_entry;
     if (state->getDirent(index, dir_entry)) {
-        TT_LOG_I(TAG, "Pressed %s %d", dir_entry.d_name, dir_entry.d_type);
+        LOGGER.info("Pressed {} {}", dir_entry.d_name, dir_entry.d_type);
         state->setSelectedChildEntry(dir_entry.d_name);
         using namespace file;
         switch (dir_entry.d_type) {
@@ -164,7 +164,7 @@ void View::onDirEntryLongPressed(int32_t index) {
                 showActionsForDirectory();
                 break;
             case TT_DT_LNK:
-                TT_LOG_W(TAG, "opening links is not supported");
+                LOGGER.warn("Opening links is not supported");
                 break;
             case TT_DT_REG:
                 showActionsForFile();
@@ -228,7 +228,7 @@ void View::createDirEntryWidget(lv_obj_t* list, dirent& dir_entry) {
 
 void View::onNavigateUpPressed() {
     if (state->getCurrentPath() != "/") {
-        TT_LOG_I(TAG, "Navigating upwards");
+        LOGGER.info("Navigating upwards");
         std::string new_absolute_path;
         if (string::getPathParent(state->getCurrentPath(), new_absolute_path)) {
             state->setEntriesForPath(new_absolute_path);
@@ -240,14 +240,14 @@ void View::onNavigateUpPressed() {
 
 void View::onRenamePressed() {
     std::string entry_name = state->getSelectedChildEntry();
-    TT_LOG_I(TAG, "Pending rename %s", entry_name.c_str());
+    LOGGER.info("Pending rename {}", entry_name);
     state->setPendingAction(State::ActionRename);
     inputdialog::start("Rename", "", entry_name);
 }
 
 void View::onDeletePressed() {
     std::string file_path = state->getSelectedChildPath();
-    TT_LOG_I(TAG, "Pending delete %s", file_path.c_str());
+    LOGGER.info("Pending delete {}", file_path);
     state->setPendingAction(State::ActionDelete);
     std::string message = "Do you want to delete this?\n" + file_path;
     const std::vector<std::string> choices = { "Yes", "No" };
@@ -255,13 +255,13 @@ void View::onDeletePressed() {
 }
 
 void View::onNewFilePressed() {
-    TT_LOG_I(TAG, "Creating new file");
+    LOGGER.info("Creating new file");
     state->setPendingAction(State::ActionCreateFile);
     inputdialog::start("New File", "Enter filename:", "");
 }
 
 void View::onNewFolderPressed() {
-    TT_LOG_I(TAG, "Creating new folder");
+    LOGGER.info("Creating new folder");
     state->setPendingAction(State::ActionCreateFolder);
     inputdialog::start("New Folder", "Enter folder name:", "");
 }
@@ -295,7 +295,7 @@ void View::update() {
 
         state->withEntries([this](const std::vector<dirent>& entries) {
             for (auto entry : entries) {
-                TT_LOG_D(TAG, "Entry: %s %d", entry.d_name, entry.d_type);
+                LOGGER.debug("Entry: {} {}", entry.d_name, entry.d_type);
                 createDirEntryWidget(dir_entry_list, entry);
             }
         });
@@ -306,7 +306,7 @@ void View::update() {
             lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
         }
     } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "lvgl");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "lvgl");
     }
 }
 
@@ -369,20 +369,20 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
     }
 
     std::string filepath = state->getSelectedChildPath();
-    TT_LOG_I(TAG, "Result for %s", filepath.c_str());
+    LOGGER.info("Result for {}", filepath);
 
     switch (state->getPendingAction()) {
         case State::ActionDelete: {
             if (alertdialog::getResultIndex(*bundle) == 0) {
                 if (file::isDirectory(filepath)) {
                     if (!file::deleteRecursively(filepath)) {
-                        TT_LOG_W(TAG, "Failed to delete %s", filepath.c_str());
+                        LOGGER.warn("Failed to delete {}", filepath);
                     }
                 } else if (file::isFile(filepath)) {
                     auto lock = file::getLock(filepath);
                     lock->lock();
                     if (remove(filepath.c_str()) <= 0) {
-                        TT_LOG_W(TAG, "Failed to delete %s", filepath.c_str());
+                        LOGGER.warn("Failed to delete {}", filepath);
                     }
                     lock->unlock();
                 }
@@ -399,9 +399,9 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 lock->lock();
                 std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
                 if (rename(filepath.c_str(), rename_to.c_str())) {
-                    TT_LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                    LOGGER.info("Renamed \"{}\" to \"{}\"", filepath, rename_to);
                 } else {
-                    TT_LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                    LOGGER.error("Failed to rename \"{}\" to \"{}\"", filepath, rename_to);
                 }
                 lock->unlock();
 
@@ -420,7 +420,7 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
 
                 struct stat st;
                 if (stat(new_file_path.c_str(), &st) == 0) {
-                    TT_LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
+                    LOGGER.warn("File already exists: \"{}\"", new_file_path);
                     lock->unlock();
                     break;
                 }
@@ -428,9 +428,9 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 FILE* new_file = fopen(new_file_path.c_str(), "w");
                 if (new_file) {
                     fclose(new_file);
-                    TT_LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
+                    LOGGER.info("Created file \"{}\"", new_file_path);
                 } else {
-                    TT_LOG_E(TAG, "Failed to create file \"%s\"", new_file_path.c_str());
+                    LOGGER.error("Failed to create file \"{}\"", new_file_path);
                 }
                 lock->unlock();
 
@@ -449,15 +449,15 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
 
                 struct stat st;
                 if (stat(new_folder_path.c_str(), &st) == 0) {
-                    TT_LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
+                    LOGGER.warn("Folder already exists: \"{}\"", new_folder_path);
                     lock->unlock();
                     break;
                 }
 
                 if (mkdir(new_folder_path.c_str(), 0755) == 0) {
-                    TT_LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
+                    LOGGER.info("Created folder \"{}\"", new_folder_path);
                 } else {
-                    TT_LOG_E(TAG, "Failed to create folder \"%s\"", new_folder_path.c_str());
+                    LOGGER.error("Failed to create folder \"{}\"", new_folder_path);
                 }
                 lock->unlock();
 

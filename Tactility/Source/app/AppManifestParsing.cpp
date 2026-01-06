@@ -1,25 +1,21 @@
 #include <Tactility/app/AppManifestParsing.h>
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
+#include <algorithm>
 #include <regex>
 
 namespace tt::app {
 
-constexpr auto* TAG = "App";
+static const auto LOGGER = Logger("AppManifest");
 
-static bool validateString(const std::string& value, const std::function<bool(const char)>& isValidChar) {
-    for (const auto& c : value) {
-        if (!isValidChar(c)) {
-            return false;
-        }
-    }
-    return true;
+constexpr bool validateString(const std::string& value, const std::function<bool(char)>& isValidChar) {
+    return std::ranges::all_of(value, isValidChar);
 }
 
 static bool getValueFromManifest(const std::map<std::string, std::string>& map, const std::string& key, std::string& output) {
     const auto iterator = map.find(key);
     if (iterator == map.end()) {
-        TT_LOG_E(TAG, "Failed to find %s in manifest", key.c_str());
+        LOGGER.error("Failed to find {} in manifest", key);
         return false;
     }
     output = iterator->second;
@@ -33,19 +29,19 @@ bool isValidId(const std::string& id) {
 }
 
 static bool isValidManifestVersion(const std::string& version) {
-    return version.size() > 0 && validateString(version, [](const char c) {
+    return !version.empty() && validateString(version, [](const char c) {
         return std::isalnum(c) != 0 || c == '.';
     });
 }
 
 static bool isValidAppVersionName(const std::string& version) {
-    return version.size() > 0 && validateString(version, [](const char c) {
+    return !version.empty() && validateString(version, [](const char c) {
         return std::isalnum(c) != 0 || c == '.' || c == '-' || c == '_';
     });
 }
 
 static bool isValidAppVersionCode(const std::string& version) {
-    return version.size() > 0 && validateString(version, [](const char c) {
+    return !version.empty() && validateString(version, [](const char c) {
         return std::isdigit(c) != 0;
     });
 }
@@ -57,7 +53,7 @@ static bool isValidName(const std::string& name) {
 }
 
 bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& manifest) {
-    TT_LOG_I(TAG, "Parsing manifest");
+    LOGGER.info("Parsing manifest");
 
     // [manifest]
 
@@ -67,7 +63,7 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
     }
 
     if (!isValidManifestVersion(manifest_version)) {
-        TT_LOG_E(TAG, "Invalid version");
+        LOGGER.error("Invalid version");
         return false;
     }
 
@@ -78,7 +74,7 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
     }
 
     if (!isValidId(manifest.appId)) {
-        TT_LOG_E(TAG, "Invalid app id");
+        LOGGER.error("Invalid app id");
         return false;
     }
 
@@ -87,7 +83,7 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
     }
 
     if (!isValidName(manifest.appName)) {
-        TT_LOG_I(TAG, "Invalid app name");
+        LOGGER.error("Invalid app name");
         return false;
     }
 
@@ -96,7 +92,7 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
     }
 
     if (!isValidAppVersionName(manifest.appVersionName)) {
-        TT_LOG_E(TAG, "Invalid app version name");
+        LOGGER.error("Invalid app version name");
         return false;
     }
 
@@ -106,7 +102,7 @@ bool parseManifest(const std::map<std::string, std::string>& map, AppManifest& m
     }
 
     if (!isValidAppVersionCode(version_code_string)) {
-        TT_LOG_E(TAG, "Invalid app version code");
+        LOGGER.error("Invalid app version code");
         return false;
     }
 

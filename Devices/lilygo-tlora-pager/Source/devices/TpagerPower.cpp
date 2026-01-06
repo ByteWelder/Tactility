@@ -1,9 +1,9 @@
 #include "TpagerPower.h"
 
 #include <Bq25896.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
-constexpr auto* TAG = "TpagerPower";
+static const auto LOGGER = tt::Logger("TpagerPower");
 
 constexpr auto TPAGER_GAUGE_I2C_BUS_HANDLE = I2C_NUM_0;
 
@@ -68,7 +68,7 @@ void TpagerPower::powerOff() {
     });
 
     if (device == nullptr) {
-        TT_LOG_E(TAG, "BQ25896 not found");
+        LOGGER.error("BQ25896 not found");
         return;
     }
 

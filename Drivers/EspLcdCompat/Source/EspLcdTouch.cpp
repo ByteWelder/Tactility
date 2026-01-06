@@ -1,21 +1,22 @@
 #include "EspLcdTouch.h"
 
-#include <EspLcdTouchDriver.h>
-#include <esp_lvgl_port_touch.h>
-#include <Tactility/LogEsp.h>
 
-constexpr const char* TAG = "EspLcdTouch";
+#include <EspLcdTouchDriver.h>
+#include <Tactility/Logger.h>
+#include <esp_lvgl_port_touch.h>
+
+static const auto LOGGER = tt::Logger("EspLcdTouch");
 
 bool EspLcdTouch::start() {
     if (!createIoHandle(ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Touch IO failed");
+        LOGGER.error("Touch IO failed");
         return false;
     }
 
     config = createEspLcdTouchConfig();
 
     if (!createTouchHandle(ioHandle, config, touchHandle)) {
-        TT_LOG_E(TAG, "Driver init failed");
+        LOGGER.error("Driver init failed");
         esp_lcd_panel_io_del(ioHandle);
         ioHandle = nullptr;
         return false;
@@ -48,7 +49,7 @@ bool EspLcdTouch::startLvgl(lv_disp_t* display) {
     }
 
     if (touchDriver != nullptr && touchDriver.use_count() > 1) {
-        TT_LOG_W(TAG, "TouchDriver is still in use.");
+        LOGGER.warn("TouchDriver is still in use.");
     }
 
     const lvgl_port_touch_cfg_t touch_cfg = {
@@ -56,10 +57,10 @@ bool EspLcdTouch::startLvgl(lv_disp_t* display) {
         .handle = touchHandle,
     };
 
-    TT_LOG_I(TAG, "Adding touch to LVGL");
+    LOGGER.info("Adding touch to LVGL");
     lvglDevice = lvgl_port_add_touch(&touch_cfg);
     if (lvglDevice == nullptr) {
-        TT_LOG_E(TAG, "Adding touch failed");
+        LOGGER.error("Adding touch failed");
         return false;
     }
 

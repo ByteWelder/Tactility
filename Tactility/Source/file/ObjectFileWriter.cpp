@@ -1,24 +1,24 @@
-#include "../../Include/Tactility/file/ObjectFile.h"
-#include "Tactility/file/ObjectFilePrivate.h"
+#include <Tactility/file/ObjectFile.h>
+#include <Tactility/file/ObjectFilePrivate.h>
+#include <Tactility/Logger.h>
 
 #include <cstring>
-#include <Tactility/Log.h>
 #include <unistd.h>
 
 namespace tt::file {
 
-constexpr auto* TAG = "ObjectFileWriter";
+static const auto LOGGER = Logger("ObjectFileWriter");
 
 bool ObjectFileWriter::open() {
     bool edit_existing = append && access(filePath.c_str(), F_OK) == 0;
     if (append && !edit_existing) {
-        TT_LOG_W(TAG, "access() to %s failed: %s", filePath.c_str(), strerror(errno));
+        LOGGER.warn("access() to {} failed: {}", filePath, strerror(errno));
     }
 
     // Edit existing or create a new file
     auto opening_file = std::unique_ptr<FILE, FileCloser>(std::fopen(filePath.c_str(), "wb"));
     if (opening_file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open file %s", filePath.c_str());
+        LOGGER.error("Failed to open file {}", filePath);
         return false;
     }
 
@@ -29,17 +29,17 @@ bool ObjectFileWriter::open() {
 
         FileHeader file_header;
         if (fread(&file_header, sizeof(FileHeader), 1, opening_file.get()) != 1) {
-            TT_LOG_E(TAG, "Failed to read file header from %s", filePath.c_str());
+            LOGGER.error("Failed to read file header from {}", filePath);
             return false;
         }
 
         if (file_header.identifier != OBJECT_FILE_IDENTIFIER) {
-            TT_LOG_E(TAG, "Invalid file type for %s", filePath.c_str());
+            LOGGER.error("Invalid file type for {}", filePath);
             return false;
         }
 
         if (file_header.version != OBJECT_FILE_VERSION) {
-            TT_LOG_E(TAG, "Unknown version for %s: %lu", filePath.c_str(), file_header.identifier);
+            LOGGER.error("Unknown version for {}: {}", filePath, file_header.version);
             return false;
         }
 
@@ -47,17 +47,17 @@ bool ObjectFileWriter::open() {
 
         ContentHeader content_header;
         if (fread(&content_header, sizeof(ContentHeader), 1, opening_file.get()) != 1) {
-            TT_LOG_E(TAG, "Failed to read content header from %s", filePath.c_str());
+            LOGGER.error("Failed to read content header from {}", filePath);
             return false;
         }
 
         if (recordSize != content_header.recordSize) {
-            TT_LOG_E(TAG, "Record size mismatch for %s: expected %lu, got %lu", filePath.c_str(), recordSize, content_header.recordSize);
+            LOGGER.error("Record size mismatch for {}: expected {}, got {}", filePath, recordSize, content_header.recordSize);
             return false;
         }
 
         if (recordVersion != content_header.recordVersion) {
-            TT_LOG_E(TAG, "Version mismatch for %s: expected %lu, got %lu", filePath.c_str(), recordVersion, content_header.recordVersion);
+            LOGGER.error("Version mismatch for {}: expected {}, got {}", filePath, recordVersion, content_header.recordVersion);
             return false;
         }
 
@@ -66,7 +66,7 @@ bool ObjectFileWriter::open() {
     } else {
         FileHeader file_header;
         if (fwrite(&file_header, sizeof(FileHeader), 1, opening_file.get()) != 1) {
-            TT_LOG_E(TAG, "Failed to write file header for %s", filePath.c_str());
+            LOGGER.error("Failed to write file header for {}", filePath);
             return false;
         }
 
@@ -81,12 +81,12 @@ bool ObjectFileWriter::open() {
 
 void ObjectFileWriter::close() {
     if (file == nullptr) {
-        TT_LOG_E(TAG, "File not opened: %s", filePath.c_str());
+        LOGGER.error("File not opened: {}", filePath);
         return;
     }
 
     if (fseek(file.get(), sizeof(FileHeader), SEEK_SET) != 0) {
-        TT_LOG_E(TAG, "File seek failed: %s", filePath.c_str());
+        LOGGER.error("File seek failed: {}", filePath);
         return;
     }
 
@@ -97,7 +97,7 @@ void ObjectFileWriter::close() {
     };
 
     if (fwrite(&content_header, sizeof(ContentHeader), 1, file.get()) != 1) {
-        TT_LOG_E(TAG, "Failed to write content header to %s", filePath.c_str());
+        LOGGER.error("Failed to write content header to {}", filePath);
     }
 
     file = nullptr;
@@ -105,12 +105,12 @@ void ObjectFileWriter::close() {
 
 bool ObjectFileWriter::write(void* data) {
     if (file == nullptr) {
-        TT_LOG_E(TAG, "File not opened: %s", filePath.c_str());
+        LOGGER.error("File not opened: {}", filePath);
         return false;
     }
 
     if (fwrite(data, recordSize, 1, file.get()) != 1) {
-        TT_LOG_E(TAG, "Failed to write record to %s", filePath.c_str());
+        LOGGER.error("Failed to write record to {}", filePath);
         return false;
     }
 

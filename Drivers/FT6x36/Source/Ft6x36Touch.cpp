@@ -1,12 +1,12 @@
 #include "Ft6x36Touch.h"
 
 #include <Ft6x36Touch.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <esp_err.h>
 #include <esp_lvgl_port.h>
 
-#define TAG "ft6x36"
+static const auto LOGGER = tt::Logger("FT6x36");
 
 void Ft6x36Touch::touchReadCallback(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* touch = (Ft6x36Touch*)lv_indev_get_driver_data(indev);
@@ -71,10 +71,10 @@ bool Ft6x36Touch::shouldInterruptDriverThread() const {
 }
 
 bool Ft6x36Touch::start() {
-    TT_LOG_I(TAG, "Start");
+    LOGGER.info("Start");
 
     if (!driver.begin(FT6X36_DEFAULT_THRESHOLD, configuration->width, configuration->height)) {
-        TT_LOG_E(TAG, "driver.begin() failed");
+        LOGGER.error("driver.begin() failed");
         return false;
     }
 
@@ -95,7 +95,7 @@ bool Ft6x36Touch::start() {
 }
 
 bool Ft6x36Touch::stop() {
-    TT_LOG_I(TAG, "Stop");
+    LOGGER.info("Stop");
 
     mutex.lock();
     interruptDriverThread = true;

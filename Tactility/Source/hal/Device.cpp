@@ -1,6 +1,6 @@
 #include <Tactility/hal/Device.h>
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/RecursiveMutex.h>
 #include <algorithm>
 
@@ -10,7 +10,7 @@ std::vector<std::shared_ptr<Device>> devices;
 RecursiveMutex mutex;
 static Device::Id nextId = 0;
 
-constexpr auto TAG = "devices";
+static const auto LOGGER = Logger("Devices");
 
 Device::Device() : id(nextId++) {}
 
@@ -26,9 +26,9 @@ void registerDevice(const std::shared_ptr<Device>& device) {
 
     if (findDevice(device->getId()) == nullptr) {
         devices.push_back(device);
-        TT_LOG_I(TAG, "Registered %s with id %lu", device->getName().c_str(), device->getId());
+        LOGGER.info("Registered {} with id {}", device->getName(), device->getId());
     } else {
-        TT_LOG_W(TAG, "Device %s with id %lu was already registered", device->getName().c_str(), device->getId());
+        LOGGER.warn("Device {} with id {} was already registered", device->getName(), device->getId());
     }
 }
 
@@ -41,10 +41,10 @@ void deregisterDevice(const std::shared_ptr<Device>& device) {
         return device->getId() == id_to_remove;
     });
     if (remove_iterator != devices.end()) {
-        TT_LOG_I(TAG, "Deregistering %s with id %lu", device->getName().c_str(), device->getId());
+        LOGGER.info("Deregistering {} with id {}", device->getName(), device->getId());
         devices.erase(remove_iterator);
     } else {
-        TT_LOG_W(TAG, "Deregistering %s with id %lu failed: not found", device->getName().c_str(), device->getId());
+        LOGGER.warn("Deregistering {} with id {} failed: not found", device->getName(), device->getId());
     }
 }
 

@@ -1,7 +1,8 @@
 #include "Trackball.h"
-#include <esp_log.h>
 
-static const char* TAG = "Trackball";
+#include <Tactility/Logger.h>
+
+static const auto LOGGER = tt::Logger("Trackball");
 
 namespace trackball {
 
@@ -72,7 +73,7 @@ static void read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
 
 lv_indev_t* init(const TrackballConfig& config) {
     if (g_initialized) {
-        ESP_LOGW(TAG, "Trackball already initialized");
+        LOGGER.warn("Already initialized");
         return g_indev;
     }
     
@@ -109,16 +110,19 @@ lv_indev_t* init(const TrackballConfig& config) {
     lv_indev_set_type(g_indev, LV_INDEV_TYPE_ENCODER);
     lv_indev_set_read_cb(g_indev, read_cb);
     
-    if (g_indev) {
+    if (g_indev != nullptr) {
         g_initialized = true;
-        ESP_LOGI(TAG, "Trackball initialized as encoder (R:%d U:%d L:%d D:%d Click:%d)",
-                 config.pinRight, config.pinUp, config.pinLeft, config.pinDown,
-                 config.pinClick);
-        return g_indev;
+        LOGGER.info("Initialized as encoder (R:{} U:{} L:{} D:{} Click:{})",
+                 static_cast<int>(config.pinRight),
+                 static_cast<int>(config.pinUp),
+                 static_cast<int>(config.pinLeft),
+                 static_cast<int>(config.pinDown),
+                 static_cast<int>(config.pinClick));
     } else {
-        ESP_LOGE(TAG, "Failed to register LVGL input device");
-        return nullptr;
+        LOGGER.error("Failed to register LVGL input device");
     }
+
+    return g_indev;
 }
 
 void deinit() {
@@ -127,19 +131,19 @@ void deinit() {
         g_indev = nullptr;
     }
     g_initialized = false;
-    ESP_LOGI(TAG, "Trackball deinitialized");
+    LOGGER.info("Deinitialized");
 }
 
 void setMovementStep(uint8_t step) {
     if (step > 0) {
         g_config.movementStep = step;
-        ESP_LOGD(TAG, "Movement step set to %d", step);
+        LOGGER.debug("Movement step set to {}", step);
     }
 }
 
 void setEnabled(bool enabled) {
     g_enabled = enabled;
-    ESP_LOGI(TAG, "Trackball %s", enabled ? "enabled" : "disabled");
+    LOGGER.info("{}", enabled ? "Enabled" : "Disabled");
 }
 
 }
