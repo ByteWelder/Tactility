@@ -68,6 +68,8 @@ bool TpagerEncoder::initEncoder() {
 
     if (pcnt_unit_set_glitch_filter(encPcntUnit, &filter_config) != ESP_OK) {
         LOGGER.error("Pulsecounter glitch filter config failed");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
@@ -101,6 +103,8 @@ bool TpagerEncoder::initEncoder() {
     if ((pcnt_new_channel(encPcntUnit, &chan_1_config, &pcnt_chan_1) != ESP_OK) ||
         (pcnt_new_channel(encPcntUnit, &chan_2_config, &pcnt_chan_2) != ESP_OK)) {
         LOGGER.error("Pulsecounter channel config failed");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
@@ -108,6 +112,8 @@ bool TpagerEncoder::initEncoder() {
     if ((pcnt_channel_set_edge_action(pcnt_chan_1, PCNT_CHANNEL_EDGE_ACTION_DECREASE, PCNT_CHANNEL_EDGE_ACTION_INCREASE) != ESP_OK) ||
         (pcnt_channel_set_edge_action(pcnt_chan_2, PCNT_CHANNEL_EDGE_ACTION_INCREASE, PCNT_CHANNEL_EDGE_ACTION_DECREASE) != ESP_OK)) {
         LOGGER.error("Pulsecounter edge action config failed");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
@@ -115,27 +121,37 @@ bool TpagerEncoder::initEncoder() {
     if ((pcnt_channel_set_level_action(pcnt_chan_1, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK) ||
         (pcnt_channel_set_level_action(pcnt_chan_2, PCNT_CHANNEL_LEVEL_ACTION_KEEP, PCNT_CHANNEL_LEVEL_ACTION_INVERSE) != ESP_OK)) {
         LOGGER.error("Pulsecounter level action config failed");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
     if ((pcnt_unit_add_watch_point(encPcntUnit, LOW_LIMIT) != ESP_OK) ||
         (pcnt_unit_add_watch_point(encPcntUnit, HIGH_LIMIT) != ESP_OK)) {
         LOGGER.error("Pulsecounter watch point config failed");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
     if (pcnt_unit_enable(encPcntUnit) != ESP_OK) {
         LOGGER.error("Pulsecounter could not be enabled");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
     if (pcnt_unit_clear_count(encPcntUnit) != ESP_OK) {
         LOGGER.error("Pulsecounter could not be cleared");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
     if (pcnt_unit_start(encPcntUnit) != ESP_OK) {
         LOGGER.error("Pulsecounter could not be started");
+        pcnt_del_unit(encPcntUnit);
+        encPcntUnit = nullptr;
         return false;
     }
 
@@ -157,6 +173,7 @@ bool TpagerEncoder::deinitEncoder() {
 
     if (pcnt_del_unit(encPcntUnit) != ESP_OK) {
         LOGGER.warn("Failed to delete encoder");
+        encPcntUnit = nullptr;
         return false;
     }
 

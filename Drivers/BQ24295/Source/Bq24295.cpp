@@ -1,7 +1,7 @@
 #include "Bq24295.h"
 #include <Tactility/Logger.h>
 
-static const auto LOGGER = tt::Logger("St7701Display");
+static const auto LOGGER = tt::Logger("BQ24295");
 
 /** Reference:
  * https://www.ti.com/lit/ds/symlink/bq24295.pdf
