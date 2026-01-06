@@ -131,9 +131,9 @@ bool UnPhoneFeatures::initNavButtons() {
 
     if (
         gpio_install_isr_service(0) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON1, navButtonInterruptHandler, (void*)pin::BUTTON1) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON2, navButtonInterruptHandler, (void*)pin::BUTTON2) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON3, navButtonInterruptHandler, (void*)pin::BUTTON3) != ESP_OK
+        gpio_isr_handler_add(pin::BUTTON1, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON1)) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON2, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON2)) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON3, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON3)) != ESP_OK
     ) {
         LOGGER.error("Nav buttons ISR init failed");
         return false;
