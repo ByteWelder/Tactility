@@ -34,8 +34,9 @@ bool EspLcdDisplayV2::applyConfiguration() const {
         return false;
     }
 
-    if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
+    if (configuration->invertColor && esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
         LOGGER.error("Failed to set panel to invert");
+        return false;
     }
 
     // Warning: it looks like LVGL rotation is broken when "gap" is set and the screen is moved to a non-default orientation
@@ -44,18 +45,23 @@ bool EspLcdDisplayV2::applyConfiguration() const {
     bool should_set_gap = gap_x != 0 || gap_y != 0;
     if (should_set_gap && esp_lcd_panel_set_gap(panelHandle, gap_x, gap_y) != ESP_OK) {
         LOGGER.error("Failed to set panel gap");
+        return false;
     }
 
-    if (esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
+    if (configuration->swapXY && esp_lcd_panel_swap_xy(panelHandle, configuration->swapXY) != ESP_OK) {
         LOGGER.error("Failed to swap XY ");
+        return false;
     }
 
-    if (esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
+    bool should_set_mirror = configuration->mirrorX || configuration->mirrorY;
+    if (should_set_mirror && esp_lcd_panel_mirror(panelHandle, configuration->mirrorX, configuration->mirrorY) != ESP_OK) {
         LOGGER.error("Failed to set panel to mirror");
+        return false;
     }
 
-    if (esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
+    if (configuration->invertColor && esp_lcd_panel_invert_color(panelHandle, configuration->invertColor) != ESP_OK) {
         LOGGER.error("Failed to set panel to invert");
+        return false;
     }
 
     if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
