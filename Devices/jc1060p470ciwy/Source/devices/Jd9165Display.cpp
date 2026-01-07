@@ -1,12 +1,12 @@
 #include "Jd9165Display.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <esp_lcd_jd9165.h>
 #include <esp_lcd_mipi_dsi.h>
 #include <esp_ldo_regulator.h>
 
-constexpr const char* TAG = "JD9165";
+static const auto LOGGER = tt::Logger("JD9165");
 
 // MIPI DSI PHY power configuration
 #define MIPI_DSI_PHY_PWR_LDO_CHAN 3  // LDO_VO3 connects to VDD_MIPI_DPHY
@@ -85,21 +85,21 @@ bool Jd9165Display::createMipiDsiBus() {
     };
     
     if (esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to acquire LDO channel for MIPI DSI PHY");
+        LOGGER.error("Failed to acquire LDO channel for MIPI DSI PHY");
         return false;
     }
     
-    TT_LOG_I(TAG, "MIPI DSI PHY powered on");
+    LOGGER.info("MIPI DSI PHY powered on");
 
     // Create MIPI DSI bus
     esp_lcd_dsi_bus_config_t bus_config = JD9165_PANEL_BUS_DSI_2CH_CONFIG();
     
     if (esp_lcd_new_dsi_bus(&bus_config, &mipiDsiBus) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create MIPI DSI bus");
+        LOGGER.error("Failed to create MIPI DSI bus");
         return false;
     }
 
-    TT_LOG_I(TAG, "MIPI DSI bus created");
+    LOGGER.info("MIPI DSI bus created");
     return true;
 }
 
@@ -115,7 +115,7 @@ bool Jd9165Display::createIoHandle(esp_lcd_panel_io_handle_t& ioHandle) {
     esp_lcd_dbi_io_config_t dbi_config = JD9165_PANEL_IO_DBI_CONFIG();
 
     if (esp_lcd_new_panel_io_dbi(mipiDsiBus, &dbi_config, &ioHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel IO");
+        LOGGER.error("Failed to create panel IO");
         return false;
     }
 
@@ -153,11 +153,11 @@ bool Jd9165Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, const 
     mutable_panel_config.vendor_config = &vendor_config;
 
     if (esp_lcd_new_panel_jd9165(ioHandle, &mutable_panel_config, &panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel");
+        LOGGER.error("Failed to create panel");
         return false;
     }
 
-    TT_LOG_I(TAG, "JD9165 panel created successfully");
+    LOGGER.info("JD9165 panel created successfully");
     // Defer reset/init to base class applyConfiguration to avoid double initialization
     return true;
 }

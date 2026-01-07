@@ -1,18 +1,19 @@
 #include "Display.h"
-
 #include "Power.h"
+
+#include <Tactility/Logger.h>
 
 #include <St7789Display.h>
 #include <bitset>
 
-constexpr auto* TAG = "StickCPlus";
+static const auto LOGGER = tt::Logger("StickCPlus");
 
 static void setBacklightOn(bool on) {
     const auto axp = getAxp192();
     const auto* driver = axp->getAxp192();
     uint8_t state;
     if (axp192_read(driver, AXP192_DCDC13_LDO23_CONTROL, &state) != AXP192_OK) {
-        TT_LOG_I(TAG, "Failed to read LCD brightness state");
+        LOGGER.info("Failed to read LCD brightness state");
         return;
     }
     std::bitset<8> new_state = state;

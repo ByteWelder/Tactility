@@ -3,13 +3,14 @@
 #include <Tactility/settings/DisplaySettings.h>
 #include <Tactility/Assets.h>
 #include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Toolbar.h>
 
 #include <lvgl.h>
 
 namespace tt::app::display {
 
-constexpr auto* TAG = "Display";
+static const auto LOGGER = Logger("Display");
 
 static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
     return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
@@ -19,6 +20,8 @@ class DisplayApp final : public App {
 
     settings::display::DisplaySettings displaySettings;
     bool displaySettingsUpdated = false;
+    lv_obj_t* timeoutSwitch = nullptr;
+    lv_obj_t* timeoutDropdown = nullptr;
 
     static void onBacklightSliderEvent(lv_event_t* event) {
         auto* slider = static_cast<lv_obj_t*>(lv_event_get_target(event));
@@ -52,12 +55,39 @@ class DisplayApp final : public App {
         auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
         auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
         uint32_t selected_index = lv_dropdown_get_selected(dropdown);
-        TT_LOG_I(TAG, "Selected %ld", selected_index);
+        LOGGER.info("Selected {}", selected_index);
         auto selected_orientation = static_cast<settings::display::Orientation>(selected_index);
         if (selected_orientation != app->displaySettings.orientation) {
             app->displaySettings.orientation = selected_orientation;
             app->displaySettingsUpdated = true;
             lv_display_set_rotation(lv_display_get_default(), settings::display::toLvglDisplayRotation(selected_orientation));
+        }
+    }
+
+    static void onTimeoutSwitch(lv_event_t* event) {
+        auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
+        auto* sw = static_cast<lv_obj_t*>(lv_event_get_target(event));
+        bool enabled = lv_obj_has_state(sw, LV_STATE_CHECKED);
+        app->displaySettings.backlightTimeoutEnabled = enabled;
+        app->displaySettingsUpdated = true;
+        if (app->timeoutDropdown) {
+            if (enabled) {
+                lv_obj_clear_state(app->timeoutDropdown, LV_STATE_DISABLED);
+            } else {
+                lv_obj_add_state(app->timeoutDropdown, LV_STATE_DISABLED);
+            }
+        }
+    }
+
+    static void onTimeoutChanged(lv_event_t* event) {
+        auto* app = static_cast<DisplayApp*>(lv_event_get_user_data(event));
+        auto* dropdown = static_cast<lv_obj_t*>(lv_event_get_target(event));
+        uint32_t idx = lv_dropdown_get_selected(dropdown);
+        // Map dropdown index to ms: 0=15s,1=30s,2=1m,3=2m,4=5m,5=Never
+        static const uint32_t values_ms[] = {15000, 30000, 60000, 120000, 300000, 0};
+        if (idx < (sizeof(values_ms)/sizeof(values_ms[0]))) {
+            app->displaySettings.backlightTimeoutMs = values_ms[idx];
+            app->displaySettingsUpdated = true;
         }
     }
 
@@ -150,6 +180,60 @@ public:
         lv_obj_add_event_cb(orientation_dropdown, onOrientationSet, LV_EVENT_VALUE_CHANGED, this);
         // Set the dropdown to match current orientation enum
         lv_dropdown_set_selected(orientation_dropdown, static_cast<uint16_t>(displaySettings.orientation));
+
+        // Screen timeout
+
+        if (hal_display->supportsBacklightDuty()) {
+            auto* timeout_wrapper = lv_obj_create(main_wrapper);
+            lv_obj_set_size(timeout_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+            lv_obj_set_style_pad_all(timeout_wrapper, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(timeout_wrapper, 0, LV_STATE_DEFAULT);
+
+            auto* timeout_label = lv_label_create(timeout_wrapper);
+            lv_label_set_text(timeout_label, "Auto screen off");
+            lv_obj_align(timeout_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+            timeoutSwitch = lv_switch_create(timeout_wrapper);
+            if (displaySettings.backlightTimeoutEnabled) {
+                lv_obj_add_state(timeoutSwitch, LV_STATE_CHECKED);
+            }
+            lv_obj_align(timeoutSwitch, LV_ALIGN_RIGHT_MID, 0, 0);
+            lv_obj_add_event_cb(timeoutSwitch, onTimeoutSwitch, LV_EVENT_VALUE_CHANGED, this);
+
+            auto* timeout_select_wrapper = lv_obj_create(main_wrapper);
+            lv_obj_set_size(timeout_select_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+            lv_obj_set_style_pad_all(timeout_select_wrapper, 0, LV_STATE_DEFAULT);
+            lv_obj_set_style_border_width(timeout_select_wrapper, 0, LV_STATE_DEFAULT);
+
+            auto* timeout_value_label = lv_label_create(timeout_select_wrapper);
+            lv_label_set_text(timeout_value_label, "Timeout");
+            lv_obj_align(timeout_value_label, LV_ALIGN_LEFT_MID, 0, 0);
+
+            timeoutDropdown = lv_dropdown_create(timeout_select_wrapper);
+            lv_dropdown_set_options(timeoutDropdown, "15 seconds\n30 seconds\n1 minute\n2 minutes\n5 minutes\nNever");
+            lv_obj_align(timeoutDropdown, LV_ALIGN_RIGHT_MID, 0, 0);
+            lv_obj_set_style_border_color(timeoutDropdown, lv_color_hex(0xFAFAFA), LV_PART_MAIN);
+            lv_obj_set_style_border_width(timeoutDropdown, 1, LV_PART_MAIN);
+            lv_obj_add_event_cb(timeoutDropdown, onTimeoutChanged, LV_EVENT_VALUE_CHANGED, this);
+            // Initialize dropdown selection from settings
+            uint32_t ms = displaySettings.backlightTimeoutMs;
+            uint32_t idx = 2; // default 1 minute
+            if (ms == 15000) idx = 0;
+            else if (ms == 30000)
+                idx = 1;
+            else if (ms == 60000)
+                idx = 2;
+            else if (ms == 120000)
+                idx = 3;
+            else if (ms == 300000)
+                idx = 4;
+            else if (ms == 0)
+                idx = 5;
+            lv_dropdown_set_selected(timeoutDropdown, idx);
+            if (!displaySettings.backlightTimeoutEnabled) {
+                lv_obj_add_state(timeoutDropdown, LV_STATE_DISABLED);
+            }
+        }
     }
 
     void onHide(TT_UNUSED AppContext& app) override {

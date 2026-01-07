@@ -1,17 +1,18 @@
 #include "LvglTask.h"
 
-#include <Tactility/Log.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/Check.h>
 #include <Tactility/Thread.h>
+#include <Tactility/Logger.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/lvgl/LvglSync.h>
 
 #include <lvgl.h>
 
-#define TAG "lvgl_task"
+static const auto LOGGER = tt::Logger("LvglTask");
 
 // Mutex for LVGL drawing
-static tt::Mutex lvgl_mutex(tt::Mutex::Type::Recursive);
-static tt::Mutex task_mutex(tt::Mutex::Type::Recursive);
+static tt::RecursiveMutex lvgl_mutex;
+static tt::RecursiveMutex task_mutex;
 
 static uint32_t task_max_sleep_ms = 10;
 // Mutex for LVGL task state (to modify task_running state)
@@ -57,7 +58,7 @@ void lvgl_task_interrupt() {
 }
 
 void lvgl_task_start() {
-    TT_LOG_I(TAG, "lvgl task starting");
+    LOGGER.info("LVGL task starting");
 
     tt::lvgl::syncSet(&lvgl_lock, &lvgl_unlock);
 
@@ -75,7 +76,7 @@ void lvgl_task_start() {
 }
 
 static void lvgl_task(TT_UNUSED void* arg) {
-    TT_LOG_I(TAG, "lvgl task started");
+    LOGGER.info("LVGL task started");
 
     /** Ideally. the display handle would be created during Simulator.start(),
      * but somehow that doesn't work. Waiting here from a ThreadFlag when that happens

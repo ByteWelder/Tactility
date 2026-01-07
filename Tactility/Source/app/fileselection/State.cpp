@@ -2,9 +2,9 @@
 
 #include <Tactility/file/File.h>
 #include "Tactility/hal/sdcard/SdCardDevice.h"
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/MountPoints.h>
-#include <Tactility/kernel/Kernel.h>
+#include <Tactility/kernel/Platform.h>
 
 #include <cstring>
 #include <unistd.h>
@@ -13,7 +13,7 @@
 
 namespace tt::app::fileselection {
 
-constexpr auto* TAG = "FileSelection";
+static const auto LOGGER = Logger("FileSelection");
 
 State::State() {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
@@ -21,7 +21,7 @@ State::State() {
         if (getcwd(cwd, sizeof(cwd)) != nullptr) {
             setEntriesForPath(cwd);
         } else {
-            TT_LOG_E(TAG, "Failed to get current work directory files");
+            LOGGER.error("Failed to get current work directory files");
             setEntriesForPath("/");
         }
     } else {
@@ -34,7 +34,7 @@ std::string State::getSelectedChildPath() const {
 }
 
 bool State::setEntriesForPath(const std::string& path) {
-    TT_LOG_I(TAG, "Changing path: %s -> %s", current_path.c_str(), path.c_str());
+    LOGGER.info("Changing path: {} -> {}", current_path, path);
 
     /**
      * ESP32 does not have a root directory, so we have to create it manually.
@@ -42,7 +42,7 @@ bool State::setEntriesForPath(const std::string& path) {
      */
     bool show_custom_root = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
     if (show_custom_root) {
-        TT_LOG_I(TAG, "Setting custom root");
+        LOGGER.info("Setting custom root");
         dir_entries = file::getMountPoints();
         current_path = path;
         selected_child_entry = "";
@@ -51,12 +51,12 @@ bool State::setEntriesForPath(const std::string& path) {
         dir_entries.clear();
         int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
         if (count >= 0) {
-            TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);
+            LOGGER.info("{} has {} entries", path, count);
             current_path = path;
             selected_child_entry = "";
             return true;
         } else {
-            TT_LOG_E(TAG, "Failed to fetch entries for %s", path.c_str());
+            LOGGER.error("Failed to fetch entries for {}", path);
             return false;
         }
     }
@@ -64,7 +64,7 @@ bool State::setEntriesForPath(const std::string& path) {
 
 bool State::setEntriesForChildPath(const std::string& childPath) {
     auto path = file::getChildPath(current_path, childPath);
-    TT_LOG_I(TAG, "Navigating from %s to %s", current_path.c_str(), path.c_str());
+    LOGGER.info("Navigating from {} to {}", current_path, path);
     return setEntriesForPath(path);
 }
 

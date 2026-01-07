@@ -8,17 +8,17 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: 'Download all-firmwares'
+    - name: 'Download all-artifacts'
       uses: actions/download-artifact@v4
       with:
-        name: 'all-firmwares'
-        path: firmwares
+        name: 'all-artifacts'
+        path: artifacts
     - name: 'Install boto3'
       shell: bash
       run: pip install boto3
     - name: 'Generate files'
       shell: bash
-      run: version=`cat version.txt` && python Buildscripts/CDN/generate-files.py firmwares firmwares-cdn $version
+      run: version=`cat version.txt` && python Buildscripts/CDN/generate-firmware-files.py artifacts artifacts-cdn $version
     - name: 'Upload files'
       shell: bash
-      run: python Buildscripts/CDN/upload-files.py firmwares-cdn ${{ inputs.cdn_version }} ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}
+      run: python Buildscripts/CDN/upload-firmware-files.py artifacts-cdn ${{ inputs.cdn_version }} ${{ env.CDN_ID }} ${{ env.CDN_TOKEN_NAME }} ${{ env.CDN_TOKEN_VALUE }}

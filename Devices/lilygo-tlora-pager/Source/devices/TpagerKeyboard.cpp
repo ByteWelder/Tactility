@@ -1,12 +1,12 @@
 #include "TpagerKeyboard.h"
-#include <Tactility/hal/i2c/I2c.h>
-#include <driver/i2c.h>
 
+#include <Tactility/hal/i2c/I2c.h>
+#include <Tactility/Logger.h>
+
+#include <driver/i2c.h>
 #include <driver/gpio.h>
 
-#include <Tactility/Log.h>
-
-constexpr auto* TAG = "TpagerKeyboard";
+static const auto LOGGER = tt::Logger("TpagerKeyboard");
 
 constexpr auto BACKLIGHT = GPIO_NUM_46;
 
@@ -120,12 +120,12 @@ bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     keypad->init(KB_ROWS, KB_COLS);
 
     assert(inputTimer == nullptr);
-    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
+    inputTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, tt::kernel::millisToTicks(20), [this] {
         processKeyboard();
     });
 
     assert(backlightImpulseTimer == nullptr);
-    backlightImpulseTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, [this] {
+    backlightImpulseTimer = std::make_unique<tt::Timer>(tt::Timer::Type::Periodic, tt::kernel::millisToTicks(50), [this] {
         processBacklightImpulse();
     });
 
@@ -135,8 +135,8 @@ bool TpagerKeyboard::startLvgl(lv_display_t* display) {
     lv_indev_set_display(kbHandle, display);
     lv_indev_set_user_data(kbHandle, this);
 
-    inputTimer->start(20 / portTICK_PERIOD_MS);
-    backlightImpulseTimer->start(50 / portTICK_PERIOD_MS);
+    inputTimer->start();
+    backlightImpulseTimer->start();
 
     return true;
 }
@@ -174,7 +174,7 @@ bool TpagerKeyboard::initBacklight(gpio_num_t pin, uint32_t frequencyHz, ledc_ti
     };
 
     if (ledc_timer_config(&ledc_timer) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight timer config failed");
+        LOGGER.error("Backlight timer config failed");
         return false;
     }
 
@@ -193,7 +193,7 @@ bool TpagerKeyboard::initBacklight(gpio_num_t pin, uint32_t frequencyHz, ledc_ti
     };
 
     if (ledc_channel_config(&ledc_channel) != ESP_OK) {
-        TT_LOG_E(TAG, "Backlight channel config failed");
+        LOGGER.error("Backlight channel config failed");
     }
 
     return true;
@@ -201,7 +201,7 @@ bool TpagerKeyboard::initBacklight(gpio_num_t pin, uint32_t frequencyHz, ledc_ti
 
 bool TpagerKeyboard::setBacklightDuty(uint8_t duty) {
     if (!backlightOkay) {
-        TT_LOG_E(TAG, "Backlight not ready");
+        LOGGER.error("Backlight not ready");
         return false;
     }
     return (ledc_set_duty(LEDC_LOW_SPEED_MODE, backlightChannel, duty) == ESP_OK) &&

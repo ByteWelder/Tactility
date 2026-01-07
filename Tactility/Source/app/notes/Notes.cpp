@@ -12,7 +12,7 @@
 
 namespace tt::app::notes {
 
-constexpr auto* TAG = "Notes";
+static const auto LOGGER = Logger("Notes");
 constexpr auto* NOTES_FILE_ARGUMENT = "file";
 
 class NotesApp final : public App {
@@ -52,11 +52,11 @@ class NotesApp final : public App {
                         saveBuffer = lv_textarea_get_text(uiNoteText);
                         lvgl::getSyncLock()->unlock();
                         saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                        TT_LOG_I(TAG, "launched with id %d", loadFileLaunchId);
+                        LOGGER.info("launched with id {}", saveFileLaunchId);
                         break;
                     case 3: // Load
                         loadFileLaunchId = fileselection::startForExistingFile();
-                        TT_LOG_I(TAG, "launched with id %d", loadFileLaunchId);
+                        LOGGER.info("launched with id {}", loadFileLaunchId);
                         break;
                 }
             } else {
@@ -64,7 +64,7 @@ class NotesApp final : public App {
                 if (obj == cont) return;
                 if (lv_obj_get_child(cont, 1)) {
                     saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                    TT_LOG_I(TAG, "launched with id %d", loadFileLaunchId);
+                    LOGGER.info("launched with id {}", saveFileLaunchId);
                 } else { //Reset
                     resetFileContent();
                 }
@@ -91,7 +91,7 @@ class NotesApp final : public App {
                lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
                lv_label_set_text(uiCurrentFileName, path.c_str());
                filePath = path;
-               TT_LOG_I(TAG, "Loaded from %s", path.c_str());
+               LOGGER.info("Loaded from {}", path);
             }
         });
     }
@@ -101,7 +101,7 @@ class NotesApp final : public App {
         bool result = false;
         file::getLock(path)->withLock([&result, this, path] {
            if (file::writeString(path, saveBuffer.c_str())) {
-               TT_LOG_I(TAG, "Saved to %s", path.c_str());
+               LOGGER.info("Saved to {}", path);
                filePath = path;
                result = true;
            }
@@ -186,7 +186,7 @@ class NotesApp final : public App {
     }
 
     void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> resultData) override {
-        TT_LOG_I(TAG, "Result for launch id %d", launchId);
+        LOGGER.info("Result for launch id {}", launchId);
         if (launchId == loadFileLaunchId) {
             loadFileLaunchId = 0;
             if (result == Result::Ok && resultData != nullptr) {

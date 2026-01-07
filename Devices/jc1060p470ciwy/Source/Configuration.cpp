@@ -17,9 +17,8 @@ static DeviceVector createDevices() {
 extern const Configuration hardwareConfiguration = {
     .createDevices = createDevices,
     .i2c = {
-        // I2C for GT911 touch controller
         i2c::Configuration {
-            .name = "Touch",
+            .name = "Internal",
             .port = I2C_NUM_0,
             .initMode = i2c::InitMode::ByTactility,
             .isMutable = false,

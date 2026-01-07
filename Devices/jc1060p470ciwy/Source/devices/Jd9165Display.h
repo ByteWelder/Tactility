@@ -1,12 +1,16 @@
 #pragma once
 
+#include <Tactility/RecursiveMutex.h>
 #include <EspLcdDisplayV2.h>
 
 #include <esp_lcd_mipi_dsi.h>
 
 class Jd9165Display final : public EspLcdDisplayV2 {
 
-private:
+    class NoLock final : public tt::Lock {
+        bool lock(TickType_t timeout) const override { return true; }
+        void unlock() const override { /* NO-OP */ }
+    };
 
     esp_lcd_dsi_bus_handle_t mipiDsiBus = nullptr;
 
@@ -27,9 +31,8 @@ protected:
 public:
 
     Jd9165Display(
-        const std::shared_ptr<EspLcdConfiguration>& configuration,
-        const std::shared_ptr<tt::Lock>& lock
-    ) : EspLcdDisplayV2(configuration, lock) {}
+        const std::shared_ptr<EspLcdConfiguration>& configuration
+    ) : EspLcdDisplayV2(configuration, std::make_shared<NoLock>()) {}
 
     ~Jd9165Display() override;
 

@@ -3,7 +3,7 @@
 
 #include <Gt911Touch.h>
 #include <PwmBacklight.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/Mutex.h>
 
 constexpr const char* TAG = "Display";
@@ -37,7 +37,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Initialize PWM backlight
     if (!driver::pwmbacklight::init(LCD_PIN_BACKLIGHT, 20000, LEDC_TIMER_1, LEDC_CHANNEL_0)) {
-        TT_LOG_E(TAG, "Failed to initialize backlight");
+        tt::Logger("jc1060p470ciwy").warn(TAG, "Failed to initialize backlight");
     }
 
     auto touch = createTouch();
@@ -52,19 +52,16 @@ std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
         .mirrorX = false,
         .mirrorY = false,
         .invertColor = false,
-        .bufferSize = 0,  // 0 = default (1/10 of screen)
+        .bufferSize = 0, // 0 = default (1/10 of screen)
         .touch = touch,
         .backlightDutyFunction = driver::pwmbacklight::setBacklightDuty,
         .resetPin = LCD_PIN_RESET,
         .lvglColorFormat = LV_COLOR_FORMAT_RGB565,
-        .lvglSwapBytes = false,              // panel expects BGR ordering over DPI
-        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_BGR,
+        .lvglSwapBytes = false,
+        .rgbElementOrder = LCD_RGB_ELEMENT_ORDER_RGB,
         .bitsPerPixel = 16
     });
 
-    auto lock = std::make_shared<tt::Mutex>();
-
-    auto display = std::make_shared<Jd9165Display>(configuration, lock);
-
+    const auto display = std::make_shared<Jd9165Display>(configuration);
     return std::reinterpret_pointer_cast<tt::hal::display::DisplayDevice>(display);
 }

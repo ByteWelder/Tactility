@@ -12,6 +12,8 @@
 #include <Tactility/file/FileLock.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/hal/HalPrivate.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/lvgl/LvglPrivate.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/network/NtpPrivate.h>
@@ -29,7 +31,7 @@
 
 namespace tt {
 
-constexpr auto* TAG = "Tactility";
+static auto LOGGER = Logger("Tactility");
 
 static const Configuration* config_instance = nullptr;
 static Dispatcher mainDispatcher;
@@ -51,6 +53,10 @@ namespace service {
     namespace loader { extern const ServiceManifest manifest; }
     namespace memorychecker { extern const ServiceManifest manifest; }
     namespace statusbar { extern const ServiceManifest manifest; }
+    namespace displayidle { extern const ServiceManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    namespace keyboardidle { extern const ServiceManifest manifest; }
+#endif
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const ServiceManifest manifest; }
 #endif
@@ -83,6 +89,9 @@ namespace app {
     namespace imageviewer { extern const AppManifest manifest; }
     namespace inputdialog { extern const AppManifest manifest; }
     namespace launcher { extern const AppManifest manifest; }
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    namespace keyboardsettings { extern const AppManifest manifest; }
+#endif
     namespace localesettings { extern const AppManifest manifest; }
     namespace notes { extern const AppManifest manifest; }
     namespace power { extern const AppManifest manifest; }
@@ -110,7 +119,7 @@ namespace app {
 
 // List of all apps excluding Boot app (as Boot app calls this function indirectly)
 static void registerInternalApps() {
-    TT_LOG_I(TAG, "Registering internal apps");
+    LOGGER.info("Registering internal apps");
 
     addAppManifest(app::alertdialog::manifest);
     addAppManifest(app::appdetails::manifest);
@@ -124,6 +133,9 @@ static void registerInternalApps() {
     addAppManifest(app::imageviewer::manifest);
     addAppManifest(app::inputdialog::manifest);
     addAppManifest(app::launcher::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    addAppManifest(app::keyboardsettings::manifest);
+#endif
     addAppManifest(app::localesettings::manifest);
     addAppManifest(app::notes::manifest);
     addAppManifest(app::settings::manifest);
@@ -168,22 +180,22 @@ static void registerInternalApps() {
 }
 
 static void registerInstalledApp(std::string path) {
-    TT_LOG_I(TAG, "Registering app at %s", path.c_str());
+    LOGGER.info("Registering app at {}", path);
     std::string manifest_path = path + "/manifest.properties";
     if (!file::isFile(manifest_path)) {
-        TT_LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
+        LOGGER.error("Manifest not found at {}", manifest_path);
         return;
     }
 
     std::map<std::string, std::string> properties;
     if (!file::loadPropertiesFile(manifest_path, properties)) {
-        TT_LOG_E(TAG, "Failed to load manifest at %s", manifest_path.c_str());
+        LOGGER.error("Failed to load manifest at {}", manifest_path);
         return;
     }
 
     app::AppManifest manifest;
     if (!app::parseManifest(properties, manifest)) {
-        TT_LOG_E(TAG, "Failed to parse manifest at %s", manifest_path.c_str());
+        LOGGER.error("Failed to parse manifest at {}", manifest_path);
         return;
     }
 
@@ -194,7 +206,7 @@ static void registerInstalledApp(std::string path) {
 }
 
 static void registerInstalledApps(const std::string& path) {
-    TT_LOG_I(TAG, "Registering apps from %s", path.c_str());
+    LOGGER.info("Registering apps from {}", path);
 
     file::listDirectory(path, [&path](const auto& entry) {
         auto absolute_path = std::format("{}/{}", path, entry.d_name);
@@ -216,17 +228,21 @@ static void registerInstalledAppsFromSdCards() {
     auto sdcard_devices = hal::findDevices<hal::sdcard::SdCardDevice>(hal::Device::Type::SdCard);
     for (const auto& sdcard : sdcard_devices) {
         if (sdcard->isMounted()) {
-            TT_LOG_I(TAG, "Registering apps from %s", sdcard->getMountPath().c_str());
+            LOGGER.info("Registering apps from {}", sdcard->getMountPath());
             registerInstalledAppsFromSdCard(sdcard);
         }
     }
 }
 
 static void registerAndStartSecondaryServices() {
-    TT_LOG_I(TAG, "Registering and starting system services");
+    LOGGER.info("Registering and starting secondary system services");
     addService(service::loader::manifest);
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
+    addService(service::displayidle::manifest);
+#if defined(ESP_PLATFORM) && defined(CONFIG_TT_DEVICE_LILYGO_TDECK)
+    addService(service::keyboardidle::manifest);
+#endif
     addService(service::memorychecker::manifest);
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
@@ -234,7 +250,7 @@ static void registerAndStartSecondaryServices() {
 }
 
 static void registerAndStartPrimaryServices() {
-    TT_LOG_I(TAG, "Registering and starting system services");
+    LOGGER.info("Registering and starting primary system services");
     addService(service::gps::manifest);
     if (hal::hasDevice(hal::Device::Type::SdCard)) {
         addService(service::sdcard::manifest);
@@ -255,15 +271,15 @@ void createTempDirectory(const std::string& rootPath) {
         auto lock = file::getLock(rootPath)->asScopedLock();
         if (lock.lock(1000 / portTICK_PERIOD_MS)) {
             if (mkdir(temp_path.c_str(), 0777) == 0) {
-                TT_LOG_I(TAG, "Created %s", temp_path.c_str());
+                LOGGER.info("Created {}", temp_path);
             } else {
-                TT_LOG_E(TAG, "Failed to create %s", temp_path.c_str());
+                LOGGER.error("Failed to create {}", temp_path);
             }
         } else {
-            TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, rootPath.c_str());
+            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, rootPath);
         }
     } else {
-        TT_LOG_I(TAG, "Found existing %s", temp_path.c_str());
+        LOGGER.info("Found existing {}", temp_path);
     }
 }
 
@@ -291,7 +307,7 @@ void registerApps() {
 }
 
 void run(const Configuration& config) {
-    TT_LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
+    LOGGER.info("Tactility v{} on {} ({})", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
     assert(config.hardware);
     const hal::Configuration& hardware = *config.hardware;
@@ -311,14 +327,14 @@ void run(const Configuration& config) {
     lvgl::init(hardware);
     registerAndStartSecondaryServices();
 
-    TT_LOG_I(TAG, "Core systems ready");
+    LOGGER.info("Core systems ready");
 
-    TT_LOG_I(TAG, "Starting boot app");
+    LOGGER.info("Starting boot app");
     // The boot app takes care of registering system apps, user services and user apps
     addAppManifest(app::boot::manifest);
     app::start(app::boot::manifest.appId);
 
-    TT_LOG_I(TAG, "Main dispatcher ready");
+    LOGGER.info("Main dispatcher ready");
     while (true) {
         mainDispatcher.consume();
     }

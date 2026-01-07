@@ -1,6 +1,6 @@
 #include "Power.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <ChargeFromVoltage.h>
 #include <esp_adc/adc_oneshot.h>
 #include <esp_adc/adc_cali.h>
@@ -8,8 +8,9 @@
 
 using tt::hal::power::PowerDevice;
 
+static const auto LOGGER = tt::Logger("JcPower");
+
 namespace {
-constexpr auto* TAG = "JcPower";
 
 constexpr adc_unit_t ADC_UNIT = ADC_UNIT_2;
 constexpr adc_channel_t ADC_CHANNEL = ADC_CHANNEL_4; // matches ADC2 CH4 used in brookesia config
@@ -70,7 +71,7 @@ private:
             .ulp_mode = ADC_ULP_MODE_DISABLE,
         };
         if (adc_oneshot_new_unit(&init_cfg, &adcHandle) != ESP_OK) {
-            TT_LOG_E(TAG, "ADC unit init failed");
+            LOGGER.error("ADC unit init failed");
             return false;
         }
 
@@ -79,7 +80,7 @@ private:
             .bitwidth = ADC_BITWIDTH_DEFAULT,
         };
         if (adc_oneshot_config_channel(adcHandle, ADC_CHANNEL, &chan_cfg) != ESP_OK) {
-            TT_LOG_E(TAG, "ADC channel config failed");
+            LOGGER.error("ADC channel config failed");
             return false;
         }
 
@@ -111,19 +112,19 @@ private:
         };
         if (adc_cali_create_scheme_curve_fitting(&curve_cfg, &caliHandle) == ESP_OK) {
             calScheme = CaliScheme::Curve;
-            TT_LOG_I(TAG, "ADC calibration (curve fitting) enabled");
+            LOGGER.info("ADC calibration (curve fitting) enabled");
             return true;
         }
 #endif
 
-        TT_LOG_W(TAG, "ADC calibration not available, using raw scaling");
+        LOGGER.warn("ADC calibration not available, using raw scaling");
         return false;
     }
 
     bool readBatteryMilliVolt(uint32_t& outMv) {
         int raw = 0;
         if (adc_oneshot_read(adcHandle, ADC_CHANNEL, &raw) != ESP_OK) {
-            TT_LOG_E(TAG, "ADC read failed");
+            LOGGER.error("ADC read failed");
             return false;
         }
 

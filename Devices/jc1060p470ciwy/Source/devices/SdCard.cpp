@@ -1,33 +1,41 @@
 #include "SdCard.h"
 
-#include <esp_vfs_fat.h>
-#include <esp_check.h>
-#include <driver/sdmmc_host.h>
-#include <driver/sdmmc_defs.h>
-#include <sdmmc_cmd.h>
-#include <esp_ldo_regulator.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <optional>
+
+#include <driver/sdmmc_defs.h>
+#include <driver/sdmmc_host.h>
+#include <esp_check.h>
+#include <esp_ldo_regulator.h>
+#include <esp_vfs_fat.h>
+#include <sdmmc_cmd.h>
 
 using tt::hal::sdcard::SdCardDevice;
 
-namespace {
-constexpr const char* TAG = "SdCard";
-
-constexpr auto MOUNT_POINT = "/sdcard";
+static const auto LOGGER = tt::Logger("JcSdCard");
 
 // ESP32-P4 Slot 0 usa IO MUX (pines fijos, no configurables manualmente)
 // CLK=43, CMD=44, D0=39, D1=40, D2=41, D3=42 (definidos automáticamente por hardware)
-} // namespace
 
-class SdCardDeviceImpl : public SdCardDevice {
+class SdCardDeviceImpl final : public SdCardDevice {
+
+    class NoLock final : public tt::Lock {
+        bool lock(TickType_t timeout) const override { return true; }
+        void unlock() const override { /* NO-OP */ }
+    };
+
+    std::shared_ptr<tt::Lock> lock = std::make_shared<NoLock>();
+    sdmmc_card_t* card = nullptr;
+    bool mounted = false;
+    std::string mountPath;
+
 public:
     SdCardDeviceImpl() : SdCardDevice(MountBehaviour::AtBoot) {}
     ~SdCardDeviceImpl() override {
-        unmount();
+        if (mounted) {
+            unmount();
+        }
     }
 
     std::string getName() const override { return "SD Card"; }
@@ -36,13 +44,6 @@ public:
     bool mount(const std::string& newMountPath) override {
         if (mounted) {
             return true;
-        }
-
-        auto lock = tt::lvgl::getSyncLock();
-        std::optional<tt::ScopedLock> guard;
-        if (lock) {
-            guard.emplace(lock->asScopedLock());
-            guard->lock();
         }
 
         esp_vfs_fat_sdmmc_mount_config_t mount_config = {
@@ -63,10 +64,16 @@ public:
         esp_ldo_channel_config_t ldo_config = {
             .chan_id = 4,  // LDO channel 4 para SD power
             .voltage_mv = 3300,  // 3.3V
+            .flags {
+                .adjustable = 0,
+                .owned_by_hw = 0,
+                .bypass = 0
+            }
         };
+
         esp_err_t ldo_ret = esp_ldo_acquire_channel(&ldo_config, &ldo_handle);
         if (ldo_ret != ESP_OK) {
-            TT_LOG_W(TAG, "Failed to acquire LDO for SD power: %s (continuing anyway)", esp_err_to_name(ldo_ret));
+            LOGGER.warn("Failed to acquire LDO for SD power: %s (continuing anyway)", esp_err_to_name(ldo_ret));
         }
 
         // Slot 0 usa IO MUX - los pines son fijos y no se especifican
@@ -78,14 +85,14 @@ public:
 
         esp_err_t ret = esp_vfs_fat_sdmmc_mount(newMountPath.c_str(), &host, &slot_config, &mount_config, &card);
         if (ret != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to mount SD card: %s", esp_err_to_name(ret));
+            LOGGER.error("Failed to mount SD card: {}", esp_err_to_name(ret));
             card = nullptr;
             return false;
         }
 
         mountPath = newMountPath;
         mounted = true;
-        TT_LOG_I(TAG, "SD card mounted at %s", mountPath.c_str());
+        LOGGER.info("SD card mounted at {}", mountPath);
         return true;
     }
 
@@ -96,34 +103,24 @@ public:
 
         esp_err_t ret = esp_vfs_fat_sdcard_unmount(mountPath.c_str(), card);
         if (ret != ESP_OK) {
-            TT_LOG_E(TAG, "Failed to unmount SD card: %s", esp_err_to_name(ret));
+            LOGGER.error("Failed to unmount SD card: {}", esp_err_to_name(ret));
             return false;
         }
         card = nullptr;
         mounted = false;
-        TT_LOG_I(TAG, "SD card unmounted");
+        LOGGER.info("SD card unmounted");
         return true;
     }
 
-    std::string getMountPath() const override { return mountPath; }
-
-    std::shared_ptr<tt::Lock> getLock() const override {
-        auto lock = tt::lvgl::getSyncLock();
-        if (lock) {
-            return lock;
-        }
-        static auto fallback = std::make_shared<tt::Mutex>(tt::Mutex::Type::Normal);
-        return fallback;
+    std::string getMountPath() const override {
+        return mountPath;
     }
+
+    std::shared_ptr<tt::Lock> getLock() const override { return lock; }
 
     State getState(TickType_t /*timeout*/) const override {
         return mounted ? State::Mounted : State::Unmounted;
     }
-
-private:
-    sdmmc_card_t* card = nullptr;
-    bool mounted = false;
-    std::string mountPath;
 };
 
 std::shared_ptr<SdCardDevice> createSdCard() {

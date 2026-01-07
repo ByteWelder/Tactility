@@ -1,10 +1,12 @@
-#include "Tactility/service/wifi/WifiApSettings.h"
-#include "Tactility/file/PropertiesFile.h"
+#include <Tactility/service/wifi/WifiPrivate.h>
+#include <Tactility/service/wifi/WifiApSettings.h>
+#include <Tactility/file/PropertiesFile.h>
 
 #include <Tactility/crypt/Crypt.h>
 #include <Tactility/file/File.h>
+#include <Tactility/Logger.h>
 
-#include <cstring>
+#include <Tactility/service/ServicePaths.h>
 #include <format>
 #include <iomanip>
 #include <ranges>
@@ -13,15 +15,14 @@
 
 namespace tt::service::wifi::settings {
 
-constexpr auto* TAG = "WifiApSettings";
+static const auto LOGGER = Logger("WifiApSettings");
 
-constexpr auto* AP_SETTINGS_FORMAT = "/data/settings/{}.ap.properties";
+constexpr auto* AP_SETTINGS_FORMAT = "{}/{}.ap.properties";
 
 constexpr auto* AP_PROPERTIES_KEY_SSID = "ssid";
 constexpr auto* AP_PROPERTIES_KEY_PASSWORD = "password";
 constexpr auto* AP_PROPERTIES_KEY_AUTO_CONNECT = "autoConnect";
 constexpr auto* AP_PROPERTIES_KEY_CHANNEL = "channel";
-
 
 std::string toHexString(const uint8_t *data, int length) {
     std::stringstream stream;
@@ -33,7 +34,7 @@ std::string toHexString(const uint8_t *data, int length) {
 
 bool readHex(const std::string& input, uint8_t* buffer, int length) {
     if (input.size() / 2 != length) {
-        TT_LOG_E(TAG, "readHex() length mismatch");
+        LOGGER.error("readHex() length mismatch");
         return false;
     }
 
@@ -48,8 +49,9 @@ bool readHex(const std::string& input, uint8_t* buffer, int length) {
     return true;
 }
 
-static std::string getApPropertiesFilePath(const std::string& ssid) {
-    return std::format(AP_SETTINGS_FORMAT, ssid);
+// TODO: The SSID could contain invalid filename characters (e.g. "/", "\" and more) so we have to refactor this.
+static std::string getApPropertiesFilePath(std::shared_ptr<ServicePaths> paths, const std::string& ssid) {
+    return std::format(AP_SETTINGS_FORMAT, paths->getUserDataDirectory(), ssid);
 }
 
 static bool encrypt(const std::string& ssidInput, std::string& ssidOutput) {
@@ -62,7 +64,7 @@ static bool encrypt(const std::string& ssidInput, std::string& ssidOutput) {
 
     crypt::getIv(ssidInput.c_str(), ssidInput.size(), iv);
     if (crypt::encrypt(iv, reinterpret_cast<const uint8_t*>(ssidInput.c_str()), buffer, encrypted_length) != 0) {
-        TT_LOG_E(TAG, "Failed to encrypt");
+        LOGGER.error("Failed to encrypt");
         free(buffer);
         return false;
     }
@@ -78,7 +80,7 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
     assert(ssidInput.size() % 2 == 0);
     auto* data = static_cast<uint8_t*>(malloc(ssidInput.size() / 2));
     if (!readHex(ssidInput, data, ssidInput.size() / 2)) {
-        TT_LOG_E(TAG, "Failed to read hex");
+        LOGGER.error("Failed to read hex");
         return false;
     }
 
@@ -100,7 +102,7 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
     free(data);
 
     if (decrypt_result != 0) {
-        TT_LOG_E(TAG, "Failed to decrypt credentials for \"%s\": %d", ssidInput.c_str(), decrypt_result);
+        LOGGER.error("Failed to decrypt credentials for \"{}s\": {}", ssidInput, decrypt_result);
         free(result);
         return false;
     }
@@ -111,12 +113,20 @@ static bool decrypt(const std::string& ssidInput, std::string& ssidOutput) {
 }
 
 bool contains(const std::string& ssid) {
-    const auto file_path = getApPropertiesFilePath(ssid);
+    auto service_context = findServiceContext();
+    if (service_context == nullptr) {
+        return false;
+    }
+    const auto file_path = getApPropertiesFilePath(service_context->getPaths(), ssid);
     return file::isFile(file_path);
 }
 
 bool load(const std::string& ssid, WifiApSettings& apSettings) {
-    const auto file_path = getApPropertiesFilePath(ssid);
+    auto service_context = findServiceContext();
+    if (service_context == nullptr) {
+        return false;
+    }
+    const auto file_path = getApPropertiesFilePath(service_context->getPaths(), ssid);
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(file_path, map)) {
         return false;
@@ -165,7 +175,12 @@ bool save(const WifiApSettings& apSettings) {
         return false;
     }
 
-    const auto file_path = getApPropertiesFilePath(apSettings.ssid);
+    auto service_context = findServiceContext();
+    if (service_context == nullptr) {
+        return false;
+    }
+
+    const auto file_path = getApPropertiesFilePath(service_context->getPaths(), apSettings.ssid);
 
     std::map<std::string, std::string> map;
 
@@ -187,7 +202,12 @@ bool save(const WifiApSettings& apSettings) {
 }
 
 bool remove(const std::string& ssid) {
-    const auto path = getApPropertiesFilePath(ssid);
+    auto service_context = findServiceContext();
+    if (service_context == nullptr) {
+        return false;
+    }
+
+    const auto path = getApPropertiesFilePath(service_context->getPaths(), ssid);
     if (!file::isFile(path)) {
         return false;
     }

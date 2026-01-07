@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tt_kernel.h"
 #include <stdbool.h>
+#include <freertos/FreeRTOS.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,13 +14,6 @@ typedef enum {
     MutexTypeNormal,
     MutexTypeRecursive
 } TtMutexType;
-
-/**
- * Allocate a new mutex instance
- * @param[in] type specify if the mutex is either a normal one, or whether it can recursively (re)lock
- * @return the allocated lock handle
- */
-LockHandle tt_lock_alloc_mutex(TtMutexType type);
 
 /**
  * Allocate a lock for a file or folder.
@@ -36,14 +29,13 @@ LockHandle tt_lock_alloc_for_path(const char* path);
  * @param[in] timeout the maximum amount of ticks to wait when trying to lock
  * @return true when the lock was acquired
  */
-bool tt_lock_acquire(LockHandle handle, TickType timeout);
+bool tt_lock_acquire(LockHandle handle, TickType_t timeout);
 
 /**
  * Attempt to unlock the lock.
  * @param[in] handle the handle that represents the mutex instance
- * @return true when the lock was unlocked
  */
-bool tt_lock_release(LockHandle handle);
+void tt_lock_release(LockHandle handle);
 
 /** Free the memory for this lock
  * This does not auto-release the lock.

@@ -2,7 +2,7 @@
 
 #include <Gt911Touch.h>
 #include <PwmBacklight.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <driver/gpio.h>
 #include <esp_err.h>
@@ -11,7 +11,7 @@
 #include <esp_lcd_panel_io_additions.h>
 #include <esp_lcd_st7701.h>
 
-constexpr auto TAG = "St7701Display";
+static const auto LOGGER = tt::Logger("St7701Display");
 
 static const st7701_lcd_init_cmd_t st7701_lcd_init_cmds[] = {
     //  {cmd, { data }, data_size, delay_ms}
@@ -153,28 +153,30 @@ bool St7701Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, esp_lc
     };
 
     if (esp_lcd_new_panel_st7701(ioHandle, &panel_config, &panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to create panel");
+        LOGGER.error("Failed to create panel");
         return false;
     }
 
     if (esp_lcd_panel_reset(panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to reset panel");
+        LOGGER.error("Failed to reset panel");
         return false;
     }
 
     if (esp_lcd_panel_init(panelHandle) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to init panel");
+        LOGGER.error("Failed to init panel");
         return false;
     }
 
     if (esp_lcd_panel_invert_color(panelHandle, false) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to invert color");
+        LOGGER.error("Failed to invert color");
+        return false;
     }
 
     esp_lcd_panel_set_gap(panelHandle, 0, 0);
 
     if (esp_lcd_panel_disp_on_off(panelHandle, true) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to turn display on");
+        LOGGER.error("Failed to turn display on");
+        return false;
     }
 
     return true;

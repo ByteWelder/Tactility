@@ -1,5 +1,6 @@
 #include <Bq27220.h>
-#include <Tactility/TactilityCore.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/hal/gps/GpsConfiguration.h>
@@ -8,16 +9,16 @@
 
 #include <PwmBacklight.h>
 
-constexpr auto* TAG = "TLoraPager";
+static const auto LOGGER = tt::Logger("T-Lora Pager");
 
 bool tpagerInit() {
-    ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
+    LOGGER.info(LOG_MESSAGE_POWER_ON_START);
 
     /* 32 Khz and higher gives an issue where the screen starts dimming again above 80% brightness
      * when moving the brightness slider rapidly from a lower setting to 100%.
      * This is not a slider bug (data was debug-traced) */
     if (!driver::pwmbacklight::init(GPIO_NUM_42, 30000)) {
-        TT_LOG_E(TAG, "Backlight init failed");
+        LOGGER.error("Backlight init failed");
         return false;
     }
 
@@ -44,9 +45,9 @@ bool tpagerInit() {
                     .baudRate = 38400,
                     .model = tt::hal::gps::GpsModel::UBLOX10
                 })) {
-                    TT_LOG_I(TAG, "Configured internal GPS");
+                    LOGGER.info("Configured internal GPS");
                 } else {
-                    TT_LOG_E(TAG, "Failed to configure internal GPS");
+                    LOGGER.error("Failed to configure internal GPS");
                 }
             }
         }

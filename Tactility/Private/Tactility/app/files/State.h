@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <string>
 #include <vector>
@@ -15,12 +15,14 @@ public:
     enum PendingAction {
         ActionNone,
         ActionDelete,
-        ActionRename
+        ActionRename,
+        ActionCreateFile,
+        ActionCreateFolder
     };
 
 private:
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::vector<dirent> dir_entries;
     std::string current_path;
     std::string selected_child_entry;

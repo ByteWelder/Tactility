@@ -1,31 +1,31 @@
 #ifndef ESP_PLATFORM
 
-#include "Tactility/hal/uart/UartPosix.h"
-#include "Tactility/hal/uart/Uart.h"
-
-#include <Tactility/Log.h>
+#include <Tactility/hal/uart/UartPosix.h>
+#include <Tactility/hal/uart/Uart.h>
+#include <Tactility/kernel/Kernel.h>
+#include <Tactility/Logger.h>
 
 #include <cstring>
 #include <sstream>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#define TAG "uart"
-
 namespace tt::hal::uart {
+
+static const auto LOGGER = Logger("UART");
 
 bool UartPosix::start() {
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (device != nullptr) {
-        TT_LOG_E(TAG, "[%s] Starting: Already started", configuration.name.c_str());
+        LOGGER.error("[{}] Starting: Already started", configuration.name);
         return false;
     }
 
     auto file = fopen(configuration.name.c_str(), "w");
     if (file == nullptr) {
-        TT_LOG_E(TAG, "[%s] Open device failed", configuration.name.c_str());
+        LOGGER.error("[{}] Open device failed", configuration.name);
         return false;
     }
 
@@ -33,16 +33,16 @@ bool UartPosix::start() {
 
     struct termios tty;
     if (tcgetattr(fileno(file), &tty) < 0) {
-        printf("[%s] tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
+        LOGGER.error("[{}] tcgetattr failed: {}", configuration.name, strerror(errno));
         return false;
     }
 
     if (cfsetospeed(&tty, (speed_t)configuration.baudRate) == -1) {
-        TT_LOG_E(TAG, "[%s] Setting output speed failed", configuration.name.c_str());
+        LOGGER.error("[{}] Setting output speed failed", configuration.name);
     }
 
     if (cfsetispeed(&tty, (speed_t)configuration.baudRate) == -1) {
-        TT_LOG_E(TAG, "[%s] Setting input speed failed", configuration.name.c_str());
+        LOGGER.error("[{}] Setting input speed failed", configuration.name);
     }
 
     tty.c_cflag |= (CLOCAL | CREAD); /* ignore modem controls */
@@ -61,13 +61,13 @@ bool UartPosix::start() {
     tty.c_cc[VTIME] = 1;
 
     if (tcsetattr(fileno(file), TCSANOW, &tty) != 0) {
-        printf("[%s] tcsetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
+        LOGGER.error("[{}] tcsetattr failed: {}", configuration.name, strerror(errno));
         return false;
     }
 
     device = std::move(new_device);
 
-    TT_LOG_I(TAG, "[%s] Started", configuration.name.c_str());
+    LOGGER.info("[{}] Started", configuration.name);
     return true;
 }
 
@@ -76,13 +76,13 @@ bool UartPosix::stop() {
     lock.lock();
 
     if (device == nullptr) {
-        TT_LOG_E(TAG, "[%s] Stopping: Not started", configuration.name.c_str());
+        LOGGER.error("[{}] Stopping: Not started", configuration.name);
         return false;
     }
 
     device = nullptr;
 
-    TT_LOG_I(TAG, "[%s] Stopped", configuration.name.c_str());
+    LOGGER.info("[{}] Stopped", configuration.name);
     return true;
 }
 
@@ -139,7 +139,7 @@ void UartPosix::flushInput() {
 uint32_t UartPosix::getBaudRate() {
     struct termios tty;
     if (tcgetattr(fileno(device.get()), &tty) < 0) {
-        printf("[%s] tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
+        LOGGER.error("[{}] tcgetattr failed: {}", configuration.name, strerror(errno));
         return false;
     } else {
         return (uint32_t)cfgetispeed(&tty);
@@ -154,17 +154,17 @@ bool UartPosix::setBaudRate(uint32_t baudRate, TickType_t timeout) {
 
     struct termios tty;
     if (tcgetattr(fileno(device.get()), &tty) < 0) {
-        printf("[%s] tcgetattr failed: %s\n", configuration.name.c_str(), strerror(errno));
+        LOGGER.error("[{}] tcgetattr failed: {}", configuration.name, strerror(errno));
         return false;
     }
 
     if (cfsetospeed(&tty, (speed_t)configuration.baudRate) == -1) {
-        TT_LOG_E(TAG, "[%s] Failed to set output speed", configuration.name.c_str());
+        LOGGER.error("[{}] Failed to set output speed", configuration.name);
         return false;
     }
 
     if (cfsetispeed(&tty, (speed_t)configuration.baudRate) == -1) {
-        TT_LOG_E(TAG, "[%s] Failed to set input speed", configuration.name.c_str());
+        LOGGER.error("[{}] Failed to set input speed", configuration.name);
         return false;
     }
 

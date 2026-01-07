@@ -4,6 +4,8 @@
 #include <Tactility/app/AppRegistration.h>
 
 #include <Tactility/DispatcherThread.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 
@@ -16,7 +18,8 @@
 
 namespace tt::service::loader {
 
-constexpr auto* TAG = "Loader";
+static const auto LOGGER = Logger("Boot");
+
 constexpr auto LOADER_TIMEOUT = (100 / portTICK_PERIOD_MS);
 
 // Forward declaration
@@ -41,17 +44,17 @@ static const char* appStateToString(app::State state) {
 }
 
 void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launchId, std::shared_ptr<const Bundle> parameters) {
-    TT_LOG_I(TAG, "Start by id %s", id.c_str());
+    LOGGER.info("Start by id {}", id);
 
     auto app_manifest = app::findAppManifestById(id);
     if (app_manifest == nullptr) {
-        TT_LOG_E(TAG, "App not found: %s", id.c_str());
+        LOGGER.error("App not found: {}", id);
         return;
     }
 
     auto lock = mutex.asScopedLock();
     if (!lock.lock(LOADER_TIMEOUT)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
@@ -73,14 +76,14 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
 void LoaderService::onStopTopAppMessage(const std::string& id) {
     auto lock = mutex.asScopedLock();
     if (!lock.lock(LOADER_TIMEOUT)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
     size_t original_stack_size = appStack.size();
 
     if (original_stack_size == 0) {
-        TT_LOG_E(TAG, "Stop app: no app running");
+        LOGGER.error("Stop app: no app running");
         return;
     }
 
@@ -88,12 +91,12 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
     auto app_to_stop = appStack[appStack.size() - 1];
 
     if (app_to_stop->getManifest().appId != id) {
-        TT_LOG_E(TAG, "Stop app: id mismatch (wanted %s but found %s on top of stack)", id.c_str(), app_to_stop->getManifest().appId.c_str());
+        LOGGER.error("Stop app: id mismatch (wanted {} but found {} on top of stack)", id, app_to_stop->getManifest().appId);
         return;
     }
 
     if (original_stack_size == 1 && app_to_stop->getManifest().appName != "Boot") {
-        TT_LOG_E(TAG, "Stop app: can't stop root app");
+        LOGGER.error("Stop app: can't stop root app");
         return;
     }
 
@@ -113,16 +116,16 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
 
     // We only expect the app to be referenced within the current scope
     if (app_to_stop.use_count() > 1) {
-        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().appId.c_str(), app_to_stop.use_count() - 1);
+        LOGGER.warn("Memory leak: Stopped {}, but use count is {}", app_to_stop->getManifest().appId, app_to_stop.use_count() - 1);
     }
 
     // Refcount is expected to be 2: 1 within app_to_stop and 1 within the current scope
     if (app_to_stop->getApp().use_count() > 2) {
-        TT_LOG_W(TAG, "Memory leak: Stopped %s, but use count is %ld", app_to_stop->getManifest().appId.c_str(), app_to_stop->getApp().use_count() - 2);
+        LOGGER.warn("Memory leak: Stopped {}, but use count is {}", app_to_stop->getManifest().appId, app_to_stop->getApp().use_count() - 2);
     }
 
 #ifdef ESP_PLATFORM
-    TT_LOG_I(TAG, "Free heap: %zu", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    LOGGER.info("Free heap: {}", heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
 #endif
 
     std::shared_ptr<app::AppInstance> instance_to_resume;
@@ -179,18 +182,18 @@ int LoaderService::findAppInStack(const std::string& id) const {
 void LoaderService::onStopAllAppMessage(const std::string& id) {
     auto lock = mutex.asScopedLock();
     if (!lock.lock(LOADER_TIMEOUT)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
     if (!isRunning(id)) {
-        TT_LOG_E(TAG, "Stop all: %s not running", id.c_str());
+        LOGGER.error("Stop all: {} not running", id);
         return;
     }
 
     int app_to_stop_index = findAppInStack(id);
     if (app_to_stop_index < 0) {
-        TT_LOG_E(TAG, "Stop all: %s not found in stack", id.c_str());
+        LOGGER.error("Stop all: {} not found in stack", id);
         return;
     }
 
@@ -217,7 +220,7 @@ void LoaderService::onStopAllAppMessage(const std::string& id) {
     }
 
     if (instance_to_resume != nullptr) {
-        TT_LOG_I(TAG, "Resuming %s", instance_to_resume->getManifest().appId.c_str());
+        LOGGER.info("Resuming {}", instance_to_resume->getManifest().appId);
         transitionAppToState(instance_to_resume, app::State::Showing);
 
         instance_to_resume->getApp()->onResult(
@@ -233,10 +236,8 @@ void LoaderService::transitionAppToState(const std::shared_ptr<app::AppInstance>
     const app::AppManifest& app_manifest = app->getManifest();
     const app::State old_state = app->getState();
 
-    TT_LOG_I(
-        TAG,
-        "App \"%s\" state: %s -> %s",
-        app_manifest.appId.c_str(),
+    LOGGER.info(        "App \"{}\" state: {} -> {}",
+        app_manifest.appId,
         appStateToString(old_state),
         appStateToString(state)
     );
@@ -283,14 +284,14 @@ void LoaderService::stopTop() {
 }
 
 void LoaderService::stopTop(const std::string& id) {
-    TT_LOG_I(TAG, "dispatching stopTop(%s)", id.c_str());
+    LOGGER.info("dispatching stopTop({})", id);
     dispatcherThread->dispatch([this, id] {
         onStopTopAppMessage(id);
     });
 }
 
 void LoaderService::stopAll(const std::string& id) {
-    TT_LOG_I(TAG, "dispatching stopAll(%s)", id.c_str());
+    LOGGER.info("dispatching stopAll({})", id);
     dispatcherThread->dispatch([this, id] {
         onStopAllAppMessage(id);
     });

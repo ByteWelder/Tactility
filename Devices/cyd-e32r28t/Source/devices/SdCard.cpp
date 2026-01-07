@@ -1,5 +1,6 @@
 #include "SdCard.h"
 #include <Tactility/hal/sdcard/SpiSdCardDevice.h>
+#include <Tactility/RecursiveMutex.h>
 
 using tt::hal::sdcard::SpiSdCardDevice;
 
@@ -10,7 +11,7 @@ std::shared_ptr<SdCardDevice> createSdCard() {
         GPIO_NUM_NC,
         GPIO_NUM_NC,
         SdCardDevice::MountBehaviour::AtBoot,
-        std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive),
+        std::make_shared<tt::RecursiveMutex>(),
         std::vector<gpio_num_t>(),
         SPI3_HOST
     );

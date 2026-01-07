@@ -8,6 +8,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     list(APPEND REQUIRES_LIST
         TactilityCore
+        TactilityFreeRtos
         lvgl
         driver
         elf_loader
@@ -71,6 +72,7 @@ else()
 
     target_link_libraries(Tactility
         PUBLIC cJSON
+        PUBLIC TactilityFreeRtos
         PUBLIC TactilityCore
         PUBLIC freertos_kernel
         PUBLIC lvgl

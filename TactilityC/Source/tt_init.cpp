@@ -12,25 +12,22 @@
 #include "tt_hal_i2c.h"
 #include "tt_hal_touch.h"
 #include "tt_hal_uart.h"
-#include "tt_kernel.h"
 #include <tt_lock.h>
 #include "tt_lvgl.h"
 #include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
-#include "tt_message_queue.h"
 #include "tt_preferences.h"
-#include "tt_semaphore.h"
-#include "tt_thread.h"
 #include "tt_time.h"
-#include "tt_timer.h"
 #include "tt_wifi.h"
 
 #include "symbols/esp_event.h"
 #include "symbols/esp_http_client.h"
 #include "symbols/pthread.h"
 #include "symbols/stl.h"
+#include "symbols/string.h"
 #include "symbols/cplusplus.h"
+#include "symbols/freertos.h"
 #ifndef CONFIG_IDF_TARGET_ESP32P4
 #include "symbols/gcc_soft_float.h"
 #endif
@@ -48,6 +45,12 @@
 #include <esp_log.h>
 #include <esp_random.h>
 #include <esp_sntp.h>
+#include <esp_netif.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <fcntl.h>
+#include <lwip/sockets.h>
 
 #include <lvgl.h>
 #include <vector>
@@ -77,11 +80,14 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(sleep),
     ESP_ELFSYM_EXPORT(exit),
     ESP_ELFSYM_EXPORT(close),
+    ESP_ELFSYM_EXPORT(rmdir),
+    ESP_ELFSYM_EXPORT(unlink),
     // time.h
     ESP_ELFSYM_EXPORT(clock_gettime),
     ESP_ELFSYM_EXPORT(strftime),
     ESP_ELFSYM_EXPORT(time),
     ESP_ELFSYM_EXPORT(localtime_r),
+    ESP_ELFSYM_EXPORT(localtime),
     // esp_sntp.h
     ESP_ELFSYM_EXPORT(sntp_get_sync_status),
     // math.h
@@ -189,7 +195,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_get_user_data_child_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_child_path),
-    ESP_ELFSYM_EXPORT(tt_lock_alloc_mutex),
     ESP_ELFSYM_EXPORT(tt_lock_alloc_for_path),
     ESP_ELFSYM_EXPORT(tt_lock_acquire),
     ESP_ELFSYM_EXPORT(tt_lock_release),
@@ -250,15 +255,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_hal_uart_set_baud_rate),
     ESP_ELFSYM_EXPORT(tt_hal_uart_get_baud_rate),
     ESP_ELFSYM_EXPORT(tt_hal_uart_flush_input),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_millis),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_micros),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_millis_to_ticks),
-    ESP_ELFSYM_EXPORT(tt_kernel_delay_until_tick),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_tick_frequency),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_millis),
-    ESP_ELFSYM_EXPORT(tt_kernel_get_micros),
     ESP_ELFSYM_EXPORT(tt_lvgl_is_started),
     ESP_ELFSYM_EXPORT(tt_lvgl_lock),
     ESP_ELFSYM_EXPORT(tt_lvgl_unlock),
@@ -280,14 +276,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_switch_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_spinner_action),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_clear_actions),
-    ESP_ELFSYM_EXPORT(tt_message_queue_alloc),
-    ESP_ELFSYM_EXPORT(tt_message_queue_free),
-    ESP_ELFSYM_EXPORT(tt_message_queue_put),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_capacity),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_message_size),
-    ESP_ELFSYM_EXPORT(tt_message_queue_get_count),
-    ESP_ELFSYM_EXPORT(tt_message_queue_reset),
     ESP_ELFSYM_EXPORT(tt_preferences_alloc),
     ESP_ELFSYM_EXPORT(tt_preferences_free),
     ESP_ELFSYM_EXPORT(tt_preferences_opt_bool),
@@ -296,34 +284,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_preferences_put_bool),
     ESP_ELFSYM_EXPORT(tt_preferences_put_int32),
     ESP_ELFSYM_EXPORT(tt_preferences_put_string),
-    ESP_ELFSYM_EXPORT(tt_semaphore_alloc),
-    ESP_ELFSYM_EXPORT(tt_semaphore_free),
-    ESP_ELFSYM_EXPORT(tt_semaphore_acquire),
-    ESP_ELFSYM_EXPORT(tt_semaphore_release),
-    ESP_ELFSYM_EXPORT(tt_semaphore_get_count),
-    ESP_ELFSYM_EXPORT(tt_thread_alloc),
-    ESP_ELFSYM_EXPORT(tt_thread_alloc_ext),
-    ESP_ELFSYM_EXPORT(tt_thread_free),
-    ESP_ELFSYM_EXPORT(tt_thread_set_name),
-    ESP_ELFSYM_EXPORT(tt_thread_set_stack_size),
-    ESP_ELFSYM_EXPORT(tt_thread_set_affinity),
-    ESP_ELFSYM_EXPORT(tt_thread_set_callback),
-    ESP_ELFSYM_EXPORT(tt_thread_set_priority),
-    ESP_ELFSYM_EXPORT(tt_thread_set_state_callback),
-    ESP_ELFSYM_EXPORT(tt_thread_get_state),
-    ESP_ELFSYM_EXPORT(tt_thread_start),
-    ESP_ELFSYM_EXPORT(tt_thread_join),
-    ESP_ELFSYM_EXPORT(tt_thread_get_id),
-    ESP_ELFSYM_EXPORT(tt_thread_get_return_code),
-    ESP_ELFSYM_EXPORT(tt_timer_alloc),
-    ESP_ELFSYM_EXPORT(tt_timer_free),
-    ESP_ELFSYM_EXPORT(tt_timer_start),
-    ESP_ELFSYM_EXPORT(tt_timer_restart),
-    ESP_ELFSYM_EXPORT(tt_timer_stop),
-    ESP_ELFSYM_EXPORT(tt_timer_is_running),
-    ESP_ELFSYM_EXPORT(tt_timer_get_expire_time),
-    ESP_ELFSYM_EXPORT(tt_timer_set_pending_callback),
-    ESP_ELFSYM_EXPORT(tt_timer_set_thread_priority),
     ESP_ELFSYM_EXPORT(tt_timezone_set),
     ESP_ELFSYM_EXPORT(tt_timezone_get_name),
     ESP_ELFSYM_EXPORT(tt_timezone_get_code),
@@ -351,6 +311,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_event_get_target_obj),
     ESP_ELFSYM_EXPORT(lv_event_get_target),
     ESP_ELFSYM_EXPORT(lv_event_get_current_target_obj),
+    ESP_ELFSYM_EXPORT(lv_event_get_draw_task),
     // lv_obj
     ESP_ELFSYM_EXPORT(lv_color_hex),
     ESP_ELFSYM_EXPORT(lv_color_make),
@@ -448,6 +409,11 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_obj_set_size),
     ESP_ELFSYM_EXPORT(lv_obj_set_width),
     ESP_ELFSYM_EXPORT(lv_obj_set_height),
+    ESP_ELFSYM_EXPORT(lv_obj_send_event),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_color),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_width),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_pad),
+    ESP_ELFSYM_EXPORT(lv_obj_set_style_outline_opa),
     // lv_font
     ESP_ELFSYM_EXPORT(lv_font_get_default),
     // lv_theme
@@ -552,6 +518,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_display_get_vertical_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_physical_horizontal_resolution),
     ESP_ELFSYM_EXPORT(lv_display_get_physical_vertical_resolution),
+    ESP_ELFSYM_EXPORT(lv_display_dpx),
     // lv_pct
     ESP_ELFSYM_EXPORT(lv_pct),
     ESP_ELFSYM_EXPORT(lv_pct_to_px),
@@ -578,6 +545,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_indev_get_key),
     ESP_ELFSYM_EXPORT(lv_indev_get_gesture_dir),
     ESP_ELFSYM_EXPORT(lv_indev_get_state),
+    ESP_ELFSYM_EXPORT(lv_indev_active),
     // lv_timer
     ESP_ELFSYM_EXPORT(lv_timer_handler),
     ESP_ELFSYM_EXPORT(lv_timer_handler_run_in_period),
@@ -606,6 +574,43 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(lv_line_create),
     ESP_ELFSYM_EXPORT(lv_line_set_points),
     ESP_ELFSYM_EXPORT(lv_line_set_points_mutable),
+    // lv_group
+    ESP_ELFSYM_EXPORT(lv_group_remove_obj),
+    // lv_mem
+    ESP_ELFSYM_EXPORT(lv_free),
+    ESP_ELFSYM_EXPORT(lv_malloc),
+    // lv_draw
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_draw_dsc),
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_label_dsc),
+    ESP_ELFSYM_EXPORT(lv_draw_task_get_fill_dsc),
+    // lv_image
+    ESP_ELFSYM_EXPORT(lv_image_create),
+    ESP_ELFSYM_EXPORT(lv_image_set_src),
+    // stdio.h
+    ESP_ELFSYM_EXPORT(rename),
+    // dirent.h
+    ESP_ELFSYM_EXPORT(opendir),
+    ESP_ELFSYM_EXPORT(closedir),
+    ESP_ELFSYM_EXPORT(readdir),
+    // fcntl.h
+    ESP_ELFSYM_EXPORT(fcntl),
+    // lwip/sockets.h
+    ESP_ELFSYM_EXPORT(lwip_setsockopt),
+    ESP_ELFSYM_EXPORT(lwip_socket),
+    ESP_ELFSYM_EXPORT(lwip_recv),
+    ESP_ELFSYM_EXPORT(lwip_getpeername),
+    ESP_ELFSYM_EXPORT(lwip_bind),
+    ESP_ELFSYM_EXPORT(lwip_listen),
+    ESP_ELFSYM_EXPORT(lwip_close),
+    ESP_ELFSYM_EXPORT(lwip_accept),
+    ESP_ELFSYM_EXPORT(lwip_getsockname),
+    ESP_ELFSYM_EXPORT(lwip_send),
+    // sys/stat.h
+    ESP_ELFSYM_EXPORT(stat),
+    ESP_ELFSYM_EXPORT(mkdir),
+    // esp_netif.h
+    ESP_ELFSYM_EXPORT(esp_netif_get_ip_info),
+    ESP_ELFSYM_EXPORT(esp_netif_get_handle_from_ifkey),
     // delimiter
     ESP_ELFSYM_END
 };
@@ -629,9 +634,11 @@ uintptr_t tt_symbol_resolver(const char* symbolName) {
 #endif
         stl_symbols,
         cplusplus_symbols,
+        pthread_symbols,
+        freertos_symbols,
+        string_symbols,
         esp_event_symbols,
         esp_http_client_symbols,
-        pthread_symbols,
     };
 
     for (const auto* symbols : all_symbols) {

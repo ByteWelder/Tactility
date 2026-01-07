@@ -1,23 +1,23 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include "Tactility/lvgl/Statusbar.h"
-
-#include "Tactility/lvgl/Style.h"
-#include "Tactility/lvgl/LvglSync.h"
-
 #include <Tactility/kernel/SystemEvents.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/lvgl/Statusbar.h>
+#include <Tactility/lvgl/Style.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/settings/Time.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/TactilityCore.h>
 #include <Tactility/Timer.h>
-#include <Tactility/settings/Time.h>
 
 #include <lvgl.h>
-#include <Tactility/Tactility.h>
 
 namespace tt::lvgl {
 
-#define TAG "statusbar"
+static const auto LOGGER = Logger("statusbar");
 
 static void onUpdateTime();
 
@@ -28,10 +28,10 @@ struct StatusbarIcon {
 };
 
 struct StatusbarData {
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::shared_ptr<PubSub<void*>> pubsub = std::make_shared<PubSub<void*>>();
     StatusbarIcon icons[STATUSBAR_ICON_LIMIT] = {};
-    Timer* time_update_timer = new Timer(Timer::Type::Once, [] { onUpdateTime(); });
+    Timer* time_update_timer = new Timer(Timer::Type::Once, 200 / portTICK_PERIOD_MS, [] { onUpdateTime(); });
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
@@ -59,7 +59,9 @@ static TickType_t getNextUpdateTime() {
     time_t now = ::time(nullptr);
     tm* tm_struct = localtime(&now);
     uint32_t seconds_to_wait = 60U - tm_struct->tm_sec;
-    TT_LOG_D(TAG, "Update in %lu s", seconds_to_wait);
+    if (LOGGER.isLoggingDebug()) {
+        LOGGER.debug("Update in {} s", seconds_to_wait);
+    }
     return pdMS_TO_TICKS(seconds_to_wait * 1000U);
 }
 
@@ -74,12 +76,12 @@ static void onUpdateTime() {
             statusbar_data.time_set = true;
 
             // Reschedule
-            statusbar_data.time_update_timer->start(getNextUpdateTime());
+            statusbar_data.time_update_timer->reset(getNextUpdateTime());
 
             // Notify widget
             statusbar_data.pubsub->publish(nullptr);
         } else {
-            statusbar_data.time_update_timer->start(pdMS_TO_TICKS(60000U));
+            statusbar_data.time_update_timer->reset(pdMS_TO_TICKS(60000U));
         }
 
         statusbar_data.mutex.unlock();
@@ -102,21 +104,21 @@ static const lv_obj_class_t statusbar_class = {
 };
 
 static void statusbar_pubsub_event(Statusbar* statusbar) {
-    TT_LOG_D(TAG, "Update event");
+    if (LOGGER.isLoggingDebug()) {
+        LOGGER.debug("Update event");
+    }
     if (lock(defaultLockTime)) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
         unlock();
     } else {
-        TT_LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "Statusbar");
+        LOGGER.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "Statusbar");
     }
 }
 
 static void onTimeChanged(TT_UNUSED kernel::SystemEvent event) {
     if (statusbar_data.mutex.lock()) {
-        statusbar_data.time_update_timer->stop();
-        statusbar_data.time_update_timer->start(5);
-
+        statusbar_data.time_update_timer->reset(5);
         statusbar_data.mutex.unlock();
     }
 }
@@ -132,7 +134,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     });
 
     if (!statusbar_data.time_update_timer->isRunning()) {
-        statusbar_data.time_update_timer->start(200 / portTICK_PERIOD_MS);
+        statusbar_data.time_update_timer->start();
         statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
             kernel::SystemEvent::Time,
             onTimeChanged
@@ -155,7 +157,6 @@ static void update_icon(lv_obj_t* image, const StatusbarIcon* icon) {
 }
 
 lv_obj_t* statusbar_create(lv_obj_t* parent) {
-    LV_LOG_INFO("begin");
     lv_obj_t* obj = lv_obj_class_create_obj(&statusbar_class, parent);
     lv_obj_class_init_obj(obj);
 
@@ -178,7 +179,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_data.mutex.lock(portMAX_DELAY);
+    statusbar_data.mutex.lock(kernel::MAX_TICKS);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, STATUSBAR_ICON_SIZE, STATUSBAR_ICON_SIZE);
@@ -238,7 +239,9 @@ int8_t statusbar_icon_add(const std::string& image, bool visible) {
             statusbar_data.icons[i].visible = visible;
             statusbar_data.icons[i].image = image;
             result = i;
-            TT_LOG_D(TAG, "id %d: added", i);
+            if (LOGGER.isLoggingDebug()) {
+                LOGGER.debug("id {}: added", i);
+            }
             break;
         }
     }
@@ -252,7 +255,9 @@ int8_t statusbar_icon_add() {
 }
 
 void statusbar_icon_remove(int8_t id) {
-    TT_LOG_D(TAG, "id %d: remove", id);
+    if (LOGGER.isLoggingDebug()) {
+        LOGGER.debug("id {}: remove", id);
+    }
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_data.mutex.lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -264,7 +269,13 @@ void statusbar_icon_remove(int8_t id) {
 }
 
 void statusbar_icon_set_image(int8_t id, const std::string& image) {
-    TT_LOG_D(TAG, "id %d: set image %s", id, image.empty() ? "(none)" : image.c_str());
+    if (LOGGER.isLoggingDebug()) {
+        if (image.empty()) {
+            LOGGER.debug("id {}: set image (none)", id);
+        } else {
+            LOGGER.debug("id {}: set image {}", id, image);
+        }
+    }
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_data.mutex.lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];
@@ -275,7 +286,9 @@ void statusbar_icon_set_image(int8_t id, const std::string& image) {
 }
 
 void statusbar_icon_set_visibility(int8_t id, bool visible) {
-    TT_LOG_D(TAG, "id %d: set visibility %d", id, visible);
+    if (LOGGER.isLoggingDebug()) {
+        LOGGER.debug("id {}: set visibility {}", id, visible);
+    }
     tt_check(id >= 0 && id < STATUSBAR_ICON_LIMIT);
     statusbar_data.mutex.lock();
     StatusbarIcon* icon = &statusbar_data.icons[id];

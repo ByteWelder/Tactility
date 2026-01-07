@@ -3,18 +3,19 @@
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
 #include <Tactility/hal/sdcard/SdCardDevice.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
 #include <Tactility/MountPoints.h>
-#include <Tactility/kernel/Kernel.h>
+#include <Tactility/kernel/Platform.h>
 
 #include <cstring>
+#include <dirent.h>
 #include <unistd.h>
 #include <vector>
-#include <dirent.h>
 
 namespace tt::app::files {
 
-constexpr auto* TAG = "Files";
+static const auto LOGGER = Logger("Files");
 
 State::State() {
     if (kernel::getPlatform() == kernel::PlatformSimulator) {
@@ -22,7 +23,7 @@ State::State() {
         if (getcwd(cwd, sizeof(cwd)) != nullptr) {
             setEntriesForPath(cwd);
         } else {
-            TT_LOG_E(TAG, "Failed to get current work directory files");
+            LOGGER.error("Failed to get current work directory files");
             setEntriesForPath("/");
         }
     } else {
@@ -37,11 +38,11 @@ std::string State::getSelectedChildPath() const {
 bool State::setEntriesForPath(const std::string& path) {
     auto lock = mutex.asScopedLock();
     if (!lock.lock(100)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "setEntriesForPath");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "setEntriesForPath");
         return false;
     }
 
-    TT_LOG_I(TAG, "Changing path: %s -> %s", current_path.c_str(), path.c_str());
+    LOGGER.info("Changing path: {} -> {}", current_path, path);
 
     /**
      * On PC, the root entry point ("/") is a folder.
@@ -49,7 +50,7 @@ bool State::setEntriesForPath(const std::string& path) {
      */
     bool get_mount_points = (kernel::getPlatform() == kernel::PlatformEsp) && (path == "/");
     if (get_mount_points) {
-        TT_LOG_I(TAG, "Setting custom root");
+        LOGGER.info("Setting custom root");
         dir_entries = file::getMountPoints();
         current_path = path;
         selected_child_entry = "";
@@ -59,13 +60,13 @@ bool State::setEntriesForPath(const std::string& path) {
         dir_entries.clear();
         int count = file::scandir(path, dir_entries, &file::direntFilterDotEntries, file::direntSortAlphaAndType);
         if (count >= 0) {
-            TT_LOG_I(TAG, "%s has %u entries", path.c_str(), count);
+            LOGGER.info("{} has {} entries", path, count);
             current_path = path;
             selected_child_entry = "";
             action = ActionNone;
             return true;
         } else {
-            TT_LOG_E(TAG, "Failed to fetch entries for %s", path.c_str());
+            LOGGER.error("Failed to fetch entries for {}", path);
             return false;
         }
     }
@@ -73,7 +74,7 @@ bool State::setEntriesForPath(const std::string& path) {
 
 bool State::setEntriesForChildPath(const std::string& childPath) {
     auto path = file::getChildPath(current_path, childPath);
-    TT_LOG_I(TAG, "Navigating from %s to %s", current_path.c_str(), path.c_str());
+    LOGGER.info("Navigating from {} to {}", current_path, path);
     return setEntriesForPath(path);
 }
 
@@ -90,4 +91,5 @@ bool State::getDirent(uint32_t index, dirent& dirent) {
         return false;
     }
 }
+
 }

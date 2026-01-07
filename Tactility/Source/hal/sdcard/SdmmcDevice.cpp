@@ -5,7 +5,7 @@
 #if defined(ESP_PLATFORM) && defined(SOC_SDMMC_HOST_SUPPORTED)
 
 #include <Tactility/hal/sdcard/SdmmcDevice.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 
 #include <esp_vfs_fat.h>
 #include <sdmmc_cmd.h>
@@ -13,10 +13,10 @@
 
 namespace tt::hal::sdcard {
 
-constexpr auto* TAG = "SdmmcDevice";
+static const auto LOGGER = Logger("SdmmcDevice");
 
 bool SdmmcDevice::mountInternal(const std::string& newMountPath) {
-    TT_LOG_I(TAG, "Mounting %s", newMountPath.c_str());
+    LOGGER.info("Mounting {}", newMountPath);
 
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = config->formatOnMountFailed,
@@ -49,9 +49,9 @@ bool SdmmcDevice::mountInternal(const std::string& newMountPath) {
 
     if (result != ESP_OK || card == nullptr) {
         if (result == ESP_FAIL) {
-            TT_LOG_E(TAG, "Mounting failed. Ensure the card is formatted with FAT.");
+            LOGGER.error("Mounting failed. Ensure the card is formatted with FAT.");
         } else {
-            TT_LOG_E(TAG, "Mounting failed (%s)", esp_err_to_name(result));
+            LOGGER.error("Mounting failed ({})", esp_err_to_name(result));
         }
         return false;
     }
@@ -66,11 +66,11 @@ bool SdmmcDevice::mount(const std::string& newMountPath) {
     lock.lock();
 
     if (mountInternal(newMountPath)) {
-        TT_LOG_I(TAG, "Mounted at %s", newMountPath.c_str());
+        LOGGER.info("Mounted at {}", newMountPath);
         sdmmc_card_print_info(stdout, card);
         return true;
     } else {
-        TT_LOG_E(TAG, "Mount failed for %s", newMountPath.c_str());
+        LOGGER.error("Mount failed for {}", newMountPath);
         return false;
     }
 }
@@ -80,16 +80,16 @@ bool SdmmcDevice::unmount() {
     lock.lock();
 
     if (card == nullptr) {
-        TT_LOG_E(TAG, "Can't unmount: not mounted");
+        LOGGER.error("Can't unmount: not mounted");
         return false;
     }
 
     if (esp_vfs_fat_sdcard_unmount(mountPath.c_str(), card) != ESP_OK) {
-        TT_LOG_E(TAG, "Unmount failed for %s", mountPath.c_str());
+        LOGGER.error("Unmount failed for {}", mountPath);
         return false;
     }
 
-    TT_LOG_I(TAG, "Unmounted %s", mountPath.c_str());
+    LOGGER.info("Unmounted {}", mountPath);
     mountPath = "";
     card = nullptr;
     return true;

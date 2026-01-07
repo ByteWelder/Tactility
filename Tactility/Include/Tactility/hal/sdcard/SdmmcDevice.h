@@ -4,14 +4,13 @@
 
 #include "SdCardDevice.h"
 
+#include <Tactility/RecursiveMutex.h>
+#include <Tactility/hal/Device.h>
 #include <Tactility/hal/spi/Spi.h>
-
 #include <sd_protocol_types.h>
+#include <soc/gpio_num.h>
 #include <utility>
 #include <vector>
-#include <Tactility/hal/Device.h>
-#include <hal/spi_types.h>
-#include <soc/gpio_num.h>
 
 namespace tt::hal::sdcard {
 
@@ -20,7 +19,7 @@ namespace tt::hal::sdcard {
  */
 class SdmmcDevice final : public SdCardDevice {
 
-    std::shared_ptr<Mutex> mutex = std::make_shared<Mutex>(Mutex::Type::Recursive);
+    std::shared_ptr<RecursiveMutex> mutex = std::make_shared<RecursiveMutex>();
 
 public:
 

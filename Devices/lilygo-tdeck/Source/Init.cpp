@@ -1,14 +1,21 @@
 #include "PwmBacklight.h"
-#include "Tactility/kernel/SystemEvents.h"
-#include "Tactility/service/gps/GpsService.h"
+#include "devices/KeyboardBacklight.h"
+#include "devices/TrackballDevice.h"
 
-#include <Tactility/TactilityCore.h>
 #include <Tactility/hal/gps/GpsConfiguration.h>
+#include <Tactility/kernel/SystemEvents.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/service/gps/GpsService.h>
+#include <Tactility/settings/KeyboardSettings.h>
+#include <Trackball/Trackball.h>
 
-#define TAG "tdeck"
+#include <KeyboardBacklight/KeyboardBacklight.h>
+
+static const auto LOGGER = tt::Logger("T-Deck");
 
 // Power on
-#define TDECK_POWERON_GPIO GPIO_NUM_10
+constexpr auto TDECK_POWERON_GPIO = GPIO_NUM_10;
 
 static bool powerOn() {
     gpio_config_t device_power_signal_config = {
@@ -31,9 +38,9 @@ static bool powerOn() {
 }
 
 bool initBoot() {
-    ESP_LOGI(TAG, LOG_MESSAGE_POWER_ON_START);
+    LOGGER.info(LOG_MESSAGE_POWER_ON_START);
     if (!powerOn()) {
-        TT_LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
+        LOGGER.error(LOG_MESSAGE_POWER_ON_FAILED);
         return false;
     }
 
@@ -41,7 +48,7 @@ bool initBoot() {
      * when moving the brightness slider rapidly from a lower setting to 100%.
      * This is not a slider bug (data was debug-traced) */
     if (!driver::pwmbacklight::init(GPIO_NUM_42, 30000)) {
-        TT_LOG_E(TAG, "Backlight init failed");
+        LOGGER.error("Backlight init failed");
         return false;
     }
 
@@ -52,12 +59,52 @@ bool initBoot() {
             gps_service->getGpsConfigurations(gps_configurations);
             if (gps_configurations.empty()) {
                 if (gps_service->addGpsConfiguration(tt::hal::gps::GpsConfiguration {.uartName = "Grove", .baudRate = 38400, .model = tt::hal::gps::GpsModel::UBLOX10})) {
-                    TT_LOG_I(TAG, "Configured internal GPS");
+                    LOGGER.info("Configured internal GPS");
                 } else {
-                    TT_LOG_E(TAG, "Failed to configure internal GPS");
+                    LOGGER.error("Failed to configure internal GPS");
                 }
             }
         }
     });
+
+    tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
+        auto kbBacklight = tt::hal::findDevice("Keyboard Backlight");
+        if (kbBacklight != nullptr) {
+            LOGGER.info("{} starting", kbBacklight->getName());
+            auto kbDevice = std::static_pointer_cast<KeyboardBacklightDevice>(kbBacklight);
+            if (kbDevice->start()) {
+                LOGGER.info("{} started", kbBacklight->getName());
+            } else {
+                LOGGER.error("{} start failed", kbBacklight->getName());
+            }
+        }
+
+        auto trackball = tt::hal::findDevice("Trackball");
+        if (trackball != nullptr) {
+            LOGGER.info("{} starting", trackball->getName());
+            auto tbDevice = std::static_pointer_cast<TrackballDevice>(trackball);
+            if (tbDevice->start()) {
+                LOGGER.info("{} started", trackball->getName());
+            } else {
+                LOGGER.error("{} start failed", trackball->getName());
+            }
+        }
+
+        // Backlight doesn't seem to turn on until toggled on and off from keyboard settings...
+        // Or let the display and backlight sleep then wake it up.
+        // Then it works fine...until reboot, then you need to toggle again.
+        // The current keyboard firmware sets backlight duty to 0 on boot.
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/firmware/T-Keyboard_Keyboard_ESP32C3_250620.bin
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/Keyboard_ESP32C3/Keyboard_ESP32C3.ino#L25
+        // https://github.com/Xinyuan-LilyGO/T-Deck/blob/master/examples/Keyboard_ESP32C3/Keyboard_ESP32C3.ino#L217
+        auto kbSettings = tt::settings::keyboard::loadOrGetDefault();
+        bool result = keyboardbacklight::setBrightness(kbSettings.backlightEnabled ? kbSettings.backlightBrightness : 0);
+        if (!result) {
+            LOGGER.warn("Failed to set keyboard backlight brightness");
+        }
+
+        trackball::setEnabled(kbSettings.trackballEnabled);
+    });
+
     return true;
 }

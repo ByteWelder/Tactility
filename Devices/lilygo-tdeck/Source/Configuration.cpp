@@ -1,7 +1,9 @@
 #include "devices/Display.h"
+#include "devices/KeyboardBacklight.h"
 #include "devices/Power.h"
 #include "devices/Sdcard.h"
 #include "devices/TdeckKeyboard.h"
+#include "devices/TrackballDevice.h"
 
 #include <Tactility/hal/Configuration.h>
 #include <Tactility/lvgl/LvglSync.h>
@@ -15,6 +17,8 @@ static std::vector<std::shared_ptr<Device>> createDevices() {
         createPower(),
         createDisplay(),
         std::make_shared<TdeckKeyboard>(),
+        std::make_shared<KeyboardBacklightDevice>(),
+        std::make_shared<TrackballDevice>(),
         createSdCard()
     };
 }

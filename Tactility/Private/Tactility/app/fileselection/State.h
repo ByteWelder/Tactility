@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <string>
 #include <vector>
@@ -10,7 +10,7 @@ namespace tt::app::fileselection {
 
 class State final {
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::vector<dirent> dir_entries;
     std::string current_path;
     std::string selected_child_entry;

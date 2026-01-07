@@ -4,6 +4,7 @@
 
 #if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
 
+#include <Tactility/Logger.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/service/espnow/EspNowService.h>
 #include <Tactility/service/ServiceManifest.h>
@@ -18,10 +19,10 @@ namespace tt::service::espnow {
 
 extern const ServiceManifest manifest;
 
-constexpr const char* TAG = "EspNowService";
-constexpr TickType_t MAX_DELAY = 1000U / portTICK_PERIOD_MS;
+static const auto LOGGER = Logger("EspNowService");
 static uint8_t BROADCAST_MAC[ESP_NOW_ETH_ALEN];
 
+constexpr TickType_t MAX_DELAY = 1000U / portTICK_PERIOD_MS;
 constexpr bool isBroadcastAddress(uint8_t address[ESP_NOW_ETH_ALEN]) { return memcmp(address, BROADCAST_MAC, ESP_NOW_ETH_ALEN) == 0; }
 
 bool EspNowService::onStart(ServiceContext& service) {
@@ -45,7 +46,7 @@ void EspNowService::onStop(ServiceContext& service) {
 // region Enable
 
 void EspNowService::enable(const EspNowConfig& config) {
-    getMainDispatcher().dispatch([this, config]() {
+    getMainDispatcher().dispatch([this, config] {
         enableFromDispatcher(config);
     });
 }
@@ -59,17 +60,17 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
     }
 
     if (!initWifi(config)) {
-        TT_LOG_E(TAG, "initWifi() failed");
+        LOGGER.error("initWifi() failed");
         return;
     }
 
     if (esp_now_init() != ESP_OK) {
-        TT_LOG_E(TAG, "esp_now_init() failed");
+        LOGGER.error("esp_now_init() failed");
         return;
     }
 
     if (esp_now_register_recv_cb(receiveCallback) != ESP_OK) {
-        TT_LOG_E(TAG, "esp_now_register_recv_cb() failed");
+        LOGGER.error("esp_now_register_recv_cb() failed");
         return;
     }
 
@@ -79,7 +80,7 @@ void EspNowService::enableFromDispatcher(const EspNowConfig& config) {
 //#endif
 
     if (esp_now_set_pmk(config.masterKey) != ESP_OK) {
-        TT_LOG_E(TAG, "esp_now_set_pmk() failed");
+        LOGGER.error("esp_now_set_pmk() failed");
         return;
     }
 
@@ -111,11 +112,11 @@ void EspNowService::disableFromDispatcher() {
     }
 
     if (esp_now_deinit() != ESP_OK) {
-        TT_LOG_E(TAG, "esp_now_deinit() failed");
+        LOGGER.error("esp_now_deinit() failed");
     }
 
     if (!deinitWifi()) {
-        TT_LOG_E(TAG, "deinitWifi() failed");
+        LOGGER.error("deinitWifi() failed");
     }
 
     enabled = false;
@@ -128,7 +129,7 @@ void EspNowService::disableFromDispatcher() {
 void EspNowService::receiveCallback(const esp_now_recv_info_t* receiveInfo, const uint8_t* data, int length) {
     auto service = findService();
     if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not running");
+        LOGGER.error("Service not running");
         return;
     }
     service->onReceive(receiveInfo, data, length);
@@ -138,7 +139,7 @@ void EspNowService::onReceive(const esp_now_recv_info_t* receiveInfo, const uint
     auto lock = mutex.asScopedLock();
     lock.lock();
 
-    TT_LOG_D(TAG, "Received %d bytes", length);
+    LOGGER.debug("Received {} bytes", length);
 
     for (const auto& item: subscriptions) {
         item.onReceive(receiveInfo, data, length);
@@ -155,10 +156,10 @@ bool EspNowService::isEnabled() const {
 
 bool EspNowService::addPeer(const esp_now_peer_info_t& peer) {
     if (esp_now_add_peer(&peer) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to add peer");
+        LOGGER.error("Failed to add peer");
         return false;
     } else {
-        TT_LOG_I(TAG, "Peer added");
+        LOGGER.info("Peer added");
         return true;
     }
 }
@@ -188,7 +189,7 @@ ReceiverSubscription EspNowService::subscribeReceiver(std::function<void(const e
     return id;
 }
 
-void EspNowService::unsubscribeReceiver(tt::service::espnow::ReceiverSubscription subscriptionId) {
+void EspNowService::unsubscribeReceiver(ReceiverSubscription subscriptionId) {
     auto lock = mutex.asScopedLock();
     lock.lock();
     std::erase_if(subscriptions, [subscriptionId](auto& subscription) { return subscription.id == subscriptionId; });
@@ -196,7 +197,7 @@ void EspNowService::unsubscribeReceiver(tt::service::espnow::ReceiverSubscriptio
 
 std::shared_ptr<EspNowService> findService() {
     return std::static_pointer_cast<EspNowService>(
-        service::findServiceById(manifest.id)
+        findServiceById(manifest.id)
     );
 }
 

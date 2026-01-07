@@ -1,4 +1,6 @@
 #include <Tactility/Tactility.h>
+
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
@@ -7,8 +9,7 @@
 
 namespace tt::service::memorychecker {
 
-constexpr const char* TAG = "MemoryChecker";
-constexpr TickType_t TIMER_UPDATE_INTERVAL = 1000U / portTICK_PERIOD_MS;
+static const auto LOGGER = Logger("MemoryChecker");
 
 // Total memory (in bytes) that should be free before warnings occur
 constexpr auto TOTAL_FREE_THRESHOLD = 10'000;
@@ -37,13 +38,13 @@ static bool isMemoryLow() {
     bool memory_low = false;
     const auto total_free = getInternalFree();
     if (total_free < TOTAL_FREE_THRESHOLD) {
-        TT_LOG_W(TAG, "Internal memory low: %zu bytes", total_free);
+        LOGGER.warn("Internal memory low: {} bytes", total_free);
         memory_low = true;
     }
 
     const auto largest_block = getInternalLargestFreeBlock();
     if (largest_block < LARGEST_FREE_BLOCK_THRESHOLD) {
-        TT_LOG_W(TAG, "Largest free internal memory block is %zu bytes", largest_block);
+        LOGGER.warn("Largest free internal memory block is {} bytes", largest_block);
         memory_low = true;
     }
 
@@ -58,8 +59,8 @@ bool MemoryCheckerService::onStart(ServiceContext& service) {
     statusbarIconId = lvgl::statusbar_icon_add(icon_path, false);
     lvgl::statusbar_icon_set_visibility(statusbarIconId, false);
 
-    timer.setThreadPriority(Thread::Priority::Lower);
-    timer.start(TIMER_UPDATE_INTERVAL);
+    timer.setCallbackPriority(Thread::Priority::Lower);
+    timer.start();
 
     return true;
 }

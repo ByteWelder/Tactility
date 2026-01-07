@@ -2,6 +2,8 @@
 
 #ifdef ESP_PLATFORM
 #include <tt_init.h>
+#else
+#include <Simulator.h>
 #endif
 
 // Each board project declares this variable

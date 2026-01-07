@@ -1,25 +1,26 @@
 #ifdef ESP_PLATFORM
 
-#include "Tactility/hal/uart/UartEsp.h"
+#include <Tactility/hal/uart/UartEsp.h>
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
+#include <Tactility/kernel/Kernel.h>
 #include <Tactility/Mutex.h>
 
-#include <sstream>
 #include <esp_check.h>
-
-#define TAG "uart"
+#include <sstream>
 
 namespace tt::hal::uart {
 
+static const auto LOGGER = Logger("UART");
+
 bool UartEsp::start() {
-    TT_LOG_I(TAG, "[%s] Starting", configuration.name.c_str());
+    LOGGER.info("[{}] Starting", configuration.name);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (started) {
-        TT_LOG_E(TAG, "[%s] Starting: Already started", configuration.name.c_str());
+        LOGGER.error("[{}] Starting: Already started", configuration.name);
         return false;
     }
 
@@ -32,53 +33,53 @@ bool UartEsp::start() {
 
     esp_err_t result = uart_param_config(configuration.port, &configuration.config);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "[%s] Starting: Failed to configure: %s", configuration.name.c_str(), esp_err_to_name(result));
+        LOGGER.error("[{}] Starting: Failed to configure: {}", configuration.name, esp_err_to_name(result));
         return false;
     }
 
     if (uart_is_driver_installed(configuration.port)) {
-        TT_LOG_W(TAG, "[%s] Driver was still installed. You probably forgot to stop, or another system uses/used the driver.", configuration.name.c_str());
+        LOGGER.error("[{}] Driver was still installed. You probably forgot to stop, or another system uses/used the driver.", configuration.name);
         uart_driver_delete(configuration.port);
     }
 
     result = uart_set_pin(configuration.port, configuration.txPin, configuration.rxPin, configuration.rtsPin, configuration.ctsPin);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "[%s] Starting: Failed set pins: %s", configuration.name.c_str(), esp_err_to_name(result));
+        LOGGER.error("[{}] Starting: Failed set pins: {}", configuration.name, esp_err_to_name(result));
         return false;
     }
 
     result = uart_driver_install(configuration.port, (int)configuration.rxBufferSize, (int)configuration.txBufferSize, 0, nullptr, intr_alloc_flags);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "[%s] Starting: Failed to install driver: %s", configuration.name.c_str(), esp_err_to_name(result));
+        LOGGER.error("[{}] Starting: Failed to install driver: {}", configuration.name, esp_err_to_name(result));
         return false;
     }
 
     started = true;
 
-    TT_LOG_I(TAG, "[%s] Started", configuration.name.c_str());
+    LOGGER.info("[{}] Started", configuration.name);
     return true;
 }
 
 bool UartEsp::stop() {
-    TT_LOG_I(TAG, "[%s] Stopping", configuration.name.c_str());
+    LOGGER.info("[{}] Stopping", configuration.name);
 
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (!started) {
-        TT_LOG_E(TAG, "[%s] Stopping: Not started", configuration.name.c_str());
+        LOGGER.error("[{}] Stopping: Not started", configuration.name);
         return false;
     }
 
     esp_err_t result = uart_driver_delete(configuration.port);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "[%s] Stopping: Failed to delete driver: %s", configuration.name.c_str(), esp_err_to_name(result));
+        LOGGER.error("[{}] Stopping: Failed to delete driver: {}", configuration.name, esp_err_to_name(result));
         return false;
     }
 
     started = false;
 
-    TT_LOG_I(TAG, "[%s] Stopped", configuration.name.c_str());
+    LOGGER.info("[{}] Stopped", configuration.name);
     return true;
 }
 

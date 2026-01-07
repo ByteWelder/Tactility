@@ -1,11 +1,11 @@
-#include "Tactility/TactilityConfig.h"
+#include <Tactility/TactilityConfig.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 
 #pragma once
 
 #include <Tactility/Thread.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 
 namespace tt::service::screenshot {
 
@@ -22,7 +22,7 @@ class ScreenshotTask {
     };
 
     Thread* thread = nullptr;
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     bool interrupted = false;
     bool finished = false;
     ScreenshotTaskWork work;

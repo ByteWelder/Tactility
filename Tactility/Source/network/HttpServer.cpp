@@ -1,11 +1,13 @@
 #ifdef ESP_PLATFORM
 
 #include <Tactility/network/HttpServer.h>
+
+#include <Tactility/Logger.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 namespace tt::network {
 
-constexpr auto* TAG = "HttpServer";
+static const auto LOGGER = Logger("HttpServer");
 
 bool HttpServer::startInternal() {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -14,7 +16,7 @@ bool HttpServer::startInternal() {
     config.uri_match_fn = matchUri;
 
     if (httpd_start(&server, &config) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to start http server on port %lu", port);
+        LOGGER.error("Failed to start http server on port {}", port);
         return false;
     }
 
@@ -22,15 +24,15 @@ bool HttpServer::startInternal() {
         httpd_register_uri_handler(server, &handler);
     }
 
-    TT_LOG_I(TAG, "Started on port %lu", config.server_port);
+    LOGGER.info("Started on port {}", config.server_port);
 
     return true;
 }
 
 void HttpServer::stopInternal() {
-    TT_LOG_I(TAG, "Stopping server");
+    LOGGER.info("Stopping server");
     if (server != nullptr && httpd_stop(server) != ESP_OK) {
-        TT_LOG_W(TAG, "Error while stopping");
+        LOGGER.warn("Error while stopping");
         server = nullptr;
     }
 }
@@ -47,7 +49,7 @@ void HttpServer::stop() {
     lock.lock();
 
     if (!isStarted()) {
-        TT_LOG_W(TAG, "Not started");
+        LOGGER.warn("Not started");
     }
 
     stopInternal();

@@ -6,7 +6,6 @@
 
 class Bq24295 final : public tt::hal::i2c::I2cDevice {
 
-private:
 
     bool readChargeTermination(uint8_t& out) const;
 

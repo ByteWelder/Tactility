@@ -16,6 +16,8 @@ struct DisplaySettings {
     Orientation orientation;
     uint8_t gammaCurve;
     uint8_t backlightDuty;
+    bool backlightTimeoutEnabled;
+    uint32_t backlightTimeoutMs; // 0 = Never
 };
 
 /** Compares default settings with the function parameter to return the difference */

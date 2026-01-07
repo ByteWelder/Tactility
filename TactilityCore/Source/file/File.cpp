@@ -1,8 +1,10 @@
-#include "Tactility/file/File.h"
+#include <Tactility/file/File.h>
 
 #include <cstring>
 #include <fstream>
 #include <unistd.h>
+
+#include <Tactility/Logger.h>
 #include <Tactility/StringUtils.h>
 
 namespace tt::hal::sdcard {
@@ -11,11 +13,11 @@ class SdCardDevice;
 
 namespace tt::file {
 
-constexpr auto* TAG = "file";
+static const auto LOGGER = Logger("file");
 
 class NoLock final : public Lock {
     bool lock(TickType_t timeout) const override { return true; }
-    bool unlock() const override { return true; }
+    void unlock() const override { /* NO-OP */ }
 };
 
 static std::shared_ptr<Lock> noLock = std::make_shared<NoLock>();
@@ -23,7 +25,7 @@ static std::function<std::shared_ptr<Lock>(const std::string&)> findLockFunction
 
 std::shared_ptr<Lock> getLock(const std::string& path) {
     if (findLockFunction == nullptr) {
-        TT_LOG_W(TAG, "File lock function not set!");
+        LOGGER.warn("File lock function not set!");
         return noLock;
     }
 
@@ -69,10 +71,10 @@ bool listDirectory(
     auto lock = getLock(path)->asScopedLock();
     lock.lock();
 
-    TT_LOG_I(TAG, "listDir start %s", path.c_str());
+    LOGGER.info("listDir start {}", path);
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
-        TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
+        LOGGER.error("Failed to open dir {}", path);
         return false;
     }
 
@@ -83,7 +85,7 @@ bool listDirectory(
 
     closedir(dir);
 
-    TT_LOG_I(TAG, "listDir stop %s", path.c_str());
+    LOGGER.info("listDir stop {}", path);
     return true;
 }
 
@@ -96,10 +98,10 @@ int scandir(
     auto lock = getLock(path)->asScopedLock();
     lock.lock();
 
-    TT_LOG_I(TAG, "scandir start");
+    LOGGER.info("scandir start");
     DIR* dir = opendir(path.c_str());
     if (dir == nullptr) {
-        TT_LOG_E(TAG, "Failed to open dir %s", path.c_str());
+        LOGGER.error("Failed to open dir {}", path);
         return -1;
     }
 
@@ -116,7 +118,7 @@ int scandir(
         std::ranges::sort(outList, sortMethod);
     }
 
-    TT_LOG_I(TAG, "scandir finish");
+    LOGGER.info("scandir finish");
     return outList.size();
 }
 
@@ -125,18 +127,18 @@ long getSize(FILE* file) {
     long original_offset = ftell(file);
 
     if (fseek(file, 0, SEEK_END) != 0) {
-        TT_LOG_E(TAG, "fseek failed");
+        LOGGER.error("fseek failed");
         return -1;
     }
 
     long file_size = ftell(file);
     if (file_size == -1) {
-        TT_LOG_E(TAG, "Could not get file length");
+        LOGGER.error("Could not get file length");
         return -1;
     }
 
     if (fseek(file, original_offset, SEEK_SET) != 0) {
-        TT_LOG_E(TAG, "fseek Failed");
+        LOGGER.error("fseek Failed");
         return -1;
     }
 
@@ -152,26 +154,26 @@ static std::unique_ptr<uint8_t[]> readBinaryInternal(const std::string& filepath
     FILE* file = fopen(filepath.c_str(), "rb");
 
     if (file == nullptr) {
-        TT_LOG_E(TAG, "Failed to open %s", filepath.c_str());
+        LOGGER.error("Failed to open {}", filepath);
         return nullptr;
     }
 
     long content_length = getSize(file);
     if (content_length == -1) {
-        TT_LOG_E(TAG, "Failed to determine content length for %s", filepath.c_str());
+        LOGGER.error("Failed to determine content length for {}", filepath);
         return nullptr;
     }
 
     auto data = std::make_unique<uint8_t[]>(content_length + sizePadding);
     if (data == nullptr) {
-        TT_LOG_E(TAG, "Insufficient memory. Failed to allocate %ldl bytes.", content_length);
+        LOGGER.error("Insufficient memory. Failed to allocate {} bytes.", content_length);
         return nullptr;
     }
 
     size_t buffer_offset = 0;
     while (buffer_offset < content_length) {
         size_t bytes_read = fread(&data.get()[buffer_offset], 1, content_length - buffer_offset, file);
-        TT_LOG_D(TAG, "Read %d bytes", bytes_read);
+        LOGGER.debug("Read {} bytes", bytes_read);
         if (bytes_read > 0) {
             buffer_offset += bytes_read;
         } else { // Something went wrong?
@@ -268,7 +270,7 @@ bool findOrCreateDirectory(const std::string& path, mode_t mode) {
     if (path.empty()) {
         return true;
     }
-    TT_LOG_D(TAG, "findOrCreate: %s %lu", path.c_str(), mode);
+    LOGGER.debug("findOrCreate: {} {}", path, mode);
 
     const char separator_to_find[] = {SEPARATOR, 0x00};
     auto first_index = path[0] == SEPARATOR ? 1 : 0;
@@ -280,10 +282,10 @@ bool findOrCreateDirectory(const std::string& path, mode_t mode) {
         auto to_create = is_last_segment ? path : path.substr(0, separator_index);
         should_break = is_last_segment;
         if (!findOrCreateDirectoryInternal(to_create, mode)) {
-            TT_LOG_E(TAG, "Failed to create %s", to_create.c_str());
+            LOGGER.error("Failed to create {}", to_create);
             return false;
         } else {
-            TT_LOG_D(TAG, "  - got: %s", to_create.c_str());
+            LOGGER.debug("  - got: {}", to_create);
         }
 
         // Find next file separator index
@@ -309,7 +311,7 @@ bool deleteRecursively(const std::string& path) {
     if (isDirectory(path)) {
         std::vector<dirent> entries;
         if (scandir(path, entries) < 0) {
-            TT_LOG_E(TAG, "Failed to scan directory %s", path.c_str());
+            LOGGER.error("Failed to scan directory {}", path);
             return false;
         }
 
@@ -319,16 +321,16 @@ bool deleteRecursively(const std::string& path) {
                 return false;
             }
         }
-        TT_LOG_I(TAG, "Deleting %s", path.c_str());
+        LOGGER.info("Deleting {}", path);
         return deleteDirectory(path);
     } else if (isFile(path)) {
-        TT_LOG_I(TAG, "Deleting %s", path.c_str());
+        LOGGER.info("Deleting {}", path);
         return deleteFile(path);
     } else if (path == "/" || path == "." || path == "..") {
         // No-op
         return true;
     } else {
-        TT_LOG_E(TAG, "Failed to delete \"%s\": unknown type", path.c_str());
+        LOGGER.error("Failed to delete \"{}\": unknown type", path);
         return false;
     }
 }

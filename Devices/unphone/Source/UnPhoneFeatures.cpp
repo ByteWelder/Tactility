@@ -1,12 +1,15 @@
 #include "UnPhoneFeatures.h"
 
+#include <Tactility/Logger.h>
 #include <Tactility/app/App.h>
-#include <Tactility/Log.h>
 #include <Tactility/kernel/Kernel.h>
 
 #include <driver/gpio.h>
 #include <driver/rtc_io.h>
+#include <esp_io_expander.h>
 #include <esp_sleep.h>
+
+static const auto LOGGER = tt::Logger("unPhoneFeatures");
 
 namespace pin {
     static const gpio_num_t BUTTON1 = GPIO_NUM_45; // left button
@@ -26,8 +29,6 @@ namespace expanderpin {
     static const esp_io_expander_pin_num_t VIBE = IO_EXPANDER_PIN_NUM_7;
 } // namespace expanderpin
 
-#define TAG "unhpone_features"
-
 // TODO: Make part of a new type of UnPhoneFeatures data struct that holds all the thread-related data
 QueueHandle_t interruptQueue;
 
@@ -36,13 +37,12 @@ static void IRAM_ATTR navButtonInterruptHandler(void* args) {
     xQueueSendFromISR(interruptQueue, &pinNumber, NULL);
 }
 
-static int32_t buttonHandlingThreadMain(void* context) {
-    auto* interrupted = (bool*)context;
+static int32_t buttonHandlingThreadMain(const bool* interrupted) {
     int pinNumber;
     while (!*interrupted) {
         if (xQueueReceive(interruptQueue, &pinNumber, portMAX_DELAY)) {
             // The buttons might generate more than 1 click because of how they are built
-            TT_LOG_I(TAG, "Pressed button %d", pinNumber);
+            LOGGER.info("Pressed button {}", pinNumber);
             if (pinNumber == pin::BUTTON1) {
                 tt::app::stop();
             }
@@ -75,7 +75,7 @@ bool UnPhoneFeatures::initPowerSwitch() {
     };
 
     if (gpio_config(&config) != ESP_OK) {
-        TT_LOG_E(TAG, "Power pin init failed");
+        LOGGER.error("Power pin init failed");
         return false;
     }
 
@@ -83,14 +83,14 @@ bool UnPhoneFeatures::initPowerSwitch() {
         rtc_gpio_pulldown_en(pin::POWER_SWITCH) == ESP_OK) {
         return true;
     } else {
-        TT_LOG_E(TAG, "Failed to set RTC for power switch");
+        LOGGER.error("Failed to set RTC for power switch");
         return false;
     }
 }
 
 bool UnPhoneFeatures::initNavButtons() {
     if (!initGpioExpander()) {
-        TT_LOG_E(TAG, "GPIO expander init failed");
+        LOGGER.error("GPIO expander init failed");
         return false;
     }
 
@@ -99,7 +99,11 @@ bool UnPhoneFeatures::initNavButtons() {
     buttonHandlingThread.setName("unphone_buttons");
     buttonHandlingThread.setPriority(tt::Thread::Priority::High);
     buttonHandlingThread.setStackSize(3072);
-    buttonHandlingThread.setCallback(buttonHandlingThreadMain, &buttonHandlingThreadInterruptRequest);
+    buttonHandlingThread.setMainFunction(
+        [this] {
+            return buttonHandlingThreadMain(&this->buttonHandlingThreadInterruptRequest);
+        }
+    );
     buttonHandlingThread.start();
 
     uint64_t pin_mask =
@@ -121,17 +125,17 @@ bool UnPhoneFeatures::initNavButtons() {
     };
 
     if (gpio_config(&config) != ESP_OK) {
-        TT_LOG_E(TAG, "Nav button pin init failed");
+        LOGGER.error("Nav button pin init failed");
         return false;
     }
 
     if (
         gpio_install_isr_service(0) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON1, navButtonInterruptHandler, (void*)pin::BUTTON1) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON2, navButtonInterruptHandler, (void*)pin::BUTTON2) != ESP_OK ||
-        gpio_isr_handler_add(pin::BUTTON3, navButtonInterruptHandler, (void*)pin::BUTTON3) != ESP_OK
+        gpio_isr_handler_add(pin::BUTTON1, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON1)) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON2, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON2)) != ESP_OK ||
+        gpio_isr_handler_add(pin::BUTTON3, navButtonInterruptHandler, reinterpret_cast<void*>(pin::BUTTON3)) != ESP_OK
     ) {
-        TT_LOG_E(TAG, "Nav buttons ISR init failed");
+        LOGGER.error("Nav buttons ISR init failed");
         return false;
     }
 
@@ -152,7 +156,7 @@ bool UnPhoneFeatures::initOutputPins() {
     };
 
     if (gpio_config(&config) != ESP_OK) {
-        TT_LOG_E(TAG, "Output pin init failed");
+        LOGGER.error("Output pin init failed");
         return false;
     }
 
@@ -163,7 +167,7 @@ bool UnPhoneFeatures::initGpioExpander() {
     // ESP_IO_EXPANDER_I2C_TCA9555_ADDRESS_110 corresponds with 0x26 from the docs at
     // https://gitlab.com/hamishcunningham/unphonelibrary/-/blob/main/unPhone.h?ref_type=heads#L206
     if (esp_io_expander_new_i2c_tca95xx_16bit(I2C_NUM_0, ESP_IO_EXPANDER_I2C_TCA9555_ADDRESS_110, &ioExpander) != ESP_OK) {
-        TT_LOG_E(TAG, "IO expander init failed");
+        LOGGER.error("IO expander init failed");
         return false;
     }
     assert(ioExpander != nullptr);
@@ -197,25 +201,25 @@ bool UnPhoneFeatures::initGpioExpander() {
 }
 
 bool UnPhoneFeatures::init() {
-    TT_LOG_I(TAG, "init");
+    LOGGER.info("init");
 
     if (!initGpioExpander()) {
-        TT_LOG_E(TAG, "GPIO expander init failed");
+        LOGGER.error("GPIO expander init failed");
         return false;
     }
 
     if (!initNavButtons()) {
-        TT_LOG_E(TAG, "Input pin init failed");
+        LOGGER.error("Input pin init failed");
         return false;
     }
 
     if (!initOutputPins()) {
-        TT_LOG_E(TAG, "Output pin init failed");
+        LOGGER.error("Output pin init failed");
         return false;
     }
 
     if (!initPowerSwitch()) {
-        TT_LOG_E(TAG, "Power button init failed");
+        LOGGER.error("Power button init failed");
         return false;
     }
 
@@ -227,7 +231,7 @@ void UnPhoneFeatures::printInfo() const {
     batteryManagement->printInfo();
     bool backlight_power;
     const char* backlight_power_state = getBacklightPower(backlight_power) && backlight_power ? "on" : "off";
-    TT_LOG_I(TAG, "Backlight: %s", backlight_power_state);
+    LOGGER.info("Backlight: {}", backlight_power_state);
 }
 
 bool UnPhoneFeatures::setRgbLed(bool red, bool green, bool blue) const {
@@ -282,11 +286,11 @@ void UnPhoneFeatures::turnPeripheralsOff() const {
 
 bool UnPhoneFeatures::setShipping(bool on) const {
     if (on) {
-        TT_LOG_W(TAG, "setShipping: on");
+        LOGGER.warn("setShipping: on");
         batteryManagement->setWatchDogTimer(Bq24295::WatchDogTimer::Disabled);
         batteryManagement->setBatFetOn(false);
     } else {
-        TT_LOG_W(TAG, "setShipping: off");
+        LOGGER.warn("setShipping: off");
         batteryManagement->setWatchDogTimer(Bq24295::WatchDogTimer::Enabled40s);
         batteryManagement->setBatFetOn(true);
     }

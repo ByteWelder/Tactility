@@ -2,7 +2,6 @@
 
 #include <Tactility/Assets.h>
 #include <Tactility/CoreDefines.h>
-#include <Tactility/Log.h>
 
 #include <lvgl.h>
 

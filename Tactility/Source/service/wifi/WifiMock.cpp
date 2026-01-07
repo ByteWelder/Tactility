@@ -1,21 +1,22 @@
-#ifndef CONFIG_TT_WIFI_ENABLED
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
+
+#ifndef CONFIG_ESP_WIFI_ENABLED
 
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <Tactility/Check.h>
-#include <Tactility/Log.h>
-#include <Tactility/Mutex.h>
 #include <Tactility/PubSub.h>
+#include <Tactility/Check.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/ServiceManifest.h>
 
 namespace tt::service::wifi {
 
-constexpr auto* TAG = "Wifi";
-
 struct Wifi {
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     /** @brief The public event bus */
     std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();
     /** @brief The internal message queue */
@@ -81,26 +82,31 @@ std::vector<ApRecord> getScanResults() {
     records.push_back((ApRecord) {
         .ssid = "Home Wifi",
         .rssi = -30,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "No place like 127.0.0.1",
         .rssi = -67,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "Pretty fly for a Wi-Fi",
         .rssi = -70,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "An AP with a really, really long name",
         .rssi = -80,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_WPA2_PSK
     });
     records.push_back((ApRecord) {
         .ssid = "Bad Reception",
         .rssi = -90,
+        .channel = 0,
         .auth_mode = WIFI_AUTH_OPEN
     });
 
@@ -153,7 +159,7 @@ public:
 };
 
 extern const ServiceManifest manifest = {
-    .id = "Wifi",
+    .id = "wifi",
     .createService = create<WifiService>
 };
 

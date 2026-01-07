@@ -8,14 +8,16 @@
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
+#include <Tactility/kernel/Platform.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/screenshot/Screenshot.h>
 
-constexpr auto* TAG = "Screenshot";
-
 namespace tt::app::screenshot {
+
+static const auto LOGGER = Logger("Screenshot");
 
 extern const AppManifest manifest;
 
@@ -71,7 +73,7 @@ static void onModeSetCallback(TT_UNUSED lv_event_t* event) {
 }
 
 ScreenshotApp::ScreenshotApp() {
-    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, [this]() {
+    updateTimer = std::make_unique<Timer>(Timer::Type::Periodic, 500 / portTICK_PERIOD_MS, [this] {
         onTimerTick();
     });
 }
@@ -96,27 +98,27 @@ void ScreenshotApp::onModeSet() {
 void ScreenshotApp::onStartPressed() {
     auto service = service::screenshot::optScreenshotService();
     if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found/running");
+        LOGGER.error("Service not found/running");
         return;
     }
 
     if (service->isTaskStarted()) {
-        TT_LOG_I(TAG, "Stop screenshot");
+        LOGGER.info("Stop screenshot");
         service->stop();
     } else {
         uint32_t selected = lv_dropdown_get_selected(modeDropdown);
         const char* path = lv_textarea_get_text(pathTextArea);
         if (selected == 0) {
-            TT_LOG_I(TAG, "Start timed screenshots");
+            LOGGER.info("Start timed screenshots");
             const char* delay_text = lv_textarea_get_text(delayTextArea);
             int delay = atoi(delay_text);
             if (delay > 0) {
                 service->startTimed(path, delay, 1);
             } else {
-                TT_LOG_W(TAG, "Ignored screenshot start because delay was 0");
+                LOGGER.warn("Ignored screenshot start because delay was 0");
             }
         } else {
-            TT_LOG_I(TAG, "Start app screenshots");
+            LOGGER.info("Start app screenshots");
             service->startApps(path);
         }
     }
@@ -127,7 +129,7 @@ void ScreenshotApp::onStartPressed() {
 void ScreenshotApp::updateScreenshotMode() {
     auto service = service::screenshot::optScreenshotService();
     if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found/running");
+        LOGGER.error("Service not found/running");
         return;
     }
 
@@ -150,7 +152,7 @@ void ScreenshotApp::updateScreenshotMode() {
 void ScreenshotApp::createModeSettingWidgets(lv_obj_t* parent) {
     auto service = service::screenshot::optScreenshotService();
     if (service == nullptr) {
-        TT_LOG_E(TAG, "Service not found/running");
+        LOGGER.error("Service not found/running");
         return;
     }
 
@@ -202,7 +204,7 @@ void ScreenshotApp::createFilePathWidgets(lv_obj_t* parent) {
     if (kernel::getPlatform() == kernel::PlatformEsp) {
         auto sdcard_devices = tt::hal::findDevices<tt::hal::sdcard::SdCardDevice>(tt::hal::Device::Type::SdCard);
         if (sdcard_devices.size() > 1) {
-            TT_LOG_W(TAG, "Found multiple SD card devices - picking first");
+            LOGGER.warn("Found multiple SD card devices - picking first");
         }
         if (!sdcard_devices.empty() && sdcard_devices.front()->isMounted()) {
             std::string lvgl_mount_path = lvgl::PATH_PREFIX + sdcard_devices.front()->getMountPath();
@@ -274,7 +276,7 @@ void ScreenshotApp::onShow(AppContext& appContext, lv_obj_t* parent) {
     updateScreenshotMode();
 
     if (!updateTimer->isRunning()) {
-        updateTimer->start(500 / portTICK_PERIOD_MS);
+        updateTimer->start();
     }
 }
 

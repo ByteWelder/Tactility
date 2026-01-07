@@ -1,12 +1,8 @@
 #include "Ft5x06Touch.h"
 
-#include <Tactility/Log.h>
-
 #include <esp_lcd_touch_ft5x06.h>
 #include <esp_err.h>
 #include <esp_lvgl_port.h>
-
-#define TAG "ft5x06"
 
 bool Ft5x06Touch::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_FT5x06_CONFIG();

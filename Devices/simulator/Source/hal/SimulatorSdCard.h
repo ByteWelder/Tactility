@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Tactility/hal/sdcard/SdCardDevice.h"
-#include <Tactility/Mutex.h>
+#include <Tactility/RecursiveMutex.h>
 #include <memory>
 
 using tt::hal::sdcard::SdCardDevice;
@@ -16,7 +16,7 @@ public:
 
     SimulatorSdCard() : SdCardDevice(MountBehaviour::AtBoot),
         state(State::Unmounted),
-        lock(std::make_shared<tt::Mutex>(tt::Mutex::Type::Recursive))
+        lock(std::make_shared<tt::RecursiveMutex>())
     {}
 
     std::string getName() const override { return "Mock SD Card"; }

@@ -1,10 +1,11 @@
-#include "Tactility/hal/spi/Spi.h"
+#include <Tactility/hal/spi/Spi.h>
 
-#include <Tactility/Mutex.h>
+#include <Tactility/Logger.h>
+#include <Tactility/RecursiveMutex.h>
 
 namespace tt::hal::spi {
 
-constexpr auto* TAG = "SPI";
+static const auto LOGGER = Logger("SPI");
 
 struct Data {
     std::shared_ptr<Lock> lock;
@@ -16,7 +17,7 @@ struct Data {
 static Data dataArray[SPI_HOST_MAX];
 
 bool init(const std::vector<Configuration>& configurations) {
-    TT_LOG_I(TAG, "Init");
+    LOGGER.info("Init");
     for (const auto& configuration: configurations) {
         Data& data = dataArray[configuration.device];
         data.configuration = configuration;
@@ -24,7 +25,7 @@ bool init(const std::vector<Configuration>& configurations) {
         if (configuration.lock != nullptr) {
             data.lock = configuration.lock;
         } else {
-            data.lock = std::make_shared<Mutex>(Mutex::Type::Recursive);
+            data.lock = std::make_shared<RecursiveMutex>();
         }
     }
 
@@ -47,10 +48,10 @@ bool configure(spi_host_device_t device, const spi_bus_config_t& configuration) 
 
     Data& data = dataArray[device];
     if (data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Cannot reconfigure while interface is started", device);
+        LOGGER.error("({}) Cannot reconfigure while interface is started", static_cast<int>(device));
         return false;
     } else if (!data.configuration.isMutable) {
-        TT_LOG_E(TAG, "(%d) Mutation not allowed by original configuration", device);
+        LOGGER.error("({}) Mutation not allowed by original configuration", static_cast<int>(device));
         return false;
     } else {
         data.configuration.config = configuration;
@@ -65,12 +66,12 @@ bool start(spi_host_device_t device) {
     Data& data = dataArray[device];
 
     if (data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Starting: Already started", device);
+        LOGGER.error("({}) Starting: Already started", static_cast<int>(device));
         return false;
     }
 
     if (!data.isConfigured) {
-        TT_LOG_E(TAG, "(%d) Starting: Not configured", device);
+        LOGGER.error("({}) Starting: Not configured", static_cast<int>(device));
         return false;
     }
 
@@ -78,7 +79,7 @@ bool start(spi_host_device_t device) {
 
     auto result = spi_bus_initialize(device, &data.configuration.config, data.configuration.dma);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Starting: Failed to initialize: %s", device, esp_err_to_name(result));
+        LOGGER.error("({}) Starting: Failed to initialize: {}", static_cast<int>(device), esp_err_to_name(result));
         return false;
     } else {
         data.isStarted = true;
@@ -90,7 +91,7 @@ bool start(spi_host_device_t device) {
 
 #endif
 
-    TT_LOG_I(TAG, "(%d) Started", device);
+    LOGGER.info("({}) Started", static_cast<int>(device));
     return true;
 }
 
@@ -102,12 +103,12 @@ bool stop(spi_host_device_t device) {
     Configuration& config = data.configuration;
 
     if (!config.isMutable) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not allowed, immutable", device);
+        LOGGER.error("({}) Stopping: Not allowed, immutable", static_cast<int>(device));
         return false;
     }
 
     if (!data.isStarted) {
-        TT_LOG_E(TAG, "(%d) Stopping: Not started", device);
+        LOGGER.error("({}) Stopping: Not started", static_cast<int>(device));
         return false;
     }
 
@@ -115,7 +116,7 @@ bool stop(spi_host_device_t device) {
 
     auto result = spi_bus_free(device);
     if (result != ESP_OK) {
-        TT_LOG_E(TAG, "(%d) Stopping: Failed to free device: %s", device, esp_err_to_name(result));
+        LOGGER.error("({}) Stopping: Failed to free device: {}", static_cast<int>(device), esp_err_to_name(result));
         return false;
     } else {
         data.isStarted = false;
@@ -127,7 +128,7 @@ bool stop(spi_host_device_t device) {
 
 #endif
 
-    TT_LOG_I(TAG, "(%d) Stopped", device);
+    LOGGER.info("({}) Stopped", static_cast<int>(device));
     return true;
 }
 

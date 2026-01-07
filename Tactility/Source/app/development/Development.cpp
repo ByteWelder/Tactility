@@ -1,23 +1,24 @@
 #ifdef ESP_PLATFORM
 
+#include <Tactility/Timer.h>
+#include <Tactility/Tactility.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/development/DevelopmentService.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
 
 #include <cstring>
 #include <lvgl.h>
 
 namespace tt::app::development {
 
-constexpr const char* TAG = "Development";
+static const auto LOGGER = Logger("Development");
 extern const AppManifest manifest;
 
 class DevelopmentApp final : public App {
@@ -27,7 +28,7 @@ class DevelopmentApp final : public App {
     lv_obj_t* statusLabel = nullptr;
     std::shared_ptr<service::development::DevelopmentService> service;
 
-    Timer timer = Timer(Timer::Type::Periodic, [this] {
+    Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] {
         auto lock = lvgl::getSyncLock()->asScopedLock();
         // TODO: There's a crash when this is called when the app is being destroyed
         if (lock.lock(lvgl::defaultLockTime) && lvgl::isStarted()) {
@@ -84,7 +85,7 @@ public:
     void onCreate(AppContext& appContext) override {
         service = service::development::findService();
         if (service == nullptr) {
-            TT_LOG_E(TAG, "Service not found");
+            LOGGER.error("Service not found");
             stop(manifest.appId);
         }
     }
@@ -148,7 +149,7 @@ public:
 
         updateViewState();
 
-        timer.start(1000);
+        timer.start();
     }
 
     void onHide(AppContext& appContext) override {

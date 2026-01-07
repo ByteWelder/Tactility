@@ -45,7 +45,7 @@ std::string getTimeZoneName() {
     if (preferences.optString(TIMEZONE_PREFERENCES_KEY_NAME, result)) {
         return result;
     } else {
-        return {};
+        return "Europe/Amsterdam";
     }
 }
 
@@ -55,7 +55,7 @@ std::string getTimeZoneCode() {
     if (preferences.optString(TIMEZONE_PREFERENCES_KEY_CODE, result)) {
         return result;
     } else {
-        return {};
+        return "CET-1CEST,M3.5.0,M10.5.0/3";  // Default: Europe/Amsterdam
     }
 }
 

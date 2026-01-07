@@ -1,12 +1,12 @@
-#include "Tactility/hal/gps/Satellites.h"
-
-#include <algorithm>
-
-#define TAG "satellites"
+#include <Tactility/hal/gps/Satellites.h>
+#include <Tactility/kernel/Kernel.h>
+#include <Tactility/Logger.h>
 
 namespace tt::hal::gps {
 
-constexpr inline bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
+static const auto LOGGER = Logger("Satellites");
+
+constexpr bool hasTimeElapsed(TickType_t now, TickType_t timeInThePast, TickType_t expireTimeInTicks) {
     return (TickType_t)(now - timeInThePast) >= expireTimeInTicks;
 }
 
@@ -33,7 +33,9 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findUnusedRecord() {
     if (!result.empty()) {
         auto* record = &result.front();
         record->inUse = true;
-        TT_LOG_D(TAG, "Found unused record");
+        if (LOGGER.isLoggingDebug()) {
+            LOGGER.debug("Found unused record");
+        }
         return record;
     } else {
         return nullptr;
@@ -45,13 +47,15 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
     lock.lock();
 
     int candidate_index = -1;
-    auto candidate_age = portMAX_DELAY;
+    auto candidate_age = kernel::MAX_TICKS;
     TickType_t expire_duration = kernel::secondsToTicks(recycleTimeSeconds);
     TickType_t now = kernel::getTicks();
     for (int i = 0; i < records.size(); ++i) {
         // First try to find a record that is "old enough"
         if (hasTimeElapsed(now, records[i].lastUpdated, expire_duration)) {
-            TT_LOG_D(TAG, "! [%d] %lu < %lu", i, records[i].lastUpdated, expire_duration);
+            if (LOGGER.isLoggingDebug()) {
+                LOGGER.debug("! [{}] {} < {}", i, records[i].lastUpdated, expire_duration);
+            }
             candidate_index = i;
             break;
         }
@@ -60,13 +64,17 @@ SatelliteStorage::SatelliteRecord* SatelliteStorage::findRecordToRecycle() {
         if (records[i].inUse && records[i].lastUpdated < candidate_age) {
             candidate_index = i;
             candidate_age = records[i].lastUpdated;
-            TT_LOG_D(TAG, "? [%d] %lu < %lu", i, records[i].lastUpdated, candidate_age);
+            if (LOGGER.isLoggingDebug()) {
+                LOGGER.debug("? [{}] {} < {}", i, records[i].lastUpdated, candidate_age);
+            }
         }
     }
 
     assert(candidate_index != -1);
 
-    TT_LOG_D(TAG, "Recycled record %d", candidate_index);
+    if (LOGGER.isLoggingDebug()) {
+        LOGGER.debug("Recycled record {}", candidate_index);
+    }
 
     return &records[candidate_index];
 }
@@ -93,7 +101,9 @@ void SatelliteStorage::notify(const minmea_sat_info& data) {
         record->inUse = true;
         record->lastUpdated = kernel::getTicks();
         record->data = data;
-        TT_LOG_D(TAG, "Updated satellite %d: elevation %d, azimuth %d, snr %d", record->data.nr, record->data.elevation, record->data.elevation, record->data.snr);
+        if (LOGGER.isLoggingDebug()) {
+            LOGGER.debug("Updated satellite {}: elevation {}, azimuth {}, snr {}", record->data.nr, record->data.elevation, record->data.elevation, record->data.snr);
+        }
     }
 }
 

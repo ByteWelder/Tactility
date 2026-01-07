@@ -1,12 +1,12 @@
 #include "Gt911Touch.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/hal/i2c/I2c.h>
 
 #include <esp_lcd_touch_gt911.h>
 #include <esp_err.h>
 
-#define TAG "GT911"
+static const auto LOGGER = tt::Logger("GT911");
 
 bool Gt911Touch::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     esp_lcd_panel_io_i2c_config_t io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
@@ -21,7 +21,7 @@ bool Gt911Touch::createIoHandle(esp_lcd_panel_io_handle_t& outHandle) {
     } else if (tt::hal::i2c::masterHasDeviceAtAddress(configuration->port, ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP)) {
         io_config.dev_addr = ESP_LCD_TOUCH_IO_I2C_GT911_ADDRESS_BACKUP;
     } else {
-        TT_LOG_E(TAG, "No device found on I2C bus");
+        LOGGER.error("No device found on I2C bus");
         return false;
     }
 

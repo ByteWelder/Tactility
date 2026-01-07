@@ -111,10 +111,14 @@ def write_core_variables(output_file, device_properties: ConfigParser):
     output_file.write("# Target\n")
     output_file.write(f"CONFIG_IDF_TARGET=\"{idf_target}\"\n")
     output_file.write("# CPU\n")
-    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
-    output_file.write(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
-    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_240=y\n")
-    output_file.write(f"CONFIG_{idf_target}_DEFAULT_CPU_FREQ_MHZ=240\n")
+    output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y\n")
+    output_file.write("CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240\n")
+    output_file.write(f"CONFIG_{idf_target.upper()}_DEFAULT_CPU_FREQ_240=y\n")
+    output_file.write(f"CONFIG_{idf_target.upper()}_DEFAULT_CPU_FREQ_MHZ=240\n")
+    if idf_target != "esp32": # Not available on original ESP32
+        output_file.write("# Enable usage of MALLOC_CAP_EXEC on IRAM:\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE=n\n")
+        output_file.write("CONFIG_ESP_SYSTEM_MEMPROT_FEATURE_LOCK=n\n")
 
 def write_flash_variables(output_file, device_properties: ConfigParser):
     flash_size = get_property_or_exit(device_properties, "hardware", "flashSize")
@@ -138,9 +142,11 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
     if has_spiram != "true":
         return
     output_file.write("# SPIRAM\n")
+    # Boot speed optimization
+    output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
     # Enable
     output_file.write("CONFIG_SPIRAM=y\n")
-    output_file.write(f"CONFIG_{idf_target}_SPIRAM_SUPPORT=y\n")
+    output_file.write(f"CONFIG_{idf_target.upper()}_SPIRAM_SUPPORT=y\n")
     mode = get_property_or_exit(device_properties, "hardware", "spiRamMode")
     # Mode
     if mode != "AUTO":
@@ -162,13 +168,6 @@ def write_spiram_variables(output_file, device_properties: ConfigParser):
 
 def write_performance_improvements(output_file, device_properties: ConfigParser):
     idf_target = get_property_or_exit(device_properties, "hardware", "target").lower()
-    output_file.write("# Free up IRAM\n")
-    output_file.write("CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y\n")
-    output_file.write("CONFIG_FREERTOS_PLACE_SNAPSHOT_FUNS_INTO_FLASH=y\n")
-    output_file.write("CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y\n")
-    output_file.write("CONFIG_RINGBUF_PLACE_FUNCTIONS_INTO_FLASH=y\n")
-    output_file.write("# Boot speed optimization\n")
-    output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
     if idf_target == "esp32s3":
         output_file.write("# Performance improvement: Fixes glitches in the RGB display driver when rendering new screens/apps\n")
         output_file.write("CONFIG_ESP32S3_DATA_CACHE_LINE_64B=y\n")

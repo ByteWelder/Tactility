@@ -1,13 +1,14 @@
 #include <Tactility/Tactility.h>
 
+#include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/gps/GpsState.h>
 #include <Tactility/service/loader/Loader.h>
-#include <Tactility/Timer.h>
 
 #include <cstring>
 #include <format>
@@ -23,7 +24,7 @@ extern const AppManifest manifest;
 
 class GpsSettingsApp final : public App {
 
-    static constexpr auto* TAG = "GpsSettings";
+    const Logger logger = Logger("GpsSettings");
 
     std::unique_ptr<Timer> timer;
     std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
@@ -62,7 +63,7 @@ class GpsSettingsApp final : public App {
     }
 
     void startReceivingUpdates() {
-        timer->start(kernel::secondsToTicks(1));
+        timer->start();
         updateViews();
     }
 
@@ -92,8 +93,8 @@ class GpsSettingsApp final : public App {
         std::vector<tt::hal::gps::GpsConfiguration> configurations;
         auto gps_service = service::gps::findGpsService();
         if (gps_service && gps_service->getGpsConfigurations(configurations)) {
-            TT_LOG_I(TAG, "Found service and configs %d %d", index, configurations.size());
-            if (index <= configurations.size()) {
+            Logger("GpsSettings").info("Found service and configs {} {}", index, configurations.size());
+            if (index < configurations.size()) {
                 if (gps_service->removeGpsConfiguration(configurations[index])) {
                     app->updateViews();
                 } else {
@@ -154,7 +155,7 @@ class GpsSettingsApp final : public App {
             // Update toolbar
             switch (state) {
                 case service::gps::State::OnPending:
-                    TT_LOG_D(TAG, "OnPending");
+                    logger.debug("OnPending");
                     lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
@@ -163,7 +164,7 @@ class GpsSettingsApp final : public App {
                     lv_obj_add_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
                     break;
                 case service::gps::State::On:
-                    TT_LOG_D(TAG, "On");
+                    logger.debug("On");
                     lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);
@@ -172,7 +173,7 @@ class GpsSettingsApp final : public App {
                     lv_obj_add_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
                     break;
                 case service::gps::State::OffPending:
-                    TT_LOG_D(TAG, "OffPending");
+                    logger.debug("OffPending");
                     lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
@@ -181,7 +182,7 @@ class GpsSettingsApp final : public App {
                     lv_obj_remove_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
                     break;
                 case service::gps::State::Off:
-                    TT_LOG_D(TAG, "Off");
+                    logger.debug("Off");
                     lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
                     lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
                     lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);
@@ -254,11 +255,11 @@ class GpsSettingsApp final : public App {
         if (wants_on != is_on) {
             // start/stop are potentially blocking calls, so we use a dispatcher to not block the UI
             if (wants_on) {
-                getMainDispatcher().dispatch([this]() {
+                getMainDispatcher().dispatch([this] {
                     service->startReceiving();
                 });
             } else {
-                getMainDispatcher().dispatch([this]() {
+                getMainDispatcher().dispatch([this] {
                     service->stopReceiving();
                 });
             }
@@ -268,7 +269,7 @@ class GpsSettingsApp final : public App {
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, [this] {
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::secondsToTicks(1), [this] {
             updateViews();
         });
         service = service::gps::findGpsService();

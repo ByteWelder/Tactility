@@ -4,8 +4,8 @@
 #include "GpsConfiguration.h"
 #include "Satellites.h"
 
-#include <Tactility/Mutex.h>
 #include <Tactility/Thread.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <minmea.h>
 #include <utility>
@@ -47,7 +47,7 @@ private:
     };
 
     const GpsConfiguration configuration;
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::unique_ptr<Thread> _Nullable thread;
     bool threadInterrupted = false;
     std::vector<GgaSubscription> ggaSubscriptions;

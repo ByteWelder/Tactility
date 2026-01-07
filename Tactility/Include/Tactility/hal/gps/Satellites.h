@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Tactility/RtosCompat.h>
-#include <Tactility/Mutex.h>
+#include <Tactility/freertoscompat/RTOS.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <minmea.h>
 
@@ -30,7 +30,7 @@ private:
         bool inUse = false;
     };
 
-    Mutex mutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex mutex;
     std::array<SatelliteRecord, recordCount> records;
     uint16_t recycleTimeSeconds;
     uint16_t recentTimeSeconds;

@@ -1,13 +1,14 @@
 #ifdef ESP_PLATFORM
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <map>
 #include <string>
 
 namespace tt::service::development {
 
-constexpr auto* TAG = "DevSettings";
+static const auto LOGGER = Logger("DevSettings");
+
 constexpr auto* SETTINGS_FILE = "/data/settings/development.properties";
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";
 
@@ -39,7 +40,7 @@ static bool save(const DevelopmentSettings& settings) {
 void setEnableOnBoot(bool enable) {
     DevelopmentSettings properties { .enableOnBoot = enable };
     if (!save(properties)) {
-        TT_LOG_E(TAG, "Failed to save %s", SETTINGS_FILE);
+        LOGGER.error("Failed to save {}", SETTINGS_FILE);
     }
 }
 

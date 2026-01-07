@@ -3,8 +3,8 @@
 #include "Tactility/lvgl/Toolbar.h"
 #include "Tactility/service/loader/Loader.h"
 
+#include <Tactility/Logger.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/TactilityCore.h>
 
 #include <lvgl.h>
 
@@ -16,9 +16,9 @@ namespace tt::app::alertdialog {
 #define RESULT_BUNDLE_KEY_INDEX "index"
 
 #define PARAMETER_ITEM_CONCATENATION_TOKEN ";;"
-#define DEFAULT_TITLE "Select..."
+#define DEFAULT_TITLE ""
 
-#define TAG "selection_dialog"
+static const auto LOGGER = Logger("AlertDialog");
 
 extern const AppManifest manifest;
 
@@ -74,7 +74,7 @@ class AlertDialogApp : public App {
 
     void onButtonClicked(lv_event_t* e) {
         auto index = reinterpret_cast<std::size_t>(lv_event_get_user_data(e));
-        TT_LOG_I(TAG, "Selected item at index %d", index);
+        LOGGER.info("Selected item at index {}", index);
 
         auto bundle = std::make_unique<Bundle>();
         bundle->putInt32(RESULT_BUNDLE_KEY_INDEX, (int32_t)index);

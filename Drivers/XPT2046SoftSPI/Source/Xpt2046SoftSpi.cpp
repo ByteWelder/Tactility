@@ -1,6 +1,6 @@
 #include "Xpt2046SoftSpi.h"
 
-#include <Tactility/Log.h>
+#include <Tactility/Logger.h>
 #include <Tactility/lvgl/LvglSync.h>
 
 #include <driver/gpio.h>
@@ -13,7 +13,7 @@
 #include <nvs_flash.h>
 #include <rom/ets_sys.h>
 
-constexpr auto* TAG = "Xpt2046SoftSpi";
+static const auto LOGGER = tt::Logger("Xpt2046SoftSpi");
 
 constexpr auto RERUN_CALIBRATE = false;
 constexpr auto CMD_READ_Y = 0x90; // Try different commands if these don't work
@@ -55,7 +55,7 @@ static void ensureNvsInitialized() {
 bool Xpt2046SoftSpi::start() {
     ensureNvsInitialized();
 
-    TT_LOG_I(TAG, "Starting Xpt2046SoftSpi touch driver");
+    LOGGER.info("Starting Xpt2046SoftSpi touch driver");
 
     // Configure GPIO pins
     gpio_config_t io_conf = {};
@@ -70,7 +70,7 @@ bool Xpt2046SoftSpi::start() {
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
 
     if (gpio_config(&io_conf) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to configure output pins");
+        LOGGER.error("Failed to configure output pins");
         return false;
     }
 
@@ -80,7 +80,7 @@ bool Xpt2046SoftSpi::start() {
     io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
 
     if (gpio_config(&io_conf) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to configure input pin");
+        LOGGER.error("Failed to configure input pin");
         return false;
     }
 
@@ -89,31 +89,36 @@ bool Xpt2046SoftSpi::start() {
     gpio_set_level(configuration->clkPin, 0); // CLK low
     gpio_set_level(configuration->mosiPin, 0); // MOSI low
 
-    TT_LOG_I(TAG, "GPIO configured: MOSI=%d, MISO=%d, CLK=%d, CS=%d", configuration->mosiPin, configuration->misoPin, configuration->clkPin, configuration->csPin);
+    LOGGER.info("GPIO configured: MOSI={}, MISO={}, CLK={}, CS={}",
+        static_cast<int>(configuration->mosiPin),
+        static_cast<int>(configuration->misoPin),
+        static_cast<int>(configuration->clkPin),
+        static_cast<int>(configuration->csPin)
+    );
 
     // Load or perform calibration
     bool calibrationValid = true; //loadCalibration() && !RERUN_CALIBRATE;
         if (calibrationValid) {
         // Check if calibration values are valid (xMin != xMax, yMin != yMax)
         if (cal.xMin == cal.xMax || cal.yMin == cal.yMax) {
-            TT_LOG_W(TAG, "Invalid calibration detected: xMin=%d, xMax=%d, yMin=%d, yMax=%d", cal.xMin, cal.xMax, cal.yMin, cal.yMax);
+            LOGGER.warn("Invalid calibration detected: xMin={}, xMax={}, yMin={}, yMax={}", cal.xMin, cal.xMax, cal.yMin, cal.yMax);
             calibrationValid = false;
         }
     }
 
     if (!calibrationValid) {
-        TT_LOG_W(TAG, "Calibration data not found, invalid, or forced recalibration");
+        LOGGER.warn("Calibration data not found, invalid, or forced recalibration");
         calibrate();
         saveCalibration();
     } else {
-        TT_LOG_I(TAG, "Loaded calibration: xMin=%d, yMin=%d, xMax=%d, yMax=%d", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
+        LOGGER.info("Loaded calibration: xMin={}, yMin={}, xMax={}, yMax={}", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
     }
 
     return true;
 }
 
 bool Xpt2046SoftSpi::stop() {
-    TT_LOG_I(TAG, "Stopping Xpt2046SoftSpi touch driver");
+    LOGGER.info("Stopping Xpt2046SoftSpi touch driver");
 
     // Stop LVLG if needed
     if (lvglDevice != nullptr) {
@@ -125,13 +130,13 @@ bool Xpt2046SoftSpi::stop() {
 
 bool Xpt2046SoftSpi::startLvgl(lv_display_t* display) {
     if (lvglDevice != nullptr) {
-        TT_LOG_E(TAG, "LVGL was already started");
+        LOGGER.error("LVGL was already started");
         return false;
     }
 
     lvglDevice = lv_indev_create();
     if (!lvglDevice) {
-        TT_LOG_E(TAG, "Failed to create LVGL input device");
+        LOGGER.error("Failed to create LVGL input device");
         return false;
     }
 
@@ -139,7 +144,7 @@ bool Xpt2046SoftSpi::startLvgl(lv_display_t* display) {
     lv_indev_set_read_cb(lvglDevice, touchReadCallback);
     lv_indev_set_user_data(lvglDevice, this);
 
-    TT_LOG_I(TAG, "Xpt2046SoftSpi touch driver started successfully");
+    LOGGER.info("Xpt2046SoftSpi touch driver started successfully");
     return true;
 }
 
@@ -186,9 +191,9 @@ int Xpt2046SoftSpi::readSPI(uint8_t command) {
 void Xpt2046SoftSpi::calibrate() {
     const int samples = 8; // More samples for better accuracy
 
-    TT_LOG_I(TAG, "Calibration starting...");
+    LOGGER.info("Calibration starting...");
 
-    TT_LOG_I(TAG, "Touch TOP-LEFT corner");
+    LOGGER.info("Touch TOP-LEFT corner");
 
     while (!isTouched()) {
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -203,9 +208,9 @@ void Xpt2046SoftSpi::calibrate() {
     cal.xMin = sumX / samples;
     cal.yMin = sumY / samples;
 
-    TT_LOG_I(TAG, "Top-left calibrated: xMin=%d, yMin=%d", cal.xMin, cal.yMin);
+    LOGGER.info("Top-left calibrated: xMin={}, yMin={}", cal.xMin, cal.yMin);
 
-    TT_LOG_I(TAG, "Touch BOTTOM-RIGHT corner");
+    LOGGER.info("Touch BOTTOM-RIGHT corner");
 
     while (!isTouched()) {
         vTaskDelay(pdMS_TO_TICKS(50));
@@ -220,13 +225,13 @@ void Xpt2046SoftSpi::calibrate() {
     cal.xMax = sumX / samples;
     cal.yMax = sumY / samples;
 
-    TT_LOG_I(TAG, "Bottom-right calibrated: xMax=%d, yMax=%d", cal.xMax, cal.yMax);
+    LOGGER.info("Bottom-right calibrated: xMax={}, yMax={}", cal.xMax, cal.yMax);
 
-    TT_LOG_I(TAG, "Calibration completed! xMin=%d, yMin=%d, xMax=%d, yMax=%d", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
+    LOGGER.info("Calibration completed! xMin={}, yMin={}, xMax={}, yMax={}", cal.xMin, cal.yMin, cal.xMax, cal.yMax);
 }
 
 bool Xpt2046SoftSpi::loadCalibration() {
-    TT_LOG_W(TAG, "Calibration load disabled (using fresh calibration only).");
+    LOGGER.warn("Calibration load disabled (using fresh calibration only).");
     return false;
 }
 
@@ -234,16 +239,16 @@ void Xpt2046SoftSpi::saveCalibration() {
     nvs_handle_t handle;
     esp_err_t err = nvs_open("xpt2046", NVS_READWRITE, &handle);
     if (err != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to open NVS for writing (%s)", esp_err_to_name(err));
+        LOGGER.error("Failed to open NVS for writing ({})", esp_err_to_name(err));
         return;
     }
 
     err = nvs_set_blob(handle, "cal", &cal, sizeof(cal));
     if (err == ESP_OK) {
         nvs_commit(handle);
-        TT_LOG_I(TAG, "Calibration saved to NVS");
+        LOGGER.info("Calibration saved to NVS");
     } else {
-        TT_LOG_E(TAG, "Failed to write calibration data to NVS (%s)", esp_err_to_name(err));
+        LOGGER.error("Failed to write calibration data to NVS ({})", esp_err_to_name(err));
     }
 
     nvs_close(handle);
@@ -254,7 +259,7 @@ void Xpt2046SoftSpi::setCalibration(int xMin, int yMin, int xMax, int yMax) {
     cal.yMin = yMin;
     cal.xMax = xMax;
     cal.yMax = yMax;
-    TT_LOG_I(TAG, "Manual calibration set: xMin=%d, yMin=%d, xMax=%d, yMax=%d", xMin, yMin, xMax, yMax);
+    LOGGER.info("Manual calibration set: xMin={}, yMin={}, xMax={}, yMax={}", xMin, yMin, xMax, yMax);
 }
 
 bool Xpt2046SoftSpi::getTouchPoint(Point& point) {
@@ -292,7 +297,7 @@ bool Xpt2046SoftSpi::getTouchPoint(Point& point) {
     const int yRange = cal.yMax - cal.yMin;
 
     if (xRange <= 0 || yRange <= 0) {
-        TT_LOG_W(TAG, "Invalid calibration: xRange=%d, yRange=%d", xRange, yRange);
+        LOGGER.warn("Invalid calibration: xRange={}, yRange={}", xRange, yRange);
         return false;
     }
 
@@ -337,7 +342,7 @@ bool Xpt2046SoftSpi::isTouched() {
 
     // Debug logging (remove this once working)
     if (touched) {
-        TT_LOG_D(TAG, "Touch detected: validSamples=%d, avgX=%d, avgY=%d", validSamples, xTotal / validSamples, yTotal / validSamples);
+        LOGGER.debug("Touch detected: validSamples={}, avgX={}, avgY={}", validSamples, xTotal / validSamples, yTotal / validSamples);
     }
 
     return touched;

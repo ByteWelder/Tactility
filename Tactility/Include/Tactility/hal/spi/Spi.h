@@ -3,7 +3,7 @@
 #include "SpiCompat.h"
 
 #include <Tactility/Lock.h>
-#include <Tactility/RtosCompat.h>
+#include <Tactility/freertoscompat/RTOS.h>
 
 namespace tt::hal::spi {
 

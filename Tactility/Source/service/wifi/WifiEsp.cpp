@@ -2,18 +2,21 @@
 #include <sdkconfig.h>
 #endif
 
-#ifdef CONFIG_TT_WIFI_ENABLED
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) or defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <Tactility/EventFlag.h>
+#include <Tactility/EventGroup.h>
+#include <Tactility/Logger.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
+#include <Tactility/Timer.h>
 #include <Tactility/kernel/SystemEvents.h>
 #include <Tactility/service/ServiceContext.h>
+#include <Tactility/service/wifi/WifiBootSplashInit.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
 #include <Tactility/service/wifi/WifiSettings.h>
-#include <Tactility/service/wifi/WifiBootSplashInit.h>
-#include <Tactility/Timer.h>
 
 #include <lwip/esp_netif_net_stack.h>
 #include <freertos/FreeRTOS.h>
@@ -23,7 +26,8 @@
 
 namespace tt::service::wifi {
 
-constexpr auto* TAG = "WifiService";
+static const auto LOGGER = Logger("WifiService");
+
 constexpr auto WIFI_CONNECTED_BIT = BIT0;
 constexpr auto WIFI_FAIL_BIT = BIT1;
 constexpr auto AUTO_SCAN_INTERVAL = 10000; // ms
@@ -48,8 +52,8 @@ class Wifi {
 public:
 
     /** @brief Locking mechanism for modifying the Wifi instance */
-    Mutex radioMutex = Mutex(Mutex::Type::Recursive);
-    Mutex dataMutex = Mutex(Mutex::Type::Recursive);
+    RecursiveMutex radioMutex;
+    RecursiveMutex dataMutex;
     std::unique_ptr<Timer> autoConnectTimer;
     /** @brief The public event bus */
     std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();
@@ -65,10 +69,10 @@ public:
     /** @brief Maximum amount of records to scan (value > 0) */
     uint16_t scan_list_limit = TT_WIFI_SCAN_RECORD_LIMIT;
     /** @brief when we last requested a scan. Loops around every 50 days. */
-    TickType_t last_scan_time = portMAX_DELAY;
+    TickType_t last_scan_time = kernel::MAX_TICKS;
     esp_event_handler_instance_t event_handler_any_id = nullptr;
     esp_event_handler_instance_t event_handler_got_ip = nullptr;
-    EventFlag connection_wait_flags;
+    EventGroup connection_wait_flags;
     settings::WifiApSettings connection_target;
     bool pause_auto_connect = false; // Pause when manually disconnecting until manually connecting again
     bool connection_target_remember = false; // Whether to store the connection_target on successful connection or not
@@ -169,7 +173,7 @@ std::string getConnectionTarget() {
 }
 
 void scan() {
-    TT_LOG_I(TAG, "scan()");
+    LOGGER.info("scan()");
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -188,7 +192,7 @@ bool isScanning() {
 }
 
 void connect(const settings::WifiApSettings& ap, bool remember) {
-    TT_LOG_I(TAG, "connect(%s, %d)", ap.ssid.c_str(), remember);
+    LOGGER.info("connect({}, {})", ap.ssid, remember);
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -212,7 +216,7 @@ void connect(const settings::WifiApSettings& ap, bool remember) {
 }
 
 void disconnect() {
-    TT_LOG_I(TAG, "disconnect()");
+    LOGGER.info("disconnect()");
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -243,7 +247,7 @@ void clearIp() {
     memset(&wifi->ip_info, 0, sizeof(esp_netif_ip_info_t));
 }
 void setScanRecords(uint16_t records) {
-    TT_LOG_I(TAG, "setScanRecords(%d)", records);
+    LOGGER.info("setScanRecords({})", records);
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -261,7 +265,7 @@ void setScanRecords(uint16_t records) {
 }
 
 std::vector<ApRecord> getScanResults() {
-    TT_LOG_I(TAG, "getScanResults()");
+    LOGGER.info("getScanResults()");
     auto wifi = wifi_singleton;
 
     std::vector<ApRecord> records;
@@ -292,7 +296,7 @@ std::vector<ApRecord> getScanResults() {
 }
 
 void setEnabled(bool enabled) {
-    TT_LOG_I(TAG, "setEnabled(%d)", enabled);
+    LOGGER.info("setEnabled({})", enabled);
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
         return;
@@ -389,7 +393,7 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
                              wifi->isScanActive();
 
     if (!can_fetch_results) {
-        TT_LOG_I(TAG, "Skip scan result fetching");
+        LOGGER.info("Skip scan result fetching");
         return false;
     }
 
@@ -406,30 +410,34 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
     if (scan_result == ESP_OK) {
         uint16_t safe_record_count = std::min(wifi->scan_list_limit, record_count);
         wifi->scan_list_count = safe_record_count;
-        TT_LOG_I(TAG, "Scanned %u APs. Showing %u:", record_count, safe_record_count);
+        LOGGER.info("Scanned {} APs. Showing {}:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
             wifi_ap_record_t* record = &wifi->scan_list[i];
-            TT_LOG_I(TAG, " - SSID %s, RSSI %d, channel %d, BSSID %02X%02X%02X%02X%02X%02X",
-                record->ssid,
-                record->rssi,
-                record->primary,
-                record->bssid[0],
-                record->bssid[1],
-                record->bssid[2],
-                record->bssid[3],
-                record->bssid[4],
-                record->bssid[5]
-            );
+            if (record->ssid[0] != 0 && record->primary != 0) {
+                LOGGER.info(" - SSID {}, RSSI {}, channel {}, BSSID {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                    reinterpret_cast<const char*>(record->ssid),
+                    record->rssi,
+                    record->primary,
+                    record->bssid[0],
+                    record->bssid[1],
+                    record->bssid[2],
+                    record->bssid[3],
+                    record->bssid[4],
+                    record->bssid[5]
+                );
+            } else {
+                LOGGER.info(" - (missing channel info)"); // Behaviour on on P4 with C6
+            }
         }
         return true;
     } else {
-        TT_LOG_I(TAG, "Failed to get scanned records: %s", esp_err_to_name(scan_result));
+        LOGGER.info("Failed to get scanned records: {}", esp_err_to_name(scan_result));
         return false;
     }
 }
 
 static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSettings& settings) {
-    TT_LOG_I(TAG, "find_auto_connect_ap()");
+    LOGGER.info("find_auto_connect_ap()");
     auto lock = wifi->dataMutex.asScopedLock();
     if (lock.lock(10 / portTICK_PERIOD_MS)) {
         for (int i = 0; i < wifi->scan_list_count; ++i) {
@@ -441,7 +449,7 @@ static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSet
                         return true;
                     }
                 } else {
-                    TT_LOG_E(TAG, "Failed to load credentials for ssid %s", ssid);
+                    LOGGER.error("Failed to load credentials for ssid {}", ssid);
                 }
                 break;
             }
@@ -452,11 +460,11 @@ static bool find_auto_connect_ap(std::shared_ptr<Wifi> wifi, settings::WifiApSet
 }
 
 static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchAutoConnect()");
+    LOGGER.info("dispatchAutoConnect()");
 
     settings::WifiApSettings settings;
     if (find_auto_connect_ap(wifi, settings)) {
-        TT_LOG_I(TAG, "Auto-connecting to %s", settings.ssid.c_str());
+        LOGGER.info("Auto-connecting to {}", settings.ssid);
         connect(settings, false);
         // TODO: We currently have to manually reset it because connect() sets it.
         // connect() assumes it's only being called by the user and not internally, so it disables auto-connect
@@ -467,23 +475,23 @@ static void dispatchAutoConnect(std::shared_ptr<Wifi> wifi) {
 static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     auto wifi = wifi_singleton;
     if (wifi == nullptr) {
-        TT_LOG_E(TAG, "eventHandler: no wifi instance");
+        LOGGER.error("eventHandler: no wifi instance");
         return;
     }
 
     if (event_base == WIFI_EVENT) {
-        TT_LOG_I(TAG, "eventHandler: WIFI_EVENT (%ld)", event_id);
+        LOGGER.info("eventHandler: WIFI_EVENT {}", event_id);
     } else if (event_base == IP_EVENT) {
-        TT_LOG_I(TAG, "eventHandler: IP_EVENT (%ld)", event_id);
+        LOGGER.info("eventHandler: IP_EVENT {}", event_id);
     }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        TT_LOG_I(TAG, "eventHandler: sta start");
+        LOGGER.info("eventHandler: STA_START");
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
             esp_wifi_connect();
         }
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        TT_LOG_I(TAG, "eventHandler: disconnected");
+        LOGGER.info("eventHandler: STA_DISCONNECTED");
         clearIp();
         switch (wifi->getRadioState()) {
             case RadioState::ConnectionPending:
@@ -502,7 +510,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* event = static_cast<ip_event_got_ip_t*>(event_data);
         memcpy(&wifi->ip_info, &event->ip_info, sizeof(esp_netif_ip_info_t));
-        TT_LOG_I(TAG, "eventHandler: got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        LOGGER.info("eventHandler: got ip: {}.{}.{}.{}", IP2STR(&event->ip_info.ip));
         if (wifi->getRadioState() == RadioState::ConnectionPending) {
             wifi->connection_wait_flags.set(WIFI_CONNECTED_BIT);
             // We resume auto-connecting only when there was an explicit request by the user for the connection
@@ -512,7 +520,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         kernel::publishSystemEvent(kernel::SystemEvent::NetworkConnected);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         auto* event = static_cast<wifi_event_sta_scan_done_t*>(event_data);
-        TT_LOG_I(TAG, "eventHandler: wifi scanning done (scan id %u)", event->scan_id);
+        LOGGER.info("eventHandler: wifi scanning done (scan id {})", event->scan_id);
         bool copied_list = copy_scan_list(wifi);
 
         auto state = wifi->getRadioState();
@@ -525,7 +533,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
         }
 
         publish_event(wifi_singleton, WifiEvent::ScanFinished);
-        TT_LOG_I(TAG, "eventHandler: Finished scan");
+        LOGGER.info("eventHandler: Finished scan");
 
         if (copied_list && wifi_singleton->getRadioState() == RadioState::On && !wifi->pause_auto_connect) {
             getMainDispatcher().dispatch([wifi]() { dispatchAutoConnect(wifi); });
@@ -534,7 +542,7 @@ static void eventHandler(TT_UNUSED void* arg, esp_event_base_t event_base, int32
 }
 
 static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchEnable()");
+    LOGGER.info("dispatchEnable()");
 
     RadioState state = wifi->getRadioState();
     if (
@@ -542,13 +550,13 @@ static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
         state == RadioState::OnPending ||
         state == RadioState::OffPending
     ) {
-        TT_LOG_W(TAG, "Can't enable from current state");
+        LOGGER.warn("Can't enable from current state");
         return;
     }
 
     auto lock = wifi->radioMutex.asScopedLock();
     if (lock.lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_I(TAG, "Enabling");
+        LOGGER.info("Enabling");
         wifi->setRadioState(RadioState::OnPending);
         publish_event(wifi, WifiEvent::RadioStateOnPending);
 
@@ -562,9 +570,9 @@ static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
         wifi_init_config_t config = WIFI_INIT_CONFIG_DEFAULT();
         esp_err_t init_result = esp_wifi_init(&config);
         if (init_result != ESP_OK) {
-            TT_LOG_E(TAG, "Wifi init failed");
+            LOGGER.error("Wifi init failed");
             if (init_result == ESP_ERR_NO_MEM) {
-                TT_LOG_E(TAG, "Insufficient memory");
+                LOGGER.error("Insufficient memory");
             }
             wifi->setRadioState(RadioState::Off);
             publish_event(wifi, WifiEvent::RadioStateOff);
@@ -592,7 +600,7 @@ static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
         ));
 
         if (esp_wifi_set_mode(WIFI_MODE_STA) != ESP_OK) {
-            TT_LOG_E(TAG, "Wifi mode setting failed");
+            LOGGER.error("Wifi mode setting failed");
             wifi->setRadioState(RadioState::Off);
             esp_wifi_deinit();
             publish_event(wifi, WifiEvent::RadioStateOff);
@@ -601,9 +609,9 @@ static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
 
         esp_err_t start_result = esp_wifi_start();
         if (start_result != ESP_OK) {
-            TT_LOG_E(TAG, "Wifi start failed");
+            LOGGER.error("Wifi start failed");
             if (start_result == ESP_ERR_NO_MEM) {
-                TT_LOG_E(TAG, "Insufficient memory");
+                LOGGER.error("Insufficient memory");
             }
             wifi->setRadioState(RadioState::Off);
             esp_wifi_set_mode(WIFI_MODE_NULL);
@@ -617,18 +625,18 @@ static void dispatchEnable(std::shared_ptr<Wifi> wifi) {
 
         wifi->pause_auto_connect = false;
 
-        TT_LOG_I(TAG, "Enabled");
+        LOGGER.info("Enabled");
     } else {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
 }
 
 static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchDisable()");
+    LOGGER.info("dispatchDisable()");
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "disable()");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "disable()");
         return;
     }
 
@@ -638,11 +646,11 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
         state == RadioState::OffPending ||
         state == RadioState::OnPending
     ) {
-        TT_LOG_W(TAG, "Can't disable from current state");
+        LOGGER.warn("Can't disable from current state");
         return;
     }
 
-    TT_LOG_I(TAG, "Disabling");
+    LOGGER.info("Disabling");
     wifi->setRadioState(RadioState::OffPending);
     publish_event(wifi, WifiEvent::RadioStateOffPending);
 
@@ -650,14 +658,14 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
     scan_list_free_safely(wifi_singleton);
 
     if (esp_wifi_stop() != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to stop radio");
+        LOGGER.error("Failed to stop radio");
         wifi->setRadioState(RadioState::On);
         publish_event(wifi, WifiEvent::RadioStateOn);
         return;
     }
 
     if (esp_wifi_set_mode(WIFI_MODE_NULL) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unset mode");
+        LOGGER.error("Failed to unset mode");
     }
 
     if (esp_event_handler_instance_unregister(
@@ -665,7 +673,7 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
         ESP_EVENT_ANY_ID,
         wifi->event_handler_any_id
     ) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unregister id event handler");
+        LOGGER.error("Failed to unregister id event handler");
     }
 
     if (esp_event_handler_instance_unregister(
@@ -673,11 +681,11 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
         IP_EVENT_STA_GOT_IP,
         wifi->event_handler_got_ip
     ) != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to unregister ip event handler");
+        LOGGER.error("Failed to unregister ip event handler");
     }
 
     if (esp_wifi_deinit() != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to deinit");
+        LOGGER.error("Failed to deinit");
     }
 
     assert(wifi->netif != nullptr);
@@ -686,26 +694,26 @@ static void dispatchDisable(std::shared_ptr<Wifi> wifi) {
     wifi->setScanActive(false);
     wifi->setRadioState(RadioState::Off);
     publish_event(wifi, WifiEvent::RadioStateOff);
-    TT_LOG_I(TAG, "Disabled");
+    LOGGER.info("Disabled");
 }
 
 static void dispatchScan(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchScan()");
+    LOGGER.info("dispatchScan()");
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(10 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
     RadioState state = wifi->getRadioState();
     if (state != RadioState::On && state != RadioState::ConnectionActive && state != RadioState::ConnectionPending) {
-        TT_LOG_W(TAG, "Scan unavailable: wifi not enabled");
+        LOGGER.warn("Scan unavailable: wifi not enabled");
         return;
     }
 
     if (wifi->isScanActive()) {
-        TT_LOG_W(TAG, "Scan already pending");
+        LOGGER.warn("Scan already pending");
         return;
     }
 
@@ -713,25 +721,25 @@ static void dispatchScan(std::shared_ptr<Wifi> wifi) {
     wifi->last_scan_time = tt::kernel::getTicks();
 
     if (esp_wifi_scan_start(nullptr, false) != ESP_OK) {
-        TT_LOG_I(TAG, "Can't start scan");
+        LOGGER.info("Can't start scan");
         return;
     }
 
-    TT_LOG_I(TAG, "Starting scan");
+    LOGGER.info("Starting scan");
     wifi->setScanActive(true);
     publish_event(wifi, WifiEvent::ScanStarted);
 }
 
 static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchConnect()");
+    LOGGER.info("dispatchConnect()");
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "dispatchConnect()");
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "dispatchConnect()");
         return;
     }
 
-    TT_LOG_I(TAG, "Connecting to %s", wifi->connection_target.ssid.c_str());
+    LOGGER.info("Connecting to {}", wifi->connection_target.ssid);
 
     // Stop radio first, if needed
     RadioState radio_state = wifi->getRadioState();
@@ -740,11 +748,11 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
         radio_state == RadioState::ConnectionActive ||
         radio_state == RadioState::ConnectionPending
     ) {
-        TT_LOG_I(TAG, "Connecting: Stopping radio first");
+        LOGGER.info("Connecting: Stopping radio first");
         esp_err_t stop_result = esp_wifi_stop();
         wifi->setScanActive(false);
         if (stop_result != ESP_OK) {
-            TT_LOG_E(TAG, "Connecting: Failed to disconnect (%s)", esp_err_to_name(stop_result));
+            LOGGER.error("Connecting: Failed to disconnect ({})", esp_err_to_name(stop_result));
             return;
         }
     }
@@ -770,20 +778,20 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
         config.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
     }
 
-    TT_LOG_I(TAG, "esp_wifi_set_config()");
+    LOGGER.info("esp_wifi_set_config()");
     esp_err_t set_config_result = esp_wifi_set_config(WIFI_IF_STA, &config);
     if (set_config_result != ESP_OK) {
         wifi->setRadioState(RadioState::On);
-        TT_LOG_E(TAG, "Failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        LOGGER.error("Failed to set wifi config ({})", esp_err_to_name(set_config_result));
         publish_event(wifi, WifiEvent::ConnectionFailed);
         return;
     }
 
-    TT_LOG_I(TAG, "esp_wifi_start()");
+    LOGGER.info("esp_wifi_start()");
     esp_err_t wifi_start_result = esp_wifi_start();
     if (wifi_start_result != ESP_OK) {
         wifi->setRadioState(RadioState::On);
-        TT_LOG_E(TAG, "Failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        LOGGER.error("Failed to start wifi to begin connecting ({})", esp_err_to_name(wifi_start_result));
         publish_event(wifi, WifiEvent::ConnectionFailed);
         return;
     }
@@ -791,46 +799,48 @@ static void dispatchConnect(std::shared_ptr<Wifi> wifi) {
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT)
      * or connection failed for the maximum number of re-tries (WIFI_FAIL_BIT).
      * The bits are set by wifi_event_handler() */
-    uint32_t bits = wifi_singleton->connection_wait_flags.wait(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
-    TT_LOG_I(TAG, "Waiting for EventFlag by event_handler()");
+    uint32_t bits;
+    if (wifi_singleton->connection_wait_flags.wait(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT, false, true, kernel::MAX_TICKS, &bits)) {
+        LOGGER.info("Waiting for EventGroup by event_handler()");
 
-    if (bits & WIFI_CONNECTED_BIT) {
-        wifi->setSecureConnection(config.sta.password[0] != 0x00U);
-        wifi->setRadioState(RadioState::ConnectionActive);
-        publish_event(wifi, WifiEvent::ConnectionSuccess);
-        TT_LOG_I(TAG, "Connected to %s", wifi->connection_target.ssid.c_str());
-        if (wifi->connection_target_remember) {
-            if (!settings::save(wifi->connection_target)) {
-                TT_LOG_E(TAG, "Failed to store credentials");
-            } else {
-                TT_LOG_I(TAG, "Stored credentials");
+        if (bits & WIFI_CONNECTED_BIT) {
+            wifi->setSecureConnection(config.sta.password[0] != 0x00U);
+            wifi->setRadioState(RadioState::ConnectionActive);
+            publish_event(wifi, WifiEvent::ConnectionSuccess);
+            LOGGER.info("Connected to {}", wifi->connection_target.ssid.c_str());
+            if (wifi->connection_target_remember) {
+                if (!settings::save(wifi->connection_target)) {
+                    LOGGER.error("Failed to store credentials");
+                } else {
+                    LOGGER.info("Stored credentials");
+                }
             }
+        } else if (bits & WIFI_FAIL_BIT) {
+            wifi->setRadioState(RadioState::On);
+            publish_event(wifi, WifiEvent::ConnectionFailed);
+            LOGGER.info("Failed to connect to {}", wifi->connection_target.ssid.c_str());
+        } else {
+            wifi->setRadioState(RadioState::On);
+            publish_event(wifi, WifiEvent::ConnectionFailed);
+            LOGGER.error("UNEXPECTED EVENT");
         }
-    } else if (bits & WIFI_FAIL_BIT) {
-        wifi->setRadioState(RadioState::On);
-        publish_event(wifi, WifiEvent::ConnectionFailed);
-        TT_LOG_I(TAG, "Failed to connect to %s", wifi->connection_target.ssid.c_str());
-    } else {
-        wifi->setRadioState(RadioState::On);
-        publish_event(wifi, WifiEvent::ConnectionFailed);
-        TT_LOG_E(TAG, "UNEXPECTED EVENT");
-    }
 
-    wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
+        wifi_singleton->connection_wait_flags.clear(WIFI_FAIL_BIT | WIFI_CONNECTED_BIT);
+    }
 }
 
 static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
-    TT_LOG_I(TAG, "dispatchDisconnectButKeepActive()");
+    LOGGER.info("dispatchDisconnectButKeepActive()");
     auto lock = wifi->radioMutex.asScopedLock();
 
     if (!lock.lock(50 / portTICK_PERIOD_MS)) {
-        TT_LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
         return;
     }
 
     esp_err_t stop_result = esp_wifi_stop();
     if (stop_result != ESP_OK) {
-        TT_LOG_E(TAG, "Failed to disconnect (%s)", esp_err_to_name(stop_result));
+        LOGGER.error("Failed to disconnect ({})", esp_err_to_name(stop_result));
         return;
     }
 
@@ -846,7 +856,7 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
     if (set_config_result != ESP_OK) {
         // TODO: disable radio, because radio state is in limbo between off and on
         wifi->setRadioState(RadioState::Off);
-        TT_LOG_E(TAG, "failed to set wifi config (%s)", esp_err_to_name(set_config_result));
+        LOGGER.error("failed to set wifi config ({})", esp_err_to_name(set_config_result));
         publish_event(wifi, WifiEvent::RadioStateOff);
         return;
     }
@@ -855,14 +865,14 @@ static void dispatchDisconnectButKeepActive(std::shared_ptr<Wifi> wifi) {
     if (wifi_start_result != ESP_OK) {
         // TODO: disable radio, because radio state is in limbo between off and on
         wifi->setRadioState(RadioState::Off);
-        TT_LOG_E(TAG, "failed to start wifi to begin connecting (%s)", esp_err_to_name(wifi_start_result));
+        LOGGER.error("failed to start wifi to begin connecting ({})", esp_err_to_name(wifi_start_result));
         publish_event(wifi, WifiEvent::RadioStateOff);
         return;
     }
 
     wifi->setRadioState(RadioState::On);
     publish_event(wifi, WifiEvent::Disconnected);
-    TT_LOG_I(TAG, "Disconnected");
+    LOGGER.info("Disconnected");
 }
 
 static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
@@ -879,7 +889,7 @@ static bool shouldScanForAutoConnect(std::shared_ptr<Wifi> wifi) {
         return false;
     }
 
-    TickType_t current_time = tt::kernel::getTicks();
+    TickType_t current_time = kernel::getTicks();
     bool scan_time_has_looped = (current_time < wifi->last_scan_time);
     bool no_recent_scan = (current_time - wifi->last_scan_time) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
 
@@ -919,12 +929,13 @@ public:
             bootSplashInit();
         });
 
-        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, []() { onAutoConnectTimer(); });
+        auto timer_interval = std::min(2000, AUTO_SCAN_INTERVAL);
+        wifi_singleton->autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, timer_interval, [] { onAutoConnectTimer(); });
         // We want to try and scan more often in case of startup or scan lock failure
-        wifi_singleton->autoConnectTimer->start(std::min(2000, AUTO_SCAN_INTERVAL));
+        wifi_singleton->autoConnectTimer->start();
 
         if (settings::shouldEnableOnBoot()) {
-            TT_LOG_I(TAG, "Auto-enabling due to setting");
+            LOGGER.info("Auto-enabling due to setting");
             getMainDispatcher().dispatch([] { dispatchEnable(wifi_singleton); });
         }
 
@@ -959,7 +970,7 @@ public:
 };
 
 extern const ServiceManifest manifest = {
-    .id = "Wifi",
+    .id = "wifi",
     .createService = create<WifiService>
 };
 
