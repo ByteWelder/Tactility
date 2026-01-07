@@ -120,7 +120,12 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
     bool can_scan = radio_state == service::wifi::RadioState::On ||
         radio_state == service::wifi::RadioState::ConnectionPending ||
         radio_state == service::wifi::RadioState::ConnectionActive;
-    LOGGER.info("{} {}", service::wifi::radioStateToString(radio_state), service::wifi::isScanning());
+    std::string connection_target = service::wifi::getConnectionTarget();
+    LOGGER.info("Radio: {}, Scanning: {}, Connected to: {}, Can scan: {}",
+        service::wifi::radioStateToString(radio_state), 
+        service::wifi::isScanning(),
+        connection_target.empty() ? "(none)" : connection_target.c_str(),
+        can_scan);
     if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }

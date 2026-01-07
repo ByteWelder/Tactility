@@ -28,9 +28,7 @@
 #include "symbols/string.h"
 #include "symbols/cplusplus.h"
 #include "symbols/freertos.h"
-#ifndef CONFIG_IDF_TARGET_ESP32P4
 #include "symbols/gcc_soft_float.h"
-#endif
 
 #include <cstring>
 #include <ctype.h>
@@ -629,9 +627,7 @@ uintptr_t resolve_symbol(const esp_elfsym* source, const char* symbolName) {
 uintptr_t tt_symbol_resolver(const char* symbolName) {
     static const std::vector all_symbols = {
         main_symbols,
-#ifndef CONFIG_IDF_TARGET_ESP32P4
         gcc_soft_float_symbols,
-#endif
         stl_symbols,
         cplusplus_symbols,
         pthread_symbols,

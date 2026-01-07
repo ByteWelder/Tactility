@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 #endif
 
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
 
 #include <Tactility/kernel/Kernel.h>
 #include <Tactility/Logger.h>

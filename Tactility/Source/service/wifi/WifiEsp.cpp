@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 #endif
 
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/service/wifi/Wifi.h>
 
@@ -413,17 +413,21 @@ static bool copy_scan_list(std::shared_ptr<Wifi> wifi) {
         LOGGER.info("Scanned {} APs. Showing {}:", record_count, safe_record_count);
         for (uint16_t i = 0; i < safe_record_count; i++) {
             wifi_ap_record_t* record = &wifi->scan_list[i];
-            LOGGER.info(" - SSID {}, RSSI {}, channel {}, BSSID {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
-                reinterpret_cast<const char*>(record->ssid),
-                record->rssi,
-                record->primary,
-                record->bssid[0],
-                record->bssid[1],
-                record->bssid[2],
-                record->bssid[3],
-                record->bssid[4],
-                record->bssid[5]
-            );
+            if (record->ssid[0] != 0 && record->primary != 0) {
+                LOGGER.info(" - SSID {}, RSSI {}, channel {}, BSSID {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                    reinterpret_cast<const char*>(record->ssid),
+                    record->rssi,
+                    record->primary,
+                    record->bssid[0],
+                    record->bssid[1],
+                    record->bssid[2],
+                    record->bssid[3],
+                    record->bssid[4],
+                    record->bssid[5]
+                );
+            } else {
+                LOGGER.info(" - (missing channel info)"); // Behaviour on on P4 with C6
+            }
         }
         return true;
     } else {
@@ -972,4 +976,4 @@ extern const ServiceManifest manifest = {
 
 } // namespace
 
-#endif // ESP_PLATFORM
+#endif // CONFIG_SOC_WIFI_SUPPORTED or CONFIG_SLAVE_SOC_WIFI_SUPPORTED

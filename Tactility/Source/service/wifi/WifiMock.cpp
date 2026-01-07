@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 #endif
 
-#ifndef CONFIG_ESP_WIFI_ENABLED
+#if not defined(CONFIG_SOC_WIFI_SUPPORTED) && not defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/service/wifi/Wifi.h>
 

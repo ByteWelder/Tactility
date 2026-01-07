@@ -45,7 +45,7 @@ namespace service {
 #ifdef ESP_PLATFORM
     namespace development { extern const ServiceManifest manifest; }
 #endif
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
     namespace espnow { extern const ServiceManifest manifest; }
 #endif
     // Secondary (UI)
@@ -76,7 +76,7 @@ namespace app {
     namespace applist { extern const AppManifest manifest; }
     namespace appsettings { extern const AppManifest manifest; }
     namespace boot { extern const AppManifest manifest; }
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
     namespace chat { extern const AppManifest manifest; }
 #endif
     namespace development { extern const AppManifest manifest; }
@@ -155,7 +155,7 @@ static void registerInternalApps() {
     addAppManifest(app::screenshot::manifest);
 #endif
 
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
     addAppManifest(app::chat::manifest);
 #endif
 
@@ -260,7 +260,7 @@ static void registerAndStartPrimaryServices() {
     addService(service::development::manifest);
 #endif
 
-#ifdef CONFIG_ESP_WIFI_ENABLED
+#if defined(CONFIG_TT_WIFI_ENABLED) && !defined(CONFIG_ESP_WIFI_REMOTE_ENABLED)
     addService(service::espnow::manifest);
 #endif
 }
