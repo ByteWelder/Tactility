@@ -3,8 +3,6 @@
 #include <Tactility/Logger.h>
 
 #include <esp_lcd_jd9165.h>
-#include <esp_lcd_mipi_dsi.h>
-#include <esp_ldo_regulator.h>
 
 static const auto LOGGER = tt::Logger("JD9165");
 
@@ -69,22 +67,26 @@ static const jd9165_lcd_init_cmd_t jd9165_init_cmds[] = {
 };
 
 Jd9165Display::~Jd9165Display() {
+    // TODO: This should happen during ::stop(), but this isn't currently exposed
     if (mipiDsiBus != nullptr) {
         esp_lcd_del_dsi_bus(mipiDsiBus);
         mipiDsiBus = nullptr;
+    }
+    if (ldoChannel != nullptr) {
+        esp_ldo_release_channel(ldoChannel);
+        ldoChannel = nullptr;
     }
 }
 
 bool Jd9165Display::createMipiDsiBus() {
     // Enable MIPI DSI PHY power (transition from "no power" to "shutdown" state)
-    esp_ldo_channel_handle_t ldo_mipi_phy = nullptr;
     esp_ldo_channel_config_t ldo_mipi_phy_config = {
         .chan_id = MIPI_DSI_PHY_PWR_LDO_CHAN,
         .voltage_mv = MIPI_DSI_PHY_PWR_LDO_VOLTAGE_MV,
         .flags = {}
     };
     
-    if (esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldo_mipi_phy) != ESP_OK) {
+    if (esp_ldo_acquire_channel(&ldo_mipi_phy_config, &ldoChannel) != ESP_OK) {
         LOGGER.error("Failed to acquire LDO channel for MIPI DSI PHY");
         return false;
     }
@@ -92,8 +94,14 @@ bool Jd9165Display::createMipiDsiBus() {
     LOGGER.info("MIPI DSI PHY powered on");
 
     // Create MIPI DSI bus
-    esp_lcd_dsi_bus_config_t bus_config = JD9165_PANEL_BUS_DSI_2CH_CONFIG();
-    
+    // TODO: use MIPI_DSI_PHY_CLK_SRC_DEFAULT() in future ESP-IDF 6.0.0 update with esp_lcd_jd9165 library version 2.x
+    const esp_lcd_dsi_bus_config_t bus_config = {
+        .bus_id = 0,
+        .num_data_lanes = 2,
+        .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,
+        .lane_bit_rate_mbps = 750
+    };
+
     if (esp_lcd_new_dsi_bus(&bus_config, &mipiDsiBus) != ESP_OK) {
         LOGGER.error("Failed to create MIPI DSI bus");
         return false;
@@ -137,7 +145,30 @@ esp_lcd_panel_dev_config_t Jd9165Display::createPanelConfig(std::shared_ptr<EspL
 
 bool Jd9165Display::createPanelHandle(esp_lcd_panel_io_handle_t ioHandle, const esp_lcd_panel_dev_config_t& panelConfig, esp_lcd_panel_handle_t& panelHandle) {
     // Create DPI panel configuration
-    esp_lcd_dpi_panel_config_t dpi_config = JD9165_1024_600_PANEL_60HZ_DPI_CONFIG(LCD_COLOR_PIXEL_FORMAT_RGB565);
+    // Override default timings
+    const esp_lcd_dpi_panel_config_t dpi_config = {
+        .virtual_channel = 0,
+        .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
+        .dpi_clock_freq_mhz = 50,
+        .pixel_format = LCD_COLOR_PIXEL_FORMAT_RGB565,
+        .in_color_format = LCD_COLOR_FMT_RGB565,
+        .out_color_format = LCD_COLOR_FMT_RGB565,
+        .num_fbs = 1,
+        .video_timing = {
+            .h_size = 1024,
+            .v_size = 600,
+            .hsync_pulse_width = 20,
+            .hsync_back_porch = 160,
+            .hsync_front_porch = 160,
+            .vsync_pulse_width = 2,
+            .vsync_back_porch = 21,
+            .vsync_front_porch = 12,
+        },
+        .flags = {
+            .use_dma2d = 1,
+            .disable_lp = 0
+        }
+    };
 
     jd9165_vendor_config_t vendor_config = {
         .init_cmds = jd9165_init_cmds,

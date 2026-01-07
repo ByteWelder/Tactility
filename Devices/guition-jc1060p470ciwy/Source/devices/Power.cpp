@@ -81,6 +81,8 @@ private:
         };
         if (adc_oneshot_config_channel(adcHandle, ADC_CHANNEL, &chan_cfg) != ESP_OK) {
             LOGGER.error("ADC channel config failed");
+            adc_oneshot_del_unit(adcHandle);
+            adcHandle = nullptr;
             return false;
         }
 
@@ -98,7 +100,7 @@ private:
         };
         if (adc_cali_create_scheme_line_fitting(&cali_config, &caliHandle) == ESP_OK) {
             calScheme = CaliScheme::Line;
-            TT_LOG_I(TAG, "ADC calibration (line fitting) enabled");
+            LOGGER.info("ADC calibration (line fitting) enabled");
             return true;
         }
 #endif
@@ -147,7 +149,7 @@ private:
             adc_oneshot_del_unit(adcHandle);
             adcHandle = nullptr;
         }
-        if (calibrated && caliHandle) {
+        if (caliHandle) {
             if (calScheme == CaliScheme::Line) {
 #if ADC_CALI_SCHEME_LINE_FITTING_SUPPORTED
                 adc_cali_delete_scheme_line_fitting(caliHandle);
@@ -158,6 +160,7 @@ private:
 #endif
             }
             caliHandle = nullptr;
+            calibrated = false;
         }
     }
 

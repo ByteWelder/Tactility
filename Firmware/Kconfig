@@ -44,9 +44,9 @@ menu "Tactility App"
         config TT_DEVICE_GUITION_JC1060P470CIWY
             bool "Guition JC1060P470CIWY"
         config TT_DEVICE_GUITION_JC2432W328C
-            bool "GUITION JC2432W328C"
+            bool "Guition JC2432W328C"
         config TT_DEVICE_GUITION_JC8048W550C
-            bool "GUITION JC8048W550C"
+            bool "Guition JC8048W550C"
         config TT_DEVICE_HELTEC_V3
             bool "Heltec v3"
         config TT_DEVICE_LILYGO_TDECK
@@ -96,7 +96,7 @@ menu "Tactility App"
         help
             The minimum time to show the splash screen in milliseconds.
             When set to 0, startup will continue to desktop as soon as boot operations are finished.
-    
+
     config TT_WIFI_ENABLED
         bool "Enable WiFi Support"
         default n

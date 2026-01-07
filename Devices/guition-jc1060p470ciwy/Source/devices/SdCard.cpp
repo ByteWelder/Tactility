@@ -15,8 +15,8 @@ using tt::hal::sdcard::SdCardDevice;
 
 static const auto LOGGER = tt::Logger("JcSdCard");
 
-// ESP32-P4 Slot 0 usa IO MUX (pines fijos, no configurables manualmente)
-// CLK=43, CMD=44, D0=39, D1=40, D2=41, D3=42 (definidos automáticamente por hardware)
+// ESP32-P4 Slot 0 uses IO MUX (fixed pins, not manually configurable)
+// CLK=43, CMD=44, D0=39, D1=40, D2=41, D3=42 (defined automatically by hardware)
 
 class SdCardDeviceImpl final : public SdCardDevice {
 
@@ -56,13 +56,12 @@ public:
 
         sdmmc_host_t host = SDMMC_HOST_DEFAULT();
         host.slot = SDMMC_HOST_SLOT_0;
-        host.max_freq_khz = SDMMC_FREQ_DEFAULT; // 20MHz - más estable para inicialización
-        host.flags = SDMMC_HOST_FLAG_4BIT; // Forzar modo 4-bit
-
-        // Configurar alimentación LDO para el SD card (crítico en ESP32-P4)
+        host.max_freq_khz = SDMMC_FREQ_DEFAULT; // 20MHz - more stable for initialization
+        host.flags = SDMMC_HOST_FLAG_4BIT; // Force 4-bit mode
+        // Configure LDO power supply for SD card (critical on ESP32-P4)
         esp_ldo_channel_handle_t ldo_handle = nullptr;
         esp_ldo_channel_config_t ldo_config = {
-            .chan_id = 4,  // LDO channel 4 para SD power
+            .chan_id = 4,  // LDO channel 4 for SD power
             .voltage_mv = 3300,  // 3.3V
             .flags {
                 .adjustable = 0,
@@ -73,10 +72,10 @@ public:
 
         esp_err_t ldo_ret = esp_ldo_acquire_channel(&ldo_config, &ldo_handle);
         if (ldo_ret != ESP_OK) {
-            LOGGER.warn("Failed to acquire LDO for SD power: %s (continuing anyway)", esp_err_to_name(ldo_ret));
+            LOGGER.warn("Failed to acquire LDO for SD power: {} (continuing anyway)", esp_err_to_name(ldo_ret));
         }
 
-        // Slot 0 usa IO MUX - los pines son fijos y no se especifican
+        // Slot 0 uses IO MUX - pins are fixed and not specified
         sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
         slot_config.width = 4;
         slot_config.cd = SDMMC_SLOT_NO_CD;  // No card detect

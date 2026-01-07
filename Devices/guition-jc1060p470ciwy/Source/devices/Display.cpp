@@ -6,8 +6,6 @@
 #include <Tactility/Logger.h>
 #include <Tactility/Mutex.h>
 
-constexpr const char* TAG = "Display";
-
 constexpr auto LCD_PIN_RESET = GPIO_NUM_0;  // Match P4 EV board reset line
 constexpr auto LCD_PIN_BACKLIGHT = GPIO_NUM_23;
 constexpr auto LCD_HORIZONTAL_RESOLUTION = 1024;
@@ -37,7 +35,7 @@ static std::shared_ptr<tt::hal::touch::TouchDevice> createTouch() {
 std::shared_ptr<tt::hal::display::DisplayDevice> createDisplay() {
     // Initialize PWM backlight
     if (!driver::pwmbacklight::init(LCD_PIN_BACKLIGHT, 20000, LEDC_TIMER_1, LEDC_CHANNEL_0)) {
-        tt::Logger("jc1060p470ciwy").warn(TAG, "Failed to initialize backlight");
+        tt::Logger("jc1060p470ciwy").warn("Failed to initialize backlight");
     }
 
     auto touch = createTouch();

@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) or defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/service/wifi/Wifi.h>
 
@@ -976,4 +976,4 @@ extern const ServiceManifest manifest = {
 
 } // namespace
 
-#endif // ESP_PLATFORM
+#endif // CONFIG_SOC_WIFI_SUPPORTED or CONFIG_SLAVE_SOC_WIFI_SUPPORTED

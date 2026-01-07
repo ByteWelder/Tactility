@@ -1,9 +1,10 @@
 #pragma once
 
-#include <Tactility/RecursiveMutex.h>
 #include <EspLcdDisplayV2.h>
+#include <Tactility/RecursiveMutex.h>
 
 #include <esp_lcd_mipi_dsi.h>
+#include <esp_ldo_regulator.h>
 
 class Jd9165Display final : public EspLcdDisplayV2 {
 
@@ -13,6 +14,7 @@ class Jd9165Display final : public EspLcdDisplayV2 {
     };
 
     esp_lcd_dsi_bus_handle_t mipiDsiBus = nullptr;
+    esp_ldo_channel_handle_t ldoChannel = nullptr;
 
     bool createMipiDsiBus();
 
