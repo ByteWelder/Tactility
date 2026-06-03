@@ -1,11 +1,5 @@
 #pragma once
 
-/*
- * Ssd1685Display.h
- *
- * Tactility HAL driver header for SSD1685 / SSD168x e-paper panels.
- */
-
 #include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/touch/TouchDevice.h>
 
@@ -14,12 +8,7 @@
 #include <esp_lcd_ssd1685.h>
 #include <driver/spi_common.h>
 #include <driver/gpio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
-#include <freertos/task.h>
-#include <lvgl.h>
 
-#include <atomic>
 #include <memory>
 #include <string>
 
@@ -50,70 +39,39 @@ public:
         gpio_num_t csPin, dcPin, resetPin, busyPin;
         uint16_t   width, height;
 
-        /** 0=portrait  1=landscape CW  2=portrait180  3=landscape CCW */
         uint8_t rotation = 0;
-
-        /** Source-line offset; many SSD168x panels need gapX=8 */
         int gapX = 0, gapY = 0;
-
-        /** SPI clock Hz; 4 MHz is safe for all SSD168x panels */
         uint32_t spiClockHz = 4'000'000;
-
-        /** BUSY-pin timeout ms; full refresh can take ~5 s */
         uint32_t busyTimeoutMs = 10'000;
-
-        /**
-         * Refresh mode:
-         *   SSD1685_REFRESH_FULL    – ghost-free, ~3 s
-         *   SSD1685_REFRESH_PARTIAL – fast, ~0.3 s, may ghost
-         *   SSD1685_REFRESH_FAST    – fastest, most ghosting
-         */
         ssd1685_refresh_mode_t refreshMode = SSD1685_REFRESH_FULL;
-
-        /** Optional custom LUT; nullptr = panel OTP waveform */
         const uint8_t* customLut     = nullptr;
         size_t         customLutSize = 0;
-
-        /**
-         * Priority of the "epd_refresh" FreeRTOS task.
-         * Should be >= LVGL task priority so it runs promptly after being
-         * woken. Tactility's LVGL task runs at priority 4 by default.
-         */
-        UBaseType_t refreshTaskPriority = 5;
 
         std::shared_ptr<tt::hal::touch::TouchDevice> touch;
     };
 
 private:
 
-    std::unique_ptr<Configuration>  config;
+    std::unique_ptr<Configuration> config;
 
-    esp_lcd_panel_io_handle_t       ioHandle    = nullptr;
-    esp_lcd_panel_handle_t          panelHandle = nullptr;
-    lv_display_t*                   lvglDisplay = nullptr;
+    esp_lcd_panel_io_handle_t  ioHandle    = nullptr;
+    esp_lcd_panel_handle_t     panelHandle = nullptr;
+    lv_display_t*              lvglDisplay = nullptr;
 
-    uint8_t*  drawBuf1    = nullptr;   // LVGL render buffer A
-    uint8_t*  drawBuf2    = nullptr;   // LVGL render buffer B
-    uint8_t*  pendingBuf  = nullptr;   // owned by refresh task while busy
-    size_t    drawBufSize = 0;
+    uint8_t*  drawBuf[2] = {nullptr, nullptr};
+    size_t    bufSize = 0;
 
     bool started = false;
 
-    // Binary semaphore: flush_cb gives, refresh task takes
-    SemaphoreHandle_t  semReady     = nullptr;
-    TaskHandle_t       refreshTask  = nullptr;
-    std::atomic<bool>  stopRefreshTask { false };
-    // Stored so refresh task can call lv_display_flush_ready()
-    lv_display_t*      lvglDisplayForFlush = nullptr;
+    SemaphoreHandle_t refreshSemaphore = nullptr;
+    TaskHandle_t      refreshTaskHandle = nullptr;
 
-    uint16_t  lvglWidth()  const;
-    uint16_t  lvglHeight() const;
+    uint16_t lvglWidth()  const;
+    uint16_t lvglHeight() const;
     esp_err_t applyRotation();
 
-    static void refreshTaskFunc(void* arg);
-    static void flushCallback(lv_display_t* disp,
-                               const lv_area_t* area,
-                               uint8_t* pixelMap);
+    static void flushCallback(lv_display_t* disp, const lv_area_t* area, uint8_t* pixelMap);
+    static void epdRefreshTask(void* params);
 
 public:
 
@@ -121,7 +79,7 @@ public:
     ~Ssd1685Display() override;
 
     std::string getName()        const override { return "SSD1685"; }
-    std::string getDescription() const override { return "SSD168x e-paper display driver"; }
+    std::string getDescription() const override { return "SSD168x e-paper display"; }
 
     bool start()  override;
     bool stop()   override;
@@ -144,8 +102,6 @@ public:
         return nullptr;
     }
 
-    esp_err_t refresh(ssd1685_refresh_mode_t mode = SSD1685_REFRESH_FULL);
     esp_err_t clearScreen(uint8_t colorByte = 0xFF);
     esp_err_t sleep();
-    esp_lcd_panel_handle_t getPanelHandle() const { return panelHandle; }
 };
