@@ -16,6 +16,10 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <tactility/check.h>
 
+#include <tactility/device.h>
+#include <tactility/drivers/usb_host_msc.h>
+
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <unistd.h>
@@ -82,6 +86,11 @@ static void onCopyPressedCallback(lv_event_t* event) {
 static void onCutPressedCallback(lv_event_t* event) {
     auto* view = static_cast<View*>(lv_event_get_user_data(event));
     view->onCutPressed();
+}
+
+static void onEjectPressedCallback(lv_event_t* event) {
+    auto* view = static_cast<View*>(lv_event_get_user_data(event));
+    view->onEjectPressed();
 }
 
 static void onPastePressedCallback(lv_event_t* event) {
@@ -275,17 +284,23 @@ void View::onDirEntryPressed(uint32_t index) {
 }
 
 void View::onDirEntryLongPressed(int32_t index) {
-    if (state->getCurrentPath() == "/") {
-        return;
-    }
-
     dirent dir_entry;
     if (!resolveDirentFromListIndex(index, dir_entry)) {
         return;
     }
 
-    LOGGER.info("Pressed {} {}", dir_entry.d_name, dir_entry.d_type);
+    LOGGER.info("Long-pressed {} {}", dir_entry.d_name, dir_entry.d_type);
     state->setSelectedChildEntry(dir_entry.d_name);
+
+    if (state->getCurrentPath() == "/") {
+        // At root, only USB mount points support actions (eject).
+        // Other root-level entries intentionally have no context actions.
+        const char* name = dir_entry.d_name;
+        if (strncmp(name, "usb", 3) == 0 && isdigit((unsigned char)name[3])) {
+            showActionsForMountPoint();
+        }
+        return;
+    }
 
     using namespace file;
     switch (dir_entry.d_type) {
@@ -409,6 +424,30 @@ void View::showActions() {
 
 void View::showActionsForDirectory() { showActions(); }
 void View::showActionsForFile() { showActions(); }
+
+void View::showActionsForMountPoint() {
+    lv_obj_clean(action_list);
+
+    auto* eject_button = lv_list_add_button(action_list, LV_SYMBOL_EJECT, "Eject");
+    lv_obj_add_event_cb(eject_button, onEjectPressedCallback, LV_EVENT_SHORT_CLICKED, this);
+
+    lv_obj_remove_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+}
+
+void View::onEjectPressed() {
+    std::string mount_path = state->getSelectedChildPath();
+    LOGGER.info("Ejecting {}", mount_path);
+
+    struct Device* msc_dev = device_find_first_active_by_type(&USB_HOST_MSC_TYPE);
+    if (!msc_dev || !usb_msc_eject(msc_dev, mount_path.c_str())) {
+        LOGGER.warn("usb_msc_eject: {} not found", mount_path);
+        alertdialog::start("Eject failed", "Could not eject \"" + file::getLastPathSegment(mount_path) + "\".");
+    }
+
+    onNavigate();
+    state->setEntriesForPath(state->getCurrentPath());
+    update();
+}
 
 void View::update(size_t start_index) {
     const bool is_root = (state->getCurrentPath() == "/");

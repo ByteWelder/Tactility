@@ -9,4 +9,4 @@ idf_component_register(
     REQUIRES TactilityKernel driver vfs fatfs
 )
 
-idf_component_optional_requires(PRIVATE bt)
+idf_component_optional_requires(PRIVATE bt usb espressif__usb_host_hid espressif__usb_host_msc)

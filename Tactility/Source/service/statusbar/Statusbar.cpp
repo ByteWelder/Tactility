@@ -15,11 +15,18 @@
 #include <tactility/drivers/bluetooth.h>
 #include <tactility/drivers/bluetooth_serial.h>
 #include <tactility/drivers/bluetooth_midi.h>
+#include <tactility/device.h>
+#include <tactility/drivers/usb_host_hid.h>
+#include <tactility/drivers/usb_host_midi.h>
+#include <tactility/drivers/usb_host_msc.h>
 #include <Tactility/service/gps/GpsService.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <tactility/check.h>
+#include <tactility/filesystem/file_system.h>
 
 #include <tactility/lvgl_icon_statusbar.h>
+
+#include <cstring>
 
 namespace tt::service::statusbar {
 
@@ -134,6 +141,8 @@ class StatusbarService final : public Service {
     const char* sdcard_last_icon = nullptr;
     int8_t power_icon_id;
     const char* power_last_icon = nullptr;
+    int8_t usb_icon_id;
+    bool usb_last_state = false;
 
     void lock() const {
         mutex.lock();
@@ -208,6 +217,31 @@ class StatusbarService final : public Service {
         }
     }
 
+    void updateUsbIcon() {
+        struct Device* hid_dev  = device_find_first_active_by_type(&USB_HOST_HID_TYPE);
+        struct Device* midi_dev = device_find_first_active_by_type(&USB_HOST_MIDI_TYPE);
+        bool connected = (hid_dev && usb_host_hid_is_connected(hid_dev)) ||
+                         (midi_dev && usb_midi_is_connected(midi_dev));
+        if (!connected) {
+            // MSC: scan filesystems for any mounted /usb* path
+            file_system_for_each(&connected, [](struct FileSystem* fs, void* ctx) -> bool {
+                if (!file_system_is_mounted(fs)) return true;
+                char path[64];
+                if (file_system_get_path(fs, path, sizeof(path)) == ERROR_NONE) {
+                    if (strncmp(path, USB_MSC_MOUNT_PATH_PREFIX, sizeof(USB_MSC_MOUNT_PATH_PREFIX) - 1) == 0) {
+                        *static_cast<bool*>(ctx) = true;
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
+        if (connected != usb_last_state) {
+            lvgl::statusbar_icon_set_visibility(usb_icon_id, connected);
+            usb_last_state = connected;
+        }
+    }
+
     void updateSdCardIcon() {
         auto* sdcard_fs = findSdcardFileSystem(false);
         // TODO: Support multiple SD cards
@@ -235,6 +269,7 @@ class StatusbarService final : public Service {
                 updateWifiIcon();
                 updateSdCardIcon();
                 updatePowerStatusIcon();
+                updateUsbIcon();
                 lvgl::unlock();
             }
         }
@@ -245,16 +280,18 @@ public:
     StatusbarService() {
         gps_icon_id = lvgl::statusbar_icon_add();
         bt_icon_id = lvgl::statusbar_icon_add();
+        usb_icon_id = lvgl::statusbar_icon_add();
         sdcard_icon_id = lvgl::statusbar_icon_add();
         wifi_icon_id = lvgl::statusbar_icon_add();
         power_icon_id = lvgl::statusbar_icon_add();
     }
 
     ~StatusbarService() override {
+        lvgl::statusbar_icon_remove(power_icon_id);
         lvgl::statusbar_icon_remove(wifi_icon_id);
         lvgl::statusbar_icon_remove(sdcard_icon_id);
+        lvgl::statusbar_icon_remove(usb_icon_id);
         lvgl::statusbar_icon_remove(bt_icon_id);
-        lvgl::statusbar_icon_remove(power_icon_id);
         lvgl::statusbar_icon_remove(gps_icon_id);
     }
 
@@ -266,6 +303,8 @@ public:
 
         // TODO: Make thread-safe for LVGL
         lvgl::statusbar_icon_set_visibility(wifi_icon_id, true);
+        lvgl::statusbar_icon_set_image(usb_icon_id, LVGL_ICON_STATUSBAR_USB);
+        lvgl::statusbar_icon_set_visibility(usb_icon_id, false);
 
         auto service = findServiceById<StatusbarService>(manifest.id);
         assert(service);
