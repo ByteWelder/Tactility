@@ -68,11 +68,7 @@ esp_err_t Ssd1685Display::applyRotation()
     return ESP_OK;
 }
 
-// flush callback (async, called by LVGL)
-//
-// Writes pixel data to EPD RAM (fast, ~ms) and signals a separate task to
-// trigger the actual display refresh (~4-5 s for FULL).  The LVGL lock is
-// released quickly so the GUI can keep working while the EPD updates.
+// flushCallback
 
 void Ssd1685Display::flushCallback(lv_display_t* disp,
                                     const lv_area_t* area,
@@ -84,17 +80,39 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
         return;
     }
 
-    /* pixelMap is I1 (1 bpp, 8 pixels/byte, MSB = leftmost pixel).
-     * area specifies the rendered rectangle within the buffer. */
+    int x1 = area->x1;
+    int y1 = area->y1;
+    int x2 = area->x2;
+    int y2 = area->y2;
+    int w  = x2 - x1 + 1;
+    int h  = y2 - y1 + 1;
 
-    /* Write the rendered area to EPD RAM (fast SPI transfer). */
+    /* LVGL I1 row stride is based on the full display width, not the area
+     * width, because with RENDER_MODE_FULL LVGL always gives us the whole
+     * framebuffer in one call.                                           */
+    int disp_w    = (int)lv_display_get_horizontal_resolution(disp);
+    int src_stride = (int)(((unsigned)disp_w + 31u) / 32u) * 4;
+
+    /* EPD expects 1-byte-aligned rows */
+    int epd_stride = (w + 7) / 8;
+
+    const uint8_t* src_buf = pixelMap;
+
+    if (src_stride != epd_stride && self->repackBuf != nullptr) {
+        for (int row = 0; row < h; row++) {
+            const uint8_t* src = pixelMap + (size_t)row * src_stride;
+            uint8_t*       dst = self->repackBuf + (size_t)row * epd_stride;
+            memcpy(dst, src, (size_t)epd_stride);
+        }
+        src_buf = self->repackBuf;
+    }
+
     esp_lcd_panel_draw_bitmap(
         self->panelHandle,
-        area->x1, area->y1,
-        area->x2 + 1, area->y2 + 1,
-        pixelMap);
+        x1, y1, x2 + 1, y2 + 1,
+        src_buf);
 
-    /* Signal the background refresh task on the last flush of this frame. */
+    /* Signal the background refresh task on the last flush of this frame */
     if (lv_display_flush_is_last(disp)) {
         xSemaphoreGive(self->refreshSemaphore);
     }
@@ -222,12 +240,12 @@ bool Ssd1685Display::startLvgl()
     uint16_t w = lvglWidth();
     uint16_t h = lvglHeight();
 
-    /* I1: 1 bit per pixel, row stride = (w + 7) / 8 bytes */
-    size_t stride = ((size_t)w + 7U) / 8U;
-    bufSize = stride * (size_t)h;
+    /* LVGL I1 row stride – 4-byte aligned (LVGL internal requirement) */
+    size_t lvgl_stride = (((size_t)w + 31u) / 32u) * 4u;
+    bufSize = lvgl_stride * (size_t)h;
 
-    LOG_I(TAG, "Allocating 2 x I1 buffers  %zu bytes (%dx%d)",
-          bufSize, w, h);
+    LOG_I(TAG, "Allocating 2 x I1 buffers  %zu bytes (%dx%d)  lvgl_stride=%zu",
+          bufSize, w, h, lvgl_stride);
 
     for (int i = 0; i < 2; ++i) {
         drawBuf[i] = static_cast<uint8_t*>(
@@ -246,13 +264,30 @@ bool Ssd1685Display::startLvgl()
         memset(drawBuf[i], 0xFF, bufSize);
     }
 
+    /* Repack buffer – EPD stride (1-byte aligned), no LVGL padding.
+     * Allocated separately so the flush callback can always repack
+     * without needing a heap allocation in the hot path.              */
+    size_t epd_stride  = ((size_t)w + 7u) / 8u;
+    size_t repack_size = epd_stride * (size_t)h;
+    repackBuf = static_cast<uint8_t*>(
+        heap_caps_malloc(repack_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!repackBuf) {
+        repackBuf = static_cast<uint8_t*>(
+            heap_caps_malloc(repack_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+    }
+    if (!repackBuf) {
+        LOG_E(TAG, "Failed to allocate repack buffer (%zu bytes)", repack_size);
+        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
+        return false;
+    }
+    LOG_I(TAG, "Repack buffer: %zu bytes  epd_stride=%zu  (lvgl_stride=%zu)",
+          repack_size, epd_stride, lvgl_stride);
+
     lvglDisplay = lv_display_create(w, h);
     if (!lvglDisplay) {
         LOG_E(TAG, "lv_display_create failed");
-        for (auto& buf : drawBuf) {
-            heap_caps_free(buf);
-            buf = nullptr;
-        }
+        heap_caps_free(repackBuf); repackBuf = nullptr;
+        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
         return false;
     }
 
@@ -276,12 +311,9 @@ bool Ssd1685Display::startLvgl()
     refreshSemaphore = xSemaphoreCreateBinary();
     if (!refreshSemaphore) {
         LOG_E(TAG, "Failed to create refresh semaphore");
-        lv_display_delete(lvglDisplay);
-        lvglDisplay = nullptr;
-        for (auto& buf : drawBuf) {
-            heap_caps_free(buf);
-            buf = nullptr;
-        }
+        heap_caps_free(repackBuf); repackBuf = nullptr;
+        lv_display_delete(lvglDisplay); lvglDisplay = nullptr;
+        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
         return false;
     }
 
@@ -291,14 +323,10 @@ bool Ssd1685Display::startLvgl()
             tskIDLE_PRIORITY + 2,
             &refreshTaskHandle) != pdPASS) {
         LOG_E(TAG, "Failed to create refresh task");
-        vSemaphoreDelete(refreshSemaphore);
-        refreshSemaphore = nullptr;
-        lv_display_delete(lvglDisplay);
-        lvglDisplay = nullptr;
-        for (auto& buf : drawBuf) {
-            heap_caps_free(buf);
-            buf = nullptr;
-        }
+        vSemaphoreDelete(refreshSemaphore); refreshSemaphore = nullptr;
+        heap_caps_free(repackBuf); repackBuf = nullptr;
+        lv_display_delete(lvglDisplay); lvglDisplay = nullptr;
+        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
         return false;
     }
 
@@ -323,6 +351,11 @@ bool Ssd1685Display::stopLvgl()
 
     lv_display_delete(lvglDisplay);
     lvglDisplay = nullptr;
+
+    if (repackBuf) {
+        heap_caps_free(repackBuf);
+        repackBuf = nullptr;
+    }
 
     for (auto& buf : drawBuf) {
         heap_caps_free(buf);

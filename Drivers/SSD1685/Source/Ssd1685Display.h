@@ -61,6 +61,15 @@ private:
     uint8_t*  drawBuf[2] = {nullptr, nullptr};
     size_t    bufSize = 0;
 
+    /**
+     * Repack buffer: LVGL I1 rows are padded to 4-byte alignment but the
+     * SSD1685 driver expects 1-byte-aligned rows.  This buffer holds the
+     * repacked data at EPD stride before being handed to draw_bitmap.
+     *
+     * Size = ((lvglWidth + 7) / 8) * lvglHeight  bytes.
+     */
+    uint8_t*  repackBuf = nullptr;
+
     bool started = false;
 
     SemaphoreHandle_t refreshSemaphore = nullptr;
