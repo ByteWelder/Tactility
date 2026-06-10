@@ -75,8 +75,22 @@ private:
     SemaphoreHandle_t refreshSemaphore = nullptr;
     TaskHandle_t      refreshTaskHandle = nullptr;
 
-    uint16_t lvglWidth()  const;
-    uint16_t lvglHeight() const;
+    /**
+     * lvglWidth / lvglHeight now subtract the gap from the
+     * correct axis so LVGL never addresses dead source columns.
+     */
+    uint16_t lvglWidth()  const {
+        return (config->rotation == 1 || config->rotation == 3)
+               ? config->height - config->gapY
+               : config->width  - config->gapX;
+    }
+
+    uint16_t lvglHeight() const {
+        return (config->rotation == 1 || config->rotation == 3)
+               ? config->width  - config->gapX
+               : config->height - config->gapY;
+    }
+
     esp_err_t applyRotation();
 
     static void flushCallback(lv_display_t* disp, const lv_area_t* area, uint8_t* pixelMap);

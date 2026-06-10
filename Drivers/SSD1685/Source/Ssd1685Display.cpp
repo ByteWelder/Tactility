@@ -34,18 +34,6 @@ void Ssd1685Display::epdRefreshTask(void* params)
     }
 }
 
-uint16_t Ssd1685Display::lvglWidth() const
-{
-    return (config->rotation == 1 || config->rotation == 3)
-           ? config->height : config->width;
-}
-
-uint16_t Ssd1685Display::lvglHeight() const
-{
-    return (config->rotation == 1 || config->rotation == 3)
-           ? config->width : config->height;
-}
-
 esp_err_t Ssd1685Display::applyRotation()
 {
     bool swap_xy  = false;
@@ -80,9 +68,9 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
         return;
     }
 
-    // Skip I1 palette header (2 × ARGB8888)
+    // Skip I1 palette header (2 x ARGB8888 = 8 bytes)
     pixelMap += 8;
-    
+
     int x1 = area->x1;
     int y1 = area->y1;
     int x2 = area->x2;
@@ -90,9 +78,7 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
     int w  = x2 - x1 + 1;
     int h  = y2 - y1 + 1;
 
-    /* LVGL I1 row stride is based on the full display width, not the area
-     * width, because with RENDER_MODE_FULL LVGL always gives us the whole
-     * framebuffer in one call.                                           */
+    /* LVGL I1 row stride: 4-byte aligned on the full display width */
     int disp_w    = (int)lv_display_get_horizontal_resolution(disp);
     int src_stride = (int)(((unsigned)disp_w + 31u) / 32u) * 4;
 
@@ -115,7 +101,6 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
         x1, y1, x2 + 1, y2 + 1,
         src_buf);
 
-    /* Signal the background refresh task on the last flush of this frame */
     if (lv_display_flush_is_last(disp)) {
         xSemaphoreGive(self->refreshSemaphore);
     }
@@ -198,18 +183,23 @@ bool Ssd1685Display::start()
         return false;
     }
 
+    /* FIX (Bug 2 interaction): set_gap stores the offset in the panel state.
+     * The gap is now applied inside set_ram_window in physical space, so this
+     * call is still correct — it just stores gapX/gapY for later use. */
     if (config->gapX != 0 || config->gapY != 0) {
         esp_lcd_panel_set_gap(panelHandle, config->gapX, config->gapY);
     }
+
     applyRotation();
 
     LOG_I(TAG, "Initial clear...");
     esp_lcd_ssd1685_clear(panelHandle, 0xFF);
 
     started = true;
-    LOG_I(TAG, "Started  %dx%d  rotation=%d  gap=(%d,%d)",
+    LOG_I(TAG, "Started  %dx%d  rotation=%d  gap=(%d,%d)  lvgl=%dx%d",
           config->width, config->height,
-          config->rotation, config->gapX, config->gapY);
+          config->rotation, config->gapX, config->gapY,
+          lvglWidth(), lvglHeight());
     return true;
 }
 
@@ -240,12 +230,15 @@ bool Ssd1685Display::startLvgl()
         return false;
     }
 
+    /* Use gap-adjusted dimensions so LVGL never addresses dead
+     * source columns.  lvglWidth()/lvglHeight() subtract the gap from the
+     * correct axis based on rotation. */
     uint16_t w = lvglWidth();
     uint16_t h = lvglHeight();
 
-    /* LVGL I1 row stride 4-byte aligned (LVGL internal requirement) */
+    /* LVGL I1 row stride 4-byte aligned */
     size_t lvgl_stride = (((size_t)w + 31u) / 32u) * 4u;
-    bufSize = lvgl_stride * (size_t)h + 8; // I1 palette header (lvgl#6701)
+    bufSize = lvgl_stride * (size_t)h + 8; // I1 palette header
 
     LOG_I(TAG, "Allocating 2 x I1 buffers  %zu bytes (%dx%d)  lvgl_stride=%zu",
           bufSize, w, h, lvgl_stride);
@@ -267,9 +260,7 @@ bool Ssd1685Display::startLvgl()
         memset(drawBuf[i], 0xFF, bufSize);
     }
 
-    /* Repack buffer – EPD stride (1-byte aligned), no LVGL padding.
-     * Allocated separately so the flush callback can always repack
-     * without needing a heap allocation in the hot path.              */
+    /* Repack buffer at EPD stride (1-byte aligned, no LVGL padding) */
     size_t epd_stride  = ((size_t)w + 7u) / 8u;
     size_t repack_size = epd_stride * (size_t)h;
     repackBuf = static_cast<uint8_t*>(

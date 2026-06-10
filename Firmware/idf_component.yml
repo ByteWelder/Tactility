@@ -21,7 +21,7 @@ dependencies:
       - if: "target in [esp32, esp32s3]"
   NellowTCS/esp_lcd_ssd1685:
     git: https://github.com/NellowTCS/esp_lcd_ssd1685.git
-    version: "1.0.1"
+    version: "1.0.2"
     rules:
       # More hardware seems to be supported - enable as needed
       - if: "target in [esp32s3]"
