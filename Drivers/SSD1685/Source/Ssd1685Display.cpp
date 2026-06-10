@@ -242,7 +242,7 @@ bool Ssd1685Display::startLvgl()
 
     /* LVGL I1 row stride – 4-byte aligned (LVGL internal requirement) */
     size_t lvgl_stride = (((size_t)w + 31u) / 32u) * 4u;
-    bufSize = lvgl_stride * (size_t)h;
+    bufSize = lvgl_stride * (size_t)h + 8; // I1 palette header (lvgl#6701)
 
     LOG_I(TAG, "Allocating 2 x I1 buffers  %zu bytes (%dx%d)  lvgl_stride=%zu",
           bufSize, w, h, lvgl_stride);
