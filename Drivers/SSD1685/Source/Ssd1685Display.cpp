@@ -80,6 +80,9 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
         return;
     }
 
+    // Skip I1 palette header (2 × ARGB8888)
+    pixelMap += 8;
+    
     int x1 = area->x1;
     int y1 = area->y1;
     int x2 = area->x2;
