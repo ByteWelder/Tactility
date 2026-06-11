@@ -78,6 +78,14 @@ private:
     /**
      * lvglWidth / lvglHeight now subtract the gap from the
      * correct axis so LVGL never addresses dead source columns.
+     *
+     * For rotation 0/2 (portrait / 180):
+     *   LVGL width  = panel width  - gapX   (gapX is in the source/X direction)
+     *   LVGL height = panel height - gapY
+     *
+     * For rotation 1/3 (landscape CW/CCW, swap_xy active):
+     *   Physical X (source) becomes logical Y after the axis swap.
+     *   So gapX shrinks the logical height, and gapY shrinks the logical width.
      */
     uint16_t lvglWidth()  const {
         return (config->rotation == 1 || config->rotation == 3)
