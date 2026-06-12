@@ -37,11 +37,23 @@ public:
 
         spi_host_device_t spiHost;
         gpio_num_t csPin, dcPin, resetPin, busyPin;
-        uint16_t   width, height;
 
+        /* Physical panel dimensions (portrait native, before any rotation).
+         * width  = source direction (168 for GDEY029T71H)
+         * height = gate direction  (384 for GDEY029T71H) */
+        uint16_t width, height;
+
+        /* rotation: 0 = portrait, 1 = landscape 90 CW, 2 = 180, 3 = landscape 90 CCW.
+         * Implemented via LVGL software rotation. The hardware always runs in
+         * portrait mode (no swap_xy / mirror on the panel). */
         uint8_t rotation = 0;
-        int gapX = 0, gapY = 0;
-        uint32_t spiClockHz = 4'000'000;
+
+        /* gapX: source-line hardware offset (S0..S(gapX-1) unconnected).
+         * For GDEY029T71H: gapX=8 (S8..S175 connected). */
+        int gapX = 0;
+        int gapY = 0;
+
+        uint32_t spiClockHz    = 4'000'000;
         uint32_t busyTimeoutMs = 10'000;
         ssd1685_refresh_mode_t refreshMode = SSD1685_REFRESH_FULL;
         const uint8_t* customLut     = nullptr;
@@ -58,50 +70,32 @@ private:
     esp_lcd_panel_handle_t     panelHandle = nullptr;
     lv_display_t*              lvglDisplay = nullptr;
 
-    uint8_t*  drawBuf[2] = {nullptr, nullptr};
-    size_t    bufSize = 0;
+    /* L8 draw buffer: physical portrait pixels, 1 byte each.
+     * Size = width * height bytes.  LVGL sw-rotates into this before flush. */
+    uint8_t* drawBuf = nullptr;
 
-    /**
-     * Repack buffer: LVGL I1 rows are padded to 4-byte alignment but the
-     * SSD1685 driver expects 1-byte-aligned rows.  This buffer holds the
-     * repacked data at EPD stride before being handed to draw_bitmap.
-     *
-     * Size = ((lvglWidth + 7) / 8) * lvglHeight  bytes.
-     */
-    uint8_t*  repackBuf = nullptr;
+    /* 1bpp packed buffer: L8 thresholded and packed for the SSD1685 RAM.
+     * Size = ((width - gapX + 7) / 8) * height bytes. */
+    uint8_t* packedBuf = nullptr;
 
     bool started = false;
 
-    SemaphoreHandle_t refreshSemaphore = nullptr;
+    SemaphoreHandle_t refreshSemaphore  = nullptr;
     TaskHandle_t      refreshTaskHandle = nullptr;
 
-    /**
-     * lvglWidth / lvglHeight now subtract the gap from the
-     * correct axis so LVGL never addresses dead source columns.
-     *
-     * For rotation 0/2 (portrait / 180):
-     *   LVGL width  = panel width  - gapX   (gapX is in the source/X direction)
-     *   LVGL height = panel height - gapY
-     *
-     * For rotation 1/3 (landscape CW/CCW, swap_xy active):
-     *   Physical X (source) becomes logical Y after the axis swap.
-     *   So gapX shrinks the logical height, and gapY shrinks the logical width.
-     */
-    uint16_t lvglWidth()  const {
-        return (config->rotation == 1 || config->rotation == 3)
-               ? config->height - config->gapY
-               : config->width  - config->gapX;
-    }
+    /* Physical portrait dimensions reported to LVGL (no gap subtraction needed
+     * because we always operate in portrait mode; the gap is applied purely at
+     * the RAM window level inside draw_bitmap). */
+    uint16_t physWidth()  const { return config->width; }
+    uint16_t physHeight() const { return config->height; }
 
-    uint16_t lvglHeight() const {
-        return (config->rotation == 1 || config->rotation == 3)
-               ? config->width  - config->gapX
-               : config->height - config->gapY;
-    }
+    /* LVGL rotation enum: maps config->rotation to lv_display_rotation_t.
+     * The hardware never changes orientation; LVGL sw-rotates to taste. */
+    static lv_display_rotation_t lvglRotation(uint8_t rotation);
 
-    esp_err_t applyRotation();
-
-    static void flushCallback(lv_display_t* disp, const lv_area_t* area, uint8_t* pixelMap);
+    static void flushCallback(lv_display_t* disp,
+                              const lv_area_t* area,
+                              uint8_t* pixelMap);
     static void epdRefreshTask(void* params);
 
 public:
@@ -110,14 +104,14 @@ public:
     ~Ssd1685Display() override;
 
     std::string getName()        const override { return "SSD1685"; }
-    std::string getDescription() const override { return "SSD168x e-paper display"; }
+    std::string getDescription() const override { return "SSD168x e-paper display (L8)"; }
 
     bool start()  override;
     bool stop()   override;
 
-    bool supportsPowerControl()  const override { return false; }
-    bool isPoweredOn()           const override { return started; }
-    void setPowerOn(bool)              override {}
+    bool supportsPowerControl() const override { return false; }
+    bool isPoweredOn()          const override { return started; }
+    void setPowerOn(bool)             override {}
 
     std::shared_ptr<tt::hal::touch::TouchDevice> getTouchDevice() override {
         return config->touch;

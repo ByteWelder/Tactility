@@ -3,7 +3,6 @@
 #include <esp_heap_caps.h>
 #include <esp_log.h>
 #include <esp_check.h>
-
 #include <tactility/log.h>
 
 #include <freertos/FreeRTOS.h>
@@ -11,6 +10,10 @@
 #include <freertos/task.h>
 
 static constexpr const char* TAG = "Ssd1685Display";
+
+// ---------------------------------------------------------------------------
+// Construction
+// ---------------------------------------------------------------------------
 
 Ssd1685Display::Ssd1685Display(std::unique_ptr<Configuration> cfg)
     : config(std::move(cfg))
@@ -22,7 +25,10 @@ Ssd1685Display::~Ssd1685Display()
     if (started)     stop();
 }
 
-// EPD refresh task (runs outside LVGL lock)
+// ---------------------------------------------------------------------------
+// EPD refresh task — runs outside the LVGL lock so the slow EPD refresh
+// doesn't block LVGL rendering.
+// ---------------------------------------------------------------------------
 
 void Ssd1685Display::epdRefreshTask(void* params)
 {
@@ -34,72 +40,82 @@ void Ssd1685Display::epdRefreshTask(void* params)
     }
 }
 
-esp_err_t Ssd1685Display::applyRotation()
-{
-    bool swap_xy  = false;
-    bool mirror_x = false;
-    bool mirror_y = false;
+// ---------------------------------------------------------------------------
+// LVGL rotation helper
+// ---------------------------------------------------------------------------
 
-    switch (config->rotation) {
-    case 0: break;
-    case 1: swap_xy = true;  mirror_x = true;  break;
-    case 2: mirror_x = true; mirror_y = true;  break;
-    case 3: swap_xy = true;  mirror_y = true;  break;
-    default:
-        LOG_W(TAG, "Unknown rotation %d, using 0", config->rotation);
-        break;
+lv_display_rotation_t Ssd1685Display::lvglRotation(uint8_t rotation)
+{
+    switch (rotation) {
+    case 1:  return LV_DISPLAY_ROTATION_90;
+    case 2:  return LV_DISPLAY_ROTATION_180;
+    case 3:  return LV_DISPLAY_ROTATION_270;
+    default: return LV_DISPLAY_ROTATION_0;
     }
-    if (swap_xy)
-        ESP_RETURN_ON_ERROR(esp_lcd_panel_swap_xy(panelHandle, true), TAG, "swap_xy");
-    if (mirror_x || mirror_y)
-        ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(panelHandle, mirror_x, mirror_y), TAG, "mirror");
-    return ESP_OK;
 }
 
+// ---------------------------------------------------------------------------
 // flushCallback
+//
+// LVGL calls this with L8 pixel data (1 byte per pixel, 0=black, 255=white)
+// in PHYSICAL PORTRAIT coordinates.  LVGL already performed any sw rotation
+// before reaching here, so we always receive portrait-oriented data regardless
+// of the logical orientation the application thinks it has.
+//
+// Steps:
+//   1. For each pixel: threshold L8 -> 1 bit (>=128 = white/1, <128 = black/0)
+//   2. Pack 8 pixels per byte, MSB first (SSD1685 convention)
+//   3. Call draw_bitmap in portrait mode — no swap_xy, no software rotation
+//   4. On last flush of the frame, signal the refresh task
+// ---------------------------------------------------------------------------
 
 void Ssd1685Display::flushCallback(lv_display_t* disp,
                                     const lv_area_t* area,
                                     uint8_t* pixelMap)
 {
     auto* self = static_cast<Ssd1685Display*>(lv_display_get_user_data(disp));
-    if (!self || !self->panelHandle || !pixelMap) {
+    if (!self || !self->panelHandle || !pixelMap || !self->packedBuf) {
         lv_display_flush_ready(disp);
         return;
     }
 
-    // Skip I1 palette header (2 x ARGB8888 = 8 bytes)
-    pixelMap += 8;
+    const int x1 = area->x1;
+    const int y1 = area->y1;
+    const int x2 = area->x2;
+    const int y2 = area->y2;
+    const int w  = x2 - x1 + 1;
+    const int h  = y2 - y1 + 1;
 
-    int x1 = area->x1;
-    int y1 = area->y1;
-    int x2 = area->x2;
-    int y2 = area->y2;
-    int w  = x2 - x1 + 1;
-    int h  = y2 - y1 + 1;
+    /* L8 source stride = physical display width (LVGL always provides a full-width
+     * row when RENDER_MODE_FULL is active, even for sub-areas). */
+    const int src_stride = (int)lv_display_get_horizontal_resolution(disp);
 
-    /* LVGL I1 row stride: 4-byte aligned on the full display width */
-    int disp_w    = (int)lv_display_get_horizontal_resolution(disp);
-    int src_stride = (int)(((unsigned)disp_w + 31u) / 32u) * 4;
+    /* 1bpp packed output stride: one bit per source pixel, MSB first. */
+    const int dst_stride = (w + 7) / 8;
 
-    /* EPD expects 1-byte-aligned rows */
-    int epd_stride = (w + 7) / 8;
+    for (int row = 0; row < h; row++) {
+        const uint8_t* src = pixelMap + (size_t)row * src_stride + x1;
+        uint8_t*       dst = self->packedBuf + (size_t)row * dst_stride;
 
-    const uint8_t* src_buf = pixelMap;
-
-    if (src_stride != epd_stride && self->repackBuf != nullptr) {
-        for (int row = 0; row < h; row++) {
-            const uint8_t* src = pixelMap + (size_t)row * src_stride;
-            uint8_t*       dst = self->repackBuf + (size_t)row * epd_stride;
-            memcpy(dst, src, (size_t)epd_stride);
+        for (int col = 0; col < w; col++) {
+            /* SSD1685: 1 = white, 0 = black — same polarity as L8 >=128 = white */
+            uint8_t bit = (src[col] >= 128) ? 1u : 0u;
+            int byte_idx = col >> 3;
+            int bit_pos  = 7 - (col & 7);  /* MSB first */
+            if (bit) {
+                dst[byte_idx] |=  (uint8_t)(1u << bit_pos);
+            } else {
+                dst[byte_idx] &= (uint8_t)~(1u << bit_pos);
+            }
         }
-        src_buf = self->repackBuf;
     }
 
+    /* draw_bitmap uses the non-swap_xy path: hardware is always portrait.
+     * gapX is applied inside draw_bitmap (non-swap path adds it before set_ram_window). */
     esp_lcd_panel_draw_bitmap(
         self->panelHandle,
         x1, y1, x2 + 1, y2 + 1,
-        src_buf);
+        self->packedBuf);
 
     if (lv_display_flush_is_last(disp)) {
         xSemaphoreGive(self->refreshSemaphore);
@@ -108,7 +124,9 @@ void Ssd1685Display::flushCallback(lv_display_t* disp,
     lv_display_flush_ready(disp);
 }
 
+// ---------------------------------------------------------------------------
 // start / stop
+// ---------------------------------------------------------------------------
 
 bool Ssd1685Display::start()
 {
@@ -117,6 +135,7 @@ bool Ssd1685Display::start()
         return true;
     }
 
+    /* SPI panel IO */
     esp_lcd_panel_io_spi_config_t io_cfg = {
         .cs_gpio_num         = config->csPin,
         .dc_gpio_num         = config->dcPin,
@@ -148,12 +167,13 @@ bool Ssd1685Display::start()
         return false;
     }
 
+    /* SSD1685 panel */
     esp_lcd_panel_ssd1685_config_t epd_cfg = {
         .busy_gpio_num        = config->busyPin,
         .busy_timeout_ms      = config->busyTimeoutMs,
         .panel_width          = config->width,
         .panel_height         = config->height,
-        .non_copy_mode        = true,
+        .non_copy_mode        = true,   /* we call refresh manually */
         .default_refresh_mode = config->refreshMode,
         .custom_lut           = config->customLut,
         .custom_lut_size      = config->customLutSize,
@@ -183,23 +203,23 @@ bool Ssd1685Display::start()
         return false;
     }
 
-    /* FIX (Bug 2 interaction): set_gap stores the offset in the panel state.
-     * The gap is now applied inside set_ram_window in physical space, so this
-     * call is still correct — it just stores gapX/gapY for later use. */
+    /* Apply source-line gap offset.
+     * The hardware always runs in portrait mode (no swap_xy / mirror).
+     * gapX shifts the RAM window right by gapX sources so pixel (0,0) in
+     * the application maps to the first live source (S8 on GDEY029T71H). */
     if (config->gapX != 0 || config->gapY != 0) {
         esp_lcd_panel_set_gap(panelHandle, config->gapX, config->gapY);
     }
 
-    applyRotation();
+    /* No hardware rotation: LVGL handles rotation in software. */
 
     LOG_I(TAG, "Initial clear...");
     esp_lcd_ssd1685_clear(panelHandle, 0xFF);
 
     started = true;
-    LOG_I(TAG, "Started  %dx%d  rotation=%d  gap=(%d,%d)  lvgl=%dx%d",
+    LOG_I(TAG, "Started  physical=%dx%d  rotation=%d (LVGL sw)  gap=(%d,%d)",
           config->width, config->height,
-          config->rotation, config->gapX, config->gapY,
-          lvglWidth(), lvglHeight());
+          config->rotation, config->gapX, config->gapY);
     return true;
 }
 
@@ -217,7 +237,9 @@ bool Ssd1685Display::stop()
     return true;
 }
 
-// LVGL
+// ---------------------------------------------------------------------------
+// startLvgl / stopLvgl
+// ---------------------------------------------------------------------------
 
 bool Ssd1685Display::startLvgl()
 {
@@ -230,67 +252,67 @@ bool Ssd1685Display::startLvgl()
         return false;
     }
 
-    /* Use gap-adjusted dimensions so LVGL never addresses dead
-     * source columns.  lvglWidth()/lvglHeight() subtract the gap from the
-     * correct axis based on rotation. */
-    uint16_t w = lvglWidth();
-    uint16_t h = lvglHeight();
+    const uint16_t pw = physWidth();   /* 168 */
+    const uint16_t ph = physHeight();  /* 384 */
 
-    /* LVGL I1 row stride 4-byte aligned */
-    size_t lvgl_stride = (((size_t)w + 31u) / 32u) * 4u;
-    bufSize = lvgl_stride * (size_t)h + 8; // I1 palette header
+    /* L8 draw buffer: one byte per physical pixel.
+     * LVGL renders the logical (rotated) scene into this buffer in portrait
+     * physical layout before calling our flush callback. */
+    size_t draw_size = (size_t)pw * ph;  /* 168 * 384 = 64512 bytes */
 
-    LOG_I(TAG, "Allocating 2 x I1 buffers  %zu bytes (%dx%d)  lvgl_stride=%zu",
-          bufSize, w, h, lvgl_stride);
-
-    for (int i = 0; i < 2; ++i) {
-        drawBuf[i] = static_cast<uint8_t*>(
-            heap_caps_malloc(bufSize, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-        if (!drawBuf[i]) {
-            drawBuf[i] = static_cast<uint8_t*>(
-                heap_caps_malloc(bufSize, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
-        }
-        if (!drawBuf[i]) {
-            LOG_E(TAG, "Failed to allocate I1 buffer %d", i);
-            for (int j = 0; j < i; ++j) {
-                heap_caps_free(drawBuf[j]); drawBuf[j] = nullptr;
-            }
-            return false;
-        }
-        memset(drawBuf[i], 0xFF, bufSize);
+    drawBuf = static_cast<uint8_t*>(
+        heap_caps_malloc(draw_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!drawBuf) {
+        drawBuf = static_cast<uint8_t*>(
+            heap_caps_malloc(draw_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
     }
-
-    /* Repack buffer at EPD stride (1-byte aligned, no LVGL padding) */
-    size_t epd_stride  = ((size_t)w + 7u) / 8u;
-    size_t repack_size = epd_stride * (size_t)h;
-    repackBuf = static_cast<uint8_t*>(
-        heap_caps_malloc(repack_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-    if (!repackBuf) {
-        repackBuf = static_cast<uint8_t*>(
-            heap_caps_malloc(repack_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
-    }
-    if (!repackBuf) {
-        LOG_E(TAG, "Failed to allocate repack buffer (%zu bytes)", repack_size);
-        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
+    if (!drawBuf) {
+        LOG_E(TAG, "Failed to allocate L8 draw buffer (%zu bytes)", draw_size);
         return false;
     }
-    LOG_I(TAG, "Repack buffer: %zu bytes  epd_stride=%zu  (lvgl_stride=%zu)",
-          repack_size, epd_stride, lvgl_stride);
+    memset(drawBuf, 0xFF, draw_size);  /* initialise to white */
 
-    lvglDisplay = lv_display_create(w, h);
+    /* 1bpp packed buffer: used by flushCallback to stage the thresholded data.
+     * Width is the physical portrait width (rows sent left-to-right without gap
+     * in caller's view; draw_bitmap adds gapX before setting the RAM window).
+     * Size = ceil(pw / 8) * ph */
+    size_t packed_stride = ((size_t)pw + 7u) / 8u;  /* 21 bytes/row */
+    size_t packed_size   = packed_stride * ph;        /* 21 * 384 = 8064 bytes */
+
+    packedBuf = static_cast<uint8_t*>(
+        heap_caps_malloc(packed_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    if (!packedBuf) {
+        packedBuf = static_cast<uint8_t*>(
+            heap_caps_malloc(packed_size, MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL));
+    }
+    if (!packedBuf) {
+        LOG_E(TAG, "Failed to allocate 1bpp packed buffer (%zu bytes)", packed_size);
+        heap_caps_free(drawBuf); drawBuf = nullptr;
+        return false;
+    }
+    memset(packedBuf, 0xFF, packed_size);
+
+    /* Create the LVGL display at physical portrait dimensions.
+     * LVGL will sw-rotate the logical canvas to match the requested rotation. */
+    lvglDisplay = lv_display_create(pw, ph);
     if (!lvglDisplay) {
         LOG_E(TAG, "lv_display_create failed");
-        heap_caps_free(repackBuf); repackBuf = nullptr;
-        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
+        heap_caps_free(packedBuf); packedBuf = nullptr;
+        heap_caps_free(drawBuf);   drawBuf   = nullptr;
         return false;
     }
 
-    lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_I1);
+    lv_display_set_color_format(lvglDisplay, LV_COLOR_FORMAT_L8);
+
+    /* Ask LVGL to rotate the logical canvas.  With RENDER_MODE_FULL LVGL
+     * renders the full screen each frame, rotating in software into drawBuf
+     * before calling our flush callback with portrait-physical data. */
+    lv_display_set_rotation(lvglDisplay, lvglRotation(config->rotation));
 
     lv_display_set_buffers(
         lvglDisplay,
-        drawBuf[0], drawBuf[1],
-        bufSize,
+        drawBuf, nullptr,
+        draw_size,
         LV_DISPLAY_RENDER_MODE_FULL);
 
     lv_display_set_flush_cb(lvglDisplay, flushCallback);
@@ -302,12 +324,13 @@ bool Ssd1685Display::startLvgl()
         }
     }
 
+    /* Semaphore + task for async EPD refresh (keeps LVGL unblocked). */
     refreshSemaphore = xSemaphoreCreateBinary();
     if (!refreshSemaphore) {
         LOG_E(TAG, "Failed to create refresh semaphore");
-        heap_caps_free(repackBuf); repackBuf = nullptr;
         lv_display_delete(lvglDisplay); lvglDisplay = nullptr;
-        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
+        heap_caps_free(packedBuf); packedBuf = nullptr;
+        heap_caps_free(drawBuf);   drawBuf   = nullptr;
         return false;
     }
 
@@ -318,13 +341,19 @@ bool Ssd1685Display::startLvgl()
             &refreshTaskHandle) != pdPASS) {
         LOG_E(TAG, "Failed to create refresh task");
         vSemaphoreDelete(refreshSemaphore); refreshSemaphore = nullptr;
-        heap_caps_free(repackBuf); repackBuf = nullptr;
         lv_display_delete(lvglDisplay); lvglDisplay = nullptr;
-        for (auto& buf : drawBuf) { heap_caps_free(buf); buf = nullptr; }
+        heap_caps_free(packedBuf); packedBuf = nullptr;
+        heap_caps_free(drawBuf);   drawBuf   = nullptr;
         return false;
     }
 
-    LOG_I(TAG, "LVGL started  %dx%d  I1  FULL  async flush", w, h);
+    /* Derive the logical (post-rotation) canvas size for the log message. */
+    bool is_landscape = (config->rotation == 1 || config->rotation == 3);
+    uint16_t logical_w = is_landscape ? ph : pw;
+    uint16_t logical_h = is_landscape ? pw : ph;
+
+    LOG_I(TAG, "LVGL started  physical=%dx%d  logical=%dx%d  L8  FULL  async refresh",
+          pw, ph, logical_w, logical_h);
     return true;
 }
 
@@ -346,20 +375,16 @@ bool Ssd1685Display::stopLvgl()
     lv_display_delete(lvglDisplay);
     lvglDisplay = nullptr;
 
-    if (repackBuf) {
-        heap_caps_free(repackBuf);
-        repackBuf = nullptr;
-    }
-
-    for (auto& buf : drawBuf) {
-        heap_caps_free(buf);
-        buf = nullptr;
-    }
-    bufSize = 0;
+    if (packedBuf) { heap_caps_free(packedBuf); packedBuf = nullptr; }
+    if (drawBuf)   { heap_caps_free(drawBuf);   drawBuf   = nullptr; }
 
     LOG_I(TAG, "LVGL stopped");
     return true;
 }
+
+// ---------------------------------------------------------------------------
+// Convenience wrappers
+// ---------------------------------------------------------------------------
 
 esp_err_t Ssd1685Display::clearScreen(uint8_t colorByte)
 {
