@@ -20,7 +20,14 @@ enum DisplayCapability {
     DISPLAY_CAPABILITY_INVERT_COLOR    = 1 << 3,
     DISPLAY_CAPABILITY_ON_OFF          = 1 << 4,
     DISPLAY_CAPABILITY_BACKLIGHT       = 1 << 5,
-    DISPLAY_CAPABILITY_SLEEP           = 1 << 6
+    DISPLAY_CAPABILITY_SLEEP           = 1 << 6,
+    /**
+     * Panel can only be written a full frame at a time (e.g. no row-address command, relying on
+     * an internal auto-increment counter reset by writing the whole frame from the top every
+     * time) - draw_bitmap() must always be called with the full resolution, never a sub-region.
+     * LVGL-facing callers (see lvgl_display.c) must use LV_DISPLAY_RENDER_MODE_FULL for such panels.
+     */
+    DISPLAY_CAPABILITY_REQUIRES_FULL_FRAME = 1 << 7
 };
 
 /**
@@ -114,6 +121,24 @@ struct DisplayApi {
      * @retval ERROR_NONE when the operation was successful
      */
     error_t (*set_gap)(struct Device* device, int32_t x_gap, int32_t y_gap);
+
+    /**
+     * @brief Gets the devicetree-configured baseline X gap (i.e. as set at LV_DISPLAY_ROTATION_0,
+     * before any rotation-driven swap_xy/mirror changes) - not necessarily the last value passed
+     * to set_gap(), which callers (e.g. lvgl_display.c on rotation change) may have since swapped.
+     * @warning Function pointer should be null if capability not available.
+     * @param[in] device the display device
+     * @return the baseline X gap
+     */
+    int32_t (*get_gap_x)(struct Device* device);
+
+    /**
+     * @brief Gets the devicetree-configured baseline Y gap. See get_gap_x() for details.
+     * @warning Function pointer should be null if capability not available.
+     * @param[in] device the display device
+     * @return the baseline Y gap
+     */
+    int32_t (*get_gap_y)(struct Device* device);
 
     /**
      * @brief Inverts the panel's color output.
@@ -249,6 +274,18 @@ bool display_get_mirror_y(struct Device* device);
  * @brief Sets a coordinate offset applied to all draw operations using the specified display.
  */
 error_t display_set_gap(struct Device* device, int32_t x_gap, int32_t y_gap);
+
+/**
+ * @brief Gets the devicetree-configured baseline X gap using the specified display. See
+ * DisplayApi::get_gap_x() for details.
+ */
+int32_t display_get_gap_x(struct Device* device);
+
+/**
+ * @brief Gets the devicetree-configured baseline Y gap using the specified display. See
+ * DisplayApi::get_gap_y() for details.
+ */
+int32_t display_get_gap_y(struct Device* device);
 
 /**
  * @brief Inverts the panel's color output using the specified display.

@@ -35,6 +35,24 @@ struct LvglDisplayConfig {
      * Allocates one extra buffer sized like the primary draw buffer.
      */
     bool sw_rotate;
+
+    /**
+     * Endianness of the 2 bytes of each RGB565/BGR565 pixel sent to the panel. False (default)
+     * keeps this little-endian CPU's native byte order (no-op). True swaps the 2 bytes of every
+     * pixel (big-endian) in the flush callback, via lv_draw_sw_rgb565_swap() - for panels that
+     * expect the opposite byte order over the bus. Ignored for color formats other than
+     * RGB565/BGR565 (e.g. RGB888, MONOCHROME).
+     */
+    bool swap_bytes;
+
+    /**
+     * Forces LV_DISPLAY_RENDER_MODE_FULL with a full-resolution buffer, ignoring buffer_height,
+     * and always flushes the entire display rather than per-tile dirty regions. Set this when the
+     * device reports DISPLAY_CAPABILITY_REQUIRES_FULL_FRAME - see that capability's doc comment.
+     * Ignored when the device exposes its own frame buffer(s) (already always-full-frame) or uses
+     * the LV_COLOR_FORMAT_I1 path (already always-full-frame).
+     */
+    bool force_full_frame;
 };
 
 /**
