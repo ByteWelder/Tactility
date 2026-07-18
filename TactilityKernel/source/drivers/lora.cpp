@@ -40,11 +40,11 @@ bool lora_can_receive(struct Device* device, enum LoraModulation modulation) {
     return LORA_API(device)->can_receive(device, modulation);
 }
 
-error_t lora_set_parameter(struct Device* device, enum LoraParameter parameter, float value) {
+error_t lora_set_parameter(struct Device* device, enum LoraParameter parameter, int32_t value) {
     return LORA_API(device)->set_parameter(device, parameter, value);
 }
 
-error_t lora_get_parameter(struct Device* device, enum LoraParameter parameter, float* value) {
+error_t lora_get_parameter(struct Device* device, enum LoraParameter parameter, int32_t* value) {
     return LORA_API(device)->get_parameter(device, parameter, value);
 }
 

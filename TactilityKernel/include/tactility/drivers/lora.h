@@ -26,37 +26,46 @@ enum LoraModulation {
 };
 
 /**
- * Tunable radio parameters. Values are passed as float; the unit per parameter:
- * - POWER: TX output power in dBm
- * - BOOSTED_GAIN: boosted RX gain mode, 0 or 1
- * - FREQUENCY: carrier frequency in MHz
- * - BANDWIDTH: bandwidth in kHz
- * - SPREADING_FACTOR: LoRa spreading factor (7-12)
- * - CODING_RATE: LoRa coding rate denominator (5-8 for 4/5-4/8)
- * - SYNC_WORD: sync word value
- * - PREAMBLE_LENGTH: preamble length in symbols (LoRa) or bits (FSK)
- * - FREQUENCY_DEVIATION: FSK frequency deviation in kHz
- * - DATA_RATE: FSK bit rate in kbps
- * - NARROW_GRID: LR-FHSS grid spacing, 0 (25 kHz) or 1 (3.9 kHz)
- * - CURRENT_LIMIT: PA over-current protection limit in mA. Fail-safe: a low limit caps
- *   the current the PA can push into a bad or disconnected antenna, but also caps the
- *   achievable output power. Drivers keep a conservative default; a board-aware consumer
- *   that knows its antenna and PA can raise it to reach full output power.
+ * Tunable radio parameters. Values are int32_t; the unit is documented per parameter.
+ * Frequencies and rates use their base SI unit (Hz, bit/s) on purpose: a float can't hold
+ * a value like 906875000 Hz (906.875 MHz) exactly, so integers avoid the rounding a
+ * fractional MHz/kHz representation would introduce.
  *
  * Which parameters are available depends on the driver and the selected modulation.
  */
 enum LoraParameter {
+    /** TX output power in dBm */
     LORA_PARAMETER_POWER = 0,
+    /** Boosted RX gain mode: 0 = off, 1 = on */
     LORA_PARAMETER_BOOSTED_GAIN,
+    /** Carrier frequency in Hz */
     LORA_PARAMETER_FREQUENCY,
+    /** Bandwidth in Hz */
     LORA_PARAMETER_BANDWIDTH,
+    /** LoRa spreading factor (7-12) */
     LORA_PARAMETER_SPREADING_FACTOR,
+    /** LoRa coding rate denominator (5-8 for 4/5 to 4/8) */
     LORA_PARAMETER_CODING_RATE,
+    /**
+     * LoRa sync word (0x00-0xFF). Distinguishes otherwise-identical networks: a receiver
+     * only accepts packets whose sync word matches. Conventionally 0x12 for private
+     * networks and 0x34 for public/LoRaWAN. LoRa modulation only.
+     */
     LORA_PARAMETER_SYNC_WORD,
+    /** Preamble length in symbols (LoRa) or bits (FSK) */
     LORA_PARAMETER_PREAMBLE_LENGTH,
+    /** FSK frequency deviation from the carrier in Hz */
     LORA_PARAMETER_FREQUENCY_DEVIATION,
+    /** FSK bit rate in bits per second */
     LORA_PARAMETER_DATA_RATE,
+    /** LR-FHSS grid spacing: 0 = 25 kHz (wide), 1 = 3.9 kHz (narrow) */
     LORA_PARAMETER_NARROW_GRID,
+    /**
+     * PA over-current protection limit in mA. Fail-safe: a low limit caps the current the
+     * PA can push into a bad or disconnected antenna, but also caps the achievable output
+     * power. Drivers keep a conservative default; a board-aware consumer that knows its
+     * antenna and PA can raise it to reach full output power.
+     */
     LORA_PARAMETER_CURRENT_LIMIT,
 };
 
@@ -167,7 +176,7 @@ struct LoraApi {
      * @retval ERROR_NOT_SUPPORTED when the parameter doesn't apply to the device or modulation
      * @retval ERROR_OUT_OF_RANGE when the value is invalid for the parameter
      */
-    error_t (*set_parameter)(struct Device* device, enum LoraParameter parameter, float value);
+    error_t (*set_parameter)(struct Device* device, enum LoraParameter parameter, int32_t value);
 
     /**
      * Get a radio parameter. See LoraParameter for units.
@@ -177,7 +186,7 @@ struct LoraApi {
      * @return ERROR_NONE on success
      * @retval ERROR_NOT_SUPPORTED when the parameter doesn't apply to the device or modulation
      */
-    error_t (*get_parameter)(struct Device* device, enum LoraParameter parameter, float* value);
+    error_t (*get_parameter)(struct Device* device, enum LoraParameter parameter, int32_t* value);
 
     /**
      * Queue a packet for transmission. The data is copied.
@@ -253,8 +262,8 @@ error_t lora_set_modulation(struct Device* device, enum LoraModulation modulatio
 error_t lora_get_modulation(struct Device* device, enum LoraModulation* modulation);
 bool lora_can_transmit(struct Device* device, enum LoraModulation modulation);
 bool lora_can_receive(struct Device* device, enum LoraModulation modulation);
-error_t lora_set_parameter(struct Device* device, enum LoraParameter parameter, float value);
-error_t lora_get_parameter(struct Device* device, enum LoraParameter parameter, float* value);
+error_t lora_set_parameter(struct Device* device, enum LoraParameter parameter, int32_t value);
+error_t lora_get_parameter(struct Device* device, enum LoraParameter parameter, int32_t* value);
 error_t lora_transmit(struct Device* device, const uint8_t* data, size_t length, LoraTxId* id);
 error_t lora_add_rx_callback(struct Device* device, void* callback_context, LoraRxCallback callback);
 error_t lora_remove_rx_callback(struct Device* device, LoraRxCallback callback);

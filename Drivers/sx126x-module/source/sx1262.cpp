@@ -291,13 +291,13 @@ static bool api_can_receive(Device* device, enum LoraModulation modulation) {
     return (radio != nullptr) && radio->canReceive(modulation);
 }
 
-static error_t api_set_parameter(Device* device, enum LoraParameter parameter, float value) {
+static error_t api_set_parameter(Device* device, enum LoraParameter parameter, int32_t value) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->setParameter(parameter, value);
 }
 
-static error_t api_get_parameter(Device* device, enum LoraParameter parameter, float* value) {
+static error_t api_get_parameter(Device* device, enum LoraParameter parameter, int32_t* value) {
     auto* radio = get_radio(device);
     if (radio == nullptr) return ERROR_INVALID_STATE;
     return radio->getParameter(parameter, value);

@@ -20,8 +20,9 @@ struct GpioDescriptor;
 
 /**
  * SX1262 radio engine: owns the radio thread, the TX queue and the callback lists.
- * The public methods are thread-safe. Callbacks are invoked with the internal mutex held,
- * either from the radio thread (RX, TX progress, state) or from the caller of transmit() (QUEUED).
+ * The public methods are thread-safe. Callbacks are invoked on a snapshot of the list with
+ * the internal mutex released, either from the radio thread (RX, TX progress, state) or from
+ * the caller of transmit() (QUEUED).
  *
  * The RadioLib types live behind the RadioParts indirection: RadioLib declares a global
  * `class Module` that collides with the kernel's `struct Module` when both are visible
@@ -83,21 +84,22 @@ private:
     std::vector<CallbackEntry<LoraRxCallback>> rxCallbacks;
     std::vector<CallbackEntry<LoraTxCallback>> txCallbacks;
 
-    // Parameter store, applied on the next doBegin()
+    // Parameter store, applied on the next doBegin(). Frequencies/rates are held in base SI
+    // units (Hz, bit/s) and converted to RadioLib's MHz/kHz/kbps floats in doBegin().
     int8_t power = -9;
-    float frequency = 150;
-    float bandwidth = 0.0;
+    int32_t frequency = 150000000; // Hz
+    int32_t bandwidth = 0;         // Hz
     uint8_t spreadingFactor = 0;
     uint8_t codingRate = 0;
     uint8_t syncWord = 0;
     uint16_t preambleLength = 0;
-    float bitRate = 0.0;
-    float frequencyDeviation = 0.0;
+    int32_t bitRate = 0;           // bit/s
+    int32_t frequencyDeviation = 0; // Hz
     bool narrowGrid = false;
     bool boostedGain = false;
     // PA over-current protection limit in mA. Default matches RadioLib's fail-safe 60 mA,
     // which caps output below +22 dBm; a board-aware consumer can raise it (up to 140 mA).
-    float currentLimit = 60.0;
+    int32_t currentLimit = 60;     // mA
 
     static void dio1Isr(void* context);
     static int32_t threadMainStatic(void* context);
@@ -118,14 +120,14 @@ private:
     void registerDio1Isr();
     void unregisterDio1Isr();
 
-    error_t setBaseParameter(enum LoraParameter parameter, float value);
-    error_t setLoraParameter(enum LoraParameter parameter, float value);
-    error_t setFskParameter(enum LoraParameter parameter, float value);
-    error_t setLrFhssParameter(enum LoraParameter parameter, float value);
-    error_t getBaseParameter(enum LoraParameter parameter, float* value) const;
-    error_t getLoraParameter(enum LoraParameter parameter, float* value) const;
-    error_t getFskParameter(enum LoraParameter parameter, float* value) const;
-    error_t getLrFhssParameter(enum LoraParameter parameter, float* value) const;
+    error_t setBaseParameter(enum LoraParameter parameter, int32_t value);
+    error_t setLoraParameter(enum LoraParameter parameter, int32_t value);
+    error_t setFskParameter(enum LoraParameter parameter, int32_t value);
+    error_t setLrFhssParameter(enum LoraParameter parameter, int32_t value);
+    error_t getBaseParameter(enum LoraParameter parameter, int32_t* value) const;
+    error_t getLoraParameter(enum LoraParameter parameter, int32_t* value) const;
+    error_t getFskParameter(enum LoraParameter parameter, int32_t* value) const;
+    error_t getLrFhssParameter(enum LoraParameter parameter, int32_t* value) const;
 
     int doBegin(enum LoraModulation beginModulation);
     void doEnd();
@@ -159,8 +161,8 @@ public:
         return (withModulation == LORA_MODULATION_FSK) || (withModulation == LORA_MODULATION_LORA);
     }
 
-    error_t setParameter(enum LoraParameter parameter, float value);
-    error_t getParameter(enum LoraParameter parameter, float* value) const;
+    error_t setParameter(enum LoraParameter parameter, int32_t value);
+    error_t getParameter(enum LoraParameter parameter, int32_t* value) const;
 
     error_t transmit(const uint8_t* data, size_t length, LoraTxId* id);
 
