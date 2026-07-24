@@ -4,14 +4,15 @@
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 
-#include <tactility/drivers/gps.h>
 #include <tactility/drivers/uart_controller.h>
-#include <tactility/gps_service.h>
+#include <tactility/log.h>
+#include <tactility/lvgl_icon_shared.h>
+
+#include <gps/gps.h>
+#include <gps/gps_settings.h>
 
 #include <cstring>
 #include <lvgl.h>
-#include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
 
 namespace tt::app::addgps {
 
@@ -29,18 +30,6 @@ class AddGpsApp final : public App {
     // We only need to parse back to int when adding the new GPS entry
     std::array<uint32_t, 6> baudRates = { 9600, 19200, 28800, 38400, 57600, 115200 };
     const char* baudRatesDropdownValues = "9600\n19200\n28800\n38400\n57600\n115200";
-
-    struct DuplicateCheckContext {
-        const char* uartName;
-        bool found;
-    };
-
-    static void onCheckDuplicateUart(const GpsConfiguration* configuration, size_t, void* context) {
-        auto* ctx = static_cast<DuplicateCheckContext*>(context);
-        if (strcmp(configuration->uart_name, ctx->uartName) == 0) {
-            ctx->found = true;
-        }
-    }
 
     static std::vector<std::string> getModelNames() {
         std::vector<std::string> result;
@@ -72,17 +61,8 @@ class AddGpsApp final : public App {
         }
 
         LOG_I(TAG, "Saving: uart=%s, model=%d, baud=%u", new_configuration.uart_name, (int)new_configuration.model, (unsigned)new_configuration.baud_rate);
-
-        DuplicateCheckContext duplicate_check = { .uartName = new_configuration.uart_name, .found = false };
-        gps_service_for_each_configuration(&duplicate_check, onCheckDuplicateUart);
-        if (duplicate_check.found) {
-            auto message = std::string("Bus \"") + new_configuration.uart_name + "\" is already in use in another configuration";
-            app::alertdialog::start("Error", message.c_str());
-            return;
-        }
-
-        if (gps_service_add_configuration(&new_configuration) != ERROR_NONE) {
-            app::alertdialog::start("Error", "Failed to add configuration");
+        if (gps_settings_add_configuration(&new_configuration) != ERROR_NONE) {
+            alertdialog::start("Error", "Failed to add configuration");
         } else {
             stop();
         }

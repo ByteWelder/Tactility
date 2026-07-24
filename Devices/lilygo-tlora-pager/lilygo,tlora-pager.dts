@@ -181,6 +181,13 @@
 		port = <UART_NUM_0>;
 		pin-tx = <&gpio0 12 GPIO_FLAG_NONE>;
 		pin-rx = <&gpio0 4 GPIO_FLAG_NONE>;
+
+		gps {
+			compatible = "tactility,gps-generic";
+			status = "disabled";
+			baud-rate = <38400>;
+			model = <GPS_MODEL_UBLOX10>;
+		};
 	};
 
 	uart_external: uart1 {

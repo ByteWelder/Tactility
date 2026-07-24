@@ -13,19 +13,19 @@ extern void lvgl_devices_detach();
 
 static bool initialized = false;
 
-bool lvgl_lock(void) {
-    if (!initialized) return true; // We allow (fake) locking because it's safe to do so as LVGL is not running yet
-    return lvgl_port_lock(portMAX_DELAY);
+void lvgl_lock(void) {
+    if (!initialized) { return; }
+    lvgl_port_lock(portMAX_DELAY);
 }
 
 bool lvgl_try_lock(uint32_t timeoutTicks) {
-    if (!initialized) return true; // We allow (fake) locking because it's safe to do so as LVGL is not running yet
+    if (!initialized) { return false; }
     // lvgl_port_lock expects milliseconds
     return lvgl_port_lock(timeoutTicks * portTICK_PERIOD_MS);
 }
 
 void lvgl_unlock(void) {
-    if (!initialized) return;
+    if (!initialized) { return; }
     lvgl_port_unlock();
 }
 

@@ -1,6 +1,5 @@
+#include <tactility/delay.h>
 #include <tactility/error.h>
-#include <tactility/drivers/gps.h>
-#include <tactility/gps_service.h>
 #include <tactility/log.h>
 #include <tactility/lvgl_module.h>
 #include <tactility/module.h>
@@ -12,31 +11,11 @@
 #include <lilygo/drivers/trackball.h>
 #include <lilygo/drivers/tdeck_power_on.h>
 
-#include <tactility/delay.h>
-
-#include <driver/gpio.h>
-
 constexpr auto* TAG = "tdeck-plus";
 
 extern "C" {
 
-static tt::kernel::SystemEventSubscription tdeck_boot_splash_subscription = 0;
-
-void init_gps_configuration() {
-    bool has_configuration = false;
-    gps_service_for_each_configuration(&has_configuration, [](const GpsConfiguration*, size_t, void* context) {
-        *static_cast<bool*>(context) = true;
-    });
-
-    if (!has_configuration) {
-        GpsConfiguration configuration = { .uart_name = "uart0", .baud_rate = 38400, .model = GpsModel::GPS_MODEL_UBLOX10 };
-        if (gps_service_add_configuration(&configuration) == ERROR_NONE) {
-            LOG_I(TAG, "Configured internal GPS");
-        } else {
-            LOG_E(TAG, "Failed to configure internal GPS");
-        }
-    }
-}
+static tt::kernel::SystemEventSubscription tdeck_boot_splash_subscription = tt::kernel::NoSystemEventSubscription;
 
 void init_trackball() {
     auto tbSettings = tt::settings::trackball::loadOrGetDefault();
@@ -64,7 +43,6 @@ static error_t start() {
     delay_millis(100);
 
     tdeck_boot_splash_subscription = tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
-        init_gps_configuration();
         init_trackball();
     });
 
@@ -73,7 +51,7 @@ static error_t start() {
 
 static error_t stop() {
     tt::kernel::unsubscribeSystemEvent(tdeck_boot_splash_subscription);
-    tdeck_boot_splash_subscription = 0;
+    tdeck_boot_splash_subscription = tt::kernel::NoSystemEventSubscription;
     return ERROR_NONE;
 }
 

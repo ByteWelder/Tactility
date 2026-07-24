@@ -72,7 +72,7 @@ void lvgl_module_configure(struct LvglModuleConfig config);
  * It is a recursive mutex.
  * @retval true when a lock was acquired, false otherwise
  */
-bool lvgl_lock(void);
+void lvgl_lock(void);
 
 /**
  * @brief Tries to lock the LVGL mutex with a timeout.

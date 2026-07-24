@@ -98,7 +98,8 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/minmea)
     add_subdirectory(Modules/lvgl-module)
     add_subdirectory(Modules/crypt-module)
-    add_subdirectory(Drivers/gps-module)
+    add_subdirectory(Modules/gps-module)
+    add_subdirectory(Drivers/gps-generic-module)
 
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")

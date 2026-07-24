@@ -20,6 +20,9 @@
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
 
+#include <gps/gps_module.h>
+#include <gps_generic/gps_generic_module.h>
+
 #include <tactility/concurrent/thread.h>
 #include <tactility/crypt_module.h>
 #include <tactility/drivers/audio_stream.h>
@@ -29,7 +32,6 @@
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/filesystem/file_system.h>
-#include <tactility/gps_service.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
 #include <tactility/lvgl_module.h>
@@ -50,6 +52,8 @@ namespace tt {
 constexpr auto* TAG = "Tactility";
 
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
+
+void initFileLvglLock();
 
 namespace {
 
@@ -370,16 +374,22 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
         return;
     }
 
+    initFileLvglLock();
+
     // crypt-module
     check(module_construct_add_start(&crypt_module) == ERROR_NONE);
 
     // gps-module
     check(module_construct_add_start(&gps_module) == ERROR_NONE);
 
+    // gps-generic-module
+    check(module_construct_add_start(&gps_generic_module) == ERROR_NONE);
+
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
     file::setFindLockFunction(file::findLock);
+
     settings::initTimeZone();
 
     // Remnants of the old HAL
@@ -404,9 +414,8 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
         .task_affinity = getCpuAffinityConfiguration().graphics
 #endif
     });
-    check(module_construct(&lvgl_module) == ERROR_NONE);
-    check(module_add(&lvgl_module) == ERROR_NONE);
-    check(module_start(&lvgl_module) == ERROR_NONE);
+    check(module_construct_add_start(&lvgl_module) == ERROR_NONE);
+    check(module_construct_add_start(&gps_module) == ERROR_NONE);
 
     registerAndStartSecondaryServices();
 

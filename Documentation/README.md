@@ -64,11 +64,7 @@ Tests use Doctest and run on simulator (POSIX) target only:
 ```bash
 cmake -B buildsim -G Ninja
 ninja -C buildsim build-tests
-cd buildsim && ctest            # run all tests
-./buildsim/Tests/TactilityKernel/TactilityKernelTests
-./buildsim/Tests/Tactility/TactilityTests
-./buildsim/Tests/TactilityFreeRtos/TactilityFreeRtosTests
-./buildsim/Tests/crypt-module/CryptModuleTests
+cd buildsim && ctest --test-dir Tests
 ```
 
 ## Architecture

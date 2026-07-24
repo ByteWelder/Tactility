@@ -10,6 +10,7 @@ list(APPEND REQUIRES_LIST
     lvgl-module
     crypt-module
     gps-module
+    gps-generic-module
     lv_screenshot
     minitar
 )

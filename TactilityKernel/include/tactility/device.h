@@ -24,6 +24,19 @@ struct DeviceType {
     const char* name;
 };
 
+typedef uint8_t device_flags_t;
+
+#ifndef BIT
+#define BIT(nr) (1u << (nr))
+#endif
+
+#define DEVICE_FLAG_DTS             BIT(0)  /* Instantiated from a dts file */
+#define DEVICE_FLAG_DYNAMIC         BIT(1)  /* 1 means dynamically allocated */
+
+#define DEVICE_FLAG_VIRTUAL         BIT(2)  /* No physical hardware */
+#define DEVICE_FLAG_REMOVABLE       BIT(3)  /* May disappear (USB, SDIO, etc.) */
+#define DEVICE_FLAG_HOTPLUG         BIT(4)  /* Supports hotplug */
+
 /** Represents a piece of hardware */
 struct Device {
     /** Device address. Can represent an index, a memory address, or some kind of offset */
@@ -37,6 +50,8 @@ struct Device {
 
     /** The parent device that this device belongs to. Can be NULL, but only the root device should have a NULL parent. */
     struct Device* parent;
+
+    device_flags_t flags;
 
     /**
      * Internal state managed by the kernel.

@@ -1,8 +1,5 @@
 #include <Tactility/lvgl/Statusbar.h>
 
-#include <tactility/lvgl_module.h>
-#include "tactility/module.h"
-
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
 #include <Tactility/bluetooth/Bluetooth.h>
@@ -11,7 +8,6 @@
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <tactility/gps_service.h>
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/bluetooth.h>
@@ -23,11 +19,15 @@
 #include <tactility/drivers/usb_host_msc.h>
 #include <tactility/filesystem/file_system.h>
 
+#include <tactility/log.h>
+#include <tactility/module.h>
+
+#include <tactility/lvgl_module.h>
 #include <tactility/lvgl_icon_statusbar.h>
 
 #include <cstring>
 
-#include <tactility/log.h>
+#include <gps/gps.h>
 
 namespace tt::service::statusbar {
 
@@ -154,8 +154,7 @@ class StatusbarService final : public Service {
     }
 
     void updateGpsIcon() {
-        auto gps_state = gps_service_get_state();
-        bool show_icon = (gps_state == GpsServiceState::GPS_SERVICE_STATE_ON_PENDING) || (gps_state == GpsServiceState::GPS_SERVICE_STATE_ON);
+        bool show_icon = device_has_active_by_type(&GPS_TYPE);
         if (gps_last_state != show_icon) {
             if (show_icon) {
                 lvgl::statusbar_icon_set_image(gps_icon_id, LVGL_ICON_STATUSBAR_LOCATION_ON);
