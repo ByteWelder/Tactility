@@ -7,7 +7,7 @@
 
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 #include <lvgl.h>
 

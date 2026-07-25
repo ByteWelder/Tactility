@@ -16,7 +16,7 @@
 #include <tactility/log.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/backlight.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::service::displayidle {
 

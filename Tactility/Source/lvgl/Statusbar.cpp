@@ -12,8 +12,8 @@
 
 #include <tactility/check.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl.h>
 
 #include <lvgl.h>
 #include <memory>

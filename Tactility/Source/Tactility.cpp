@@ -20,11 +20,12 @@
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
 
-#include <gps/gps_module.h>
+#include <gps/module.h>
 #include <gps_generic/gps_generic_module.h>
 
+#include <crypt/module.h>
+#include <lvgl/module.h>
 #include <tactility/concurrent/thread.h>
-#include <tactility/crypt_module.h>
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/grove.h>
@@ -34,7 +35,6 @@
 #include <tactility/filesystem/file_system.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/InitEsp.h>

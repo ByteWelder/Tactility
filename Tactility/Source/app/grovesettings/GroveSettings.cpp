@@ -4,7 +4,7 @@
 
 #include <tactility/device.h>
 #include <tactility/drivers/grove.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 #include <Tactility/Tactility.h>
 #include <Tactility/lvgl/Toolbar.h>

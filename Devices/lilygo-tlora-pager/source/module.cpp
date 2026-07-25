@@ -1,4 +1,4 @@
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 #include <tactility/module.h>
 
 #include <Tactility/SystemEvents.h>

@@ -11,7 +11,7 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/Paths.h>
 
-#include <tactility/crypt.h>
+#include <crypt/crypt.h>
 
 #include <esp_random.h>
 

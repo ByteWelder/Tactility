@@ -9,7 +9,7 @@
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 #include <tactility/module.h>
 
 #include <driver/gpio.h>

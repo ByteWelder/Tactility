@@ -1,4 +1,4 @@
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 
 #include <Tactility/RecursiveMutex.h>
@@ -13,7 +13,7 @@
 #include <lvgl.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::timedatesettings {
 

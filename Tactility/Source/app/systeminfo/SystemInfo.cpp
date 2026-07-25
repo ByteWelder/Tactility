@@ -11,9 +11,9 @@
 #include <lvgl.h>
 #include <utility>
 
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_shared.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/lvgl.h>
 
 #ifdef ESP_PLATFORM
 #include <esp_vfs_fat.h>

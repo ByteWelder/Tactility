@@ -14,8 +14,6 @@ extern const ModuleSymbol KERNEL_SYMBOLS[];
 static error_t start() {
     extern Driver root_driver;
     if (driver_construct_add(&root_driver) != ERROR_NONE) return ERROR_RESOURCE;
-    extern Driver display_placeholder_driver;
-    if (driver_construct_add(&display_placeholder_driver) != ERROR_NONE) return ERROR_RESOURCE;
     extern Driver battery_sense_driver;
     if (driver_construct_add(&battery_sense_driver) != ERROR_NONE) return ERROR_RESOURCE;
     extern Driver battery_sense_power_supply_driver;

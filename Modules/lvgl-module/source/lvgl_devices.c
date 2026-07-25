@@ -3,10 +3,10 @@
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_display.h>
-#include <tactility/lvgl_keyboard.h>
-#include <tactility/lvgl_module.h>
-#include <tactility/lvgl_pointer.h>
+#include <lvgl/lvgl_display.h>
+#include <lvgl/lvgl_keyboard.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/lvgl_pointer.h>
 
 #include <lvgl.h>
 

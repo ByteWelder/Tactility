@@ -14,7 +14,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 #include <vector>
 
 namespace tt::app::chat {

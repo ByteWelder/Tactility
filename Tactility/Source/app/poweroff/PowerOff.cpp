@@ -9,8 +9,8 @@
 #include <lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::poweroff {
 

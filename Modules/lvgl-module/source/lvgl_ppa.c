@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/lvgl_ppa.h>
+#include <lvgl/lvgl_ppa.h>
 
 #include <tactility/log.h>
 

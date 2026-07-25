@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include <tactility/hash.h>
+#include <crypt/hash.h>
 #include <cstring>
 
 TEST_CASE("djb2_str of an empty string returns the DJB2 seed value") {

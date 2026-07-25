@@ -2,7 +2,7 @@
 
 #include <Tactility/lvgl/SliderBox.h>
 
-#include <tactility/lvgl_fonts.h>
+#include <lvgl/lvgl_fonts.h>
 
 namespace tt::lvgl {
 

@@ -1,7 +1,7 @@
 #include <format>
 #include <string>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/app/btmanage/View.h>
 #include <Tactility/app/btmanage/BtManagePrivate.h>

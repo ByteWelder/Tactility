@@ -2,8 +2,8 @@
 
 #include <lvgl.h>
 
-#include <tactility/lvgl_icon_shared.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/Tactility.h>
 #include <Tactility/settings/TrackballSettings.h>

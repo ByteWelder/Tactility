@@ -12,7 +12,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/keyboard.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::service::keyboardidle {
 

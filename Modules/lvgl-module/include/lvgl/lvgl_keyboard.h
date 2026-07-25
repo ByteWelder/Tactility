@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 
 #include <tactility/device.h>
 #include <tactility/error.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Creates an lv_indev_t bound to the given KEYBOARD_TYPE device and registers a read callback

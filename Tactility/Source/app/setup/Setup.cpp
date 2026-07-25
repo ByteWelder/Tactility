@@ -1,5 +1,5 @@
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>

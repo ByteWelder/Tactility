@@ -22,8 +22,8 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 
-#include <tactility/lvgl_module.h>
-#include <tactility/lvgl_icon_statusbar.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/lvgl_icon_statusbar.h>
 
 #include <cstring>
 
@@ -268,8 +268,8 @@ class StatusbarService final : public Service {
     }
 
     void update() {
-        if (module_is_started(&lvgl_module)) {
-            if (lvgl_try_lock(100)) {
+        if (lvgl_is_running()) {
+            if (lvgl_try_lock(200)) {
                 updateGpsIcon();
                 updateBluetoothIcon();
                 updateWifiIcon();

@@ -6,7 +6,7 @@
 
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 #include <gps/gps.h>
 #include <gps/gps_settings.h>

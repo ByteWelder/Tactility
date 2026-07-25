@@ -12,7 +12,7 @@
 #include <Tactility/service/loader/Loader.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::service::gui {
 
