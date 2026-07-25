@@ -196,7 +196,6 @@ class GpsSettingsApp final : public App {
                         break;
                 }
             }
-            lvgl_lock();
             lv_label_set_text(row.buttonLabel, text);
             if (enabled) {
                 lv_obj_remove_state(row.button, LV_STATE_DISABLED);
