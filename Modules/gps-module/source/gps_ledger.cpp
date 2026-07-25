@@ -14,15 +14,7 @@
 
 constexpr auto* TAG = "gps_ledger";
 
-/**
- * @brief Configuration for a GPS_TYPE device.
- * @warning Mirrors gps-generic-module's own (GPL) GpsConfig field-for-field - this module can't
- * include that header (Apache/GPL boundary), so the layout has to be kept in sync by hand. uart is
- * left NULL here: this path uses device_set_parent() to the UART_CONTROLLER_TYPE device instead,
- * which the driver falls back to when config->uart is NULL.
- */
 struct GpsConfig {
-    Device* uart = nullptr;
     uint32_t baud_rate;
     enum GpsModel model;
 };

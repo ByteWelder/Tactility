@@ -20,7 +20,7 @@ jobs:
       - name: "Build Tests"
         run: cmake --build build --target build-tests
       - name: "Run Tests"
-        run: ctest --build-dir build/Tests
+        run: ctest --test-dir build/Tests
   DevicetreeTests:
     runs-on: ubuntu-latest
     steps:

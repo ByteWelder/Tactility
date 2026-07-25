@@ -274,14 +274,13 @@ public:
         // thread). Take the same lock updateDeviceStates() uses and hold it across the
         // free below, so the timer can never observe pendingDeleteDevice as a dangling
         // pointer in deviceRows.
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
+        lvgl_lock();
         // Drop the stale row unconditionally (cheap vector op, no LVGL calls) - this is
         // what keeps the timer safe regardless of whether onShow() has run yet this cycle.
         std::erase_if(deviceRows, [this](const DeviceRow& row) {
             return row.device == pendingDeleteDevice;
         });
+        lvgl_unlock();
 
         // gps_settings_remove_configuration_at() frees the underlying Device synchronously -
         // do this only after the dangling pointer is already out of deviceRows.
@@ -291,9 +290,11 @@ public:
         // Only safe to touch deviceListWrapper if onShow() already built it for this show
         // cycle - it may not have run yet, in which case it'll rebuild fresh (post-deletion,
         // deviceRows already correct) when it does.
+        lvgl_lock();
         if (isShown) {
             rebuildDeviceList();
         }
+        lvgl_unlock();
     }
 };
 

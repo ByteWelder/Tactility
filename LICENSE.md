@@ -7,13 +7,15 @@ These applications are not part of the Tactility operating system's main firmwar
 
 "end-users" refers to people who install and/or use Tactility software on their devices.
 
-## Past & Present
+## Summary
 
-Formerly, there was a mixed usage of [GPL v3.0](Documentation/LICENSE-GPL-3.0.md) for internal subprojects
-and [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md) for subprojects that would be used in external apps.
+The main firmware projects (`Firmware/`, `Tactility/`) are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md)
 
-For future subprojects, [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md) will be chosen for internal subproject.
-Existing GPL-licensed projects will retain this license, as it cannot be changed to a more permissive license.
+Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md). There are exceptions, such as `Drivers/gps-generic-module/`.
+and  for subprojects that would be used in external apps.
+
+All projects under `Modules/` also have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
+
 
 ## Overview
 
@@ -22,13 +24,13 @@ Below is an overview of the licenses of some of the subprojects.
 | Project            | License                 |
 |--------------------|-------------------------|
 | Tactility          | GNU Public License v3.0 |
-| TactilityCore      | GNU Public License v3.0 |
 | TactilityC         | Apache License v2.0     |
 | TactilityFreeRTOS  | Apache License v2.0     |
 | TactilityKernel    | Apache License v2.0     |
 | Tests              | GNU Public License v3.0 |
 | Devices/*          | GNU Public License v3.0 |
 | Drivers/*          | (varies)                |
+| Modules/*          | Apache License v2.0     |
 | DevicetreeCompiler | Apache License v2.0     |
 | Platforms/*        | Apache License v2.0     |
 

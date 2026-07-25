@@ -2,7 +2,7 @@
 #include <gps/gps_settings.h>
 #include <gps/private/gps_ledger.h>
 
-#include <tactility/filesystem/file_lock.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 #include <tactility/service/service_paths.h>
 
@@ -44,14 +44,23 @@ static bool get_configuration_path(char* out_path, size_t out_path_size) {
 // Holds the lock (if any) that `path` needs for the lifetime of the guard - see file_find_lock().
 class FileLockGuard {
     FileMutex mutex;
+    bool locked;
 public:
     explicit FileLockGuard(const char* path) {
-        file_get_mutex(path, &mutex);
-        file_lock(&mutex);
+        file_mutex_get(&mutex, path);
+        file_mutex_lock(&mutex);
+        locked = true;
     }
 
     ~FileLockGuard() {
-        file_unlock(&mutex);
+        unlock();
+    }
+
+    void unlock() {
+        if (locked) {
+            file_mutex_unlock(&mutex);
+            locked = false;
+        }
     }
 };
 
@@ -120,6 +129,7 @@ static error_t write_configurations(const std::vector<GpsConfiguration>& configu
         return ERROR_RESOURCE;
     }
 
+    lock.unlock();
     gps_ledger_sync();
 
     return ERROR_NONE;

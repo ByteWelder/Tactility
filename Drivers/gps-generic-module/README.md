@@ -1,8 +1,9 @@
 # gps-generic-module
 
-Kernel driver implementing the `GPS_TYPE`/`GpsApi` interface (declared by `Drivers/gps-module`,
-Apache-2.0) for generic UART-connected GPS/GNSS receivers: chipset probing, init sequences, and
+Kernel driver implementing the `GPS_TYPE`/`GpsApi` interface with for generic UART-connected GPS/GNSS receivers:
 NMEA parsing for MTK, Airoha/AG33xx, ATGM336H/CASIC, Unicore UC6580 and u-blox 6/7/8/9/10 modules.
+
+It is ported from [Meshtastic Firmware](https://github.com/MeshTastic/firmware), so it has a GPL v3.0 license.
 
 ## License
 

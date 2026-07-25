@@ -28,22 +28,39 @@ static ModuleLedger ledger;
 extern "C" {
 
 error_t module_construct(Module* module) {
+    if (module->internal != nullptr) {
+        LOG_E(TAG, "Module %s was already constructed", module->name);
+        return ERROR_INVALID_STATE;
+    }
     module->internal = new (std::nothrow) ModuleInternal();
     if (module->internal == nullptr) return ERROR_OUT_OF_MEMORY;
     return ERROR_NONE;
 }
 
 error_t module_destruct(Module* module) {
-    delete static_cast<ModuleInternal*>(module->internal);
+    if (module->internal == nullptr) {
+        LOG_E(TAG, "Module %s was already destructed", module->name);
+        return ERROR_INVALID_STATE;
+    }
+    delete module->internal;
     module->internal = nullptr;
     return ERROR_NONE;
 }
 
 error_t module_add(Module* module) {
     mutex_lock(&ledger.mutex);
-    ledger.modules.push_back(module);
+    bool exists = false;
+    for (auto* ledger_module : ledger.modules) {
+        if (ledger_module == module) {
+            exists = true;
+            break;
+        }
+    }
+    if (!exists) {
+        ledger.modules.push_back(module);
+    }
     mutex_unlock(&ledger.mutex);
-    return ERROR_NONE;
+    return exists ? ERROR_INVALID_STATE : ERROR_NONE;
 }
 
 error_t module_remove(Module* module) {
@@ -57,8 +74,8 @@ error_t module_start(Module* module) {
     LOG_I(TAG, "start %s", module->name);
 
     auto* internal = module->internal;
-    if (internal == nullptr) return ERROR_INVALID_STATE;
-    if (internal->started) return ERROR_NONE;
+    if (internal == nullptr) { return ERROR_INVALID_STATE; }
+    if (internal->started) { return ERROR_NONE; }
 
     if (module->start != nullptr) {
         auto error = module->start();
@@ -90,8 +107,8 @@ error_t module_stop(Module* module) {
     LOG_I(TAG, "stop %s", module->name);
 
     auto* internal = module->internal;
-    if (internal == nullptr) return ERROR_INVALID_STATE;
-    if (!internal->started) return ERROR_NONE;
+    if (internal == nullptr) { return ERROR_INVALID_STATE; }
+    if (!internal->started) { return ERROR_NONE; }
 
     if (module->drivers != nullptr && internal->drivers_ready) {
         size_t count = 0;
@@ -117,10 +134,39 @@ error_t module_stop(Module* module) {
 
 error_t module_construct_add_start(Module* module) {
     error_t error = module_construct(module);
-    if (error != ERROR_NONE) return error;
+    if (error != ERROR_NONE) { return error; }
     error = module_add(module);
-    if (error != ERROR_NONE) return error;
+    if (error != ERROR_NONE) { return error; }
     return module_start(module);
+}
+
+error_t module_ensure_started(Module* module) {
+    if (module->internal == nullptr) {
+        error_t result = module_construct(module);
+        if (result != ERROR_NONE) { return result; }
+    }
+
+    if (!module->internal->started) {
+        error_t result = module_start(module);
+        if (result != ERROR_NONE) { return result; }
+    }
+
+    return ERROR_NONE;
+}
+
+error_t module_ensure_destructed(Module* module) {
+    if (module->internal != nullptr) {
+        error_t result;
+        if (module->internal->started) {
+            result = module_stop(module);
+            if (result != ERROR_NONE) { return result; }
+        }
+
+        result = module_destruct(module);
+        if (result != ERROR_NONE) { return result; }
+    }
+
+    return ERROR_NONE;
 }
 
 bool module_resolve_symbol(Module* module, const char* symbol_name, uintptr_t* symbol_address) {

@@ -76,10 +76,27 @@ struct GpsSubscription {
  * @brief API for GPS/GNSS receiver drivers.
  */
 struct GpsApi {
+    /**
+     * @brief Registers a subscriber for GPS events (e.g. RMC/GGA sentences).
+     * @param[in] device the GPS device
+     * @param[in,out] sub subscription to register; caller owns the storage and must keep it alive until unsubscribed
+     */
     error_t (*event_subscribe)(struct Device* device, struct GpsSubscription* sub);
 
+    /**
+     * @brief Removes a previously registered subscription.
+     * @param[in] device the GPS device
+     * @param[in] sub subscription to remove, as passed to event_subscribe
+     */
     error_t (*event_unsubscribe)(struct Device* device, struct GpsSubscription* sub);
 
+    /**
+     * @brief Blocks the calling task until a new event arrives for the subscription, or timeout elapses.
+     * @param[in] device the GPS device
+     * @param[in,out] sub subscription to wait on
+     * @param[in] timeout max ticks to wait
+     * @return ERROR_NONE if an event arrived, ERROR_TIMEOUT if the timeout elapsed
+     */
     error_t (*event_await)(struct Device* device, struct GpsSubscription* sub, TickType_t timeout);
 
     /**
@@ -88,6 +105,13 @@ struct GpsApi {
      */
     enum GpsState (*get_state)(struct Device* device);
 
+    /**
+     * @brief Gets a human-readable model name for the device, e.g. "UBLOX8".
+     * @param[in] device the GPS device
+     * @param[out] model_name buffer to receive the NUL-terminated name
+     * @param[in] buffer_size size of model_name in bytes
+     * @return ERROR_NONE on success
+     */
     error_t (*get_model_name)(struct Device* device, char* model_name, size_t buffer_size);
 };
 
@@ -103,7 +127,7 @@ error_t gps_event_await(struct Device* device, struct GpsSubscription* sub, Tick
 /** @copydoc GpsApi::get_state */
 enum GpsState gps_get_state(struct Device* device);
 
-/** @copydoc GpsApi::get_state */
+/** @copydoc GpsApi::get_model_name */
 error_t gps_get_model_name(struct Device* device, char* model_name, size_t buffer_size);
 
 extern const struct DeviceType GPS_TYPE;

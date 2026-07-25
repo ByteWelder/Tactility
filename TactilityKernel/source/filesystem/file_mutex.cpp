@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/filesystem/file_lock.h>
+#include <tactility/filesystem/file_mutex.h>
 
 #include <cstring>
 #include <string>
@@ -19,7 +19,8 @@ struct FileMutexEntry {
 static std::vector<FileMutexEntry> mutex_entries;
 
 extern "C" {
-void file_register_mutex(const char* path, const FileMutex* mutex) {
+
+void file_mutex_register(const FileMutex* mutex, const char* path) {
     // Skip if entry for path exists
     for (auto& entry : mutex_entries) {
         if (entry.path == path) {
@@ -34,31 +35,35 @@ void file_register_mutex(const char* path, const FileMutex* mutex) {
     });
 }
 
-void file_get_mutex(const char* path, FileMutex* mutex) {
+void file_mutex_get(FileMutex* mutex, const char* path) {
+    std::string path_string = path;
     for (auto& entry : mutex_entries) {
-        if (entry.path.rfind(path) == 0) {
-            memcpy(mutex, &entry.mutex, sizeof(FileMutexEntry));
+        // Match the mount path itself, or a descendant (e.g. "/sdcard" registered, "/sdcard/config.json" requested).
+        bool is_match = path_string == entry.path ||
+            (path_string.rfind(entry.path, 0) == 0 && path_string[entry.path.size()] == '/');
+        if (is_match) {
+            memcpy(mutex, &entry.mutex, sizeof(FileMutex));
             return;
         }
     }
 
-    memcpy(mutex, &no_mutex, sizeof(FileMutex));
+    *mutex = no_mutex;
 }
 
-void file_lock(FileMutex* mutex) {
+void file_mutex_lock(FileMutex* mutex) {
     if (mutex->lock) {
         mutex->lock();
     }
 }
 
-bool file_try_lock(FileMutex* mutex, TickType_t timeout) {
+bool file_mutex_try_lock(FileMutex* mutex, TickType_t timeout) {
     if (mutex->try_lock) {
         return mutex->try_lock(timeout);
     }
     return true;
 }
 
-void file_unlock(FileMutex* mutex) {
+void file_mutex_unlock(FileMutex* mutex) {
     if (mutex->unlock) {
         mutex->unlock();
     }

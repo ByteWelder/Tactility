@@ -53,7 +53,7 @@ constexpr auto* TAG = "Tactility";
 
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
 
-void initFileLvglLock();
+void initFileMutexForLvgl();
 
 namespace {
 
@@ -374,16 +374,9 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
         return;
     }
 
-    initFileLvglLock();
-
-    // crypt-module
-    check(module_construct_add_start(&crypt_module) == ERROR_NONE);
-
-    // gps-module
-    check(module_construct_add_start(&gps_module) == ERROR_NONE);
-
-    // gps-generic-module
-    check(module_construct_add_start(&gps_generic_module) == ERROR_NONE);
+    check(module_ensure_started(&crypt_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
 
 #ifdef ESP_PLATFORM
     initEsp();
@@ -402,6 +395,9 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
 
     registerAndStartPrimaryServices();
 
+    // Must start right before LVGL
+    initFileMutexForLvgl();
+
     lvgl_module_configure((LvglModuleConfig) {
         .on_start = nullptr,
         .on_stop = nullptr,
@@ -414,8 +410,7 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
         .task_affinity = getCpuAffinityConfiguration().graphics
 #endif
     });
-    check(module_construct_add_start(&lvgl_module) == ERROR_NONE);
-    check(module_construct_add_start(&gps_module) == ERROR_NONE);
+    check(module_ensure_started(&lvgl_module) == ERROR_NONE);
 
     registerAndStartSecondaryServices();
 

@@ -315,7 +315,7 @@ static GpsState gps_api_get_state(Device* device) {
 static error_t gps_api_get_model_name(Device* device, char* model_name, size_t buffer_size) {
     const auto* config = GET_CONFIG(device);
     const char* name_to_set = gpsModelToString(config->model);
-    strncpy(model_name, name_to_set, buffer_size);
+    snprintf(model_name, buffer_size, "%s", name_to_set);
     return ERROR_NONE;
 }
 
