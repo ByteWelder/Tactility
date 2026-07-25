@@ -15,7 +15,7 @@ extern "C" {
  */
 struct FileMutex {
     void (*lock)();
-    bool (*try_lock)(TickType_t timeout);
+    bool (*try_lock)(uint32_t timeout);
     void (*unlock)();
 };
 
