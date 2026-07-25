@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl/lvgl.h>
+#include <lvgl/module.h>
 #include <lvgl/lvgl_fonts.h>
 
-#include <lvgl.h>
 #include <tactility/module.h>
+
+#include <lvgl.h>
 
 const struct ModuleSymbol lvgl_module_symbols[] = {
     // lvgl_module
@@ -12,6 +14,9 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_unlock),
     DEFINE_MODULE_SYMBOL(lvgl_is_running),
     DEFINE_MODULE_SYMBOL(lvgl_get_ui_density),
+    // lvgl module
+    DEFINE_MODULE_SYMBOL(lvgl_module),
+    DEFINE_MODULE_SYMBOL(lvgl_module_configure),
     // lvgl_fonts
     DEFINE_MODULE_SYMBOL(lvgl_get_shared_icon_font),
     DEFINE_MODULE_SYMBOL(lvgl_get_shared_icon_font_height),
