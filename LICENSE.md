@@ -11,11 +11,12 @@ These applications are not part of the Tactility operating system's main firmwar
 
 The main firmware projects (`Firmware/`, `Tactility/`) are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md)
 
-Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md). There are exceptions, such as `Drivers/gps-generic-module/`.
-and  for subprojects that would be used in external apps.
+Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md), with exceptions such as `Drivers/gps-generic-module/`.
+Licensing may also differ for subprojects intended for use in external applications.
 
-All projects under `Modules/` also have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
+Specific aren't generally used directly in external app projects, but if they are, make sure to check their licenses.
 
+All projects under `Modules/` have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
 
 ## Overview
 
