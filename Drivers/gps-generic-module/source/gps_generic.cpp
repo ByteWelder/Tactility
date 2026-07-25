@@ -18,7 +18,7 @@
 
 #include <minmea.h>
 
-#include <cstdlib>
+#include <cstdio>
 
 constexpr auto* TAG = "gps-generic";
 
