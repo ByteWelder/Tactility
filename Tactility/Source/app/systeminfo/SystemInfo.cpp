@@ -247,7 +247,8 @@ class SystemInfoApp final : public App {
     Timer memoryTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(10000), [] {
         auto app = optApp();
         if (app) {
-            auto lock = lvgl::getSyncLock()->asScopedLock();
+            auto lockable = lvgl::getSyncLock();
+            auto lock = lockable->asScopedLock();
             lock.lock();
             app->updateMemory();
         }
@@ -256,7 +257,8 @@ class SystemInfoApp final : public App {
     Timer tasksTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(15000), [] {
         auto app = optApp();
         if (app) {
-            auto lock = lvgl::getSyncLock()->asScopedLock();
+            auto lockable = lvgl::getSyncLock();
+            auto lock = lockable->asScopedLock();
             lock.lock();
             app->updateTasks();
         }

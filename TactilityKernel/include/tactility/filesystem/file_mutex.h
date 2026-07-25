@@ -35,16 +35,16 @@ void file_mutex_register(const struct FileMutex* mutex, const char* path);
 void file_mutex_get(struct FileMutex* mutex, const char* path);
 
 /** @brief Locks mutex. No-op if mutex->lock is null. */
-void file_mutex_lock(struct FileMutex* mutex);
+void file_mutex_lock(const struct FileMutex* mutex);
 
 /**
  * @brief Attempts to lock mutex within timeout.
  * @return true if locked (or mutex->try_lock is null), false on timeout
  */
-bool file_mutex_try_lock(struct FileMutex* mutex, TickType_t timeout);
+bool file_mutex_try_lock(const struct FileMutex* mutex, TickType_t timeout);
 
 /** @brief Unlocks mutex. No-op if mutex->unlock is null. */
-void file_mutex_unlock(struct FileMutex* mutex);
+void file_mutex_unlock(const struct FileMutex* mutex);
 
 #ifdef __cplusplus
 }

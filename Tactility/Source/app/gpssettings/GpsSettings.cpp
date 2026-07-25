@@ -181,7 +181,8 @@ class GpsSettingsApp final : public App {
     }
 
     void updateDeviceStates() {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         if (lock.lock(100 / portTICK_PERIOD_MS)) {
             for (auto& row : deviceRows) {
                 const char* text = "Start";

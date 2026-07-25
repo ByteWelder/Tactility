@@ -84,7 +84,8 @@ void ChatApp::onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* d
     state.addMessage(msg);
 
     {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         lock.lock();
         view.displayMessage(msg);
     }
@@ -115,7 +116,8 @@ void ChatApp::sendMessage(const std::string& text) {
     state.addMessage(msg);
 
     {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         lock.lock();
         view.displayMessage(msg);
     }
@@ -172,7 +174,8 @@ void ChatApp::switchChannel(const std::string& chatChannel) {
     saveSettings(settings);
 
     {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         lock.lock();
         view.refreshMessageList();
     }

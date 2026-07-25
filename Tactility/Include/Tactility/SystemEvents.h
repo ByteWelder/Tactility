@@ -6,8 +6,6 @@
 namespace tt::kernel {
 
 enum class SystemEvent {
-    BootInitHalBegin,
-    BootInitHalEnd,
     BootSplash,
     /** Gained IP address */
     NetworkConnected,

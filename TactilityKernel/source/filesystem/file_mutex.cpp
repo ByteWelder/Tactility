@@ -51,20 +51,20 @@ void file_mutex_get(FileMutex* mutex, const char* path) {
     *mutex = no_mutex;
 }
 
-void file_mutex_lock(FileMutex* mutex) {
+void file_mutex_lock(const FileMutex* mutex) {
     if (mutex->lock) {
         mutex->lock();
     }
 }
 
-bool file_mutex_try_lock(FileMutex* mutex, TickType_t timeout) {
+bool file_mutex_try_lock(const FileMutex* mutex, TickType_t timeout) {
     if (mutex->try_lock) {
         return mutex->try_lock(timeout);
     }
     return true;
 }
 
-void file_mutex_unlock(FileMutex* mutex) {
+void file_mutex_unlock(const FileMutex* mutex) {
     if (mutex->unlock) {
         mutex->unlock();
     }

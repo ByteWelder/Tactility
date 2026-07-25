@@ -44,7 +44,6 @@
 #include "Tactility/SystemEvents.h"
 #include "Tactility/hal/SdCard.h"
 
-
 #include <Tactility/bluetooth/Bluetooth.h>
 
 namespace tt {
@@ -339,7 +338,8 @@ void createTempDirectory() {
     auto data_path = getUserDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
-        auto lock = file::getLock(data_path)->asScopedLock();
+        auto lockable = file::getLock(data_path);
+        auto lock = lockable->asScopedLock();
         if (lock.lock(1000 / portTICK_PERIOD_MS)) {
             if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
                 LOG_E(TAG, "Failed to create %s", data_path.c_str());
@@ -381,14 +381,11 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
-    file::setFindLockFunction(file::findLock);
 
     settings::initTimeZone();
 
-    // Remnants of the old HAL
-    kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalBegin);
-    hal::sdcard::mountAll();
-    kernel::publishSystemEvent(kernel::SystemEvent::BootInitHalEnd);
+    // Attempt to start all disabled SD cards (some require delayed init)
+    hal::sdcard::startAll();
 
     network::ntp::init();
     bluetooth::systemStart();

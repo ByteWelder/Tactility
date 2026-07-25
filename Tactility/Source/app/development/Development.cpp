@@ -31,7 +31,8 @@ class DevelopmentApp final : public App {
     std::shared_ptr<service::development::DevelopmentService> service;
 
     Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         // TODO: There's a crash when this is called when the app is being destroyed
         if (lock.lock(lvgl::defaultLockTime) && module_is_started(&lvgl_module)) {
             updateViewState();
@@ -157,7 +158,8 @@ public:
     }
 
     void onHide(AppContext& appContext) override {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         // Ensure that the update isn't already happening
         lock.lock();
         timer.stop();

@@ -155,7 +155,8 @@ void View::onNavigateUpPressed() {
 }
 
 void View::update() {
-    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    auto sync_lockable = lvgl::getSyncLock();
+    auto scoped_lockable = sync_lockable->asScopedLock();
     if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_clean(dir_entry_list);
 

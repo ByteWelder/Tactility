@@ -21,7 +21,8 @@ static bool parseEntry(const cJSON* object, AppHubEntry& entry) {
 }
 
 bool parseJson(const std::string& filePath, std::vector<AppHubEntry>& entries) {
-    auto lock = file::getLock(filePath)->asScopedLock();
+    auto lockable = file::getLock(filePath);
+    auto lock = lockable->asScopedLock();
     lock.lock();
 
     auto data = file::readString(filePath);

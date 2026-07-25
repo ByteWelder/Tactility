@@ -117,8 +117,10 @@ bool install(const std::string& path) {
         return false;
     }
 
-    auto target_path_lock = file::getLock(app_parent_path)->asScopedLock();
-    auto source_path_lock = file::getLock(path)->asScopedLock();
+    auto target_path_lockable = file::getLock(app_parent_path);
+    auto source_path_lockable = file::getLock(path);
+    auto target_path_lock = target_path_lockable->asScopedLock();
+    auto source_path_lock = source_path_lockable->asScopedLock();
     target_path_lock.lock();
     source_path_lock.lock();
     LOG_I(TAG, "Extracting app from %s to %s", path.c_str(), app_target_path.c_str());
