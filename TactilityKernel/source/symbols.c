@@ -13,26 +13,30 @@
 #include <tactility/drivers/bluetooth_midi.h>
 #include <tactility/drivers/bluetooth_hid_device.h>
 #include <tactility/drivers/camera.h>
-#include <tactility/drivers/usb_host_hid.h>
-#include <tactility/drivers/usb_host_midi.h>
-#include <tactility/drivers/usb_host_msc.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/grove.h>
+#include <tactility/drivers/haptic.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/drivers/i2s_controller.h>
 #include <tactility/drivers/i8080_controller.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/drivers/power_supply.h>
+#include <tactility/drivers/pwm.h>
+#include <tactility/drivers/rgb_led.h>
 #include <tactility/drivers/root.h>
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/sdcard.h>
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/drivers/uart_controller.h>
+#include <tactility/drivers/usb_host_hid.h>
+#include <tactility/drivers/usb_host_midi.h>
+#include <tactility/drivers/usb_host_msc.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/error.h>
 #include <tactility/filesystem/file_system.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/module.h>
 #include <tactility/wifi_auto_scan.h>
 #include <tactility/service/service_instance.h>
@@ -151,6 +155,17 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(display_get_frame_buffer_count),
     DEFINE_MODULE_SYMBOL(display_get_backlight),
     DEFINE_MODULE_SYMBOL(DISPLAY_TYPE),
+    // file_mutex
+    DEFINE_MODULE_SYMBOL(file_mutex_register),
+    DEFINE_MODULE_SYMBOL(file_mutex_get),
+    DEFINE_MODULE_SYMBOL(file_mutex_lock),
+    DEFINE_MODULE_SYMBOL(file_mutex_try_lock),
+    DEFINE_MODULE_SYMBOL(file_mutex_unlock),
+    // file system
+    DEFINE_MODULE_SYMBOL(file_system_mount),
+    DEFINE_MODULE_SYMBOL(file_system_unmount),
+    DEFINE_MODULE_SYMBOL(file_system_is_mounted),
+    DEFINE_MODULE_SYMBOL(file_system_get_path),
     // drivers/gpio_controller
     DEFINE_MODULE_SYMBOL(gpio_descriptor_acquire),
     DEFINE_MODULE_SYMBOL(gpio_descriptor_release),
@@ -174,6 +189,12 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(grove_set_mode),
     DEFINE_MODULE_SYMBOL(grove_get_mode),
     DEFINE_MODULE_SYMBOL(GROVE_TYPE),
+    // drivers/haptic
+    DEFINE_MODULE_SYMBOL(haptic_set_waveform),
+    DEFINE_MODULE_SYMBOL(haptic_select_library),
+    DEFINE_MODULE_SYMBOL(haptic_start_playback),
+    DEFINE_MODULE_SYMBOL(haptic_stop_playback),
+    DEFINE_MODULE_SYMBOL(HAPTIC_TYPE),
     // drivers/i2c_controller
     DEFINE_MODULE_SYMBOL(i2c_controller_read),
     DEFINE_MODULE_SYMBOL(i2c_controller_write),
@@ -230,6 +251,23 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(power_supply_supports_power_off),
     DEFINE_MODULE_SYMBOL(power_supply_power_off),
     DEFINE_MODULE_SYMBOL(POWER_SUPPLY_TYPE),
+    // drivers/pwm
+    DEFINE_MODULE_SYMBOL(pwm_set_period),
+    DEFINE_MODULE_SYMBOL(pwm_get_period),
+    DEFINE_MODULE_SYMBOL(pwm_set_duty),
+    DEFINE_MODULE_SYMBOL(pwm_get_duty),
+    DEFINE_MODULE_SYMBOL(pwm_set_inverted),
+    DEFINE_MODULE_SYMBOL(pwm_is_inverted),
+    DEFINE_MODULE_SYMBOL(pwm_enable),
+    DEFINE_MODULE_SYMBOL(pwm_disable),
+    DEFINE_MODULE_SYMBOL(pwm_is_enabled),
+    DEFINE_MODULE_SYMBOL(PWM_TYPE),
+    // drivers/rgb_led
+    DEFINE_MODULE_SYMBOL(rgb_led_set_color),
+    DEFINE_MODULE_SYMBOL(rgb_led_get_color),
+    DEFINE_MODULE_SYMBOL(rgb_led_enable),
+    DEFINE_MODULE_SYMBOL(rgb_led_disable),
+    DEFINE_MODULE_SYMBOL(RGB_LED_TYPE),
     // drivers/root
     DEFINE_MODULE_SYMBOL(root_is_model),
     // drivers/rtc
@@ -383,11 +421,6 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(timer_set_callback_priority),
     // error
     DEFINE_MODULE_SYMBOL(error_to_string),
-    // file system
-    DEFINE_MODULE_SYMBOL(file_system_mount),
-    DEFINE_MODULE_SYMBOL(file_system_unmount),
-    DEFINE_MODULE_SYMBOL(file_system_is_mounted),
-    DEFINE_MODULE_SYMBOL(file_system_get_path),
     // log
 #ifndef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(log_generic),
