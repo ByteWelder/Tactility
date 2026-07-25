@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <lvgl.h>
 
 #include <tactility/device.h>
 #include <tactility/error.h>
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Linear per-axis calibration range for raw pointer coordinates.

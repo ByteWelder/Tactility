@@ -1,10 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -12,6 +8,10 @@ extern "C" {
 
 #include <tactility/device.h>
 #include <tactility/error.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Configuration for binding a kernel DisplayApi device to an lv_display_t.

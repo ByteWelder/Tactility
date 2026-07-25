@@ -175,34 +175,33 @@ class GpsSettingsApp final : public App {
     }
 
     void updateDeviceStates() {
-        if (lvgl_try_lock(100 / portTICK_PERIOD_MS)) {
-            for (auto& row : deviceRows) {
-                const char* text = "Start";
-                bool enabled = true;
+        lvgl_lock();
+        for (const auto& row : deviceRows) {
+            const char* text = "Start";
+            bool enabled = true;
 
-                if (device_is_ready(row.device)) {
-                    switch (gps_get_state(row.device)) {
-                        case GPS_STATE_PENDING_ON:
-                            text = "Starting...";
-                            enabled = false;
-                            break;
-                        case GPS_STATE_PENDING_OFF:
-                            text = "Stopping...";
-                            enabled = false;
-                            break;
-                        default:
-                            text = "Stop";
-                            enabled = true;
-                            break;
-                    }
+            if (device_is_ready(row.device)) {
+                switch (gps_get_state(row.device)) {
+                    case GPS_STATE_PENDING_ON:
+                        text = "Starting...";
+                        enabled = false;
+                        break;
+                    case GPS_STATE_PENDING_OFF:
+                        text = "Stopping...";
+                        enabled = false;
+                        break;
+                    default:
+                        text = "Stop";
+                        enabled = true;
+                        break;
                 }
-
-                lv_label_set_text(row.buttonLabel, text);
-                if (enabled) {
-                    lv_obj_remove_state(row.button, LV_STATE_DISABLED);
-                } else {
-                    lv_obj_add_state(row.button, LV_STATE_DISABLED);
-                }
+            }
+            lvgl_lock();
+            lv_label_set_text(row.buttonLabel, text);
+            if (enabled) {
+                lv_obj_remove_state(row.button, LV_STATE_DISABLED);
+            } else {
+                lv_obj_add_state(row.button, LV_STATE_DISABLED);
             }
         }
         lvgl_unlock();
