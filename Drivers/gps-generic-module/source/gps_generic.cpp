@@ -19,6 +19,7 @@
 #include <minmea.h>
 
 #include <cstdio>
+#include <cstdlib> // For calloc() in PC builds
 
 constexpr auto* TAG = "gps-generic";
 
