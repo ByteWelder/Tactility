@@ -139,3 +139,80 @@ TEST_CASE("Global symbol resolution") {
 
     CHECK_EQ(module_destruct(&module), ERROR_NONE);
 }
+
+TEST_CASE("module_ensure_started adds module to global ledger") {
+    start_called = false;
+    stop_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NONE;
+
+    static const struct ModuleSymbol test_symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+
+    struct Module module = {
+        .name = "test_ensure_started",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = test_symbols,
+        .internal = nullptr
+    };
+
+    uintptr_t addr;
+    // Not resolvable before module_ensure_started is called
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+    CHECK_EQ(module_is_started(&module), true);
+    CHECK_EQ(start_called, true);
+
+    // Module must be both added to the ledger and started to be resolvable
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    // Calling again should be idempotent: no duplicate start, still resolvable
+    start_called = false;
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+    CHECK_EQ(start_called, false);
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    // Cleanup
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(module_remove(&module), ERROR_NONE);
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_ensure_destructed removes module from global ledger") {
+    start_called = false;
+    stop_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NONE;
+
+    static const struct ModuleSymbol test_symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+
+    struct Module module = {
+        .name = "test_ensure_destructed",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = test_symbols,
+        .internal = nullptr
+    };
+
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+
+    uintptr_t addr;
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+    CHECK_EQ(module_is_started(&module), false);
+    CHECK_EQ(stop_called, true);
+
+    // Module must no longer be resolvable once destructed (removed from ledger)
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+
+    // Calling again on an already-destructed module should be a no-op
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+}
