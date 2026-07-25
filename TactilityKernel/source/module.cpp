@@ -146,6 +146,9 @@ error_t module_ensure_started(Module* module) {
         if (result != ERROR_NONE) { return result; }
     }
 
+    error_t add_result = module_add(module);
+    if (add_result != ERROR_NONE && add_result != ERROR_INVALID_STATE) { return add_result; }
+
     if (!module->internal->started) {
         error_t result = module_start(module);
         if (result != ERROR_NONE) { return result; }
@@ -161,6 +164,9 @@ error_t module_ensure_destructed(Module* module) {
             result = module_stop(module);
             if (result != ERROR_NONE) { return result; }
         }
+
+        result = module_remove(module);
+        if (result != ERROR_NONE) { return result; }
 
         result = module_destruct(module);
         if (result != ERROR_NONE) { return result; }

@@ -124,7 +124,7 @@ error_t module_construct_add_start(struct Module* module);
 
 /**
  * @brief Tries to ensure the module is in a started state.
- * Calls module_construct if needed, calls module_start if needed.
+ * Calls module_construct if needed, calls module_add if needed, calls module_start if needed.
  * @param module the module
  * @return ERROR_NONE if module is in a started state
  */
@@ -132,7 +132,7 @@ error_t module_ensure_started(struct Module* module);
 
 /**
  * @brief Tries to ensure the module is in a started state.
- * Calls module_stop if needed, calls module_destruct if needed.
+ * Calls module_stop if needed, calls module_remove, calls module_destruct if needed.
  * @param module the module
  * @return ERROR_NONE if module is in a destructed state
  */
