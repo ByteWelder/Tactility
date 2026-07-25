@@ -26,7 +26,7 @@ def get_device_node_name_safe(device: Device):
 def get_device_type_name(device: Device, bindings: list[Binding]):
     device_binding = find_device_binding(device, bindings)
     if device_binding is None:
-        raise DevicetreeException(f"Binding not found for {device.node_name}")
+        raise DevicetreeException(f"Binding not found for {device.node_name}. Make sure that the driver name in the driver's yaml and driver code declarations matches with the device dts file.")
     if device_binding.compatible is None:
         raise DevicetreeException(f"Couldn't find compatible binding for {device.node_name}")
     compatible_safe = device_binding.compatible.split(",")[-1]
@@ -282,6 +282,7 @@ def write_device_structs(file, device: Device, parent_device: Device, bindings: 
     file.write(f"\t.address = {address_value},\n")
     file.write(f"\t.name = \"{device.node_name}\",\n") # Use original name
     file.write(f"\t.config = &{config_variable_name},\n")
+    file.write("\t.flags = DEVICE_FLAG_DTS,\n")
     file.write(f"\t.parent = {parent_value},\n")
     file.write("\t.internal = NULL\n")
     file.write("};\n\n")

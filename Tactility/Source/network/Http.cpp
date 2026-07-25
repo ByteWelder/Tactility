@@ -70,7 +70,8 @@ void download(
 
         auto bytes_left = client->getContentLength();
 
-        auto lock = file::getLock(downloadFilePath)->asScopedLock();
+        auto lockable = file::getLock(downloadFilePath);
+        auto lock = lockable->asScopedLock();
         lock.lock();
         LOG_I(TAG, "opening %s", downloadFilePath.c_str());
         auto* file = fopen(downloadFilePath.c_str(), "wb");

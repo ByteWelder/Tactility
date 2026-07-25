@@ -24,10 +24,6 @@ static std::list<SubscriptionData> subscriptions;
 static const char* getEventName(SystemEvent event) {
     switch (event) {
         using enum SystemEvent;
-        case BootInitHalBegin:
-            return TT_STRINGIFY(BootInitHalBegin);
-        case BootInitHalEnd:
-            return TT_STRINGIFY(BootInitHalEnd);
         case BootSplash:
             return TT_STRINGIFY(BootSplash);
         case NetworkConnected:

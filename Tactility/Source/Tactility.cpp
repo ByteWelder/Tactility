@@ -14,13 +14,14 @@
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
-#include <Tactility/hal/HalPrivate.h>
-#include <Tactility/lvgl/LvglPrivate.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
+
+#include <gps/gps_module.h>
+#include <gps_generic/gps_generic_module.h>
 
 #include <tactility/concurrent/thread.h>
 #include <tactility/crypt_module.h>
@@ -31,7 +32,6 @@
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/filesystem/file_system.h>
-#include <tactility/hal_device_module.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
 #include <tactility/lvgl_module.h>
@@ -41,7 +41,8 @@
 #endif
 
 #include "Tactility/Paths.h"
-
+#include "Tactility/SystemEvents.h"
+#include "Tactility/hal/SdCard.h"
 
 #include <Tactility/bluetooth/Bluetooth.h>
 
@@ -49,8 +50,9 @@ namespace tt {
 
 constexpr auto* TAG = "Tactility";
 
-static const Configuration* config_instance = nullptr;
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
+
+void initFileMutexForLvgl();
 
 namespace {
 
@@ -75,7 +77,6 @@ bool MainDispatcher::dispatch(Function function, TickType_t timeout) const {
 namespace service {
     // Primary
     namespace audio { extern const ServiceManifest manifest; }
-    namespace gps { extern const ServiceManifest manifest; }
     namespace wifi { extern const ServiceManifest manifest; }
 #ifdef ESP_PLATFORM
     namespace development { extern const ServiceManifest manifest; }
@@ -183,8 +184,6 @@ static void registerInternalApps() {
     }
     if (device_exists_of_type(&DISPLAY_TYPE)) {
         addAppManifest(app::kerneldisplay::manifest);
-    } else if (hal::hasDevice(hal::Device::Type::Display)) {
-        addAppManifest(app::display::manifest);
     }
     addAppManifest(app::files::manifest);
     addAppManifest(app::fileselection::manifest);
@@ -322,7 +321,6 @@ static void registerAndStartPrimaryServices() {
     if (device_exists_of_type(&AUDIO_STREAM_TYPE)) {
         addService(service::audio::manifest);
     }
-    addService(service::gps::manifest);
     addService(service::wifi::manifest);
 #ifdef ESP_PLATFORM
     addService(service::development::manifest);
@@ -340,7 +338,8 @@ void createTempDirectory() {
     auto data_path = getUserDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
-        auto lock = file::getLock(data_path)->asScopedLock();
+        auto lockable = file::getLock(data_path);
+        auto lock = lockable->asScopedLock();
         if (lock.lock(1000 / portTICK_PERIOD_MS)) {
             if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
                 LOG_E(TAG, "Failed to create %s", data_path.c_str());
@@ -366,10 +365,8 @@ void registerApps() {
     registerInstalledAppsFromFileSystems();
 }
 
-void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices[]) {
+void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
     LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
-
-    assert(config.hardware);
 
     LOG_I(TAG, "Initializing kernel");
     if (kernel_init(dtsModules, dtsDevices) != ERROR_NONE) {
@@ -377,29 +374,30 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
         return;
     }
 
-    // hal-device-module
-    check(module_construct_add_start(&hal_device_module) == ERROR_NONE);
-
-    // crypt-module
-    check(module_construct_add_start(&crypt_module) == ERROR_NONE);
-
-    // Assign early so starting services can use it
-    config_instance = &config;
+    check(module_ensure_started(&crypt_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
 
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
-    file::setFindLockFunction(file::findLock);
+
     settings::initTimeZone();
-    hal::init(*config.hardware);
+
+    // Attempt to start all disabled SD cards (some require delayed init)
+    hal::sdcard::startAll();
+
     network::ntp::init();
     bluetooth::systemStart();
 
     registerAndStartPrimaryServices();
 
+    // Must start right before LVGL
+    initFileMutexForLvgl();
+
     lvgl_module_configure((LvglModuleConfig) {
-        .on_start = lvgl::attachDevices,
-        .on_stop = lvgl::detachDevices,
+        .on_start = nullptr,
+        .on_stop = nullptr,
         .task_priority = THREAD_PRIORITY_HIGHER,
         /** Minimum seems to be about 3500. In some scenarios, the WiFi app crashes at 8192,
          * so we now have 9120 to run in a stable manner. We should figure out a way to avoid this.
@@ -409,9 +407,7 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
         .task_affinity = getCpuAffinityConfiguration().graphics
 #endif
     });
-    check(module_construct(&lvgl_module) == ERROR_NONE);
-    check(module_add(&lvgl_module) == ERROR_NONE);
-    lvgl::start();
+    check(module_ensure_started(&lvgl_module) == ERROR_NONE);
 
     registerAndStartSecondaryServices();
 
@@ -426,11 +422,6 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
     while (true) {
         dispatcher_consume(mainDispatcherHandle);
     }
-}
-
-/** return the configuration or nullptr if it's not initialized */
-const Configuration* getConfiguration() {
-    return config_instance;
 }
 
 MainDispatcher getMainDispatcher() {

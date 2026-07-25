@@ -45,15 +45,11 @@ struct FileCloser {
     }
 };
 
-typedef std::function<std::shared_ptr<Lock>(const std::string&)> FindLockFunction;
-
 /**
  * @param[in] path the path to get a lock for
  * @return a lock instance (never null)
  */
-std::shared_ptr<Lock> getLock(const std::string& path);
-
-void setFindLockFunction(const FindLockFunction& function);
+std::shared_ptr<Lock> getLock(const std::string& path) __attribute__((deprecated("Use file_mutex.h from TactilityKernel")));
 
 long getSize(FILE* file);
 

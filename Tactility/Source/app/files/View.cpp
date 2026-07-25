@@ -450,7 +450,8 @@ void View::onEjectPressed() {
 void View::update(size_t start_index) {
     const bool is_root = (state->getCurrentPath() == "/");
 
-    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    auto sync_lockable = lvgl::getSyncLock();
+    auto scoped_lockable = sync_lockable->asScopedLock();
     if (!scoped_lockable.lock(lvgl::defaultLockTime)) {
         LOG_E(TAG, "Mutex acquisition timeout (%s)", "lvgl");
         return;
@@ -550,14 +551,16 @@ void View::init(const AppContext& appContext, lv_obj_t* parent) {
 }
 
 void View::onDirEntryListScrollBegin() {
-    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    auto sync_lockable = lvgl::getSyncLock();
+    auto scoped_lockable = sync_lockable->asScopedLock();
     if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }
 }
 
 void View::onNavigate() {
-    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
+    auto sync_lockable = lvgl::getSyncLock();
+    auto scoped_lockable = sync_lockable->asScopedLock();
     if (scoped_lockable.lock(lvgl::defaultLockTime)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }

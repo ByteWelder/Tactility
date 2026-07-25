@@ -58,7 +58,8 @@ class AppHubApp final : public App {
 
     void onRefreshSuccess() {
         LOG_I(TAG, "Request success");
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         lock.lock();
 
         showApps();
@@ -66,7 +67,8 @@ class AppHubApp final : public App {
 
     void onRefreshError(const char* error) {
         LOG_E(TAG, "Request failed: %s", error);
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        auto lockable = lvgl::getSyncLock();
+        auto lock = lockable->asScopedLock();
         lock.lock();
 
         showRefreshFailedError("Cannot reach server");

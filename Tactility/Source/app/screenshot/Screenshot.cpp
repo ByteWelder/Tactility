@@ -87,7 +87,8 @@ ScreenshotApp::~ScreenshotApp() {
 }
 
 void ScreenshotApp::onTimerTick() {
-    auto lock = lvgl::getSyncLock()->asScopedLock();
+    auto lockable = lvgl::getSyncLock();
+    auto lock = lockable->asScopedLock();
     if (lock.lock(lvgl::defaultLockTime)) {
         updateScreenshotMode();
     }

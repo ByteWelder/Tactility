@@ -19,14 +19,8 @@ jobs:
         run: cmake -S ./ -B build
       - name: "Build Tests"
         run: cmake --build build --target build-tests
-      - name: "Run TactilityFreeRtos Tests"
-        run: build/Tests/TactilityFreeRtos/TactilityFreeRtosTests
-      - name: "Run Tactility Tests"
-        run: build/Tests/Tactility/TactilityTests
-      - name: "Run TactilityKernel Tests"
-        run: build/Tests/TactilityKernel/TactilityKernelTests
-      - name: "Run CryptModuleTests Tests"
-        run: build/Tests/crypt-module/CryptModuleTests
+      - name: "Run Tests"
+        run: ctest --test-dir build/Tests
   DevicetreeTests:
     runs-on: ubuntu-latest
     steps:

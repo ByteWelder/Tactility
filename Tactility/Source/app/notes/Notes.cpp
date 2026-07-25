@@ -87,7 +87,8 @@ class NotesApp final : public App {
         file::getLock(path)->withLock([this, path] {
             auto data = file::readString(path);
             if (data != nullptr) {
-               auto lock = lvgl::getSyncLock()->asScopedLock();
+               auto lockable = lvgl::getSyncLock();
+               auto lock = lockable->asScopedLock();
                lock.lock();
                lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
                lv_label_set_text(uiCurrentFileName, path.c_str());

@@ -24,6 +24,19 @@ struct DeviceType {
     const char* name;
 };
 
+typedef uint8_t device_flags_t;
+
+#ifndef BIT
+#define BIT(nr) (1u << (nr))
+#endif
+
+#define DEVICE_FLAG_DTS             BIT(0)  /* Instantiated from a dts file */
+#define DEVICE_FLAG_DYNAMIC         BIT(1)  /* 1 means dynamically allocated */
+
+#define DEVICE_FLAG_VIRTUAL         BIT(2)  /* No physical hardware */
+#define DEVICE_FLAG_REMOVABLE       BIT(3)  /* May disappear (USB, SDIO, etc.) */
+#define DEVICE_FLAG_HOTPLUG         BIT(4)  /* Supports hotplug */
+
 /** Represents a piece of hardware */
 struct Device {
     /** Device address. Can represent an index, a memory address, or some kind of offset */
@@ -37,6 +50,8 @@ struct Device {
 
     /** The parent device that this device belongs to. Can be NULL, but only the root device should have a NULL parent. */
     struct Device* parent;
+
+    device_flags_t flags;
 
     /**
      * Internal state managed by the kernel.
@@ -388,9 +403,18 @@ error_t device_get_first_by_type(const struct DeviceType* type, struct Device** 
  * @param[in] type non-null device type pointer
  * @param[out] out_device receives the found device on success; untouched on failure
  * @retval ERROR_NOT_FOUND if no started device of that type exists
- * @retval ERROR_NONE on success; caller must call device_put(*out_device) exactly once
+ * @retval ERROR_NONE if a started device of that type exists; must call device_put() exactly once afterwards.
  */
 error_t device_get_first_active_by_type(const struct DeviceType* type, struct Device** out_device);
+
+/**
+ * Check if there is an active device of the provided type.
+ *
+ * @param[in] type non-null device type pointer
+ * @retval ERROR_NOT_FOUND if no started device of that type exists
+ * @retval ERROR_NONE if a started device of that type exists
+ */
+bool device_has_active_by_type(const struct DeviceType* type);
 
 /**
  * Find the first device whose driver matches the given compatible string and atomically take a

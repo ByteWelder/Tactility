@@ -2,30 +2,32 @@
 
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
-#include <tactility/drivers/power_supply.h>
-#include <tactility/filesystem/file_system.h>
-#include <Tactility/lvgl/Lvgl.h>
+#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/bluetooth/Bluetooth.h>
-#include <tactility/drivers/bluetooth.h>
-#include <tactility/drivers/bluetooth_serial.h>
-#include <tactility/drivers/bluetooth_midi.h>
+#include <Tactility/service/wifi/Wifi.h>
+#include <tactility/check.h>
 #include <tactility/device.h>
+#include <tactility/drivers/bluetooth.h>
+#include <tactility/drivers/bluetooth_midi.h>
+#include <tactility/drivers/bluetooth_serial.h>
+#include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/usb_host_hid.h>
 #include <tactility/drivers/usb_host_midi.h>
 #include <tactility/drivers/usb_host_msc.h>
-#include <Tactility/service/gps/GpsService.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <tactility/check.h>
+#include <tactility/filesystem/file_system.h>
 
+#include <tactility/log.h>
+#include <tactility/module.h>
+
+#include <tactility/lvgl_module.h>
 #include <tactility/lvgl_icon_statusbar.h>
 
 #include <cstring>
 
-#include <tactility/log.h>
+#include <gps/gps.h>
 
 namespace tt::service::statusbar {
 
@@ -152,8 +154,7 @@ class StatusbarService final : public Service {
     }
 
     void updateGpsIcon() {
-        auto gps_state = gps::findGpsService()->getState();
-        bool show_icon = (gps_state == gps::State::OnPending) || (gps_state == gps::State::On);
+        bool show_icon = device_has_active_by_type(&GPS_TYPE);
         if (gps_last_state != show_icon) {
             if (show_icon) {
                 lvgl::statusbar_icon_set_image(gps_icon_id, LVGL_ICON_STATUSBAR_LOCATION_ON);
@@ -267,15 +268,15 @@ class StatusbarService final : public Service {
     }
 
     void update() {
-        if (lvgl::isStarted()) {
-            if (lvgl::lock(100)) {
+        if (module_is_started(&lvgl_module)) {
+            if (lvgl_try_lock(100)) {
                 updateGpsIcon();
                 updateBluetoothIcon();
                 updateWifiIcon();
                 updateSdCardIcon();
                 updatePowerStatusIcon();
                 updateUsbIcon();
-                lvgl::unlock();
+                lvgl_unlock();
             }
         }
     }

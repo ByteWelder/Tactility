@@ -1,20 +1,17 @@
 #include <tactility/module.h>
 
-#include "lilygo/drivers/tdeck_power_on.h"
-#include "tactility/lvgl_module.h"
-
 #include <tactility/error.h>
 #include <tactility/log.h>
+#include <tactility/lvgl_module.h>
 
 #include <Tactility/SystemEvents.h>
 #include <Tactility/LogMessages.h>
-#include <Tactility/hal/Configuration.h>
 #include <Tactility/kernel/Kernel.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/service/gps/GpsService.h>
 #include <Tactility/settings/TrackballSettings.h>
 
 #include <lilygo/drivers/trackball.h>
+#include <lilygo/drivers/tdeck_power_on.h>
 
 constexpr auto* TAG = "tdeck";
 
