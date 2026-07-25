@@ -13,6 +13,7 @@ static struct Device root = {
 	.address = 0,
 	.name = "/",
 	.config = &root_config,
+    .flags = DEVICE_FLAG_DTS,
 	.parent = NULL,
 	.internal = NULL
 };
@@ -27,6 +28,7 @@ static struct Device test_device = {
 	.address = 0,
 	.name = "test-device",
 	.config = &test_device_config,
+    .flags = DEVICE_FLAG_DTS,
 	.parent = &root,
 	.internal = NULL
 };
@@ -43,6 +45,7 @@ static struct Device bool_test_device = {
 	.address = 0,
 	.name = "bool-test-device",
 	.config = &bool_test_device_config,
+    .flags = DEVICE_FLAG_DTS,
 	.parent = &root,
 	.internal = NULL
 };
