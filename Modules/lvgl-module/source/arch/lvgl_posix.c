@@ -11,7 +11,7 @@
 #include <lvgl.h>
 
 #include <lvgl/lvgl.h>
-#include <lvgl/lvgl_module.h>
+#include <lvgl/module.h>
 
 extern struct LvglModuleConfig lvgl_module_config;
 extern void lvgl_devices_attach();
