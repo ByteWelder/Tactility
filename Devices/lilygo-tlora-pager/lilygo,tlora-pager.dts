@@ -11,6 +11,7 @@
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/pwm_backlight.h>
+#include <gps_generic/bindings.h>
 #include <bindings/st7796.h>
 #include <bindings/bq27220.h>
 #include <bindings/tca8418.h>

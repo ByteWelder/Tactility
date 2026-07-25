@@ -39,10 +39,9 @@ static void task_unlock(void) {
     recursive_mutex_unlock(&task_mutex);
 }
 
-bool lvgl_lock(void) {
-    if (!lvgl_mutex_initialised) return false;
+void lvgl_lock(void) {
+    if (!lvgl_mutex_initialised) return;
     recursive_mutex_lock(&lvgl_mutex);
-    return true;
 }
 
 bool lvgl_try_lock(uint32_t timeout) {
