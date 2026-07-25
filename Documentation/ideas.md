@@ -13,6 +13,7 @@
 
 ## Higher Priority
 
+- Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
 - Remove and migrate `Include/Tactility/kernel/Kernel.h` into `tactility/delay.h`
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
