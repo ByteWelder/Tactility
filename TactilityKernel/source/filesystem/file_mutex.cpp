@@ -40,6 +40,7 @@ void file_mutex_get(FileMutex* mutex, const char* path) {
     for (auto& entry : mutex_entries) {
         // Match the mount path itself, or a descendant (e.g. "/sdcard" registered, "/sdcard/config.json" requested).
         bool is_match = path_string == entry.path ||
+            (entry.path == "/" && !path_string.empty() && path_string[0] == '/') ||
             (path_string.rfind(entry.path, 0) == 0 && path_string[entry.path.size()] == '/');
         if (is_match) {
             memcpy(mutex, &entry.mutex, sizeof(FileMutex));
