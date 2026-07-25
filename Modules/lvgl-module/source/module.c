@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <lvgl.h>
+#include <lvgl/module.h>
 #include <string.h>
 #include <tactility/module.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 extern const struct ModuleSymbol lvgl_module_symbols[];
 error_t lvgl_arch_start();
@@ -58,10 +58,6 @@ static error_t stop() {
 
 bool lvgl_is_running() {
     return is_running;
-}
-
-enum UiDensity lvgl_get_ui_density(void) {
-    return TT_LVGL_UI_DENSITY;
 }
 
 struct Module lvgl_module = {

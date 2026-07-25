@@ -12,7 +12,7 @@
 #include <Tactility/Tactility.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::app::wifimanage {
 

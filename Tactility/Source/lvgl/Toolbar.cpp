@@ -9,8 +9,8 @@
 #include <Tactility/service/loader/Loader.h>
 
 #include <tactility/check.h>
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::lvgl {
 

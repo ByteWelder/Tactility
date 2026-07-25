@@ -30,7 +30,7 @@
 #include <lv_screenshot.h>
 #endif
 
-#include <tactility/lvgl_icon_statusbar.h>
+#include <lvgl/lvgl_icon_statusbar.h>
 
 #include <atomic>
 #include <cctype>

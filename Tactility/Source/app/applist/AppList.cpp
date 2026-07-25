@@ -5,8 +5,8 @@
 #include <lvgl.h>
 #include <algorithm>
 
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::applist {
 

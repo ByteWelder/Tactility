@@ -1,7 +1,7 @@
 #include "Tactility/lvgl/LvglSync.h"
 
 #include <Tactility/Mutex.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::lvgl {
 

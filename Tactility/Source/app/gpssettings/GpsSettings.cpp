@@ -1,19 +1,13 @@
-
-
-#include "tactility/lvgl_module.h"
-
+#include <lvgl/lvgl.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 #include <Tactility/Tactility.h>
-
-
 #include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 
 #include <tactility/device.h>
-#include <tactility/lvgl_icon_shared.h>
 
 #include <atomic>
 #include <cstring>
@@ -181,9 +175,7 @@ class GpsSettingsApp final : public App {
     }
 
     void updateDeviceStates() {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        if (lock.lock(100 / portTICK_PERIOD_MS)) {
+        if (lvgl_try_lock(100 / portTICK_PERIOD_MS)) {
             for (auto& row : deviceRows) {
                 const char* text = "Start";
                 bool enabled = true;
@@ -213,6 +205,7 @@ class GpsSettingsApp final : public App {
                 }
             }
         }
+        lvgl_unlock();
     }
 
 public:

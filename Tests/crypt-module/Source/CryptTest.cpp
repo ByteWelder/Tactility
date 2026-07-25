@@ -1,5 +1,5 @@
 #include "doctest.h"
-#include <tactility/crypt.h>
+#include <crypt/crypt.h>
 #include <cstring>
 
 TEST_CASE("crypt_encrypt followed by crypt_decrypt returns the original data") {

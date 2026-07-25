@@ -9,7 +9,7 @@
 
 #include <lvgl.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::notes {
 

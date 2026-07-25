@@ -12,8 +12,8 @@
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/lvgl.h>
 
 #include <cstring>
 #include <lvgl.h>
@@ -31,11 +31,10 @@ class DevelopmentApp final : public App {
     std::shared_ptr<service::development::DevelopmentService> service;
 
     Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        // TODO: There's a crash when this is called when the app is being destroyed
-        if (lock.lock(lvgl::defaultLockTime) && module_is_started(&lvgl_module)) {
+        if (lvgl_is_running()) {
+            lvgl_lock();
             updateViewState();
+            lvgl_unlock();
         }
     });
 
@@ -158,11 +157,10 @@ public:
     }
 
     void onHide(AppContext& appContext) override {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
+        lvgl_lock();
         // Ensure that the update isn't already happening
-        lock.lock();
         timer.stop();
+        lvgl_unlock();
     }
 };
 

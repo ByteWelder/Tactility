@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <gps/gps_module.h>
+#include <gps/module.h>
 #include <gps/private/gps_ledger.h>
 
 #include <tactility/error.h>

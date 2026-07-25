@@ -22,7 +22,7 @@
 #include <tactility/module.h>
 #include <tactility/time.h>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 #include <drivers/bm8563.h>
 #include <drivers/bmi270.h>

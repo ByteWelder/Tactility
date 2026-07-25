@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/crypt.h>
-#include <tactility/hash.h>
+#include <crypt/crypt.h>
+#include <crypt/hash.h>
 #include <tactility/module.h>
 
 extern "C" {

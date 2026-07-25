@@ -13,9 +13,9 @@
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_launcher.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl_fonts.h>
+#include <lvgl/lvgl_icon_launcher.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::app::launcher {
 

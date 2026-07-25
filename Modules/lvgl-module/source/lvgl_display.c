@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/lvgl_display.h>
+#include <lvgl/lvgl_display.h>
 
-#include <tactility/lvgl_ppa.h>
+#include <lvgl/lvgl_ppa.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>

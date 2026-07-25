@@ -3,9 +3,10 @@
 
 #include <esp_lvgl_port.h>
 
-#include <tactility/time.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/module.h>
 #include <tactility/error.h>
-#include <tactility/lvgl_module.h>
+#include <tactility/time.h>
 
 extern struct LvglModuleConfig lvgl_module_config;
 extern void lvgl_devices_attach();

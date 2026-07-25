@@ -2,7 +2,7 @@
 
 #include <tactility/error.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/SystemEvents.h>
 #include <Tactility/LogMessages.h>

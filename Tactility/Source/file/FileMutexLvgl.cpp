@@ -3,7 +3,7 @@
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 constexpr auto* TAG = "file_mutex_lvgl";
 
