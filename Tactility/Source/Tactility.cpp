@@ -6,19 +6,25 @@
 
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
-
-#include <Tactility/LogMessages.h>
+#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/FileLock.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/hal/SdCard.h>
 #include <Tactility/network/NtpPrivate.h>
+#include <Tactility/Paths.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
+
+#ifdef ESP_PLATFORM
+#include <Tactility/InitEsp.h>
+#endif
 
 #include <gps/module.h>
 #include <gps_generic/gps_generic_module.h>
@@ -26,6 +32,7 @@
 #include <crypt/module.h>
 #include <lvgl/module.h>
 #include <lvgl/widgets/toolbar.h>
+
 #include <tactility/concurrent/thread.h>
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/display.h>
@@ -36,15 +43,7 @@
 #include <tactility/filesystem/file_system.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
-
-#ifdef ESP_PLATFORM
-#include <Tactility/InitEsp.h>
-#endif
-
-#include "Tactility/Paths.h"
-#include "Tactility/hal/SdCard.h"
-
-#include <Tactility/bluetooth/Bluetooth.h>
+#include <tactility/memory.h>
 
 namespace tt {
 
@@ -371,6 +370,8 @@ static void onLvglStarted() {
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
 #endif
+
+    memory_trace();
 }
 
 static void onLvglStopped() {
@@ -386,6 +387,8 @@ static void onLvglStopped() {
     check(service::removeService(service::memorychecker::manifest.id));
     check(service::removeService(service::statusbar::manifest.id));
     check(service::removeService(service::gui::manifest.id));
+
+    memory_trace();
 }
 
 void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
