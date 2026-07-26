@@ -221,6 +221,8 @@ lv_obj_t* lvgl_toolbar_add_text_button_action(lv_obj_t* obj, const char* text, l
 
 lv_obj_t* lvgl_toolbar_add_switch_action(lv_obj_t* obj) {
     auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+    check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
+    toolbar->action_count++;
 
     auto ui_density = lvgl_get_ui_density();
     auto* wrapper = create_action_wrapper(toolbar->action_container, ui_density);
@@ -234,6 +236,8 @@ lv_obj_t* lvgl_toolbar_add_switch_action(lv_obj_t* obj) {
 
 lv_obj_t* lvgl_toolbar_add_spinner_action(lv_obj_t* obj) {
     auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+    check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
+    toolbar->action_count++;
 
     auto ui_density = lvgl_get_ui_density();
     auto* wrapper = create_action_wrapper(toolbar->action_container, ui_density);

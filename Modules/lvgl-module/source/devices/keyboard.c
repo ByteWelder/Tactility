@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <../include/lvgl/devices/keyboard.h>
+#include <lvgl/devices/keyboard.h>
 
 #include <tactility/drivers/keyboard.h>
 
