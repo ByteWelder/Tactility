@@ -48,9 +48,9 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart)
         return;
     }
 
-    // Intentionally never freed: services are registered once and live for the
-    // process lifetime (there is no removeService()). Keeps id's backing string
-    // alive for cManifest.id below.
+    // Intentionally never freed: removeService() only unregisters the manifest
+    // from the kernel, it doesn't own this allocation. Keeps id's backing
+    // string alive for cManifest.id below.
     auto* persistentManifest = new std::shared_ptr(manifest);
     auto* cManifest = new ::ServiceManifest {
         .id = (*persistentManifest)->id.c_str(),
@@ -68,6 +68,29 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart)
 
 void addService(const ServiceManifest& manifest, bool autoStart) {
     addService(std::make_shared<const ServiceManifest>(manifest), autoStart);
+}
+
+bool removeService(const std::string& id) {
+    if (service_manager_get_state(id.c_str()) != SERVICE_STATE_STOPPED) {
+        LOG_I(TAG, "Stopping %s before removal", id.c_str());
+        if (!stopService(id)) {
+            LOG_E(TAG, "Failed to stop %s before removal", id.c_str());
+            return false;
+        }
+    }
+
+    LOG_I(TAG, "Removing %s", id.c_str());
+    error_t error = service_manager_remove(id.c_str());
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Failed to remove service %s: %s", id.c_str(), error_to_string(error));
+        return false;
+    }
+    LOG_I(TAG, "Removed %s", id.c_str());
+    return true;
+}
+
+bool removeService(const ServiceManifest& manifest) {
+    return removeService(manifest.id);
 }
 
 const ::ServiceManifest* findManifestById(const std::string& id) {

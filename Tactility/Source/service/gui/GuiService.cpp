@@ -178,8 +178,13 @@ void GuiService::redraw() {
         return;
     }
 
-    while (!lvgl_try_lock(1000)) {
+    while (lvgl_is_running() && !lvgl_try_lock(1000)) {
         LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "GuiService LVGL");
+    }
+
+    if (!lvgl_is_running()) {
+        unlock();
+        return;
     }
 
     lv_obj_clean(appRootWidget);

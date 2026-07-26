@@ -2,7 +2,6 @@
 
 #include <Tactility/service/rtctime/RtcTimeService.h>
 
-#include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 

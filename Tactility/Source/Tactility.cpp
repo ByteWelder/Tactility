@@ -41,7 +41,6 @@
 #endif
 
 #include "Tactility/Paths.h"
-#include "Tactility/SystemEvents.h"
 #include "Tactility/hal/SdCard.h"
 
 #include <Tactility/bluetooth/Bluetooth.h>
@@ -296,27 +295,7 @@ static void registerInstalledAppsFromFileSystems() {
     });
 }
 
-static void registerAndStartSecondaryServices() {
-    LOG_I(TAG, "Registering and starting secondary system services");
-    addService(service::loader::manifest);
-    addService(service::gui::manifest);
-    addService(service::statusbar::manifest);
-    addService(service::memorychecker::manifest);
-#if defined(ESP_PLATFORM)
-    if (device_exists_of_type(&RTC_TYPE)) {
-        addService(service::rtctime::manifest);
-    }
-    addService(service::displayidle::manifest);
-#if defined(CONFIG_TT_TDECK_WORKAROUND)
-    addService(service::keyboardidle::manifest);
-#endif
-#endif
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    addService(service::screenshot::manifest);
-#endif
-}
-
-static void registerAndStartPrimaryServices() {
+static void registerAndStartServices() {
     LOG_I(TAG, "Registering and starting primary system services");
     if (device_exists_of_type(&AUDIO_STREAM_TYPE)) {
         addService(service::audio::manifest);
@@ -331,6 +310,12 @@ static void registerAndStartPrimaryServices() {
 #endif
 #ifdef ESP_PLATFORM
     addService(service::webserver::manifest);
+#endif
+    addService(service::loader::manifest);
+#if defined(ESP_PLATFORM)
+    if (device_exists_of_type(&RTC_TYPE)) {
+        addService(service::rtctime::manifest);
+    }
 #endif
 }
 
@@ -365,6 +350,36 @@ void registerApps() {
     registerInstalledAppsFromFileSystems();
 }
 
+static void onLvglStarted() {
+    addService(service::gui::manifest);
+    addService(service::statusbar::manifest);
+    addService(service::memorychecker::manifest);
+#if defined(ESP_PLATFORM)
+    addService(service::displayidle::manifest);
+#endif
+#if defined(CONFIG_TT_TDECK_WORKAROUND)
+    addService(service::keyboardidle::manifest);
+#endif
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    addService(service::screenshot::manifest);
+#endif
+}
+
+static void onLvglStopped() {
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    check(service::removeService(service::screenshot::manifest.id));
+#endif
+#if defined(CONFIG_TT_TDECK_WORKAROUND)
+    check(service::removeService(service::keyboardidle::manifest.id));
+#endif
+#if defined(ESP_PLATFORM)
+    check(service::removeService(service::displayidle::manifest.id));
+#endif
+    check(service::removeService(service::memorychecker::manifest.id));
+    check(service::removeService(service::statusbar::manifest.id));
+    check(service::removeService(service::gui::manifest.id));
+}
+
 void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
     LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
@@ -390,14 +405,14 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
     network::ntp::init();
     bluetooth::systemStart();
 
-    registerAndStartPrimaryServices();
+    registerAndStartServices();
 
     // Must start right before LVGL
     initFileMutexForLvgl();
 
     lvgl_module_configure((LvglModuleConfig) {
-        .on_start = nullptr,
-        .on_stop = nullptr,
+        .on_start = onLvglStarted,
+        .on_stop = onLvglStopped,
         .task_priority = THREAD_PRIORITY_HIGHER,
         /** Minimum seems to be about 3500. In some scenarios, the WiFi app crashes at 8192,
          * so we now have 9120 to run in a stable manner. We should figure out a way to avoid this.
@@ -408,8 +423,6 @@ void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
 #endif
     });
     check(module_ensure_started(&lvgl_module) == ERROR_NONE);
-
-    registerAndStartSecondaryServices();
 
     LOG_I(TAG, "Core systems ready");
 
