@@ -43,11 +43,17 @@ void* memory_realloc_with_policy(void* ptr, size_t size, const struct MemoryPoli
 
 void* memory_calloc_with_policy(size_t count, size_t size, const struct MemoryPolicy* policy) {
     if (policy->alignment > 0) {
-        void* ptr = nullptr;
-        if (posix_memalign(&ptr, normalizeAlignment(policy->alignment), count * size) != 0) {
+        size_t total_size = count * size;
+        if (count != 0 && total_size / count != size) {
+            // count * size overflowed - reject rather than under-allocating.
             return nullptr;
         }
-        memset(ptr, 0, count * size);
+
+        void* ptr = nullptr;
+        if (posix_memalign(&ptr, normalizeAlignment(policy->alignment), total_size) != 0) {
+            return nullptr;
+        }
+        memset(ptr, 0, total_size);
         return ptr;
     }
     return calloc(count, size);
