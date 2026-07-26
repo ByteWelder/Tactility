@@ -157,13 +157,13 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
     // Create tmp directory
     const std::string tmp_path = getTempPath();
     if (!file::findOrCreateDirectory(tmp_path, 0777)) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file: could not create temp path");
         return ESP_FAIL;
     }
 
     auto file_path = std::format("{}/{}", tmp_path, filename_entry->second);
     if (network::receiveFile(request, file_size, file_path) != file_size) {
-        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file");
+        httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save file: network receiving failed");
         return ESP_FAIL;
     }
 
