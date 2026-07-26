@@ -11,7 +11,7 @@
 #include <Tactility/bluetooth/BluetoothPairedDevice.h>
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
+#include <lvgl/widgets/toolbar.h>
 #include <tactility/check.h>
 #include <tactility/drivers/bluetooth.h>
 #include <tactility/log.h>
@@ -138,7 +138,7 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        lvgl::toolbar_create(parent, title);
+        lvgl_toolbar_create(parent, title.c_str());
 
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));

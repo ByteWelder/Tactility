@@ -6,7 +6,7 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
+#include <lvgl/widgets/toolbar.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 
@@ -138,8 +138,8 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        auto* toolbar = lvgl::toolbar_create(parent, ssid);
-        busySpinner = lvgl::toolbar_add_spinner_action(toolbar);
+        auto* toolbar = lvgl_toolbar_create(parent, ssid.c_str());
+        busySpinner = lvgl_toolbar_add_spinner_action(toolbar);
 
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));

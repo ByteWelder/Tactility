@@ -117,7 +117,7 @@ public:
 
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
-        switchTrackball = lvgl::toolbar_add_switch_action(toolbar);
+        switchTrackball = lvgl_toolbar_add_switch_action(toolbar);
         lv_obj_add_event_cb(switchTrackball, onTrackballSwitch, LV_EVENT_VALUE_CHANGED, this);
         if (tbSettings.trackballEnabled) lv_obj_add_state(switchTrackball, LV_STATE_CHECKED);
 

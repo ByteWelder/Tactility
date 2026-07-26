@@ -98,7 +98,7 @@ public:
 
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
-        enableSwitch = lvgl::toolbar_add_switch_action(toolbar);
+        enableSwitch = lvgl_toolbar_add_switch_action(toolbar);
         lv_obj_add_event_cb(enableSwitch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, this);
 
         if (service->isEnabled()) {

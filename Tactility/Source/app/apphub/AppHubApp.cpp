@@ -165,7 +165,7 @@ public:
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        refreshButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
+        refreshButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         contentWrapper = lv_obj_create(parent);

@@ -223,7 +223,7 @@ public:
         uint8_t margin = (lvgl_get_ui_density() == LVGL_UI_DENSITY_COMPACT) ? 2 : 8;
 
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        lvgl::toolbar_add_text_button_action(toolbar, LV_SYMBOL_PLUS, onAddGpsCallback, this);
+        lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_PLUS, onAddGpsCallback, this);
         lv_obj_set_style_margin_bottom(toolbar, margin, LV_STATE_DEFAULT);
 
         deviceListWrapper = lv_obj_create(parent);
