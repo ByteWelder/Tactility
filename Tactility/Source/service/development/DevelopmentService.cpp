@@ -161,8 +161,15 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    auto file_path = std::format("{}/{}", tmp_path, filename_entry->second);
+    std::string safe_name = file::getLastPathSegment(filename_entry->second);
+    if (safe_name.empty() || safe_name.find("..") != std::string::npos ||
+        safe_name.find('/') != std::string::npos || safe_name.find('\\') != std::string::npos) {
+        httpd_resp_send_err(request, HTTPD_400_BAD_REQUEST, "invalid filename");
+        return ESP_FAIL;
+    }
+    auto file_path = std::format("{}/{}", tmp_path, safe_name);
     if (network::receiveFile(request, file_size, file_path) != file_size) {
+        file::deleteFile(file_path);
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive file");
         return ESP_FAIL;
     }
