@@ -1,6 +1,5 @@
 #include <Tactility/app/files/SupportedFiles.h>
 #include <Tactility/app/files/View.h>
-
 #include <Tactility/Platform.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Tactility.h>
@@ -9,13 +8,14 @@
 #include <Tactility/app/inputdialog/InputDialog.h>
 #include <Tactility/app/notes/Notes.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <tactility/check.h>
 
+#include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_msc.h>
 #include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
 
 #include <cctype>
 #include <cstdio>
@@ -450,9 +450,7 @@ void View::onEjectPressed() {
 void View::update(size_t start_index) {
     const bool is_root = (state->getCurrentPath() == "/");
 
-    auto sync_lockable = lvgl::getSyncLock();
-    auto scoped_lockable = sync_lockable->asScopedLock();
-    if (!scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (!lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         LOG_E(TAG, "Mutex acquisition timeout (%s)", "lvgl");
         return;
     }
@@ -516,6 +514,8 @@ void View::update(size_t start_index) {
     } else {
         lv_obj_add_flag(lv_obj_get_parent(paste_button), LV_OBJ_FLAG_HIDDEN);
     }
+
+    lvgl_unlock();
 }
 
 void View::init(const AppContext& appContext, lv_obj_t* parent) {
@@ -551,18 +551,16 @@ void View::init(const AppContext& appContext, lv_obj_t* parent) {
 }
 
 void View::onDirEntryListScrollBegin() {
-    auto sync_lockable = lvgl::getSyncLock();
-    auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+        lvgl_unlock();
     }
 }
 
 void View::onNavigate() {
-    auto sync_lockable = lvgl::getSyncLock();
-    auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
+        lvgl_unlock();
     }
 }
 

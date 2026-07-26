@@ -1,17 +1,18 @@
+#include <Tactility/Paths.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
-#include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <lvgl/widgets/toolbar.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
-#include <Tactility/StringUtils.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
 #include <tactility/log.h>
+
 #include <format>
 
 namespace tt::app::apphubdetails {
@@ -87,15 +88,15 @@ class AppHubDetailsApp final : public App {
     void uninstallApp() {
         LOG_I(TAG, "Uninstall");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         uninstall(entry.appId);
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         updateViews();
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
     }
 
     void doInstall() {
@@ -115,9 +116,9 @@ class AppHubDetailsApp final : public App {
                     LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
                 }
 
-                lvgl::getSyncLock()->lock();
+                lvgl_lock();
                 updateViews();
-                lvgl::getSyncLock()->unlock();
+                lvgl_unlock();
             },
             [temp_file_path](const char* errorMessage) {
                 LOG_E(TAG, "Download failed: %s", errorMessage);
@@ -133,9 +134,9 @@ class AppHubDetailsApp final : public App {
     void installApp() {
         LOG_I(TAG, "Install");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         doInstall();
     }
@@ -143,9 +144,9 @@ class AppHubDetailsApp final : public App {
     void updateApp() {
         LOG_I(TAG, "Update");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         LOG_I(TAG, "Removing previous version");
         uninstall(entry.appId);

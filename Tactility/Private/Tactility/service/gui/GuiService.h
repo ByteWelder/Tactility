@@ -3,7 +3,6 @@
 #include <Tactility/MessageQueue.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
-#include <Tactility/app/AppContext.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/loader/Loader.h>
 
@@ -11,7 +10,6 @@
 
 #include <tactility/concurrent/dispatcher.h>
 
-#include <cstdio>
 #include <lvgl.h>
 
 namespace tt::service::gui {

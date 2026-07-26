@@ -3,11 +3,11 @@
 #include <Tactility/Mutex.h>
 #include <Tactility/Timer.h>
 #include <Tactility/bluetooth/Bluetooth.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServicePaths.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/Wifi.h>
+
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/bluetooth.h>
@@ -18,7 +18,6 @@
 #include <tactility/drivers/usb_host_midi.h>
 #include <tactility/drivers/usb_host_msc.h>
 #include <tactility/filesystem/file_system.h>
-
 #include <tactility/log.h>
 
 #include <lvgl/icons/statusbar.h>
