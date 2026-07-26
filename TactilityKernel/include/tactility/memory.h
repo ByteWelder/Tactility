@@ -34,7 +34,7 @@ struct MemoryPolicy {
     /** A bitset of MemoryCapability flags that are preferable (but optional) during allocation. */
     uint16_t desired;
     /** Alignment (in bytes) of the returned pointer, or 0 for the platform default. Must be a power of 2. */
-    uint8_t alignment;
+    size_t alignment;
 };
 
 /** The default policy: no required/desired capabilities, no alignment requirement. */
