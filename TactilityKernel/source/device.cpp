@@ -381,11 +381,11 @@ bool device_is_constructed(const Device* device) {
 
 error_t device_get(Device* device) {
     auto* internal = device->internal;
-    lock_internal(internal);
-    if (!internal->state.started || internal->state.stopping) {
+    if (!internal) {
         unlock_internal(internal);
         return ERROR_INVALID_STATE;
     }
+    lock_internal(internal);
     internal->ref_count++;
     unlock_internal(internal);
     return ERROR_NONE;
