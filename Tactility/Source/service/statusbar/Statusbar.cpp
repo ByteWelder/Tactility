@@ -20,7 +20,6 @@
 #include <tactility/filesystem/file_system.h>
 
 #include <tactility/log.h>
-#include <tactility/module.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/lvgl_icon_statusbar.h>

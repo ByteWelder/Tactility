@@ -40,8 +40,7 @@ struct LvglModuleConfig {
 
 /**
  * @brief Configures the LVGL module.
- *
- * @warning This must be called before starting the module.
+ * @warning Must not be called when module is started.
  * @param config The configuration to apply.
  */
 void lvgl_module_configure(struct LvglModuleConfig config);

@@ -6,7 +6,10 @@
 #include <lvgl/lvgl.h>
 #include <lvgl/module.h>
 #include <tactility/error.h>
+#include <tactility/log.h>
 #include <tactility/time.h>
+
+#define TAG "lvgl_esp32"
 
 extern struct LvglModuleConfig lvgl_module_config;
 extern void lvgl_devices_attach();
@@ -67,7 +70,6 @@ error_t lvgl_arch_stop() {
     }
 
     initialized = false;
-
     return ERROR_NONE;
 }
 

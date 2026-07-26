@@ -17,6 +17,18 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart 
  */
 void addService(const ServiceManifest& manifest, bool autoStart = true);
 
+/** Unregister a service. Stops it first if it is running.
+ * @param[in] the service manifest
+ * @return true on success
+ */
+bool removeService(const std::string& id);
+
+/** Unregister a service. Stops it first if it is running.
+ * @param[in] the service manifest
+ * @return true on success
+ */
+bool removeService(const ServiceManifest& manifest);
+
 /** Start a service.
  * @param[in] the service id as defined in its manifest
  * @return true on success

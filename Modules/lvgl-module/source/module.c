@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl/module.h>
 #include <string.h>
+#include <tactility/check.h>
 #include <tactility/module.h>
 #include <lvgl/lvgl.h>
 
@@ -22,8 +23,9 @@ struct LvglModuleConfig lvgl_module_config = {
 };
 
 void lvgl_module_configure(const struct LvglModuleConfig config) {
+    check(!is_running);
+    lvgl_module_config = config;
     is_configured = true;
-    memcpy(&lvgl_module_config, &config, sizeof(struct LvglModuleConfig));
 }
 
 static error_t start() {
