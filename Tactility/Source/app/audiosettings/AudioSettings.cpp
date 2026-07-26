@@ -5,7 +5,7 @@
 #include <Tactility/PubSub.h>
 #include <Tactility/app/App.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/SliderBox.h>
+#include <lvgl/widgets/sliderbox.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/audio/Audio.h>
 
@@ -52,13 +52,13 @@ class AudioSettingsApp final : public App {
 
     static void onInputVolumeSlider(lv_event_t* event) {
         auto* sliderBox = static_cast<lv_obj_t*>(lv_event_get_target(event));
-        float percent = static_cast<float>(lvgl::sliderbox_get_value(sliderBox));
+        float percent = static_cast<float>(lvgl_sliderbox_get_value(sliderBox));
         service::audio::setInputVolume(percent);
     }
 
     static void onOutputVolumeSlider(lv_event_t* event) {
         auto* sliderBox = static_cast<lv_obj_t*>(lv_event_get_target(event));
-        float percent = static_cast<float>(lvgl::sliderbox_get_value(sliderBox));
+        float percent = static_cast<float>(lvgl_sliderbox_get_value(sliderBox));
         service::audio::setOutputVolume(percent);
     }
 
@@ -102,10 +102,10 @@ class AudioSettingsApp final : public App {
         lv_label_set_text(row_label, label);
         lv_obj_align(row_label, LV_ALIGN_LEFT_MID, 0, 0);
 
-        auto* sliderBox = lvgl::sliderbox_create(row, 0, 100, 10, initialValue);
+        auto* sliderBox = lvgl_sliderbox_create(row, 0, 100, 10, initialValue);
         lv_obj_set_width(sliderBox, LV_PCT(50));
         lv_obj_align(sliderBox, LV_ALIGN_RIGHT_MID, 0, 0);
-        lvgl::sliderbox_add_value_changed_cb(sliderBox, cb, userData);
+        lvgl_sliderbox_add_value_changed_cb(sliderBox, cb, userData);
 
         return sliderBox;
     }
@@ -192,7 +192,7 @@ public:
             else lv_obj_remove_state(inputMuteSwitch, LV_STATE_CHECKED);
         }
         if (inputVolumeSlider) {
-            lvgl::sliderbox_set_value(inputVolumeSlider, static_cast<int32_t>(service::audio::getInputVolume()), LV_ANIM_OFF);
+            lvgl_sliderbox_set_value(inputVolumeSlider, static_cast<int32_t>(service::audio::getInputVolume()), LV_ANIM_OFF);
         }
 
         if (outputEnabledSwitch) {
@@ -204,7 +204,7 @@ public:
             else lv_obj_remove_state(outputMuteSwitch, LV_STATE_CHECKED);
         }
         if (outputVolumeSlider) {
-            lvgl::sliderbox_set_value(outputVolumeSlider, static_cast<int32_t>(service::audio::getOutputVolume()), LV_ANIM_OFF);
+            lvgl_sliderbox_set_value(outputVolumeSlider, static_cast<int32_t>(service::audio::getOutputVolume()), LV_ANIM_OFF);
         }
     }
 };

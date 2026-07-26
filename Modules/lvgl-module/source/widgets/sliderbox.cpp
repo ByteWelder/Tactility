@@ -1,10 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/lvgl/SliderBox.h>
-
+#include <lvgl/widgets/sliderbox.h>
 #include <lvgl/lvgl_fonts.h>
-
-namespace tt::lvgl {
 
 typedef struct {
     lv_obj_t obj;
@@ -133,7 +131,7 @@ static lv_obj_t* create_step_button(lv_obj_t* parent, const char* symbol, lv_eve
     return button;
 }
 
-lv_obj_t* sliderbox_create(lv_obj_t* parent, int32_t min, int32_t max, int32_t step, int32_t value) {
+lv_obj_t* lvgl_sliderbox_create(lv_obj_t* parent, int32_t min, int32_t max, int32_t step, int32_t value) {
     if (max <= min) {
         max = min + 1;
     }
@@ -176,17 +174,17 @@ lv_obj_t* sliderbox_create(lv_obj_t* parent, int32_t min, int32_t max, int32_t s
 
     sliderBox->plusButton = create_step_button(obj, LV_SYMBOL_PLUS, &on_plus_button_clicked, obj, button_size);
 
-    sliderbox_set_value(obj, value, LV_ANIM_OFF);
+    lvgl_sliderbox_set_value(obj, value, LV_ANIM_OFF);
 
     return obj;
 }
 
-int32_t sliderbox_get_value(lv_obj_t* obj) {
+int32_t lvgl_sliderbox_get_value(lv_obj_t* obj) {
     auto* sliderBox = reinterpret_cast<SliderBox*>(obj);
     return lv_slider_get_value(sliderBox->slider);
 }
 
-void sliderbox_set_value(lv_obj_t* obj, int32_t value, lv_anim_enable_t anim) {
+void lvgl_sliderbox_set_value(lv_obj_t* obj, int32_t value, lv_anim_enable_t anim) {
     auto* sliderBox = reinterpret_cast<SliderBox*>(obj);
 
     if (value < sliderBox->min) {
@@ -200,8 +198,6 @@ void sliderbox_set_value(lv_obj_t* obj, int32_t value, lv_anim_enable_t anim) {
     update_button_states(sliderBox);
 }
 
-void sliderbox_add_value_changed_cb(lv_obj_t* obj, lv_event_cb_t callback, void* userData) {
+void lvgl_sliderbox_add_value_changed_cb(lv_obj_t* obj, lv_event_cb_t callback, void* userData) {
     lv_obj_add_event_cb(obj, callback, LV_EVENT_VALUE_CHANGED, userData);
 }
-
-} // namespace tt::lvgl
