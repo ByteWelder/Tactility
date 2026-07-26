@@ -371,7 +371,7 @@ static void onLvglStarted() {
     addService(service::screenshot::manifest);
 #endif
 
-    memory_trace();
+    memory_print_stats();
 }
 
 static void onLvglStopped() {
@@ -388,7 +388,7 @@ static void onLvglStopped() {
     check(service::removeService(service::statusbar::manifest.id));
     check(service::removeService(service::gui::manifest.id));
 
-    memory_trace();
+    memory_print_stats();
 }
 
 void run(Module* dtsModules[], DtsDevice dtsDevices[]) {

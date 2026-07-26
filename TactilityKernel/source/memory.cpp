@@ -9,7 +9,13 @@ constexpr auto* TAG = "memory";
 
 extern "C" {
 
-void memory_trace() {
+const struct MemoryPolicy MEMORY_POLICY_DEFAULT = {
+    .required = 0,
+    .desired = 0,
+    .alignment = 0,
+};
+
+void memory_print_stats() {
 #ifdef ESP_PLATFORM
     size_t heap_free = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     size_t heap_total = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
