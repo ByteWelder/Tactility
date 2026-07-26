@@ -6,15 +6,16 @@
 
 #include <Tactility/app/chat/ChatAppPrivate.h>
 #include <Tactility/app/chat/ChatProtocol.h>
-
 #include <Tactility/app/AppManifest.h>
-#include <Tactility/lvgl/LvglSync.h>
+
+#include <tactility/log.h>
 
 #include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
-#include <tactility/log.h>
 #include <vector>
 
 namespace tt::app::chat {
@@ -83,12 +84,9 @@ void ChatApp::onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* d
 
     state.addMessage(msg);
 
-    {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        lock.lock();
-        view.displayMessage(msg);
-    }
+    lvgl_lock();
+    view.displayMessage(msg);
+    lvgl_unlock();
 }
 
 void ChatApp::sendMessage(const std::string& text) {
@@ -115,12 +113,9 @@ void ChatApp::sendMessage(const std::string& text) {
 
     state.addMessage(msg);
 
-    {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        lock.lock();
-        view.displayMessage(msg);
-    }
+    lvgl_lock();
+    view.displayMessage(msg);
+    lvgl_unlock();
 }
 
 void ChatApp::applySettings(const std::string& nickname, const std::string& keyHex) {
@@ -173,12 +168,9 @@ void ChatApp::switchChannel(const std::string& chatChannel) {
     settings.chatChannel = trimmedChannel;
     saveSettings(settings);
 
-    {
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        lock.lock();
-        view.refreshMessageList();
-    }
+    lvgl_lock();
+    view.refreshMessageList();
+    lvgl_unlock();
 }
 
 extern const AppManifest manifest = {

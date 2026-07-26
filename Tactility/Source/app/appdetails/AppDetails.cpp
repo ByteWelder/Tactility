@@ -1,17 +1,17 @@
-#include "Tactility/lvgl/LvglSync.h"
-
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <tactility/check.h>
 #include <Tactility/lvgl/Style.h>
-#include <lvgl/widgets/toolbar.h>
-
-#include <lvgl.h>
-#include <format>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
+
+#include <tactility/check.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
+#include <format>
 
 namespace tt::app::appdetails {
 

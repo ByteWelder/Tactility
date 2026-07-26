@@ -1,15 +1,15 @@
 #include <Tactility/app/fileselection/View.h>
-
-#include <Tactility/LogMessages.h>
+#include <Tactility/Platform.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/file/File.h>
-#include <Tactility/Platform.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <lvgl/widgets/toolbar.h>
+
 #include <tactility/check.h>
 #include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <cstring>
 #include <unistd.h>
@@ -155,26 +155,27 @@ void View::onNavigateUpPressed() {
 }
 
 void View::update() {
-    auto sync_lockable = lvgl::getSyncLock();
-    auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(500 / portTICK_PERIOD_MS)) {
-        lv_obj_clean(dir_entry_list);
-
-        state->withEntries([this](const std::vector<dirent>& entries) {
-            for (auto entry : entries) {
-                LOG_D(TAG, "Entry: %s %d", entry.d_name, (int)entry.d_type);
-                createDirEntryWidget(dir_entry_list, entry);
-            }
-        });
-
-        if (state->getCurrentPath() == "/") {
-            lv_obj_add_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
-        }
-    } else {
+    if (!lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         LOG_E(TAG, "Mutex acquisition timeout (%s)", "lvgl");
+        return;
     }
+
+    lv_obj_clean(dir_entry_list);
+
+    state->withEntries([this](const std::vector<dirent>& entries) {
+        for (auto entry : entries) {
+            LOG_D(TAG, "Entry: %s %d", entry.d_name, (int)entry.d_type);
+            createDirEntryWidget(dir_entry_list, entry);
+        }
+    });
+
+    if (state->getCurrentPath() == "/") {
+        lv_obj_add_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    lvgl_unlock();
 }
 
 void View::init(lv_obj_t* parent, Mode mode) {

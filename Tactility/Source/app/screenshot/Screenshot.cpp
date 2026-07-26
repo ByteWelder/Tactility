@@ -7,15 +7,15 @@
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/Lvgl.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/screenshot/Screenshot.h>
-
 #include <Tactility/Paths.h>
 #include <Tactility/Timer.h>
 
-#include <lvgl/icons/shared.h>
 #include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 namespace tt::app::screenshot {
 
@@ -87,10 +87,9 @@ ScreenshotApp::~ScreenshotApp() {
 }
 
 void ScreenshotApp::onTimerTick() {
-    auto lockable = lvgl::getSyncLock();
-    auto lock = lockable->asScopedLock();
-    if (lock.lock(500 / portTICK_PERIOD_MS)) {
+    if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         updateScreenshotMode();
+        lvgl_unlock();
     }
 }
 

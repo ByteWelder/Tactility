@@ -1,16 +1,14 @@
 #include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
-
 #include <Tactility/Timer.h>
 
-#include <lvgl/icons/shared.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
 
 #include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 #include <vector>
 

@@ -2,13 +2,8 @@
 
 #ifdef ESP_PLATFORM
 
-#include "lvgl/lvgl.h"
-
-
 #include <Tactility/Assets.h>
 #include <Tactility/lvgl/Keyboard.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <atomic>
 
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_hid.h>
@@ -19,7 +14,9 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+
+#include <atomic>
 
 namespace tt::lvgl {
 

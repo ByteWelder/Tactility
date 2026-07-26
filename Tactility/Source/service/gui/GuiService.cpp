@@ -1,18 +1,17 @@
 #include <Tactility/service/gui/GuiService.h>
-
-#include <cstring>
-
 #include <Tactility/LogMessages.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/app/AppInstance.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/UsbHidInput.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/loader/Loader.h>
 
 #include <tactility/log.h>
+
 #include <lvgl/lvgl.h>
+
+#include <cstring>
 
 namespace tt::service::gui {
 
