@@ -2,7 +2,7 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
 #include <lvgl/widgets/sliderbox.h>
-#include <lvgl/lvgl_fonts.h>
+#include <lvgl/fonts.h>
 
 typedef struct {
     lv_obj_t obj;

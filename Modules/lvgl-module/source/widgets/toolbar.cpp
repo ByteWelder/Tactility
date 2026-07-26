@@ -3,7 +3,7 @@
 
 #include <lvgl/widgets/toolbar.h>
 #include <lvgl/widgets/spinner.h>
-#include <lvgl/lvgl_fonts.h>
+#include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
 
 #include <tactility/check.h>

@@ -3,6 +3,7 @@
 
 #include <lvgl/widgets/spinner.h>
 
+// TODO: Don't depend on asset from a different project
 #define SPINNER_ASSET "A:/system/spinner.png"
 
 static void spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
