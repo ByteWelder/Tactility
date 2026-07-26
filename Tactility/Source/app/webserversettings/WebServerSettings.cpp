@@ -10,9 +10,9 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <esp_netif.h>
 #include <esp_wifi.h>
@@ -192,7 +192,7 @@ public:
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
         // Web Server Enable toggle
-        switchWebServerEnabled = lvgl::toolbar_add_switch_action(toolbar);
+        switchWebServerEnabled = lvgl_toolbar_add_switch_action(toolbar);
         if (wsSettings.webServerEnabled) {
             lv_obj_add_state(switchWebServerEnabled, LV_STATE_CHECKED);
         }

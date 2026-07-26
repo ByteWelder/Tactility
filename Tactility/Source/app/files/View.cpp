@@ -523,10 +523,10 @@ void View::init(const AppContext& appContext, lv_obj_t* parent) {
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     auto* toolbar = lvgl::toolbar_create(parent, appContext);
-    navigate_up_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
-    new_file_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_FILE, &onNewFilePressedCallback, this);
-    new_folder_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_DIRECTORY, &onNewFolderPressedCallback, this);
-    paste_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_PASTE, &onPastePressedCallback, this);
+    navigate_up_button = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
+    new_file_button = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_FILE, &onNewFilePressedCallback, this);
+    new_folder_button = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_DIRECTORY, &onNewFolderPressedCallback, this);
+    paste_button = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_PASTE, &onPastePressedCallback, this);
     lv_obj_add_flag(lv_obj_get_parent(paste_button), LV_OBJ_FLAG_HIDDEN);
 
     auto* wrapper = lv_obj_create(parent);

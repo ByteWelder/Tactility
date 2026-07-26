@@ -7,7 +7,7 @@
 
 #include <tactility/log.h>
 #include <lvgl/lvgl.h>
-#include <lvgl/lvgl_pointer.h>
+#include <lvgl/devices/pointer.h>
 
 #include <algorithm>
 #include <lvgl.h>

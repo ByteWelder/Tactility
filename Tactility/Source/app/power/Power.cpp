@@ -6,9 +6,9 @@
 
 #include <Tactility/Timer.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <lvgl.h>
 

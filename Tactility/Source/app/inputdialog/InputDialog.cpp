@@ -1,6 +1,6 @@
 #include <Tactility/app/inputdialog/InputDialog.h>
 
-#include <Tactility/lvgl/Toolbar.h>
+#include <lvgl/widgets/toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/TactilityCore.h>
 #include <tactility/log.h>
@@ -83,7 +83,7 @@ public:
         check(parameters != nullptr, "Parameters missing");
 
         std::string title = getTitleParameter(app.getParameters());
-        auto* toolbar = lvgl::toolbar_create(parent, title);
+        auto* toolbar = lvgl_toolbar_create(parent, title.c_str());
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         auto* message_label = lv_label_create(parent);

@@ -7,9 +7,9 @@
 
 #include <Tactility/file/File.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::notes {
 

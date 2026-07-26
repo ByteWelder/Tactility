@@ -11,9 +11,9 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
+#include <tactility/log.h>
 
 #include <cstring>
 #include <lvgl.h>
@@ -98,7 +98,7 @@ public:
 
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
-        enableSwitch = lvgl::toolbar_add_switch_action(toolbar);
+        enableSwitch = lvgl_toolbar_add_switch_action(toolbar);
         lv_obj_add_event_cb(enableSwitch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, this);
 
         if (service->isEnabled()) {

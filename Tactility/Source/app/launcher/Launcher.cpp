@@ -10,12 +10,12 @@
 #include <cstring>
 #include <lvgl.h>
 
+#include <lvgl/icons/launcher.h>
+#include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl_icon_launcher.h>
-#include <lvgl/lvgl.h>
 
 namespace tt::app::launcher {
 

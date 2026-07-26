@@ -52,6 +52,7 @@
 
 ## Lower Priority
 
+- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Explore LVGL9's FreeRTOS functionality

@@ -14,8 +14,8 @@
 #include <Tactility/Paths.h>
 #include <Tactility/Timer.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::screenshot {
 

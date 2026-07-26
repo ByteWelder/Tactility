@@ -5,7 +5,7 @@
 
 #include <lvgl.h>
 
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 
 #define TAG "usb_settings"
 

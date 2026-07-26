@@ -222,9 +222,9 @@ void View::init(const AppContext& app, lv_obj_t* parent) {
     // Toolbar
     auto* toolbar = lvgl::toolbar_create(parent, app);
 
-    scanning_spinner = lvgl::toolbar_add_spinner_action(toolbar);
+    scanning_spinner = lvgl_toolbar_add_spinner_action(toolbar);
 
-    enable_switch = lvgl::toolbar_add_switch_action(toolbar);
+    enable_switch = lvgl_toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(enable_switch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, nullptr);
 
     // Peer list

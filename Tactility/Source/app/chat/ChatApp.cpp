@@ -10,11 +10,11 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
 
+#include <lvgl/icons/shared.h>
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 #include <vector>
 
 namespace tt::app::chat {

@@ -4,9 +4,9 @@
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <gps/gps.h>
 #include <gps/gps_settings.h>

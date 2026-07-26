@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <lvgl/lvgl_pointer.h>
+#include <lvgl/devices/pointer.h>
 
 #include <tactility/drivers/pointer.h>
 

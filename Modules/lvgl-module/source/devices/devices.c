@@ -1,12 +1,12 @@
+#include <lvgl/devices/display.h>
+#include <lvgl/devices/keyboard.h>
+#include <lvgl/devices/pointer.h>
+#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_display.h>
-#include <lvgl/lvgl_keyboard.h>
-#include <lvgl/lvgl.h>
-#include <lvgl/lvgl_pointer.h>
 
 #include <lvgl.h>
 
@@ -115,5 +115,5 @@ void lvgl_devices_detach() {
         display = lv_disp_get_next(NULL);
     }
 
-    lvgl_lock();
+    lvgl_unlock();
 }

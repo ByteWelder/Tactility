@@ -25,6 +25,7 @@
 
 #include <crypt/module.h>
 #include <lvgl/module.h>
+#include <lvgl/widgets/toolbar.h>
 #include <tactility/concurrent/thread.h>
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/display.h>
@@ -350,7 +351,14 @@ void registerApps() {
     registerInstalledAppsFromFileSystems();
 }
 
+static void stopAppFromToolbar(lv_event_t*) {
+    app::stop();
+}
+
 static void onLvglStarted() {
+    ToolbarConfig toolbar_config = { .nav_action_callback = stopAppFromToolbar };
+    lvgl_toolbar_configure(&toolbar_config);
+
     addService(service::gui::manifest);
     addService(service::statusbar::manifest);
     addService(service::memorychecker::manifest);

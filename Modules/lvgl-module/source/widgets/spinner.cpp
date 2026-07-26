@@ -1,15 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/Assets.h>
-#include <Tactility/CoreDefines.h>
+#include <lvgl/widgets/spinner.h>
 
-#include <lvgl.h>
-
-namespace tt::lvgl {
+// TODO: Don't depend on asset from a different project
+#define SPINNER_ASSET "A:/system/spinner.png"
 
 static void spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* object);
 
-const lv_obj_class_t tt_spinner_class = {
+static const lv_obj_class_t tt_spinner_class = {
     .base_class = &lv_image_class,
     .constructor_cb = spinner_constructor,
     .destructor_cb = nullptr,
@@ -24,11 +23,11 @@ const lv_obj_class_t tt_spinner_class = {
     .theme_inheritable = 0
 };
 
-lv_obj_t* spinner_create(lv_obj_t* parent) {
+lv_obj_t* lvgl_spinner_create(lv_obj_t* parent) {
     lv_obj_t* obj = lv_obj_class_create_obj(&tt_spinner_class, parent);
     lv_obj_class_init_obj(obj);
 
-    lv_image_set_src(obj, TT_ASSETS_UI_SPINNER);
+    lv_image_set_src(obj, SPINNER_ASSET);
 
     return obj;
 }
@@ -53,6 +52,4 @@ static void spinner_constructor(const lv_obj_class_t* object_class, lv_obj_t* ob
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
     lv_anim_set_exec_cb(&a, anim_rotation_callback);
     lv_anim_start(&a);
-}
-
 }
