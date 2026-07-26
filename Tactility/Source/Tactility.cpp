@@ -391,7 +391,7 @@ static void onLvglStopped() {
     memory_print_stats();
 }
 
-void run(Module* dtsModules[], const DtsDevice dtsDevices[]) {
+void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
     LOG_I(TAG, "Initializing kernel");
