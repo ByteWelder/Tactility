@@ -499,12 +499,14 @@ static void hidHostSubscribeNext(HidHostCtx& ctx) {
             }
             device.name = name;
             settings::save(device);
-            if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                 BtEvent e = {};
                 e.type = BT_EVENT_PROFILE_STATE_CHANGED;
                 e.profile_state.state = BT_PROFILE_STATE_CONNECTED;
                 e.profile_state.profile = BT_PROFILE_HID_HOST;
                 bluetooth_fire_event(dev, e);
+                device_put(dev);
             }
         });
         return;
@@ -659,13 +661,15 @@ static int hidHostGapCb(struct ble_gap_event* event, void* /*arg*/) {
             } else {
                 LOG_W(TAG, "Connect failed status=%d", event->connect.status);
                 hid_host_ctx.reset();
-                if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+                Device* dev;
+                if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                     bluetooth_set_hid_host_active(dev, false);
-                    struct BtEvent e = {};
+                    BtEvent e = {};
                     e.type = BT_EVENT_PROFILE_STATE_CHANGED;
                     e.profile_state.state = BT_PROFILE_STATE_IDLE;
                     e.profile_state.profile = BT_PROFILE_HID_HOST;
                     bluetooth_fire_event(dev, e);
+                    device_put(dev);
                 }
             }
             break;
@@ -684,13 +688,15 @@ static int hidHostGapCb(struct ble_gap_event* event, void* /*arg*/) {
             hid_host_mouse_btn.store(false);
             hid_host_mouse_active.store(false);
 
-            if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                 bluetooth_set_hid_host_active(dev, false);
                 struct BtEvent e = {};
                 e.type = BT_EVENT_PROFILE_STATE_CHANGED;
                 e.profile_state.state = BT_PROFILE_STATE_IDLE;
                 e.profile_state.profile = BT_PROFILE_HID_HOST;
                 bluetooth_fire_event(dev, e);
+                device_put(dev);
             }
 
             getMainDispatcher().dispatch([saved_kb, saved_mouse, saved_cursor, saved_queue] {
@@ -792,7 +798,13 @@ void hidHostConnect(const std::array<uint8_t, 6>& addr) {
     }
 
     // Notify driver that a HID host central connection is starting.
-    if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) bluetooth_set_hid_host_active(dev, true);
+    {
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+            bluetooth_set_hid_host_active(dev, true);
+            device_put(dev);
+        }
+    }
 
     // Look up the addr_type from the cached scan results.
     ble_addr_t ble_addr = {};
@@ -812,7 +824,8 @@ void hidHostConnect(const std::array<uint8_t, 6>& addr) {
     if (rc != 0) {
         LOG_W(TAG, "ble_gap_connect failed rc=%d", rc);
         hid_host_ctx.reset();
-        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
             bluetooth_set_hid_host_active(dev, false);
             // Fire IDLE so bt_event_bridge can start a new scan and retry.
             BtEvent e = {};
@@ -820,6 +833,7 @@ void hidHostConnect(const std::array<uint8_t, 6>& addr) {
             e.profile_state.state   = BT_PROFILE_STATE_IDLE;
             e.profile_state.profile = BT_PROFILE_HID_HOST;
             bluetooth_fire_event(dev, e);
+            device_put(dev);
         }
     } else {
         LOG_I(TAG, "Connecting...");
@@ -866,11 +880,13 @@ void autoConnectHidHost() {
     auto peers = settings::loadAll();
     for (const auto& peer : peers) {
         if (peer.autoConnect && peer.profileId == BT_PROFILE_HID_HOST) {
-            if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                 if (!bluetooth_is_scanning(dev)) {
                     LOG_I(TAG, "Auto-connect HID host: device not in scan, retrying scan");
                     bluetooth_scan_start(dev);
                 }
+                device_put(dev);
             }
             break;
         }

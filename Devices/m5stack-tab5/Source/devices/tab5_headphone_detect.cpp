@@ -1,5 +1,6 @@
 #include "tab5_headphone_detect.h"
 
+#include <tactility/error.h>
 #include <tactility/device.h>
 #include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -10,7 +11,7 @@
 
 #include <atomic>
 
-#define TAG "Tab5"
+constexpr auto* TAG = "Tab5";
 
 // PI4IOE5V6408-0 (0x43) bit 1
 constexpr auto GPIO_EXP0_PIN_SPEAKER_ENABLE = 1;
@@ -28,8 +29,9 @@ static std::atomic hp_detect_initialized { false };
 static void headphone_detect_callback(TimerHandle_t /*timer*/) {
     Device* cached = io_expander0_cached.load(std::memory_order_acquire);
     if (!cached) {
-        cached = device_find_by_name("io_expander0");
-        io_expander0_cached.store(cached, std::memory_order_release);
+        if (device_get_by_name("io_expander0", &cached) == ERROR_NONE) {
+            io_expander0_cached.store(cached, std::memory_order_release);
+        }
     }
     auto* io_expander0 = cached;
     if (!io_expander0) {
@@ -106,5 +108,10 @@ void tab5_headphone_detect_stop() {
     // Always clear the handle — stale non-null handle is worse than a resource leak, as it would
     // cause tab5_headphone_detect_start() to silently skip re-creating the timer.
     hp_detect_timer = nullptr;
-    io_expander0_cached.store(nullptr, std::memory_order_release);
+
+    Device* cached = io_expander0_cached.load(std::memory_order_acquire);
+    if (cached) {
+        io_expander0_cached.store(nullptr, std::memory_order_release);
+        device_put(cached);
+    }
 }

@@ -167,8 +167,18 @@ class StatusbarService final : public Service {
 
     void updateBluetoothIcon() {
         auto radio_state = bluetooth::getRadioState();
-        Device* btdev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-        bool scanning = btdev ? bluetooth_is_scanning(btdev) : false;
+        bool scanning;
+
+        {
+            Device* btdev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &btdev) == ERROR_NONE) {
+                scanning = bluetooth_is_scanning(btdev);
+                device_put(btdev);
+            } else {
+                scanning = false;
+            }
+        }
+
         Device* serial_dev = bluetooth_serial_get_device();
         Device* midi_dev = bluetooth_midi_get_device();
         bool connected = (serial_dev && bluetooth_serial_is_connected(serial_dev)) ||
@@ -213,10 +223,20 @@ class StatusbarService final : public Service {
     }
 
     void updateUsbIcon() {
-        Device* hid_dev  = device_find_first_active_by_type(&USB_HOST_HID_TYPE);
-        Device* midi_dev = device_find_first_active_by_type(&USB_HOST_MIDI_TYPE);
-        bool connected = (hid_dev && usb_host_hid_is_connected(hid_dev)) ||
-                         (midi_dev && usb_midi_is_connected(midi_dev));
+        bool connected;
+        {
+            Device* hid_dev;
+            device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev);
+            Device* midi_dev;
+            device_get_first_active_by_type(&USB_HOST_MIDI_TYPE, &midi_dev);
+
+            connected = (hid_dev && usb_host_hid_is_connected(hid_dev)) ||
+                             (midi_dev && usb_midi_is_connected(midi_dev));
+
+            device_put(hid_dev);
+            device_put(midi_dev);
+        }
+
         if (!connected) {
             // MSC: scan filesystems for any mounted /usb* path
             file_system_for_each(&connected, [](struct FileSystem* fs, void* ctx) -> bool {

@@ -30,13 +30,18 @@ static void onBtToggled(bool requestOn) {
 }
 
 static void onScanToggled(bool enabled) {
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-    if (!dev) return;
+    Device* dev;
+    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) != ERROR_NONE) {
+        return;
+    }
+
     if (enabled) {
         bluetooth_scan_start(dev);
     } else {
         bluetooth_scan_stop(dev);
     }
+
+    device_put(dev);
 }
 
 static void onConnectPeer(const std::array<uint8_t, 6>& addr, int profileId) {
@@ -115,8 +120,8 @@ void BtManage::onBtEvent(const struct BtEvent& event) {
         case BT_EVENT_RADIO_STATE_CHANGED:
             if (event.radio_state == BT_RADIO_STATE_ON) {
                 getState().updatePairedPeers();
-                Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-                if (dev && !bluetooth_is_scanning(dev)) {
+                Device* dev;
+                if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE && !bluetooth_is_scanning(dev)) {
                     bluetooth_scan_start(dev);
                 }
             }
@@ -144,7 +149,9 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
     // Initialise state and view before subscribing to avoid incoming events
     // racing with state initialisation.
     state.setRadioState(bluetooth::getRadioState());
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
+    Device* dev;
+    device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
+
     state.setScanning(dev ? bluetooth_is_scanning(dev) : false);
     state.updateScanResults();
     state.updatePairedPeers();
@@ -154,6 +161,10 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
     view.init(app, parent);
     view.update();
     unlock();
+
+    if (btDevice) {
+        device_put(btDevice);
+    }
 
     btDevice = dev;
     if (btDevice) {
@@ -175,6 +186,7 @@ void BtManage::onHide(AppContext& app) {
     lock();
     if (btDevice) {
         bluetooth_remove_event_callback(btDevice, onKernelBtEvent);
+        device_put(btDevice);
         btDevice = nullptr;
     }
     isViewEnabled = false;
