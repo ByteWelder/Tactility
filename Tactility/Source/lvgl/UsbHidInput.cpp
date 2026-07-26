@@ -182,8 +182,8 @@ static void usbHidInputTask(void* arg) {
                 Device* hid_dev;
                 if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
                     ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
+                    device_put(hid_dev);
                 }
-                device_put(hid_dev);
             }
             continue;
         }

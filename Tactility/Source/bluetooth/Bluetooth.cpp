@@ -345,7 +345,7 @@ RadioState getRadioState() {
 
     // Scoped to safeguard dev usage
     {
-        Device* dev;
+        Device* dev = nullptr;
         device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
         if (dev == nullptr) {
             return RadioState::Off;

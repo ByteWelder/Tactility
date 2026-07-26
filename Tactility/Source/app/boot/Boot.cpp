@@ -54,13 +54,8 @@ class BootApp : public App {
     );
 
     static void setupDisplay() {
-        auto* display = device_find_first_by_type(&DISPLAY_TYPE);
-        // Boards not yet migrated to the kernel display driver register a placeholder device (so
-        // the devicetree node resolves) with a NULL api - nothing for this function to act on.
-        if (display != nullptr && device_get_driver(display)->api == nullptr) {
-            display = nullptr;
-        }
-        if (display != nullptr) {
+        Device* display = nullptr;
+        if (device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE) {
             Device* backlight;
             if (display_get_backlight(display, &backlight) == ERROR_NONE) {
                 if (!device_is_ready(backlight)) {
@@ -83,6 +78,7 @@ class BootApp : public App {
             } else {
                 LOG_I(TAG, "No backlight for %s", display->name);
             }
+            device_put(display);
         } else {
             LOG_I(TAG, "No kernel display");
         }
