@@ -185,6 +185,13 @@ def main():
         # elf_loader
         {'src': 'Libraries/elf_loader/elf_loader.cmake', 'dst': 'Libraries/elf_loader/'},
         {'src': 'Libraries/elf_loader/license.txt', 'dst': 'Libraries/elf_loader/'},
+        # minmea
+        {'src': 'build/esp-idf/minmea/libminmea.a', 'dst': 'Libraries/minmea/binary/'},
+        {'src': 'Libraries/minmea/Include/**', 'dst': 'Libraries/minmea/include/'},
+        {'src': 'Libraries/minmea/CMakeLists.txt', 'dst': 'Libraries/minmea/'},
+        {'src': 'Libraries/minmea/README.md', 'dst': 'Libraries/minmea/'},
+        {'src': 'Libraries/minmea/LICENSE*.*', 'dst': 'Libraries/minmea/'},
+        {'src': 'Libraries/minmea/COPYING', 'dst': 'Libraries/minmea/'},
     ]
 
     map_copy(mappings, target_path)
