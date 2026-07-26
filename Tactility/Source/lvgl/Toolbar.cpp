@@ -3,10 +3,9 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/lvgl/Toolbar.h>
 
-#include "tactility/drivers/pointer.h"
+#include <tactility/drivers/pointer.h>
 
-#include <Tactility/lvgl/Spinner.h>
-#include <Tactility/service/loader/Loader.h>
+#include <lvgl/widgets/spinner.h>
 
 #include <tactility/check.h>
 #include <lvgl/lvgl_fonts.h>
@@ -239,7 +238,7 @@ lv_obj_t* toolbar_add_spinner_action(lv_obj_t* obj) {
     auto ui_density = lvgl_get_ui_density();
     auto* wrapper = create_action_wrapper(toolbar->action_container, ui_density);
 
-    auto* spinner = spinner_create(wrapper);
+    auto* spinner = lvgl_spinner_create(wrapper);
     lv_obj_set_align(spinner, LV_ALIGN_CENTER);
 
     if (lv_display_get_color_format(lv_obj_get_display(obj)) == LV_COLOR_FORMAT_L8) {

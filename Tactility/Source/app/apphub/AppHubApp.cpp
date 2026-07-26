@@ -3,7 +3,7 @@
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Spinner.h>
+#include <lvgl/widgets/spinner.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/network/Http.h>
 #include <Tactility/Paths.h>
@@ -125,7 +125,7 @@ class AppHubApp final : public App {
 
     void refresh() {
         lv_obj_clean(contentWrapper);
-        auto* spinner = lvgl::spinner_create(contentWrapper);
+        auto* spinner = lvgl_spinner_create(contentWrapper);
         lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
 
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
