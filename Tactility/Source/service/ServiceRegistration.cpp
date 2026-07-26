@@ -1,5 +1,6 @@
 #include <Tactility/service/ServiceRegistration.h>
 
+#include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 
@@ -9,10 +10,34 @@
 
 #include <cassert>
 #include <memory>
+#include <unordered_map>
 
 namespace tt::service {
 
 constexpr auto* TAG = "ServiceRegistration";
+
+namespace {
+
+// Tracks the heap allocations addService() makes per registered id, so removeService()
+// can free them once the kernel confirms the manifest is unregistered. The kernel only
+// ever stores the raw pointer it's handed (see service_manager_add/_remove) - it never
+// takes ownership - so the registering side (us) is responsible for the lifetime.
+struct AllocatedManifest {
+    std::shared_ptr<const ServiceManifest>* persistentManifest;
+    ::ServiceManifest* cManifest;
+};
+
+Mutex& allocatedManifestsMutex() {
+    static Mutex mutex;
+    return mutex;
+}
+
+std::unordered_map<std::string, AllocatedManifest>& allocatedManifests() {
+    static std::unordered_map<std::string, AllocatedManifest> map;
+    return map;
+}
+
+} // namespace
 
 // Bridges the kernel's C ServiceManifest/Service callbacks to the C++ Service
 // instances they wrap. Declared extern "C" to match the linkage of the C
@@ -48,9 +73,8 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart)
         return;
     }
 
-    // Intentionally never freed: removeService() only unregisters the manifest
-    // from the kernel, it doesn't own this allocation. Keeps id's backing
-    // string alive for cManifest.id below.
+    // Freed by removeService() once the kernel confirms the manifest is unregistered.
+    // Keeps id's backing string alive for cManifest.id below in the meantime.
     auto* persistentManifest = new std::shared_ptr(manifest);
     auto* cManifest = new ::ServiceManifest {
         .id = (*persistentManifest)->id.c_str(),
@@ -59,6 +83,12 @@ void addService(std::shared_ptr<const ServiceManifest> manifest, bool autoStart)
         .on_start = cppOnStartTrampoline,
         .on_stop = cppOnStopTrampoline,
     };
+
+    {
+        auto lock = allocatedManifestsMutex().asScopedLock();
+        lock.lock();
+        allocatedManifests()[id] = AllocatedManifest { persistentManifest, cManifest };
+    }
 
     error_t error = service_manager_add(cManifest, autoStart);
     if (error != ERROR_NONE) {
@@ -85,6 +115,20 @@ bool removeService(const std::string& id) {
         LOG_E(TAG, "Failed to remove service %s: %s", id.c_str(), error_to_string(error));
         return false;
     }
+
+    // The kernel has confirmed the manifest is unregistered, so id (which points into
+    // persistentManifest's string) is no longer needed by anything - safe to free now.
+    {
+        auto lock = allocatedManifestsMutex().asScopedLock();
+        lock.lock();
+        auto iterator = allocatedManifests().find(id);
+        if (iterator != allocatedManifests().end()) {
+            delete iterator->second.cManifest;
+            delete iterator->second.persistentManifest;
+            allocatedManifests().erase(iterator);
+        }
+    }
+
     LOG_I(TAG, "Removed %s", id.c_str());
     return true;
 }

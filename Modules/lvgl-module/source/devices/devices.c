@@ -111,7 +111,7 @@ void lvgl_devices_detach() {
 
     lv_disp_t* display = lv_disp_get_next(NULL);
     while (display != NULL) {
-        lv_display_delete(display);
+        lvgl_display_remove(display);
         display = lv_disp_get_next(NULL);
     }
 
