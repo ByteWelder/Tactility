@@ -350,7 +350,7 @@ def generate_devicetree_c(filename: str, items: list[object], bindings: list[Bin
         for item in items:
             if type(item) is Device:
                 write_device_structs(file, item, None, bindings, devices, verbose)
-        file.write("struct DtsDevice dts_devices[] = {\n")
+        file.write("const struct DtsDevice dts_devices[] = {\n")
         for item in items:
             if type(item) is Device:
                 write_device_list_entry(file, item, bindings, verbose)
@@ -379,7 +379,7 @@ def generate_devicetree_c(filename: str, items: list[object], bindings: list[Bin
             file.write(f"extern struct Module {symbol};\n")
         file.write("\n")
         # Create array of symbol variables
-        file.write("struct Module* dts_modules[] = {\n")
+        file.write("struct Module* const dts_modules[] = {\n")
         for symbol in module_symbol_names:
             file.write(f"\t&{symbol},\n")
         file.write("\tNULL\n")
@@ -397,10 +397,10 @@ def generate_devicetree_h(filename: str):
         #endif
         
         // Array of device tree modules terminated with DTS_MODULE_TERMINATOR
-        extern struct DtsDevice dts_devices[];
+        extern const struct DtsDevice dts_devices[];
         
         // Array of module symbols terminated with NULL
-        extern struct Module* dts_modules[];
+        extern struct Module* const dts_modules[];
         
         #ifdef __cplusplus
         }

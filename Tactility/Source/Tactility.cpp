@@ -371,7 +371,7 @@ static void onLvglStarted() {
     addService(service::screenshot::manifest);
 #endif
 
-    memory_trace();
+    memory_print_stats();
 }
 
 static void onLvglStopped() {
@@ -388,10 +388,10 @@ static void onLvglStopped() {
     check(service::removeService(service::statusbar::manifest.id));
     check(service::removeService(service::gui::manifest.id));
 
-    memory_trace();
+    memory_print_stats();
 }
 
-void run(Module* dtsModules[], DtsDevice dtsDevices[]) {
+void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
     LOG_I(TAG, "Initializing kernel");

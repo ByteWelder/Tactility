@@ -69,7 +69,7 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
     transitionAppToState(new_app, app::State::Created);
     transitionAppToState(new_app, app::State::Showing);
 
-    memory_trace();
+    memory_print_stats();
 }
 
 void LoaderService::onStopTopAppMessage(const std::string& id) {
@@ -162,7 +162,7 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
         }
     }
 
-    memory_trace();
+    memory_print_stats();
 }
 
 int LoaderService::findAppInStack(const std::string& id) const {

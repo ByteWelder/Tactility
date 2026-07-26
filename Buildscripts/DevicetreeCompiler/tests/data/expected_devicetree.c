@@ -50,7 +50,7 @@ static struct Device bool_test_device = {
 	.internal = NULL
 };
 
-struct DtsDevice dts_devices[] = {
+const struct DtsDevice dts_devices[] = {
 	{ &root, "test,root", DTS_DEVICE_STATUS_OKAY },
 	{ &test_device, "test,generic-device", DTS_DEVICE_STATUS_OKAY },
 	{ &bool_test_device, "test,bool-device", DTS_DEVICE_STATUS_OKAY },
@@ -59,7 +59,7 @@ struct DtsDevice dts_devices[] = {
 
 extern struct Module data_module;
 
-struct Module* dts_modules[] = {
+struct Module* const dts_modules[] = {
 	&data_module,
 	NULL
 };

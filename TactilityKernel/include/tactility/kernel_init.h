@@ -14,7 +14,7 @@ extern "C" {
  * @param dts_devices The list of generated devices from the devicetree. The array must be terminated with DTS_DEVICE_TERMINATOR. Non-null parameter.
  * @return ERROR_NONE on success, otherwise an error code
  */
-error_t kernel_init(struct Module* dts_modules[], struct DtsDevice dts_devices[]);
+error_t kernel_init(struct Module* const dts_modules[], const struct DtsDevice dts_devices[]);
 
 #ifdef __cplusplus
 }
