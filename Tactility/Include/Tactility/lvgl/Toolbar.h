@@ -8,6 +8,18 @@ namespace tt::lvgl {
 
 #define TOOLBAR_ACTION_LIMIT 4
 
+/** Configuration for toolbar-wide defaults */
+struct ToolbarConfig {
+    /** Callback invoked when a toolbar's default navigation (top-left) button is pressed */
+    lv_event_cb_t navActionCallback;
+};
+
+/**
+ * Configure toolbar-wide defaults. Must be called before any toolbar is created (e.g. during LVGL startup).
+ * @param[in] config the configuration to apply
+ */
+void toolbar_configure(const ToolbarConfig& config);
+
 /** Create a toolbar widget that shows the app name as title */
 lv_obj_t* toolbar_create(lv_obj_t* parent, const app::AppContext& app);
 

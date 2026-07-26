@@ -1,7 +1,7 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/Tactility.h>
 #include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/app/AppManifest.h>
 
 #include <tactility/drivers/pointer.h>
 
@@ -81,8 +81,16 @@ static lv_obj_class_t toolbar_class = {
     .theme_inheritable = false
 };
 
-static void stop_app(lv_event_t* event) {
-    app::stop();
+static lv_event_cb_t nav_action_callback = nullptr;
+
+void toolbar_configure(const ToolbarConfig& config) {
+    nav_action_callback = config.navActionCallback;
+}
+
+static void default_nav_action(lv_event_t* event) {
+    if (nav_action_callback != nullptr) {
+        nav_action_callback(event);
+    }
 }
 
 static void toolbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) {
@@ -150,7 +158,7 @@ lv_obj_t* toolbar_create(lv_obj_t* parent, const std::string& title) {
     lv_obj_set_style_border_width(toolbar->action_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_opa(toolbar->action_container, 0, LV_STATE_DEFAULT);
 
-    toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &stop_app, nullptr);
+    toolbar_set_nav_action(obj, LV_SYMBOL_CLOSE, &default_nav_action, nullptr);
 
     // If we don't have a touch device, we assume there's some other kind of input like a keyboard, an encoder or button control
     // In that scenario we want to automatically have the close button selected so the user doesn't have to press the widget selection
