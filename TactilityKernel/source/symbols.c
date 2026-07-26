@@ -37,6 +37,7 @@
 #include <tactility/error.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/filesystem/file_mutex.h>
+#include <tactility/memory.h>
 #include <tactility/module.h>
 #include <tactility/wifi_auto_scan.h>
 #include <tactility/service/service_instance.h>
@@ -175,6 +176,13 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(file_system_unmount),
     DEFINE_MODULE_SYMBOL(file_system_is_mounted),
     DEFINE_MODULE_SYMBOL(file_system_get_path),
+    // memory
+    DEFINE_MODULE_SYMBOL(MEMORY_POLICY_DEFAULT),
+    DEFINE_MODULE_SYMBOL(memory_print_stats),
+    DEFINE_MODULE_SYMBOL(memory_alloc_with_policy),
+    DEFINE_MODULE_SYMBOL(memory_realloc_with_policy),
+    DEFINE_MODULE_SYMBOL(memory_calloc_with_policy),
+    DEFINE_MODULE_SYMBOL(memory_free),
     // drivers/gpio_controller
     DEFINE_MODULE_SYMBOL(gpio_descriptor_acquire),
     DEFINE_MODULE_SYMBOL(gpio_descriptor_release),
