@@ -1,13 +1,12 @@
 #include <tactility/module.h>
-
 #include <tactility/error.h>
 #include <tactility/log.h>
+
 #include <lvgl/lvgl.h>
 
 #include <Tactility/SystemEvents.h>
 #include <Tactility/LogMessages.h>
 #include <Tactility/kernel/Kernel.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/settings/TrackballSettings.h>
 
 #include <lilygo/drivers/trackball.h>

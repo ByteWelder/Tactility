@@ -1,14 +1,12 @@
 #include <Tactility/TactilityConfig.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
-
 #include <Tactility/Paths.h>
+
 #include <algorithm>
 #include <cstring>
 #include <format>
-#include <lvgl.h>
 #include <utility>
 
 #include <lvgl/icons/shared.h>
@@ -247,20 +245,18 @@ class SystemInfoApp final : public App {
     Timer memoryTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(10000), [] {
         auto app = optApp();
         if (app) {
-            auto lockable = lvgl::getSyncLock();
-            auto lock = lockable->asScopedLock();
-            lock.lock();
+            lvgl_lock();
             app->updateMemory();
+            lvgl_unlock();
         }
     });
 
     Timer tasksTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(15000), [] {
         auto app = optApp();
         if (app) {
-            auto lockable = lvgl::getSyncLock();
-            auto lock = lockable->asScopedLock();
-            lock.lock();
+            lvgl_lock();
             app->updateTasks();
+            lvgl_unlock();
         }
     });
 

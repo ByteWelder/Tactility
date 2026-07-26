@@ -11,7 +11,8 @@
 #include <Tactility/Assets.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/lvgl/Keyboard.h>
-#include <Tactility/lvgl/LvglSync.h>
+
+#include <tactility/log.h>
 
 #include <host/ble_gap.h>
 #include <host/ble_gatt.h>
@@ -20,8 +21,8 @@
 #include <esp_timer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
-#include <lvgl.h>
-#include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
 
 #include <algorithm>
 #include <array>
@@ -226,7 +227,7 @@ static void hidHostHandleMouseReport(const uint8_t* data, uint16_t len) {
     if (hid_host_ctx && hid_host_ctx->mouseIndev == nullptr) {
         getMainDispatcher().dispatch([] {
             if (!hid_host_ctx || hid_host_ctx->mouseIndev != nullptr) return;
-            if (!tt::lvgl::lock(1000)) { LOG_W(TAG, "LVGL lock failed for mouse indev"); return; }
+            if (!lvgl_try_lock(1000)) { LOG_W(TAG, "LVGL lock failed for mouse indev"); return; }
             auto* ms = lv_indev_create();
             lv_indev_set_type(ms, LV_INDEV_TYPE_POINTER);
             lv_indev_set_read_cb(ms, hidHostMouseReadCb);
@@ -237,7 +238,7 @@ static void hidHostHandleMouseReport(const uint8_t* data, uint16_t len) {
             lv_indev_set_cursor(ms, cur);
             hid_host_ctx->mouseIndev  = ms;
             hid_host_ctx->mouseCursor = cur;
-            tt::lvgl::unlock();
+            lvgl_unlock();
             LOG_I(TAG, "Mouse indev registered");
         });
     }
@@ -468,13 +469,13 @@ static void hidHostSubscribeNext(HidHostCtx& ctx) {
         }
         getMainDispatcher().dispatch([] {
             if (!hid_host_ctx || hid_host_ctx->kbIndev != nullptr) return;
-            if (!tt::lvgl::lock(1000)) { LOG_W(TAG, "LVGL lock failed for kb indev"); return; }
+            if (!lvgl_try_lock(1000)) { LOG_W(TAG, "LVGL lock failed for kb indev"); return; }
             auto* kb = lv_indev_create();
             lv_indev_set_type(kb, LV_INDEV_TYPE_KEYPAD);
             lv_indev_set_read_cb(kb, hidHostKeyboardReadCb);
             hid_host_ctx->kbIndev = kb;
-            tt::lvgl::hardware_keyboard_set_indev(kb);
-            tt::lvgl::unlock();
+            lvgl::hardware_keyboard_set_indev(kb);
+            lvgl_unlock();
             LOG_I(TAG, "Keyboard indev registered");
         });
 
@@ -700,18 +701,18 @@ static int hidHostGapCb(struct ble_gap_event* event, void* /*arg*/) {
             }
 
             getMainDispatcher().dispatch([saved_kb, saved_mouse, saved_cursor, saved_queue] {
-                if (!tt::lvgl::lock(1000)) {
+                if (!lvgl_try_lock(1000)) {
                     LOG_W(TAG, "Failed to acquire LVGL lock for indev cleanup");
                     if (saved_queue) vQueueDelete(saved_queue);
                     return;
                 }
                 if (saved_kb) {
-                    tt::lvgl::hardware_keyboard_set_indev(nullptr);
+                    lvgl::hardware_keyboard_set_indev(nullptr);
                     lv_indev_delete(saved_kb);
                 }
                 if (saved_mouse)  lv_indev_delete(saved_mouse);
                 if (saved_cursor) lv_obj_delete(saved_cursor);
-                tt::lvgl::unlock();
+                lvgl_unlock();
                 if (saved_queue) vQueueDelete(saved_queue);
             });
             break;

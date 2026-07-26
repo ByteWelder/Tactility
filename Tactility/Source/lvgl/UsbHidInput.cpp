@@ -2,10 +2,8 @@
 
 #ifdef ESP_PLATFORM
 
-#include <atomic>
 #include <Tactility/Assets.h>
 #include <Tactility/lvgl/Keyboard.h>
-#include <Tactility/lvgl/LvglSync.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_hid.h>
@@ -16,7 +14,9 @@
 #include <freertos/task.h>
 #include <freertos/semphr.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+
+#include <atomic>
 
 namespace tt::lvgl {
 
@@ -148,33 +148,31 @@ static void usbHidInputTask(void* arg) {
     auto* ctx = static_cast<UsbHidInputCtx*>(arg);
     LOG_I(TAG, "started");
 
+    // TODO: Implement time-out
     while (!lv_is_initialized()) {
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 
-    if (lock()) {
-        ctx->mouse_cursor = lv_image_create(lv_layer_sys());
-        lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
-        lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
-        lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
+    lvgl_lock();
 
-        ctx->mouse_indev = lv_indev_create();
-        lv_indev_set_type(ctx->mouse_indev, LV_INDEV_TYPE_POINTER);
-        lv_indev_set_read_cb(ctx->mouse_indev, mouse_read_cb);
-        lv_indev_set_user_data(ctx->mouse_indev, ctx);
-        lv_indev_set_cursor(ctx->mouse_indev, ctx->mouse_cursor);
+    ctx->mouse_cursor = lv_image_create(lv_layer_sys());
+    lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
+    lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
+    lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
 
-        ctx->kb_indev = lv_indev_create();
-        lv_indev_set_type(ctx->kb_indev, LV_INDEV_TYPE_KEYPAD);
-        lv_indev_set_read_cb(ctx->kb_indev, keyboard_read_cb);
-        lv_indev_set_user_data(ctx->kb_indev, ctx);
-        lv_indev_set_group(ctx->kb_indev, lv_group_get_default());
+    ctx->mouse_indev = lv_indev_create();
+    lv_indev_set_type(ctx->mouse_indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(ctx->mouse_indev, mouse_read_cb);
+    lv_indev_set_user_data(ctx->mouse_indev, ctx);
+    lv_indev_set_cursor(ctx->mouse_indev, ctx->mouse_cursor);
 
-        unlock();
-        LOG_I(TAG, "LVGL input devices registered");
-    } else {
-        LOG_W(TAG, "could not acquire LVGL lock for indev registration");
-    }
+    ctx->kb_indev = lv_indev_create();
+    lv_indev_set_type(ctx->kb_indev, LV_INDEV_TYPE_KEYPAD);
+    lv_indev_set_read_cb(ctx->kb_indev, keyboard_read_cb);
+    lv_indev_set_user_data(ctx->kb_indev, ctx);
+    lv_indev_set_group(ctx->kb_indev, lv_group_get_default());
+
+    lvgl_unlock();
 
     // Drain the HID event queue and route events to the appropriate destinations
     while (ctx->running) {
@@ -231,29 +229,29 @@ static void usbHidInputTask(void* arg) {
             break;
         }
         case USB_HID_EVENT_KEYBOARD_CONNECTED:
-            if (ctx->kb_indev && lock(pdMS_TO_TICKS(200))) {
+            if (ctx->kb_indev && lvgl_try_lock(pdMS_TO_TICKS(200))) {
                 hardware_keyboard_set_indev(ctx->kb_indev);
-                unlock();
+                lvgl_unlock();
             }
             break;
         case USB_HID_EVENT_KEYBOARD_DISCONNECTED:
-            if (lock(pdMS_TO_TICKS(200))) {
+            if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
                 hardware_keyboard_set_indev(nullptr);
-                unlock();
+                lvgl_unlock();
             }
             break;
         case USB_HID_EVENT_MOUSE_CONNECTED:
             ctx->mouse_connected = true;
-            if (ctx->mouse_cursor && lock(pdMS_TO_TICKS(200))) {
+            if (ctx->mouse_cursor && lvgl_try_lock(pdMS_TO_TICKS(200))) {
                 lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
-                unlock();
+                lvgl_unlock();
             }
             break;
         case USB_HID_EVENT_MOUSE_DISCONNECTED:
             ctx->mouse_connected = false;
-            if (ctx->mouse_cursor && lock(pdMS_TO_TICKS(200))) {
+            if (ctx->mouse_cursor && lvgl_try_lock(pdMS_TO_TICKS(200))) {
                 lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
-                unlock();
+                lvgl_unlock();
             }
             break;
         default:
@@ -261,16 +259,15 @@ static void usbHidInputTask(void* arg) {
         }
     }
 
-    if (lock()) {
-        if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
-        if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
-        if (ctx->kb_indev) {
-            hardware_keyboard_set_indev(nullptr);
-            lv_indev_delete(ctx->kb_indev);
-            ctx->kb_indev = nullptr;
-        }
-        unlock();
+    lvgl_lock();
+    if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
+    if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
+    if (ctx->kb_indev) {
+        hardware_keyboard_set_indev(nullptr);
+        lv_indev_delete(ctx->kb_indev);
+        ctx->kb_indev = nullptr;
     }
+    lvgl_unlock();
 
     LOG_I(TAG, "stopped");
     xSemaphoreGive(ctx->task_done);
@@ -340,7 +337,7 @@ void stopUsbHidInput() {
         vTaskDelete(ctx->task);
         // Task was killed before it could clean up LVGL objects; do it here to
         // prevent mouse_read_cb / keyboard_read_cb from running with a freed ctx.
-        if (lock(pdMS_TO_TICKS(200))) {
+        if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
             if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
             if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
             if (ctx->kb_indev) {
@@ -348,7 +345,7 @@ void stopUsbHidInput() {
                 lv_indev_delete(ctx->kb_indev);
                 ctx->kb_indev = nullptr;
             }
-            unlock();
+            lvgl_unlock();
         }
     }
     ctx->task = nullptr;

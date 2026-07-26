@@ -5,17 +5,16 @@
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/settings/Time.h>
 
-#include <lvgl/fonts.h>
-#include <lvgl/lvgl.h>
 #include <tactility/check.h>
 #include <tactility/log.h>
 
-#include <lvgl.h>
+#include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
+
 #include <memory>
 
 namespace tt::lvgl {
@@ -106,10 +105,10 @@ static lv_obj_class_t statusbar_class = {
 
 static void statusbar_pubsub_event(Statusbar* statusbar) {
     LOG_D(TAG, "Update event");
-    if (lock(defaultLockTime)) {
+    if (lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         update_main(statusbar);
         lv_obj_invalidate(&statusbar->obj);
-        unlock();
+        lvgl_unlock();
     } else {
         LOG_W(TAG, "Mutex acquisition timeout (%s)", "Statusbar");
     }

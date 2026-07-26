@@ -3,7 +3,6 @@
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/development/DevelopmentService.h>
@@ -11,12 +10,12 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl/icons/shared.h>
-#include <lvgl/lvgl.h>
 #include <tactility/log.h>
 
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+
 #include <cstring>
-#include <lvgl.h>
 
 namespace tt::app::development {
 

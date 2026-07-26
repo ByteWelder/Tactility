@@ -1,20 +1,21 @@
+#include <Tactility/Paths.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <lvgl/widgets/spinner.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
+#include <tactility/log.h>
+
 #include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/spinner.h>
+
 #include <algorithm>
 #include <format>
-#include <lvgl.h>
-#include <tactility/log.h>
 
 namespace tt::app::apphub {
 
@@ -58,20 +59,16 @@ class AppHubApp final : public App {
 
     void onRefreshSuccess() {
         LOG_I(TAG, "Request success");
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        lock.lock();
-
+        lvgl_lock();
         showApps();
+        lvgl_unlock();
     }
 
     void onRefreshError(const char* error) {
         LOG_E(TAG, "Request failed: %s", error);
-        auto lockable = lvgl::getSyncLock();
-        auto lock = lockable->asScopedLock();
-        lock.lock();
-
+        lvgl_lock();
         showRefreshFailedError("Cannot reach server");
+        lvgl_unlock();
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
