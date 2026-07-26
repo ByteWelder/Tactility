@@ -1,5 +1,7 @@
 #include <tt_app.h>
-#include <tt_lvgl_toolbar.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/concurrent/event_group.h>
@@ -21,8 +23,6 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 #include <tactility/time.h>
-
-#include <lvgl/lvgl.h>
 
 #include <drivers/bm8563.h>
 #include <drivers/bmi270.h>
