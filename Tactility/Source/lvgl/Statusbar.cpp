@@ -10,10 +10,10 @@
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/settings/Time.h>
 
+#include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
 #include <tactility/check.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl.h>
 
 #include <lvgl.h>
 #include <memory>

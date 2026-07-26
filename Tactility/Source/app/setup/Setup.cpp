@@ -1,4 +1,4 @@
-#include <lvgl/lvgl_fonts.h>
+#include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
 
 #include <Tactility/app/App.h>

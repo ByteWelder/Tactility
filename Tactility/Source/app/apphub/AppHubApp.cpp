@@ -10,11 +10,11 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl.h>
-#include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 #include <algorithm>
 #include <format>
+#include <lvgl.h>
+#include <tactility/log.h>
 
 namespace tt::app::apphub {
 

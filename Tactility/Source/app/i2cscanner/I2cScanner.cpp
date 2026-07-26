@@ -13,8 +13,8 @@
 
 #include <format>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::i2cscanner {
 

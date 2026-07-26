@@ -1,10 +1,10 @@
-#include <tactility/drivers/display.h>
-#include <tactility/error.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
+#include <tactility/drivers/display.h>
+#include <tactility/error.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl.h>
 
 #include <Tactility/Tactility.h>
 #ifdef ESP_PLATFORM

@@ -1,10 +1,10 @@
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
 
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/appdetails/AppDetails.h>
-#include <lvgl/widgets/toolbar.h>
 #include <Tactility/service/loader/Loader.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <lvgl.h>
 #include <algorithm>

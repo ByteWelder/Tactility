@@ -1,13 +1,13 @@
 #include <Tactility/Tactility.h>
 
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 
 #include <Tactility/PubSub.h>
 #include <Tactility/app/App.h>
 #include <Tactility/lvgl/LvglSync.h>
-#include <lvgl/widgets/sliderbox.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/audio/Audio.h>
+#include <lvgl/widgets/sliderbox.h>
 
 #include <lvgl.h>
 #include <lvgl/lvgl.h>

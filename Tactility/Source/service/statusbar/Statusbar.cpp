@@ -21,8 +21,8 @@
 
 #include <tactility/log.h>
 
+#include <lvgl/icons/statusbar.h>
 #include <lvgl/lvgl.h>
-#include <lvgl/lvgl_icon_statusbar.h>
 
 #include <cstring>
 

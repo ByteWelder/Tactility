@@ -8,8 +8,8 @@
 #include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::wifimanage {
 

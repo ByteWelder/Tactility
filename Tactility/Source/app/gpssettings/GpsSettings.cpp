@@ -1,5 +1,5 @@
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>

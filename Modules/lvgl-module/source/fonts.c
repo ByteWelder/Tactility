@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl.h>
-#include <lvgl/lvgl_fonts.h>
+#include <lvgl/fonts.h>
 #include <tactility/check.h>
 
 // The preprocessor definitions that are used below are defined in the CMakeLists.txt from this module.

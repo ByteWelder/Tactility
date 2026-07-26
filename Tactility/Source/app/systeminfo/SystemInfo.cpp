@@ -11,8 +11,8 @@
 #include <lvgl.h>
 #include <utility>
 
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
 
 #ifdef ESP_PLATFORM

@@ -10,9 +10,9 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/lvgl/LvglSync.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <esp_netif.h>
 #include <esp_wifi.h>

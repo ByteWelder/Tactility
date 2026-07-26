@@ -5,8 +5,8 @@
 #include <lvgl.h>
 #include <algorithm>
 
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
 
 namespace tt::app::applist {
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <lvgl/lvgl_display.h>
+#include <../include/lvgl/devices/display.h>
 
 #include <lvgl/lvgl_ppa.h>
 

@@ -7,8 +7,8 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/lvgl/LvglSync.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::btmanage {
 

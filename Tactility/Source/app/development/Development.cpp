@@ -11,9 +11,9 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <tactility/log.h>
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
+#include <tactility/log.h>
 
 #include <cstring>
 #include <lvgl.h>

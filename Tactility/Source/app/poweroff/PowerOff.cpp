@@ -6,11 +6,11 @@
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/service/loader/Loader.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
+#include <lvgl/fonts.h>
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
-#include <lvgl/lvgl_fonts.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 namespace tt::app::poweroff {
 

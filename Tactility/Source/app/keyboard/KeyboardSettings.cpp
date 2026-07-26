@@ -5,9 +5,9 @@
 #include <Tactility/settings/KeyboardSettings.h>
 #include <Tactility/lvgl/Toolbar.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
-#include <lvgl/lvgl_icon_shared.h>
 
 #include <lvgl.h>
 

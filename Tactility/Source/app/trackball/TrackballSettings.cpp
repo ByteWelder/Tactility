@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-#include <lvgl/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
 
 #include <Tactility/Tactility.h>
