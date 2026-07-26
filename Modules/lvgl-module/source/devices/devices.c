@@ -115,5 +115,5 @@ void lvgl_devices_detach() {
         display = lv_disp_get_next(NULL);
     }
 
-    lvgl_lock();
+    lvgl_unlock();
 }
