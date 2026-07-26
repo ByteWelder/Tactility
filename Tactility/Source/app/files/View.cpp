@@ -452,7 +452,7 @@ void View::update(size_t start_index) {
 
     auto sync_lockable = lvgl::getSyncLock();
     auto scoped_lockable = sync_lockable->asScopedLock();
-    if (!scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (!scoped_lockable.lock(500 / portTICK_PERIOD_MS)) {
         LOG_E(TAG, "Mutex acquisition timeout (%s)", "lvgl");
         return;
     }
@@ -553,7 +553,7 @@ void View::init(const AppContext& appContext, lv_obj_t* parent) {
 void View::onDirEntryListScrollBegin() {
     auto sync_lockable = lvgl::getSyncLock();
     auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (scoped_lockable.lock(500 / portTICK_PERIOD_MS)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -561,7 +561,7 @@ void View::onDirEntryListScrollBegin() {
 void View::onNavigate() {
     auto sync_lockable = lvgl::getSyncLock();
     auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (scoped_lockable.lock(500 / portTICK_PERIOD_MS)) {
         lv_obj_add_flag(action_list, LV_OBJ_FLAG_HIDDEN);
     }
 }

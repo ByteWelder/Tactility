@@ -1,12 +1,10 @@
 #include <Tactility/app/wificonnect/WifiConnect.h>
 
-#include <Tactility/LogMessages.h>
 #include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <tactility/log.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::app::wificonnect {
 
@@ -68,12 +66,9 @@ void WifiConnect::unlock() {
 void WifiConnect::requestViewUpdate() {
     lock();
     if (viewEnabled) {
-        if (lvgl::lock(1000)) {
-            view.update();
-            lvgl::unlock();
-        } else {
-            LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-        }
+        lvgl_lock();
+        view.update();
+        lvgl_unlock();
     }
     unlock();
 }

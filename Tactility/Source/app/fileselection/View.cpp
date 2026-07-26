@@ -157,7 +157,7 @@ void View::onNavigateUpPressed() {
 void View::update() {
     auto sync_lockable = lvgl::getSyncLock();
     auto scoped_lockable = sync_lockable->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
+    if (scoped_lockable.lock(500 / portTICK_PERIOD_MS)) {
         lv_obj_clean(dir_entry_list);
 
         state->withEntries([this](const std::vector<dirent>& entries) {

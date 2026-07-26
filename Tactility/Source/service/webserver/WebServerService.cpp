@@ -1,8 +1,6 @@
 #ifdef ESP_PLATFORM
 
-#include <tactility/check.h>
 #include <Tactility/service/webserver/WebServerService.h>
-#include <Tactility/service/webserver/AssetVersion.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/MountPoints.h>
@@ -10,27 +8,28 @@
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/Mutex.h>
 
+#include <tactility/check.h>
+
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/App.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <esp_wifi_default.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
 #include <Tactility/Paths.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/StringUtils.h>
 
-#include <ranges>
 #include <tactility/filesystem/file_system.h>
+#include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/statusbar.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 #include <lv_screenshot.h>
 #endif
-
-#include <lvgl/icons/statusbar.h>
 
 #include <atomic>
 #include <cctype>
@@ -42,15 +41,15 @@
 #include <esp_netif.h>
 #include <esp_system.h>
 #include <esp_vfs_fat.h>
+#include <esp_wifi_default.h>
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <iomanip>
 #include <lwip/ip4_addr.h>
 #include <mbedtls/base64.h>
+#include <ranges>
 #include <sstream>
-
-#include <tactility/log.h>
 
 namespace tt::service::webserver {
 
@@ -1477,9 +1476,9 @@ esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
     std::string lvgl_screenshot_path = lvgl::PATH_PREFIX + screenshot_path;
 
     // Capture screenshot using LVGL
-    if (lvgl::lock(pdMS_TO_TICKS(100))) {
+    if (lvgl_try_lock(pdMS_TO_TICKS(100))) {
         bool success = lv_screenshot_create(lv_scr_act(), LV_100ASK_SCREENSHOT_SV_PNG, lvgl_screenshot_path.c_str());
-        lvgl::unlock();
+        lvgl_unlock();
 
         if (!success) {
             LOG_E(TAG, "lv_screenshot_create failed for path: %s", lvgl_screenshot_path.c_str());

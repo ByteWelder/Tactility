@@ -5,14 +5,6 @@
 
 namespace tt::lvgl {
 
-bool lock(TickType_t timeout) {
-    return lvgl_try_lock(timeout);
-}
-
-void unlock() {
-    lvgl_unlock();
-}
-
 class LvglSync : public Lock {
 public:
     ~LvglSync() override = default;

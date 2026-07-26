@@ -1,10 +1,11 @@
-#include "Tactility/lvgl/Keyboard.h"
-#include "Tactility/lvgl/LvglSync.h"
-#include "Tactility/service/gui/GuiService.h"
-
-#include <tactility/check.h>
+#include <Tactility/lvgl/Keyboard.h>
+#include <Tactility/service/gui/GuiService.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/service/espnow/EspNowService.h>
+
+#include <tactility/check.h>
+
+#include <lvgl/lvgl.h>
 
 namespace tt::service::gui {
 
@@ -53,7 +54,7 @@ void GuiService::keyboardAddTextArea(lv_obj_t* textarea) {
     lock();
 
     if (isStarted) {
-        check(lvgl::lock(0), "lvgl should already be locked before calling this method");
+        check(lvgl_try_lock(0), "lvgl should already be locked before calling this method");
 
         if (softwareKeyboardIsEnabled()) {
             lv_obj_add_event_cb(textarea, show_keyboard, LV_EVENT_FOCUSED, nullptr);
@@ -66,7 +67,7 @@ void GuiService::keyboardAddTextArea(lv_obj_t* textarea) {
             lvgl::software_keyboard_activate(keyboardGroup);
         }
 
-        lvgl::unlock();
+        lvgl_unlock();
     }
 
     unlock();

@@ -10,7 +10,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
 
 #include <vector>
 
@@ -136,7 +136,7 @@ class PowerApp : public App {
             return;
         }
 
-        lvgl::lock(kernel::millisToTicks(1000));
+        lvgl_lock();
 
         for (auto& entry : entries) {
             if (entry.enableSwitch != nullptr) {
@@ -155,7 +155,7 @@ class PowerApp : public App {
             }
         }
 
-        lvgl::unlock();
+        lvgl_unlock();
     }
 
 public:

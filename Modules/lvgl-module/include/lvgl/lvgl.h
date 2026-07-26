@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// Official LVGL library header
+#include <lvgl.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,19 +1,16 @@
-#include "Tactility/lvgl/LvglSync.h"
-
-#include <Tactility/LogMessages.h>
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/lvgl/Style.h>
-#include <lvgl/widgets/toolbar.h>
 #include <Tactility/service/wifi/Wifi.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
 #include <tactility/check.h>
 #include <tactility/log.h>
-
-#include <lvgl.h>
 
 namespace tt::app::wifiapsettings {
 
@@ -88,12 +85,9 @@ class WifiApSettings : public App {
 
     void requestViewUpdate() const {
         if (viewEnabled) {
-            if (lvgl::lock(1000)) {
-                updateViews();
-                lvgl::unlock();
-            } else {
-                LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-            }
+            lvgl_lock();
+            updateViews();
+            lvgl_unlock();
         }
     }
 

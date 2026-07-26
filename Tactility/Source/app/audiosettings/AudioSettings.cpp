@@ -1,16 +1,12 @@
 #include <Tactility/Tactility.h>
-
-#include <lvgl/icons/shared.h>
-
 #include <Tactility/PubSub.h>
 #include <Tactility/app/App.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/audio/Audio.h>
-#include <lvgl/widgets/sliderbox.h>
 
-#include <lvgl.h>
+#include <lvgl/icons/shared.h>
 #include <lvgl/lvgl.h>
+#include <lvgl/widgets/sliderbox.h>
 
 namespace tt::app::audiosettings {
 
@@ -161,10 +157,9 @@ public:
         refresh();
 
         audioSubscription = service::audio::getPubsub()->subscribe([this](auto) {
-            if (lvgl::lock(lvgl::defaultLockTime)) {
-                refresh();
-                lvgl::unlock();
-            }
+            lvgl_lock();
+            refresh();
+            lvgl_unlock();
         });
     }
 

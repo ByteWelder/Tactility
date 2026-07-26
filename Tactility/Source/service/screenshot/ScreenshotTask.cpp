@@ -5,15 +5,16 @@
 #include <Tactility/LogMessages.h>
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/TactilityCore.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/screenshot/ScreenshotTask.h>
+
+#include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
 
 #include <lv_screenshot.h>
 
 #include <format>
-
-#include <tactility/log.h>
 
 namespace tt::service::screenshot {
 
@@ -50,13 +51,13 @@ void ScreenshotTask::setFinished() {
 }
 
 static void makeScreenshot(const std::string& filename) {
-    if (lvgl::lock(50 / portTICK_PERIOD_MS)) {
+    if (lvgl_try_lock(50 / portTICK_PERIOD_MS)) {
         if (lv_screenshot_create(lv_scr_act(), LV_100ASK_SCREENSHOT_SV_PNG, filename.c_str())) {
             LOG_I(TAG, "Screenshot saved to %s", filename.c_str());
         } else {
             LOG_E(TAG, "Screenshot not saved to %s", filename.c_str());
         }
-        lvgl::unlock();
+        lvgl_unlock();
     } else {
         LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
     }
