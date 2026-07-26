@@ -1,7 +1,6 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
 #include <Tactility/Assets.h>
-#include <Tactility/CoreDefines.h>
 
 #include <lvgl.h>
 
