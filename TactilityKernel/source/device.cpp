@@ -94,6 +94,10 @@ error_t device_destruct(Device* device) {
 
     auto* internal = device->internal;
 
+    if (internal->ref_count > 0) {
+        unlock_internal(device->internal);
+        return ERROR_RESOURCE_BUSY;
+    }
     if (internal->state.started || internal->state.added) {
         unlock_internal(device->internal);
         return ERROR_INVALID_STATE;
@@ -101,13 +105,6 @@ error_t device_destruct(Device* device) {
     if (!internal->children.empty()) {
         unlock_internal(device->internal);
         return ERROR_INVALID_STATE;
-    }
-    // Callers are expected to sequence teardown correctly (device_stop() already refuses to
-    // clear `started` while ref_count > 0, so by the time !started holds above, ref_count is
-    // already 0) - this is a cheap defense-in-depth check, not a substitute for that discipline.
-    if (internal->ref_count > 0) {
-        unlock_internal(device->internal);
-        return ERROR_RESOURCE_BUSY;
     }
     LOG_D(TAG, "destruct %s", device->name);
 
@@ -253,11 +250,6 @@ error_t device_stop(Device* device) {
         return ERROR_NONE;
     }
 
-    if (internal->ref_count > 0) {
-        unlock_internal(internal);
-        return ERROR_RESOURCE_BUSY;
-    }
-
     // Already stopping on another thread
     if (internal->state.stopping) {
         unlock_internal(internal);
@@ -266,10 +258,6 @@ error_t device_stop(Device* device) {
     internal->state.stopping = true;
     unlock_internal(internal);
 
-    // driver_unbind() runs the driver's stop_device callback, which may remove/destruct child
-    // devices (device_remove() takes ledger_lock) - `mutex` must stay released across this call,
-    // same reasoning as device_start(). state.stopping keeps device_get() from handing out a new
-    // ref while ref_count is meant to stay at 0 during the unbind.
     error_t unbind_error = driver_unbind(internal->driver, device);
 
     lock_internal(internal);
