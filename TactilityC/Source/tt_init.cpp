@@ -5,8 +5,6 @@
 #include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
-#include <tt_lock.h>
-#include "tt_lvgl_keyboard.h"
 #include "tt_lvgl_spinner.h"
 #include "tt_lvgl_toolbar.h"
 #include "tt_preferences.h"
@@ -281,10 +279,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_get_user_data_child_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_child_path),
-    ESP_ELFSYM_EXPORT(tt_lock_alloc_for_path),
-    ESP_ELFSYM_EXPORT(tt_lock_acquire),
-    ESP_ELFSYM_EXPORT(tt_lock_release),
-    ESP_ELFSYM_EXPORT(tt_lock_free),
     ESP_ELFSYM_EXPORT(tt_bundle_alloc),
     ESP_ELFSYM_EXPORT(tt_bundle_free),
     ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),
@@ -293,13 +287,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_hide),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_is_enabled),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_activate),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_deactivate),
-    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_is_available),
-    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
     ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_set_title),
