@@ -200,6 +200,13 @@ void GuiService::redraw() {
         // Create a default group which adds all objects automatically,
         // and assign all indevs to it.
         // This enables navigation with limited input, such as encoder wheels.
+        // The previous default group (if any) is no longer referenced by anything
+        // after lv_obj_clean() above, so it must be freed here or it leaks.
+        auto* previous_group = lv_group_get_default();
+        if (previous_group != nullptr) {
+            lv_group_delete(previous_group);
+        }
+
         lv_group_t* group = lv_group_create();
         auto* indev = lv_indev_get_next(nullptr);
         while (indev) {
@@ -278,6 +285,17 @@ void GuiService::onStop(ServiceContext& service) {
     if (keyboardGroup != nullptr) {
         lv_group_delete(keyboardGroup);
         keyboardGroup = nullptr;
+    }
+
+    auto* default_group = lv_group_get_default();
+    if (default_group != nullptr) {
+        lv_group_delete(default_group);
+        lv_group_set_default(nullptr);
+    }
+
+    auto* screen_root = lv_screen_active();
+    if (screen_root != nullptr) {
+        lv_obj_clean(screen_root);
     }
     lvgl_unlock();
 

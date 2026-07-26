@@ -95,6 +95,7 @@ private:
             // Note: the result code maps to values from cstdlib's errno.h
             lastError = getErrorCodeString(-relocate_result);
             LOG_E(TAG, "Application failed to load: %s", lastError.c_str());
+            esp_elf_deinit(&elf);
             elfFileData  = nullptr;
             return false;
         }
