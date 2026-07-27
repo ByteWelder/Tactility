@@ -47,7 +47,7 @@ class GuiService final : public Service {
     // App-specific
     std::shared_ptr<app::AppInstance> appToRender = nullptr;
 
-    LvglSoftwareKeyboard software_keyboard;
+    LvglSoftwareKeyboard software_keyboard = {};
 
     bool isStarted = false;
 

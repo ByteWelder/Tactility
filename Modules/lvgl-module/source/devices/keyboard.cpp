@@ -95,6 +95,15 @@ void lvgl_keyboard_remove(lv_indev_t* indev) {
     free(ctx);
 }
 
+void lvgl_keyboard_enable(lv_indev_t* indev) {
+    check(keyboard_group != nullptr);
+    lv_indev_set_group(indev, keyboard_group);
+}
+
+void lvgl_keyboard_disable(lv_indev_t* indev) {
+    lv_indev_set_group(indev, nullptr);
+}
+
 bool lvgl_hardware_keyboard_is_available() {
     Device* keyboard_device;
     if (device_get_first_active_by_type(&KEYBOARD_TYPE, &keyboard_device) != ERROR_NONE) {
@@ -114,16 +123,14 @@ void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
     ctx->device = nullptr;
     lv_indev_set_driver_data(indev, ctx);
 
-    check(keyboard_group != nullptr);
-    lv_indev_set_group(indev, keyboard_group);
-
+    lvgl_keyboard_enable(indev);
 }
 
 void lvgl_hardware_keyboard_remove_custom(lv_indev_t* indev) {
-    lv_indev_set_group(indev, nullptr);
+    lvgl_keyboard_disable(indev);
     auto* data = lv_indev_get_driver_data(indev);
-    auto* ctx = static_cast<LvglKeyboardCtx*>(data);
-    delete ctx;
+    lv_indev_set_driver_data(indev, nullptr);
+    free(data); // LvglKeyboardCtx*
 }
 
 static void textarea_show_keyboard(lv_event_t* event) {

@@ -231,14 +231,14 @@ static void usbHidInputTask(void* arg) {
         }
         case USB_HID_EVENT_KEYBOARD_CONNECTED:
             if (ctx->kb_indev && lvgl_try_lock(pdMS_TO_TICKS(200))) {
-                lvgl_hardware_keyboard_add_custom(ctx->kb_indev);
+                lvgl_keyboard_enable(ctx->kb_indev);
                 lvgl_unlock();
             }
             break;
         case USB_HID_EVENT_KEYBOARD_DISCONNECTED:
             if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
                 if (ctx->kb_indev) {
-                    lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
+                    lvgl_keyboard_disable(ctx->kb_indev);
                 }
                 lvgl_unlock();
             }

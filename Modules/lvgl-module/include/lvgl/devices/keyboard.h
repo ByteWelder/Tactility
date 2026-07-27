@@ -37,6 +37,19 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
 void lvgl_keyboard_remove(lv_indev_t* indev);
 
 /**
+ * @brief Assigns the indev to the shared keyboard input group, so it can drive focus
+ * navigation and input for focused widgets.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_keyboard_enable(lv_indev_t* indev);
+
+/**
+ * @brief Detaches the indev from the shared keyboard input group.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_keyboard_disable(lv_indev_t* indev);
+
+/**
  * @brief Wires a textarea up to the on-screen keyboard: shows it on focus, hides it on
  * defocus/ready, and adds the textarea to the keyboard's navigation group.
  *
@@ -101,9 +114,7 @@ void lvgl_software_keyboard_show(struct LvglSoftwareKeyboard* keyboard, lv_obj_t
 void lvgl_software_keyboard_hide(struct LvglSoftwareKeyboard* keyboard);
 
 /**
- * The on-screen keyboard is only shown when both of these conditions are true:
- *  - there is no hardware keyboard
- *  - TT_CONFIG_FORCE_ONSCREEN_KEYBOARD is set to true in tactility_config.h
+ * The on-screen keyboard is only shown when there is no hardware keyboard driver active.
  * @return if we should show a on-screen keyboard for text input inside our apps
  */
 bool lvgl_software_keyboard_is_enabled();
