@@ -95,6 +95,51 @@ void lvgl_keyboard_remove(lv_indev_t* indev) {
     free(ctx);
 }
 
+bool lvgl_hardware_keyboard_is_available() {
+    Device* keyboard_device;
+    if (device_get_first_active_by_type(&KEYBOARD_TYPE, &keyboard_device) != ERROR_NONE) {
+        return false;
+    }
+
+    device_put(keyboard_device);
+    return true;
+}
+
+void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
+    LvglKeyboardCtx* ctx = static_cast<struct LvglKeyboardCtx*>(malloc(sizeof(struct LvglKeyboardCtx)));
+    if (ctx == nullptr) {
+        return;
+    }
+
+    ctx->device = nullptr;
+    lv_indev_set_driver_data(indev, ctx);
+
+    check(keyboard_group != nullptr);
+    lv_indev_set_group(indev, keyboard_group);
+
+}
+
+void lvgl_hardware_keyboard_remove_custom(lv_indev_t* indev) {
+    lv_indev_set_group(indev, nullptr);
+    auto* data = lv_indev_get_driver_data(indev);
+    auto* ctx = static_cast<LvglKeyboardCtx*>(data);
+    delete ctx;
+}
+
+static void textarea_show_keyboard(lv_event_t* event) {
+    lv_obj_t* target = lv_event_get_current_target_obj(event);
+    if (last_software_keyboard.object != nullptr) {
+        lvgl_software_keyboard_show(&last_software_keyboard, target);
+        lv_obj_scroll_to_view(target, LV_ANIM_ON);
+    }
+}
+
+static void textarea_hide_keyboard(lv_event_t* event) {
+    if (last_software_keyboard.object != nullptr) {
+        lvgl_software_keyboard_hide(&last_software_keyboard);
+    }
+}
+
 void lvgl_software_keyboard_construct(LvglSoftwareKeyboard* keyboard, lv_obj_t* parent) {
     keyboard->object = lv_keyboard_create(parent);
     lv_obj_add_flag(keyboard->object, LV_OBJ_FLAG_HIDDEN);
@@ -129,20 +174,6 @@ LvglSoftwareKeyboard* lvgl_software_keyboard_get_last() {
     return &last_software_keyboard;
 }
 
-static void textarea_show_keyboard(lv_event_t* event) {
-    lv_obj_t* target = lv_event_get_current_target_obj(event);
-    if (last_software_keyboard.object != nullptr) {
-        lvgl_software_keyboard_show(&last_software_keyboard, target);
-        lv_obj_scroll_to_view(target, LV_ANIM_ON);
-    }
-}
-
-static void textarea_hide_keyboard(lv_event_t* event) {
-    if (last_software_keyboard.object != nullptr) {
-        lvgl_software_keyboard_hide(&last_software_keyboard);
-    }
-}
-
 void lvgl_keyboard_add_textarea(LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea) {
     if (lvgl_software_keyboard_is_enabled()) {
         lv_obj_add_event_cb(textarea, textarea_show_keyboard, LV_EVENT_FOCUSED, nullptr);
@@ -175,37 +206,6 @@ void lvgl_software_keyboard_deactivate(LvglSoftwareKeyboard* keyboard) {
         }
         indev = lv_indev_get_next(indev);
     }
-}
-
-bool lvgl_hardware_keyboard_is_available() {
-    Device* keyboard_device;
-    if (device_get_first_active_by_type(&KEYBOARD_TYPE, &keyboard_device) != ERROR_NONE) {
-        return false;
-    }
-
-    device_put(keyboard_device);
-    return true;
-}
-
-void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
-    LvglKeyboardCtx* ctx = static_cast<struct LvglKeyboardCtx*>(malloc(sizeof(struct LvglKeyboardCtx)));
-    if (ctx == nullptr) {
-        return;
-    }
-
-    ctx->device = nullptr;
-    lv_indev_set_driver_data(indev, ctx);
-
-    check(keyboard_group != nullptr);
-    lv_indev_set_group(indev, keyboard_group);
-
-}
-
-void lvgl_hardware_keyboard_remove_custom(lv_indev_t* indev) {
-    lv_indev_set_group(indev, nullptr);
-    auto* data = lv_indev_get_driver_data(indev);
-    auto* ctx = static_cast<LvglKeyboardCtx*>(data);
-    delete ctx;
 }
 
 }

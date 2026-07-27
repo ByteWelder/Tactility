@@ -36,12 +36,68 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
  */
 void lvgl_keyboard_remove(lv_indev_t* indev);
 
+/**
+ * @brief Wires a textarea up to the on-screen keyboard: shows it on focus, hides it on
+ * defocus/ready, and adds the textarea to the keyboard's navigation group.
+ *
+ * No-op if lvgl_software_keyboard_is_enabled() is false (i.e. a hardware keyboard is present).
+ *
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] keyboard the on-screen keyboard to associate with the textarea
+ * @param[in] textarea the lv_textarea_t object to wire up
+ */
+void lvgl_keyboard_add_textarea(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea);
+
+/**
+ * @brief Checks whether a ready (started) KEYBOARD_TYPE kernel device is present.
+ * @return true if a hardware keyboard device is available
+ */
+bool lvgl_hardware_keyboard_is_available();
+
+/**
+ * @brief Assigns the shared keyboard navigation group to a keypad indev that wasn't created via
+ * lvgl_keyboard_add() (e.g. a USB HID keyboard managed outside the kernel device system).
+ *
+ * @warning Caller must hold the LVGL lock. Requires the keyboard navigation group to already
+ * exist (created during LVGL module start).
+ * @param[in] device the keypad indev to attach to the navigation group
+ */
+void lvgl_hardware_keyboard_add_custom(lv_indev_t* device);
+
+/**
+ * @brief Detaches an indev previously registered with lvgl_hardware_keyboard_add_custom() and
+ * frees its associated context.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_hardware_keyboard_remove_custom(lv_indev_t* device);
+
+/**
+ * @brief Creates the on-screen keyboard widget as a hidden child of parent, and remembers it as
+ * the last constructed software keyboard (see lvgl_software_keyboard_get_last()).
+ * @warning Caller must hold the LVGL lock.
+ * @param[out] keyboard the software keyboard struct to initialize
+ * @param[in] parent the lv_obj_t that will own the keyboard widget
+ */
 void lvgl_software_keyboard_construct(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* parent);
 
+/**
+ * @brief Deletes the on-screen keyboard widget created by lvgl_software_keyboard_construct().
+ * @warning Caller must hold the LVGL lock.
+ */
 void lvgl_software_keyboard_destruct(struct LvglSoftwareKeyboard* keyboard);
 
+/**
+ * @brief Unhides the on-screen keyboard and binds it to the given textarea for input.
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] keyboard the software keyboard to show
+ * @param[in] textarea the lv_textarea_t that receives the keyboard's input
+ */
 void lvgl_software_keyboard_show(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea);
 
+/**
+ * @brief Hides the on-screen keyboard.
+ * @warning Caller must hold the LVGL lock.
+ */
 void lvgl_software_keyboard_hide(struct LvglSoftwareKeyboard* keyboard);
 
 /**
@@ -52,22 +108,25 @@ void lvgl_software_keyboard_hide(struct LvglSoftwareKeyboard* keyboard);
  */
 bool lvgl_software_keyboard_is_enabled();
 
+/**
+ * @return the most recently constructed software keyboard, or one with a NULL object if none
+ * has been constructed yet (or the last one was destructed)
+ */
 struct LvglSoftwareKeyboard* lvgl_software_keyboard_get_last();
 
-void lvgl_keyboard_add_textarea(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea);
-
+/**
+ * @brief Attaches the shared keyboard navigation group to every currently registered keypad
+ * indev, so they can be used to navigate the on-screen keyboard and focused widgets.
+ * @warning Caller must hold the LVGL lock.
+ */
 void lvgl_software_keyboard_activate(struct LvglSoftwareKeyboard* keyboard);
 
-void lvgl_software_keyboard_deactivate(struct LvglSoftwareKeyboard* keyboard);
-
 /**
- * @return true if LVGL is configured with a keypad
+ * @brief Detaches the navigation group from every currently registered keypad indev (inverse of
+ * lvgl_software_keyboard_activate()).
+ * @warning Caller must hold the LVGL lock.
  */
-bool lvgl_hardware_keyboard_is_available();
-
-void lvgl_hardware_keyboard_add_custom(lv_indev_t* device);
-
-void lvgl_hardware_keyboard_remove_custom(lv_indev_t* device);
+void lvgl_software_keyboard_deactivate(struct LvglSoftwareKeyboard* keyboard);
 
 #ifdef __cplusplus
 }
