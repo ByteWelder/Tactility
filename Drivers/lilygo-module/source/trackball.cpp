@@ -87,6 +87,7 @@ lv_indev_t* init() {
     g_indev = lv_indev_create();
     if (g_indev == nullptr) {
         LOG_E(TAG, "Failed to register LVGL input device");
+        device_put(g_device);
         g_device = nullptr;
         return nullptr;
     }

@@ -303,7 +303,7 @@ void startUsbHidInput() {
         return;
     }
 
-    Device* hid_dev;
+    Device* hid_dev = nullptr;
     if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
         ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
         device_put(hid_dev);
@@ -313,7 +313,13 @@ void startUsbHidInput() {
     if (xTaskCreate(usbHidInputTask, "usb_hid_inp", TASK_STACK, ctx, TASK_PRIORITY, &ctx->task) != pdPASS) {
         LOG_E(TAG, "failed to create task");
         ctx->running = false;
-        if (hid_dev) usb_host_hid_unsubscribe(hid_dev, ctx->hid_queue);
+        if (ctx->subscribed) {
+            Device* cleanup_dev = nullptr;
+            if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &cleanup_dev) == ERROR_NONE) {
+                usb_host_hid_unsubscribe(cleanup_dev, ctx->hid_queue);
+                device_put(cleanup_dev);
+            }
+        }
         vQueueDelete(ctx->hid_queue);
         vQueueDelete(ctx->key_queue);
         vSemaphoreDelete(ctx->task_done);
