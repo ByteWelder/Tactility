@@ -49,7 +49,9 @@ static void onScanButtonClicked(lv_event_t* event) {
     Device* dev = nullptr;
     device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
     bool scanning = dev ? bluetooth_is_scanning(dev) : false;
-    device_put(dev);
+    if (dev) {
+        device_put(dev);
+    }
     bt->getBindings().onScanToggled(!scanning);
 }
 

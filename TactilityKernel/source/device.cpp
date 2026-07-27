@@ -43,11 +43,9 @@ struct DeviceInternal {
     } state;
     /** Attached child devices */
     std::vector<Device*> children {};
-    // Outstanding device_get() holders. Guarded by `mutex`. device_get() refuses new refs once
-    // state.stopping is set, and device_stop() refuses to set state.stopping while this is > 0 -
-    // together that guarantees ref_count > 0 implies state.started == true, so by the time
-    // device_remove()/device_destruct() run (both already require !started), this is always
-    // already 0.
+    // Outstanding device_get() holders. Guarded by `mutex`. Independent of state.started -
+    // device_get()/device_put() bracket construct/destruct, not start/stop, so a ref can be held
+    // across a device_stop(). device_destruct() refuses to run while this is > 0.
     int32_t ref_count = 0;
 };
 
@@ -382,7 +380,6 @@ bool device_is_constructed(const Device* device) {
 error_t device_get(Device* device) {
     auto* internal = device->internal;
     if (!internal) {
-        unlock_internal(internal);
         return ERROR_INVALID_STATE;
     }
     lock_internal(internal);
