@@ -694,6 +694,30 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 auto clipboard = state->getClipboard();
                 if (clipboard.has_value()) {
                     std::string dst = state->getPendingPasteDst();
+
+                    // dst was last checked before the dialog was shown; a writer could
+                    // have replaced it while the user was looking at the confirmation.
+                    // Revalidate right before the destructive delete so we only ever
+                    // remove the exact file the user agreed to overwrite.
+                    bool dst_unchanged;
+                    {
+                        file::FileMutexGuard guard(dst);
+                        struct stat current_stat {};
+                        dst_unchanged = (stat(dst.c_str(), &current_stat) == 0) &&
+                            state->pendingPasteDstMatches(current_stat);
+                    }
+                    state->clearPendingPasteDstStat();
+
+                    if (!dst_unchanged) {
+                        LOG_W(TAG, "Overwrite: destination \"%s\" changed since confirmation, aborting", dst.c_str());
+                        state->setPendingAction(State::ActionNone);
+                        alertdialog::start(
+                            "Overwrite aborted",
+                            "\"" + file::getLastPathSegment(dst) + "\" changed while the dialog was open. Please try again."
+                        );
+                        break;
+                    }
+
                     // Trade-off: dst is removed before the copy attempt. If doPaste
                     // subsequently fails (e.g. source read error, out of space), the
                     // original dst data is unrecoverable. Acceptable for an embedded
@@ -710,6 +734,8 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                         );
                     }
                 }
+            } else {
+                state->clearPendingPasteDstStat();
             }
             break;
         }
@@ -744,23 +770,27 @@ void View::onPastePressed() {
     std::string dst = file::getChildPath(state->getCurrentPath(), entry_name);
 
     // Note: FileMutexGuard(src) guards the source path; the existence check below is
-    // against dst, so there is a TOCTOU gap — another writer could create dst
-    // between this check and the write inside doPaste.  Acceptable on a
-    // single-user embedded device; locking dst instead would be more correct.
+    // against dst, so there is a TOCTOU gap between this check and the write inside
+    // doPaste. When dst exists, the overwrite-confirm path below re-validates dst's
+    // stat immediately before the destructive delete (see ActionPaste in onResult),
+    // closing the window that matters (the dialog being open). When dst does not
+    // exist here, doPaste's write can still race a concurrent creator; acceptable on
+    // a single-user embedded device.
     if (src == dst) {
         LOG_I(TAG, "Paste: source and destination are the same path, skipping");
         return;
     }
 
     bool dst_exists;
+    struct stat dst_stat {};
     {
         file::FileMutexGuard guard(src);
-        struct stat st;
-        dst_exists = (stat(dst.c_str(), &st) == 0);
+        dst_exists = (stat(dst.c_str(), &dst_stat) == 0);
     }
 
     if (dst_exists) {
         state->setPendingPasteDst(dst);
+        state->setPendingPasteDstStat(dst_stat);
         state->setPendingAction(State::ActionPaste);
         const std::vector<std::string> choices = {"Overwrite", "Cancel"};
         alertdialog::start("File exists", "Overwrite \"" + entry_name + "\"?", choices);
