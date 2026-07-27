@@ -35,6 +35,12 @@ public:
     State& getState() { return state; }
 
     void requestViewUpdate();
+
+    // Re-attempts registering the device event callback. Needed because the BLE driver
+    // only allocates its callback list while the device is started/on: a registration
+    // attempted while the radio is off silently no-ops, so this must be called again
+    // right after a successful bluetooth::start().
+    void registerDeviceCallback(Device* dev);
 };
 
 } // namespace tt::app::btmanage

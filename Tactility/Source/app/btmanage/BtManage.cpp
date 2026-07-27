@@ -23,7 +23,13 @@ static void onBtToggled(bool requestOn) {
         bool radio_on = bluetooth::isRadioOnOrPending(dev);
         if (requestOn && !radio_on) {
             LOG_I(TAG, "Turning on");
-            bluetooth::start(dev);
+            if (bluetooth::start(dev)) {
+                // The driver only allocates its callback list once the device is started,
+                // so the registration attempted in onShow() (while radio was off) was a
+                // no-op. Register again now that the device is actually up.
+                auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
+                bt->registerDeviceCallback(dev);
+            }
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
             bluetooth::stop(dev);
@@ -153,12 +159,20 @@ static void onKernelBtEvent(Device* /*device*/, void* context, BtEvent event) {
     });
 }
 
+void BtManage::registerDeviceCallback(Device* dev) {
+    lock();
+    if (btDevice == dev) {
+        bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+    }
+    unlock();
+}
+
 void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
     // Initialise state and view before subscribing to avoid incoming events
     // racing with state initialisation.
     state.setRadioState(bluetooth::getRadioState());
     Device* dev = nullptr;
-    device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
+    device_get_first_by_type(&BLUETOOTH_TYPE, &dev);
 
     state.setScanning(dev ? bluetooth_is_scanning(dev) : false);
     state.updateScanResults();
