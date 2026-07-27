@@ -334,45 +334,11 @@ void device_for_each_of_type(const struct DeviceType* type, void* callback_conte
 bool device_exists_of_type(const struct DeviceType* type) ;
 
 /**
- * Find a device by its name.
- *
- * @param[in] name non-null device name to look up
- * @return the device pointer if found, or NULL if not found
- */
-struct Device* device_find_by_name(const char* name) __attribute__((deprecated("Use device_get_by_name() and device_put()")));
-
-/**
- * Find the first started device of the given type.
- *
- * @param[in] type non-null device type pointer
- * @return the first started device of the given type, or NULL if none found
- */
-struct Device* device_find_first_active_by_type(const struct DeviceType* type) __attribute__((deprecated("Use device_get_first_active_by_type() and device_put()")));
-
-/**
- * Find the first device of the given type.
- *
- * @param[in] type non-null device type pointer
- * @return the first device of the given type, or NULL if none found
- */
-struct Device* device_find_first_by_type(const struct DeviceType* type) __attribute__((deprecated("Use device_get_first_by_type() and device_put()")));
-
-/**
- * Find the first device whose driver matches the given compatible string.
- *
- * @param[in] compatible non-null compatible string to match
- * @return the first matching device, or NULL if none found
- */
-struct Device* device_find_first_by_compatible(const char* compatible) __attribute__((deprecated("Use device_get_first_by_compatible() and device_put()")));
-
-/**
- * Find a device by name and atomically take a reference on it (equivalent to a device_find_by_name()
+ * Find a device by name and atomically take a reference on it.
  * immediately followed by a successful device_get(), but race-free: the lookup and the reference
  * are taken under the same lock, so a device that gets torn down concurrently either isn't found
  * or is safely referenced - there is no gap where a caller could be handed a pointer that's about
- * to become invalid). Prefer this over device_find_by_name() + device_get() for any device that
- * might be dynamically constructed/destructed at runtime (e.g. a hot-pluggable child device),
- * rather than a static devicetree-defined one.
+ * to become invalid).
  *
  * @param[in] name non-null device name to look up
  * @param[out] out_device receives the found device on success; untouched on failure
@@ -383,9 +349,7 @@ struct Device* device_find_first_by_compatible(const char* compatible) __attribu
 error_t device_get_by_name(const char* name, struct Device** out_device);
 
 /**
- * Find the first device of the given type and atomically take a reference on it. See
- * device_get_by_name() for why this is preferred over device_find_first_by_type() + device_get()
- * for dynamically constructed/destructed devices.
+ * Find the first device of the given type and atomically take a reference on it.
  *
  * @param[in] type non-null device type pointer
  * @param[out] out_device receives the found device on success; untouched on failure
@@ -396,9 +360,7 @@ error_t device_get_by_name(const char* name, struct Device** out_device);
 error_t device_get_first_by_type(const struct DeviceType* type, struct Device** out_device);
 
 /**
- * Find the first started device of the given type and atomically take a reference on it. See
- * device_get_by_name() for why this is preferred over device_find_first_active_by_type() +
- * device_get() for dynamically constructed/destructed devices.
+ * Find the first started device of the given type and atomically take a reference on it.
  *
  * @param[in] type non-null device type pointer
  * @param[out] out_device receives the found device on success; untouched on failure
@@ -417,9 +379,7 @@ error_t device_get_first_active_by_type(const struct DeviceType* type, struct De
 bool device_has_active_by_type(const struct DeviceType* type);
 
 /**
- * Find the first device whose driver matches the given compatible string and atomically take a
- * reference on it. See device_get_by_name() for why this is preferred over
- * device_find_first_by_compatible() + device_get() for dynamically constructed/destructed devices.
+ * Find the first device whose driver matches the given compatible string and atomically take a reference on it.
  *
  * @param[in] compatible non-null compatible string to match
  * @param[out] out_device receives the found device on success; untouched on failure

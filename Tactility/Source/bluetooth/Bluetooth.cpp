@@ -124,8 +124,10 @@ static void bt_event_bridge(Device*, void* /*context*/, BtEvent event) {
                         }
                         if (has_hid_host_auto) {
                             LOG_I(TAG, "HID host auto-connect peer found — starting scan");
-                            if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+                            Device* dev;
+                            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                                 bluetooth_scan_start(dev);
+                                device_put(dev);
                             }
                         } else if (has_hid_device_auto) {
                             LOG_I(TAG, "HID device auto-start (bonded peer found)");
@@ -231,10 +233,12 @@ static void bt_event_bridge(Device*, void* /*context*/, BtEvent event) {
                         }
                     }
                     if (has_auto) {
-                        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+                        Device* dev;
+                        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
                             if (!bluetooth_is_scanning(dev)) {
                                 bluetooth_scan_start(dev);
                             }
+                            device_put(dev);
                         }
                     }
                 });
@@ -337,10 +341,19 @@ const char* radioStateToString(RadioState state) {
 }
 
 RadioState getRadioState() {
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-    if (dev == nullptr) return RadioState::Off;
     BtRadioState state = BT_RADIO_STATE_OFF;
-    bluetooth_get_radio_state(dev, &state);
+
+    // Scoped to safeguard dev usage
+    {
+        Device* dev = nullptr;
+        device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
+        if (dev == nullptr) {
+            return RadioState::Off;
+        }
+        bluetooth_get_radio_state(dev, &state);
+        device_put(dev);
+    }
+
     switch (state) {
         case BT_RADIO_STATE_OFF:         return RadioState::Off;
         case BT_RADIO_STATE_ON_PENDING:  return RadioState::OnPending;
@@ -405,9 +418,10 @@ void pair(const std::array<uint8_t, 6>& /*addr*/) {
 }
 
 void unpair(const std::array<uint8_t, 6>& addr) {
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-    if (dev != nullptr) {
+    Device* dev;
+    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
         bluetooth_unpair(dev, addr.data());
+        device_put(dev);
     }
     settings::remove(settings::addrToHex(addr));
 }
@@ -442,9 +456,11 @@ void disconnect(const std::array<uint8_t, 6>& addr, int profileId) {
             bluetooth_hid_device_stop(dev);
         }
     } else {
-        Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-        if (dev == nullptr) return;
-        bluetooth_disconnect(dev, addr.data(), (BtProfileId)profileId);
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+            bluetooth_disconnect(dev, addr.data(), (BtProfileId)profileId);
+            device_put(dev);
+        }
     }
 }
 

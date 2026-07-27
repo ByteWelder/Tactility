@@ -436,10 +436,14 @@ void View::onEjectPressed() {
     std::string mount_path = state->getSelectedChildPath();
     LOG_I(TAG, "Ejecting %s", mount_path.c_str());
 
-    struct Device* msc_dev = device_find_first_active_by_type(&USB_HOST_MSC_TYPE);
-    if (!msc_dev || !usb_msc_eject(msc_dev, mount_path.c_str())) {
+    Device* msc_dev = nullptr;
+    if (device_get_first_active_by_type(&USB_HOST_MSC_TYPE, &msc_dev) != ERROR_NONE || !usb_msc_eject(msc_dev, mount_path.c_str())) {
         LOG_W(TAG, "usb_msc_eject: %s not found", mount_path.c_str());
         alertdialog::start("Eject failed", "Could not eject \"" + file::getLastPathSegment(mount_path) + "\".");
+    }
+
+    if (msc_dev) {
+        device_put(msc_dev);
     }
 
     onNavigate();

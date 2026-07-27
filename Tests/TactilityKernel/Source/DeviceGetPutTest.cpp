@@ -32,7 +32,7 @@ Driver test_driver = {
 
 } // namespace
 
-TEST_CASE("device_get should fail with ERROR_INVALID_STATE when the device is not started") {
+TEST_CASE("device_get should succeed even when the device is not started") {
     Device device = { .name = "get_not_started", .config = nullptr, .parent = nullptr };
 
     CHECK_EQ(driver_construct_add(&test_driver), ERROR_NONE);
@@ -40,10 +40,27 @@ TEST_CASE("device_get should fail with ERROR_INVALID_STATE when the device is no
     device_set_driver(&device, &test_driver);
     CHECK_EQ(device_add(&device), ERROR_NONE);
 
-    CHECK_EQ(device_get(&device), ERROR_INVALID_STATE);
+    // Ref-counting brackets construct/destruct, not start/stop.
+    CHECK_EQ(device_get(&device), ERROR_NONE);
+    device_put(&device);
 
     CHECK_EQ(device_remove(&device), ERROR_NONE);
     CHECK_EQ(device_destruct(&device), ERROR_NONE);
+    CHECK_EQ(driver_remove_destruct(&test_driver), ERROR_NONE);
+}
+
+TEST_CASE("device_get should fail with ERROR_INVALID_STATE once the device has been destructed") {
+    Device device = { .name = "get_after_destruct", .config = nullptr, .parent = nullptr };
+
+    CHECK_EQ(driver_construct_add(&test_driver), ERROR_NONE);
+    CHECK_EQ(device_construct(&device), ERROR_NONE);
+    device_set_driver(&device, &test_driver);
+    CHECK_EQ(device_add(&device), ERROR_NONE);
+    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&device), ERROR_NONE);
+
+    CHECK_EQ(device_get(&device), ERROR_INVALID_STATE);
+
     CHECK_EQ(driver_remove_destruct(&test_driver), ERROR_NONE);
 }
 
@@ -65,7 +82,7 @@ TEST_CASE("device_get should succeed once started, and device_put should release
     CHECK_EQ(driver_remove_destruct(&test_driver), ERROR_NONE);
 }
 
-TEST_CASE("device_stop should fail with ERROR_RESOURCE_BUSY while a reference is held, from a concurrent thread") {
+TEST_CASE("device_stop should succeed while a reference is held, but device_destruct should fail with ERROR_RESOURCE_BUSY until it is released") {
     static Device device = { .name = "get_put_concurrent", .config = nullptr, .parent = nullptr };
     static std::atomic<bool> acquired { false };
     static std::atomic<bool> release { false };
@@ -103,21 +120,22 @@ TEST_CASE("device_stop should fail with ERROR_RESOURCE_BUSY while a reference is
         delay_millis(1);
     }
 
-    // Held by the worker thread right now - device_stop() must fail fast, not block.
-    CHECK_EQ(device_stop(&device), ERROR_RESOURCE_BUSY);
+    // Held by the worker thread right now - device_stop() is independent of ref-counting, so it
+    // still succeeds; only device_destruct() gates on outstanding refs.
+    CHECK_EQ(device_stop(&device), ERROR_NONE);
+    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    CHECK_EQ(device_destruct(&device), ERROR_RESOURCE_BUSY);
 
     release = true;
     CHECK_EQ(thread_join(thread, 200, 1), ERROR_NONE);
     thread_free(thread);
 
-    // Reference released - device_stop() now succeeds.
-    CHECK_EQ(device_stop(&device), ERROR_NONE);
-    CHECK_EQ(device_remove(&device), ERROR_NONE);
+    // Reference released - device_destruct() now succeeds.
     CHECK_EQ(device_destruct(&device), ERROR_NONE);
     CHECK_EQ(driver_remove_destruct(&test_driver), ERROR_NONE);
 }
 
-TEST_CASE("device_get_by_name should find and reference a started device, or fail if not found/not started") {
+TEST_CASE("device_get_by_name should find and reference an added device regardless of started state, or fail if not found") {
     Device device = { .name = "get_by_name_device", .config = nullptr, .parent = nullptr };
 
     CHECK_EQ(driver_construct_add(&test_driver), ERROR_NONE);
@@ -127,7 +145,11 @@ TEST_CASE("device_get_by_name should find and reference a started device, or fai
 
     Device* out = nullptr;
     CHECK_EQ(device_get_by_name("does_not_exist", &out), ERROR_NOT_FOUND);
-    CHECK_EQ(device_get_by_name("get_by_name_device", &out), ERROR_INVALID_STATE);
+
+    // Not started yet - lookup still succeeds, since it only requires the device to be added.
+    CHECK_EQ(device_get_by_name("get_by_name_device", &out), ERROR_NONE);
+    CHECK_EQ(out, &device);
+    device_put(out);
 
     CHECK_EQ(device_start(&device), ERROR_NONE);
     CHECK_EQ(device_get_by_name("get_by_name_device", &out), ERROR_NONE);

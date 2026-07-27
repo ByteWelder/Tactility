@@ -13,6 +13,9 @@
 
 ## Higher Priority
 
+- Bluetooth app: when toggling BT on, it doesn't update the UI with discovered devices. It only works after re-opening the app.
+- display.h API: get_backlight does not change ref counting, but it should
+- bluetooth: various getters for child devices do not change ref counting, but they should
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
 - Remove and migrate `Include/Tactility/kernel/Kernel.h` into `tactility/delay.h`
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.

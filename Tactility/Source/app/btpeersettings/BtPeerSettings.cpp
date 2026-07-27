@@ -121,8 +121,12 @@ public:
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
-        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
-            bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+        {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+                bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+                device_put(dev);
+            }
         }
 
         // Load stored settings (name, autoConnect)
@@ -189,8 +193,10 @@ public:
     }
 
     void onHide(AppContext& app) override {
-        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
             bluetooth_remove_event_callback(dev, onKernelBtEvent);
+            device_put(dev);
         }
         viewEnabled = false;
     }

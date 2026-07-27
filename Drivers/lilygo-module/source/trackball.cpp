@@ -76,8 +76,7 @@ lv_indev_t* init() {
         return g_indev;
     }
 
-    g_device = device_find_first_active_by_type(&TDECK_TRACKBALL_TYPE);
-    if (g_device == nullptr) {
+    if (device_get_first_active_by_type(&TDECK_TRACKBALL_TYPE, &g_device) != ERROR_NONE) {
         LOG_E(TAG, "tdeck_trackball kernel device not found or not started");
         return nullptr;
     }
@@ -88,6 +87,7 @@ lv_indev_t* init() {
     g_indev = lv_indev_create();
     if (g_indev == nullptr) {
         LOG_E(TAG, "Failed to register LVGL input device");
+        device_put(g_device);
         g_device = nullptr;
         return nullptr;
     }
@@ -129,6 +129,8 @@ void deinit() {
 
     lv_indev_delete(g_indev);
     g_indev = nullptr;
+
+    device_put(g_device);
     g_device = nullptr;
 
     g_mode = Mode::Encoder;

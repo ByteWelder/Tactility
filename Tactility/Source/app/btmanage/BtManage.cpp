@@ -18,25 +18,38 @@ extern const AppManifest manifest;
 
 static void onBtToggled(bool requestOn) {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
-    Device* dev = device_find_first_by_type(&BLUETOOTH_TYPE);
-    if (!dev) return;
-    bool radio_on = bluetooth::isRadioOnOrPending(dev);
-    if (requestOn && !radio_on) {
-        bluetooth::start(dev);
-    } else if (!requestOn && radio_on) {
-        bluetooth::stop(dev);
+    Device* dev;
+    if (device_get_first_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+        bool radio_on = bluetooth::isRadioOnOrPending(dev);
+        if (requestOn && !radio_on) {
+            LOG_I(TAG, "Turning on");
+            bluetooth::start(dev);
+        } else if (!requestOn && radio_on) {
+            LOG_I(TAG, "Turning off");
+            bluetooth::stop(dev);
+        }
+        device_put(dev);
+    } else {
+        LOG_W(TAG, "Toggle: No bluetooth device found");
     }
+
 #endif
 }
 
 static void onScanToggled(bool enabled) {
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-    if (!dev) return;
+    Device* dev;
+    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) != ERROR_NONE) {
+        LOG_W(TAG, "Scan: No bluetooth device found");
+        return;
+    }
+
     if (enabled) {
         bluetooth_scan_start(dev);
     } else {
         bluetooth_scan_stop(dev);
     }
+
+    device_put(dev);
 }
 
 static void onConnectPeer(const std::array<uint8_t, 6>& addr, int profileId) {
@@ -86,7 +99,7 @@ void BtManage::requestViewUpdate() {
     unlock();
 }
 
-void BtManage::onBtEvent(const struct BtEvent& event) {
+void BtManage::onBtEvent(const BtEvent& event) {
     auto radio_state = bluetooth::getRadioState();
     LOG_I(TAG, "Update with state %s", bluetooth::radioStateToString(radio_state));
     getState().setRadioState(radio_state);
@@ -112,9 +125,12 @@ void BtManage::onBtEvent(const struct BtEvent& event) {
         case BT_EVENT_RADIO_STATE_CHANGED:
             if (event.radio_state == BT_RADIO_STATE_ON) {
                 getState().updatePairedPeers();
-                Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
-                if (dev && !bluetooth_is_scanning(dev)) {
+                Device* dev = nullptr;
+                if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE && !bluetooth_is_scanning(dev)) {
                     bluetooth_scan_start(dev);
+                }
+                if (dev) {
+                    device_put(dev);
                 }
             }
             break;
@@ -141,7 +157,9 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
     // Initialise state and view before subscribing to avoid incoming events
     // racing with state initialisation.
     state.setRadioState(bluetooth::getRadioState());
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
+    Device* dev = nullptr;
+    device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
+
     state.setScanning(dev ? bluetooth_is_scanning(dev) : false);
     state.updateScanResults();
     state.updatePairedPeers();
@@ -151,6 +169,11 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
     view.init(app, parent);
     view.update();
     unlock();
+
+    if (btDevice) {
+        // Decrease refcount before re-ssignment
+        device_put(btDevice);
+    }
 
     btDevice = dev;
     if (btDevice) {
@@ -172,6 +195,7 @@ void BtManage::onHide(AppContext& app) {
     lock();
     if (btDevice) {
         bluetooth_remove_event_callback(btDevice, onKernelBtEvent);
+        device_put(btDevice);
         btDevice = nullptr;
     }
     isViewEnabled = false;

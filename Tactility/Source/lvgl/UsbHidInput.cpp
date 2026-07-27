@@ -179,8 +179,11 @@ static void usbHidInputTask(void* arg) {
         UsbHidEvent hid_evt;
         if (xQueueReceive(ctx->hid_queue, &hid_evt, pdMS_TO_TICKS(100)) != pdTRUE) {
             if (!ctx->subscribed) {
-                struct Device* hid_dev = device_find_first_active_by_type(&USB_HOST_HID_TYPE);
-                if (hid_dev) ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
+                Device* hid_dev;
+                if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
+                    ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
+                    device_put(hid_dev);
+                }
             }
             continue;
         }
@@ -300,14 +303,23 @@ void startUsbHidInput() {
         return;
     }
 
-    struct Device* hid_dev = device_find_first_active_by_type(&USB_HOST_HID_TYPE);
-    if (hid_dev) ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
+    Device* hid_dev = nullptr;
+    if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
+        ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
+        device_put(hid_dev);
+    }
 
     ctx->running = true;
     if (xTaskCreate(usbHidInputTask, "usb_hid_inp", TASK_STACK, ctx, TASK_PRIORITY, &ctx->task) != pdPASS) {
         LOG_E(TAG, "failed to create task");
         ctx->running = false;
-        if (hid_dev) usb_host_hid_unsubscribe(hid_dev, ctx->hid_queue);
+        if (ctx->subscribed) {
+            Device* cleanup_dev = nullptr;
+            if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &cleanup_dev) == ERROR_NONE) {
+                usb_host_hid_unsubscribe(cleanup_dev, ctx->hid_queue);
+                device_put(cleanup_dev);
+            }
+        }
         vQueueDelete(ctx->hid_queue);
         vQueueDelete(ctx->key_queue);
         vSemaphoreDelete(ctx->task_done);
@@ -345,8 +357,11 @@ void stopUsbHidInput() {
     ctx->task = nullptr;
 
     if (ctx->subscribed) {
-        struct Device* hid_dev = device_find_first_active_by_type(&USB_HOST_HID_TYPE);
-        if (hid_dev) usb_host_hid_unsubscribe(hid_dev, ctx->hid_queue);
+        Device* hid_dev;
+        if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
+            usb_host_hid_unsubscribe(hid_dev, ctx->hid_queue);
+            device_put(hid_dev);
+        }
     }
     vQueueDelete(ctx->hid_queue);
     vQueueDelete(ctx->key_queue);

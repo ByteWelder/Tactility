@@ -25,15 +25,18 @@ namespace tt::app::kerneldisplay {
 constexpr auto* TAG = "KernelDisplay";
 
 static Device* getBacklightDevice() {
-    Device* display = device_find_first_by_type(&DISPLAY_TYPE);
-    check(display);
+    Device* display;
+    check(device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE);
     // Boards not yet migrated to the kernel display driver register a placeholder device (so the
     // devicetree node resolves) with a NULL api - nothing for display_get_backlight() to act on.
     if (device_get_driver(display)->api == nullptr) {
+        device_put(display);
         return nullptr;
     }
     Device* backlight = nullptr;
-    return display_get_backlight(display, &backlight) == ERROR_NONE ? backlight : nullptr;
+    display_get_backlight(display, &backlight);
+    device_put(display);
+    return backlight;
 }
 
 class KernelDisplayApp final : public App {

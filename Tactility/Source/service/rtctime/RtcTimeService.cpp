@@ -19,7 +19,7 @@ constexpr auto* TAG = "RtcTime";
 
 Device* RtcTimeService::findRtcDevice() {
     if (!rtcDevice) {
-        rtcDevice = device_find_first_active_by_type(&RTC_TYPE);
+        device_get_first_active_by_type(&RTC_TYPE, &rtcDevice);
     }
     return rtcDevice;
 }
@@ -129,6 +129,11 @@ void RtcTimeService::onStop(ServiceContext& serviceContext) {
     if (timeEventSubscription != 0) {
         kernel::unsubscribeSystemEvent(timeEventSubscription);
         timeEventSubscription = 0;
+    }
+
+    if (rtcDevice) {
+        device_put(rtcDevice);
+        rtcDevice = nullptr;
     }
 }
 
