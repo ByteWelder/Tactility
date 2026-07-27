@@ -2,7 +2,6 @@
 
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
-#include <Tactility/file/FileLock.h>
 #include <tactility/log.h>
 
 namespace tt::file {
@@ -55,22 +54,20 @@ bool loadPropertiesFile(const std::string& filePath, std::map<std::string, std::
 }
 
 bool savePropertiesFile(const std::string& filePath, const std::map<std::string, std::string>& properties) {
-    bool result = false;
-    getLock(filePath)->withLock([&result, filePath, &properties] {
-        LOG_I(TAG, "Saving properties file %s", filePath.c_str());
+    FileMutexGuard guard(filePath);
 
-        FILE* file = fopen(filePath.c_str(), "w");
-        if (file == nullptr) {
-            LOG_E(TAG, "Failed to open %s", filePath.c_str());
-            return;
-        }
+    LOG_I(TAG, "Saving properties file %s", filePath.c_str());
 
-        for (const auto& [key, value]: properties) { fprintf(file, "%s=%s\n", key.c_str(), value.c_str()); }
+    FILE* file = fopen(filePath.c_str(), "w");
+    if (file == nullptr) {
+        LOG_E(TAG, "Failed to open %s", filePath.c_str());
+        return false;
+    }
 
-        fclose(file);
-        result = true;
-    });
-    return result;
+    for (const auto& [key, value]: properties) { fprintf(file, "%s=%s\n", key.c_str(), value.c_str()); }
+
+    fclose(file);
+    return true;
 }
 
 }

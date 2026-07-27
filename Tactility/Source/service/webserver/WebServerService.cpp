@@ -1703,8 +1703,7 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             httpd_resp_set_type(request, "image/png");
             httpd_resp_set_hdr(request, "Cache-Control", "public, max-age=86400");
 
-            auto lock = file::getLock(faviconPath);
-            lock->lock(portMAX_DELAY);
+            file::FileMutexGuard guard(faviconPath);
 
             FILE* fp = fopen(faviconPath, "rb");
             if (fp) {
@@ -1713,17 +1712,14 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
                 while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                     if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                         fclose(fp);
-                        lock->unlock();
                         return ESP_FAIL;
                     }
                 }
                 fclose(fp);
-                lock->unlock();
                 httpd_resp_send_chunk(request, nullptr, 0);
                 LOG_I(TAG, "[200] %s (favicon)", uri);
                 return ESP_OK;
             }
-            lock->unlock();
         }
         // If favicon not found, return 404 silently (browsers handle this gracefully)
         httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "Not found");
@@ -1752,9 +1748,8 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
         httpd_resp_set_type(request, getContentType(dataPath));
         
         // Read and send file using standard C FILE* operations
-        auto lock = file::getLock(dataPath);
-        lock->lock(portMAX_DELAY);
-        
+        file::FileMutexGuard guard(dataPath);
+
         FILE* fp = fopen(dataPath.c_str(), "rb");
         if (fp) {
             char buffer[512];
@@ -1762,18 +1757,15 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                 if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                     fclose(fp);
-                    lock->unlock();
                     return ESP_FAIL;
                 }
             }
             fclose(fp);
-            lock->unlock();
 
             httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
             LOG_I(TAG, "[200] %s (from Data)", uri);
             return ESP_OK;
         }
-        lock->unlock();
     }
 
     // Fallback to SD card
@@ -1781,9 +1773,8 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
     if (file::isFile(sdPath.c_str())) {
         httpd_resp_set_type(request, getContentType(sdPath));
         
-        auto lock = file::getLock(sdPath);
-        lock->lock(portMAX_DELAY);
-        
+        file::FileMutexGuard guard(sdPath);
+
         FILE* fp = fopen(sdPath.c_str(), "rb");
         if (fp) {
             char buffer[512];
@@ -1791,18 +1782,15 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                 if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                     fclose(fp);
-                    lock->unlock();
                     return ESP_FAIL;
                 }
             }
             fclose(fp);
-            lock->unlock();
-            
+
             httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
             LOG_I(TAG, "[200] %s (from SD)", uri);
             return ESP_OK;
         }
-        lock->unlock();
     }
     
     // File not found
