@@ -5,6 +5,7 @@
 
 #include <lvgl/lvgl.h>
 #include <lvgl/module.h>
+#include <lvgl/devices/keyboard_private.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
 #include <tactility/time.h>
@@ -51,6 +52,10 @@ error_t lvgl_arch_start() {
     // devices and services. The latter might start adding widgets immediately.
     initialized = true;
 
+    // Must exist before devices/services are attached below, since those can
+    // immediately try to assign an indev to this group (e.g. USB HID input).
+    lvgl_keyboard_on_start_lvgl();
+
     lvgl_devices_attach();
 
     if (lvgl_module_config.on_start) lvgl_module_config.on_start();
@@ -63,8 +68,11 @@ error_t lvgl_arch_stop() {
 
     lvgl_devices_detach();
 
+    lvgl_keyboard_on_stop_lvgl();
+
     if (lvgl_port_deinit() != ESP_OK) {
-        // Call on_start again to recover
+        // Recreate what stop() above tore down, then call on_start again to recover
+        lvgl_keyboard_on_start_lvgl();
         if (lvgl_module_config.on_start) lvgl_module_config.on_start();
         return ERROR_RESOURCE;
     }

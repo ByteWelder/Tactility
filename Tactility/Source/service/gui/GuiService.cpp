@@ -1,4 +1,7 @@
 #include <Tactility/service/gui/GuiService.h>
+
+#include "lvgl/devices/keyboard.h"
+
 #include <Tactility/LogMessages.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/app/AppInstance.h>
@@ -113,7 +116,6 @@ int32_t GuiService::guiMain() {
         return 0;
     }
 
-    service->keyboardGroup = lv_group_create();
     lv_obj_set_style_border_width(screen_root, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_pad_all(screen_root, 0, LV_STATE_DEFAULT);
 
@@ -157,11 +159,12 @@ lv_obj_t* GuiService::createAppViews(lv_obj_t* parent) {
     lv_obj_set_style_border_width(child_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_flex_grow(child_container, 1);
 
-    if (softwareKeyboardIsEnabled()) {
-        keyboard = lv_keyboard_create(parent);
-        lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+    if (lvgl_software_keyboard_is_enabled()) {
+        lvgl_software_keyboard_construct(&software_keyboard, parent);
     } else {
-        keyboard = nullptr;
+        software_keyboard = {
+            nullptr
+        };
     }
 
     return child_container;
@@ -281,9 +284,8 @@ void GuiService::onStop(ServiceContext& service) {
     thread->join();
 
     lvgl_lock();
-    if (keyboardGroup != nullptr) {
-        lv_group_delete(keyboardGroup);
-        keyboardGroup = nullptr;
+    if (software_keyboard.object != nullptr) {
+        lvgl_software_keyboard_destruct(&software_keyboard);
     }
 
     auto* default_group = lv_group_get_default();

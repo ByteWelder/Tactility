@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
+#include <tactility/device.h>
 #include <tactility/drivers/keyboard.h>
 #include <tactility/error.h>
-#include <tactility/device.h>
 
 #define KEYBOARD_DRIVER_API(driver) ((struct KeyboardApi*)driver->api)
 
