@@ -9,10 +9,10 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/KeyboardSettings.h>
 
+#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/keyboard.h>
-#include <lvgl/lvgl.h>
 
 namespace tt::service::keyboardidle {
 

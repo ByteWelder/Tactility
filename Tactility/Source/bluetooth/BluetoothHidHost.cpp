@@ -10,7 +10,6 @@
 
 #include <Tactility/Assets.h>
 #include <Tactility/Tactility.h>
-#include <Tactility/lvgl/Keyboard.h>
 
 #include <tactility/log.h>
 
@@ -22,6 +21,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
+#include <lvgl/devices/keyboard.h>
 #include <lvgl/lvgl.h>
 
 #include <algorithm>
@@ -470,11 +470,12 @@ static void hidHostSubscribeNext(HidHostCtx& ctx) {
         getMainDispatcher().dispatch([] {
             if (!hid_host_ctx || hid_host_ctx->kbIndev != nullptr) return;
             if (!lvgl_try_lock(1000)) { LOG_W(TAG, "LVGL lock failed for kb indev"); return; }
+
             auto* kb = lv_indev_create();
             lv_indev_set_type(kb, LV_INDEV_TYPE_KEYPAD);
             lv_indev_set_read_cb(kb, hidHostKeyboardReadCb);
             hid_host_ctx->kbIndev = kb;
-            lvgl::hardware_keyboard_set_indev(kb);
+            lvgl_hardware_keyboard_add_custom(kb);
             lvgl_unlock();
             LOG_I(TAG, "Keyboard indev registered");
         });
@@ -707,7 +708,7 @@ static int hidHostGapCb(struct ble_gap_event* event, void* /*arg*/) {
                     return;
                 }
                 if (saved_kb) {
-                    lvgl::hardware_keyboard_set_indev(nullptr);
+                    lvgl_hardware_keyboard_remove_custom(saved_kb);
                     lv_indev_delete(saved_kb);
                 }
                 if (saved_mouse)  lv_indev_delete(saved_mouse);

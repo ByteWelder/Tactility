@@ -12,6 +12,7 @@
 
 #include <lvgl/lvgl.h>
 #include <lvgl/module.h>
+#include <lvgl/devices/keyboard_private.h>
 
 extern struct LvglModuleConfig lvgl_module_config;
 extern void lvgl_devices_attach();
@@ -118,6 +119,10 @@ error_t lvgl_arch_start() {
 
     lv_init();
 
+    // Must exist before devices/services are attached from the lvgl task below,
+    // since those can immediately try to assign an indev to this group.
+    lvgl_keyboard_on_start_lvgl();
+
     // Create the main app loop, like ESP-IDF
     BaseType_t task_result = xTaskCreate(
         lvgl_task,
@@ -146,6 +151,8 @@ error_t lvgl_arch_stop() {
             return ERROR_TIMEOUT;
         }
     }
+
+    lvgl_keyboard_on_stop_lvgl();
 
     lv_deinit();
 

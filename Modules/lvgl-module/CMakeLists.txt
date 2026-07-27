@@ -92,6 +92,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../Buildscripts/module.cmake")
 tactility_add_module(lvgl-module
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS include/
+    PRIV_INCLUDE_DIRS private/
     REQUIRES ${REQUIRES_LIST}
 )
 

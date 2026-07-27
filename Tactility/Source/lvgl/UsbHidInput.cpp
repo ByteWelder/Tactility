@@ -3,7 +3,6 @@
 #ifdef ESP_PLATFORM
 
 #include <Tactility/Assets.h>
-#include <Tactility/lvgl/Keyboard.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_hid.h>
@@ -15,6 +14,7 @@
 #include <freertos/semphr.h>
 
 #include <lvgl/lvgl.h>
+#include <lvgl/devices/keyboard.h>
 
 #include <atomic>
 
@@ -171,6 +171,7 @@ static void usbHidInputTask(void* arg) {
     lv_indev_set_read_cb(ctx->kb_indev, keyboard_read_cb);
     lv_indev_set_user_data(ctx->kb_indev, ctx);
     lv_indev_set_group(ctx->kb_indev, lv_group_get_default());
+    lvgl_hardware_keyboard_add_custom(ctx->kb_indev);
 
     lvgl_unlock();
 
@@ -230,13 +231,15 @@ static void usbHidInputTask(void* arg) {
         }
         case USB_HID_EVENT_KEYBOARD_CONNECTED:
             if (ctx->kb_indev && lvgl_try_lock(pdMS_TO_TICKS(200))) {
-                hardware_keyboard_set_indev(ctx->kb_indev);
+                lvgl_hardware_keyboard_add_custom(ctx->kb_indev);
                 lvgl_unlock();
             }
             break;
         case USB_HID_EVENT_KEYBOARD_DISCONNECTED:
             if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
-                hardware_keyboard_set_indev(nullptr);
+                if (ctx->kb_indev) {
+                    lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
+                }
                 lvgl_unlock();
             }
             break;
@@ -263,7 +266,7 @@ static void usbHidInputTask(void* arg) {
     if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
     if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
     if (ctx->kb_indev) {
-        hardware_keyboard_set_indev(nullptr);
+        lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
         lv_indev_delete(ctx->kb_indev);
         ctx->kb_indev = nullptr;
     }
@@ -347,7 +350,7 @@ void stopUsbHidInput() {
             if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
             if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
             if (ctx->kb_indev) {
-                hardware_keyboard_set_indev(nullptr);
+                lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
                 lv_indev_delete(ctx->kb_indev);
                 ctx->kb_indev = nullptr;
             }

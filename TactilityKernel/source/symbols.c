@@ -9,9 +9,9 @@
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/bluetooth.h>
-#include <tactility/drivers/bluetooth_serial.h>
-#include <tactility/drivers/bluetooth_midi.h>
 #include <tactility/drivers/bluetooth_hid_device.h>
+#include <tactility/drivers/bluetooth_midi.h>
+#include <tactility/drivers/bluetooth_serial.h>
 #include <tactility/drivers/camera.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -35,14 +35,14 @@
 #include <tactility/drivers/usb_host_msc.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/error.h>
-#include <tactility/filesystem/file_system.h>
 #include <tactility/filesystem/file_mutex.h>
+#include <tactility/filesystem/file_system.h>
 #include <tactility/memory.h>
 #include <tactility/module.h>
-#include <tactility/wifi_auto_scan.h>
 #include <tactility/service/service_instance.h>
 #include <tactility/service/service_manager.h>
 #include <tactility/service/service_paths.h>
+#include <tactility/wifi_auto_scan.h>
 
 #ifndef ESP_PLATFORM
 #include <tactility/log.h>
