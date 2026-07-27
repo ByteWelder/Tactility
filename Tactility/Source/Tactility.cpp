@@ -40,6 +40,7 @@
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/uart_controller.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
@@ -323,9 +324,9 @@ void createTempDirectory() {
     auto data_path = getUserDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
-        auto lockable = file::getLock(data_path);
-        auto lock = lockable->asScopedLock();
-        if (lock.lock(1000 / portTICK_PERIOD_MS)) {
+        FileMutex mutex;
+        file_mutex_get(&mutex, data_path.c_str());
+        if (file_mutex_try_lock(&mutex, 1000 / portTICK_PERIOD_MS)) {
             if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
                 LOG_E(TAG, "Failed to create %s", data_path.c_str());
             } else if (mkdir(temp_path.c_str(), 0777) == 0) {
@@ -333,6 +334,7 @@ void createTempDirectory() {
             } else {
                 LOG_E(TAG, "Failed to create %s", temp_path.c_str());
             }
+            file_mutex_unlock(&mutex);
         } else {
             LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, data_path.c_str());
         }

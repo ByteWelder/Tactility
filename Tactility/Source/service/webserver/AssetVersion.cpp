@@ -30,13 +30,11 @@ static bool loadVersionFromFile(const char* path, AssetVersion& version) {
     // Read file content
     std::string content;
     {
-        auto lock = file::getLock(path);
-        lock->lock(portMAX_DELAY);
+        file::FileMutexGuard guard(path);
 
         FILE* fp = fopen(path, "r");
         if (!fp) {
             LOG_E(TAG, "Failed to open version file: %s", path);
-            lock->unlock();
             return false;
         }
 
@@ -44,7 +42,6 @@ static bool loadVersionFromFile(const char* path, AssetVersion& version) {
         size_t bytesRead = fread(buffer, 1, sizeof(buffer) - 1, fp);
         bool readError = ferror(fp) != 0;
         fclose(fp);
-        lock->unlock();
 
         if (readError) {
             LOG_E(TAG, "Error reading version file: %s", path);
@@ -117,9 +114,8 @@ static bool saveVersionToFile(const char* path, const AssetVersion& version) {
     // Write to file
     bool success = false;
     {
-        auto lock = file::getLock(path);
-        lock->lock(portMAX_DELAY);
-        
+        file::FileMutexGuard guard(path);
+
         FILE* fp = fopen(path, "w");
         if (fp) {
             size_t len = strlen(jsonString);
@@ -139,7 +135,6 @@ static bool saveVersionToFile(const char* path, const AssetVersion& version) {
             }
             fclose(fp);
         }
-        lock->unlock();
     }
     
     cJSON_free(jsonString);

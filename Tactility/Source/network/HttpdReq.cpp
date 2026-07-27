@@ -186,9 +186,7 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     char buffer[BUFFER_SIZE];
     size_t bytes_received = 0;
 
-    auto lockable = file::getLock(filePath);
-    auto lock = lockable->asScopedLock();
-    lock.lock();
+    file::FileMutexGuard guard(filePath);
 
     auto* file = fopen(filePath.c_str(), "wb");
     if (file == nullptr) {

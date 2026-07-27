@@ -13,6 +13,7 @@
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_msc.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <lvgl/lvgl.h>
@@ -101,17 +102,21 @@ static void onPastePressedCallback(lv_event_t* event) {
 // region File helpers
 
 static bool copyFileContents(const std::string& src, const std::string& dst) {
-    auto src_lock = file::getLock(src);
-    auto dst_lock = file::getLock(dst);
-    const bool same_lock = (src_lock.get() == dst_lock.get());
+    FileMutex src_mutex;
+    file_mutex_get(&src_mutex, src.c_str());
+    FileMutex dst_mutex;
+    file_mutex_get(&dst_mutex, dst.c_str());
+    const bool same_lock = (src_mutex.lock == dst_mutex.lock &&
+        src_mutex.try_lock == dst_mutex.try_lock &&
+        src_mutex.unlock == dst_mutex.unlock);
 
     auto unlock_all = [&] {
-        if (!same_lock) dst_lock->unlock();
-        src_lock->unlock();
+        if (!same_lock) file_mutex_unlock(&dst_mutex);
+        file_mutex_unlock(&src_mutex);
     };
 
-    src_lock->lock();
-    if (!same_lock) dst_lock->lock();
+    file_mutex_lock(&src_mutex);
+    if (!same_lock) file_mutex_lock(&dst_mutex);
 
     FILE* in = fopen(src.c_str(), "rb");
     if (in == nullptr) {
@@ -155,11 +160,12 @@ static bool copyRecursive(const std::string& src, const std::string& dst) {
 
         // Process one entry at a time: release the device lock between iterations
         // so other SPI bus users aren't starved, and stop immediately on failure.
-        auto lock = file::getLock(src);
-        lock->lock();
+        FileMutex mutex;
+        file_mutex_get(&mutex, src.c_str());
+        file_mutex_lock(&mutex);
         DIR* dir = opendir(src.c_str());
         if (!dir) {
-            lock->unlock();
+            file_mutex_unlock(&mutex);
             file::deleteRecursively(dst);
             return false;
         }
@@ -171,14 +177,14 @@ static bool copyRecursive(const std::string& src, const std::string& dst) {
             if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
 
             std::string name = entry->d_name; // copy before releasing lock
-            lock->unlock();
+            file_mutex_unlock(&mutex);
 
             success = copyRecursive(file::getChildPath(src, name), file::getChildPath(dst, name));
 
-            lock->lock();
+            file_mutex_lock(&mutex);
         }
         closedir(dir);
-        lock->unlock();
+        file_mutex_unlock(&mutex);
 
         if (!success) {
             file::deleteRecursively(dst);
@@ -593,12 +599,10 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                         LOG_W(TAG, "Failed to delete %s", filepath.c_str());
                     }
                 } else if (file::isFile(filepath)) {
-                    auto lock = file::getLock(filepath);
-                    lock->lock();
+                    file::FileMutexGuard guard(filepath);
                     if (remove(filepath.c_str()) != 0) {
                         LOG_W(TAG, "Failed to delete %s", filepath.c_str());
                     }
-                    lock->unlock();
                 }
 
                 state->setEntriesForPath(state->getCurrentPath());
@@ -609,23 +613,22 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
         case State::ActionRename: {
             auto new_name = inputdialog::getResult(*bundle);
             if (!new_name.empty() && new_name != state->getSelectedChildEntry()) {
-                auto lock = file::getLock(filepath);
-                lock->lock();
                 std::string rename_to = file::getChildPath(state->getCurrentPath(), new_name);
-                struct stat st;
-                if (stat(rename_to.c_str(), &st) == 0) {
-                    LOG_W(TAG, "Rename: destination already exists: \"%s\"", rename_to.c_str());
-                    lock->unlock();
-                    state->setPendingAction(State::ActionNone);
-                    alertdialog::start("Rename failed", "\"" + new_name + "\" already exists.");
-                    break;
+                {
+                    file::FileMutexGuard guard(filepath);
+                    struct stat st;
+                    if (stat(rename_to.c_str(), &st) == 0) {
+                        LOG_W(TAG, "Rename: destination already exists: \"%s\"", rename_to.c_str());
+                        state->setPendingAction(State::ActionNone);
+                        alertdialog::start("Rename failed", "\"" + new_name + "\" already exists.");
+                        break;
+                    }
+                    if (rename(filepath.c_str(), rename_to.c_str()) == 0) {
+                        LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                    } else {
+                        LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
+                    }
                 }
-                if (rename(filepath.c_str(), rename_to.c_str()) == 0) {
-                    LOG_I(TAG, "Renamed \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
-                } else {
-                    LOG_E(TAG, "Failed to rename \"%s\" to \"%s\"", filepath.c_str(), rename_to.c_str());
-                }
-                lock->unlock();
 
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
@@ -637,24 +640,23 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             if (!filename.empty()) {
                 std::string new_file_path = file::getChildPath(state->getCurrentPath(), filename);
 
-                auto lock = file::getLock(new_file_path);
-                lock->lock();
+                {
+                    file::FileMutexGuard guard(new_file_path);
 
-                struct stat st;
-                if (stat(new_file_path.c_str(), &st) == 0) {
-                    LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
-                    lock->unlock();
-                    break;
-                }
+                    struct stat st;
+                    if (stat(new_file_path.c_str(), &st) == 0) {
+                        LOG_W(TAG, "File already exists: \"%s\"", new_file_path.c_str());
+                        break;
+                    }
 
-                FILE* new_file = fopen(new_file_path.c_str(), "w");
-                if (new_file) {
-                    fclose(new_file);
-                    LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
-                } else {
-                    LOG_E(TAG, "Failed to create file \"%s\"", new_file_path.c_str());
+                    FILE* new_file = fopen(new_file_path.c_str(), "w");
+                    if (new_file) {
+                        fclose(new_file);
+                        LOG_I(TAG, "Created file \"%s\"", new_file_path.c_str());
+                    } else {
+                        LOG_E(TAG, "Failed to create file \"%s\"", new_file_path.c_str());
+                    }
                 }
-                lock->unlock();
 
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
@@ -666,22 +668,21 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
             if (!foldername.empty()) {
                 std::string new_folder_path = file::getChildPath(state->getCurrentPath(), foldername);
 
-                auto lock = file::getLock(new_folder_path);
-                lock->lock();
+                {
+                    file::FileMutexGuard guard(new_folder_path);
 
-                struct stat st;
-                if (stat(new_folder_path.c_str(), &st) == 0) {
-                    LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
-                    lock->unlock();
-                    break;
-                }
+                    struct stat st;
+                    if (stat(new_folder_path.c_str(), &st) == 0) {
+                        LOG_W(TAG, "Folder already exists: \"%s\"", new_folder_path.c_str());
+                        break;
+                    }
 
-                if (mkdir(new_folder_path.c_str(), 0755) == 0) {
-                    LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
-                } else {
-                    LOG_E(TAG, "Failed to create folder \"%s\"", new_folder_path.c_str());
+                    if (mkdir(new_folder_path.c_str(), 0755) == 0) {
+                        LOG_I(TAG, "Created folder \"%s\"", new_folder_path.c_str());
+                    } else {
+                        LOG_E(TAG, "Failed to create folder \"%s\"", new_folder_path.c_str());
+                    }
                 }
-                lock->unlock();
 
                 state->setEntriesForPath(state->getCurrentPath());
                 update();
@@ -693,6 +694,30 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                 auto clipboard = state->getClipboard();
                 if (clipboard.has_value()) {
                     std::string dst = state->getPendingPasteDst();
+
+                    // dst was last checked before the dialog was shown; a writer could
+                    // have replaced it while the user was looking at the confirmation.
+                    // Revalidate right before the destructive delete so we only ever
+                    // remove the exact file the user agreed to overwrite.
+                    bool dst_unchanged;
+                    {
+                        file::FileMutexGuard guard(dst);
+                        struct stat current_stat {};
+                        dst_unchanged = (stat(dst.c_str(), &current_stat) == 0) &&
+                            state->pendingPasteDstMatches(current_stat);
+                    }
+                    state->clearPendingPasteDstStat();
+
+                    if (!dst_unchanged) {
+                        LOG_W(TAG, "Overwrite: destination \"%s\" changed since confirmation, aborting", dst.c_str());
+                        state->setPendingAction(State::ActionNone);
+                        alertdialog::start(
+                            "Overwrite aborted",
+                            "\"" + file::getLastPathSegment(dst) + "\" changed while the dialog was open. Please try again."
+                        );
+                        break;
+                    }
+
                     // Trade-off: dst is removed before the copy attempt. If doPaste
                     // subsequently fails (e.g. source read error, out of space), the
                     // original dst data is unrecoverable. Acceptable for an embedded
@@ -709,6 +734,8 @@ void View::onResult(LaunchId launchId, Result result, std::unique_ptr<Bundle> bu
                         );
                     }
                 }
+            } else {
+                state->clearPendingPasteDstStat();
             }
             break;
         }
@@ -742,23 +769,28 @@ void View::onPastePressed() {
     std::string entry_name = file::getLastPathSegment(src);
     std::string dst = file::getChildPath(state->getCurrentPath(), entry_name);
 
-    // Note: getLock(src) guards the source path; the existence check below is
-    // against dst, so there is a TOCTOU gap — another writer could create dst
-    // between this check and the write inside doPaste.  Acceptable on a
-    // single-user embedded device; locking dst instead would be more correct.
+    // Note: FileMutexGuard(src) guards the source path; the existence check below is
+    // against dst, so there is a TOCTOU gap between this check and the write inside
+    // doPaste. When dst exists, the overwrite-confirm path below re-validates dst's
+    // stat immediately before the destructive delete (see ActionPaste in onResult),
+    // closing the window that matters (the dialog being open). When dst does not
+    // exist here, doPaste's write can still race a concurrent creator; acceptable on
+    // a single-user embedded device.
     if (src == dst) {
         LOG_I(TAG, "Paste: source and destination are the same path, skipping");
         return;
     }
-    auto lock = file::getLock(src);
-    lock->lock();
 
-    struct stat st;
-    bool dst_exists = (stat(dst.c_str(), &st) == 0);
-    lock->unlock();
+    bool dst_exists;
+    struct stat dst_stat {};
+    {
+        file::FileMutexGuard guard(src);
+        dst_exists = (stat(dst.c_str(), &dst_stat) == 0);
+    }
 
     if (dst_exists) {
         state->setPendingPasteDst(dst);
+        state->setPendingPasteDstStat(dst_stat);
         state->setPendingAction(State::ActionPaste);
         const std::vector<std::string> choices = {"Overwrite", "Cancel"};
         alertdialog::start("File exists", "Overwrite \"" + entry_name + "\"?", choices);
@@ -772,10 +804,10 @@ void View::doPaste(const std::string& src, bool is_cut, const std::string& dst) 
     bool success = false;
     bool src_delete_failed = false;
     if (is_cut) {
-        auto lock = file::getLock(src);
-        lock->lock();
-        success = (rename(src.c_str(), dst.c_str()) == 0);
-        lock->unlock();
+        {
+            file::FileMutexGuard guard(src);
+            success = (rename(src.c_str(), dst.c_str()) == 0);
+        }
         if (!success) {
             // Fallback for cross-filesystem moves: copy then delete.
             // Only mark success if both halves succeed — if the source removal

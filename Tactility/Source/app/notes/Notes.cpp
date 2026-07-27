@@ -2,7 +2,6 @@
 
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/fileselection/FileSelection.h>
-#include <Tactility/file/FileLock.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/file/File.h>
 
@@ -83,29 +82,29 @@ class NotesApp final : public App {
 
     void openFile(const std::string& path) {
         // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-        file::getLock(path)->withLock([this, path] {
-            auto data = file::readString(path);
-            if (data != nullptr) {
-                lvgl_lock();
-                lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
-                lv_label_set_text(uiCurrentFileName, path.c_str());
-                lvgl_unlock();
-                filePath = path;
-                LOG_I(TAG, "Loaded from %s", path.c_str());
-            }
-        });
+        file::FileMutexGuard guard(path);
+        auto data = file::readString(path);
+        if (data != nullptr) {
+            lvgl_lock();
+            lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
+            lv_label_set_text(uiCurrentFileName, path.c_str());
+            lvgl_unlock();
+            filePath = path;
+            LOG_I(TAG, "Loaded from %s", path.c_str());
+        }
     }
 
     bool saveFile(const std::string& path) {
         // We might be writing to SD card, which could share a SPI bus with other devices (display)
         bool result = false;
-        file::getLock(path)->withLock([&result, this, path] {
-           if (file::writeString(path, saveBuffer.c_str())) {
-               LOG_I(TAG, "Saved to %s", path.c_str());
-               filePath = path;
-               result = true;
-           }
-        });
+        {
+            file::FileMutexGuard guard(path);
+            if (file::writeString(path, saveBuffer.c_str())) {
+                LOG_I(TAG, "Saved to %s", path.c_str());
+                filePath = path;
+                result = true;
+            }
+        }
         return result;
     }
 
