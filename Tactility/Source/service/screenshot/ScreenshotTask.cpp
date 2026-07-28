@@ -8,6 +8,7 @@
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/screenshot/ScreenshotTask.h>
 
+#include <tactility/delay.h>
 #include <tactility/log.h>
 
 #include <lvgl/lvgl.h>
@@ -71,7 +72,7 @@ void ScreenshotTask::taskMain() {
         if (work.type == TASK_WORK_TYPE_DELAY) {
             // Splitting up the delays makes it easier to stop the service
             for (int i = 0; i < (work.delay_in_seconds * 10) && !isInterrupted(); ++i){
-                kernel::delayMillis(100);
+                delay_millis(100);
             }
 
             if (!isInterrupted()) {
@@ -88,14 +89,14 @@ void ScreenshotTask::taskMain() {
             if (appContext != nullptr) {
                 const app::AppManifest& manifest = appContext->getManifest();
                 if (manifest.appId != last_app_id) {
-                    kernel::delayMillis(100);
+                    delay_millis(100);
                     last_app_id = manifest.appId;
                     auto filename = std::format("{}/screenshot-{}.png", work.path, manifest.appId);
                     makeScreenshot(filename);
                 }
             }
             // Ensure the LVGL widgets are rendered as the app just started
-            kernel::delayMillis(250);
+            delay_millis(250);
         }
     }
 

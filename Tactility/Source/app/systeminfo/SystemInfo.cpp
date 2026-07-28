@@ -1,8 +1,11 @@
-#include <Tactility/TactilityConfig.h>
-#include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Tactility.h>
-#include <Tactility/Timer.h>
+#include "tactility/time.h"
+
+
 #include <Tactility/Paths.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/TactilityConfig.h>
+#include <Tactility/Timer.h>
+#include <Tactility/lvgl/Toolbar.h>
 
 #include <algorithm>
 #include <cstring>
@@ -242,7 +245,7 @@ static std::shared_ptr<SystemInfoApp> optApp() {
 }
 
 class SystemInfoApp final : public App {
-    Timer memoryTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(10000), [] {
+    Timer memoryTimer = Timer(Timer::Type::Periodic, millis_to_ticks(10000), [] {
         auto app = optApp();
         if (app) {
             lvgl_lock();
@@ -251,7 +254,7 @@ class SystemInfoApp final : public App {
         }
     });
 
-    Timer tasksTimer = Timer(Timer::Type::Periodic, kernel::millisToTicks(15000), [] {
+    Timer tasksTimer = Timer(Timer::Type::Periodic, millis_to_ticks(15000), [] {
         auto app = optApp();
         if (app) {
             lvgl_lock();

@@ -1,6 +1,8 @@
-#include "Tactility/lvgl/Lvgl.h"
-#include "tactility/drivers/backlight.h"
-#include "tactility/drivers/display.h"
+#include <tactility/delay.h>
+#include <tactility/drivers/backlight.h>
+#include <tactility/drivers/display.h>
+#include <tactility/log.h>
+#include <tactility/time.h>
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/Paths.h>
@@ -10,13 +12,13 @@
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/hal/usb/Usb.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/BootSettings.h>
 #include <Tactility/settings/DisplaySettings.h>
 
 #include <lvgl.h>
-#include <tactility/log.h>
 
 #include <atomic>
 
@@ -108,23 +110,23 @@ class BootApp : public App {
     }
 
     static void waitForMinimalSplashDuration(TickType_t startTime) {
-        const auto end_time = kernel::getTicks();
+        const auto end_time = get_ticks();
         const auto ticks_passed = end_time - startTime;
         constexpr auto minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
         if (minimum_ticks > ticks_passed) {
-            kernel::delayTicks(minimum_ticks - ticks_passed);
+            delay_ticks(minimum_ticks - ticks_passed);
         }
     }
 
     static int32_t bootThreadCallback() {
         LOG_I(TAG, "Starting boot thread");
-        const auto start_time = kernel::getTicks();
+        const auto start_time = get_ticks();
 
         // Give the UI some time to redraw
         // If we don't do this, various init calls will read files and block SPI IO for the display
         // This would result in a blank/black screen being shown during this phase of the boot process
         // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
-        kernel::delayMillis(10);
+        delay_millis(10);
 
         // TODO: Support for multiple displays
         LOG_I(TAG, "Setup display");

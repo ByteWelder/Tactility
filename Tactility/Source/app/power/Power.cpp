@@ -6,6 +6,7 @@
 
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
+#include <tactility/time.h>
 
 #include <lvgl/lvgl.h>
 #include <lvgl/icons/shared.h>
@@ -53,7 +54,7 @@ struct DeviceEntry {
 
 class PowerApp : public App {
 
-    Timer update_timer = Timer(Timer::Type::Periodic, kernel::millisToTicks(1000),[]() { onTimer(); });
+    Timer update_timer = Timer(Timer::Type::Periodic, millis_to_ticks(1000),[]() { onTimer(); });
 
     std::vector<DeviceEntry> entries;
 
