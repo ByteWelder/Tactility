@@ -12,6 +12,7 @@
 
 #include "defines.h"
 #include <tactility/freertos/port.h>
+#include <tactility/freertos/task.h>
 
 #ifdef ESP_PLATFORM
 #include <esp_timer.h>
