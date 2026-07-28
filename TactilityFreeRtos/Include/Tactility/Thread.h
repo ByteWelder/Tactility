@@ -224,7 +224,7 @@ public:
     /**
      * @warning If this blocks forever, it might be because of the Thread, but it could also be because another task is blocking the CPU.
      */
-    bool join(TickType_t timeout = kernel::MAX_TICKS, TickType_t pollInterval = 10) {
+    bool join(TickType_t timeout = kernel::FREERTOS_MAX_TICKS, TickType_t pollInterval = 10) {
         assert(getCurrent() != this);
 
         TickType_t start_ticks = kernel::getTicks();

@@ -2,7 +2,6 @@
 
 ## Before release
 
-- WebServer service shouldn't save webserver.properties at start, it slows the boot process
 - Remove incubating flag from various devices
 - Add `// SPDX-License-Identifier: GPL-3.0-only` and `// SPDX-License-Identifier: Apache-2.0` to individual files in the project
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
@@ -13,7 +12,6 @@
 
 ## Higher Priority
 
-- Bluetooth app: when toggling BT on, it doesn't update the UI with discovered devices. It only works after re-opening the app.
 - display.h API: get_backlight does not change ref counting, but it should
 - bluetooth: various getters for child devices do not change ref counting, but they should
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()

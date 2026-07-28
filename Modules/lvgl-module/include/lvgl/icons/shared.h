@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 #pragma once
 
 #define LVGL_ICON_SHARED_ADD "\xEE\x85\x85"

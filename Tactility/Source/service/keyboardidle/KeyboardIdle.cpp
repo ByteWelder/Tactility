@@ -2,6 +2,7 @@
 
 #include <display/lv_display.h>
 
+#include <lvgl/lvgl.h>
 
 #include <Tactility/Timer.h>
 #include <Tactility/service/ServiceContext.h>
@@ -9,10 +10,10 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/KeyboardSettings.h>
 
-#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/keyboard.h>
+#include <tactility/time.h>
 
 namespace tt::service::keyboardidle {
 
@@ -92,7 +93,7 @@ public:
         // Note: Settings changes require service restart to take effect
         // TODO: Add KeyboardSettingsChanged events for dynamic updates
         
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::millisToTicks(250), [this]{ this->tick(); });
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, millis_to_ticks(250), [this]{ this->tick(); });
         timer->setCallbackPriority(Thread::Priority::Lower);
         timer->start();
         return true;

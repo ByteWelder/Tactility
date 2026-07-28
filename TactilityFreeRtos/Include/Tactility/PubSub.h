@@ -43,7 +43,7 @@ public:
         }
 
         // Wait for Mutex usage
-        if (mutex.lock(kernel::MAX_TICKS)) {
+        if (mutex.lock(kernel::FREERTOS_MAX_TICKS)) {
             // TODO: Fix the case where the mutex might be immediately locked after this point and then crashes when deleted
             mutex.unlock();
         }

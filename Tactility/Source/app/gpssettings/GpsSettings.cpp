@@ -8,6 +8,7 @@
 #include <Tactility/lvgl/Toolbar.h>
 
 #include <tactility/device.h>
+#include <tactility/time.h>
 
 #include <atomic>
 #include <cstring>
@@ -211,7 +212,7 @@ public:
     GpsSettingsApp() {
         // Runs while the screen is shown - there's no push notification for GPS device state
         // changes, so this is the only way this screen finds out about them.
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::secondsToTicks(1), [this] {
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, seconds_to_ticks(1), [this] {
             updateDeviceStates();
         });
     }

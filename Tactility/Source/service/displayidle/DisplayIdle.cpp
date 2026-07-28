@@ -1,6 +1,8 @@
 #ifdef ESP_PLATFORM
 
 #include <Tactility/service/displayidle/DisplayIdleService.h>
+#include <Tactility/service/ServiceManifest.h>
+#include <Tactility/service/ServiceRegistration.h>
 
 #include "BouncingBallsScreensaver.h"
 #include "MatrixRainScreensaver.h"
@@ -8,14 +10,14 @@
 #include "Screensaver.h"
 #include "StackChanScreensaver.h"
 
-#include <Tactility/service/ServiceManifest.h>
-#include <Tactility/service/ServiceRegistration.h>
 #include <cstdlib>
 #include <ctime>
 
+#include <tactility/delay.h>
 #include <tactility/log.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/backlight.h>
+
 #include <lvgl/lvgl.h>
 
 namespace tt::service::displayidle {
@@ -221,7 +223,7 @@ bool DisplayIdleService::onStart(ServiceContext& service) {
 
     cachedDisplaySettings = settings::display::loadOrGetDefault();
 
-    timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::millisToTicks(TICK_INTERVAL_MS), [this]{ this->tick(); });
+    timer = std::make_unique<Timer>(Timer::Type::Periodic, millis_to_ticks(TICK_INTERVAL_MS), [this]{ this->tick(); });
     timer->setCallbackPriority(Thread::Priority::Lower);
     timer->start();
     return true;
@@ -238,7 +240,7 @@ void DisplayIdleService::onStop(ServiceContext& service) {
         for (int i = 0; i < maxRetries && screensaverOverlay; ++i) {
             stopScreensaver();
             if (screensaverOverlay && i < maxRetries - 1) {
-                kernel::delayMillis(50); // Brief delay before retry
+                delay_millis(50); // Brief delay before retry
             }
         }
         if (screensaverOverlay) {

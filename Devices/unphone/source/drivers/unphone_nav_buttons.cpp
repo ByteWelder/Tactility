@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "unphone_nav_buttons.h"
 
+#include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -76,9 +77,9 @@ static int32_t nav_buttons_thread_main(UnphoneNavButtonsInternal* internal) {
 
             // Debounce all events for a short period of time
             // This is easier than keeping track when each button was last pressed
-            tt::kernel::delayMillis(50);
+            delay_millis(50);
             xQueueReset(internal->event_queue);
-            tt::kernel::delayMillis(50);
+            delay_millis(50);
             xQueueReset(internal->event_queue);
         }
     }

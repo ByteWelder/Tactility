@@ -1,4 +1,5 @@
 #include <tactility/module.h>
+#include <tactility/delay.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
 
@@ -42,7 +43,7 @@ static error_t start() {
     }
 
     // Avoids crash when no SD card is inserted. It's unknown why, but likely is related to power draw.
-    tt::kernel::delayMillis(100);
+    delay_millis(100);
 
     subscribe_events();
 

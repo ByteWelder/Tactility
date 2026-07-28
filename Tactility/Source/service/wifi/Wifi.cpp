@@ -11,12 +11,12 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/WifiBootSplashInit.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
-#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
+#include <tactility/time.h>
 #include <tactility/wifi_auto_scan.h>
 
 #include <algorithm>
@@ -76,7 +76,7 @@ struct WifiServiceState {
     bool connectionTargetRemember = false;
     settings::WifiApSettings connectionTarget;
     uint16_t scanRecordLimit = TT_WIFI_SCAN_RECORD_LIMIT;
-    TickType_t lastScanTime = kernel::MAX_TICKS;
+    TickType_t lastScanTime = MAX_TICKS;
     std::unique_ptr<Timer> autoConnectTimer;
     kernel::SystemEventSubscription bootEventSubscription = kernel::NoSystemEventSubscription;
 };
@@ -165,7 +165,7 @@ void dispatchScan() {
     LOG_I(TAG, "dispatchScan()");
     if (!started || state.device == nullptr || !device_is_ready(state.device)) return;
 
-    state.lastScanTime = kernel::getTicks();
+    state.lastScanTime = get_ticks();
 
     error_t result = wifi_scan(state.device);
     if (result != ERROR_NONE) {
@@ -263,7 +263,7 @@ bool shouldScanForAutoConnect() {
         !state.pauseAutoConnect && !state.externalScanPause.load();
     if (!radio_scannable) return false;
 
-    TickType_t current_time = kernel::getTicks();
+    TickType_t current_time = get_ticks();
     bool scan_time_has_looped = current_time < state.lastScanTime;
     bool no_recent_scan = (current_time - state.lastScanTime) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
     return scan_time_has_looped || no_recent_scan;
