@@ -180,6 +180,21 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
     BleCtx* ctx = ble_get_ctx(device);
     s_scan_ctx = ctx;
 
+    // Don't start (or chain into) a new GAP connection once the radio is going down
+    // (or is already off) — ble_gap_connect() racing nimble_port_stop() can block the
+    // NimBLE host task and hang the stop, same class of bug as the OFF_PENDING guard
+    // on advertising restart in gap_event_handler's BLE_GAP_EVENT_DISCONNECT case.
+    // This is reached both right after a scan (BLE_GAP_EVENT_DISC_COMPLETE) and
+    // recursively from name_res_gap_callback, so guarding here covers both.
+    if (ctx->radio_state.load() != BT_RADIO_STATE_ON) {
+        LOG_I(TAG, "Name resolution: aborting (radio not on)");
+        ble_set_scan_active(device, false);
+        struct BtEvent e = {};
+        e.type = BT_EVENT_SCAN_FINISHED;
+        ble_publish_event(device, e);
+        return;
+    }
+
     // Skip if a profile server or HID host connection attempt is active —
     // initiating a central connection simultaneously would fail (BLE_HS_EALREADY).
     if (ble_midi_get_active(device) || ble_spp_get_active(device) ||

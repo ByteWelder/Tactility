@@ -33,6 +33,10 @@ static void onBtToggled(bool requestOn) {
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
             bluetooth::stop(dev);
+            // Stopping the device frees the driver's callback list, so any prior
+            // registration is gone; clear our tracked state to match.
+            auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
+            bt->forgetCallbackRegistration();
         }
         device_put(dev);
     } else {
@@ -96,13 +100,19 @@ void BtManage::unlock() {
 }
 
 void BtManage::requestViewUpdate() {
+    // Lock order must match onShow()/onHide(): both run under GuiService's lvgl_lock()
+    // and then take `mutex` internally. Taking `mutex` before lvgl_lock() here would
+    // invert that order and deadlock against a concurrent onHide()/onShow() (GUI task
+    // holding LVGL lock, waiting on `mutex`; this task holding `mutex`, waiting on LVGL
+    // lock) - exactly what happens when BT events fire rapidly (e.g. during scanning)
+    // while the app is being hidden.
+    lvgl_lock();
     lock();
     if (isViewEnabled) {
-        lvgl_lock();
         view.update();
-        lvgl_unlock();
     }
     unlock();
+    lvgl_unlock();
 }
 
 void BtManage::onBtEvent(const BtEvent& event) {
@@ -154,16 +164,36 @@ static void onKernelBtEvent(Device* /*device*/, void* context, BtEvent event) {
     // nimble_port_stop), creating a permanent deadlock. Dispatch to the main task so
     // the NimBLE host task is never blocked by BtManage's state updates or LVGL lock.
     auto* self = static_cast<BtManage*>(context);
-    getMainDispatcher().dispatch([self, event] {
+    // Captured while `self` is still guaranteed valid (the callback is only invoked
+    // while registered, i.e. before onHide() removes it). Comparing this later - without
+    // dereferencing `self` - lets the dispatched lambda detect a stale event from a
+    // session that has since been hidden (and possibly destroyed) without a UAF.
+    auto generation = self->getGeneration();
+    int expectedGeneration = generation->load();
+    getMainDispatcher().dispatch([self, generation, expectedGeneration, event] {
+        if (generation->load() != expectedGeneration) {
+            return;
+        }
         self->onBtEvent(event);
     });
 }
 
 void BtManage::registerDeviceCallback(Device* dev) {
     lock();
-    if (btDevice == dev) {
-        bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+    if (btDevice == dev && !callbackRegistered) {
+        // Only latch the flag on success: while the radio is off the driver has no
+        // callback list yet, so this add is a silent no-op and must be retried once
+        // bluetooth::start() actually brings the device up.
+        if (bluetooth_add_event_callback(dev, this, onKernelBtEvent) == ERROR_NONE) {
+            callbackRegistered = true;
+        }
     }
+    unlock();
+}
+
+void BtManage::forgetCallbackRegistration() {
+    lock();
+    callbackRegistered = false;
     unlock();
 }
 
@@ -191,7 +221,7 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
 
     btDevice = dev;
     if (btDevice) {
-        bluetooth_add_event_callback(btDevice, this, onKernelBtEvent);
+        registerDeviceCallback(btDevice);
     }
 
     auto radio_state = bluetooth::getRadioState();
@@ -206,9 +236,17 @@ void BtManage::onShow(AppContext& app, lv_obj_t* parent) {
 }
 
 void BtManage::onHide(AppContext& app) {
+    // Invalidate any BT event dispatched-but-not-yet-run for this session before doing
+    // anything else, so it can't race a subsequent destruction of this instance (see
+    // onKernelBtEvent()/getGeneration()).
+    generation->fetch_add(1);
+
     lock();
     if (btDevice) {
-        bluetooth_remove_event_callback(btDevice, onKernelBtEvent);
+        if (callbackRegistered) {
+            bluetooth_remove_event_callback(btDevice, onKernelBtEvent);
+            callbackRegistered = false;
+        }
         device_put(btDevice);
         btDevice = nullptr;
     }
