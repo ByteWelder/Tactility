@@ -11,6 +11,7 @@
 
 #include <tactility/check.h>
 #include <tactility/log.h>
+#include <tactility/time.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -182,7 +183,7 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
     obj_set_style_bg_invisible(left_spacer);
     lv_obj_set_flex_grow(left_spacer, 1);
 
-    statusbar_data.mutex.lock(kernel::MAX_TICKS);
+    statusbar_data.mutex.lock(MAX_TICKS);
     for (int i = 0; i < STATUSBAR_ICON_LIMIT; ++i) {
         auto* image = lv_image_create(obj);
         lv_obj_set_size(image, icon_size, icon_size); // regular padding doesn't work

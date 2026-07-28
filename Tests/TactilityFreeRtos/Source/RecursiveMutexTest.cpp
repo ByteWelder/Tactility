@@ -7,13 +7,13 @@ using namespace tt;
 
 TEST_CASE("a RecursiveMutex can block a thread") {
     auto mutex = RecursiveMutex();
-    CHECK_EQ(mutex.lock(kernel::MAX_TICKS), true);
+    CHECK_EQ(mutex.lock(kernel::FREERTOS_MAX_TICKS), true);
 
     Thread thread = Thread(
         "thread",
         1024,
         [&mutex] {
-            mutex.lock(kernel::MAX_TICKS);
+            mutex.lock(kernel::FREERTOS_MAX_TICKS);
             return 0;
         }
     );

@@ -29,7 +29,7 @@ private:
 
     struct TimerHandleDeleter {
         void operator()(TimerHandle_t handleToDelete) const {
-            xTimerDelete(handleToDelete, kernel::MAX_TICKS);
+            xTimerDelete(handleToDelete, kernel::FREERTOS_MAX_TICKS);
         }
     };
 
@@ -75,7 +75,7 @@ public:
      */
     bool start() const {
         assert(xPortInIsrContext() == pdFALSE);
-        return xTimerStart(handle.get(), kernel::MAX_TICKS) == pdPASS;
+        return xTimerStart(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
     }
 
     /** Stop the timer
@@ -84,7 +84,7 @@ public:
      */
     bool stop() const {
         assert(xPortInIsrContext() == pdFALSE);
-        return xTimerStop(handle.get(), kernel::MAX_TICKS) == pdPASS;
+        return xTimerStop(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
     }
 
     /**
@@ -94,8 +94,8 @@ public:
      */
     bool reset(TickType_t interval) const {
         assert(xPortInIsrContext() == pdFALSE);
-        return xTimerChangePeriod(handle.get(), interval, kernel::MAX_TICKS) == pdPASS &&
-            xTimerReset(handle.get(), kernel::MAX_TICKS) == pdPASS;
+        return xTimerChangePeriod(handle.get(), interval, kernel::FREERTOS_MAX_TICKS) == pdPASS &&
+            xTimerReset(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
     }
 
     /**
@@ -104,7 +104,7 @@ public:
      */
     bool reset() const {
         assert(xPortInIsrContext() == pdFALSE);
-        return xTimerReset(handle.get(), kernel::MAX_TICKS) == pdPASS;
+        return xTimerReset(handle.get(), kernel::FREERTOS_MAX_TICKS) == pdPASS;
     }
 
     /** @return true when the timer is running */

@@ -57,7 +57,7 @@ public:
      * @param[in] timeout lock acquisition timeout
      * @return true if dispatching was successful (timeout not reached)
      */
-    bool dispatch(Function function, TickType_t timeout = kernel::MAX_TICKS) {
+    bool dispatch(Function function, TickType_t timeout = kernel::FREERTOS_MAX_TICKS) {
         // Mutate
         if (!mutex.lock(timeout)) {
 #ifdef ESP_PLATFORM
@@ -92,7 +92,7 @@ public:
      * @param[in] timeout the ticks to wait for a message
      * @return the amount of messages that were consumed
      */
-    uint32_t consume(TickType_t timeout = kernel::MAX_TICKS) {
+    uint32_t consume(TickType_t timeout = kernel::FREERTOS_MAX_TICKS) {
         // Wait for signal
         if (!eventFlag.wait(WAIT_FLAG, false, true, nullptr, timeout)) {
             return 0;

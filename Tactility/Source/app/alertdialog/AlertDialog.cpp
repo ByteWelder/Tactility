@@ -1,12 +1,12 @@
 #include "Tactility/app/alertdialog/AlertDialog.h"
 
-#include <lvgl/widgets/toolbar.h>
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
 
-#include <lvgl.h>
 #include <tactility/log.h>
+
+#include <lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 namespace tt::app::alertdialog {
 
