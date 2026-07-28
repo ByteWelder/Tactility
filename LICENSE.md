@@ -7,31 +7,61 @@ These applications are not part of the Tactility operating system's main firmwar
 
 "end-users" refers to people who install and/or use Tactility software on their devices.
 
-## Summary
+"subproject" refers to a child project of the parent Tactility project.
 
-The main firmware projects (`Firmware/`, `Tactility/`) are licensed under `GPL v3.0`.
+## License texts
 
-Most devices are implemented as `Apache License v2.0` while some are implemented as `GPL v3.0`.
-New devices implementations be `Apache License v2.0`.
-
-Most drivers have an `Apache License v2.0`, with exceptions such as `Drivers/gps-generic-module/`.
-Licensing may also differ for subprojects intended for use in external applications.
-
-Specific aren't generally used directly in external app projects, but if they are, make sure to check their licenses.
-
-All projects under `Modules/` have an `Apache License v2.0`.
-
-License texts:
+The license texts that are relevant to this document:
 
 - [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
 - [GPL v3.0](Documentation/LICENSE-GPL-3.0.md).
 
-## GPL v3.0 to Apache Licensev2.0
+## Summary
+
+The main firmware projects (`Firmware/`, `Tactility/`) are licensed under `GPL v3.0`.
+
+Most devices are licensed with `Apache License v2.0` while some are implemented as `GPL v3.0` until author consent is given to change the license.
+New device implementations should be licensed under `Apache License v2.0`.
+
+Most drivers have an `Apache License v2.0`, with exceptions such as `Drivers/gps-generic-module/`.
+Licensing may also differ for subprojects intended for use in external applications.
+
+Driver subprojects aren't generally used directly in external app projects, but if they are, make sure to check their licenses.
+
+All projects under `Modules/` have an `Apache License v2.0`.
+
+## GPL v3.0 to Apache License v2.0
 
 Some code has changed license from GPL to Apache due to one or more of:
 
-- Author(s) consent
-- Rewriting the code
+### 1. Consent of Authors
+
+Consent of all authors involved in a specific subproject.
+This consent is confirmed in writing.
+
+### 2. Rewriting the code entirely
+
+Some projects were rewritten entirely. Some examples:
+
+- Drivers that were written for the `Tactility/` subproject (C++ interface, GPL) and were rewritten from scratch based on `TactilityKernel/` (C interface, Apache)
+- Device subprojects were rewritten from a purely code-focused configuration project to an empty module declaration (can't really copyright this) and a DTS file.
+
+## Device project considerations
+
+Some device projects are provided with an Apache license, but might refer to subprojects containing GPL code.
+These projects are required to be licensed with GPL as soon as they are compiled.
+
+Their non-binary form is their non-combined form (they don't include GPL code yet), so the project retains its Apache license until it is compiled.
+This allows for derivates that cut out GPL dependencies.
+
+For example: `LilyGO T-Deck Plus` and `LilyGO T-Lora Pager`:
+
+The projects themselves have a `module.cpp` and a `.dts` file. As long as the code is not compiled with the `gps-generic-module` drivers,
+the project is not forced into a GPS license. This allows someone to copy the subproject's files into a closed-source project, remove the GPS driver from the DTS file and the `devicetree.yaml`,
+and then use that in a project that is compatible with the Apache license.
+
+In other words: If you intend to use parts Tactility in a closed-source application, make sure you check the license of the device project
+and all the driver projects that it depends on.
 
 ## Overview
 
@@ -43,7 +73,7 @@ Below is an overview of the licenses of some of the subprojects.
 | TactilityC         | Apache License v2.0     |
 | TactilityFreeRTOS  | Apache License v2.0     |
 | TactilityKernel    | Apache License v2.0     |
-| Tests              | GNU Public License v3.0 |
+| Tests              | (varies)                |
 | Devices/*          | (varies)                |
 | Drivers/*          | (varies)                |
 | Modules/*          | Apache License v2.0     |
