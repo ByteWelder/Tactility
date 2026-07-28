@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #include "defines.h"
-#include "tactility/freertos/task.h"
+#include <tactility/freertos/port.h>
 
 #ifdef ESP_PLATFORM
 #include <esp_timer.h>
@@ -31,7 +31,7 @@ static_assert(configTICK_RATE_HZ == 1000);
 static_assert(configTICK_RATE_HZ == 1000, "configTICK_RATE_HZ must be 1000");
 #endif
 
-#define MAX_TICKS ~((TickType_t)0)
+#define MAX_TICKS (~(TickType_t)0)
 
 static inline uint32_t get_tick_frequency() {
     return configTICK_RATE_HZ;

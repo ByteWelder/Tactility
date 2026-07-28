@@ -17,7 +17,7 @@
 
 namespace tt::kernel {
 
-constexpr TickType_t MAX_TICKS = ~static_cast<TickType_t>(0);
+constexpr TickType_t FREERTOS_MAX_TICKS = ~static_cast<TickType_t>(0);
 
 /** @return the frequency at which the kernel task schedulers operate */
 constexpr uint32_t getTickFrequency() {

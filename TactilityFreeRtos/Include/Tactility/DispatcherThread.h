@@ -46,7 +46,7 @@ public:
     /**
      * Dispatch a message.
      */
-    bool dispatch(const Dispatcher::Function& function, TickType_t timeout = kernel::MAX_TICKS) {
+    bool dispatch(const Dispatcher::Function& function, TickType_t timeout = kernel::FREERTOS_MAX_TICKS) {
         return dispatcher.dispatch(function, timeout);
     }
 
