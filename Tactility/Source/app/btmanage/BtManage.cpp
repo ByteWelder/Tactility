@@ -32,11 +32,11 @@ static void onBtToggled(bool requestOn) {
             }
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
-            bluetooth::stop(dev);
-            // Stopping the device frees the driver's callback list, so any prior
-            // registration is gone; clear our tracked state to match.
-            auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
-            bt->forgetCallbackRegistration();
+            if (bluetooth::stop(dev)) {
+                // A completed stop frees the driver's callback list.
+                auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
+                bt->forgetCallbackRegistration();
+            }
         }
         device_put(dev);
     } else {
