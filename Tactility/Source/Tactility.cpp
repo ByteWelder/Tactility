@@ -12,8 +12,8 @@
 #include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
-#include <Tactility/file/FileLock.h>
 #include <Tactility/LogMessages.h>
+#include <Tactility/lvgl/TrackballInit.h>
 #include <Tactility/hal/SdCard.h>
 #include <Tactility/network/NtpPrivate.h>
 #include <Tactility/Paths.h>
@@ -34,11 +34,13 @@
 #include <lvgl/widgets/toolbar.h>
 
 #include <tactility/concurrent/thread.h>
+#include <tactility/device.h>
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/grove.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/rtc.h>
+#include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
@@ -154,9 +156,10 @@ namespace app {
     namespace webserversettings { extern const AppManifest manifest; }
 #if CONFIG_TT_TDECK_WORKAROUND == 1
     namespace keyboardsettings { extern const AppManifest manifest; } // T-Deck only for now
+#endif
+#endif
+
     namespace trackballsettings { extern const AppManifest manifest; } // T-Deck only for now
-#endif
-#endif
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const AppManifest manifest; }
@@ -216,9 +219,12 @@ static void registerInternalApps() {
     addAppManifest(app::development::manifest);
 #if defined(CONFIG_TT_TDECK_WORKAROUND)
         addAppManifest(app::keyboardsettings::manifest);
+#endif
+#endif
+
+    if (device_exists_of_type(&TRACKBALL_TYPE)) {
         addAppManifest(app::trackballsettings::manifest);
-#endif
-#endif
+    }
 
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     addAppManifest(app::usbsettings::manifest);
@@ -372,6 +378,8 @@ static void onLvglStarted() {
 #if TT_FEATURE_SCREENSHOT_ENABLED
     addService(service::screenshot::manifest);
 #endif
+
+    lvgl::initTrackball();
 
     memory_print_stats();
 }

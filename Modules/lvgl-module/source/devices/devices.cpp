@@ -1,0 +1,177 @@
+#include <lvgl/devices/display.h>
+#include <lvgl/devices/device_context.h>
+#include <lvgl/devices/keyboard.h>
+#include <lvgl/devices/pointer.h>
+#include <lvgl/devices/trackball.h>
+#include <lvgl/lvgl.h>
+#include <tactility/device.h>
+#include <tactility/drivers/display.h>
+#include <tactility/drivers/keyboard.h>
+#include <tactility/drivers/pointer.h>
+#include <tactility/drivers/trackball.h>
+#include <tactility/log.h>
+
+#include <lvgl.h>
+
+#include <cstddef>
+
+constexpr auto* TAG = "lvgl";
+
+// Boards are not expected to expose more devices of a single type than this; device_for_each_of_type()
+// callbacks run under the device ledger lock, so devices are collected here and processed afterwards.
+constexpr auto LVGL_DEVICES_MAX_PER_TYPE = 8;
+
+struct LvglDeviceList {
+    struct Device* devices[LVGL_DEVICES_MAX_PER_TYPE];
+    size_t count;
+};
+
+extern "C" {
+
+static bool lvgl_device_list_collect(struct Device* device, void* context) {
+    struct LvglDeviceList* list = (struct LvglDeviceList*)context;
+    if (list->count < LVGL_DEVICES_MAX_PER_TYPE) {
+        list->devices[list->count++] = device;
+    }
+    return true;
+}
+
+void lvgl_devices_attach() {
+    lvgl_lock();
+
+    lv_disp_t* lvgl_display = NULL;
+    bool display_updates_slowly = false;
+
+    struct LvglDeviceList display_devices = {0};
+    device_for_each_of_type(&DISPLAY_TYPE, &display_devices, lvgl_device_list_collect);
+    for (size_t i = 0; i < display_devices.count; i++) {
+        struct Device* kernel_display_device = display_devices.devices[i];
+
+        // Placeholder drivers (boards not yet migrated to the kernel display driver) register with a
+        // NULL api: they exist so the devicetree node resolves, but have nothing for LVGL to bind to.
+        if (device_get_driver(kernel_display_device)->api == NULL) {
+            continue;
+        }
+
+        uint16_t vres = display_get_resolution_y(kernel_display_device);
+        enum DisplayColorFormat color_format = display_get_color_format(kernel_display_device);
+        bool swap_bytes = color_format == DISPLAY_COLOR_FORMAT_RGB565_SWAPPED ||
+            color_format == DISPLAY_COLOR_FORMAT_BGR565_SWAPPED ||
+            color_format == DISPLAY_COLOR_FORMAT_BGR565;
+        bool display_requires_full_frame = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_REQUIRES_FULL_FRAME);
+        // Without CAP_SWAP_XY the driver can't rotate 90/270 in hardware (display_swap_xy() is
+        // null and silently skipped by lvgl_display_apply_rotation()) - LVGL would still switch
+        // its own logical w/h for those rotations, mismatching the panel's fixed physical
+        // orientation (e.g. RGB/DPI panels, whose video timing is fixed at panel-init time).
+        // sw_rotate makes LVGL rotate the rendered pixels in software instead, so the driver
+        // itself is never asked to do something it can't.
+        bool can_hw_rotate = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_CAP_SWAP_XY) &&
+            display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_CAP_MIRROR);
+        struct LvglDisplayConfig lvgl_display_config = {
+            .buffer_height = (uint16_t)(vres > 10 ? vres / 10 : vres),
+            .sw_rotate = !can_hw_rotate,
+            .swap_bytes = swap_bytes,
+            .force_full_frame = display_requires_full_frame
+        };
+        lv_disp_t* added_display = NULL;
+        if (lvgl_display_add(kernel_display_device, &lvgl_display_config, &added_display) == ERROR_NONE) {
+            LOG_I(TAG, "Bound %s to LVGL", kernel_display_device->name);
+            // Pointers/keyboards below bind to the first display bound here, matching that display's
+            // refresh behavior.
+            if (lvgl_display == NULL) {
+                lvgl_display = added_display;
+                display_updates_slowly = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_SLOW_REFRESH);
+            }
+        } else {
+            LOG_E(TAG, "Failed to bind %s to LVGL", kernel_display_device->name);
+        }
+    }
+
+    struct LvglDeviceList pointer_devices = {0};
+    device_for_each_of_type(&POINTER_TYPE, &pointer_devices, lvgl_device_list_collect);
+    for (size_t i = 0; i < pointer_devices.count; i++) {
+        struct Device* kernel_pointer_device = pointer_devices.devices[i];
+        if (device_get_driver(kernel_pointer_device)->api == NULL) {
+            continue;
+        }
+
+        lv_indev_t* lvgl_pointer_device;
+        if (lvgl_pointer_add(kernel_pointer_device, lvgl_display, &lvgl_pointer_device) == ERROR_NONE) {
+            LOG_I(TAG, "Bound %s to LVGL", kernel_pointer_device->name);
+            // Slow panels cause taps to be missed due to the long update time, prevent that
+            if (display_updates_slowly ) {
+                lv_indev_set_long_press_time(lvgl_pointer_device, 2000);
+            }
+        } else {
+            LOG_E(TAG, "Failed to bind %s to LVG", kernel_pointer_device->name);
+        }
+    }
+
+    struct LvglDeviceList keyboard_devices = {0};
+    device_for_each_of_type(&KEYBOARD_TYPE, &keyboard_devices, lvgl_device_list_collect);
+    for (size_t i = 0; i < keyboard_devices.count; i++) {
+        struct Device* kernel_keyboard_device = keyboard_devices.devices[i];
+        lv_indev_t* lvgl_keyboard_device;
+        if (lvgl_keyboard_add(kernel_keyboard_device, lvgl_display, &lvgl_keyboard_device) == ERROR_NONE) {
+            LOG_I(TAG, "Bound %s to LVGL", kernel_keyboard_device->name);
+        } else {
+            LOG_E(TAG, "Failed to bind %s to LVGL", kernel_keyboard_device->name);
+        }
+    }
+
+    struct Device* kernel_trackball_device = NULL;
+    device_get_first_by_type(&TRACKBALL_TYPE, &kernel_trackball_device);
+    if (kernel_trackball_device != NULL) {
+        lv_indev_t* lvgl_trackball_device;
+        if (lvgl_trackball_add(kernel_trackball_device, lvgl_display, &lvgl_trackball_device) == ERROR_NONE) {
+            LOG_I(TAG, "Bound %s to LVGL", kernel_trackball_device->name);
+        } else {
+            LOG_E(TAG, "Failed to bind %s to LVGL", kernel_trackball_device->name);
+        }
+        device_put(kernel_trackball_device);
+    }
+
+    lvgl_unlock();
+}
+
+void lvgl_devices_detach() {
+    lvgl_lock();
+
+    lv_indev_t* indev = lv_indev_get_next(NULL);
+    while (indev != NULL) {
+        lv_indev_type_t type = lv_indev_get_type(indev);
+        if (type == LV_INDEV_TYPE_POINTER || type == LV_INDEV_TYPE_ENCODER) {
+            void* driver_data = lv_indev_get_driver_data(indev);
+            if (driver_data != nullptr) {
+                // Trackball is a special pointer type as it can operate as a mouse or as a device that changes widget focus.
+                LvglDeviceContext* context = static_cast<LvglDeviceContext*>(driver_data);
+                if (context->device != nullptr) {
+                    const DeviceType* device_type = device_get_type(context->device);
+                    if (device_type == &TRACKBALL_TYPE) {
+                        lvgl_trackball_remove(indev);
+                    } else if (device_type == &POINTER_TYPE) {
+                        lvgl_pointer_remove(indev);
+                    } else {
+                        LOG_W(TAG, "Ignoring unknown pointer device");
+                    }
+                }
+            }
+        } else if (type == LV_INDEV_TYPE_KEYPAD) {
+            lvgl_keyboard_remove(indev);
+        } else {
+            lv_indev_delete(indev);
+        }
+        // Always get the first item, because getting the next one doesn't work as the current pointer just became corrupt
+        indev = lv_indev_get_next(NULL);
+    }
+
+    lv_disp_t* display = lv_disp_get_next(NULL);
+    while (display != NULL) {
+        lvgl_display_remove(display);
+        display = lv_disp_get_next(NULL);
+    }
+
+    lvgl_unlock();
+}
+
+} // extern C

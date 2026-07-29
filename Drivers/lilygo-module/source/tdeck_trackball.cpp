@@ -5,6 +5,7 @@
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/gpio_descriptor.h>
+#include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
 
 #include <atomic>
@@ -114,14 +115,6 @@ static error_t get_button_pressed(Device* device, bool* out_pressed) {
     return ERROR_NONE;
 }
 
-error_t tdeck_trackball_read_delta(Device* device, int32_t* out_dx, int32_t* out_dy) {
-    return read_delta(device, out_dx, out_dy);
-}
-
-error_t tdeck_trackball_get_button_pressed(Device* device, bool* out_pressed) {
-    return get_button_pressed(device, out_pressed);
-}
-
 static error_t start(Device* device) {
     LOG_I(TAG, "start %s", device->name);
     auto* config = GET_CONFIG(device);
@@ -168,13 +161,9 @@ static error_t stop(Device* device) {
     return ERROR_NONE;
 }
 
-static constexpr TdeckTrackballApi TDECK_TRACKBALL_API = {
+static constexpr TrackballApi TDECK_TRACKBALL_API = {
     .read_delta = read_delta,
     .get_button_pressed = get_button_pressed,
-};
-
-const struct DeviceType TDECK_TRACKBALL_TYPE {
-    .name = "tdeck-trackball"
 };
 
 extern Module lilygo_module;
@@ -185,7 +174,7 @@ Driver tdeck_trackball_driver = {
     .start_device = start,
     .stop_device = stop,
     .api = &TDECK_TRACKBALL_API,
-    .device_type = &TDECK_TRACKBALL_TYPE,
+    .device_type = &TRACKBALL_TYPE,
     .owner = &lilygo_module,
     .internal = nullptr
 };

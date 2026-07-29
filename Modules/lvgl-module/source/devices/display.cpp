@@ -8,16 +8,17 @@
 #include <tactility/drivers/display.h>
 #include <tactility/log.h>
 
+#include <lvgl/devices/device_context.h>
+
 #include <stdlib.h>
 
 #ifdef ESP_PLATFORM
 #include <esp_heap_caps.h>
 #endif
 
-#define TAG "lvgl_display"
+constexpr auto* TAG = "lvgl_display";
 
 struct LvglDisplayCtx {
-    struct Device* device;
     void* buf1;
     void* buf2;
     bool owns_buffers; // false when buf1/buf2 point at the device's own frame buffer(s)
@@ -108,7 +109,9 @@ static bool lvgl_display_map_color_format(enum DisplayColorFormat in, lv_color_f
     }
 }
 
-static void lvgl_display_apply_rotation(struct LvglDisplayCtx* ctx, lv_display_rotation_t rotation) {
+static void lvgl_display_apply_rotation(struct LvglDeviceContext* wrapper, lv_display_rotation_t rotation) {
+    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)wrapper->context;
+
     // SW-rotated displays stay in their base orientation; rotation is applied per-flush instead.
     if (ctx->sw_rotate) {
         return;
@@ -144,10 +147,10 @@ static void lvgl_display_apply_rotation(struct LvglDisplayCtx* ctx, lv_display_r
     }
 
     if (ctx->has_swap_xy_cap) {
-        display_swap_xy(ctx->device, swap_xy);
+        display_swap_xy(wrapper->device, swap_xy);
     }
     if (ctx->has_mirror_cap) {
-        display_mirror(ctx->device, mirror_x, mirror_y);
+        display_mirror(wrapper->device, mirror_x, mirror_y);
     }
     if (ctx->has_set_gap_cap) {
         // set_gap() takes its (x,y) in whatever axes the panel is currently drawn with, not the
@@ -155,14 +158,14 @@ static void lvgl_display_apply_rotation(struct LvglDisplayCtx* ctx, lv_display_r
         bool gap_axes_swapped = swap_xy != ctx->base_swap_xy;
         int32_t gap_x = gap_axes_swapped ? ctx->base_gap_y : ctx->base_gap_x;
         int32_t gap_y = gap_axes_swapped ? ctx->base_gap_x : ctx->base_gap_y;
-        display_set_gap(ctx->device, gap_x, gap_y);
+        display_set_gap(wrapper->device, gap_x, gap_y);
     }
 }
 
 static void lvgl_display_rotation_event_cb(lv_event_t* e) {
-    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)lv_event_get_user_data(e);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_event_get_user_data(e);
     lv_display_t* disp = (lv_display_t*)lv_event_get_current_target(e);
-    lvgl_display_apply_rotation(ctx, lv_display_get_rotation(disp));
+    lvgl_display_apply_rotation(wrapper, lv_display_get_rotation(disp));
 }
 
 // Returns which of buf1/buf2 (the real frame buffers, when !owns_buffers) color_map falls inside.
@@ -206,7 +209,8 @@ static void* lvgl_display_try_ppa_rotate(struct LvglDisplayCtx* ctx, const uint8
 }
 
 static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* color_map) {
-    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)lv_display_get_driver_data(disp);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_display_get_driver_data(disp);
+    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)wrapper->context;
     bool is_i1 = lv_display_get_color_format(disp) == LV_COLOR_FORMAT_I1;
 
     int32_t x1 = area->x1;
@@ -280,8 +284,8 @@ static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uin
             } else {
                 fb_base = (uint8_t*)lvgl_display_fb_base(ctx, color_map);
             }
-            uint16_t hres = display_get_resolution_x(ctx->device);
-            uint16_t vres = display_get_resolution_y(ctx->device);
+            uint16_t hres = display_get_resolution_x(wrapper->device);
+            uint16_t vres = display_get_resolution_y(wrapper->device);
 
             if (rotating) {
                 // fb_base now holds the whole completed frame, but still in LVGL's *logical*
@@ -303,13 +307,13 @@ static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uin
                 }
             }
 
-            display_draw_bitmap(ctx->device, 0, 0, hres, vres, fb_base);
+            display_draw_bitmap(wrapper->device, 0, 0, hres, vres, fb_base);
         }
     } else if (ctx->owns_buffers) {
         // PARTIAL mode: each flush_cb call is one independent, complete tile into a buffer that
         // gets reused for the next tile, so present it immediately rather than waiting.
         // LVGL's area is inclusive; DisplayApi's draw_bitmap wants an exclusive end.
-        display_draw_bitmap(ctx->device, x1, y1, x2 + 1, y2 + 1, color_map);
+        display_draw_bitmap(wrapper->device, x1, y1, x2 + 1, y2 + 1, color_map);
     }
     // DisplayApi has no async completion callback, so draw_bitmap is synchronous.
     lv_display_flush_ready(disp);
@@ -335,11 +339,17 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
     uint8_t fb_count = display_get_frame_buffer_count(device);
     uint8_t bpp = lv_color_format_get_size(lv_color_format);
 
-    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)calloc(1, sizeof(struct LvglDisplayCtx));
+    struct LvglDisplayCtx* ctx = new(std::nothrow) LvglDisplayCtx();
     if (ctx == NULL) {
         return ERROR_OUT_OF_MEMORY;
     }
-    ctx->device = device;
+    struct LvglDeviceContext* wrapper = new(std::nothrow) LvglDeviceContext(ctx);
+    if (wrapper == NULL) {
+        delete ctx;
+        return ERROR_OUT_OF_MEMORY;
+    }
+    wrapper->device = device;
+
     ctx->byte_swap = config->swap_bytes;
     ctx->sw_rotate = config->sw_rotate;
     // Only relevant when sw_rotate is set - lvgl_display_try_ppa_rotate() also checks
@@ -388,7 +398,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
         buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
         ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
         if (ctx->buf1 == NULL) {
-            free(ctx);
+            delete wrapper;
             return ERROR_OUT_OF_MEMORY;
         }
         ctx->owns_buffers = true;
@@ -408,14 +418,14 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
 
         ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
         if (ctx->buf1 == NULL) {
-            free(ctx);
+            delete wrapper;
             return ERROR_OUT_OF_MEMORY;
         }
         if (config->double_buffer) {
             ctx->buf2 = lvgl_display_alloc_buffer(buf_size_bytes);
             if (ctx->buf2 == NULL) {
                 lvgl_display_free_buffer(ctx->buf1);
-                free(ctx);
+                delete wrapper;
                 return ERROR_OUT_OF_MEMORY;
             }
         }
@@ -432,7 +442,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
                 lvgl_display_free_buffer(ctx->buf1);
                 lvgl_display_free_buffer(ctx->buf2);
             }
-            free(ctx);
+            delete wrapper;
             return ERROR_OUT_OF_MEMORY;
         }
     }
@@ -444,7 +454,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
             lvgl_display_free_buffer(ctx->buf2);
         }
         lvgl_display_free_buffer(ctx->rotate_buf);
-        free(ctx);
+        delete wrapper;
         return ERROR_OUT_OF_MEMORY;
     }
 
@@ -452,11 +462,11 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
     lv_display_set_color_format(disp, lv_color_format);
     lv_display_set_buffers(disp, ctx->buf1, ctx->buf2, buf_size_bytes, render_mode);
     lv_display_set_flush_cb(disp, lvgl_display_flush_cb);
-    lv_display_set_driver_data(disp, ctx);
-    lv_display_add_event_cb(disp, lvgl_display_rotation_event_cb, LV_EVENT_RESOLUTION_CHANGED, ctx);
+    lv_display_set_driver_data(disp, wrapper);
+    lv_display_add_event_cb(disp, lvgl_display_rotation_event_cb, LV_EVENT_RESOLUTION_CHANGED, wrapper);
 
     // Apply once explicitly, independent of whether LV_EVENT_RESOLUTION_CHANGED fires on creation.
-    lvgl_display_apply_rotation(ctx, lv_display_get_rotation(disp));
+    lvgl_display_apply_rotation(wrapper, lv_display_get_rotation(disp));
 
     *out_display = disp;
     return ERROR_NONE;
@@ -467,10 +477,11 @@ void lvgl_display_remove(lv_display_t* display) {
         return;
     }
 
-    struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)lv_display_get_driver_data(display);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_display_get_driver_data(display);
     lv_display_delete(display);
 
-    if (ctx != NULL) {
+    if (wrapper != NULL) {
+        struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)wrapper->context;
         if (ctx->owns_buffers) {
             if (ctx->buf1 != NULL) {
                 lvgl_display_free_buffer(ctx->buf1);
@@ -485,6 +496,6 @@ void lvgl_display_remove(lv_display_t* display) {
         if (ctx->ppa_handle != NULL) {
             lvgl_ppa_delete(ctx->ppa_handle);
         }
-        free(ctx);
+        delete wrapper;
     }
 }
