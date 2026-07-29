@@ -1,9 +1,6 @@
 #include <lvgl/lvgl.h>
 #include <tactility/module.h>
-
 #include <tactility/system_event.h>
-
-#include <Tactility/kernel/Kernel.h>
 
 #include <lilygo/drivers/tpager_encoder_input.h>
 
