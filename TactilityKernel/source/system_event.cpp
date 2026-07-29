@@ -5,6 +5,7 @@
 #include <tactility/time.h>
 
 #include <algorithm>
+#include <new>
 #include <vector>
 
 struct KernelEventSubscription {
@@ -75,18 +76,43 @@ error_t system_event_emit(
     // system_event_emit() would otherwise deadlock against this same (non-recursive)
     // mutex, and a slow callback would block every other thread's subscribe/unsubscribe
     // for the duration of this emit.
+    //
+    // Nothing between mutex_lock() and mutex_unlock() below may throw.
+    // Count first, then use new(std::nothrow) to allocate the exact size and report
+    // failure through the return value instead; the fill loop below is then a plain
+    // assignment of a trivially-copyable struct, which cannot throw or reallocate.
+
     mutex_lock(&subscriptions_mutex.handle);
-    std::vector<KernelEventSubscription> matching;
+
+    size_t match_count = 0;
     for (const auto& subscription : subscriptions) {
         if (subscription.type == type) {
-            matching.push_back(subscription);
+            match_count++;
         }
     }
+
+    KernelEventSubscription* matching = (match_count > 0)
+        ? new (std::nothrow) KernelEventSubscription[match_count]
+        : nullptr;
+    if (match_count > 0 && matching == nullptr) {
+        mutex_unlock(&subscriptions_mutex.handle);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    size_t matched_count = 0;
+    for (const auto& subscription : subscriptions) {
+        if (subscription.type == type) {
+            matching[matched_count++] = subscription;
+        }
+    }
+
     mutex_unlock(&subscriptions_mutex.handle);
 
-    for (const auto& subscription : matching) {
-        subscription.callback(&event, subscription.callback_context);
+    for (size_t i = 0; i < matched_count; i++) {
+        matching[i].callback(&event, matching[i].callback_context);
     }
+
+    delete[] matching;
 
     return ERROR_NONE;
 }
