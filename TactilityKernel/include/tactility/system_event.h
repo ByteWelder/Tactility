@@ -19,7 +19,7 @@ enum SystemEventType {
     KERNEL_EVENT_NETWORK_CONNECTED, // struct NetworkConnectedEvent
     KERNEL_EVENT_NETWORK_DISCONNECTED, // struct NetworkDisconnectedEvent
     KERNEL_EVENT_FILE_SYSTEM_MOUNTED, // struct FileSystemMountedEvent
-    KERNEL_EVENT_FILE_SYSTEM_UNMOUNTED, // struct FileSystemDismountedEvent
+    KERNEL_EVENT_FILE_SYSTEM_UNMOUNTED, // struct FileSystemUnmountedEvent
     KERNEL_EVENT_SERVICE_STARTED, // ServiceStartedEvent
     KERNEL_EVENT_SERVICE_STOPPED, // ServiceStoppedEvent
     KERNEL_EVENT_TIME_CHANGED, // No data - fired whenever system time is set (NTP sync, RTC restore, manual change)
