@@ -3,8 +3,7 @@
 
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
-#include <tactility/drivers/gpio_descriptor.h>
-#include <tactility/error_esp32.h>
+#include <tactility/error.h>
 #include <tactility/log.h>
 
 #include <driver/rtc_io.h>
@@ -67,7 +66,7 @@ error_t unphone_power_switch_is_on(Device* device, bool* on) {
 error_t unphone_power_switch_enable_wake(Device* device) {
     auto* internal = static_cast<UnphonePowerSwitchInternal*>(device_get_driver_data(device));
     auto esp_error = esp_sleep_enable_ext0_wakeup(internal->native_pin, 1);
-    return esp_err_to_error(esp_error);
+    return esp_error == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
 }
 
 Driver unphone_power_switch_driver = {

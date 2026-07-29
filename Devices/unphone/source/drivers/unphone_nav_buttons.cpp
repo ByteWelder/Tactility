@@ -10,8 +10,6 @@
 #include <tactility/log.h>
 
 #include <Tactility/Thread.h>
-#include <Tactility/app/App.h>
-#include <Tactility/kernel/Kernel.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -72,7 +70,7 @@ static int32_t nav_buttons_thread_main(UnphoneNavButtonsInternal* internal) {
             // The buttons might generate more than 1 click because of how they are built
             LOG_I(TAG, "Pressed button %d", button_index);
             if (button_index == BUTTON1_INDEX) {
-                tt::app::stop();
+                // TODO: Stop app implementation
             }
 
             // Debounce all events for a short period of time
