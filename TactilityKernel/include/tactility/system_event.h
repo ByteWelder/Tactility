@@ -81,9 +81,11 @@ typedef void (*system_event_callback_t)(struct SystemEvent* event, void* context
  * Subscribe to system events of a given type.
  * @warning Does not work in ISR context.
  * @warning @a callback is invoked synchronously, on the caller's task, from within
- * system_event_emit() while the internal subscription lock is held. It must return
- * quickly and must not call system_event_subscribe(), system_event_unsubscribe() or
- * system_event_emit() itself (directly or indirectly), or it will deadlock.
+ * system_event_emit(). The internal subscription lock is not held during the call, so
+ * @a callback may itself call system_event_subscribe(), system_event_unsubscribe() or
+ * system_event_emit() without deadlocking - but a subscribe/unsubscribe made from within
+ * a callback only takes effect for events emitted after the current system_event_emit()
+ * call returns, since that call already snapshotted the subscriptions it will invoke.
  * @param[in] type the event type to subscribe to
  * @param[in] callback the callback to invoke when a matching event is emitted
  * @param[in] context an opaque pointer passed back to @a callback unmodified

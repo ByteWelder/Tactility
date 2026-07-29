@@ -70,14 +70,23 @@ error_t system_event_emit(
         .data_len = data_len,
     };
 
+    // Snapshot matching subscriptions under the lock, then invoke after unlocking: a
+    // callback calling system_event_subscribe(), system_event_unsubscribe() or
+    // system_event_emit() would otherwise deadlock against this same (non-recursive)
+    // mutex, and a slow callback would block every other thread's subscribe/unsubscribe
+    // for the duration of this emit.
     mutex_lock(&subscriptions_mutex.handle);
     std::vector<KernelEventSubscription> matching;
     for (const auto& subscription : subscriptions) {
         if (subscription.type == type) {
-            subscription.callback(&event, subscription.callback_context);
+            matching.push_back(subscription);
         }
     }
     mutex_unlock(&subscriptions_mutex.handle);
+
+    for (const auto& subscription : matching) {
+        subscription.callback(&event, subscription.callback_context);
+    }
 
     return ERROR_NONE;
 }

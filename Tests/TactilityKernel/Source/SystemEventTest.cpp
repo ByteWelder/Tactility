@@ -5,10 +5,10 @@
 
 #include <vector>
 
-// system_event_emit() currently invokes subscribers while still holding the internal
-// subscription lock (see the @warning on system_event_subscribe() in system_event.h), so
-// unlike DeviceListenerTest.cpp there is no test here for subscribing/unsubscribing from
-// within a callback - that would deadlock the whole test binary, not just fail an assertion.
+// system_event_emit() snapshots matching subscriptions under the lock, then invokes them
+// after unlocking (see the @warning on system_event_subscribe() in system_event.h), so a
+// callback calling system_event_subscribe()/_unsubscribe()/_emit() must not deadlock -
+// covered below, mirroring DeviceListenerTest.cpp's reentrancy test.
 
 struct RecordedCall {
     void* context;
@@ -168,4 +168,48 @@ TEST_CASE("system_event_emit stamps the event with the current boot-relative tim
     CHECK_LE(calls_a[0].timestamp, after);
 
     system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, listener_a);
+}
+
+static bool reentrant_add_triggered = false;
+
+static void reentrant_listener(SystemEvent* event, void* context) {
+    calls_a.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
+    if (!reentrant_add_triggered) {
+        reentrant_add_triggered = true;
+        // Subscribing from within a notification must not deadlock: emit() releases the
+        // lock before invoking callbacks, so this only blocks briefly on the (already
+        // unlocked) mutex.
+        system_event_subscribe(KERNEL_EVENT_BOOT_COMPLETED, listener_b, context);
+        // Also exercise unsubscribe() and a nested emit() of a different type from within
+        // a callback - all must complete without deadlocking.
+        system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, reentrant_listener);
+        system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
+    }
+}
+
+TEST_CASE("system_event_emit is safe when a callback subscribes, unsubscribes and emits during notification") {
+    reset_calls();
+    reentrant_add_triggered = false;
+    int context_a = 1;
+
+    system_event_subscribe(KERNEL_EVENT_BOOT_COMPLETED, reentrant_listener, &context_a);
+    system_event_subscribe(KERNEL_EVENT_TIME_CHANGED, listener_b, &context_a);
+
+    system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
+
+    // reentrant_listener unsubscribed itself and triggered a nested TIME_CHANGED emit,
+    // which the pre-existing listener_b subscription picks up. The listener_b
+    // subscription added *during* this round wasn't part of this round's snapshot, so it
+    // wasn't invoked for BOOT_COMPLETED yet.
+    CHECK_EQ(calls_a.size(), 1);
+    CHECK_EQ(calls_b.size(), 1);
+
+    // A second BOOT_COMPLETED emit must not reach reentrant_listener again (it
+    // unsubscribed itself), but must reach the listener_b subscription added last round.
+    system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
+    CHECK_EQ(calls_a.size(), 1);
+    CHECK_EQ(calls_b.size(), 2);
+
+    system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, listener_b);
+    system_event_unsubscribe(KERNEL_EVENT_TIME_CHANGED, listener_b);
 }
