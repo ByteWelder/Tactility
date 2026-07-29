@@ -64,17 +64,17 @@ static inline TickType_t get_timeout_remaining_ticks(TickType_t timeout, TickTyp
 uint32_t kernel_get_tick_frequency();
 
 /** @return the microseconds that have passed since boot */
-static inline int64_t get_micros_since_boot() {
+static inline uint64_t get_micros_since_boot() {
 #ifdef ESP_PLATFORM
     return esp_timer_get_time();
 #else
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
-        return ((int64_t)ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000);
+        return ((uint64_t)ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000);
     }
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return ((int64_t)tv.tv_sec * 1000000LL) + tv.tv_usec;
+    return ((uint64_t)tv.tv_sec * 1000000LL) + tv.tv_usec;
 #endif
 }
 

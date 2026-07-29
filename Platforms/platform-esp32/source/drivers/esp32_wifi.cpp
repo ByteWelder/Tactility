@@ -21,6 +21,9 @@
 #include <tactility/drivers/esp32_esp_hosted_ota.h>
 #endif
 
+#include "tactility/system_event.h"
+
+
 #include <algorithm>
 #include <cstring>
 #include <new>
@@ -114,6 +117,10 @@ void on_wifi_or_ip_event(void* arg, esp_event_base_t event_base, int32_t event_i
             result_event.type = WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT;
             result_event.connection_error = WIFI_STATION_CONNECTION_ERROR_TARGET_NOT_FOUND;
             fire_event(ctx, result_event);
+            NetworkDisconnectedEvent disconnected_event = {
+                .device = ctx->device
+            };
+            system_event_emit(KERNEL_EVENT_NETWORK_DISCONNECTED, &disconnected_event, sizeof(disconnected_event));
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         auto* got_ip = static_cast<ip_event_got_ip_t*>(event_data);
@@ -132,6 +139,13 @@ void on_wifi_or_ip_event(void* arg, esp_event_base_t event_base, int32_t event_i
         result_event.type = WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT;
         result_event.connection_error = WIFI_STATION_CONNECTION_ERROR_NONE;
         fire_event(ctx, result_event);
+
+        NetworkConnectedEvent connected_event = {
+            .device = ctx->device,
+            .ipv4_addr = ctx->ipInfo.ip.addr,
+            .gateway = ctx->ipInfo.gw.addr,
+        };
+        system_event_emit(KERNEL_EVENT_NETWORK_CONNECTED, &connected_event, sizeof(connected_event));
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_SCAN_DONE) {
         mutex_lock(&ctx->mutex);
         ctx->scanning = false;
