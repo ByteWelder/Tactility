@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <algorithm>
-#include <tactility/device.h>
-#include <tactility/concurrent/mutex.h>
 #include <tactility/concurrent/recursive_mutex.h>
+#include <tactility/device.h>
 #include <tactility/filesystem/file_system.h>
+#include <tactility/system_event.h>
 #include <vector>
 
 // Define the internal FileSystem structure
@@ -78,11 +78,21 @@ void file_system_for_each(void* callback_context, bool (*callback)(FileSystem* f
 error_t file_system_mount(FileSystem* fs) {
     // Assuming 'device' is accessible or passed via a different mechanism
     // as it's required by the FileSystemApi signatures.
-    return fs->api->mount(fs->data);
+    auto result = fs->api->mount(fs->data);
+    if (result == ERROR_NONE) {
+        FileSystemMountedEvent mounted_event = { .file_system = fs };
+        system_event_emit(KERNEL_EVENT_FILE_SYSTEM_MOUNTED, &mounted_event, sizeof(mounted_event));
+    }
+    return result;
 }
 
 error_t file_system_unmount(FileSystem* fs) {
-    return fs->api->unmount(fs->data);
+    auto result = fs->api->unmount(fs->data);
+    if (result == ERROR_NONE) {
+        FileSystemUnmountedEvent unmounted_event = { .file_system = fs };
+        system_event_emit(KERNEL_EVENT_FILE_SYSTEM_UNMOUNTED, &unmounted_event, sizeof(unmounted_event));
+    }
+    return result;
 }
 
 bool file_system_is_mounted(FileSystem* fs) {

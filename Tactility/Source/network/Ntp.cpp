@@ -6,8 +6,8 @@
 #include <memory>
 
 #ifdef ESP_PLATFORM
-#include <Tactility/SystemEvents.h>
 #include <Tactility/TactilityCore.h>
+#include <tactility/system_event.h>
 #include <esp_netif_sntp.h>
 #include <esp_sntp.h>
 #endif
@@ -45,7 +45,7 @@ static void onTimeSynced(timeval* tv) {
     processedSyncEvent = true;
     esp_netif_sntp_deinit();
     storeTimeInNvs();
-    kernel::publishSystemEvent(kernel::SystemEvent::Time);
+    system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
 }
 
 void init() {
