@@ -89,7 +89,7 @@ error_t file_system_mount(FileSystem* fs) {
 error_t file_system_unmount(FileSystem* fs) {
     auto result = fs->api->unmount(fs->data);
     if (result == ERROR_NONE) {
-        FileSystemMountedEvent unmounted_event = { .file_system = fs };
+        FileSystemUnmountedEvent unmounted_event = { .file_system = fs };
         system_event_emit(KERNEL_EVENT_FILE_SYSTEM_UNMOUNTED, &unmounted_event, sizeof(unmounted_event));
     }
     return result;
