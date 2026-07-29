@@ -1,8 +1,9 @@
 #include <Tactility/settings/Time.h>
 
-#include <Tactility/SystemEvents.h>
 #include <Tactility/Preferences.h>
 #include <Tactility/settings/SystemSettings.h>
+
+#include <tactility/system_event.h>
 
 #ifdef ESP_PLATFORM
 #include <ctime>
@@ -36,7 +37,7 @@ void setTimeZone(const std::string& name, const std::string& code) {
     tzset();
 #endif
 
-    kernel::publishSystemEvent(kernel::SystemEvent::Time);
+    system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
 }
 
 std::string getTimeZoneName() {

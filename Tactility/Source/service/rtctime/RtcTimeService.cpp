@@ -8,6 +8,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/rtc.h>
 #include <tactility/log.h>
+#include <tactility/system_event.h>
 
 #include <cassert>
 #include <ctime>
@@ -96,13 +97,15 @@ static void writeRtcFromSystemTime(Device* rtc) {
     }
 }
 
-void RtcTimeService::onTimeChanged(kernel::SystemEvent event) {
-    if (event == kernel::SystemEvent::Time) {
-        Device* rtc = findRtcDevice();
-        if (rtc) {
-            writeRtcFromSystemTime(rtc);
-        }
+void RtcTimeService::onTimeChanged() {
+    Device* rtc = findRtcDevice();
+    if (rtc) {
+        writeRtcFromSystemTime(rtc);
     }
+}
+
+void RtcTimeService::onTimeChangedTrampoline(struct SystemEvent* /*event*/, void* context) {
+    static_cast<RtcTimeService*>(context)->onTimeChanged();
 }
 
 bool RtcTimeService::onStart(ServiceContext& serviceContext) {
@@ -113,22 +116,21 @@ bool RtcTimeService::onStart(ServiceContext& serviceContext) {
     }
 
     if (setSystemTimeFromRtc(rtc)) {
-        // Publish time event so other components know time is now valid
-        kernel::publishSystemEvent(kernel::SystemEvent::Time);
+        // Emit time event so other components know time is now valid
+        system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
     }
 
-    timeEventSubscription = kernel::subscribeSystemEvent(
-        kernel::SystemEvent::Time,
-        [this](kernel::SystemEvent event) { onTimeChanged(event); }
-    );
+    if (system_event_subscribe(KERNEL_EVENT_TIME_CHANGED, &RtcTimeService::onTimeChangedTrampoline, this) == ERROR_NONE) {
+        timeEventSubscribed = true;
+    }
 
     return true;
 }
 
 void RtcTimeService::onStop(ServiceContext& serviceContext) {
-    if (timeEventSubscription != 0) {
-        kernel::unsubscribeSystemEvent(timeEventSubscription);
-        timeEventSubscription = 0;
+    if (timeEventSubscribed) {
+        system_event_unsubscribe(KERNEL_EVENT_TIME_CHANGED, &RtcTimeService::onTimeChangedTrampoline);
+        timeEventSubscribed = false;
     }
 
     if (rtcDevice) {

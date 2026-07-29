@@ -1,6 +1,5 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
-#include <Tactility/SystemEvents.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Tactility.h>
@@ -11,6 +10,7 @@
 
 #include <tactility/check.h>
 #include <tactility/log.h>
+#include <tactility/system_event.h>
 #include <tactility/time.h>
 
 #include <lvgl/fonts.h>
@@ -38,7 +38,6 @@ struct StatusbarData {
     uint8_t time_hours = 0;
     uint8_t time_minutes = 0;
     bool time_set = false;
-    kernel::SystemEventSubscription systemEventSubscription = 0;
 };
 
 static StatusbarData statusbar_data;
@@ -115,7 +114,7 @@ static void statusbar_pubsub_event(Statusbar* statusbar) {
     }
 }
 
-static void onTimeChanged(kernel::SystemEvent event) {
+static void onTimeChanged(struct SystemEvent* /*event*/, void* /*context*/) {
     if (statusbar_data.mutex.lock()) {
         statusbar_data.time_update_timer->reset(5);
         statusbar_data.mutex.unlock();
@@ -134,10 +133,7 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
 
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start();
-        statusbar_data.systemEventSubscription = kernel::subscribeSystemEvent(
-            kernel::SystemEvent::Time,
-            onTimeChanged
-        );
+        system_event_subscribe(KERNEL_EVENT_TIME_CHANGED, onTimeChanged, nullptr);
     }
 }
 

@@ -1,3 +1,6 @@
+#include "tactility/system_event.h"
+
+
 #include <tactility/delay.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/display.h>
@@ -6,7 +9,6 @@
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/Paths.h>
-#include <Tactility/SystemEvents.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppPaths.h>
@@ -154,7 +156,7 @@ class BootApp : public App {
         // This event will likely block as other systems are initialized
         // e.g. Wi-Fi reads AP configs from SD card
         LOG_I(TAG, "Publish event");
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
 
         return 0;
     }

@@ -4,7 +4,8 @@
 #include <lvgl/lvgl.h>
 #include <tactility/module.h>
 
-#include <Tactility/SystemEvents.h>
+#include <tactility/system_event.h>
+
 #include <Tactility/LogMessages.h>
 #include <Tactility/settings/TrackballSettings.h>
 
@@ -14,8 +15,6 @@
 constexpr auto* TAG = "tdeck-plus";
 
 extern "C" {
-
-static tt::kernel::SystemEventSubscription tdeck_boot_splash_subscription = tt::kernel::NoSystemEventSubscription;
 
 void init_trackball() {
     auto tbSettings = tt::settings::trackball::loadOrGetDefault();
@@ -31,6 +30,10 @@ void init_trackball() {
     lvgl_unlock();
 }
 
+static void on_boot_completed(struct SystemEvent* /*event*/, void* /*context*/) {
+    init_trackball();
+}
+
 static error_t start() {
     LOG_I(TAG, LOG_MESSAGE_POWER_ON_START);
 
@@ -42,16 +45,13 @@ static error_t start() {
     // Avoids crash when no SD card is inserted. It's unknown why, but likely is related to power draw.
     delay_millis(100);
 
-    tdeck_boot_splash_subscription = tt::kernel::subscribeSystemEvent(tt::kernel::SystemEvent::BootSplash, [](tt::kernel::SystemEvent event) {
-        init_trackball();
-    });
+    system_event_subscribe(KERNEL_EVENT_BOOT_COMPLETED, on_boot_completed, nullptr);
 
     return ERROR_NONE;
 }
 
 static error_t stop() {
-    tt::kernel::unsubscribeSystemEvent(tdeck_boot_splash_subscription);
-    tdeck_boot_splash_subscription = tt::kernel::NoSystemEventSubscription;
+    system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, on_boot_completed);
     return ERROR_NONE;
 }
 

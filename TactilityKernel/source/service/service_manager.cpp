@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <tactility/service/service_manager.h>
+
+#include "tactility/system_event.h"
+
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
 
@@ -122,6 +125,8 @@ error_t service_manager_start(const char* id) {
 
     if (error == ERROR_NONE) {
         service_instance_set_state(instance, SERVICE_STATE_STARTED);
+        ServiceStartedEvent start_event = { .id = id };
+        system_event_emit(KERNEL_EVENT_SERVICE_STARTED, &start_event, sizeof(start_event));
         return ERROR_NONE;
     }
 
@@ -164,6 +169,9 @@ error_t service_manager_stop(const char* id) {
 
     service_instance_destruct(instance);
     delete instance;
+
+    ServiceStoppedEvent stop_event = { .id = id };
+    system_event_emit(KERNEL_EVENT_SERVICE_STOPPED, &stop_event, sizeof(stop_event));
 
     return ERROR_NONE;
 }
