@@ -1,6 +1,7 @@
 #include "doctest.h"
 
 #include <tactility/system_event.h>
+#include <tactility/time.h>
 
 #include <vector>
 
@@ -14,17 +15,18 @@ struct RecordedCall {
     SystemEventType type;
     const void* data;
     size_t data_len;
+    uint64_t timestamp;
 };
 
 static std::vector<RecordedCall> calls_a;
 static std::vector<RecordedCall> calls_b;
 
 static void listener_a(SystemEvent* event, void* context) {
-    calls_a.push_back({ context, event->type, event->data, event->data_len });
+    calls_a.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
 }
 
 static void listener_b(SystemEvent* event, void* context) {
-    calls_b.push_back({ context, event->type, event->data, event->data_len });
+    calls_b.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
 }
 
 static void reset_calls() {
@@ -150,4 +152,20 @@ TEST_CASE("system_event_unsubscribe matches on (type, callback), not the callbac
 
 TEST_CASE("system_event_emit with no subscribers for that type returns ERROR_NONE") {
     CHECK_EQ(system_event_emit(KERNEL_EVENT_SERVICE_STOPPED, nullptr, 0), ERROR_NONE);
+}
+
+TEST_CASE("system_event_emit stamps the event with the current boot-relative time") {
+    reset_calls();
+    int context_a = 1;
+    system_event_subscribe(KERNEL_EVENT_BOOT_COMPLETED, listener_a, &context_a);
+
+    auto before = static_cast<uint64_t>(get_micros_since_boot());
+    system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
+    auto after = static_cast<uint64_t>(get_micros_since_boot());
+
+    REQUIRE_EQ(calls_a.size(), 1);
+    CHECK_GE(calls_a[0].timestamp, before);
+    CHECK_LE(calls_a[0].timestamp, after);
+
+    system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, listener_a);
 }
