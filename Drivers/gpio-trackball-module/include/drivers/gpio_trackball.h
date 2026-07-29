@@ -12,7 +12,7 @@ extern "C" {
 
 struct Device;
 
-struct TdeckTrackballConfig {
+struct GpioTrackballConfig {
     struct GpioPinSpec pin_right;
     struct GpioPinSpec pin_up;
     struct GpioPinSpec pin_left;
