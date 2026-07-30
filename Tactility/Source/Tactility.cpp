@@ -1,5 +1,6 @@
 #ifdef ESP_PLATFORM
 #include <sdkconfig.h>
+#include <Tactility/InitEsp.h>
 #endif
 
 #include <format>
@@ -21,10 +22,6 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
-
-#ifdef ESP_PLATFORM
-#include <Tactility/InitEsp.h>
-#endif
 
 #include <gps/module.h>
 #include <gps_generic/module.h>
