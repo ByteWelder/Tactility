@@ -52,15 +52,16 @@ private:
 /**
  * Acquire a pin that must live on an SoC GPIO controller and resolve its native pin number.
  * The reset/busy/DIO1 lines are driven directly through ESP-IDF by the RadioLib HAL,
- * so pins behind an IO expander can't back them.
+ * so pins behind an IO expander can't back them. The caller passes the pin's direction,
+ * because the devicetree pin specs carry no direction of their own.
  */
-static GpioDescriptor* acquire_native_pin(const struct GpioPinSpec& spec, const char* pin_name, gpio_num_t* native_pin) {
+static GpioDescriptor* acquire_native_pin(const struct GpioPinSpec& spec, const char* pin_name, gpio_flags_t flags, gpio_num_t* native_pin) {
     if (spec.gpio_controller == nullptr) {
         LOG_E(TAG, "Pin \"%s\" is not set", pin_name);
         return nullptr;
     }
 
-    auto* descriptor = gpio_descriptor_acquire(spec.gpio_controller, spec.pin, GPIO_OWNER_GPIO);
+    auto* descriptor = gpio_descriptor_acquire(spec.gpio_controller, spec.pin, flags, GPIO_OWNER_GPIO);
     if (descriptor == nullptr) {
         LOG_E(TAG, "Failed to acquire pin \"%s\"", pin_name);
         return nullptr;
@@ -85,15 +86,15 @@ static error_t acquire_and_drive_pin(const struct GpioPinSpec& spec, const char*
         return ERROR_NONE;
     }
 
-    auto* descriptor = gpio_descriptor_acquire(spec.gpio_controller, spec.pin, GPIO_OWNER_GPIO);
+    // Polarity is applied by hand below, so the descriptor is acquired as a plain output.
+    auto* descriptor = gpio_descriptor_acquire(spec.gpio_controller, spec.pin, GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
     if (descriptor == nullptr) {
         LOG_E(TAG, "Failed to acquire pin \"%s\"", pin_name);
         return ERROR_RESOURCE;
     }
 
     const bool level = (spec.flags & GPIO_FLAG_ACTIVE_LOW) ? !active : active;
-    if (gpio_descriptor_set_flags(descriptor, GPIO_FLAG_DIRECTION_OUTPUT) != ERROR_NONE ||
-        gpio_descriptor_set_level(descriptor, level) != ERROR_NONE) {
+    if (gpio_descriptor_set_level(descriptor, level) != ERROR_NONE) {
         LOG_E(TAG, "Failed to drive pin \"%s\"", pin_name);
         gpio_descriptor_release(descriptor);
         return ERROR_RESOURCE;
@@ -141,9 +142,11 @@ static error_t start(Device* device) {
     gpio_num_t pin_busy = GPIO_NUM_NC;
     gpio_num_t pin_dio1 = GPIO_NUM_NC;
 
-    data->pin_reset = acquire_native_pin(config->pin_reset, "pin-reset", &pin_reset);
-    data->pin_busy = acquire_native_pin(config->pin_busy, "pin-busy", &pin_busy);
-    data->pin_dio1 = acquire_native_pin(config->pin_dio1, "pin-dio1", &pin_dio1);
+    // DIO1 keeps a plain input here; registerDio1Isr() adds the interrupt flags when it
+    // attaches the handler, so the line stays quiet until the radio thread is ready for it.
+    data->pin_reset = acquire_native_pin(config->pin_reset, "pin-reset", GPIO_FLAG_DIRECTION_OUTPUT, &pin_reset);
+    data->pin_busy = acquire_native_pin(config->pin_busy, "pin-busy", GPIO_FLAG_DIRECTION_INPUT, &pin_busy);
+    data->pin_dio1 = acquire_native_pin(config->pin_dio1, "pin-dio1", GPIO_FLAG_DIRECTION_INPUT, &pin_dio1);
 
     if (data->pin_reset == nullptr || data->pin_busy == nullptr || data->pin_dio1 == nullptr) {
         data->release_pins();
