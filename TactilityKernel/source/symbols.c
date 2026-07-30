@@ -29,6 +29,7 @@
 #include <tactility/drivers/rtc.h>
 #include <tactility/drivers/sdcard.h>
 #include <tactility/drivers/spi_controller.h>
+#include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
 #include <tactility/drivers/usb_host_hid.h>
 #include <tactility/drivers/usb_host_midi.h>
@@ -294,6 +295,10 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(spi_controller_try_lock),
     DEFINE_MODULE_SYMBOL(spi_controller_unlock),
     DEFINE_MODULE_SYMBOL(SPI_CONTROLLER_TYPE),
+    // drivers/trackball
+    DEFINE_MODULE_SYMBOL(trackball_read_delta),
+    DEFINE_MODULE_SYMBOL(trackball_get_button_pressed),
+    DEFINE_MODULE_SYMBOL(TRACKBALL_TYPE),
     // drivers/uart_controller
     DEFINE_MODULE_SYMBOL(uart_controller_open),
     DEFINE_MODULE_SYMBOL(uart_controller_close),

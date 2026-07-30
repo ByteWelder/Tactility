@@ -19,10 +19,10 @@
 #include <bindings/st7789.h>
 #include <bindings/es7210.h>
 #include <bindings/dummy_i2s_amp.h>
+#include <bindings/gpio_trackball.h>
 
 #include <lilygo/bindings/tdeck_keyboard.h>
 #include <lilygo/bindings/tdeck_keyboard_backlight.h>
-#include <lilygo/bindings/tdeck_trackball.h>
 
 // Reference: https://wiki.lilygo.cc/products/t-deck-series/t-deck/
 / {
@@ -59,7 +59,7 @@
 	};
 
 	trackball {
-		compatible = "lilygo,tdeck-trackball";
+		compatible = "tactility,gpio-trackball";
 		pin-right = <&gpio0 2 GPIO_FLAG_NONE>;
 		pin-up = <&gpio0 3 GPIO_FLAG_NONE>;
 		pin-left = <&gpio0 1 GPIO_FLAG_NONE>;

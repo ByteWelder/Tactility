@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl/devices/pointer.h>
+#include <lvgl/devices/device_context.h>
 
 #include <tactility/drivers/pointer.h>
 
-#include <stdlib.h>
-
-#define TAG "lvgl_pointer"
+constexpr auto* TAG = "lvgl_pointer";
 
 struct LvglPointerCtx {
-    struct Device* device;
     bool calibration_enabled;
     struct LvglPointerCalibration calibration;
 };
@@ -60,13 +58,13 @@ static void lvgl_pointer_calibration_apply(
 // fixed pixel dimensions, not a rotation. This function has no notion of LVGL rotation at all:
 // calibration corrects the raw sensor's fixed physical mapping, which never changes with on-screen
 // orientation, so it doesn't belong anywhere near rotation math.
-static bool lvgl_pointer_read_calibrated(struct LvglPointerCtx* ctx, int32_t native_x_max, int32_t native_y_max, uint16_t* x, uint16_t* y) {
-    if (pointer_read_data(ctx->device, LVGL_POINTER_READ_TIMEOUT) != ERROR_NONE) {
+static bool lvgl_pointer_read_calibrated(struct Device* device, struct LvglPointerCtx* ctx, int32_t native_x_max, int32_t native_y_max, uint16_t* x, uint16_t* y) {
+    if (pointer_read_data(device, LVGL_POINTER_READ_TIMEOUT) != ERROR_NONE) {
         return false;
     }
 
     uint8_t point_count = 0;
-    if (!pointer_get_touched_points(ctx->device, x, y, NULL, &point_count, 1) || point_count == 0) {
+    if (!pointer_get_touched_points(device, x, y, NULL, &point_count, 1) || point_count == 0) {
         return false;
     }
 
@@ -82,7 +80,8 @@ static bool lvgl_pointer_read_calibrated(struct LvglPointerCtx* ctx, int32_t nat
 // logical space - unconditionally, since native-space coordinates always need this regardless of
 // whether calibration is enabled.
 static void lvgl_pointer_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
-    struct LvglPointerCtx* ctx = (struct LvglPointerCtx*)lv_indev_get_driver_data(indev);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_indev_get_driver_data(indev);
+    struct LvglPointerCtx* ctx = (struct LvglPointerCtx*)wrapper->context;
     lv_display_t* display = lv_indev_get_display(indev);
 
     // lv_display_get_original_*_resolution() is the native (LV_DISPLAY_ROTATION_0) size,
@@ -92,7 +91,7 @@ static void lvgl_pointer_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
 
     uint16_t x = 0;
     uint16_t y = 0;
-    if (!lvgl_pointer_read_calibrated(ctx, native_x_max, native_y_max, &x, &y)) {
+    if (!lvgl_pointer_read_calibrated(wrapper->device, ctx, native_x_max, native_y_max, &x, &y)) {
         data->state = LV_INDEV_STATE_RELEASED;
         return;
     }
@@ -110,21 +109,26 @@ error_t lvgl_pointer_add(struct Device* device, lv_display_t* display, lv_indev_
         return ERROR_INVALID_ARGUMENT;
     }
 
-    struct LvglPointerCtx* ctx = calloc(1, sizeof(struct LvglPointerCtx));
+    struct LvglPointerCtx* ctx = new(std::nothrow) LvglPointerCtx();
     if (ctx == NULL) {
         return ERROR_OUT_OF_MEMORY;
     }
-    ctx->device = device;
+    struct LvglDeviceContext* wrapper = new(std::nothrow) LvglDeviceContext(ctx);
+    if (wrapper == NULL) {
+        delete ctx;
+        return ERROR_OUT_OF_MEMORY;
+    }
+    wrapper->device = device;
 
     lv_indev_t* indev = lv_indev_create();
     if (indev == NULL) {
-        free(ctx);
+        delete wrapper;
         return ERROR_OUT_OF_MEMORY;
     }
 
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, lvgl_pointer_read_cb);
-    lv_indev_set_driver_data(indev, ctx);
+    lv_indev_set_driver_data(indev, wrapper);
     if (display != NULL) {
         lv_indev_set_display(indev, display);
     }
@@ -145,7 +149,8 @@ error_t lvgl_pointer_set_calibration(lv_indev_t* indev, const struct LvglPointer
     if (indev == NULL) {
         return ERROR_INVALID_ARGUMENT;
     }
-    struct LvglPointerCtx* ctx = lv_indev_get_driver_data(indev);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_indev_get_driver_data(indev);
+    struct LvglPointerCtx* ctx = (struct LvglPointerCtx*)wrapper->context;
 
     if (calibration == NULL) {
         ctx->calibration_enabled = false;
@@ -164,7 +169,8 @@ bool lvgl_pointer_get_calibration(lv_indev_t* indev, struct LvglPointerCalibrati
     if (indev == NULL || out_calibration == NULL) {
         return false;
     }
-    struct LvglPointerCtx* ctx = lv_indev_get_driver_data(indev);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_indev_get_driver_data(indev);
+    struct LvglPointerCtx* ctx = (struct LvglPointerCtx*)wrapper->context;
     if (!ctx->calibration_enabled) {
         return false;
     }
@@ -177,10 +183,10 @@ void lvgl_pointer_remove(lv_indev_t* indev) {
         return;
     }
 
-    struct LvglPointerCtx* ctx = lv_indev_get_driver_data(indev);
+    struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_indev_get_driver_data(indev);
     if (default_pointer_indev == indev) {
         default_pointer_indev = NULL;
     }
     lv_indev_delete(indev);
-    free(ctx);
+    delete wrapper;
 }

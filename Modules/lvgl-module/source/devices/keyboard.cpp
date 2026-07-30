@@ -1,15 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl/devices/keyboard.h>
+#include <lvgl/devices/device_context.h>
 #include <lvgl/lvgl.h>
 
 #include <tactility/drivers/keyboard.h>
 
-#include <stdlib.h>
 #include <vector>
-
-struct LvglKeyboardCtx {
-    Device* device;
-};
 
 static LvglSoftwareKeyboard last_software_keyboard = {
     .object = nullptr
@@ -39,10 +35,10 @@ void lvgl_keyboard_on_stop_lvgl() {
 }
 
 static void lvgl_keyboard_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
-    LvglKeyboardCtx* ctx = static_cast<struct LvglKeyboardCtx*>(lv_indev_get_driver_data(indev));
+    auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
 
     KeyboardKeyData key_data = {};
-    if (keyboard_read_key(ctx->device, &key_data) != ERROR_NONE) {
+    if (keyboard_read_key(wrapper->device, &key_data) != ERROR_NONE) {
         data->state = LV_INDEV_STATE_RELEASED;
         data->continue_reading = false;
         return;
@@ -62,21 +58,21 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
         return ERROR_INVALID_ARGUMENT;
     }
 
-    LvglKeyboardCtx* ctx = static_cast<struct LvglKeyboardCtx*>(malloc(sizeof(struct LvglKeyboardCtx)));
-    if (ctx == NULL) {
+    auto* wrapper = new(std::nothrow) LvglDeviceContext(nullptr);
+    if (wrapper == NULL) {
         return ERROR_OUT_OF_MEMORY;
     }
-    ctx->device = device;
+    wrapper->device = device;
 
     lv_indev_t* indev = lv_indev_create();
     if (indev == NULL) {
-        free(ctx);
+        delete wrapper;
         return ERROR_OUT_OF_MEMORY;
     }
 
     lv_indev_set_type(indev, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev, lvgl_keyboard_read_cb);
-    lv_indev_set_driver_data(indev, ctx);
+    lv_indev_set_driver_data(indev, wrapper);
     if (display != NULL) {
         lv_indev_set_display(indev, display);
     }
@@ -90,9 +86,9 @@ void lvgl_keyboard_remove(lv_indev_t* indev) {
         return;
     }
 
-    LvglKeyboardCtx* ctx = (struct LvglKeyboardCtx*)lv_indev_get_driver_data(indev);
+    auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
     lv_indev_delete(indev);
-    free(ctx);
+    delete wrapper;
 }
 
 void lvgl_keyboard_enable(lv_indev_t* indev) {
@@ -115,22 +111,21 @@ bool lvgl_hardware_keyboard_is_available() {
 }
 
 void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
-    LvglKeyboardCtx* ctx = static_cast<struct LvglKeyboardCtx*>(malloc(sizeof(struct LvglKeyboardCtx)));
-    if (ctx == nullptr) {
+    auto* wrapper = new(std::nothrow) LvglDeviceContext(nullptr);
+    if (wrapper == nullptr) {
         return;
     }
 
-    ctx->device = nullptr;
-    lv_indev_set_driver_data(indev, ctx);
+    lv_indev_set_driver_data(indev, wrapper);
 
     lvgl_keyboard_enable(indev);
 }
 
 void lvgl_hardware_keyboard_remove_custom(lv_indev_t* indev) {
     lvgl_keyboard_disable(indev);
-    auto* data = lv_indev_get_driver_data(indev);
+    auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
     lv_indev_set_driver_data(indev, nullptr);
-    free(data); // LvglKeyboardCtx*
+    delete wrapper;
 }
 
 static void textarea_show_keyboard(lv_event_t* event) {

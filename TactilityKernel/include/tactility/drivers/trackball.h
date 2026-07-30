@@ -5,28 +5,18 @@
 extern "C" {
 #endif
 
-#include <tactility/drivers/gpio.h>
-#include <tactility/error.h>
 #include <stdbool.h>
 #include <stdint.h>
 
-struct Device;
-struct DeviceType;
-
-struct TdeckTrackballConfig {
-    struct GpioPinSpec pin_right;
-    struct GpioPinSpec pin_up;
-    struct GpioPinSpec pin_left;
-    struct GpioPinSpec pin_down;
-    struct GpioPinSpec pin_click;
-};
+#include <tactility/device.h>
+#include <tactility/error.h>
 
 /**
- * @brief API for the T-Deck 5-way trackball driver.
+ * @brief API for trackball drivers.
  * Reports raw, unscaled movement: sensitivity and mode (encoder vs. pointer) are UI concerns
- * layered on top by the consumer, not something this driver knows about.
+ * layered on top by the consumer (see lvgl/devices/trackball.h), not something this driver knows about.
  */
-struct TdeckTrackballApi {
+struct TrackballApi {
     /**
      * @brief Reads the accumulated movement since the last read, then resets it to zero.
      * @param[in] device the trackball device
@@ -48,14 +38,14 @@ struct TdeckTrackballApi {
 /**
  * @brief Reads the accumulated movement using the specified trackball device.
  */
-error_t tdeck_trackball_read_delta(struct Device* device, int32_t* out_dx, int32_t* out_dy);
+error_t trackball_read_delta(struct Device* device, int32_t* out_dx, int32_t* out_dy);
 
 /**
  * @brief Gets whether the click button is currently pressed on the specified trackball device.
  */
-error_t tdeck_trackball_get_button_pressed(struct Device* device, bool* out_pressed);
+error_t trackball_get_button_pressed(struct Device* device, bool* out_pressed);
 
-extern const struct DeviceType TDECK_TRACKBALL_TYPE;
+extern const struct DeviceType TRACKBALL_TYPE;
 
 #ifdef __cplusplus
 }
