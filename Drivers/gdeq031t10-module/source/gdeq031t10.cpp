@@ -132,6 +132,11 @@ static void hardware_reset(Gdeq031t10Internal* internal) {
 }
 
 static bool init_full(Gdeq031t10Internal* internal, bool mirror_180) {
+    // The reset pulse restores register defaults, which the init sequence below assumes:
+    // a cold-booted controller never drives BUSY ready after CMD_POWER_ON without it, a
+    // mode change needs partial mode's lingering VCOM/data-interval setting cleared, and
+    // waking from deep sleep is only possible by toggling RST.
+    hardware_reset(internal);
     bool ok = write_command(internal, CMD_PANEL_SETTING);
     ok = ok && write_data_byte(internal, mirror_180 ? 0x13 : 0x1F);
     ok = ok && write_command(internal, CMD_POWER_ON);
