@@ -1,8 +1,7 @@
 #include <Tactility/service/ServiceContext.h>
 
 #include <Tactility/service/ServicePaths.h>
-
-#include <tactility/service/service_instance.h>
+#include <service/instance.h>
 
 namespace tt::service {
 

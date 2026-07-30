@@ -8,5 +8,5 @@ tactility_add_module(gps-module
     SRCS ${SOURCE_FILES}
     PRIV_INCLUDE_DIRS private/
     INCLUDE_DIRS include/
-    REQUIRES TactilityKernel minmea
+    REQUIRES TactilityKernel service-module minmea
 )

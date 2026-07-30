@@ -200,6 +200,7 @@ def main():
     add_module(target_path, "lvgl-module")
     add_module(target_path, "crypt-module")
     add_module(target_path, "gps-module")
+    add_module(target_path, "service-module")
 
     # Drivers - only ones actually built for this target (chip-restricted drivers like
     # sc2356-module won't have a .a outside ESP32-P4)

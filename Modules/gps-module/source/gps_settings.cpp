@@ -2,9 +2,10 @@
 #include <gps/gps_settings.h>
 #include <gps/private/gps_ledger.h>
 
+#include <service/paths.h>
+
 #include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
-#include <tactility/service/service_paths.h>
 
 #include <sys/stat.h>
 

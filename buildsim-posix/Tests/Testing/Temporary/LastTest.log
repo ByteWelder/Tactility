@@ -1,0 +1,230 @@
+Start testing: Jul 30 23:03 CEST
+----------------------------------------------------------
+1/5 Testing: ServiceModuleTests
+1/5 Test: ServiceModuleTests
+Command: "/home/ken/Projects/Tactility/buildsim-posix/Tests/service-module/ServiceModuleTests"
+Directory: /home/ken/Projects/Tactility/buildsim-posix/Tests/service-module
+"ServiceModuleTests" start time: Jul 30 23:03 CEST
+Output:
+----------------------------------------------------------
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[doctest] doctest version is "2.4.11"
+[doctest] run with "--help" for options
+[36m D (0) service_instance construct instance-test[0m
+[36m D (0) service_instance destruct instance-test[0m
+[32m I (0) service_registration add duplicate-test[0m
+[1;31m E (0) service_registration Manifest with id 'duplicate-test' is already registered[0m
+[32m I (0) service_registration remove duplicate-test[0m
+[32m I (0) service_registration add lifecycle-test[0m
+[36m D (0) service_instance construct lifecycle-test[0m
+[32m I (0) service_registration start lifecycle-test[0m
+[32m I (0) service_registration stop lifecycle-test[0m
+[36m D (0) service_instance destruct lifecycle-test[0m
+[32m I (0) service_registration remove lifecycle-test[0m
+[32m I (0) service_registration add auto-start-test[0m
+[36m D (0) service_instance construct auto-start-test[0m
+[32m I (0) service_registration start auto-start-test[0m
+[32m I (0) service_registration stop auto-start-test[0m
+[36m D (0) service_instance destruct auto-start-test[0m
+[32m I (0) service_registration remove auto-start-test[0m
+[32m I (0) service_registration add failing-start-test[0m
+[36m D (0) service_instance construct failing-start-test[0m
+[32m I (0) service_registration start failing-start-test[0m
+[1;31m E (0) service_registration Failed to start failing-start-test: resource[0m
+[36m D (0) service_instance destruct failing-start-test[0m
+[32m I (0) service_registration remove failing-start-test[0m
+===============================================================================
+[doctest] test cases: 13 | 13 passed | 0 failed | 0 skipped
+[doctest] assertions: 62 | 62 passed | 0 failed |
+[doctest] Status: SUCCESS!
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"ServiceModuleTests" end time: Jul 30 23:03 CEST
+"ServiceModuleTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/5 Testing: TactilityKernelTests
+3/5 Test: TactilityKernelTests
+Command: "/home/ken/Projects/Tactility/buildsim-posix/Tests/TactilityKernel/TactilityKernelTests"
+Directory: /home/ken/Projects/Tactility/buildsim-posix/Tests/TactilityKernel
+"TactilityKernelTests" start time: Jul 30 23:03 CEST
+Output:
+----------------------------------------------------------
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[32m I (0) kernel init[0m
+[32m I (0) module start kernel[0m
+[32m I (0) driver add root[0m
+[32m I (0) driver add battery-sense[0m
+[32m I (0) driver add battery-sense-power-supply[0m
+[32m I (0) driver add gpio_hog[0m
+[32m I (0) driver add pwm_backlight[0m
+[32m I (0) driver add gpio_backlight[0m
+[32m I (0) driver add rgb_led_gpio[0m
+[32m I (0) driver add rgb_led_pwm[0m
+[32m I (0) module start platform-posix[0m
+[32m I (0) driver add mock_wifi[0m
+[32m I (0) kernel init done[0m
+[doctest] doctest version is "2.4.11"
+[doctest] run with "--help" for options
+[32m I (0) driver add device_get_put_test_driver[0m
+[36m D (0) device construct get_not_started[0m
+[36m D (0) device add get_not_started[0m
+[36m D (0) device remove get_not_started[0m
+[36m D (0) device destruct get_not_started[0m
+[32m I (0) driver remove device_get_put_test_driver[0m
+[32m I (0) driver add device_get_put_test_driver[0m
+[36m D (0) device construct get_after_destruct[0m
+[36m D (0) device add get_after_destruct[0m
+[36m D (0) device remove get_after_destruct[0m
+[36m D (0) device destruct get_after_destruct[0m
+[32m I (0) driver remove device_get_put_test_driver[0m
+[32m I (0) driver add device_get_put_test_driver[0m
+[36m D (0) device construct get_started[0m
+[36m D (0) device add get_started[0m
+[32m I (0) device start get_started[0m
+[32m I (0) driver bound device_get_put_test_driver to get_started[0m
+[32m I (0) device stop get_started[0m
+[32m I (0) driver unbound device_get_put_test_driver from get_started[0m
+[36m D (0) device remove get_started[0m
+[36m D (0) device destruct get_started[0m
+[32m I (0) driver remove device_get_put_test_driver[0m
+[32m I (0) driver add device_get_put_test_driver[0m
+[36m D (0) device construct get_put_concurrent[0m
+[36m D (0) device add get_put_concurrent[0m
+[32m I (0) device start get_put_concurrent[0m
+[32m I (0) driver bound device_get_put_test_driver to get_put_concurrent[0m
+[32m I (0) Thread Starting device_get_put_worker[0m
+[32m I (0) device stop get_put_concurrent[0m
+[32m I (0) driver unbound device_get_put_test_driver from get_put_concurrent[0m
+[36m D (0) device remove get_put_concurrent[0m
+[32m I (1) Thread Stopped device_get_put_worker[0m
+[36m D (1) device destruct get_put_concurrent[0m
+[32m I (1) driver remove device_get_put_test_driver[0m
+[32m I (1) driver add device_get_put_test_driver[0m
+[36m D (1) device construct get_by_name_device[0m
+[36m D (1) device add get_by_name_device[0m
+[32m I (1) device start get_by_name_device[0m
+[32m I (1) driver bound device_get_put_test_driver to get_by_name_device[0m
+[32m I (1) device stop get_by_name_device[0m
+[32m I (1) driver unbound device_get_put_test_driver from get_by_name_device[0m
+[36m D (1) device remove get_by_name_device[0m
+[36m D (1) device destruct get_by_name_device[0m
+[32m I (1) driver remove device_get_put_test_driver[0m
+[36m D (1) device construct (null)[0m
+[36m D (1) device destruct (null)[0m
+[36m D (1) device construct (null)[0m
+[36m D (1) device destruct (null)[0m
+[36m D (1) device construct (null)[0m
+[36m D (1) device add (null)[0m
+[36m D (1) device remove (null)[0m
+[36m D (1) device destruct (null)[0m
+[36m D (1) device construct device[0m
+[36m D (1) device add device[0m
+[36m D (1) device remove device[0m
+[36m D (1) device destruct device[0m
+[36m D (1) device construct parent[0m
+[36m D (1) device add parent[0m
+[36m D (1) device construct child[0m
+[36m D (1) device add child[0m
+[36m D (1) device remove child[0m
+[36m D (1) device destruct child[0m
+[36m D (1) device remove parent[0m
+[36m D (1) device destruct parent[0m
+[36m D (1) device construct device[0m
+[36m D (1) device add device[0m
+[36m D (1) device remove device[0m
+[36m D (1) device destruct device[0m
+[36m D (1) device construct device[0m
+[36m D (1) device add device[0m
+[36m D (1) device remove device[0m
+[36m D (1) device destruct device[0m
+[36m D (1) device construct parent[0m
+[36m D (1) device add parent[0m
+[36m D (1) device construct child[0m[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+[WARN] pthread_attr_setstack failed with return value: 22. Default stack will be used.
+[WARN] Increase the stack size to PTHREAD_STACK_MIN.
+
+[36m D (1) device add child[0m
+[36m D (1) device remove child[0m
+[36m D (1) device destruct child[0m
+[36m D (1) device remove parent[0m
+[36m D (1) device destruct parent[0m
+[36m D (1) device construct device[0m
+[36m D (1) device add device[0m
+[36m D (1) device remove device[0m
+[36m D (1) device destruct device[0m
+[32m I (1) driver add test_driver[0m
+[36m D (1) device construct (null)[0m
+[36m D (1) device add (null)[0m
+[32m I (1) device start (null)[0m
+[32m I (1) driver bound test_driver to (null)[0m
+[32m I (1) device stop (null)[0m
+[32m I (1) driver unbound test_driver from (null)[0m
+[36m D (1) device remove (null)[0m
+[36m D (1) device destruct (null)[0m
+[32m I (1) driver remove test_driver[0m
+[32m I (2) driver add integration_test_driver[0m
+[36m D (2) device construct integration_device[0m
+[36m D (2) device add integration_device[0m
+[32m I (2) driver bound integration_test_driver to integration_device[0m
+[32m I (2) driver unbound integration_test_driver from integration_device[0m
+[36m D (2) device remove integration_device[0m
+[36m D (2) device destruct integration_device[0m
+[32m I (2) driver remove integration_test_driver[0m
+[32m I (2) driver add (null)[0m
+[32m I (2) driver remove (null)[0m
+[32m I (2) driver add test_driver[0m
+[32m I (2) driver remove test_driver[0m
+[32m I (2) module start test[0m
+[32m I (2) module start test[0m
+[32m I (2) module stop test[0m
+[32m I (2) module stop test[0m
+[32m I (2) module start test[0m
+[32m I (2) module start test[0m
+[32m I (2) module stop test[0m
+[32m I (2) module stop test[0m
+[32m I (2) module start test_sym[0m
+[32m I (2) module start test_ensure_started[0m
+[32m I (2) module stop test_ensure_started[0m
+[32m I (2) module start test_ensure_destructed[0m
+[32m I (2) module stop test_ensure_destructed[0m
+[32m I (6) Thread Starting immediate return task[0m
+[32m I (6) Thread Stopped immediate return task[0m
+[32m I (6) Thread Starting interruptable thread[0m
+[32m I (7) Thread Stopped interruptable thread[0m
+[32m I (7) Thread Starting interruptable thread[0m
+[32m I (8) Thread Stopped interruptable thread[0m
+[32m I (8) Thread Starting interruptable thread[0m
+[32m I (9) Thread Stopped interruptable thread[0m
+[32m I (9) Thread Starting return code[0m
+[32m I (9) Thread Stopped return code[0m
+===============================================================================
+[doctest] test cases:  88 |  88 passed | 0 failed | 0 skipped
+[doctest] assertions: 450 | 450 passed | 0 failed |
+[doctest] Status: SUCCESS!
+<end of output>
+Test time =   0.42 sec
+----------------------------------------------------------
+Test Passed.
+"TactilityKernelTests" end time: Jul 30 23:03 CEST
+"TactilityKernelTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jul 30 23:03 CEST

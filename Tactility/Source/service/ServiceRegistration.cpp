@@ -1,12 +1,12 @@
-#include <Tactility/service/ServiceRegistration.h>
+#include <service/manager.h>
 
+#include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/Mutex.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 
 #include <tactility/error.h>
 #include <tactility/log.h>
-#include <tactility/service/service_manager.h>
 
 #include <cassert>
 #include <memory>

@@ -2,8 +2,9 @@
 
 #include <tactility/check.h>
 #include <tactility/error.h>
-#include <tactility/service/service_manifest.h>
-#include <tactility/service/service_paths.h>
+
+#include <service/manifest.h>
+#include <service/paths.h>
 
 #include <cassert>
 #include <string>
