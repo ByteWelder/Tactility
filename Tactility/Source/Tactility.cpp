@@ -27,7 +27,8 @@
 #endif
 
 #include <gps/module.h>
-#include <gps_generic/gps_generic_module.h>
+#include <gps_generic/module.h>
+#include <gps_meshtastic/module.h>
 
 #include <crypt/module.h>
 #include <lvgl/module.h>
@@ -413,6 +414,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     check(module_ensure_started(&crypt_module) == ERROR_NONE);
     check(module_ensure_started(&gps_module) == ERROR_NONE);
     check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_meshtastic_module) == ERROR_NONE);
 
 #ifdef ESP_PLATFORM
     initEsp();
