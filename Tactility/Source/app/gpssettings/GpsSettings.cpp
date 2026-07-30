@@ -1,20 +1,23 @@
-#include <Tactility/Tactility.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
+#include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/service/gps/GpsService.h>
-#include <Tactility/service/gps/GpsState.h>
-#include <Tactility/service/loader/Loader.h>
 
-#include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/device.h>
+#include <tactility/time.h>
 
+#include <atomic>
 #include <cstring>
-#include <format>
 #include <lvgl.h>
+#include <string>
+#include <vector>
+
+#include <gps/gps.h>
+#include <gps/gps_settings.h>
 
 namespace tt::app::addgps {
 extern AppManifest manifest;
@@ -26,40 +29,21 @@ extern const AppManifest manifest;
 
 class GpsSettingsApp final : public App {
 
-    static constexpr auto* TAG = "GpsSettings";
+    struct DeviceRow {
+        Device* device;
+        lv_obj_t* button;
+        lv_obj_t* buttonLabel;
+        bool hasConfiguration = false;
+        size_t configurationIndex = 0;
+    };
 
     std::unique_ptr<Timer> timer;
-    std::shared_ptr<GpsSettingsApp*> appReference = std::make_shared<GpsSettingsApp*>(this);
-    lv_obj_t* statusWrapper = nullptr;
-    lv_obj_t* statusLabelWidget = nullptr;
-    lv_obj_t* statusLatitudeValue = nullptr;
-    lv_obj_t* statusLongitudeValue = nullptr;
-    lv_obj_t* statusAltitudeValue = nullptr;
-    lv_obj_t* statusSpeedValue = nullptr;
-    lv_obj_t* statusHeadingValue = nullptr;
-    lv_obj_t* statusSatellitesValue = nullptr;
-    lv_obj_t* switchWidget = nullptr;
-    lv_obj_t* spinnerWidget = nullptr;
-    lv_obj_t* infoContainerWidget = nullptr;
-    lv_obj_t* gpsConfigWrapper = nullptr;
-    lv_obj_t* addGpsWrapper = nullptr;
-    bool hasSetInfo = false;
-    PubSub<service::gps::State>::SubscriptionHandle serviceStateSubscription = nullptr;
-    std::shared_ptr<service::gps::GpsService> service;
-
-    void onServiceStateChanged() {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (lock.lock(100 / portTICK_PERIOD_MS)) {
-            if (!updateTimerState()) {
-                updateViews();
-            }
-        }
-    }
-
-    static void onGpsToggledCallback(lv_event_t* event) {
-        auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
-        app->onGpsToggled(event);
-    }
+    lv_obj_t* deviceListWrapper = nullptr;
+    std::vector<DeviceRow> deviceRows;
+    std::atomic<bool> isShown = false;
+    bool hasPendingDelete = false;
+    Device* pendingDeleteDevice = nullptr;
+    size_t pendingDeleteIndex = 0;
 
     static void onAddGpsCallback(lv_event_t* event) {
         auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
@@ -70,385 +54,240 @@ class GpsSettingsApp final : public App {
         app::start(addgps::manifest.appId);
     }
 
-    void startReceivingUpdates() {
-        timer->start();
-        updateViews();
-    }
-
-    void stopReceivingUpdates() {
-        timer->stop();
-        updateViews();
-    }
-
-    void createInfoView(hal::gps::GpsModel model) {
-        auto* label = lv_label_create(infoContainerWidget);
-        if (model == hal::gps::GpsModel::Unknown) {
-            lv_label_set_text(label, "Model: auto-detect");
-        } else {
-            lv_label_set_text_fmt(label, "Model: %s", toString(model));
-        }
-    }
-
-    static void onDeleteConfiguration(lv_event_t* event) {
-        auto* app = (GpsSettingsApp*)lv_event_get_user_data(event);
-
+    static void onDeviceButtonCallback(lv_event_t* event) {
         auto* button = lv_event_get_target_obj(event);
-        auto index_as_voidptr = lv_obj_get_user_data(button); // config index
-        int index;
-        // TODO: Find a better way to cast void* to int, or find a different way to pass the index
-        memcpy(&index, &index_as_voidptr, sizeof(int));
+        auto* device = static_cast<Device*>(lv_obj_get_user_data(button));
 
-        std::vector<tt::hal::gps::GpsConfiguration> configurations;
-        auto gps_service = service::gps::findGpsService();
-        if (gps_service && gps_service->getGpsConfigurations(configurations)) {
-            LOG_I(TAG, "Found service and configs %d %d", index, (int)configurations.size());
-            if (index < configurations.size()) {
-                if (gps_service->removeGpsConfiguration(configurations[index])) {
-                    app->updateViews();
-                } else {
-                    alertdialog::start("Error", "Failed to remove configuration");
-                }
-            }
-        }
-    }
-
-    void createGpsView(const hal::gps::GpsConfiguration& configuration, int index) {
-        auto* wrapper = lv_obj_create(gpsConfigWrapper);
-        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
-        lv_obj_set_style_margin_hor(wrapper, 0, 0);
-        lv_obj_set_style_margin_bottom(wrapper, 8, 0);
-
-        // Left wrapper
-
-        auto* left_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_style_border_width(left_wrapper, 0, 0);
-        lv_obj_set_style_pad_all(left_wrapper, 0, 0);
-        lv_obj_set_size(left_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-        lv_obj_set_flex_grow(left_wrapper, 1);
-        lv_obj_set_flex_flow(left_wrapper, LV_FLEX_FLOW_COLUMN);
-
-        auto* uart_label = lv_label_create(left_wrapper);
-        lv_label_set_text_fmt(uart_label, "UART: %s", configuration.uartName);
-
-        auto* baud_label = lv_label_create(left_wrapper);
-        lv_label_set_text_fmt(baud_label, "Baud: %lu", configuration.baudRate);
-
-        auto* model_label = lv_label_create(left_wrapper);
-        if (configuration.model == hal::gps::GpsModel::Unknown) {
-            lv_label_set_text(model_label, "Model: auto-detect");
-        } else {
-            lv_label_set_text_fmt(model_label, "Model: %s", toString(configuration.model));
-        }
-
-        // Right wrapper
-        auto* right_wrapper = lv_obj_create(wrapper);
-        lv_obj_set_style_border_width(right_wrapper, 0, 0);
-        lv_obj_set_style_pad_all(right_wrapper, 0, 0);
-        lv_obj_set_size(right_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
-        lv_obj_set_flex_flow(right_wrapper, LV_FLEX_FLOW_COLUMN);
-
-        auto* delete_button = lv_button_create(right_wrapper);
-        lv_obj_add_event_cb(delete_button, onDeleteConfiguration, LV_EVENT_SHORT_CLICKED, this);
-        lv_obj_set_user_data(delete_button, reinterpret_cast<void*>(index));
-        auto* delete_label = lv_label_create(delete_button);
-        lv_label_set_text_fmt(delete_label, LV_SYMBOL_TRASH);
-    }
-
-    void updateViews() {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        if (lock.lock(100 / portTICK_PERIOD_MS)) {
-            auto state = service->getState();
-
-            // Update toolbar
-            switch (state) {
-                case service::gps::State::OnPending:
-                    LOG_D(TAG, "OnPending");
-                    lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
-                    lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
-                    lv_obj_remove_flag(statusWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_flag(gpsConfigWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
-                    break;
-                case service::gps::State::On:
-                    LOG_D(TAG, "On");
-                    lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_state(switchWidget, LV_STATE_CHECKED);
-                    lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);
-                    lv_obj_remove_flag(statusWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_flag(gpsConfigWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_add_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
-                    break;
-                case service::gps::State::OffPending:
-                    LOG_D(TAG, "OffPending");
-                    lv_obj_remove_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
-                    lv_obj_add_state(switchWidget, LV_STATE_DISABLED);
-                    lv_obj_add_flag(statusWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_flag(gpsConfigWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
-                    break;
-                case service::gps::State::Off:
-                    LOG_D(TAG, "Off");
-                    lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_state(switchWidget, LV_STATE_CHECKED);
-                    lv_obj_remove_state(switchWidget, LV_STATE_DISABLED);
-                    lv_obj_add_flag(statusWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_flag(gpsConfigWrapper, LV_OBJ_FLAG_HIDDEN);
-                    lv_obj_remove_flag(addGpsWrapper, LV_OBJ_FLAG_HIDDEN);
-                    break;
-            }
-
-            // Update status label and device info
-            if (state == service::gps::State::On) {
-                if (!hasSetInfo) {
-                    auto devices = hal::findDevices<hal::gps::GpsDevice>(hal::Device::Type::Gps);
-                    for (auto& device : devices) {
-                        createInfoView(device->getModel());
-                        hasSetInfo = true;
-                    }
-                }
-
-                minmea_sentence_rmc rmc;
-                char buffer[64];
-                if (service->getCoordinates(rmc)) {
-                    lv_label_set_text(statusLabelWidget, "Lock acquired");
-                    lv_obj_set_style_text_color(statusLabelWidget, lv_color_hex(0x00ff00), 0);
-
-                    minmea_float latitude = { rmc.latitude.value, rmc.latitude.scale };
-                    minmea_float longitude = { rmc.longitude.value, rmc.longitude.scale };
-
-                    double latCoord = minmea_tocoord(&latitude);
-                    double lonCoord = minmea_tocoord(&longitude);
-                    if (isnan(latCoord) || isnan(lonCoord)) {
-                        lv_label_set_text(statusLatitudeValue, "--");
-                        lv_label_set_text(statusLongitudeValue, "--");
-                    } else {
-                        const char* latDir = (latCoord >= 0) ? "N" : "S";
-                        const char* lonDir = (lonCoord >= 0) ? "E" : "W";
-
-                        snprintf(buffer, sizeof(buffer), "%.6f %s", std::abs(latCoord), latDir);
-                        lv_label_set_text(statusLatitudeValue, buffer);
-
-                        snprintf(buffer, sizeof(buffer), "%.6f %s", std::abs(lonCoord), lonDir);
-                        lv_label_set_text(statusLongitudeValue, buffer);
-                    }
-
-                    float speedKnots = minmea_tofloat(&rmc.speed);
-                    if (!isnan(speedKnots)) {
-                        float speedKmh = speedKnots * 1.852f;
-                        snprintf(buffer, sizeof(buffer), "%.1f km/h", speedKmh);
-                        lv_label_set_text(statusSpeedValue, buffer);
-                    } else {
-                        lv_label_set_text(statusSpeedValue, "--");
-                    }
-
-                    float heading = minmea_tofloat(&rmc.course);
-                    if (!isnan(heading)) {
-                        // Normalize heading to [0, 360) range
-                        heading = fmodf(heading, 360.0f);
-                        if (heading < 0) heading += 360.0f;
-                        const char* dirs[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
-                        // Calculate cardinal direction index (0-7)
-                        int idx = (int)((heading + 22.5f) / 45.0f) % 8;
-                        snprintf(buffer, sizeof(buffer), "%.0f° %s", heading, dirs[idx]);
-                        lv_label_set_text(statusHeadingValue, buffer);
-                    } else {
-                        lv_label_set_text(statusHeadingValue, "--");
-                    }
-
-                } else {
-                    lv_label_set_text(statusLabelWidget, "Acquiring lock...");
-                    lv_obj_set_style_text_color(statusLabelWidget, lv_color_hex(0xffaa00), 0);
-                    lv_label_set_text(statusLatitudeValue, "--");
-                    lv_label_set_text(statusLongitudeValue, "--");
-                    lv_label_set_text(statusSpeedValue, "--");
-                    lv_label_set_text(statusHeadingValue, "--");
-                }
-
-                minmea_sentence_gga gga;
-                if (service->getGga(gga)) {
-                    float altitude = minmea_tofloat(&gga.altitude);
-                    if (!isnan(altitude)) {
-                        snprintf(buffer, sizeof(buffer), "%.1f m", altitude);
-                        lv_label_set_text(statusAltitudeValue, buffer);
-                    } else {
-                        lv_label_set_text(statusAltitudeValue, "--");
-                    }
-
-                    snprintf(buffer, sizeof(buffer), "%d", gga.satellites_tracked);
-                    lv_label_set_text(statusSatellitesValue, buffer);
-                } else {
-                    lv_label_set_text(statusAltitudeValue, "--");
-                    lv_label_set_text(statusSatellitesValue, "--");
-                }
-
-                lv_obj_remove_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
+        bool running = device_is_ready(device);
+        // device_start()/device_stop() are potentially blocking calls, so use a dispatcher to not block the UI
+        getMainDispatcher().dispatch([device, running] {
+            if (running) {
+                device_stop(device);
             } else {
-                if (hasSetInfo) {
-                    lv_obj_clean(infoContainerWidget);
-                    hasSetInfo = false;
-                }
-
-                lv_obj_add_flag(statusLabelWidget, LV_OBJ_FLAG_HIDDEN);
+                device_start(device);
             }
-
-            if (!lv_obj_has_flag(gpsConfigWrapper, LV_OBJ_FLAG_HIDDEN)) {
-                lv_obj_clean(gpsConfigWrapper);
-                std::vector<tt::hal::gps::GpsConfiguration> configurations;
-                auto gps_service = tt::service::gps::findGpsService();
-                if (gps_service && gps_service->getGpsConfigurations(configurations)) {
-                    int index = 0;
-                    for (auto& configuration : configurations) {
-                        createGpsView(configuration, index++);
-                    }
-                }
-            } else {
-                lv_obj_clean(gpsConfigWrapper);
-            }
-        }
+        });
     }
 
-    /** @return true if the views were updated */
-    bool updateTimerState() {
-        bool is_on = service->getState() == service::gps::State::On;
-        if (is_on && !timer->isRunning()) {
-            startReceivingUpdates();
-            return true;
-        } else if (!is_on && timer->isRunning()) {
-            stopReceivingUpdates();
-            return true;
-        } else {
+    // Finds the persisted configuration backing `device` (matched by its parent UART's name)
+    // and returns its index into gps_settings_for_each_configuration()'s ordering - the handle
+    // gps_settings_remove_configuration_at() needs to delete exactly this entry, even if another
+    // entry happens to have identical field values.
+    // Devicetree-declared GPS_TYPE devices have no such configuration and never match.
+    static bool findConfigurationIndexForDevice(Device* device, size_t& outIndex) {
+        auto* parent = device_get_parent(device);
+        if (parent == nullptr) {
             return false;
         }
+
+        struct Context {
+            const char* uartName;
+            size_t* outIndex;
+            bool found;
+        } context = { parent->name, &outIndex, false };
+
+        gps_settings_for_each_configuration(&context, [](const GpsConfiguration* configuration, size_t index, void* untyped_context) {
+            auto* ctx = static_cast<Context*>(untyped_context);
+            if (!ctx->found && strcmp(configuration->uart_name, ctx->uartName) == 0) {
+                *ctx->outIndex = index;
+                ctx->found = true;
+            }
+        });
+
+        return context.found;
     }
 
-    void onGpsToggled(lv_event_t* event) {
-        bool wants_on = lv_obj_has_state(switchWidget, LV_STATE_CHECKED);
-        auto state = service->getState();
-        bool is_on = (state == service::gps::State::On) || (state == service::gps::State::OnPending);
+    static void onDeleteButtonCallback(lv_event_t* event) {
+        auto* app = static_cast<GpsSettingsApp*>(lv_event_get_user_data(event));
+        auto* button = lv_event_get_target_obj(event);
+        auto* device = static_cast<Device*>(lv_obj_get_user_data(button));
+        app->onDeleteDevice(device);
+    }
 
-        if (wants_on != is_on) {
-            // start/stop are potentially blocking calls, so we use a dispatcher to not block the UI
-            if (wants_on) {
-                getMainDispatcher().dispatch([this] {
-                    service->startReceiving();
-                });
-            } else {
-                getMainDispatcher().dispatch([this] {
-                    service->stopReceiving();
-                });
+    void onDeleteDevice(Device* device) {
+        for (auto& row : deviceRows) {
+            if (row.device == device && row.hasConfiguration) {
+                pendingDeleteDevice = device;
+                pendingDeleteIndex = row.configurationIndex;
+                hasPendingDelete = true;
+                alertdialog::start("Confirmation", std::string("Do you want to delete ") + device->name + "?", std::vector<std::string> { "Yes", "No" });
+                return;
             }
         }
     }
 
-    lv_obj_t* createInfoRow(lv_obj_t* parent, const char* labelText, lv_color_t color) {
-        lv_obj_t* row = lv_obj_create(parent);
-        lv_obj_set_size(row, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+    void createDeviceRow(Device* device) {
+        auto* wrapper = lv_obj_create(deviceListWrapper);
+        lv_obj_set_size(wrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(wrapper, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(wrapper, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_border_width(wrapper, 0, 0);
+        lv_obj_set_style_pad_all(wrapper, 0, 0);
 
-        lv_obj_set_style_pad_all(row, 0, 0);
-        lv_obj_set_style_pad_right(row, 10, 0);
-        lv_obj_set_style_border_width(row, 0, 0);
-        lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
+        auto* name_label = lv_label_create(wrapper);
+        char model_name[64];
+        if (gps_get_model_name(device, model_name, sizeof(model_name)) == ERROR_NONE) {
+            lv_label_set_text(name_label, model_name);
+        } else {
+            lv_label_set_text(name_label, device->name);
+        }
 
-        lv_obj_t* label = lv_label_create(row);
-        lv_label_set_text(label, labelText);
-        lv_obj_set_style_text_color(label, lv_palette_lighten(LV_PALETTE_GREY, 5), 0);
+        auto* actions_wrapper = lv_obj_create(wrapper);
+        lv_obj_set_size(actions_wrapper, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(actions_wrapper, LV_FLEX_FLOW_ROW);
+        lv_obj_set_style_border_width(actions_wrapper, 0, 0);
+        lv_obj_set_style_pad_all(actions_wrapper, 0, 0);
+        lv_obj_set_style_pad_column(actions_wrapper, 4, 0);
 
-        lv_obj_t* value = lv_label_create(row);
-        lv_label_set_text(value, "--");
-        lv_obj_set_style_text_color(value, color, 0);
+        auto* button = lv_button_create(actions_wrapper);
+        lv_obj_add_event_cb(button, onDeviceButtonCallback, LV_EVENT_SHORT_CLICKED, this);
+        lv_obj_set_user_data(button, device);
+        auto* button_label = lv_label_create(button);
+        lv_label_set_text(button_label, "Start");
 
-        return value;
+        DeviceRow row { .device = device, .button = button, .buttonLabel = button_label };
+
+        // Only devices backed by a persisted configuration (not devicetree-declared ones) can be deleted.
+        size_t configurationIndex;
+        if ((device->flags & DEVICE_FLAG_DYNAMIC) && findConfigurationIndexForDevice(device, configurationIndex)) {
+            auto* delete_button = lv_button_create(actions_wrapper);
+            lv_obj_add_event_cb(delete_button, onDeleteButtonCallback, LV_EVENT_SHORT_CLICKED, this);
+            lv_obj_set_user_data(delete_button, device);
+            auto* delete_label = lv_label_create(delete_button);
+            lv_label_set_text(delete_label, LVGL_ICON_SHARED_DELETE);
+
+            row.hasConfiguration = true;
+            row.configurationIndex = configurationIndex;
+        }
+
+        deviceRows.push_back(row);
+    }
+
+    // Rebuilds the device list. Only needs to run when the set of devices could've changed
+    // (on show, and after returning from AddGpsApp) - button state itself is refreshed by the timer.
+    void rebuildDeviceList() {
+        lv_obj_clean(deviceListWrapper);
+        deviceRows.clear();
+
+        device_for_each_of_type(&GPS_TYPE, this, [](Device* device, void* context) {
+            static_cast<GpsSettingsApp*>(context)->createDeviceRow(device);
+            return true;
+        });
+    }
+
+    void updateDeviceStates() {
+        lvgl_lock();
+        for (const auto& row : deviceRows) {
+            const char* text = "Start";
+            bool enabled = true;
+
+            if (device_is_ready(row.device)) {
+                switch (gps_get_state(row.device)) {
+                    case GPS_STATE_PENDING_ON:
+                        text = "Starting...";
+                        enabled = false;
+                        break;
+                    case GPS_STATE_PENDING_OFF:
+                        text = "Stopping...";
+                        enabled = false;
+                        break;
+                    default:
+                        text = "Stop";
+                        enabled = true;
+                        break;
+                }
+            }
+            lv_label_set_text(row.buttonLabel, text);
+            if (enabled) {
+                lv_obj_remove_state(row.button, LV_STATE_DISABLED);
+            } else {
+                lv_obj_add_state(row.button, LV_STATE_DISABLED);
+            }
+        }
+        lvgl_unlock();
     }
 
 public:
 
     GpsSettingsApp() {
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::secondsToTicks(1), [this] {
-            updateViews();
+        // Runs while the screen is shown - there's no push notification for GPS device state
+        // changes, so this is the only way this screen finds out about them.
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, seconds_to_ticks(1), [this] {
+            updateDeviceStates();
         });
-        service = service::gps::findGpsService();
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
+        uint8_t margin = (lvgl_get_ui_density() == LVGL_UI_DENSITY_COMPACT) ? 2 : 8;
+
         auto* toolbar = lvgl::toolbar_create(parent, app);
+        lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_PLUS, onAddGpsCallback, this);
+        lv_obj_set_style_margin_bottom(toolbar, margin, LV_STATE_DEFAULT);
 
-        spinnerWidget = lvgl::toolbar_add_spinner_action(toolbar);
-        lv_obj_add_flag(spinnerWidget, LV_OBJ_FLAG_HIDDEN);
+        deviceListWrapper = lv_obj_create(parent);
+        lv_obj_set_size(deviceListWrapper, LV_PCT(100), LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(deviceListWrapper, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_flex_grow(deviceListWrapper, 1);
+        lv_obj_set_style_border_width(deviceListWrapper, 0, 0);
+        lv_obj_set_style_pad_hor(deviceListWrapper, margin, 0);
+        lv_obj_set_style_pad_top(deviceListWrapper, 0, 0);
+        lv_obj_set_style_pad_bottom(deviceListWrapper,  margin, 0);
+        lv_obj_set_style_pad_row(deviceListWrapper, margin, 0);
 
-        switchWidget = lvgl::toolbar_add_switch_action(toolbar);
-        lv_obj_add_event_cb(switchWidget, onGpsToggledCallback, LV_EVENT_VALUE_CHANGED, this);
+        rebuildDeviceList();
 
-        auto* main_wrapper = lv_obj_create(parent);
-        lv_obj_set_flex_flow(main_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_width(main_wrapper, LV_PCT(100));
-        lv_obj_set_flex_grow(main_wrapper, 1);
-        lv_obj_set_style_border_width(main_wrapper, 0, 0);
-        lv_obj_set_style_pad_all(main_wrapper, 0, 0);
+        timer->start();
+        updateDeviceStates();
 
-        statusWrapper = lv_obj_create(main_wrapper);
-        lv_obj_set_width(statusWrapper, LV_PCT(100));
-        lv_obj_set_height(statusWrapper, LV_SIZE_CONTENT);
-        lv_obj_set_flex_flow(statusWrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_flex_align(statusWrapper, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_style_pad_all(statusWrapper, 0, 0);
-        lv_obj_set_style_pad_row(statusWrapper, 8, 0);
-        lv_obj_set_style_border_width(statusWrapper, 0, 0);
-
-        statusLabelWidget = lv_label_create(statusWrapper);
-
-        infoContainerWidget = lv_obj_create(statusWrapper);
-        lv_obj_set_size(infoContainerWidget, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_flex_flow(infoContainerWidget, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_border_width(infoContainerWidget, 0, 0);
-        lv_obj_set_style_pad_row(infoContainerWidget, 5, 0);
-        lv_obj_set_style_pad_hor(infoContainerWidget, 10, 0);
-        hasSetInfo = false;
-
-        statusLatitudeValue = createInfoRow(infoContainerWidget, "Latitude", lv_color_hex(0x00ff00));
-        statusLongitudeValue = createInfoRow(infoContainerWidget, "Longitude", lv_color_hex(0x00ff00));
-        statusAltitudeValue = createInfoRow(infoContainerWidget, "Altitude", lv_color_hex(0x00ffff));
-        statusSpeedValue = createInfoRow(infoContainerWidget, "Speed", lv_color_hex(0xffff00));
-        statusHeadingValue = createInfoRow(infoContainerWidget, "Heading", lv_color_hex(0xff88ff));
-        statusSatellitesValue = createInfoRow(infoContainerWidget, "Satellites", lv_color_hex(0xffffff));
-
-        serviceStateSubscription = service->getStatePubsub()->subscribe([this](auto) {
-            onServiceStateChanged();
-        });
-
-        gpsConfigWrapper = lv_obj_create(main_wrapper);
-        lv_obj_set_size(gpsConfigWrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(gpsConfigWrapper, 0, 0);
-        lv_obj_set_style_margin_all(gpsConfigWrapper, 0, 0);
-        lv_obj_set_style_pad_bottom(gpsConfigWrapper, 0, 0);
-
-        addGpsWrapper = lv_obj_create(main_wrapper);
-        lv_obj_set_size(addGpsWrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_border_width(addGpsWrapper, 0, 0);
-        lv_obj_set_style_pad_all(addGpsWrapper, 0, 0);
-        lv_obj_set_style_margin_top(addGpsWrapper, 0, 0);
-        lv_obj_set_style_margin_bottom(addGpsWrapper, 8, 0);
-
-        auto* add_gps_button = lv_button_create(addGpsWrapper);
-        auto* add_gps_label = lv_label_create(add_gps_button);
-        lv_label_set_text(add_gps_label, "Add GPS");
-        lv_obj_add_event_cb(add_gps_button, onAddGpsCallback, LV_EVENT_SHORT_CLICKED, this);
-        lv_obj_align(add_gps_button, LV_ALIGN_TOP_MID, 0, 0);
-
-        updateTimerState();
-        updateViews();
+        // Only after deviceListWrapper is fully built: onResult() (Loader thread) checks
+        // this before touching it, since it can run before or after this onShow() call.
+        isShown = true;
     }
 
     void onHide(AppContext& app) override {
-        service->getStatePubsub()->unsubscribe(serviceStateSubscription);
-        serviceStateSubscription = nullptr;
+        isShown = false;
+        timer->stop();
+    }
+
+    void onResult(AppContext&, LaunchId, Result result, std::unique_ptr<Bundle> bundle) override {
+        if (!hasPendingDelete) {
+            return;
+        }
+        hasPendingDelete = false;
+
+        if (result != Result::Ok || bundle == nullptr || alertdialog::getResultIndex(*bundle) != 0) { // 0 = Yes
+            return;
+        }
+
+        // This runs on the Loader thread, concurrently with the periodic timer callback
+        // (updateDeviceStates(), timer daemon thread) and possibly with onShow() (GUI
+        // thread). Take the same lock updateDeviceStates() uses and hold it across the
+        // free below, so the timer can never observe pendingDeleteDevice as a dangling
+        // pointer in deviceRows.
+        lvgl_lock();
+        // Drop the stale row unconditionally (cheap vector op, no LVGL calls) - this is
+        // what keeps the timer safe regardless of whether onShow() has run yet this cycle.
+        std::erase_if(deviceRows, [this](const DeviceRow& row) {
+            return row.device == pendingDeleteDevice;
+        });
+        lvgl_unlock();
+
+        // gps_settings_remove_configuration_at() frees the underlying Device synchronously -
+        // do this only after the dangling pointer is already out of deviceRows.
+        gps_settings_remove_configuration_at(pendingDeleteIndex);
+        pendingDeleteDevice = nullptr;
+
+        // Only safe to touch deviceListWrapper if onShow() already built it for this show
+        // cycle - it may not have run yet, in which case it'll rebuild fresh (post-deletion,
+        // deviceRows already correct) when it does.
+        lvgl_lock();
+        if (isShown) {
+            rebuildDeviceList();
+        }
+        lvgl_unlock();
     }
 };
 

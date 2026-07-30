@@ -100,7 +100,7 @@ public:
         bool awaitAll = false,
         bool clearOnExit = true,
         uint32_t* outFlags = nullptr,
-        TickType_t timeout = kernel::MAX_TICKS
+        TickType_t timeout = kernel::FREERTOS_MAX_TICKS
     ) const {
         assert(xPortInIsrContext() == pdFALSE);
 

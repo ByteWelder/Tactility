@@ -2,22 +2,17 @@
 
 #include <Tactility/Tactility.h>
 #include <Tactility/settings/WebServerSettings.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/service/wifi/WifiApSettings.h>
-#include <Tactility/service/webserver/AssetVersion.h>
-#include <Tactility/service/webserver/WebServerService.h>
-#include <Tactility/Assets.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/service/webserver/WebServerService.h>
+#include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 #include <esp_netif.h>
 #include <esp_wifi.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/timers.h>
 
 namespace tt::app::webserversettings {
 
@@ -47,10 +42,9 @@ class WebServerSettingsApp final : public App {
             app->wsSettings.wifiMode = static_cast<settings::webserver::WiFiMode>(index);
             app->updated = true;
             app->wifiSettingsChanged = true;
-            if (lvgl::lock(100)) {
-                app->updateUrlDisplay();
-                lvgl::unlock();
-            }
+            lvgl_lock();
+            app->updateUrlDisplay();
+            lvgl_unlock();
         });
     }
 
@@ -60,10 +54,9 @@ class WebServerSettingsApp final : public App {
         getMainDispatcher().dispatch([app, enabled] {
             app->wsSettings.webServerEnabled = enabled;
             app->updated = true;
-            if (lvgl::lock(100)) {
-                app->updateUrlDisplay();
-                lvgl::unlock();
-            }
+            lvgl_lock();
+            app->updateUrlDisplay();
+            lvgl_unlock();
 
             // Apply immediately instead of waiting for app exit
             const auto copy = app->wsSettings;
@@ -192,7 +185,7 @@ public:
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
         // Web Server Enable toggle
-        switchWebServerEnabled = lvgl::toolbar_add_switch_action(toolbar);
+        switchWebServerEnabled = lvgl_toolbar_add_switch_action(toolbar);
         if (wsSettings.webServerEnabled) {
             lv_obj_add_state(switchWebServerEnabled, LV_STATE_CHECKED);
         }

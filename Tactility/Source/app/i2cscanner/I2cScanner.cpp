@@ -1,20 +1,20 @@
-#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 #include <Tactility/app/i2cscanner/I2cHelpers.h>
-
+#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 #include <Tactility/LogMessages.h>
 #include <Tactility/Preferences.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Timer.h>
 #include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
+
 #include <tactility/drivers/i2c_controller.h>
+#include <tactility/log.h>
 
 #include <format>
 
-#include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 namespace tt::app::i2cscanner {
 
@@ -367,12 +367,9 @@ void I2cScannerApp::updateViews() {
 }
 
 void I2cScannerApp::updateViewsSafely() {
-    if (lvgl::lock(200 / portTICK_PERIOD_MS)) {
-        updateViews();
-        lvgl::unlock();
-    } else {
-        LOG_W(TAG, "Mutex acquisition timeout (%s)", "updateViewsSafely");
-    }
+    lvgl_lock();
+    updateViews();
+    lvgl_unlock();
 }
 
 void I2cScannerApp::onScanTimerFinished() {

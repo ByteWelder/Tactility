@@ -1,23 +1,26 @@
-#include "Tactility/lvgl/Lvgl.h"
-#include "tactility/drivers/backlight.h"
-#include "tactility/drivers/display.h"
+#include "tactility/system_event.h"
+
+
+#include <tactility/delay.h>
+#include <tactility/drivers/backlight.h>
+#include <tactility/drivers/display.h>
+#include <tactility/log.h>
+#include <tactility/time.h>
 
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/Paths.h>
-#include <Tactility/SystemEvents.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppPaths.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/hal/display/DisplayDevice.h>
 #include <Tactility/hal/usb/Usb.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/BootSettings.h>
 #include <Tactility/settings/DisplaySettings.h>
 
 #include <lvgl.h>
-#include <tactility/log.h>
 
 #include <atomic>
 
@@ -35,10 +38,6 @@ namespace tt::app::boot {
 constexpr auto* TAG = "Boot";
 
 extern const AppManifest manifest;
-
-static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
-    return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
-}
 
 class BootApp : public App {
 
@@ -58,38 +57,9 @@ class BootApp : public App {
         getCpuAffinityConfiguration().system
     );
 
-    static void setupHalDisplay() {
-        const auto hal_display = getHalDisplay();
-        if (hal_display == nullptr) {
-            return;
-        }
-
-        settings::display::DisplaySettings settings;
-        if (settings::display::load(settings)) {
-            if (hal_display->getGammaCurveCount() > 0) {
-                hal_display->setGammaCurve(settings.gammaCurve);
-                LOG_I(TAG, "Gamma curve %d", settings.gammaCurve);
-            }
-        } else {
-            settings = settings::display::getDefault();
-        }
-
-        if (hal_display->supportsBacklightDuty()) {
-            LOG_I(TAG, "Backlight %d", settings.backlightDuty);
-            hal_display->setBacklightDuty(settings.backlightDuty);
-        } else {
-            LOG_I(TAG, "No backlight");
-        }
-    }
-
-    static void setupKernelDisplay() {
-        auto* display = device_find_first_by_type(&DISPLAY_TYPE);
-        // Boards not yet migrated to the kernel display driver register a placeholder device (so
-        // the devicetree node resolves) with a NULL api - nothing for this function to act on.
-        if (display != nullptr && device_get_driver(display)->api == nullptr) {
-            display = nullptr;
-        }
-        if (display != nullptr) {
+    static void setupDisplay() {
+        Device* display = nullptr;
+        if (device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE) {
             Device* backlight;
             if (display_get_backlight(display, &backlight) == ERROR_NONE) {
                 if (!device_is_ready(backlight)) {
@@ -112,6 +82,7 @@ class BootApp : public App {
             } else {
                 LOG_I(TAG, "No backlight for %s", display->name);
             }
+            device_put(display);
         } else {
             LOG_I(TAG, "No kernel display");
         }
@@ -141,28 +112,28 @@ class BootApp : public App {
     }
 
     static void waitForMinimalSplashDuration(TickType_t startTime) {
-        const auto end_time = kernel::getTicks();
+        const auto end_time = get_ticks();
         const auto ticks_passed = end_time - startTime;
         constexpr auto minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
         if (minimum_ticks > ticks_passed) {
-            kernel::delayTicks(minimum_ticks - ticks_passed);
+            delay_ticks(minimum_ticks - ticks_passed);
         }
     }
 
     static int32_t bootThreadCallback() {
         LOG_I(TAG, "Starting boot thread");
-        const auto start_time = kernel::getTicks();
+        const auto start_time = get_ticks();
 
         // Give the UI some time to redraw
         // If we don't do this, various init calls will read files and block SPI IO for the display
         // This would result in a blank/black screen being shown during this phase of the boot process
         // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
-        kernel::delayMillis(10);
+        delay_millis(10);
 
         // TODO: Support for multiple displays
         LOG_I(TAG, "Setup display");
-        setupHalDisplay();
-        setupKernelDisplay();
+        setupDisplay();
+        LOG_I(TAG, "Prepare file systems");
         prepareFileSystems();
 
 #ifdef CONFIG_TT_USER_DATA_LOCATION_SD
@@ -185,7 +156,7 @@ class BootApp : public App {
         // This event will likely block as other systems are initialized
         // e.g. Wi-Fi reads AP configs from SD card
         LOG_I(TAG, "Publish event");
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
 
         return 0;
     }

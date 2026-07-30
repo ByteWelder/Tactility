@@ -19,10 +19,12 @@
 #include <bindings/st7789.h>
 #include <bindings/es7210.h>
 #include <bindings/dummy_i2s_amp.h>
+#include <bindings/gpio_trackball.h>
+
+#include <gps_generic/bindings.h>
 
 #include <lilygo/bindings/tdeck_keyboard.h>
 #include <lilygo/bindings/tdeck_keyboard_backlight.h>
-#include <lilygo/bindings/tdeck_trackball.h>
 
 // Reference: https://wiki.lilygo.cc/products/t-deck-series/t-deck-plus/
 / {
@@ -59,7 +61,7 @@
 	};
 
 	trackball {
-		compatible = "lilygo,tdeck-trackball";
+		compatible = "tactility,gpio-trackball";
 		pin-right = <&gpio0 2 GPIO_FLAG_NONE>;
 		pin-up = <&gpio0 3 GPIO_FLAG_NONE>;
 		pin-left = <&gpio0 1 GPIO_FLAG_NONE>;
@@ -188,5 +190,12 @@
 		port = <UART_NUM_1>;
 		pin-tx = <&gpio0 43 GPIO_FLAG_NONE>;
 		pin-rx = <&gpio0 44 GPIO_FLAG_NONE>;
+
+		gps {
+			compatible = "tactility,gps-generic";
+			status = "disabled";
+			baud-rate = <38400>;
+			model = <GPS_MODEL_UBLOX10>;
+		};
 	};
 };

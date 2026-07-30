@@ -194,10 +194,22 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
 
     size_t i = start_idx;
     while (true) {
-        ble_addr_t addr  = {};
-        bool       found = false;
-        {
-            xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
+        ble_addr_t addr     = {};
+        bool       found    = false;
+        bool       radio_on = false;
+        int        rc       = -1;
+
+        // Don't start (or chain into) a new GAP connection once the radio is going down
+        // (or is already off) — ble_gap_connect() racing nimble_port_stop() can block the
+        // NimBLE host task and hang the stop, same class of bug as the OFF_PENDING guard
+        // on advertising restart in gap_event_handler's BLE_GAP_EVENT_DISCONNECT case.
+        // The check must be re-done on every iteration (not just once on entry) since a
+        // failed ble_gap_connect() loops back for the next peer, and it must happen under
+        // scan_mutex together with the connect call itself so a concurrent dispatch_disable()
+        // can't flip radio_state between the check and the call.
+        xSemaphoreTake(ctx->scan_mutex, portMAX_DELAY);
+        radio_on = ctx->radio_state.load() == BT_RADIO_STATE_ON;
+        if (radio_on) {
             while (i < ctx->scan_count) {
                 if (ctx->scan_results[i].name[0] == '\0') {
                     addr  = ctx->scan_addrs[i];
@@ -206,7 +218,23 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
                 }
                 ++i;
             }
-            xSemaphoreGive(ctx->scan_mutex);
+            if (found) {
+                uint8_t own_addr_type;
+                ble_hs_id_infer_auto(0, &own_addr_type);
+                void* idx_arg = (void*)(uintptr_t)i;
+                rc = ble_gap_connect(own_addr_type, &addr, 1500, nullptr,
+                                     name_res_gap_callback, idx_arg);
+            }
+        }
+        xSemaphoreGive(ctx->scan_mutex);
+
+        if (!radio_on) {
+            LOG_I(TAG, "Name resolution: aborting (radio not on)");
+            ble_set_scan_active(device, false);
+            struct BtEvent e = {};
+            e.type = BT_EVENT_SCAN_FINISHED;
+            ble_publish_event(device, e);
+            return;
         }
 
         if (!found) {
@@ -218,12 +246,6 @@ void ble_resolve_next_unnamed_peer(struct Device* device, size_t start_idx) {
             return;
         }
 
-        uint8_t own_addr_type;
-        ble_hs_id_infer_auto(0, &own_addr_type);
-
-        void* idx_arg = (void*)(uintptr_t)i;
-        int rc = ble_gap_connect(own_addr_type, &addr, 1500, nullptr,
-                                 name_res_gap_callback, idx_arg);
         if (rc == 0) {
             return; // name_res_gap_callback continues the chain
         }

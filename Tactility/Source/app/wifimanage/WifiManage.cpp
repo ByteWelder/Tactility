@@ -1,15 +1,15 @@
-#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 #include <Tactility/app/wifimanage/View.h>
+#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 
-#include <Tactility/LogMessages.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/wifiapsettings/WifiApSettings.h>
 #include <Tactility/app/wificonnect/WifiConnect.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::app::wifimanage {
 
@@ -65,12 +65,9 @@ void WifiManage::unlock() {
 void WifiManage::requestViewUpdate() {
     lock();
     if (isViewEnabled) {
-        if (lvgl::lock(1000)) {
-            view.update();
-            lvgl::unlock();
-        } else {
-            LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-        }
+        lvgl_lock();
+        view.update();
+        lvgl_unlock();
     }
     unlock();
 }

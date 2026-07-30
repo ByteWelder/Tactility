@@ -20,7 +20,7 @@ public:
 
     virtual bool lock(TickType_t timeout) const = 0;
 
-    bool lock() const { return lock(kernel::MAX_TICKS); }
+    bool lock() const { return lock(kernel::FREERTOS_MAX_TICKS); }
 
     virtual void unlock() const = 0;
 
@@ -40,9 +40,9 @@ public:
         }
     }
 
-    void withLock(const std::function<void()>& onLockAcquired) const { withLock(kernel::MAX_TICKS, onLockAcquired); }
+    void withLock(const std::function<void()>& onLockAcquired) const { withLock(kernel::FREERTOS_MAX_TICKS, onLockAcquired); }
 
-    void withLock(const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailed) const { withLock(kernel::MAX_TICKS, onLockAcquired, onLockFailed); }
+    void withLock(const std::function<void()>& onLockAcquired, const std::function<void()>& onLockFailed) const { withLock(kernel::FREERTOS_MAX_TICKS, onLockAcquired, onLockFailed); }
 
 	ScopedLock asScopedLock() const;
 };

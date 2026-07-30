@@ -1,10 +1,10 @@
-#include <tactility/drivers/display.h>
-#include <tactility/error.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
+#include <tactility/drivers/display.h>
+#include <tactility/error.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
 
 #include <Tactility/Tactility.h>
 #ifdef ESP_PLATFORM
@@ -25,15 +25,18 @@ namespace tt::app::kerneldisplay {
 constexpr auto* TAG = "KernelDisplay";
 
 static Device* getBacklightDevice() {
-    Device* display = device_find_first_by_type(&DISPLAY_TYPE);
-    check(display);
+    Device* display;
+    check(device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE);
     // Boards not yet migrated to the kernel display driver register a placeholder device (so the
     // devicetree node resolves) with a NULL api - nothing for display_get_backlight() to act on.
     if (device_get_driver(display)->api == nullptr) {
+        device_put(display);
         return nullptr;
     }
     Device* backlight = nullptr;
-    return display_get_backlight(display, &backlight) == ERROR_NONE ? backlight : nullptr;
+    display_get_backlight(display, &backlight);
+    device_put(display);
+    return backlight;
 }
 
 class KernelDisplayApp final : public App {

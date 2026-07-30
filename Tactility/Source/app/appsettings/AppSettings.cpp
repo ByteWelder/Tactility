@@ -1,10 +1,10 @@
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
 
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/appdetails/AppDetails.h>
-#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <lvgl.h>
 #include <algorithm>
@@ -29,7 +29,7 @@ class AppSettingsApp final : public App {
 public:
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
-        auto* toolbar = lvgl::toolbar_create(parent, "Installed Apps");
+        auto* toolbar = lvgl_toolbar_create(parent, "Installed Apps");
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         lv_obj_t* list = lv_list_create(parent);

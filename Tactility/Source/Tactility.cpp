@@ -6,51 +6,55 @@
 
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
-
-#include <Tactility/LogMessages.h>
+#include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/CpuAffinity.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/app/AppManifestParsing.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
-#include <Tactility/file/FileLock.h>
-#include <Tactility/hal/HalPrivate.h>
-#include <Tactility/lvgl/LvglPrivate.h>
+#include <Tactility/LogMessages.h>
+#include <Tactility/lvgl/TrackballInit.h>
+#include <Tactility/hal/SdCard.h>
 #include <Tactility/network/NtpPrivate.h>
+#include <Tactility/Paths.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
 
+#ifdef ESP_PLATFORM
+#include <Tactility/InitEsp.h>
+#endif
+
+#include <gps/module.h>
+#include <gps_generic/gps_generic_module.h>
+
+#include <crypt/module.h>
+#include <lvgl/module.h>
+#include <lvgl/widgets/toolbar.h>
+
 #include <tactility/concurrent/thread.h>
-#include <tactility/crypt_module.h>
+#include <tactility/device.h>
 #include <tactility/drivers/audio_stream.h>
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/grove.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/rtc.h>
+#include <tactility/drivers/trackball.h>
 #include <tactility/drivers/uart_controller.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
-#include <tactility/hal_device_module.h>
 #include <tactility/kernel_init.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
-
-#ifdef ESP_PLATFORM
-#include <Tactility/InitEsp.h>
-#endif
-
-#include "Tactility/Paths.h"
-
-
-#include <Tactility/bluetooth/Bluetooth.h>
+#include <tactility/memory.h>
 
 namespace tt {
 
 constexpr auto* TAG = "Tactility";
 
-static const Configuration* config_instance = nullptr;
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
+
+void initFileMutexForLvgl();
 
 namespace {
 
@@ -75,12 +79,11 @@ bool MainDispatcher::dispatch(Function function, TickType_t timeout) const {
 namespace service {
     // Primary
     namespace audio { extern const ServiceManifest manifest; }
-    namespace gps { extern const ServiceManifest manifest; }
     namespace wifi { extern const ServiceManifest manifest; }
 #ifdef ESP_PLATFORM
     namespace development { extern const ServiceManifest manifest; }
 #endif
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     namespace espnow { extern const ServiceManifest manifest; }
 #endif
     // Secondary (UI)
@@ -153,15 +156,16 @@ namespace app {
     namespace webserversettings { extern const AppManifest manifest; }
 #if CONFIG_TT_TDECK_WORKAROUND == 1
     namespace keyboardsettings { extern const AppManifest manifest; } // T-Deck only for now
+#endif
+#endif
+
     namespace trackballsettings { extern const AppManifest manifest; } // T-Deck only for now
-#endif
-#endif
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     namespace screenshot { extern const AppManifest manifest; }
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     namespace chat { extern const AppManifest manifest; }
 #endif
 }
@@ -183,8 +187,6 @@ static void registerInternalApps() {
     }
     if (device_exists_of_type(&DISPLAY_TYPE)) {
         addAppManifest(app::kerneldisplay::manifest);
-    } else if (hal::hasDevice(hal::Device::Type::Display)) {
-        addAppManifest(app::display::manifest);
     }
     addAppManifest(app::files::manifest);
     addAppManifest(app::fileselection::manifest);
@@ -217,9 +219,12 @@ static void registerInternalApps() {
     addAppManifest(app::development::manifest);
 #if defined(CONFIG_TT_TDECK_WORKAROUND)
         addAppManifest(app::keyboardsettings::manifest);
+#endif
+#endif
+
+    if (device_exists_of_type(&TRACKBALL_TYPE)) {
         addAppManifest(app::trackballsettings::manifest);
-#endif
-#endif
+    }
 
 #if defined(CONFIG_TINYUSB_MSC_ENABLED) && CONFIG_TINYUSB_MSC_ENABLED
     addAppManifest(app::usbsettings::manifest);
@@ -229,7 +234,7 @@ static void registerInternalApps() {
     addAppManifest(app::screenshot::manifest);
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     addAppManifest(app::chat::manifest);
 #endif
 
@@ -297,42 +302,27 @@ static void registerInstalledAppsFromFileSystems() {
     });
 }
 
-static void registerAndStartSecondaryServices() {
-    LOG_I(TAG, "Registering and starting secondary system services");
-    addService(service::loader::manifest);
-    addService(service::gui::manifest);
-    addService(service::statusbar::manifest);
-    addService(service::memorychecker::manifest);
-#if defined(ESP_PLATFORM)
-    if (device_exists_of_type(&RTC_TYPE)) {
-        addService(service::rtctime::manifest);
-    }
-    addService(service::displayidle::manifest);
-#if defined(CONFIG_TT_TDECK_WORKAROUND)
-    addService(service::keyboardidle::manifest);
-#endif
-#endif
-#if TT_FEATURE_SCREENSHOT_ENABLED
-    addService(service::screenshot::manifest);
-#endif
-}
-
-static void registerAndStartPrimaryServices() {
+static void registerAndStartServices() {
     LOG_I(TAG, "Registering and starting primary system services");
     if (device_exists_of_type(&AUDIO_STREAM_TYPE)) {
         addService(service::audio::manifest);
     }
-    addService(service::gps::manifest);
     addService(service::wifi::manifest);
 #ifdef ESP_PLATFORM
     addService(service::development::manifest);
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
     addService(service::espnow::manifest);
 #endif
 #ifdef ESP_PLATFORM
     addService(service::webserver::manifest);
+#endif
+    addService(service::loader::manifest);
+#if defined(ESP_PLATFORM)
+    if (device_exists_of_type(&RTC_TYPE)) {
+        addService(service::rtctime::manifest);
+    }
 #endif
 }
 
@@ -340,8 +330,9 @@ void createTempDirectory() {
     auto data_path = getUserDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
-        auto lock = file::getLock(data_path)->asScopedLock();
-        if (lock.lock(1000 / portTICK_PERIOD_MS)) {
+        FileMutex mutex;
+        file_mutex_get(&mutex, data_path.c_str());
+        if (file_mutex_try_lock(&mutex, 1000 / portTICK_PERIOD_MS)) {
             if (!file::findOrCreateParentDirectory(temp_path, 0777)) {
                 LOG_E(TAG, "Failed to create %s", data_path.c_str());
             } else if (mkdir(temp_path.c_str(), 0777) == 0) {
@@ -349,6 +340,7 @@ void createTempDirectory() {
             } else {
                 LOG_E(TAG, "Failed to create %s", temp_path.c_str());
             }
+            file_mutex_unlock(&mutex);
         } else {
             LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, data_path.c_str());
         }
@@ -366,10 +358,51 @@ void registerApps() {
     registerInstalledAppsFromFileSystems();
 }
 
-void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices[]) {
-    LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
+static void stopAppFromToolbar(lv_event_t*) {
+    app::stop();
+}
 
-    assert(config.hardware);
+static void onLvglStarted() {
+    ToolbarConfig toolbar_config = { .nav_action_callback = stopAppFromToolbar };
+    lvgl_toolbar_configure(&toolbar_config);
+
+    addService(service::gui::manifest);
+    addService(service::statusbar::manifest);
+    addService(service::memorychecker::manifest);
+#if defined(ESP_PLATFORM)
+    addService(service::displayidle::manifest);
+#endif
+#if defined(CONFIG_TT_TDECK_WORKAROUND)
+    addService(service::keyboardidle::manifest);
+#endif
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    addService(service::screenshot::manifest);
+#endif
+
+    lvgl::initTrackball();
+
+    memory_print_stats();
+}
+
+static void onLvglStopped() {
+#if TT_FEATURE_SCREENSHOT_ENABLED
+    check(service::removeService(service::screenshot::manifest.id));
+#endif
+#if defined(CONFIG_TT_TDECK_WORKAROUND)
+    check(service::removeService(service::keyboardidle::manifest.id));
+#endif
+#if defined(ESP_PLATFORM)
+    check(service::removeService(service::displayidle::manifest.id));
+#endif
+    check(service::removeService(service::memorychecker::manifest.id));
+    check(service::removeService(service::statusbar::manifest.id));
+    check(service::removeService(service::gui::manifest.id));
+
+    memory_print_stats();
+}
+
+void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
+    LOG_I(TAG, "Tactility v%s on %s (%s)", TT_VERSION, CONFIG_TT_DEVICE_NAME, CONFIG_TT_DEVICE_ID);
 
     LOG_I(TAG, "Initializing kernel");
     if (kernel_init(dtsModules, dtsDevices) != ERROR_NONE) {
@@ -377,29 +410,30 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
         return;
     }
 
-    // hal-device-module
-    check(module_construct_add_start(&hal_device_module) == ERROR_NONE);
-
-    // crypt-module
-    check(module_construct_add_start(&crypt_module) == ERROR_NONE);
-
-    // Assign early so starting services can use it
-    config_instance = &config;
+    check(module_ensure_started(&crypt_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_module) == ERROR_NONE);
+    check(module_ensure_started(&gps_generic_module) == ERROR_NONE);
 
 #ifdef ESP_PLATFORM
     initEsp();
 #endif
-    file::setFindLockFunction(file::findLock);
+
     settings::initTimeZone();
-    hal::init(*config.hardware);
+
+    // Attempt to start all disabled SD cards (some require delayed init)
+    hal::sdcard::startAll();
+
     network::ntp::init();
     bluetooth::systemStart();
 
-    registerAndStartPrimaryServices();
+    registerAndStartServices();
+
+    // Must start right before LVGL
+    initFileMutexForLvgl();
 
     lvgl_module_configure((LvglModuleConfig) {
-        .on_start = lvgl::attachDevices,
-        .on_stop = lvgl::detachDevices,
+        .on_start = onLvglStarted,
+        .on_stop = onLvglStopped,
         .task_priority = THREAD_PRIORITY_HIGHER,
         /** Minimum seems to be about 3500. In some scenarios, the WiFi app crashes at 8192,
          * so we now have 9120 to run in a stable manner. We should figure out a way to avoid this.
@@ -409,11 +443,7 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
         .task_affinity = getCpuAffinityConfiguration().graphics
 #endif
     });
-    check(module_construct(&lvgl_module) == ERROR_NONE);
-    check(module_add(&lvgl_module) == ERROR_NONE);
-    lvgl::start();
-
-    registerAndStartSecondaryServices();
+    check(module_ensure_started(&lvgl_module) == ERROR_NONE);
 
     LOG_I(TAG, "Core systems ready");
 
@@ -426,11 +456,6 @@ void run(const Configuration& config, Module* dtsModules[], DtsDevice dtsDevices
     while (true) {
         dispatcher_consume(mainDispatcherHandle);
     }
-}
-
-/** return the configuration or nullptr if it's not initialized */
-const Configuration* getConfiguration() {
-    return config_instance;
 }
 
 MainDispatcher getMainDispatcher() {

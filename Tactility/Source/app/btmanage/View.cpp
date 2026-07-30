@@ -1,7 +1,7 @@
 #include <format>
 #include <string>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/app/btmanage/View.h>
 #include <Tactility/app/btmanage/BtManagePrivate.h>
@@ -46,8 +46,12 @@ static void onEnableOnBootParentClicked(lv_event_t* event) {
 
 static void onScanButtonClicked(lv_event_t* event) {
     auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
-    Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE);
+    Device* dev = nullptr;
+    device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
     bool scanning = dev ? bluetooth_is_scanning(dev) : false;
+    if (dev) {
+        device_put(dev);
+    }
     bt->getBindings().onScanToggled(!scanning);
 }
 
@@ -222,9 +226,9 @@ void View::init(const AppContext& app, lv_obj_t* parent) {
     // Toolbar
     auto* toolbar = lvgl::toolbar_create(parent, app);
 
-    scanning_spinner = lvgl::toolbar_add_spinner_action(toolbar);
+    scanning_spinner = lvgl_toolbar_add_spinner_action(toolbar);
 
-    enable_switch = lvgl::toolbar_add_switch_action(toolbar);
+    enable_switch = lvgl_toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(enable_switch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, nullptr);
 
     // Peer list

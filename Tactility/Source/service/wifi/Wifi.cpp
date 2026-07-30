@@ -3,7 +3,6 @@
 #include <Tactility/CoreDefines.h>
 #include <Tactility/LogMessages.h>
 #include <Tactility/RecursiveMutex.h>
-#include <Tactility/SystemEvents.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/Timer.h>
 #include <Tactility/service/Service.h>
@@ -11,14 +10,17 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/wifi/WifiBootSplashInit.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
-#include <Tactility/service/wifi/WifiSettings.h>
 
 #include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
 #include <tactility/log.h>
+#include <tactility/system_event.h>
+#include <tactility/time.h>
+#include <tactility/wifi_auto_scan.h>
 
 #include <algorithm>
+#include <atomic>
 
 namespace tt::service::wifi {
 
@@ -63,13 +65,20 @@ struct WifiServiceState {
     std::shared_ptr<PubSub<WifiEvent>> pubsub = std::make_shared<PubSub<WifiEvent>>();
     RecursiveMutex mutex;
     bool secureConnection = false;
+    // Internal: set by connect()/disconnect() while a manual attempt is in flight, cleared on
+    // connection success/failure. Distinct from externalScanPause below - the two must not
+    // clobber each other, otherwise a caller's explicit pause (e.g. AutoScanPauseGuard during a
+    // co-processor OTA) can be silently cleared by an unrelated connect/disconnect finishing.
     bool pauseAutoConnect = false;
+    // External: only setAutoScanPaused() may set/clear this. Read alongside pauseAutoConnect to
+    // gate scan scheduling (both must be false to scan).
+    std::atomic<bool> externalScanPause{false};
     bool connectionTargetRemember = false;
     settings::WifiApSettings connectionTarget;
     uint16_t scanRecordLimit = TT_WIFI_SCAN_RECORD_LIMIT;
-    TickType_t lastScanTime = kernel::MAX_TICKS;
+    TickType_t lastScanTime = MAX_TICKS;
     std::unique_ptr<Timer> autoConnectTimer;
-    kernel::SystemEventSubscription bootEventSubscription = kernel::NoSystemEventSubscription;
+    bool bootEventSubscribed = false;
 };
 
 WifiServiceState state;
@@ -156,7 +165,7 @@ void dispatchScan() {
     LOG_I(TAG, "dispatchScan()");
     if (!started || state.device == nullptr || !device_is_ready(state.device)) return;
 
-    state.lastScanTime = kernel::getTicks();
+    state.lastScanTime = get_ticks();
 
     error_t result = wifi_scan(state.device);
     if (result != ERROR_NONE) {
@@ -224,11 +233,12 @@ bool findAutoConnectAp(settings::WifiApSettings& out) {
 
 void dispatchAutoConnect() {
     LOG_I(TAG, "dispatchAutoConnect()");
-    if (state.pauseAutoConnect) {
+    if (state.pauseAutoConnect || state.externalScanPause.load()) {
         // A manual disconnect() or an in-progress manual connect() has paused
-        // auto-connect. This is called on every SCAN_FINISHED, not just the
-        // auto-connect timer's own scans (e.g. WifiManage re-scans on show),
-        // so it must honor the pause instead of reconnecting unconditionally.
+        // auto-connect, or a caller (e.g. AutoScanPauseGuard) has externally paused it.
+        // This is called on every SCAN_FINISHED, not just the auto-connect timer's own
+        // scans (e.g. WifiManage re-scans on show), so it must honor the pause instead of
+        // reconnecting unconditionally.
         return;
     }
     RadioState radio_state = getRadioState();
@@ -249,10 +259,11 @@ void dispatchAutoConnect() {
 }
 
 bool shouldScanForAutoConnect() {
-    bool radio_scannable = getRadioState() == RadioState::On && !isScanning() && !state.pauseAutoConnect;
+    bool radio_scannable = getRadioState() == RadioState::On && !isScanning() &&
+        !state.pauseAutoConnect && !state.externalScanPause.load();
     if (!radio_scannable) return false;
 
-    TickType_t current_time = kernel::getTicks();
+    TickType_t current_time = get_ticks();
     bool scan_time_has_looped = current_time < state.lastScanTime;
     bool no_recent_scan = (current_time - state.lastScanTime) > (AUTO_SCAN_INTERVAL / portTICK_PERIOD_MS);
     return scan_time_has_looped || no_recent_scan;
@@ -267,7 +278,7 @@ void onAutoConnectTimer() {
 
 // ---- Kernel driver event bridge ----
 
-void onWifiDeviceEvent(Device* /*device*/, void* /*context*/, ::WifiEvent event) {
+void onWifiDeviceEvent(Device* device, void* /*context*/, ::WifiEvent event) {
     switch (event.type) {
         case WIFI_EVENT_TYPE_SCAN_FINISHED:
             getMainDispatcher().dispatch([] { dispatchAutoConnect(); });
@@ -280,7 +291,8 @@ void onWifiDeviceEvent(Device* /*device*/, void* /*context*/, ::WifiEvent event)
                 // Resetting it on every disconnect (including deliberate ones) would
                 // let auto-connect immediately reconnect the user. Attempts that fail
                 // while pending are unpaused via WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT below.
-                kernel::publishSystemEvent(kernel::SystemEvent::NetworkDisconnected);
+                NetworkDisconnectedEvent disconnected_event = { .device = device };
+                system_event_emit(KERNEL_EVENT_NETWORK_DISCONNECTED, &disconnected_event, sizeof(disconnected_event));
             }
             break;
 
@@ -308,7 +320,6 @@ void onWifiDeviceEvent(Device* /*device*/, void* /*context*/, ::WifiEvent event)
                 if (remember && !settings::save(target)) {
                     LOG_E(TAG, "Failed to store credentials");
                 }
-                kernel::publishSystemEvent(kernel::SystemEvent::NetworkConnected);
             } else {
                 // The pending connection attempt (which paused auto-connect via connect())
                 // failed; unpause so auto-connect can try other saved APs.
@@ -326,6 +337,11 @@ void onWifiDeviceEvent(Device* /*device*/, void* /*context*/, ::WifiEvent event)
     // Forward the event as-is: subscribers inspect event.type and the
     // relevant union field directly, same as this function does.
     publish(event);
+}
+
+void autoScanSetPaused(bool paused) {
+    LOG_I(TAG, "autoScanSetPaused(%d)", (int)paused);
+    state.externalScanPause = paused;
 }
 
 } // namespace
@@ -416,6 +432,10 @@ void disconnect() {
     getMainDispatcher().dispatch([] { dispatchDisconnect(); });
 }
 
+void setAutoScanPaused(bool paused) {
+    autoScanSetPaused(paused);
+}
+
 void setScanRecords(uint16_t records) {
     LOG_I(TAG, "setScanRecords(%u)", records);
     if (!started) return;
@@ -472,6 +492,10 @@ std::string getIp() {
 
 namespace {
 
+void onBootCompleted(struct SystemEvent* /*event*/, void* /*context*/) {
+    bootSplashInit();
+}
+
 class WifiService final : public Service {
 
 public:
@@ -479,14 +503,16 @@ public:
     bool onStart(ServiceContext& /*service*/) override {
         check(!started);
 
+        wifi_auto_scan_set_paused_function(autoScanSetPaused);
+
         state.device = wifi_find_first_registered_device();
         if (state.device == nullptr) {
             LOG_W(TAG, "No WiFi device found");
         }
 
-        state.bootEventSubscription = kernel::subscribeSystemEvent(kernel::SystemEvent::BootSplash, [](auto) {
-            bootSplashInit();
-        });
+        if (system_event_subscribe(KERNEL_EVENT_BOOT_COMPLETED, onBootCompleted, nullptr) == ERROR_NONE) {
+            state.bootEventSubscribed = true;
+        }
 
         auto timer_interval = std::min(2000, AUTO_SCAN_INTERVAL);
         state.autoConnectTimer = std::make_unique<Timer>(Timer::Type::Periodic, timer_interval, [] { onAutoConnectTimer(); });
@@ -504,8 +530,10 @@ public:
         state.autoConnectTimer->stop();
         state.autoConnectTimer = nullptr; // Must release as it holds a reference via its callback.
 
-        kernel::unsubscribeSystemEvent(state.bootEventSubscription);
-        state.bootEventSubscription = kernel::NoSystemEventSubscription;
+        if (state.bootEventSubscribed) {
+            system_event_unsubscribe(KERNEL_EVENT_BOOT_COMPLETED, onBootCompleted);
+            state.bootEventSubscribed = false;
+        }
 
         if (state.device != nullptr && device_is_ready(state.device)) {
             wifi_remove_event_callback(state.device, onWifiDeviceEvent);
@@ -515,6 +543,8 @@ public:
         state.secureConnection = false;
         state.pauseAutoConnect = false;
         state.device = nullptr;
+
+        wifi_auto_scan_set_paused_function(nullptr);
     }
 };
 

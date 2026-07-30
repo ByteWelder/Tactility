@@ -7,12 +7,12 @@ file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 list(APPEND REQUIRES_LIST
     TactilityKernel
     TactilityFreeRtos
-    hal-device-module
     lvgl-module
     crypt-module
+    gps-module
+    gps-generic-module
     lv_screenshot
     minitar
-    minmea
 )
 
 if (DEFINED ENV{ESP_IDF_VERSION})
@@ -37,6 +37,11 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
     if ("${IDF_TARGET}" STREQUAL "esp32s3" OR "${IDF_TARGET}" STREQUAL "esp32p4")
         list(APPEND REQUIRES_LIST esp_tinyusb)
+    endif ()
+
+    if ("${IDF_TARGET}" STREQUAL "esp32p4")
+        # EspNowBackendHosted.cpp needs esp_hosted.h / esp_hosted_misc.h.
+        list(APPEND REQUIRES_LIST espressif__esp_hosted)
     endif ()
 
 else ()

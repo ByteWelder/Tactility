@@ -1,15 +1,13 @@
+#include "lvgl/lvgl.h"
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/fileselection/FileSelection.h>
-#include <Tactility/file/FileLock.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Assets.h>
-
 #include <Tactility/file/File.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
 
 namespace tt::app::notes {
 
@@ -42,16 +40,16 @@ class NotesApp final : public App {
                         break;
                     case 1: // Save
                         if (!filePath.empty()) {
-                            lvgl::getSyncLock()->lock();
+                            lvgl_lock();
                             saveBuffer = lv_textarea_get_text(uiNoteText);
-                            lvgl::getSyncLock()->unlock();
+                            lvgl_unlock();
                             saveFile(filePath);
                         }
                         break;
                     case 2: // Save as...
-                        lvgl::getSyncLock()->lock();
+                        lvgl_lock();
                         saveBuffer = lv_textarea_get_text(uiNoteText);
-                        lvgl::getSyncLock()->unlock();
+                        lvgl_unlock();
                         saveFileLaunchId = fileselection::startForExistingOrNewFile();
                         LOG_I(TAG, "launched with id %u", saveFileLaunchId);
                         break;
@@ -84,29 +82,29 @@ class NotesApp final : public App {
 
     void openFile(const std::string& path) {
         // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-        file::getLock(path)->withLock([this, path] {
-            auto data = file::readString(path);
-            if (data != nullptr) {
-               auto lock = lvgl::getSyncLock()->asScopedLock();
-               lock.lock();
-               lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
-               lv_label_set_text(uiCurrentFileName, path.c_str());
-               filePath = path;
-               LOG_I(TAG, "Loaded from %s", path.c_str());
-            }
-        });
+        file::FileMutexGuard guard(path);
+        auto data = file::readString(path);
+        if (data != nullptr) {
+            lvgl_lock();
+            lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
+            lv_label_set_text(uiCurrentFileName, path.c_str());
+            lvgl_unlock();
+            filePath = path;
+            LOG_I(TAG, "Loaded from %s", path.c_str());
+        }
     }
 
     bool saveFile(const std::string& path) {
         // We might be writing to SD card, which could share a SPI bus with other devices (display)
         bool result = false;
-        file::getLock(path)->withLock([&result, this, path] {
-           if (file::writeString(path, saveBuffer.c_str())) {
-               LOG_I(TAG, "Saved to %s", path.c_str());
-               filePath = path;
-               result = true;
-           }
-        });
+        {
+            file::FileMutexGuard guard(path);
+            if (file::writeString(path, saveBuffer.c_str())) {
+                LOG_I(TAG, "Saved to %s", path.c_str());
+                filePath = path;
+                result = true;
+            }
+        }
         return result;
     }
 

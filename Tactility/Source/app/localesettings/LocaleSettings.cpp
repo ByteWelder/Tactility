@@ -8,7 +8,7 @@
 #include <Tactility/settings/Language.h>
 #include <Tactility/settings/SystemSettings.h>
 
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
 
 #include <lvgl.h>
 #include <map>

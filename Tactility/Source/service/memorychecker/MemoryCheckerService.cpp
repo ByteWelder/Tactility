@@ -3,7 +3,7 @@
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/memorychecker/MemoryCheckerService.h>
 
-#include <tactility/lvgl_icon_statusbar.h>
+#include <lvgl/icons/statusbar.h>
 #include <tactility/log.h>
 
 namespace tt::service::memorychecker {

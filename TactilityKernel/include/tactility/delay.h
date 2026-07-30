@@ -10,6 +10,7 @@
 #endif
 
 #include <tactility/freertos/freertos.h>
+#include <tactility/freertos/task.h>
 #include <tactility/check.h>
 
 #ifdef __cplusplus

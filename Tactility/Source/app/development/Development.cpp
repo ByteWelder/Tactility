@@ -1,10 +1,8 @@
 #ifdef ESP_PLATFORM
 
-#include <Tactility/Timer.h>
 #include <Tactility/Tactility.h>
+#include <Tactility/Timer.h>
 #include <Tactility/app/AppManifest.h>
-#include <Tactility/lvgl/Lvgl.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/development/DevelopmentService.h>
@@ -13,10 +11,11 @@
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 #include <cstring>
-#include <lvgl.h>
 
 namespace tt::app::development {
 
@@ -31,10 +30,10 @@ class DevelopmentApp final : public App {
     std::shared_ptr<service::development::DevelopmentService> service;
 
     Timer timer = Timer(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [this] {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        // TODO: There's a crash when this is called when the app is being destroyed
-        if (lock.lock(lvgl::defaultLockTime) && lvgl::isStarted()) {
+        if (lvgl_is_running()) {
+            lvgl_lock();
             updateViewState();
+            lvgl_unlock();
         }
     });
 
@@ -98,7 +97,7 @@ public:
 
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
-        enableSwitch = lvgl::toolbar_add_switch_action(toolbar);
+        enableSwitch = lvgl_toolbar_add_switch_action(toolbar);
         lv_obj_add_event_cb(enableSwitch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, this);
 
         if (service->isEnabled()) {
@@ -157,10 +156,10 @@ public:
     }
 
     void onHide(AppContext& appContext) override {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
+        lvgl_lock();
         // Ensure that the update isn't already happening
-        lock.lock();
         timer.stop();
+        lvgl_unlock();
     }
 };
 

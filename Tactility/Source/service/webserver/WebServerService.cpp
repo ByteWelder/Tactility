@@ -1,8 +1,6 @@
 #ifdef ESP_PLATFORM
 
-#include <tactility/check.h>
 #include <Tactility/service/webserver/WebServerService.h>
-#include <Tactility/service/webserver/AssetVersion.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/MountPoints.h>
@@ -10,28 +8,28 @@
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/Mutex.h>
 
+#include <tactility/check.h>
+
 #include <Tactility/TactilityConfig.h>
-#include <tactility/hal/Device.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/App.h>
 #include <Tactility/service/wifi/Wifi.h>
-#include <esp_wifi_default.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
 #include <Tactility/Paths.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/StringUtils.h>
 
-#include <ranges>
 #include <tactility/filesystem/file_system.h>
+#include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/statusbar.h>
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
 #include <lv_screenshot.h>
 #endif
-
-#include <tactility/lvgl_icon_statusbar.h>
 
 #include <atomic>
 #include <cctype>
@@ -43,15 +41,15 @@
 #include <esp_netif.h>
 #include <esp_system.h>
 #include <esp_vfs_fat.h>
+#include <esp_wifi_default.h>
 #include <esp_wifi.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <iomanip>
 #include <lwip/ip4_addr.h>
 #include <mbedtls/base64.h>
+#include <ranges>
 #include <sstream>
-
-#include <tactility/log.h>
 
 namespace tt::service::webserver {
 
@@ -1478,9 +1476,9 @@ esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
     std::string lvgl_screenshot_path = lvgl::PATH_PREFIX + screenshot_path;
 
     // Capture screenshot using LVGL
-    if (lvgl::lock(pdMS_TO_TICKS(100))) {
+    if (lvgl_try_lock(pdMS_TO_TICKS(100))) {
         bool success = lv_screenshot_create(lv_scr_act(), LV_100ASK_SCREENSHOT_SV_PNG, lvgl_screenshot_path.c_str());
-        lvgl::unlock();
+        lvgl_unlock();
 
         if (!success) {
             LOG_E(TAG, "lv_screenshot_create failed for path: %s", lvgl_screenshot_path.c_str());
@@ -1705,8 +1703,7 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             httpd_resp_set_type(request, "image/png");
             httpd_resp_set_hdr(request, "Cache-Control", "public, max-age=86400");
 
-            auto lock = file::getLock(faviconPath);
-            lock->lock(portMAX_DELAY);
+            file::FileMutexGuard guard(faviconPath);
 
             FILE* fp = fopen(faviconPath, "rb");
             if (fp) {
@@ -1715,17 +1712,14 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
                 while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                     if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                         fclose(fp);
-                        lock->unlock();
                         return ESP_FAIL;
                     }
                 }
                 fclose(fp);
-                lock->unlock();
                 httpd_resp_send_chunk(request, nullptr, 0);
                 LOG_I(TAG, "[200] %s (favicon)", uri);
                 return ESP_OK;
             }
-            lock->unlock();
         }
         // If favicon not found, return 404 silently (browsers handle this gracefully)
         httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "Not found");
@@ -1754,9 +1748,8 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
         httpd_resp_set_type(request, getContentType(dataPath));
         
         // Read and send file using standard C FILE* operations
-        auto lock = file::getLock(dataPath);
-        lock->lock(portMAX_DELAY);
-        
+        file::FileMutexGuard guard(dataPath);
+
         FILE* fp = fopen(dataPath.c_str(), "rb");
         if (fp) {
             char buffer[512];
@@ -1764,18 +1757,15 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                 if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                     fclose(fp);
-                    lock->unlock();
                     return ESP_FAIL;
                 }
             }
             fclose(fp);
-            lock->unlock();
 
             httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
             LOG_I(TAG, "[200] %s (from Data)", uri);
             return ESP_OK;
         }
-        lock->unlock();
     }
 
     // Fallback to SD card
@@ -1783,9 +1773,8 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
     if (file::isFile(sdPath.c_str())) {
         httpd_resp_set_type(request, getContentType(sdPath));
         
-        auto lock = file::getLock(sdPath);
-        lock->lock(portMAX_DELAY);
-        
+        file::FileMutexGuard guard(sdPath);
+
         FILE* fp = fopen(sdPath.c_str(), "rb");
         if (fp) {
             char buffer[512];
@@ -1793,18 +1782,15 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
             while ((bytesRead = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
                 if (httpd_resp_send_chunk(request, buffer, bytesRead) != ESP_OK) {
                     fclose(fp);
-                    lock->unlock();
                     return ESP_FAIL;
                 }
             }
             fclose(fp);
-            lock->unlock();
-            
+
             httpd_resp_send_chunk(request, nullptr, 0);  // End of chunks
             LOG_I(TAG, "[200] %s (from SD)", uri);
             return ESP_OK;
         }
-        lock->unlock();
     }
     
     // File not found

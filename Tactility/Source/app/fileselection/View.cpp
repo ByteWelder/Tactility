@@ -1,15 +1,15 @@
 #include <Tactility/app/fileselection/View.h>
-
-#include <Tactility/LogMessages.h>
+#include <Tactility/Platform.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/file/File.h>
-#include <Tactility/Platform.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Toolbar.h>
+
 #include <tactility/check.h>
 #include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <cstring>
 #include <unistd.h>
@@ -155,33 +155,35 @@ void View::onNavigateUpPressed() {
 }
 
 void View::update() {
-    auto scoped_lockable = lvgl::getSyncLock()->asScopedLock();
-    if (scoped_lockable.lock(lvgl::defaultLockTime)) {
-        lv_obj_clean(dir_entry_list);
-
-        state->withEntries([this](const std::vector<dirent>& entries) {
-            for (auto entry : entries) {
-                LOG_D(TAG, "Entry: %s %d", entry.d_name, (int)entry.d_type);
-                createDirEntryWidget(dir_entry_list, entry);
-            }
-        });
-
-        if (state->getCurrentPath() == "/") {
-            lv_obj_add_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
-        } else {
-            lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
-        }
-    } else {
+    if (!lvgl_try_lock(500 / portTICK_PERIOD_MS)) {
         LOG_E(TAG, "Mutex acquisition timeout (%s)", "lvgl");
+        return;
     }
+
+    lv_obj_clean(dir_entry_list);
+
+    state->withEntries([this](const std::vector<dirent>& entries) {
+        for (auto entry : entries) {
+            LOG_D(TAG, "Entry: %s %d", entry.d_name, (int)entry.d_type);
+            createDirEntryWidget(dir_entry_list, entry);
+        }
+    });
+
+    if (state->getCurrentPath() == "/") {
+        lv_obj_add_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(navigate_up_button, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    lvgl_unlock();
 }
 
 void View::init(lv_obj_t* parent, Mode mode) {
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-    auto* toolbar = lvgl::toolbar_create(parent, "Select File");
-    navigate_up_button = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
+    auto* toolbar = lvgl_toolbar_create(parent, "Select File");
+    navigate_up_button = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_UP, &onNavigateUpPressedCallback, this);
 
     auto* wrapper = lv_obj_create(parent);
     lv_obj_set_width(wrapper, LV_PCT(100));

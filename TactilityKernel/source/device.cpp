@@ -43,11 +43,9 @@ struct DeviceInternal {
     } state;
     /** Attached child devices */
     std::vector<Device*> children {};
-    // Outstanding device_get() holders. Guarded by `mutex`. device_get() refuses new refs once
-    // state.stopping is set, and device_stop() refuses to set state.stopping while this is > 0 -
-    // together that guarantees ref_count > 0 implies state.started == true, so by the time
-    // device_remove()/device_destruct() run (both already require !started), this is always
-    // already 0.
+    // Outstanding device_get() holders. Guarded by `mutex`. Independent of state.started -
+    // device_get()/device_put() bracket construct/destruct, not start/stop, so a ref can be held
+    // across a device_stop(). device_destruct() refuses to run while this is > 0.
     int32_t ref_count = 0;
 };
 
@@ -94,6 +92,10 @@ error_t device_destruct(Device* device) {
 
     auto* internal = device->internal;
 
+    if (internal->ref_count > 0) {
+        unlock_internal(device->internal);
+        return ERROR_RESOURCE_BUSY;
+    }
     if (internal->state.started || internal->state.added) {
         unlock_internal(device->internal);
         return ERROR_INVALID_STATE;
@@ -101,13 +103,6 @@ error_t device_destruct(Device* device) {
     if (!internal->children.empty()) {
         unlock_internal(device->internal);
         return ERROR_INVALID_STATE;
-    }
-    // Callers are expected to sequence teardown correctly (device_stop() already refuses to
-    // clear `started` while ref_count > 0, so by the time !started holds above, ref_count is
-    // already 0) - this is a cheap defense-in-depth check, not a substitute for that discipline.
-    if (internal->ref_count > 0) {
-        unlock_internal(device->internal);
-        return ERROR_RESOURCE_BUSY;
     }
     LOG_D(TAG, "destruct %s", device->name);
 
@@ -253,11 +248,6 @@ error_t device_stop(Device* device) {
         return ERROR_NONE;
     }
 
-    if (internal->ref_count > 0) {
-        unlock_internal(internal);
-        return ERROR_RESOURCE_BUSY;
-    }
-
     // Already stopping on another thread
     if (internal->state.stopping) {
         unlock_internal(internal);
@@ -266,10 +256,6 @@ error_t device_stop(Device* device) {
     internal->state.stopping = true;
     unlock_internal(internal);
 
-    // driver_unbind() runs the driver's stop_device callback, which may remove/destruct child
-    // devices (device_remove() takes ledger_lock) - `mutex` must stay released across this call,
-    // same reasoning as device_start(). state.stopping keeps device_get() from handing out a new
-    // ref while ref_count is meant to stay at 0 during the unbind.
     error_t unbind_error = driver_unbind(internal->driver, device);
 
     lock_internal(internal);
@@ -393,11 +379,10 @@ bool device_is_constructed(const Device* device) {
 
 error_t device_get(Device* device) {
     auto* internal = device->internal;
-    lock_internal(internal);
-    if (!internal->state.started || internal->state.stopping) {
-        unlock_internal(internal);
+    if (!internal) {
         return ERROR_INVALID_STATE;
     }
+    lock_internal(internal);
     internal->ref_count++;
     unlock_internal(internal);
     return ERROR_NONE;
@@ -464,54 +449,6 @@ bool device_exists_of_type(const DeviceType* type) {
     }
     ledger_unlock();
     return found;
-}
-
-Device* device_find_by_name(const char* name) {
-    Device* found = nullptr;
-    ledger_lock();
-    for (auto* device : ledger.devices) {
-        if (device->name != nullptr && std::strcmp(device->name, name) == 0) {
-            found = device;
-            break;
-        }
-    }
-    ledger_unlock();
-    return found;
-}
-
-Device* device_find_first_active_by_type(const DeviceType* type) {
-    Device* found = nullptr;
-    device_for_each_of_type(type, &found, [](Device* dev, void* ctx) -> bool {
-        if (device_is_ready(dev)) {
-            *static_cast<Device**>(ctx) = dev;
-            return false;
-        }
-        return true;
-    });
-    return found;
-}
-
-Device* device_find_first_by_type(const DeviceType* type) {
-    Device* found = nullptr;
-    device_for_each_of_type(type, &found, [](Device* dev, void* ctx) -> bool {
-        *static_cast<Device**>(ctx) = dev;
-        return false;
-    });
-    return found;
-}
-
-Device* device_find_first_by_compatible(const char* compatible) {
-    struct Ctx { Device* found; const char* compatible; };
-    Ctx ctx = { nullptr, compatible };
-    device_for_each(&ctx, [](Device* dev, void* raw_ctx) -> bool {
-        auto* c = static_cast<Ctx*>(raw_ctx);
-        if (device_is_compatible(dev, c->compatible)) {
-            c->found = dev;
-            return false;
-        }
-        return true;
-    });
-    return ctx.found;
 }
 
 error_t device_get_by_name(const char* name, Device** out_device) {
@@ -583,6 +520,20 @@ error_t device_get_first_active_by_type(const DeviceType* type, Device** out_dev
         *out_device = found;
     }
     return error;
+}
+
+bool device_has_active_by_type(const struct DeviceType* type) {
+    ledger_lock();
+    bool found = false;
+    for (auto* device : ledger.devices) {
+        auto* driver = device->internal->driver;
+        if (driver != nullptr && driver->device_type == type && device->internal->state.started) {
+            found = true;
+            break;
+        }
+    }
+    ledger_unlock();
+    return found;
 }
 
 error_t device_get_first_by_compatible(const char* compatible, Device** out_device) {

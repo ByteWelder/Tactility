@@ -13,6 +13,7 @@ static struct Device root = {
 	.address = 0,
 	.name = "/",
 	.config = &root_config,
+	.flags = DEVICE_FLAG_DTS,
 	.parent = NULL,
 	.internal = NULL
 };
@@ -27,6 +28,7 @@ static struct Device test_device = {
 	.address = 0,
 	.name = "test-device",
 	.config = &test_device_config,
+	.flags = DEVICE_FLAG_DTS,
 	.parent = &root,
 	.internal = NULL
 };
@@ -43,11 +45,12 @@ static struct Device bool_test_device = {
 	.address = 0,
 	.name = "bool-test-device",
 	.config = &bool_test_device_config,
+	.flags = DEVICE_FLAG_DTS,
 	.parent = &root,
 	.internal = NULL
 };
 
-struct DtsDevice dts_devices[] = {
+const struct DtsDevice dts_devices[] = {
 	{ &root, "test,root", DTS_DEVICE_STATUS_OKAY },
 	{ &test_device, "test,generic-device", DTS_DEVICE_STATUS_OKAY },
 	{ &bool_test_device, "test,bool-device", DTS_DEVICE_STATUS_OKAY },
@@ -56,7 +59,7 @@ struct DtsDevice dts_devices[] = {
 
 extern struct Module data_module;
 
-struct Module* dts_modules[] = {
+struct Module* const dts_modules[] = {
 	&data_module,
 	NULL
 };

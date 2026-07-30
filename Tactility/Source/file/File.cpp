@@ -15,32 +15,6 @@ namespace tt::file {
 
 constexpr auto* TAG = "file";
 
-class NoLock final : public Lock {
-    bool lock(TickType_t timeout) const override { return true; }
-    void unlock() const override { /* NO-OP */ }
-};
-
-static std::shared_ptr<Lock> noLock = std::make_shared<NoLock>();
-static std::function<std::shared_ptr<Lock>(const std::string&)> findLockFunction = nullptr;
-
-std::shared_ptr<Lock> getLock(const std::string& path) {
-    if (findLockFunction == nullptr) {
-        LOG_W(TAG, "File lock function not set!");
-        return noLock;
-    }
-
-    auto lock = findLockFunction(path);
-    if (lock == nullptr) {
-        return noLock;
-    }
-
-    return lock;
-}
-
-void setFindLockFunction(const FindLockFunction& function) {
-    findLockFunction = function;
-}
-
 std::string getChildPath(const std::string& basePath, const std::string& childPath) {
     // Postfix with "/" when the current path isn't "/"
     if (basePath.length() != 1) {
@@ -68,8 +42,7 @@ bool listDirectory(
     const std::string& path,
     std::function<void(const dirent&)> onEntry
 ) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
 
     LOG_I(TAG, "listDir start %s", path.c_str());
     DIR* dir = opendir(path.c_str());
@@ -95,8 +68,7 @@ int scandir(
     ScandirFilter filterMethod,
     ScandirSort sortMethod
 ) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
 
     LOG_I(TAG, "scandir start");
     DIR* dir = opendir(path.c_str());
@@ -221,8 +193,7 @@ bool writeString(const std::string& filepath, const std::string& content) {
 }
 
 static bool findOrCreateDirectoryInternal(std::string path, mode_t mode) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
 
     struct stat dir_stat;
     if (mkdir(path.c_str(), mode) == 0) {
@@ -336,33 +307,28 @@ bool deleteRecursively(const std::string& path) {
 }
 
 bool deleteFile(const std::string& path) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
     return remove(path.c_str()) == 0;
 }
 
 bool deleteDirectory(const std::string& path) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
     return rmdir(path.c_str()) == 0;
 }
 
 bool isFile(const std::string& path) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
     return access(path.c_str(), F_OK) == 0;
 }
 
 bool isDirectory(const std::string& path) {
-    auto lock = getLock(path)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(path);
     struct stat stat_result;
     return stat(path.c_str(), &stat_result) == 0 && S_ISDIR(stat_result.st_mode);
 }
 
 bool readLines(const std::string& filePath, bool stripNewLine, std::function<void(const char* line)> callback) {
-    auto lock = getLock(filePath)->asScopedLock();
-    lock.lock();
+    FileMutexGuard guard(filePath);
 
     auto* file = fopen(filePath.c_str(), "r");
     if (file == nullptr) {

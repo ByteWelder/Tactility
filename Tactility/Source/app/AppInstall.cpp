@@ -3,8 +3,6 @@
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
-#include <Tactility/file/FileLock.h>
-#include <tactility/hal/Device.h>
 #include <Tactility/Paths.h>
 
 #include <cerrno>
@@ -15,6 +13,7 @@
 #include <unistd.h>
 
 #include <minitar.h>
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 namespace tt::app {
@@ -118,17 +117,21 @@ bool install(const std::string& path) {
         return false;
     }
 
-    auto target_path_lock = file::getLock(app_parent_path)->asScopedLock();
-    auto source_path_lock = file::getLock(path)->asScopedLock();
-    target_path_lock.lock();
-    source_path_lock.lock();
+    FileMutex target_path_mutex;
+    file_mutex_get(&target_path_mutex, app_parent_path.c_str());
+    FileMutex source_path_mutex;
+    file_mutex_get(&source_path_mutex, path.c_str());
+
+    file_mutex_lock(&target_path_mutex);
+    file_mutex_lock(&source_path_mutex);
     LOG_I(TAG, "Extracting app from %s to %s", path.c_str(), app_target_path.c_str());
-    if (!untar(path, app_target_path)) {
+    bool untar_success = untar(path, app_target_path);
+    file_mutex_unlock(&source_path_mutex);
+    file_mutex_unlock(&target_path_mutex);
+    if (!untar_success) {
         LOG_E(TAG, "Failed to extract");
         return false;
     }
-    source_path_lock.unlock();
-    target_path_lock.unlock();
 
     auto manifest_path = app_target_path + "/manifest.properties";
     if (!file::isFile(manifest_path)) {
@@ -158,9 +161,9 @@ bool install(const std::string& path) {
         }
     }
 
-    target_path_lock.lock();
+    file_mutex_lock(&target_path_mutex);
     bool rename_success = rename(app_target_path.c_str(), renamed_target_path.c_str()) == 0;
-    target_path_lock.unlock();
+    file_mutex_unlock(&target_path_mutex);
 
     if (!rename_success) {
         LOG_E(TAG, R"(Failed to rename "%s" to "%s")", app_target_path.c_str(), manifest.appId.c_str());

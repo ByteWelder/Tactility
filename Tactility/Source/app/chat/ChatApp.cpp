@@ -2,19 +2,20 @@
 #include <sdkconfig.h>
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/app/chat/ChatAppPrivate.h>
 #include <Tactility/app/chat/ChatProtocol.h>
-
 #include <Tactility/app/AppManifest.h>
-#include <Tactility/lvgl/LvglSync.h>
+
+#include <tactility/log.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
-#include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
 #include <vector>
 
 namespace tt::app::chat {
@@ -83,11 +84,9 @@ void ChatApp::onReceive(const esp_now_recv_info_t* receiveInfo, const uint8_t* d
 
     state.addMessage(msg);
 
-    {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-        view.displayMessage(msg);
-    }
+    lvgl_lock();
+    view.displayMessage(msg);
+    lvgl_unlock();
 }
 
 void ChatApp::sendMessage(const std::string& text) {
@@ -114,11 +113,9 @@ void ChatApp::sendMessage(const std::string& text) {
 
     state.addMessage(msg);
 
-    {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-        view.displayMessage(msg);
-    }
+    lvgl_lock();
+    view.displayMessage(msg);
+    lvgl_unlock();
 }
 
 void ChatApp::applySettings(const std::string& nickname, const std::string& keyHex) {
@@ -171,11 +168,9 @@ void ChatApp::switchChannel(const std::string& chatChannel) {
     settings.chatChannel = trimmedChannel;
     saveSettings(settings);
 
-    {
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-        view.refreshMessageList();
-    }
+    lvgl_lock();
+    view.refreshMessageList();
+    lvgl_unlock();
 }
 
 extern const AppManifest manifest = {
@@ -187,4 +182,4 @@ extern const AppManifest manifest = {
 
 } // namespace tt::app::chat
 
-#endif // CONFIG_SOC_WIFI_SUPPORTED && !CONFIG_SLAVE_SOC_WIFI_SUPPORTED
+#endif // CONFIG_SOC_WIFI_SUPPORTED || CONFIG_SLAVE_SOC_WIFI_SUPPORTED

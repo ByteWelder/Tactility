@@ -23,7 +23,7 @@ constexpr uint8_t MAX_ENCODER_SENSITIVITY = 10;
 constexpr uint8_t MIN_POINTER_SENSITIVITY = 1;
 constexpr uint8_t MAX_POINTER_SENSITIVITY = 10;
 
-bool load(TrackballSettings& settings) {
+bool load(LvglTrackballSettings& settings) {
     auto settings_path = getSettingsFilePath();
     if (!file::isFile(settings_path)) {
         return false;
@@ -55,41 +55,37 @@ bool load(TrackballSettings& settings) {
     auto isTrueValue = [](const std::string& s) {
         return s == "1" || s == "true" || s == "True" || s == "TRUE";
     };
-    settings.trackballEnabled = (tb_enabled != map.end()) ? isTrueValue(tb_enabled->second) : true;
-    settings.trackballMode = (tb_mode != map.end() && tb_mode->second == "1") ? TrackballMode::Pointer : TrackballMode::Encoder;
-    settings.encoderSensitivity = (enc_sens != map.end()) ? safeParseUint8(enc_sens->second, MIN_ENCODER_SENSITIVITY) : MIN_ENCODER_SENSITIVITY;
-    settings.pointerSensitivity = (ptr_sens != map.end()) ? safeParseUint8(ptr_sens->second, MAX_POINTER_SENSITIVITY) : MAX_POINTER_SENSITIVITY;
+    settings.enabled = (tb_enabled != map.end()) ? isTrueValue(tb_enabled->second) : true;
+    settings.mode = (tb_mode != map.end() && tb_mode->second == "1") ? LVGL_TRACKBALL_MODE_POINTER : LVGL_TRACKBALL_MODE_ENCODER;
+    auto default_settings = lvgl_trackball_settings_get_default();
+    settings.encoder_sensitivity = (enc_sens != map.end()) ? safeParseUint8(enc_sens->second, default_settings.encoder_sensitivity) : default_settings.encoder_sensitivity;
+    settings.pointer_sensitivity = (ptr_sens != map.end()) ? safeParseUint8(ptr_sens->second, default_settings.pointer_sensitivity) : default_settings.pointer_sensitivity;
 
     // Clamp values to valid ranges
-    settings.encoderSensitivity = std::clamp(settings.encoderSensitivity, MIN_ENCODER_SENSITIVITY, MAX_ENCODER_SENSITIVITY);
-    settings.pointerSensitivity = std::clamp(settings.pointerSensitivity, MIN_POINTER_SENSITIVITY, MAX_POINTER_SENSITIVITY);
+    settings.encoder_sensitivity = std::clamp(settings.encoder_sensitivity, MIN_ENCODER_SENSITIVITY, MAX_ENCODER_SENSITIVITY);
+    settings.pointer_sensitivity = std::clamp(settings.pointer_sensitivity, MIN_POINTER_SENSITIVITY, MAX_POINTER_SENSITIVITY);
 
     return true;
 }
 
-TrackballSettings getDefault() {
-    return TrackballSettings{
-        .trackballEnabled = true,
-        .trackballMode = TrackballMode::Encoder,
-        .encoderSensitivity = MIN_ENCODER_SENSITIVITY,
-        .pointerSensitivity = MAX_POINTER_SENSITIVITY
-    };
+LvglTrackballSettings getDefault() {
+    return lvgl_trackball_settings_get_default();
 }
 
-TrackballSettings loadOrGetDefault() {
-    TrackballSettings s;
+LvglTrackballSettings loadOrGetDefault() {
+    LvglTrackballSettings s;
     if (!load(s)) {
         s = getDefault();
     }
     return s;
 }
 
-bool save(const TrackballSettings& settings) {
+bool save(const LvglTrackballSettings& settings) {
     std::map<std::string, std::string> map;
-    map[KEY_TRACKBALL_ENABLED] = settings.trackballEnabled ? "1" : "0";
-    map[KEY_TRACKBALL_MODE] = (settings.trackballMode == TrackballMode::Pointer) ? "1" : "0";
-    map[KEY_ENCODER_SENSITIVITY] = std::to_string(std::clamp(settings.encoderSensitivity, MIN_ENCODER_SENSITIVITY, MAX_ENCODER_SENSITIVITY));
-    map[KEY_POINTER_SENSITIVITY] = std::to_string(std::clamp(settings.pointerSensitivity, MIN_POINTER_SENSITIVITY, MAX_POINTER_SENSITIVITY));
+    map[KEY_TRACKBALL_ENABLED] = settings.enabled ? "1" : "0";
+    map[KEY_TRACKBALL_MODE] = (settings.mode == LVGL_TRACKBALL_MODE_POINTER) ? "1" : "0";
+    map[KEY_ENCODER_SENSITIVITY] = std::to_string(std::clamp(settings.encoder_sensitivity, MIN_ENCODER_SENSITIVITY, MAX_ENCODER_SENSITIVITY));
+    map[KEY_POINTER_SENSITIVITY] = std::to_string(std::clamp(settings.pointer_sensitivity, MIN_POINTER_SENSITIVITY, MAX_POINTER_SENSITIVITY));
     auto settings_path = getSettingsFilePath();
     if (!file::findOrCreateParentDirectory(settings_path, 0755)) {
         return false;

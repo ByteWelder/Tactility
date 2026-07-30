@@ -1,5 +1,7 @@
 #include <tt_app.h>
-#include <tt_lvgl_toolbar.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/concurrent/event_group.h>
@@ -22,8 +24,6 @@
 #include <tactility/module.h>
 #include <tactility/time.h>
 
-#include <tactility/lvgl_module.h>
-
 #include <drivers/bm8563.h>
 #include <drivers/bmi270.h>
 #include <drivers/mpu6886.h>
@@ -32,7 +32,7 @@
 #include <drivers/rx8130ce.h>
 
 static void onShowApp(AppHandle app, void* data, lv_obj_t* parent) {
-    lv_obj_t* toolbar = tt_lvgl_toolbar_create_for_app(parent, app);
+    lv_obj_t* toolbar = lvgl_toolbar_create(parent, "Title");
     lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t* label = lv_label_create(parent);

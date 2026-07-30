@@ -1,9 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/lvgl_module.h>
-#include <tactility/lvgl_fonts.h>
+#include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/module.h>
+
+#include <lvgl/devices/display.h>
+#include <lvgl/devices/keyboard.h>
+#include <lvgl/devices/pointer.h>
+
+#include <lvgl/widgets/sliderbox.h>
+#include <lvgl/widgets/spinner.h>
+#include <lvgl/widgets/toolbar.h>
+
+#include <tactility/module.h>
 
 #include <lvgl.h>
-#include <tactility/module.h>
 
 const struct ModuleSymbol lvgl_module_symbols[] = {
     // lvgl_module
@@ -12,6 +22,9 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_unlock),
     DEFINE_MODULE_SYMBOL(lvgl_is_running),
     DEFINE_MODULE_SYMBOL(lvgl_get_ui_density),
+    // lvgl module
+    DEFINE_MODULE_SYMBOL(lvgl_module),
+    DEFINE_MODULE_SYMBOL(lvgl_module_configure),
     // lvgl_fonts
     DEFINE_MODULE_SYMBOL(lvgl_get_shared_icon_font),
     DEFINE_MODULE_SYMBOL(lvgl_get_shared_icon_font_height),
@@ -21,6 +34,35 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_get_launcher_icon_font_height),
     DEFINE_MODULE_SYMBOL(lvgl_get_statusbar_icon_font),
     DEFINE_MODULE_SYMBOL(lvgl_get_statusbar_icon_font_height),
+    // lvgl_display
+    DEFINE_MODULE_SYMBOL(lvgl_display_add),
+    DEFINE_MODULE_SYMBOL(lvgl_display_remove),
+    // lvgl_keyboard
+    DEFINE_MODULE_SYMBOL(lvgl_keyboard_add),
+    DEFINE_MODULE_SYMBOL(lvgl_keyboard_remove),
+    // lvgl_pointer
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_set_calibration),
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_get_calibration),
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_get_default),
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_add),
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_remove),
+    // lvgl_spinner
+    DEFINE_MODULE_SYMBOL(lvgl_spinner_create),
+    // lvgl_toolbar
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_configure),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_create),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_set_title),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_set_nav_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_image_button_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_text_button_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_switch_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_spinner_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_clear_actions),
+    // lvgl_sliderbox
+    DEFINE_MODULE_SYMBOL(lvgl_sliderbox_create),
+    DEFINE_MODULE_SYMBOL(lvgl_sliderbox_get_value),
+    DEFINE_MODULE_SYMBOL(lvgl_sliderbox_set_value),
+    DEFINE_MODULE_SYMBOL(lvgl_sliderbox_add_value_changed_cb),
     // lv_event
     DEFINE_MODULE_SYMBOL(lv_event_get_code),
     DEFINE_MODULE_SYMBOL(lv_event_get_indev),

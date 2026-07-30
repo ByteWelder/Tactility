@@ -1,23 +1,22 @@
 #pragma once
 
-#include <Tactility/SystemEvents.h>
 #include <Tactility/service/Service.h>
-#include <Tactility/service/ServiceContext.h>
-#include <Tactility/service/rtctime/RtcTime.h>
 
 #include <memory>
 
 struct Device;
+struct SystemEvent;
 
 namespace tt::service::rtctime {
 
 class RtcTimeService final : public Service {
 
-    kernel::SystemEventSubscription timeEventSubscription = 0;
+    bool timeEventSubscribed = false;
     Device* rtcDevice = nullptr;
 
     Device* findRtcDevice();
-    void onTimeChanged(kernel::SystemEvent event);
+    void onTimeChanged();
+    static void onTimeChangedTrampoline(struct SystemEvent* event, void* context);
 
 public:
 

@@ -1,22 +1,20 @@
 #include <Tactility/app/btpeersettings/BtPeerSettings.h>
 
-#include "tactility/device.h"
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
-#include <Tactility/LogMessages.h>
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/bluetooth/BluetoothPairedDevice.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
+
 #include <tactility/check.h>
+#include <tactility/device.h>
 #include <tactility/drivers/bluetooth.h>
 #include <tactility/log.h>
-
-#include <lvgl.h>
 
 namespace tt::app::btpeersettings {
 
@@ -84,12 +82,9 @@ class BtPeerSettings : public App {
 
     void requestViewUpdate() const {
         if (viewEnabled) {
-            if (lvgl::lock(1000)) {
-                updateViews();
-                lvgl::unlock();
-            } else {
-                LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-            }
+            lvgl_lock();
+            updateViews();
+            lvgl_unlock();
         }
     }
 
@@ -126,8 +121,12 @@ public:
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
-        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
-            bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+        {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+                bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+                device_put(dev);
+            }
         }
 
         // Load stored settings (name, autoConnect)
@@ -138,7 +137,7 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        lvgl::toolbar_create(parent, title);
+        lvgl_toolbar_create(parent, title.c_str());
 
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));
@@ -194,8 +193,10 @@ public:
     }
 
     void onHide(AppContext& app) override {
-        if (Device* dev = device_find_first_active_by_type(&BLUETOOTH_TYPE)) {
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
             bluetooth_remove_event_callback(dev, onKernelBtEvent);
+            device_put(dev);
         }
         viewEnabled = false;
     }

@@ -6,8 +6,8 @@
 #include <Tactility/settings/TouchCalibrationSettings.h>
 
 #include <tactility/log.h>
-#include <tactility/lvgl_module.h>
-#include <tactility/lvgl_pointer.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/devices/pointer.h>
 
 #include <algorithm>
 #include <lvgl.h>

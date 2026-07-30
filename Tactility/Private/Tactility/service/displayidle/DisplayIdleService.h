@@ -9,8 +9,8 @@
 #include <memory>
 
 // Forward declarations
-typedef struct _lv_obj_t lv_obj_t;
-typedef struct _lv_event_t lv_event_t;
+typedef _lv_obj_t lv_obj_t;
+typedef _lv_event_t lv_event_t;
 
 namespace tt::service::displayidle {
 

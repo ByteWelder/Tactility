@@ -1,16 +1,15 @@
 #include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
-
 #include <Tactility/Timer.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/power_supply.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/time.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 #include <vector>
 
@@ -55,7 +54,7 @@ struct DeviceEntry {
 
 class PowerApp : public App {
 
-    Timer update_timer = Timer(Timer::Type::Periodic, kernel::millisToTicks(1000),[]() { onTimer(); });
+    Timer update_timer = Timer(Timer::Type::Periodic, millis_to_ticks(1000),[]() { onTimer(); });
 
     std::vector<DeviceEntry> entries;
 
@@ -136,7 +135,7 @@ class PowerApp : public App {
             return;
         }
 
-        lvgl::lock(kernel::millisToTicks(1000));
+        lvgl_lock();
 
         for (auto& entry : entries) {
             if (entry.enableSwitch != nullptr) {
@@ -155,7 +154,7 @@ class PowerApp : public App {
             }
         }
 
-        lvgl::unlock();
+        lvgl_unlock();
     }
 
 public:

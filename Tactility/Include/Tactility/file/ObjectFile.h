@@ -2,12 +2,12 @@
 
 #include <Tactility/file/File.h>
 
+#include <tactility/filesystem/file_mutex.h>
+
 #include <string>
 
-#include "FileLock.h"
-
 /**
- * @warning The functionality below does NOT safely acquire file locks. Use file::getLock() or file::withLock() when using the functionality below.
+ * @warning The functionality below does NOT safely acquire file locks. Use file::FileMutexGuard when using the functionality below.
  */
 namespace tt::file {
 
@@ -45,7 +45,7 @@ class ObjectFileWriter {
     const uint32_t recordSize;
     const uint32_t recordVersion;
     const bool append;
-    const std::shared_ptr<Lock> lock;
+    FileMutex mutex {};
 
     std::unique_ptr<FILE, FileCloser> file;
     uint32_t recordsWritten = 0;
@@ -56,9 +56,10 @@ public:
         filePath(std::move(filePath)),
         recordSize(recordSize),
         recordVersion(recordVersion),
-        append(append),
-        lock(getLock(filePath))
-    {}
+        append(append)
+    {
+        file_mutex_get(&mutex, this->filePath.c_str());
+    }
 
 
     ~ObjectFileWriter() {

@@ -1,16 +1,19 @@
 #ifdef ESP_PLATFORM
 
-#include <Tactility/CoreDefines.h>
-#include <Tactility/hal/keyboard/KeyboardDevice.h>
-#include <Tactility/lvgl/LvglSync.h>
+#include <display/lv_display.h>
+
+#include <lvgl/lvgl.h>
+
+#include <Tactility/Timer.h>
 #include <Tactility/service/ServiceContext.h>
 #include <Tactility/service/ServiceManifest.h>
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/settings/KeyboardSettings.h>
-#include <Tactility/Timer.h>
 
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
+#include <tactility/drivers/keyboard.h>
+#include <tactility/time.h>
 
 namespace tt::service::keyboardidle {
 
@@ -20,18 +23,29 @@ class KeyboardIdleService final : public Service {
     bool keyboardDimmed = false;
     settings::keyboard::KeyboardSettings cachedKeyboardSettings;
 
-    static std::shared_ptr<hal::keyboard::KeyboardDevice> getKeyboard() {
-        return hal::findFirstDevice<hal::keyboard::KeyboardDevice>(hal::Device::Type::Keyboard);
-    }
-
+    // TODO: This only works for the fist active keyboard. Update it so it works for all keyboards with a backlight.
     static Device* getKeyboardBacklight() {
-        return device_find_by_name("keyboard_backlight");
+        ::Device* keyboard;
+        if (device_get_first_active_by_type(&KEYBOARD_TYPE, &keyboard) == ERROR_NONE) {
+            ::Device* backlight = nullptr;
+            keyboard_get_backlight(keyboard, &backlight); // disregard result
+            device_put(keyboard);
+            return backlight; // WARNING: did not increase refcount
+        }
+        // TODO: Remove after all drivers are migrated
+        ::Device* backlight;
+        if (device_get_by_name("keyboard_backlight", &backlight) != ERROR_NONE) {
+            return nullptr;
+        }
+
+        return backlight;
     }
 
     void setKeyboardBacklightBrightness(uint8_t brightness) {
         Device* backlight = getKeyboardBacklight();
         if (backlight != nullptr) {
             backlight_set_brightness(backlight, brightness);
+            device_put(backlight);
         }
     }
 
@@ -41,14 +55,16 @@ class KeyboardIdleService final : public Service {
 
         // Query LVGL inactivity once for both checks
         uint32_t inactive_ms = 0;
-        if (lvgl::lock(100)) {
+        if (lvgl_try_lock(100)) {
             inactive_ms = lv_display_get_inactive_time(nullptr);
-            lvgl::unlock();
+            lvgl_unlock();
+        } else {
+            // Assume it's not used
+            inactive_ms = 100;
         }
 
         // Handle keyboard backlight
-        auto keyboard = getKeyboard();
-        if (keyboard != nullptr && keyboard->isAttached()) {
+        if (device_has_active_by_type(&KEYBOARD_TYPE)) {
             // If timeout disabled, ensure backlight restored if we had dimmed it
             if (!cachedKeyboardSettings.backlightTimeoutEnabled || cachedKeyboardSettings.backlightTimeoutMs == 0) {
                 if (keyboardDimmed) {
@@ -77,7 +93,7 @@ public:
         // Note: Settings changes require service restart to take effect
         // TODO: Add KeyboardSettingsChanged events for dynamic updates
         
-        timer = std::make_unique<Timer>(Timer::Type::Periodic, kernel::millisToTicks(250), [this]{ this->tick(); });
+        timer = std::make_unique<Timer>(Timer::Type::Periodic, millis_to_ticks(250), [this]{ this->tick(); });
         timer->setCallbackPriority(Thread::Priority::Lower);
         timer->start();
         return true;
@@ -89,8 +105,7 @@ public:
             timer = nullptr;
         }
         // Ensure keyboard restored on stop
-        auto keyboard = getKeyboard();
-        if (keyboard && keyboardDimmed) {
+        if (device_has_active_by_type(&KEYBOARD_TYPE) && keyboardDimmed) {
             setKeyboardBacklightBrightness(cachedKeyboardSettings.backlightEnabled ? cachedKeyboardSettings.backlightBrightness : 0);
             keyboardDimmed = false;
         }

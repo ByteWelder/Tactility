@@ -26,6 +26,7 @@ struct ModuleSymbol {
     const void* symbol;
 };
 
+struct Driver;
 struct ModuleInternal;
 
 /**
@@ -40,18 +41,23 @@ struct Module {
      */
     const char* name;
     /**
-     * A function to initialize the module.
-     * Should never be NULL.
+     * A function to initialize the module, or NULL.
      * This can be used to load drivers, initialize hardware, etc.
      * @return ERROR_NONE if successful
      */
     error_t (*start)(void);
     /**
-     * Deinitializes the module.
-     * Should never be NULL.
+     * A function to deinitialize the module, or NULL.
      * @return ERROR_NONE if successful
      */
     error_t (*stop)(void);
+    /**
+     * An array of driver pointers, or NULL.
+     * The list must be NULL-terminated.
+     * When the module is started, these drivers are constructed and added to the module.
+     * When the module is stopped, these drivers are removed from the module and destroyed.
+     */
+    struct Driver* const* drivers;
     /**
      * A list of symbols exported by the module.
      * Should be terminated by MODULE_SYMBOL_TERMINATOR.
@@ -115,6 +121,22 @@ error_t module_stop(struct Module* module);
  * @return ERROR_NONE if successful
  */
 error_t module_construct_add_start(struct Module* module);
+
+/**
+ * @brief Tries to ensure the module is in a started state.
+ * Calls module_construct if needed, calls module_add if needed, calls module_start if needed.
+ * @param module the module
+ * @return ERROR_NONE if module is in a started state
+ */
+error_t module_ensure_started(struct Module* module);
+
+/**
+ * @brief Tries to ensure the module is in a started state.
+ * Calls module_stop if needed, calls module_remove, calls module_destruct if needed.
+ * @param module the module
+ * @return ERROR_NONE if module is in a destructed state
+ */
+error_t module_ensure_destructed(struct Module* module);
 
 /**
  * @brief Check if the module is started.

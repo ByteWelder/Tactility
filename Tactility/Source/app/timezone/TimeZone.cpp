@@ -1,21 +1,20 @@
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_icon_shared.h>
-
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/timezone/TimeZone.h>
-
 #include <Tactility/LogMessages.h>
 #include <Tactility/MountPoints.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/Timer.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/Time.h>
+
 #include <tactility/log.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
+
 #include <memory>
 
 namespace tt::app::timezone {
@@ -166,16 +165,16 @@ class TimeZoneApp final : public App {
     }
 
     void updateList() {
-        if (lvgl::lock(200 / portTICK_PERIOD_MS)) {
+        if (lvgl_try_lock(200 / portTICK_PERIOD_MS)) {
             std::string filter = string::lowercase(std::string(lv_textarea_get_text(filterTextareaWidget)));
-            lvgl::unlock();
+            lvgl_unlock();
             readTimeZones(filter);
         } else {
             LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "TimeZone LVGL");
             return;
         }
 
-        if (lvgl::lock(200 / portTICK_PERIOD_MS)) {
+        if (lvgl_try_lock(200 / portTICK_PERIOD_MS)) {
             if (mutex.lock(100 / portTICK_PERIOD_MS)) {
                 lv_obj_clean(listWidget);
 
@@ -188,7 +187,7 @@ class TimeZoneApp final : public App {
                 mutex.unlock();
             }
 
-            lvgl::unlock();
+            lvgl_unlock();
         } else {
             LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "TimeZone LVGL");
         }

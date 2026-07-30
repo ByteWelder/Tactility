@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "unphone_nav_buttons.h"
 
+#include <tactility/delay.h>
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
@@ -76,9 +77,9 @@ static int32_t nav_buttons_thread_main(UnphoneNavButtonsInternal* internal) {
 
             // Debounce all events for a short period of time
             // This is easier than keeping track when each button was last pressed
-            tt::kernel::delayMillis(50);
+            delay_millis(50);
             xQueueReset(internal->event_queue);
-            tt::kernel::delayMillis(50);
+            delay_millis(50);
             xQueueReset(internal->event_queue);
         }
     }
@@ -90,21 +91,19 @@ static int32_t nav_buttons_thread_main(UnphoneNavButtonsInternal* internal) {
 // region Pin acquisition
 
 static error_t acquire_button(const GpioPinSpec& pin, void (*callback)(void*), void* arg, GpioDescriptor** out_descriptor) {
-    auto* descriptor = gpio_descriptor_acquire(pin.gpio_controller, pin.pin, GPIO_OWNER_GPIO);
-    if (descriptor == nullptr) {
-        return ERROR_RESOURCE;
-    }
-
     // Digital pull-up; the buttons pull the pin low while pressed. Listen for the release
     // (positive edge) rather than the press - if we listen to the press, these buttons can
     // generate more than one signal when held down (mirrors the original unPhone init).
     gpio_flags_t flags = GPIO_FLAG_DIRECTION_INPUT | GPIO_FLAG_PULL_UP;
     flags = GPIO_FLAG_INTERRUPT_TO_OPTIONS(flags, GPIO_INTERRUPT_POS_EDGE);
 
-    error_t error = gpio_descriptor_set_flags(descriptor, flags);
-    if (error == ERROR_NONE) {
-        error = gpio_descriptor_add_callback(descriptor, callback, arg);
+    auto* descriptor = gpio_descriptor_acquire(pin.gpio_controller, pin.pin, flags, GPIO_OWNER_GPIO);
+    if (descriptor == nullptr) {
+        return ERROR_RESOURCE;
     }
+
+    auto error = gpio_descriptor_add_callback(descriptor, callback, arg);
+
     if (error == ERROR_NONE) {
         error = gpio_descriptor_enable_interrupt(descriptor);
     }

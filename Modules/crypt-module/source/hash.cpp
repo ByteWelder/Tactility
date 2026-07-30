@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <tactility/hash.h>
+#include <crypt/hash.h>
 
 uint32_t djb2_str(const char* str) {
     uint32_t hash = 5381;

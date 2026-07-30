@@ -79,6 +79,10 @@ list(APPEND REQUIRES_LIST
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     list(APPEND REQUIRES_LIST esp_lvgl_port)
+    # required for lvgl_ppa
+    if (IDF_TARGET STREQUAL "esp32p4")
+        list(APPEND REQUIRES_LIST esp_driver_ppa)
+    endif ()
 else ()
     list(APPEND REQUIRES_LIST freertos_kernel)
 endif ()
@@ -88,6 +92,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../Buildscripts/module.cmake")
 tactility_add_module(lvgl-module
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS include/
+    PRIV_INCLUDE_DIRS private/
     REQUIRES ${REQUIRES_LIST}
 )
 

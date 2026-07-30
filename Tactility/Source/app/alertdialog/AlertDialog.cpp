@@ -1,12 +1,12 @@
 #include "Tactility/app/alertdialog/AlertDialog.h"
 
-#include "Tactility/lvgl/Toolbar.h"
-#include "Tactility/service/loader/Loader.h"
-
+#include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
 
-#include <lvgl.h>
 #include <tactility/log.h>
+
+#include <lvgl.h>
+#include <lvgl/widgets/toolbar.h>
 
 namespace tt::app::alertdialog {
 
@@ -98,7 +98,7 @@ public:
         check(parameters != nullptr, "Parameters missing");
 
         std::string title = getTitleParameter(app.getParameters());
-        lv_obj_t* toolbar = lvgl::toolbar_create(parent, title);
+        lv_obj_t* toolbar = lvgl_toolbar_create(parent, title.c_str());
         lv_obj_align(toolbar, LV_ALIGN_TOP_MID, 0, 0);
 
         lv_obj_t* message_label = lv_label_create(parent);

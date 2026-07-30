@@ -3,7 +3,6 @@
 #include <Tactility/MessageQueue.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
-#include <Tactility/app/AppContext.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/loader/Loader.h>
 
@@ -11,8 +10,7 @@
 
 #include <tactility/concurrent/dispatcher.h>
 
-#include <cstdio>
-#include <lvgl.h>
+#include <lvgl/devices/keyboard.h>
 
 namespace tt::service::gui {
 
@@ -49,8 +47,7 @@ class GuiService final : public Service {
     // App-specific
     std::shared_ptr<app::AppInstance> appToRender = nullptr;
 
-    lv_obj_t* keyboard = nullptr;
-    lv_group_t* keyboardGroup = nullptr;
+    LvglSoftwareKeyboard software_keyboard = {};
 
     bool isStarted = false;
 
@@ -94,6 +91,8 @@ public:
      */
     void softwareKeyboardHide();
 
+    void keyboardAddTextArea(lv_obj_t* textarea);
+
     /**
      * The on-screen keyboard is only shown when both of these conditions are true:
      *  - there is no hardware keyboard
@@ -101,15 +100,6 @@ public:
      * @return if we should show a on-screen keyboard for text input inside our apps
      */
     bool softwareKeyboardIsEnabled();
-
-    /**
-     * Glue code for the on-screen keyboard and the hardware keyboard:
-     *  - Attach automatic hide/show parameters for the on-screen keyboard.
-     *  - Registers the textarea to the default lv_group_t for hardware keyboards.
-     * @param[in] textarea
-     */
-    void keyboardAddTextArea(lv_obj_t* textarea);
-
 };
 
 std::shared_ptr<GuiService> findService();

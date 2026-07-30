@@ -1,19 +1,15 @@
-#include "tactility/lvgl_module.h"
-
-
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/timezone/TimeZone.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/SystemSettings.h>
 #include <Tactility/settings/Time.h>
 
-#include <lvgl.h>
-
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 namespace tt::app::timedatesettings {
 

@@ -72,7 +72,6 @@ else ()
     # Devices/simulator/Source/Simulator.cpp always defines its own hardwareConfiguration; without
     # this, Firmware/Source/Main.cpp's #else branch also defines an empty one (its ESP32-only
     # fallback for devices migrated off the deprecated HAL), causing a duplicate-definition link error.
-    add_compile_definitions(CONFIG_TT_USE_DEPRECATED_HAL)
     add_compile_definitions(CONFIG_TT_DEVICE_ID="simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_VENDOR="")
@@ -96,9 +95,10 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/QRCode)
     add_subdirectory(Libraries/minitar)
     add_subdirectory(Libraries/minmea)
-    add_subdirectory(Modules/hal-device-module)
     add_subdirectory(Modules/lvgl-module)
     add_subdirectory(Modules/crypt-module)
+    add_subdirectory(Modules/gps-module)
+    add_subdirectory(Drivers/gps-generic-module)
 
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")

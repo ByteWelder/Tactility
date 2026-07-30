@@ -26,7 +26,7 @@ def get_device_node_name_safe(device: Device):
 def get_device_type_name(device: Device, bindings: list[Binding]):
     device_binding = find_device_binding(device, bindings)
     if device_binding is None:
-        raise DevicetreeException(f"Binding not found for {device.node_name}")
+        raise DevicetreeException(f"Binding not found for {device.node_name}. Make sure that the driver name in the driver's yaml and driver code declarations matches with the device dts file.")
     if device_binding.compatible is None:
         raise DevicetreeException(f"Couldn't find compatible binding for {device.node_name}")
     compatible_safe = device_binding.compatible.split(",")[-1]
@@ -282,6 +282,7 @@ def write_device_structs(file, device: Device, parent_device: Device, bindings: 
     file.write(f"\t.address = {address_value},\n")
     file.write(f"\t.name = \"{device.node_name}\",\n") # Use original name
     file.write(f"\t.config = &{config_variable_name},\n")
+    file.write("\t.flags = DEVICE_FLAG_DTS,\n")
     file.write(f"\t.parent = {parent_value},\n")
     file.write("\t.internal = NULL\n")
     file.write("};\n\n")
@@ -349,7 +350,7 @@ def generate_devicetree_c(filename: str, items: list[object], bindings: list[Bin
         for item in items:
             if type(item) is Device:
                 write_device_structs(file, item, None, bindings, devices, verbose)
-        file.write("struct DtsDevice dts_devices[] = {\n")
+        file.write("const struct DtsDevice dts_devices[] = {\n")
         for item in items:
             if type(item) is Device:
                 write_device_list_entry(file, item, bindings, verbose)
@@ -378,7 +379,7 @@ def generate_devicetree_c(filename: str, items: list[object], bindings: list[Bin
             file.write(f"extern struct Module {symbol};\n")
         file.write("\n")
         # Create array of symbol variables
-        file.write("struct Module* dts_modules[] = {\n")
+        file.write("struct Module* const dts_modules[] = {\n")
         for symbol in module_symbol_names:
             file.write(f"\t&{symbol},\n")
         file.write("\tNULL\n")
@@ -396,10 +397,10 @@ def generate_devicetree_h(filename: str):
         #endif
         
         // Array of device tree modules terminated with DTS_MODULE_TERMINATOR
-        extern struct DtsDevice dts_devices[];
+        extern const struct DtsDevice dts_devices[];
         
         // Array of module symbols terminated with NULL
-        extern struct Module* dts_modules[];
+        extern struct Module* const dts_modules[];
         
         #ifdef __cplusplus
         }

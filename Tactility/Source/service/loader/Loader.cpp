@@ -10,12 +10,8 @@
 
 #include <vector>
 
-#ifdef ESP_PLATFORM
-#include <esp_heap_caps.h>
-#include <utility>
-#endif
-
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 namespace tt::service::loader {
 
@@ -72,6 +68,8 @@ void LoaderService::onStartAppMessage(const std::string& id, app::LaunchId launc
     appStack.push_back(new_app);
     transitionAppToState(new_app, app::State::Created);
     transitionAppToState(new_app, app::State::Showing);
+
+    memory_print_stats();
 }
 
 void LoaderService::onStopTopAppMessage(const std::string& id) {
@@ -125,10 +123,6 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
         LOG_W(TAG, "Memory leak: Stopped %s, but use count is %d", app_to_stop->getManifest().appId.c_str(), (int)(app_to_stop->getApp().use_count() - 2));
     }
 
-#ifdef ESP_PLATFORM
-    LOG_I(TAG, "Free heap: %d", (int)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
-#endif
-
     std::shared_ptr<app::AppInstance> instance_to_resume;
     // If there's a previous app, resume it
     if (!appStack.empty()) {
@@ -167,6 +161,8 @@ void LoaderService::onStopTopAppMessage(const std::string& id) {
             );
         }
     }
+
+    memory_print_stats();
 }
 
 int LoaderService::findAppInStack(const std::string& id) const {

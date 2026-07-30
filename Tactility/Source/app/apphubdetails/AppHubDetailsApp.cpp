@@ -1,17 +1,18 @@
+#include <Tactility/Paths.h>
+#include <Tactility/StringUtils.h>
+#include <Tactility/app/AppRegistration.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
-#include <Tactility/app/AppRegistration.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
-#include <Tactility/StringUtils.h>
 
-#include <lvgl.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
 #include <tactility/log.h>
+
 #include <format>
 
 namespace tt::app::apphubdetails {
@@ -87,15 +88,15 @@ class AppHubDetailsApp final : public App {
     void uninstallApp() {
         LOG_I(TAG, "Uninstall");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         uninstall(entry.appId);
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         updateViews();
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
     }
 
     void doInstall() {
@@ -115,9 +116,9 @@ class AppHubDetailsApp final : public App {
                     LOG_I(TAG, "Deleted temporary file %s", temp_file_path.c_str());
                 }
 
-                lvgl::getSyncLock()->lock();
+                lvgl_lock();
                 updateViews();
-                lvgl::getSyncLock()->unlock();
+                lvgl_unlock();
             },
             [temp_file_path](const char* errorMessage) {
                 LOG_E(TAG, "Download failed: %s", errorMessage);
@@ -133,9 +134,9 @@ class AppHubDetailsApp final : public App {
     void installApp() {
         LOG_I(TAG, "Install");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         doInstall();
     }
@@ -143,9 +144,9 @@ class AppHubDetailsApp final : public App {
     void updateApp() {
         LOG_I(TAG, "Update");
 
-        lvgl::getSyncLock()->lock();
+        lvgl_lock();
         lv_obj_remove_flag(spinner, LV_OBJ_FLAG_HIDDEN);
-        lvgl::getSyncLock()->unlock();
+        lvgl_unlock();
 
         LOG_I(TAG, "Removing previous version");
         uninstall(entry.appId);
@@ -154,19 +155,19 @@ class AppHubDetailsApp final : public App {
     }
 
     void updateViews() {
-        lvgl::toolbar_clear_actions(toolbar);
+        lvgl_toolbar_clear_actions(toolbar);
         const auto manifest = findAppManifestById(entry.appId);
-        spinner = lvgl::toolbar_add_spinner_action(toolbar);
+        spinner = lvgl_toolbar_add_spinner_action(toolbar);
         lv_obj_add_flag(spinner, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(updateLabel, LV_OBJ_FLAG_HIDDEN);
         if (manifest != nullptr) {
             if (manifest->appVersionCode < entry.appVersionCode) {
-                updateButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, this);
+                updateButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, this);
                 lv_obj_remove_flag(updateLabel, LV_OBJ_FLAG_HIDDEN);
             }
-            lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_TRASH, onUninstallPressed, this);
+            lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_TRASH, onUninstallPressed, this);
         } else {
-            lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_DOWNLOAD, onInstallPressed, this);
+            lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_DOWNLOAD, onInstallPressed, this);
         }
     }
 
@@ -190,7 +191,7 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        toolbar = lvgl::toolbar_create(parent, entry.appName.c_str());
+        toolbar = lvgl_toolbar_create(parent, entry.appName.c_str());
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));
         lv_obj_set_flex_grow(wrapper, 1);

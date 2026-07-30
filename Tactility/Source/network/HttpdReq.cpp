@@ -186,8 +186,7 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     char buffer[BUFFER_SIZE];
     size_t bytes_received = 0;
 
-    auto lock = file::getLock(filePath)->asScopedLock();
-    lock.lock();
+    file::FileMutexGuard guard(filePath);
 
     auto* file = fopen(filePath.c_str(), "wb");
     if (file == nullptr) {
@@ -199,10 +198,10 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
         auto expected_chunk_size = std::min<size_t>(BUFFER_SIZE, length - bytes_received);
         size_t receive_chunk_size = httpd_req_recv(request, buffer, expected_chunk_size);
         if (receive_chunk_size <= 0) {
-            LOG_E(TAG, "Receive failed");
+            LOG_E(TAG, "Receive failed, got 0 bytes but expected %zu more", length - bytes_received);
             break;
         }
-        if (fwrite(buffer, 1, receive_chunk_size, file) != (size_t)receive_chunk_size) {
+        if (fwrite(buffer, 1, receive_chunk_size, file) != receive_chunk_size) {
             LOG_E(TAG, "Failed to write all bytes");
             break;
         }

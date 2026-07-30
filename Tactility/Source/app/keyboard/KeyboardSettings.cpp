@@ -5,9 +5,9 @@
 #include <Tactility/settings/KeyboardSettings.h>
 #include <Tactility/lvgl/Toolbar.h>
 
+#include <lvgl/icons/shared.h>
 #include <tactility/device.h>
 #include <tactility/drivers/backlight.h>
-#include <tactility/lvgl_icon_shared.h>
 
 #include <lvgl.h>
 
@@ -28,9 +28,10 @@ static uint32_t timeoutMsToIndex(uint32_t ms) {
 
 static void applyKeyboardBacklight(bool enabled, uint8_t brightness) {
     // TODO: Get keyboard backlight from (optional) keyboard child device
-    Device* backlight = device_find_by_name("keyboard_backlight");
-    if (backlight != nullptr) {
+    Device* backlight;
+    if (device_get_by_name("keyboard_backlight", &backlight) == ERROR_NONE) {
         backlight_set_brightness(backlight, enabled ? brightness : 0);
+        device_put(backlight);
     }
 }
 

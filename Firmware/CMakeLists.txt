@@ -40,6 +40,13 @@ execute_process(
 # Devicetree dependency collection
 #
 
+# REQUIRES_LIST below is computed once, at configure time. Without this, editing
+# devicetree.yaml (e.g. adding a driver dependency) doesn't trigger a cmake reconfigure,
+# so the new component's include dirs never reach the compiler until a fullclean.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    "${DEVICETREE_LOCATION}/devicetree.yaml"
+)
+
 execute_process(
     COMMAND python "${PROJECT_ROOT}/Buildscripts/DevicetreeCompiler/dependencies.py" "${DEVICETREE_LOCATION}"
     WORKING_DIRECTORY "${PROJECT_ROOT}"
@@ -88,9 +95,10 @@ else ()
     list(APPEND REQUIRES_LIST
         Tactility
         TactilityFreeRtos
-        hal-device-module
         lvgl-module
         crypt-module
+        gps-module
+        gps-generic-module
         SDL2::SDL2-static
         SDL2-static
     )

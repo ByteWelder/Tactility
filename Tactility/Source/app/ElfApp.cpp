@@ -75,9 +75,10 @@ private:
         assert(elfFileData == nullptr);
 
         size_t size = 0;
-        file::getLock(elf_path)->withLock([this, &elf_path, &size]{
+        {
+            file::FileMutexGuard guard(elf_path);
             elfFileData = file::readBinary(elf_path, size);
-        });
+        }
 
         if (elfFileData == nullptr) {
             return false;
@@ -95,6 +96,7 @@ private:
             // Note: the result code maps to values from cstdlib's errno.h
             lastError = getErrorCodeString(-relocate_result);
             LOG_E(TAG, "Application failed to load: %s", lastError.c_str());
+            esp_elf_deinit(&elf);
             elfFileData  = nullptr;
             return false;
         }

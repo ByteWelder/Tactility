@@ -2,7 +2,7 @@
 
 #include <lvgl.h>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 extern "C" {
 

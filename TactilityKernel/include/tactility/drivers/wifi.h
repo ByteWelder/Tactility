@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include <tactility/error.h>
+#include <tactility/firmware/firmware.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -196,6 +197,15 @@ struct WifiApi {
      * @return ERROR_NONE on success
      */
     error_t (*remove_event_callback)(struct Device* device, WifiEventCallback callback);
+
+    /**
+     * Get this device's co-processor firmware update interface, if it has one.
+     * @param[in] device the wifi device
+     * @param[out] ops filled in with the FirmwareOps vtable and its ctx, if supported
+     * @return ERROR_NONE on success, ERROR_NOT_SUPPORTED if this device has no updatable
+     * co-processor (ops is left untouched in that case)
+     */
+    error_t (*get_firmware_ops)(struct Device* device, const struct FirmwareOps** ops, void** ctx);
 };
 
 extern const struct DeviceType WIFI_TYPE;
@@ -216,6 +226,7 @@ error_t wifi_station_disconnect(struct Device* device);
 error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi);
 error_t wifi_add_event_callback(struct Device* device, void* callback_context, WifiEventCallback callback);
 error_t wifi_remove_event_callback(struct Device* device, WifiEventCallback callback);
+error_t wifi_get_firmware_ops(struct Device* device, const struct FirmwareOps** ops, void** ctx);
 
 #ifdef __cplusplus
 }

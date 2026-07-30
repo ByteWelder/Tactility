@@ -13,8 +13,9 @@ namespace tt::file {
 
 /**
  * @param[in] path the path to find a lock for
+ * @deprecated
  * @return a lock instance when a lock was found, otherwise nullptr
  */
-std::shared_ptr<Lock> findLock(const std::string& path);
+std::shared_ptr<Lock> findLock(const std::string& path) __attribute__((deprecated("Use file_get_mutex() from TactilityKernel")));
 
 }

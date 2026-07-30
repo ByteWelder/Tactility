@@ -1,6 +1,6 @@
 #include <Tactility/app/selectiondialog/SelectionDialog.h>
 
-#include <Tactility/lvgl/Toolbar.h>
+#include <lvgl/widgets/toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/StringUtils.h>
 #include <tactility/log.h>
@@ -73,7 +73,7 @@ public:
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         std::string title = getTitleParameter(app.getParameters());
-        lvgl::toolbar_create(parent, title);
+        lvgl_toolbar_create(parent, title.c_str());
 
         auto* list = lv_list_create(parent);
         lv_obj_set_width(list, LV_PCT(100));

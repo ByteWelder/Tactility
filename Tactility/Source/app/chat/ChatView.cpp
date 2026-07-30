@@ -2,7 +2,7 @@
 #include <sdkconfig.h>
 #endif
 
-#if defined(CONFIG_SOC_WIFI_SUPPORTED) && !defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
+#if defined(CONFIG_SOC_WIFI_SUPPORTED) || defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 
 #include <Tactility/app/chat/ChatView.h>
 #include <Tactility/app/chat/ChatAppPrivate.h>
@@ -34,7 +34,7 @@ void ChatView::updateToolbarTitle() {
     if (!state || !toolbar) return;
     std::string channel = state->getCurrentChannel();
     std::string title = "Chat: " + channel;
-    lvgl::toolbar_set_title(toolbar, title);
+    lvgl_toolbar_set_title(toolbar, title.c_str());
 }
 
 void ChatView::createInputBar(lv_obj_t* parent) {
@@ -149,8 +149,8 @@ void ChatView::init(AppContext& appContext, lv_obj_t* parent) {
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
     toolbar = lvgl::toolbar_create(parent, appContext);
-    lvgl::toolbar_add_text_button_action(toolbar, LV_SYMBOL_LIST, onChannelClicked, this);
-    lvgl::toolbar_add_text_button_action(toolbar, LV_SYMBOL_SETTINGS, onSettingsClicked, this);
+    lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_LIST, onChannelClicked, this);
+    lvgl_toolbar_add_text_button_action(toolbar, LV_SYMBOL_SETTINGS, onSettingsClicked, this);
     updateToolbarTitle();
 
     // Message list
@@ -296,4 +296,4 @@ void ChatView::onChannelCancel(lv_event_t* e) {
 
 } // namespace tt::app::chat
 
-#endif // CONFIG_SOC_WIFI_SUPPORTED && !CONFIG_SLAVE_SOC_WIFI_SUPPORTED
+#endif // CONFIG_SOC_WIFI_SUPPORTED || CONFIG_SLAVE_SOC_WIFI_SUPPORTED

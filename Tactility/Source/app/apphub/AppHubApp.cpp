@@ -1,18 +1,19 @@
+#include <Tactility/Paths.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Spinner.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl.h>
 #include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/spinner.h>
+
 #include <algorithm>
 #include <format>
 
@@ -58,18 +59,16 @@ class AppHubApp final : public App {
 
     void onRefreshSuccess() {
         LOG_I(TAG, "Request success");
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
+        lvgl_lock();
         showApps();
+        lvgl_unlock();
     }
 
     void onRefreshError(const char* error) {
         LOG_E(TAG, "Request failed: %s", error);
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
+        lvgl_lock();
         showRefreshFailedError("Cannot reach server");
+        lvgl_unlock();
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
@@ -123,7 +122,7 @@ class AppHubApp final : public App {
 
     void refresh() {
         lv_obj_clean(contentWrapper);
-        auto* spinner = lvgl::spinner_create(contentWrapper);
+        auto* spinner = lvgl_spinner_create(contentWrapper);
         lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
 
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
@@ -163,7 +162,7 @@ public:
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        refreshButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
+        refreshButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         contentWrapper = lv_obj_create(parent);

@@ -1,16 +1,18 @@
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/hal/gps/GpsDevice.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/service/gps/GpsService.h>
 
-#include "tactility/drivers/uart_controller.h"
+#include <lvgl/icons/shared.h>
+#include <tactility/drivers/uart_controller.h>
+#include <tactility/log.h>
+
+#include <gps/gps.h>
+#include <gps/gps_settings.h>
+
 #include <cstring>
 #include <lvgl.h>
-#include <tactility/log.h>
-#include <tactility/lvgl_icon_shared.h>
 
 namespace tt::app::addgps {
 
@@ -29,6 +31,14 @@ class AddGpsApp final : public App {
     std::array<uint32_t, 6> baudRates = { 9600, 19200, 28800, 38400, 57600, 115200 };
     const char* baudRatesDropdownValues = "9600\n19200\n28800\n38400\n57600\n115200";
 
+    static std::vector<std::string> getModelNames() {
+        std::vector<std::string> result;
+        for (int model = GpsModel::GPS_MODEL_UNKNOWN; model <= GpsModel::GPS_MODEL_UC6580; model++) {
+            result.emplace_back(gps_model_to_string(static_cast<GpsModel>(model)));
+        }
+        return result;
+    }
+
     static void onAddGpsCallback(lv_event_t* event) {
         auto* app = (AddGpsApp*)lv_event_get_user_data(event);
         app->onAddGps();
@@ -37,38 +47,24 @@ class AddGpsApp final : public App {
     void onAddGps() {
         auto selected_baud_index = lv_dropdown_get_selected(baudDropdown);
 
-        auto new_configuration = hal::gps::GpsConfiguration {
-            .uartName = { 0x00 },
-            .baudRate = baudRates[selected_baud_index],
+        GpsConfiguration new_configuration = {
+            .uart_name = { 0x00 },
+            .baud_rate = baudRates[selected_baud_index],
             // Warning: This assumes that the enum is a regularly indexed one that starts at 0
-            .model = (hal::gps::GpsModel)lv_dropdown_get_selected(modelDropdown)
+            .model = (GpsModel)lv_dropdown_get_selected(modelDropdown)
         };
 
-        lv_dropdown_get_selected_str(uartDropdown, new_configuration.uartName, sizeof(new_configuration.uartName));
-        if (new_configuration.uartName[0] == 0x00) {
+        lv_dropdown_get_selected_str(uartDropdown, new_configuration.uart_name, sizeof(new_configuration.uart_name));
+        if (new_configuration.uart_name[0] == 0x00) {
             alertdialog::start("Error", "You must select a bus/uart.");
             return;
         }
 
-        LOG_I(TAG, "Saving: uart=%s, model=%d, baud=%u", new_configuration.uartName, (int)new_configuration.model, (unsigned)new_configuration.baudRate);
-
-        auto service = service::gps::findGpsService();
-        std::vector<tt::hal::gps::GpsConfiguration> configurations;
-        if (service != nullptr) {
-            service->getGpsConfigurations(configurations);
-            for (auto& stored_configuration: configurations) {
-                if (strcmp(stored_configuration.uartName, new_configuration.uartName) == 0) {
-                    auto message = std::string("Bus \"{}\" is already in use in another configuration", (const char*)new_configuration.uartName);
-                    app::alertdialog::start("Error", message.c_str());
-                    return;
-                }
-            }
-
-            if (!service->addGpsConfiguration(new_configuration)) {
-                app::alertdialog::start("Error", "Failed to add configuration");
-            } else {
-                stop();
-            }
+        LOG_I(TAG, "Saving: uart=%s, model=%d, baud=%u", new_configuration.uart_name, (int)new_configuration.model, (unsigned)new_configuration.baud_rate);
+        if (gps_settings_add_configuration(&new_configuration) != ERROR_NONE) {
+            alertdialog::start("Error", "Failed to add configuration");
+        } else {
+            stop();
         }
     }
 
@@ -137,7 +133,7 @@ public:
 
         modelDropdown = lv_dropdown_create(model_wrapper);
 
-        auto model_names = hal::gps::getModels();
+        auto model_names = getModelNames();
         auto model_options = string::join(model_names, "\n");
         lv_dropdown_set_options(modelDropdown, model_options.c_str());
         lv_obj_align(modelDropdown, LV_ALIGN_TOP_RIGHT, 0, 0);

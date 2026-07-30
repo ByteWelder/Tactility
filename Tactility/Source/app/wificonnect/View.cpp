@@ -3,7 +3,7 @@
 #include <Tactility/app/wificonnect/View.h>
 #include <Tactility/app/wificonnect/WifiConnect.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/lvgl/Spinner.h>
+#include <lvgl/widgets/spinner.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 #include <Tactility/service/wifi/WifiGlobals.h>
 
@@ -98,7 +98,7 @@ void View::createBottomButtons(lv_obj_t* parent) {
     lv_obj_align(remember_label, LV_ALIGN_CENTER, 0, 0);
     lv_obj_align_to(remember_label, remember_switch, LV_ALIGN_OUT_RIGHT_MID, 4, 0);
 
-    connecting_spinner = tt::lvgl::spinner_create(button_container);
+    connecting_spinner = lvgl_spinner_create(button_container);
     lv_obj_align(connecting_spinner, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_flag(connecting_spinner, LV_OBJ_FLAG_HIDDEN);
 

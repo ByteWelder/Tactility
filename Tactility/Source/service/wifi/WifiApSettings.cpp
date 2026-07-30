@@ -4,7 +4,7 @@
 
 #include <Tactility/file/File.h>
 
-#include <tactility/crypt.h>
+#include <crypt/crypt.h>
 
 #include <Tactility/service/ServicePaths.h>
 

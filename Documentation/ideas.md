@@ -12,6 +12,13 @@
 
 ## Higher Priority
 
+- display.h API: get_backlight does not change ref counting, but it should
+- bluetooth: various getters for child devices do not change ref counting, but they should
+- Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
+- Remove and migrate `Include/Tactility/kernel/Kernel.h` into `tactility/delay.h`
+- Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
+- LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
+- Core2: support power off via software
 - Create `#define` for empty module (for modules that fully rely on device.properties and don't define drivers or have start/stop logic)
 - Get rid of TactilityC in favour of TactilityKernel and kernel modules
 - Improve SPI kernel driver (implement read, write, transactions)
@@ -46,6 +53,7 @@
 
 ## Lower Priority
 
+- lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)
 - Explore LVGL9's FreeRTOS functionality

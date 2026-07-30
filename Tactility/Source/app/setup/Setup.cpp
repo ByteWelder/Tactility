@@ -1,15 +1,13 @@
-#include <tactility/lvgl_fonts.h>
-#include <tactility/lvgl_module.h>
+#include <lvgl/fonts.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/setup/Setup.h>
-
 #include <Tactility/Preferences.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/app/wifimanage/WifiManage.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <lvgl.h>
