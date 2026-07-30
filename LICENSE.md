@@ -7,20 +7,30 @@ These applications are not part of the Tactility operating system's main firmwar
 
 "end-users" refers to people who install and/or use Tactility software on their devices.
 
+"subproject" refers to any project or dependency within the Tactility project.
+
+## Intentions
+
+The intentions behind picking the licenses for the subprojects:
+
+1. Forks of the entire Tactility project are forced to be open source (GPL v3.0 applies).
+2. It should be possible to make closed source external applications using TactilitySDK and the libraries it includes (it must exclude software with a GPL license).
+3. It should be possible to make closed source forks that only contain TactilityKernel, the platform implementations (`Platforms/*`) and most of the device and driver implementations. As few as possible driver and device combinations should prevent this.
+
 ## Summary
 
-The main firmware projects (`Firmware/`, `Tactility/`) are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md)
+**IMPORTANT:** Make sure you double-check the license(s) of each subproject if you intend to make a derived project that is not offered with a GPL license.
 
-Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md), with exceptions such as `Drivers/gps-generic-module/`.
+**IMPORTANT:** This document may have in accuracies. It mainly exists to create awareness about license differences.
+
+The top-level projects `Firmware/` and `Tactility/` are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md).
+
+Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md), but exceptions such as `Drivers/gps-meshtastic-module/` exist.
 Licensing may also differ for subprojects intended for use in external applications.
 
-Specific aren't generally used directly in external app projects, but if they are, make sure to check their licenses.
-
-All projects under `Modules/` have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
+All projects under `Modules/` have an Apache license.
 
 ## Overview
-
-Below is an overview of the licenses of some of the subprojects.
 
 | Project            | License                 |
 |--------------------|-------------------------|
@@ -28,7 +38,7 @@ Below is an overview of the licenses of some of the subprojects.
 | TactilityC         | Apache License v2.0     |
 | TactilityFreeRTOS  | Apache License v2.0     |
 | TactilityKernel    | Apache License v2.0     |
-| Tests              | GNU Public License v3.0 |
+| Tests              | (varies)                |
 | Devices/*          | GNU Public License v3.0 |
 | Drivers/*          | (varies)                |
 | Modules/*          | Apache License v2.0     |
