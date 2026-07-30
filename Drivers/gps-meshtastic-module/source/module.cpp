@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <tactility/driver.h>
 #include <tactility/module.h>
 
@@ -12,7 +12,7 @@ static Driver* const meshtastic_generic_drivers[] = {
 };
 
 Module gps_generic_module = {
-    .name = "gps-generic",
+    .name = "gps-meshtastic",
     .drivers = meshtastic_generic_drivers
 };
 

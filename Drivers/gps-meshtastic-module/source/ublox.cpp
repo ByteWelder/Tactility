@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <gps_generic/private/ublox.h>
 #include <gps_generic/private/gps_response.h>
 #include <gps_generic/private/ublox_messages.h>
@@ -16,7 +16,7 @@
 
 namespace gps_ublox {
 
-constexpr auto* TAG = "Ublox";
+constexpr auto* TAG = "ublox";
 
 bool init_ublox_6(Device* uart);
 bool init_ublox_789(Device* uart, GpsModel model);

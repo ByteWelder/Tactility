@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <gps/gps.h>
 #include <gps_generic/gps_generic.h>
 #include <gps_meshtastic/module.h>
@@ -22,7 +22,7 @@
 #include <cstdio>
 #include <cstdlib> // For calloc() in PC builds
 
-constexpr auto* TAG = "gps-generic";
+constexpr auto* TAG = "gps-meshtastic";
 
 #define GET_CONFIG(device) (static_cast<const GpsConfig*>((device)->config))
 
