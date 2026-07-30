@@ -4,7 +4,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../Buildscripts/module.cmake")
 
 file(GLOB_RECURSE SOURCE_FILES "source/*.c*")
 
-tactility_add_module(gps-generic-module
+tactility_add_module(gps-meshtastic-module
     SRCS ${SOURCE_FILES}
     PRIV_INCLUDE_DIRS private/
     INCLUDE_DIRS include/
