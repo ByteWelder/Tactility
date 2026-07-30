@@ -166,7 +166,12 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
     if (indev == nullptr || settings == nullptr) {
         return ERROR_INVALID_ARGUMENT;
     }
-    if (settings->encoder_sensitivity == 0 || settings->pointer_sensitivity == 0) {
+    
+    if (
+        (settings->mode != LVGL_TRACKBALL_MODE_ENCODER && settings->mode != LVGL_TRACKBALL_MODE_POINTER) ||
+        settings->encoder_sensitivity == 0 ||
+        settings->pointer_sensitivity == 0
+    ) {
         return ERROR_INVALID_ARGUMENT;
     }
 
