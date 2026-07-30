@@ -141,6 +141,7 @@ void lvgl_devices_detach() {
     while (indev != NULL) {
         lv_indev_type_t type = lv_indev_get_type(indev);
         if (type == LV_INDEV_TYPE_POINTER || type == LV_INDEV_TYPE_ENCODER) {
+            bool handled = false;
             void* driver_data = lv_indev_get_driver_data(indev);
             if (driver_data != nullptr) {
                 // Trackball is a special pointer type as it can operate as a mouse or as a device that changes widget focus.
@@ -149,12 +150,19 @@ void lvgl_devices_detach() {
                     const DeviceType* device_type = device_get_type(context->device);
                     if (device_type == &TRACKBALL_TYPE) {
                         lvgl_trackball_remove(indev);
+                        handled = true;
                     } else if (device_type == &POINTER_TYPE) {
                         lvgl_pointer_remove(indev);
+                        handled = true;
                     } else {
-                        LOG_W(TAG, "Ignoring unknown pointer device");
+                        LOG_E(TAG, "Unknown pointer device with possible memory leak of driver data");
                     }
+                } else {
+                    LOG_W(TAG, "Unknown pointer device (no data attached)");
                 }
+            }
+            if (!handled) {
+                lv_indev_delete(indev);
             }
         } else if (type == LV_INDEV_TYPE_KEYPAD) {
             lvgl_keyboard_remove(indev);
