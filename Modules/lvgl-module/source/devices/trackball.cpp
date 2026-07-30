@@ -157,6 +157,9 @@ void lvgl_trackball_remove(lv_indev_t* indev) {
     }
 
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+    check(wrapper);
+    auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
+    check(ctx);
     hide_cursor(ctx, indev);
     lv_indev_delete(indev);
     delete wrapper;
@@ -176,7 +179,9 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
     }
 
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+    check(wrapper);
     auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
+    check(ctx);
     bool mode_changed = ctx->settings.mode != settings->mode;
     ctx->settings = *settings;
 
