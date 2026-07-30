@@ -49,12 +49,13 @@ static void show_cursor(LvglTrackballCtx* ctx, lv_indev_t* indev) {
     lv_indev_set_cursor(indev, ctx->cursor);
 }
 
-static void hide_cursor(LvglTrackballCtx* ctx) {
+static void hide_cursor(LvglTrackballCtx* ctx, lv_indev_t* indev) {
     if (ctx->cursor == nullptr) {
         return;
     }
 
     // Deletes the object and detaches it from the indev.
+    lv_indev_set_cursor(indev, nullptr);
     lv_obj_delete(ctx->cursor);
     ctx->cursor = nullptr;
 }
@@ -156,9 +157,7 @@ void lvgl_trackball_remove(lv_indev_t* indev) {
     }
 
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
-    auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
-
-    hide_cursor(ctx);
+    hide_cursor(ctx, indev);
     lv_indev_delete(indev);
     delete wrapper;
 }
@@ -182,7 +181,7 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
             recenter_cursor(ctx, indev);
             show_cursor(ctx, indev);
         } else {
-            hide_cursor(ctx);
+            hide_cursor(ctx, indev);
             lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
         }
     }
@@ -220,7 +219,7 @@ void lvgl_trackball_set_cursor_image(lv_indev_t* indev, const void* image_src) {
 
     if (ctx->settings.mode == LVGL_TRACKBALL_MODE_POINTER) {
         // Recreate so a changed (or newly-set/cleared) image takes effect immediately.
-        hide_cursor(ctx);
+        hide_cursor(ctx, indev);
         show_cursor(ctx, indev);
     }
 }
