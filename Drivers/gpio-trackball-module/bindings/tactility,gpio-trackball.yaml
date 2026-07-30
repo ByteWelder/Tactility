@@ -1,6 +1,6 @@
-description: LilyGO T-Deck 5-way GPIO trackball (4 directions + click button)
+description: 5-way GPIO trackball (4 directions + click button)
 
-compatible: "lilygo,tdeck-trackball"
+compatible: "tactility,gpio-trackball"
 
 properties:
   pin-right:

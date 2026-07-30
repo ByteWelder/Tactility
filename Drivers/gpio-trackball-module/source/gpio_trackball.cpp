@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: Apache-2.0
-#include <lilygo/drivers/tdeck_trackball.h>
+#include <drivers/gpio_trackball.h>
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/gpio_descriptor.h>
+#include <tactility/drivers/trackball.h>
 #include <tactility/log.h>
 
 #include <atomic>
 #include <new>
 
-#define TAG "tdeck_trackball"
-#define GET_CONFIG(device) (static_cast<const TdeckTrackballConfig*>((device)->config))
-#define GET_INTERNAL(device) (static_cast<TdeckTrackballInternal*>(device_get_driver_data(device)))
+constexpr auto* TAG = "gpio_trackball";
 
-struct TdeckTrackballInternal {
+#define GET_CONFIG(device) (static_cast<const GpioTrackballConfig*>((device)->config))
+#define GET_INTERNAL(device) (static_cast<GpioTrackballInternal*>(device_get_driver_data(device)))
+
+struct GpioTrackballInternal {
     GpioDescriptor* pin_right = nullptr;
     GpioDescriptor* pin_up = nullptr;
     GpioDescriptor* pin_left = nullptr;
@@ -29,23 +31,23 @@ struct TdeckTrackballInternal {
 // region ISR callbacks
 
 static void on_right(void* arg) {
-    static_cast<TdeckTrackballInternal*>(arg)->dx.fetch_add(1, std::memory_order_relaxed);
+    static_cast<GpioTrackballInternal*>(arg)->dx.fetch_add(1, std::memory_order_relaxed);
 }
 
 static void on_left(void* arg) {
-    static_cast<TdeckTrackballInternal*>(arg)->dx.fetch_sub(1, std::memory_order_relaxed);
+    static_cast<GpioTrackballInternal*>(arg)->dx.fetch_sub(1, std::memory_order_relaxed);
 }
 
 static void on_down(void* arg) {
-    static_cast<TdeckTrackballInternal*>(arg)->dy.fetch_add(1, std::memory_order_relaxed);
+    static_cast<GpioTrackballInternal*>(arg)->dy.fetch_add(1, std::memory_order_relaxed);
 }
 
 static void on_up(void* arg) {
-    static_cast<TdeckTrackballInternal*>(arg)->dy.fetch_sub(1, std::memory_order_relaxed);
+    static_cast<GpioTrackballInternal*>(arg)->dy.fetch_sub(1, std::memory_order_relaxed);
 }
 
 static void on_click(void* arg) {
-    auto* internal = static_cast<TdeckTrackballInternal*>(arg);
+    auto* internal = static_cast<GpioTrackballInternal*>(arg);
     bool high = true;
     gpio_descriptor_get_level(internal->pin_click, &high);
     // Active low: pressed when level is low
@@ -90,7 +92,7 @@ static void release_pin(GpioDescriptor*& descriptor) {
     descriptor = nullptr;
 }
 
-static void release_all_pins(TdeckTrackballInternal* internal) {
+static void release_all_pins(GpioTrackballInternal* internal) {
     release_pin(internal->pin_right);
     release_pin(internal->pin_up);
     release_pin(internal->pin_left);
@@ -114,19 +116,11 @@ static error_t get_button_pressed(Device* device, bool* out_pressed) {
     return ERROR_NONE;
 }
 
-error_t tdeck_trackball_read_delta(Device* device, int32_t* out_dx, int32_t* out_dy) {
-    return read_delta(device, out_dx, out_dy);
-}
-
-error_t tdeck_trackball_get_button_pressed(Device* device, bool* out_pressed) {
-    return get_button_pressed(device, out_pressed);
-}
-
 static error_t start(Device* device) {
     LOG_I(TAG, "start %s", device->name);
     auto* config = GET_CONFIG(device);
 
-    auto* internal = new(std::nothrow) TdeckTrackballInternal();
+    auto* internal = new(std::nothrow) GpioTrackballInternal();
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
     }
@@ -168,25 +162,21 @@ static error_t stop(Device* device) {
     return ERROR_NONE;
 }
 
-static constexpr TdeckTrackballApi TDECK_TRACKBALL_API = {
+static constexpr TrackballApi GPIO_TRACKBALL_API = {
     .read_delta = read_delta,
     .get_button_pressed = get_button_pressed,
 };
 
-const struct DeviceType TDECK_TRACKBALL_TYPE {
-    .name = "tdeck-trackball"
-};
+extern Module gpio_trackball_module;
 
-extern Module lilygo_module;
-
-Driver tdeck_trackball_driver = {
-    .name = "tdeck_trackball",
-    .compatible = (const char*[]) { "lilygo,tdeck-trackball", nullptr },
+Driver gpio_trackball_driver = {
+    .name = "gpio_trackball",
+    .compatible = (const char*[]) { "tactility,gpio-trackball", nullptr },
     .start_device = start,
     .stop_device = stop,
-    .api = &TDECK_TRACKBALL_API,
-    .device_type = &TDECK_TRACKBALL_TYPE,
-    .owner = &lilygo_module,
+    .api = &GPIO_TRACKBALL_API,
+    .device_type = &TRACKBALL_TYPE,
+    .owner = &gpio_trackball_module,
     .internal = nullptr
 };
 
