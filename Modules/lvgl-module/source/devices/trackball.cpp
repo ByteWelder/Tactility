@@ -31,33 +31,40 @@ static void recenter_cursor(LvglTrackballCtx* ctx, lv_indev_t* indev) {
     ctx->cursor_y = display != nullptr ? lv_display_get_original_vertical_resolution(display) / 2 : 0;
 }
 
+// Creates the cursor object on first use and binds it to indev via lv_indev_set_cursor() exactly
+// once - LVGL's lv_indev_set_cursor() unconditionally reparents whatever it's given (even NULL:
+// it does not special-case that, see hide_cursor() below), so it must only ever be called here,
+// with a freshly-created, non-null object whose parent already matches (lv_layer_sys()), making
+// lv_obj_set_parent()'s "parent == obj->parent" check a safe no-op. Once bound, later image/
+// enabled changes update the existing object in place instead of re-binding.
 static void show_cursor(LvglTrackballCtx* ctx, lv_indev_t* indev) {
-    if (ctx->cursor != nullptr || ctx->cursor_image_src == nullptr) {
+    if (ctx->cursor_image_src == nullptr) {
         return;
     }
 
-    ctx->cursor = lv_image_create(lv_layer_sys());
     if (ctx->cursor == nullptr) {
-        return;
+        ctx->cursor = lv_image_create(lv_layer_sys());
+        if (ctx->cursor == nullptr) {
+            return;
+        }
+        lv_obj_remove_flag(ctx->cursor, LV_OBJ_FLAG_CLICKABLE);
+        lv_indev_set_cursor(indev, ctx->cursor);
     }
 
-    lv_obj_remove_flag(ctx->cursor, LV_OBJ_FLAG_CLICKABLE);
     lv_image_set_src(ctx->cursor, ctx->cursor_image_src);
-    if (!ctx->settings.enabled) {
+    if (ctx->settings.enabled) {
+        lv_obj_remove_flag(ctx->cursor, LV_OBJ_FLAG_HIDDEN);
+    } else {
         lv_obj_add_flag(ctx->cursor, LV_OBJ_FLAG_HIDDEN);
     }
-    lv_indev_set_cursor(indev, ctx->cursor);
 }
 
-static void hide_cursor(LvglTrackballCtx* ctx, lv_indev_t* indev) {
+// Only hides the cursor object - never deletes it
+static void hide_cursor(LvglTrackballCtx* ctx) {
     if (ctx->cursor == nullptr) {
         return;
     }
-
-    // Deletes the object and detaches it from the indev.
-    lv_indev_set_cursor(indev, nullptr);
-    lv_obj_delete(ctx->cursor);
-    ctx->cursor = nullptr;
+    lv_obj_add_flag(ctx->cursor, LV_OBJ_FLAG_HIDDEN);
 }
 
 static void lvgl_trackball_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
@@ -160,7 +167,9 @@ void lvgl_trackball_remove(lv_indev_t* indev) {
     check(wrapper);
     auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
     check(ctx);
-    hide_cursor(ctx, indev);
+    if (ctx->cursor != nullptr) {
+        lv_obj_delete(ctx->cursor);
+    }
     lv_indev_delete(indev);
     delete wrapper;
 }
@@ -191,12 +200,15 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
             recenter_cursor(ctx, indev);
             show_cursor(ctx, indev);
         } else {
-            hide_cursor(ctx, indev);
+            hide_cursor(ctx);
             lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
         }
     }
 
-    if (ctx->cursor != nullptr) {
+    // Cursor visibility only tracks the enabled toggle in pointer mode - in encoder mode it must
+    // stay hidden regardless of enabled, otherwise this unconditionally un-hides the cursor
+    // hide_cursor() just hid above (enabled is independent of mode, and defaults to true).
+    if (ctx->cursor != nullptr && ctx->settings.mode == LVGL_TRACKBALL_MODE_POINTER) {
         if (ctx->settings.enabled) {
             lv_obj_remove_flag(ctx->cursor, LV_OBJ_FLAG_HIDDEN);
         } else {
@@ -232,9 +244,11 @@ void lvgl_trackball_set_cursor_image(lv_indev_t* indev, const void* image_src) {
     ctx->cursor_image_src = image_src;
 
     if (ctx->settings.mode == LVGL_TRACKBALL_MODE_POINTER) {
-        // Recreate so a changed (or newly-set/cleared) image takes effect immediately.
-        hide_cursor(ctx, indev);
-        show_cursor(ctx, indev);
+        if (image_src == nullptr) {
+            hide_cursor(ctx);
+        } else {
+            show_cursor(ctx, indev);
+        }
     }
 }
 
