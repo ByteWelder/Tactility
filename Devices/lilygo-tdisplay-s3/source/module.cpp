@@ -2,9 +2,6 @@
 
 #include <driver/gpio.h>
 
-// Board peripheral power-enable pin (display, backlight, etc). Must be asserted before the
-// devicetree devices below start - kernel_init() starts all dts_modules[] (this one included)
-// before constructing any dts_devices[], so doing it here in start() runs early enough.
 constexpr auto POWER_ON_PIN = GPIO_NUM_15;
 
 extern "C" {

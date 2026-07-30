@@ -17,20 +17,50 @@ The intentions behind picking the licenses for the subprojects:
 2. It should be possible to make closed source external applications using TactilitySDK and the libraries it includes (it must exclude software with a GPL license).
 3. It should be possible to make closed source forks that only contain TactilityKernel, the platform implementations (`Platforms/*`) and most of the device and driver implementations. As few as possible driver and device combinations should prevent this.
 
+## License texts
+
+The license texts that are relevant to this document:
+
+- [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md).
+- [GPL v3.0](Documentation/LICENSE-GPL-3.0.md).
+
 ## Summary
 
 **IMPORTANT:** Make sure you double-check the license(s) of each subproject if you intend to make a derived project that is not offered with a GPL license.
 
 **IMPORTANT:** This document may have inaccuracies. It mainly exists to create awareness about license differences.
 
-The top-level projects `Firmware/` and `Tactility/` are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md).
+The top-level projects `Firmware/` and `Tactility/` are licensed under `GPL v3.0`.
 
-Most drivers have an [Apache License v2.0](Documentation/LICENSE-Apache-2.0.md), but exceptions such as `Drivers/gps-meshtastic-module/` exist.
+Most devices are licensed with `Apache License v2.0` while some are implemented as `GPL v3.0` until author consent is given to change the license.
+New device implementations should be licensed under `Apache License v2.0`.
+
+Most drivers have an `Apache License v2.0`, with exceptions such as `Drivers/gps-generic-module/`.
 Licensing may also differ for subprojects intended for use in external applications.
 
-All projects under `Modules/` have an Apache license.
+Driver subprojects aren't generally used directly in external app projects, but if they are, make sure to check their licenses.
+
+All projects under `Modules/` have an `Apache License v2.0`.
+
+## GPL v3.0 to Apache License v2.0
+
+Some code has changed license from GPL to Apache due to one or more of:
+
+### 1. Consent of Authors
+
+Consent of all authors involved in a specific subproject.
+This consent is confirmed in writing (e.g. [here](https://github.com/TactilityProject/Tactility/pull/596)).
+
+### 2. Rewriting the code entirely
+
+Some projects were rewritten entirely. Some examples:
+
+- Drivers that were written for the `Tactility/` subproject (C++ interface, GPL) and were rewritten from scratch based on `TactilityKernel/` (C interface, Apache)
+- Device subprojects were rewritten from a purely code-focused configuration project to an empty module declaration (can't really copyright this) and a DTS file.
 
 ## Overview
+
+Below is an overview of the licenses of some of the subprojects.
 
 | Project            | License                 |
 |--------------------|-------------------------|
@@ -39,7 +69,7 @@ All projects under `Modules/` have an Apache license.
 | TactilityFreeRTOS  | Apache License v2.0     |
 | TactilityKernel    | Apache License v2.0     |
 | Tests              | (varies)                |
-| Devices/*          | GNU Public License v3.0 |
+| Devices/*          | (varies)                |
 | Drivers/*          | (varies)                |
 | Modules/*          | Apache License v2.0     |
 | DevicetreeCompiler | Apache License v2.0     |

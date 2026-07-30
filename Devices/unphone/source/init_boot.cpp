@@ -8,7 +8,6 @@
 #include <esp_sleep.h>
 #include <memory>
 
-#include <Tactility/LogMessages.h>
 #include <Tactility/Thread.h>
 
 constexpr auto* TAG = "unPhone";
@@ -97,10 +96,10 @@ static bool power_on() {
 }
 
 bool init_boot() {
-    LOG_I(TAG, LOG_MESSAGE_POWER_ON_START);
+    LOG_I(TAG, "Power on start");
 
     if (!power_on()) {
-        LOG_E(TAG, LOG_MESSAGE_POWER_ON_FAILED);
+        LOG_E(TAG, "Power on failed");
         return false;
     }
 
