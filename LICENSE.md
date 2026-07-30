@@ -13,7 +13,7 @@ These applications are not part of the Tactility operating system's main firmwar
 
 The intentions behind picking the licenses for the subprojects:
 
-1. Forks of the entire Tactility project are forced to be open source (GPL v3.0 applies).
+1. Forks of the entire Tactility project required to be open source as: GPL v3.0 applies to the main firmware projects (see `Firmware/` and `Tactility/`).
 2. It should be possible to make closed source external applications using TactilitySDK and the libraries it includes (it must exclude software with a GPL license).
 3. It should be possible to make closed source forks that only contain TactilityKernel, the platform implementations (`Platforms/*`) and most of the device and driver implementations. As few as possible driver and device combinations should prevent this.
 
@@ -21,7 +21,7 @@ The intentions behind picking the licenses for the subprojects:
 
 **IMPORTANT:** Make sure you double-check the license(s) of each subproject if you intend to make a derived project that is not offered with a GPL license.
 
-**IMPORTANT:** This document may have in accuracies. It mainly exists to create awareness about license differences.
+**IMPORTANT:** This document may have inaccuracies. It mainly exists to create awareness about license differences.
 
 The top-level projects `Firmware/` and `Tactility/` are licensed under [GPL v3.0](Documentation/LICENSE-GPL-3.0.md).
 
