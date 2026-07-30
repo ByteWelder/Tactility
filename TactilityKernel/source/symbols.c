@@ -21,6 +21,7 @@
 #include <tactility/drivers/i2s_controller.h>
 #include <tactility/drivers/i8080_controller.h>
 #include <tactility/drivers/keyboard.h>
+#include <tactility/drivers/lora.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/drivers/power_supply.h>
 #include <tactility/drivers/pwm.h>
@@ -387,6 +388,24 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(WIFI_TYPE),
     // wifi_auto_scan
     DEFINE_MODULE_SYMBOL(wifi_auto_scan_set_paused),
+    // drivers/lora
+    DEFINE_MODULE_SYMBOL(lora_find_first_registered_device),
+    DEFINE_MODULE_SYMBOL(lora_get_radio_state),
+    DEFINE_MODULE_SYMBOL(lora_set_enabled),
+    DEFINE_MODULE_SYMBOL(lora_set_modulation),
+    DEFINE_MODULE_SYMBOL(lora_get_modulation),
+    DEFINE_MODULE_SYMBOL(lora_can_transmit),
+    DEFINE_MODULE_SYMBOL(lora_can_receive),
+    DEFINE_MODULE_SYMBOL(lora_set_parameter),
+    DEFINE_MODULE_SYMBOL(lora_get_parameter),
+    DEFINE_MODULE_SYMBOL(lora_transmit),
+    DEFINE_MODULE_SYMBOL(lora_add_rx_callback),
+    DEFINE_MODULE_SYMBOL(lora_remove_rx_callback),
+    DEFINE_MODULE_SYMBOL(lora_add_state_callback),
+    DEFINE_MODULE_SYMBOL(lora_remove_state_callback),
+    DEFINE_MODULE_SYMBOL(lora_add_tx_callback),
+    DEFINE_MODULE_SYMBOL(lora_remove_tx_callback),
+    DEFINE_MODULE_SYMBOL(LORA_TYPE),
     // drivers/usb_host_hid
     DEFINE_MODULE_SYMBOL(usb_host_hid_is_connected),
     DEFINE_MODULE_SYMBOL(usb_host_hid_subscribe),
