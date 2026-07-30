@@ -1,6 +1,7 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <gps/gps.h>
 #include <gps_generic/gps_generic.h>
+#include <gps_meshtastic/module.h>
 
 #include <gps_generic/private/init.h>
 #include <gps_generic/private/probe.h>
@@ -21,7 +22,7 @@
 #include <cstdio>
 #include <cstdlib> // For calloc() in PC builds
 
-constexpr auto* TAG = "gps-generic";
+constexpr auto* TAG = "gps-meshtastic";
 
 #define GET_CONFIG(device) (static_cast<const GpsConfig*>((device)->config))
 
@@ -332,12 +333,12 @@ static const GpsApi generic_gps_api = {
 
 extern Module gps_generic_module;
 
-Driver generic_gps_driver = {
+Driver meshtastic_gps_driver = {
     .name = "gps-generic",
     .compatible = (const char*[]) { "tactility,gps-generic", nullptr },
     .start_device = start,
     .stop_device = stop,
     .api = &generic_gps_api,
     .device_type = &GPS_TYPE,
-    .owner = &gps_generic_module
+    .owner = &gps_meshtastic_module
 };

@@ -18,6 +18,7 @@ target_link_libraries(TactilityTests PRIVATE
     crypt-module
     gps-module
     gps-generic-module
+    gps-meshtastic-module
     lvgl
     SDL2::SDL2-static SDL2-static
 )

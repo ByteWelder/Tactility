@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <gps_generic/private/gps_response.h>
 #include <gps_generic/private/probe.h>
 #include <gps_generic/private/ublox.h>
@@ -11,7 +11,7 @@
 
 #include <cstring>
 
-constexpr auto* TAG = "Gps";
+constexpr auto* TAG = "gps-meshtastic";
 
 static char* probe_strnstr(const char* s, const char* find, size_t slen) {
     char c;

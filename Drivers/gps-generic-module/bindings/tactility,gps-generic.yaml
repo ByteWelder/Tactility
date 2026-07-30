@@ -1,5 +1,5 @@
 description: >
-  Generic UART-connected GPS/GNSS receiver. Supports MTK, Airoha/AG33xx, ATGM336H/CASIC,
+  Generic GPS/GNSS receiver interface. Supports MTK, Airoha/AG33xx, ATGM336H/CASIC,
   Unicore UC6580 and u-blox 6/7/8/9/10 chipsets, either auto-probed or fixed via 'model'.
 
 compatible: "tactility,gps-generic"

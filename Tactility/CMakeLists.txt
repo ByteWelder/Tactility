@@ -11,6 +11,7 @@ list(APPEND REQUIRES_LIST
     crypt-module
     gps-module
     gps-generic-module
+    gps-meshtastic-module
     lv_screenshot
     minitar
 )

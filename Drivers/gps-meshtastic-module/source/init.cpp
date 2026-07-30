@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #include <gps_generic/private/cas_messages.h>
 #include <gps_generic/private/init.h>
 #include <gps_generic/private/ublox.h>
@@ -13,7 +13,7 @@
 
 #include <cstring>
 
-constexpr auto* TAG = "gps";
+constexpr auto* TAG = "gps-meshtastic";
 
 bool init_mtk(Device* uart);
 bool init_mtk_l76b(Device* uart);
