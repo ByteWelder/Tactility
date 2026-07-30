@@ -103,7 +103,7 @@ static void lvgl_trackball_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
 
 extern "C" {
 
-struct LvglTrackballSettings lvgl_trackball_settings_get_default() {
+LvglTrackballSettings lvgl_trackball_settings_get_default() {
     return LvglTrackballSettings {
         .mode = LVGL_TRACKBALL_MODE_ENCODER,
         .enabled = true,
@@ -166,7 +166,7 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
     if (indev == nullptr || settings == nullptr) {
         return ERROR_INVALID_ARGUMENT;
     }
-    
+
     if (
         (settings->mode != LVGL_TRACKBALL_MODE_ENCODER && settings->mode != LVGL_TRACKBALL_MODE_POINTER) ||
         settings->encoder_sensitivity == 0 ||
@@ -208,7 +208,9 @@ bool lvgl_trackball_get_settings(lv_indev_t* indev, struct LvglTrackballSettings
     }
 
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+    check(wrapper);
     auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
+    check(ctx);
     *out_settings = ctx->settings;
     return true;
 }
@@ -219,7 +221,9 @@ void lvgl_trackball_set_cursor_image(lv_indev_t* indev, const void* image_src) {
     }
 
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+    check(wrapper);
     auto* ctx = static_cast<LvglTrackballCtx*>(wrapper->context);
+    check(ctx);
     ctx->cursor_image_src = image_src;
 
     if (ctx->settings.mode == LVGL_TRACKBALL_MODE_POINTER) {
