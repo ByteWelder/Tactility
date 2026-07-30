@@ -7,7 +7,15 @@ These applications are not part of the Tactility operating system's main firmwar
 
 "end-users" refers to people who install and/or use Tactility software on their devices.
 
-"subproject" refers to a child project of the parent Tactility project.
+"subproject" refers to any project or dependency within the Tactility project.
+
+## Intentions
+
+The intentions behind picking the licenses for the subprojects:
+
+1. Forks of the entire Tactility project required to be open source as: GPL v3.0 applies to the main firmware projects (see `Firmware/` and `Tactility/`).
+2. It should be possible to make closed source external applications using TactilitySDK and the libraries it includes (it must exclude software with a GPL license).
+3. It should be possible to make closed source forks that only contain TactilityKernel, the platform implementations (`Platforms/*`) and most of the device and driver implementations. As few as possible driver and device combinations should prevent this.
 
 ## License texts
 
@@ -18,7 +26,11 @@ The license texts that are relevant to this document:
 
 ## Summary
 
-The main firmware projects (`Firmware/`, `Tactility/`) are licensed under `GPL v3.0`.
+**IMPORTANT:** Make sure you double-check the license(s) of each subproject if you intend to make a derived project that is not offered with a GPL license.
+
+**IMPORTANT:** This document may have inaccuracies. It mainly exists to create awareness about license differences.
+
+The top-level projects `Firmware/` and `Tactility/` are licensed under `GPL v3.0`.
 
 Most devices are licensed with `Apache License v2.0` while some are implemented as `GPL v3.0` until author consent is given to change the license.
 New device implementations should be licensed under `Apache License v2.0`.
@@ -37,7 +49,7 @@ Some code has changed license from GPL to Apache due to one or more of:
 ### 1. Consent of Authors
 
 Consent of all authors involved in a specific subproject.
-This consent is confirmed in writing.
+This consent is confirmed in writing (e.g. [here](https://github.com/TactilityProject/Tactility/pull/596)).
 
 ### 2. Rewriting the code entirely
 
@@ -45,23 +57,6 @@ Some projects were rewritten entirely. Some examples:
 
 - Drivers that were written for the `Tactility/` subproject (C++ interface, GPL) and were rewritten from scratch based on `TactilityKernel/` (C interface, Apache)
 - Device subprojects were rewritten from a purely code-focused configuration project to an empty module declaration (can't really copyright this) and a DTS file.
-
-## Device project considerations
-
-Some device projects are provided with an Apache license, but might refer to subprojects containing GPL code.
-These projects are required to be licensed with GPL as soon as they are compiled.
-
-Their non-binary form is their non-combined form (they don't include GPL code yet), so the project retains its Apache license until it is compiled.
-This allows for derivates that cut out GPL dependencies.
-
-For example: `LilyGO T-Deck Plus` and `LilyGO T-Lora Pager`:
-
-The projects themselves have a `module.cpp` and a `.dts` file. As long as the code is not compiled with the `gps-generic-module` drivers,
-the project is not forced into a GPS license. This allows someone to copy the subproject's files into a closed-source project, remove the GPS driver from the DTS file and the `devicetree.yaml`,
-and then use that in a project that is compatible with the Apache license.
-
-In other words: If you intend to use parts Tactility in a closed-source application, make sure you check the license of the device project
-and all the driver projects that it depends on.
 
 ## Overview
 

@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: GPL-3.0
 #pragma once
 
 // Internal-only result of waiting for a chip's ACK/NACK response during probing/initialization.

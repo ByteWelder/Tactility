@@ -99,6 +99,7 @@ else ()
         crypt-module
         gps-module
         gps-generic-module
+        gps-meshtastic-module
         SDL2::SDL2-static
         SDL2-static
     )
