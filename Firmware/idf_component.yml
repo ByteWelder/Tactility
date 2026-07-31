@@ -58,6 +58,11 @@ dependencies:
     rules:
       # More hardware seems to be supported - enable as needed
       - if: "target in [esp32p4]"
+  espressif/esp_lcd_st7121:
+    version: "1.0.1"
+    rules:
+      # More hardware seems to be supported - enable as needed
+      - if: "target in [esp32p4]"
   espressif/esp_lcd_touch_st7123:
     version: "1.0.1"
     rules:

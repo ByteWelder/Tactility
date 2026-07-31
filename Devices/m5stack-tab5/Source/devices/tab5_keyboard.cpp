@@ -521,11 +521,26 @@ static error_t start(Device* device) {
                                      // if IRQ setup succeeded.
     }
 
-    // Best-effort: if the keyboard isn't attached yet (e.g. this device is constructed
-    // speculatively at boot so it can be hot-plug-detected later), these I2C writes fail
-    // silently and reinit_device() runs again once attach is detected.
-    reinit_device(device, internal);
-    internal->was_attached = is_attached_raw(device);
+    // This device is constructed speculatively at boot so it can be hot-plug-detected later - if
+    // the keyboard isn't physically attached yet, skip reinit_device() here (it runs again once
+    // attach is detected - see check_attach_state()) rather than issuing register writes that are
+    // certain to fail: unlike is_attached_raw()'s plain probe, write_register() logs at error
+    // level on failure (see esp32_i2c_master.cpp), which would be misleading noise for what's just
+    // "not plugged in yet".
+    if (is_attached_raw(device)) {
+        reinit_device(device, internal);
+    }
+
+    // Deliberately seeded false rather than is_attached_raw(device)'s actual current state: the
+    // attach listener (on_keyboard_attach_changed, applying auto-rotation) is edge-triggered on
+    // was_attached changing in check_attach_state(), and isn't registered until after this
+    // function returns (see tab5_create_keyboard()) - it can't have run yet regardless. If the
+    // keyboard is physically attached at boot, seeding false here means the first confirmed
+    // check_attach_state() call sees a false->true transition and fires the listener for real
+    // (retrying if LVGL isn't up yet - see the listener's own doc comment); seeding the true
+    // actual state instead would eliminate that first transition entirely, since the poll loop
+    // only reacts to *changes*, and rotation would never be applied until an actual unplug/replug.
+    internal->was_attached = false;
 
     device_set_driver_data(device, internal);
     return ERROR_NONE;
@@ -570,10 +585,24 @@ static error_t tab5_keyboard_read_key(Device* device, KeyboardKeyData* data) {
     return ERROR_NONE;
 }
 
+// LVGL restarting (e.g. an app that took over the display for direct rendering,
+// stopping and letting LVGL rebind) is a distinct event from the keyboard physically
+// attaching/detaching - the accessory may never have moved, but whatever check_attach_state()'s
+// confirmed transition was last announcing state to (here: display rotation) may have reset in
+// the meantime. Forcing was_attached false makes the next check_attach_state() see a fresh
+// "attached" transition (still going through the normal 2-check debounce) so the attach listener
+// re-announces the current state instead of staying silent forever, waiting for an edge that
+// will never come because the keyboard was never actually unplugged.
+static void tab5_keyboard_notify_bound(Device* device) {
+    auto* internal = static_cast<Tab5KeyboardInternal*>(device_get_driver_data(device));
+    internal->was_attached = false;
+}
+
 // endregion
 
 static const KeyboardApi tab5_keyboard_api = {
     .read_key = tab5_keyboard_read_key,
+    .notify_bound = tab5_keyboard_notify_bound,
 };
 
 // Defined in module.cpp - this driver is registered directly by m5stack-tab5's own module,

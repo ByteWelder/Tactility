@@ -21,6 +21,30 @@ void tab5_set_variant(Tab5Variant variant) {
     detected_variant = variant;
 }
 
+// The ST7123 (V2) and ST7121 (V3) touch controllers share the same fixed I2C address, so presence
+// alone doesn't distinguish them. Both expose a firmware-version byte at register 0x0000 (a 16-bit
+// register address, per ESP_LCD_TOUCH_IO_I2C_ST7123_CONFIG's lcd_cmd_bits=16 - see the M5Tab5
+// UserDemo's bsp_detect_display_type()): fw_version 1 means ST7121/V3, fw_version 3 means
+// ST7123/V2. Any other (or unreadable) value falls back to V2, matching the UserDemo's behavior.
+static Tab5Variant probe_st7123_or_st7121_variant(Device* i2c0, TickType_t timeout) {
+    const uint8_t reg_addr[2] = {0x00, 0x00};
+    uint8_t fw_version = 0;
+    if (i2c_controller_write_read(i2c0, ESP_LCD_TOUCH_IO_I2C_ST7123_ADDRESS, reg_addr, sizeof(reg_addr), &fw_version, 1, timeout) == ERROR_NONE) {
+        if (fw_version == 1) {
+            LOG_I(TAG, "display_detect: detected ST7121 touch (FW version 1) — using variant V3");
+            return Tab5Variant::V3;
+        }
+        if (fw_version == 3) {
+            LOG_I(TAG, "display_detect: detected ST7123 touch (FW version 3) — using variant V2");
+            return Tab5Variant::V2;
+        }
+        LOG_W(TAG, "display_detect: touch at ST7123 address reported unknown FW version %u, defaulting to V2", fw_version);
+    } else {
+        LOG_W(TAG, "display_detect: failed to read touch FW version, defaulting to V2");
+    }
+    return Tab5Variant::V2;
+}
+
 Tab5Variant tab5_probe_variant(Device* i2c0) {
     // Allow time for the touch IC to fully boot after the reset pulse above: 100ms is enough for
     // I2C ACK (probe) but cold power-on needs ~300ms before register reads succeed reliably.
@@ -36,8 +60,7 @@ Tab5Variant tab5_probe_variant(Device* i2c0) {
         }
 
         if (i2c_controller_has_device_at_address(i2c0, ESP_LCD_TOUCH_IO_I2C_ST7123_ADDRESS, PROBE_TIMEOUT) == ERROR_NONE) {
-            LOG_I(TAG, "display_detect: detected ST7123 touch — using variant V2");
-            return Tab5Variant::V2;
+            return probe_st7123_or_st7121_variant(i2c0, PROBE_TIMEOUT);
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));

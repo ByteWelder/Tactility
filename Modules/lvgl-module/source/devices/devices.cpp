@@ -113,6 +113,10 @@ void lvgl_devices_attach() {
         struct Device* kernel_keyboard_device = keyboard_devices.devices[i];
         lv_indev_t* lvgl_keyboard_device;
         if (lvgl_keyboard_add(kernel_keyboard_device, lvgl_display, &lvgl_keyboard_device) == ERROR_NONE) {
+            // Let the driver know it was just (re)bound, in case an app stopping/restarting
+            // LVGL (e.g. one that took over the display for direct rendering) reset some state
+            // the driver's own attach-edge tracking wouldn't otherwise notice needs reapplying.
+            keyboard_notify_bound(kernel_keyboard_device);
             LOG_I(TAG, "Bound %s to LVGL", kernel_keyboard_device->name);
         } else {
             LOG_E(TAG, "Failed to bind %s to LVGL", kernel_keyboard_device->name);
