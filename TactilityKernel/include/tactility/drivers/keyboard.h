@@ -47,19 +47,6 @@ struct KeyboardApi {
      * @retval ERROR_NOT_SUPPORTED when this device has no backlight
      */
     error_t (*get_backlight)(struct Device* device, struct Device** backlight_device);
-
-    /**
-     * @brief Optional. Called by lvgl-module right after this device's indev is (re)bound to
-     * LVGL (e.g. on initial boot, or after an app that stopped LVGL - such as one taking over
-     * the display for direct rendering - lets it restart). Drivers whose hot-plug/attach-state
-     * tracking only reacts to actual attach/detach edges can use this to force their next
-     * attach-state check to re-evaluate and re-announce the current state, since LVGL restarting
-     * is a distinct event from the keyboard itself attaching or detaching - the physical
-     * accessory may never have moved, but whatever it was announcing state to (e.g. display
-     * rotation) may have been reset in the meantime.
-     * @param[in] device the keyboard device
-     */
-    void (*notify_bound)(struct Device* device);
 };
 
 /**
@@ -76,13 +63,6 @@ error_t keyboard_read_key(struct Device* device, struct KeyboardKeyData* data);
  * @retval ERROR_NOT_SUPPORTED when this device has no backlight
  */
 error_t keyboard_get_backlight(struct Device* device, struct Device** backlight_device);
-
-/**
- * @brief Notifies the keyboard driver that its indev was just (re)bound to LVGL. No-op if the
- * driver doesn't implement KeyboardApi::notify_bound. See that field's doc comment for why this
- * exists.
- */
-void keyboard_notify_bound(struct Device* device);
 
 extern const struct DeviceType KEYBOARD_TYPE;
 

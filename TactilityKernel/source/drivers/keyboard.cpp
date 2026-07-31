@@ -22,14 +22,6 @@ error_t keyboard_get_backlight(Device* device, Device** backlight_device) {
     return KEYBOARD_DRIVER_API(driver)->get_backlight(device, backlight_device);
 }
 
-void keyboard_notify_bound(Device* device) {
-    const auto* driver = device_get_driver(device);
-
-    if (KEYBOARD_DRIVER_API(driver)->notify_bound != nullptr) {
-        KEYBOARD_DRIVER_API(driver)->notify_bound(device);
-    }
-}
-
 const DeviceType KEYBOARD_TYPE {
     .name = "keyboard"
 };

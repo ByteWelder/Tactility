@@ -20,26 +20,22 @@ struct Tab5KeyboardConfig {
     struct GpioPinSpec pin_interrupt;
 };
 
-// Called when the keyboard accessory's hot-plug attach state changes (confirmed over two
-// consecutive ~1s checks - see the driver source). Orientation changes and other LVGL-aware
-// reactions to attach state live outside the driver (it has no LVGL dependency) - module.cpp
-// registers a listener for this instead.
-// @return true once handled; false to be called again on the next confirmed check with the same
-// `attached` value (e.g. if the LVGL lock couldn't be acquired) - mirrors this driver's own
-// internal retry-until-handled pattern for reinitializing the device on reattach.
-typedef bool (*Tab5KeyboardAttachListener)(struct Device* device, bool attached, void* context);
-
-// Only one listener is supported (this board only ever has one caller - module.cpp). Registering
-// a new one before removing the previous replaces it with a warning logged.
-void tab5_keyboard_add_attach_listener(struct Device* device, Tab5KeyboardAttachListener callback, void* context);
-void tab5_keyboard_remove_attach_listener(struct Device* device, Tab5KeyboardAttachListener callback);
-
 extern struct Driver tab5_keyboard_driver;
 
-// Constructs and starts the keyboard accessory device on i2c2, then registers this project's own
-// hot-plug rotation handler as its attach listener. Called from display_detect.cpp's
+// Constructs and starts the keyboard accessory device on i2c2. Called from display_detect.cpp's
 // on_display_detect_event() once i2c2 is up.
 void tab5_create_keyboard(struct Device* i2c2);
+
+// Returns true if the keyboard accessory currently ACKs on the I2C bus. Cheap bus probe, no
+// debouncing - callers wanting hot-plug-stable state (e.g. tab5_keyboard_attach_detect.cpp)
+// should debounce across their own polling interval.
+bool tab5_keyboard_is_attached(struct Device* device);
+
+// (Re)applies the device's register configuration - RGB mode, brightness, interrupt config, LED
+// state. Volatile on this chip: reset to power-on defaults whenever the keyboard is unplugged and
+// reconnected, so callers must call this again after confirming a reattach (see
+// tab5_keyboard_attach_detect.cpp).
+void tab5_keyboard_reinit(struct Device* device);
 
 #ifdef __cplusplus
 }
