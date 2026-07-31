@@ -24,10 +24,10 @@ static bool was_attached = false;
 static bool pending_attach_state = false;
 static uint8_t pending_attach_confirm_count = 0;
 
-// Tracks LVGL's own readiness so a restart (lv_display_get_default() going from null back to
-// non-null - e.g. an app that took over the display for direct rendering, stopping and letting
-// LVGL rebind) can be told apart from the keyboard itself attaching/detaching. See apply_state()'s
-// comment for why that distinction matters.
+// Tracks LVGL's own readiness so a restart (lvgl_is_running() going from false back to true -
+// e.g. an app that took over the display for direct rendering, stopping and letting LVGL rebind)
+// can be told apart from the keyboard itself attaching/detaching. See apply_state()'s comment for
+// why that distinction matters.
 static bool was_lvgl_ready = false;
 
 static lv_display_rotation_t saved_rotation = LV_DISPLAY_ROTATION_0;
@@ -40,13 +40,18 @@ static bool rotation_override_active = false;
 // Tab5Keyboard::applyAutoRotation() / the pre-refactor tab5_keyboard.cpp driver logic.
 // @return true once handled; false to be retried on the next tick (e.g. LVGL lock busy).
 static bool apply_state(Device* keyboard_device, bool attached) {
-    auto* display = lv_display_get_default();
-    if (display == nullptr) {
-        return false; // LVGL not ready yet - retry next tick
+    if (!lvgl_try_lock(pdMS_TO_TICKS(100))) {
+        return false; // retry next tick
     }
 
-    if (!lvgl_try_lock(pdMS_TO_TICKS(1000))) {
-        return false; // retry next tick
+    // Resolved inside the lock, not before: the default display can start/stop between an
+    // unlocked probe and actually taking the lock, and lv_display_get_default() itself isn't
+    // safe to call without holding it (unlike lvgl_is_running(), used for the readiness check in
+    // attach_detect_callback()).
+    auto* display = lv_display_get_default();
+    if (display == nullptr) {
+        lvgl_unlock();
+        return false; // LVGL not ready yet - retry next tick
     }
 
     if (attached) {
@@ -82,7 +87,9 @@ static void attach_detect_callback(TimerHandle_t /*timer*/) {
     // see a fresh "attached" transition (still going through the normal 2-check debounce) so
     // apply_state() re-announces the current state instead of staying silent forever, waiting for
     // an edge that will never come because the keyboard was never actually unplugged.
-    const bool lvgl_ready = lv_display_get_default() != nullptr;
+    // lvgl_is_running() is safe to call unlocked (unlike lv_display_get_default(), resolved inside
+    // the lock in apply_state() instead).
+    const bool lvgl_ready = lvgl_is_running();
     if (lvgl_ready && !was_lvgl_ready) {
         was_attached = false;
         pending_attach_confirm_count = 0;

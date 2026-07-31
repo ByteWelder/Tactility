@@ -213,9 +213,20 @@ static bool write_reg(Device* device, uint8_t reg, uint8_t value) {
     return i2c_controller_write_register(parent, I2C_ADDRESS, reg, &value, 1, pdMS_TO_TICKS(50)) == ERROR_NONE;
 }
 
+// Short-timeout variant used only by tab5_keyboard_reinit(), which runs on the FreeRTOS timer
+// daemon task (via tab5_keyboard_attach_detect.cpp) - a slow/absent device there blocks every
+// other software timer in the system, not just this one, so it can't afford write_reg()'s 50ms
+// per-call budget. read_reg()/write_reg() themselves stay at 50ms since they're also used from the
+// hot IRQ/poll path (drain_events()), where a too-short timeout would cause missed key events
+// under normal bus contention.
+static bool write_reg_fast(Device* device, uint8_t reg, uint8_t value) {
+    auto* parent = device_get_parent(device);
+    return i2c_controller_write_register(parent, I2C_ADDRESS, reg, &value, 1, pdMS_TO_TICKS(2)) == ERROR_NONE;
+}
+
 bool tab5_keyboard_is_attached(Device* device) {
     auto* parent = device_get_parent(device);
-    return i2c_controller_has_device_at_address(parent, I2C_ADDRESS, pdMS_TO_TICKS(100)) == ERROR_NONE;
+    return i2c_controller_has_device_at_address(parent, I2C_ADDRESS, pdMS_TO_TICKS(5)) == ERROR_NONE;
 }
 
 // ---------------------------------------------------------------------------
@@ -379,15 +390,15 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
 // ---------------------------------------------------------------------------
 void tab5_keyboard_reinit(Device* device) {
     auto* internal = static_cast<Tab5KeyboardInternal*>(device_get_driver_data(device));
-    write_reg(device, REG_KEYBOARD_MODE, 0x00); // Normal mode
-    write_reg(device, REG_EVENT_NUM, 0x00);     // flush event queue
-    write_reg(device, REG_INT_STAT, 0x00);      // clear pending INT
-    write_reg(device, REG_RGB_MODE, 0x01);      // Custom RGB mode (manual LED control)
-    write_reg(device, REG_BRIGHTNESS, 50);      // 50% brightness
-    update_leds(device, internal);              // restore current LED state
+    write_reg_fast(device, REG_KEYBOARD_MODE, 0x00); // Normal mode
+    write_reg_fast(device, REG_EVENT_NUM, 0x00);     // flush event queue
+    write_reg_fast(device, REG_INT_STAT, 0x00);      // clear pending INT
+    write_reg_fast(device, REG_RGB_MODE, 0x01);      // Custom RGB mode (manual LED control)
+    write_reg_fast(device, REG_BRIGHTNESS, 50);      // 50% brightness
+    update_leds(device, internal);                   // restore current LED state
 
     if (internal->irq_configured) {
-        write_reg(device, REG_INT_CFG, 0x01);   // re-enable Normal-mode interrupt (bit 0)
+        write_reg_fast(device, REG_INT_CFG, 0x01);   // re-enable Normal-mode interrupt (bit 0)
     }
 }
 
