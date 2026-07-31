@@ -231,9 +231,9 @@ static void refresh_full(Gdeq031t10Internal* internal, bool mirror_180, enum Gde
         return;
     }
 
-    LOG_I(TAG, "memcpy render_bitmap -> shadow_buffer");
-    std::memcpy(internal->shadow_framebuffer, render_bitmap, FRAMEBUFFER_SIZE);
-    if (!write_command(internal, CMD_DATA_START_NEW) || !write_data(internal, internal->shadow_framebuffer, FRAMEBUFFER_SIZE)) {
+    // Sent straight from the render buffer: the shadow still has to describe what the panel
+    // is showing right now until this refresh is confirmed below.
+    if (!write_command(internal, CMD_DATA_START_NEW) || !write_data(internal, render_bitmap, FRAMEBUFFER_SIZE)) {
         LOG_E(TAG, "Failed to send new frame data");
         return;
     }
@@ -243,7 +243,13 @@ static void refresh_full(Gdeq031t10Internal* internal, bool mirror_180, enum Gde
         return;
     }
     delay_millis(1); // datasheet requires >=200us settle before polling BUSY
-    if (!wait_while_busy(internal)) {
+    if (wait_while_busy(internal)) {
+        // Confirmed: the panel now shows this frame, so the shadow can too.
+        std::memcpy(internal->shadow_framebuffer, render_bitmap, FRAMEBUFFER_SIZE);
+    } else {
+        // Leave the shadow alone: the panel did not confirm, so it still holds the previous
+        // frame. Claiming otherwise would make the next update compute its transitions from
+        // content the panel never displayed, and hide the difference from the change scan.
         LOG_E(TAG, "Full refresh did not complete");
     }
 
@@ -300,15 +306,13 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
         return;
     }
 
-    // New region: render data, and update the shadow for this region as we go.
+    // New region: render data only. The shadow still has to describe what the panel is
+    // showing until this refresh is confirmed below.
     n = 0;
     for (int row = first_row; row <= last_row; row++) {
         const size_t base = static_cast<size_t>(row) * BYTES_PER_ROW + first_byte_col;
-        for (int c = 0; c < width_bytes; c++) {
-            const uint8_t value = render_bitmap[base + c];
-            internal->region_buffer[n++] = value;
-            internal->shadow_framebuffer[base + c] = value;
-        }
+        std::memcpy(&internal->region_buffer[n], &render_bitmap[base], width_bytes);
+        n += width_bytes;
     }
     if (!write_command(internal, CMD_DATA_START_NEW) || !write_data(internal, internal->region_buffer, n)) {
         LOG_E(TAG, "Failed to send new window data");
@@ -316,13 +320,24 @@ static void refresh_window(Gdeq031t10Internal* internal, bool mirror_180, const 
         return;
     }
 
+    bool confirmed = false;
     if (write_command(internal, CMD_DISPLAY_REFRESH)) {
         delay_millis(1);
-        if (!wait_while_busy(internal)) {
+        confirmed = wait_while_busy(internal);
+        if (!confirmed) {
             LOG_E(TAG, "Window refresh did not complete");
         }
     } else {
         LOG_E(TAG, "Failed to trigger window refresh");
+    }
+
+    // Only commit the region the panel confirmed; on failure the shadow keeps describing
+    // the previous content, so the next change scan still sees this region as dirty.
+    if (confirmed) {
+        for (int row = first_row; row <= last_row; row++) {
+            const size_t base = static_cast<size_t>(row) * BYTES_PER_ROW + first_byte_col;
+            std::memcpy(&internal->shadow_framebuffer[base], &render_bitmap[base], width_bytes);
+        }
     }
     write_command(internal, CMD_PARTIAL_OUT);
 }
