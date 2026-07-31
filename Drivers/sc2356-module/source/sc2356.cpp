@@ -68,11 +68,13 @@ struct Sc2356State : CameraHandleData {
 // least 1ms, then wait for the sensor's internal power-on/clock startup (datasheet specifies a
 // minimum before the first SCCB transaction - 10ms gives comfortable margin) before probing.
 static error_t reset_pulse(GpioDescriptor* descriptor) {
-    bool ok = gpio_descriptor_set_level(descriptor, true) == ERROR_NONE; // assert
+    // Release is attempted unconditionally, even if assert failed - leaving the expander output
+    // asserted on an assert failure would hold the sensor in reset for the rest of boot.
+    const bool assert_ok = gpio_descriptor_set_level(descriptor, true) == ERROR_NONE; // assert
     vTaskDelay(pdMS_TO_TICKS(10));
-    ok = ok && gpio_descriptor_set_level(descriptor, false) == ERROR_NONE; // release
+    const bool release_ok = gpio_descriptor_set_level(descriptor, false) == ERROR_NONE; // release
     vTaskDelay(pdMS_TO_TICKS(10));
-    return ok ? ERROR_NONE : ERROR_RESOURCE;
+    return (assert_ok && release_ok) ? ERROR_NONE : ERROR_RESOURCE;
 }
 
 static error_t start(Device* device) {
@@ -89,7 +91,10 @@ static error_t start(Device* device) {
     // whatever it inherited from a previous boot - see the equivalent reasoning for the tab5
     // display/touch reset pulse in Devices/m5stack-tab5/Source/devices/display_detect.cpp.
     if (config->pin_reset.gpio_controller != nullptr) {
-        auto* reset_descriptor = gpio_descriptor_acquire(config->pin_reset.gpio_controller, config->pin_reset.pin, GPIO_FLAG_DIRECTION_OUTPUT | GPIO_FLAG_ACTIVE_LOW, GPIO_OWNER_GPIO);
+        // Merge with the devicetree-supplied flags (e.g. GPIO_FLAG_ACTIVE_LOW) rather than
+        // overwriting them, so a board that wires reset active-high isn't silently forced to
+        // active-low polarity.
+        auto* reset_descriptor = gpio_descriptor_acquire(config->pin_reset.gpio_controller, config->pin_reset.pin, config->pin_reset.flags | GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
         if (reset_descriptor == nullptr) {
             LOG_E(TAG, "Failed to acquire reset pin");
             return ERROR_RESOURCE;

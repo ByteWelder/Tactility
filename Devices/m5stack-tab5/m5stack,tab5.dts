@@ -127,7 +127,7 @@
 			// I2C probe otherwise races a bare hog's pin release with no settle delay (the hog
 			// also only starts after this node, since it's a root-level sibling declared later
 			// in this file - always too late).
-			pin-reset = <&io_expander0 6 GPIO_FLAG_NONE>;
+			pin-reset = <&io_expander0 6 GPIO_FLAG_ACTIVE_LOW>;
 		};
 	};
 
