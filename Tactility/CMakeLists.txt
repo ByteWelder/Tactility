@@ -12,6 +12,7 @@ list(APPEND REQUIRES_LIST
     gps-module
     gps-generic-module
     gps-meshtastic-module
+    service-module
     lv_screenshot
     minitar
 )

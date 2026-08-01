@@ -2,8 +2,9 @@
 
 #pragma once
 
+#include <service/manifest.h>
+
 #include <tactility/error.h>
-#include <tactility/service/service_manifest.h>
 
 #ifdef __cplusplus
 extern "C" {

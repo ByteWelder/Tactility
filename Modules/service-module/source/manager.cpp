@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <tactility/service/service_manager.h>
-
-#include "tactility/system_event.h"
+#include <service/manager.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
+#include <tactility/system_event.h>
 
 #include <new>
 #include <string>

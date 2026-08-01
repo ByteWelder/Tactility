@@ -98,6 +98,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Modules/lvgl-module)
     add_subdirectory(Modules/crypt-module)
     add_subdirectory(Modules/gps-module)
+    add_subdirectory(Modules/service-module)
     add_subdirectory(Drivers/gps-generic-module)
     add_subdirectory(Drivers/gps-meshtastic-module)
 

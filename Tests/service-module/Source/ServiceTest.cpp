@@ -1,5 +1,6 @@
 #include "doctest.h"
-#include <tactility/service/service_manager.h>
+
+#include <service/manager.h>
 
 // Defined in service_instance.cpp. Internal-only, exposed here to test try_get/put gating.
 extern "C" void service_instance_set_state(ServiceInstance* instance, ServiceState state);

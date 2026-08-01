@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <tactility/service/service_paths.h>
+#include <service/paths.h>
 #include <tactility/paths.h>
 
 #include <cstdio>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <memory>
-#include <tactility/service/service_manifest.h>
+#include <service/manifest.h>
 
 struct ServiceInstance;
 

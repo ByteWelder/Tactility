@@ -3,9 +3,9 @@
 #pragma once
 
 #include <stdbool.h>
+#include <service/instance.h>
+#include <service/manifest.h>
 #include <tactility/error.h>
-#include <tactility/service/service_instance.h>
-#include <tactility/service/service_manifest.h>
 
 #ifdef __cplusplus
 extern "C" {

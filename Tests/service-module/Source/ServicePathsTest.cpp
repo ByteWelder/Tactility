@@ -1,6 +1,8 @@
 #include "doctest.h"
+
+#include <service/paths.h>
+
 #include <tactility/paths.h>
-#include <tactility/service/service_paths.h>
 
 #include <cstring>
 #include <string>

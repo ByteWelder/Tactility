@@ -1,6 +1,6 @@
 #pragma once
 
-#include <tactility/service/service_instance.h>
+#include <service/instance.h>
 
 #include <memory>
 

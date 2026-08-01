@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
-#include <tactility/service/service_instance.h>
+#include <service/instance.h>
+
 #include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
 
