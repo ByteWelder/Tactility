@@ -71,12 +71,12 @@
 		pin-sda = <&gpio0 31 GPIO_FLAG_PULL_UP>;
 		pin-scl = <&gpio0 32 GPIO_FLAG_PULL_UP>;
 
-		io_expander0: io_expander0 {
+		io_expander0 {
 			compatible = "diodes,pi4ioe5v6408";
 			reg = <0x43>;
 		};
 
-		io_expander1: io_expander1 {
+		io_expander1 {
 			compatible = "diodes,pi4ioe5v6408";
 			reg = <0x44>;
 		};
@@ -123,6 +123,11 @@
 		sc2356 {
 			compatible = "smartsens,sc2356";
 			reg = <0x36>;
+			// Pulsed by the sc2356 driver itself in start_device, not a gpio-hog: the driver's
+			// I2C probe otherwise races a bare hog's pin release with no settle delay (the hog
+			// also only starts after this node, since it's a root-level sibling declared later
+			// in this file - always too late).
+			pin-reset = <&io_expander0 6 GPIO_FLAG_ACTIVE_LOW>;
 		};
 	};
 
@@ -135,12 +140,6 @@
 	exp0_external_5v_bus_enable {
 		compatible = "gpio-hog";
 		pin = <&io_expander0 2 GPIO_FLAG_NONE>;
-		mode = <GPIO_HOG_MODE_OUTPUT_HIGH>;
-	};
-
-	exp0_camera_reset {
-		compatible = "gpio-hog";
-		pin = <&io_expander0 6 GPIO_FLAG_NONE>;
 		mode = <GPIO_HOG_MODE_OUTPUT_HIGH>;
 	};
 

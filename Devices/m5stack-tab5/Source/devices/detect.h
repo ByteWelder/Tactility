@@ -6,6 +6,7 @@ enum class Tab5Variant {
     Unknown,
     V1,  // Older variant: ILI9881C display + GT911 touch (see devices_v1.cpp)
     V2,  // Newer variant (default): ST7123 display + in-cell touch (see devices_v2.cpp)
+    V3,  // Newest variant: ST7121 display + in-cell touch (see devices_v3.cpp)
 };
 
 // Populated once the device_listener callback in display_detect.cpp has detected which

@@ -64,7 +64,6 @@ error_t keyboard_read_key(struct Device* device, struct KeyboardKeyData* data);
  */
 error_t keyboard_get_backlight(struct Device* device, struct Device** backlight_device);
 
-
 extern const struct DeviceType KEYBOARD_TYPE;
 
 #ifdef __cplusplus

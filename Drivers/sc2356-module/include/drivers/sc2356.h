@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <tactility/drivers/camera.h>
+#include <tactility/drivers/gpio.h>
 #include <tactility/error.h>
 
 struct Device;
@@ -16,6 +17,11 @@ extern "C" {
 struct Sc2356Config {
     /** SCCB I2C address (0x36) */
     uint8_t address;
+
+    // Reset pin. GPIO_PIN_SPEC_NONE if the sensor's reset is tied high on the board (or otherwise
+    // not under our control), in which case start_device skips the reset pulse entirely and goes
+    // straight to probing.
+    struct GpioPinSpec pin_reset;
 };
 
 /**

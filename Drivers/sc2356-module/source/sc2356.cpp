@@ -4,6 +4,7 @@
 
 #include <tactility/device.h>
 #include <tactility/drivers/esp32_i2c_master.h>
+#include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
 
@@ -63,6 +64,19 @@ struct Sc2356State : CameraHandleData {
 
 #define GET_CONFIG(device) (static_cast<const Sc2356Config*>((device)->config))
 
+// Reset timings per the SC2356/SC202CS datasheet's power-up sequence: hold reset asserted for at
+// least 1ms, then wait for the sensor's internal power-on/clock startup (datasheet specifies a
+// minimum before the first SCCB transaction - 10ms gives comfortable margin) before probing.
+static error_t reset_pulse(GpioDescriptor* descriptor) {
+    // Release is attempted unconditionally, even if assert failed - leaving the expander output
+    // asserted on an assert failure would hold the sensor in reset for the rest of boot.
+    const bool assert_ok = gpio_descriptor_set_level(descriptor, true) == ERROR_NONE; // assert
+    vTaskDelay(pdMS_TO_TICKS(10));
+    const bool release_ok = gpio_descriptor_set_level(descriptor, false) == ERROR_NONE; // release
+    vTaskDelay(pdMS_TO_TICKS(10));
+    return (assert_ok && release_ok) ? ERROR_NONE : ERROR_RESOURCE;
+}
+
 static error_t start(Device* device) {
     auto* i2c = device_get_parent(device);
     if (device_get_type(i2c) != &I2C_CONTROLLER_TYPE) {
@@ -70,7 +84,28 @@ static error_t start(Device* device) {
         return ERROR_RESOURCE;
     }
 
-    auto address = GET_CONFIG(device)->address;
+    const auto* config = GET_CONFIG(device);
+    auto address = config->address;
+
+    // Reset is pulsed (not just held released) so the sensor reaches a known state regardless of
+    // whatever it inherited from a previous boot - see the equivalent reasoning for the tab5
+    // display/touch reset pulse in Devices/m5stack-tab5/Source/devices/display_detect.cpp.
+    if (config->pin_reset.gpio_controller != nullptr) {
+        // Merge with the devicetree-supplied flags (e.g. GPIO_FLAG_ACTIVE_LOW) rather than
+        // overwriting them, so a board that wires reset active-high isn't silently forced to
+        // active-low polarity.
+        auto* reset_descriptor = gpio_descriptor_acquire(config->pin_reset.gpio_controller, config->pin_reset.pin, config->pin_reset.flags | GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
+        if (reset_descriptor == nullptr) {
+            LOG_E(TAG, "Failed to acquire reset pin");
+            return ERROR_RESOURCE;
+        }
+        error_t reset_error = reset_pulse(reset_descriptor);
+        gpio_descriptor_release(reset_descriptor);
+        if (reset_error != ERROR_NONE) {
+            LOG_E(TAG, "Failed to pulse reset pin");
+            return reset_error;
+        }
+    }
 
     uint8_t chip_id_h = 0, chip_id_l = 0;
     error_t err = i2c_controller_write_read(i2c, address, SC2356_REG_CHIP_ID_H, sizeof(SC2356_REG_CHIP_ID_H), &chip_id_h, 1, I2C_TIMEOUT);
