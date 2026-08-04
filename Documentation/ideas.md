@@ -12,6 +12,8 @@
 
 ## Higher Priority
 
+- Improve Setup: Show "Step done" screen
+- Improve Setup: Add keyboard/keypad navigation explanation
 - display.h API: get_backlight does not change ref counting, but it should
 - bluetooth: various getters for child devices do not change ref counting, but they should
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
