@@ -10,9 +10,13 @@
 
 #include <lvgl.h>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/module.h>
+#include <lvgl/devices/keyboard_private.h>
 
 extern struct LvglModuleConfig lvgl_module_config;
+extern void lvgl_devices_attach();
+extern void lvgl_devices_detach();
 
 // Mutex for LVGL drawing
 static struct RecursiveMutex lvgl_mutex;
@@ -37,10 +41,9 @@ static void task_unlock(void) {
     recursive_mutex_unlock(&task_mutex);
 }
 
-bool lvgl_lock(void) {
-    if (!lvgl_mutex_initialised) return false;
+void lvgl_lock(void) {
+    if (!lvgl_mutex_initialised) return;
     recursive_mutex_lock(&lvgl_mutex);
-    return true;
 }
 
 bool lvgl_try_lock(uint32_t timeout) {
@@ -71,6 +74,9 @@ static void lvgl_task(void* arg) {
 
     check(!lvgl_task_is_interrupt_requested());
 
+    // Must run from this task (like on_start below), otherwise the display doesn't work.
+    lvgl_devices_attach();
+
     // on_start must be called from the task, otherwise the display doesn't work
     if (lvgl_module_config.on_start) lvgl_module_config.on_start();
 
@@ -88,6 +94,8 @@ static void lvgl_task(void* arg) {
     }
 
     if (lvgl_module_config.on_stop) lvgl_module_config.on_stop();
+
+    lvgl_devices_detach();
 
     task_lock();
     lvgl_task_handle = NULL;
@@ -110,6 +118,10 @@ error_t lvgl_arch_start() {
     lvgl_task_set_interrupted(false);
 
     lv_init();
+
+    // Must exist before devices/services are attached from the lvgl task below,
+    // since those can immediately try to assign an indev to this group.
+    lvgl_keyboard_on_start_lvgl();
 
     // Create the main app loop, like ESP-IDF
     BaseType_t task_result = xTaskCreate(
@@ -139,6 +151,8 @@ error_t lvgl_arch_stop() {
             return ERROR_TIMEOUT;
         }
     }
+
+    lvgl_keyboard_on_stop_lvgl();
 
     lv_deinit();
 

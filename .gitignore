@@ -1,9 +1,8 @@
 .idea/
 .DS_Store
 
-build/
-buildsim/
-cmake-*/
+build*/
+cmake*/
 CMakeCache.txt
 *.cbp
 CMakeFiles
@@ -23,3 +22,6 @@ dependencies.lock
 sdkconfig.board.*.dev
 
 .tactility/
+
+.caveman.json
+.ai/mcp

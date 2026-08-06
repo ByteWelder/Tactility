@@ -1,18 +1,17 @@
+#include "lvgl/lvgl.h"
+
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/fileselection/FileSelection.h>
-#include <Tactility/file/FileLock.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Assets.h>
-
 #include <Tactility/file/File.h>
 
+#include <lvgl/icons/shared.h>
 #include <lvgl.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/log.h>
 
 namespace tt::app::notes {
 
-static const auto LOGGER = Logger("Notes");
+constexpr auto* TAG = "Notes";
 constexpr auto* NOTES_FILE_ARGUMENT = "file";
 
 class NotesApp final : public App {
@@ -41,22 +40,22 @@ class NotesApp final : public App {
                         break;
                     case 1: // Save
                         if (!filePath.empty()) {
-                            lvgl::getSyncLock()->lock();
+                            lvgl_lock();
                             saveBuffer = lv_textarea_get_text(uiNoteText);
-                            lvgl::getSyncLock()->unlock();
+                            lvgl_unlock();
                             saveFile(filePath);
                         }
                         break;
                     case 2: // Save as...
-                        lvgl::getSyncLock()->lock();
+                        lvgl_lock();
                         saveBuffer = lv_textarea_get_text(uiNoteText);
-                        lvgl::getSyncLock()->unlock();
+                        lvgl_unlock();
                         saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                        LOGGER.info("launched with id {}", saveFileLaunchId);
+                        LOG_I(TAG, "launched with id %u", saveFileLaunchId);
                         break;
                     case 3: // Load
                         loadFileLaunchId = fileselection::startForExistingFile();
-                        LOGGER.info("launched with id {}", loadFileLaunchId);
+                        LOG_I(TAG, "launched with id %u", loadFileLaunchId);
                         break;
                 }
             } else {
@@ -64,7 +63,7 @@ class NotesApp final : public App {
                 if (obj == cont) return;
                 if (lv_obj_get_child(cont, 1)) {
                     saveFileLaunchId = fileselection::startForExistingOrNewFile();
-                    LOGGER.info("launched with id {}", saveFileLaunchId);
+                    LOG_I(TAG, "launched with id %u", saveFileLaunchId);
                 } else { //Reset
                     resetFileContent();
                 }
@@ -83,29 +82,29 @@ class NotesApp final : public App {
 
     void openFile(const std::string& path) {
         // We might be reading from the SD card, which could share a SPI bus with other devices (display)
-        file::getLock(path)->withLock([this, path] {
-            auto data = file::readString(path);
-            if (data != nullptr) {
-               auto lock = lvgl::getSyncLock()->asScopedLock();
-               lock.lock();
-               lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
-               lv_label_set_text(uiCurrentFileName, path.c_str());
-               filePath = path;
-               LOGGER.info("Loaded from {}", path);
-            }
-        });
+        file::FileMutexGuard guard(path);
+        auto data = file::readString(path);
+        if (data != nullptr) {
+            lvgl_lock();
+            lv_textarea_set_text(uiNoteText, reinterpret_cast<const char*>(data.get()));
+            lv_label_set_text(uiCurrentFileName, path.c_str());
+            lvgl_unlock();
+            filePath = path;
+            LOG_I(TAG, "Loaded from %s", path.c_str());
+        }
     }
 
     bool saveFile(const std::string& path) {
         // We might be writing to SD card, which could share a SPI bus with other devices (display)
         bool result = false;
-        file::getLock(path)->withLock([&result, this, path] {
-           if (file::writeString(path, saveBuffer.c_str())) {
-               LOGGER.info("Saved to {}", path);
-               filePath = path;
-               result = true;
-           }
-        });
+        {
+            file::FileMutexGuard guard(path);
+            if (file::writeString(path, saveBuffer.c_str())) {
+                LOG_I(TAG, "Saved to %s", path.c_str());
+                filePath = path;
+                result = true;
+            }
+        }
         return result;
     }
 
@@ -193,7 +192,7 @@ class NotesApp final : public App {
     }
 
     void onResult(AppContext& appContext, LaunchId launchId, Result result, std::unique_ptr<Bundle> resultData) override {
-        LOGGER.info("Result for launch id {}", launchId);
+        LOG_I(TAG, "Result for launch id %u", launchId);
         if (launchId == loadFileLaunchId) {
             loadFileLaunchId = 0;
             if (result == Result::Ok && resultData != nullptr) {

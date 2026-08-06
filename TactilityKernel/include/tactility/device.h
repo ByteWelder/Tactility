@@ -24,8 +24,24 @@ struct DeviceType {
     const char* name;
 };
 
+typedef uint8_t device_flags_t;
+
+#ifndef BIT
+#define BIT(nr) (1u << (nr))
+#endif
+
+#define DEVICE_FLAG_DTS             BIT(0)  /* Instantiated from a dts file */
+#define DEVICE_FLAG_DYNAMIC         BIT(1)  /* 1 means dynamically allocated */
+
+#define DEVICE_FLAG_VIRTUAL         BIT(2)  /* No physical hardware */
+#define DEVICE_FLAG_REMOVABLE       BIT(3)  /* May disappear (USB, SDIO, etc.) */
+#define DEVICE_FLAG_HOTPLUG         BIT(4)  /* Supports hotplug */
+
 /** Represents a piece of hardware */
 struct Device {
+    /** Device address. Can represent an index, a memory address, or some kind of offset */
+    int32_t address;
+
     /** The name of the device. Valid characters: a-z a-Z 0-9 - _ . */
     const char* name;
 
@@ -34,6 +50,8 @@ struct Device {
 
     /** The parent device that this device belongs to. Can be NULL, but only the root device should have a NULL parent. */
     struct Device* parent;
+
+    device_flags_t flags;
 
     /**
      * Internal state managed by the kernel.
@@ -57,7 +75,8 @@ error_t device_construct(struct Device* device);
  * This fails when a device is busy or has children.
  *
  * @param[in,out] device non-null device pointer
- * @retval ERROR_INVALID_STATE if the device is busy or has children
+ * @retval ERROR_INVALID_STATE if the device is started, added, or has children
+ * @retval ERROR_RESOURCE_BUSY if the device has outstanding device_get() references
  * @retval ERROR_NONE on success
  */
 error_t device_destruct(struct Device* device);
@@ -89,6 +108,9 @@ error_t device_remove(struct Device* device);
  * Attach the driver.
  *
  * @warning must call device_construct() and device_add() first
+ * @warning the driver's start_device callback must not call device_lock()/device_get()/
+ *          device_start()/device_stop() on this same device - device_start() holds this
+ *          device's lock for its entire body, so doing so would deadlock.
  * @param[in,out] device non-null device pointer
  * @retval ERROR_INVALID_STATE if the device is already started or not added
  * @retval ERROR_RESOURCE when driver binding fails
@@ -99,8 +121,12 @@ error_t device_start(struct Device* device);
 /**
  * Detach the driver.
  *
+ * @warning the driver's stop_device callback must not call device_lock()/device_get()/
+ *          device_start()/device_stop() on this same device - device_stop() holds this
+ *          device's lock for its entire body, so doing so would deadlock.
  * @param[in,out] device non-null device pointer
  * @retval ERROR_INVALID_STATE if the device is not started
+ * @retval ERROR_RESOURCE_BUSY if the device has outstanding device_get() references
  * @retval ERROR_RESOURCE when driver unbinding fails
  * @retval ERROR_NONE on success
  */
@@ -224,6 +250,41 @@ bool device_try_lock(struct Device* device, TickType_t timeout);
 void device_unlock(struct Device* device);
 
 /**
+ * Indicates whether device_construct() has been called and device_destruct() has not
+ * subsequently been called (or has been followed by another device_construct()).
+ *
+ * @param[in] device non-null device pointer
+ * @return true if the device is currently constructed
+ */
+bool device_is_constructed(const struct Device* device);
+
+/**
+ * Take a reference on a device, guaranteeing its driver data remains valid until a matching
+ * device_put(). Named after the Linux kernel's get_device()/put_device(). Intended to bracket
+ * a single hardware operation (one API call or a short sequence of them), not to be held across
+ * a blocking wait or unrelated later work - device_stop() fails with ERROR_RESOURCE_BUSY while
+ * any reference is outstanding.
+ *
+ * @param[in,out] device non-null device pointer, already known to be valid (e.g. a static
+ *                devicetree pointer, or one captured earlier under a lock) - device_get() does
+ *                not itself protect against a dangling/freed Device*. For a fresh lookup that
+ *                might race a concurrent teardown of a dynamically-allocated Device, use one of
+ *                the device_get_*() lookup functions below instead.
+ * @retval ERROR_INVALID_STATE if the device is not started (or has been destructed)
+ * @retval ERROR_NONE on success; caller must call device_put(device) exactly once
+ */
+error_t device_get(struct Device* device);
+
+/**
+ * Release a reference previously taken with a successful device_get() (or a successful
+ * device_get_by_name()/device_get_first_by_type()/device_get_first_active_by_type()/
+ * device_get_first_by_compatible()).
+ *
+ * @param[in,out] device non-null device pointer previously passed to a successful device_get() call
+ */
+void device_put(struct Device* device);
+
+/**
  * Get the type of a device.
  *
  * @param[in] device non-null device pointer
@@ -249,6 +310,13 @@ void device_for_each(void* callback_context, bool(*on_device)(struct Device* dev
 void device_for_each_child(struct Device* device, void* callback_context, bool(*on_device)(struct Device* device, void* context));
 
 /**
+ * @brief Get the number of child devices.
+ * @param[in] device non-null device pointer
+ * @return the number of children
+ */
+size_t device_get_child_count(struct Device* device);
+
+/**
  * Iterate through all the known devices of a specific type
  *
  * @param[in] type the type to filter
@@ -263,23 +331,63 @@ void device_for_each_of_type(const struct DeviceType* type, void* callback_conte
  * @param[in] type the type to check
  * @return true if a device of the specified type exists
  */
-bool device_exists_of_type(const struct DeviceType* type);
+bool device_exists_of_type(const struct DeviceType* type) ;
 
 /**
- * Find a device by its name.
+ * Find a device by name and atomically take a reference on it.
+ * immediately followed by a successful device_get(), but race-free: the lookup and the reference
+ * are taken under the same lock, so a device that gets torn down concurrently either isn't found
+ * or is safely referenced - there is no gap where a caller could be handed a pointer that's about
+ * to become invalid).
  *
  * @param[in] name non-null device name to look up
- * @return the device pointer if found, or NULL if not found
+ * @param[out] out_device receives the found device on success; untouched on failure
+ * @retval ERROR_NOT_FOUND if no device with that name exists
+ * @retval ERROR_INVALID_STATE if found but not started (no reference taken)
+ * @retval ERROR_NONE on success; caller must call device_put(*out_device) exactly once
  */
-struct Device* device_find_by_name(const char* name);
+error_t device_get_by_name(const char* name, struct Device** out_device);
 
 /**
- * Find the first started device of the given type.
+ * Find the first device of the given type and atomically take a reference on it.
  *
  * @param[in] type non-null device type pointer
- * @return the first started device of the given type, or NULL if none found
+ * @param[out] out_device receives the found device on success; untouched on failure
+ * @retval ERROR_NOT_FOUND if no device of that type exists
+ * @retval ERROR_INVALID_STATE if found but not started (no reference taken)
+ * @retval ERROR_NONE on success; caller must call device_put(*out_device) exactly once
  */
-struct Device* device_find_first_active_by_type(const struct DeviceType* type);
+error_t device_get_first_by_type(const struct DeviceType* type, struct Device** out_device);
+
+/**
+ * Find the first started device of the given type and atomically take a reference on it.
+ *
+ * @param[in] type non-null device type pointer
+ * @param[out] out_device receives the found device on success; untouched on failure
+ * @retval ERROR_NOT_FOUND if no started device of that type exists
+ * @retval ERROR_NONE if a started device of that type exists; must call device_put() exactly once afterwards.
+ */
+error_t device_get_first_active_by_type(const struct DeviceType* type, struct Device** out_device);
+
+/**
+ * Check if there is an active device of the provided type.
+ *
+ * @param[in] type non-null device type pointer
+ * @retval ERROR_NOT_FOUND if no started device of that type exists
+ * @retval ERROR_NONE if a started device of that type exists
+ */
+bool device_has_active_by_type(const struct DeviceType* type);
+
+/**
+ * Find the first device whose driver matches the given compatible string and atomically take a reference on it.
+ *
+ * @param[in] compatible non-null compatible string to match
+ * @param[out] out_device receives the found device on success; untouched on failure
+ * @retval ERROR_NOT_FOUND if no matching device exists
+ * @retval ERROR_INVALID_STATE if found but not started (no reference taken)
+ * @retval ERROR_NONE on success; caller must call device_put(*out_device) exactly once
+ */
+error_t device_get_first_by_compatible(const char* compatible, struct Device** out_device);
 
 #ifdef __cplusplus
 }

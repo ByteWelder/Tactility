@@ -1,24 +1,25 @@
+#include <Tactility/Paths.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>
 #include <Tactility/file/File.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Spinner.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/Logger.h>
 #include <Tactility/network/Http.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/log.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/spinner.h>
+
 #include <algorithm>
 #include <format>
 
 namespace tt::app::apphub {
 
-static const auto LOGGER = Logger("AppHub");
+constexpr auto* TAG = "AppHub";
 
 extern const AppManifest manifest;
 
@@ -57,19 +58,17 @@ class AppHubApp final : public App {
     }
 
     void onRefreshSuccess() {
-        LOGGER.info("Request success");
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
+        LOG_I(TAG, "Request success");
+        lvgl_lock();
         showApps();
+        lvgl_unlock();
     }
 
     void onRefreshError(const char* error) {
-        LOGGER.error("Request failed: {}", error);
-        auto lock = lvgl::getSyncLock()->asScopedLock();
-        lock.lock();
-
+        LOG_E(TAG, "Request failed: %s", error);
+        lvgl_lock();
         showRefreshFailedError("Cannot reach server");
+        lvgl_unlock();
     }
 
     static void createAppWidget(const std::shared_ptr<AppManifest>& manifest, lv_obj_t* list) {
@@ -108,7 +107,7 @@ class AppHubApp final : public App {
             lv_obj_set_size(list, LV_PCT(100), LV_SIZE_CONTENT);
             for (int i = 0; i < entries.size(); i++) {
                 auto& entry = entries[i];
-                LOGGER.info("Adding {}", entry.appName.c_str());
+                LOG_I(TAG, "Adding %s", entry.appName.c_str());
                 const char* icon = findAppManifestById(entry.appId) != nullptr ? LV_SYMBOL_OK : nullptr;
                 auto* entry_button = lv_list_add_button(list, icon, entry.appName.c_str());
                 auto int_as_voidptr = reinterpret_cast<void*>(i);
@@ -123,7 +122,7 @@ class AppHubApp final : public App {
 
     void refresh() {
         lv_obj_clean(contentWrapper);
-        auto* spinner = lvgl::spinner_create(contentWrapper);
+        auto* spinner = lvgl_spinner_create(contentWrapper);
         lv_obj_align(spinner, LV_ALIGN_CENTER, 0, 0);
 
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
@@ -163,7 +162,7 @@ public:
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         auto* toolbar = lvgl::toolbar_create(parent, app);
-        refreshButton = lvgl::toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
+        refreshButton = lvgl_toolbar_add_image_button_action(toolbar, LV_SYMBOL_REFRESH, onRefreshPressed, this);
         lv_obj_add_flag(refreshButton, LV_OBJ_FLAG_HIDDEN);
 
         contentWrapper = lv_obj_create(parent);

@@ -1,10 +1,7 @@
 #ifdef ESP_PLATFORM
 
-#include <lvgl.h>
-
-#include <tactility/lvgl_module.h>
-
-#include <Tactility/service/gui/GuiService.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/devices/keyboard.h>
 
 extern "C" {
 
@@ -17,9 +14,9 @@ lv_obj_t* __wrap_lv_textarea_create(lv_obj_t* parent) {
         lv_obj_set_style_pad_all(textarea, 2, LV_STATE_DEFAULT);
     }
 
-    auto gui_service = tt::service::gui::findService();
-    if (gui_service != nullptr) {
-        gui_service->keyboardAddTextArea(textarea);
+    auto* software_keyboard = lvgl_software_keyboard_get_last();
+    if (software_keyboard != nullptr) {
+        lvgl_keyboard_add_textarea(software_keyboard, textarea);
     }
 
     if (lv_display_get_color_format(lv_obj_get_display(parent)) == LV_COLOR_FORMAT_L8) {

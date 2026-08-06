@@ -10,14 +10,14 @@ properties:
     required: true
     description: |
       The port number, defined by i2c_port_t.
-      Depending on the hardware, these values are available: I2C_NUM_0, I2C_NUM_1, LP_I2C_NUM_0
+      Depending on the hardware, these values are available: I2C_NUM_0, I2C_NUM_1
   clock-frequency:
     type: int
     required: true
     description: Initial clock frequency in Hz
   pin-sda:
-    type: phandle-array
+    type: phandles
     required: true
   pin-scl:
-    type: phandle-array
+    type: phandles
     required: true

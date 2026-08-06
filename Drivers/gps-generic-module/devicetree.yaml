@@ -1,0 +1,4 @@
+dependencies:
+  - TactilityKernel
+  - Modules/gps-module
+bindings: bindings

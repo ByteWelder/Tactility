@@ -1,27 +1,15 @@
 #pragma once
 
-#include <cstdint>
+#include <lvgl/devices/trackball.h>
 
 namespace tt::settings::trackball {
 
-enum class TrackballMode : uint8_t {
-    Encoder = 0,  // Scroll wheel navigation (default)
-    Pointer = 1   // Mouse cursor mode
-};
+bool load(LvglTrackballSettings& settings);
 
-struct TrackballSettings {
-    bool trackballEnabled = false;
-    TrackballMode trackballMode = TrackballMode::Encoder;
-    uint8_t encoderSensitivity = 1;   // Steps per tick (1-10)
-    uint8_t pointerSensitivity = 10;  // Pixels per tick (1-10)
-};
+LvglTrackballSettings loadOrGetDefault();
 
-bool load(TrackballSettings& settings);
+LvglTrackballSettings getDefault();
 
-TrackballSettings loadOrGetDefault();
-
-TrackballSettings getDefault();
-
-bool save(const TrackballSettings& settings);
+bool save(const LvglTrackballSettings& settings);
 
 }

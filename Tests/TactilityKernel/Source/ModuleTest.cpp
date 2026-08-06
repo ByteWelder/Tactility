@@ -5,8 +5,14 @@ static void symbol_test_function() { /* NO-OP */ }
 
 static error_t test_start_result = ERROR_NONE;
 static bool start_called = false;
+static struct Module* start_add_order_check_module = nullptr;
 static error_t test_start() {
     start_called = true;
+    if (start_add_order_check_module != nullptr) {
+        // If the module was already added to the ledger before start() runs,
+        // a duplicate module_add() must report that it already exists.
+        CHECK_EQ(module_add(start_add_order_check_module), ERROR_INVALID_STATE);
+    }
     return test_start_result;
 }
 
@@ -138,4 +144,92 @@ TEST_CASE("Global symbol resolution") {
     CHECK_EQ(module_remove(&module), ERROR_NONE);
 
     CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_ensure_started adds module to global ledger") {
+    start_called = false;
+    stop_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NONE;
+
+    static const struct ModuleSymbol test_symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+
+    struct Module module = {
+        .name = "test_ensure_started",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = test_symbols,
+        .internal = nullptr
+    };
+
+    uintptr_t addr;
+    // Not resolvable before module_ensure_started is called
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+
+    // test_start() asserts module_add(&module) is already ERROR_INVALID_STATE by the
+    // time start() runs, proving module_add happens before module_start (not after).
+    start_add_order_check_module = &module;
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+    start_add_order_check_module = nullptr;
+    CHECK_EQ(module_is_started(&module), true);
+    CHECK_EQ(start_called, true);
+
+    // Module must be both added to the ledger and started to be resolvable
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    // Calling again should be idempotent: no duplicate start, still resolvable
+    start_called = false;
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+    CHECK_EQ(start_called, false);
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    // Cleanup
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
+    CHECK_EQ(module_remove(&module), ERROR_NONE);
+    CHECK_EQ(module_destruct(&module), ERROR_NONE);
+}
+
+TEST_CASE("module_ensure_destructed removes module from global ledger") {
+    start_called = false;
+    stop_called = false;
+    test_start_result = ERROR_NONE;
+    test_stop_result = ERROR_NONE;
+
+    static const struct ModuleSymbol test_symbols[] = {
+        DEFINE_MODULE_SYMBOL(symbol_test_function),
+        MODULE_SYMBOL_TERMINATOR
+    };
+
+    struct Module module = {
+        .name = "test_ensure_destructed",
+        .start = test_start,
+        .stop = test_stop,
+        .symbols = test_symbols,
+        .internal = nullptr
+    };
+
+    CHECK_EQ(module_ensure_started(&module), ERROR_NONE);
+
+    uintptr_t addr;
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
+
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
+    CHECK_EQ(module_is_started(&module), false);
+    CHECK_EQ(stop_called, true);
+
+    // Module must no longer be resolvable once destructed. Note: this alone doesn't
+    // prove removal from the ledger, since module_resolve_symbol_global() also skips
+    // non-started modules — a leaked-but-stopped ledger entry would look the same.
+    CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
+
+    // Directly prove detachment from the ledger: if module_ensure_destructed had left
+    // the module in place, this module_add() would return ERROR_INVALID_STATE.
+    CHECK_EQ(module_add(&module), ERROR_NONE);
+    CHECK_EQ(module_remove(&module), ERROR_NONE);
+
+    // Calling again on an already-destructed module should be a no-op
+    CHECK_EQ(module_ensure_destructed(&module), ERROR_NONE);
 }

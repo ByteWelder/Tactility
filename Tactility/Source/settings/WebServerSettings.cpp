@@ -1,7 +1,9 @@
 #include <Tactility/settings/WebServerSettings.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/file/File.h>
-#include <Tactility/Logger.h>
+#include <Tactility/Paths.h>
+
+#include <tactility/log.h>
 
 #include <charconv>
 #include <map>
@@ -17,8 +19,11 @@
 
 namespace tt::settings::webserver {
 
-static const auto LOGGER = tt::Logger("WebServerSettings");
-constexpr auto* SETTINGS_FILE = "/data/service/webserver/settings.properties";
+constexpr auto* TAG = "WebServerSettings";
+
+static std::string getSettingsFilePath() {
+    return getUserDataPath() + "/settings/webserver.properties";
+}
 
 // Property keys
 constexpr auto* KEY_WIFI_ENABLED = "wifiEnabled";
@@ -86,8 +91,13 @@ static bool isEmptyCredential(const std::string& value) {
 }
 
 bool load(WebServerSettings& settings) {
+    auto settings_path = getSettingsFilePath();
+    if (!file::isFile(settings_path)) {
+        return false;
+    }
+
     std::map<std::string, std::string> map;
-    if (!file::loadPropertiesFile(SETTINGS_FILE, map)) {
+    if (!file::loadPropertiesFile(settings_path, map)) {
         return false;
     }
 
@@ -134,23 +144,17 @@ bool load(WebServerSettings& settings) {
         ? static_cast<uint8_t>(parseInt(ap_channel->second, 1, 13, 1))
         : 1;
 
-    // Security: If AP password is empty, generate a strong random password.
+    // Security: If AP password is empty, generate a strong random password in memory.
     // Skip this if user explicitly wants an open network.
     // Note: We only auto-generate for EMPTY passwords, not user-set ones.
+    // This is a read-only function: the generated password is NOT persisted here —
+    // callers that want it saved must call save() explicitly.
     if (!settings.apOpenNetwork && isEmptyCredential(settings.apPassword)) {
-        LOGGER.info("AP password is empty - generating secure random password");
+        LOG_I(TAG, "AP password is empty - generating secure random password (not persisted)");
 
         // Generate 12-character random password (alphanumeric, ~71 bits of entropy)
         // WPA2 requires 8-63 characters, so 12 is well within range
         settings.apPassword = generateRandomCredential(12);
-
-        // Persist the generated password immediately
-        map[KEY_AP_PASSWORD] = settings.apPassword;
-        if (file::savePropertiesFile(SETTINGS_FILE, map)) {
-            LOGGER.info("Generated and saved new secure AP password");
-        } else {
-            LOGGER.error("Failed to save generated AP password");
-        }
     }
 
     // Web server settings
@@ -171,27 +175,20 @@ bool load(WebServerSettings& settings) {
     settings.webServerUsername = (webserver_username != map.end()) ? webserver_username->second : "";
     settings.webServerPassword = (webserver_password != map.end()) ? webserver_password->second : "";
 
-    // Security: If auth is enabled but credentials are empty,
-    // generate strong random credentials and persist them immediately.
-    // Note: We only auto-generate for EMPTY credentials, allowing users to set their own.
+    // Security: If auth is enabled but credentials are empty, generate strong random
+    // credentials in memory. Note: We only auto-generate for EMPTY credentials, allowing
+    // users to set their own.
+    // This is a read-only function: the generated credentials are NOT persisted here —
+    // callers that want them saved (so they're consistent across reboots) must call
+    // save() explicitly.
     if (settings.webServerAuthEnabled &&
         (isEmptyCredential(settings.webServerUsername) || isEmptyCredential(settings.webServerPassword))) {
 
-        LOGGER.info("Auth enabled with empty credentials - generating secure random credentials");
+        LOG_I(TAG, "Auth enabled with empty credentials - generating secure random credentials (not persisted)");
 
         // Generate 12-character random credentials (alphanumeric, ~71 bits of entropy each)
         settings.webServerUsername = generateRandomCredential(12);
         settings.webServerPassword = generateRandomCredential(12);
-
-        // Persist the generated credentials immediately
-        // We need to save these to the file so they're consistent across reboots
-        map[KEY_WEBSERVER_USERNAME] = settings.webServerUsername;
-        map[KEY_WEBSERVER_PASSWORD] = settings.webServerPassword;
-        if (file::savePropertiesFile(SETTINGS_FILE, map)) {
-            LOGGER.info("Generated and saved new secure credentials");
-        } else {
-            LOGGER.error("Failed to save generated credentials - auth may be inconsistent across reboots");
-        }
     }
 
     return true;
@@ -218,14 +215,10 @@ WebServerSettings loadOrGetDefault() {
 
     bool loadedFromFlash = load(settings);
     if (!loadedFromFlash) {
-        // First boot - use defaults (WiFi OFF, WebServer OFF)
+        // No properties file yet (e.g. first boot) - use defaults in memory (WiFi OFF,
+        // WebServer OFF). Read-only function: does NOT persist these defaults — callers
+        // that want them saved must call save() explicitly.
         settings = getDefault();
-        // Save defaults to flash so toggle states persist
-        if (save(settings)) {
-            LOGGER.info("First boot - saved default settings (WiFi OFF WebServer OFF)");
-        } else {
-            LOGGER.warn("First boot - failed to save default settings to flash");
-        }
     }
 
     return settings;
@@ -253,8 +246,12 @@ bool save(const WebServerSettings& settings) {
     map[KEY_WEBSERVER_USERNAME] = settings.webServerUsername;
     map[KEY_WEBSERVER_PASSWORD] = settings.webServerPassword;
 
-    // Save to flash storage only (no SD backup - settings sync at boot handles restore)
-    return file::savePropertiesFile(SETTINGS_FILE, map);
+    auto settings_path = getSettingsFilePath();
+    if (!file::findOrCreateParentDirectory(settings_path, 0755)) {
+        LOG_E(TAG, "Failed to create parent dir for %s", settings_path.c_str());
+        return false;
+    }
+    return file::savePropertiesFile(settings_path, map);
 }
 
 }

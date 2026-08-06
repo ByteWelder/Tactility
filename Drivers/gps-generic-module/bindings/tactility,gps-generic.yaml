@@ -1,0 +1,17 @@
+description: >
+  Generic GPS/GNSS receiver interface. Supports MTK, Airoha/AG33xx, ATGM336H/CASIC,
+  Unicore UC6580 and u-blox 6/7/8/9/10 chipsets, either auto-probed or fixed via 'model'.
+
+compatible: "tactility,gps-generic"
+
+properties:
+  baud-rate:
+    type: int
+    required: true
+    description: UART baud rate, e.g. 9600 or 38400
+  model:
+    type: int
+    default: 0
+    description: |
+      GpsModel enum value (see gps/gps.h, e.g. GPS_MODEL_UBLOX10 = 12). Defaults to
+      GPS_MODEL_UNKNOWN (0), which triggers an autoprobe on start().

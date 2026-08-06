@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <dirent.h>
+#include <sys/stat.h>
 
 namespace tt::app::files {
 
@@ -31,6 +32,8 @@ private:
     std::string selected_child_entry;
     PendingAction action = ActionNone;
     std::string pending_paste_dst;
+    struct stat pending_paste_dst_stat {};
+    bool pending_paste_dst_stat_valid = false;
     std::string clipboard_path;
     bool clipboard_is_cut = false;
     bool clipboard_active = false;
@@ -80,6 +83,23 @@ public:
     // to match the clipboard accessors above.
     std::string getPendingPasteDst() const { return pending_paste_dst; }
     void setPendingPasteDst(const std::string& dst) { pending_paste_dst = dst; }
+
+    /** Snapshot dst's stat at confirm-dialog time, so it can be revalidated right before the destructive delete. */
+    void setPendingPasteDstStat(const struct stat& st) {
+        pending_paste_dst_stat = st;
+        pending_paste_dst_stat_valid = true;
+    }
+
+    void clearPendingPasteDstStat() { pending_paste_dst_stat_valid = false; }
+
+    /** True if dst had no prior snapshot (nothing to overwrite) or `st` still matches it. */
+    bool pendingPasteDstMatches(const struct stat& st) const {
+        return !pending_paste_dst_stat_valid ||
+            (pending_paste_dst_stat.st_dev == st.st_dev &&
+             pending_paste_dst_stat.st_ino == st.st_ino &&
+             pending_paste_dst_stat.st_size == st.st_size &&
+             pending_paste_dst_stat.st_mtime == st.st_mtime);
+    }
 
     void setClipboard(const std::string& path, bool is_cut) {
         mutex.withLock([&] {

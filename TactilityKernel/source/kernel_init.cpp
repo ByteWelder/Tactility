@@ -14,6 +14,20 @@ extern const ModuleSymbol KERNEL_SYMBOLS[];
 static error_t start() {
     extern Driver root_driver;
     if (driver_construct_add(&root_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver battery_sense_driver;
+    if (driver_construct_add(&battery_sense_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver battery_sense_power_supply_driver;
+    if (driver_construct_add(&battery_sense_power_supply_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver gpio_hog_driver;
+    if (driver_construct_add(&gpio_hog_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver pwm_backlight_driver;
+    if (driver_construct_add(&pwm_backlight_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver gpio_backlight_driver;
+    if (driver_construct_add(&gpio_backlight_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver rgb_led_gpio_driver;
+    if (driver_construct_add(&rgb_led_gpio_driver) != ERROR_NONE) return ERROR_RESOURCE;
+    extern Driver rgb_led_pwm_driver;
+    if (driver_construct_add(&rgb_led_pwm_driver) != ERROR_NONE) return ERROR_RESOURCE;
     return ERROR_NONE;
 }
 
@@ -29,7 +43,7 @@ Module root_module = {
     .internal = nullptr
 };
 
-error_t kernel_init(Module* dts_modules[], DtsDevice dts_devices[]) {
+error_t kernel_init(Module* const dts_modules[], const DtsDevice dts_devices[]) {
     LOG_I(TAG, "init");
 
     if (module_construct_add_start(&root_module) != ERROR_NONE) {
@@ -37,7 +51,7 @@ error_t kernel_init(Module* dts_modules[], DtsDevice dts_devices[]) {
         return ERROR_RESOURCE;
     }
 
-    Module** dts_module = dts_modules;
+    Module* const* dts_module = dts_modules;
     while (*dts_module != nullptr) {
         if (module_construct_add_start(*dts_module) != ERROR_NONE) {
             LOG_E(TAG, "dts module init failed: %s", (*dts_module)->name);
@@ -46,7 +60,7 @@ error_t kernel_init(Module* dts_modules[], DtsDevice dts_devices[]) {
         dts_module++;
     }
 
-    DtsDevice* dts_device = dts_devices;
+    const DtsDevice* dts_device = dts_devices;
     while (dts_device->device != nullptr) {
         if (dts_device->status == DTS_DEVICE_STATUS_OKAY) {
             if (device_construct_add_start(dts_device->device, dts_device->compatible) != ERROR_NONE) {

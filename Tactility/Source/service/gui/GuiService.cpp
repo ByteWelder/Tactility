@@ -1,21 +1,25 @@
 #include <Tactility/service/gui/GuiService.h>
 
-#include <cstring>
+#include "lvgl/devices/keyboard.h"
 
-#include <Tactility/app/AppInstance.h>
-#include <Tactility/Logger.h>
 #include <Tactility/LogMessages.h>
-#include <Tactility/lvgl/LvglSync.h>
+#include <Tactility/Tactility.h>
+#include <Tactility/app/AppInstance.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/UsbHidInput.h>
-#include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/Tactility.h>
+#include <Tactility/service/loader/Loader.h>
+
+#include <tactility/log.h>
+
+#include <lvgl/lvgl.h>
+
+#include <cstring>
 
 namespace tt::service::gui {
 
 extern const ServiceManifest manifest;
-static const auto LOGGER = Logger("GuiService");
+constexpr auto* TAG = "GuiService";
 using namespace loader;
 
 constexpr auto* GUI_TASK_NAME = "gui";
@@ -23,26 +27,82 @@ constexpr auto* GUI_TASK_NAME = "gui";
 void warnIfRunningOnGuiTask(const char* context) {
     const char* task_name = pcTaskGetName(nullptr);
     if (strcmp(GUI_TASK_NAME, task_name) == 0) {
-        LOGGER.warn("{} shouldn't run on the GUI task", context);
+        LOG_W(TAG, "%s shouldn't run on the GUI task", context);
     }
 }
 
+namespace {
+
+enum class GuiDispatchType { Show, Hide, Exit };
+
+struct GuiDispatchItem {
+    GuiService* service;
+    GuiDispatchType type;
+    std::shared_ptr<app::AppInstance> appInstance; // only used for Show
+};
+
+} // namespace
+
 // region AppManifest
 
+void GuiService::onGuiDispatch(void* context) {
+    std::unique_ptr<GuiDispatchItem> item(static_cast<GuiDispatchItem*>(context));
+    switch (item->type) {
+        case GuiDispatchType::Show:
+            item->service->showApp(item->appInstance);
+            break;
+        case GuiDispatchType::Hide:
+            item->service->hideApp();
+            break;
+        case GuiDispatchType::Exit:
+            item->service->exitRequested = true;
+            break;
+    }
+}
+
 void GuiService::onLoaderEvent(LoaderService::Event event) {
+    GuiDispatchItem* item;
     if (event == LoaderService::Event::ApplicationShowing) {
         auto app_instance = std::static_pointer_cast<app::AppInstance>(app::getCurrentAppContext());
-        showApp(app_instance);
+        item = new GuiDispatchItem{this, GuiDispatchType::Show, app_instance};
     } else if (event == LoaderService::Event::ApplicationHiding) {
-        hideApp();
+        // hideDoneSem is a binary semaphore signaled by every hideApp() completion,
+        // including the one showApp() triggers internally (GuiDispatchType::Show, when an
+        // app is already being shown) - that release has no waiter and leaves a stale
+        // permit sitting available. Drain it before dispatching, or the acquire() below
+        // could consume that leftover permit instead of the one this specific Hide
+        // dispatch is about to produce, letting Destroyed run before the real onHide()
+        // for this app has finished.
+        hideDoneSem.acquire(0);
+        item = new GuiDispatchItem{this, GuiDispatchType::Hide, nullptr};
+    } else {
+        return;
+    }
+
+    if (dispatcher_dispatch(dispatcher, item, onGuiDispatch) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to dispatch gui event");
+        delete item;
+        return;
+    }
+
+    if (event == LoaderService::Event::ApplicationHiding) {
+        // Block here (still on the Loader thread, inside publish()'s synchronous
+        // subscriber call) until hideApp() has actually run to completion on the GUI
+        // task. LoaderService::transitionAppToState(Hiding) must not return - and
+        // therefore the Destroyed transition right after it, which unloads an ELF app's
+        // code, must not run - until App::onHide() has fully finished. Bounded so a stuck
+        // GUI task can't wedge app shutdown forever.
+        if (!hideDoneSem.acquire(pdMS_TO_TICKS(5000))) {
+            LOG_E(TAG, "Timed out waiting for hideApp() to complete");
+        }
     }
 }
 
 int32_t GuiService::guiMain() {
     auto service = findServiceById<GuiService>(manifest.id);
 
-    if (!lvgl::lock(5000)) {
-        LOGGER.error("LVGL guiMain start failed as LVGL couldn't be locked");
+    if (!lvgl_try_lock(5000)) {
+        LOG_E(TAG, "LVGL guiMain start failed as LVGL couldn't be locked");
         return 0;
     }
 
@@ -51,12 +111,11 @@ int32_t GuiService::guiMain() {
 
     auto* screen_root = lv_screen_active();
     if (screen_root == nullptr) {
-        LOGGER.error("No display found, exiting GUI task");
-        lvgl::unlock();
+        LOG_E(TAG, "No display found, exiting GUI task");
+        lvgl_unlock();
         return 0;
     }
 
-    service->keyboardGroup = lv_group_create();
     lv_obj_set_style_border_width(screen_root, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_pad_all(screen_root, 0, LV_STATE_DEFAULT);
 
@@ -80,28 +139,10 @@ int32_t GuiService::guiMain() {
 
     service->appRootWidget = app_container;
 
-    lvgl::unlock();
+    lvgl_unlock();
 
-    while (true) {
-        uint32_t flags = 0;
-        if (service->threadFlags.wait(GUI_THREAD_FLAG_ALL, false, true, &flags, portMAX_DELAY)) {
-            // When service not started or starting -> exit
-            State service_state = getState(manifest.id);
-            if (service_state != State::Started && service_state != State::Starting) {
-                break;
-            }
-
-            // Process and dispatch draw call
-            if (flags & GUI_THREAD_FLAG_DRAW) {
-                service->threadFlags.clear(GUI_THREAD_FLAG_DRAW);
-                service->redraw();
-            }
-
-            if (flags & GUI_THREAD_FLAG_EXIT) {
-                service->threadFlags.clear(GUI_THREAD_FLAG_EXIT);
-                break;
-            }
-        }
+    while (!service->exitRequested) {
+        dispatcher_consume(service->dispatcher);
     }
 
     service->appRootWidget = nullptr;
@@ -118,11 +159,12 @@ lv_obj_t* GuiService::createAppViews(lv_obj_t* parent) {
     lv_obj_set_style_border_width(child_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_flex_grow(child_container, 1);
 
-    if (softwareKeyboardIsEnabled()) {
-        keyboard = lv_keyboard_create(parent);
-        lv_obj_add_flag(keyboard, LV_OBJ_FLAG_HIDDEN);
+    if (lvgl_software_keyboard_is_enabled()) {
+        lvgl_software_keyboard_construct(&software_keyboard, parent);
     } else {
-        keyboard = nullptr;
+        software_keyboard = {
+            nullptr
+        };
     }
 
     return child_container;
@@ -133,50 +175,70 @@ void GuiService::redraw() {
     lock();
 
     if (appRootWidget == nullptr) {
-        LOGGER.warn("No root widget");
+        LOG_W(TAG, "No root widget");
         unlock();
         return;
     }
 
-    if (lvgl::lock(1000)) {
-        lv_obj_clean(appRootWidget);
+    bool lvgl_locked = false;
+    while (lvgl_is_running() && !(lvgl_locked = lvgl_try_lock(1000))) {
+        LOG_W(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "GuiService LVGL");
+    }
 
-        if (appToRender != nullptr) {
+    if (!lvgl_locked) {
+        unlock();
+        return;
+    }
+    if (!lvgl_is_running()) {
+        lvgl_unlock();
+        unlock();
+        return;
+    }
 
-            // Create a default group which adds all objects automatically,
-            // and assign all indevs to it.
-            // This enables navigation with limited input, such as encoder wheels.
-            lv_group_t* group = lv_group_create();
-            auto* indev = lv_indev_get_next(nullptr);
-            while (indev) {
-                lv_indev_set_group(indev, group);
-                indev = lv_indev_get_next(indev);
-            }
-            lv_group_set_default(group);
+    lv_obj_clean(appRootWidget);
 
-            app::Flags flags = std::static_pointer_cast<app::AppInstance>(appToRender)->getFlags();
-            if (flags.hideStatusbar) {
-                lv_obj_add_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
-            } else {
-                lv_obj_remove_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
-            }
+    if (appToRender != nullptr) {
 
-            lv_obj_t* container = createAppViews(appRootWidget);
-            appToRender->getApp()->onShow(*appToRender, container);
-        } else {
-            LOGGER.warn("Nothing to draw");
+        // Create a default group which adds all objects automatically,
+        // and assign all indevs to it.
+        // This enables navigation with limited input, such as encoder wheels.
+        // The previous default group (if any) is no longer referenced by anything
+        // after lv_obj_clean() above, so it must be freed here or it leaks.
+        auto* previous_group = lv_group_get_default();
+        if (previous_group != nullptr) {
+            lv_group_delete(previous_group);
         }
 
-        // Unlock GUI and LVGL
-        lvgl::unlock();
+        lv_group_t* group = lv_group_create();
+        auto* indev = lv_indev_get_next(nullptr);
+        while (indev) {
+            lv_indev_set_group(indev, group);
+            indev = lv_indev_get_next(indev);
+        }
+        lv_group_set_default(group);
+
+        app::Flags flags = std::static_pointer_cast<app::AppInstance>(appToRender)->getFlags();
+        if (flags.hideStatusbar) {
+            lv_obj_add_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_remove_flag(statusbarWidget, LV_OBJ_FLAG_HIDDEN);
+        }
+
+        lv_obj_t* container = createAppViews(appRootWidget);
+        appToRender->getApp()->onShow(*appToRender, container);
     } else {
-        LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
+        LOG_W(TAG, "Nothing to draw");
     }
+
+    lvgl_unlock();
 
     unlock();
 }
 
 bool GuiService::onStart(ServiceContext& service) {
+    exitRequested = false;
+    dispatcher = dispatcher_alloc();
+
     thread = new Thread(
         GUI_TASK_NAME,
         4096, // Last known minimum was 2800 for launching desktop
@@ -211,25 +273,36 @@ void GuiService::onStop(ServiceContext& service) {
     appToRender = nullptr;
     isStarted = false;
 
-    threadFlags.set(GUI_THREAD_FLAG_EXIT);
     unlock();
+
+    auto* exit_item = new GuiDispatchItem{this, GuiDispatchType::Exit, nullptr};
+    if (dispatcher_dispatch(dispatcher, exit_item, onGuiDispatch) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to dispatch gui exit event");
+        check(false, "Failed to dispatch exit signal to thread.");
+        delete exit_item;
+    }
     thread->join();
 
-    if (lvgl::lock()) {
-        if (keyboardGroup != nullptr) {
-            lv_group_delete(keyboardGroup);
-            keyboardGroup = nullptr;
-        }
-        lvgl::unlock();
-    } else {
-        LOGGER.error("Failed to lock LVGL during GUI stop");
+    lvgl_lock();
+    if (software_keyboard.object != nullptr) {
+        lvgl_software_keyboard_destruct(&software_keyboard);
     }
 
-    delete thread;
-}
+    auto* default_group = lv_group_get_default();
+    if (default_group != nullptr) {
+        lv_group_delete(default_group);
+        lv_group_set_default(nullptr);
+    }
 
-void GuiService::requestDraw() {
-    threadFlags.set(GUI_THREAD_FLAG_DRAW);
+    auto* screen_root = lv_screen_active();
+    if (screen_root != nullptr) {
+        lv_obj_clean(screen_root);
+    }
+    lvgl_unlock();
+
+    delete thread;
+    dispatcher_free(dispatcher);
+    dispatcher = nullptr;
 }
 
 void GuiService::showApp(std::shared_ptr<app::AppInstance> app) {
@@ -237,44 +310,52 @@ void GuiService::showApp(std::shared_ptr<app::AppInstance> app) {
     lock.lock();
 
     if (!isStarted) {
-        LOGGER.error("Failed to show app {}: GUI not started", app->getManifest().appId);
+        LOG_E(TAG, "Failed to show app %s: GUI not started", app->getManifest().appId.c_str());
         return;
     }
 
     if (appToRender != nullptr && appToRender->getLaunchId() == app->getLaunchId()) {
-        LOGGER.warn("Already showing {}", app->getManifest().appId);
+        LOG_W(TAG, "Already showing %s", app->getManifest().appId.c_str());
         return;
     }
 
-    LOGGER.info("Showing {}", app->getManifest().appId);
+    LOG_I(TAG, "Showing %s", app->getManifest().appId.c_str());
     // Ensure previous app triggers onHide() logic
     if (appToRender != nullptr) {
         hideApp();
     }
 
     appToRender = std::move(app);
-    requestDraw();
+    redraw();
 }
 
 void GuiService::hideApp() {
+    // Signals hideDoneSem on every return path (including the early-return guards below) -
+    // onLoaderEvent() blocks on this to know App::onHide() has actually finished before
+    // Loader proceeds to destroy the app (see hideDoneSem's declaration for why).
+    struct SignalOnExit {
+        Semaphore& sem;
+        ~SignalOnExit() { sem.release(); }
+    } signal_on_exit { hideDoneSem };
+
     auto lock = mutex.asScopedLock();
     lock.lock();
 
     if (!isStarted) {
-        LOGGER.error("Failed to hide app: GUI not started");
+        LOG_E(TAG, "Failed to hide app: GUI not started");
         return;
     }
 
     if (appToRender == nullptr) {
-        LOGGER.warn("hideApp() called but no app is currently shown");
+        LOG_W(TAG, "hideApp() called but no app is currently shown");
         return;
     }
 
     // We must lock the LVGL port, because the viewport hide callbacks
     // might call LVGL APIs (e.g. to remove the keyboard from the screen root)
-    lvgl::lock(portMAX_DELAY);
+    lvgl_lock();
     appToRender->getApp()->onHide(*appToRender);
-    lvgl::unlock();
+    lvgl_unlock();
     appToRender = nullptr;
 }
 

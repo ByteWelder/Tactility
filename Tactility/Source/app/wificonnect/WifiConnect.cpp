@@ -1,15 +1,14 @@
 #include <Tactility/app/wificonnect/WifiConnect.h>
 
-#include <Tactility/Logger.h>
-#include <Tactility/LogMessages.h>
 #include <Tactility/app/AppContext.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/service/wifi/Wifi.h>
 
+#include <lvgl/lvgl.h>
+
 namespace tt::app::wificonnect {
 
-static const auto LOGGER = Logger("WifiConnect");
+constexpr auto* TAG = "WifiConnect";
 constexpr auto* WIFI_CONNECT_PARAM_SSID = "ssid"; // String
 constexpr auto* WIFI_CONNECT_PARAM_PASSWORD = "password"; // String
 
@@ -24,22 +23,19 @@ static void onConnect(const service::wifi::settings::WifiApSettings& ap_settings
 
 void WifiConnect::onWifiEvent(service::wifi::WifiEvent event) {
     State& state = getState();
-    switch (event) {
-        case service::wifi::WifiEvent::ConnectionFailed:
+    if (event.type == WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT) {
+        if (event.connection_error == WIFI_STATION_CONNECTION_ERROR_NONE) {
+            if (state.isConnecting()) {
+                state.setConnecting(false);
+                stop(manifest.appId);
+            }
+        } else {
             if (state.isConnecting()) {
                 state.setConnecting(false);
                 state.setConnectionError(true);
                 requestViewUpdate();
             }
-            break;
-        case service::wifi::WifiEvent::ConnectionSuccess:
-            if (getState().isConnecting()) {
-                state.setConnecting(false);
-                stop(manifest.appId);
-            }
-            break;
-        default:
-            break;
+        }
     }
     requestViewUpdate();
 }
@@ -70,12 +66,9 @@ void WifiConnect::unlock() {
 void WifiConnect::requestViewUpdate() {
     lock();
     if (viewEnabled) {
-        if (lvgl::lock(1000)) {
-            view.update();
-            lvgl::unlock();
-        } else {
-            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-        }
+        lvgl_lock();
+        view.update();
+        lvgl_unlock();
     }
     unlock();
 }

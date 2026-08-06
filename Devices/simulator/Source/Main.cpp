@@ -1,11 +1,12 @@
 #include "Main.h"
 #include <Tactility/Thread.h>
-#include <Tactility/TactilityCore.h>
 
 #include "FreeRTOS.h"
 #include "task.h"
 
-static const auto LOGGER = tt::Logger("FreeRTOS");
+#include <tactility/log.h>
+
+constexpr auto* TAG = "FreeRTOS";
 
 namespace simulator {
 
@@ -16,10 +17,10 @@ void setMain(MainFunction newMainFunction) {
 }
 
 static void freertosMainTask(void* parameter) {
-    LOGGER.info("starting app_main()");
+    LOG_I(TAG, "starting app_main()");
     assert(simulator::mainFunction);
     mainFunction();
-    LOGGER.info("returned from app_main()");
+    LOG_I(TAG, "returned from app_main()");
     vTaskDelete(nullptr);
 }
 

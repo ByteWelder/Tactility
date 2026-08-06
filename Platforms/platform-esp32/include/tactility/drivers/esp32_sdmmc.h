@@ -3,6 +3,7 @@
 #include <soc/soc_caps.h>
 #if SOC_SDMMC_HOST_SUPPORTED
 
+#include <driver/sdmmc_default_configs.h>
 #include <sd_protocol_types.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -26,6 +27,8 @@ struct Esp32SdmmcConfig {
     struct GpioPinSpec pin_cd;
     struct GpioPinSpec pin_wp;
     uint8_t bus_width;
+    int32_t slot;
+    int32_t max_freq_khz;
     bool wp_active_high;
     bool enable_uhs;
     bool pullups;

@@ -5,14 +5,11 @@
 #include <Tactility/settings/KeyboardSettings.h>
 #include <Tactility/lvgl/Toolbar.h>
 
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/icons/shared.h>
+#include <tactility/device.h>
+#include <tactility/drivers/backlight.h>
 
 #include <lvgl.h>
-
-// Forward declare driver functions
-namespace keyboardbacklight {
-    bool setBrightness(uint8_t brightness);
-}
 
 namespace tt::app::keyboardsettings {
 
@@ -30,7 +27,12 @@ static uint32_t timeoutMsToIndex(uint32_t ms) {
 }
 
 static void applyKeyboardBacklight(bool enabled, uint8_t brightness) {
-    keyboardbacklight::setBrightness(enabled ? brightness : 0);
+    // TODO: Get keyboard backlight from (optional) keyboard child device
+    Device* backlight;
+    if (device_get_by_name("keyboard_backlight", &backlight) == ERROR_NONE) {
+        backlight_set_brightness(backlight, enabled ? brightness : 0);
+        device_put(backlight);
+    }
 }
 
 class KeyboardSettingsApp final : public App {

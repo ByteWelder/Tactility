@@ -2,21 +2,11 @@
 
 #include "tt_app.h"
 #include "tt_app_alertdialog.h"
+#include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
 #include "tt_bundle.h"
-#include "tt_gps.h"
-#include "tt_hal_device.h"
-#include "tt_hal_display.h"
-#include "tt_hal_touch.h"
-#include "tt_hal_uart.h"
-#include <tt_lock.h>
-#include "tt_lvgl.h"
-#include "tt_lvgl_keyboard.h"
-#include "tt_lvgl_spinner.h"
-#include "tt_lvgl_toolbar.h"
 #include "tt_preferences.h"
 #include "tt_time.h"
-#include "tt_wifi.h"
 
 #include "symbols/cplusplus.h"
 #include "symbols/esp_event.h"
@@ -42,6 +32,7 @@
 #include <esp_netif.h>
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
+#include <esp_system.h>
 #include <fcntl.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
@@ -62,9 +53,15 @@
 #include <driver/i2s_std.h>
 #include <driver/gpio.h>
 
+#ifdef CONFIG_IDF_TARGET_ESP32P4
+#include <driver/ppa.h>
+#include <esp_cache.h>
+#endif
+
 extern "C" {
 
 extern double __floatsidf(int x);
+extern void _esp_error_check_failed(esp_err_t rc, const char *file, int line, const char *function, const char *expression);
 
 const esp_elfsym main_symbols[] {
     // stdlib.h
@@ -75,13 +72,16 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(rand),
     ESP_ELFSYM_EXPORT(srand),
     ESP_ELFSYM_EXPORT(rand_r),
+    ESP_ELFSYM_EXPORT(atof),
     ESP_ELFSYM_EXPORT(atoi),
     ESP_ELFSYM_EXPORT(atol),
+    ESP_ELFSYM_EXPORT(system),
     // esp random
     ESP_ELFSYM_EXPORT(esp_random),
     ESP_ELFSYM_EXPORT(esp_fill_random),
     // esp other
     ESP_ELFSYM_EXPORT(__floatsidf),
+    ESP_ELFSYM_EXPORT(_esp_error_check_failed),
     // unistd.h
     ESP_ELFSYM_EXPORT(usleep),
     ESP_ELFSYM_EXPORT(sleep),
@@ -205,6 +205,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(fwrite),
     ESP_ELFSYM_EXPORT(getc),
     ESP_ELFSYM_EXPORT(putc),
+    ESP_ELFSYM_EXPORT(putchar),
     ESP_ELFSYM_EXPORT(puts),
     ESP_ELFSYM_EXPORT(printf),
     ESP_ELFSYM_EXPORT(sscanf),
@@ -212,6 +213,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(sprintf),
     ESP_ELFSYM_EXPORT(vsprintf),
     ESP_ELFSYM_EXPORT(vsnprintf),
+    ESP_ELFSYM_EXPORT(vfprintf),
     // cstring
     ESP_ELFSYM_EXPORT(strlen),
     ESP_ELFSYM_EXPORT(strcmp),
@@ -236,6 +238,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(memcmp),
     ESP_ELFSYM_EXPORT(memchr),
     ESP_ELFSYM_EXPORT(memmove),
+    ESP_ELFSYM_EXPORT(strdup),
 
     // ctype
     ESP_ELFSYM_EXPORT(isalnum),
@@ -264,6 +267,9 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_get_parameters),
     ESP_ELFSYM_EXPORT(tt_app_set_result),
     ESP_ELFSYM_EXPORT(tt_app_has_result),
+    ESP_ELFSYM_EXPORT(tt_app_fileselection_start_for_existing_file),
+    ESP_ELFSYM_EXPORT(tt_app_fileselection_start_for_existing_or_new_file),
+    ESP_ELFSYM_EXPORT(tt_app_fileselection_get_result_path),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_get_result_index),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
@@ -272,10 +278,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_get_user_data_child_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_path),
     ESP_ELFSYM_EXPORT(tt_app_get_assets_child_path),
-    ESP_ELFSYM_EXPORT(tt_lock_alloc_for_path),
-    ESP_ELFSYM_EXPORT(tt_lock_acquire),
-    ESP_ELFSYM_EXPORT(tt_lock_release),
-    ESP_ELFSYM_EXPORT(tt_lock_free),
     ESP_ELFSYM_EXPORT(tt_bundle_alloc),
     ESP_ELFSYM_EXPORT(tt_bundle_free),
     ESP_ELFSYM_EXPORT(tt_bundle_opt_bool),
@@ -284,57 +286,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_bundle_put_bool),
     ESP_ELFSYM_EXPORT(tt_bundle_put_int32),
     ESP_ELFSYM_EXPORT(tt_bundle_put_string),
-    ESP_ELFSYM_EXPORT(tt_gps_has_coordinates),
-    ESP_ELFSYM_EXPORT(tt_gps_get_coordinates),
-    ESP_ELFSYM_EXPORT(tt_hal_device_find),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_alloc),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_draw_bitmap),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_free),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_colorformat),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_height),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_get_pixel_width),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_lock),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_unlock),
-    ESP_ELFSYM_EXPORT(tt_hal_display_driver_supported),
-    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_supported),
-    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_alloc),
-    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_free),
-    ESP_ELFSYM_EXPORT(tt_hal_touch_driver_get_touched_points),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_get_count),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_get_name),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_alloc),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_free),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_start),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_is_started),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_stop),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_read_bytes),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_read_byte),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_write_bytes),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_available),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_set_baud_rate),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_get_baud_rate),
-    ESP_ELFSYM_EXPORT(tt_hal_uart_flush_input),
-    ESP_ELFSYM_EXPORT(tt_lvgl_is_started),
-    ESP_ELFSYM_EXPORT(tt_lvgl_lock),
-    ESP_ELFSYM_EXPORT(tt_lvgl_unlock),
-    ESP_ELFSYM_EXPORT(tt_lvgl_start),
-    ESP_ELFSYM_EXPORT(tt_lvgl_stop),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_show),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_hide),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_is_enabled),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_activate),
-    ESP_ELFSYM_EXPORT(tt_lvgl_software_keyboard_deactivate),
-    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_is_available),
-    ESP_ELFSYM_EXPORT(tt_lvgl_hardware_keyboard_set_indev),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_create_for_app),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_set_title),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_set_nav_action),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_image_button_action),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_text_button_action),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_switch_action),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_add_spinner_action),
-    ESP_ELFSYM_EXPORT(tt_lvgl_toolbar_clear_actions),
     ESP_ELFSYM_EXPORT(tt_preferences_alloc),
     ESP_ELFSYM_EXPORT(tt_preferences_free),
     ESP_ELFSYM_EXPORT(tt_preferences_opt_bool),
@@ -348,21 +299,11 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_timezone_get_code),
     ESP_ELFSYM_EXPORT(tt_timezone_is_format_24_hour),
     ESP_ELFSYM_EXPORT(tt_timezone_set_format_24_hour),
-    ESP_ELFSYM_EXPORT(tt_wifi_get_radio_state),
-    ESP_ELFSYM_EXPORT(tt_wifi_radio_state_to_string),
-    ESP_ELFSYM_EXPORT(tt_wifi_scan),
-    ESP_ELFSYM_EXPORT(tt_wifi_is_scanning),
-    ESP_ELFSYM_EXPORT(tt_wifi_get_connection_target),
-    ESP_ELFSYM_EXPORT(tt_wifi_set_enabled),
-    ESP_ELFSYM_EXPORT(tt_wifi_connect),
-    ESP_ELFSYM_EXPORT(tt_wifi_disconnect),
-    ESP_ELFSYM_EXPORT(tt_wifi_is_connnection_secure),
-    ESP_ELFSYM_EXPORT(tt_wifi_get_rssi),
-    // tt::lvgl
-    ESP_ELFSYM_EXPORT(tt_lvgl_spinner_create),
 
     // stdio.h
     ESP_ELFSYM_EXPORT(rename),
+    ESP_ELFSYM_EXPORT(rewind),
+    ESP_ELFSYM_EXPORT(remove),
     // dirent.h
     ESP_ELFSYM_EXPORT(opendir),
     ESP_ELFSYM_EXPORT(closedir),
@@ -439,6 +380,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(heap_caps_get_allocated_size),
     ESP_ELFSYM_EXPORT(heap_caps_get_free_size),
     ESP_ELFSYM_EXPORT(heap_caps_get_largest_free_block),
+    ESP_ELFSYM_EXPORT(heap_caps_aligned_alloc),
     ESP_ELFSYM_EXPORT(heap_caps_malloc),
     ESP_ELFSYM_EXPORT(heap_caps_calloc),
     ESP_ELFSYM_EXPORT(heap_caps_free),
@@ -449,6 +391,16 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(esp_timer_start_periodic),
     ESP_ELFSYM_EXPORT(esp_timer_start_once),
     ESP_ELFSYM_EXPORT(esp_timer_get_time),
+#ifdef CONFIG_IDF_TARGET_ESP32P4
+    // driver/ppa.h
+    ESP_ELFSYM_EXPORT(ppa_register_client),
+    ESP_ELFSYM_EXPORT(ppa_unregister_client),
+    ESP_ELFSYM_EXPORT(ppa_do_scale_rotate_mirror),
+    // esp_cache.h
+    ESP_ELFSYM_EXPORT(esp_cache_msync),
+    // esp_system.h
+    ESP_ELFSYM_EXPORT(esp_restart),
+#endif
     // delimiter
     ESP_ELFSYM_END
 };

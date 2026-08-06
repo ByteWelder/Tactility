@@ -1,24 +1,24 @@
 #include <Tactility/app/btpeersettings/BtPeerSettings.h>
 
-#include <Tactility/Logger.h>
-#include <Tactility/LogMessages.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/bluetooth/BluetoothPairedDevice.h>
-#include <tactility/check.h>
-#include <tactility/drivers/bluetooth.h>
+#include <Tactility/lvgl/Style.h>
 
-#include <lvgl.h>
+#include <tactility/check.h>
+#include <tactility/device.h>
+#include <tactility/drivers/bluetooth.h>
+#include <tactility/log.h>
 
 namespace tt::app::btpeersettings {
 
-static const auto LOGGER = Logger("BtPeerSettings");
+constexpr auto* TAG = "BtPeerSettings";
 
 extern const AppManifest manifest;
 
@@ -75,19 +75,16 @@ class BtPeerSettings : public App {
         if (bluetooth::settings::load(self->addrHex, device)) {
             device.autoConnect = is_on;
             if (!bluetooth::settings::save(device)) {
-                LOGGER.error("Failed to save auto-connect setting");
+                LOG_E(TAG, "Failed to save auto-connect setting");
             }
         }
     }
 
     void requestViewUpdate() const {
         if (viewEnabled) {
-            if (lvgl::lock(1000)) {
-                updateViews();
-                lvgl::unlock();
-            } else {
-                LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-            }
+            lvgl_lock();
+            updateViews();
+            lvgl_unlock();
         }
     }
 
@@ -124,8 +121,12 @@ public:
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
-        if (struct Device* dev = bluetooth::findFirstDevice()) {
-            bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+        {
+            Device* dev;
+            if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
+                bluetooth_add_event_callback(dev, this, onKernelBtEvent);
+                device_put(dev);
+            }
         }
 
         // Load stored settings (name, autoConnect)
@@ -136,7 +137,7 @@ public:
         lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
-        lvgl::toolbar_create(parent, title);
+        lvgl_toolbar_create(parent, title.c_str());
 
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));
@@ -192,8 +193,10 @@ public:
     }
 
     void onHide(AppContext& app) override {
-        if (struct Device* dev = bluetooth::findFirstDevice()) {
+        Device* dev;
+        if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
             bluetooth_remove_event_callback(dev, onKernelBtEvent);
+            device_put(dev);
         }
         viewEnabled = false;
     }

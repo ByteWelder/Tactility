@@ -1,0 +1,144 @@
+// SPDX-License-Identifier: Apache-2.0
+#pragma once
+
+#include <lvgl.h>
+
+#include <tactility/device.h>
+#include <tactility/error.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct LvglSoftwareKeyboard {
+    lv_obj_t* object;
+};
+
+/**
+ * @brief Creates an lv_indev_t bound to the given KEYBOARD_TYPE device and registers a read callback
+ * that polls the device through its KeyboardApi.
+ *
+ * @warning Caller must hold the LVGL lock (see lvgl_lock() in lvgl_module.h) — call this from
+ * LvglModuleConfig.on_start, or after calling lvgl_lock() explicitly.
+ *
+ * @param[in] device a device of type KEYBOARD_TYPE
+ * @param[in] display the display this indev should be associated with, or NULL to leave it unset
+ * @param[out] out_indev the created indev, valid only when ERROR_NONE is returned
+ * @retval ERROR_NONE on success
+ * @retval ERROR_INVALID_ARGUMENT if device or out_indev is NULL, or device is not of type KEYBOARD_TYPE
+ * @retval ERROR_OUT_OF_MEMORY if allocation failed
+ */
+error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev_t** out_indev);
+
+/**
+ * @brief Removes an indev previously created with lvgl_keyboard_add().
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_keyboard_remove(lv_indev_t* indev);
+
+/**
+ * @brief Assigns the indev to the shared keyboard input group, so it can drive focus
+ * navigation and input for focused widgets.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_keyboard_enable(lv_indev_t* indev);
+
+/**
+ * @brief Detaches the indev from the shared keyboard input group.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_keyboard_disable(lv_indev_t* indev);
+
+/**
+ * @brief Wires a textarea up to the on-screen keyboard: shows it on focus, hides it on
+ * defocus/ready, and adds the textarea to the keyboard's navigation group.
+ *
+ * No-op if lvgl_software_keyboard_is_enabled() is false (i.e. a hardware keyboard is present).
+ *
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] keyboard the on-screen keyboard to associate with the textarea
+ * @param[in] textarea the lv_textarea_t object to wire up
+ */
+void lvgl_keyboard_add_textarea(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea);
+
+/**
+ * @brief Checks whether a ready (started) KEYBOARD_TYPE kernel device is present.
+ * @return true if a hardware keyboard device is available
+ */
+bool lvgl_hardware_keyboard_is_available();
+
+/**
+ * @brief Assigns the shared keyboard navigation group to a keypad indev that wasn't created via
+ * lvgl_keyboard_add() (e.g. a USB HID keyboard managed outside the kernel device system).
+ *
+ * @warning Caller must hold the LVGL lock. Requires the keyboard navigation group to already
+ * exist (created during LVGL module start).
+ * @param[in] device the keypad indev to attach to the navigation group
+ */
+void lvgl_hardware_keyboard_add_custom(lv_indev_t* device);
+
+/**
+ * @brief Detaches an indev previously registered with lvgl_hardware_keyboard_add_custom() and
+ * frees its associated context.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_hardware_keyboard_remove_custom(lv_indev_t* device);
+
+/**
+ * @brief Creates the on-screen keyboard widget as a hidden child of parent, and remembers it as
+ * the last constructed software keyboard (see lvgl_software_keyboard_get_last()).
+ * @warning Caller must hold the LVGL lock.
+ * @param[out] keyboard the software keyboard struct to initialize
+ * @param[in] parent the lv_obj_t that will own the keyboard widget
+ */
+void lvgl_software_keyboard_construct(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* parent);
+
+/**
+ * @brief Deletes the on-screen keyboard widget created by lvgl_software_keyboard_construct().
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_software_keyboard_destruct(struct LvglSoftwareKeyboard* keyboard);
+
+/**
+ * @brief Unhides the on-screen keyboard and binds it to the given textarea for input.
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] keyboard the software keyboard to show
+ * @param[in] textarea the lv_textarea_t that receives the keyboard's input
+ */
+void lvgl_software_keyboard_show(struct LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea);
+
+/**
+ * @brief Hides the on-screen keyboard.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_software_keyboard_hide(struct LvglSoftwareKeyboard* keyboard);
+
+/**
+ * The on-screen keyboard is only shown when there is no hardware keyboard driver active.
+ * @return if we should show a on-screen keyboard for text input inside our apps
+ */
+bool lvgl_software_keyboard_is_enabled();
+
+/**
+ * @return the most recently constructed software keyboard, or one with a NULL object if none
+ * has been constructed yet (or the last one was destructed)
+ */
+struct LvglSoftwareKeyboard* lvgl_software_keyboard_get_last();
+
+/**
+ * @brief Attaches the shared keyboard navigation group to every currently registered keypad
+ * indev, so they can be used to navigate the on-screen keyboard and focused widgets.
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_software_keyboard_activate(struct LvglSoftwareKeyboard* keyboard);
+
+/**
+ * @brief Detaches the navigation group from every currently registered keypad indev (inverse of
+ * lvgl_software_keyboard_activate()).
+ * @warning Caller must hold the LVGL lock.
+ */
+void lvgl_software_keyboard_deactivate(struct LvglSoftwareKeyboard* keyboard);
+
+#ifdef __cplusplus
+}
+#endif

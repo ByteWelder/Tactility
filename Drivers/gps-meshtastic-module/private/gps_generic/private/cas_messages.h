@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: GPL-3.0
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+
+// NEMA message IDs
+
+constexpr uint8_t CAS_NEMA_GGA = 0x00;
+constexpr uint8_t CAS_NEMA_GLL = 0x01;
+constexpr uint8_t CAS_NEMA_GSA = 0x02;
+constexpr uint8_t CAS_NEMA_GSV = 0x03;
+constexpr uint8_t CAS_NEMA_RMC = 0x04;
+constexpr uint8_t CAS_NEMA_VTG = 0x05;
+constexpr uint8_t CAS_NEMA_GST = 0x07;
+constexpr uint8_t CAS_NEMA_ZDA = 0x08;
+constexpr uint8_t CAS_NEMA_DHV = 0x0D;
+
+/** Size of a CAS-ACK-(N)ACK message  */
+constexpr size_t CAS_MESSAGE_ACK_NACK_SIZE = 0x0E; // 14 bytes
+
+/** Factory reset message */
+constexpr uint8_t CAS_MESSAGE_CFG_RST_FACTORY[] = {
+    0xFF, 0x03,
+    0x01,
+    0x03
+};
+
+/** Configure update rate to 1 Hz. */
+constexpr uint8_t CAS_MESSAGE_CFG_RATE_1HZ[] = {
+    0xE8, 0x03, // 0x03E8 = 1000ms
+    0x00, 0x00
+};
+
+/** Config navx */
+constexpr uint8_t CAS_MESSAGE_CFG_NAVX_CONF[] = {
+    0x03, 0x01, 0x00, 0x00,
+    0x03,
+    0x03,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x07,
+    0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00
+};

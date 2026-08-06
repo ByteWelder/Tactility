@@ -1,17 +1,17 @@
-#include "Tactility/lvgl/LvglSync.h"
-
 #include <Tactility/app/App.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppManifest.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
-#include <tactility/check.h>
 #include <Tactility/lvgl/Style.h>
-#include <Tactility/lvgl/Toolbar.h>
-
-#include <lvgl.h>
-#include <format>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
+
+#include <tactility/check.h>
+
+#include <lvgl/lvgl.h>
+#include <lvgl/widgets/toolbar.h>
+
+#include <format>
 
 namespace tt::app::appdetails {
 
@@ -51,7 +51,7 @@ public:
         lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
         auto title = std::format("{} details", manifest->appName);
-        lvgl::toolbar_create(parent, title);
+        lvgl_toolbar_create(parent, title.c_str());
 
         auto* wrapper = lv_obj_create(parent);
         lv_obj_set_width(wrapper, LV_PCT(100));

@@ -157,14 +157,14 @@ static error_t start(Device* device) {
     auto dts_config = GET_CONFIG(device);
 
     auto& sda_spec = dts_config->pinSda;
-    auto& scl_spec = dts_config->pinScl;
-    auto* sda_descriptor = gpio_descriptor_acquire(sda_spec.gpio_controller, sda_spec.pin, GPIO_OWNER_GPIO);
+    auto* sda_descriptor = gpio_descriptor_acquire(sda_spec.gpio_controller, sda_spec.pin, sda_spec.flags | GPIO_FLAG_DIRECTION_INPUT_OUTPUT, GPIO_OWNER_GPIO);
     if (!sda_descriptor) {
         LOG_E(TAG, "Failed to acquire pin %u", sda_spec.pin);
         return ERROR_RESOURCE;
     }
 
-    auto* scl_descriptor = gpio_descriptor_acquire(scl_spec.gpio_controller, scl_spec.pin, GPIO_OWNER_GPIO);
+    auto& scl_spec = dts_config->pinScl;
+    auto* scl_descriptor = gpio_descriptor_acquire(scl_spec.gpio_controller, scl_spec.pin, scl_spec.flags | GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
     if (!scl_descriptor) {
         LOG_E(TAG, "Failed to acquire pin %u", scl_spec.pin);
         gpio_descriptor_release(sda_descriptor);
@@ -175,16 +175,12 @@ static error_t start(Device* device) {
     check(gpio_descriptor_get_native_pin_number(sda_descriptor, &sda_pin) == ERROR_NONE);
     check(gpio_descriptor_get_native_pin_number(scl_descriptor, &scl_pin) == ERROR_NONE);
 
-    gpio_flags_t sda_flags, scl_flags;
-    check(gpio_descriptor_get_flags(sda_descriptor, &sda_flags) == ERROR_NONE);
-    check(gpio_descriptor_get_flags(scl_descriptor, &scl_flags) == ERROR_NONE);
-
     i2c_config_t esp_config = {
         .mode = I2C_MODE_MASTER,
         .sda_io_num = sda_pin,
         .scl_io_num = scl_pin,
-        .sda_pullup_en = (sda_flags & GPIO_FLAG_PULL_UP) != 0,
-        .scl_pullup_en = (scl_flags & GPIO_FLAG_PULL_UP) != 0,
+        .sda_pullup_en = (sda_spec.flags & GPIO_FLAG_PULL_UP) != 0,
+        .scl_pullup_en = (scl_spec.flags & GPIO_FLAG_PULL_UP) != 0,
         .master {
             .clk_speed = dts_config->clockFrequency
         },
@@ -242,7 +238,8 @@ static constexpr I2cControllerApi ESP32_I2C_API = {
     .write = write,
     .write_read = write_read,
     .read_register = read_register,
-    .write_register = write_register
+    .write_register = write_register,
+    .probe = nullptr
 };
 
 extern Module platform_esp32_module;

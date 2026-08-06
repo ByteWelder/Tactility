@@ -1,12 +1,11 @@
 #include <format>
 #include <string>
 
-#include <tactility/lvgl_module.h>
+#include <lvgl/lvgl.h>
 
 #include <Tactility/app/btmanage/View.h>
 #include <Tactility/app/btmanage/BtManagePrivate.h>
 #include <Tactility/app/btpeersettings/BtPeerSettings.h>
-#include <Tactility/Logger.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/bluetooth/Bluetooth.h>
@@ -15,8 +14,6 @@
 #include <Tactility/Tactility.h>
 
 namespace tt::app::btmanage {
-
-static const auto LOGGER = Logger("BtManageView");
 
 static void onEnableSwitchChanged(lv_event_t* event) {
     auto* enable_switch = static_cast<lv_obj_t*>(lv_event_get_target(event));
@@ -49,15 +46,18 @@ static void onEnableOnBootParentClicked(lv_event_t* event) {
 
 static void onScanButtonClicked(lv_event_t* event) {
     auto bt = std::static_pointer_cast<BtManage>(getCurrentApp());
-    struct Device* dev = bluetooth::findFirstDevice();
+    Device* dev = nullptr;
+    device_get_first_active_by_type(&BLUETOOTH_TYPE, &dev);
     bool scanning = dev ? bluetooth_is_scanning(dev) : false;
+    if (dev) {
+        device_put(dev);
+    }
     bt->getBindings().onScanToggled(!scanning);
 }
 
 // region Peer list callbacks
 
 struct PeerListItemData {
-    View* view;
     size_t index;
     bool isPaired;
 };
@@ -102,7 +102,7 @@ void View::createPeerListItem(const bluetooth::PeerRecord& record, bool isPaired
 
     auto* button = lv_list_add_button(peers_list, nullptr, label.c_str());
 
-    auto* item_data = new PeerListItemData { this, index, isPaired };
+    auto* item_data = new PeerListItemData { index, isPaired };
     lv_obj_set_user_data(button, item_data);
     lv_obj_add_event_cb(button, onConnect, LV_EVENT_SHORT_CLICKED, item_data);
     lv_obj_add_event_cb(button, [](lv_event_t* e) {
@@ -226,9 +226,9 @@ void View::init(const AppContext& app, lv_obj_t* parent) {
     // Toolbar
     auto* toolbar = lvgl::toolbar_create(parent, app);
 
-    scanning_spinner = lvgl::toolbar_add_spinner_action(toolbar);
+    scanning_spinner = lvgl_toolbar_add_spinner_action(toolbar);
 
-    enable_switch = lvgl::toolbar_add_switch_action(toolbar);
+    enable_switch = lvgl_toolbar_add_switch_action(toolbar);
     lv_obj_add_event_cb(enable_switch, onEnableSwitchChanged, LV_EVENT_VALUE_CHANGED, nullptr);
 
     // Peer list

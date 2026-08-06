@@ -3,19 +3,16 @@
 #include <Tactility/MessageQueue.h>
 #include <Tactility/PubSub.h>
 #include <Tactility/RecursiveMutex.h>
-#include <Tactility/app/AppContext.h>
 #include <Tactility/service/Service.h>
 #include <Tactility/service/loader/Loader.h>
 
-#include <cstdio>
-#include <lvgl.h>
+#include <Tactility/Semaphore.h>
+
+#include <tactility/concurrent/dispatcher.h>
+
+#include <lvgl/devices/keyboard.h>
 
 namespace tt::service::gui {
-
-constexpr auto GUI_THREAD_FLAG_DRAW = (1 << 0);
-constexpr auto GUI_THREAD_FLAG_INPUT = (1 << 1);
-constexpr auto GUI_THREAD_FLAG_EXIT = (1 << 2);
-constexpr auto GUI_THREAD_FLAG_ALL = (GUI_THREAD_FLAG_DRAW | GUI_THREAD_FLAG_INPUT | GUI_THREAD_FLAG_EXIT);
 
 /**
  * Output a log warning if the current task is the GUI task.
@@ -28,9 +25,20 @@ class GuiService final : public Service {
 
     // Thread and lock
     Thread* thread = nullptr;
-    EventGroup threadFlags;
+    DispatcherHandle_t dispatcher = nullptr;
+    bool exitRequested = false;
     RecursiveMutex mutex;
     PubSub<loader::LoaderService::Event>::SubscriptionHandle loader_pubsub_subscription = nullptr;
+
+    // Signaled by hideApp() once App::onHide() has actually finished running on the GUI
+    // task. onLoaderEvent() blocks on this (still on the Loader thread, inside the
+    // synchronous pubsub publish() call) before returning from the ApplicationHiding
+    // branch, so LoaderService::transitionAppToState(Hiding) can't return - and therefore
+    // the immediately-following Destroyed transition (which unloads an ELF app's code via
+    // esp_elf_deinit) can't run - until onHide() has fully completed. Without this, the
+    // ELF's code/data can be unmapped while onHide() (and anything it spawned, like a
+    // camera capture task) is still executing it.
+    Semaphore hideDoneSem { 1, 0 };
 
     // Layers and Canvas
     lv_obj_t* appRootWidget = nullptr;
@@ -39,12 +47,13 @@ class GuiService final : public Service {
     // App-specific
     std::shared_ptr<app::AppInstance> appToRender = nullptr;
 
-    lv_obj_t* keyboard = nullptr;
-    lv_group_t* keyboardGroup = nullptr;
+    LvglSoftwareKeyboard software_keyboard = {};
 
     bool isStarted = false;
 
     static int32_t guiMain();
+
+    static void onGuiDispatch(void* context);
 
     void onLoaderEvent(loader::LoaderService::Event event);
 
@@ -70,8 +79,6 @@ public:
 
     void onStop(ServiceContext& service) override;
 
-    void requestDraw();
-
     /**
      * Show the on-screen keyboard.
      * @param[in] textarea the textarea to focus the input for
@@ -84,6 +91,8 @@ public:
      */
     void softwareKeyboardHide();
 
+    void keyboardAddTextArea(lv_obj_t* textarea);
+
     /**
      * The on-screen keyboard is only shown when both of these conditions are true:
      *  - there is no hardware keyboard
@@ -91,15 +100,6 @@ public:
      * @return if we should show a on-screen keyboard for text input inside our apps
      */
     bool softwareKeyboardIsEnabled();
-
-    /**
-     * Glue code for the on-screen keyboard and the hardware keyboard:
-     *  - Attach automatic hide/show parameters for the on-screen keyboard.
-     *  - Registers the textarea to the default lv_group_t for hardware keyboards.
-     * @param[in] textarea
-     */
-    void keyboardAddTextArea(lv_obj_t* textarea);
-
 };
 
 std::shared_ptr<GuiService> findService();

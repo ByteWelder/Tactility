@@ -43,7 +43,6 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "TactilityKernel"
         "Tactility"
         "TactilityC"
-        "TactilityCore"
         "TactilityFreeRtos"
         "Libraries/elf_loader"
         "Libraries/lv_screenshot"
@@ -70,10 +69,16 @@ if (DEFINED ENV{ESP_IDF_VERSION})
 
 else ()
     message("Building for sim target")
+    # Devices/simulator/Source/Simulator.cpp always defines its own hardwareConfiguration; without
+    # this, Firmware/Source/Main.cpp's #else branch also defines an empty one (its ESP32-only
+    # fallback for devices migrated off the deprecated HAL), causing a duplicate-definition link error.
     add_compile_definitions(CONFIG_TT_DEVICE_ID="simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
+    add_compile_definitions(CONFIG_TT_DEVICE_VENDOR="")
+    add_compile_definitions(CONFIG_TT_DEVICE_NAME_SIMPLE="Simulator")
     add_compile_definitions(CONFIG_TT_LAUNCHER_APP_ID="Launcher")
     add_compile_definitions(CONFIG_TT_AUTO_START_APP_ID="")
+    add_compile_definitions(CONFIG_TT_USER_DATA_LOCATION_INTERNAL)
 endif ()
 
 project(Tactility)
@@ -81,7 +86,6 @@ project(Tactility)
 # Defined as regular project for PC and component for ESP
 if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
-    add_subdirectory(TactilityCore)
     add_subdirectory(TactilityFreeRtos)
     add_subdirectory(TactilityKernel)
     add_subdirectory(Platforms/platform-posix)
@@ -91,8 +95,12 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Libraries/QRCode)
     add_subdirectory(Libraries/minitar)
     add_subdirectory(Libraries/minmea)
-    add_subdirectory(Modules/hal-device-module)
     add_subdirectory(Modules/lvgl-module)
+    add_subdirectory(Modules/crypt-module)
+    add_subdirectory(Modules/gps-module)
+    add_subdirectory(Modules/service-module)
+    add_subdirectory(Drivers/gps-generic-module)
+    add_subdirectory(Drivers/gps-meshtastic-module)
 
     # FreeRTOS
     set(FREERTOS_CONFIG_FILE_DIRECTORY ${PROJECT_SOURCE_DIR}/Devices/simulator/Source CACHE STRING "")

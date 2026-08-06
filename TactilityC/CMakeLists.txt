@@ -8,13 +8,16 @@ list(APPEND REQUIRES_LIST
 
 list(APPEND PRIV_REQUIRES_LIST
     Tactility
-    TactilityCore
     TactilityKernel
     mbedtls
 )
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     list(APPEND PRIV_REQUIRES_LIST elf_loader)
+endif ()
+
+if (IDF_TARGET STREQUAL "esp32p4")
+    list(APPEND PRIV_REQUIRES_LIST esp_driver_ppa esp_mm)
 endif ()
 
 file(GLOB_RECURSE SOURCE_FILES Source/*.c*)

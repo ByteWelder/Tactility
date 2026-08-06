@@ -1,29 +1,29 @@
-#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 #include <Tactility/app/wifimanage/View.h>
+#include <Tactility/app/wifimanage/WifiManagePrivate.h>
 
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/wifiapsettings/WifiApSettings.h>
 #include <Tactility/app/wificonnect/WifiConnect.h>
-#include <Tactility/Logger.h>
-#include <Tactility/LogMessages.h>
-#include <Tactility/lvgl/LvglSync.h>
 #include <Tactility/service/loader/Loader.h>
 
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/log.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 namespace tt::app::wifimanage {
 
-static const auto LOGGER = Logger("WifiManage");
+constexpr auto* TAG = "WifiManage";
 
 extern const AppManifest manifest;
 
 static void onConnect(const std::string& ssid) {
     service::wifi::settings::WifiApSettings settings;
     if (service::wifi::settings::load(ssid, settings)) {
-        LOGGER.info("Connecting with known credentials");
+        LOG_I(TAG, "Connecting with known credentials");
         service::wifi::connect(settings, false);
     } else {
-        LOGGER.info("Starting connection dialog");
+        LOG_I(TAG, "Starting connection dialog");
         wificonnect::start(ssid);
     }
 }
@@ -65,31 +65,27 @@ void WifiManage::unlock() {
 void WifiManage::requestViewUpdate() {
     lock();
     if (isViewEnabled) {
-        if (lvgl::lock(1000)) {
-            view.update();
-            lvgl::unlock();
-        } else {
-            LOGGER.error(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "LVGL");
-        }
+        lvgl_lock();
+        view.update();
+        lvgl_unlock();
     }
     unlock();
 }
 
 void WifiManage::onWifiEvent(service::wifi::WifiEvent event) {
     auto radio_state = service::wifi::getRadioState();
-    LOGGER.info("Update with state {}", service::wifi::radioStateToString(radio_state));
+    LOG_I(TAG, "Update with state %s", service::wifi::radioStateToString(radio_state));
     getState().setRadioState(radio_state);
-    switch (event) {
-        using enum service::wifi::WifiEvent;
-        case ScanStarted:
+    switch (event.type) {
+        case WIFI_EVENT_TYPE_SCAN_STARTED:
             getState().setScanning(true);
             break;
-        case ScanFinished:
+        case WIFI_EVENT_TYPE_SCAN_FINISHED:
             getState().setScanning(false);
             getState().updateApRecords();
             break;
-        case RadioStateOn:
-            if (!service::wifi::isScanning()) {
+        case WIFI_EVENT_TYPE_RADIO_STATE_CHANGED:
+            if (event.radio_state == WIFI_RADIO_STATE_ON && !service::wifi::isScanning()) {
                 service::wifi::scan();
             }
             break;
@@ -123,11 +119,11 @@ void WifiManage::onShow(AppContext& app, lv_obj_t* parent) {
         radio_state == service::wifi::RadioState::ConnectionPending ||
         radio_state == service::wifi::RadioState::ConnectionActive;
     std::string connection_target = service::wifi::getConnectionTarget();
-    LOGGER.info("Radio: {}, Scanning: {}, Connected to: {}, Can scan: {}",
-        service::wifi::radioStateToString(radio_state), 
-        service::wifi::isScanning(),
+    LOG_I(TAG, "Radio: %s, Scanning: %d, Connected to: %s, Can scan: %d",
+        service::wifi::radioStateToString(radio_state),
+        (int)service::wifi::isScanning(),
         connection_target.empty() ? "(none)" : connection_target.c_str(),
-        can_scan);
+        (int)can_scan);
     if (can_scan && !service::wifi::isScanning()) {
         service::wifi::scan();
     }

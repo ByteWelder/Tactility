@@ -1,26 +1,16 @@
-#include <tactility/hal/Device.h>
-#include "Tactility/hal/sdcard/SdCardDevice.h"
+#include <tactility/device.h>
+#include <tactility/drivers/sdcard.h>
 
 namespace tt::hal::sdcard {
 
-std::shared_ptr<SdCardDevice> find(const std::string& path) {
-    auto sdcards = findDevices<SdCardDevice>(Device::Type::SdCard);
-    for (auto& sdcard : sdcards) {
-        if (sdcard->isMounted() && path.starts_with(sdcard->getMountPath())) {
-            return sdcard;
+void startAll() {
+    device_for_each_of_type(&SDCARD_TYPE, nullptr, [](::Device* device, void*) -> bool {
+        if (!device_is_ready(device)) {
+            if (device_start(device) != ERROR_NONE) {
+            }
         }
-    }
-
-    return nullptr;
-}
-
-std::shared_ptr<Lock> findSdCardLock(const std::string& path) {
-    auto sdcard = find(path);
-    if (sdcard != nullptr) {
-        return sdcard->getLock();
-    }
-
-    return nullptr;
+        return true;
+    });
 }
 
 }

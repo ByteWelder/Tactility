@@ -44,7 +44,7 @@ READ_PROPERTIES_TO_MAP(
     device_properties
 )
 # Read UI density
-GET_VALUE_FROM_MAP(device_properties "[lvgl]uiDensity" ui_density)
+GET_VALUE_FROM_MAP(device_properties "lvgl.uiDensity" ui_density)
 # Define UiDensity enum value
 if (ui_density)
     if (ui_density STREQUAL "default")
@@ -52,7 +52,7 @@ if (ui_density)
     elseif (ui_density STREQUAL "compact")
         set(ui_density_variable "LVGL_UI_DENSITY_COMPACT")
     else ()
-        message(FATAL_ERROR "Invalid [lvgl]uiDensity: '${ui_density}'. Must be either 'default' or 'compact'")
+        message(FATAL_ERROR "Invalid lvgl.uiDensity: '${ui_density}'. Must be either 'default' or 'compact'")
     endif ()
     message("UI density set to '${ui_density}' via properties")
 else ()
@@ -79,6 +79,10 @@ list(APPEND REQUIRES_LIST
 
 if (DEFINED ENV{ESP_IDF_VERSION})
     list(APPEND REQUIRES_LIST esp_lvgl_port)
+    # required for lvgl_ppa
+    if (IDF_TARGET STREQUAL "esp32p4")
+        list(APPEND REQUIRES_LIST esp_driver_ppa)
+    endif ()
 else ()
     list(APPEND REQUIRES_LIST freertos_kernel)
 endif ()
@@ -88,6 +92,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/../../Buildscripts/module.cmake")
 tactility_add_module(lvgl-module
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS include/
+    PRIV_INCLUDE_DIRS private/
     REQUIRES ${REQUIRES_LIST}
 )
 

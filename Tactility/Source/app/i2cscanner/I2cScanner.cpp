@@ -1,21 +1,20 @@
-#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 #include <Tactility/app/i2cscanner/I2cHelpers.h>
-
-#include <Tactility/Assets.h>
-#include <Tactility/app/AppContext.h>
-#include <Tactility/hal/i2c/I2cDevice.h>
-#include <Tactility/Logger.h>
+#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 #include <Tactility/LogMessages.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/Preferences.h>
 #include <Tactility/RecursiveMutex.h>
-#include <Tactility/service/loader/Loader.h>
 #include <Tactility/Timer.h>
+#include <Tactility/app/AppContext.h>
+#include <Tactility/lvgl/Toolbar.h>
+#include <Tactility/service/loader/Loader.h>
+
+#include <tactility/drivers/i2c_controller.h>
+#include <tactility/log.h>
 
 #include <format>
 
-#include <tactility/lvgl_icon_shared.h>
+#include <lvgl/lvgl.h>
+#include <lvgl/icons/shared.h>
 
 namespace tt::app::i2cscanner {
 
@@ -23,7 +22,7 @@ extern const AppManifest manifest;
 
 class I2cScannerApp final : public App {
 
-    const Logger logger = Logger("I2cScanner");
+    static constexpr auto* TAG = "I2cScanner";
 
     static constexpr auto* START_SCAN_TEXT = "Scan";
     static constexpr auto* STOP_SCAN_TEXT = "Stop scan";
@@ -33,7 +32,7 @@ class I2cScannerApp final : public App {
     std::unique_ptr<Timer> scanTimer = nullptr;
     // State
     ScanState scanState = ScanStateInitial;
-    i2c_port_t port = I2C_NUM_0;
+    struct Device* portDevice = nullptr;
     std::vector<uint8_t> scannedAddresses;
     // Widgets
     lv_obj_t* scanButtonLabelWidget = nullptr;
@@ -47,14 +46,13 @@ class I2cScannerApp final : public App {
 
     static void onSelectBusCallback(lv_event_t* event);
     static void onPressScanCallback(lv_event_t* event);
-    static void onScanTimerCallback();
 
     void onSelectBus(lv_event_t* event);
     void onPressScan(lv_event_t* event);
     void onScanTimer();
 
     bool shouldStopScanTimer();
-    bool getPort(i2c_port_t* outPort);
+    bool getPort(struct Device** outPort);
     bool addAddressToList(uint8_t address);
     bool hasScanThread();
     void startScanning();
@@ -140,8 +138,10 @@ void I2cScannerApp::onShow(AppContext& app, lv_obj_t* parent) {
     lv_obj_add_flag(scan_list, LV_OBJ_FLAG_HIDDEN);
     scanListWidget = scan_list;
 
-    int32_t first_port;
-    if (getActivePortAtIndex(0, first_port)) {
+    struct Device* dummy;
+    if (getActivePortAtIndex(selected_bus, &dummy)) {
+        selectBus(selected_bus);
+    } else if (getActivePortAtIndex(0, &dummy)) {
         lv_dropdown_set_selected(port_dropdown, 0);
         selectBus(0);
     }
@@ -184,13 +184,13 @@ void I2cScannerApp::onPressScanCallback(lv_event_t* event) {
 
 // endregion Callbacks
 
-bool I2cScannerApp::getPort(i2c_port_t* outPort) {
+bool I2cScannerApp::getPort(struct Device** outPort) {
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
-        *outPort = this->port;
+        *outPort = this->portDevice;
         mutex.unlock();
         return true;
     } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "getPort");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "getPort");
         return false;
     }
 }
@@ -201,7 +201,7 @@ bool I2cScannerApp::addAddressToList(uint8_t address) {
         mutex.unlock();
         return true;
     } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "addAddressToList");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "addAddressToList");
         return false;
     }
 }
@@ -217,24 +217,24 @@ bool I2cScannerApp::shouldStopScanTimer() {
 }
 
 void I2cScannerApp::onScanTimer() {
-    logger.info("Scan thread started");
+    LOG_I(TAG, "Scan thread started");
 
-    i2c_port_t safe_port;
+    Device* safe_port;
     if (!getPort(&safe_port)) {
-        logger.error("Failed to get I2C port");
+        LOG_E(TAG, "Failed to get I2C port");
         onScanTimerFinished();
         return;
     }
 
-    if (!hal::i2c::isStarted(safe_port)) {
-        logger.error("I2C port not started");
+    if (!device_is_ready(safe_port)) {
+        LOG_E(TAG, "I2C port not started");
         onScanTimerFinished();
         return;
     }
 
-    for (uint8_t address = 0; address < 128; ++address) {
-        if (hal::i2c::masterHasDeviceAtAddress(safe_port, address, 10 / portTICK_PERIOD_MS)) {
-            logger.info("Found device at address 0x{:02X}", address);
+    for (uint8_t address = 1; address < 128; ++address) {
+        if (i2c_controller_has_device_at_address(safe_port, address, 10 / portTICK_PERIOD_MS) == ERROR_NONE) {
+            LOG_I(TAG, "Found device at address 0x%02X", address);
             if (!shouldStopScanTimer()) {
                 addAddressToList(address);
             } else {
@@ -247,11 +247,11 @@ void I2cScannerApp::onScanTimer() {
         }
     }
 
-    logger.info("Scan thread finalizing");
+    LOG_I(TAG, "Scan thread finalizing");
 
     onScanTimerFinished();
 
-    logger.info("Scan timer done");
+    LOG_I(TAG, "Scan timer done");
 }
 
 bool I2cScannerApp::hasScanThread() {
@@ -262,7 +262,7 @@ bool I2cScannerApp::hasScanThread() {
         return has_thread;
     } else {
         // Unsafe way
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "hasScanTimer");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "hasScanTimer");
         return scanTimer != nullptr;
     }
 }
@@ -285,7 +285,7 @@ void I2cScannerApp::startScanning() {
         scanTimer->start();
         mutex.unlock();
     } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "startScanning");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "startScanning");
     }
 }
 void I2cScannerApp::stopScanning() {
@@ -294,7 +294,7 @@ void I2cScannerApp::stopScanning() {
         scanState = ScanStateStopped;
         mutex.unlock();
     } else {
-        logger.error(LOG_MESSAGE_MUTEX_LOCK_FAILED);
+        LOG_E(TAG, LOG_MESSAGE_MUTEX_LOCK_FAILED);
     }
 }
 
@@ -305,19 +305,19 @@ void I2cScannerApp::onSelectBus(lv_event_t* event) {
 }
 
 void I2cScannerApp::selectBus(int32_t selected) {
-    int32_t found_port;
-    if (!getActivePortAtIndex(selected, found_port)) {
+    struct Device* found_device;
+    if (!getActivePortAtIndex(selected, &found_device)) {
         return;
     }
 
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         scannedAddresses.clear();
-        port = static_cast<i2c_port_t>(found_port);
+        portDevice = found_device;
         scanState = ScanStateInitial;
         mutex.unlock();
     }
 
-    logger.info("Selected {}", selected);
+    LOG_I(TAG, "Selected %d", (int)selected);
     setLastBusIndex(selected);
 
     startScanning();
@@ -334,16 +334,6 @@ void I2cScannerApp::onPressScan(lv_event_t* event) {
     updateViews();
 }
 
-static bool findDeviceName(const std::vector<std::shared_ptr<hal::i2c::I2cDevice>>& devices, i2c_port_t port, uint8_t address, std::string& outName) {
-    for (auto& device : devices) {
-        if (device->getPort() == port && device->getAddress() == address) {
-            outName = device->getName();
-            return true;
-        }
-    }
-    return false;
-}
-
 void I2cScannerApp::updateViews() {
     if (mutex.lock(100 / portTICK_PERIOD_MS)) {
         if (scanState == ScanStateScanning) {
@@ -358,18 +348,10 @@ void I2cScannerApp::updateViews() {
         if (scanState == ScanStateStopped) {
             lv_obj_remove_flag(scanListWidget, LV_OBJ_FLAG_HIDDEN);
 
-            auto devices = hal::findDevices<hal::i2c::I2cDevice>(hal::Device::Type::I2c);
-
             if (!scannedAddresses.empty()) {
                 for (auto address: scannedAddresses) {
                     std::string address_text = getAddressText(address);
-                    std::string device_name;
-                    if (findDeviceName(devices, port, address, device_name)) {
-                        auto text = std::format("{} - {}", address_text, device_name);
-                        lv_list_add_text(scanListWidget, text.c_str());
-                    } else {
-                        lv_list_add_text(scanListWidget, address_text.c_str());
-                    }
+                    lv_list_add_text(scanListWidget, address_text.c_str());
                 }
             } else {
                 lv_list_add_text(scanListWidget, "No devices found");
@@ -380,17 +362,14 @@ void I2cScannerApp::updateViews() {
 
         mutex.unlock();
     } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViews");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "updateViews");
     }
 }
 
 void I2cScannerApp::updateViewsSafely() {
-    if (lvgl::lock(200 / portTICK_PERIOD_MS)) {
-        updateViews();
-        lvgl::unlock();
-    } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "updateViewsSafely");
-    }
+    lvgl_lock();
+    updateViews();
+    lvgl_unlock();
 }
 
 void I2cScannerApp::onScanTimerFinished() {
@@ -402,7 +381,7 @@ void I2cScannerApp::onScanTimerFinished() {
 
         updateViewsSafely();
     } else {
-        logger.warn(LOG_MESSAGE_MUTEX_LOCK_FAILED_FMT, "onScanTimerFinished");
+        LOG_W(TAG, "Mutex acquisition timeout (%s)", "onScanTimerFinished");
     }
 }
 

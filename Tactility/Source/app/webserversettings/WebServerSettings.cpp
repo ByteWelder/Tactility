@@ -2,26 +2,21 @@
 
 #include <Tactility/Tactility.h>
 #include <Tactility/settings/WebServerSettings.h>
-#include <Tactility/service/wifi/Wifi.h>
-#include <Tactility/service/wifi/WifiApSettings.h>
-#include <Tactility/service/webserver/AssetVersion.h>
-#include <Tactility/service/webserver/WebServerService.h>
-#include <Tactility/Assets.h>
 #include <Tactility/lvgl/Toolbar.h>
-#include <Tactility/lvgl/LvglSync.h>
-#include <Tactility/Logger.h>
+#include <Tactility/service/webserver/WebServerService.h>
+#include <Tactility/service/wifi/Wifi.h>
 
-#include <lvgl.h>
-#include <tactility/lvgl_icon_shared.h>
+#include <tactility/log.h>
+
+#include <lvgl/icons/shared.h>
+#include <lvgl/lvgl.h>
 
 #include <esp_netif.h>
 #include <esp_wifi.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/timers.h>
 
 namespace tt::app::webserversettings {
 
-static const auto LOGGER = tt::Logger("WebServerSettingsApp");
+constexpr auto* TAG = "WebServerSettingsApp";
 
 class WebServerSettingsApp final : public App {
 
@@ -29,7 +24,6 @@ class WebServerSettingsApp final : public App {
     settings::webserver::WebServerSettings originalSettings;
     bool updated = false;
     bool wifiSettingsChanged = false;
-    bool webServerEnabledChanged = false;
     lv_obj_t* dropdownWifiMode = nullptr;
     lv_obj_t* textAreaApPassword = nullptr;
     lv_obj_t* switchApOpenNetwork = nullptr;
@@ -48,10 +42,9 @@ class WebServerSettingsApp final : public App {
             app->wsSettings.wifiMode = static_cast<settings::webserver::WiFiMode>(index);
             app->updated = true;
             app->wifiSettingsChanged = true;
-            if (lvgl::lock(100)) {
-                app->updateUrlDisplay();
-                lvgl::unlock();
-            }
+            lvgl_lock();
+            app->updateUrlDisplay();
+            lvgl_unlock();
         });
     }
 
@@ -61,11 +54,18 @@ class WebServerSettingsApp final : public App {
         getMainDispatcher().dispatch([app, enabled] {
             app->wsSettings.webServerEnabled = enabled;
             app->updated = true;
-            app->webServerEnabledChanged = true;
-            if (lvgl::lock(100)) {
-                app->updateUrlDisplay();
-                lvgl::unlock();
+            lvgl_lock();
+            app->updateUrlDisplay();
+            lvgl_unlock();
+
+            // Apply immediately instead of waiting for app exit
+            const auto copy = app->wsSettings;
+            if (!settings::webserver::save(copy)) {
+                LOG_W(TAG, "Failed to persist WebServer settings; changes may be lost on reboot");
             }
+            service::webserver::getPubsub()->publish(service::webserver::WebServerEvent::WebServerSettingsChanged);
+            LOG_I(TAG, "WebServer %s", enabled ? "enabling..." : "disabling...");
+            service::webserver::setWebServerEnabled(enabled);
         });
     }
 
@@ -131,30 +131,6 @@ class WebServerSettingsApp final : public App {
         });
     }
 
-    static void onSyncAssets(lv_event_t* e) {
-        auto* app = static_cast<WebServerSettingsApp*>(lv_event_get_user_data(e));
-        auto* btn = static_cast<lv_obj_t*>(lv_event_get_target_obj(e));
-        lv_obj_add_state(btn, LV_STATE_DISABLED);
-        LOGGER.info("Manual asset sync triggered");
-
-        getMainDispatcher().dispatch([app, btn]{
-            bool success = service::webserver::syncAssets();
-            if (success) {
-                LOGGER.info("Asset sync completed successfully");
-            } else {
-                LOGGER.error("Asset sync failed");
-            }
-            // Only re-enable if button still exists (user hasn't navigated away)
-            // Must acquire LVGL lock since we're not in an LVGL event callback context
-            if (lvgl::lock(1000)) {
-                if (lv_obj_is_valid(btn)) {
-                    lv_obj_remove_state(btn, LV_STATE_DISABLED);
-                }
-                lvgl::unlock();
-            }
-        });
-    }
-
     void updateUrlDisplay() {
         if (!labelUrlValue) return;
 
@@ -197,6 +173,8 @@ class WebServerSettingsApp final : public App {
 public:
     void onCreate(AppContext& app) override {
         wsSettings = settings::webserver::loadOrGetDefault();
+        // Reflect the server's actual running state, in case it differs from the persisted setting
+        wsSettings.webServerEnabled = service::webserver::isWebServerEnabled();
         originalSettings = wsSettings;
     }
 
@@ -207,7 +185,7 @@ public:
         lv_obj_t* toolbar = lvgl::toolbar_create(parent, app);
 
         // Web Server Enable toggle
-        switchWebServerEnabled = lvgl::toolbar_add_switch_action(toolbar);
+        switchWebServerEnabled = lvgl_toolbar_add_switch_action(toolbar);
         if (wsSettings.webServerEnabled) {
             lv_obj_add_state(switchWebServerEnabled, LV_STATE_CHECKED);
         }
@@ -341,32 +319,6 @@ public:
 
         updateUrlDisplay();
 
-        // Sync Assets button
-        auto* sync_wrapper = lv_obj_create(main_wrapper);
-        lv_obj_set_size(sync_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-        lv_obj_set_style_pad_all(sync_wrapper, 10, LV_STATE_DEFAULT);
-        lv_obj_set_style_border_width(sync_wrapper, 1, LV_STATE_DEFAULT);
-        lv_obj_set_flex_flow(sync_wrapper, LV_FLEX_FLOW_COLUMN);
-        lv_obj_set_style_flex_cross_place(sync_wrapper, LV_FLEX_ALIGN_START, 0);
-        
-        auto* sync_label = lv_label_create(sync_wrapper);
-        lv_label_set_text(sync_label, "Asset Synchronization");
-        
-        auto* sync_info = lv_label_create(sync_wrapper);
-        lv_label_set_long_mode(sync_info, LV_LABEL_LONG_WRAP);
-        lv_obj_set_width(sync_info, LV_PCT(95));
-        if (lv_display_get_color_format(lv_obj_get_display(parent)) != LV_COLOR_FORMAT_L8) {
-            lv_obj_set_style_text_color(sync_info, lv_palette_main(LV_PALETTE_GREY), 0);
-        }
-        lv_label_set_text(sync_info, "Sync web assets between Data partition and SD card backup");
-        
-        auto* sync_button = lv_btn_create(sync_wrapper);
-        lv_obj_set_width(sync_button, LV_SIZE_CONTENT);
-        auto* sync_button_label = lv_label_create(sync_button);
-        lv_label_set_text(sync_button_label, "Sync Assets Now");
-        lv_obj_center(sync_button_label);
-        lv_obj_add_event_cb(sync_button, onSyncAssets, LV_EVENT_CLICKED, this);
-
         // Info text
         auto* info_label = lv_label_create(main_wrapper);
         lv_label_set_long_mode(info_label, LV_LABEL_LONG_WRAP);
@@ -394,14 +346,14 @@ public:
             }
 
             // Save to flash only (settings sync at boot handles SD restore)
+            // Note: the enable/disable toggle already saved and applied itself immediately
             const auto copy = wsSettings;
             const bool wifiChanged = wifiSettingsChanged;
-            const bool webServerChanged = webServerEnabledChanged;
 
-            getMainDispatcher().dispatch([copy, wifiChanged, webServerChanged]{
+            getMainDispatcher().dispatch([copy, wifiChanged]{
                 // Save to flash (fast, low memory pressure)
                 if (!settings::webserver::save(copy)) {
-                    LOGGER.warn("Failed to persist WebServer settings; changes may be lost on reboot");
+                    LOG_W(TAG, "Failed to persist WebServer settings; changes may be lost on reboot");
                 }
 
                 // Publish event immediately after save so WebServer cache refreshes BEFORE requests arrive
@@ -409,13 +361,7 @@ public:
 
                 // Only reconnect WiFi if WiFi settings actually changed
                 if (wifiChanged) {
-                    LOGGER.info("WiFi mode changed to {}", copy.wifiMode == settings::webserver::WiFiMode::AccessPoint ? "AP" : "Station");
-                }
-
-                // Control WebServer service immediately
-                if (webServerChanged) {
-                    LOGGER.info("WebServer {}", copy.webServerEnabled ? "enabling..." : "disabling...");
-                    service::webserver::setWebServerEnabled(copy.webServerEnabled);
+                    LOG_I(TAG, "WiFi mode changed to %s", copy.wifiMode == settings::webserver::WiFiMode::AccessPoint ? "AP" : "Station");
                 }
             });
         }

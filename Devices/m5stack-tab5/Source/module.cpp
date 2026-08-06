@@ -1,122 +1,98 @@
 #include <tactility/module.h>
+
+#include <tactility/check.h>
 #include <tactility/device.h>
+#include <tactility/device_listener.h>
+#include <tactility/driver.h>
+#include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
 #include <tactility/log.h>
 
-#include <freertos/FreeRTOS.h>
-#include <freertos/timers.h>
+#include <cstring>
 
-#include <atomic>
+#include "devices/detect.h"
+#include "devices/tab5_headphone_detect.h"
+#include "devices/tab5_keyboard.h"
+#include "devices/tab5_keyboard_attach_detect.h"
+#include "devices/tab5_power_control.h"
+#include "devices/tab_5_camera.h"
 
-#define TAG "Tab5"
+constexpr auto* TAG = "Tab5";
 
+// PI4IOE5V6408-0 (0x43) bit 1
 constexpr auto GPIO_EXP0_PIN_SPEAKER_ENABLE = 1;
+// PI4IOE5V6408-0 (0x43) bit 7
 constexpr auto GPIO_EXP0_PIN_HEADPHONE_DETECT = 7;
-constexpr auto HP_DETECT_POLL_MS = 1000;
 
-// hp_detect_timer is only touched from start()/stop(), which are called serially
-// by the module manager — no atomic needed for the handle itself.
-static TimerHandle_t hp_detect_timer = nullptr;
-static std::atomic<Device*> io_expander0_cached { nullptr };
-// Flags are written by the timer daemon task and read by start()/stop() — use atomics.
-static std::atomic<bool> hp_detect_last { false };
-static std::atomic<bool> hp_detect_initialized { false };
+static void tab5_init_expander0(Device* io_expander0) {
+    // Speaker and heapdhone pins are managed at runtime, so we can't have them as a hog in the dts file
+    // We have to init them manually.
+    auto* speaker_enable_pin = gpio_descriptor_acquire(io_expander0, GPIO_EXP0_PIN_SPEAKER_ENABLE, GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
+    check(speaker_enable_pin);
+    auto* headphone_detect_pin = gpio_descriptor_acquire(io_expander0, GPIO_EXP0_PIN_HEADPHONE_DETECT, GPIO_FLAG_DIRECTION_INPUT, GPIO_OWNER_GPIO);
+    check(headphone_detect_pin);
 
-static void headphoneDetectCallback(TimerHandle_t /*timer*/) {
-    Device* cached = io_expander0_cached.load(std::memory_order_acquire);
-    if (!cached) {
-        cached = device_find_by_name("io_expander0");
-        io_expander0_cached.store(cached, std::memory_order_release);
+    gpio_descriptor_set_level(speaker_enable_pin, false);
+
+    gpio_descriptor_release(speaker_enable_pin);
+    gpio_descriptor_release(headphone_detect_pin);
+}
+
+static void tab5_enable_speaker_amp(Device* io_expander0) {
+    auto* speaker_enable_pin = gpio_descriptor_acquire(io_expander0, GPIO_EXP0_PIN_SPEAKER_ENABLE, GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
+    check(speaker_enable_pin, "Failed to acquire speaker enable pin");
+    error_t error = gpio_descriptor_set_level(speaker_enable_pin, true);
+    gpio_descriptor_release(speaker_enable_pin);
+    if (error != ERROR_NONE) {
+        LOG_E(TAG, "Failed to enable amplifier: %s", error_to_string(error));
     }
-    auto* io_expander0 = cached;
-    if (!io_expander0) {
-        return; // Not ready yet, will retry on next tick
-    }
+}
 
-    auto* hp_pin = gpio_descriptor_acquire(io_expander0, GPIO_EXP0_PIN_HEADPHONE_DETECT, GPIO_OWNER_GPIO);
-    if (!hp_pin) {
-        LOG_W(TAG, "hp_detect: HP_DET pin busy");
+// Fires for every device's start/stop in the system; initializes io_expander0's pins and enables
+// the speaker amplifier once io_expander0 itself has started.
+static void on_io_expander0_started(Device* device, DeviceEvent event, void* context) {
+    (void)context;
+
+    static bool did_init = false;
+    if (did_init || event != DEVICE_EVENT_STARTED || strcmp(device->name, "io_expander0") != 0) {
         return;
     }
+    did_init = true;
 
-    bool hp = false;
-    error_t err = gpio_descriptor_get_level(hp_pin, &hp);
-    gpio_descriptor_release(hp_pin);
-
-    if (err != ERROR_NONE) {
-        LOG_W(TAG, "hp_detect: HP_DET read error: %s", error_to_string(err));
-        return;
-    }
-
-    LOG_D(TAG, "hp_detect: HP_DET=%d", (int)hp);
-
-    if (!hp_detect_initialized || hp != hp_detect_last) {
-        auto* spk_pin = gpio_descriptor_acquire(io_expander0, GPIO_EXP0_PIN_SPEAKER_ENABLE, GPIO_OWNER_GPIO);
-        if (!spk_pin) {
-            LOG_W(TAG, "hp_detect: SPK_EN pin busy, will retry");
-            return;
-        }
-        error_t spk_err = gpio_descriptor_set_level(spk_pin, !hp);
-        gpio_descriptor_release(spk_pin);
-        if (spk_err != ERROR_NONE) {
-            LOG_W(TAG, "hp_detect: SPK_EN set error: %s, will retry", error_to_string(spk_err));
-            return;
-        }
-        hp_detect_last = hp;
-        hp_detect_initialized = true;
-        LOG_I(TAG, "Headphones %s, speaker %s", hp ? "detected" : "removed", hp ? "disabled" : "enabled");
-    }
+    tab5_init_expander0(device);
+    tab5_enable_speaker_amp(device);
 }
 
 extern "C" {
 
 static error_t start() {
-
-    if (hp_detect_timer != nullptr) {
-        LOG_W(TAG, "hp_detect timer already running");
-        return ERROR_NONE;
-    }
-
-    hp_detect_initialized = false;
-    hp_detect_last = false;
-
-    hp_detect_timer = xTimerCreate("hp_detect", pdMS_TO_TICKS(HP_DETECT_POLL_MS), pdTRUE, nullptr, headphoneDetectCallback);
-    if (!hp_detect_timer) {
-        LOG_E(TAG, "Failed to create hp_detect timer");
-        return ERROR_RESOURCE;
-    }
-    if (xTimerStart(hp_detect_timer, pdMS_TO_TICKS(100)) != pdPASS) {
-        LOG_E(TAG, "Failed to start hp_detect timer");
-        xTimerDelete(hp_detect_timer, pdMS_TO_TICKS(100));
-        hp_detect_timer = nullptr;
-        return ERROR_RESOURCE;
-    }
+    tab5_detect_start();
+    tab5_camera_init();
+    device_listener_add(on_io_expander0_started, nullptr);
+    tab5_headphone_detect_start();
+    tab5_keyboard_attach_detect_start();
     return ERROR_NONE;
 }
 
 static error_t stop() {
-    if (hp_detect_timer == nullptr) {
-        return ERROR_NONE;
-    }
-    if (xTimerStop(hp_detect_timer, pdMS_TO_TICKS(100)) != pdPASS) {
-        LOG_W(TAG, "Failed to stop hp_detect timer");
-    }
-    if (xTimerDelete(hp_detect_timer, pdMS_TO_TICKS(100)) != pdPASS) {
-        LOG_E(TAG, "Failed to delete hp_detect timer");
-    }
-    // Always clear the handle — stale non-null handle is worse than a resource leak,
-    // as it would cause start() to silently skip re-creating the timer.
-    hp_detect_timer = nullptr;
-    io_expander0_cached.store(nullptr, std::memory_order_release);
+    tab5_keyboard_attach_detect_stop();
+    tab5_headphone_detect_stop();
+    device_listener_remove(on_io_expander0_started);
+    tab5_detect_stop();
     return ERROR_NONE;
 }
+
+static Driver* const tab5_drivers[] = {
+    &tab5_keyboard_driver,
+    &tab5_power_control_driver,
+    nullptr
+};
 
 Module m5stack_tab5_module = {
     .name = "m5stack-tab5",
     .start = start,
     .stop = stop,
-    .symbols = nullptr,
-    .internal = nullptr
+    .drivers = tab5_drivers
 };
 
 }

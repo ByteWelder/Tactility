@@ -1,18 +1,31 @@
 /dts-v1/;
 
 #include <tactility/bindings/root.h>
+#include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_gpio.h>
+#include <tactility/bindings/esp32_grove.h>
 #include <tactility/bindings/esp32_i2c.h>
 #include <tactility/bindings/esp32_i2s.h>
+#include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_uart.h>
 #include <bindings/mpu6886.h>
 #include <bindings/bm8563.h>
+#include <bindings/axp192.h>
+#include <bindings/ft5x06.h>
+#include <bindings/ili9341.h>
+#include <bindings/dummy_i2s_amp.h>
+#include <bindings/pdm_mic.h>
 
 // Reference: https://docs.m5stack.com/en/core/Core2
 / {
 	compatible = "root";
 	model = "M5Stack Core2";
+
+	wifi0 {
+		compatible = "espressif,esp32-wifi-pinned";
+		status = "disabled";
+	};
 
 	gpio0 {
 		compatible = "espressif,esp32-gpio";
@@ -35,26 +48,69 @@
 			compatible = "belling,bm8563";
 			reg = <0x51>;
 		};
+
+		axp192 {
+			compatible = "x-powers,axp192";
+			reg = <0x34>;
+			dcdc1-enable; // ESP32 + peripherals main 3V3 rail - must stay on
+			dcdc1-voltage = <3300>;
+			dcdc3-enable; // LCD backlight
+			dcdc3-voltage = <3300>;
+			ldo2-enable; // LCD logic + SD card
+			ldo2-voltage = <3300>;
+			// ldo3 (vibration motor) intentionally left disabled
+			exten-enable; // 5V boost (speaker amp etc.)
+			gpio1-pwm; // GPIO1 as PWM1 output, drives the notification LED
+			gpio1-pwm1-duty-cycle = <255>; // 255 = LED off
+		};
+
+		// FT6x36 driver doesn't reliably work when power cycling,
+		// or when the driver was powering on with its own power supply (not USB-C).
+		// The driver would not find the device and init would fail.
+		touch {
+			compatible = "focaltech,ft5x06";
+			reg = <0x38>;
+			x-max = <320>;
+			y-max = <240>;
+			pin-interrupt = <&gpio0 39 GPIO_FLAG_NONE>;
+		};
 	};
 
-	i2c_port_a {
-		compatible = "espressif,esp32-i2c";
-		port = <I2C_NUM_1>;
-		clock-frequency = <400000>;
-		pin-sda = <&gpio0 32 GPIO_FLAG_NONE>;
-		pin-scl = <&gpio0 33 GPIO_FLAG_NONE>;
+	port_a: grove0 {
+		compatible = "espressif,esp32-grove";
+		defaultMode = <GROVE_MODE_I2C>;
+		pinSdaTx = <&gpio0 32 GPIO_FLAG_NONE>;
+		pinSclRx = <&gpio0 33 GPIO_FLAG_NONE>;
+		uartPort = <UART_NUM_1>;
+		i2cPort = <I2C_NUM_1>;
+		i2cClockFrequency = <400000>;
 	};
 
 	spi0 {
 		compatible = "espressif,esp32-spi";
 		host = <SPI2_HOST>;
+		cs-gpios = <&gpio0 5 GPIO_FLAG_NONE>, // Display
+				   <&gpio0 4 GPIO_FLAG_NONE>; // SD card
 		pin-mosi = <&gpio0 23 GPIO_FLAG_NONE>;
 		pin-miso = <&gpio0 38 GPIO_FLAG_NONE>;
 		pin-sclk = <&gpio0 18 GPIO_FLAG_NONE>;
+	
+		display@0 {
+			compatible = "ilitek,ili9341";
+			horizontal-resolution = <320>;
+			vertical-resolution = <240>;
+			invert-color;
+			bgr-order;
+			pixel-clock-hz = <40000000>;
+			pin-dc = <&gpio0 15 GPIO_FLAG_NONE>;
+		};
+
+		sdcard@1 {
+			compatible = "espressif,esp32-sdspi";
+			frequency-khz = <20000>;
+		};
 	};
 
-	// NS4168: Speaker and microphone
-	// TODO: Init microphone via I2C: https://github.com/m5stack/M5Unified/blob/a6256725481f1bc366655fa48cf03b6095e30ad1/src/M5Unified.cpp#L391C19-L391C44
 	i2s0 {
 		compatible = "espressif,esp32-i2s";
 		port = <I2S_NUM_0>;
@@ -64,11 +120,14 @@
 		pin-data-in = <&gpio0 34 GPIO_FLAG_NONE>;
 	};
 
-	uart_port_a: uart1 {
-		compatible = "espressif,esp32-uart";
-		status = "disabled";
-		port = <UART_NUM_1>;
-		pin-tx = <&gpio0 33 GPIO_FLAG_NONE>;
-		pin-rx = <&gpio0 32 GPIO_FLAG_NONE>;
+	speaker0 {
+		compatible = "nsiway,ns4168";
+		i2s = <&i2s0>;
+	};
+
+	mic0 {
+		compatible = "generic,spm1423";
+		i2s = <&i2s0>;
+		channels = <1>;
 	};
 };

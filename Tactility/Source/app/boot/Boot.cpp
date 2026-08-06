@@ -1,14 +1,20 @@
-#include "Tactility/lvgl/Lvgl.h"
+#include "tactility/system_event.h"
 
-#include <Tactility/TactilityCore.h>
+
+#include <tactility/delay.h>
+#include <tactility/drivers/backlight.h>
+#include <tactility/drivers/display.h>
+#include <tactility/log.h>
+#include <tactility/time.h>
+
+#include <Tactility/CpuAffinity.h>
+#include <Tactility/Paths.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/app/AppContext.h>
 #include <Tactility/app/AppPaths.h>
-#include <Tactility/CpuAffinity.h>
-#include <Tactility/hal/display/DisplayDevice.h>
+#include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/hal/usb/Usb.h>
-#include <Tactility/kernel/SystemEvents.h>
-#include <Tactility/Logger.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/lvgl/Style.h>
 #include <Tactility/service/loader/Loader.h>
 #include <Tactility/settings/BootSettings.h>
@@ -16,9 +22,12 @@
 
 #include <lvgl.h>
 
+#include <atomic>
+
 #ifdef ESP_PLATFORM
-#include "Tactility/app/crashdiagnostics/CrashDiagnostics.h"
-#include <Tactility/kernel/PanicHandler.h>
+#include <Tactility/app/crashdiagnostics/CrashDiagnostics.h>
+#include <Tactility/PanicHandler.h>
+#include <esp_system.h>
 #include <sdkconfig.h>
 #else
 #define CONFIG_TT_SPLASH_DURATION 0
@@ -26,15 +35,20 @@
 
 namespace tt::app::boot {
 
-static const auto LOGGER = Logger("Boot");
+constexpr auto* TAG = "Boot";
 
 extern const AppManifest manifest;
 
-static std::shared_ptr<hal::display::DisplayDevice> getHalDisplay() {
-    return hal::findFirstDevice<hal::display::DisplayDevice>(hal::Device::Type::Display);
-}
-
 class BootApp : public App {
+
+    // Snapshot of hal::usb::isUsbBootMode(), taken before the boot thread starts and
+    // potentially clears the underlying flag via setupUsbBootMode()/resetUsbBootMode().
+    // onShow() reads this instead of the live flag to avoid a race between the two.
+    static std::atomic<bool> isUsbBootSplash;
+
+    // Set by bootThreadCallback() when CONFIG_TT_USER_DATA_LOCATION_SD is defined but no SD card is mounted.
+    // onShow() reads this to show an error instead of the normal splash, and boot halts instead of starting the launcher.
+    static std::atomic<bool> sdCardMissing;
 
     Thread thread = Thread(
         "boot",
@@ -44,26 +58,33 @@ class BootApp : public App {
     );
 
     static void setupDisplay() {
-        const auto hal_display = getHalDisplay();
-        if (hal_display == nullptr) {
-            return;
-        }
+        Device* display = nullptr;
+        if (device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE) {
+            Device* backlight;
+            if (display_get_backlight(display, &backlight) == ERROR_NONE) {
+                if (!device_is_ready(backlight)) {
+                    if (device_start(backlight) != ERROR_NONE) {
+                        LOG_E(TAG, "Failed to start %s", backlight->name);
+                    }
+                }
 
-        settings::display::DisplaySettings settings;
-        if (settings::display::load(settings)) {
-            if (hal_display->getGammaCurveCount() > 0) {
-                hal_display->setGammaCurve(settings.gammaCurve);
-                LOGGER.info("Gamma curve {}", settings.gammaCurve);
+                settings::display::DisplaySettings settings;
+                if (settings::display::load(settings)) {
+                } else {
+                    settings = settings::display::getDefault();
+                }
+
+                if (backlight_set_brightness(backlight, settings.backlightDuty) == ERROR_NONE) {
+                    LOG_I(TAG, "Backlight for %s set to %d", display->name, settings.backlightDuty);
+                } else {
+                    LOG_E(TAG, "Failed to set brightness of %s", backlight->name);
+                }
+            } else {
+                LOG_I(TAG, "No backlight for %s", display->name);
             }
+            device_put(display);
         } else {
-            settings = settings::display::getDefault();
-        }
-
-        if (hal_display->supportsBacklightDuty()) {
-            LOGGER.info("Backlight {}", settings.backlightDuty);
-            hal_display->setBacklightDuty(settings.backlightDuty);
-        } else {
-            LOGGER.info("No backlight");
+            LOG_I(TAG, "No kernel display");
         }
     }
 
@@ -72,17 +93,17 @@ class BootApp : public App {
             return false;
         }
 
-        LOGGER.info("Rebooting into mass storage device mode");
+        LOG_I(TAG, "Rebooting into mass storage device mode");
         auto mode = hal::usb::getUsbBootMode();  // Get mode before reset
         hal::usb::resetUsbBootMode();
         if (mode == hal::usb::BootMode::Flash) {
-            if (!hal::usb::startMassStorageWithFlash()) {
-                LOGGER.error("Unable to start flash mass storage");
+            if (!hal::usb::startMassStorageWithFlash(true)) {
+                LOG_E(TAG, "Unable to start flash mass storage");
                 return false;
             }
         } else if (mode == hal::usb::BootMode::Sdmmc) {
-            if (!hal::usb::startMassStorageWithSdmmc()) {
-                LOGGER.error("Unable to start SD mass storage");
+            if (!hal::usb::startMassStorageWithSdmmc(true)) {
+                LOG_E(TAG, "Unable to start SD mass storage");
                 return false;
             }
         }
@@ -91,41 +112,51 @@ class BootApp : public App {
     }
 
     static void waitForMinimalSplashDuration(TickType_t startTime) {
-        const auto end_time = kernel::getTicks();
+        const auto end_time = get_ticks();
         const auto ticks_passed = end_time - startTime;
         constexpr auto minimum_ticks = (CONFIG_TT_SPLASH_DURATION / portTICK_PERIOD_MS);
         if (minimum_ticks > ticks_passed) {
-            kernel::delayTicks(minimum_ticks - ticks_passed);
+            delay_ticks(minimum_ticks - ticks_passed);
         }
     }
 
     static int32_t bootThreadCallback() {
-        LOGGER.info("Starting boot thread");
-        const auto start_time = kernel::getTicks();
+        LOG_I(TAG, "Starting boot thread");
+        const auto start_time = get_ticks();
 
         // Give the UI some time to redraw
         // If we don't do this, various init calls will read files and block SPI IO for the display
         // This would result in a blank/black screen being shown during this phase of the boot process
         // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
-        kernel::delayMillis(10);
+        delay_millis(10);
 
         // TODO: Support for multiple displays
-        LOGGER.info("Setup display");
-        setupDisplay(); // Set backlight
+        LOG_I(TAG, "Setup display");
+        setupDisplay();
+        LOG_I(TAG, "Prepare file systems");
         prepareFileSystems();
 
+#ifdef CONFIG_TT_USER_DATA_LOCATION_SD
+        std::string sd_path;
+        if (!findFirstMountedSdCardPath(sd_path)) {
+            LOG_E(TAG, "SD card not found");
+            sdCardMissing = true;
+        }
+#endif
+
         if (!setupUsbBootMode()) {
-            LOGGER.info("initFromBootApp");
+            LOG_I(TAG, "initFromBootApp");
             registerApps();
             waitForMinimalSplashDuration(start_time);
-            stop(manifest.appId);
+            // When SD card is missing, wait for dialog result
+            if (!sdCardMissing) stop(manifest.appId);
             startNextApp();
         }
 
         // This event will likely block as other systems are initialized
         // e.g. Wi-Fi reads AP configs from SD card
-        LOGGER.info("Publish event");
-        kernel::publishSystemEvent(kernel::SystemEvent::BootSplash);
+        LOG_I(TAG, "Publish event");
+        system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
 
         return 0;
     }
@@ -139,13 +170,13 @@ class BootApp : public App {
 
         // When boot properties didn't specify an override, return default
         if (boot_properties.launcherAppId.empty()) {
-            LOGGER.error("Failed to load launcher configuration, or launcher not configured");
+            LOG_E(TAG, "Failed to load launcher configuration, or launcher not configured");
             return CONFIG_TT_LAUNCHER_APP_ID;
         }
 
         // If the app in the boot.properties does not exist, return default
         if (findAppManifestById(boot_properties.launcherAppId) == nullptr) {
-            LOGGER.error("Launcher app {} not found", boot_properties.launcherAppId);
+            LOG_E(TAG, "Launcher app %s not found", boot_properties.launcherAppId.c_str());
             return CONFIG_TT_LAUNCHER_APP_ID;
         }
 
@@ -154,6 +185,11 @@ class BootApp : public App {
     }
 
     static void startNextApp() {
+        if (sdCardMissing) {
+            alertdialog::start("Error", "SD card not found.\nPlease insert one and reboot.", std::vector<const char*> { "Reboot" });
+            return;
+        }
+
 #ifdef ESP_PLATFORM
         if (esp_reset_reason() == ESP_RST_PANIC) {
             crashdiagnostics::start();
@@ -174,6 +210,9 @@ class BootApp : public App {
 public:
 
     void onCreate(AppContext& app) override {
+        // Snapshot before the boot thread potentially clears the flag via setupUsbBootMode()
+        isUsbBootSplash = hal::usb::isUsbBootMode();
+
         // Just in case this app is somehow resumed
         if (thread.getState() == Thread::State::Stopped) {
             thread.start();
@@ -182,6 +221,12 @@ public:
 
     void onDestroy(AppContext& app) override {
         thread.join();
+    }
+
+    void onResult(AppContext& /*app*/, LaunchId /*launchId*/, Result /*result*/, std::unique_ptr<Bundle> /*bundle*/) override {
+#ifdef ESP_PLATFORM
+        esp_restart();
+#endif
     }
 
     void onShow(AppContext& app, lv_obj_t* parent) override {
@@ -197,15 +242,31 @@ public:
         const char* logo;
         // TODO: Replace with automatic asset buckets like on Android
         if (getSmallestDimension() < 150) { // e.g. Cardputer
-            logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo_small.png";
+            logo = isUsbBootSplash ? "logo_usb.png" : "logo_small.png";
         } else {
-            logo = hal::usb::isUsbBootMode() ? "logo_usb.png" : "logo.png";
+            logo = isUsbBootSplash ? "logo_usb.png" : "logo.png";
         }
         const auto logo_path = lvgl::PATH_PREFIX + paths->getAssetsPath(logo);
-        LOGGER.info("{}", logo_path);
+        LOG_I(TAG, "%s", logo_path.c_str());
         lv_image_set_src(image, logo_path.c_str());
+
+#ifdef ESP_PLATFORM
+        if (isUsbBootSplash) {
+            auto* button = lv_button_create(parent);
+            lv_obj_align(button, LV_ALIGN_BOTTOM_MID, 0, -16);
+            auto* label = lv_label_create(button);
+            lv_label_set_text(label, "Return to OS");
+            lv_obj_add_event_cb(button, [](lv_event_t*) {
+                hal::usb::stop();
+                esp_restart();
+            }, LV_EVENT_SHORT_CLICKED, nullptr);
+        }
+#endif
     }
 };
+
+std::atomic<bool> BootApp::isUsbBootSplash = false;
+std::atomic<bool> BootApp::sdCardMissing = false;
 
 extern const AppManifest manifest = {
     .appId = "Boot",

@@ -1,6 +1,11 @@
 dependencies:
+  espressif/esp_codec_dev: "1.5.10"
+  espressif/esp_video:
+    version: "2.2.0"
+    rules:
+      - if: "target in [esp32s3, esp32c6, esp32p4]"
   espressif/esp_hosted:
-    version: "*"
+    version: "2.12.11"
     rules:
       - if: "target == esp32p4"
   espressif/esp_wifi_remote:
@@ -19,12 +24,6 @@ dependencies:
     version: "0.0.1"
     rules:
       - if: "target in [esp32, esp32s3]"
-  NellowTCS/esp_lcd_ssd1685:
-    git: https://github.com/NellowTCS/esp_lcd_ssd1685.git
-    version: "1.0.3"
-    rules:
-      # More hardware seems to be supported - enable as needed
-      - if: "target in [esp32s3]"
   espressif/esp_lcd_touch: "1.2.1"
   atanisoft/esp_lcd_touch_xpt2046:
     version: "1.0.6"
@@ -33,8 +32,6 @@ dependencies:
   espressif/esp_lcd_touch_cst816s: "1.0.3"
   espressif/esp_lcd_touch_gt911: "1.1.3"
   espressif/esp_lcd_touch_ft5x06: "1.0.6~1"
-  espressif/esp_io_expander: "1.0.1"
-  espressif/esp_io_expander_tca95xx_16bit: "1.0.1"
   espressif/esp_lcd_axs15231b: "2.0.2"
   lambage/esp_lcd_touch_ft6336u: "1.0.8"
   espressif/esp_lcd_st7701:
@@ -58,6 +55,11 @@ dependencies:
       - if: "target in [esp32p4]"
   espressif/esp_lcd_st7123:
     version: "1.0.2"
+    rules:
+      # More hardware seems to be supported - enable as needed
+      - if: "target in [esp32p4]"
+  espressif/esp_lcd_st7121:
+    version: "1.0.1"
     rules:
       # More hardware seems to be supported - enable as needed
       - if: "target in [esp32p4]"
@@ -87,5 +89,9 @@ dependencies:
     version: "1.1.4"
     rules:
       - if: "target in [esp32s3, esp32p4]"
+  jgromes/radiolib:
+    version: "7.3.0"
+    rules:
+      - if: "target in [esp32, esp32s3, esp32p4]"
   idf: '5.5.2'
 

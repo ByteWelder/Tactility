@@ -2,9 +2,9 @@
 #include <Tactility/lvgl/Toolbar.h>
 #include <Tactility/service/loader/Loader.h>
 
+#include <lvgl/icons/shared.h>
+#include <lvgl/fonts.h>
 #include <tactility/check.h>
-#include <tactility/lvgl_icon_shared.h>
-#include <tactility/lvgl_fonts.h>
 
 #include <lvgl.h>
 

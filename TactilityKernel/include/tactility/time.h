@@ -11,7 +11,8 @@
 #include <stdint.h>
 
 #include "defines.h"
-#include "tactility/freertos/task.h"
+#include <tactility/freertos/port.h>
+#include <tactility/freertos/task.h>
 
 #ifdef ESP_PLATFORM
 #include <esp_timer.h>
@@ -30,6 +31,8 @@ static_assert(configTICK_RATE_HZ == 1000);
 #else
 static_assert(configTICK_RATE_HZ == 1000, "configTICK_RATE_HZ must be 1000");
 #endif
+
+#define MAX_TICKS (~(TickType_t)0)
 
 static inline uint32_t get_tick_frequency() {
     return configTICK_RATE_HZ;
@@ -61,17 +64,17 @@ static inline TickType_t get_timeout_remaining_ticks(TickType_t timeout, TickTyp
 uint32_t kernel_get_tick_frequency();
 
 /** @return the microseconds that have passed since boot */
-static inline int64_t get_micros_since_boot() {
+static inline uint64_t get_micros_since_boot() {
 #ifdef ESP_PLATFORM
     return esp_timer_get_time();
 #else
     struct timespec ts;
     if (clock_gettime(CLOCK_MONOTONIC, &ts) == 0) {
-        return ((int64_t)ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000);
+        return ((uint64_t)ts.tv_sec * 1000000LL) + (ts.tv_nsec / 1000);
     }
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return ((int64_t)tv.tv_sec * 1000000LL) + tv.tv_usec;
+    return ((uint64_t)tv.tv_sec * 1000000LL) + tv.tv_usec;
 #endif
 }
 
