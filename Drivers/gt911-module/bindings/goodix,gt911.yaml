@@ -35,3 +35,39 @@ properties:
     type: phandles
     default: GPIO_PIN_SPEC_NONE
     description: Interrupt GPIO pin
+  reset-assert-level:
+    type: int
+    default: 0
+    description: |
+      Level that drives the reset pin into reset: 0 = active low, 1 = active high.
+      Some boards (e.g. Tulip 4 R11) invert the GT911 reset line.
+  reset-pulses:
+    type: int
+    default: 1
+    description: |
+      Number of reset pulses applied before the controller is initialized. Some panels
+      (e.g. Tulip 4 R11) require two toggle cycles before they respond on I2C.
+  x-offset:
+    type: int
+    default: 0
+    description: |
+      Signed X coordinate correction added to the raw controller output before scaling.
+      Aligns the sensor with the panel (e.g. -2 on Tulip 4 R11).
+  y-offset:
+    type: int
+    default: 0
+    description: |
+      Signed Y coordinate correction added to the raw controller output before scaling
+      (e.g. -12 on Tulip 4 R11).
+  x-scale:
+    type: int
+    default: 1000
+    description: |
+      X coordinate scale as per-mille (1000 = 1.0), applied after x-offset.
+  y-scale:
+    type: int
+    default: 1000
+    description: |
+      Y coordinate scale as per-mille (1000 = 1.0), applied after y-offset.
+      Tulip 4 R11 uses 800 because the controller's programmed Y range (~750) exceeds the
+      panel's 600 rows.

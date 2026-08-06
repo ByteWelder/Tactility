@@ -1,0 +1,180 @@
+/dts-v1/;
+
+#include <tactility/bindings/root.h>
+#include <tactility/bindings/esp32_ble.h>
+#include <tactility/bindings/esp32_wifi_pinned.h>
+#include <tactility/bindings/esp32_gpio.h>
+#include <tactility/bindings/esp32_i2c.h>
+#include <tactility/bindings/esp32_i2s.h>
+#include <tactility/bindings/esp32_usbhost.h>
+#include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/gpio_hog.h>
+#include <tactility/bindings/pwm_backlight.h>
+
+#include <bindings/rgb_display.h>
+#include <bindings/gt911.h>
+#include <bindings/dummy_i2s_amp.h>
+
+// Reference: https://github.com/TulipCC/tulipcc/ <- board config for the Tulip 4 (rev R11,
+// "MAKERFABS" variant): pins.h (esp32s3/pins.h), esp32s3_display.c and the R11 schematic
+// (docs/pcbs/tulip4_r11/tulipv4_r11.sch).
+// The display is an 8-bit RGB332 dot-clock panel: only 8 of the 16 data lines are wired to
+// active color inputs (B6,B7,G5,G6,G7,R5,R6,R7), the rest are pulled low by the firmware.
+/ {
+	compatible = "root";
+	model = "Tulip 4 (R11)";
+
+	wifi0 {
+		compatible = "espressif,esp32-wifi-pinned";
+		status = "disabled";
+	};
+
+	ble0 {
+		compatible = "espressif,esp32-ble";
+		status = "disabled";
+	};
+
+	gpio0 {
+		compatible = "espressif,esp32-gpio";
+		gpio-count = <49>;
+	};
+
+	i2c0 {
+		compatible = "espressif,esp32-i2c";
+		port = <I2C_NUM_0>;
+		clock-frequency = <100000>;
+		pin-sda = <&gpio0 17 GPIO_FLAG_PULL_UP>;
+		pin-scl = <&gpio0 18 GPIO_FLAG_PULL_UP>;
+
+		touch0 {
+			compatible = "goodix,gt911";
+			reg = <0x5D>;
+			x-max = <1024>;
+			y-max = <600>;
+			pin-reset = <&gpio0 48 GPIO_FLAG_NONE>;
+			// R11 inverts the reset line (active-high) and needs two toggle cycles before it
+			// starts responding on I2C.
+			reset-assert-level = <1>;
+			reset-pulses = <2>;
+			// The controller's programmed Y range (~750) exceeds the panel's 600 rows and the
+			// sensor sits slightly offset from the panel; calibrate per the reference firmware
+			x-offset = < -2 >;
+			y-offset = < -10 >;
+			y-scale = <800>;
+		};
+	};
+
+	// The unused panel data lines (G2 and B3 are unconnected on R11) are driven low exactly
+	// like the reference firmware does, so the panel never sees floating inputs on them.
+	panel_data_low_b4 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 38 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	panel_data_low_b5 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 46 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	panel_data_low_g3 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 6 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	panel_data_low_g4 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 7 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	panel_data_low_r3 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 45 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	panel_data_low_r4 {
+		compatible = "gpio-hog";
+		pin = <&gpio0 13 GPIO_FLAG_NONE>;
+		mode = <GPIO_HOG_MODE_OUTPUT_LOW>;
+	};
+
+	// Backlight is active-low: the reference firmware drives duty 0 at max brightness.
+	display_backlight_pwm {
+		compatible = "espressif,esp32-pwm-ledc";
+		pin = <&gpio0 47 GPIO_FLAG_NONE>;
+		period-ns = <3333333>;
+		duty-resolution = <13>;
+		ledc-timer = <1>;
+		ledc-channel = <1>;
+		inverted;
+	};
+
+	display_backlight {
+		compatible = "pwm-backlight";
+		pwm = <&display_backlight_pwm>;
+		brightness-level-range = <0 255>;
+		brightness-default = <200>;
+	};
+
+	display0 {
+		compatible = "espressif,esp32-rgb-display";
+		horizontal-resolution = <1024>;
+		vertical-resolution = <600>;
+		pixel-clock-hz = <28000000>;
+		hsync-pulse-width = <30>;
+		hsync-back-porch = <16>;
+		hsync-front-porch = <210>;
+		vsync-pulse-width = <13>;
+		vsync-back-porch = <10>;
+		vsync-front-porch = <22>;
+		data-width = <8>;
+		bits-per-pixel = <8>;
+		num-fbs = <1>;
+		pin-hsync = <&gpio0 39 GPIO_FLAG_NONE>;
+		pin-vsync = <&gpio0 41 GPIO_FLAG_NONE>;
+		pin-de = <&gpio0 40 GPIO_FLAG_NONE>;
+		pin-pclk = <&gpio0 42 GPIO_FLAG_NONE>;
+		pin-data0 = <&gpio0 9 GPIO_FLAG_NONE>; // B6
+		pin-data1 = <&gpio0 1 GPIO_FLAG_NONE>; // B7
+		pin-data2 = <&gpio0 15 GPIO_FLAG_NONE>; // G5
+		pin-data3 = <&gpio0 16 GPIO_FLAG_NONE>; // G6
+		pin-data4 = <&gpio0 4 GPIO_FLAG_NONE>; // G7
+		pin-data5 = <&gpio0 10 GPIO_FLAG_NONE>; // R5
+		pin-data6 = <&gpio0 21 GPIO_FLAG_NONE>; // R6
+		pin-data7 = <&gpio0 14 GPIO_FLAG_NONE>; // R7
+		backlight = <&display_backlight>;
+	};
+
+	i2s0 {
+		compatible = "espressif,esp32-i2s";
+		port = <I2S_NUM_0>;
+		pin-bclk = <&gpio0 8 GPIO_FLAG_NONE>;
+		pin-ws = <&gpio0 2 GPIO_FLAG_NONE>;
+		pin-data-out = <&gpio0 5 GPIO_FLAG_NONE>;
+	};
+
+	speaker0 {
+		compatible = "ti,pcm5101a";
+		i2s = <&i2s0>;
+	};
+
+	usbhost0 {
+		compatible = "espressif,esp32-usbhost";
+
+		usbhosthid0 {
+			compatible = "espressif,esp32-usbhost-hid";
+		};
+
+		usbhostmidi0 {
+			compatible = "espressif,esp32-usbhost-midi";
+		};
+
+		usbhostmsc0 {
+			compatible = "espressif,esp32-usbhost-msc";
+		};
+	};
+};

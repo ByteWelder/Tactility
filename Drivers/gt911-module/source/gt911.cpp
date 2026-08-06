@@ -7,6 +7,7 @@
 #include <tactility/driver.h>
 #include <tactility/drivers/esp32_i2c.h>
 #include <tactility/drivers/esp32_i2c_master.h>
+#include <tactility/drivers/gpio_controller.h>
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/drivers/pointer.h>
 #include <tactility/log.h>
@@ -16,6 +17,8 @@
 #include <esp_lcd_panel_io.h>
 #include <esp_lcd_touch.h>
 #include <esp_lcd_touch_gt911.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include <cstdlib>
 
@@ -29,6 +32,41 @@ struct Gt911Internal {
 
 static gpio_num_t pin_or_nc(const GpioPinSpec& pin) {
     return pin.gpio_controller == nullptr ? GPIO_NUM_NC : static_cast<gpio_num_t>(pin.pin);
+}
+
+// Some boards invert the GT911 reset line and/or require several toggle cycles before the
+// controller starts responding on I2C (e.g. Tulip 4 R11). The esp_lcd_touch_gt911 driver only
+// performs a single reset, so the pin is pulsed here first
+static error_t reset_controller_pin(const GpioPinSpec& pin, uint8_t pulses, uint8_t assert_level) {
+    if (pulses == 0 || pin.gpio_controller == nullptr) {
+        return ERROR_NONE;
+    }
+
+    auto* descriptor = gpio_descriptor_acquire(pin.gpio_controller, pin.pin, pin.flags | GPIO_FLAG_DIRECTION_OUTPUT, GPIO_OWNER_GPIO);
+    if (descriptor == nullptr) {
+        LOG_E(TAG, "Failed to acquire reset pin");
+        return ERROR_RESOURCE;
+    }
+
+    for (uint8_t i = 0; i < pulses; ++i) {
+        bool last_pulse = i == pulses - 1;
+        error_t error = gpio_descriptor_set_level(descriptor, assert_level != 0);
+        if (error == ERROR_NONE) {
+            vTaskDelay(pdMS_TO_TICKS(11));
+            error = gpio_descriptor_set_level(descriptor, assert_level == 0);
+        }
+        if (error == ERROR_NONE) {
+            vTaskDelay(pdMS_TO_TICKS(last_pulse ? 1000 : 60));
+        }
+        if (error != ERROR_NONE) {
+            LOG_E(TAG, "Failed to pulse reset pin");
+            gpio_descriptor_release(descriptor);
+            return error;
+        }
+    }
+
+    gpio_descriptor_release(descriptor);
+    return ERROR_NONE;
 }
 
 // region Driver lifecycle
@@ -62,6 +100,32 @@ static esp_err_t create_io_handle(Device* parent, esp_lcd_panel_io_handle_t* out
     return ESP_ERR_NOT_SUPPORTED;
 }
 
+// Applies the per-device affine calibration (offset + per-mille scale) in the esp_lcd_touch
+// framework's own coordinate hook, so downstream consumers always receive panel-space coords.
+// Called before mirror/swap in esp_lcd_touch_get_coordinates().
+static void gt911_process_coordinates(
+    esp_lcd_touch_handle_t tp,
+    uint16_t* x,
+    uint16_t* y,
+    uint16_t* strength,
+    uint8_t* point_count,
+    uint8_t max_point_count
+) {
+    (void)strength;
+    (void)max_point_count;
+    auto* config = static_cast<const Gt911Config*>(tp->config.user_data);
+    if (config == nullptr) {
+        return;
+    }
+
+    for (uint8_t i = 0; i < *point_count; i++) {
+        int32_t mapped_x = (static_cast<int32_t>(x[i]) + config->x_offset) * config->x_scale / 1000;
+        int32_t mapped_y = (static_cast<int32_t>(y[i]) + config->y_offset) * config->y_scale / 1000;
+        x[i] = static_cast<uint16_t>(mapped_x < 0 ? 0 : (mapped_x > config->x_max ? config->x_max : mapped_x));
+        y[i] = static_cast<uint16_t>(mapped_y < 0 ? 0 : (mapped_y > config->y_max ? config->y_max : mapped_y));
+    }
+}
+
 static error_t start(Device* device) {
     auto* parent = device_get_parent(device);
     check(device_get_type(parent) == &I2C_CONTROLLER_TYPE);
@@ -71,6 +135,12 @@ static error_t start(Device* device) {
     auto* internal = static_cast<Gt911Internal*>(malloc(sizeof(Gt911Internal)));
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
+    }
+
+    error_t error = reset_controller_pin(config->pin_reset, config->reset_pulses, config->reset_assert_level);
+    if (error != ERROR_NONE) {
+        free(internal);
+        return error;
     }
 
     esp_err_t ret = create_io_handle(parent, &internal->io_handle);
@@ -84,9 +154,10 @@ static error_t start(Device* device) {
         .y_max = config->y_max,
         .rst_gpio_num = pin_or_nc(config->pin_reset),
         .int_gpio_num = pin_or_nc(config->pin_interrupt),
-        // GT911's reset and interrupt lines are both fixed active-low in hardware.
+        // Reset assert level is board-specific (config->reset_assert_level); the interrupt
+        // line is fixed active-low in hardware.
         .levels = {
-            .reset = 0u,
+            .reset = config->reset_assert_level,
             .interrupt = 0u,
         },
         .flags = {
@@ -94,9 +165,9 @@ static error_t start(Device* device) {
             .mirror_x = config->mirror_x ? 1u : 0u,
             .mirror_y = config->mirror_y ? 1u : 0u,
         },
-        .process_coordinates = nullptr,
+        .process_coordinates = gt911_process_coordinates,
         .interrupt_callback = nullptr,
-        .user_data = nullptr,
+        .user_data = (void*)config,
         .driver_data = nullptr,
     };
 
