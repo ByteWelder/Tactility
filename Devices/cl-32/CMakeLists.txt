@@ -1,7 +1,7 @@
-file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
+file(GLOB_RECURSE SOURCE_FILES source/*.c*)
 
 idf_component_register(
     SRCS ${SOURCE_FILES}
-    INCLUDE_DIRS "Source"
-    REQUIRES Tactility esp_lvgl_port lvgl TCA8418 driver vfs fatfs SSD1685
+    INCLUDE_DIRS "source"
+    REQUIRES TactilityKernel
 )
