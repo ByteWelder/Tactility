@@ -69,5 +69,3 @@ properties:
     default: 1000
     description: |
       Y coordinate scale as per-mille (1000 = 1.0), applied after y-offset.
-      Tulip 4 R11 uses 800 because the controller's programmed Y range (~750) exceeds the
-      panel's 600 rows.
