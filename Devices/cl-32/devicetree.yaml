@@ -1,4 +1,5 @@
 dependencies:
   - Platforms/platform-esp32
   - Drivers/tca8418-module
+  - Drivers/esp-epaper-module
 dts: cl-32.dts

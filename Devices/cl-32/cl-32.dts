@@ -7,6 +7,7 @@
 #include <tactility/bindings/esp32_sdspi.h>
 
 #include <bindings/tca8418.h>
+#include <bindings/esp_epaper.h>
 
 / {
 	compatible = "root";
@@ -78,6 +79,17 @@
 		sdcard@0 {
 			compatible = "espressif,esp32-sdspi";
 			frequency-khz = <20000>;
+		};
+
+		epd@1 {
+			compatible = "tuanpmt,esp-epaper";
+			pin-dc = <&gpio0 13 GPIO_FLAG_NONE>;
+			pin-reset = <&gpio0 12 GPIO_FLAG_NONE>;
+			pin-busy = <&gpio0 14 GPIO_FLAG_NONE>;
+			pin-cs = <&gpio0 6 GPIO_FLAG_NONE>;
+			clock-speed-hz = <4000000>;
+			panel-type = "gdey029t71h";
+			rotation = <1>;
 		};
 	};
 };

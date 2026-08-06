@@ -254,6 +254,11 @@ def write_lvgl_variables(output_file, device_properties: dict):
         output_file.write("CONFIG_LV_THEME_DEFAULT_LIGHT=y\n")
     elif theme == "Mono":
         output_file.write("CONFIG_LV_USE_THEME_MONO=y\n")
+        # LVGL selects the theme with #if LV_USE_THEME_DEFAULT / #elif LV_USE_THEME_SIMPLE /
+        # #elif LV_USE_THEME_MONO, and the Kconfig defaults enable DEFAULT+SIMPLE for any
+        # non-1bpp color depth so MONO only takes effect once those are disabled.
+        output_file.write("CONFIG_LV_USE_THEME_DEFAULT=n\n")
+        output_file.write("CONFIG_LV_USE_THEME_SIMPLE=n\n")
     else:
         exit_with_error(f"Unknown theme: {theme}")
     font_height_text = get_property_or_default(device_properties, "lvgl.fontSize", "14")
