@@ -1,6 +1,8 @@
 /dts-v1/;
 
+#include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/root.h>
+#include <tactility/bindings/esp32_adc_oneshot.h>
 #include <tactility/bindings/esp32_ble.h>
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_gpio.h>
@@ -15,12 +17,12 @@
 #include <bindings/gt911.h>
 #include <bindings/dummy_i2s_amp.h>
 
-// Reference: https://github.com/TulipCC/tulipcc/ <- board config for the Tulip 4 (rev R11,
-// "MAKERFABS" variant): pins.h (esp32s3/pins.h), esp32s3_display.c and the R11 schematic
-// (docs/pcbs/tulip4_r11/tulipv4_r11.sch).
-// The display is an 8-bit RGB332 dot-clock panel: only 8 of the 16 data lines are wired to
-// active color inputs (B6,B7,G5,G6,G7,R5,R6,R7), the rest are pulled low by the firmware.
-/ {
+// Reference: https: //github.com/TulipCC/tulipcc/ <- board config for the Tulip 4 (rev R11,
+ // "MAKERFABS" variant): pins.h (esp32s3/pins.h), esp32s3_display.c and the R11 schematic
+ // (docs/pcbs/tulip4_r11/tulipv4_r11.sch).
+ // The display is an 8-bit RGB332 dot-clock panel: only 8 of the 16 data lines are wired to
+ // active color inputs (B6,B7,G5,G6,G7,R5,R6,R7), the rest are pulled low by the firmware.
+ / {
 	compatible = "root";
 	model = "Tulip 4 (R11)";
 
@@ -39,6 +41,23 @@
 		gpio-count = <49>;
 	};
 
+	// Battery voltage is sensed through the 470K/470K divider (R34/R38) into GPIO3
+	// (ADC1_CH2), i.e. a straight 2: 1 divider; the RY3730 charger IC has no I2C
+	// interface to drive. Reference: tulipcc tulip/shared/py/tulip.py battery().
+	adc0 {
+		compatible = "espressif,esp32-adc-oneshot";
+		unit-id = <ADC_UNIT_1>;
+		channels = <ADC_CHANNEL_2 ADC_ATTEN_DB_12 ADC_BITWIDTH_DEFAULT>;
+	};
+
+	battery-sense {
+		compatible = "battery-sense";
+		io-channel = <&adc0 0>;
+		reference-voltage-mv = <3300>;
+		multiplier = <2000>;
+	};
+
+	// The Grove connector shares this I2C bus with the touch controller
 	i2c0 {
 		compatible = "espressif,esp32-i2c";
 		port = <I2C_NUM_0>;
@@ -58,8 +77,8 @@
 			reset-pulses = <2>;
 			// The controller's programmed Y range (~750) exceeds the panel's 600 rows and the
 			// sensor sits slightly offset from the panel; calibrate per the reference firmware
-			x-offset = < -2 >;
-			y-offset = < -10 >;
+			x-offset = <-2>;
+			y-offset = <-10>;
 			y-scale = <800>;
 		};
 	};
