@@ -190,6 +190,7 @@ static uint32_t now_ms() {
 struct Tab5KeyEvent {
     uint32_t key;
     bool ctrl;
+    bool alt;
 };
 
 struct Tab5KeyboardInternal {
@@ -201,6 +202,7 @@ struct Tab5KeyboardInternal {
     bool aa_held;
     bool aa_tapped;
     bool ctrl_held;
+    bool alt_held;
 
     // IRQ-driven event gating
     volatile bool irq_pending;
@@ -356,6 +358,7 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
             continue;
         }
         if (row == MOD_ROW_ALT && col == MOD_COL_ALT) {
+            internal->alt_held = pressed;
             continue;
         }
 
@@ -376,7 +379,7 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                         // no business reaching into, so ESC is now just queued as a normal key
                         // like everything else (LVGL/app code already handles ESC via focus/group
                         // navigation the same way a dedicated ESC key on any other keyboard would).
-                        const Tab5KeyEvent event = { lv_key, internal->ctrl_held };
+                        const Tab5KeyEvent event = { lv_key, internal->ctrl_held, internal->alt_held };
                         xQueueSend(internal->queue, &event, 0);
                         // Arm software repeat tracking by row/col to survive modifier changes
                         const uint32_t now = now_ms();
@@ -556,7 +559,7 @@ static error_t tab5_keyboard_read_key(Device* device, KeyboardKeyData* data) {
         data->pressed = true;
         data->continue_reading = uxQueueMessagesWaiting(internal->queue) > 0;
         data->ctrl = event.ctrl;
-        data->alt = false; // Alt is not tracked by this driver - see drain_events()
+        data->alt = event.alt;
     } else {
         data->key = 0;
         data->pressed = false;

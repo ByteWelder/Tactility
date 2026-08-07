@@ -28,18 +28,12 @@ extern Module m5stack_papers3_module;
 static bool s_hl_initialized = false;
 static EpdiyHighlevelState s_hl_state = {};
 
-// Partial tile updates (see draw_bitmap()) never get a real quality pass, so a faint boot-logo
-// ghost lingers after boot. One epd_fullclear() shortly after clears it.
-static constexpr int DRAWS_UNTIL_POST_BOOT_CLEAR = 12;
-
 struct Papers3DisplayInternal {
     EpdiyHighlevelState hl_state;
     uint8_t* framebuffer;
     // Scratch buffer for the grayscale8->EPDiy(4bpp packed, 2px/byte) conversion in draw_bitmap().
     uint8_t* packed_buffer;
     bool powered;
-    int draw_count;
-    bool post_boot_clear_done;
 };
 
 static void power_on(Papers3DisplayInternal* internal) {
@@ -63,10 +57,14 @@ static error_t papers3_display_reset(Device* device) {
 }
 
 static error_t papers3_display_init(Device* device) {
+    const auto* config = GET_CONFIG(device);
     auto* internal = static_cast<Papers3DisplayInternal*>(device_get_driver_data(device));
     power_on(internal);
     epd_clear();
-    epd_hl_set_all_white(&internal->hl_state);
+    // The bootloader/boot-logo splash draws via partial refreshes that never get a real quality
+    // pass, leaving a faint ghost. Run a full clear now, before LVGL's first flush ever reaches
+    // draw_bitmap(), so it never has to undo content LVGL already put on screen.
+    epd_fullclear(&internal->hl_state, config->temperature_celsius);
     return ERROR_NONE;
 }
 
@@ -117,13 +115,6 @@ static error_t papers3_display_draw_bitmap(Device* device, int32_t x_start, int3
         config->temperature_celsius,
         update_area
     );
-
-    // See DRAWS_UNTIL_POST_BOOT_CLEAR's comment: run the ghost-clearing full pass after boot's
-    // draws so it doesn't delay the boot splash/launcher content from appearing first.
-    if (!internal->post_boot_clear_done && ++internal->draw_count >= DRAWS_UNTIL_POST_BOOT_CLEAR) {
-        internal->post_boot_clear_done = true;
-        epd_fullclear(&internal->hl_state, config->temperature_celsius);
-    }
 
     return draw_result == EPD_DRAW_SUCCESS ? ERROR_NONE : ERROR_RESOURCE;
 }
@@ -208,8 +199,6 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
     internal->powered = false;
-    internal->draw_count = 0;
-    internal->post_boot_clear_done = false;
 
     epd_init(&epd_board_m5papers3, &ED047TC1, static_cast<EpdInitOptions>(EPD_LUT_1K | EPD_FEED_QUEUE_32));
     epd_set_rotation(config->rotation);

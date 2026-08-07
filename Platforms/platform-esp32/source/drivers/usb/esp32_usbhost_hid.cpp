@@ -166,6 +166,10 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
         if (params.proto == HID_PROTOCOL_KEYBOARD) {
             if (data_len < sizeof(hid_keyboard_input_report_boot_t)) break;
             auto* kb = reinterpret_cast<const hid_keyboard_input_report_boot_t*>(data);
+            const bool with_ctrl = (kb->modifier.val & HID_LEFT_CONTROL) ||
+                                   (kb->modifier.val & HID_RIGHT_CONTROL);
+            const bool with_alt = (kb->modifier.val & HID_LEFT_ALT) ||
+                                  (kb->modifier.val & HID_RIGHT_ALT);
 
             for (int i = 0; i < HID_KEYBOARD_KEY_MAX; i++) {
                 uint8_t prev_hid = ctx->prev_keys[i];
@@ -178,7 +182,7 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
                         uint32_t lv_key = ctx->pressed_lv_keys[prev_hid];
                         ctx->pressed_lv_keys[prev_hid] = 0;
                         if (lv_key) {
-                            UsbHidEvent evt = { .type = USB_HID_EVENT_KEY, .key = { lv_key, false } };
+                            UsbHidEvent evt = { .type = USB_HID_EVENT_KEY, .key = { lv_key, false, with_ctrl, with_alt } };
                             publish_event(ctx, &evt);
                         }
                     }
@@ -217,10 +221,6 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
                         uint32_t lv_key = hid_keycode_to_key(kb->modifier.val, hid_code,
                                                                   ctx->caps_lock_active, ctx->num_lock_active);
                         if (lv_key) {
-                            const bool with_ctrl = (kb->modifier.val & HID_LEFT_CONTROL) ||
-                                                   (kb->modifier.val & HID_RIGHT_CONTROL);
-                            const bool with_alt = (kb->modifier.val & HID_LEFT_ALT) ||
-                                                  (kb->modifier.val & HID_RIGHT_ALT);
                             UsbHidEvent evt = {
                                 .type = USB_HID_EVENT_KEY,
                                 .key = { lv_key, true, with_ctrl, with_alt }

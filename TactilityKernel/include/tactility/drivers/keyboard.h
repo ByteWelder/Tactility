@@ -31,7 +31,9 @@ struct KeyboardKeyData {
      * control codes a terminal expects for Ctrl chords (Ctrl+C is 0x03, Ctrl+K is 0x0B, ...) overlap
      * the LVGL key constants drivers emit in the same field (LV_KEY_END is 3, LV_KEY_PREV is 11,
      * LV_KEY_UP is 17, ...), so a single uint32_t cannot express both. Consumers that want control
-     * codes derive them here, e.g. `(key >= 'a' && key <= 'z') ? (key & 0x1F) : key` when ctrl is set.
+     * codes derive them here, e.g.
+     * `((key >= 'a' && key <= 'z') || (key >= 'A' && key <= 'Z')) ? (key & 0x1F) : key`
+     * when ctrl is set.
      *
      * Drivers whose hardware cannot report Ctrl leave this false.
      */

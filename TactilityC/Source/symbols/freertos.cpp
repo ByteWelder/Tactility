@@ -103,8 +103,10 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
     ESP_ELFSYM_EXPORT(vPortExitCritical),
+#if defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S3)
     ESP_ELFSYM_EXPORT(xPortEnterCriticalTimeout),
-#ifdef CONFIG_IDF_TARGET_ESP32P4
+#endif
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
     ESP_ELFSYM_EXPORT(vPortExitCriticalMultiCore),
 #endif
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
