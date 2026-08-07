@@ -1,3 +1,4 @@
+#include <sdkconfig.h>
 #include <private/elf_symbol.h>
 #include <cstddef>
 
@@ -102,11 +103,10 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
     ESP_ELFSYM_EXPORT(vPortExitCritical),
-    // On multicore targets portENTER_CRITICAL/taskENTER_CRITICAL expand to these spinlock-taking
-    // variants rather than to vPortEnterCritical/vPortExitCritical above, so both pairs are needed
-    // for an app to use a critical section at all.
     ESP_ELFSYM_EXPORT(xPortEnterCriticalTimeout),
+#ifdef CONFIG_IDF_TARGET_ESP32P4
     ESP_ELFSYM_EXPORT(vPortExitCriticalMultiCore),
+#endif
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
     ESP_ELFSYM_EXPORT(xPortCanYield),
     ESP_ELFSYM_EXPORT(xPortGetCoreID),
