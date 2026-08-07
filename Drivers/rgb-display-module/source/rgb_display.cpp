@@ -4,6 +4,7 @@
 
 #include <drivers/rgb_display.h>
 #include <rgb_display_module.h>
+#include <drivers/software_pixel_mapper.h>
 
 #include <tactility/delay.h>
 #include <tactility/device.h>
@@ -11,12 +12,10 @@
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
-#include <tactility/drivers/software_pixel_mapper.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
 
 #include <esp_err.h>
-#include <esp_heap_caps.h>
 #include <esp_lcd_panel_rgb.h>
 #include <esp_lcd_panel_ops.h>
 
@@ -42,13 +41,12 @@ struct RgbDisplayInternal {
     // Signaled by on_frame_buf_complete once per real DMA scan-out of a whole frame. Only
     // waited on in draw_bitmap() when color_data is one of frame_buffers - see the comment there for why.
     SemaphoreHandle_t frame_complete_semaphore;
-    // Scratch buffer for 8-bit RGB332 panels (custom-pixel-format RGB_DISPLAY_PIXEL_FORMAT_RGB332).
-    // LVGL always renders RGB565 for this driver, so draw_bitmap() converts each tile into this
-    // buffer before handing it to esp_lcd - see software_pixel_mapper_rgb332. Null when no
-    // conversion is active (pixel_format == RGB_DISPLAY_PIXEL_FORMAT_DEFAULT).
+    // Software pixel-format conversion active when custom-pixel-format != DEFAULT (see start()).
+    // LVGL always renders RGB565 for this driver, so draw_bitmap() converts each tile through the
+    // mapper before handing it to esp_lcd. The mapper owns its scratch buffer, held in
+    // pixel_mapper_data. Null when no conversion is active.
     const struct SoftwarePixelMapper* pixel_mapper;
     SoftwarePixelMapperData pixel_mapper_data;
-    void* pixel_mapper_scratch;
 };
 
 // esp_lcd_rgb_panel's draw_bitmap() has a zero-copy path when color_data is one of the panel's
@@ -139,7 +137,6 @@ static error_t start(Device* device) {
     }
     internal->pixel_mapper = nullptr;
     internal->pixel_mapper_data = nullptr;
-    internal->pixel_mapper_scratch = nullptr;
 
     error_t reset_error = perform_hardware_reset(config);
     if (reset_error != ERROR_NONE) {
@@ -254,25 +251,11 @@ static error_t start(Device* device) {
                 return ERROR_INVALID_ARGUMENT;
         }
 
-        // Size for the largest possible region: a whole frame. A 8bpp 1024x600 panel needs
-        // ~600KB here, which is only guaranteed to fit on boards with PSRAM - and an RGB panel
-        // at 8bpp that large needs PSRAM for its frame buffer anyway.
-        size_t scratch_size = (size_t)config->horizontal_resolution * config->vertical_resolution;
-        internal->pixel_mapper_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (internal->pixel_mapper_scratch == nullptr) {
-            internal->pixel_mapper_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_DEFAULT);
-        }
-        if (internal->pixel_mapper_scratch == nullptr) {
-            LOG_E(TAG, "Failed to allocate pixel mapper scratch buffer (%d bytes)", (int)scratch_size);
-            esp_lcd_panel_del(internal->panel_handle);
-            free(internal);
-            return ERROR_OUT_OF_MEMORY;
-        }
-
+        // The mapper sizes and allocates its own whole-frame destination buffer, which lands in
+        // PSRAM on boards that have it (see software_pixel_mapper.cpp).
         internal->pixel_mapper_data = internal->pixel_mapper->create(config->horizontal_resolution, config->vertical_resolution);
         if (internal->pixel_mapper_data == nullptr) {
             LOG_E(TAG, "Failed to create pixel mapper");
-            heap_caps_free(internal->pixel_mapper_scratch);
             esp_lcd_panel_del(internal->panel_handle);
             free(internal);
             return ERROR_OUT_OF_MEMORY;
@@ -314,7 +297,6 @@ static error_t stop(Device* device) {
     vSemaphoreDelete(internal->frame_complete_semaphore);
     if (internal->pixel_mapper != nullptr) {
         internal->pixel_mapper->destroy(internal->pixel_mapper_data);
-        heap_caps_free(internal->pixel_mapper_scratch);
     }
     free(internal);
     device_set_driver_data(device, nullptr);
@@ -360,18 +342,16 @@ static error_t rgb_display_draw_bitmap(Device* device, int32_t x_start, int32_t 
 
     const void* source_data = color_data;
     if (internal->pixel_mapper != nullptr) {
-        if (internal->pixel_mapper_scratch == nullptr) {
-            LOG_E(TAG, "Pixel mapper scratch buffer missing");
-            return ERROR_RESOURCE;
-        }
         uint32_t pixel_count = (uint32_t)(x_end - x_start) * (uint32_t)(y_end - y_start);
+        // The mapper's own destination buffer is its instance data, so it is passed as both the
+        // instance handle and the output buffer.
         internal->pixel_mapper->map(
             internal->pixel_mapper_data,
             static_cast<const uint16_t*>(color_data),
-            static_cast<uint8_t*>(internal->pixel_mapper_scratch),
+            static_cast<uint8_t*>(internal->pixel_mapper_data),
             pixel_count
         );
-        source_data = internal->pixel_mapper_scratch;
+        source_data = internal->pixel_mapper_data;
     }
 
     bool wait_for_scanout = rgb_display_color_data_is_frame_buffer(internal, source_data);
