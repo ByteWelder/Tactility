@@ -11,6 +11,7 @@
 #include <tactility/drivers/display.h>
 #include <tactility/drivers/gpio.h>
 #include <tactility/drivers/gpio_controller.h>
+#include <tactility/drivers/software_pixel_mapper.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
 
@@ -41,10 +42,13 @@ struct RgbDisplayInternal {
     // Signaled by on_frame_buf_complete once per real DMA scan-out of a whole frame. Only
     // waited on in draw_bitmap() when color_data is one of frame_buffers - see the comment there for why.
     SemaphoreHandle_t frame_complete_semaphore;
-    // Scratch buffer for 8-bit RGB332 panels (bits_per_pixel == 8). LVGL always renders RGB565
-    // for this driver, so draw_bitmap() converts each tile into this buffer before handing it to
-    // esp_lcd - see rgb565_to_rgb332(). Null when the panel runs at any other color depth.
-    void* rgb332_scratch;
+    // Scratch buffer for 8-bit RGB332 panels (custom-pixel-format RGB_DISPLAY_PIXEL_FORMAT_RGB332).
+    // LVGL always renders RGB565 for this driver, so draw_bitmap() converts each tile into this
+    // buffer before handing it to esp_lcd - see software_pixel_mapper_rgb332. Null when no
+    // conversion is active (pixel_format == RGB_DISPLAY_PIXEL_FORMAT_DEFAULT).
+    const struct SoftwarePixelMapper* pixel_mapper;
+    SoftwarePixelMapperData pixel_mapper_data;
+    void* pixel_mapper_scratch;
 };
 
 // esp_lcd_rgb_panel's draw_bitmap() has a zero-copy path when color_data is one of the panel's
@@ -133,7 +137,9 @@ static error_t start(Device* device) {
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
     }
-    internal->rgb332_scratch = nullptr;
+    internal->pixel_mapper = nullptr;
+    internal->pixel_mapper_data = nullptr;
+    internal->pixel_mapper_scratch = nullptr;
 
     error_t reset_error = perform_hardware_reset(config);
     if (reset_error != ERROR_NONE) {
@@ -237,17 +243,36 @@ static error_t start(Device* device) {
         return error;
     }
 
-    if (config->bits_per_pixel == 8) {
+    if (config->pixel_format != RGB_DISPLAY_PIXEL_FORMAT_DEFAULT) {
+        switch (config->pixel_format) {
+            case RGB_DISPLAY_PIXEL_FORMAT_RGB332:
+                internal->pixel_mapper = &software_pixel_mapper_rgb332;
+                break;
+            default:
+                LOG_E(TAG, "Unsupported pixel format %d", (int)config->pixel_format);
+                free(internal);
+                return ERROR_INVALID_ARGUMENT;
+        }
+
         // Size for the largest possible region: a whole frame. A 8bpp 1024x600 panel needs
         // ~600KB here, which is only guaranteed to fit on boards with PSRAM - and an RGB panel
         // at 8bpp that large needs PSRAM for its frame buffer anyway.
         size_t scratch_size = (size_t)config->horizontal_resolution * config->vertical_resolution;
-        internal->rgb332_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (internal->rgb332_scratch == nullptr) {
-            internal->rgb332_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_DEFAULT);
+        internal->pixel_mapper_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (internal->pixel_mapper_scratch == nullptr) {
+            internal->pixel_mapper_scratch = heap_caps_malloc(scratch_size, MALLOC_CAP_DEFAULT);
         }
-        if (internal->rgb332_scratch == nullptr) {
-            LOG_E(TAG, "Failed to allocate RGB332 scratch buffer (%d bytes)", (int)scratch_size);
+        if (internal->pixel_mapper_scratch == nullptr) {
+            LOG_E(TAG, "Failed to allocate pixel mapper scratch buffer (%d bytes)", (int)scratch_size);
+            esp_lcd_panel_del(internal->panel_handle);
+            free(internal);
+            return ERROR_OUT_OF_MEMORY;
+        }
+
+        internal->pixel_mapper_data = internal->pixel_mapper->create(config->horizontal_resolution, config->vertical_resolution);
+        if (internal->pixel_mapper_data == nullptr) {
+            LOG_E(TAG, "Failed to create pixel mapper");
+            heap_caps_free(internal->pixel_mapper_scratch);
             esp_lcd_panel_del(internal->panel_handle);
             free(internal);
             return ERROR_OUT_OF_MEMORY;
@@ -287,8 +312,9 @@ static error_t stop(Device* device) {
     }
 
     vSemaphoreDelete(internal->frame_complete_semaphore);
-    if (internal->rgb332_scratch != nullptr) {
-        heap_caps_free(internal->rgb332_scratch);
+    if (internal->pixel_mapper != nullptr) {
+        internal->pixel_mapper->destroy(internal->pixel_mapper_data);
+        heap_caps_free(internal->pixel_mapper_scratch);
     }
     free(internal);
     device_set_driver_data(device, nullptr);
@@ -325,31 +351,27 @@ static bool rgb_display_color_data_is_frame_buffer(const RgbDisplayInternal* int
     return false;
 }
 
-// Converts a contiguous RGB565 region into packed RGB332 (3 bits red, 3 bits green, 2 bits
-// blue), for panels wired with only 8 data lines. The RGB332 byte layout maps straight onto the
-// panel's significant color inputs (R7..R5, G7..G5, B7..B6), so the top bits of each RGB565
-// channel land on the corresponding MSB lines - a plain quantization, matching how the reference
-// firmware renders.
-static void rgb565_to_rgb332(const uint16_t* src, uint8_t* dst, uint32_t pixel_count) {
-    for (uint32_t i = 0; i < pixel_count; i++) {
-        uint16_t px = src[i];
-        dst[i] = (uint8_t)(((px >> 13) & 0x07) << 5) | (((px >> 8) & 0x07) << 2) | ((px >> 3) & 0x03);
-    }
-}
-
+// Converts a contiguous RGB565 region into the configured scan-out format, if any. The
+// conversion is delegated to the pixel mapper selected in start(); the result is written into the
+// mapper's scratch buffer so the zero-copy frame-buffer wait logic below can treat it like any
+// other caller-owned buffer.
 static error_t rgb_display_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<RgbDisplayInternal*>(device_get_driver_data(device));
-    const auto* config = GET_CONFIG(device);
 
     const void* source_data = color_data;
-    if (config->bits_per_pixel == 8) {
-        if (internal->rgb332_scratch == nullptr) {
-            LOG_E(TAG, "RGB332 scratch buffer missing");
+    if (internal->pixel_mapper != nullptr) {
+        if (internal->pixel_mapper_scratch == nullptr) {
+            LOG_E(TAG, "Pixel mapper scratch buffer missing");
             return ERROR_RESOURCE;
         }
         uint32_t pixel_count = (uint32_t)(x_end - x_start) * (uint32_t)(y_end - y_start);
-        rgb565_to_rgb332(static_cast<const uint16_t*>(color_data), static_cast<uint8_t*>(internal->rgb332_scratch), pixel_count);
-        source_data = internal->rgb332_scratch;
+        internal->pixel_mapper->map(
+            internal->pixel_mapper_data,
+            static_cast<const uint16_t*>(color_data),
+            static_cast<uint8_t*>(internal->pixel_mapper_scratch),
+            pixel_count
+        );
+        source_data = internal->pixel_mapper_scratch;
     }
 
     bool wait_for_scanout = rgb_display_color_data_is_frame_buffer(internal, source_data);
@@ -425,11 +447,12 @@ static void rgb_display_get_frame_buffer(Device* device, uint8_t index, void** o
 
 static uint8_t rgb_display_get_frame_buffer_count(Device* device) {
     auto* internal = static_cast<RgbDisplayInternal*>(device_get_driver_data(device));
-    // An 8bpp panel's frame buffer is 1 byte/pixel, which LVGL can't write directly (it always
-    // renders RGB565 for this driver). Exposing it would make lvgl_display.c bind LVGL straight
-    // onto it and corrupt the buffer; instead report 0 so LVGL renders into its own RGB565
-    // buffers and flushes per-tile through the conversion in draw_bitmap().
-    return GET_CONFIG(device)->bits_per_pixel == 8 ? 0 : internal->frame_buffer_count;
+    // A converted-format panel's frame buffer runs at the native bits_per_pixel, which LVGL can't
+    // write directly (it always renders RGB565 for this driver). Exposing it would make
+    // lvgl_display.c bind LVGL straight onto it and corrupt the buffer; instead report 0 so LVGL
+    // renders into its own RGB565 buffers and flushes per-tile through the conversion in
+    // draw_bitmap().
+    return GET_CONFIG(device)->pixel_format != RGB_DISPLAY_PIXEL_FORMAT_DEFAULT ? 0 : internal->frame_buffer_count;
 }
 
 static error_t rgb_display_get_backlight(Device* device, Device** backlight) {

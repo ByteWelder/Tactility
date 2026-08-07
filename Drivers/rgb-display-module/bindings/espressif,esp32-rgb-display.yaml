@@ -222,3 +222,11 @@ properties:
     type: phandle
     default: "NULL"
     description: Optional reference to this display's backlight device
+  custom-pixel-format:
+    type: int
+    default: 0
+    description: |
+      Optional software pixel-format conversion applied to scan-out pixels, when the host renders
+      in a different depth than the panel (LVGL always renders RGB565).
+      0 = no conversion (RGB_DISPLAY_PIXEL_FORMAT_DEFAULT), 1 = RGB332
+      (RGB_DISPLAY_PIXEL_FORMAT_RGB332) for 8 data-line panels.

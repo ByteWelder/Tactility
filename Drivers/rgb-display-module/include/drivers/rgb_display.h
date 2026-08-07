@@ -11,6 +11,18 @@ extern "C" {
 #include <tactility/device.h>
 #include <tactility/drivers/gpio.h>
 
+/**
+ * Optional software pixel-format conversion applied to scan-out pixels. The panel itself always
+ * runs at bits_per_pixel; when the host renders in a different depth (LVGL always renders RGB565
+ * for this driver), the selected mapper converts each tile before it reaches esp_lcd.
+ */
+enum RgbDisplayPixelFormat {
+    /** No conversion: scan-out pixels must already match bits_per_pixel. */
+    RGB_DISPLAY_PIXEL_FORMAT_DEFAULT = 0,
+    /** Convert RGB565 to packed 8-bit RGB332 (3R, 3G, 2B), for 8 data-line panels. */
+    RGB_DISPLAY_PIXEL_FORMAT_RGB332 = 1,
+};
+
 struct RgbDisplayConfig {
     uint16_t horizontal_resolution;
     uint16_t vertical_resolution;
@@ -84,6 +96,9 @@ struct RgbDisplayConfig {
 
     // Optional reference to this display's backlight device, NULL if none.
     struct Device* backlight;
+
+    // Optional software pixel-format conversion for scan-out (see enum RgbDisplayPixelFormat).
+    enum RgbDisplayPixelFormat pixel_format;
 };
 
 #ifdef __cplusplus

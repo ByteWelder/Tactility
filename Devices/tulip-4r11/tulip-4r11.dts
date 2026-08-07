@@ -17,11 +17,7 @@
 #include <bindings/gt911.h>
 #include <bindings/dummy_i2s_amp.h>
 
-// Reference: https: //github.com/TulipCC/tulipcc/ <- board config for the Tulip 4 (rev R11,
- // "MAKERFABS" variant): pins.h (esp32s3/pins.h), esp32s3_display.c and the R11 schematic
- // (docs/pcbs/tulip4_r11/tulipv4_r11.sch).
- // The display is an 8-bit RGB332 dot-clock panel: only 8 of the 16 data lines are wired to
- // active color inputs (B6,B7,G5,G6,G7,R5,R6,R7), the rest are pulled low by the firmware.
+// Reference: https: //github.com/TulipCC/tulipcc/
  / {
 	compatible = "root";
 	model = "Tulip 4 (R11)";
@@ -70,10 +66,9 @@
 			reg = <0x5D>;
 			x-max = <1024>;
 			y-max = <600>;
-			pin-reset = <&gpio0 48 GPIO_FLAG_NONE>;
 			// R11 inverts the reset line (active-high) and needs two toggle cycles before it
 			// starts responding on I2C.
-			reset-assert-level = <1>;
+			pin-reset = <&gpio0 48 GPIO_FLAG_ACTIVE_HIGH>;
 			reset-pulses = <2>;
 			// The controller's programmed Y range (~750) exceeds the panel's 600 rows and the
 			// sensor sits slightly offset from the panel; calibrate per the reference firmware
@@ -152,6 +147,7 @@
 		vsync-front-porch = <22>;
 		data-width = <8>;
 		bits-per-pixel = <8>;
+		custom-pixel-format = <RGB_DISPLAY_PIXEL_FORMAT_RGB332>;
 		num-fbs = <1>;
 		pin-hsync = <&gpio0 39 GPIO_FLAG_NONE>;
 		pin-vsync = <&gpio0 41 GPIO_FLAG_NONE>;

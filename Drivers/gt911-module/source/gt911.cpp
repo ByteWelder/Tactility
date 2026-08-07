@@ -34,10 +34,11 @@ static gpio_num_t pin_or_nc(const GpioPinSpec& pin) {
     return pin.gpio_controller == nullptr ? GPIO_NUM_NC : static_cast<gpio_num_t>(pin.pin);
 }
 
-// Some boards invert the GT911 reset line and/or require several toggle cycles before the
-// controller starts responding on I2C (e.g. Tulip 4 R11). The esp_lcd_touch_gt911 driver only
-// performs a single reset, so the pin is pulsed here first
-static error_t reset_controller_pin(const GpioPinSpec& pin, uint8_t pulses, uint8_t assert_level) {
+// Reset polarity is carried by the pin_reset descriptor's ACTIVE_HIGH/ACTIVE_LOW flag, so the
+// pin is always pulsed with logical levels here. Some boards also require several toggle cycles
+// before the controller starts responding on I2C (e.g. Tulip 4 R11). The esp_lcd_touch_gt911
+// driver only performs a single reset, so the pin is pulsed here first
+static error_t reset_controller_pin(const GpioPinSpec& pin, uint8_t pulses) {
     if (pulses == 0 || pin.gpio_controller == nullptr) {
         return ERROR_NONE;
     }
@@ -50,10 +51,10 @@ static error_t reset_controller_pin(const GpioPinSpec& pin, uint8_t pulses, uint
 
     for (uint8_t i = 0; i < pulses; ++i) {
         bool last_pulse = i == pulses - 1;
-        error_t error = gpio_descriptor_set_level(descriptor, assert_level != 0);
+        error_t error = gpio_descriptor_set_level(descriptor, true);
         if (error == ERROR_NONE) {
             vTaskDelay(pdMS_TO_TICKS(11));
-            error = gpio_descriptor_set_level(descriptor, assert_level == 0);
+            error = gpio_descriptor_set_level(descriptor, false);
         }
         if (error == ERROR_NONE) {
             vTaskDelay(pdMS_TO_TICKS(last_pulse ? 1000 : 60));
@@ -137,7 +138,7 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
-    error_t error = reset_controller_pin(config->pin_reset, config->reset_pulses, config->reset_assert_level);
+    error_t error = reset_controller_pin(config->pin_reset, config->reset_pulses);
     if (error != ERROR_NONE) {
         free(internal);
         return error;
@@ -154,10 +155,10 @@ static error_t start(Device* device) {
         .y_max = config->y_max,
         .rst_gpio_num = pin_or_nc(config->pin_reset),
         .int_gpio_num = pin_or_nc(config->pin_interrupt),
-        // Reset assert level is board-specific (config->reset_assert_level); the interrupt
-        // line is fixed active-low in hardware.
+        // Reset polarity comes from the pin_reset descriptor's ACTIVE_HIGH/ACTIVE_LOW flag; the
+        // interrupt line is fixed active-low in hardware.
         .levels = {
-            .reset = config->reset_assert_level,
+            .reset = (config->pin_reset.flags & GPIO_FLAG_ACTIVE_LOW) != 0 ? 0u : 1u,
             .interrupt = 0u,
         },
         .flags = {

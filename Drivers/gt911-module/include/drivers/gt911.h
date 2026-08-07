@@ -22,7 +22,6 @@ struct Gt911Config {
     bool mirror_y;
     struct GpioPinSpec pin_reset;
     struct GpioPinSpec pin_interrupt;
-    uint8_t reset_assert_level;
     uint8_t reset_pulses;
     int16_t x_offset;
     int16_t y_offset;
