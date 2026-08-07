@@ -2,8 +2,8 @@
 
 extern "C" {
 
-struct Module cl_32_module = {
-    .name = "cl-32"
+struct Module cl32_module = {
+    .name = "cl32"
 };
 
 }
