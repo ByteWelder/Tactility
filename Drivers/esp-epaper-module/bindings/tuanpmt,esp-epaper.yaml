@@ -30,7 +30,7 @@ properties:
   clock-speed-hz:
     type: int
     default: 4000000
-    description: SPI clock frequency in Hz
+    description: SPI clock frequency in Hz (must be > 0)
   panel-type:
     type: text
     required: true
@@ -41,17 +41,18 @@ properties:
   width:
     type: int
     default: 0
-    description: Horizontal resolution override in pixels (0 = the panel's default)
+    description: Horizontal resolution override in pixels (0 = the panel's default, maximum 2048)
   height:
     type: int
     default: 0
-    description: Vertical resolution override in pixels (0 = the panel's default)
+    description: Vertical resolution override in pixels (0 = the panel's default, maximum 2048)
   update-mode:
     type: int
     default: 0
     description: >
       epd_update_mode_t used for frame updates: 0 = full, 1 = fast, 2 = partial.
       Full is the safest default; fast and partial refresh quickly but ghost.
+      Values above 2 are rejected at driver start.
   rotation:
     type: int
     default: 0

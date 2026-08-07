@@ -23,6 +23,9 @@
 constexpr auto* TAG = "esp_epaper";
 #define GET_CONFIG(device) (static_cast<const EspEpaperConfig*>((device)->config))
 
+/** Width/height overrides above this are rejected as nonsense. */
+constexpr uint16_t MAX_PANEL_DIMENSION = 2048;
+
 struct EspEpaperInternal {
     /** Opaque esp_epaper device, owns the panel's pins and SPI device. */
     epd_handle_t epd;
@@ -75,6 +78,10 @@ static error_t esp_epaper_reset(Device* device) {
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
     // epd_wake() toggles the reset pin and re-runs the full init sequence.
     const esp_err_t ret = epd_wake(internal->epd);
+    // epd_wake() re-inits the panel, so it is awake (and drawable) again.
+    if (ret == ESP_OK) {
+        internal->display_on = true;
+    }
     xSemaphoreGive(internal->panel_mutex);
     return ret == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
 }
@@ -83,6 +90,9 @@ static error_t esp_epaper_init(Device* device) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
     xSemaphoreTake(internal->panel_mutex, portMAX_DELAY);
     const esp_err_t ret = epd_wake(internal->epd);
+    if (ret == ESP_OK) {
+        internal->display_on = true;
+    }
     xSemaphoreGive(internal->panel_mutex);
     return ret == ESP_OK ? ERROR_NONE : ERROR_RESOURCE;
 }
@@ -231,6 +241,21 @@ static error_t start(Device* device) {
     epd_panel_type_t panel_type;
     if (!resolve_panel_type(config->panel_type, &panel_type)) {
         LOG_E(TAG, "Unknown panel type: %s", config->panel_type);
+        return ERROR_NOT_SUPPORTED;
+    }
+
+    if (config->clock_speed_hz == 0) {
+        LOG_E(TAG, "Invalid clock_speed_hz (0)");
+        return ERROR_NOT_SUPPORTED;
+    }
+
+    if (config->update_mode > EPD_UPDATE_PARTIAL) {
+        LOG_E(TAG, "Invalid update_mode %d (expected %d-%d)", (int)config->update_mode, (int)EPD_UPDATE_FULL, (int)EPD_UPDATE_PARTIAL);
+        return ERROR_NOT_SUPPORTED;
+    }
+
+    if (config->width > MAX_PANEL_DIMENSION || config->height > MAX_PANEL_DIMENSION) {
+        LOG_E(TAG, "Invalid panel size %ux%u (maximum %ux%u)", (unsigned)config->width, (unsigned)config->height, (unsigned)MAX_PANEL_DIMENSION, (unsigned)MAX_PANEL_DIMENSION);
         return ERROR_NOT_SUPPORTED;
     }
 
