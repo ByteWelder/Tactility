@@ -108,7 +108,16 @@ static uint32_t hid_keycode_to_key(uint8_t modifier, uint8_t key_code,
         default: break;
     }
 
-    if (ctrl || alt) return 0;
+    /*
+     * Ctrl and Alt no longer suppress the key.
+     *
+     * They used to return 0 here, which meant a chord like Ctrl+C produced nothing at all and a
+     * terminal application could never see it. The modifiers are now reported alongside the key in
+     * UsbHidEvent instead, so the plain character still comes through and a consumer that wants a
+     * control code derives it. Alt is passed through on the same basis.
+     */
+    (void)ctrl;
+    (void)alt;
 
     if (key_code < (sizeof(keycode2ascii) / sizeof(keycode2ascii[0]))) {
         bool is_letter = (key_code >= 0x04 && key_code <= 0x1D);
@@ -208,7 +217,14 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
                         uint32_t lv_key = hid_keycode_to_key(kb->modifier.val, hid_code,
                                                                   ctx->caps_lock_active, ctx->num_lock_active);
                         if (lv_key) {
-                            UsbHidEvent evt = { .type = USB_HID_EVENT_KEY, .key = { lv_key, true } };
+                            const bool with_ctrl = (kb->modifier.val & HID_LEFT_CONTROL) ||
+                                                   (kb->modifier.val & HID_RIGHT_CONTROL);
+                            const bool with_alt = (kb->modifier.val & HID_LEFT_ALT) ||
+                                                  (kb->modifier.val & HID_RIGHT_ALT);
+                            UsbHidEvent evt = {
+                                .type = USB_HID_EVENT_KEY,
+                                .key = { lv_key, true, with_ctrl, with_alt }
+                            };
                             publish_event(ctx, &evt);
                             ctx->pressed_lv_keys[hid_code] = lv_key;
                         }

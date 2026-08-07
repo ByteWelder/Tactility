@@ -59,13 +59,18 @@ struct LvglDisplayCtx {
     bool byte_swap;
 };
 
-static void* lvgl_display_alloc_buffer(size_t size_bytes) {
+static void* lvgl_display_alloc_buffer(size_t size_bytes, bool skip_dma_capable) {
 #ifdef ESP_PLATFORM
     // Must match LV_DRAW_BUF_ALIGN (can be > 4 - e.g. 64, tied to the cache line size for
     // DMA2D/PPA coherency on some targets - see sdkconfig's CONFIG_LV_DRAW_BUF_ALIGN). A buffer
     // allocated less strictly than that fails lv_display_set_buffers()'s alignment assert, which
     // is configured to LV_ASSERT_HANDLER (while(1);) rather than a clean abort - i.e. a silent hang.
-    void* buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, size_bytes, MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    // MALLOC_CAP_DMA is scarce internal RAM - skip it for displays that don't DMA directly from
+    // this buffer (see skip_dma_capable_buffer). Dropping MALLOC_CAP_DMA alone isn't enough to
+    // land in PSRAM though: MALLOC_CAP_8BIT alone is still satisfied by internal RAM, so
+    // MALLOC_CAP_SPIRAM must be requested explicitly (confirmed on real hardware).
+    uint32_t caps = skip_dma_capable ? (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : (MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    void* buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, size_bytes, caps);
     if (buf == NULL) {
         buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, size_bytes, MALLOC_CAP_DEFAULT);
     }
@@ -103,6 +108,13 @@ static bool lvgl_display_map_color_format(enum DisplayColorFormat in, lv_color_f
             // reformatting a specific panel's GDDRAM needs is that driver's own concern
             // (e.g. ssd1306_draw_bitmap()'s row-to-page transpose).
             *out = LV_COLOR_FORMAT_I1;
+            return true;
+        case DISPLAY_COLOR_FORMAT_GRAYSCALE8:
+            // Row-major, 1 byte/pixel luminance (0x00=black, 0xFF=white) - matches LV_COLOR_FORMAT_L8
+            // directly, no repacking needed. Deliberately NOT routed through the I1 branch below in
+            // lvgl_display_add(): I1 is hardcoded to LV_DISPLAY_RENDER_MODE_FULL there, which is what
+            // this format exists to avoid for panels that want real partial/tile updates.
+            *out = LV_COLOR_FORMAT_L8;
             return true;
         default:
             return false;
@@ -396,7 +408,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
         // buffer's start (see lvgl_display_flush_cb()). Always redraw the whole frame in one
         // owned buffer instead of computing partial-region byte offsets against that packing.
         buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
-        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
+        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
         if (ctx->buf1 == NULL) {
             delete wrapper;
             return ERROR_OUT_OF_MEMORY;
@@ -416,13 +428,13 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
             ? vres : config->buffer_height;
         buf_size_bytes = (size_t)hres * buf_height * bpp;
 
-        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
+        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
         if (ctx->buf1 == NULL) {
             delete wrapper;
             return ERROR_OUT_OF_MEMORY;
         }
         if (config->double_buffer) {
-            ctx->buf2 = lvgl_display_alloc_buffer(buf_size_bytes);
+            ctx->buf2 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
             if (ctx->buf2 == NULL) {
                 lvgl_display_free_buffer(ctx->buf1);
                 delete wrapper;
@@ -436,7 +448,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
     ctx->buf_size_bytes = buf_size_bytes;
 
     if (ctx->sw_rotate) {
-        ctx->rotate_buf = lvgl_display_alloc_buffer(buf_size_bytes);
+        ctx->rotate_buf = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
         if (ctx->rotate_buf == NULL) {
             if (ctx->owns_buffers) {
                 lvgl_display_free_buffer(ctx->buf1);

@@ -40,6 +40,7 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xTaskGenericNotify),
     ESP_ELFSYM_EXPORT(xTaskGenericNotifyFromISR),
     ESP_ELFSYM_EXPORT(ulTaskGenericNotifyTake),
+    ESP_ELFSYM_EXPORT(xTaskGetCurrentTaskHandle),
     ESP_ELFSYM_EXPORT(xTaskGetTickCount),
     ESP_ELFSYM_EXPORT(xTaskGetTickCountFromISR),
     ESP_ELFSYM_EXPORT(pvTaskGetThreadLocalStoragePointer),
@@ -101,6 +102,11 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
     ESP_ELFSYM_EXPORT(vPortExitCritical),
+    // On multicore targets portENTER_CRITICAL/taskENTER_CRITICAL expand to these spinlock-taking
+    // variants rather than to vPortEnterCritical/vPortExitCritical above, so both pairs are needed
+    // for an app to use a critical section at all.
+    ESP_ELFSYM_EXPORT(xPortEnterCriticalTimeout),
+    ESP_ELFSYM_EXPORT(vPortExitCriticalMultiCore),
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
     ESP_ELFSYM_EXPORT(xPortCanYield),
     ESP_ELFSYM_EXPORT(xPortGetCoreID),

@@ -35,6 +35,12 @@ static constexpr uint32_t REPEAT_RATE_MS = 80;
 // REG_INT_STAT polling (when no IRQ pin) and software key-repeat ticking.
 static constexpr uint32_t POLL_INTERVAL_MS = 20;
 
+// Upper bound on events consumed per drain_events() call. Since the loop re-reads REG_EVENT_NUM
+// each iteration rather than counting down a latched value, this caps the damage if the device
+// ever reports a non-zero count that never drains - without it, that would spin forever holding
+// the I2C bus. The device's own queue is far smaller than this, so it never limits normal bursts.
+static constexpr uint8_t MAX_EVENTS_PER_DRAIN = 32;
+
 // ---------------------------------------------------------------------------
 // Register addresses
 // ---------------------------------------------------------------------------
@@ -117,6 +123,12 @@ static constexpr HidMapping KEY_MATRIX_HID_SYM[70] = {
 // Covers all codes present in the Tab5 matrix tables above. LV_KEY_* are plain uint32_t
 // constants - matching KeyboardKeyData::key's driver-defined contract and the same convention
 // m5stack-module's cardputer_keyboard.cpp kernel driver already uses.
+//
+// `ctrl` only selects the LVGL focus-navigation aliases for the arrow keys. Ctrl chords on
+// ordinary keys are NOT folded into the returned value - the C0 control codes a terminal wants
+// (Ctrl+C = 0x03, Ctrl+K = 0x0B, ...) collide with the LVGL constants returned here (LV_KEY_END = 3,
+// LV_KEY_PREV = 11, ...), so Ctrl is reported out-of-band via KeyboardKeyData::ctrl instead and
+// consumers that want control codes derive them themselves.
 // ---------------------------------------------------------------------------
 static uint32_t tab5_translate_key(uint8_t keycode, uint8_t modifier, bool ctrl) {
     const bool shift = (modifier & 0x22U) != 0U;
@@ -172,6 +184,14 @@ static uint32_t now_ms() {
     return static_cast<uint32_t>(esp_timer_get_time() / 1000);
 }
 
+// Queued key event. Modifier state is captured here at enqueue time rather than read back from
+// Tab5KeyboardInternal at dequeue time, since the user can release Ctrl before read_key() drains
+// the event - and software key-repeat replays this same struct, so a held chord keeps its modifiers.
+struct Tab5KeyEvent {
+    uint32_t key;
+    bool ctrl;
+};
+
 struct Tab5KeyboardInternal {
     QueueHandle_t queue;
 
@@ -193,7 +213,7 @@ struct Tab5KeyboardInternal {
     uint32_t last_poll_ms;
 
     // Software key-repeat state (tracked by position to survive modifier changes)
-    uint32_t repeat_key;
+    Tab5KeyEvent repeat_event;
     uint8_t repeat_row;
     uint8_t repeat_col;
     uint32_t repeat_start_ms;
@@ -289,16 +309,22 @@ static void remove_irq_pin(Tab5KeyboardInternal* internal) {
 // drain_events - reads all pending events from the device queue
 // ---------------------------------------------------------------------------
 static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
-    uint8_t count = 0;
-    if (!read_reg(device, REG_EVENT_NUM, &count) || count == 0) {
-        return;
-    }
+    // REG_EVENT_NUM is re-read every iteration rather than latched once and counted down, matching
+    // M5's own UnitTab5Keyboard::drain_events(). Each REG_KEY_EVENT read consumes one event from the
+    // device queue, so a count latched up front can go stale mid-drain; re-reading makes the loop
+    // self-correcting and lets it stop as soon as the device says the queue is actually empty.
+    uint8_t drained = 0;
+    while (drained < MAX_EVENTS_PER_DRAIN) {
+        uint8_t count = 0;
+        if (!read_reg(device, REG_EVENT_NUM, &count) || count == 0) {
+            break;
+        }
 
-    while (count > 0) {
         uint8_t raw = 0;
         if (!read_reg(device, REG_KEY_EVENT, &raw) || raw == KEY_EVENT_EMPTY) {
             break;
         }
+        drained++;
 
         const bool pressed = (raw & 0x80U) != 0U;
         const uint8_t row = (raw >> 4U) & 0x07U;
@@ -308,7 +334,6 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
         if (row == MOD_ROW_SYM && col == MOD_COL_SYM) {
             internal->sym_active = pressed;
             update_leds(device, internal);
-            count--;
             continue;
         }
         if (row == MOD_ROW_AA && col == MOD_COL_AA) {
@@ -324,16 +349,13 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                 internal->aa_tapped = false;
             }
             update_leds(device, internal);
-            count--;
             continue;
         }
         if (row == MOD_ROW_CTRL && col == MOD_COL_CTRL) {
             internal->ctrl_held = pressed;
-            count--;
             continue;
         }
         if (row == MOD_ROW_ALT && col == MOD_COL_ALT) {
-            count--;
             continue;
         }
 
@@ -354,10 +376,11 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                         // no business reaching into, so ESC is now just queued as a normal key
                         // like everything else (LVGL/app code already handles ESC via focus/group
                         // navigation the same way a dedicated ESC key on any other keyboard would).
-                        xQueueSend(internal->queue, &lv_key, 0);
+                        const Tab5KeyEvent event = { lv_key, internal->ctrl_held };
+                        xQueueSend(internal->queue, &event, 0);
                         // Arm software repeat tracking by row/col to survive modifier changes
                         const uint32_t now = now_ms();
-                        internal->repeat_key = lv_key;
+                        internal->repeat_event = event;
                         internal->repeat_row = row;
                         internal->repeat_col = col;
                         internal->repeat_start_ms = now;
@@ -370,12 +393,11 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                         }
                     } else if (row == internal->repeat_row && col == internal->repeat_col) {
                         // Match release by position, not translated value — survives sticky Aa clear
-                        internal->repeat_key = 0;
+                        internal->repeat_event.key = 0;
                     }
                 }
             }
         }
-        count--;
     }
 
     // Clear INT status after draining so the line de-asserts
@@ -434,13 +456,19 @@ static void poll_if_due(Device* device, Tab5KeyboardInternal* internal) {
         drain_events(device, internal);
     }
 
-    // Software key-repeat (runs every tick regardless of IRQ)
-    if (internal->repeat_key != 0U) {
-        if ((now - internal->repeat_start_ms) >= REPEAT_INITIAL_MS) {
+    // Software key-repeat (runs every tick regardless of IRQ).
+    //
+    // The clock is re-read here rather than reusing `now` from the top of the function: a press
+    // handled by the drain above sets repeat_start_ms to a timestamp taken *during* the drain, which
+    // is later than `now`. The unsigned subtraction below would then wrap to a huge value and clear
+    // the REPEAT_INITIAL_MS gate immediately, emitting one spurious repeat ~1ms after every press.
+    const uint32_t repeat_now = now_ms();
+    if (internal->repeat_event.key != 0U) {
+        if ((repeat_now - internal->repeat_start_ms) >= REPEAT_INITIAL_MS) {
             const uint32_t last = internal->repeat_last_ms;
-            if (last == 0 || (now - last) >= REPEAT_RATE_MS) {
-                internal->repeat_last_ms = now;
-                xQueueSend(internal->queue, &internal->repeat_key, 0);
+            if (last == 0 || (repeat_now - last) >= REPEAT_RATE_MS) {
+                internal->repeat_last_ms = repeat_now;
+                xQueueSend(internal->queue, &internal->repeat_event, 0);
             }
         }
     }
@@ -464,7 +492,7 @@ static error_t start(Device* device) {
     }
     memset(internal, 0, sizeof(Tab5KeyboardInternal));
 
-    internal->queue = xQueueCreate(20, sizeof(uint32_t));
+    internal->queue = xQueueCreate(20, sizeof(Tab5KeyEvent));
     if (internal->queue == nullptr) {
         free(internal);
         return ERROR_OUT_OF_MEMORY;
@@ -522,15 +550,19 @@ static error_t tab5_keyboard_read_key(Device* device, KeyboardKeyData* data) {
 
     poll_if_due(device, internal);
 
-    uint32_t lv_key = 0;
-    if (xQueueReceive(internal->queue, &lv_key, 0) == pdTRUE) {
-        data->key = lv_key;
+    Tab5KeyEvent event = {};
+    if (xQueueReceive(internal->queue, &event, 0) == pdTRUE) {
+        data->key = event.key;
         data->pressed = true;
         data->continue_reading = uxQueueMessagesWaiting(internal->queue) > 0;
+        data->ctrl = event.ctrl;
+        data->alt = false; // Alt is not tracked by this driver - see drain_events()
     } else {
         data->key = 0;
         data->pressed = false;
         data->continue_reading = false;
+        data->ctrl = false;
+        data->alt = false;
     }
 
     return ERROR_NONE;
