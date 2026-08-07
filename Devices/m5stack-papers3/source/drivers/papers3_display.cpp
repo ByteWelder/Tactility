@@ -60,7 +60,6 @@ static error_t papers3_display_init(Device* device) {
     const auto* config = GET_CONFIG(device);
     auto* internal = static_cast<Papers3DisplayInternal*>(device_get_driver_data(device));
     power_on(internal);
-    epd_clear();
     // The bootloader/boot-logo splash draws via partial refreshes that never get a real quality
     // pass, leaving a faint ghost. Run a full clear now, before LVGL's first flush ever reaches
     // draw_bitmap(), so it never has to undo content LVGL already put on screen.
