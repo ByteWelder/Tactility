@@ -89,6 +89,7 @@
 			pin-cs = <&gpio0 6 GPIO_FLAG_NONE>;
 			clock-speed-hz = <4000000>;
 			panel-type = "gdey029t71h";
+			update-mode = <2>;
 			rotation = <1>;
 		};
 	};
