@@ -59,17 +59,17 @@ struct LvglDisplayCtx {
     bool byte_swap;
 };
 
-static void* lvgl_display_alloc_buffer(size_t size_bytes, bool skip_dma_capable) {
+static void* lvgl_display_alloc_buffer(size_t size_bytes, bool prefer_external_ram) {
 #ifdef ESP_PLATFORM
     // Must match LV_DRAW_BUF_ALIGN (can be > 4 - e.g. 64, tied to the cache line size for
     // DMA2D/PPA coherency on some targets - see sdkconfig's CONFIG_LV_DRAW_BUF_ALIGN). A buffer
     // allocated less strictly than that fails lv_display_set_buffers()'s alignment assert, which
     // is configured to LV_ASSERT_HANDLER (while(1);) rather than a clean abort - i.e. a silent hang.
     // MALLOC_CAP_DMA is scarce internal RAM - skip it for displays that don't DMA directly from
-    // this buffer (see skip_dma_capable_buffer). Dropping MALLOC_CAP_DMA alone isn't enough to
+    // this buffer (see prefer_external_ram_buffer). Dropping MALLOC_CAP_DMA alone isn't enough to
     // land in PSRAM though: MALLOC_CAP_8BIT alone is still satisfied by internal RAM, so
     // MALLOC_CAP_SPIRAM must be requested explicitly (confirmed on real hardware).
-    uint32_t caps = skip_dma_capable ? (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : (MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
+    uint32_t caps = prefer_external_ram ? (MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : (MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
     void* buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, size_bytes, caps);
     if (buf == NULL) {
         buf = heap_caps_aligned_alloc(LV_DRAW_BUF_ALIGN, size_bytes, MALLOC_CAP_DEFAULT);
@@ -408,7 +408,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
         // buffer's start (see lvgl_display_flush_cb()). Always redraw the whole frame in one
         // owned buffer instead of computing partial-region byte offsets against that packing.
         buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
-        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
+        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
         if (ctx->buf1 == NULL) {
             delete wrapper;
             return ERROR_OUT_OF_MEMORY;
@@ -428,13 +428,13 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
             ? vres : config->buffer_height;
         buf_size_bytes = (size_t)hres * buf_height * bpp;
 
-        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
+        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
         if (ctx->buf1 == NULL) {
             delete wrapper;
             return ERROR_OUT_OF_MEMORY;
         }
         if (config->double_buffer) {
-            ctx->buf2 = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
+            ctx->buf2 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
             if (ctx->buf2 == NULL) {
                 lvgl_display_free_buffer(ctx->buf1);
                 delete wrapper;
@@ -448,7 +448,7 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
     ctx->buf_size_bytes = buf_size_bytes;
 
     if (ctx->sw_rotate) {
-        ctx->rotate_buf = lvgl_display_alloc_buffer(buf_size_bytes, config->skip_dma_capable_buffer);
+        ctx->rotate_buf = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
         if (ctx->rotate_buf == NULL) {
             if (ctx->owns_buffers) {
                 lvgl_display_free_buffer(ctx->buf1);

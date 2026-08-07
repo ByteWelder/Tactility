@@ -67,13 +67,13 @@ void lvgl_devices_attach() {
         // itself is never asked to do something it can't.
         bool can_hw_rotate = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_CAP_SWAP_XY) &&
             display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_CAP_MIRROR);
-        bool skip_dma_capable_buffer = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_NO_DMA_BUFFER_NEEDED);
+        bool prefer_external_ram_buffer = display_has_capability(kernel_display_device, DISPLAY_CAPABILITY_NO_DMA_BUFFER_NEEDED);
         struct LvglDisplayConfig lvgl_display_config = {
             .buffer_height = (uint16_t)(vres > 10 ? vres / 10 : vres),
             .sw_rotate = !can_hw_rotate,
             .swap_bytes = swap_bytes,
             .force_full_frame = display_requires_full_frame,
-            .skip_dma_capable_buffer = skip_dma_capable_buffer
+            .prefer_external_ram = prefer_external_ram_buffer
         };
         lv_disp_t* added_display = NULL;
         if (lvgl_display_add(kernel_display_device, &lvgl_display_config, &added_display) == ERROR_NONE) {

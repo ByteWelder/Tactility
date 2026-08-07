@@ -59,7 +59,7 @@ struct LvglDisplayConfig {
      * scarce internal RAM. Default false keeps existing behavior. Only set true if the driver
      * never DMAs directly from the buffer pointer LVGL hands it in the flush callback.
      */
-    bool skip_dma_capable_buffer;
+    bool prefer_external_ram;
 };
 
 /**
