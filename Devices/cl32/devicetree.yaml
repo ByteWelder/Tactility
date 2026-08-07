@@ -1,0 +1,6 @@
+dependencies:
+  - Platforms/platform-esp32
+  - Drivers/tca8418-module
+  - Drivers/esp-epaper-module
+  - Drivers/bm8563-module
+dts: cl32.dts

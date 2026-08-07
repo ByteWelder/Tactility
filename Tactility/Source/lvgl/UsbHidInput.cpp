@@ -155,16 +155,24 @@ static void usbHidInputTask(void* arg) {
 
     lvgl_lock();
 
-    ctx->mouse_cursor = lv_image_create(lv_layer_sys());
-    lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
-    lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
-    lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
+    // Without a registered display, lv_layer_sys() is NULL: creating the cursor image on it trips
+    // an LVGL assert whose default handler is an infinite loop (while(1);), hanging this task while
+    // it holds the LVGL lock. Only create the cursor when a system layer actually exists.
+    lv_obj_t* sys_layer = lv_layer_sys();
+    if (sys_layer != nullptr) {
+        ctx->mouse_cursor = lv_image_create(sys_layer);
+        lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
+        lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
+        lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
+    }
 
     ctx->mouse_indev = lv_indev_create();
     lv_indev_set_type(ctx->mouse_indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(ctx->mouse_indev, mouse_read_cb);
     lv_indev_set_user_data(ctx->mouse_indev, ctx);
-    lv_indev_set_cursor(ctx->mouse_indev, ctx->mouse_cursor);
+    if (ctx->mouse_cursor != nullptr) {
+        lv_indev_set_cursor(ctx->mouse_indev, ctx->mouse_cursor);
+    }
 
     ctx->kb_indev = lv_indev_create();
     lv_indev_set_type(ctx->kb_indev, LV_INDEV_TYPE_KEYPAD);
