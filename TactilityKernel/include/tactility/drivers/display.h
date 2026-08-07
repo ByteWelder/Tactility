@@ -29,7 +29,7 @@ enum DisplayCapability {
      * it copies/converts into its own buffer first). Lets the LVGL bridge allocate this display's
      * draw buffer(s) from non-DMA-capable memory instead of forcing scarce internal RAM.
      */
-    DISPLAY_CAPABILITY_NO_DMA_BUFFER_NEEDED = 1 << 9
+    DISPLAY_CAPABILITY_PREFER_EXTERNAL_RAM = 1 << 9
 };
 
 /**

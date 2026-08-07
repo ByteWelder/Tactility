@@ -172,9 +172,9 @@ static uint8_t papers3_display_get_frame_buffer_count(Device*) {
 // endregion
 
 static const DisplayApi papers3_display_api = {
-    // NO_DMA_BUFFER_NEEDED: draw_bitmap() converts into packed_buffer before touching hardware,
+    // PREFER_EXTERNAL_RAM: draw_bitmap() converts into packed_buffer before touching hardware,
     // never DMAs from LVGL's pointer directly - frees LVGL's draw buffers from forced internal RAM.
-    .capabilities = DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_SLOW_REFRESH | DISPLAY_CAPABILITY_NO_DMA_BUFFER_NEEDED,
+    .capabilities = DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_SLOW_REFRESH | DISPLAY_CAPABILITY_PREFER_EXTERNAL_RAM,
     .reset = papers3_display_reset,
     .init = papers3_display_init,
     .draw_bitmap = papers3_display_draw_bitmap,
