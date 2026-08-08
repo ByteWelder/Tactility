@@ -373,7 +373,7 @@ extern "C" {
 
 Driver dummy_i2s_amp_driver = {
     .name = "dummy_i2s_amp",
-    .compatible = (const char*[]) { "maxim,max98357a", "nsiway,ns4168", nullptr },
+    .compatible = (const char*[]) { "maxim,max98357a", "nsiway,ns4168", "ti,pcm5101a", nullptr },
     .start_device = start_device,
     .stop_device = stop_device,
     .api = &API,

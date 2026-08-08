@@ -1,0 +1,9 @@
+description: TI PCM5101A stereo DAC (I2S input, no register interface, no GPIO enable)
+
+compatible: "ti,pcm5101a"
+
+properties:
+  i2s:
+    type: phandle
+    required: true
+    description: "I2S controller device that carries audio data"
