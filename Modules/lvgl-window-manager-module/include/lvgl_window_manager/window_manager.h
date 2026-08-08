@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
-#include "../../../app-module/include/app/instance.h"
-
+#include <app/instance.h>
 
 #include <lvgl.h>
 
 #include <tactility/error.h>
 #include <tactility/freertos/freertos.h>
-#include <tactility/freertos/task.h>
 
 #include <stdint.h>
 
