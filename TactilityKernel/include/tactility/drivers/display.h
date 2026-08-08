@@ -36,6 +36,7 @@ enum DisplayColorFormat {
     DISPLAY_COLOR_FORMAT_RGB565 = 0x3,
     DISPLAY_COLOR_FORMAT_RGB565_SWAPPED = 0x4,
     DISPLAY_COLOR_FORMAT_RGB888 = 0x5,
+    DISPLAY_COLOR_FORMAT_GRAYSCALE = 0x6, // 2 bpp (indexed, 4 gray levels)
 };
 
 /**

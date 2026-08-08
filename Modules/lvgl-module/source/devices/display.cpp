@@ -104,8 +104,28 @@ static bool lvgl_display_map_color_format(enum DisplayColorFormat in, lv_color_f
             // (e.g. ssd1306_draw_bitmap()'s row-to-page transpose).
             *out = LV_COLOR_FORMAT_I1;
             return true;
+        case DISPLAY_COLOR_FORMAT_GRAYSCALE:
+            // Row-major, MSB-first 2bpp with a 4-entry gray palette header, matching
+            // LV_COLOR_FORMAT_I2's raw layout once the palette is stripped (see
+            // lvgl_display_flush_cb()). Used by 2-bit grayscale e-paper panels.
+            *out = LV_COLOR_FORMAT_I2;
+            return true;
         default:
             return false;
+    }
+}
+
+// LVGL reserves a palette header at the front of every indexed draw buffer (2 x lv_color32_t
+// for 2-entry formats, 4 x lv_color32_t for 4-entry formats); it's on the caller to skip it
+// before treating the rest as pixel data.
+static uint32_t lvgl_display_palette_size(lv_color_format_t color_format) {
+    switch (color_format) {
+        case LV_COLOR_FORMAT_I1:
+            return 8;
+        case LV_COLOR_FORMAT_I2:
+            return 16;
+        default:
+            return 0;
     }
 }
 
@@ -211,7 +231,7 @@ static void* lvgl_display_try_ppa_rotate(struct LvglDisplayCtx* ctx, const uint8
 static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uint8_t* color_map) {
     struct LvglDeviceContext* wrapper = (struct LvglDeviceContext*)lv_display_get_driver_data(disp);
     struct LvglDisplayCtx* ctx = (struct LvglDisplayCtx*)wrapper->context;
-    bool is_i1 = lv_display_get_color_format(disp) == LV_COLOR_FORMAT_I1;
+    uint32_t palette_size = lvgl_display_palette_size(lv_display_get_color_format(disp));
 
     int32_t x1 = area->x1;
     int32_t y1 = area->y1;
@@ -275,11 +295,8 @@ static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uin
             uint8_t* fb_base;
             if (ctx->owns_buffers) {
                 fb_base = (uint8_t*)ctx->buf1;
-                if (is_i1) {
-                    // LVGL reserves an 8-byte palette (2 x lv_color32_t) at the front of every I1
-                    // draw buffer; it's on the caller to skip it before treating the rest as
-                    // pixel data.
-                    fb_base += 8;
+                if (palette_size != 0) {
+                    fb_base += palette_size;
                 }
             } else {
                 fb_base = (uint8_t*)lvgl_display_fb_base(ctx, color_map);
@@ -396,6 +413,18 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
         // buffer's start (see lvgl_display_flush_cb()). Always redraw the whole frame in one
         // owned buffer instead of computing partial-region byte offsets against that packing.
         buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
+        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
+        if (ctx->buf1 == NULL) {
+            delete wrapper;
+            return ERROR_OUT_OF_MEMORY;
+        }
+        ctx->owns_buffers = true;
+        render_mode = LV_DISPLAY_RENDER_MODE_FULL;
+    } else if (lv_color_format == LV_COLOR_FORMAT_I2) {
+        // I2 packs 4 pixels/byte row-wise (2bpp) and LVGL reserves a 16-byte palette header
+        // (4 x lv_color32_t) at the buffer's start (see lvgl_display_flush_cb()). Like I1,
+        // always redraw the whole frame in one owned buffer.
+        buf_size_bytes = (size_t)((hres + 3) / 4) * vres + 16;
         ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes);
         if (ctx->buf1 == NULL) {
             delete wrapper;
