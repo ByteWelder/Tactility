@@ -174,7 +174,7 @@ public:
         mutex.lock();
         assert(mainFunction);
         assert(state == State::Stopped);
-        assert(stackSize > 0 && stackSize < (UINT16_MAX * sizeof(StackType_t)));
+        assert(stackSize > 0);
         mutex.unlock();
 
         setState(State::Starting);
