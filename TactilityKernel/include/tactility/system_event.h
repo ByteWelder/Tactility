@@ -144,6 +144,14 @@ error_t system_event_emit(
  * and polled with system_event_await(). Unlike system_event_callback_t, `event` is a by-value
  * copy that remains valid for the subscription's lifetime (until the next matching event
  * overwrites it), not just for the duration of a callback.
+ * @warning Must be zero-initialized before the first system_event_subscribe() call (e.g.
+ * `SystemEventSubscription sub = {};` in C++, `SystemEventSubscription sub = {0};` in C, or
+ * static/global storage) - system_event_subscribe() reads `internal.unsubscribe_in_progress`
+ * before it writes it, to detect reuse of a node still being torn down by a concurrent
+ * system_event_unsubscribe() call; on indeterminate (non-zeroed) storage that read is undefined
+ * behavior. Not required again for a later system_event_subscribe() reusing the same node after
+ * system_event_unsubscribe() - the fields it depends on are fully owned/maintained by this API
+ * from the first successful registration onward.
  */
 struct SystemEventSubscription {
     /** `event.type` is the event type to subscribe to; set by the caller before
@@ -189,6 +197,8 @@ struct SystemEventSubscription {
 /**
  * Register a poll subscription for events of @a sub->type.
  * @warning Does not work in ISR context.
+ * @warning On its very first call for a given @a sub, @a sub must have been zero-initialized -
+ * see SystemEventSubscription's @warning.
  * @warning If @a sub was just passed to system_event_unsubscribe() (e.g. reusing a node for a
  * new registration) and that call hasn't returned yet on another task, this call blocks
  * (briefly - not for the full duration of anyone's timeout) until it does, before registering -
@@ -224,6 +234,7 @@ error_t system_event_unsubscribe(struct SystemEventSubscription* sub);
  * system_event_get_data()/system_event_get_timestamp() afterward - intermediate events are
  * silently overwritten, never delivered. Use system_event_callback_add() instead if every
  * individual event matters.
+ * @warning Cannot be called concurrently from different tasks. Each tasks must have its own subscription.
  * @param[in,out] sub subscription to wait on, as passed to system_event_subscribe()
  * @param[in] timeout max ticks to wait
  * @retval ERROR_NONE an event arrived
