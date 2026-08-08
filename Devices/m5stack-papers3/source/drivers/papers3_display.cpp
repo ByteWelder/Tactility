@@ -11,46 +11,27 @@
 #include <epd_board.h>
 #include <epdiy.h>
 
+#include <esp_heap_caps.h>
+
 #include <cstdlib>
 #include <cstring>
 
 #define TAG "Papers3Display"
 #define GET_CONFIG(device) (static_cast<const Papers3DisplayConfig*>((device)->config))
 
-// Maps each src byte (8px, MSB-first, bit=1 -> white/0x0F) to the 4 packed dst bytes
-// (2px/byte, EPDiy MODE_PACKING_2PPB nibble order) it produces, replacing a per-pixel
-// branch loop with a table lookup.
-static uint32_t s_unpack_lut[256];
-
-static void init_unpack_lut() {
-    for (uint32_t byte = 0; byte < 256; byte++) {
-        uint8_t dst[4];
-        for (int32_t pair = 0; pair < 4; pair++) {
-            const uint8_t bit0 = (byte >> (7 - pair * 2)) & 0x01U;
-            const uint8_t bit1 = (byte >> (7 - pair * 2 - 1)) & 0x01U;
-            const uint8_t p0 = bit0 ? 0x0FU : 0x00U;
-            const uint8_t p1 = bit1 ? 0x0FU : 0x00U;
-            dst[pair] = static_cast<uint8_t>((p1 << 4U) | p0);
-        }
-        memcpy(&s_unpack_lut[byte], dst, sizeof(dst));
-    }
-}
-
 extern "C" {
 
 extern Module m5stack_papers3_module;
 
-// epd_hl_init() sets an internal already_initialized flag and has no matching deinit, so the
-// highlevel state (and the framebuffer it owns) must persist across stop()/start() cycles and be
-// reused rather than recreated - ported from the old deprecated-HAL EpdiyDisplay's identical
-// s_hlInitialized/s_hlState statics.
+// epd_hl_init() has no matching deinit and sets an internal already_initialized flag, so the
+// highlevel state must persist across stop()/start() cycles and be reused rather than recreated.
 static bool s_hl_initialized = false;
 static EpdiyHighlevelState s_hl_state = {};
 
 struct Papers3DisplayInternal {
     EpdiyHighlevelState hl_state;
     uint8_t* framebuffer;
-    // Scratch buffer for the I1(1bpp)->EPDiy(4bpp packed, 2px/byte) conversion in draw_bitmap().
+    // Scratch buffer for the grayscale8->EPDiy(4bpp packed, 2px/byte) conversion in draw_bitmap().
     uint8_t* packed_buffer;
     bool powered;
 };
@@ -76,16 +57,19 @@ static error_t papers3_display_reset(Device* device) {
 }
 
 static error_t papers3_display_init(Device* device) {
+    const auto* config = GET_CONFIG(device);
     auto* internal = static_cast<Papers3DisplayInternal*>(device_get_driver_data(device));
     power_on(internal);
-    epd_clear();
-    epd_hl_set_all_white(&internal->hl_state);
+    // The bootloader/boot-logo splash draws via partial refreshes that never get a real quality
+    // pass, leaving a faint ghost. Run a full clear now, before LVGL's first flush ever reaches
+    // draw_bitmap(), so it never has to undo content LVGL already put on screen.
+    epd_fullclear(&internal->hl_state, config->temperature_celsius);
     return ERROR_NONE;
 }
 
-// LVGL only ever calls this with the full frame: DISPLAY_COLOR_FORMAT_MONOCHROME forces
-// LV_DISPLAY_RENDER_MODE_FULL in the generic kernel LVGL bridge (lvgl_display.c), and FULL mode
-// only presents (calls draw_bitmap) once per render cycle, with the complete 0,0..hres,vres rect.
+// Reports GRAYSCALE8 (not MONOCHROME) so LVGL uses partial/tile updates instead of forcing
+// full-frame - the bridge hardcodes full-frame for MONOCHROME/I1 regardless of capability flags.
+// So draw_bitmap is called once per changed tile, not necessarily the whole panel.
 static error_t papers3_display_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<Papers3DisplayInternal*>(device_get_driver_data(device));
     const auto* config = GET_CONFIG(device);
@@ -93,31 +77,25 @@ static error_t papers3_display_draw_bitmap(Device* device, int32_t x_start, int3
     const int32_t width = x_end - x_start;
     const int32_t height = y_end - y_start;
 
-    // color_data is DISPLAY_COLOR_FORMAT_MONOCHROME: row-major, MSB-first 1bpp (LVGL's LV_COLOR_FORMAT_I1
-    // with the palette header already stripped by the caller). Bit 1 = white/lit (LVGL's I1 blend
-    // sets a bit when the source luminance is above its threshold), bit 0 = black.
+    // color_data is DISPLAY_COLOR_FORMAT_GRAYSCALE8: row-major, 1 byte/pixel luminance
+    // (0x00=black..0xFF=white, matching LVGL's L8). EPDiy wants 4bpp packed (2px/byte, 0x0=black,
+    // 0xF=white) - a plain >>4 truncation preserves all 16 real gray levels the panel supports
+    // (this panel is not B/W-only; see MODE_GC16/GL16 in papers3-display.yaml's draw-mode doc).
     const auto* src = static_cast<const uint8_t*>(color_data);
-    const size_t src_stride = static_cast<size_t>(width + 7) / 8;
+    const size_t src_stride = static_cast<size_t>(width);
     const size_t packed_stride = static_cast<size_t>(width + 1) / 2;
 
     for (int32_t row = 0; row < height; row++) {
         const uint8_t* src_row = src + static_cast<size_t>(row) * src_stride;
         uint8_t* dst_row = internal->packed_buffer + static_cast<size_t>(row) * packed_stride;
         int32_t col = 0;
-        // Bulk path: one LUT lookup + 4-byte copy per 8 source pixels.
-        for (; col + 8 <= width; col += 8) {
-            memcpy(dst_row + col / 2, &s_unpack_lut[src_row[col / 8]], 4);
-        }
-        // Tail: fewer than 8 pixels left (width not a multiple of 8).
-        for (; col < width; col += 2) {
-            const uint8_t bit0 = (src_row[col / 8] >> (7 - (col % 8))) & 0x01U;
-            const uint8_t p0 = bit0 ? 0x0FU : 0x00U;
-            uint8_t p1 = 0;
-            if (col + 1 < width) {
-                const uint8_t bit1 = (src_row[(col + 1) / 8] >> (7 - ((col + 1) % 8))) & 0x01U;
-                p1 = bit1 ? 0x0FU : 0x00U;
-            }
+        for (; col + 2 <= width; col += 2) {
+            const uint8_t p0 = src_row[col] >> 4U;
+            const uint8_t p1 = src_row[col + 1] >> 4U;
             dst_row[col / 2] = static_cast<uint8_t>((p1 << 4U) | p0);
+        }
+        if (col < width) { // odd width: last column has no pair, low nibble unused
+            dst_row[col / 2] = static_cast<uint8_t>(src_row[col] >> 4U);
         }
     }
 
@@ -152,7 +130,7 @@ static error_t papers3_display_disp_on_off(Device* device, bool on_off) {
 }
 
 static DisplayColorFormat papers3_display_get_color_format(Device*) {
-    return DISPLAY_COLOR_FORMAT_MONOCHROME;
+    return DISPLAY_COLOR_FORMAT_GRAYSCALE8;
 }
 
 // epd_width()/epd_height() are the panel's native, unrotated dimensions (display->width/height in
@@ -172,7 +150,7 @@ static uint16_t papers3_display_get_resolution_y(Device*) {
 
 static void papers3_display_get_frame_buffer(Device*, uint8_t, void** out_buffer) {
     // Not exposed via the generic fb-direct path: EPDiy's framebuffer is its own 4bpp packed
-    // format, not the DISPLAY_COLOR_FORMAT_MONOCHROME (1bpp) this driver reports - see
+    // format, not the DISPLAY_COLOR_FORMAT_GRAYSCALE8 (1 byte/pixel) this driver reports - see
     // get_frame_buffer_count() and draw_bitmap()'s conversion.
     *out_buffer = nullptr;
 }
@@ -184,7 +162,9 @@ static uint8_t papers3_display_get_frame_buffer_count(Device*) {
 // endregion
 
 static const DisplayApi papers3_display_api = {
-    .capabilities = DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_REQUIRES_FULL_FRAME | DISPLAY_CAPABILITY_SLOW_REFRESH,
+    // PREFER_EXTERNAL_RAM: draw_bitmap() converts into packed_buffer before touching hardware,
+    // never DMAs from LVGL's pointer directly - frees LVGL's draw buffers from forced internal RAM.
+    .capabilities = DISPLAY_CAPABILITY_ON_OFF | DISPLAY_CAPABILITY_SLOW_REFRESH | DISPLAY_CAPABILITY_PREFER_EXTERNAL_RAM,
     .reset = papers3_display_reset,
     .init = papers3_display_init,
     .draw_bitmap = papers3_display_draw_bitmap,
@@ -213,12 +193,6 @@ static const DisplayApi papers3_display_api = {
 static error_t start(Device* device) {
     const auto* config = GET_CONFIG(device);
 
-    static bool s_lut_initialized = false;
-    if (!s_lut_initialized) {
-        init_unpack_lut();
-        s_lut_initialized = true;
-    }
-
     auto* internal = static_cast<Papers3DisplayInternal*>(malloc(sizeof(Papers3DisplayInternal)));
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
@@ -245,8 +219,12 @@ static error_t start(Device* device) {
     internal->framebuffer = epd_hl_get_framebuffer(&internal->hl_state);
 
     // Sized for the rotated (LVGL-facing) resolution - see get_resolution_x()/y()'s comment.
+    // ~260KB for this panel - a plain malloc() would land in scarce internal RAM. This buffer is
+    // only ever read once per draw_bitmap() call by epd_draw_rotated_image() (into epdiy's own
+    // SPIRAM-backed framebuffers, see highlevel.c), so it has no internal-RAM/DMA requirement and
+    // belongs in PSRAM instead, matching epdiy's own front_fb/back_fb/difference_fb allocations.
     const size_t packed_buffer_size = static_cast<size_t>((epd_rotated_display_width() + 1) / 2) * static_cast<size_t>(epd_rotated_display_height());
-    internal->packed_buffer = static_cast<uint8_t*>(malloc(packed_buffer_size));
+    internal->packed_buffer = static_cast<uint8_t*>(heap_caps_malloc(packed_buffer_size, MALLOC_CAP_SPIRAM));
     if (internal->packed_buffer == nullptr) {
         LOG_E(TAG, "Failed to allocate packed pixel buffer");
         epd_deinit();

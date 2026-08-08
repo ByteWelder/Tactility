@@ -33,6 +33,7 @@
 #include <Tactility/service/ServiceRegistration.h>
 #include <Tactility/service/audio/Audio.h>
 #include <Tactility/settings/TimePrivate.h>
+#include <Tactility/settings/TouchCalibrationSettings.h>
 
 #include <crypt/module.h>
 
@@ -40,6 +41,9 @@
 #include <gps_generic/module.h>
 #include <gps_meshtastic/module.h>
 
+#include <crypt/module.h>
+#include <lvgl/devices/pointer.h>
+#include <lvgl/lvgl.h>
 #include <lvgl/module.h>
 #include <lvgl/widgets/toolbar.h>
 
@@ -379,6 +383,33 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     return app_container;
 }
 
+#ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
+
+// Applies the calibration persisted by the touch calibration app to the live pointer indev.
+// lvgl_devices_attach() runs before onLvglStarted(), so the default indev already exists here.
+static void applySavedTouchCalibration() {
+    settings::touch::TouchCalibrationSettings settings = settings::touch::loadOrGetDefault();
+    if (!settings.enabled || !settings::touch::isValid(settings)) {
+        return;
+    }
+
+    LvglPointerCalibration calibration = {
+        .x_min = settings.xMin,
+        .x_max = settings.xMax,
+        .y_min = settings.yMin,
+        .y_max = settings.yMax,
+    };
+
+    lvgl_lock();
+    auto* indev = lvgl_pointer_get_default();
+    if (indev != nullptr) {
+        lvgl_pointer_set_calibration(indev, &calibration);
+    }
+    lvgl_unlock();
+}
+
+#endif // CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
+
 static void onLvglStarted() {
     window_manager_configure(windowManagerScreenInit);
     check(module_ensure_started(&lvgl_window_manager_module) == ERROR_NONE);
@@ -400,6 +431,10 @@ static void onLvglStarted() {
 
     lvgl::startUsbHidInput();
     lvgl::initTrackball();
+
+#ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
+    applySavedTouchCalibration();
+#endif
 
     memory_print_stats();
 }

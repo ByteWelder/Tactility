@@ -1,0 +1,65 @@
+description: >
+  E-paper display panels driven by the tuanpmt/esp_epaper ESP-IDF component
+  (SSD1680/1681 BW, GDEY0154D67 and ACeP/BWRY color controllers). The node must
+  be a child of an SPI controller: the display shares the parent's SPI host,
+  clock and MOSI pins, and manages its DC/RESET/BUSY/CS pins itself via the
+  component. Only 1bpp black/white panels are supported by the kernel display
+  bridge (DISPLAY_COLOR_FORMAT_MONOCHROME); color panels fail to start.
+
+compatible: "tuanpmt,esp-epaper"
+
+bus: spi
+
+properties:
+  pin-dc:
+    type: phandles
+    required: true
+    description: Data/Command GPIO pin
+  pin-reset:
+    type: phandles
+    required: true
+    description: Reset GPIO pin (the esp_epaper component drives it unconditionally)
+  pin-busy:
+    type: phandles
+    required: true
+    description: Busy GPIO pin (active high)
+  pin-cs:
+    type: phandles
+    required: true
+    description: Chip-select GPIO pin (driven manually by the component)
+  clock-speed-hz:
+    type: int
+    default: 4000000
+    description: SPI clock frequency in Hz (must be > 0)
+  panel-type:
+    type: text
+    required: true
+    description: >
+      esp_epaper panel registry name. One of "gdey0154d67", "gdep073e01",
+      "gdey037f51", "gdey029t71h", "ssd16xx-154", "ssd16xx-213", "ssd16xx-266",
+      "ssd16xx-270", "ssd16xx-290", "ssd16xx-370", "ssd16xx-420".
+  width:
+    type: int
+    default: 0
+    description: Horizontal resolution override in pixels (0 = the panel's default, maximum 2048)
+  height:
+    type: int
+    default: 0
+    description: Vertical resolution override in pixels (0 = the panel's default, maximum 2048)
+  update-mode:
+    type: int
+    default: 0
+    description: >
+      epd_update_mode_t used for frame updates: 0 = full, 1 = fast, 2 = partial.
+      Full is the safest default; fast and partial refresh quickly but ghost.
+      Values above 2 are rejected at driver start.
+  rotation:
+    type: int
+    default: 0
+    description: >
+      Fixed display rotation applied at start. 0 = 0 degrees, 1 = 90 degrees,
+      2 = 180 degrees, 3 = 270 degrees counter-clockwise (matching
+      LV_DISPLAY_ROTATION_*). The kernel bridge reports the rotated resolution,
+      so LVGL renders in rotated space and the driver rotates the 1bpp frame
+      back to the panel's native layout before updating. Not changeable at
+      runtime.

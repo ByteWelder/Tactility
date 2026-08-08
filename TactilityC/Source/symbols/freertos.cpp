@@ -1,3 +1,4 @@
+#include <sdkconfig.h>
 #include <private/elf_symbol.h>
 #include <cstddef>
 
@@ -40,6 +41,7 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(xTaskGenericNotify),
     ESP_ELFSYM_EXPORT(xTaskGenericNotifyFromISR),
     ESP_ELFSYM_EXPORT(ulTaskGenericNotifyTake),
+    ESP_ELFSYM_EXPORT(xTaskGetCurrentTaskHandle),
     ESP_ELFSYM_EXPORT(xTaskGetTickCount),
     ESP_ELFSYM_EXPORT(xTaskGetTickCountFromISR),
     ESP_ELFSYM_EXPORT(pvTaskGetThreadLocalStoragePointer),
@@ -101,6 +103,12 @@ const esp_elfsym freertos_symbols[] = {
     ESP_ELFSYM_EXPORT(vPortYield),
     ESP_ELFSYM_EXPORT(vPortEnterCritical),
     ESP_ELFSYM_EXPORT(vPortExitCritical),
+#if defined(CONFIG_IDF_TARGET_ESP32P4) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    ESP_ELFSYM_EXPORT(xPortEnterCriticalTimeout),
+#endif
+#if defined(CONFIG_IDF_TARGET_ESP32P4)
+    ESP_ELFSYM_EXPORT(vPortExitCriticalMultiCore),
+#endif
     ESP_ELFSYM_EXPORT(xPortInIsrContext),
     ESP_ELFSYM_EXPORT(xPortCanYield),
     ESP_ELFSYM_EXPORT(xPortGetCoreID),

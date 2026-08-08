@@ -53,6 +53,13 @@ struct LvglDisplayConfig {
      * the LV_COLOR_FORMAT_I1 path (already always-full-frame).
      */
     bool force_full_frame;
+
+    /**
+     * Opts owned draw buffer(s) OUT of DMA-capable memory, falling back to PSRAM instead of
+     * scarce internal RAM. Default false keeps existing behavior. Only set true if the driver
+     * never DMAs directly from the buffer pointer LVGL hands it in the flush callback.
+     */
+    bool prefer_external_ram;
 };
 
 /**

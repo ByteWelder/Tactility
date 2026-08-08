@@ -45,6 +45,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "TactilityC"
         "TactilityFreeRtos"
         "Libraries/elf_loader"
+        "Libraries/esp_epaper"
         "Libraries/lv_screenshot"
         "Libraries/minitar"
         "Libraries/minmea"

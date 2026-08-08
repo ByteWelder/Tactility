@@ -43,7 +43,18 @@ typedef enum {
 typedef struct {
     UsbHidEventType type;
     union {
-        struct { uint32_t key_code; bool pressed; } key;
+        /**
+         * @brief A key press or release.
+         *
+         * `ctrl` and `alt` report the modifiers separately rather than folding them into
+         * `key_code`, because the two encodings collide: the C0 control codes a terminal expects
+         * for Ctrl chords (Ctrl+C is 0x03, Ctrl+K is 0x0B) overlap the UsbHidKey constants above
+         * (USB_HID_KEY_END is 3, USB_HID_KEY_PREV is 11). A consumer wanting control codes derives
+         * them here, e.g.
+         * `((key_code >= 'a' && key_code <= 'z') || (key_code >= 'A' && key_code <= 'Z')) ?
+         * (key_code & 0x1F) : key_code`.
+         */
+        struct { uint32_t key_code; bool pressed; bool ctrl; bool alt; } key;
         struct { int32_t dx; int32_t dy; }         mouse_move;
         struct { bool button1; bool button2; }     mouse_btn;
         struct { int32_t delta; }                  scroll;
