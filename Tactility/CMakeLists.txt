@@ -10,7 +10,6 @@ list(APPEND REQUIRES_LIST
     lvgl-module
     lvgl-window-manager-module
     app-module
-    app-esp32-module
     crypt-module
     gps-module
     gps-generic-module
@@ -23,6 +22,7 @@ list(APPEND REQUIRES_LIST
 if (DEFINED ENV{ESP_IDF_VERSION})
 
     list(APPEND REQUIRES_LIST
+        app-esp32-module
         platform-esp32
         driver
         elf_loader

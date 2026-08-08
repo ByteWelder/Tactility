@@ -36,6 +36,10 @@ enum WindowState {
  * @return the widget windows should actually be placed into - @a root_widget itself, or a
  * child of it. Returning NULL falls back to @a root_widget.
  * @warning Called on the LVGL task with the LVGL lock already held.
+ * @warning Also called with window-manager's internal lifecycle_mutex held (non-recursive) -
+ * do NOT call window_manager_start()/window_manager_stop()/window_manager_create()/
+ * window_manager_remove() or any other window-manager API from this callback, that would
+ * deadlock.
  */
 typedef lv_obj_t* (*WindowManagerScreenInitFn)(lv_obj_t* root_widget);
 
@@ -76,6 +80,10 @@ error_t window_manager_stop(void);
  * window_manager_remove() for the window that used to be on top (e.g. a dialog's own thread as
  * it closes). Do NOT rely on thread_local state set by this window's own app thread; use
  * @a user_data instead.
+ * @warning Also called with window-manager's internal lifecycle_mutex held (non-recursive) -
+ * do NOT call window_manager_start()/window_manager_stop()/window_manager_create()/
+ * window_manager_remove() or any other window-manager API from this callback, that would
+ * deadlock.
  */
 typedef void (*WindowCreateWidgetsFn)(lv_obj_t* root, void* user_data);
 

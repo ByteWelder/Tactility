@@ -193,11 +193,17 @@ TEST_CASE("properties_file_close reports ERROR_RESOURCE when the parent director
 }
 
 TEST_CASE("a failed close leaves previously-saved content on disk untouched") {
+    if (geteuid() == 0) {
+        // Root bypasses directory write permissions, so the read-only directory below would
+        // not make save_to_file() fail.
+        return;
+    }
+
     const char* dir = "/tmp/tactility_kernel_properties_file_readonly_test";
     const char* path = "/tmp/tactility_kernel_properties_file_readonly_test/settings.properties";
 
-    mkdir(dir, 0777);
-    chmod(dir, 0777);
+    mkdir(dir, 0700);
+    chmod(dir, 0700);
     std::remove(path);
 
     {
@@ -214,7 +220,7 @@ TEST_CASE("a failed close leaves previously-saved content on disk untouched") {
     properties_file_set(file, "key", "corrupted");
     CHECK_EQ(properties_file_close(file), ERROR_RESOURCE);
 
-    chmod(dir, 0777); // restore write access for the check below and for cleanup
+    chmod(dir, 0700); // restore write access for the check below and for cleanup
 
     PropertiesFile* reloaded = properties_file_open(path);
     char buffer[32];

@@ -44,17 +44,7 @@ Bundle* bundle_clone(const Bundle* bundle) {
     if (clone == nullptr) {
         return nullptr;
     }
-    // The Bundle allocation above is nothrow, but copy-assigning `entries` (allocating a node
-    // and copying the key/value_string for every entry) is not - std::bad_alloc could still
-    // escape mid-copy. Callers only ever check for a NULL return, so convert that into the
-    // documented nullptr-on-failure contract instead of letting it propagate out of this
-    // extern "C" function (which would be undefined behavior).
-    try {
-        clone->entries = bundle->entries;
-    } catch (...) {
-        delete clone;
-        return nullptr;
-    }
+    clone->entries = bundle->entries;
     return clone;
 }
 

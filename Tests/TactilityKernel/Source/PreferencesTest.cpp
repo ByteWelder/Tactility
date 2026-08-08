@@ -231,6 +231,7 @@ TEST_CASE("preferences_open creates missing parent directories (recursively) and
     CHECK(file_exists(nested_path));
 
     Preferences* reopened = preferences_open(nested_path);
+    REQUIRE_NE(reopened, nullptr);
     int32_t out = 0;
     CHECK(preferences_opt_int32(reopened, "count", &out));
     CHECK_EQ(out, 7);

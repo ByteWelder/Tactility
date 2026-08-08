@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl_window_manager/window_manager.h>
 
-#include "../../app-module/include/app/instance.h"
+#include <app/instance.h>
 
 #include <lvgl/lvgl.h>
 

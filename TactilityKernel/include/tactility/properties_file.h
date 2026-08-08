@@ -27,8 +27,8 @@ typedef struct PropertiesFile PropertiesFile;
  * @param[in] path absolute or relative file path (e.g. "/data/settings.properties") - the
  * parent directory must already exist
  * @return the new instance, or NULL on allocation failure, or NULL if @a path exists but a
- * genuine I/O error interrupted reading it (a missing file is not an error - the instance
- * starts out empty in that case)
+ * genuine error prevented opening or reading it, e.g. a permissions error (a missing file is
+ * not an error - the instance starts out empty in that case)
  */
 PropertiesFile* properties_file_open(const char* path);
 

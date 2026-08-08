@@ -399,7 +399,7 @@ TEST_CASE("system_event_unsubscribe wakes a task blocked in system_event_await w
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
     CHECK_LT(get_ticks() - before, pdMS_TO_TICKS(1000));
 
-    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     CHECK_EQ(thread_get_return_code(thread), ERROR_INVALID_STATE);
     thread_free(thread);
 
@@ -432,7 +432,7 @@ TEST_CASE("a subscription node can be re-subscribed after system_event_unsubscri
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
     CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
-    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);

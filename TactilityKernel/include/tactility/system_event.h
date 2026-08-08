@@ -168,8 +168,19 @@ struct SystemEventSubscription {
         int waiter_count;
         /** Set by system_event_unsubscribe() before it gives `semaphore` and waits, so a task
          * already blocked in system_event_await() bails out (ERROR_INVALID_STATE) instead of
-         * waiting out its full timeout. Reset on the next system_event_subscribe(). */
+         * waiting out its full timeout. Reset once system_event_unsubscribe() finishes
+         * draining old awaiters (see unsubscribe_in_progress) - not simply "on the next
+         * system_event_subscribe()", so a fresh registration can never observe a stale `true`
+         * left over from an unsubscribe that hasn't returned yet. */
         bool cancelled;
+        /** True from the moment system_event_unsubscribe() unlinks `sub` until it has finished
+         * draining old awaiters and deleted the old semaphore. system_event_subscribe() spins
+         * until this clears before reusing `sub` - otherwise a new registration could reset
+         * waiter_count/cancelled (both shared with the old registration, there being only one
+         * `sub`) out from under the old system_event_unsubscribe() call still relying on them,
+         * or hand out a new semaphore for that same call to then promptly delete instead of the
+         * old one, while an old awaiter is still blocked on the real old semaphore. */
+        bool unsubscribe_in_progress;
 
         struct SystemEventSubscription* next;
     } internal;
@@ -178,6 +189,10 @@ struct SystemEventSubscription {
 /**
  * Register a poll subscription for events of @a sub->type.
  * @warning Does not work in ISR context.
+ * @warning If @a sub was just passed to system_event_unsubscribe() (e.g. reusing a node for a
+ * new registration) and that call hasn't returned yet on another task, this call blocks
+ * (briefly - not for the full duration of anyone's timeout) until it does, before registering -
+ * see SystemEventSubscription::internal.unsubscribe_in_progress.
  * @param[in,out] sub subscription to register; caller sets @a sub->type beforehand, owns the
  * storage, and must keep it alive (and stationary) until unsubscribed
  * @retval ERROR_NONE on success
@@ -194,6 +209,8 @@ error_t system_event_subscribe(struct SystemEventSubscription* sub);
  * currently blocked in system_event_await() on @a sub has woken up and left, so it's safe to
  * delete the subscription's semaphore before this call returns. A blocked awaiter is woken
  * (with ERROR_INVALID_STATE) as part of this call rather than left to time out on its own.
+ * A concurrent system_event_subscribe() reusing the same @a sub waits out this same window
+ * (see system_event_subscribe()'s @warning) rather than racing it.
  * @param[in] sub subscription to remove, as passed to system_event_subscribe()
  * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
  */

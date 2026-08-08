@@ -166,6 +166,23 @@ error_t system_event_emit(
 }
 
 error_t system_event_subscribe(SystemEventSubscription* sub) {
+    // Wait out any system_event_unsubscribe() call still draining old awaiters for this same
+    // `sub` on another task (see internal.unsubscribe_in_progress). waiter_count/cancelled
+    // belong to `sub` itself, not to a given registration - reusing `sub` before that call
+    // finishes would reset them out from under it, and could hand out a fresh semaphore for it
+    // to then promptly delete instead of the old one, while an old awaiter is still blocked on
+    // the real old semaphore.
+    while (true) {
+        mutex_lock(&poll_subscriptions_mutex.handle);
+        bool busy = sub->internal.unsubscribe_in_progress;
+        mutex_unlock(&poll_subscriptions_mutex.handle);
+
+        if (!busy) {
+            break;
+        }
+        delay_ticks(pdMS_TO_TICKS(10));
+    }
+
     SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
     if (semaphore == nullptr) {
         return ERROR_OUT_OF_MEMORY;
@@ -218,6 +235,9 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
         // this point would overwrite that field with a freshly created semaphore, and we must
         // not delete the wrong (newly active) one.
         sub->internal.cancelled = true;
+        // Blocks a concurrent system_event_subscribe() from reusing `sub` until this whole
+        // call returns - see internal.unsubscribe_in_progress and system_event_subscribe().
+        sub->internal.unsubscribe_in_progress = true;
         semaphore_to_delete = sub->internal.semaphore;
         sub->internal.semaphore = nullptr;
     }
@@ -246,9 +266,13 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
 
     vSemaphoreDelete(semaphore_to_delete);
 
-    // Reset so a future system_event_subscribe() re-registering this same `sub` isn't left
-    // pre-cancelled (subscribe() also resets this itself, defensively).
+    // Reset under the lock, together, as the last step - only past this point is `sub` safe
+    // for system_event_subscribe() to reuse (see internal.unsubscribe_in_progress and the
+    // busy-wait at the top of system_event_subscribe()).
+    mutex_lock(&poll_subscriptions_mutex.handle);
     sub->internal.cancelled = false;
+    sub->internal.unsubscribe_in_progress = false;
+    mutex_unlock(&poll_subscriptions_mutex.handle);
 
     return ERROR_NONE;
 }

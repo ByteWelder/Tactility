@@ -3,6 +3,7 @@
 #include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
+#include <cerrno>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -48,9 +49,9 @@ namespace {
 // close(). Mirrors Tactility's loadPropertiesFile(): "#"-prefixed and blank lines are skipped;
 // a "[section]" line becomes a literal prefix (verbatim, brackets included) prepended to every
 // subsequent key, until the next "[section]" line replaces it.
-// @return false if the file exists but a genuine I/O error interrupted reading it (fgetc()'s
-// EOF return doesn't by itself distinguish clean end-of-file from a read error - ferror() after
-// the loop does); true otherwise, including for a missing file.
+// @return false if the file exists but a genuine I/O error interrupted opening or reading it
+// (fgetc()'s EOF return doesn't by itself distinguish clean end-of-file from a read error -
+// ferror() after the loop does); true otherwise, including for a missing file (ENOENT).
 bool load_from_file(PropertiesFile* file) {
     FileMutex mutex {};
     file_mutex_get(&mutex, file->path.c_str());
@@ -58,8 +59,13 @@ bool load_from_file(PropertiesFile* file) {
 
     FILE* handle = std::fopen(file->path.c_str(), "r");
     if (handle == nullptr) {
+        const int open_error = errno;
         file_mutex_unlock(&mutex);
-        return true;
+        if (open_error == ENOENT) {
+            return true;
+        }
+        LOG_E(TAG, "Failed to open %s", file->path.c_str());
+        return false;
     }
 
     std::string key_prefix;

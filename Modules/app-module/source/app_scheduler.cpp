@@ -71,13 +71,16 @@ void set_completion(AppInstanceId app_instance_id, AppCompletionSignal* completi
 // Takes a reference on app_instance_id's completion signal (see AppCompletionSignal), for the
 // caller to wait on. @return the signal to wait on, or NULL if the instance has already fully
 // finished (its ledger entry - and so its reference to the signal - is already gone) and so
-// there's nothing left to wait for.
+// there's nothing left to wait for, or if the instance is still starting up (start_internal()
+// in manager.cpp inserts the ledger entry before app_scheduler_start() has gotten as far as
+// set_completion() - `completion` is NULL for that whole window) and so there's nothing to
+// take a reference on yet.
 AppCompletionSignal* acquire_completion_signal(AppInstanceId app_instance_id) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.instances.find(app_instance_id);
     AppCompletionSignal* completion = nullptr;
-    if (iterator != ledger.instances.end()) {
+    if (iterator != ledger.instances.end() && iterator->second.completion != nullptr) {
         completion = iterator->second.completion;
         completion->refcount++;
     }
