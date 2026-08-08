@@ -1,7 +1,9 @@
 #include <Tactility/app/setup/Setup.h>
+
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/app/wifimanage/WifiManage.h>
+#include <Tactility/file/File.h>
 #include <Tactility/service/wifi/Wifi.h>
 
 #include <app/event.h>
@@ -10,8 +12,8 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
+#include <tactility/log.h>
 #include <tactility/paths.h>
-#include <tactility/preferences.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -32,17 +34,16 @@ namespace tt::app::setup {
 
 extern const ::AppManifest manifest;
 
-constexpr auto* PREFERENCES_NAMESPACE = "setup";
-constexpr auto* PREFERENCES_KEY_COMPLETED = "completed";
+constexpr auto* TAG = "setup";
 
 namespace {
 
-bool getPreferencesPath(std::string& outPath) {
+bool getCompletedMarkerPath(std::string& outPath) {
     char root[128];
     if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
-    outPath = std::string(root) + "/" + PREFERENCES_NAMESPACE + ".properties";
+    outPath = std::string(root) + "/.setup_complete";
     return true;
 }
 
@@ -50,32 +51,23 @@ bool getPreferencesPath(std::string& outPath) {
 
 bool isCompleted() {
     std::string path;
-    if (!getPreferencesPath(path)) {
+    if (!getCompletedMarkerPath(path)) {
+        LOG_E(TAG, "Setup path not found");
         return false;
     }
-    Preferences* preferences = preferences_open(path.c_str());
-    if (preferences == nullptr) {
-        return false;
-    }
-    bool completed = false;
-    preferences_opt_bool(preferences, PREFERENCES_KEY_COMPLETED, &completed);
-    preferences_close(preferences);
-    return completed;
+    file::FileMutexGuard guard(path);
+    return file::isFile(path);
 }
 
 namespace {
 
 void markCompleted() {
     std::string path;
-    if (!getPreferencesPath(path)) {
+    if (!getCompletedMarkerPath(path)) {
         return;
     }
-    Preferences* preferences = preferences_open(path.c_str());
-    if (preferences == nullptr) {
-        return;
-    }
-    preferences_put_bool(preferences, PREFERENCES_KEY_COMPLETED, true);
-    preferences_close(preferences);
+    file::FileMutexGuard guard(path);
+    file::writeString(path, "");
 }
 
 enum class Phase {

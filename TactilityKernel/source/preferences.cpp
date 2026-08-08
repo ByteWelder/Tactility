@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <tactility/preferences.h>
-#include <tactility/properties_file.h>
+
+#include <tactility/log.h>
 #include <tactility/paths.h>
+#include <tactility/properties_file.h>
 
 #include <cerrno>
 #include <cinttypes>
@@ -14,6 +16,8 @@
 #include <vector>
 
 namespace {
+
+constexpr auto* TAG = "preferences";
 
 // Escapes '\\' and '\n' so a string value can never break properties_file's one-entry-per-line
 // on-disk format, regardless of its content.
@@ -176,16 +180,19 @@ extern "C" {
 Preferences* preferences_open(const char* path) {
     std::string directory = parent_directory(path);
     if (!directory.empty() && !ensure_directory_recursive(directory)) {
+        LOG_E(TAG, "Directory not found: %s", directory.c_str());
         return nullptr;
     }
 
     PropertiesFile* file = properties_file_open(path);
     if (file == nullptr) {
+        LOG_E(TAG, "Failed to open %s", path);
         return nullptr;
     }
 
     auto* preferences = new (std::nothrow) Preferences { file };
     if (preferences == nullptr) {
+        LOG_E(TAG, "Out of memory");
         properties_file_close(file);
         return nullptr;
     }
