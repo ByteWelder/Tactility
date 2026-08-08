@@ -4,16 +4,14 @@
 #include <app/manifest.h>
 
 #include <tactility/error.h>
-#include <tactility/freertos/freertos.h>
-#include <tactility/freertos/task.h>
 
 #include <cstdint>
 
 /**
  * Owns per-app task lifecycle on behalf of app_manager_*(). AppLoaderApi implementations
- * stay task-agnostic; all of thread_alloc_full()/thread_start()/thread_join() happen here.
- * Every app instance gets its own dedicated task for its entire lifetime - no task is ever
- * reused for a different instance.
+ * stay task-agnostic; all of xTaskCreate()/vTaskDelete() happens here, as a plain FreeRTOS task
+ * (not TactilityKernel's Thread wrapper). Every app instance gets its own dedicated task for its
+ * entire lifetime - no task is ever reused for a different instance.
  */
 
 #ifdef __cplusplus
@@ -30,13 +28,15 @@ extern "C" {
  * taken by the scheduler regardless of outcome (freed once the spawned task's run() returns, or
  * immediately on a failure to start it)
  */
-error_t app_scheduler_start(uint32_t app_instance_id, struct AppLocation location, int argc, char* argv[]);
+error_t app_scheduler_start(AppInstanceId app_instance_id, struct AppLocation location, int argc, char* argv[]);
 
 /**
  * Permanently stops an app instance (APP_EVENT_CLOSE if it was running), bound-waits for its
  * task to exit, and removes it from the ledger.
  */
-error_t app_scheduler_stop(uint32_t app_instance_id, TickType_t join_timeout);
+error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeout);
+
+// app_scheduler_current_app_id() is public - see app/scheduler.h.
 
 #ifdef __cplusplus
 }

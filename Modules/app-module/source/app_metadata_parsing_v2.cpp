@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/metadata.h>
-
 #include <app/private/app_metadata_parsing_internal.h>
+
+#include <charconv>
 
 #include <tactility/log.h>
 
@@ -77,7 +78,14 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
         return false;
     }
 
-    out_metadata.app_version_code = std::stoull(version_code_string);
+    uint64_t version_code = 0;
+    const auto* first = version_code_string.data();
+    const auto* last = first + version_code_string.size();
+    if (std::from_chars(first, last, version_code).ec != std::errc {}) {
+        LOG_E(TAG, "App version code out of range");
+        return false;
+    }
+    out_metadata.app_version_code = version_code; // [target]
 
     // target
 

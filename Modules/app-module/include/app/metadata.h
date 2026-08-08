@@ -39,8 +39,8 @@ struct AppMetadata {
      */
     char app_version_name[APP_METADATA_APP_VERSION_NAME_LENGTH + 1];
 
-    /** The technical version (must be incremented with new releases of the app */
-    uint64_t app_version_code = 0;
+    /** The technical version (must be incremented with new releases of the app) */
+    uint64_t app_version_code;
 };
 
 /**

@@ -4,6 +4,7 @@
 #include <app/manager.h>
 #include <app/metadata.h>
 
+#include <app/private/app_fs.h>
 #include <app/private/app_ledger.h>
 
 #include <tactility/concurrent/mutex.h>
@@ -37,19 +38,9 @@ std::string last_path_segment(const std::string& path) {
     return index == std::string::npos ? path : path.substr(index + 1);
 }
 
-bool is_directory(const std::string& path) {
-    struct stat result {};
-    return stat(path.c_str(), &result) == 0 && S_ISDIR(result.st_mode);
-}
-
-bool is_file(const std::string& path) {
-    struct stat result {};
-    return stat(path.c_str(), &result) == 0 && S_ISREG(result.st_mode);
-}
-
 // mkdir -p.
 bool ensure_directory(const std::string& path) {
-    if (path.empty() || is_directory(path)) {
+    if (path.empty() || app_fs_is_directory(path)) {
         return true;
     }
 
@@ -62,7 +53,7 @@ bool ensure_directory(const std::string& path) {
         return false;
     }
 
-    return is_directory(path);
+    return app_fs_is_directory(path);
 }
 
 bool ensure_directory_recursive(const std::string& path) {
@@ -75,19 +66,27 @@ bool ensure_directory_recursive(const std::string& path) {
 }
 
 bool delete_recursively(const std::string& path) {
+    LOG_D(TAG, "Deleting %s...", path.c_str());
     if (path.empty() || path == "/" || path == "." || path == "..") {
         return true;
     }
 
-    if (is_directory(path)) {
+    if (app_fs_is_directory(path)) {
+        LOG_D(TAG, "Deleting dir %s", path.c_str());
+
+        FileMutex file_mutex;
+        file_mutex_get(&file_mutex, path.c_str());
+        file_mutex_lock(&file_mutex);
+
         DIR* dir = opendir(path.c_str());
         if (dir == nullptr) {
             LOG_E(TAG, "Failed to scan directory %s", path.c_str());
+            file_mutex_unlock(&file_mutex);
             return false;
         }
 
         bool success = true;
-        struct dirent* entry;
+        dirent* entry;
         while (success && (entry = readdir(dir)) != nullptr) {
             if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
                 continue;
@@ -97,18 +96,17 @@ bool delete_recursively(const std::string& path) {
         closedir(dir);
 
         if (!success) {
+            file_mutex_unlock(&file_mutex);
             return false;
         }
 
-        FileMutex mutex {};
-        file_mutex_get(&mutex, path.c_str());
-        file_mutex_lock(&mutex);
         bool result = rmdir(path.c_str()) == 0;
-        file_mutex_unlock(&mutex);
+        file_mutex_unlock(&file_mutex);
         return result;
     }
 
-    if (is_file(path)) {
+    if (app_fs_is_file(path)) {
+        LOG_D(TAG, "Deleting file %s", path.c_str());
         FileMutex mutex {};
         file_mutex_get(&mutex, path.c_str());
         file_mutex_lock(&mutex);
@@ -117,7 +115,7 @@ bool delete_recursively(const std::string& path) {
         return result;
     }
 
-    // Doesn't exist - nothing to do.
+    LOG_D(TAG, "Deleting done");
     return true;
 }
 
@@ -211,6 +209,35 @@ struct InstallRegistry {
 InstallRegistry& install_registry() {
     static InstallRegistry registry;
     return registry;
+}
+
+// Registers @a app_dir_path (already confirmed to hold a valid manifest.properties, parsed into
+// @a metadata) with app_manager_add(), taking ownership of its id/name/path strings.
+// @warning Caller must hold install_registry().mutex, and must have already ensured
+// @a metadata.app_id isn't already registered (app_manager_add() rejects duplicates, but the
+// InstalledAppRecord for the earlier registration would leak since this always inserts fresh).
+error_t register_installed_app_locked(const std::string& app_dir_path, const AppMetadata& metadata) {
+    auto& registry = install_registry();
+
+    auto record = std::make_unique<InstalledAppRecord>();
+    record->id = metadata.app_id;
+    record->name = metadata.app_name;
+    record->path = app_dir_path;
+    record->manifest = AppManifest {
+        .id = record->id.c_str(),
+        .name = record->name.c_str(),
+        .category = APP_CATEGORY_USER,
+        .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
+        .flags = 0,
+    };
+
+    error_t add_result = app_manager_add(&record->manifest);
+    if (add_result != ERROR_NONE) {
+        return add_result;
+    }
+
+    registry.apps[record->id] = std::move(record);
+    return ERROR_NONE;
 }
 
 // Stops every currently-running instance of @a manifest. Collects matching instance ids while
@@ -312,7 +339,7 @@ error_t app_install(const char* source_path) {
     }
 
     auto manifest_path = staging_path + "/manifest.properties";
-    if (!is_file(manifest_path)) {
+    if (!app_fs_is_file(manifest_path)) {
         LOG_E(TAG, "Manifest not found at %s", manifest_path.c_str());
         delete_recursively(staging_path);
         return ERROR_INVALID_ARGUMENT;
@@ -320,7 +347,7 @@ error_t app_install(const char* source_path) {
 
     AppMetadata metadata {};
     if (app_metadata_parse(manifest_path.c_str(), &metadata) != ERROR_NONE) {
-        LOG_W(TAG, "Invalid manifest");
+        LOG_E(TAG, "Install failed: invalid manifest");
         delete_recursively(staging_path);
         return ERROR_INVALID_ARGUMENT;
     }
@@ -329,8 +356,18 @@ error_t app_install(const char* source_path) {
     mutex_lock(&registry.mutex);
 
     // Replace any previous install of this app id (mirrors the old install()'s "already
-    // running/present" handling).
+    // running/present" handling). uninstall_locked() only clears app_install.cpp's own
+    // registry - the same app id may instead be registered by app_manager_install_path_scan()
+    // (manager.cpp's separate registry, scanning this same directory tree), which
+    // uninstall_locked() doesn't know about. Clear the app-manager registration unconditionally
+    // too, or app_manager_add() below rejects the re-add as a duplicate.
     uninstall_locked(metadata.app_id);
+    if (app_manager_remove(metadata.app_id) != ERROR_NONE) {
+        LOG_E(TAG, "Install failed: failed to remove existing installation");
+        mutex_unlock(&registry.mutex);
+        delete_recursively(staging_path);
+        return ERROR_RESOURCE;
+    }
 
     auto final_path = app_parent_path + "/" + metadata.app_id;
     delete_recursively(final_path);
@@ -346,30 +383,12 @@ error_t app_install(const char* source_path) {
         return ERROR_NOT_FOUND;
     }
 
-    auto record = std::make_unique<InstalledAppRecord>();
-    record->id = metadata.app_id;
-    record->name = metadata.app_name;
-    record->path = final_path;
-    record->manifest = AppManifest {
-        .id = record->id.c_str(),
-        .name = record->name.c_str(),
-        .category = APP_CATEGORY_USER,
-        .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
-        .flags = 0,
-    };
-
-    error_t add_result = app_manager_add(&record->manifest);
-    if (add_result != ERROR_NONE) {
-        // Only remaining failure mode is a duplicate id - can't happen, uninstall_locked() above
-        // already removed any previous registration for this exact id.
-        mutex_unlock(&registry.mutex);
-        return add_result;
-    }
-
-    registry.apps[record->id] = std::move(record);
+    // Only remaining failure mode is a duplicate id - can't happen, uninstall_locked() above
+    // already removed any previous registration for this exact id.
+    error_t add_result = register_installed_app_locked(final_path, metadata);
     mutex_unlock(&registry.mutex);
 
-    return ERROR_NONE;
+    return add_result;
 }
 
 error_t app_uninstall(const char* app_id) {

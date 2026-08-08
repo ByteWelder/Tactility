@@ -57,13 +57,14 @@ bool load_properties(const std::string& path, std::map<std::string, std::string>
     bool got_first_line = false;
     while (std::getline(file, line)) {
         auto trimmed_line = trim(line);
-        if (!got_first_line) {
-            out_first_line = trimmed_line;
-            got_first_line = true;
-        }
 
         if (trimmed_line.empty() || trimmed_line.starts_with("#")) {
             continue;
+        }
+
+        if (!got_first_line) {
+            out_first_line = trimmed_line;
+            got_first_line = true;
         }
 
         if (trimmed_line.starts_with("[")) {
@@ -123,7 +124,8 @@ bool app_metadata_is_valid_version_name(const std::string& version) {
 }
 
 bool app_metadata_is_valid_version_code(const std::string& version) {
-    return !version.empty() && validate_string(version, [](char c) {
+    // 20 digits is the maximum decimal width of uint64_t.
+    return !version.empty() && version.size() <= 20 && validate_string(version, [](char c) {
         return std::isdigit(static_cast<unsigned char>(c)) != 0;
     });
 }

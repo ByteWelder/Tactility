@@ -1,23 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
-#include "../../../TactilityKernel/include/tactility/error.h"
-#include "../../../TactilityKernel/include/tactility/filesystem/file_mutex.h"
-#include "../../app-module/include/app/loader.h"
-#include "../../app-module/include/app/location.h"
-
+#ifdef ESP_PLATFORM
+#include <sdkconfig.h>
+#endif
 
 #include <app/loader.h>
-#include <app/manifest.h>
+#include <app/location.h>
 
-#include <service/instance.h>
+#include <tactility/error.h>
+#include <tactility/check.h>
+#include <tactility/filesystem/file_mutex.h>
+#include <tactility/log.h>
+
 #include <service/manager.h>
 
 #include <esp_elf.h>
 #include <esp_err.h>
 
 #include <cstdio>
-#include <cstdlib>
 #include <new>
 #include <string>
+
+constexpr auto* TAG = "app_esp32_loader";
 
 namespace {
 
@@ -34,6 +37,7 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
 
     FILE* file = fopen(path, "rb");
     if (file == nullptr) {
+        LOG_E(TAG, "Failed to open %s", path);
         file_mutex_unlock(&mutex);
         return ERROR_NOT_FOUND;
     }
@@ -68,19 +72,35 @@ error_t read_file(const char* path, uint8_t** out_data, size_t* out_size) {
     return ERROR_NONE;
 }
 
-error_t api_load(AppLocation location, AppRuntime* out_runtime) {
-    auto* runtime = new (std::nothrow) Esp32AppRuntime();
-    if (runtime == nullptr) {
-        return ERROR_OUT_OF_MEMORY;
+// location.location can be either an app's install directory or the .elf file directly; the
+// former resolves to the per-target binary at {dir}/elf/{CONFIG_IDF_TARGET}.elf.
+std::string resolve_elf_path(const std::string& path) {
+    if (path.ends_with(".elf")) {
+        return path;
     }
+    return path + "/elf/" + CONFIG_IDF_TARGET + ".elf";
+}
 
+error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     if (location.type != APP_LOCATION_PATH) {
+        LOG_E(TAG, "Out of memory");
         return ERROR_NOT_SUPPORTED;
     }
 
+    LOG_I(TAG, "Loading %s", static_cast<const char*>(location.location));
+
+    auto* runtime = new (std::nothrow) Esp32AppRuntime();
+    if (runtime == nullptr) {
+        LOG_E(TAG, "Out of memory");
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    auto elf_path = resolve_elf_path(static_cast<const char*>(location.location));
+
     size_t size = 0;
-    error_t read_result = read_file(static_cast<const char*>(location.location), &runtime->file_data, &size);
+    error_t read_result = read_file(elf_path.c_str(), &runtime->file_data, &size);
     if (read_result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to read file");
         delete runtime;
         return read_result;
     }
@@ -88,13 +108,15 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     if (esp_elf_init(&runtime->elf) != ESP_OK) {
         free(runtime->file_data);
         delete runtime;
+        LOG_E(TAG, "Failed to init elf");
         return ERROR_RESOURCE;
     }
 
     if (esp_elf_relocate(&runtime->elf, runtime->file_data) != 0) {
-        esp_elf_deinit(&runtime->elf);
+        // esp_elf_relocate() already frees elf->pdata/ptext itself on a relocation failure
         free(runtime->file_data);
         delete runtime;
+        LOG_E(TAG, "Failed to map elf");
         return ERROR_RESOURCE;
     }
 
@@ -104,9 +126,6 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
 
 int32_t api_run(AppRuntime runtime_ptr, uint32_t /*app_instance_id*/, int argc, char* argv[]) {
     auto* runtime = static_cast<Esp32AppRuntime*>(runtime_ptr);
-    // A side-loaded ELF's own main() only ever gets a real argc/argv from esp_elf_request()'s
-    // fixed signature - there's no slot for app_instance_id there, and side-loaded apps don't
-    // need one yet.
     return esp_elf_request(&runtime->elf, 0, argc, argv);
 }
 

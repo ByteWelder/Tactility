@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/manager.h>
 
+#include <app/metadata.h>
+
+#include <app/private/app_fs.h>
 #include <app/private/app_ledger.h>
 #include <app/private/app_scheduler.h>
 
+#include <tactility/concurrent/mutex.h>
 #include <tactility/log.h>
 
+#include <algorithm>
 #include <cstring>
+#include <memory>
+#include <unordered_map>
+#include <vector>
 
 #define TAG "app_manager"
 
@@ -194,6 +202,116 @@ error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size) {
     }
     memcpy(buffer, app_id, length + 1);
     return ERROR_NONE;
+}
+
+} // extern "C"
+
+namespace {
+
+// Owns the AppManifest (and its id/name/path strings) that app_manager_add() only keeps a
+// non-owning pointer to (see app_manager_add()'s contract), for manifests registered by
+// app_manager_install_path_scan() specifically - separate from app_install.cpp's own registry,
+// since scanning only ever adds/removes manifest registrations and never touches files on disk
+// or running instances (unlike app_install()/app_uninstall()).
+struct ScannedAppManifest {
+    std::string id;
+    std::string name;
+    std::string path;
+    AppManifest manifest {};
+};
+
+struct InstallPathRegistry {
+    std::vector<std::string> paths;
+    std::unordered_map<std::string, std::unique_ptr<ScannedAppManifest>> scanned;
+    Mutex mutex {};
+
+    InstallPathRegistry() { mutex_construct(&mutex); }
+};
+
+InstallPathRegistry& install_path_registry() {
+    static InstallPathRegistry registry;
+    return registry;
+}
+
+} // namespace
+
+extern "C" {
+
+error_t app_manager_install_path_add(const char* path) {
+    auto& registry = install_path_registry();
+    mutex_lock(&registry.mutex);
+    if (std::ranges::find(registry.paths, path) == registry.paths.end()) {
+        registry.paths.emplace_back(path);
+    }
+    mutex_unlock(&registry.mutex);
+    return ERROR_NONE;
+}
+
+void app_manager_install_path_scan(void) {
+    auto& registry = install_path_registry();
+
+    mutex_lock(&registry.mutex);
+    auto paths_copy = registry.paths;
+    mutex_unlock(&registry.mutex);
+
+    std::vector<std::string> found_app_dirs;
+    for (const auto& root : paths_copy) {
+        app_fs_list_direct_subdirectories(root, found_app_dirs);
+    }
+
+    mutex_lock(&registry.mutex);
+
+    for (const auto& app_dir : found_app_dirs) {
+        auto manifest_path = app_dir + "/manifest.properties";
+        if (!app_fs_is_file(manifest_path)) {
+            continue;
+        }
+
+        AppMetadata metadata {};
+        if (app_metadata_parse(manifest_path.c_str(), &metadata) != ERROR_NONE) {
+            LOG_W(TAG, "Invalid manifest at %s", manifest_path.c_str());
+            continue;
+        }
+
+        if (registry.scanned.contains(metadata.app_id)) {
+            continue; // already registered by an earlier scan
+        }
+
+        auto record = std::make_unique<ScannedAppManifest>();
+        record->id = metadata.app_id;
+        record->name = metadata.app_name;
+        record->path = app_dir;
+        record->manifest = AppManifest {
+            .id = record->id.c_str(),
+            .name = record->name.c_str(),
+            .category = APP_CATEGORY_USER,
+            .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
+            .flags = 0,
+        };
+
+        if (app_manager_add(&record->manifest) != ERROR_NONE) {
+            LOG_E(TAG, "Failed to register app %s (duplicate id?)", record->id.c_str());
+            continue;
+        }
+
+        registry.scanned[record->id] = std::move(record);
+    }
+
+    // Anything a previous scan registered whose directory has since disappeared (e.g. an SD
+    // card was removed) just gets unregistered - no file deletion, no touching running
+    // instances, that's app_install()/app_uninstall()'s job, not scanning's.
+    std::vector<std::string> missing_ids;
+    for (const auto& [id, record] : registry.scanned) {
+        if (!app_fs_is_directory(record->path)) {
+            missing_ids.push_back(id);
+        }
+    }
+    for (const auto& id : missing_ids) {
+        app_manager_remove(id.c_str());
+        registry.scanned.erase(id);
+    }
+
+    mutex_unlock(&registry.mutex);
 }
 
 } // extern "C"

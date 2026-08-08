@@ -67,9 +67,9 @@ error_t system_event_callback_remove(
     return result;
 }
 
-// Copies `data` into every current poll subscriber of `type` and wakes its waiting task.
+// Copies `data` into every current poll subscriber of `type` and signals its wakeup semaphore.
 // Held entirely under the lock: unlike the callback path, this never invokes caller code
-// (just a memcpy and an xTaskNotifyGive), so there is nothing that could reenter and deadlock.
+// (just a memcpy and a semaphore give), so there is nothing that could reenter and deadlock.
 static void notify_poll_subscribers(
     SystemEventType type,
     uint64_t timestamp,
@@ -81,12 +81,13 @@ static void notify_poll_subscribers(
     for (SystemEventSubscription* sub = poll_subscriptions; sub != nullptr; sub = sub->next) {
         if (sub->type == type) {
             sub->timestamp = timestamp;
-            if (data_len > 0) {
-                std::memcpy(sub->data, data, std::min(data_len, static_cast<size_t>(SYSTEM_EVENT_MAX_DATA_SIZE)));
+            const size_t copied_len = std::min(data_len, SYSTEM_EVENT_MAX_DATA_SIZE);
+            if (copied_len > 0) {
+                std::memcpy(sub->data, data, copied_len);
             }
-            sub->data_len = data_len;
+            sub->data_len = copied_len;
             sub->sequence++;
-            xTaskNotifyGive(sub->task);
+            xSemaphoreGive(sub->semaphore);
         }
     }
 
@@ -162,14 +163,31 @@ error_t system_event_emit(
 }
 
 error_t system_event_subscribe(SystemEventSubscription* sub) {
-    sub->task = xTaskGetCurrentTaskHandle();
+    SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
+    if (semaphore == nullptr) {
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    mutex_lock(&poll_subscriptions_mutex.handle);
+
+    // Check-and-insert in one critical section: registering the same `sub` twice would link
+    // it into a list that already contains it, creating a cycle that notify_poll_subscribers()
+    // would then traverse forever while holding this same mutex.
+    for (SystemEventSubscription* existing = poll_subscriptions; existing != nullptr; existing = existing->next) {
+        if (existing == sub) {
+            mutex_unlock(&poll_subscriptions_mutex.handle);
+            vSemaphoreDelete(semaphore);
+            return ERROR_INVALID_STATE;
+        }
+    }
+
+    sub->semaphore = semaphore;
     sub->sequence = 0;
     sub->consumed_sequence = 0;
     sub->data_len = 0;
-
-    mutex_lock(&poll_subscriptions_mutex.handle);
     sub->next = poll_subscriptions;
     poll_subscriptions = sub;
+
     mutex_unlock(&poll_subscriptions_mutex.handle);
 
     return ERROR_NONE;
@@ -188,6 +206,13 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
     }
     mutex_unlock(&poll_subscriptions_mutex.handle);
 
+    if (result == ERROR_NONE) {
+        // Unlinked first, so notify_poll_subscribers() can no longer reach this semaphore
+        // before it's deleted.
+        vSemaphoreDelete(sub->semaphore);
+        sub->semaphore = nullptr;
+    }
+
     return result;
 }
 
@@ -195,7 +220,7 @@ error_t system_event_await(SystemEventSubscription* sub, TickType_t timeout) {
     uint32_t old_sequence = sub->sequence;
 
     while (sub->sequence == old_sequence) {
-        if (ulTaskNotifyTake(pdTRUE, timeout) == 0) {
+        if (xSemaphoreTake(sub->semaphore, timeout) == pdFALSE) {
             return ERROR_TIMEOUT;
         }
     }

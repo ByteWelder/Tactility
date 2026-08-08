@@ -6,6 +6,7 @@
 
 #include <tactility/error.h>
 #include <tactility/freertos/freertos.h>
+#include <tactility/freertos/semphr.h>
 #include <tactility/freertos/task.h>
 
 #ifdef __cplusplus
@@ -143,7 +144,11 @@ struct SystemEventSubscription {
     /** Event type to subscribe to; set by the caller before system_event_subscribe(). */
     enum SystemEventType type;
 
-    TaskHandle_t task;
+    /** Own wakeup signal, not the subscribing task's shared default notification value - a
+     * task with more than one poll subscription would otherwise have events for one
+     * subscription wake (and consume the notification meant for) system_event_await() calls
+     * on another. */
+    SemaphoreHandle_t semaphore;
 
     uint64_t timestamp;
     uint8_t data[SYSTEM_EVENT_MAX_DATA_SIZE];
@@ -160,7 +165,10 @@ struct SystemEventSubscription {
  * @warning Does not work in ISR context.
  * @param[in,out] sub subscription to register; caller sets @a sub->type beforehand, owns the
  * storage, and must keep it alive (and stationary) until unsubscribed
- * @return ERROR_NONE on success
+ * @retval ERROR_NONE on success
+ * @retval ERROR_OUT_OF_MEMORY failed to allocate the subscription's wakeup semaphore; @a sub
+ * was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
  */
 error_t system_event_subscribe(struct SystemEventSubscription* sub);
 

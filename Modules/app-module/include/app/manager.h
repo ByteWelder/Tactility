@@ -13,9 +13,6 @@
 extern "C" {
 #endif
 
-/** Identifies a running (or previously running) app instance. 0 is never a valid instance id. */
-typedef uint32_t AppInstanceId;
-
 /**
  * Register an app manifest.
  * @retval ERROR_INVALID_ARGUMENT a manifest with the same id is already registered
@@ -129,6 +126,26 @@ error_t app_manager_get_topmost_instance_id(AppInstanceId* out_app_instance_id);
  * @retval ERROR_NONE on success
  */
 error_t app_manager_get_topmost_app_id(char* buffer, size_t buffer_size);
+
+/**
+ * Registers @a path as a directory to scan for app manifests - each direct subdirectory of
+ * @a path is expected to hold a manifest.properties (see app/metadata.h), matching the layout
+ * app_install() creates ({install dir}/{app_id}/manifest.properties), though this is not
+ * install/uninstall - it only ever adds/removes manifest registrations, never touches files on
+ * disk or running instances. No-op if @a path is already registered. Does not scan immediately -
+ * call app_manager_install_path_scan() to do that.
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_install_path_add(const char* path);
+
+/**
+ * Scans every path registered via app_manager_install_path_add(): registers
+ * (app_manager_add()) any direct subdirectory with a valid manifest.properties that isn't
+ * already registered, and unregisters (app_manager_remove() only - does not stop it if running,
+ * does not delete anything) any manifest a previous scan registered whose directory has since
+ * disappeared. Safe to call repeatedly (e.g. after an SD card is mounted/unmounted).
+ */
+void app_manager_install_path_scan(void);
 
 #ifdef __cplusplus
 }

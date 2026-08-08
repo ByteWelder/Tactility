@@ -5,7 +5,8 @@
 #include <app/manifest.h>
 
 #include <tactility/concurrent/mutex.h>
-#include <tactility/concurrent/thread.h>
+#include <tactility/freertos/freertos.h>
+#include <tactility/freertos/task.h>
 
 #include <cstdint>
 #include <string>
@@ -16,8 +17,9 @@ struct AppInstanceRecord {
     uint32_t id;
     const AppManifest* manifest;
     AppInstanceState state;
-    /** The kernel thread currently executing AppLoaderApi::run() for this instance; NULL when not running. */
-    Thread* thread;
+    /** The FreeRTOS task currently executing AppLoaderApi::run() for this instance; NULL when
+     * not running. */
+    TaskHandle_t task;
 
     /** 0 for a top-level launch (app_manager_start()). Non-zero for a modal child launched via
      * app_manager_start_for_result() - the instance that receives this child's APP_EVENT_RESULT. */
@@ -40,7 +42,7 @@ inline AppLedger& app_ledger() {
 }
 
 /** Frees a deep-copied argv previously built by app_manager_start_with_parameters()/
- * app_manager_start_for_result() (see app_scheduler.cpp's ThreadContext::argv) - each
+ * app_manager_start_for_result() (see app_scheduler.cpp's TaskContext::argv) - each
  * individually heap-allocated string, then the array itself. Safe to call with count == 0 /
  * values == nullptr (no-op). */
 inline void app_ledger_free_arguments(int count, char** values) {

@@ -18,7 +18,16 @@ struct WindowRecord {
 };
 
 struct WindowManagerState {
+    /** Mutex for read/write operations. Shortly held. */
     Mutex mutex {};
+
+    /** Serializes the full start()/stop() transition (including the LVGL work done with
+     * `mutex` released) so two concurrent starts can't both pass the `started` check and each
+     * create their own root widget, and a concurrent stop can't run while a start is still
+     * mid-flight. Never held across a create_widgets()/screen_init() callback - those only
+     * reach window_manager_create()/remove(), not start()/stop() - so there's no lock-order
+     * risk with `mutex` or the LVGL lock. */
+    Mutex lifecycle_mutex {};
 
     bool started = false;
     WindowManagerScreenInitFn screen_init = nullptr;
@@ -38,7 +47,10 @@ struct WindowManagerState {
     /** Task blocked in window_manager_await_state_change(), if any. */
     TaskHandle_t waiting_task = nullptr;
 
-    WindowManagerState() { mutex_construct(&mutex); }
+    WindowManagerState() {
+        mutex_construct(&mutex);
+        mutex_construct(&lifecycle_mutex);
+    }
 };
 
 WindowManagerState& state() {
@@ -86,9 +98,16 @@ void window_manager_configure(WindowManagerScreenInitFn screen_init) {
 error_t window_manager_start(void) {
     auto& s = state();
 
+    // Held for the whole transition (including the LVGL work below, done with `mutex`
+    // released) - blocks a concurrent start() from also passing the `started` check and
+    // building its own root widget, and blocks a concurrent stop() from running while this
+    // start is still mid-flight.
+    mutex_lock(&s.lifecycle_mutex);
+
     mutex_lock(&s.mutex);
     if (s.started) {
         mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
         return ERROR_NONE;
     }
     WindowManagerScreenInitFn screen_init = s.screen_init;
@@ -114,6 +133,7 @@ error_t window_manager_start(void) {
     lvgl_unlock();
 
     if (real_widget == nullptr) {
+        mutex_unlock(&s.lifecycle_mutex);
         return ERROR_RESOURCE;
     }
 
@@ -123,15 +143,21 @@ error_t window_manager_start(void) {
     s.started = true;
     mutex_unlock(&s.mutex);
 
+    mutex_unlock(&s.lifecycle_mutex);
     return ERROR_NONE;
 }
 
 error_t window_manager_stop(void) {
     auto& s = state();
 
+    // See window_manager_start() - blocks until any in-flight start() has fully completed (or
+    // failed) before this stop can observe/tear down state.
+    mutex_lock(&s.lifecycle_mutex);
+
     mutex_lock(&s.mutex);
     if (!s.started) {
         mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
         return ERROR_NONE;
     }
     lv_obj_t* widget = s.real_root_widget;
@@ -151,6 +177,7 @@ error_t window_manager_stop(void) {
     // Deleting the real widget cascades to everything under it - chrome and top_widget alike.
     delete_widget(widget);
 
+    mutex_unlock(&s.lifecycle_mutex);
     return ERROR_NONE;
 }
 
@@ -212,6 +239,7 @@ void window_manager_remove(WindowId id) {
     void* next_user_data = nullptr;
     WindowId next_id = 0;
     bool has_next = false;
+    TaskHandle_t waiter = nullptr;
 
     if (was_topmost) {
         old_widget = s.top_widget;
@@ -222,10 +250,12 @@ void window_manager_remove(WindowId id) {
             next_id = s.windows.back().id;
             has_next = true;
         }
+        // Only the topmost window's state can actually change here - a waiter blocked in
+        // window_manager_await_state_change() is always waiting on the current top window (see
+        // that function), so removing a buried window never affects what it's waiting for.
+        waiter = s.waiting_task;
+        s.waiting_task = nullptr;
     }
-
-    TaskHandle_t waiter = s.waiting_task;
-    s.waiting_task = nullptr;
     mutex_unlock(&s.mutex);
 
     if (waiter != nullptr) {
@@ -272,6 +302,21 @@ WindowState window_manager_await_state_change(WindowId id, TickType_t timeout) {
     mutex_unlock(&s.mutex);
 
     ulTaskNotifyTake(pdTRUE, timeout);
+
+    /* Deregister ourselves if a create()/remove() hasn't already claimed us (the ordinary, intended wakeup)
+     * Otherwise a later create()/remove() could notify a task that's no longer waiting here:
+     * a use-after-exit on the handle if this task is gone, or a stale wakeup the next time it waits. */
+    mutex_lock(&s.mutex);
+    if (s.waiting_task == xTaskGetCurrentTaskHandle()) {
+        s.waiting_task = nullptr;
+    }
+    mutex_unlock(&s.mutex);
+
+    /* create()/remove() read+clear `waiting_task` under the lock but call xTaskNotifyGive()
+     * after releasing it, so a notification can still land on us right around the timeout
+     * boundary regardless of which branch above ran. Drain it now (non-blocking) so it doesn't
+     * linger and cause a spurious immediate return the next time this task awaits. */
+    ulTaskNotifyTake(pdTRUE, 0);
 
     return window_manager_get_state(id);
 }
