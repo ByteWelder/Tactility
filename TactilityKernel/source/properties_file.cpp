@@ -150,6 +150,10 @@ bool save_to_file(const PropertiesFile* file) {
         return false;
     }
 
+    // rename() may not overwrite an existing destination on some filesystems (e.g. FAT on
+    // ESP32), so remove it first; this is best-effort and ignored if the path doesn't exist yet.
+    std::remove(file->path.c_str());
+
     if (std::rename(temp_path.c_str(), file->path.c_str()) != 0) {
         LOG_E(TAG, "Failed to replace %s", file->path.c_str());
         std::remove(temp_path.c_str());
