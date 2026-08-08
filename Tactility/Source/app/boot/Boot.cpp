@@ -68,34 +68,39 @@ std::string getBootAssetsPath(const std::string& childPath) {
 }
 
 void setupDisplay() {
+    // TODO: Support for multiple displays
+
     Device* display = nullptr;
-    if (device_get_first_by_type(&DISPLAY_TYPE, &display) == ERROR_NONE) {
-        Device* backlight;
-        if (display_get_backlight(display, &backlight) == ERROR_NONE) {
-            if (!device_is_ready(backlight)) {
-                if (device_start(backlight) != ERROR_NONE) {
-                    LOG_E(TAG, "Failed to start %s", backlight->name);
-                }
-            }
-
-            settings::display::DisplaySettings settings;
-            if (settings::display::load(settings)) {
-            } else {
-                settings = settings::display::getDefault();
-            }
-
-            if (backlight_set_brightness(backlight, settings.backlightDuty) == ERROR_NONE) {
-                LOG_I(TAG, "Backlight for %s set to %d", display->name, settings.backlightDuty);
-            } else {
-                LOG_E(TAG, "Failed to set brightness of %s", backlight->name);
-            }
-        } else {
-            LOG_I(TAG, "No backlight for %s", display->name);
-        }
-        device_put(display);
-    } else {
+    if (device_get_first_by_type(&DISPLAY_TYPE, &display) != ERROR_NONE) {
         LOG_I(TAG, "No kernel display");
+        return;
     }
+
+    // Set backlight brightness
+    Device* backlight;
+    if (display_get_backlight(display, &backlight) == ERROR_NONE) {
+        if (!device_is_ready(backlight)) {
+            if (device_start(backlight) != ERROR_NONE) {
+                LOG_E(TAG, "Failed to start %s", backlight->name);
+            }
+        }
+
+        settings::display::DisplaySettings settings;
+        if (settings::display::load(settings)) {
+        } else {
+            settings = settings::display::getDefault();
+        }
+
+        if (backlight_set_brightness(backlight, settings.backlightDuty) == ERROR_NONE) {
+            LOG_I(TAG, "Backlight for %s set to %d", display->name, settings.backlightDuty);
+        } else {
+            LOG_E(TAG, "Failed to set brightness of %s", backlight->name);
+        }
+    } else {
+        LOG_I(TAG, "No backlight for %s", display->name);
+    }
+
+    device_put(display);
 }
 
 bool setupUsbBootMode() {
@@ -253,7 +258,6 @@ void runBootSequence(TickType_t startTime) {
     // This works with 5 ms on a T-Lora Pager, so we give it 10 ms to be safe
     delay_millis(10);
 
-    // TODO: Support for multiple displays
     LOG_I(TAG, "Setup display");
     setupDisplay();
     LOG_I(TAG, "Prepare file systems");
