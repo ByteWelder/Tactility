@@ -1,6 +1,6 @@
 #include "tactility/time.h"
 
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/Tactility.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/Timer.h>

@@ -1,5 +1,5 @@
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/Mutex.h>
-#include <Tactility/Paths.h>
 #include <Tactility/app/apphub/AppHub.h>
 #include <Tactility/app/apphub/AppHubEntry.h>
 #include <Tactility/app/apphubdetails/AppHubDetailsApp.h>

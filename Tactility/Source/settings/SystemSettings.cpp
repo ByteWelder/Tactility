@@ -5,7 +5,7 @@
 #include <Tactility/settings/Language.h>
 #include <Tactility/settings/SystemSettings.h>
 
-#include "Tactility/Paths.h"
+#include "Tactility/DeprecatedPaths.h"
 
 #include <tactility/log.h>
 

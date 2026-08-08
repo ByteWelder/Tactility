@@ -5,14 +5,14 @@
 
 #include <tactility/log.h>
 
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/file/File.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
 #include <Tactility/service/ServiceRegistration.h>
-#include <Tactility/service/development/DevelopmentSettings.h>
 #include <Tactility/service/development/DevelopmentService.h>
+#include <Tactility/service/development/DevelopmentSettings.h>
 
 #include <ranges>
 #include <sstream>

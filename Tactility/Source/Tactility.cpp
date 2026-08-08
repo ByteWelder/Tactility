@@ -18,9 +18,9 @@
 #include <Tactility/Tactility.h>
 
 #include <Tactility/CpuAffinity.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/LogMessages.h>
 #include <Tactility/MountPoints.h>
-#include <Tactility/Paths.h>
 #include <Tactility/TactilityConfig.h>
 #include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/file/File.h>

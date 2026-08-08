@@ -12,8 +12,8 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/MountPoints.h>
-#include <Tactility/Paths.h>
 #include <Tactility/TactilityPrivate.h>
 #include <Tactility/hal/usb/Usb.h>
 #include <Tactility/lvgl/Lvgl.h>

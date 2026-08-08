@@ -1,9 +1,11 @@
+/**
+ * DEPRECATED: Use TactilityKernels' tactility/paths.h
+ */
 #pragma once
 
 #include <string>
 
 #include <tactility/filesystem/file_system.h>
-
 
 namespace tt {
 

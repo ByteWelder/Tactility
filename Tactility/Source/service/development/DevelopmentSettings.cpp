@@ -1,7 +1,7 @@
 #ifdef ESP_PLATFORM
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Paths.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <map>
 #include <string>

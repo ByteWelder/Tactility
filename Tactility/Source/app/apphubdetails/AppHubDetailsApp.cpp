@@ -2,7 +2,7 @@
 #include "app/metadata.h"
 
 
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
 #include <Tactility/app/apphub/AppHub.h>

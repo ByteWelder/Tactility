@@ -1,4 +1,4 @@
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 
 #include "../../Modules/app-module/private/app/private/app_metadata_parsing_internal.h"
 

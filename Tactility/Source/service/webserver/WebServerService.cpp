@@ -8,13 +8,13 @@
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/Mutex.h>
 
+#include <Tactility/DeprecatedPaths.h>
+#include <Tactility/StringUtils.h>
 #include <Tactility/TactilityConfig.h>
-#include <Tactility/service/wifi/Wifi.h>
+#include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/network/HttpdReq.h>
 #include <Tactility/network/Url.h>
-#include <Tactility/Paths.h>
-#include <Tactility/lvgl/Lvgl.h>
-#include <Tactility/StringUtils.h>
+#include <Tactility/service/wifi/Wifi.h>
 
 #include <tactility/check.h>
 #include <tactility/filesystem/file_system.h>
