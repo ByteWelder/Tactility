@@ -6,7 +6,7 @@
 #include <Tactility/Platform.h>
 #include <Tactility/lvgl/Lvgl.h>
 #include <Tactility/service/screenshot/Screenshot.h>
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/Timer.h>
 
 #include <app/event.h>
