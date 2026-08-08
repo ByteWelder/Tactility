@@ -1,7 +1,6 @@
 #include <Tactility/app/i2cscanner/I2cHelpers.h>
 #include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 #include <Tactility/LogMessages.h>
-#include <Tactility/Preferences.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Timer.h>
 
@@ -13,6 +12,8 @@
 
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
+#include <tactility/paths.h>
+#include <tactility/preferences.h>
 
 #include <cassert>
 #include <format>
@@ -52,15 +53,40 @@ struct Context {
 
 #define PREFERENCES_BUS_INDEX_KEY "bus"
 
+bool getPreferencesPath(std::string& outPath) {
+    char root[128];
+    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+        return false;
+    }
+    outPath = std::string(root) + "/i2c_scanner.properties";
+    return true;
+}
+
 void setLastBusIndex(int32_t index) {
-    auto prefs = Preferences("i2c_scanner");
-    prefs.putInt32(PREFERENCES_BUS_INDEX_KEY, index);
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return;
+    }
+    Preferences* prefs = preferences_open(path.c_str());
+    if (prefs == nullptr) {
+        return;
+    }
+    preferences_put_int32(prefs, PREFERENCES_BUS_INDEX_KEY, index);
+    preferences_close(prefs);
 }
 
 int32_t getLastBusIndex() {
-    auto prefs = Preferences("i2c_scanner");
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return 0;
+    }
+    Preferences* prefs = preferences_open(path.c_str());
+    if (prefs == nullptr) {
+        return 0;
+    }
     int32_t index = 0;
-    prefs.optInt32(PREFERENCES_BUS_INDEX_KEY, index);
+    preferences_opt_int32(prefs, PREFERENCES_BUS_INDEX_KEY, &index);
+    preferences_close(prefs);
     return index;
 }
 

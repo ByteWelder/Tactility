@@ -185,6 +185,10 @@ def main():
         # elf_loader
         {'src': 'Libraries/elf_loader/elf_loader.cmake', 'dst': 'Libraries/elf_loader/'},
         {'src': 'Libraries/elf_loader/license.txt', 'dst': 'Libraries/elf_loader/'},
+        # minitar
+        {'src': 'build/esp-idf/minitar/libminitar.a', 'dst': 'Libraries/minitar/binary/'},
+        {'src': 'Libraries/minitar/minitar/minitar.h', 'dst': 'Libraries/minitar/include/'},
+        {'src': 'Libraries/minitar/minitar/LICENSE*', 'dst': 'Libraries/minitar/'},
         # minmea
         {'src': 'build/esp-idf/minmea/libminmea.a', 'dst': 'Libraries/minmea/binary/'},
         {'src': 'Libraries/minmea/Include/**', 'dst': 'Libraries/minmea/include/'},

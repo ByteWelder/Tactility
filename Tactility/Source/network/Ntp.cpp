@@ -1,9 +1,10 @@
 #include <Tactility/network/NtpPrivate.h>
-#include <Tactility/Preferences.h>
 
 #include <tactility/log.h>
+#include <tactility/paths.h>
+#include <tactility/preferences.h>
 
-#include <memory>
+#include <string>
 
 #ifdef ESP_PLATFORM
 #include <Tactility/TactilityCore.h>
@@ -20,24 +21,49 @@ static bool processedSyncEvent = false;
 
 #ifdef ESP_PLATFORM
 
+static bool getPreferencesPath(std::string& outPath) {
+    char root[128];
+    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+        return false;
+    }
+    outPath = std::string(root) + "/time.properties";
+    return true;
+}
+
 void storeTimeInNvs() {
     time_t now;
     time(&now);
 
-    auto preferences = std::make_unique<Preferences>("time");
-    preferences->putInt64("syncTime", now);
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return;
+    }
+    Preferences* preferences = preferences_open(path.c_str());
+    if (preferences == nullptr) {
+        return;
+    }
+    preferences_put_int64(preferences, "syncTime", now);
+    preferences_close(preferences);
     LOG_I(TAG, "Stored time %ld", (long)now);
 }
 
 void setTimeFromNvs() {
-    auto preferences = std::make_unique<Preferences>("time");
-    time_t synced_time;
-    if (preferences->optInt64("syncTime", synced_time)) {
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return;
+    }
+    Preferences* preferences = preferences_open(path.c_str());
+    if (preferences == nullptr) {
+        return;
+    }
+    int64_t synced_time = 0;
+    if (preferences_opt_int64(preferences, "syncTime", &synced_time)) {
         LOG_I(TAG, "Restoring last known time to %ld", (long)synced_time);
         timeval get_nvs_time;
         get_nvs_time.tv_sec = synced_time;
         settimeofday(&get_nvs_time, nullptr);
     }
+    preferences_close(preferences);
 }
 
 static void onTimeSynced(timeval* tv) {

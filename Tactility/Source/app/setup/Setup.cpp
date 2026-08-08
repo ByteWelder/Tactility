@@ -1,5 +1,4 @@
 #include <Tactility/app/setup/Setup.h>
-#include <Tactility/Preferences.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/app/wifimanage/WifiManage.h>
@@ -10,6 +9,9 @@
 #include <app/manifest.h>
 
 #include <lvgl_window_manager/window_manager.h>
+
+#include <tactility/paths.h>
+#include <tactility/preferences.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -33,18 +35,47 @@ extern const ::AppManifest manifest;
 constexpr auto* PREFERENCES_NAMESPACE = "setup";
 constexpr auto* PREFERENCES_KEY_COMPLETED = "completed";
 
+namespace {
+
+bool getPreferencesPath(std::string& outPath) {
+    char root[128];
+    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+        return false;
+    }
+    outPath = std::string(root) + "/" + PREFERENCES_NAMESPACE + ".properties";
+    return true;
+}
+
+} // namespace
+
 bool isCompleted() {
-    Preferences preferences(PREFERENCES_NAMESPACE);
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return false;
+    }
+    Preferences* preferences = preferences_open(path.c_str());
+    if (preferences == nullptr) {
+        return false;
+    }
     bool completed = false;
-    preferences.optBool(PREFERENCES_KEY_COMPLETED, completed);
+    preferences_opt_bool(preferences, PREFERENCES_KEY_COMPLETED, &completed);
+    preferences_close(preferences);
     return completed;
 }
 
 namespace {
 
 void markCompleted() {
-    Preferences preferences(PREFERENCES_NAMESPACE);
-    preferences.putBool(PREFERENCES_KEY_COMPLETED, true);
+    std::string path;
+    if (!getPreferencesPath(path)) {
+        return;
+    }
+    Preferences* preferences = preferences_open(path.c_str());
+    if (preferences == nullptr) {
+        return;
+    }
+    preferences_put_bool(preferences, PREFERENCES_KEY_COMPLETED, true);
+    preferences_close(preferences);
 }
 
 enum class Phase {
