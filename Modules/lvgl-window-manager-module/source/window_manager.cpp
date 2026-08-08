@@ -3,10 +3,13 @@
 
 #include <lvgl/lvgl.h>
 
+#include <tactility/check.h>
 #include <tactility/concurrent/mutex.h>
 
 #include <algorithm>
 #include <vector>
+
+constexpr auto* TAG = "window_manager";
 
 namespace {
 
@@ -15,6 +18,13 @@ struct WindowRecord {
     uint32_t app_instance_id;
     WindowCreateWidgetsFn create_widgets;
     void* user_data;
+
+    /** Task blocked in window_manager_await_state_change() for this specific window, if any -
+     * see that function's @warning on at most one concurrent awaiter per window. Per-window
+     * rather than a single manager-wide slot, since a stacked window manager serving several
+     * app tasks can have more than one window (though only ever one of them topmost/GRANTED at
+     * a time) with a live await() call outstanding. */
+    TaskHandle_t waiting_task = nullptr;
 };
 
 struct WindowManagerState {
@@ -43,9 +53,6 @@ struct WindowManagerState {
     /** windows.back() is topmost; only it ever has a live widget (top_widget). */
     std::vector<WindowRecord> windows;
     lv_obj_t* top_widget = nullptr;
-
-    /** Task blocked in window_manager_await_state_change(), if any. */
-    TaskHandle_t waiting_task = nullptr;
 
     WindowManagerState() {
         mutex_construct(&mutex);
@@ -90,9 +97,19 @@ extern "C" {
 
 void window_manager_configure(WindowManagerScreenInitFn screen_init) {
     auto& s = state();
+
+    // Serializes against window_manager_start()/stop()
+    mutex_lock(&s.lifecycle_mutex);
+
     mutex_lock(&s.mutex);
-    s.screen_init = screen_init;
+    if (!s.started) {
+        s.screen_init = screen_init;
+    } else {
+        LOG_W(TAG, "Ignoring window_manager_configure: module is already started");
+    }
     mutex_unlock(&s.mutex);
+
+    mutex_unlock(&s.lifecycle_mutex);
 }
 
 error_t window_manager_start(void) {
@@ -161,16 +178,22 @@ error_t window_manager_stop(void) {
         return ERROR_NONE;
     }
     lv_obj_t* widget = s.real_root_widget;
-    TaskHandle_t waiter = s.waiting_task;
+    // Collect every window's waiter before clearing - normally at most the topmost window's is
+    // ever set, but every window is being torn down here, so every one is checked.
+    std::vector<TaskHandle_t> waiters;
+    for (const auto& window : s.windows) {
+        if (window.waiting_task != nullptr) {
+            waiters.push_back(window.waiting_task);
+        }
+    }
     s.real_root_widget = nullptr;
     s.content_root_widget = nullptr;
     s.top_widget = nullptr;
     s.windows.clear();
     s.started = false;
-    s.waiting_task = nullptr;
     mutex_unlock(&s.mutex);
 
-    if (waiter != nullptr) {
+    for (TaskHandle_t waiter : waiters) {
         xTaskNotifyGive(waiter);
     }
 
@@ -191,8 +214,13 @@ WindowId window_manager_create(uint32_t app_instance_id, WindowCreateWidgetsFn c
     }
     lv_obj_t* content = s.content_root_widget;
     lv_obj_t* old_top_widget = s.top_widget;
-    TaskHandle_t waiter = s.waiting_task;
-    s.waiting_task = nullptr;
+    // The current topmost window (if any) is about to be superseded - transfer its waiter (if
+    // any) here so it gets notified below, since it's no longer topmost after this.
+    TaskHandle_t waiter = nullptr;
+    if (!s.windows.empty()) {
+        waiter = s.windows.back().waiting_task;
+        s.windows.back().waiting_task = nullptr;
+    }
     s.top_widget = nullptr;
     WindowId new_id = s.next_id++;
     s.windows.push_back(WindowRecord { new_id, app_instance_id, create_widgets, user_data });
@@ -231,6 +259,11 @@ void window_manager_remove(WindowId id) {
         return;
     }
     bool was_topmost = (iterator + 1 == s.windows.end());
+    // The window being removed owns its own waiter (if any) - a waiter is only ever registered
+    // while its window is topmost (see window_manager_await_state_change()), and if this window
+    // later stopped being topmost without being removed, window_manager_create() would already
+    // have transferred/cleared it - so a buried window's waiting_task is always already null.
+    TaskHandle_t waiter = iterator->waiting_task;
     s.windows.erase(iterator);
 
     lv_obj_t* content = s.content_root_widget;
@@ -239,7 +272,6 @@ void window_manager_remove(WindowId id) {
     void* next_user_data = nullptr;
     WindowId next_id = 0;
     bool has_next = false;
-    TaskHandle_t waiter = nullptr;
 
     if (was_topmost) {
         old_widget = s.top_widget;
@@ -250,11 +282,6 @@ void window_manager_remove(WindowId id) {
             next_id = s.windows.back().id;
             has_next = true;
         }
-        // Only the topmost window's state can actually change here - a waiter blocked in
-        // window_manager_await_state_change() is always waiting on the current top window (see
-        // that function), so removing a buried window never affects what it's waiting for.
-        waiter = s.waiting_task;
-        s.waiting_task = nullptr;
     }
     mutex_unlock(&s.mutex);
 
@@ -298,17 +325,22 @@ WindowState window_manager_await_state_change(WindowId id, TickType_t timeout) {
         mutex_unlock(&s.mutex);
         return WINDOW_STATE_REVOKED;
     }
-    s.waiting_task = xTaskGetCurrentTaskHandle();
+    // At most one concurrent awaiter per window - see the @warning on this function.
+    check(s.windows.back().waiting_task == nullptr);
+    s.windows.back().waiting_task = xTaskGetCurrentTaskHandle();
     mutex_unlock(&s.mutex);
 
     ulTaskNotifyTake(pdTRUE, timeout);
 
     /* Deregister ourselves if a create()/remove() hasn't already claimed us (the ordinary, intended wakeup)
      * Otherwise a later create()/remove() could notify a task that's no longer waiting here:
-     * a use-after-exit on the handle if this task is gone, or a stale wakeup the next time it waits. */
+     * a use-after-exit on the handle if this task is gone, or a stale wakeup the next time it waits.
+     * Re-locate the record by id - it may have been erased (window_manager_remove()) while we waited. */
     mutex_lock(&s.mutex);
-    if (s.waiting_task == xTaskGetCurrentTaskHandle()) {
-        s.waiting_task = nullptr;
+    auto iterator = std::find_if(s.windows.begin(), s.windows.end(),
+        [id](const WindowRecord& window) { return window.id == id; });
+    if (iterator != s.windows.end() && iterator->waiting_task == xTaskGetCurrentTaskHandle()) {
+        iterator->waiting_task = nullptr;
     }
     mutex_unlock(&s.mutex);
 

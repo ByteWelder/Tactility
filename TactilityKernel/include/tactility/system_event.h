@@ -28,20 +28,6 @@ enum SystemEventType {
     KERNEL_EVENT_TIME_CHANGED, // No data - fired whenever system time is set (NTP sync, RTC restore, manual change)
 };
 
-/**
- * A system-wide event as delivered to a system_event_callback_t.
- * `data` points at the type-specific struct documented next to `type`'s enum value
- * in SystemEventType (or is NULL when none is documented).
- * It is only valid for the duration of the callback.
- */
-struct SystemEvent {
-    enum SystemEventType type;
-    /** Microseconds since boot, from get_micros_since_boot(). */
-    uint64_t timestamp;
-    const void *data;
-    size_t data_len;
-};
-
 /** Data for KERNEL_EVENT_NETWORK_CONNECTED. */
 struct NetworkConnectedEvent {
     struct Device* device;
@@ -72,6 +58,26 @@ struct ServiceStartedEvent {
 /** Data for KERNEL_EVENT_SERVICE_STOPPED. */
 struct ServiceStoppedEvent {
     const char* id;
+};
+
+/** Size of the largest type-specific event struct documented in SystemEventType, i.e. the
+ * embedded buffer size needed by SystemEvent/SystemEventSubscription to hold any event's
+ * payload by value. */
+#define SYSTEM_EVENT_MAX_DATA_SIZE (sizeof(struct NetworkConnectedEvent))
+
+/**
+ * A system-wide event as delivered to a system_event_callback_t.
+ * `data` (up to `data_len` bytes, `SYSTEM_EVENT_MAX_DATA_SIZE` max) is a by-value copy of the
+ * type-specific struct documented next to `type`'s enum value in SystemEventType (or unused,
+ * with `data_len` 0, when none is documented) - like SystemEventSubscription's `data`, but only
+ * valid for the duration of the callback rather than for the subscription's lifetime.
+ */
+struct SystemEvent {
+    enum SystemEventType type;
+    /** Microseconds since boot, from get_micros_since_boot(). */
+    uint64_t timestamp;
+    uint8_t data[SYSTEM_EVENT_MAX_DATA_SIZE];
+    size_t data_len;
 };
 
 /**
@@ -133,31 +139,30 @@ error_t system_event_emit(
 #define SYSTEM_EVENT_MAX_DATA_SIZE (sizeof(struct NetworkConnectedEvent))
 
 /**
- * gps.h-style poll subscription: caller-owned node, registered with system_event_subscribe()
- * and polled with system_event_await(). Unlike system_event_callback_t, the payload is copied
- * by value into @a data (up to SYSTEM_EVENT_MAX_DATA_SIZE bytes) so it remains valid after
- * system_event_emit() returns.
- * @warning Fields other than `type` are for internal use only; do not read or write them
- * directly.
+ * Poll subscription: caller-owned node, registered with system_event_subscribe()
+ * and polled with system_event_await(). Unlike system_event_callback_t, `event` is a by-value
+ * copy that remains valid for the subscription's lifetime (until the next matching event
+ * overwrites it), not just for the duration of a callback.
  */
 struct SystemEventSubscription {
-    /** Event type to subscribe to; set by the caller before system_event_subscribe(). */
-    enum SystemEventType type;
+    /** `event.type` is the event type to subscribe to; set by the caller before
+     * system_event_subscribe(). The rest of `event` (timestamp/data/data_len) is populated by
+     * each matching system_event_emit() - see the @warning above. */
+    struct SystemEvent event;
 
-    /** Own wakeup signal, not the subscribing task's shared default notification value - a
-     * task with more than one poll subscription would otherwise have events for one
-     * subscription wake (and consume the notification meant for) system_event_await() calls
-     * on another. */
-    SemaphoreHandle_t semaphore;
+    /** Implementation-only bookkeeping; do not read or write directly. */
+    struct {
+        /** Own wakeup signal, not the subscribing task's shared default notification value - a
+         * task with more than one poll subscription would otherwise have events for one
+         * subscription wake (and consume the notification meant for) system_event_await()
+         * calls on another. */
+        SemaphoreHandle_t semaphore;
 
-    uint64_t timestamp;
-    uint8_t data[SYSTEM_EVENT_MAX_DATA_SIZE];
-    size_t data_len;
+        uint32_t sequence;
+        uint32_t consumed_sequence;
 
-    uint32_t sequence;
-    uint32_t consumed_sequence;
-
-    struct SystemEventSubscription* next;
+        struct SystemEventSubscription* next;
+    } internal;
 };
 
 /**
@@ -187,6 +192,18 @@ error_t system_event_unsubscribe(struct SystemEventSubscription* sub);
  * @return ERROR_NONE if an event arrived, ERROR_TIMEOUT if the timeout elapsed
  */
 error_t system_event_await(struct SystemEventSubscription* sub, TickType_t timeout);
+
+/**
+ * Copies @a sub's current event payload (the data from the most recent system_event_emit()
+ * that reached it) into @a data.
+ * @param[in] sub subscription to read the payload from, as passed to system_event_subscribe()
+ * @param[out] data buffer to copy the payload into
+ * @param[in] data_len size of @a data
+ * @retval ERROR_NONE on success
+ * @retval ERROR_BUFFER_OVERFLOW @a data_len is smaller than the stored payload - @a data is
+ * left untouched
+ */
+error_t system_event_get_data(struct SystemEventSubscription* sub, uint8_t* data, size_t data_len);
 
 #ifdef __cplusplus
 }

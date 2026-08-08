@@ -6,8 +6,7 @@
 // upward on Tactility::file, so this is a small local re-implementation (see
 // app_metadata_parsing.cpp for the same constraint applied to properties-file loading).
 
-#include "tactility/filesystem/file_mutex.h"
-
+#include <tactility/filesystem/file_mutex.h>
 
 #include <cstring>
 #include <dirent.h>
@@ -35,9 +34,16 @@ inline bool app_fs_is_file(const std::string& path) {
     return retval;
 }
 
-// Appends the full path of every direct subdirectory of @a path to @a out. No-op (not an error)
-// if @a path can't be opened.
+// Appends the full path of every direct subdirectory of @a path to @a out.
+// No-op (not an error) if @a path can't be opened.
 inline void app_fs_list_direct_subdirectories(const std::string& path, std::vector<std::string>& out) {
+    // Collect child names while the directory lock is held, then release it before classifying
+    // each one with app_fs_is_directory() - that function looks up and locks a FileMutex too,
+    // and file_mutex_get() resolves a child path to the same registered mutex as its parent
+    // mount. Calling it while still holding the directory's own lock would be a nested
+    // acquisition of that same (possibly non-recursive) mutex, and could self-deadlock.
+    std::vector<std::string> children;
+
     FileMutex file_mutex;
     file_mutex_get(&file_mutex, path.c_str());
     file_mutex_lock(&file_mutex);
@@ -52,12 +58,15 @@ inline void app_fs_list_direct_subdirectories(const std::string& path, std::vect
         if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
             continue;
         }
-        auto child_path = path + "/" + entry->d_name;
-        if (app_fs_is_directory(child_path)) {
-            out.push_back(child_path);
-        }
+        children.push_back(path + "/" + entry->d_name);
     }
 
     closedir(dir);
     file_mutex_unlock(&file_mutex);
+
+    for (const auto& child_path : children) {
+        if (app_fs_is_directory(child_path)) {
+            out.push_back(child_path);
+        }
+    }
 }

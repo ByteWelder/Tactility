@@ -30,7 +30,7 @@
 - bluetooth: various getters for child devices do not change ref counting, but they should
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
 - Remove and migrate `Include/Tactility/kernel/Kernel.h` into `tactility/delay.h`
-- Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual modulej.
+- Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
 - Core2: support power off via software
 - Create `#define` for empty module (for modules that fully rely on device.properties and don't define drivers or have start/stop logic)
@@ -53,6 +53,7 @@
 ## Medium Priority
 
 - Consider using https://github.com/Graphify-Labs/graphify
+- Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Implement a LED kernel driver (single colour and RGB, plain GPIO and PWM)
 - Make USB host driver disabled by default, so it doesn't consume memory
 - Filtering for apps in App Hub:

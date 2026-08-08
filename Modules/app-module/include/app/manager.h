@@ -31,9 +31,10 @@ error_t app_manager_remove(const char* id);
 const struct AppManifest* app_manager_find_manifest(const char* id);
 
 /**
- * Calls @a visitor once for every registered manifest (e.g. for AppList/Settings to enumerate
- * apps to show). Iteration order is unspecified. Safe to call app_manager_add()/_remove() from
- * within @a visitor is NOT guaranteed - do not mutate the registry from inside the callback.
+ * Calls `@a` visitor once for every registered manifest. Iteration order is unspecified.
+ * `@warning` `@a` visitor runs with app-module's internal registry lock held. Do not call any
+ * app_manager_*() function from inside `@a` visitor - copy out what you need and act on it after
+ * this call returns.
  */
 typedef void (*AppManifestVisitorFn)(const struct AppManifest* manifest, void* context);
 void app_manager_for_each_manifest(AppManifestVisitorFn visitor, void* context);

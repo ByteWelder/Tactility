@@ -261,7 +261,7 @@ void stop_all_instances_of(const AppManifest* manifest) {
     }
 }
 
-// Takes install_registry().mutex - caller must not already hold it.
+// Caller must already hold install_registry().mutex
 error_t uninstall_locked(const std::string& app_id) {
     auto& registry = install_registry();
     auto iterator = registry.apps.find(app_id);

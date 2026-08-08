@@ -5,8 +5,6 @@
 
 #include <tactility/error.h>
 
-#include <cstdint>
-
 /**
  * Owns per-app task lifecycle on behalf of app_manager_*(). AppLoaderApi implementations
  * stay task-agnostic; all of xTaskCreate()/vTaskDelete() happens here, as a plain FreeRTOS task

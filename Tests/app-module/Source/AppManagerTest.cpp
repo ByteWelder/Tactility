@@ -10,6 +10,7 @@
 #include <tactility/freertos/task.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -30,12 +31,22 @@ error_t fake_load(AppLocation, void** out_runtime) {
 int last_received_argc = -1;
 std::vector<std::string> last_received_argv;
 
+// fake_run() runs on the app's own task; stash_received_arguments() writes
+// last_received_argc/last_received_argv there while a test thread reads them - wait_for_state()
+// only establishes that the instance reached APP_INSTANCE_STATE_ACTIVE (set before
+// AppLoaderApi::run() is even called, i.e. before fake_run() runs at all), not that
+// stash_received_arguments() has finished writing. This flag is the actual ordering: reset
+// before starting the app, set (release) as the last step of stash_received_arguments(), waited
+// on (acquire) before a test reads the stashed values.
+std::atomic<bool> arguments_stashed { false };
+
 void stash_received_arguments(int argc, char* argv[]) {
     last_received_argc = argc;
     last_received_argv.clear();
     for (int i = 0; i < argc; i++) {
         last_received_argv.emplace_back(argv[i]);
     }
+    arguments_stashed.store(true, std::memory_order_release);
 }
 
 // A minimal stand-in for a real app's main(): subscribes to its own app_event stream and exits
@@ -141,6 +152,18 @@ bool wait_for_state(uint32_t instance_id, AppInstanceState target, uint32_t time
     return app_manager_get_state(instance_id) == target;
 }
 
+bool wait_for_arguments_stashed(uint32_t timeout_ms) {
+    uint32_t waited = 0;
+    while (waited < timeout_ms) {
+        if (arguments_stashed.load(std::memory_order_acquire)) {
+            return true;
+        }
+        delay_millis(10);
+        waited += 10;
+    }
+    return arguments_stashed.load(std::memory_order_acquire);
+}
+
 } // namespace
 
 TEST_CASE("app_manager_start activates an app instance, app_manager_stop terminates it") {
@@ -217,6 +240,7 @@ TEST_CASE("app_manager_start_with_parameters deep-copies argv before the app ins
     REQUIRE_EQ(app_manager_add(&manifest), ERROR_NONE);
 
     uint32_t instance_id = 0;
+    arguments_stashed.store(false, std::memory_order_relaxed);
     {
         // Caller's argv is stack-local and goes out of scope immediately after this block -
         // proves app-module made its own copy rather than aliasing the caller's strings.
@@ -226,6 +250,7 @@ TEST_CASE("app_manager_start_with_parameters deep-copies argv before the app ins
         REQUIRE_EQ(app_manager_start_with_parameters("test.app.args", 2, argv, &instance_id), ERROR_NONE);
     }
     CHECK(wait_for_state(instance_id, APP_INSTANCE_STATE_ACTIVE, 1000));
+    REQUIRE(wait_for_arguments_stashed(1000));
 
     REQUIRE_EQ(last_received_argc, 2);
     REQUIRE_EQ(last_received_argv.size(), 2u);

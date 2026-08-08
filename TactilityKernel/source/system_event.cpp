@@ -78,16 +78,16 @@ static void notify_poll_subscribers(
 ) {
     mutex_lock(&poll_subscriptions_mutex.handle);
 
-    for (SystemEventSubscription* sub = poll_subscriptions; sub != nullptr; sub = sub->next) {
-        if (sub->type == type) {
-            sub->timestamp = timestamp;
+    for (SystemEventSubscription* sub = poll_subscriptions; sub != nullptr; sub = sub->internal.next) {
+        if (sub->event.type == type) {
+            sub->event.timestamp = timestamp;
             const size_t copied_len = std::min(data_len, SYSTEM_EVENT_MAX_DATA_SIZE);
             if (copied_len > 0) {
-                std::memcpy(sub->data, data, copied_len);
+                std::memcpy(sub->event.data, data, copied_len);
             }
-            sub->data_len = copied_len;
-            sub->sequence++;
-            xSemaphoreGive(sub->semaphore);
+            sub->event.data_len = copied_len;
+            sub->internal.sequence++;
+            xSemaphoreGive(sub->internal.semaphore);
         }
     }
 
@@ -148,12 +148,14 @@ error_t system_event_emit(
     const void* data,
     size_t data_len
 ) {
-    SystemEvent event = {
-        .type = type,
-        .timestamp = get_micros_since_boot(),
-        .data = data,
-        .data_len = data_len,
-    };
+    SystemEvent event {};
+    event.type = type;
+    event.timestamp = get_micros_since_boot();
+    const size_t copied_len = std::min(data_len, SYSTEM_EVENT_MAX_DATA_SIZE);
+    if (copied_len > 0) {
+        std::memcpy(event.data, data, copied_len);
+    }
+    event.data_len = copied_len;
 
     notify_poll_subscribers(type, event.timestamp, data, data_len);
     auto error = notify_listeners(event);
@@ -173,7 +175,7 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
     // Check-and-insert in one critical section: registering the same `sub` twice would link
     // it into a list that already contains it, creating a cycle that notify_poll_subscribers()
     // would then traverse forever while holding this same mutex.
-    for (SystemEventSubscription* existing = poll_subscriptions; existing != nullptr; existing = existing->next) {
+    for (SystemEventSubscription* existing = poll_subscriptions; existing != nullptr; existing = existing->internal.next) {
         if (existing == sub) {
             mutex_unlock(&poll_subscriptions_mutex.handle);
             vSemaphoreDelete(semaphore);
@@ -181,11 +183,11 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
         }
     }
 
-    sub->semaphore = semaphore;
-    sub->sequence = 0;
-    sub->consumed_sequence = 0;
-    sub->data_len = 0;
-    sub->next = poll_subscriptions;
+    sub->internal.semaphore = semaphore;
+    sub->internal.sequence = 0;
+    sub->internal.consumed_sequence = 0;
+    sub->event.data_len = 0;
+    sub->internal.next = poll_subscriptions;
     poll_subscriptions = sub;
 
     mutex_unlock(&poll_subscriptions_mutex.handle);
@@ -197,9 +199,9 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
     error_t result = ERROR_NOT_FOUND;
 
     mutex_lock(&poll_subscriptions_mutex.handle);
-    for (SystemEventSubscription** link = &poll_subscriptions; *link != nullptr; link = &(*link)->next) {
+    for (SystemEventSubscription** link = &poll_subscriptions; *link != nullptr; link = &(*link)->internal.next) {
         if (*link == sub) {
-            *link = sub->next;
+            *link = sub->internal.next;
             result = ERROR_NONE;
             break;
         }
@@ -209,23 +211,31 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
     if (result == ERROR_NONE) {
         // Unlinked first, so notify_poll_subscribers() can no longer reach this semaphore
         // before it's deleted.
-        vSemaphoreDelete(sub->semaphore);
-        sub->semaphore = nullptr;
+        vSemaphoreDelete(sub->internal.semaphore);
+        sub->internal.semaphore = nullptr;
     }
 
     return result;
 }
 
 error_t system_event_await(SystemEventSubscription* sub, TickType_t timeout) {
-    uint32_t old_sequence = sub->sequence;
+    uint32_t old_sequence = sub->internal.sequence;
 
-    while (sub->sequence == old_sequence) {
-        if (xSemaphoreTake(sub->semaphore, timeout) == pdFALSE) {
+    while (sub->internal.sequence == old_sequence) {
+        if (xSemaphoreTake(sub->internal.semaphore, timeout) == pdFALSE) {
             return ERROR_TIMEOUT;
         }
     }
 
-    sub->consumed_sequence = sub->sequence;
+    sub->internal.consumed_sequence = sub->internal.sequence;
+    return ERROR_NONE;
+}
+
+error_t system_event_get_data(SystemEventSubscription* sub, uint8_t* data, size_t data_len) {
+    if (data_len < sub->event.data_len) {
+        return ERROR_BUFFER_OVERFLOW;
+    }
+    std::memcpy(data, sub->event.data, sub->event.data_len);
     return ERROR_NONE;
 }
 

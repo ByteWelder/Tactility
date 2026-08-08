@@ -15,8 +15,10 @@
 struct RecordedCall {
     void* context;
     SystemEventType type;
-    const void* data;
-    size_t data_len;
+    // Copied out of event->data during the callback - event->data is only valid for the
+    // duration of the callback (it lives in system_event_emit()'s own stack frame), so a bare
+    // pointer/length pair recorded here would dangle by the time a TEST_CASE inspects it.
+    std::vector<uint8_t> data;
     uint64_t timestamp;
 };
 
@@ -24,11 +26,11 @@ static std::vector<RecordedCall> calls_a;
 static std::vector<RecordedCall> calls_b;
 
 static void listener_a(SystemEvent* event, void* context) {
-    calls_a.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
+    calls_a.push_back({ context, event->type, std::vector<uint8_t>(event->data, event->data + event->data_len), event->timestamp });
 }
 
 static void listener_b(SystemEvent* event, void* context) {
-    calls_b.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
+    calls_b.push_back({ context, event->type, std::vector<uint8_t>(event->data, event->data + event->data_len), event->timestamp });
 }
 
 static void reset_calls() {
@@ -71,7 +73,7 @@ TEST_CASE("system_event_emit only invokes subscribers registered for the emitted
     system_event_callback_remove(KERNEL_EVENT_BOOT_COMPLETED, listener_a);
 }
 
-TEST_CASE("system_event_emit passes the data pointer and length through unchanged") {
+TEST_CASE("system_event_emit copies the data into the delivered event") {
     reset_calls();
     int context_a = 1;
     struct Payload { int value; } payload { 42 };
@@ -80,14 +82,13 @@ TEST_CASE("system_event_emit passes the data pointer and length through unchange
     system_event_emit(KERNEL_EVENT_TIME_CHANGED, &payload, sizeof(payload));
 
     REQUIRE_EQ(calls_a.size(), 1);
-    CHECK_EQ(calls_a[0].data, &payload);
-    CHECK_EQ(calls_a[0].data_len, sizeof(payload));
-    CHECK_EQ(static_cast<const Payload*>(calls_a[0].data)->value, 42);
+    REQUIRE_EQ(calls_a[0].data.size(), sizeof(payload));
+    CHECK_EQ(reinterpret_cast<const Payload*>(calls_a[0].data.data())->value, 42);
 
     system_event_callback_remove(KERNEL_EVENT_TIME_CHANGED, listener_a);
 }
 
-TEST_CASE("system_event_emit with no data passes a null pointer and zero length") {
+TEST_CASE("system_event_emit with no data delivers an empty payload") {
     reset_calls();
     int context_a = 1;
     system_event_callback_add(KERNEL_EVENT_BOOT_COMPLETED, listener_a, &context_a);
@@ -95,8 +96,7 @@ TEST_CASE("system_event_emit with no data passes a null pointer and zero length"
     system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
 
     REQUIRE_EQ(calls_a.size(), 1);
-    CHECK_EQ(calls_a[0].data, nullptr);
-    CHECK_EQ(calls_a[0].data_len, 0);
+    CHECK(calls_a[0].data.empty());
 
     system_event_callback_remove(KERNEL_EVENT_BOOT_COMPLETED, listener_a);
 }
@@ -175,7 +175,7 @@ TEST_CASE("system_event_emit stamps the event with the current boot-relative tim
 static bool reentrant_add_triggered = false;
 
 static void reentrant_listener(SystemEvent* event, void* context) {
-    calls_a.push_back({ context, event->type, event->data, event->data_len, event->timestamp });
+    calls_a.push_back({ context, event->type, std::vector<uint8_t>(event->data, event->data + event->data_len), event->timestamp });
     if (!reentrant_add_triggered) {
         reentrant_add_triggered = true;
         // Subscribing from within a notification must not deadlock: emit() releases the
@@ -225,7 +225,7 @@ TEST_CASE("system_event_emit is safe when a callback subscribes, unsubscribes an
 
 TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
     SystemEventSubscription sub {};
-    sub.type = KERNEL_EVENT_NETWORK_CONNECTED;
+    sub.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
     CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
 
     NetworkConnectedEvent connected { .device = nullptr, .ipv4_addr = 0x0A000001, .gateway = 0x0A0000FE };
@@ -245,10 +245,10 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
 
     CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
 
-    const auto* received = reinterpret_cast<const NetworkConnectedEvent*>(sub.data);
-    CHECK_EQ(received->ipv4_addr, connected.ipv4_addr);
-    CHECK_EQ(received->gateway, connected.gateway);
-    CHECK_EQ(sub.data_len, sizeof(connected));
+    NetworkConnectedEvent received {};
+    CHECK_EQ(system_event_get_data(&sub, reinterpret_cast<uint8_t*>(&received), sizeof(received)), ERROR_NONE);
+    CHECK_EQ(received.ipv4_addr, connected.ipv4_addr);
+    CHECK_EQ(received.gateway, connected.gateway);
 
     CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
     thread_free(thread);
@@ -259,7 +259,7 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
 
 TEST_CASE("system_event_await times out when no matching event has arrived") {
     SystemEventSubscription sub {};
-    sub.type = KERNEL_EVENT_TIME_CHANGED;
+    sub.event.type = KERNEL_EVENT_TIME_CHANGED;
     system_event_subscribe(&sub);
 
     CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
@@ -269,11 +269,75 @@ TEST_CASE("system_event_await times out when no matching event has arrived") {
 
 TEST_CASE("system_event_emit does not notify a poll subscriber of a different type") {
     SystemEventSubscription sub {};
-    sub.type = KERNEL_EVENT_BOOT_COMPLETED;
+    sub.event.type = KERNEL_EVENT_BOOT_COMPLETED;
     system_event_subscribe(&sub);
 
     system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
     CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
+
+    system_event_unsubscribe(&sub);
+}
+
+TEST_CASE("system_event_get_data reports ERROR_BUFFER_OVERFLOW and leaves the buffer untouched") {
+    SystemEventSubscription sub {};
+    sub.event.type = KERNEL_EVENT_NETWORK_DISCONNECTED;
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+
+    // system_event_await() only detects sequence increments that happen *after* it starts
+    // waiting (see the comment above), so the emit must come from another task while this one
+    // is already blocked in await() - same pattern as the payload-delivery test above.
+    NetworkDisconnectedEvent disconnected { .device = nullptr };
+    auto* thread = thread_alloc_full(
+        "system-event-emitter",
+        4096,
+        [](void* context) {
+            delay_millis(20);
+            auto* disconnected_ptr = static_cast<NetworkDisconnectedEvent*>(context);
+            system_event_emit(KERNEL_EVENT_NETWORK_DISCONNECTED, disconnected_ptr, sizeof(*disconnected_ptr));
+            return 0;
+        },
+        &disconnected,
+        -1
+    );
+    CHECK_EQ(thread_start(thread), ERROR_NONE);
+    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    thread_free(thread);
+
+    uint8_t tiny[1] = { 0xAA };
+    CHECK_EQ(system_event_get_data(&sub, tiny, sizeof(tiny)), ERROR_BUFFER_OVERFLOW);
+    CHECK_EQ(tiny[0], 0xAA);
+
+    uint8_t exact[sizeof(NetworkDisconnectedEvent)];
+    CHECK_EQ(system_event_get_data(&sub, exact, sizeof(exact)), ERROR_NONE);
+
+    system_event_unsubscribe(&sub);
+}
+
+TEST_CASE("system_event_get_data on a subscription with no payload copies nothing and succeeds") {
+    SystemEventSubscription sub {};
+    sub.event.type = KERNEL_EVENT_BOOT_COMPLETED;
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+
+    auto* thread = thread_alloc_full(
+        "system-event-emitter",
+        4096,
+        [](void*) {
+            delay_millis(20);
+            system_event_emit(KERNEL_EVENT_BOOT_COMPLETED, nullptr, 0);
+            return 0;
+        },
+        nullptr,
+        -1
+    );
+    CHECK_EQ(thread_start(thread), ERROR_NONE);
+    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    thread_free(thread);
+
+    uint8_t buffer[1] = { 0x42 };
+    CHECK_EQ(system_event_get_data(&sub, buffer, 0), ERROR_NONE);
+    CHECK_EQ(buffer[0], 0x42); // untouched - nothing to copy
 
     system_event_unsubscribe(&sub);
 }

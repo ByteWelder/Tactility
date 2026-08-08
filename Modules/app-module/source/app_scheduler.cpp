@@ -9,10 +9,8 @@
 #include <service/instance.h>
 #include <service/manager.h>
 
-#include <tactility/delay.h>
 #include <tactility/error.h>
 #include <tactility/log.h>
-#include <tactility/time.h>
 
 #include <cstdint>
 #include <cstdio>
@@ -49,15 +47,6 @@ void set_state(AppInstanceId app_instance_id, AppInstanceState state) {
     mutex_unlock(&ledger.mutex);
 }
 
-TaskHandle_t get_task(AppInstanceId app_instance_id) {
-    auto& ledger = app_ledger();
-    mutex_lock(&ledger.mutex);
-    auto iterator = ledger.instances.find(app_instance_id);
-    TaskHandle_t task = (iterator != ledger.instances.end()) ? iterator->second.task : nullptr;
-    mutex_unlock(&ledger.mutex);
-    return task;
-}
-
 void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
@@ -66,6 +55,23 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
         iterator->second.task = task;
     }
     mutex_unlock(&ledger.mutex);
+}
+
+// Registers the calling task to be notified when app_instance_id's task actually finishes
+// running (see app_task_main()'s exit path), and reports whether there's anything to wait for.
+// @return true if the instance's ledger entry still exists (a wait was registered); false if
+// the task has already fully finished (and already given any notification it would have) -
+// there is nothing left to wait for.
+bool register_stop_waiter(AppInstanceId app_instance_id) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.instances.find(app_instance_id);
+    bool exists = iterator != ledger.instances.end();
+    if (exists) {
+        iterator->second.stop_waiter = xTaskGetCurrentTaskHandle();
+    }
+    mutex_unlock(&ledger.mutex);
+    return exists;
 }
 
 const char* loader_service_id_for(AppLocationType type) {
@@ -135,11 +141,22 @@ void app_task_main(void* context) {
 
     LOG_I(TAG, "Thread for %d finished", app_instance_id);
 
-    // Erase the ledger entry before self-deleting
+    // Erase the ledger entry before self-deleting, capturing whoever's blocked in
+    // app_scheduler_stop() for this instance (if anyone) so they can be notified afterward.
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
+    auto iterator = ledger.instances.find(app_instance_id);
+    TaskHandle_t stop_waiter = (iterator != ledger.instances.end()) ? iterator->second.stop_waiter : nullptr;
     ledger.instances.erase(app_instance_id);
     mutex_unlock(&ledger.mutex);
+
+    // Signal completion as the literal last action before this task ceases to exist, so
+    // app_scheduler_stop() can't observe "stopped" one step early (see its own comment) -
+    // unlike watching the ledger entry disappear, this can only happen once the task is truly
+    // done running.
+    if (stop_waiter != nullptr) {
+        xTaskNotifyGive(stop_waiter);
+    }
 
     vTaskDelete(nullptr);
 }
@@ -176,36 +193,45 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     snprintf(task_name, sizeof(task_name), "app_%lu", static_cast<unsigned long>(app_instance_id));
 
     TaskHandle_t task_handle = nullptr;
-    // 8192 bytes -> stack depth in words, matching what TactilityKernel's Thread wrapper does
-    // with the stack size it's given.
-    BaseType_t create_result = xTaskCreate(app_task_main, task_name, 8192 / sizeof(StackType_t), context, APP_TASK_PRIORITY, &task_handle);
+    // 8192 bytes -> stack depth in words, matching what TactilityKernel's Thread wrapper does with the stack size it's given.
+    // Created at idle priority so it can't preempt us before vTaskSuspend() below runs, then suspended immediately -
+    // the ledger must record the handle (set_task()) before the task can possibly observe or erase its own entry.
+    // (see app_scheduler_stop()'s liveness check and app_task_main()'s exit path)
+    BaseType_t create_result = xTaskCreate(app_task_main, task_name, 8192 / sizeof(StackType_t), context, tskIDLE_PRIORITY, &task_handle);
     if (create_result != pdPASS) {
         delete context;
         loader->unload(runtime);
         app_ledger_free_arguments(argc, argv);
         return ERROR_OUT_OF_MEMORY;
     }
+    vTaskSuspend(task_handle);
 
     set_task(app_instance_id, task_handle);
+    vTaskPrioritySet(task_handle, APP_TASK_PRIORITY);
+    vTaskResume(task_handle);
 
     return ERROR_NONE;
 }
 
 error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeout) {
-    TaskHandle_t task = get_task(app_instance_id);
-    if (task != nullptr) {
+    // Drain any stale notification credit before registering as the waiter - otherwise a
+    // leftover give from an unrelated earlier wait on this same task (e.g. a previous
+    // app_scheduler_stop() call that timed out and only got notified afterward) could make the
+    // take below return immediately for the wrong event. Mirrors app_event_await()'s same
+    // defensive drain.
+    ulTaskNotifyTake(pdTRUE, 0);
+
+    if (register_stop_waiter(app_instance_id)) {
         AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
         app_event_emit(app_instance_id, &event);
 
-        // Poll for the task to clear its own ledger entry (see app_task_main()) - plain
-        // FreeRTOS has no built-in task-join primitive.
-        TickType_t start_ticks = get_ticks();
-        while (get_task(app_instance_id) != nullptr) {
-            delay_ticks(pdMS_TO_TICKS(10));
-            if (get_ticks() - start_ticks > join_timeout) {
-                LOG_W(TAG, "App instance %u did not stop in time", app_instance_id);
-                return ERROR_TIMEOUT;
-            }
+        // Blocks until app_task_main() gives this notification as the literal last thing it
+        // does before vTaskDelete() - unlike polling the ledger for the task handle to clear,
+        // this can't observe "stopped" while the task is still mid-exit (still running its own
+        // cleanup/vTaskDelete()).
+        if (ulTaskNotifyTake(pdTRUE, join_timeout) == 0) {
+            LOG_W(TAG, "App instance %u did not stop in time", app_instance_id);
+            return ERROR_TIMEOUT;
         }
     }
 

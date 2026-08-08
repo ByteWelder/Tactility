@@ -101,6 +101,10 @@ enum WindowState window_manager_get_state(WindowId id);
  * Blocks the calling task until @a id's state changes away from WINDOW_STATE_GRANTED, or
  * @a timeout elapses. Returns immediately with WINDOW_STATE_REVOKED if @a id isn't currently
  * topmost (nothing to wait for).
+ * @warning At most one task may have an outstanding await() call per window at a time (each
+ * window tracks a single waiter). A second concurrent call for the same @a id asserts. Calls
+ * for different windows (e.g. from different app tasks in a stacked window manager) don't
+ * conflict with each other.
  * @return the state after waking (or immediately, if there was nothing to wait for)
  */
 enum WindowState window_manager_await_state_change(WindowId id, TickType_t timeout);

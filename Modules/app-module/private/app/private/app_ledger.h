@@ -8,7 +8,7 @@
 #include <tactility/freertos/freertos.h>
 #include <tactility/freertos/task.h>
 
-#include <cstdint>
+#include <stdint.h>
 #include <string>
 #include <unordered_map>
 
@@ -24,6 +24,12 @@ struct AppInstanceRecord {
     /** 0 for a top-level launch (app_manager_start()). Non-zero for a modal child launched via
      * app_manager_start_for_result() - the instance that receives this child's APP_EVENT_RESULT. */
     uint32_t parent_id = 0;
+
+    /** The task currently blocked in app_scheduler_stop() for this instance, if any - notified
+     * (via xTaskNotifyGive()) as the literal last action app_task_main() takes before
+     * vTaskDelete(), so app_scheduler_stop() can't observe completion before the task has
+     * actually finished running. See app_scheduler.cpp. */
+    TaskHandle_t stop_waiter = nullptr;
 };
 
 struct AppLedger {

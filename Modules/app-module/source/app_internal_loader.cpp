@@ -39,7 +39,7 @@ void destroy_service(const ServiceManifest*, void*) {
 
 } // namespace
 
-extern ServiceManifest app_internal_loader_service_manifest = {
+ServiceManifest app_internal_loader_service_manifest = {
     .id = APP_LOADER_MEMORY_SERVICE_ID,
     .create_service = create_service,
     .destroy_service = destroy_service,

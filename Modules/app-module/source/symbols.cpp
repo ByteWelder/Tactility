@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
+#include <app/install.h>
 #include <app/manager.h>
 #include <app/module.h>
 #include <app/scheduler.h>
@@ -30,6 +31,16 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_manager_get_state),
     DEFINE_MODULE_SYMBOL(app_manager_find_manifest),
     DEFINE_MODULE_SYMBOL(app_manager_for_each_manifest),
+    DEFINE_MODULE_SYMBOL(app_manager_add),
+    DEFINE_MODULE_SYMBOL(app_manager_remove),
+    DEFINE_MODULE_SYMBOL(app_manager_get_topmost_instance_id),
+    DEFINE_MODULE_SYMBOL(app_manager_get_topmost_app_id),
+    DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
+    DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
+    // app/install
+    DEFINE_MODULE_SYMBOL(app_get_install_path),
+    DEFINE_MODULE_SYMBOL(app_install),
+    DEFINE_MODULE_SYMBOL(app_uninstall),
     // terminator
     MODULE_SYMBOL_TERMINATOR
 };
