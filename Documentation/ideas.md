@@ -12,6 +12,7 @@
 
 ## Higher Priority
 
+- Make it more clear to end-users that an SD card is required to run Tactility
 - Move "# Fix error "PSRAM space not enough for the Flash instructions" on boot:" fix from T-Deck and others to device.py
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
 - Put task stacks in PSRAM when possible.
@@ -52,6 +53,7 @@
 
 ## Medium Priority
 
+- Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Implement a LED kernel driver (single colour and RGB, plain GPIO and PWM)

@@ -20,7 +20,6 @@ macro(tactility_project project_name)
     set(EXTRA_COMPONENT_DIRS
         "${TACTILITY_SDK_PATH}/Libraries/TactilityFreeRtos"
         "${TACTILITY_SDK_PATH}/Modules"
-        "${TACTILITY_SDK_PATH}/Drivers"
     )
 
     set(COMPONENTS
@@ -31,7 +30,6 @@ macro(tactility_project project_name)
         lvgl-module
         lvgl-window-manager-module
         service-module
-        # DRIVER_COMPONENTS_PLACEHOLDER
     )
 
 endmacro()
