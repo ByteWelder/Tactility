@@ -1,5 +1,3 @@
-#include <tt_app.h>
-
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
@@ -23,13 +21,6 @@
 #include <tactility/log.h>
 #include <tactility/module.h>
 #include <tactility/time.h>
-
-#include <drivers/bm8563.h>
-#include <drivers/bmi270.h>
-#include <drivers/mpu6886.h>
-#include <drivers/pi4ioe5v6408.h>
-#include <drivers/qmi8658.h>
-#include <drivers/rx8130ce.h>
 
 static void onShowApp(AppHandle app, void* data, lv_obj_t* parent) {
     lv_obj_t* toolbar = lvgl_toolbar_create(parent, "Title");
