@@ -1,6 +1,7 @@
 #include <tactility/system_event.h>
 
 #include <tactility/concurrent/mutex.h>
+#include <tactility/delay.h>
 #include <tactility/error.h>
 #include <tactility/time.h>
 
@@ -186,6 +187,8 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
     sub->internal.semaphore = semaphore;
     sub->internal.sequence = 0;
     sub->internal.consumed_sequence = 0;
+    sub->internal.waiter_count = 0;
+    sub->internal.cancelled = false;
     sub->event.data_len = 0;
     sub->internal.next = poll_subscriptions;
     poll_subscriptions = sub;
@@ -197,6 +200,7 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
 
 error_t system_event_unsubscribe(SystemEventSubscription* sub) {
     error_t result = ERROR_NOT_FOUND;
+    SemaphoreHandle_t semaphore_to_delete = nullptr;
 
     mutex_lock(&poll_subscriptions_mutex.handle);
     for (SystemEventSubscription** link = &poll_subscriptions; *link != nullptr; link = &(*link)->internal.next) {
@@ -206,37 +210,109 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
             break;
         }
     }
-    mutex_unlock(&poll_subscriptions_mutex.handle);
-
     if (result == ERROR_NONE) {
-        // Unlinked first, so notify_poll_subscribers() can no longer reach this semaphore
-        // before it's deleted.
-        vSemaphoreDelete(sub->internal.semaphore);
+        // Unlinked first, so notify_poll_subscribers() can no longer reach this subscription.
+        // Mark it cancelled (checked by system_event_await()'s loop) and capture the semaphore
+        // handle into a local variable rather than deleting it via sub->internal.semaphore
+        // directly - a concurrent system_event_subscribe() re-registering this same `sub` after
+        // this point would overwrite that field with a freshly created semaphore, and we must
+        // not delete the wrong (newly active) one.
+        sub->internal.cancelled = true;
+        semaphore_to_delete = sub->internal.semaphore;
         sub->internal.semaphore = nullptr;
     }
+    mutex_unlock(&poll_subscriptions_mutex.handle);
+
+    if (result != ERROR_NONE) {
+        return result;
+    }
+
+    // Nudge any task already blocked in system_event_await() (it captured its own local copy
+    // of this same semaphore handle before this point, so it's unaffected by the field having
+    // just been cleared above) so it re-checks `cancelled` and bails out now instead of waiting
+    // out its full timeout, then wait for it to actually leave the semaphore before deleting it
+    // - FreeRTOS requires no task be blocked on a semaphore when it's deleted.
+    xSemaphoreGive(semaphore_to_delete);
+    while (true) {
+        mutex_lock(&poll_subscriptions_mutex.handle);
+        bool still_waiting = sub->internal.waiter_count > 0;
+        mutex_unlock(&poll_subscriptions_mutex.handle);
+
+        if (!still_waiting) {
+            break;
+        }
+        delay_ticks(pdMS_TO_TICKS(10));
+    }
+
+    vSemaphoreDelete(semaphore_to_delete);
+
+    // Reset so a future system_event_subscribe() re-registering this same `sub` isn't left
+    // pre-cancelled (subscribe() also resets this itself, defensively).
+    sub->internal.cancelled = false;
+
+    return ERROR_NONE;
+}
+
+error_t system_event_await(SystemEventSubscription* sub, TickType_t timeout) {
+    mutex_lock(&poll_subscriptions_mutex.handle);
+    SemaphoreHandle_t semaphore = sub->internal.semaphore;
+    sub->internal.waiter_count++;
+    mutex_unlock(&poll_subscriptions_mutex.handle);
+
+    error_t result = ERROR_NONE;
+
+    // sequence/consumed_sequence are written by notify_poll_subscribers() under
+    // poll_subscriptions_mutex - read (and, on a match, updated) under the same lock each
+    // iteration, rather than compared lock-free, so a concurrent emit can't land between an
+    // unlocked read and this loop acting on it.
+    //
+    // Compare against consumed_sequence, not a sequence snapshot taken now - an emit that
+    // landed between system_event_subscribe() and this call already incremented sequence and
+    // gave the semaphore, so that event is pending but unconsumed. Snapshotting "now" would
+    // make the loop wait for yet another event instead of returning this already-pending one.
+    while (true) {
+        mutex_lock(&poll_subscriptions_mutex.handle);
+        bool pending = sub->internal.sequence != sub->internal.consumed_sequence;
+        bool cancelled = sub->internal.cancelled;
+        if (pending) {
+            sub->internal.consumed_sequence = sub->internal.sequence;
+        }
+        mutex_unlock(&poll_subscriptions_mutex.handle);
+
+        if (pending) {
+            break;
+        }
+        if (cancelled) {
+            result = ERROR_INVALID_STATE;
+            break;
+        }
+        if (xSemaphoreTake(semaphore, timeout) == pdFALSE) {
+            result = ERROR_TIMEOUT;
+            break;
+        }
+    }
+
+    mutex_lock(&poll_subscriptions_mutex.handle);
+    sub->internal.waiter_count--;
+    mutex_unlock(&poll_subscriptions_mutex.handle);
 
     return result;
 }
 
-error_t system_event_await(SystemEventSubscription* sub, TickType_t timeout) {
-    uint32_t old_sequence = sub->internal.sequence;
-
-    while (sub->internal.sequence == old_sequence) {
-        if (xSemaphoreTake(sub->internal.semaphore, timeout) == pdFALSE) {
-            return ERROR_TIMEOUT;
-        }
-    }
-
-    sub->internal.consumed_sequence = sub->internal.sequence;
-    return ERROR_NONE;
-}
-
 error_t system_event_get_data(SystemEventSubscription* sub, uint8_t* data, size_t data_len) {
+    // sub->event.* is written by notify_poll_subscribers() under poll_subscriptions_mutex -
+    // the length check and the copy must happen as one snapshot under the same lock, otherwise
+    // a concurrent emit could grow data_len (or overwrite data) between the check and the
+    // memcpy below.
+    mutex_lock(&poll_subscriptions_mutex.handle);
+    error_t result = ERROR_NONE;
     if (data_len < sub->event.data_len) {
-        return ERROR_BUFFER_OVERFLOW;
+        result = ERROR_BUFFER_OVERFLOW;
+    } else {
+        std::memcpy(data, sub->event.data, sub->event.data_len);
     }
-    std::memcpy(data, sub->event.data, sub->event.data_len);
-    return ERROR_NONE;
+    mutex_unlock(&poll_subscriptions_mutex.handle);
+    return result;
 }
 
 } // extern "C"

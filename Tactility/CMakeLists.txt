@@ -8,6 +8,9 @@ list(APPEND REQUIRES_LIST
     TactilityKernel
     TactilityFreeRtos
     lvgl-module
+    lvgl-window-manager-module
+    app-module
+    app-esp32-module
     crypt-module
     gps-module
     gps-generic-module

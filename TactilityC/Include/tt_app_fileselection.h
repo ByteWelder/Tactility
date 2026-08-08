@@ -8,13 +8,13 @@ extern "C" {
 
 /**
  * Show a file selection dialog that allows the user to select an existing file.
- * @return the launch ID of the dialog, which can be compared in onResult to identify the source
+ * @return the launch ID of the dialog
  */
 AppInstanceId tt_app_fileselection_start_for_existing_file(AppInstanceId app_id);
 
 /**
  * Show a file selection dialog that allows the user to select a new or existing file.
- * @return the launch ID of the dialog, which can be compared in onResult to identify the source
+ * @return the launch ID of the dialog
  */
 AppInstanceId tt_app_fileselection_start_for_existing_or_new_file(AppInstanceId app_id);
 

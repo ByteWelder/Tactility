@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -161,6 +162,15 @@ struct SystemEventSubscription {
         uint32_t sequence;
         uint32_t consumed_sequence;
 
+        /** Number of tasks currently blocked in system_event_await() on `semaphore` -
+         * system_event_unsubscribe() waits for this to reach 0 before deleting it, since
+         * FreeRTOS requires no task be blocked on a semaphore when it's deleted. */
+        int waiter_count;
+        /** Set by system_event_unsubscribe() before it gives `semaphore` and waits, so a task
+         * already blocked in system_event_await() bails out (ERROR_INVALID_STATE) instead of
+         * waiting out its full timeout. Reset on the next system_event_subscribe(). */
+        bool cancelled;
+
         struct SystemEventSubscription* next;
     } internal;
 };
@@ -180,6 +190,10 @@ error_t system_event_subscribe(struct SystemEventSubscription* sub);
 /**
  * Remove a previously registered poll subscription.
  * @warning Does not work in ISR context.
+ * @warning Blocks (briefly - not for the full duration of anyone's timeout) until any task
+ * currently blocked in system_event_await() on @a sub has woken up and left, so it's safe to
+ * delete the subscription's semaphore before this call returns. A blocked awaiter is woken
+ * (with ERROR_INVALID_STATE) as part of this call rather than left to time out on its own.
  * @param[in] sub subscription to remove, as passed to system_event_subscribe()
  * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
  */
@@ -187,9 +201,18 @@ error_t system_event_unsubscribe(struct SystemEventSubscription* sub);
 
 /**
  * Blocks the calling task until a new event arrives for @a sub, or timeout elapses.
+ * @warning Poll subscriptions coalesce to the latest event, they are not a queue: if
+ * system_event_emit() is called more than once for @a sub->event.type between two
+ * system_event_await() calls, only the most recent event's data/timestamp is visible via
+ * system_event_get_data()/system_event_get_timestamp() afterward - intermediate events are
+ * silently overwritten, never delivered. Use system_event_callback_add() instead if every
+ * individual event matters.
  * @param[in,out] sub subscription to wait on, as passed to system_event_subscribe()
  * @param[in] timeout max ticks to wait
- * @return ERROR_NONE if an event arrived, ERROR_TIMEOUT if the timeout elapsed
+ * @retval ERROR_NONE an event arrived
+ * @retval ERROR_TIMEOUT @a timeout elapsed first
+ * @retval ERROR_INVALID_STATE another task called system_event_unsubscribe() on @a sub while
+ * this call was blocked
  */
 error_t system_event_await(struct SystemEventSubscription* sub, TickType_t timeout);
 

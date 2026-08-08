@@ -35,6 +35,7 @@ struct TaskContext {
     AppInstanceId app_instance_id;
     int argc;
     char** argv;
+    AppCompletionSignal* completion;
 };
 
 void set_state(AppInstanceId app_instance_id, AppInstanceState state) {
@@ -57,21 +58,44 @@ void set_task(AppInstanceId app_instance_id, TaskHandle_t task) {
     mutex_unlock(&ledger.mutex);
 }
 
-// Registers the calling task to be notified when app_instance_id's task actually finishes
-// running (see app_task_main()'s exit path), and reports whether there's anything to wait for.
-// @return true if the instance's ledger entry still exists (a wait was registered); false if
-// the task has already fully finished (and already given any notification it would have) -
-// there is nothing left to wait for.
-bool register_stop_waiter(AppInstanceId app_instance_id) {
+void set_completion(AppInstanceId app_instance_id, AppCompletionSignal* completion) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.instances.find(app_instance_id);
-    bool exists = iterator != ledger.instances.end();
-    if (exists) {
-        iterator->second.stop_waiter = xTaskGetCurrentTaskHandle();
+    if (iterator != ledger.instances.end()) {
+        iterator->second.completion = completion;
     }
     mutex_unlock(&ledger.mutex);
-    return exists;
+}
+
+// Takes a reference on app_instance_id's completion signal (see AppCompletionSignal), for the
+// caller to wait on. @return the signal to wait on, or NULL if the instance has already fully
+// finished (its ledger entry - and so its reference to the signal - is already gone) and so
+// there's nothing left to wait for.
+AppCompletionSignal* acquire_completion_signal(AppInstanceId app_instance_id) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    auto iterator = ledger.instances.find(app_instance_id);
+    AppCompletionSignal* completion = nullptr;
+    if (iterator != ledger.instances.end()) {
+        completion = iterator->second.completion;
+        completion->refcount++;
+    }
+    mutex_unlock(&ledger.mutex);
+    return completion;
+}
+
+// Releases a reference taken by acquire_completion_signal(), deleting the signal (and its
+// semaphore) if this was the last one.
+void release_completion_signal(AppCompletionSignal* completion) {
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    bool should_delete = (--completion->refcount == 0);
+    mutex_unlock(&ledger.mutex);
+    if (should_delete) {
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
+    }
 }
 
 const char* loader_service_id_for(AppLocationType type) {
@@ -137,26 +161,28 @@ void app_task_main(void* context) {
     app_ledger_free_arguments(ctx->argc, ctx->argv);
 
     AppInstanceId app_instance_id = ctx->app_instance_id;
+    AppCompletionSignal* completion = ctx->completion;
     delete ctx;
 
     LOG_I(TAG, "Thread for %d finished", app_instance_id);
 
-    // Erase the ledger entry before self-deleting, capturing whoever's blocked in
-    // app_scheduler_stop() for this instance (if anyone) so they can be notified afterward.
+    // Erase the ledger entry before self-deleting - see "Reap self-terminated app tasks":
+    // nothing else is guaranteed to ever call app_scheduler_stop() for this instance (the
+    // common case is the app just closing itself), so this can't wait for that to happen.
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
-    auto iterator = ledger.instances.find(app_instance_id);
-    TaskHandle_t stop_waiter = (iterator != ledger.instances.end()) ? iterator->second.stop_waiter : nullptr;
     ledger.instances.erase(app_instance_id);
     mutex_unlock(&ledger.mutex);
 
     // Signal completion as the literal last action before this task ceases to exist, so
-    // app_scheduler_stop() can't observe "stopped" one step early (see its own comment) -
-    // unlike watching the ledger entry disappear, this can only happen once the task is truly
-    // done running.
-    if (stop_waiter != nullptr) {
-        xTaskNotifyGive(stop_waiter);
-    }
+    // app_scheduler_stop() can't observe "stopped" one step early - unlike watching the ledger
+    // entry disappear, this can only happen once the task is truly done running. A dedicated
+    // semaphore rather than this task's default FreeRTOS notification, since app_event.cpp's
+    // AppEventSubscription also uses that shared slot - an unrelated event (e.g. a child's
+    // APP_EVENT_RESULT) delivered to this same task could otherwise unblock a concurrent
+    // app_scheduler_stop() early.
+    xSemaphoreGive(completion->semaphore);
+    release_completion_signal(completion); // releases app_task_main()'s own reference
 
     vTaskDelete(nullptr);
 }
@@ -181,9 +207,27 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
         return load_result;
     }
 
-    auto* context = new (std::nothrow) TaskContext { loader, runtime, app_instance_id, argc, argv };
+    auto* completion = new (std::nothrow) AppCompletionSignal();
+    if (completion == nullptr) {
+        LOG_E(TAG, "Failed to allocate app");
+        loader->unload(runtime);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_OUT_OF_MEMORY;
+    }
+    completion->semaphore = xSemaphoreCreateBinary();
+    if (completion->semaphore == nullptr) {
+        LOG_E(TAG, "Failed to allocate app");
+        delete completion;
+        loader->unload(runtime);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    auto* context = new (std::nothrow) TaskContext { loader, runtime, app_instance_id, argc, argv, completion };
     if (context == nullptr) {
         LOG_E(TAG, "Failed to allocate app");
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
         loader->unload(runtime);
         app_ledger_free_arguments(argc, argv);
         return ERROR_OUT_OF_MEMORY;
@@ -200,6 +244,8 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     BaseType_t create_result = xTaskCreate(app_task_main, task_name, 8192 / sizeof(StackType_t), context, tskIDLE_PRIORITY, &task_handle);
     if (create_result != pdPASS) {
         delete context;
+        vSemaphoreDelete(completion->semaphore);
+        delete completion;
         loader->unload(runtime);
         app_ledger_free_arguments(argc, argv);
         return ERROR_OUT_OF_MEMORY;
@@ -207,6 +253,7 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
     vTaskSuspend(task_handle);
 
     set_task(app_instance_id, task_handle);
+    set_completion(app_instance_id, completion);
     vTaskPrioritySet(task_handle, APP_TASK_PRIORITY);
     vTaskResume(task_handle);
 
@@ -214,22 +261,22 @@ error_t app_scheduler_start(AppInstanceId app_instance_id, AppLocation location,
 }
 
 error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeout) {
-    // Drain any stale notification credit before registering as the waiter - otherwise a
-    // leftover give from an unrelated earlier wait on this same task (e.g. a previous
-    // app_scheduler_stop() call that timed out and only got notified afterward) could make the
-    // take below return immediately for the wrong event. Mirrors app_event_await()'s same
-    // defensive drain.
-    ulTaskNotifyTake(pdTRUE, 0);
-
-    if (register_stop_waiter(app_instance_id)) {
+    AppCompletionSignal* completion = acquire_completion_signal(app_instance_id);
+    if (completion != nullptr) {
         AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
         app_event_emit(app_instance_id, &event);
 
-        // Blocks until app_task_main() gives this notification as the literal last thing it
-        // does before vTaskDelete() - unlike polling the ledger for the task handle to clear,
-        // this can't observe "stopped" while the task is still mid-exit (still running its own
-        // cleanup/vTaskDelete()).
-        if (ulTaskNotifyTake(pdTRUE, join_timeout) == 0) {
+        // Blocks until app_task_main() gives this dedicated semaphore as the literal last
+        // thing it does before vTaskDelete() - unlike polling the ledger for the task handle to
+        // clear, this can't observe "stopped" while the task is still mid-exit (still running
+        // its own cleanup/vTaskDelete()). A dedicated semaphore rather than this task's default
+        // FreeRTOS notification, since app_event.cpp's AppEventSubscription also uses that
+        // shared slot - an unrelated event (e.g. a different child's APP_EVENT_RESULT)
+        // delivered to this same task could otherwise unblock this early.
+        BaseType_t taken = xSemaphoreTake(completion->semaphore, join_timeout);
+        release_completion_signal(completion);
+
+        if (taken == pdFALSE) {
             LOG_W(TAG, "App instance %u did not stop in time", app_instance_id);
             return ERROR_TIMEOUT;
         }

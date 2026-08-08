@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -42,6 +44,19 @@ TEST_CASE("properties_file_open on a missing file starts out empty, without crea
     CHECK_FALSE(file_exists(TEST_PATH));
 
     properties_file_close(file);
+}
+
+TEST_CASE("properties_file_open returns NULL when a genuine I/O error interrupts reading") {
+    // fopen() on a directory succeeds on Linux, but the first read fails with EISDIR and sets
+    // the stream's error indicator - a deterministic way to exercise load_from_file()'s
+    // ferror() check without needing real storage-hardware fault injection.
+    const char* dir_path = "/tmp/tactility_kernel_properties_file_test_is_a_directory";
+    rmdir(dir_path);
+    REQUIRE_EQ(mkdir(dir_path, 0777), 0);
+
+    CHECK_EQ(properties_file_open(dir_path), nullptr);
+
+    rmdir(dir_path);
 }
 
 TEST_CASE("set/has/get round-trip, and close persists while unclosed changes don't") {
@@ -152,6 +167,63 @@ TEST_CASE("a [section] line prefixes every following key until the next section"
     CHECK_FALSE(properties_file_has(file, "id"));
 
     properties_file_close(file);
+}
+
+TEST_CASE("properties_file_close reports ERROR_NONE on success") {
+    ScratchFile scratch;
+
+    PropertiesFile* file = properties_file_open(TEST_PATH);
+    properties_file_set(file, "key", "value");
+
+    CHECK_EQ(properties_file_close(file), ERROR_NONE);
+}
+
+TEST_CASE("properties_file_close reports ERROR_RESOURCE when the parent directory doesn't exist") {
+    const char* path = "/tmp/tactility_kernel_properties_file_test_missing_dir/settings.properties";
+    std::remove(path); // no-op if the directory doesn't exist, which is the point of this test
+
+    // Missing directory is not an error for open() - it starts out empty, same as a missing
+    // file (see the "starts out empty" test above).
+    PropertiesFile* file = properties_file_open(path);
+    REQUIRE_NE(file, nullptr);
+    properties_file_set(file, "key", "value");
+
+    // close()'s save can't create its temp file in a directory that doesn't exist.
+    CHECK_EQ(properties_file_close(file), ERROR_RESOURCE);
+}
+
+TEST_CASE("a failed close leaves previously-saved content on disk untouched") {
+    const char* dir = "/tmp/tactility_kernel_properties_file_readonly_test";
+    const char* path = "/tmp/tactility_kernel_properties_file_readonly_test/settings.properties";
+
+    mkdir(dir, 0777);
+    chmod(dir, 0777);
+    std::remove(path);
+
+    {
+        PropertiesFile* file = properties_file_open(path);
+        properties_file_set(file, "key", "original");
+        REQUIRE_EQ(properties_file_close(file), ERROR_NONE);
+    }
+
+    // Read-only directory - save_to_file()'s temp file can't be created there, so the close
+    // below must fail without disturbing the "original" content already on disk.
+    REQUIRE_EQ(chmod(dir, 0555), 0);
+
+    PropertiesFile* file = properties_file_open(path);
+    properties_file_set(file, "key", "corrupted");
+    CHECK_EQ(properties_file_close(file), ERROR_RESOURCE);
+
+    chmod(dir, 0777); // restore write access for the check below and for cleanup
+
+    PropertiesFile* reloaded = properties_file_open(path);
+    char buffer[32];
+    CHECK_EQ(properties_file_get(reloaded, "key", buffer, sizeof(buffer)), ERROR_NONE);
+    CHECK_EQ(std::strcmp(buffer, "original"), 0);
+    properties_file_close(reloaded);
+
+    std::remove(path);
+    rmdir(dir);
 }
 
 TEST_CASE("properties_file_for_each visits every key exactly once") {

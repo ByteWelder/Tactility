@@ -3,6 +3,7 @@
 #include <tactility/properties_file.h>
 #include <tactility/paths.h>
 
+#include <cerrno>
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
@@ -57,6 +58,60 @@ bool split_tag(const std::string& tagged_value, std::string& tag, std::string& r
     return true;
 }
 
+// Rejects anything but an exact "0" or "1" - a manually edited or corrupted properties file
+// could otherwise have e.g. "b:garbage" silently read back as false.
+bool parse_bool(const std::string& raw_value, bool& out) {
+    if (raw_value == "0") {
+        out = false;
+        return true;
+    }
+    if (raw_value == "1") {
+        out = true;
+        return true;
+    }
+    return false;
+}
+
+// strtol()'s own error signaling (errno/end pointer) is easy to get wrong by omission: called
+// naively, it silently accepts trailing garbage ("42abc"), out-of-range input (clamped to
+// LONG_MIN/LONG_MAX instead of failing), and - since `long` can be wider than int32_t (e.g. on
+// the posix simulator, where `long` is 64-bit) - a value that overflows int32_t but not `long`
+// would silently truncate on the narrowing cast instead of being rejected.
+bool parse_int32(const std::string& raw_value, int32_t& out) {
+    if (raw_value.empty()) {
+        return false;
+    }
+    errno = 0;
+    char* end = nullptr;
+    long parsed = std::strtol(raw_value.c_str(), &end, 10);
+    if (errno == ERANGE || end != raw_value.c_str() + raw_value.size()) {
+        return false;
+    }
+    if (parsed < INT32_MIN || parsed > INT32_MAX) {
+        return false;
+    }
+    out = static_cast<int32_t>(parsed);
+    return true;
+}
+
+// See parse_int32() - same reasoning, with strtoll()/`long long`/int64_t.
+bool parse_int64(const std::string& raw_value, int64_t& out) {
+    if (raw_value.empty()) {
+        return false;
+    }
+    errno = 0;
+    char* end = nullptr;
+    long long parsed = std::strtoll(raw_value.c_str(), &end, 10);
+    if (errno == ERANGE || end != raw_value.c_str() + raw_value.size()) {
+        return false;
+    }
+    if (parsed < INT64_MIN || parsed > INT64_MAX) {
+        return false;
+    }
+    out = static_cast<int64_t>(parsed);
+    return true;
+}
+
 bool ensure_directory(const std::string& path) {
     struct stat info {};
     if (stat(path.c_str(), &info) == 0) {
@@ -73,6 +128,16 @@ bool ensure_directory_recursive(const std::string& path) {
         }
     }
     return ensure_directory(path);
+}
+
+// "" if @a path has no directory component (e.g. a bare filename) - nothing to create in that
+// case, the current/root directory already exists.
+std::string parent_directory(const std::string& path) {
+    size_t slash = path.find_last_of('/');
+    if (slash == std::string::npos) {
+        return "";
+    }
+    return path.substr(0, slash);
 }
 
 } // namespace
@@ -109,6 +174,11 @@ bool try_get_tagged(const PropertiesFile* file, const char* key, std::string& ta
 extern "C" {
 
 Preferences* preferences_open(const char* path) {
+    std::string directory = parent_directory(path);
+    if (!directory.empty() && !ensure_directory_recursive(directory)) {
+        return nullptr;
+    }
+
     PropertiesFile* file = properties_file_open(path);
     if (file == nullptr) {
         return nullptr;
@@ -129,17 +199,20 @@ void preferences_close(Preferences* preferences) {
 
 bool preferences_has_bool(const Preferences* preferences, const char* key) {
     std::string tag, raw_value;
-    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "b";
+    bool value;
+    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "b" && parse_bool(raw_value, value);
 }
 
 bool preferences_has_int32(const Preferences* preferences, const char* key) {
     std::string tag, raw_value;
-    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "i32";
+    int32_t value;
+    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "i32" && parse_int32(raw_value, value);
 }
 
 bool preferences_has_int64(const Preferences* preferences, const char* key) {
     std::string tag, raw_value;
-    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "i64";
+    int64_t value;
+    return try_get_tagged(preferences->file, key, tag, raw_value) && tag == "i64" && parse_int64(raw_value, value);
 }
 
 bool preferences_has_string(const Preferences* preferences, const char* key) {
@@ -152,8 +225,7 @@ bool preferences_opt_bool(const Preferences* preferences, const char* key, bool*
     if (!try_get_tagged(preferences->file, key, tag, raw_value) || tag != "b") {
         return false;
     }
-    *out_value = (raw_value == "1");
-    return true;
+    return parse_bool(raw_value, *out_value);
 }
 
 bool preferences_opt_int32(const Preferences* preferences, const char* key, int32_t* out_value) {
@@ -161,8 +233,7 @@ bool preferences_opt_int32(const Preferences* preferences, const char* key, int3
     if (!try_get_tagged(preferences->file, key, tag, raw_value) || tag != "i32") {
         return false;
     }
-    *out_value = static_cast<int32_t>(std::strtol(raw_value.c_str(), nullptr, 10));
-    return true;
+    return parse_int32(raw_value, *out_value);
 }
 
 bool preferences_opt_int64(const Preferences* preferences, const char* key, int64_t* out_value) {
@@ -170,8 +241,7 @@ bool preferences_opt_int64(const Preferences* preferences, const char* key, int6
     if (!try_get_tagged(preferences->file, key, tag, raw_value) || tag != "i64") {
         return false;
     }
-    *out_value = static_cast<int64_t>(std::strtoll(raw_value.c_str(), nullptr, 10));
-    return true;
+    return parse_int64(raw_value, *out_value);
 }
 
 error_t preferences_opt_string(const Preferences* preferences, const char* key, char* out_value, size_t out_value_size) {

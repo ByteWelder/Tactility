@@ -257,6 +257,31 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NOT_FOUND);
 }
 
+TEST_CASE("system_event_await returns a matching event that arrived before it started waiting") {
+    SystemEventSubscription sub {};
+    sub.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+
+    // Same-thread emit, no background thread needed: unlike the "detects a change after it
+    // starts waiting" tests above, this is exactly the case system_event_await() must handle -
+    // sequence already moved ahead of consumed_sequence before await() is even called.
+    NetworkConnectedEvent connected { .device = nullptr, .ipv4_addr = 0x0A000001, .gateway = 0x0A0000FE };
+    CHECK_EQ(system_event_emit(KERNEL_EVENT_NETWORK_CONNECTED, &connected, sizeof(connected)), ERROR_NONE);
+
+    CHECK_EQ(system_event_await(&sub, 0), ERROR_NONE);
+
+    NetworkConnectedEvent received {};
+    CHECK_EQ(system_event_get_data(&sub, reinterpret_cast<uint8_t*>(&received), sizeof(received)), ERROR_NONE);
+    CHECK_EQ(received.ipv4_addr, connected.ipv4_addr);
+    CHECK_EQ(received.gateway, connected.gateway);
+
+    // The pending event was consumed by the call above - a second await() with no further
+    // emit must time out rather than returning the same event again.
+    CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
+
+    system_event_unsubscribe(&sub);
+}
+
 TEST_CASE("system_event_await times out when no matching event has arrived") {
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_TIME_CHANGED;
@@ -340,4 +365,75 @@ TEST_CASE("system_event_get_data on a subscription with no payload copies nothin
     CHECK_EQ(buffer[0], 0x42); // untouched - nothing to copy
 
     system_event_unsubscribe(&sub);
+}
+
+// Regression coverage for system_event_unsubscribe() racing a task blocked in
+// system_event_await() on the same subscription, and for reusing a subscription node after
+// unsubscribing it - see the @warning on system_event_unsubscribe() in system_event.h.
+
+TEST_CASE("system_event_unsubscribe wakes a task blocked in system_event_await with ERROR_INVALID_STATE") {
+    SystemEventSubscription sub {};
+    sub.event.type = KERNEL_EVENT_SERVICE_STARTED;
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+
+    auto* thread = thread_alloc_full(
+        "system-event-awaiter",
+        4096,
+        [](void* context) {
+            auto* awaited_sub = static_cast<SystemEventSubscription*>(context);
+            // Long timeout - the point is that unsubscribe() wakes this early, not that it
+            // eventually times out on its own.
+            return static_cast<int32_t>(system_event_await(awaited_sub, pdMS_TO_TICKS(5000)));
+        },
+        &sub,
+        -1
+    );
+    CHECK_EQ(thread_start(thread), ERROR_NONE);
+
+    // Give the awaiter task a moment to actually reach xSemaphoreTake() before unsubscribing -
+    // otherwise this test wouldn't exercise the "already blocked" race at all.
+    delay_millis(20);
+
+    // Must return promptly (nudging the blocked awaiter awake), not by waiting out its timeout.
+    TickType_t before = get_ticks();
+    CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
+    CHECK_LT(get_ticks() - before, pdMS_TO_TICKS(1000));
+
+    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_get_return_code(thread), ERROR_INVALID_STATE);
+    thread_free(thread);
+
+    // A second unsubscribe() has nothing left to do.
+    CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NOT_FOUND);
+}
+
+TEST_CASE("a subscription node can be re-subscribed after system_event_unsubscribe") {
+    SystemEventSubscription sub {};
+    sub.event.type = KERNEL_EVENT_SERVICE_STOPPED;
+
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
+
+    // Re-registering the same node (same storage, not a fresh SystemEventSubscription) must
+    // work as if it were new - a fresh semaphore, and no leftover `cancelled` state from the
+    // unsubscribe() above causing an immediate spurious ERROR_INVALID_STATE below.
+    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+
+    auto* thread = thread_alloc_full(
+        "system-event-emitter",
+        4096,
+        [](void*) {
+            delay_millis(20);
+            system_event_emit(KERNEL_EVENT_SERVICE_STOPPED, nullptr, 0);
+            return 0;
+        },
+        nullptr,
+        -1
+    );
+    CHECK_EQ(thread_start(thread), ERROR_NONE);
+    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    thread_free(thread);
+
+    CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
 }

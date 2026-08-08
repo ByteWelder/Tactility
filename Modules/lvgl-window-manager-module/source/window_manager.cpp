@@ -1,17 +1,40 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl_window_manager/window_manager.h>
 
+#include "../../app-module/include/app/instance.h"
+
 #include <lvgl/lvgl.h>
 
 #include <tactility/check.h>
 #include <tactility/concurrent/mutex.h>
+#include <tactility/freertos/semphr.h>
 
 #include <algorithm>
+#include <new>
 #include <vector>
 
 constexpr auto* TAG = "window_manager";
 
 namespace {
+
+/**
+ * A dedicated (not the waiting task's shared default FreeRTOS notification, which other
+ * subsystems - e.g. app_event.cpp's AppEventSubscription - also use; an unrelated notification
+ * delivered to the same task could otherwise unblock a wait early) completion signal for one
+ * window_manager_await_state_change() call. Heap-allocated with its own refcount (protected by
+ * WindowManagerState::mutex, not atomic) rather than owned solely by the WindowRecord, since
+ * window_manager_create()/remove() claim (read + clear) a window's signal under the lock but
+ * give it after releasing that lock - refcounting lets whichever side (the waiting task waking
+ * up, or the claimer after it gives) finishes last safely delete it.
+ */
+struct WindowWaitSignal {
+    SemaphoreHandle_t semaphore;
+    /** Starts at 1, owned by window_manager_await_state_change() until it's done waiting.
+     * Whoever claims this signal from a WindowRecord (see claim_waiter_locked()) takes an
+     * additional reference for as long as it takes to give the semaphore. Reaching 0 means
+     * deletion. */
+    int refcount = 1;
+};
 
 struct WindowRecord {
     WindowId id;
@@ -19,24 +42,25 @@ struct WindowRecord {
     WindowCreateWidgetsFn create_widgets;
     void* user_data;
 
-    /** Task blocked in window_manager_await_state_change() for this specific window, if any -
-     * see that function's @warning on at most one concurrent awaiter per window. Per-window
-     * rather than a single manager-wide slot, since a stacked window manager serving several
-     * app tasks can have more than one window (though only ever one of them topmost/GRANTED at
-     * a time) with a live await() call outstanding. */
-    TaskHandle_t waiting_task = nullptr;
+    /** Set by window_manager_await_state_change() for this specific window, if a task is
+     * currently blocked there - see that function's @warning on at most one concurrent awaiter
+     * per window. Per-window rather than a single manager-wide slot, since a stacked window
+     * manager serving several app tasks can have more than one window (though only ever one of
+     * them topmost/GRANTED at a time) with a live await() call outstanding. */
+    WindowWaitSignal* waiting_signal = nullptr;
 };
 
 struct WindowManagerState {
     /** Mutex for read/write operations. Shortly held. */
     Mutex mutex {};
 
-    /** Serializes the full start()/stop() transition (including the LVGL work done with
-     * `mutex` released) so two concurrent starts can't both pass the `started` check and each
-     * create their own root widget, and a concurrent stop can't run while a start is still
-     * mid-flight. Never held across a create_widgets()/screen_init() callback - those only
-     * reach window_manager_create()/remove(), not start()/stop() - so there's no lock-order
-     * risk with `mutex` or the LVGL lock. */
+    /** Serializes the full start()/stop()/create()/remove() transitions against each other,
+     * including the LVGL work done with `mutex` released (and any create_widgets()/
+     * screen_init() callback invoked as part of that work). Without this, e.g.
+     * window_manager_stop() could delete real_root_widget/content_root_widget/top_widget
+     * between a concurrent create()/remove() capturing one of those pointers under `mutex` and
+     * actually using it via build_window_widget()/delete_widget() after releasing `mutex` -
+     * touching an LVGL object it no longer holds a valid reference to. */
     Mutex lifecycle_mutex {};
 
     bool started = false;
@@ -89,6 +113,38 @@ void delete_widget(lv_obj_t* widget) {
     lvgl_lock();
     lv_obj_delete(widget);
     lvgl_unlock();
+}
+
+// Call while holding WindowManagerState::mutex. Transfers ownership of `window`'s waiting
+// signal (if any) to the caller, taking an additional reference on the caller's behalf - the
+// caller must eventually pass the result to give_and_release() exactly once, outside the lock.
+WindowWaitSignal* claim_waiter_locked(WindowRecord& window) {
+    WindowWaitSignal* signal = window.waiting_signal;
+    window.waiting_signal = nullptr;
+    if (signal != nullptr) {
+        signal->refcount++;
+    }
+    return signal;
+}
+
+// Gives `signal`'s semaphore (waking window_manager_await_state_change() if it's still
+// waiting) and releases the caller's reference (see claim_waiter_locked()), deleting the
+// signal if that was the last one. No-op if `signal` is NULL.
+void give_and_release(WindowWaitSignal* signal) {
+    if (signal == nullptr) {
+        return;
+    }
+
+    xSemaphoreGive(signal->semaphore);
+
+    auto& s = state();
+    mutex_lock(&s.mutex);
+    bool should_delete = (--signal->refcount == 0);
+    mutex_unlock(&s.mutex);
+    if (should_delete) {
+        vSemaphoreDelete(signal->semaphore);
+        delete signal;
+    }
 }
 
 } // namespace
@@ -178,12 +234,12 @@ error_t window_manager_stop(void) {
         return ERROR_NONE;
     }
     lv_obj_t* widget = s.real_root_widget;
-    // Collect every window's waiter before clearing - normally at most the topmost window's is
+    // Claim every window's waiter before clearing - normally at most the topmost window's is
     // ever set, but every window is being torn down here, so every one is checked.
-    std::vector<TaskHandle_t> waiters;
-    for (const auto& window : s.windows) {
-        if (window.waiting_task != nullptr) {
-            waiters.push_back(window.waiting_task);
+    std::vector<WindowWaitSignal*> waiters;
+    for (auto& window : s.windows) {
+        if (auto* signal = claim_waiter_locked(window); signal != nullptr) {
+            waiters.push_back(signal);
         }
     }
     s.real_root_widget = nullptr;
@@ -193,8 +249,8 @@ error_t window_manager_stop(void) {
     s.started = false;
     mutex_unlock(&s.mutex);
 
-    for (TaskHandle_t waiter : waiters) {
-        xTaskNotifyGive(waiter);
+    for (WindowWaitSignal* waiter : waiters) {
+        give_and_release(waiter);
     }
 
     // Deleting the real widget cascades to everything under it - chrome and top_widget alike.
@@ -204,31 +260,35 @@ error_t window_manager_stop(void) {
     return ERROR_NONE;
 }
 
-WindowId window_manager_create(uint32_t app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data) {
+WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data) {
+    if (app_instance_id == 0) {
+        return 0;
+    }
+
     auto& s = state();
+
+    // See lifecycle_mutex's comment - blocks a concurrent window_manager_stop() (or another
+    // create()/remove()) from touching real_root_widget/content_root_widget/top_widget while
+    // this call still holds pointers to them.
+    mutex_lock(&s.lifecycle_mutex);
 
     mutex_lock(&s.mutex);
     if (!s.started) {
         mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
         return 0;
     }
     lv_obj_t* content = s.content_root_widget;
     lv_obj_t* old_top_widget = s.top_widget;
-    // The current topmost window (if any) is about to be superseded - transfer its waiter (if
+    // The current topmost window (if any) is about to be superseded - claim its waiter (if
     // any) here so it gets notified below, since it's no longer topmost after this.
-    TaskHandle_t waiter = nullptr;
-    if (!s.windows.empty()) {
-        waiter = s.windows.back().waiting_task;
-        s.windows.back().waiting_task = nullptr;
-    }
+    WindowWaitSignal* waiter = !s.windows.empty() ? claim_waiter_locked(s.windows.back()) : nullptr;
     s.top_widget = nullptr;
     WindowId new_id = s.next_id++;
     s.windows.push_back(WindowRecord { new_id, app_instance_id, create_widgets, user_data });
     mutex_unlock(&s.mutex);
 
-    if (waiter != nullptr) {
-        xTaskNotifyGive(waiter);
-    }
+    give_and_release(waiter);
 
     delete_widget(old_top_widget);
     lv_obj_t* new_widget = build_window_widget(content, create_widgets, user_data);
@@ -245,25 +305,32 @@ WindowId window_manager_create(uint32_t app_instance_id, WindowCreateWidgetsFn c
     // another app thread) - discard what we just made.
     delete_widget(new_widget);
 
+    mutex_unlock(&s.lifecycle_mutex);
     return new_id;
 }
 
 void window_manager_remove(WindowId id) {
     auto& s = state();
 
+    // See lifecycle_mutex's comment - blocks a concurrent window_manager_stop() (or another
+    // create()/remove()) from touching real_root_widget/content_root_widget/top_widget while
+    // this call still holds pointers to them.
+    mutex_lock(&s.lifecycle_mutex);
+
     mutex_lock(&s.mutex);
     auto iterator = std::find_if(s.windows.begin(), s.windows.end(),
         [id](const WindowRecord& window) { return window.id == id; });
     if (iterator == s.windows.end()) {
         mutex_unlock(&s.mutex);
+        mutex_unlock(&s.lifecycle_mutex);
         return;
     }
     bool was_topmost = (iterator + 1 == s.windows.end());
     // The window being removed owns its own waiter (if any) - a waiter is only ever registered
     // while its window is topmost (see window_manager_await_state_change()), and if this window
     // later stopped being topmost without being removed, window_manager_create() would already
-    // have transferred/cleared it - so a buried window's waiting_task is always already null.
-    TaskHandle_t waiter = iterator->waiting_task;
+    // have claimed/cleared it - so a buried window's waiting_signal is always already null.
+    WindowWaitSignal* waiter = claim_waiter_locked(*iterator);
     s.windows.erase(iterator);
 
     lv_obj_t* content = s.content_root_widget;
@@ -285,12 +352,11 @@ void window_manager_remove(WindowId id) {
     }
     mutex_unlock(&s.mutex);
 
-    if (waiter != nullptr) {
-        xTaskNotifyGive(waiter);
-    }
+    give_and_release(waiter);
 
     if (!was_topmost) {
         // A buried window was removed - the topmost window's widgets are unaffected.
+        mutex_unlock(&s.lifecycle_mutex);
         return;
     }
 
@@ -306,6 +372,8 @@ void window_manager_remove(WindowId id) {
     mutex_unlock(&s.mutex);
 
     delete_widget(new_widget);
+
+    mutex_unlock(&s.lifecycle_mutex);
 }
 
 WindowState window_manager_get_state(WindowId id) {
@@ -319,36 +387,51 @@ WindowState window_manager_get_state(WindowId id) {
 WindowState window_manager_await_state_change(WindowId id, TickType_t timeout) {
     auto& s = state();
 
+    // Dedicated semaphore rather than this task's default FreeRTOS notification - other
+    // subsystems (e.g. app_event.cpp's AppEventSubscription) use that same shared slot, so an
+    // unrelated notification delivered to this task could otherwise wake this wait early.
+    auto* signal = new (std::nothrow) WindowWaitSignal();
+    if (signal == nullptr) {
+        return window_manager_get_state(id);
+    }
+    signal->semaphore = xSemaphoreCreateBinary();
+    if (signal->semaphore == nullptr) {
+        delete signal;
+        return window_manager_get_state(id);
+    }
+
     mutex_lock(&s.mutex);
     bool is_top = !s.windows.empty() && s.windows.back().id == id;
     if (!is_top) {
         mutex_unlock(&s.mutex);
+        vSemaphoreDelete(signal->semaphore);
+        delete signal;
         return WINDOW_STATE_REVOKED;
     }
     // At most one concurrent awaiter per window - see the @warning on this function.
-    check(s.windows.back().waiting_task == nullptr);
-    s.windows.back().waiting_task = xTaskGetCurrentTaskHandle();
+    check(s.windows.back().waiting_signal == nullptr);
+    s.windows.back().waiting_signal = signal;
     mutex_unlock(&s.mutex);
 
-    ulTaskNotifyTake(pdTRUE, timeout);
+    xSemaphoreTake(signal->semaphore, timeout);
 
-    /* Deregister ourselves if a create()/remove() hasn't already claimed us (the ordinary, intended wakeup)
-     * Otherwise a later create()/remove() could notify a task that's no longer waiting here:
-     * a use-after-exit on the handle if this task is gone, or a stale wakeup the next time it waits.
-     * Re-locate the record by id - it may have been erased (window_manager_remove()) while we waited. */
+    // Deregister ourselves if a create()/remove() hasn't already claimed us (the ordinary,
+    // intended wakeup) - otherwise a later create()/remove() could read a signal that's already
+    // been given away here. Re-locate the record by id - it may have been erased
+    // (window_manager_remove()) while we waited. Either way, release our own reference:
+    // whichever side (us or a claimer) does this last is the one that actually deletes it.
     mutex_lock(&s.mutex);
     auto iterator = std::find_if(s.windows.begin(), s.windows.end(),
         [id](const WindowRecord& window) { return window.id == id; });
-    if (iterator != s.windows.end() && iterator->waiting_task == xTaskGetCurrentTaskHandle()) {
-        iterator->waiting_task = nullptr;
+    if (iterator != s.windows.end() && iterator->waiting_signal == signal) {
+        iterator->waiting_signal = nullptr;
     }
+    bool should_delete = (--signal->refcount == 0);
     mutex_unlock(&s.mutex);
-
-    /* create()/remove() read+clear `waiting_task` under the lock but call xTaskNotifyGive()
-     * after releasing it, so a notification can still land on us right around the timeout
-     * boundary regardless of which branch above ran. Drain it now (non-blocking) so it doesn't
-     * linger and cause a spurious immediate return the next time this task awaits. */
-    ulTaskNotifyTake(pdTRUE, 0);
+    if (should_delete) {
+        vSemaphoreDelete(signal->semaphore);
+        delete signal;
+    }
 
     return window_manager_get_state(id);
 }

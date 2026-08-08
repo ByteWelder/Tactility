@@ -259,8 +259,16 @@ void app_manager_install_path_scan(void) {
         app_fs_list_direct_subdirectories(root, found_app_dirs);
     }
 
+    // Snapshot of what's already registered, taken once so the rest of this scan can run without holding registry.mutex
     mutex_lock(&registry.mutex);
+    std::unordered_map<std::string, std::string> known_paths; // id -> path
+    for (const auto& [id, record] : registry.scanned) {
+        known_paths.emplace(id, record->path);
+    }
+    mutex_unlock(&registry.mutex);
 
+    // Stat each manifest and parse it entirely without registry.mutex held (due to filesystem IO being slow)
+    std::vector<std::unique_ptr<ScannedAppManifest>> new_records;
     for (const auto& app_dir : found_app_dirs) {
         auto manifest_path = app_dir + "/manifest.properties";
         if (!app_fs_is_file(manifest_path)) {
@@ -273,7 +281,7 @@ void app_manager_install_path_scan(void) {
             continue;
         }
 
-        if (registry.scanned.contains(metadata.app_id)) {
+        if (known_paths.contains(metadata.app_id)) {
             continue; // already registered by an earlier scan
         }
 
@@ -288,29 +296,41 @@ void app_manager_install_path_scan(void) {
             .location = { APP_LOCATION_PATH, const_cast<char*>(record->path.c_str()) },
             .flags = 0,
         };
-
-        if (app_manager_add(&record->manifest) != ERROR_NONE) {
-            LOG_E(TAG, "Failed to register app %s (duplicate id?)", record->id.c_str());
-            continue;
-        }
-
-        registry.scanned[record->id] = std::move(record);
+        new_records.push_back(std::move(record));
     }
 
-    // Anything a previous scan registered whose directory has since disappeared (e.g. an SD
-    // card was removed) just gets unregistered - no file deletion, no touching running
-    // instances, that's app_install()/app_uninstall()'s job, not scanning's.
+    // Anything a previous scan registered whose directory has since disappeared  gets unregistered below.
     std::vector<std::string> missing_ids;
-    for (const auto& [id, record] : registry.scanned) {
-        if (!app_fs_is_directory(record->path)) {
+    for (const auto& [id, path] : known_paths) {
+        if (!app_fs_is_directory(path)) {
             missing_ids.push_back(id);
         }
     }
+
+    // app_manager_add()/app_manager_remove() take app-module's own ledger mutex internally -
+    // calling them while holding registry.mutex would establish a registry.mutex -> ledger-
+    // mutex lock order that any future opposite-order path would deadlock against, so these
+    // also run with registry.mutex released. registry.mutex is taken only afterward, briefly,
+    // to publish the results (plain in-memory map updates, no I/O or other locks involved).
     for (const auto& id : missing_ids) {
         app_manager_remove(id.c_str());
-        registry.scanned.erase(id);
+    }
+    std::vector<std::unique_ptr<ScannedAppManifest>> added_records;
+    for (auto& record : new_records) {
+        if (app_manager_add(&record->manifest) == ERROR_NONE) {
+            added_records.push_back(std::move(record));
+        } else {
+            LOG_E(TAG, "Failed to register app %s (duplicate id?)", record->id.c_str());
+        }
     }
 
+    mutex_lock(&registry.mutex);
+    for (const auto& id : missing_ids) {
+        registry.scanned.erase(id);
+    }
+    for (auto& record : added_records) {
+        registry.scanned[record->id] = std::move(record);
+    }
     mutex_unlock(&registry.mutex);
 }
 

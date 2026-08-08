@@ -6,11 +6,31 @@
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/freertos/freertos.h>
+#include <tactility/freertos/semphr.h>
 #include <tactility/freertos/task.h>
 
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
+
+/**
+ * A dedicated (not the task's shared default FreeRTOS notification, which app_event.cpp's
+ * AppEventSubscription also uses - an unrelated event delivered to the same task could
+ * otherwise unblock a waiter early) completion signal for one app instance's task, given as the
+ * literal last action app_task_main() takes before vTaskDelete(). Heap-allocated with its own
+ * refcount (protected by app_ledger().mutex, not atomic) rather than owned by the ledger
+ * entry, since app_task_main() always erases that entry - and may run its exit path entirely -
+ * before app_scheduler_stop() ever looks for it: whichever side (the exiting task, or a
+ * concurrent app_scheduler_stop() that found the entry in time and is waiting on `semaphore`)
+ * finishes with it last is the one that deletes `semaphore` and frees this struct.
+ */
+struct AppCompletionSignal {
+    SemaphoreHandle_t semaphore;
+    /** Starts at 1, owned by app_task_main() until its own exit. app_scheduler_stop() takes an
+     * additional reference for as long as it's waiting on `semaphore`, if it finds the instance
+     * still running. Reaching 0 means deletion. */
+    int refcount = 1;
+};
 
 /** A registered/running app instance, as tracked internally by app-module. */
 struct AppInstanceRecord {
@@ -25,11 +45,9 @@ struct AppInstanceRecord {
      * app_manager_start_for_result() - the instance that receives this child's APP_EVENT_RESULT. */
     uint32_t parent_id = 0;
 
-    /** The task currently blocked in app_scheduler_stop() for this instance, if any - notified
-     * (via xTaskNotifyGive()) as the literal last action app_task_main() takes before
-     * vTaskDelete(), so app_scheduler_stop() can't observe completion before the task has
-     * actually finished running. See app_scheduler.cpp. */
-    TaskHandle_t stop_waiter = nullptr;
+    /** This instance's completion signal - see AppCompletionSignal. Set once by
+     * app_scheduler_start(), never reassigned. */
+    AppCompletionSignal* completion = nullptr;
 };
 
 struct AppLedger {

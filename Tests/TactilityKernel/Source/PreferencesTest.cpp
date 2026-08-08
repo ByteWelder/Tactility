@@ -3,6 +3,8 @@
 
 #include <cstdio>
 #include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
 
 namespace {
 
@@ -20,6 +22,19 @@ bool file_exists(const char* path) {
     }
     std::fclose(file);
     return true;
+}
+
+bool is_directory(const char* path) {
+    struct stat info {};
+    return stat(path, &info) == 0 && (info.st_mode & S_IFMT) == S_IFDIR;
+}
+
+// Writes a raw properties file directly (bypassing preferences_put_*()) so a test can exercise
+// a hand-crafted/corrupted payload that preferences_put_*() itself would never produce.
+void write_raw(const char* path, const char* content) {
+    FILE* file = std::fopen(path, "w");
+    std::fputs(content, file);
+    std::fclose(file);
 }
 
 } // namespace
@@ -98,6 +113,47 @@ TEST_CASE("has_*/opt_* reject a key stored with a different type") {
     preferences_close(preferences);
 }
 
+TEST_CASE("has_*/opt_* reject malformed scalar payloads instead of misparsing them") {
+    ScratchFile scratch;
+    write_raw(TEST_PATH,
+        "bad_bool=b:garbage\n"
+        "bad_bool_2=b:2\n"
+        "trailing_junk=i32:42abc\n"
+        "int32_overflow=i32:5000000000\n"
+        "int64_overflow=i64:99999999999999999999\n"
+        "empty_int=i32:\n");
+
+    Preferences* preferences = preferences_open(TEST_PATH);
+
+    // "b:garbage" must not silently read back as false - has_bool()/opt_bool() must agree it's
+    // not a valid bool at all.
+    CHECK_FALSE(preferences_has_bool(preferences, "bad_bool"));
+    bool bool_out = true;
+    CHECK_FALSE(preferences_opt_bool(preferences, "bad_bool", &bool_out));
+    CHECK_FALSE(preferences_has_bool(preferences, "bad_bool_2"));
+    CHECK_FALSE(preferences_opt_bool(preferences, "bad_bool_2", &bool_out));
+
+    // "42abc" must not silently parse as 42 - the full payload must be consumed.
+    CHECK_FALSE(preferences_has_int32(preferences, "trailing_junk"));
+    int32_t int32_out = 0;
+    CHECK_FALSE(preferences_opt_int32(preferences, "trailing_junk", &int32_out));
+
+    // Fits in a (64-bit, on this platform) `long` but overflows int32_t - must not silently
+    // truncate on the narrowing cast.
+    CHECK_FALSE(preferences_has_int32(preferences, "int32_overflow"));
+    CHECK_FALSE(preferences_opt_int32(preferences, "int32_overflow", &int32_out));
+
+    // Overflows even a 64-bit integer - strtoll() itself reports ERANGE.
+    CHECK_FALSE(preferences_has_int64(preferences, "int64_overflow"));
+    int64_t int64_out = 0;
+    CHECK_FALSE(preferences_opt_int64(preferences, "int64_overflow", &int64_out));
+
+    CHECK_FALSE(preferences_has_int32(preferences, "empty_int"));
+    CHECK_FALSE(preferences_opt_int32(preferences, "empty_int", &int32_out));
+
+    preferences_close(preferences);
+}
+
 TEST_CASE("a string value with embedded newlines and backslashes survives a reopen") {
     ScratchFile scratch;
 
@@ -150,4 +206,38 @@ TEST_CASE("put_* on an already-closed value is visible without reopening") {
     CHECK(preferences_opt_int32(final_instance, "count", &out));
     CHECK_EQ(out, 2);
     preferences_close(final_instance);
+}
+
+TEST_CASE("preferences_open creates missing parent directories (recursively) and persists into them") {
+    const char* nested_dir_a = "/tmp/tactility_kernel_preferences_test_nested";
+    const char* nested_dir_b = "/tmp/tactility_kernel_preferences_test_nested/a";
+    const char* nested_dir_c = "/tmp/tactility_kernel_preferences_test_nested/a/b";
+    const char* nested_path = "/tmp/tactility_kernel_preferences_test_nested/a/b/settings.properties";
+
+    std::remove(nested_path);
+    rmdir(nested_dir_c);
+    rmdir(nested_dir_b);
+    rmdir(nested_dir_a);
+    REQUIRE_FALSE(is_directory(nested_dir_a));
+
+    Preferences* preferences = preferences_open(nested_path);
+    REQUIRE_NE(preferences, nullptr);
+    CHECK(is_directory(nested_dir_a));
+    CHECK(is_directory(nested_dir_b));
+    CHECK(is_directory(nested_dir_c));
+
+    preferences_put_int32(preferences, "count", 7);
+    preferences_close(preferences);
+    CHECK(file_exists(nested_path));
+
+    Preferences* reopened = preferences_open(nested_path);
+    int32_t out = 0;
+    CHECK(preferences_opt_int32(reopened, "count", &out));
+    CHECK_EQ(out, 7);
+    preferences_close(reopened);
+
+    std::remove(nested_path);
+    rmdir(nested_dir_c);
+    rmdir(nested_dir_b);
+    rmdir(nested_dir_a);
 }

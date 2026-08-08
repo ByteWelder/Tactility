@@ -48,7 +48,10 @@ namespace {
 // close(). Mirrors Tactility's loadPropertiesFile(): "#"-prefixed and blank lines are skipped;
 // a "[section]" line becomes a literal prefix (verbatim, brackets included) prepended to every
 // subsequent key, until the next "[section]" line replaces it.
-void load_from_file(PropertiesFile* file) {
+// @return false if the file exists but a genuine I/O error interrupted reading it (fgetc()'s
+// EOF return doesn't by itself distinguish clean end-of-file from a read error - ferror() after
+// the loop does); true otherwise, including for a missing file.
+bool load_from_file(PropertiesFile* file) {
     FileMutex mutex {};
     file_mutex_get(&mutex, file->path.c_str());
     file_mutex_lock(&mutex);
@@ -56,7 +59,7 @@ void load_from_file(PropertiesFile* file) {
     FILE* handle = std::fopen(file->path.c_str(), "r");
     if (handle == nullptr) {
         file_mutex_unlock(&mutex);
-        return;
+        return true;
     }
 
     std::string key_prefix;
@@ -94,28 +97,62 @@ void load_from_file(PropertiesFile* file) {
     }
     flush_line();
 
+    bool read_ok = std::ferror(handle) == 0;
     std::fclose(handle);
     file_mutex_unlock(&mutex);
+
+    if (!read_ok) {
+        LOG_E(TAG, "Failed to read %s", file->path.c_str());
+    }
+    return read_ok;
 }
 
-void save_to_file(const PropertiesFile* file) {
+// Writes to a temporary file in the same directory, then atomically replaces the real path -
+// opening the real path directly with "w" would truncate it immediately, so any failure
+// partway through (full filesystem, I/O error, a reset before close) would discard the
+// previously-good content instead of leaving it intact. Same directory so rename() stays on one
+// filesystem, which is what makes it atomic.
+// @return true if the backing file was fully replaced with the current entries; false (leaving
+// the previous on-disk content untouched) if any step failed.
+bool save_to_file(const PropertiesFile* file) {
     FileMutex mutex {};
     file_mutex_get(&mutex, file->path.c_str());
     file_mutex_lock(&mutex);
 
-    FILE* handle = std::fopen(file->path.c_str(), "w");
+    std::string temp_path = file->path + ".tmp";
+
+    FILE* handle = std::fopen(temp_path.c_str(), "w");
     if (handle == nullptr) {
-        LOG_E(TAG, "Failed to open %s", file->path.c_str());
+        LOG_E(TAG, "Failed to open %s", temp_path.c_str());
         file_mutex_unlock(&mutex);
-        return;
+        return false;
     }
 
     for (const auto& [key, value] : file->entries) {
         std::fprintf(handle, "%s=%s\n", key.c_str(), value.c_str());
     }
 
-    std::fclose(handle);
+    // Order matters: ferror()/fflush() need the still-open handle, fclose() consumes it.
+    bool write_ok = std::ferror(handle) == 0;
+    bool flush_ok = std::fflush(handle) == 0;
+    bool close_ok = std::fclose(handle) == 0;
+
+    if (!write_ok || !flush_ok || !close_ok) {
+        LOG_E(TAG, "Failed to write %s", temp_path.c_str());
+        std::remove(temp_path.c_str());
+        file_mutex_unlock(&mutex);
+        return false;
+    }
+
+    if (std::rename(temp_path.c_str(), file->path.c_str()) != 0) {
+        LOG_E(TAG, "Failed to replace %s", file->path.c_str());
+        std::remove(temp_path.c_str());
+        file_mutex_unlock(&mutex);
+        return false;
+    }
+
     file_mutex_unlock(&mutex);
+    return true;
 }
 
 } // namespace
@@ -128,13 +165,17 @@ PropertiesFile* properties_file_open(const char* path) {
         return nullptr;
     }
     file->path = path;
-    load_from_file(file);
+    if (!load_from_file(file)) {
+        delete file;
+        return nullptr;
+    }
     return file;
 }
 
-void properties_file_close(PropertiesFile* file) {
-    save_to_file(file);
+error_t properties_file_close(PropertiesFile* file) {
+    bool saved = save_to_file(file);
     delete file;
+    return saved ? ERROR_NONE : ERROR_RESOURCE;
 }
 
 bool properties_file_has(const PropertiesFile* file, const char* key) {

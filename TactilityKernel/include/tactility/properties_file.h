@@ -26,13 +26,22 @@ typedef struct PropertiesFile PropertiesFile;
  * made with properties_file_set() are only written back to disk by properties_file_close().
  * @param[in] path absolute or relative file path (e.g. "/data/settings.properties") - the
  * parent directory must already exist
- * @return the new instance, or NULL on allocation failure
+ * @return the new instance, or NULL on allocation failure, or NULL if @a path exists but a
+ * genuine I/O error interrupted reading it (a missing file is not an error - the instance
+ * starts out empty in that case)
  */
 PropertiesFile* properties_file_open(const char* path);
 
-/** Writes any pending properties_file_set() changes to the backing file, then releases the
- * instance. */
-void properties_file_close(PropertiesFile* file);
+/**
+ * Writes any pending properties_file_set() changes to the backing file (atomically - via a
+ * temporary file in the same directory, renamed over the real path - so a write failure leaves
+ * the previous on-disk content untouched rather than a truncated/partial file), then releases
+ * the instance either way.
+ * @retval ERROR_NONE the backing file was fully updated
+ * @retval ERROR_RESOURCE writing failed (full filesystem, I/O error, ...) - the previous
+ * on-disk content, if any, is unchanged; the in-memory changes are lost along with the instance
+ */
+error_t properties_file_close(PropertiesFile* file);
 
 bool properties_file_has(const PropertiesFile* file, const char* key);
 

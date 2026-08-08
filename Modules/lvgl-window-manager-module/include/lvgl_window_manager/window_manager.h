@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "../../../app-module/include/app/instance.h"
+
+
 #include <lvgl.h>
 
 #include <tactility/error.h>
@@ -80,12 +83,13 @@ typedef void (*WindowCreateWidgetsFn)(lv_obj_t* root, void* user_data);
  * Creates a new window on top of the stack (last created = topmost). Deletes the previously
  * topmost window's widgets (if any) and builds this window's widgets immediately via
  * @a create_widgets - only the topmost window ever has live widgets.
+ * @param[in] app_instance_id the application instance this window belongs to, should not be 0
  * @param[in] user_data opaque; passed back to @a create_widgets on every call, including a
  * later rebuild triggered by window_manager_remove() - see its @warning about which thread that
  * can run on. Typically the calling app's own Context*.
  * @return the new window's id, or 0 if window_manager_start() hasn't been called
  */
-WindowId window_manager_create(uint32_t app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data);
+WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data);
 
 /**
  * Removes a window, wherever it is in the stack - not necessarily the topmost one. If it was

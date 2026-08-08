@@ -21,12 +21,13 @@ extern "C" {
 typedef struct Preferences Preferences;
 
 /**
- * Open (or create) a preferences store backed by the properties file at @a path. The file is
+ * Open (or create) a preferences store backed by the properties file at @a path. The parent
+ * directory is created (recursively, like mkdir -p) if it doesn't already exist. The file is
  * read into memory now; changes made with preferences_put_*() are only written back to disk by
  * preferences_close().
- * @param[in] path absolute or relative file path (e.g. "/data/settings.properties") - the
- * parent directory must already exist
- * @return the new instance, or NULL on allocation failure
+ * @param[in] path absolute or relative file path (e.g. "/data/settings.properties")
+ * @return the new instance, or NULL if the parent directory couldn't be created, or on
+ * allocation failure
  */
 Preferences* preferences_open(const char* path);
 

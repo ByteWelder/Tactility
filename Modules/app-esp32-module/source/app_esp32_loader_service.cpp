@@ -151,7 +151,7 @@ void destroy_service(const ServiceManifest*, void*) {
 
 } // namespace
 
-extern ServiceManifest loader_service_manifest = {
+ServiceManifest loader_service_manifest = {
     .id = APP_LOADER_PATH_SERVICE_ID,
     .create_service = create_service,
     .destroy_service = destroy_service,
