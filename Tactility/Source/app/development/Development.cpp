@@ -175,19 +175,25 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
         return 0;
     }
 
-    ctx.timer = std::make_unique<Timer>(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [&ctx] {
-        if (lvgl_is_running()) {
-            lvgl_lock();
-            updateViewState(&ctx);
-            lvgl_unlock();
-        }
-    });
-
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+
+    ctx.timer = std::make_unique<Timer>(Timer::Type::Periodic, pdMS_TO_TICKS(1000), [&ctx, window] {
+        if (lvgl_is_running()) {
+            lvgl_lock();
+            // Widgets only exist while this window is topmost - skip otherwise. Another app
+            // (started non-modally, e.g. via app_manager_start()) can bury this window without
+            // stopping this instance or notifying it; window_manager deletes a buried window's
+            // widgets, so touching ctx->statusLabel here would use-after-free it.
+            if (window_manager_get_state(window) == WINDOW_STATE_GRANTED) {
+                updateViewState(&ctx);
+            }
+            lvgl_unlock();
+        }
+    });
     ctx.timer->start();
 
     bool shouldClose = false;
