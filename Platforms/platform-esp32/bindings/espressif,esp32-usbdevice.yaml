@@ -1,0 +1,9 @@
+description: ESP32 USB device-mode (peripheral) controller. Owns the single TinyUSB device-mode slot shared by its child classes (HID, MSC, ...); only one child class may be active at a time.
+
+compatible: "espressif,esp32-usbdevice"
+
+properties:
+  _unused:
+    type: int
+    default: 0
+    description: Placeholder required by the binding schema; this driver has no device-tree configuration.

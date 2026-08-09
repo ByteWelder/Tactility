@@ -341,11 +341,30 @@ def write_touch_calibration_variables(output_file, device_properties: dict):
 
 
 def write_usb_variables(output_file, device_properties: dict):
-    has_tiny_usb = get_boolean_property_or_false(device_properties, "hardware.tinyUsb")
-    if has_tiny_usb:
+    has_tiny_usb_msc = get_boolean_property_or_false(device_properties, "hardware.tinyUsbMsc")
+    has_tiny_usb_hid = get_boolean_property_or_false(device_properties, "hardware.tinyUsbHid")
+    has_tiny_usb_midi = get_boolean_property_or_false(device_properties, "hardware.tinyUsbMidi")
+    if has_tiny_usb_msc or has_tiny_usb_hid or has_tiny_usb_midi:
         output_file.write("# TinyUSB\n")
-        output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
-        output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
+        if has_tiny_usb_msc:
+            output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
+            output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
+        if has_tiny_usb_hid:
+            # TinyUSB HID is gated by an interface count, not a plain enable flag - 1 interface
+            # is enough for the boot-protocol keyboard the USB HID device driver installs.
+            output_file.write("CONFIG_TINYUSB_HID_COUNT=1\n")
+            # CDC ACM composited alongside HID (see esp32_usb_hid_device.cpp's
+            # hid_cdc_tusb_cfg) so a serial console stays reachable while HID device mode is
+            # active - on boards where the same physical USB-C port carries both the
+            # programming/monitor UART bridge and the native OTG device-mode peripheral,
+            # claiming HID otherwise makes the whole port disappear from the host's view.
+            output_file.write("CONFIG_TINYUSB_CDC_ENABLED=y\n")
+        if has_tiny_usb_midi:
+            # Same "count > 0 enables it" shape as HID. MIDI is its own claim()-able
+            # USB_DEVICE_CLASS_MIDI (mutually exclusive with HID/MSC at runtime, like MSC
+            # already is) rather than composited into the HID descriptor - a board acting as a
+            # MIDI controller has no reason to also be a keyboard, and vice versa.
+            output_file.write("CONFIG_TINYUSB_MIDI_COUNT=1\n")
         idf_target = get_property_or_exit(device_properties, "hardware.target").lower()
         if idf_target == "esp32p4":
             # P4 has two USB-DWC controllers (HS/UTMI and FS/FSLS). esp_tinyusb defaults to

@@ -1,0 +1,576 @@
+#include <sdkconfig.h>
+#if CONFIG_SOC_USB_OTG_SUPPORTED && CONFIG_TINYUSB_HID_COUNT
+
+#include <tactility/device.h>
+#include <tactility/driver.h>
+#include <tactility/drivers/esp32_usbdevice.h>
+#include <tactility/drivers/usb_device_controller.h>
+#include <tactility/drivers/usb_hid_device.h>
+#include <tactility/log.h>
+
+#include <tinyusb.h>
+#include <tusb.h>
+
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+#include <cstring>
+
+#if CONFIG_TINYUSB_CDC_ENABLED
+#include <tusb_cdc_acm.h>
+#include <esp_log.h>
+#include <cstdarg>
+#include <cstdio>
+#endif
+
+#define TAG "esp32_usb_hid_device"
+#define GET_CONFIG(device) ((const Esp32UsbDeviceChildConfig*)(device)->config)
+
+// ---- HID Report Maps ----
+// Byte-identical to esp32_ble_hid.cpp's hid_rpt_map_* tables - HID report descriptors are
+// transport-independent (same USB HID Usage Tables spec applies to both USB and BLE HID), so
+// the same report layout/report-ID scheme works verbatim over either transport. Keeping USB and
+// BLE HID on identical report maps means UsbHidDeviceMode and BtHidDeviceMode produce
+// byte-for-byte identical reports for the same mode, so callers that build reports once can
+// send them down either transport.
+
+// Keyboard (report ID 1, 8 bytes) + Consumer (report ID 2, 2 bytes)
+static const uint8_t hid_rpt_map_kb_consumer[] = {
+    0x05, 0x01, 0x09, 0x06, 0xA1, 0x01,
+    0x85, 0x01,
+    0x05, 0x07, 0x19, 0xE0, 0x29, 0xE7, 0x15, 0x00, 0x25, 0x01,
+    0x75, 0x01, 0x95, 0x08, 0x81, 0x02,
+    0x75, 0x08, 0x95, 0x01, 0x81, 0x01,
+    0x05, 0x08, 0x19, 0x01, 0x29, 0x05, 0x75, 0x01, 0x95, 0x05, 0x91, 0x02,
+    0x75, 0x03, 0x95, 0x01, 0x91, 0x01,
+    0x15, 0x00, 0x25, 0x73, 0x05, 0x07, 0x19, 0x00, 0x29, 0x73,
+    0x75, 0x08, 0x95, 0x06, 0x81, 0x00,
+    0xC0,
+    0x05, 0x0C, 0x09, 0x01, 0xA1, 0x01,
+    0x85, 0x02,
+    0x15, 0x00, 0x26, 0xFF, 0x03, 0x19, 0x00, 0x2A, 0xFF, 0x03,
+    0x75, 0x10, 0x95, 0x01, 0x81, 0x00,
+    0xC0,
+};
+
+// Mouse only (report ID 1, 4 bytes)
+static const uint8_t hid_rpt_map_mouse[] = {
+    0x05, 0x01, 0x09, 0x02, 0xA1, 0x01,
+    0x85, 0x01,
+    0x09, 0x01, 0xA1, 0x00,
+    0x05, 0x09, 0x19, 0x01, 0x29, 0x05,
+    0x15, 0x00, 0x25, 0x01, 0x95, 0x05, 0x75, 0x01, 0x81, 0x02,
+    0x95, 0x01, 0x75, 0x03, 0x81, 0x01,
+    0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x09, 0x38,
+    0x15, 0x81, 0x25, 0x7F, 0x75, 0x08, 0x95, 0x03, 0x81, 0x06,
+    0xC0, 0xC0,
+};
+
+// Keyboard + Consumer + Mouse (report IDs 1, 2, 3)
+static const uint8_t hid_rpt_map_kb_mouse[] = {
+    0x05, 0x01, 0x09, 0x06, 0xA1, 0x01,
+    0x85, 0x01,
+    0x05, 0x07, 0x19, 0xE0, 0x29, 0xE7, 0x15, 0x00, 0x25, 0x01,
+    0x75, 0x01, 0x95, 0x08, 0x81, 0x02,
+    0x75, 0x08, 0x95, 0x01, 0x81, 0x01,
+    0x05, 0x08, 0x19, 0x01, 0x29, 0x05, 0x75, 0x01, 0x95, 0x05, 0x91, 0x02,
+    0x75, 0x03, 0x95, 0x01, 0x91, 0x01,
+    0x15, 0x00, 0x25, 0x73, 0x05, 0x07, 0x19, 0x00, 0x29, 0x73,
+    0x75, 0x08, 0x95, 0x06, 0x81, 0x00,
+    0xC0,
+    0x05, 0x0C, 0x09, 0x01, 0xA1, 0x01,
+    0x85, 0x02,
+    0x15, 0x00, 0x26, 0xFF, 0x03, 0x19, 0x00, 0x2A, 0xFF, 0x03,
+    0x75, 0x10, 0x95, 0x01, 0x81, 0x00,
+    0xC0,
+    0x05, 0x01, 0x09, 0x02, 0xA1, 0x01,
+    0x85, 0x03,
+    0x09, 0x01, 0xA1, 0x00,
+    0x05, 0x09, 0x19, 0x01, 0x29, 0x05,
+    0x15, 0x00, 0x25, 0x01, 0x95, 0x05, 0x75, 0x01, 0x81, 0x02,
+    0x95, 0x01, 0x75, 0x03, 0x81, 0x01,
+    0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x09, 0x38,
+    0x15, 0x81, 0x25, 0x7F, 0x75, 0x08, 0x95, 0x03, 0x81, 0x06,
+    0xC0, 0xC0,
+};
+
+// Gamepad only (report ID 1, 8 bytes)
+static const uint8_t hid_rpt_map_gamepad[] = {
+    0x05, 0x01, 0x09, 0x05, 0xA1, 0x01,
+    0x85, 0x01,
+    0x05, 0x09, 0x19, 0x01, 0x29, 0x10,
+    0x15, 0x00, 0x25, 0x01, 0x75, 0x01, 0x95, 0x10, 0x81, 0x02,
+    0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x09, 0x32, 0x09, 0x35, 0x09, 0x33, 0x09, 0x34,
+    0x15, 0x81, 0x25, 0x7F, 0x75, 0x08, 0x95, 0x06, 0x81, 0x02,
+    0xC0,
+};
+
+// Report IDs, matching the *_map tables above.
+static constexpr uint8_t REPORT_ID_KEYBOARD = 1;
+static constexpr uint8_t REPORT_ID_CONSUMER = 2;
+static constexpr uint8_t REPORT_ID_MOUSE_SOLO = 1;   // USB_HID_DEVICE_MODE_MOUSE
+static constexpr uint8_t REPORT_ID_MOUSE_COMBO = 3;  // USB_HID_DEVICE_MODE_KEYBOARD_MOUSE
+static constexpr uint8_t REPORT_ID_GAMEPAD = 1;
+
+// Active mode/report-map state - the report descriptor TinyUSB serves via
+// tud_hid_descriptor_report_cb() must match whichever mode start() was last called with, since
+// (unlike BLE's mutable GATT) USB's descriptor is fixed for the lifetime of one claim()
+// session; switching modes means stop() + start() with the new mode, re-enumerating.
+static enum UsbHidDeviceMode active_mode = USB_HID_DEVICE_MODE_KEYBOARD;
+
+static const uint8_t* active_report_map() {
+    switch (active_mode) {
+        case USB_HID_DEVICE_MODE_MOUSE:          return hid_rpt_map_mouse;
+        case USB_HID_DEVICE_MODE_KEYBOARD_MOUSE:  return hid_rpt_map_kb_mouse;
+        case USB_HID_DEVICE_MODE_GAMEPAD:        return hid_rpt_map_gamepad;
+        default:                                 return hid_rpt_map_kb_consumer; // KEYBOARD
+    }
+}
+
+static size_t active_report_map_len() {
+    switch (active_mode) {
+        case USB_HID_DEVICE_MODE_MOUSE:          return sizeof(hid_rpt_map_mouse);
+        case USB_HID_DEVICE_MODE_KEYBOARD_MOUSE:  return sizeof(hid_rpt_map_kb_mouse);
+        case USB_HID_DEVICE_MODE_GAMEPAD:        return sizeof(hid_rpt_map_gamepad);
+        default:                                 return sizeof(hid_rpt_map_kb_consumer);
+    }
+}
+
+// Per-mode default product name and idProduct offset. Distinct idProduct per mode matters more
+// than it might seem: most hosts (Windows in particular) cache device metadata - including
+// which icon/appearance to show - keyed by VID/PID/serial, and a HID descriptor swap alone
+// isn't always enough to make the host re-read it on a fast re-enumeration. Giving each mode
+// its own PID makes the host treat a mode switch as connecting a genuinely different device,
+// which reliably clears the stale-appearance problem (was previously showing "Keyboard" for
+// every mode almost all the time).
+static const char* default_name_for_mode(enum UsbHidDeviceMode mode) {
+    switch (mode) {
+        case USB_HID_DEVICE_MODE_MOUSE:          return "Tactility Mouse";
+        case USB_HID_DEVICE_MODE_KEYBOARD_MOUSE:  return "Tactility Keyboard+Mouse";
+        case USB_HID_DEVICE_MODE_GAMEPAD:        return "Tactility Gamepad";
+        default:                                 return "Tactility Keyboard"; // KEYBOARD
+    }
+}
+
+static uint16_t product_id_for_mode(enum UsbHidDeviceMode mode) {
+    switch (mode) {
+        case USB_HID_DEVICE_MODE_MOUSE:          return 0x4006;
+        case USB_HID_DEVICE_MODE_KEYBOARD_MOUSE:  return 0x4007;
+        case USB_HID_DEVICE_MODE_GAMEPAD:        return 0x4008;
+        default:                                 return 0x4004; // KEYBOARD (unchanged - existing PID)
+    }
+}
+
+// Set via usb_hid_device_set_name() before start(); empty means "use the mode's default name".
+// Mirrors bluetooth_set_device_name()'s pattern of being set once before starting the profile.
+static char custom_name[32] = {};
+
+// Composite config: interface 0-1 = CDC ACM (notif + data), interface 2 = HID. Tab5 (and any
+// board where the same physical USB-C port carries both the programming/monitor connection and
+// the native OTG device-mode peripheral - see esp32_usb_device_controller.cpp's
+// route_phy_for_device_mode) loses its console entirely the moment HID claims the port, since
+// TinyUSB device mode and the previous serial link can't coexist on the same wire. Compositing a
+// CDC ACM interface into the same descriptor keeps a console reachable (as a USB serial device)
+// for as long as HID is active. When CONFIG_TINYUSB_CDC_ENABLED isn't set (older/other boards
+// where HID doesn't need this), this falls back to the plain HID-only descriptor.
+#if CONFIG_TINYUSB_CDC_ENABLED
+#define HID_ITF_NUM 2
+#define HID_EP_NOTIF 0x83
+#define HID_EP_CDC_OUT 0x02
+#define HID_EP_CDC_IN 0x82
+#define HID_EP_REPORT 0x81
+#else
+#define HID_ITF_NUM 0
+#define HID_EP_REPORT 0x81
+#endif
+
+// The report descriptor length varies by mode (KEYBOARD_MOUSE's combined map is the largest),
+// so the config descriptor's total length is computed at claim time in build_hid_config(),
+// not as a compile-time constant like the old single-report-descriptor version.
+
+// Built fresh in start() (see build_hid_device_descriptor()) so idProduct/iProduct can vary per
+// mode - see default_name_for_mode()/product_id_for_mode() above for why.
+static tusb_desc_device_t hid_device_descriptor = {
+    .bLength            = sizeof(tusb_desc_device_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE,
+    .bcdUSB             = 0x0200,
+#if CONFIG_TINYUSB_CDC_ENABLED
+    // CDC composite devices must advertise the IAD (Interface Association Descriptor) class at
+    // the device level so hosts group the CDC notif+data interfaces correctly.
+    .bDeviceClass       = TUSB_CLASS_MISC,
+    .bDeviceSubClass    = MISC_SUBCLASS_COMMON,
+    .bDeviceProtocol    = MISC_PROTOCOL_IAD,
+#else
+    .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
+    .bDeviceSubClass    = 0x00,
+    .bDeviceProtocol    = 0x00,
+#endif
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .idVendor           = 0x303A, // Espressif VID
+    .idProduct          = 0x4004, // overwritten per-mode in start()
+    .bcdDevice          = 0x0100,
+    .iManufacturer      = 0x01,
+    .iProduct           = 0x02,
+    .iSerialNumber      = 0x03,
+    .bNumConfigurations = 0x01,
+};
+
+#if (TUD_OPT_HIGH_SPEED)
+static const tusb_desc_device_qualifier_t hid_device_qualifier = {
+    .bLength            = sizeof(tusb_desc_device_qualifier_t),
+    .bDescriptorType    = TUSB_DESC_DEVICE_QUALIFIER,
+    .bcdUSB             = 0x0200,
+    .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
+    .bDeviceSubClass    = 0x00,
+    .bDeviceProtocol    = 0x00,
+    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
+    .bNumConfigurations = 0x01,
+    .bReserved          = 0x00,
+};
+#endif
+
+static const char hid_langid_descriptor[] = { 0x09, 0x04 };
+// index 2 (iProduct) is overwritten per-mode/per-custom-name in start(), see
+// build_hid_device_descriptor().
+static char hid_product_string[sizeof(custom_name)] = "Tactility Keyboard";
+// index 4 is the HID interface string, read directly by some HID apps/testers (gamepad
+// testers, joystick tools) instead of iProduct (index 2) - same class of bug found and fixed
+// in the MIDI driver, where the interface string was a hardcoded generic "MIDI" placeholder
+// instead of the real product name. Point it at the same buffer as iProduct so both stay in
+// sync with whatever mode/custom name is active.
+static const char* hid_string_descriptor[] = {
+    hid_langid_descriptor, "Tactility", hid_product_string, "123456", hid_product_string,
+};
+
+// Built fresh in start(), sized for the active mode's report map. TinyUSB only reads this once
+// during tinyusb_driver_install() (inside usb_device_controller_claim()), so it's safe to
+// mutate between claim sessions (i.e. stop() + start() with a different mode) as long as it's
+// finalized before claim() is called.
+//
+// Guarded by !CONFIG_TINYUSB_CDC_ENABLED (mirroring the CDC variant's own guard below) rather
+// than being compiled unconditionally: on any board with CDC enabled (Tab5 always does, see
+// device.py), hid_device_start() only ever takes the CDC branch, leaving this variant
+// genuinely dead code for that build - left ungated it, it still compiled, but as an unused
+// static function warning.
+#if !CONFIG_TINYUSB_CDC_ENABLED
+static uint8_t hid_configuration_descriptor[TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN];
+
+static void build_hid_config() {
+    const size_t total_len = TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN;
+    const uint8_t config[] = {
+        TUD_CONFIG_DESCRIPTOR(1, HID_ITF_NUM + 1, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    };
+    const uint8_t hid_itf[] = {
+        TUD_HID_DESCRIPTOR(HID_ITF_NUM, 4, HID_ITF_PROTOCOL_NONE, active_report_map_len(), HID_EP_REPORT, 16, 10),
+    };
+    memcpy(hid_configuration_descriptor, config, sizeof(config));
+    memcpy(hid_configuration_descriptor + sizeof(config), hid_itf, sizeof(hid_itf));
+}
+#endif
+
+#if CONFIG_TINYUSB_CDC_ENABLED
+static uint8_t hid_cdc_configuration_descriptor[TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN];
+
+static void build_hid_cdc_config() {
+    const size_t total_len = TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN;
+    const uint8_t config[] = {
+        TUD_CONFIG_DESCRIPTOR(1, HID_ITF_NUM + 1, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
+    };
+    const uint8_t cdc_itf[] = {
+        TUD_CDC_DESCRIPTOR(0, 4, HID_EP_NOTIF, 8, HID_EP_CDC_OUT, HID_EP_CDC_IN, 64),
+    };
+    const uint8_t hid_itf[] = {
+        TUD_HID_DESCRIPTOR(HID_ITF_NUM, 4, HID_ITF_PROTOCOL_NONE, active_report_map_len(), HID_EP_REPORT, 16, 10),
+    };
+    uint8_t* p = hid_cdc_configuration_descriptor;
+    memcpy(p, config, sizeof(config)); p += sizeof(config);
+    memcpy(p, cdc_itf, sizeof(cdc_itf)); p += sizeof(cdc_itf);
+    memcpy(p, hid_itf, sizeof(hid_itf));
+}
+#endif
+
+static tinyusb_config_t hid_tusb_cfg = {
+    .device_descriptor = &hid_device_descriptor,
+    .string_descriptor = hid_string_descriptor,
+    .string_descriptor_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]),
+    .external_phy = false,
+#if (TUD_OPT_HIGH_SPEED)
+    .fs_configuration_descriptor = nullptr, // set in start(), see build_hid_config()/build_hid_cdc_config()
+    .hs_configuration_descriptor = nullptr,
+    .qualifier_descriptor = &hid_device_qualifier,
+#else
+    .configuration_descriptor = nullptr, // set in start()
+#endif
+    .self_powered = false,
+    .vbus_monitor_io = 0,
+};
+
+// ---- TinyUSB HID callbacks (required by the TinyUSB HID class driver) ----
+
+extern "C" {
+
+uint8_t const* tud_hid_descriptor_report_cb(uint8_t instance) {
+    (void)instance;
+    return active_report_map();
+}
+
+uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                               uint8_t* buffer, uint16_t reqlen) {
+    (void)instance; (void)report_id; (void)report_type; (void)buffer; (void)reqlen;
+    return 0;
+}
+
+void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_t report_type,
+                           uint8_t const* buffer, uint16_t bufsize) {
+    (void)instance; (void)report_id; (void)report_type; (void)buffer; (void)bufsize;
+    // LED state (caps/num/scroll lock) - not currently surfaced to callers.
+}
+
+} // extern "C"
+
+// ---- HID device API ----
+
+#if CONFIG_TINYUSB_CDC_ENABLED
+static bool cdc_console_installed = false;
+static vprintf_like_t previous_vprintf = nullptr;
+
+// Mirrors every log line to the CDC ACM interface in addition to whatever the log vprintf
+// hook already does (UART0, ...) - deliberately additive rather than esp_tinyusb's own
+// esp_tusb_init_console(), which freopen()s stdout/stderr and would replace the existing
+// console instead of adding a second one alongside it.
+static int cdc_mirroring_vprintf(const char* fmt, va_list args) {
+    int result = previous_vprintf ? previous_vprintf(fmt, args) : vprintf(fmt, args);
+
+    if (tud_cdc_connected()) {
+        char buf[256];
+        va_list args_copy;
+        va_copy(args_copy, args);
+        int len = vsnprintf(buf, sizeof(buf), fmt, args_copy);
+        va_end(args_copy);
+        if (len > 0) {
+            size_t to_write = static_cast<size_t>(len) < sizeof(buf) ? static_cast<size_t>(len) : sizeof(buf) - 1;
+            tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, reinterpret_cast<const uint8_t*>(buf), to_write);
+            tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
+        }
+    }
+    return result;
+}
+
+static void install_cdc_console() {
+    const tinyusb_config_cdcacm_t acm_cfg = {
+        .usb_dev = TINYUSB_USBDEV_0,
+        .cdc_port = TINYUSB_CDC_ACM_0,
+        .callback_rx = nullptr,
+        .callback_rx_wanted_char = nullptr,
+        .callback_line_state_changed = nullptr,
+        .callback_line_coding_changed = nullptr,
+    };
+    if (tusb_cdc_acm_init(&acm_cfg) != ESP_OK) {
+        LOG_E(TAG, "tusb_cdc_acm_init failed - CDC console unavailable");
+        return;
+    }
+    previous_vprintf = esp_log_set_vprintf(cdc_mirroring_vprintf);
+    cdc_console_installed = true;
+}
+
+static void uninstall_cdc_console() {
+    if (!cdc_console_installed) return;
+    esp_log_set_vprintf(previous_vprintf ? previous_vprintf : vprintf);
+    previous_vprintf = nullptr;
+    tusb_cdc_acm_deinit(TINYUSB_CDC_ACM_0);
+    cdc_console_installed = false;
+}
+#endif
+
+// Fills in idProduct/iProduct for the given mode, honoring a set_name() override if one was
+// set. Must run before every claim() - the name/PID need to match whatever mode is about to
+// start, not whatever they were left as from a previous session.
+static void build_hid_device_descriptor(enum UsbHidDeviceMode mode) {
+    hid_device_descriptor.idProduct = product_id_for_mode(mode);
+    const char* name = custom_name[0] ? custom_name : default_name_for_mode(mode);
+    strncpy(hid_product_string, name, sizeof(hid_product_string) - 1);
+    hid_product_string[sizeof(hid_product_string) - 1] = '\0';
+}
+
+static error_t hid_device_start(struct Device* device, enum UsbHidDeviceMode mode) {
+    active_mode = mode;
+    build_hid_device_descriptor(mode);
+
+#if CONFIG_TINYUSB_CDC_ENABLED
+    build_hid_cdc_config();
+#if (TUD_OPT_HIGH_SPEED)
+    hid_tusb_cfg.fs_configuration_descriptor = hid_cdc_configuration_descriptor;
+    hid_tusb_cfg.hs_configuration_descriptor = hid_cdc_configuration_descriptor;
+#else
+    hid_tusb_cfg.configuration_descriptor = hid_cdc_configuration_descriptor;
+#endif
+#else
+    build_hid_config();
+#if (TUD_OPT_HIGH_SPEED)
+    hid_tusb_cfg.fs_configuration_descriptor = hid_configuration_descriptor;
+    hid_tusb_cfg.hs_configuration_descriptor = hid_configuration_descriptor;
+#else
+    hid_tusb_cfg.configuration_descriptor = hid_configuration_descriptor;
+#endif
+#endif
+
+    auto* controller = device_get_parent(device);
+    error_t err = usb_device_controller_claim(controller, USB_DEVICE_CLASS_HID_KEYBOARD, &hid_tusb_cfg);
+#if CONFIG_TINYUSB_CDC_ENABLED
+    if (err == ERROR_NONE) {
+        install_cdc_console();
+    }
+#endif
+    return err;
+}
+
+static error_t hid_device_stop(struct Device* device) {
+#if CONFIG_TINYUSB_CDC_ENABLED
+    uninstall_cdc_console();
+#endif
+    auto* controller = device_get_parent(device);
+    return usb_device_controller_release(controller, USB_DEVICE_CLASS_HID_KEYBOARD);
+}
+
+static error_t hid_device_set_name(struct Device* device, const char* name) {
+    (void)device;
+    if (name == nullptr) {
+        custom_name[0] = '\0'; // clear override, fall back to the mode's default name
+        return ERROR_NONE;
+    }
+    strncpy(custom_name, name, sizeof(custom_name) - 1);
+    custom_name[sizeof(custom_name) - 1] = '\0';
+    return ERROR_NONE;
+}
+
+// tud_hid_report() fails outright (no queueing) if the endpoint is still busy sending a
+// previous report - a single fire-and-forget call is unsafe whenever a caller sends two reports
+// back to back (e.g. press immediately followed by release, as every button handler in
+// UsbTest/Tab5KeyboardHID does): the second call can lose the race and drop the release, leaving
+// the host thinking a key/button/consumer-control is still held down (which then either does
+// nothing further or, for keys the host auto-repeats, keeps repeating). Retry with a short
+// backoff instead of failing immediately, same fix as Tab5KeyboardHID's own sendWithRetry()
+// needed at the app layer before this existed - moved down into the driver so every caller
+// gets it automatically instead of reimplementing it.
+static error_t hid_send_report(uint8_t report_id, const uint8_t* report, size_t len) {
+    if (!tud_mounted()) {
+        LOG_W(TAG, "hid_send_report(id=%d): tud_mounted() false - real disconnect, not just a busy endpoint", report_id);
+        return ERROR_INVALID_STATE;
+    }
+    for (int attempt = 0; attempt < 10; attempt++) {
+        if (tud_hid_ready() && tud_hid_report(report_id, report, static_cast<uint16_t>(len))) {
+            return ERROR_NONE;
+        }
+        vTaskDelay(pdMS_TO_TICKS(5));
+    }
+    LOG_W(TAG, "hid_send_report(id=%d): gave up after 10 retries (~50ms) - endpoint stayed busy/not-ready the whole time", report_id);
+    return ERROR_RESOURCE;
+}
+
+static error_t hid_device_send_keyboard(struct Device* device, const uint8_t* report, size_t len) {
+    (void)device;
+    if (active_mode != USB_HID_DEVICE_MODE_KEYBOARD && active_mode != USB_HID_DEVICE_MODE_KEYBOARD_MOUSE) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    uint8_t buf[8] = {};
+    memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
+    return hid_send_report(REPORT_ID_KEYBOARD, buf, sizeof(buf));
+}
+
+static error_t hid_device_send_consumer(struct Device* device, const uint8_t* report, size_t len) {
+    (void)device;
+    if (active_mode != USB_HID_DEVICE_MODE_KEYBOARD && active_mode != USB_HID_DEVICE_MODE_KEYBOARD_MOUSE) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    uint8_t buf[2] = {};
+    memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
+    return hid_send_report(REPORT_ID_CONSUMER, buf, sizeof(buf));
+}
+
+static error_t hid_device_send_mouse(struct Device* device, const uint8_t* report, size_t len) {
+    (void)device;
+    uint8_t report_id;
+    if (active_mode == USB_HID_DEVICE_MODE_MOUSE) {
+        report_id = REPORT_ID_MOUSE_SOLO;
+    } else if (active_mode == USB_HID_DEVICE_MODE_KEYBOARD_MOUSE) {
+        report_id = REPORT_ID_MOUSE_COMBO;
+    } else {
+        return ERROR_NOT_SUPPORTED;
+    }
+    uint8_t buf[4] = {};
+    memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
+    return hid_send_report(report_id, buf, sizeof(buf));
+}
+
+static error_t hid_device_send_gamepad(struct Device* device, const uint8_t* report, size_t len) {
+    (void)device;
+    if (active_mode != USB_HID_DEVICE_MODE_GAMEPAD) {
+        return ERROR_NOT_SUPPORTED;
+    }
+    uint8_t buf[8] = {};
+    memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
+    return hid_send_report(REPORT_ID_GAMEPAD, buf, sizeof(buf));
+}
+
+static bool hid_device_is_connected(struct Device* device) {
+    (void)device;
+    // tud_hid_ready() deliberately NOT included here: it reflects whether the endpoint is idle
+    // right now (false during every in-flight report send, which is normal and momentary, not
+    // a disconnect), not whether a host is actually connected. Including it made this function
+    // flap constantly under any traffic - explains the "Connected" <-> "waiting for host..."
+    // flicker apps were seeing on every keypress/click even though nothing was actually wrong
+    // (hid_send_report()'s own retry logic was succeeding the whole time; no warning ever
+    // logged because there was nothing to warn about). tud_mounted() alone is the correct
+    // "is a host connected" signal.
+    return tud_mounted();
+}
+
+extern const UsbHidDeviceApi esp32_usb_hid_device_api = {
+    .start         = hid_device_start,
+    .stop          = hid_device_stop,
+    .set_name      = hid_device_set_name,
+    .send_keyboard = hid_device_send_keyboard,
+    .send_consumer = hid_device_send_consumer,
+    .send_mouse    = hid_device_send_mouse,
+    .send_gamepad  = hid_device_send_gamepad,
+    .is_connected  = hid_device_is_connected,
+};
+
+// ---- Driver lifecycle ----
+// Defined in each board's .dts as a child of usbdevice0 (e.g. usbdevicehid0) - the devicetree
+// compiler wires device_get_parent() to the controller automatically.
+
+extern "C" {
+
+static error_t start_device(struct Device* device) {
+    (void)GET_CONFIG(device); // no configuration - placeholder only
+    return ERROR_NONE;
+}
+
+static error_t stop_device(struct Device* device) {
+    // Safety cleanup: release the slot if it's still held (e.g. this device is stopped while
+    // HID is still active).
+    auto* controller = device_get_parent(device);
+    if (controller != nullptr && usb_device_controller_get_active_class(controller) == USB_DEVICE_CLASS_HID_KEYBOARD) {
+#if CONFIG_TINYUSB_CDC_ENABLED
+        uninstall_cdc_console();
+#endif
+        usb_device_controller_release(controller, USB_DEVICE_CLASS_HID_KEYBOARD);
+    }
+    return ERROR_NONE;
+}
+
+Driver esp32_usb_hid_device_driver = {
+    .name         = "esp32_usb_hid_device",
+    .compatible   = (const char*[]) { "espressif,esp32-usbdevice-hid", nullptr },
+    .start_device = start_device,
+    .stop_device  = stop_device,
+    .api          = &esp32_usb_hid_device_api,
+    .device_type  = &USB_HID_DEVICE_TYPE,
+    .owner        = nullptr,
+    .internal     = nullptr,
+};
+
+} // extern "C"
+
+#endif // CONFIG_SOC_USB_OTG_SUPPORTED && CONFIG_TINYUSB_HID_COUNT

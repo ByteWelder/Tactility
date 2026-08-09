@@ -1,0 +1,9 @@
+description: ESP32 USB device-mode MSC class driver (present the board's SD card or internal flash as a USB mass storage device to a host). Requires CONFIG_TINYUSB_MSC_ENABLED.
+
+compatible: "espressif,esp32-usbdevice-msc"
+
+properties:
+  _unused:
+    type: int
+    default: 0
+    description: Placeholder required by the binding schema; this driver has no device-tree configuration.
