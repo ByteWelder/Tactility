@@ -2,7 +2,8 @@
 #include <app/event.h>
 #include <app/install.h>
 #include <app/manager.h>
-#include <app/module.h>
+#include <app/metadata.h>
+#include <app/paths.h>
 #include <app/scheduler.h>
 
 #include <service/manager.h>
@@ -15,13 +16,15 @@ extern "C" {
 extern ServiceManifest app_internal_loader_service_manifest;
 
 const ModuleSymbol app_module_symbols[] = {
-    // app/scheduler
-    DEFINE_MODULE_SYMBOL(app_scheduler_current_app_id),
     // app/event
     DEFINE_MODULE_SYMBOL(app_event_subscribe),
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_emit),
     DEFINE_MODULE_SYMBOL(app_event_await),
+    // app/install
+    DEFINE_MODULE_SYMBOL(app_get_install_path),
+    DEFINE_MODULE_SYMBOL(app_install),
+    DEFINE_MODULE_SYMBOL(app_uninstall),
     // app/manager
     DEFINE_MODULE_SYMBOL(app_manager_start),
     DEFINE_MODULE_SYMBOL(app_manager_start_with_parameters),
@@ -37,10 +40,15 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_manager_get_topmost_app_id),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
-    // app/install
-    DEFINE_MODULE_SYMBOL(app_get_install_path),
-    DEFINE_MODULE_SYMBOL(app_install),
-    DEFINE_MODULE_SYMBOL(app_uninstall),
+    // app/metadata
+    DEFINE_MODULE_SYMBOL(app_metadata_parse),
+    // app/paths
+    DEFINE_MODULE_SYMBOL(app_paths_get_user_data_directory),
+    DEFINE_MODULE_SYMBOL(app_paths_get_user_data_path),
+    DEFINE_MODULE_SYMBOL(app_paths_get_assets_directory),
+    DEFINE_MODULE_SYMBOL(app_paths_get_assets_path),
+    // app/scheduler
+    DEFINE_MODULE_SYMBOL(app_scheduler_current_app_id),
     // terminator
     MODULE_SYMBOL_TERMINATOR
 };
