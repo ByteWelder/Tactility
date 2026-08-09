@@ -33,6 +33,7 @@
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
 #include <esp_system.h>
+#include <esp_vfs.h>
 #include <fcntl.h>
 #include <lwip/sockets.h>
 #include <lwip/netdb.h>
@@ -89,6 +90,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(close),
     ESP_ELFSYM_EXPORT(rmdir),
     ESP_ELFSYM_EXPORT(unlink),
+    ESP_ELFSYM_EXPORT(open),
     // strings.h
     ESP_ELFSYM_EXPORT(explicit_bzero),
     ESP_ELFSYM_EXPORT(strcasecmp),
@@ -194,6 +196,10 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(fgets),
     ESP_ELFSYM_EXPORT(fopen),
     ESP_ELFSYM_EXPORT(freopen),
+    // Lets an app find the descriptor behind a stream. Needed when stdin/stdout have been pointed
+    // somewhere other than descriptors 0 and 1, which is the case for an app that owns a terminal.
+    ESP_ELFSYM_EXPORT(fileno),
+    ESP_ELFSYM_EXPORT(setvbuf),
     ESP_ELFSYM_EXPORT(fputc),
     ESP_ELFSYM_EXPORT(fputs),
     ESP_ELFSYM_EXPORT(fprintf),
@@ -239,6 +245,7 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(memchr),
     ESP_ELFSYM_EXPORT(memmove),
     ESP_ELFSYM_EXPORT(strdup),
+    ESP_ELFSYM_EXPORT(stpcpy),
 
     // ctype
     ESP_ELFSYM_EXPORT(isalnum),
@@ -256,6 +263,13 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(toupper),
     // ESP-IDF
     ESP_ELFSYM_EXPORT(esp_log),
+    // Lets an app that has taken over the display quieten firmware logging: with stdout redirected
+    // to a terminal the app owns, anything logged appears on screen as if the app had printed it.
+    ESP_ELFSYM_EXPORT(esp_log_level_set),
+    // Lets an app redirect firmware logging somewhere other than stdout. An app that has pointed
+    // stdout at its own terminal needs this: without it, every ESP_LOG from any component in the
+    // system - NTP, RTC, TLS - paints over the app's display.
+    ESP_ELFSYM_EXPORT(esp_log_set_vprintf),
     ESP_ELFSYM_EXPORT(esp_log_write),
     ESP_ELFSYM_EXPORT(esp_log_timestamp),
     ESP_ELFSYM_EXPORT(esp_err_to_name),
@@ -327,9 +341,26 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(ipaddr_addr),
     // POSIX socket names (VFS wrappers used when apps include <sys/socket.h>)
     ESP_ELFSYM_EXPORT(select),
+    // stdlib.h - environment and sorting
+    ESP_ELFSYM_EXPORT(getenv),
+    ESP_ELFSYM_EXPORT(setenv),
+    ESP_ELFSYM_EXPORT(unsetenv),
+    ESP_ELFSYM_EXPORT(qsort),
+    // unistd.h
+    ESP_ELFSYM_EXPORT(access),
+    ESP_ELFSYM_EXPORT(isatty),
+    ESP_ELFSYM_EXPORT(read),
+    ESP_ELFSYM_EXPORT(write),
+    ESP_ELFSYM_EXPORT(lseek),
     // sys/stat.h
     ESP_ELFSYM_EXPORT(stat),
     ESP_ELFSYM_EXPORT(mkdir),
+    // esp_vfs.h - lets an app register a device node (e.g. a terminal at /dev/...) so that plain
+    // printf/stdout reaches it. Note the registration is global and outlives the app unless it
+    // unregisters: an app that takes this must release it on shutdown, or the next one inherits a
+    // path whose callbacks point into unloaded memory.
+    ESP_ELFSYM_EXPORT(esp_vfs_register),
+    ESP_ELFSYM_EXPORT(esp_vfs_unregister),
     // esp_netif.h
     ESP_ELFSYM_EXPORT(esp_netif_get_ip_info),
     ESP_ELFSYM_EXPORT(esp_netif_get_handle_from_ifkey),
@@ -360,6 +391,19 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tinfl_decompress),
     ESP_ELFSYM_EXPORT(tinfl_decompress_mem_to_callback),
     ESP_ELFSYM_EXPORT(tinfl_decompress_mem_to_mem),
+    // Compression, the counterpart to the tinfl_* decompression above. Like those, these live in
+    // the chip's ROM rather than in flash, so exporting them costs nothing.
+    //
+    // Note this is miniz, not zlib: ESP-IDF builds it with MINIZ_NO_ZLIB_APIS, so deflate/inflate,
+    // crc32 and the gz* file API do not exist anywhere in the firmware. An app wanting gzip files
+    // has to use the tdefl_/tinfl_ interfaces directly, or vendor zlib itself.
+    ESP_ELFSYM_EXPORT(tdefl_init),
+    ESP_ELFSYM_EXPORT(tdefl_compress),
+    ESP_ELFSYM_EXPORT(tdefl_compress_buffer),
+    ESP_ELFSYM_EXPORT(tdefl_compress_mem_to_mem),
+    ESP_ELFSYM_EXPORT(tdefl_compress_mem_to_output),
+    ESP_ELFSYM_EXPORT(tdefl_get_adler32),
+    ESP_ELFSYM_EXPORT(tdefl_get_prev_return_status),
     // ledc
     ESP_ELFSYM_EXPORT(ledc_update_duty),
     ESP_ELFSYM_EXPORT(ledc_set_freq),

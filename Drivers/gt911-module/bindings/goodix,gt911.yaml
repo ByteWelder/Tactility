@@ -30,8 +30,39 @@ properties:
   pin-reset:
     type: phandles
     default: GPIO_PIN_SPEC_NONE
-    description: Reset GPIO pin
+    description: |
+      Reset GPIO pin. Reset polarity is set with the GPIO descriptor's ACTIVE_HIGH or
+      ACTIVE_LOW flag (active-low is the GT911's native convention; boards that invert the
+      reset line, e.g. Tulip 4 R11, use ACTIVE_HIGH).
   pin-interrupt:
     type: phandles
     default: GPIO_PIN_SPEC_NONE
     description: Interrupt GPIO pin
+  reset-pulses:
+    type: int
+    default: 1
+    description: |
+      Number of reset pulses applied before the controller is initialized. Some panels
+      (e.g. Tulip 4 R11) require two toggle cycles before they respond on I2C.
+  x-offset:
+    type: int
+    default: 0
+    description: |
+      Signed X coordinate correction added to the raw controller output before scaling.
+      Aligns the sensor with the panel (e.g. -2 on Tulip 4 R11).
+  y-offset:
+    type: int
+    default: 0
+    description: |
+      Signed Y coordinate correction added to the raw controller output before scaling
+      (e.g. -12 on Tulip 4 R11).
+  x-scale:
+    type: int
+    default: 1000
+    description: |
+      X coordinate scale as per-mille (1000 = 1.0), applied after x-offset.
+  y-scale:
+    type: int
+    default: 1000
+    description: |
+      Y coordinate scale as per-mille (1000 = 1.0), applied after y-offset.

@@ -3,9 +3,18 @@
 
 #include <symbols/esp_http_client.h>
 
+#include <sdkconfig.h>
 #include <esp_http_client.h>
+#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+#include <esp_crt_bundle.h>
+#endif
 
 const esp_elfsym esp_http_client_symbols[] = {
+#if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
+    // Needed for HTTPS: an app passes this as crt_bundle_attach to validate certificates against
+    // the bundle already compiled into the firmware (CONFIG_MBEDTLS_CERTIFICATE_BUNDLE).
+    ESP_ELFSYM_EXPORT(esp_crt_bundle_attach),
+#endif
     ESP_ELFSYM_EXPORT(esp_http_client_init),
     ESP_ELFSYM_EXPORT(esp_http_client_perform),
     ESP_ELFSYM_EXPORT(esp_http_client_cancel_request),

@@ -14,6 +14,7 @@ extern "C" {
 // typedef even though they all share the same underlying config layout.
 DEFINE_DEVICETREE(max98357a, struct DummyI2sAmpConfig)
 DEFINE_DEVICETREE(ns4168, struct DummyI2sAmpConfig)
+DEFINE_DEVICETREE(pcm5101a, struct DummyI2sAmpConfig)
 
 #ifdef __cplusplus
 }
