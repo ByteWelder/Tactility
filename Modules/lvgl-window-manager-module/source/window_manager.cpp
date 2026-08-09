@@ -210,11 +210,44 @@ error_t window_manager_start(void) {
         return ERROR_RESOURCE;
     }
 
+    // A previous stop() (see its comment) may have left window records behind for an app that's
+    // still running (as opposed to a real full shutdown, where every app has already removed its
+    // own window before this runs, leaving the list empty). Rebuild the topmost one now, exactly
+    // like window_manager_remove()'s resurface path does when a buried window becomes topmost -
+    // otherwise that app's task just sits blocked in its own event loop forever with no window
+    // and no way to know it needs to rebuild one.
+    WindowCreateWidgetsFn top_create_widgets = nullptr;
+    void* top_user_data = nullptr;
+    WindowId top_id = 0;
+    bool has_top = false;
+
     mutex_lock(&s.mutex);
     s.real_root_widget = real_widget;
     s.content_root_widget = content_widget;
     s.started = true;
+    if (!s.windows.empty()) {
+        top_create_widgets = s.windows.back().create_widgets;
+        top_user_data = s.windows.back().user_data;
+        top_id = s.windows.back().id;
+        has_top = true;
+    }
     mutex_unlock(&s.mutex);
+
+    if (has_top) {
+        lv_obj_t* new_widget = build_window_widget(content_widget, top_create_widgets, top_user_data);
+
+        mutex_lock(&s.mutex);
+        bool still_topmost = !s.windows.empty() && s.windows.back().id == top_id;
+        if (still_topmost) {
+            s.top_widget = new_widget;
+            new_widget = nullptr; // consumed
+        }
+        mutex_unlock(&s.mutex);
+
+        // Something else changed the window stack while we were building (e.g. a concurrent
+        // remove()) - discard what we just made.
+        delete_widget(new_widget);
+    }
 
     mutex_unlock(&s.lifecycle_mutex);
     return ERROR_NONE;
@@ -234,8 +267,8 @@ error_t window_manager_stop(void) {
         return ERROR_NONE;
     }
     lv_obj_t* widget = s.real_root_widget;
-    // Claim every window's waiter before clearing - normally at most the topmost window's is
-    // ever set, but every window is being torn down here, so every one is checked.
+    // Claim every window's waiter before tearing down - normally at most the topmost window's
+    // is ever set, but every window's widget is being torn down here, so every one is checked.
     std::vector<WindowWaitSignal*> waiters;
     for (auto& window : s.windows) {
         if (auto* signal = claim_waiter_locked(window); signal != nullptr) {
@@ -245,7 +278,15 @@ error_t window_manager_stop(void) {
     s.real_root_widget = nullptr;
     s.content_root_widget = nullptr;
     s.top_widget = nullptr;
-    s.windows.clear();
+    // Deliberately NOT s.windows.clear(): this only tears down the LVGL widget tree, not the
+    // window records themselves. A real full shutdown (every app already removed its own window
+    // via window_manager_remove() before this runs) leaves the list empty anyway, so this is a
+    // no-op there. But a caller can also stop()/start() this module on its own, temporarily,
+    // while apps keep running underneath (e.g. an app borrowing the display/touch hardware
+    // directly) - those apps' tasks are still alive, blocked in their own event loops, with no
+    // way to know they need to call window_manager_create() again. Keeping the records lets
+    // window_manager_start() rebuild the topmost one automatically instead of leaving that app
+    // stuck with no window forever.
     s.started = false;
     mutex_unlock(&s.mutex);
 
