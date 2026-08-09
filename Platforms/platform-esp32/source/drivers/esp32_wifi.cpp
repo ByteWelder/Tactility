@@ -16,6 +16,7 @@
 #include <tactility/drivers/wifi.h>
 #include <tactility/error_esp32.h>
 #include <tactility/log.h>
+#include <tactility/time.h>
 
 #if defined(CONFIG_SLAVE_SOC_WIFI_SUPPORTED)
 #include <tactility/drivers/esp32_esp_hosted_ota.h>
@@ -55,6 +56,15 @@ struct Esp32WifiCtx {
     esp_netif_t* netif = nullptr;
     esp_event_handler_instance_t wifiEventHandler = nullptr;
     esp_event_handler_instance_t ipEventHandler = nullptr;
+
+    // Dedup for WIFI_EVENT/IP_EVENT notifications: on the esp_hosted/Wi-Fi Remote transport
+    // (e.g. Tab5's P4 host + C6 co-processor), the RPC layer has been observed delivering the
+    // exact same event twice in a row (same base, same event_id, same millisecond - not two
+    // genuinely separate occurrences). Native WiFi doesn't exhibit this, but the handler is
+    // shared, so the guard applies unconditionally; it's a no-op for well-separated real events.
+    esp_event_base_t lastEventBase = nullptr;
+    int32_t lastEventId = -1;
+    TickType_t lastEventTick = 0;
 
     Mutex callbackMutex{};
     WifiCallbackEntry callbacks[WIFI_MAX_CALLBACKS] = {};
@@ -99,6 +109,20 @@ void fire_event(Esp32WifiCtx* ctx, WifiEvent event) {
 
 void on_wifi_or_ip_event(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     auto* ctx = static_cast<Esp32WifiCtx*>(arg);
+
+    // See Esp32WifiCtx::lastEventBase/lastEventId/lastEventTick - collapse an immediate duplicate
+    // delivery of the same event (observed on the esp_hosted/Wi-Fi Remote transport) into one.
+    constexpr uint32_t DEDUP_WINDOW_MS = 50; // well under any real re-occurrence of the same event
+    TickType_t now = get_ticks();
+    bool is_duplicate = event_base == ctx->lastEventBase && event_id == ctx->lastEventId &&
+        (now - ctx->lastEventTick) <= millis_to_ticks(DEDUP_WINDOW_MS);
+    ctx->lastEventBase = event_base;
+    ctx->lastEventId = event_id;
+    ctx->lastEventTick = now;
+    if (is_duplicate) {
+        LOG_D(TAG, "Ignoring duplicate WiFi event %d", (int)event_id);
+        return;
+    }
 
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         mutex_lock(&ctx->mutex);
