@@ -36,8 +36,8 @@ properties:
     required: true
     description: >
       esp_epaper panel registry name. One of "gdey0154d67", "gdep073e01",
-      "gdey037f51", "gdey029t71h", "ssd16xx-154", "ssd16xx-213", "ssd16xx-266",
-      "ssd16xx-270", "ssd16xx-290", "ssd16xx-370", "ssd16xx-420".
+      "gdey037f51", "gdey029t71h", "gdeq0426t82", "ssd16xx-154", "ssd16xx-213",
+      "ssd16xx-266", "ssd16xx-270", "ssd16xx-290", "ssd16xx-370", "ssd16xx-420".
   width:
     type: int
     default: 0

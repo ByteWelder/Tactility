@@ -82,6 +82,19 @@ struct DisplayApi {
     error_t (*draw_bitmap)(struct Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data);
 
     /**
+     * @brief Blocks until the panel has finished applying the last draw_bitmap refresh.
+     * @warning Function pointer should be null when not applicable.
+     * @param[in] device the display device
+     * @param[in] timeout_ms maximum time to block in milliseconds, 0 = infinite
+     * @retval ERROR_NONE when the panel is idle
+     * @retval ERROR_TIMEOUT when the panel is still busy after timeout_ms
+     * @details Only meaningful for slow-refresh displays (e.g. e-paper, where a
+     * refresh takes seconds and draw_bitmap returns before the panel is idle).
+     * Normal TFTs have no such window and should leave this NULL.
+     */
+    error_t (*wait_sync)(struct Device* device, uint32_t timeout_ms);
+
+    /**
      * @brief Mirrors the image along the X and/or Y axis.
      * @warning Function pointer should be null if capability not available.
      * @param[in] device the display device
@@ -251,6 +264,12 @@ error_t display_init(struct Device* device);
  * @brief Draws pixel data into the given rectangle using the specified display.
  */
 error_t display_draw_bitmap(struct Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data);
+
+/**
+ * @brief Blocks until the panel has finished applying the last draw_bitmap refresh.
+ * @retval ERROR_NOT_SUPPORTED when the display has no wait_sync implementation.
+ */
+error_t display_wait_sync(struct Device* device, uint32_t timeout_ms);
 
 /**
  * @brief Mirrors the image along the X and/or Y axis using the specified display.

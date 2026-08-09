@@ -56,6 +56,7 @@ static bool resolve_panel_type(const char* name, epd_panel_type_t* out_type) {
         { "gdep073e01", EPD_PANEL_GDEP073E01 },
         { "gdey037f51", EPD_PANEL_GDEY037F51 },
         { "gdey029t71h", EPD_PANEL_GDEY029T71H },
+        { "gdeq0426t82", EPD_PANEL_GDEQ0426T82 },
         { "ssd16xx-154", EPD_PANEL_SSD16XX_154 },
         { "ssd16xx-213", EPD_PANEL_SSD16XX_213 },
         { "ssd16xx-266", EPD_PANEL_SSD16XX_266 },
@@ -102,7 +103,11 @@ static error_t esp_epaper_init(Device* device) {
 // only presents (calls draw_bitmap) once per render cycle, with the complete 0,0..hres,vres rect.
 // hres/vres are the rotated (display) resolution reported by get_resolution_*; color_data is
 // row-major, MSB-first 1bpp (LVGL's LV_COLOR_FORMAT_I1 with the palette header already stripped by
-// the caller); bit 1 = white, bit 0 = black. epd_update() expects exactly that layout and polarity.
+// the caller); bit 1 = white, bit 0 = black. epd_update_async() expects exactly that layout and
+// polarity. It streams color_data into GDDRAM and fires the master activation, then returns while
+// the panel keeps driving; the busy wait for the refresh moved to esp_epaper_wait_sync() so the
+// render thread no longer blocks for the whole refresh. color_data is only read during the
+// synchronous SPI transfer, so LVGL's buffer is free the moment this returns.
 static error_t esp_epaper_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
     const auto* config = GET_CONFIG(device);
@@ -133,11 +138,29 @@ static error_t esp_epaper_draw_bitmap(Device* device, int32_t x_start, int32_t y
         source = internal->rotate_buffer;
     }
 
-    const esp_err_t ret = epd_update(internal->epd, source, config->update_mode);
+    const esp_err_t ret = epd_update_async(internal->epd, source, config->update_mode);
     xSemaphoreGive(internal->panel_mutex);
     if (ret != ESP_OK) {
-        LOG_E(TAG, "epd_update failed: %s", esp_err_to_name(ret));
+        LOG_E(TAG, "epd_update_async failed: %s", esp_err_to_name(ret));
         return ERROR_RESOURCE;
+    }
+    return ERROR_NONE;
+}
+
+// Blocks until the panel finished the refresh triggered by the last
+// esp_epaper_draw_bitmap(). Only polls the BUSY GPIO - no SPI traffic - so it
+// runs without the panel mutex and cannot conflict with a concurrent stream.
+static error_t esp_epaper_wait_sync(Device* device, uint32_t timeout_ms) {
+    auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
+    // epd_wait_busy() returns ESP_OK even when it gave up on the timeout, so
+    // the still-busy state after it returns is what signals ERROR_TIMEOUT.
+    const esp_err_t ret = epd_wait_busy(internal->epd, timeout_ms);
+    if (ret != ESP_OK) {
+        return ERROR_RESOURCE;
+    }
+    if (epd_is_busy(internal->epd)) {
+        LOG_W(TAG, "wait_sync timeout: panel still busy after %lu ms", (unsigned long)timeout_ms);
+        return ERROR_TIMEOUT;
     }
     return ERROR_NONE;
 }
@@ -198,6 +221,7 @@ static const DisplayApi esp_epaper_display_api = {
     .reset = esp_epaper_reset,
     .init = esp_epaper_init,
     .draw_bitmap = esp_epaper_draw_bitmap,
+    .wait_sync = esp_epaper_wait_sync,
     .mirror = nullptr,
     .swap_xy = nullptr,
     .get_swap_xy = nullptr,
@@ -271,6 +295,10 @@ static error_t start(Device* device) {
     epd_config.panel.type = panel_type;
     epd_config.panel.width = config->width;
     epd_config.panel.height = config->height;
+    // The kernel bridge owns the frame buffer and hands it to epd_update() as the
+    // source buffer, so the component's internal copy is redundant. Skipping it
+    // saves buffer_size bytes of RAM (48KB on the 800x480 GDEQ0426T82).
+    epd_config.framebuffer_enable = false;
 
     epd_handle_t epd = nullptr;
     if (epd_init(&epd_config, &epd) != ESP_OK) {
