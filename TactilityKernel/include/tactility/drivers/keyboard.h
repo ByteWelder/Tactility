@@ -66,6 +66,17 @@ struct KeyboardApi {
      * @retval ERROR_NOT_SUPPORTED when this device has no backlight
      */
     error_t (*get_backlight)(struct Device* device, struct Device** backlight_device);
+
+    /**
+     * @brief Optional: reports whether the keyboard is physically present right now. Only
+     * meaningful for hot-pluggable/detachable keyboards (e.g. a removable accessory) whose
+     * kernel device is constructed and started once at boot regardless of physical attachment -
+     * leave NULL for a keyboard that's always physically present whenever its device is active
+     * (the common case; callers must treat NULL the same as "always present").
+     * @param[in] device the keyboard device
+     * @return true if physically attached/present
+     */
+    bool (*is_present)(struct Device* device);
 };
 
 /**
@@ -82,6 +93,14 @@ error_t keyboard_read_key(struct Device* device, struct KeyboardKeyData* data);
  * @retval ERROR_NOT_SUPPORTED when this device has no backlight
  */
 error_t keyboard_get_backlight(struct Device* device, struct Device** backlight_device);
+
+/**
+ * @brief Whether the keyboard device is physically present right now. True when the driver
+ * doesn't implement KeyboardApi::is_present (i.e. it's always physically present whenever its
+ * device is active) - see that field's doc comment.
+ * @param[in] device the keyboard device
+ */
+bool keyboard_is_present(struct Device* device);
 
 extern const struct DeviceType KEYBOARD_TYPE;
 

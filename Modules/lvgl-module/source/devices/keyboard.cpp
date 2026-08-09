@@ -106,8 +106,11 @@ bool lvgl_hardware_keyboard_is_available() {
         return false;
     }
 
+    // TODO: Refactor the driver subsystem to so it does proper probing/releasing of such devices
+    // This work-around exists for the Tab5 keyboard driver.
+    bool present = keyboard_is_present(keyboard_device);
     device_put(keyboard_device);
-    return true;
+    return present;
 }
 
 void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
@@ -137,9 +140,15 @@ static void textarea_show_keyboard(lv_event_t* event) {
 }
 
 static void textarea_hide_keyboard(lv_event_t* event) {
-    if (last_software_keyboard.object != nullptr) {
-        lvgl_software_keyboard_hide(&last_software_keyboard);
+    if (last_software_keyboard.object == nullptr) {
+        return;
     }
+    // Only hide if the keyboard is actually bound to the textarea that triggered this
+    lv_obj_t* target = lv_event_get_current_target_obj(event);
+    if (lv_keyboard_get_textarea(last_software_keyboard.object) != target) {
+        return;
+    }
+    lvgl_software_keyboard_hide(&last_software_keyboard);
 }
 
 void lvgl_software_keyboard_construct(LvglSoftwareKeyboard* keyboard, lv_obj_t* parent) {
@@ -187,6 +196,7 @@ void lvgl_keyboard_add_textarea(LvglSoftwareKeyboard* keyboard, lv_obj_t* textar
         lv_obj_add_event_cb(textarea, textarea_show_keyboard, LV_EVENT_FOCUSED, nullptr);
         lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DEFOCUSED, nullptr);
         lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_READY, nullptr);
+        lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DELETE, nullptr);
     }
 
     // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)

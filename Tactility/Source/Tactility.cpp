@@ -42,6 +42,7 @@
 #include <gps_meshtastic/module.h>
 
 #include <crypt/module.h>
+#include <lvgl/devices/keyboard.h>
 #include <lvgl/devices/pointer.h>
 #include <lvgl/lvgl.h>
 #include <lvgl/module.h>
@@ -361,6 +362,9 @@ static void stopAppFromToolbar(lv_event_t*) {
     app_event_emit(topmost, &event);
 }
 
+// The on-screen keyboard widget itself, constructed during windowManagerScreenInit
+static LvglSoftwareKeyboard softwareKeyboard { .object = nullptr };
+
 static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     lv_obj_t* vertical_container = lv_obj_create(root);
     lv_obj_set_size(vertical_container, LV_PCT(100), LV_PCT(100));
@@ -379,6 +383,11 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     lv_obj_set_width(app_container, LV_PCT(100));
     lv_obj_set_flex_grow(app_container, 1);
     lv_obj_set_flex_flow(app_container, LV_FLEX_FLOW_COLUMN);
+
+    // Parented to root (not app_container/vertical_container) so it overlays on top of
+    // everything, including the statusbar, regardless of which app is showing. Hidden until a
+    // focused textarea shows it (see lvgl_keyboard_add_textarea()/textarea_show_keyboard()).
+    lvgl_software_keyboard_construct(&softwareKeyboard, root);
 
     return app_container;
 }
@@ -440,6 +449,10 @@ static void onLvglStarted() {
 }
 
 static void onLvglStopped() {
+    if (softwareKeyboard.object != nullptr) {
+        lvgl_software_keyboard_destruct(&softwareKeyboard);
+    }
+
     module_stop(&lvgl_window_manager_module);
 
     lvgl::stopUsbHidInput();
