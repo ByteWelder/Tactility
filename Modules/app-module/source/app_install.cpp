@@ -231,8 +231,16 @@ error_t register_installed_app_locked(const std::string& app_dir_path, const App
         .flags = 0,
     };
 
+    // Belt-and-braces: app_install()'s earlier app_manager_remove() call is meant to have
+    // already cleared any stale registration for this id (e.g. left over from
+    // app_manager_install_path_scan()'s separate registry), but that call happens before the
+    // tarball is even extracted - remove once more, right before add, so a duplicate id can
+    // never turn a filesystem-level install success into a reported failure.
+    app_manager_remove(record->id.c_str());
+
     error_t add_result = app_manager_add(&record->manifest);
     if (add_result != ERROR_NONE) {
+        LOG_E(TAG, "Failed to register app '%s': %s", record->id.c_str(), error_to_string(add_result));
         return add_result;
     }
 
@@ -362,7 +370,9 @@ error_t app_install(const char* source_path) {
     // uninstall_locked() doesn't know about. Clear the app-manager registration unconditionally
     // too, or app_manager_add() below rejects the re-add as a duplicate.
     uninstall_locked(metadata.app_id);
-    if (app_manager_remove(metadata.app_id) != ERROR_NONE) {
+
+    error_t remove_result = app_manager_remove(metadata.app_id);
+    if (remove_result != ERROR_NONE && remove_result != ERROR_NOT_FOUND) {
         LOG_E(TAG, "Install failed: failed to remove existing installation");
         mutex_unlock(&registry.mutex);
         delete_recursively(staging_path);

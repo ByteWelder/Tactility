@@ -113,7 +113,7 @@ esp_err_t DevelopmentService::handleAppRun(httpd_req_t* request) {
         }
     }
 
-    app_manager_start(app_id, &instance_id);
+    app_manager_start(id_key_pos->second.c_str(), &instance_id);
 
     LOG_I(TAG, "[200] /app/run %s", id_key_pos->second.c_str());
     httpd_resp_send(request, nullptr, 0);
@@ -193,7 +193,7 @@ esp_err_t DevelopmentService::handleAppInstall(httpd_req_t* request) {
         LOG_W(TAG, "We have more bytes at the end of the request parsing?!");
     }
 
-    if (!app_install(file_path.c_str())) {
+    if (app_install(file_path.c_str()) != ERROR_NONE) {
         httpd_resp_send_err(request, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to install");
         return ESP_FAIL;
     }
@@ -231,7 +231,7 @@ esp_err_t DevelopmentService::handleAppUninstall(httpd_req_t* request) {
         return ESP_OK;
     }
 
-    if (app_uninstall(id_key_pos->second.c_str())) {
+    if (app_uninstall(id_key_pos->second.c_str()) == ERROR_NONE) {
         LOG_I(TAG, "[200] /app/uninstall %s", id_key_pos->second.c_str());
         httpd_resp_send(request, nullptr, 0);
         return ESP_OK;
