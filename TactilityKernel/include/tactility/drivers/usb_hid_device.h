@@ -28,7 +28,7 @@ enum UsbHidDeviceMode {
     USB_HID_DEVICE_MODE_MOUSE,
     /** Keyboard + Consumer + Mouse (report IDs 1, 2, 3). */
     USB_HID_DEVICE_MODE_KEYBOARD_MOUSE,
-    /** Gamepad (report ID 1, 8 bytes: 2-byte buttons + 6-byte axes). */
+    /** Gamepad (report ID 1, 9 bytes: 6-byte axes, 1-byte hat/dpad, 2-byte buttons[12] padded). */
     USB_HID_DEVICE_MODE_GAMEPAD,
 };
 
@@ -98,11 +98,12 @@ struct UsbHidDeviceApi {
     error_t (*send_mouse)(struct Device* device, const uint8_t* report, size_t len);
 
     /**
-     * Send a gamepad HID report (report ID 1: buttons[2] + axes[6] - 8 bytes). Only valid in
+     * Send a gamepad HID report (report ID 1: axes[6] (X,Y,Z,Rx,Ry,Rz), hat/dpad[1],
+     * buttons[2] (12 buttons + 4 padding bits) - 9 bytes). Only valid in
      * USB_HID_DEVICE_MODE_GAMEPAD.
      * @param[in] device the HID device child device
-     * @param[in] report pointer to the 8-byte gamepad report
-     * @param[in] len number of bytes (up to 8)
+     * @param[in] report pointer to the 9-byte gamepad report
+     * @param[in] len number of bytes (up to 9)
      * @return ERROR_NONE on success
      */
     error_t (*send_gamepad)(struct Device* device, const uint8_t* report, size_t len);

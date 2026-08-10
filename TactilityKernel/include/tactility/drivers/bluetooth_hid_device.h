@@ -26,7 +26,7 @@ enum BtHidDeviceMode {
     BT_HID_DEVICE_MODE_MOUSE,
     /** Keyboard + Consumer + Mouse (report IDs 1, 2, 3). */
     BT_HID_DEVICE_MODE_KEYBOARD_MOUSE,
-    /** Gamepad (report ID 1, 8 bytes: 2-byte buttons + 6-byte axes). */
+    /** Gamepad (report ID 1, 9 bytes: 6-byte axes, 1-byte hat/dpad, 2-byte buttons[12] padded). */
     BT_HID_DEVICE_MODE_GAMEPAD,
 };
 
@@ -90,10 +90,10 @@ struct BtHidDeviceApi {
     error_t (*send_mouse)(struct Device* device, const uint8_t* report, size_t len);
 
     /**
-     * Send a gamepad HID report (8 bytes: buttons[2] + axes[6]).
+     * Send a gamepad HID report (9 bytes: axes[6] + hat[1] + buttons[2]).
      * @param[in] device the HID device child device
-     * @param[in] report pointer to the 8-byte gamepad report
-     * @param[in] len    number of bytes (up to 8)
+     * @param[in] report pointer to the 9-byte gamepad report
+     * @param[in] len    number of bytes (up to 9)
      * @return ERROR_NONE on success
      */
     error_t (*send_gamepad)(struct Device* device, const uint8_t* report, size_t len);
