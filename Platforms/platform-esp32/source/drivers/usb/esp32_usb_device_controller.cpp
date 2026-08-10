@@ -1,5 +1,5 @@
 #include <sdkconfig.h>
-#if CONFIG_SOC_USB_OTG_SUPPORTED && (CONFIG_TINYUSB_HID_COUNT || CONFIG_TINYUSB_MSC_ENABLED)
+#if CONFIG_SOC_USB_OTG_SUPPORTED && (CONFIG_TINYUSB_HID_COUNT || CONFIG_TINYUSB_MSC_ENABLED || CONFIG_TINYUSB_MIDI_COUNT)
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
@@ -128,6 +128,14 @@ static error_t start_device(struct Device* device) {
 
 static error_t stop_device(struct Device* device) {
     auto* ctx = static_cast<UsbDeviceControllerCtx*>(device_get_driver_data(device));
+    // Safety cleanup: if a class still holds the slot (e.g. this device is stopped while HID/
+    // MSC/MIDI is still active), tear TinyUSB down and restore the PHY route before freeing ctx -
+    // otherwise the installed TinyUSB driver and mis-routed PHY would outlive the context that
+    // tracks them. Mirrors the same safety-release pattern each child driver's own stop_device
+    // uses (see esp32_usb_hid_device.cpp / esp32_usb_device_msc.cpp / esp32_usb_midi_device.cpp).
+    if (ctx->active_class != USB_DEVICE_CLASS_NONE) {
+        release(device, ctx->active_class);
+    }
     delete ctx;
     device_set_driver_data(device, nullptr);
     return ERROR_NONE;
@@ -146,4 +154,4 @@ Driver esp32_usb_device_controller_driver = {
 
 } // extern "C"
 
-#endif // CONFIG_SOC_USB_OTG_SUPPORTED && (CONFIG_TINYUSB_HID_COUNT || CONFIG_TINYUSB_MSC_ENABLED)
+#endif // CONFIG_SOC_USB_OTG_SUPPORTED && (CONFIG_TINYUSB_HID_COUNT || CONFIG_TINYUSB_MSC_ENABLED || CONFIG_TINYUSB_MIDI_COUNT)

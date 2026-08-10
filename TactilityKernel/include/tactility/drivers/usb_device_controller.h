@@ -64,8 +64,12 @@ struct UsbDeviceControllerApi {
 
 extern const struct DeviceType USB_DEVICE_CONTROLLER_TYPE;
 
-/** Find the first ready USB device controller. Returns NULL if unavailable. */
-struct Device* usb_device_controller_get_device(void);
+/**
+ * Find the first started USB device controller and take a reference on it.
+ * @return the device with an outstanding reference, or NULL if none is available - caller must
+ *         call device_put() exactly once when done, same as device_get_first_active_by_type().
+ */
+struct Device* usb_device_controller_get(void);
 
 error_t usb_device_controller_claim(struct Device* device, enum UsbDeviceClass usb_class, const void* class_config);
 error_t usb_device_controller_release(struct Device* device, enum UsbDeviceClass usb_class);

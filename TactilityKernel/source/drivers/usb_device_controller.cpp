@@ -10,15 +10,9 @@ const struct DeviceType USB_DEVICE_CONTROLLER_TYPE = {
     .name = "usb-device-controller",
 };
 
-struct Device* usb_device_controller_get_device() {
+struct Device* usb_device_controller_get() {
     struct Device* found = nullptr;
-    device_for_each_of_type(&USB_DEVICE_CONTROLLER_TYPE, &found, [](struct Device* dev, void* ctx) -> bool {
-        if (device_is_ready(dev)) {
-            *static_cast<struct Device**>(ctx) = dev;
-            return false;
-        }
-        return true;
-    });
+    device_get_first_active_by_type(&USB_DEVICE_CONTROLLER_TYPE, &found);
     return found;
 }
 

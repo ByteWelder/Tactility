@@ -141,7 +141,10 @@ static error_t midi_device_set_name(struct Device* device, const char* name) {
 }
 
 static error_t midi_device_send(struct Device* device, const uint8_t* msg, size_t len) {
-    (void)device;
+    auto* controller = device_get_parent(device);
+    if (controller == nullptr || usb_device_controller_get_active_class(controller) != USB_DEVICE_CLASS_MIDI) {
+        return ERROR_INVALID_STATE;
+    }
     if (!tud_mounted()) {
         return ERROR_INVALID_STATE;
     }
@@ -150,7 +153,10 @@ static error_t midi_device_send(struct Device* device, const uint8_t* msg, size_
 }
 
 static bool midi_device_is_connected(struct Device* device) {
-    (void)device;
+    auto* controller = device_get_parent(device);
+    if (controller == nullptr || usb_device_controller_get_active_class(controller) != USB_DEVICE_CLASS_MIDI) {
+        return false;
+    }
     return tud_mounted();
 }
 

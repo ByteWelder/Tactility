@@ -10,15 +10,9 @@ const struct DeviceType USB_MSC_DEVICE_TYPE = {
     .name = "usb-msc-device",
 };
 
-struct Device* usb_msc_device_get_device() {
+struct Device* usb_msc_device_get() {
     struct Device* found = nullptr;
-    device_for_each_of_type(&USB_MSC_DEVICE_TYPE, &found, [](struct Device* dev, void* ctx) -> bool {
-        if (device_is_ready(dev)) {
-            *static_cast<struct Device**>(ctx) = dev;
-            return false;
-        }
-        return true;
-    });
+    device_get_first_active_by_type(&USB_MSC_DEVICE_TYPE, &found);
     return found;
 }
 

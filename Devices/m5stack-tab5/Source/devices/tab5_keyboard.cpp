@@ -374,7 +374,9 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                 ? KEY_MATRIX_HID_SYM[row * 14U + col]
                 : KEY_MATRIX_HID_BASE[row * 14U + col];
             if (m.keycode != 0U) {
-                const uint8_t modifier = static_cast<uint8_t>(m.modifier | (aa_active ? 0x02U : 0U));
+                uint8_t modifier = static_cast<uint8_t>(m.modifier | (aa_active ? 0x02U : 0U));
+                if (internal->ctrl_held) modifier |= 0x01U; // HID LeftCtrl
+                if (internal->alt_held) modifier |= 0x04U;  // HID LeftAlt
                 const uint32_t lv_key = tab5_translate_key(m.keycode, modifier, internal->ctrl_held);
                 // Queue whenever there's a HID keycode, even if this key has no LVGL/ASCII
                 // representation (e.g. F1-F12) - lv_key stays 0 for those, callers that only

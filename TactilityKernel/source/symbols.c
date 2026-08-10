@@ -421,13 +421,13 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(usb_msc_eject),
     DEFINE_MODULE_SYMBOL(USB_HOST_MSC_TYPE),
     // drivers/usb_device_controller
-    DEFINE_MODULE_SYMBOL(usb_device_controller_get_device),
+    DEFINE_MODULE_SYMBOL(usb_device_controller_get),
     DEFINE_MODULE_SYMBOL(usb_device_controller_claim),
     DEFINE_MODULE_SYMBOL(usb_device_controller_release),
     DEFINE_MODULE_SYMBOL(usb_device_controller_get_active_class),
     DEFINE_MODULE_SYMBOL(USB_DEVICE_CONTROLLER_TYPE),
     // drivers/usb_hid_device
-    DEFINE_MODULE_SYMBOL(usb_hid_device_get_device),
+    DEFINE_MODULE_SYMBOL(usb_hid_device_get),
     DEFINE_MODULE_SYMBOL(usb_hid_device_start),
     DEFINE_MODULE_SYMBOL(usb_hid_device_stop),
     DEFINE_MODULE_SYMBOL(usb_hid_device_set_name),
@@ -438,13 +438,13 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(usb_hid_device_is_connected),
     DEFINE_MODULE_SYMBOL(USB_HID_DEVICE_TYPE),
     // drivers/usb_msc_device
-    DEFINE_MODULE_SYMBOL(usb_msc_device_get_device),
+    DEFINE_MODULE_SYMBOL(usb_msc_device_get),
     DEFINE_MODULE_SYMBOL(usb_msc_device_start),
     DEFINE_MODULE_SYMBOL(usb_msc_device_stop),
     DEFINE_MODULE_SYMBOL(usb_msc_device_is_connected),
     DEFINE_MODULE_SYMBOL(USB_MSC_DEVICE_TYPE),
     // drivers/usb_midi_device
-    DEFINE_MODULE_SYMBOL(usb_midi_device_get_device),
+    DEFINE_MODULE_SYMBOL(usb_midi_device_get),
     DEFINE_MODULE_SYMBOL(usb_midi_device_start),
     DEFINE_MODULE_SYMBOL(usb_midi_device_stop),
     DEFINE_MODULE_SYMBOL(usb_midi_device_set_name),

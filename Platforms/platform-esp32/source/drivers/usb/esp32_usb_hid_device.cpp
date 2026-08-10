@@ -436,10 +436,10 @@ static error_t hid_device_send_gamepad(struct Device* device, const uint8_t* rep
     if (active_mode != USB_HID_DEVICE_MODE_GAMEPAD) {
         return ERROR_NOT_SUPPORTED;
     }
-    // 9 bytes: X,Y,Z,Rx,Ry,Rz (1 each), hat/dpad (1), buttons[2] (12 buttons + 4 padding bits).
-    // Was 8 bytes (buttons[2] + axes[6], no hat) before hid_report_map_gamepad (see
-    // hid_report_descriptors.cpp) picked up a proper D-pad/hat switch.
-    uint8_t buf[9] = {};
+    // 8 bytes: X,Y,Rx,Ry,Z (1 each - Xbox-360-style, Z shared by triggers), hat/dpad (1),
+    // buttons[2] (10 buttons + 6 padding bits). See hid_report_descriptors.cpp for the full
+    // layout/rationale (matched against a real 8BitDo receiver).
+    uint8_t buf[8] = {};
     memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
     return hid_send_report(REPORT_ID_GAMEPAD, buf, sizeof(buf));
 }

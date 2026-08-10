@@ -111,11 +111,11 @@ static int hid_chr_access(uint16_t /*conn_handle*/, uint16_t attr_handle,
                 return (rc == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
             }
             if (uuid16 == 0x2A4D) {
-                static const uint8_t zeros[9] = {};
+                static const uint8_t zeros[8] = {};
                 size_t report_len = 8;
                 if (attr_handle == hid_consumer_input_handle) report_len = 2;
                 else if (attr_handle == hid_mouse_input_handle) report_len = 4;
-                else if (attr_handle == hid_gamepad_input_handle) report_len = 9;
+                else if (attr_handle == hid_gamepad_input_handle) report_len = 8;
                 int rc = os_mbuf_append(ctxt->om, zeros, report_len);
                 return (rc == 0) ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
             }
@@ -476,7 +476,7 @@ static error_t hid_device_send_mouse(struct Device* device, const uint8_t* repor
 static error_t hid_device_send_gamepad(struct Device* device, const uint8_t* report, size_t len) {
     BleHidDeviceCtx* hid_ctx = (BleHidDeviceCtx*)device_get_driver_data(device);
     if (hid_ctx == nullptr) return ERROR_INVALID_STATE;
-    uint8_t buf[9] = {};
+    uint8_t buf[8] = {};
     memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
     return hid_notify(hid_ctx->hid_conn_handle.load(), hid_gamepad_input_handle, buf, sizeof(buf));
 }

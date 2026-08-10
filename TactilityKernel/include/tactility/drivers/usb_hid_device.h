@@ -98,12 +98,13 @@ struct UsbHidDeviceApi {
     error_t (*send_mouse)(struct Device* device, const uint8_t* report, size_t len);
 
     /**
-     * Send a gamepad HID report (report ID 1: axes[6] (X,Y,Z,Rx,Ry,Rz), hat/dpad[1],
-     * buttons[2] (12 buttons + 4 padding bits) - 9 bytes). Only valid in
-     * USB_HID_DEVICE_MODE_GAMEPAD.
+     * Send a gamepad HID report (report ID 1: axes[5] (X,Y,Rx,Ry,Z), hat/dpad[1] (low nibble),
+     * buttons[2] (10 buttons + 6 padding bits) - 8 bytes). Only valid in
+     * USB_HID_DEVICE_MODE_GAMEPAD. See hid_report_map_gamepad in hid_report_descriptors.cpp for
+     * the full wire layout.
      * @param[in] device the HID device child device
-     * @param[in] report pointer to the 9-byte gamepad report
-     * @param[in] len number of bytes (up to 9)
+     * @param[in] report pointer to the 8-byte gamepad report
+     * @param[in] len number of bytes (up to 8)
      * @return ERROR_NONE on success
      */
     error_t (*send_gamepad)(struct Device* device, const uint8_t* report, size_t len);
@@ -117,8 +118,12 @@ struct UsbHidDeviceApi {
 
 extern const struct DeviceType USB_HID_DEVICE_TYPE;
 
-/** Find the first ready USB HID device child device. Returns NULL if unavailable. */
-struct Device* usb_hid_device_get_device(void);
+/**
+ * Find the first started USB HID device child device and take a reference on it.
+ * @return the device with an outstanding reference, or NULL if none is available - caller must
+ *         call device_put() exactly once when done, same as device_get_first_active_by_type().
+ */
+struct Device* usb_hid_device_get(void);
 
 error_t usb_hid_device_start(struct Device* device, enum UsbHidDeviceMode mode);
 error_t usb_hid_device_stop(struct Device* device);

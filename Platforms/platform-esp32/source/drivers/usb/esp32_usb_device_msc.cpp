@@ -157,7 +157,7 @@ static error_t msc_device_start(struct Device* device, enum UsbMscDeviceSource s
         result = tinyusb_msc_storage_init_sdmmc(&config_sdmmc);
     } else {
         const tinyusb_msc_spiflash_config_t config_flash = {
-            .wl_handle = reinterpret_cast<wl_handle_t>(source_handle),
+            .wl_handle = *static_cast<wl_handle_t*>(source_handle),
             .callback_mount_changed = storage_mount_changed_cb,
             .callback_premount_changed = nullptr,
             .mount_config = {

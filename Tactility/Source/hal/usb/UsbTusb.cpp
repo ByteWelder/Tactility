@@ -67,7 +67,7 @@ static void onMountChanged(bool mounted, void* /*context*/) {
 bool tusbIsSupported() { return true; }
 
 bool tusbStartMassStorageWithSdmmc(bool fromBootMode) {
-    auto* device = usb_msc_device_get_device();
+    auto* device = usb_msc_device_get();
     if (device == nullptr) {
         LOG_E(TAG, "USB MSC device not available");
         return false;
@@ -76,6 +76,7 @@ bool tusbStartMassStorageWithSdmmc(bool fromBootMode) {
     auto* card = tt::hal::usb::getCard();
     if (card == nullptr) {
         LOG_E(TAG, "SD card not mounted");
+        device_put(device);
         return false;
     }
 
@@ -89,13 +90,14 @@ bool tusbStartMassStorageWithSdmmc(bool fromBootMode) {
         LOG_I(TAG, "TinyUSB SDMMC init success");
     }
 
+    device_put(device);
     return result == ERROR_NONE;
 }
 
 bool tusbStartMassStorageWithFlash(bool fromBootMode) {
     LOG_I(TAG, "Starting flash MSC");
 
-    auto* device = usb_msc_device_get_device();
+    auto* device = usb_msc_device_get();
     if (device == nullptr) {
         LOG_E(TAG, "USB MSC device not available");
         return false;
@@ -104,25 +106,28 @@ bool tusbStartMassStorageWithFlash(bool fromBootMode) {
     wl_handle_t handle = tt::getDataPartitionWlHandle();
     if (handle == WL_INVALID_HANDLE) {
         LOG_E(TAG, "WL not mounted for /data");
+        device_put(device);
         return false;
     }
 
     tt::hal::usb::startedFromBootMode = fromBootMode;
 
     auto result = usb_msc_device_start(device, USB_MSC_DEVICE_SOURCE_FLASH,
-        reinterpret_cast<void*>(handle), tt::hal::usb::onMountChanged, nullptr);
+        &handle, tt::hal::usb::onMountChanged, nullptr);
     if (result != ERROR_NONE) {
         LOG_E(TAG, "TinyUSB flash init failed: %s", error_to_string(result));
     } else {
         LOG_I(TAG, "TinyUSB flash init success");
     }
+    device_put(device);
     return result == ERROR_NONE;
 }
 
 void tusbStop() {
-    auto* device = usb_msc_device_get_device();
+    auto* device = usb_msc_device_get();
     if (device != nullptr) {
         usb_msc_device_stop(device);
+        device_put(device);
     }
 }
 

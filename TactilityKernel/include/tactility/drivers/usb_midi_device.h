@@ -67,8 +67,12 @@ struct UsbMidiDeviceApi {
 
 extern const struct DeviceType USB_MIDI_DEVICE_TYPE;
 
-/** Find the first ready USB MIDI device child device. Returns NULL if unavailable. */
-struct Device* usb_midi_device_get_device(void);
+/**
+ * Find the first started USB MIDI device child device and take a reference on it.
+ * @return the device with an outstanding reference, or NULL if none is available - caller must
+ *         call device_put() exactly once when done, same as device_get_first_active_by_type().
+ */
+struct Device* usb_midi_device_get(void);
 
 error_t usb_midi_device_start(struct Device* device);
 error_t usb_midi_device_stop(struct Device* device);
