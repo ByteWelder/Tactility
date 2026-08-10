@@ -97,6 +97,18 @@ struct LvglDisplayCtx {
     // set; cleared only by the refresh task, which then re-renders so the newest content eventually
     // reaches the panel.
     std::atomic<bool> frame_pending;
+    // Windowed partial refresh (DISPLAY_CAPABILITY_PARTIAL_REFRESH on a slow-refresh I1 e-paper):
+    // draw_bitmap() tiles stream into the panel RAM during a cycle, and refresh() is triggered once
+    // per cycle from the last flush. The bridge drops a whole cycle when the previous refresh is
+    // still driving (tiles written into a busy panel would be ignored), then re-renders. Only valid
+    // in the panel's base orientation - the driver reports the capability only at rotation 0, and
+    // any LVGL rotation here drops cycles too.
+    bool partial_refresh;
+    // True from the first flush of a cycle until its last flush; gates cycle-drop detection.
+    bool cycle_active;
+    // True when the current cycle was dropped at its first flush (previous refresh in flight, or
+    // rotation active); every flush of the cycle is skipped and no refresh is triggered.
+    bool cycle_dropped;
     // Valid for the lifetime of the display; written in lvgl_display_add(), read by the refresh task.
     struct Device* refresh_task_device;
     lv_display_t* refresh_task_display;
@@ -301,15 +313,26 @@ static int32_t lvgl_display_refresh_task_main(void* context) {
             LOG_W(TAG, "Waiting for panel refresh failed: %d", (int)wait_result);
         }
 
+        if (ctx->partial_refresh) {
+            // The panel just finished driving; mirror the last cycle's windows into the base image
+            // plane before any new cycle can write to the display RAM, keeping the differential
+            // refresh sequence diffling against the frame that is actually on screen.
+            error_t commit_result = display_commit_base(ctx->refresh_task_device);
+            if (commit_result != ERROR_NONE) {
+                LOG_W(TAG, "Committing base image failed: %d", (int)commit_result);
+            }
+        }
+
         // One writer per direction, no lock needed: only this task clears refresh_in_flight, only
         // lvgl_display_flush_cb() sets it.
         ctx->refresh_in_flight.store(false);
 
         if (ctx->frame_pending.load()) {
-            // A full frame was dropped while the panel was busy. Repaint from LVGL's current state
-            // so the panel eventually shows the newest content instead of a stale frame. For a
-            // LV_DISPLAY_RENDER_MODE_FULL display (the only mode slow-refresh panels use),
-            // invalidating any area redraws the whole screen; the invalidate also resumes LVGL's
+            // A frame or partial cycle was dropped while the panel was busy (see the drop paths
+            // in lvgl_display_flush_cb()). Repaint from LVGL's current state so the panel
+            // eventually shows the newest content instead of a stale frame: for FULL mode
+            // invalidating any area redraws the whole screen; for partial mode it re-runs the
+            // banded cycle that was dropped. Either way the invalidate also resumes LVGL's
             // refresh timer, which is paused between refreshes.
             ctx->frame_pending.store(false);
             lvgl_lock();
@@ -336,6 +359,63 @@ static void lvgl_display_flush_cb(lv_display_t* disp, const lv_area_t* area, uin
 
     lv_display_rotation_t rotation = lv_display_get_rotation(disp);
     bool rotating = ctx->sw_rotate && rotation != LV_DISPLAY_ROTATION_0;
+
+    // Windowed partial refresh (I1 e-paper): each flush_cb call is one tile of the
+    // current cycle. Tiles stream into the panel RAM as they arrive; the panel only
+    // drives once per cycle, triggered from the last flush. Unlike FULL mode there
+    // is no complete frame anywhere to present, so every tile must be handled.
+    if (ctx->partial_refresh) {
+        // First flush of a cycle decides whether the cycle runs or is dropped.
+        if (!ctx->cycle_active) {
+            ctx->cycle_active = true;
+            ctx->cycle_dropped = false;
+            if (ctx->refresh_in_flight.load()) {
+                // The panel is still driving the previous cycle. Tiles written now would
+                // be ignored (GDDRAM is read-only while BUSY) and the base plane is not
+                // committed yet, so drop the whole cycle; the refresh task re-renders
+                // once the panel is idle (see lvgl_display_refresh_task_main).
+                ctx->cycle_dropped = true;
+                ctx->frame_pending.store(true);
+            } else if (rotating) {
+                // Windowed refresh only supports the panel's base orientation; rotated
+                // content cannot be placed in the panel RAM correctly.
+                ctx->cycle_dropped = true;
+                LOG_E(TAG, "Partial refresh does not support rotation, dropping cycle");
+            }
+        }
+
+        if (!ctx->cycle_dropped) {
+            // LVGL reserves an 8-byte palette at the front of every I1 draw buffer; the
+            // tile's pixels follow it, tightly packed at the area's width.
+            error_t draw_result = display_draw_bitmap(wrapper->device, x1, y1, x2 + 1, y2 + 1, color_map + 8);
+            if (draw_result != ERROR_NONE) {
+                LOG_W(TAG, "draw_bitmap failed: %d", (int)draw_result);
+            }
+        }
+
+        if (lv_display_flush_is_last(disp)) {
+            // End of the cycle: trigger the panel drive for everything streamed so far,
+            // then hand the "wait for it to finish" over to the refresh task.
+            if (!ctx->cycle_dropped) {
+                error_t refresh_result = display_refresh(wrapper->device, false);
+                if (refresh_result != ERROR_NONE) {
+                    LOG_W(TAG, "refresh failed: %d", (int)refresh_result);
+                } else {
+                    ctx->refresh_in_flight.store(true);
+                    TaskHandle_t task_handle = thread_get_task_handle(ctx->refresh_task);
+                    if (task_handle != NULL) {
+                        xTaskNotifyGive(task_handle);
+                    } else {
+                        LOG_E(TAG, "Refresh task not running while streaming a frame");
+                    }
+                }
+            }
+            ctx->cycle_active = false;
+            ctx->cycle_dropped = false;
+        }
+        lv_display_flush_ready(disp);
+        return;
+    }
 
     // In FULL mode, a refresh cycle can call this once per still-unjoined invalidated area (see
     // the comment below) before the frame is complete - rotating per-tile here would only ever
@@ -541,17 +621,37 @@ error_t lvgl_display_add(struct Device* device, const struct LvglDisplayConfig* 
     size_t buf_size_bytes;
 
     if (lv_color_format == LV_COLOR_FORMAT_I1) {
-        // I1 packs 8 pixels/byte row-wise and LVGL reserves an 8-byte palette header at the
-        // buffer's start (see lvgl_display_flush_cb()). Always redraw the whole frame in one
-        // owned buffer instead of computing partial-region byte offsets against that packing.
-        buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
-        ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
-        if (ctx->buf1 == NULL) {
-            delete wrapper;
-            return ERROR_OUT_OF_MEMORY;
+        // Windowed partial refresh for I1 e-paper that advertises both PARTIAL_REFRESH and
+        // SLOW_REFRESH: render into a small owned buffer (buffer_height rows) and stream each
+        // flush tile to the panel as it arrives, triggering the panel drive once per cycle
+        // (see lvgl_display_flush_cb()). The +8 reserves LVGL's I1 palette header, which
+        // get_max_row() subtracts when computing the tile height.
+        bool partial_i1 = display_has_capability(device, DISPLAY_CAPABILITY_PARTIAL_REFRESH) &&
+            display_has_capability(device, DISPLAY_CAPABILITY_SLOW_REFRESH);
+        if (partial_i1) {
+            uint16_t buf_height = config->buffer_height == 0 ? vres : config->buffer_height;
+            buf_size_bytes = (size_t)((hres + 7) / 8) * buf_height + 8;
+            ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
+            if (ctx->buf1 == NULL) {
+                delete wrapper;
+                return ERROR_OUT_OF_MEMORY;
+            }
+            ctx->owns_buffers = true;
+            render_mode = LV_DISPLAY_RENDER_MODE_PARTIAL;
+            ctx->partial_refresh = true;
+        } else {
+            // I1 packs 8 pixels/byte row-wise and LVGL reserves an 8-byte palette header at the
+            // buffer's start (see lvgl_display_flush_cb()). Always redraw the whole frame in one
+            // owned buffer instead of computing partial-region byte offsets against that packing.
+            buf_size_bytes = (size_t)((hres + 7) / 8) * vres + 8;
+            ctx->buf1 = lvgl_display_alloc_buffer(buf_size_bytes, config->prefer_external_ram);
+            if (ctx->buf1 == NULL) {
+                delete wrapper;
+                return ERROR_OUT_OF_MEMORY;
+            }
+            ctx->owns_buffers = true;
+            render_mode = LV_DISPLAY_RENDER_MODE_FULL;
         }
-        ctx->owns_buffers = true;
-        render_mode = LV_DISPLAY_RENDER_MODE_FULL;
     } else if (would_bind_fb_direct) {
         display_get_frame_buffer(device, 0, &ctx->buf1);
         if (fb_count > 1) {

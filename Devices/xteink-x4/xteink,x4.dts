@@ -36,17 +36,13 @@
 		gpio-count = <22>;
 	};
 
-	// Reference ranges (11 dB attenuation) recorded on hardware: Back 3512 /
-	// Confirm 2694 / Left 1493 / Right ~5 on ADC_CHANNEL_1; Up 2242 / Down ~5 on
-	// ADC_CHANNEL_2. No button pressed reads ~4095 (idle, out of every band).
-	// Bands are split at the midpoints between neighbouring readings.
 	buttons {
 		compatible = "tactility,button-adc-control";
 		debounce-ms = <20>;
 		buttons = <&adc0 1 3803 3103 LV_KEY_ESC>,
 		          <&adc0 1 3103 2093 LV_KEY_ENTER>,
-		          <&adc0 1 2093 749 LV_KEY_LEFT>,
-		          <&adc0 1 749 -2147483648 LV_KEY_RIGHT>,
+		          <&adc0 1 2093 749 LV_KEY_PREV>,
+		          <&adc0 1 749 -2147483648 LV_KEY_NEXT>,
 		          <&adc0 2 3168 1123 LV_KEY_UP>,
 		          <&adc0 2 1123 -2147483648 LV_KEY_DOWN>;
 	};
