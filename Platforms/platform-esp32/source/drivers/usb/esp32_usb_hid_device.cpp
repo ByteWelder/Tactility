@@ -31,8 +31,7 @@
 // Defined once in Platforms/platform-esp32/source/drivers/hid_report_descriptors.cpp and shared
 // with esp32_ble_hid.cpp - HID report descriptors are transport-independent (same USB HID Usage
 // Tables spec applies to both USB and BLE HID), so the same bytes work verbatim over either
-// transport. See that file's header comment for report ID scheme and current USB/BLE gamepad
-// divergence (BLE's copy hasn't been updated to the new hat-switch layout yet).
+// transport.
 
 // Report IDs, matching the shared hid_report_map_* tables.
 static constexpr uint8_t REPORT_ID_KEYBOARD = 1;
@@ -162,11 +161,8 @@ static const char hid_langid_descriptor[] = { 0x09, 0x04 };
 // index 2 (iProduct) is overwritten per-mode/per-custom-name in start(), see
 // build_hid_device_descriptor().
 static char hid_product_string[sizeof(custom_name)] = "Tactility Keyboard";
-// index 4 is the HID interface string, read directly by some HID apps/testers (gamepad
-// testers, joystick tools) instead of iProduct (index 2) - same class of bug found and fixed
-// in the MIDI driver, where the interface string was a hardcoded generic "MIDI" placeholder
-// instead of the real product name. Point it at the same buffer as iProduct so both stay in
-// sync with whatever mode/custom name is active.
+// index 4 is the HID interface string, read directly by some HID apps/testers (gamepad testers, joystick tools) instead of iProduct (index 2).
+// Point it at the same buffer as iProduct so both stay in sync with whatever mode/custom name is active.
 static const char* hid_string_descriptor[] = {
     hid_langid_descriptor, "Tactility", hid_product_string, "123456", hid_product_string,
 };
@@ -177,10 +173,9 @@ static const char* hid_string_descriptor[] = {
 // finalized before claim() is called.
 //
 // Guarded by !CONFIG_TINYUSB_CDC_ENABLED (mirroring the CDC variant's own guard below) rather
-// than being compiled unconditionally: on any board with CDC enabled (Tab5 always does, see
-// device.py), hid_device_start() only ever takes the CDC branch, leaving this variant
-// genuinely dead code for that build - left ungated it, it still compiled, but as an unused
-// static function warning.
+// than being compiled unconditionally: on any board with CDC enabled, hid_device_start() only ever takes the CDC branch,
+// leaving this variant genuinely dead code for that build - left ungated it,
+// it still compiled, but as an unused static function warning.
 #if !CONFIG_TINYUSB_CDC_ENABLED
 static uint8_t hid_configuration_descriptor[TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN];
 
@@ -374,13 +369,10 @@ static error_t hid_device_set_name(struct Device* device, const char* name) {
 
 // tud_hid_report() fails outright (no queueing) if the endpoint is still busy sending a
 // previous report - a single fire-and-forget call is unsafe whenever a caller sends two reports
-// back to back (e.g. press immediately followed by release, as every button handler in
-// UsbTest/Tab5KeyboardHID does): the second call can lose the race and drop the release, leaving
+// back to back (e.g. press immediately followed by release: the second call can lose the race and drop the release, leaving
 // the host thinking a key/button/consumer-control is still held down (which then either does
 // nothing further or, for keys the host auto-repeats, keeps repeating). Retry with a short
-// backoff instead of failing immediately, same fix as Tab5KeyboardHID's own sendWithRetry()
-// needed at the app layer before this existed - moved down into the driver so every caller
-// gets it automatically instead of reimplementing it.
+// backoff instead of failing immediately.
 static error_t hid_send_report(uint8_t report_id, const uint8_t* report, size_t len) {
     if (!tud_mounted()) {
         LOG_W(TAG, "hid_send_report(id=%d): tud_mounted() false - real disconnect, not just a busy endpoint", report_id);
@@ -438,7 +430,7 @@ static error_t hid_device_send_gamepad(struct Device* device, const uint8_t* rep
     }
     // 8 bytes: X,Y,Rx,Ry,Z (1 each - Xbox-360-style, Z shared by triggers), hat/dpad (1),
     // buttons[2] (10 buttons + 6 padding bits). See hid_report_descriptors.cpp for the full
-    // layout/rationale (matched against a real 8BitDo receiver).
+    // layout/rationale.
     uint8_t buf[8] = {};
     memcpy(buf, report, len < sizeof(buf) ? len : sizeof(buf));
     return hid_send_report(REPORT_ID_GAMEPAD, buf, sizeof(buf));

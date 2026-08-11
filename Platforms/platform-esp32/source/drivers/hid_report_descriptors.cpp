@@ -169,18 +169,10 @@ const uint8_t hid_report_map_keyboard_consumer_mouse[] = {
 };
 const size_t hid_report_map_keyboard_consumer_mouse_len = sizeof(hid_report_map_keyboard_consumer_mouse);
 
-// Gamepad only (report ID 1): matches Microsoft's documented XUSB-to-HID gamepad mapping
-// (https://learn.microsoft.com/windows/win32/xinput/directinput-and-xusb-devices) so DirectInput
-// resolves axes/buttons the same way real Xbox-360-style controllers do: left stick = X/Y, right
-// stick = Rx/Ry, triggers share a single Z axis (LT = positive, RT = negative, centered = 0,
-// matching XInput's own trigger-combining behavior), hat/dpad, 10 buttons (1=A 2=B 3=X 4=Y 5=LB
-// 6=RB 7=Back/Select 8=Start 9=L3 10=R3). DirectInput assigns axis usages to lX/lY/lZ/lRx/lRy by
-// USAGE TAG, not by declaration order, so X/Y/Rx/Ry/Z in that order (not X/Y/Z/Rx/Ry) is correct
-// and does not need reordering - see https://learn.microsoft.com/windows-hardware/drivers/hid/axis-selection.
-// Some DirectInput testers render lZ as a second stick's X axis and label buttons 9/10 as
-// Select/Start (the W3C Gamepad API's naming, not DirectInput's) - that's a display/labeling
-// difference in those tools, not a wire-format bug; verify against Windows' own joy.cpl instead,
-// which shows the true X/Y/Z/Rz/POV/button names.
+// Gamepad only (report ID 1):
+// left stick = X/Y, right stick = Rx/Ry, triggers share a single Z axis (LT = positive, RT = negative, centered = 0,),
+// hat/dpad, 10 buttons (1=A 2=B 3=X 4=Y 5=LB 6=RB 7=Back/Select 8=Start 9=L3 10=R3).
+// DirectInput assigns axis usages to lX/lY/lZ/lRx/lRy by USAGE TAG, not by declaration order, so X/Y/Rx/Ry/Z in that order (not X/Y/Z/Rx/Ry) is correct.
 const uint8_t hid_report_map_gamepad[] = {
     0x05, 0x01,        // Usage Page: Generic Desktop
     0x09, 0x05,        // Usage: Game Pad
@@ -199,9 +191,7 @@ const uint8_t hid_report_map_gamepad[] = {
     0x95, 0x05,        // Report Count: 5
     0x81, 0x02,        // Input: Data, Variable, Absolute
     // --- 4-bit hat/dpad (0-7 = direction clockwise from Up, 8 = centered/released via Null State).
-    // Logical range must be 0-7 (not 1-8) and size must be a nibble (not a full byte) - both are
-    // required for DirectInput to recognize this as a POV; a full-byte/1-8-range hat (this
-    // driver's earlier version) silently fails to register as a POV in any DirectInput tester.
+    // Logical range must be 0-7 (not 1-8) and size must be a nibble (not a full byte) - both are required for DirectInput to recognize this as a POV.
     0x09, 0x39,        // Usage: Hat Switch
     0x15, 0x00,        // Logical Minimum: 0
     0x25, 0x07,        // Logical Maximum: 7
@@ -210,10 +200,8 @@ const uint8_t hid_report_map_gamepad[] = {
     0x65, 0x14,        // Unit: Eng Rot:Angular Pos (degrees)
     0x75, 0x04,        // Report Size: 4
     0x95, 0x01,        // Report Count: 1
-    0x81, 0x42,        // Input: Data, Variable, Absolute, Null State (value 8 = centered/released,
-                        // outside the declared 0-7 logical range)
-    0x65, 0x00,        // Unit: None - resets the Unit global item so it doesn't leak onto the
-                        // button/padding items below (Unit is global, not local, in HID).
+    0x81, 0x42,        // Input: Data, Variable, Absolute, Null State (value 8 = centered/released, outside the declared 0-7 logical range)
+    0x65, 0x00,        // Unit: None - resets the Unit global item so it doesn't leak onto the button/padding items below (Unit is global, not local, in HID).
     0x75, 0x04,        // Report Size: 4
     0x95, 0x01,        // Report Count: 1
     0x81, 0x03,        // Input: Constant, Variable, Absolute (pad hat nibble to a full byte)
@@ -221,7 +209,7 @@ const uint8_t hid_report_map_gamepad[] = {
     0x05, 0x09,        // Usage Page: Button
     0x19, 0x01,        // Usage Minimum: 1
     0x29, 0x0A,        // Usage Maximum: 10
-    0x15, 0x00,        // Logical Minimum: 0 (re-asserted - the axis item above left this at -127)
+    0x15, 0x00,        // Logical Minimum: 0
     0x25, 0x01,        // Logical Maximum: 1
     0x75, 0x01,        // Report Size: 1
     0x95, 0x0A,        // Report Count: 10
