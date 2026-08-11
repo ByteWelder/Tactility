@@ -72,6 +72,9 @@
 
 ## Lower Priority
 
+- lvgl-module has a keyboard.cpp that creates a `keyboard_group`. This group is set as the default group, so it can also work with trackball(= LVGL "encoder").
+  Make a separate group that is the default group. The keyboard can then use it (or use its own).
+  The basic idea is to invert the ownership: now the keyboard group is made the default group, but it's probably more logical to have the default group used by the keyboard.
 - lvgl-module's spinner relies on hard-coded spinner asset from Tactility main project.
 - Localize all apps
 - Support hot-plugging SD card (note: this is not possible if they require the CS pin hack)

@@ -19,6 +19,10 @@ void lvgl_keyboard_on_start_lvgl() {
     lvgl_lock();
     keyboard_group = lv_group_create();
     check(keyboard_group);
+    // We currently set this group as the default, so it doesn't only get (manually added) textareas,
+    // but gets all widgets by default. This is a temporary work-around until a proper default group is
+    // created to fix the trackball issue (see trackball.cpp and ideas.md, search for "group")
+    lv_group_set_default(keyboard_group);
     lvgl_unlock();
 }
 

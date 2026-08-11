@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <lvgl/devices/trackball.h>
 #include <lvgl/devices/device_context.h>
+#include <lvgl/devices/keyboard.h>
 #include <lvgl/lvgl.h>
 
 #include <tactility/drivers/trackball.h>
@@ -154,6 +155,13 @@ error_t lvgl_trackball_add(struct Device* device, lv_display_t* display, lv_inde
     }
     recenter_cursor(ctx, indev);
 
+    // Encoder indevs are useless without a group (LVGL dispatch bails out immediately if indev->group is NULL)
+    // Use the keyboard group for now, until it's refactored into a proper global/shared group. See ideas.md
+    // When refactoring this, you probably want to remove the calls to lvgl_keyboard_* below.
+    if (ctx->settings.mode == LVGL_TRACKBALL_MODE_ENCODER) {
+        lvgl_keyboard_enable(indev);
+    }
+
     *out_indev = indev;
     return ERROR_NONE;
 }
@@ -196,12 +204,14 @@ error_t lvgl_trackball_set_settings(lv_indev_t* indev, const struct LvglTrackbal
 
     if (mode_changed) {
         if (settings->mode == LVGL_TRACKBALL_MODE_POINTER) {
+            lvgl_keyboard_disable(indev);
             lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
             recenter_cursor(ctx, indev);
             show_cursor(ctx, indev);
         } else {
             hide_cursor(ctx);
             lv_indev_set_type(indev, LV_INDEV_TYPE_ENCODER);
+            lvgl_keyboard_enable(indev);
         }
     }
 
