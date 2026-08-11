@@ -8,7 +8,7 @@
 #include <cstdio>
 #include <cstring>
 
-static error_t get_user_data_root_path(char* out_path, size_t out_path_size) {
+static error_t paths_get_user_data_root_path(char* out_path, size_t out_path_size) {
 #if defined(CONFIG_TT_USER_DATA_LOCATION_INTERNAL)
 #ifdef ESP_PLATFORM
     const char* mount_point = "/data";
@@ -21,7 +21,7 @@ static error_t get_user_data_root_path(char* out_path, size_t out_path_size) {
     std::strcpy(out_path, mount_point);
     return ERROR_NONE;
 #elif defined(CONFIG_TT_USER_DATA_LOCATION_SD)
-    struct FileSystem* found = nullptr;
+    FileSystem* found = nullptr;
     file_system_for_each(&found, [](FileSystem* fs, void* context) {
         auto* owner = file_system_get_owner(fs);
         if (owner == nullptr || device_get_type(owner) != &SDCARD_TYPE) {
@@ -44,7 +44,7 @@ extern "C" {
 error_t paths_get_user_data_path(char* out_path, size_t out_path_size) {
 #ifdef ESP_PLATFORM
     char root[64];
-    error_t error = get_user_data_root_path(root, sizeof(root));
+    error_t error = paths_get_user_data_root_path(root, sizeof(root));
     if (error != ERROR_NONE) {
         return error;
     }

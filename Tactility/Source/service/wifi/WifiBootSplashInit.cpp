@@ -9,7 +9,7 @@
 #include <Tactility/file/File.h>
 #include <Tactility/service/wifi/WifiApSettings.h>
 
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/Tactility.h>
 
 #include <tactility/log.h>

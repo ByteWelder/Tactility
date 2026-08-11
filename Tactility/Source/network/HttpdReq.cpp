@@ -1,8 +1,8 @@
 #include <Tactility/LogMessages.h>
 #include <Tactility/StringUtils.h>
-#include <Tactility/file/File.h>
 #include <Tactility/network/HttpdReq.h>
 
+#include <tactility/filesystem/file_mutex.h>
 #include <tactility/log.h>
 
 #include <memory>
@@ -186,30 +186,59 @@ size_t receiveFile(httpd_req_t* request, size_t length, const std::string& fileP
     char buffer[BUFFER_SIZE];
     size_t bytes_received = 0;
 
-    file::FileMutexGuard guard(filePath);
+    // Locked only around each actual disk I/O call below, not across the httpd_req_recv() waits
+    // in between - this file's mutex may resolve to lvgl_lock() (see FileMutexLvgl.cpp), and
+    // holding that for the whole (potentially multi-second) network transfer starves LVGL's own
+    // task for the entire upload instead of just for each brief write.
+    FileMutex mutex {};
+    file_mutex_get(&mutex, filePath.c_str());
 
+    file_mutex_lock(&mutex);
     auto* file = fopen(filePath.c_str(), "wb");
+    file_mutex_unlock(&mutex);
     if (file == nullptr) {
         LOG_E(TAG, "Failed to open file for writing: %s", filePath.c_str());
         return 0;
     }
 
+    constexpr int MAX_TIMEOUT_RETRIES = 5;
+    int timeout_retries = 0;
     while (bytes_received < length) {
         auto expected_chunk_size = std::min<size_t>(BUFFER_SIZE, length - bytes_received);
-        size_t receive_chunk_size = httpd_req_recv(request, buffer, expected_chunk_size);
-        if (receive_chunk_size <= 0) {
+        int received = httpd_req_recv(request, buffer, expected_chunk_size);
+        if (received == HTTPD_SOCK_ERR_TIMEOUT) {
+            // Timeout - retry with backoff, same as receiveByteArray(). A large file takes many
+            // more chunks (and much longer overall) than the small reads elsewhere in this file,
+            // so it's far more likely to hit at least one transient stall somewhere along the way.
+            timeout_retries++;
+            if (timeout_retries >= MAX_TIMEOUT_RETRIES) {
+                LOG_E(TAG, "Recv timeout after %d retries, wrote %zu/%zu bytes", timeout_retries, bytes_received, length);
+                break;
+            }
+            LOG_W(TAG, "Recv timeout, retry %d/%d", timeout_retries, MAX_TIMEOUT_RETRIES);
+            vTaskDelay(pdMS_TO_TICKS(100 * timeout_retries)); // Exponential backoff
+            continue;
+        }
+        if (received <= 0) {
             LOG_E(TAG, "Receive failed, got 0 bytes but expected %zu more", length - bytes_received);
             break;
         }
-        if (fwrite(buffer, 1, receive_chunk_size, file) != receive_chunk_size) {
+        timeout_retries = 0;
+        size_t receive_chunk_size = (size_t)received;
+
+        file_mutex_lock(&mutex);
+        bool write_ok = fwrite(buffer, 1, receive_chunk_size, file) == receive_chunk_size;
+        file_mutex_unlock(&mutex);
+        if (!write_ok) {
             LOG_E(TAG, "Failed to write all bytes");
             break;
         }
         bytes_received += receive_chunk_size;
     }
 
-    // Write file
+    file_mutex_lock(&mutex);
     fclose(file);
+    file_mutex_unlock(&mutex);
     return bytes_received;
 }
 

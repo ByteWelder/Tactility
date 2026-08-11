@@ -67,6 +67,11 @@ static void create_gt911_touch(Device* i2c0) {
         // Reset is pulsed via io_expander0 (detect.cpp's pulse_display_reset_pins), not a direct SoC GPIO.
         .pin_reset = GPIO_PIN_SPEC_NONE,
         .pin_interrupt = GPIO_PIN_SPEC_NONE,
+        .reset_pulses = 0, // no-op: pin_reset is NONE, so reset_controller_pin() skips anyway
+        .x_offset = 0,
+        .y_offset = 0,
+        .x_scale = 1000,
+        .y_scale = 1000,
     };
     gt911_device.config = &gt911_config;
 

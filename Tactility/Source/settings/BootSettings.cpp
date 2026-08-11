@@ -3,7 +3,7 @@
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/BootSettings.h>
 
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 #include <format>
 #include <string>
 

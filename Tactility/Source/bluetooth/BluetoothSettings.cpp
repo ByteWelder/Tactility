@@ -1,9 +1,9 @@
 #include <Tactility/bluetooth/BluetoothSettings.h>
 
+#include <Tactility/DeprecatedPaths.h>
+#include <Tactility/Mutex.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Mutex.h>
-#include <Tactility/Paths.h>
 #include <tactility/log.h>
 
 namespace tt::bluetooth::settings {

@@ -1,5 +1,6 @@
 #include <tactility/device.h>
 #include <tactility/drivers/display.h>
+#include <tactility/drivers/sdcard.h>
 #include <tactility/drivers/spi_controller.h>
 #include <tactility/filesystem/file_mutex.h>
 #include <tactility/filesystem/file_system.h>
@@ -73,6 +74,29 @@ void initFileMutexForLvgl() {
             return true;
         });
 
+        return true;
+    });
+
+    // SDMMC-backed SD cards aren't parented under SPI_CONTROLLER_TYPE, so the pass above never
+    // sees them - but on some chips (classic ESP32) SDMMC and SPI still contend for DMA/bus
+    // access. Lock every SD card mount if a display exists anywhere, regardless of bus topology.
+    if (!device_exists_of_type(&DISPLAY_TYPE)) {
+        return;
+    }
+
+    file_system_for_each(nullptr, [](FileSystem* fs, void* context) {
+        char mount_path[64];
+        if (file_system_get_path(fs, mount_path, sizeof(mount_path)) != ERROR_NONE) {
+            return true;
+        }
+
+        auto* owner = file_system_get_owner(fs);
+        if (owner == nullptr || device_get_type(owner) != &SDCARD_TYPE) {
+            return true;
+        }
+
+        LOG_I(TAG, "Adding file mutex for %s (SD card) - a display is present and may contend for bus/DMA resources", mount_path);
+        file_mutex_register(&lvgl_mutex, mount_path);
         return true;
     });
 }

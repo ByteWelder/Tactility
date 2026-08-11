@@ -2,7 +2,7 @@
 
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Paths.h>
+#include <Tactility/DeprecatedPaths.h>
 
 #include <map>
 #include <string>

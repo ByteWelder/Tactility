@@ -19,6 +19,10 @@ void lvgl_keyboard_on_start_lvgl() {
     lvgl_lock();
     keyboard_group = lv_group_create();
     check(keyboard_group);
+    // We currently set this group as the default, so it doesn't only get (manually added) textareas,
+    // but gets all widgets by default. This is a temporary work-around until a proper default group is
+    // created to fix the trackball issue (see trackball.cpp and ideas.md, search for "group")
+    lv_group_set_default(keyboard_group);
     lvgl_unlock();
 }
 
@@ -77,6 +81,8 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
         lv_indev_set_display(indev, display);
     }
 
+    lvgl_keyboard_enable(indev);
+
     *out_indev = indev;
     return ERROR_NONE;
 }
@@ -106,8 +112,11 @@ bool lvgl_hardware_keyboard_is_available() {
         return false;
     }
 
+    // TODO: Refactor the driver subsystem to so it does proper probing/releasing of such devices
+    // This work-around exists for the Tab5 keyboard driver.
+    bool present = keyboard_is_present(keyboard_device);
     device_put(keyboard_device);
-    return true;
+    return present;
 }
 
 void lvgl_hardware_keyboard_add_custom(lv_indev_t* indev) {
@@ -137,9 +146,15 @@ static void textarea_show_keyboard(lv_event_t* event) {
 }
 
 static void textarea_hide_keyboard(lv_event_t* event) {
-    if (last_software_keyboard.object != nullptr) {
-        lvgl_software_keyboard_hide(&last_software_keyboard);
+    if (last_software_keyboard.object == nullptr) {
+        return;
     }
+    // Only hide if the keyboard is actually bound to the textarea that triggered this
+    lv_obj_t* target = lv_event_get_current_target_obj(event);
+    if (lv_keyboard_get_textarea(last_software_keyboard.object) != target) {
+        return;
+    }
+    lvgl_software_keyboard_hide(&last_software_keyboard);
 }
 
 void lvgl_software_keyboard_construct(LvglSoftwareKeyboard* keyboard, lv_obj_t* parent) {
@@ -177,16 +192,23 @@ LvglSoftwareKeyboard* lvgl_software_keyboard_get_last() {
 }
 
 void lvgl_keyboard_add_textarea(LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea) {
+    // Only the on-screen keyboard's show/hide wiring is specific to "no hardware keyboard"
+    // mode. Group membership must NOT be gated on it: a hardware keypad indev (see
+    // lvgl_keyboard_enable()/lvgl_software_keyboard_activate()) is bound to keyboard_group
+    // regardless of whether a software keyboard is in use, so skipping lv_group_add_obj()
+    // here left every textarea unreachable from a hardware keyboard - it was never a member
+    // of the group its indev delivers key events through.
     if (lvgl_software_keyboard_is_enabled()) {
         lv_obj_add_event_cb(textarea, textarea_show_keyboard, LV_EVENT_FOCUSED, nullptr);
         lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DEFOCUSED, nullptr);
         lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_READY, nullptr);
-
-        // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
-        lv_group_add_obj(keyboard_group, textarea);
-
-        lvgl_software_keyboard_activate(keyboard);
+        lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DELETE, nullptr);
     }
+
+    // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
+    lv_group_add_obj(keyboard_group, textarea);
+
+    lvgl_software_keyboard_activate(keyboard);
 }
 
 void lvgl_software_keyboard_activate(LvglSoftwareKeyboard* keyboard) {

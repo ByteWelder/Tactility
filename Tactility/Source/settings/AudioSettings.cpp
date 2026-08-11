@@ -1,8 +1,8 @@
 #include <Tactility/settings/AudioSettings.h>
 
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Paths.h>
 
 #include <algorithm>
 #include <cstdio>

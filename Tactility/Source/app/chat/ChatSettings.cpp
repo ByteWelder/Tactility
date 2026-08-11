@@ -7,9 +7,9 @@
 #include <Tactility/app/chat/ChatSettings.h>
 #include <Tactility/app/chat/ChatProtocol.h>
 
+#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/Paths.h>
 
 #include <crypt/crypt.h>
 

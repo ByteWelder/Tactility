@@ -10,7 +10,7 @@ else()
 endif()
 
 include("${TACTILITY_SDK_PATH}/TactilitySDK.cmake")
-set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules ${TACTILITY_SDK_PATH}/Drivers)
+set(EXTRA_COMPONENT_DIRS ${TACTILITY_SDK_PATH} ${TACTILITY_SDK_PATH}/Modules)
 
 project(SdkTest)
 tactility_project(SdkTest)

@@ -50,11 +50,10 @@ void lvgl_keyboard_enable(lv_indev_t* indev);
 void lvgl_keyboard_disable(lv_indev_t* indev);
 
 /**
- * @brief Wires a textarea up to the on-screen keyboard: shows it on focus, hides it on
- * defocus/ready, and adds the textarea to the keyboard's navigation group.
- *
- * No-op if lvgl_software_keyboard_is_enabled() is false (i.e. a hardware keyboard is present).
- *
+ * @brief Adds the textarea to the shared keyboard navigation group (so any keypad indev -
+ * hardware or on-screen - can type into it once it's focused), and, only when
+ * lvgl_software_keyboard_is_enabled() is true (i.e. no hardware keyboard is present), wires it
+ * up to show/hide the on-screen keyboard on focus/defocus/ready.
  * @warning Caller must hold the LVGL lock.
  * @param[in] keyboard the on-screen keyboard to associate with the textarea
  * @param[in] textarea the lv_textarea_t object to wire up

@@ -138,20 +138,24 @@ bool contains(const std::string& ssid) {
 bool load(const std::string& ssid, WifiApSettings& apSettings) {
     auto service_context = findServiceContext();
     if (service_context == nullptr) {
+        LOG_E(TAG, "No service context");
         return false;
     }
     const auto file_path = getApPropertiesFilePath(service_context->getPaths(), ssid);
     if (!file::isFile(file_path)) {
+        LOG_E(TAG, "Not a file: %s", file_path.c_str());
         return false;
     }
 
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(file_path, map)) {
+        LOG_E(TAG, "Failed to load properties from %s", file_path.c_str());
         return false;
     }
 
     // SSID is required
     if (!map.contains(AP_PROPERTIES_KEY_SSID)) {
+        LOG_E(TAG, "File does not contain SSID: %s", file_path.c_str());
         return false;
     }
 
@@ -166,6 +170,7 @@ bool load(const std::string& ssid, WifiApSettings& apSettings) {
         } else if (decrypt(ssid, encrypted_password, password_decrypted)) {
             apSettings.password = password_decrypted;
         } else {
+            LOG_E(TAG, "Failed to decrypt password from %s", file_path.c_str());
             return false;
         }
     } else {

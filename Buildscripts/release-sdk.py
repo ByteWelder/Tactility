@@ -111,43 +111,13 @@ def add_module(target_path, module_name):
     cmakelists_content = create_module_cmakelists(module_name)
     write_module_cmakelists(os.path.join(target_path, f"Modules/{module_name}/CMakeLists.txt"), cmakelists_content)
 
-def discover_all_drivers():
-    """
-    Discover all *-module directories under Drivers/ (not Modules/ - those are handled
-    separately via add_module). Sorted for deterministic output across OS/filesystem order.
-    """
-    pattern = os.path.join('Drivers', '*-module')
-    return sorted(
-        os.path.basename(p) for p in glob.glob(pattern) if os.path.isdir(p)
-    )
-
-def generate_tactility_sdk_cmake(target_path, available_drivers):
+def generate_tactility_sdk_cmake(target_path):
     src = os.path.join('Buildscripts', 'TactilitySDK', 'TactilitySDK.cmake')
-    with open(src) as f:
-        content = f.read()
-    placeholder = "        # DRIVER_COMPONENTS_PLACEHOLDER"
-    assert placeholder in content, \
-        f"Placeholder '{placeholder.strip()}' not found in {src} - template drifted, generator needs updating"
-    components = "\n".join(f"        {d}" for d in available_drivers)
-    new_content = content.replace(placeholder, components)
-    assert placeholder not in new_content, \
-        f"Placeholder '{placeholder.strip()}' still present after replacement in {src}"
-    with open(os.path.join(target_path, 'TactilitySDK.cmake'), 'w') as f:
-        f.write(new_content)
+    shutil.copy2(src, os.path.join(target_path, 'TactilitySDK.cmake'))
 
-def generate_tactility_sdk_top_cmakelists(target_path, available_drivers):
+def generate_tactility_sdk_top_cmakelists(target_path):
     src = os.path.join('Buildscripts', 'TactilitySDK', 'CMakeLists.txt')
-    with open(src) as f:
-        content = f.read()
-    placeholder = "        # DRIVER_INCLUDE_DIRS_PLACEHOLDER"
-    assert placeholder in content, \
-        f"Placeholder '{placeholder.strip()}' not found in {src} - template drifted, generator needs updating"
-    include_dirs = "\n".join(f'        "Drivers/{d}/include"' for d in available_drivers)
-    new_content = content.replace(placeholder, include_dirs)
-    assert placeholder not in new_content, \
-        f"Placeholder '{placeholder.strip()}' still present after replacement in {src}"
-    with open(os.path.join(target_path, 'CMakeLists.txt'), 'w') as f:
-        f.write(new_content)
+    shutil.copy2(src, os.path.join(target_path, 'CMakeLists.txt'))
 
 def main():
     if len(sys.argv) < 2:
@@ -167,7 +137,7 @@ def main():
         {'src': 'TactilityC/CMakeLists.txt', 'dst': 'Libraries/TactilityC/'},
         {'src': 'TactilityC/LICENSE*.*', 'dst': 'Libraries/TactilityC/'},
         # TactilityFreeRtos
-        {'src': 'TactilityFreeRtos/Include/**', 'dst': 'Libraries/TactilityFreeRtos/include/'},
+        {'src': 'TactilityFreeRtos/Include/**', 'dst': 'Libraries/TactilityFreeRtos/Include/'},
         {'src': 'TactilityFreeRtos/CMakeLists.txt', 'dst': 'Libraries/TactilityFreeRtos/'},
         {'src': 'TactilityFreeRtos/LICENSE*.*', 'dst': 'Libraries/TactilityFreeRtos/'},
         # TactilityKernel
@@ -185,6 +155,10 @@ def main():
         # elf_loader
         {'src': 'Libraries/elf_loader/elf_loader.cmake', 'dst': 'Libraries/elf_loader/'},
         {'src': 'Libraries/elf_loader/license.txt', 'dst': 'Libraries/elf_loader/'},
+        # minitar
+        {'src': 'build/esp-idf/minitar/libminitar.a', 'dst': 'Libraries/minitar/binary/'},
+        {'src': 'Libraries/minitar/minitar/minitar.h', 'dst': 'Libraries/minitar/include/'},
+        {'src': 'Libraries/minitar/minitar/LICENSE*', 'dst': 'Libraries/minitar/'},
         # minmea
         {'src': 'build/esp-idf/minmea/libminmea.a', 'dst': 'Libraries/minmea/binary/'},
         {'src': 'Libraries/minmea/Include/**', 'dst': 'Libraries/minmea/include/'},
@@ -197,21 +171,16 @@ def main():
     map_copy(mappings, target_path)
 
     # Modules
-    add_module(target_path, "lvgl-module")
+    add_module(target_path, "app-module")
     add_module(target_path, "crypt-module")
     add_module(target_path, "gps-module")
+    add_module(target_path, "lvgl-module")
+    add_module(target_path, "lvgl-window-manager-module")
     add_module(target_path, "service-module")
 
-    # Drivers - only ones actually built for this target (chip-restricted drivers like
-    # sc2356-module won't have a .a outside ESP32-P4)
-    available_drivers = [d for d in discover_all_drivers() if driver_is_available(d)]
-    for driver_name in available_drivers:
-        add_driver(target_path, driver_name)
-
-    # Final scripts - generated (not copied verbatim) so COMPONENTS/INCLUDE_DIRS only list
-    # drivers actually available for this target
-    generate_tactility_sdk_cmake(target_path, available_drivers)
-    generate_tactility_sdk_top_cmakelists(target_path, available_drivers)
+    # Final scripts - copied verbatim
+    generate_tactility_sdk_cmake(target_path)
+    generate_tactility_sdk_top_cmakelists(target_path)
 
     # Output ESP-IDF SDK version to file
     esp_idf_version = os.environ.get("ESP_IDF_VERSION", "")

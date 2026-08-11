@@ -28,6 +28,16 @@ error_t keyboard_get_backlight(Device* device, Device** backlight_device) {
     return KEYBOARD_DRIVER_API(driver)->get_backlight(device, backlight_device);
 }
 
+bool keyboard_is_present(Device* device) {
+    const auto* driver = device_get_driver(device);
+
+    if (KEYBOARD_DRIVER_API(driver)->is_present == nullptr) {
+        return true;
+    }
+
+    return KEYBOARD_DRIVER_API(driver)->is_present(device);
+}
+
 const DeviceType KEYBOARD_TYPE {
     .name = "keyboard"
 };
