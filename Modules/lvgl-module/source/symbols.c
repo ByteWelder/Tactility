@@ -45,6 +45,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_pointer_get_calibration),
     DEFINE_MODULE_SYMBOL(lvgl_pointer_get_default),
     DEFINE_MODULE_SYMBOL(lvgl_pointer_add),
+    DEFINE_MODULE_SYMBOL(lvgl_pointer_get_slot_index),
     DEFINE_MODULE_SYMBOL(lvgl_pointer_remove),
     // lvgl_spinner
     DEFINE_MODULE_SYMBOL(lvgl_spinner_create),

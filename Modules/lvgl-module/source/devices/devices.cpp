@@ -97,15 +97,21 @@ void lvgl_devices_attach() {
             continue;
         }
 
-        lv_indev_t* lvgl_pointer_device;
-        if (lvgl_pointer_add(kernel_pointer_device, lvgl_display, &lvgl_pointer_device) == ERROR_NONE) {
-            LOG_I(TAG, "Bound %s to LVGL", kernel_pointer_device->name);
+        // Each physical touch device gets up to LVGL_POINTER_MAX_SLOTS independent indevs (a
+        // "pool", see lvgl_pointer_add()) so LVGL can track that many simultaneous touch points -
+        // touch controllers report multiple points but expose no per-point hardware max, so this
+        // is a fixed ceiling rather than a per-device query.
+        lv_indev_t* lvgl_pointer_slots[LVGL_POINTER_MAX_SLOTS];
+        if (lvgl_pointer_add(kernel_pointer_device, lvgl_display, LVGL_POINTER_MAX_SLOTS, lvgl_pointer_slots) == ERROR_NONE) {
+            LOG_I(TAG, "Bound %s to LVGL (%d touch slots)", kernel_pointer_device->name, (int)LVGL_POINTER_MAX_SLOTS);
             // Slow panels cause taps to be missed due to the long update time, prevent that
-            if (display_updates_slowly ) {
-                lv_indev_set_long_press_time(lvgl_pointer_device, 2000);
+            if (display_updates_slowly) {
+                for (uint8_t slot = 0; slot < LVGL_POINTER_MAX_SLOTS; slot++) {
+                    lv_indev_set_long_press_time(lvgl_pointer_slots[slot], 2000);
+                }
             }
         } else {
-            LOG_E(TAG, "Failed to bind %s to LVG", kernel_pointer_device->name);
+            LOG_E(TAG, "Failed to bind %s to LVGL", kernel_pointer_device->name);
         }
     }
 
