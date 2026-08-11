@@ -324,8 +324,6 @@ error_t app_install(const char* source_path) {
         return ERROR_NOT_FOUND;
     }
 
-    // Extract to a staging directory named after the tarball first - the real app id (and so
-    // the final directory name) is only known once the manifest inside it is parsed.
     auto staging_path = app_parent_path + "/" + last_path_segment(source_path);
     delete_recursively(staging_path);
 

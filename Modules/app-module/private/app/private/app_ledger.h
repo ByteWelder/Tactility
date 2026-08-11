@@ -14,15 +14,17 @@
 #include <unordered_map>
 
 /**
- * A dedicated (not the task's shared default FreeRTOS notification, which app_event.cpp's
+ * A dedicated completion signal(1) for one app instance's task, given as the
+ * literal last action app_task_main() takes before vTaskDelete().
+ * Heap-allocated with its own refcount (protected by app_ledger().mutex, not atomic)
+ * rather than owned by the ledger entry, since app_task_main() always erases that entry -
+ * and may run its exit path entirely - before app_scheduler_stop() ever looks for it:
+ * Whichever side(2) finishes with it last is the one that deletes `semaphore` and frees this struct.
+ *
+ * (1) Not the task's shared default FreeRTOS notification, which app_event.cpp's
  * AppEventSubscription also uses - an unrelated event delivered to the same task could
- * otherwise unblock a waiter early) completion signal for one app instance's task, given as the
- * literal last action app_task_main() takes before vTaskDelete(). Heap-allocated with its own
- * refcount (protected by app_ledger().mutex, not atomic) rather than owned by the ledger
- * entry, since app_task_main() always erases that entry - and may run its exit path entirely -
- * before app_scheduler_stop() ever looks for it: whichever side (the exiting task, or a
- * concurrent app_scheduler_stop() that found the entry in time and is waiting on `semaphore`)
- * finishes with it last is the one that deletes `semaphore` and frees this struct.
+ * otherwise unblock a waiter early.
+ * (2) The exiting task, or a concurrent app_scheduler_stop() that found the entry in time and is waiting on `semaphore`
  */
 struct AppCompletionSignal {
     SemaphoreHandle_t semaphore;
@@ -37,8 +39,7 @@ struct AppInstanceRecord {
     uint32_t id;
     const AppManifest* manifest;
     AppInstanceState state;
-    /** The FreeRTOS task currently executing AppLoaderApi::run() for this instance; NULL when
-     * not running. */
+    /** The FreeRTOS task currently executing AppLoaderApi::run() for this instance; NULL when not running. */
     TaskHandle_t task;
 
     /** 0 for a top-level launch (app_manager_start()). Non-zero for a modal child launched via
@@ -65,10 +66,10 @@ inline AppLedger& app_ledger() {
     return ledger;
 }
 
-/** Frees a deep-copied argv previously built by app_manager_start_with_parameters()/
- * app_manager_start_for_result() (see app_scheduler.cpp's TaskContext::argv) - each
- * individually heap-allocated string, then the array itself. Safe to call with count == 0 /
- * values == nullptr (no-op). */
+/**
+ * Frees a deep-copied argv previously built by app_manager_start_with_parameters()/app_manager_start_for_result():
+ * each individually heap-allocated string, then the array itself. Safe to call with count == 0  values == nullptr (no-op).
+ */
 inline void app_ledger_free_arguments(int count, char** values) {
     if (values == nullptr) {
         return;

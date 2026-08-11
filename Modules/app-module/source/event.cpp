@@ -4,12 +4,11 @@
 #include <tactility/concurrent/mutex.h>
 #include <tactility/time.h>
 
-// Intrusive singly-linked list of subscriptions, keyed by app_instance_id (not broadcast by
-// type, unlike TactilityKernel's system_event) - an app should only ever see events addressed
-// to it. Guarded by a single coarse-grained mutex, same tradeoff system_event.cpp makes for its
-// poll-subscription list: notifying a subscriber here never invokes caller code (just a struct
-// copy and an xTaskNotifyGive), so there is no reentrancy concern requiring a snapshot-then-
-// unlock dance.
+/**
+ * Intrusive singly-linked list of subscriptions, keyed by app_instance_id.
+ * Guarded by a single coarse-grained mutex, notifying a subscriber here never invokes caller code
+ * (just a struct copy and an xTaskNotifyGive), so there is no reentrancy concern requiring a snapshot-then-unlock dance.
+ */
 static AppEventSubscription* subscriptions = nullptr;
 
 struct AppEventMutex {

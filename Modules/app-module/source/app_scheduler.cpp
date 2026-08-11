@@ -269,13 +269,9 @@ error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeou
         AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
         app_event_emit(app_instance_id, &event);
 
-        // Blocks until app_task_main() gives this dedicated semaphore as the literal last
-        // thing it does before vTaskDelete() - unlike polling the ledger for the task handle to
-        // clear, this can't observe "stopped" while the task is still mid-exit (still running
-        // its own cleanup/vTaskDelete()). A dedicated semaphore rather than this task's default
-        // FreeRTOS notification, since app_event.cpp's AppEventSubscription also uses that
-        // shared slot - an unrelated event (e.g. a different child's APP_EVENT_RESULT)
-        // delivered to this same task could otherwise unblock this early.
+        // Blocks until app_task_main() gives this dedicated semaphore as the literal last thing it does before vTaskDelete().
+        // Uses aa dedicated semaphore rather than this task's default FreeRTOS notification because app_event.cpp's AppEventSubscription also uses that shared slot.
+        // An unrelated event (e.g. a different child's APP_EVENT_RESULT) delivered to this same task could otherwise unblock this early.
         BaseType_t taken = xSemaphoreTake(completion->semaphore, join_timeout);
         release_completion_signal(completion);
 
