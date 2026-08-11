@@ -93,7 +93,7 @@
 			horizontal-resolution = <240>;
 			vertical-resolution = <135>;
 			// Should be 52 according to https://github.com/m5stack/M5GFX/blob/master/src/M5GFX.cpp but this leaves a gap at the bottom
-			gap-x = <53>;
+			gap-x = <52>;
 			gap-y = <40>;
 			swap-xy;
 			mirror-x;
