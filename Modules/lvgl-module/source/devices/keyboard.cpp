@@ -81,6 +81,8 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
         lv_indev_set_display(indev, display);
     }
 
+    lvgl_keyboard_enable(indev);
+
     *out_indev = indev;
     return ERROR_NONE;
 }
