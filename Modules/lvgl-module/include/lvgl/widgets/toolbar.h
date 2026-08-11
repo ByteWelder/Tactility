@@ -69,6 +69,16 @@ lv_obj_t* lvgl_toolbar_add_text_button_action(lv_obj_t* obj, const char* text, l
 lv_obj_t* lvgl_toolbar_add_switch_action(lv_obj_t* obj);
 
 /**
+ * Create and add a dropdown to the toolbar actions.
+ * @param[in] obj the toolbar instance
+ * @param[in] options newline-separated dropdown options
+ * @param[in] width the dropdown's width in pixels, or 0 to leave LVGL's default dropdown width
+ * @param[in] text fixed text to show instead of the selected option or NULL to show the selected option as usual
+ * @return an instance created by lv_dropdown_create()
+ */
+lv_obj_t* lvgl_toolbar_add_dropdown_action(lv_obj_t* obj, const char* options, lv_coord_t width, const char* text);
+
+/**
  * Create and add a spinner to the toolbar actions.
  * @param[in] obj the toolbar instance
  * @return an instance created by lvgl_spinner_create()

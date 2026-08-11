@@ -56,6 +56,7 @@ const struct ModuleSymbol lvgl_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_image_button_action),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_text_button_action),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_switch_action),
+    DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_dropdown_action),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_add_spinner_action),
     DEFINE_MODULE_SYMBOL(lvgl_toolbar_clear_actions),
     // lvgl_sliderbox
