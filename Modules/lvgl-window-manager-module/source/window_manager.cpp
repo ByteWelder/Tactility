@@ -99,6 +99,7 @@ lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_wi
     lv_obj_set_style_pad_all(widget, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(widget, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_radius(widget, 0, LV_STATE_DEFAULT);
+    lv_obj_remove_flag(widget, LV_OBJ_FLAG_SCROLLABLE);
     if (create_widgets != nullptr) {
         create_widgets(widget, user_data);
     }
@@ -197,6 +198,8 @@ error_t window_manager_start(void) {
         lv_obj_set_style_pad_all(real_widget, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_border_width(real_widget, 0, LV_STATE_DEFAULT);
         lv_obj_set_style_radius(real_widget, 0, LV_STATE_DEFAULT);
+        // See build_window_widget()'s identical call for why.
+        lv_obj_remove_flag(real_widget, LV_OBJ_FLAG_SCROLLABLE);
 
         content_widget = (screen_init != nullptr) ? screen_init(real_widget) : nullptr;
         if (content_widget == nullptr) {

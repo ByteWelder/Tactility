@@ -374,6 +374,7 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     lv_obj_set_style_bg_color(vertical_container, lv_color_black(), LV_STATE_DEFAULT);
     lv_obj_set_style_border_width(vertical_container, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_radius(vertical_container, 0, LV_STATE_DEFAULT);
+    lv_obj_remove_flag(vertical_container, LV_OBJ_FLAG_SCROLLABLE);
 
     lvgl::statusbar_create(vertical_container);
 
@@ -383,6 +384,7 @@ static lv_obj_t* windowManagerScreenInit(lv_obj_t* root) {
     lv_obj_set_width(app_container, LV_PCT(100));
     lv_obj_set_flex_grow(app_container, 1);
     lv_obj_set_flex_flow(app_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_remove_flag(app_container, LV_OBJ_FLAG_SCROLLABLE);
 
     // Parented to root (not app_container/vertical_container) so it overlays on top of
     // everything, including the statusbar, regardless of which app is showing. Hidden until a
