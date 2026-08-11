@@ -64,6 +64,111 @@ static inline void esp_epaper_rotate_frame(const uint8_t* src, uint8_t* dst, uin
     }
 }
 
+/**
+ * Rotates one display-space tile into the native shadow frame at its rotated
+ * position, leaving all pixels outside the tile untouched. The pixel mapping is
+ * identical to esp_epaper_rotate_frame() restricted to the tile, so a shadow
+ * accumulated tile-by-tile equals the full-frame rotation of the same content.
+ *
+ * Unlike esp_epaper_rotate_frame() - which seeds a scratch buffer black and
+ * only ORs in set (white) bits - this writes every pixel of the tile with both
+ * polarities, because the shadow persists across cycles: it mirrors the cleared
+ * (all-white) GDDRAM, so white pixels keep the seed while black pixels must
+ * clear their bit. A tile never overlaps itself, so unconditional writes are
+ * safe; outside the tile the shadow is untouched.
+ *
+ * width/height are the panel's native dimensions. (x1,y1,x2,y2) is the
+ * display-space tile rectangle with exclusive x2/y2. src holds the tile's
+ * pixels (stride = ceil((x2 - x1) / 8) bytes, MSB-first bits). dst is the
+ * native full frame (stride = ceil(width / 8) bytes); it may not alias src.
+ */
+static inline void esp_epaper_rotate_tile(const uint8_t* src, uint8_t* dst, uint16_t width, uint16_t height,
+                                          uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t rotation) {
+    const uint32_t src_stride = ((uint32_t)(x2 - x1) + 7) / 8;
+    const uint32_t dst_stride = ((uint32_t)width + 7) / 8;
+
+    for (uint16_t v = y1; v < y2; v++) {
+        for (uint16_t u = x1; u < x2; u++) {
+            uint16_t x;
+            uint16_t y;
+            switch (rotation) {
+                case 0:
+                    x = u;
+                    y = v;
+                    break;
+                case 1:
+                    x = v;
+                    y = height - 1 - u;
+                    break;
+                case 2:
+                    x = width - 1 - u;
+                    y = height - 1 - v;
+                    break;
+                case 3:
+                default:
+                    x = width - 1 - v;
+                    y = u;
+                    break;
+            }
+            const uint8_t src_bit = 0x80 >> ((u - x1) % 8);
+            const uint8_t dst_mask = 0x80 >> (x % 8);
+            uint8_t* const dst_byte = &dst[(uint32_t)y * dst_stride + x / 8];
+            if (src[(uint32_t)(v - y1) * src_stride + (u - x1) / 8] & src_bit) {
+                *dst_byte |= dst_mask;
+            } else {
+                *dst_byte &= (uint8_t)~dst_mask;
+            }
+        }
+    }
+}
+
+/**
+ * Computes the native-space rectangle a display-space tile covers, using the
+ * same inverse-of-LVGL mapping as esp_epaper_rotate_frame(). The tile is
+ * (x1,y1,x2,y2) in display coordinates (exclusive x2/y2) with width/height the
+ * panel's native dimensions; the native rect is written to out_x/out_y/out_w/
+ * out_h (out_w/out_h exclusive extents).
+ */
+static inline void esp_epaper_rotate_tile_rect(uint16_t width, uint16_t height,
+                                               uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint8_t rotation,
+                                               uint16_t* out_x, uint16_t* out_y, uint16_t* out_w, uint16_t* out_h) {
+    uint16_t nx1;
+    uint16_t ny1;
+    uint16_t nx2;
+    uint16_t ny2;
+    switch (rotation) {
+        case 0:
+            nx1 = x1;
+            ny1 = y1;
+            nx2 = x2;
+            ny2 = y2;
+            break;
+        case 1:
+            nx1 = y1;
+            ny1 = height - x2;
+            nx2 = y2;
+            ny2 = height - x1;
+            break;
+        case 2:
+            nx1 = width - x2;
+            ny1 = height - y2;
+            nx2 = width - x1;
+            ny2 = height - y1;
+            break;
+        case 3:
+        default:
+            nx1 = width - y2;
+            ny1 = x1;
+            nx2 = width - y1;
+            ny2 = x2;
+            break;
+    }
+    *out_x = nx1;
+    *out_y = ny1;
+    *out_w = nx2 - nx1;
+    *out_h = ny2 - ny1;
+}
+
 #ifdef __cplusplus
 }
 #endif

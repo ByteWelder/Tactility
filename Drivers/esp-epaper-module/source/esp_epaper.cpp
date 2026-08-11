@@ -54,7 +54,14 @@ struct EspEpaperInternal {
     /** Opaque esp_epaper device, owns the panel's pins and SPI device. */
     epd_handle_t epd;
     epd_panel_info_t info;
-    /** Scratch buffer in native panel layout, for rotated frames (rotation != 0). */
+    /**
+     * Native-layout shadow frame (rotation != 0): holds the accumulated pixels
+     * of every tile drawn into GDDRAM since the last refresh, in the panel's
+     * native orientation. In rotated partial mode it is the data source for
+     * both the per-window 0x24 streams and commit_base()'s 0x26 mirrors, and
+     * the whole frame for full-refresh escalations. In full-frame mode it is a
+     * one-shot scratch that esp_epaper_draw_bitmap() rotates into.
+     */
     uint8_t* rotate_buffer;
     /** Serializes panel/SPI access between draw_bitmap and power state changes. */
     SemaphoreHandle_t panel_mutex;
@@ -64,6 +71,10 @@ struct EspEpaperInternal {
     // tiles into the panel RAM (0x24) during a cycle, then refresh() triggers the
     // panel drive, and commit_base() replays the cycle's tiles into 0x26 so the
     // differential refresh sequence keeps diffling against the frame on screen.
+    // At rotation 0 the tiles are stored verbatim in the replay buffer; at
+    // rotation != 0 the shadow (rotate_buffer) is the data source and the replay
+    // buffer only stages one window's rows at a time for the SPI stream (GDDRAM
+    // windows are not contiguous inside a full native frame).
     bool use_partial;
     bool cycle_has_tiles;
     bool cycle_overflowed;
@@ -148,6 +159,77 @@ static error_t esp_epaper_init(Device* device) {
 // would exceed the replay budget is escalated to a full refresh instead - this
 // is what keeps the partial path's extra RAM fixed at ESP_EPAPER_REPLAY_BYTES
 // regardless of how much of the panel a cycle touches.
+//
+// Rotated variant (rotation != 0): the display-space tile is rotated into the
+// persistent native shadow frame first, then the tile's native window (expanded
+// to byte-aligned X) is streamed to 0x24. The shadow is the accumulated frame -
+// it replaces the rotation-0 replay byte copy as the data source for the 0x24
+// stream, commit_base()'s 0x26 mirror, and the full-refresh escalation. The
+// replay buffer only stages one window's rows for the SPI transfer, since a
+// window is not contiguous inside the full native frame. A cycle that overruns
+// the tile array escalates to full: refresh() then streams the whole shadow
+// into both planes before the drive, so no per-window 0x26 replay is needed.
+static error_t esp_epaper_draw_bitmap_partial_rotated(Device* device, EspEpaperInternal* internal,
+                                                      const uint8_t* data, uint16_t x, uint16_t y,
+                                                      uint16_t w, uint16_t h) {
+    const auto* config = GET_CONFIG(device);
+    uint8_t* const shadow = internal->rotate_buffer;
+
+    esp_epaper_rotate_tile(data, shadow, internal->info.width, internal->info.height,
+                           x, y, (uint16_t)(x + w), (uint16_t)(y + h), config->rotation);
+
+    uint16_t native_x;
+    uint16_t native_y;
+    uint16_t native_w;
+    uint16_t native_h;
+    esp_epaper_rotate_tile_rect(internal->info.width, internal->info.height,
+                                x, y, (uint16_t)(x + w), (uint16_t)(y + h), config->rotation,
+                                &native_x, &native_y, &native_w, &native_h);
+    // GDDRAM windows are byte-aligned in X. The shadow holds correct pixels for
+    // the whole expanded region (it mirrors GDDRAM), so the enlarged window is
+    // streamed as-is without exposing the panel to mid-byte boundaries.
+    const uint16_t native_x_end = (uint16_t)((native_x + native_w + 7) & ~7u);
+    native_x &= (uint16_t)~7u;
+    native_w = (uint16_t)(native_x_end - native_x);
+    const uint32_t window_bytes = (uint32_t)(native_w / 8) * native_h;
+
+    if (internal->cycle_overflowed) {
+        // refresh() streams the whole shadow into both planes for this cycle;
+        // only the shadow needs to stay in sync with the accumulated frame.
+        return ERROR_NONE;
+    }
+    if (internal->replay_tile_count >= ESP_EPAPER_REPLAY_MAX_TILES ||
+        window_bytes > ESP_EPAPER_REPLAY_BYTES) {
+        internal->cycle_overflowed = true;
+        internal->replay_len = 0;
+        internal->replay_tile_count = 0;
+        LOG_I(TAG, "Partial cycle exceeds rotated refresh budget, escalating to full refresh");
+        return ERROR_NONE;
+    }
+
+    // Pack the window's rows from the shadow into the staging area, then stream
+    // it to 0x24. The window is recorded without a data copy: commit_base()
+    // re-packs it from the shadow, which by then holds the whole cycle.
+    for (uint16_t row = 0; row < native_h; ++row) {
+        memcpy(internal->replay + (uint32_t)row * (native_w / 8),
+               shadow + (uint32_t)(native_y + row) * ((internal->info.width + 7) / 8) + native_x / 8,
+               native_w / 8);
+    }
+    const esp_err_t ret = epd_write_partial(internal->epd, native_x, native_y, native_w, native_h, internal->replay);
+    if (ret != ESP_OK) {
+        return ret;
+    }
+
+    auto& tile = internal->replay_tiles[internal->replay_tile_count];
+    tile.x = native_x;
+    tile.y = native_y;
+    tile.w = native_w;
+    tile.h = native_h;
+    tile.data_offset = 0; // data source is the shadow, not the staging area
+    internal->replay_tile_count++;
+    return ESP_OK;
+}
+
 static error_t esp_epaper_draw_bitmap_partial(Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
 
@@ -177,34 +259,38 @@ static error_t esp_epaper_draw_bitmap_partial(Device* device, int32_t x_start, i
         return ERROR_NONE;
     }
 
-    const bool overflow = internal->cycle_overflowed ||
-        internal->replay_tile_count >= ESP_EPAPER_REPLAY_MAX_TILES ||
-        internal->replay_len + tile_bytes > ESP_EPAPER_REPLAY_BYTES;
-
     esp_err_t ret;
-    if (overflow) {
-        // Escalate this and every remaining tile of the cycle to a full refresh:
-        // stream each window straight into both planes, so 0x26 needs no replay
-        // later and 0xF7 drives the accumulated frame.
-        if (!internal->cycle_overflowed) {
-            internal->cycle_overflowed = true;
-            LOG_I(TAG, "Partial cycle exceeds replay budget (%u bytes), escalating to full refresh", (unsigned)ESP_EPAPER_REPLAY_BYTES);
-        }
-        ret = epd_write_partial(internal->epd, x, y, w, h, data);
-        if (ret == ESP_OK) {
-            ret = epd_write_base_partial(internal->epd, x, y, w, h, data);
-        }
+    if (internal->rotate_buffer != nullptr) {
+        ret = esp_epaper_draw_bitmap_partial_rotated(device, internal, data, x, y, w, h);
     } else {
-        auto& tile = internal->replay_tiles[internal->replay_tile_count];
-        tile.x = x;
-        tile.y = y;
-        tile.w = w;
-        tile.h = h;
-        tile.data_offset = internal->replay_len;
-        memcpy(internal->replay + internal->replay_len, data, tile_bytes);
-        internal->replay_len += tile_bytes;
-        internal->replay_tile_count++;
-        ret = epd_write_partial(internal->epd, x, y, w, h, data);
+        const bool overflow = internal->cycle_overflowed ||
+            internal->replay_tile_count >= ESP_EPAPER_REPLAY_MAX_TILES ||
+            internal->replay_len + tile_bytes > ESP_EPAPER_REPLAY_BYTES;
+
+        if (overflow) {
+            // Escalate this and every remaining tile of the cycle to a full refresh:
+            // stream each window straight into both planes, so 0x26 needs no replay
+            // later and 0xF7 drives the accumulated frame.
+            if (!internal->cycle_overflowed) {
+                internal->cycle_overflowed = true;
+                LOG_I(TAG, "Partial cycle exceeds replay budget (%u bytes), escalating to full refresh", (unsigned)ESP_EPAPER_REPLAY_BYTES);
+            }
+            ret = epd_write_partial(internal->epd, x, y, w, h, data);
+            if (ret == ESP_OK) {
+                ret = epd_write_base_partial(internal->epd, x, y, w, h, data);
+            }
+        } else {
+            auto& tile = internal->replay_tiles[internal->replay_tile_count];
+            tile.x = x;
+            tile.y = y;
+            tile.w = w;
+            tile.h = h;
+            tile.data_offset = internal->replay_len;
+            memcpy(internal->replay + internal->replay_len, data, tile_bytes);
+            internal->replay_len += tile_bytes;
+            internal->replay_tile_count++;
+            ret = epd_write_partial(internal->epd, x, y, w, h, data);
+        }
     }
 
     xSemaphoreGive(internal->panel_mutex);
@@ -216,9 +302,8 @@ static error_t esp_epaper_draw_bitmap_partial(Device* device, int32_t x_start, i
     return ERROR_NONE;
 }
 
-// LVGL only ever calls this with the full frame: DISPLAY_COLOR_FORMAT_MONOCHROME forces
-// LV_DISPLAY_RENDER_MODE_FULL in the generic kernel LVGL bridge (lvgl_display.c), and FULL mode
-// only presents (calls draw_bitmap) once per render cycle, with the complete 0,0..hres,vres rect.
+// Full-frame path (use_partial only for SSD1677 windowed refresh; other panels fall
+// through to this). The bridge calls this with the complete 0,0..hres,vres rect:
 // hres/vres are the rotated (display) resolution reported by get_resolution_*; color_data is
 // row-major, MSB-first 1bpp (LVGL's LV_COLOR_FORMAT_I1 with the palette header already stripped by
 // the caller); bit 1 = white, bit 0 = black. epd_update_async() expects exactly that layout and
@@ -297,7 +382,21 @@ static error_t esp_epaper_refresh(Device* device, bool full_frame) {
     internal->force_full = false;
 
     const epd_update_mode_t mode = do_full ? EPD_UPDATE_FULL : EPD_UPDATE_PARTIAL;
-    const esp_err_t ret = epd_update_partial_async(internal->epd, mode);
+    esp_err_t ret = ESP_OK;
+    if (internal->cycle_overflowed && internal->rotate_buffer != nullptr) {
+        // The cycle overran the rotated tile budget, so draw_bitmap() only
+        // blitted into the shadow and streamed nothing. Write the whole
+        // accumulated shadow into both RAM planes before the full drive applies
+        // it: 0x26 then equals the frame on screen, so no base commit is needed
+        // for this cycle.
+        ret = epd_write_partial(internal->epd, 0, 0, internal->info.width, internal->info.height, internal->rotate_buffer);
+        if (ret == ESP_OK) {
+            ret = epd_write_base_partial(internal->epd, 0, 0, internal->info.width, internal->info.height, internal->rotate_buffer);
+        }
+    }
+    if (ret == ESP_OK) {
+        ret = epd_update_partial_async(internal->epd, mode);
+    }
 
     // The cycle is consumed. The replay tiles are kept for commit_base() - which
     // runs after the panel finishes driving - unless the trigger failed, in which
@@ -311,7 +410,7 @@ static error_t esp_epaper_refresh(Device* device, bool full_frame) {
 
     xSemaphoreGive(internal->panel_mutex);
     if (ret != ESP_OK) {
-        LOG_E(TAG, "epd_update_partial_async (%s) failed: %s", do_full ? "full" : "partial", esp_err_to_name(ret));
+        LOG_E(TAG, "refresh (%s) failed: %s", do_full ? "full" : "partial", esp_err_to_name(ret));
         return ERROR_RESOURCE;
     }
     return ERROR_NONE;
@@ -334,8 +433,24 @@ static error_t esp_epaper_commit_base(Device* device) {
     esp_err_t ret = ESP_OK;
     for (uint16_t i = 0; i < internal->replay_tile_count; ++i) {
         const auto& tile = internal->replay_tiles[i];
-        ret = epd_write_base_partial(internal->epd, tile.x, tile.y, tile.w, tile.h,
-                                     internal->replay + tile.data_offset);
+        const uint8_t* source;
+        if (internal->rotate_buffer != nullptr) {
+            // The shadow holds the cycle's data; pack its window rows into the
+            // staging area first, since the window is not contiguous inside the
+            // full native frame. Same size bound as the draw path, so the pack
+            // always fits ESP_EPAPER_REPLAY_BYTES.
+            const uint16_t row_bytes = tile.w / 8;
+            const uint32_t stride = ((uint32_t)internal->info.width + 7) / 8;
+            for (uint16_t row = 0; row < tile.h; ++row) {
+                memcpy(internal->replay + (uint32_t)row * row_bytes,
+                       internal->rotate_buffer + (uint32_t)(tile.y + row) * stride + tile.x / 8,
+                       row_bytes);
+            }
+            source = internal->replay;
+        } else {
+            source = internal->replay + tile.data_offset;
+        }
+        ret = epd_write_base_partial(internal->epd, tile.x, tile.y, tile.w, tile.h, source);
         if (ret != ESP_OK) {
             LOG_E(TAG, "epd_write_base_partial (%u,%u %ux%u) failed: %s",
                   (unsigned)tile.x, (unsigned)tile.y, (unsigned)tile.w, (unsigned)tile.h, esp_err_to_name(ret));
@@ -395,6 +510,10 @@ static error_t esp_epaper_disp_on_off(Device* device, bool on_off) {
         if (on_off) {
             // Deep sleep cleared GDDRAM; the first refresh after wake must be full.
             internal->force_full = true;
+            if (internal->rotate_buffer != nullptr) {
+                // The shadow mirrors GDDRAM, which deep sleep cleared to white.
+                memset(internal->rotate_buffer, 0xFF, internal->info.buffer_size);
+            }
         }
     }
     xSemaphoreGive(internal->panel_mutex);
@@ -457,9 +576,11 @@ static const DisplayApi esp_epaper_display_api = {
 static bool esp_epaper_has_capability(Device* device, uint32_t capability) {
     auto* internal = static_cast<EspEpaperInternal*>(device_get_driver_data(device));
     if ((capability & DISPLAY_CAPABILITY_PARTIAL_REFRESH) != 0) {
-        // Windowed refresh only works in the panel's native orientation: the
-        // driver handles fixed rotation != 0 via a whole-frame rotate, and LVGL
-        // rotation is unsupported (the bridge drops partial cycles while rotating).
+        // Windowed refresh works in any fixed rotation: the rotated path rotates
+        // each tile into the native shadow frame and streams the shadow's
+        // windows. LVGL rotation (a runtime rotation change) is unsupported - the
+        // bridge drops partial cycles while rotating, but the driver's fixed
+        // rotation is applied in the panel, never via LVGL.
         return internal->use_partial;
     }
     return (esp_epaper_display_api.capabilities & capability) == capability;
@@ -575,14 +696,23 @@ static error_t start(Device* device) {
     // Windowed partial refresh needs both a windowed 0x24 writer and a base image
     // (0x26) writer; only the SSD1677 controller provides the latter, so other
     // panels fall through to the full-frame path regardless of their EPD_CAP_PARTIAL.
-    internal->use_partial = config->rotation == 0 &&
-        epd_supports_partial(epd) && epd_supports_base_partial(epd);
+    // Rotation is not a blocker: the rotated path rotates each tile into a native
+    // shadow frame and streams the shadow's windows, so rotated panels get the
+    // same windowed refresh as rotation 0.
+    internal->use_partial = epd_supports_partial(epd) && epd_supports_base_partial(epd);
     if (internal->use_partial) {
         internal->replay = static_cast<uint8_t*>(malloc(ESP_EPAPER_REPLAY_BYTES));
         if (internal->replay == nullptr) {
             LOG_E(TAG, "Failed to allocate %lu-byte partial replay buffer", (unsigned long)ESP_EPAPER_REPLAY_BYTES);
             free_internal(internal);
             return ERROR_OUT_OF_MEMORY;
+        }
+        if (internal->rotate_buffer != nullptr) {
+            // GDDRAM was just cleared to white while the retained image is still on
+            // screen. The shadow mirrors GDDRAM, so seed it to white too; the first
+            // refresh must drive the new frame (full) before any differential
+            // refresh is meaningful.
+            memset(internal->rotate_buffer, 0xFF, internal->info.buffer_size);
         }
         // GDDRAM was just cleared to white while the retained image is still on
         // screen; the first refresh must drive the new frame (full) before any

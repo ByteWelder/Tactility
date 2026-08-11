@@ -100,9 +100,9 @@ struct LvglDisplayCtx {
     // Windowed partial refresh (DISPLAY_CAPABILITY_PARTIAL_REFRESH on a slow-refresh I1 e-paper):
     // draw_bitmap() tiles stream into the panel RAM during a cycle, and refresh() is triggered once
     // per cycle from the last flush. The bridge drops a whole cycle when the previous refresh is
-    // still driving (tiles written into a busy panel would be ignored), then re-renders. Only valid
-    // in the panel's base orientation - the driver reports the capability only at rotation 0, and
-    // any LVGL rotation here drops cycles too.
+    // still driving (tiles written into a busy panel would be ignored), then re-renders. The driver
+    // applies any fixed panel rotation itself (rotating tiles into a native shadow), so this path
+    // is valid for rotated panels too; only a runtime LVGL rotation drops cycles.
     bool partial_refresh;
     // True from the first flush of a cycle until its last flush; gates cycle-drop detection.
     bool cycle_active;
