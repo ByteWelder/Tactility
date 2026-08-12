@@ -167,9 +167,6 @@ static void build_hid_device_descriptor(enum UsbHidDeviceMode mode) {
 }
 
 static error_t hid_device_start(struct Device* device, enum UsbHidDeviceMode mode) {
-    active_mode = mode;
-    build_hid_device_descriptor(mode);
-
     auto* controller = device_get_parent(device);
 
     error_t begin_result = usb_device_controller_begin_claim(controller);
@@ -183,6 +180,12 @@ static error_t hid_device_start(struct Device* device, enum UsbHidDeviceMode mod
     if (alloc_result != ERROR_NONE) {
         return alloc_result;
     }
+
+    // active_mode/hid_device_descriptor commit only once resources are reserved - reads of
+    // active_mode (tud_hid_descriptor_report_cb(), the mode gates in send_*) must keep matching
+    // whatever session is actually installed if begin_claim()/allocate_interfaces() above failed.
+    active_mode = mode;
+    build_hid_device_descriptor(mode);
 
     const uint8_t hid_bytes[] = {
         TUD_HID_DESCRIPTOR(alloc.first_interface_number, 4, HID_ITF_PROTOCOL_NONE,

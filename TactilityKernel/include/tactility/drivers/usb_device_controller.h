@@ -100,6 +100,12 @@ struct UsbDeviceControllerApi {
      * first step of a claim() attempt (i.e. before the primary class's own allocate_interfaces()
      * call) - claim() itself calls this again internally for CDC's allocation, so primary
      * contributors only need to call it for their own single call.
+     *
+     * There is no explicit abort/cancel: a session abandoned after begin_claim() (e.g. a
+     * contributor's own allocate_interfaces() call fails and it returns early without calling
+     * claim()) is simply reset by the next begin_claim() call, which unconditionally reinitializes
+     * the allocation state regardless of whether the previous session ever finished.
+     *
      * @param[in] device the USB device controller device
      * @retval ERROR_RESOURCE_BUSY if a different class already holds the slot
      * @retval ERROR_NONE on success

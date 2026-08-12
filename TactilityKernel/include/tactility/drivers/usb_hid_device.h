@@ -28,7 +28,7 @@ enum UsbHidDeviceMode {
     USB_HID_DEVICE_MODE_MOUSE,
     /** Keyboard + Consumer + Mouse (report IDs 1, 2, 3). */
     USB_HID_DEVICE_MODE_KEYBOARD_MOUSE,
-    /** Gamepad (report ID 1, 9 bytes: 6-byte axes, 1-byte hat/dpad, 2-byte buttons[12] padded). */
+    /** Gamepad (report ID 1, 8 bytes: 5-byte axes, 1-byte hat/dpad, 2-byte buttons[10] padded). */
     USB_HID_DEVICE_MODE_GAMEPAD,
 };
 

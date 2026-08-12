@@ -41,20 +41,23 @@ static vprintf_like_t previous_vprintf = nullptr;
 // esp_tusb_init_console(), which freopen()s stdout/stderr and would replace the existing
 // console instead of adding a second one alongside it.
 static int cdc_mirroring_vprintf(const char* fmt, va_list args) {
+    // args must be copied before the first vprintf-family call consumes it - passing an
+    // already-consumed va_list to vsnprintf below is undefined behavior.
+    va_list cdc_args;
+    va_copy(cdc_args, args);
+
     int result = previous_vprintf ? previous_vprintf(fmt, args) : vprintf(fmt, args);
 
     if (tud_cdc_connected()) {
         char buf[256];
-        va_list args_copy;
-        va_copy(args_copy, args);
-        int len = vsnprintf(buf, sizeof(buf), fmt, args_copy);
-        va_end(args_copy);
+        int len = vsnprintf(buf, sizeof(buf), fmt, cdc_args);
         if (len > 0) {
             size_t to_write = static_cast<size_t>(len) < sizeof(buf) ? static_cast<size_t>(len) : sizeof(buf) - 1;
             tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, reinterpret_cast<const uint8_t*>(buf), to_write);
             tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
         }
     }
+    va_end(cdc_args);
     return result;
 }
 

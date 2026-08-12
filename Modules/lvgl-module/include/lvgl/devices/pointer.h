@@ -14,13 +14,12 @@ extern "C" {
 #endif
 
 /**
- * Maximum number of simultaneous touch points (and therefore lv_indev_t slots) lvgl_pointer_add()
- * will create for one physical POINTER_TYPE device. LVGL v9 has no multi-point indev concept
- * (lv_indev_data_t carries exactly one point/state pair), so simultaneous multi-touch is
- * implemented as a pool of this many independent indev instances sharing one underlying device
- * read - see pointer.cpp. None of the touch controller drivers in this codebase currently expose
- * their own hardware max-point count, so this is a fixed ceiling rather than per-device config;
- * GT911/ST7123 (the touch ICs in use) both support at least this many in practice.
+ * Maximum simultaneous touch points lvgl_pointer_add() will create indev \slots for.
+ *
+ * \slots Each lv_indev_t carries one point per read, so per-finger widget interaction needs
+ *     one indev per finger, pooled over a single device read - see pointer.cpp. Distinct from
+ *     LVGL's own lv_indev_touch_data_t gesture path, which reports all points to one indev for
+ *     gestures rather than per-widget press handling; unused here.
  */
 #define LVGL_POINTER_MAX_SLOTS 5
 
@@ -91,6 +90,9 @@ lv_indev_t* lvgl_pointer_get_default(void);
  *
  * @warning Caller must hold the LVGL lock (see lvgl_lock() in lvgl_module.h) — call this from
  * LvglModuleConfig.on_start, or after calling lvgl_lock() explicitly.
+ * @warning Do not call lv_indev_enable(false) on individual slots. The pool's shared bus read
+ * only runs once every slot_count read callbacks (round_pos); disabling one slot skips its
+ * callback and desyncs that cadence, staling the remaining active slots' data.
  *
  * @param[in] device a device of type POINTER_TYPE
  * @param[in] display the display this indev should be associated with, or NULL to leave it unset

@@ -21,12 +21,16 @@ static lv_indev_t* default_pointer_indev = NULL;
 // Mirrors Tactility/Source/settings/TouchCalibrationSettings.cpp's isValid().
 static const int32_t LVGL_POINTER_CALIBRATION_MIN_RANGE = 20;
 
-// Beyond this squared-pixel distance, a raw point is treated as a different finger landing, not
-// the same finger moving - without a cap, an active slot would greedily claim the nearest
-// unclaimed raw point every round even if the original finger lifted and a new one landed on the
-// far side of the screen in the same round, making LVGL see a teleporting drag instead of a
-// release followed by a new press.
-static const int32_t LVGL_POINTER_MAX_TRACK_DIST_SQ = 100 * 100;
+// Caps nearest-neighbor slot tracking (lvgl_pointer_pool_assign) to a fraction of screen width,
+// so a lifted finger's slot doesn't jump to grab an unrelated new touch elsewhere on screen.
+// Scaled by resolution, not a flat pixel value, so it stays proportionate on any display size.
+// Set generously \wide: a too-tight cap misreads a fast scroll's own motion as release+re-press,
+// firing whatever is under the finger mid-drag.
+//
+// \wide False positives (treating one continued drag as two separate touches) are far more
+//     disruptive than false negatives (merging an unrelated same-spot lift+relanding), which
+//     favors erring toward a larger cap.
+static const int32_t LVGL_POINTER_MAX_TRACK_DIST_FRACTION = 3; // 1/3 of screen width
 
 // One physical touch device backs LVGL_POINTER_MAX_SLOTS independent lv_indev_t instances (a
 // "pool"), so LVGL can track that many simultaneous fingers - LVGL v9 has no multi-point indev
@@ -137,8 +141,18 @@ static void lvgl_pointer_pool_refresh(struct LvglPointerPool* pool, int32_t nati
 // anywhere in this stack - see esp_lcd_touch_get_coordinates()/PointerApi.get_touched_points()).
 // Unmatched raw points (new touches) claim the nearest inactive slot. Slots with no matching
 // point this round go inactive (RELEASED).
-static void lvgl_pointer_pool_assign(struct LvglPointerPool* pool) {
+static void lvgl_pointer_pool_assign(struct LvglPointerPool* pool, int32_t native_x_max) {
+    // Touch drivers clamp raw coordinates to the panel's configured native resolution regardless
+    // of calibration, so native_x_max is a valid scale reference for the distance cap even when calibration is disabled. 
+    // Falls back to a conservative fixed pixel value if the display/resolution isn't available for some reason.
+    const int32_t max_track_dist = native_x_max > 0 ? (native_x_max / LVGL_POINTER_MAX_TRACK_DIST_FRACTION) : 150;
+    const int32_t max_track_dist_sq = max_track_dist * max_track_dist;
+
     bool raw_claimed[LVGL_POINTER_MAX_SLOTS] = {};
+    // A slot released this round must report RELEASED for at least one round before it can host
+    // a new touch - otherwise pass 2 immediately reassigns it, and LVGL sees a jump instead of a
+    // release-then-press.
+    bool slot_released_now[LVGL_POINTER_MAX_SLOTS] = {};
 
     // First pass: let already-active slots keep following their nearest raw point, so a held
     // finger doesn't get reshuffled onto a different slot just because another finger moved.
@@ -156,20 +170,22 @@ static void lvgl_pointer_pool_assign(struct LvglPointerPool* pool) {
                 best_raw = (int8_t)r;
             }
         }
-        if (best_raw >= 0 && best_dist <= LVGL_POINTER_MAX_TRACK_DIST_SQ) {
+        if (best_raw >= 0 && best_dist <= max_track_dist_sq) {
             raw_claimed[best_raw] = true;
             pool->slot_point[s].x = (lv_coord_t)pool->raw_x[best_raw];
             pool->slot_point[s].y = (lv_coord_t)pool->raw_y[best_raw];
         } else {
             pool->slot_active[s] = false;
+            slot_released_now[s] = true;
         }
     }
 
-    // Second pass: any unclaimed raw point is a new touch - hand it to the first inactive slot.
+    // Second pass: any unclaimed raw point is a new touch - hand it to the first inactive slot
+    // that wasn't just released this round.
     for (uint8_t r = 0; r < pool->raw_count; r++) {
         if (raw_claimed[r]) continue;
         for (uint8_t s = 0; s < pool->slot_count; s++) {
-            if (pool->slot_active[s]) continue;
+            if (pool->slot_active[s] || slot_released_now[s]) continue;
             pool->slot_active[s] = true;
             pool->slot_point[s].x = (lv_coord_t)pool->raw_x[r];
             pool->slot_point[s].y = (lv_coord_t)pool->raw_y[r];
@@ -203,7 +219,7 @@ static void lvgl_pointer_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
         int32_t native_x_max = display != NULL ? lv_display_get_original_horizontal_resolution(display) - 1 : 0;
         int32_t native_y_max = display != NULL ? lv_display_get_original_vertical_resolution(display) - 1 : 0;
         lvgl_pointer_pool_refresh(pool, native_x_max, native_y_max);
-        lvgl_pointer_pool_assign(pool);
+        lvgl_pointer_pool_assign(pool, native_x_max);
     }
     pool->round_pos = (uint8_t)((pool->round_pos + 1) % pool->slot_count);
 

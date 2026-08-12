@@ -105,12 +105,12 @@ static error_t msc_device_start(struct Device* device, enum UsbMscDeviceSource s
     }
 
     const uint8_t msc_fs_bytes[] = {
-        TUD_MSC_DESCRIPTOR(alloc.first_interface_number, 0, alloc.first_out_endpoint, alloc.first_in_endpoint, 64),
+        TUD_MSC_DESCRIPTOR(alloc.first_interface_number, 4, alloc.first_out_endpoint, alloc.first_in_endpoint, 64),
     };
     memcpy(msc_fs_configuration_descriptor, msc_fs_bytes, sizeof(msc_fs_bytes));
 #if (TUD_OPT_HIGH_SPEED)
     const uint8_t msc_hs_bytes[] = {
-        TUD_MSC_DESCRIPTOR(alloc.first_interface_number, 0, alloc.first_out_endpoint, alloc.first_in_endpoint, 512),
+        TUD_MSC_DESCRIPTOR(alloc.first_interface_number, 4, alloc.first_out_endpoint, alloc.first_in_endpoint, 512),
     };
     memcpy(msc_hs_configuration_descriptor, msc_hs_bytes, sizeof(msc_hs_bytes));
 #endif
