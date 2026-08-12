@@ -274,7 +274,13 @@ static void usbHidInputTask(void* arg) {
 
     LOG_I(TAG, "stopped");
     xSemaphoreGive(ctx->task_done);
-    vTaskDelete(nullptr);
+
+    // Never self-delete: vTaskDelete(NULL) can only defer its TCB/stack cleanup to the idle
+    // task, which would still be touching task_stack/task_tcb after stopUsbHidInput() frees
+    // them. Suspending instead leaves this task parked (never running again) so
+    // stopUsbHidInput() can delete it from its own task context, where a non-running target
+    // makes vTaskDelete() free everything synchronously, before it touches those buffers.
+    vTaskSuspend(nullptr);
 }
 
 void startUsbHidInput() {
@@ -382,9 +388,9 @@ void stopUsbHidInput() {
 
     if (xSemaphoreTake(ctx->task_done, pdMS_TO_TICKS(STOP_TIMEOUT_MS)) != pdTRUE) {
         LOG_W(TAG, "task stop timed out, force terminating");
-        vTaskDelete(ctx->task);
-        // Task was killed before it could clean up LVGL objects; do it here to
-        // prevent mouse_read_cb / keyboard_read_cb from running with a freed ctx.
+        // Task hasn't reached its own cleanup/vTaskSuspend() yet; do the LVGL cleanup here to
+        // prevent mouse_read_cb / keyboard_read_cb from running with a freed ctx. The task
+        // itself is deleted below, same as the non-timeout path.
         if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
             if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
             if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
@@ -396,6 +402,16 @@ void stopUsbHidInput() {
             lvgl_unlock();
         }
     }
+
+    // usbHidInputTask() always ends by suspending itself (never self-deletes), so it's
+    // guaranteed to still exist here. Wait until it's actually not running before deleting it:
+    // vTaskDelete() on a non-running target runs its TCB/stack cleanup synchronously instead
+    // of deferring it to the idle task, which is what makes it safe to free task_stack/
+    // task_tcb right below - a deferred cleanup would still be touching them.
+    while (eTaskGetState(ctx->task) == eRunning) {
+        taskYIELD();
+    }
+    vTaskDelete(ctx->task);
     ctx->task = nullptr;
     memory_free(ctx->task_stack);
     memory_free(ctx->task_tcb);
