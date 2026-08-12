@@ -11,7 +11,6 @@
 
 ## Higher Priority
 
-- lvgl-window-manager: When a keyboard or LV_INDEV_TYPE_ENCODER is attached, always highlight the first widget (~Cardputer navigation issue) in a window when a window is created.
 - Make it more clear to end-users that an SD card is required to run Tactility
 - Move "# Fix error "PSRAM space not enough for the Flash instructions" on boot:" fix from T-Deck and others to device.py
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)

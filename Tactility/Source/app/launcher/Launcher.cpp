@@ -1,3 +1,6 @@
+#include "tactility/drivers/pointer.h"
+
+
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
@@ -165,7 +168,7 @@ void createWidgets(lv_obj_t* parent, void*) {
         ? computeButtonMargin(lv_display_get_horizontal_resolution(display), total_button_size)
         : computeButtonMargin(lv_display_get_vertical_resolution(display), total_button_size);
 
-    createAppButton(buttons_wrapper, ui_density, LVGL_ICON_LAUNCHER_APPS, "AppList", margin, is_landscape_display);
+    auto* app_list_button = createAppButton(buttons_wrapper, ui_density, LVGL_ICON_LAUNCHER_APPS, "AppList", margin, is_landscape_display);
     createAppButton(buttons_wrapper, ui_density, LVGL_ICON_LAUNCHER_FOLDER, "Files", margin, is_landscape_display);
     createAppButton(buttons_wrapper, ui_density, LVGL_ICON_LAUNCHER_SETTINGS, "Settings", margin, is_landscape_display);
 
@@ -188,6 +191,15 @@ void createWidgets(lv_obj_t* parent, void*) {
         auto* power_label = lv_label_create(power_button);
         lv_label_set_text(power_label, LV_SYMBOL_POWER);
         lv_obj_set_style_text_color(power_label, lv_theme_get_color_primary(parent), LV_STATE_DEFAULT);
+    }
+
+    // If we don't have a touch device, we assume there's some other kind of input like a keyboard, an encoder or button control
+    // In that scenario we want to automatically have the app list button selected so the user doesn't have to press the widget selection
+    // an extra time.
+    if (!device_has_active_by_type(&POINTER_TYPE)) {
+        // lv_obj_update_layout(parent); // Resolve flex layout first, so focus/state invalidate against final coords
+        lv_group_focus_obj(app_list_button);
+        lv_obj_add_state(app_list_button, LV_STATE_FOCUS_KEY);
     }
 }
 
