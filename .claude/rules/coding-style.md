@@ -9,8 +9,7 @@ For projects that emit C headers and have a C++ implementation file: the interna
 
 Formatting is enforced by `.clang-format` (LLVM-based, 4-space indent, no column limit).
 Never throw exceptions — use return types for error handling. Use `enum class` over plain `enum` when writing C++ code.
-Don't do null checks for function parameters: the caller is responsible for passing valid data.
-Pointers are expected to be non-null unless documented otherwise.
+Do not add redundant null checks for parameters with an explicit non-null precondition.
 
 Code Comments:
 
