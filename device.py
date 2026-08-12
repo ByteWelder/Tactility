@@ -210,9 +210,16 @@ def write_spiram_variables(output_file, device_properties: dict):
     output_file.write("CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y\n")
     # Performance improvements
     if idf_target == "esp32s3":
-        output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y\n")
-        output_file.write("CONFIG_SPIRAM_RODATA=y\n")
-        output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
+        apply_fix = get_property_or_default(device_properties, "hardware.spiRamXipDisabled", "false").lower()
+        if apply_fix == "true":
+            output_file.write("# Fix error \"PSRAM space not enough for the Flash instructions\" on boot:")
+            output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=n\n")
+            output_file.write("CONFIG_SPIRAM_RODATA=n\n")
+            output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=n\n")
+        else:
+            output_file.write("CONFIG_SPIRAM_FETCH_INSTRUCTIONS=y\n")
+            output_file.write("CONFIG_SPIRAM_RODATA=y\n")
+            output_file.write("CONFIG_SPIRAM_XIP_FROM_PSRAM=y\n")
 
 def write_performance_improvements(output_file, device_properties: dict):
     idf_target = get_property_or_exit(device_properties, "hardware.target").lower()

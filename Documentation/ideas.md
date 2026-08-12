@@ -12,7 +12,6 @@
 ## Higher Priority
 
 - Make it more clear to end-users that an SD card is required to run Tactility
-- Move "# Fix error "PSRAM space not enough for the Flash instructions" on boot:" fix from T-Deck and others to device.py
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
 - Put task stacks in PSRAM when possible.
 - Wrap file operations like fopen/fclose with file_mutex
