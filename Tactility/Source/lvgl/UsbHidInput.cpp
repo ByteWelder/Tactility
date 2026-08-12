@@ -7,6 +7,7 @@
 #include <tactility/device.h>
 #include <tactility/drivers/usb_host_hid.h>
 #include <tactility/log.h>
+#include <tactility/memory.h>
 
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -43,6 +44,9 @@ struct UsbHidInputCtx {
     QueueHandle_t      key_queue     = nullptr;
     TaskHandle_t       task          = nullptr;
     SemaphoreHandle_t  task_done     = nullptr;
+    // Task control block must stay in internal RAM; only the stack may live in SPIRAM
+    StackType_t*       task_stack    = nullptr;
+    StaticTask_t*      task_tcb      = nullptr;
     std::atomic<bool>  running{false};
     std::atomic<bool>  subscribed{false};
 
@@ -148,23 +152,11 @@ static void usbHidInputTask(void* arg) {
     auto* ctx = static_cast<UsbHidInputCtx*>(arg);
     LOG_I(TAG, "started");
 
-    // TODO: Implement time-out
-    while (!lv_is_initialized()) {
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-
+    // The mouse cursor image (loaded from the flash-backed asset filesystem) is created by
+    // startUsbHidInput() on the caller's stack, before this task exists: this task's stack may
+    // live in SPIRAM, and touching flash I/O from a SPIRAM stack crashes when the flash cache
+    // gets disabled mid-read.
     lvgl_lock();
-
-    // Without a registered display, lv_layer_sys() is NULL: creating the cursor image on it trips
-    // an LVGL assert whose default handler is an infinite loop (while(1);), hanging this task while
-    // it holds the LVGL lock. Only create the cursor when a system layer actually exists.
-    lv_obj_t* sys_layer = lv_layer_sys();
-    if (sys_layer != nullptr) {
-        ctx->mouse_cursor = lv_image_create(sys_layer);
-        lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
-        lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
-        lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
-    }
 
     ctx->mouse_indev = lv_indev_create();
     lv_indev_set_type(ctx->mouse_indev, LV_INDEV_TYPE_POINTER);
@@ -314,6 +306,22 @@ void startUsbHidInput() {
         return;
     }
 
+    // Created here (not in usbHidInputTask) because loading the cursor image touches the
+    // flash-backed asset filesystem, which the task's (potentially SPIRAM-backed) stack must
+    // never do - see the comment in usbHidInputTask.
+    lvgl_lock();
+    // Without a registered display, lv_layer_sys() is NULL: creating the cursor image on it trips
+    // an LVGL assert whose default handler is an infinite loop (while(1);). Only create the
+    // cursor when a system layer actually exists.
+    lv_obj_t* sys_layer = lv_layer_sys();
+    if (sys_layer != nullptr) {
+        ctx->mouse_cursor = lv_image_create(sys_layer);
+        lv_obj_remove_flag(ctx->mouse_cursor, LV_OBJ_FLAG_CLICKABLE);
+        lv_image_set_src(ctx->mouse_cursor, TT_ASSETS_UI_CURSOR);
+        lv_obj_add_flag(ctx->mouse_cursor, LV_OBJ_FLAG_HIDDEN);
+    }
+    lvgl_unlock();
+
     Device* hid_dev = nullptr;
     if (device_get_first_active_by_type(&USB_HOST_HID_TYPE, &hid_dev) == ERROR_NONE) {
         ctx->subscribed = usb_host_hid_subscribe(hid_dev, ctx->hid_queue);
@@ -321,7 +329,23 @@ void startUsbHidInput() {
     }
 
     ctx->running = true;
-    if (xTaskCreate(usbHidInputTask, "usb_hid_inp", TASK_STACK, ctx, TASK_PRIORITY, &ctx->task) != pdPASS) {
+
+    static constexpr MemoryPolicy STACK_POLICY = { 0, MEMORY_CAPABILITY_EXTERNAL, 0 };
+    ctx->task_stack = static_cast<StackType_t*>(memory_alloc_with_policy(TASK_STACK * sizeof(StackType_t), &STACK_POLICY));
+    if (ctx->task_stack != nullptr) {
+        static constexpr MemoryPolicy TCB_POLICY = { MEMORY_CAPABILITY_INTERNAL, 0, 0 };
+        ctx->task_tcb = static_cast<StaticTask_t*>(memory_alloc_with_policy(sizeof(StaticTask_t), &TCB_POLICY));
+    }
+
+    if (ctx->task_tcb != nullptr) {
+        ctx->task = xTaskCreateStatic(usbHidInputTask, "usb_hid_inp", TASK_STACK, ctx, TASK_PRIORITY, ctx->task_stack, ctx->task_tcb);
+    } else {
+        memory_free(ctx->task_stack);
+        ctx->task_stack = nullptr;
+        xTaskCreate(usbHidInputTask, "usb_hid_inp", TASK_STACK, ctx, TASK_PRIORITY, &ctx->task);
+    }
+
+    if (ctx->task == nullptr) {
         LOG_E(TAG, "failed to create task");
         ctx->running = false;
         if (ctx->subscribed) {
@@ -330,6 +354,13 @@ void startUsbHidInput() {
                 usb_host_hid_unsubscribe(cleanup_dev, ctx->hid_queue);
                 device_put(cleanup_dev);
             }
+        }
+        memory_free(ctx->task_stack);
+        memory_free(ctx->task_tcb);
+        if (ctx->mouse_cursor != nullptr) {
+            lvgl_lock();
+            lv_obj_delete(ctx->mouse_cursor);
+            lvgl_unlock();
         }
         vQueueDelete(ctx->hid_queue);
         vQueueDelete(ctx->key_queue);
@@ -366,6 +397,8 @@ void stopUsbHidInput() {
         }
     }
     ctx->task = nullptr;
+    memory_free(ctx->task_stack);
+    memory_free(ctx->task_tcb);
 
     if (ctx->subscribed) {
         Device* hid_dev;
