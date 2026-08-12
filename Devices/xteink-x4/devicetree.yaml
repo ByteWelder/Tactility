@@ -1,6 +1,5 @@
 dependencies:
   - Platforms/platform-esp32
   - Drivers/button-adc-control-module
-  - Drivers/esp-epaper-module
 bindings: bindings
 dts: xteink,x4.dts

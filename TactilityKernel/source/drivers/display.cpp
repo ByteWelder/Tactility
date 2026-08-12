@@ -30,33 +30,6 @@ error_t display_draw_bitmap(Device* device, int32_t x_start, int32_t y_start, in
     return DISPLAY_DRIVER_API(driver)->draw_bitmap(device, x_start, y_start, x_end, y_end, color_data);
 }
 
-error_t display_wait_sync(Device* device, uint32_t timeout_ms) {
-    const auto* driver = device_get_driver(device);
-    const auto* api = DISPLAY_DRIVER_API(driver);
-    if (api->wait_sync == nullptr) {
-        return ERROR_NOT_SUPPORTED;
-    }
-    return api->wait_sync(device, timeout_ms);
-}
-
-error_t display_refresh(Device* device, bool full_frame) {
-    const auto* driver = device_get_driver(device);
-    const auto* api = DISPLAY_DRIVER_API(driver);
-    if (api->refresh == nullptr) {
-        return ERROR_NOT_SUPPORTED;
-    }
-    return api->refresh(device, full_frame);
-}
-
-error_t display_commit_base(Device* device) {
-    const auto* driver = device_get_driver(device);
-    const auto* api = DISPLAY_DRIVER_API(driver);
-    if (api->commit_base == nullptr) {
-        return ERROR_NOT_SUPPORTED;
-    }
-    return api->commit_base(device);
-}
-
 error_t display_mirror(Device* device, bool x_axis, bool y_axis) {
     const auto* driver = device_get_driver(device);
     return DISPLAY_DRIVER_API(driver)->mirror(device, x_axis, y_axis);

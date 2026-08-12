@@ -29,16 +29,7 @@ enum DisplayCapability {
      * it copies/converts into its own buffer first). Lets the LVGL bridge allocate this display's
      * draw buffer(s) from non-DMA-capable memory instead of forcing scarce internal RAM.
      */
-    DISPLAY_CAPABILITY_PREFER_EXTERNAL_RAM = 1 << 9,
-    /**
-     * Supports windowed refresh: draw_bitmap() tiles are applied to the panel
-     * as they arrive, and the panel refresh is triggered explicitly via
-     * refresh() once a full frame has been streamed. E-paper panels with a
-     * differential refresh sequence additionally expose commit_base() so the
-     * base image stays in sync with what is on screen. Without this capability
-     * the driver refreshes the whole panel implicitly.
-     */
-    DISPLAY_CAPABILITY_PARTIAL_REFRESH = 1 << 10
+    DISPLAY_CAPABILITY_PREFER_EXTERNAL_RAM = 1 << 9
 };
 
 /**
@@ -89,46 +80,6 @@ struct DisplayApi {
      * @retval ERROR_NONE when the operation was successful
      */
     error_t (*draw_bitmap)(struct Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data);
-
-    /**
-     * @brief Blocks until the panel has finished applying the last draw_bitmap refresh.
-     * @warning Function pointer should be null when not applicable.
-     * @param[in] device the display device
-     * @param[in] timeout_ms maximum time to block in milliseconds, 0 = infinite
-     * @retval ERROR_NONE when the panel is idle
-     * @retval ERROR_TIMEOUT when the panel is still busy after timeout_ms
-     * @details Only meaningful for slow-refresh displays (e.g. e-paper, where a
-     * refresh takes seconds and draw_bitmap returns before the panel is idle).
-     * Normal TFTs have no such window and should leave this NULL.
-     */
-    error_t (*wait_sync)(struct Device* device, uint32_t timeout_ms);
-
-    /**
-     * @brief Triggers a panel refresh of the currently streamed content.
-     * @warning Function pointer should be null when not applicable.
-     * @param[in] device the display device
-     * @param[in] full_frame when true, refresh the whole panel; when false, apply
-     * a partial refresh of only the regions modified since the last refresh
-     * @retval ERROR_NONE when the refresh was triggered
-     * @details For e-paper with windowed refresh, draw_bitmap() only streams
-     * pixels into the panel RAM; the panel does not change until refresh() is
-     * called. The refresh drives in the background, so wait_sync() must be
-     * called before the next command sequence.
-     */
-    error_t (*refresh)(struct Device* device, bool full_frame);
-
-    /**
-     * @brief Commits the last windowed refresh to the panel's base image.
-     * @warning Function pointer should be null when not applicable.
-     * @param[in] device the display device
-     * @retval ERROR_NONE when the base image was committed
-     * @details Only for panels whose partial refresh is differential against a
-     * separate base image plane (e.g. SSD1677 fast 0xFC). Called after
-     * wait_sync() once the panel has finished driving, so the base plane stays
-     * equal to what is actually on screen and the next partial refresh diffs
-     * correctly.
-     */
-    error_t (*commit_base)(struct Device* device);
 
     /**
      * @brief Mirrors the image along the X and/or Y axis.
@@ -300,24 +251,6 @@ error_t display_init(struct Device* device);
  * @brief Draws pixel data into the given rectangle using the specified display.
  */
 error_t display_draw_bitmap(struct Device* device, int32_t x_start, int32_t y_start, int32_t x_end, int32_t y_end, const void* color_data);
-
-/**
- * @brief Blocks until the panel has finished applying the last draw_bitmap refresh.
- * @retval ERROR_NOT_SUPPORTED when the display has no wait_sync implementation.
- */
-error_t display_wait_sync(struct Device* device, uint32_t timeout_ms);
-
-/**
- * @brief Triggers a panel refresh of the currently streamed content.
- * @retval ERROR_NOT_SUPPORTED when the display has no refresh implementation.
- */
-error_t display_refresh(struct Device* device, bool full_frame);
-
-/**
- * @brief Commits the last windowed refresh to the panel's base image.
- * @retval ERROR_NOT_SUPPORTED when the display has no commit_base implementation.
- */
-error_t display_commit_base(struct Device* device);
 
 /**
  * @brief Mirrors the image along the X and/or Y axis using the specified display.

@@ -144,7 +144,6 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(display_reset),
     DEFINE_MODULE_SYMBOL(display_init),
     DEFINE_MODULE_SYMBOL(display_draw_bitmap),
-    DEFINE_MODULE_SYMBOL(display_wait_sync),
     DEFINE_MODULE_SYMBOL(display_mirror),
     DEFINE_MODULE_SYMBOL(display_swap_xy),
     DEFINE_MODULE_SYMBOL(display_get_swap_xy),
