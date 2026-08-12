@@ -1,0 +1,9 @@
+description: ESP32 USB device-mode CDC-ACM addon (composites a USB serial console interface into whichever primary class - HID or MIDI - is active, or stands alone with no primary; deliberately excluded from MSC, which always presents as plain mass storage with no console). Requires CONFIG_TINYUSB_CDC_ENABLED.
+
+compatible: "espressif,esp32-usbdevice-cdc"
+
+properties:
+  _unused:
+    type: int
+    default: 0
+    description: Placeholder required by the binding schema; this driver has no device-tree configuration.

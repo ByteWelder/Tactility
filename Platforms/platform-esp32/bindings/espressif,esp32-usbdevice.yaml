@@ -1,0 +1,13 @@
+description: ESP32 USB device-mode (peripheral) controller. Owns the single TinyUSB device-mode slot shared by its child classes (HID, MSC, ...); only one child class may be active at a time.
+
+compatible: "espressif,esp32-usbdevice"
+
+properties:
+  _unused:
+    type: int
+    default: 0
+    description: |
+      USB device-mode (peripheral) controller: presents itself as a USB device to a host (HID keyboard, mass storage, ...).
+      Only one of usbdevicehid0/usbdevicemsc0/usbdevicemidi0 may be active at a time -
+      usbdevicecdc0 is not part of that exclusion - it's an addon composited into whichever of HID/MIDI is active (never MSC)
+      toggle its status to enable/disable the USB serial console independent of which primary is running.

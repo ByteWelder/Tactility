@@ -10,102 +10,43 @@
 #include <esp_system.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <tinyusb.h>
-#include <tusb_msc_storage.h>
 #include <wear_levelling.h>
 
+#include <tactility/device.h>
+#include <tactility/drivers/esp32_sdcard.h>
+#include <tactility/drivers/usb_msc_device.h>
 #include <tactility/log.h>
-
-#if CONFIG_IDF_TARGET_ESP32P4
-#include "hal/usb_wrap_ll.h"
-#endif
-
-#define EPNUM_MSC 1
-#define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MSC_DESC_LEN)
-#define SECTOR_SIZE 512
 
 constexpr auto* TAG = "USB";
 
 namespace tt::hal::usb {
-    extern sdmmc_card_t* getCard();
-}
 
 // Set when mass storage was started as part of the dedicated reboot-into-MSC boot flow.
 // Used to decide whether ejecting the volume should automatically reboot back to normal OS.
 static bool startedFromBootMode = false;
 
-enum {
-    ITF_NUM_MSC = 0,
-    ITF_NUM_TOTAL
-};
+static sdmmc_card_t* getCard() {
+    sdmmc_card_t* card = nullptr;
 
-enum {
-    EDPT_CTRL_OUT = 0x00,
-    EDPT_CTRL_IN  = 0x80,
+    device_for_each(&card, [](auto* device, void* context) {
+        auto* driver = device_get_driver(device);
+        if (driver == nullptr) return true;
+        if (!driver_is_compatible(driver, "espressif,esp32-sdspi") &&
+            !driver_is_compatible(driver, "espressif,esp32-sdmmc")) return true;
+        auto** out = static_cast<sdmmc_card_t**>(context);
+        *out = esp32_sdcard_get_card(device);
+        return *out == nullptr;
+    });
 
-    EDPT_MSC_OUT  = 0x01,
-    EDPT_MSC_IN   = 0x81,
-};
+    if (card == nullptr) {
+        LOG_W(TAG, "Couldn't find a mounted SD card");
+    }
 
-static bool driverInstalled = false;
+    return card;
+}
 
-static tusb_desc_device_t descriptor_config = {
-    .bLength = sizeof(descriptor_config),
-    .bDescriptorType = TUSB_DESC_DEVICE,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .idVendor = 0x303A, // TODO: Espressif VID. Do we need to change this?
-    .idProduct = 0x4002,
-    .bcdDevice = 0x100,
-    .iManufacturer = 0x01,
-    .iProduct = 0x02,
-    .iSerialNumber = 0x03,
-    .bNumConfigurations = 0x01
-};
-
-static char const* string_desc_arr[] = {
-    (const char[]) { 0x09, 0x04 },  // 0: is supported language is English (0x0409)
-    "Espressif",                    // 1: Manufacturer
-    "Tactility Device",             // 2: Product
-    "42",                           // 3: Serials
-    "Tactility Mass Storage",       // 4. MSC
-};
-
-static uint8_t const msc_fs_configuration_desc[] = {
-    // Config number, interface count, string index, total length, attribute, power in mA
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-
-    // Interface number, string index, EP Out & EP In address, EP size
-    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EDPT_MSC_OUT, EDPT_MSC_IN, 64),
-};
-
-#if (TUD_OPT_HIGH_SPEED)
-    static const tusb_desc_device_qualifier_t device_qualifier = {
-    .bLength = sizeof(tusb_desc_device_qualifier_t),
-    .bDescriptorType = TUSB_DESC_DEVICE_QUALIFIER,
-    .bcdUSB = 0x0200,
-    .bDeviceClass = TUSB_CLASS_MISC,
-    .bDeviceSubClass = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0 = CFG_TUD_ENDPOINT0_SIZE,
-    .bNumConfigurations = 0x01,
-    .bReserved = 0
-};
-
-static uint8_t const msc_hs_configuration_desc[] = {
-    // Config number, interface count, string index, total length, attribute, power in mA
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-
-    // Interface number, string index, EP Out & EP In address, EP size
-    TUD_MSC_DESCRIPTOR(ITF_NUM_MSC, 0, EDPT_MSC_OUT, EDPT_MSC_IN, 512),
-};
-#endif // TUD_OPT_HIGH_SPEED
-
-static void storage_mount_changed_cb(tinyusb_msc_event_t* event) {
-    if (event->mount_changed_data.is_mounted) {
+static void onMountChanged(bool mounted, void* /*context*/) {
+    if (mounted) {
         LOG_I(TAG, "MSC Mounted");
         // Storage is only (re)mounted into our own filesystem after the host sends a SCSI
         // START STOP UNIT eject (see tud_msc_start_stop_cb() in tusb_msc_storage.c). Windows
@@ -121,130 +62,73 @@ static void storage_mount_changed_cb(tinyusb_msc_event_t* event) {
     }
 }
 
-static bool ensureDriverInstalled() {
-    if (driverInstalled) {
-        return true;
-    }
-
-#if CONFIG_IDF_TARGET_ESP32P4
-    // Tab5's USB-C port is wired to FSLS PHY0, but the USB_WRAP (FS/FSLS) controller
-    // used by TinyUSB device mode defaults to FSLS PHY1. Route it to PHY0 before
-    // installing the TinyUSB driver.
-    usb_wrap_ll_phy_select(&USB_WRAP, 0);
-#endif
-
-    const tinyusb_config_t tusb_cfg = {
-        .device_descriptor = &descriptor_config,
-        .string_descriptor = string_desc_arr,
-        .string_descriptor_count = sizeof(string_desc_arr) / sizeof(string_desc_arr[0]),
-        .external_phy = false,
-#if (TUD_OPT_HIGH_SPEED)
-        .fs_configuration_descriptor = msc_fs_configuration_desc,
-        .hs_configuration_descriptor = msc_hs_configuration_desc,
-        .qualifier_descriptor = &device_qualifier,
-#else
-        .configuration_descriptor = msc_fs_configuration_desc,
-#endif // TUD_OPT_HIGH_SPEED
-        .self_powered = false,
-        .vbus_monitor_io = 0
-    };
-
-    if (tinyusb_driver_install(&tusb_cfg) != ESP_OK) {
-        LOG_E(TAG, "Failed to install TinyUSB driver");
-#if CONFIG_IDF_TARGET_ESP32P4
-        // Roll back routing when TinyUSB did not start.
-        usb_wrap_ll_phy_select(&USB_WRAP, 1);
-#endif
-        return false;
-    }
-
-    driverInstalled = true;
-    return true;
-}
+} // namespace tt::hal::usb
 
 bool tusbIsSupported() { return true; }
 
 bool tusbStartMassStorageWithSdmmc(bool fromBootMode) {
-    if (!ensureDriverInstalled()) {
+    auto* device = usb_msc_device_get();
+    if (device == nullptr) {
+        LOG_E(TAG, "USB MSC device not available");
         return false;
     }
-    startedFromBootMode = fromBootMode;
 
     auto* card = tt::hal::usb::getCard();
     if (card == nullptr) {
         LOG_E(TAG, "SD card not mounted");
+        device_put(device);
         return false;
     }
 
-    const tinyusb_msc_sdmmc_config_t config_sdmmc = {
-        .card = card,
-        .callback_mount_changed = storage_mount_changed_cb,
-        .callback_premount_changed = nullptr,
-        .mount_config = {
-            .format_if_mount_failed = false,
-            .max_files = 5,
-            .allocation_unit_size = 0,
-            .disk_status_check_enable = false,
-            .use_one_fat = false
-        }
-    };
+    tt::hal::usb::startedFromBootMode = fromBootMode;
 
-    auto result = tinyusb_msc_storage_init_sdmmc(&config_sdmmc);
-    if (result != ESP_OK) {
-        LOG_E(TAG, "TinyUSB SDMMC init failed: %s", esp_err_to_name(result));
+    auto result = usb_msc_device_start(device, USB_MSC_DEVICE_SOURCE_SDMMC, card,
+        tt::hal::usb::onMountChanged, nullptr);
+    if (result != ERROR_NONE) {
+        LOG_E(TAG, "TinyUSB SDMMC init failed: %s", error_to_string(result));
     } else {
         LOG_I(TAG, "TinyUSB SDMMC init success");
     }
 
-    return result == ESP_OK;
+    device_put(device);
+    return result == ERROR_NONE;
 }
 
 bool tusbStartMassStorageWithFlash(bool fromBootMode) {
     LOG_I(TAG, "Starting flash MSC");
-    if (!ensureDriverInstalled()) {
+
+    auto* device = usb_msc_device_get();
+    if (device == nullptr) {
+        LOG_E(TAG, "USB MSC device not available");
         return false;
     }
-    startedFromBootMode = fromBootMode;
 
     wl_handle_t handle = tt::getDataPartitionWlHandle();
     if (handle == WL_INVALID_HANDLE) {
         LOG_E(TAG, "WL not mounted for /data");
+        device_put(device);
         return false;
     }
 
-    const tinyusb_msc_spiflash_config_t config_flash = {
-        .wl_handle = handle,
-        .callback_mount_changed = storage_mount_changed_cb,
-        .callback_premount_changed = nullptr,
-        .mount_config = {
-            .format_if_mount_failed = false,
-            .max_files = 5,
-            .allocation_unit_size = 0,
-            .disk_status_check_enable = false,
-            .use_one_fat = false
-        }
-    };
+    tt::hal::usb::startedFromBootMode = fromBootMode;
 
-    esp_err_t result = tinyusb_msc_storage_init_spiflash(&config_flash);
-    if (result != ESP_OK) {
-        LOG_E(TAG, "TinyUSB flash init failed: %s", esp_err_to_name(result));
+    auto result = usb_msc_device_start(device, USB_MSC_DEVICE_SOURCE_FLASH,
+        &handle, tt::hal::usb::onMountChanged, nullptr);
+    if (result != ERROR_NONE) {
+        LOG_E(TAG, "TinyUSB flash init failed: %s", error_to_string(result));
     } else {
         LOG_I(TAG, "TinyUSB flash init success");
     }
-    return result == ESP_OK;
+    device_put(device);
+    return result == ERROR_NONE;
 }
 
 void tusbStop() {
-    // Actively signal a disconnect to the host before tearing down the peripheral, otherwise
-    // a subsequent esp_restart() resets the chip too fast for the host to notice the device
-    // went away, leaving it stuck showing the old MSC device until the cable is replugged.
-    tud_disconnect();
-    vTaskDelay(pdMS_TO_TICKS(250));
-
-    tinyusb_msc_storage_deinit();
-#if CONFIG_IDF_TARGET_ESP32P4
-    usb_wrap_ll_phy_select(&USB_WRAP, 1);
-#endif
+    auto* device = usb_msc_device_get();
+    if (device != nullptr) {
+        usb_msc_device_stop(device);
+        device_put(device);
+    }
 }
 
 bool tusbCanStartMassStorageWithFlash() {
