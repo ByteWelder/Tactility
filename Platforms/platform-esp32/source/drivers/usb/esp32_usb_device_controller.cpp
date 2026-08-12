@@ -19,6 +19,8 @@
 #if CONFIG_IDF_TARGET_ESP32P4
 #include <hal/usb_wrap_ll.h>
 #include <soc/usb_wrap_struct.h>
+#elif CONFIG_IDF_TARGET_ESP32S3
+#include <hal/usb_serial_jtag_ll.h>
 #endif
 
 #define TAG "esp32_usb_device_controller"
@@ -80,6 +82,13 @@ static void route_phy_for_device_mode() {
 static void restore_default_phy_route() {
 #if CONFIG_IDF_TARGET_ESP32P4
     usb_wrap_ll_phy_select(&USB_WRAP, 1);
+#elif CONFIG_IDF_TARGET_ESP32S3
+    // S2/S3 share one FSLS PHY between USB-OTG and USB-Serial-JTAG. esp_tinyusb's teardown
+    // leaves the PHY muxed to USB-OTG \afterward, so the native console never comes back
+    // without this.
+    //
+    // \afterward ESP-IDF's usb_del_phy() (called from tinyusb_driver_uninstall() above).
+    usb_serial_jtag_ll_phy_enable_external(false);
 #endif
 }
 
