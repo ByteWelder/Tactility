@@ -19,22 +19,11 @@
 // ---- MIDI device descriptor set ----
 // TUD_MIDI_DESCRIPTOR consumes 2 interfaces internally (Audio Control + MIDI Streaming,
 // itfnum and itfnum+1 - see TUD_MIDI_DESC_HEAD in usbd.h), unlike HID/MSC/CDC which use 1
-// each - so ITF_NUM_TOTAL is 2 here even though this is a single logical MIDI port.
+// each - allocate_interfaces(2, 1, 1, ...) in midi_device_start() reflects that.
 
-enum {
-    ITF_NUM_MIDI_AC = 0, // Audio Control (required umbrella interface for MIDI v1.0)
-    ITF_NUM_MIDI_MS,     // MIDI Streaming (the actual jacks/endpoints)
-    ITF_NUM_TOTAL
-};
-
-enum {
-    EDPT_MIDI_OUT = 0x01,
-    EDPT_MIDI_IN  = 0x81,
-};
-
-#define TUSB_DESC_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_MIDI_DESC_LEN)
-
-static const tusb_desc_device_t midi_device_descriptor = {
+// Mutable (not const): the USB device controller patches bDeviceClass/SubClass/Protocol at
+// claim() time depending on whether CDC is composited in (see esp32_usb_device_controller.cpp).
+static tusb_desc_device_t midi_device_descriptor = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
@@ -50,20 +39,6 @@ static const tusb_desc_device_t midi_device_descriptor = {
     .iSerialNumber      = 0x03,
     .bNumConfigurations = 0x01,
 };
-
-#if (TUD_OPT_HIGH_SPEED)
-static const tusb_desc_device_qualifier_t midi_device_qualifier = {
-    .bLength            = sizeof(tusb_desc_device_qualifier_t),
-    .bDescriptorType    = TUSB_DESC_DEVICE_QUALIFIER,
-    .bcdUSB             = 0x0200,
-    .bDeviceClass       = TUSB_CLASS_MISC,
-    .bDeviceSubClass    = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol    = MISC_PROTOCOL_IAD,
-    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
-    .bNumConfigurations = 0x01,
-    .bReserved          = 0x00,
-};
-#endif
 
 static const char midi_langid_descriptor[] = { 0x09, 0x04 };
 // index 2 (iProduct) is overwritten by set_name() before start(), see
@@ -86,41 +61,52 @@ static const char* midi_string_descriptor[] = {
 static constexpr uint8_t MIDI_STRIDX_JACK = 4;
 
 // TUD_MIDI_DESCRIPTOR (the usbd.h convenience macro) hardcodes its jack descriptors' string
-// index to 0 (no string) - it isn't a parameter the macro exposes. Fixed by expanding
-// TUD_MIDI_DESCRIPTOR's own definition here with a real string index for the jack (instead of
-// the macro's hardcoded 0), while keeping the interface string index at literal 0 (see comment
-// above on midi_string_descriptor for why 0, not an empty table entry).
-static const uint8_t midi_configuration_descriptor[] = {
-    TUD_CONFIG_DESCRIPTOR(1, ITF_NUM_TOTAL, 0, TUSB_DESC_TOTAL_LEN, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    TUD_MIDI_DESC_HEAD(ITF_NUM_MIDI_AC, 0, 1),
-    TUD_MIDI_DESC_JACK_DESC(1, MIDI_STRIDX_JACK),
-    TUD_MIDI_DESC_EP(EDPT_MIDI_OUT, 64, 1),
-    TUD_MIDI_JACKID_IN_EMB(1),
-    TUD_MIDI_DESC_EP(EDPT_MIDI_IN, 64, 1),
-    TUD_MIDI_JACKID_OUT_EMB(1),
-};
-
-static const tinyusb_config_t midi_tusb_cfg = {
-    .device_descriptor = &midi_device_descriptor,
-    .string_descriptor = midi_string_descriptor,
-    .string_descriptor_count = sizeof(midi_string_descriptor) / sizeof(midi_string_descriptor[0]),
-    .external_phy = false,
-#if (TUD_OPT_HIGH_SPEED)
-    .fs_configuration_descriptor = midi_configuration_descriptor,
-    .hs_configuration_descriptor = midi_configuration_descriptor,
-    .qualifier_descriptor = &midi_device_qualifier,
-#else
-    .configuration_descriptor = midi_configuration_descriptor,
-#endif
-    .self_powered = false,
-    .vbus_monitor_io = 0,
-};
+// index to 0 (no string) - it isn't a parameter the macro exposes. Built by hand here with a
+// real string index for the jack (instead of the macro's hardcoded 0), while keeping the
+// interface string index at literal 0 (see comment above on midi_string_descriptor for why 0,
+// not an empty table entry). Interface/endpoint numbers come from allocate_interfaces() at claim
+// time rather than compile-time constants, since CDC may now be composited in after MIDI.
+static uint8_t midi_configuration_descriptor[TUD_MIDI_DESC_LEN];
 
 // ---- MIDI device API ----
 
 static error_t midi_device_start(struct Device* device) {
     auto* controller = device_get_parent(device);
-    return usb_device_controller_claim(controller, USB_DEVICE_CLASS_MIDI, &midi_tusb_cfg);
+
+    error_t begin_result = usb_device_controller_begin_claim(controller);
+    if (begin_result != ERROR_NONE) {
+        return begin_result;
+    }
+
+    struct UsbInterfaceAllocation alloc;
+    error_t alloc_result = usb_device_controller_allocate_interfaces(controller, /*interface_count=*/2,
+                                                                       /*in_endpoint_count=*/1, /*out_endpoint_count=*/1, &alloc);
+    if (alloc_result != ERROR_NONE) {
+        return alloc_result;
+    }
+
+    const uint8_t itf_ac = alloc.first_interface_number;
+    const uint8_t midi_bytes[] = {
+        TUD_MIDI_DESC_HEAD(itf_ac, 0, 1),
+        TUD_MIDI_DESC_JACK_DESC(1, MIDI_STRIDX_JACK),
+        TUD_MIDI_DESC_EP(alloc.first_out_endpoint, 64, 1),
+        TUD_MIDI_JACKID_IN_EMB(1),
+        TUD_MIDI_DESC_EP(alloc.first_in_endpoint, 64, 1),
+        TUD_MIDI_JACKID_OUT_EMB(1),
+    };
+    memcpy(midi_configuration_descriptor, midi_bytes, sizeof(midi_bytes));
+
+    struct UsbDeviceClaimConfig claim_config = {};
+    claim_config.device_descriptor = &midi_device_descriptor;
+    claim_config.string_descriptor = midi_string_descriptor;
+    claim_config.string_descriptor_count = sizeof(midi_string_descriptor) / sizeof(midi_string_descriptor[0]);
+    claim_config.primary.descriptor_bytes = midi_configuration_descriptor;
+    claim_config.primary.descriptor_bytes_len = sizeof(midi_configuration_descriptor);
+    claim_config.primary.interface_count = 2;
+    claim_config.primary.in_endpoint_count = 1;
+    claim_config.primary.out_endpoint_count = 1;
+
+    return usb_device_controller_claim(controller, USB_DEVICE_CLASS_MIDI, &claim_config);
 }
 
 static error_t midi_device_stop(struct Device* device) {

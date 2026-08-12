@@ -17,13 +17,6 @@
 
 #include <cstring>
 
-#if CONFIG_TINYUSB_CDC_ENABLED
-#include <tusb_cdc_acm.h>
-#include <esp_log.h>
-#include <cstdarg>
-#include <cstdio>
-#endif
-
 #define TAG "esp32_usb_hid_device"
 #define GET_CONFIG(device) ((const Esp32UsbDeviceChildConfig*)(device)->config)
 
@@ -93,46 +86,27 @@ static uint16_t product_id_for_mode(enum UsbHidDeviceMode mode) {
 // Mirrors bluetooth_set_device_name()'s pattern of being set once before starting the profile.
 static char custom_name[32] = {};
 
-// Composite config: interface 0-1 = CDC ACM (notif + data), interface 2 = HID. Tab5 (and any
-// board where the same physical USB-C port carries both the programming/monitor connection and
-// the native OTG device-mode peripheral - see esp32_usb_device_controller.cpp's
-// route_phy_for_device_mode) loses its console entirely the moment HID claims the port, since
-// TinyUSB device mode and the previous serial link can't coexist on the same wire. Compositing a
-// CDC ACM interface into the same descriptor keeps a console reachable (as a USB serial device)
-// for as long as HID is active. When CONFIG_TINYUSB_CDC_ENABLED isn't set (older/other boards
-// where HID doesn't need this), this falls back to the plain HID-only descriptor.
-#if CONFIG_TINYUSB_CDC_ENABLED
-#define HID_ITF_NUM 2
-#define HID_EP_NOTIF 0x83
-#define HID_EP_CDC_OUT 0x02
-#define HID_EP_CDC_IN 0x82
-#define HID_EP_REPORT 0x81
-#else
-#define HID_ITF_NUM 0
-#define HID_EP_REPORT 0x81
-#endif
+// HID's own interface/endpoint numbers now come from allocate_interfaces() at claim time
+// (hid_device_start()) rather than compile-time constants - CDC, if the board's usbdevicecdc0
+// child is enabled, is composited in by the USB device controller itself after HID's own
+// contribution, so HID no longer needs to know or care whether CDC exists (see
+// esp32_usb_device_controller.cpp / esp32_usb_cdc_device.cpp).
 
 // The report descriptor length varies by mode (KEYBOARD_MOUSE's combined map is the largest),
-// so the config descriptor's total length is computed at claim time in build_hid_config(),
+// so the config descriptor's total length is computed at claim time in hid_device_start(),
 // not as a compile-time constant like the old single-report-descriptor version.
 
 // Built fresh in start() (see build_hid_device_descriptor()) so idProduct/iProduct can vary per
-// mode - see default_name_for_mode()/product_id_for_mode() above for why.
+// mode - see default_name_for_mode()/product_id_for_mode() above for why. Mutable (not const)
+// for the same reason, plus: the USB device controller patches bDeviceClass/SubClass/Protocol at
+// claim() time depending on whether CDC is composited in.
 static tusb_desc_device_t hid_device_descriptor = {
     .bLength            = sizeof(tusb_desc_device_t),
     .bDescriptorType    = TUSB_DESC_DEVICE,
     .bcdUSB             = 0x0200,
-#if CONFIG_TINYUSB_CDC_ENABLED
-    // CDC composite devices must advertise the IAD (Interface Association Descriptor) class at
-    // the device level so hosts group the CDC notif+data interfaces correctly.
-    .bDeviceClass       = TUSB_CLASS_MISC,
-    .bDeviceSubClass    = MISC_SUBCLASS_COMMON,
-    .bDeviceProtocol    = MISC_PROTOCOL_IAD,
-#else
     .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
     .bDeviceSubClass    = 0x00,
     .bDeviceProtocol    = 0x00,
-#endif
     .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
     .idVendor           = 0x303A, // Espressif VID
     .idProduct          = 0x4004, // overwritten per-mode in start()
@@ -142,20 +116,6 @@ static tusb_desc_device_t hid_device_descriptor = {
     .iSerialNumber      = 0x03,
     .bNumConfigurations = 0x01,
 };
-
-#if (TUD_OPT_HIGH_SPEED)
-static const tusb_desc_device_qualifier_t hid_device_qualifier = {
-    .bLength            = sizeof(tusb_desc_device_qualifier_t),
-    .bDescriptorType    = TUSB_DESC_DEVICE_QUALIFIER,
-    .bcdUSB             = 0x0200,
-    .bDeviceClass       = TUSB_CLASS_UNSPECIFIED,
-    .bDeviceSubClass    = 0x00,
-    .bDeviceProtocol    = 0x00,
-    .bMaxPacketSize0    = CFG_TUD_ENDPOINT0_SIZE,
-    .bNumConfigurations = 0x01,
-    .bReserved          = 0x00,
-};
-#endif
 
 static const char hid_langid_descriptor[] = { 0x09, 0x04 };
 // index 2 (iProduct) is overwritten per-mode/per-custom-name in start(), see
@@ -167,67 +127,11 @@ static const char* hid_string_descriptor[] = {
     hid_langid_descriptor, "Tactility", hid_product_string, "123456", hid_product_string,
 };
 
-// Built fresh in start(), sized for the active mode's report map. TinyUSB only reads this once
-// during tinyusb_driver_install() (inside usb_device_controller_claim()), so it's safe to
-// mutate between claim sessions (i.e. stop() + start() with a different mode) as long as it's
-// finalized before claim() is called.
-//
-// Guarded by !CONFIG_TINYUSB_CDC_ENABLED (mirroring the CDC variant's own guard below) rather
-// than being compiled unconditionally: on any board with CDC enabled, hid_device_start() only ever takes the CDC branch,
-// leaving this variant genuinely dead code for that build - left ungated it,
-// it still compiled, but as an unused static function warning.
-#if !CONFIG_TINYUSB_CDC_ENABLED
-static uint8_t hid_configuration_descriptor[TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN];
-
-static void build_hid_config() {
-    const size_t total_len = TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN;
-    const uint8_t config[] = {
-        TUD_CONFIG_DESCRIPTOR(1, HID_ITF_NUM + 1, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    };
-    const uint8_t hid_itf[] = {
-        TUD_HID_DESCRIPTOR(HID_ITF_NUM, 4, HID_ITF_PROTOCOL_NONE, active_report_map_len(), HID_EP_REPORT, 16, 10),
-    };
-    memcpy(hid_configuration_descriptor, config, sizeof(config));
-    memcpy(hid_configuration_descriptor + sizeof(config), hid_itf, sizeof(hid_itf));
-}
-#endif
-
-#if CONFIG_TINYUSB_CDC_ENABLED
-static uint8_t hid_cdc_configuration_descriptor[TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN];
-
-static void build_hid_cdc_config() {
-    const size_t total_len = TUD_CONFIG_DESC_LEN + TUD_CDC_DESC_LEN + TUD_HID_DESC_LEN;
-    const uint8_t config[] = {
-        TUD_CONFIG_DESCRIPTOR(1, HID_ITF_NUM + 1, 0, total_len, TUSB_DESC_CONFIG_ATT_REMOTE_WAKEUP, 100),
-    };
-    const uint8_t cdc_itf[] = {
-        TUD_CDC_DESCRIPTOR(0, 4, HID_EP_NOTIF, 8, HID_EP_CDC_OUT, HID_EP_CDC_IN, 64),
-    };
-    const uint8_t hid_itf[] = {
-        TUD_HID_DESCRIPTOR(HID_ITF_NUM, 4, HID_ITF_PROTOCOL_NONE, active_report_map_len(), HID_EP_REPORT, 16, 10),
-    };
-    uint8_t* p = hid_cdc_configuration_descriptor;
-    memcpy(p, config, sizeof(config)); p += sizeof(config);
-    memcpy(p, cdc_itf, sizeof(cdc_itf)); p += sizeof(cdc_itf);
-    memcpy(p, hid_itf, sizeof(hid_itf));
-}
-#endif
-
-static tinyusb_config_t hid_tusb_cfg = {
-    .device_descriptor = &hid_device_descriptor,
-    .string_descriptor = hid_string_descriptor,
-    .string_descriptor_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]),
-    .external_phy = false,
-#if (TUD_OPT_HIGH_SPEED)
-    .fs_configuration_descriptor = nullptr, // set in start(), see build_hid_config()/build_hid_cdc_config()
-    .hs_configuration_descriptor = nullptr,
-    .qualifier_descriptor = &hid_device_qualifier,
-#else
-    .configuration_descriptor = nullptr, // set in start()
-#endif
-    .self_powered = false,
-    .vbus_monitor_io = 0,
-};
+// Built fresh in hid_device_start(), sized for the active mode's report map. TinyUSB only reads
+// this once during tinyusb_driver_install() (inside claim()), so it's safe to mutate between
+// claim sessions (i.e. stop() + start() with a different mode) as long as it's finalized before
+// claim() is called.
+static uint8_t hid_configuration_descriptor[TUD_HID_DESC_LEN];
 
 // ---- TinyUSB HID callbacks (required by the TinyUSB HID class driver) ----
 
@@ -254,58 +158,6 @@ void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id, hid_report_type_
 
 // ---- HID device API ----
 
-#if CONFIG_TINYUSB_CDC_ENABLED
-static bool cdc_console_installed = false;
-static vprintf_like_t previous_vprintf = nullptr;
-
-// Mirrors every log line to the CDC ACM interface in addition to whatever the log vprintf
-// hook already does (UART0, ...) - deliberately additive rather than esp_tinyusb's own
-// esp_tusb_init_console(), which freopen()s stdout/stderr and would replace the existing
-// console instead of adding a second one alongside it.
-static int cdc_mirroring_vprintf(const char* fmt, va_list args) {
-    int result = previous_vprintf ? previous_vprintf(fmt, args) : vprintf(fmt, args);
-
-    if (tud_cdc_connected()) {
-        char buf[256];
-        va_list args_copy;
-        va_copy(args_copy, args);
-        int len = vsnprintf(buf, sizeof(buf), fmt, args_copy);
-        va_end(args_copy);
-        if (len > 0) {
-            size_t to_write = static_cast<size_t>(len) < sizeof(buf) ? static_cast<size_t>(len) : sizeof(buf) - 1;
-            tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, reinterpret_cast<const uint8_t*>(buf), to_write);
-            tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
-        }
-    }
-    return result;
-}
-
-static void install_cdc_console() {
-    const tinyusb_config_cdcacm_t acm_cfg = {
-        .usb_dev = TINYUSB_USBDEV_0,
-        .cdc_port = TINYUSB_CDC_ACM_0,
-        .callback_rx = nullptr,
-        .callback_rx_wanted_char = nullptr,
-        .callback_line_state_changed = nullptr,
-        .callback_line_coding_changed = nullptr,
-    };
-    if (tusb_cdc_acm_init(&acm_cfg) != ESP_OK) {
-        LOG_E(TAG, "tusb_cdc_acm_init failed - CDC console unavailable");
-        return;
-    }
-    previous_vprintf = esp_log_set_vprintf(cdc_mirroring_vprintf);
-    cdc_console_installed = true;
-}
-
-static void uninstall_cdc_console() {
-    if (!cdc_console_installed) return;
-    esp_log_set_vprintf(previous_vprintf ? previous_vprintf : vprintf);
-    previous_vprintf = nullptr;
-    tusb_cdc_acm_deinit(TINYUSB_CDC_ACM_0);
-    cdc_console_installed = false;
-}
-#endif
-
 // Fills in idProduct/iProduct for the given mode, honoring a set_name() override if one was
 // set. Must run before every claim() - the name/PID need to match whatever mode is about to
 // start, not whatever they were left as from a previous session.
@@ -320,38 +172,40 @@ static error_t hid_device_start(struct Device* device, enum UsbHidDeviceMode mod
     active_mode = mode;
     build_hid_device_descriptor(mode);
 
-#if CONFIG_TINYUSB_CDC_ENABLED
-    build_hid_cdc_config();
-#if (TUD_OPT_HIGH_SPEED)
-    hid_tusb_cfg.fs_configuration_descriptor = hid_cdc_configuration_descriptor;
-    hid_tusb_cfg.hs_configuration_descriptor = hid_cdc_configuration_descriptor;
-#else
-    hid_tusb_cfg.configuration_descriptor = hid_cdc_configuration_descriptor;
-#endif
-#else
-    build_hid_config();
-#if (TUD_OPT_HIGH_SPEED)
-    hid_tusb_cfg.fs_configuration_descriptor = hid_configuration_descriptor;
-    hid_tusb_cfg.hs_configuration_descriptor = hid_configuration_descriptor;
-#else
-    hid_tusb_cfg.configuration_descriptor = hid_configuration_descriptor;
-#endif
-#endif
-
     auto* controller = device_get_parent(device);
-    error_t err = usb_device_controller_claim(controller, USB_DEVICE_CLASS_HID_KEYBOARD, &hid_tusb_cfg);
-#if CONFIG_TINYUSB_CDC_ENABLED
-    if (err == ERROR_NONE) {
-        install_cdc_console();
+
+    error_t begin_result = usb_device_controller_begin_claim(controller);
+    if (begin_result != ERROR_NONE) {
+        return begin_result;
     }
-#endif
-    return err;
+
+    struct UsbInterfaceAllocation alloc;
+    error_t alloc_result = usb_device_controller_allocate_interfaces(controller, /*interface_count=*/1,
+                                                                       /*in_endpoint_count=*/1, /*out_endpoint_count=*/0, &alloc);
+    if (alloc_result != ERROR_NONE) {
+        return alloc_result;
+    }
+
+    const uint8_t hid_bytes[] = {
+        TUD_HID_DESCRIPTOR(alloc.first_interface_number, 4, HID_ITF_PROTOCOL_NONE,
+                            active_report_map_len(), alloc.first_in_endpoint, 16, 10),
+    };
+    memcpy(hid_configuration_descriptor, hid_bytes, sizeof(hid_bytes));
+
+    struct UsbDeviceClaimConfig claim_config = {};
+    claim_config.device_descriptor = &hid_device_descriptor;
+    claim_config.string_descriptor = hid_string_descriptor;
+    claim_config.string_descriptor_count = sizeof(hid_string_descriptor) / sizeof(hid_string_descriptor[0]);
+    claim_config.primary.descriptor_bytes = hid_configuration_descriptor;
+    claim_config.primary.descriptor_bytes_len = sizeof(hid_configuration_descriptor);
+    claim_config.primary.interface_count = 1;
+    claim_config.primary.in_endpoint_count = 1;
+    claim_config.primary.out_endpoint_count = 0;
+
+    return usb_device_controller_claim(controller, USB_DEVICE_CLASS_HID_KEYBOARD, &claim_config);
 }
 
 static error_t hid_device_stop(struct Device* device) {
-#if CONFIG_TINYUSB_CDC_ENABLED
-    uninstall_cdc_console();
-#endif
     auto* controller = device_get_parent(device);
     return usb_device_controller_release(controller, USB_DEVICE_CLASS_HID_KEYBOARD);
 }
@@ -476,9 +330,6 @@ static error_t stop_device(struct Device* device) {
     // HID is still active).
     auto* controller = device_get_parent(device);
     if (controller != nullptr && usb_device_controller_get_active_class(controller) == USB_DEVICE_CLASS_HID_KEYBOARD) {
-#if CONFIG_TINYUSB_CDC_ENABLED
-        uninstall_cdc_console();
-#endif
         usb_device_controller_release(controller, USB_DEVICE_CLASS_HID_KEYBOARD);
     }
     return ERROR_NONE;

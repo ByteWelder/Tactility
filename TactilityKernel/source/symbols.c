@@ -422,9 +422,12 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(USB_HOST_MSC_TYPE),
     // drivers/usb_device_controller
     DEFINE_MODULE_SYMBOL(usb_device_controller_get),
+    DEFINE_MODULE_SYMBOL(usb_device_controller_begin_claim),
+    DEFINE_MODULE_SYMBOL(usb_device_controller_allocate_interfaces),
     DEFINE_MODULE_SYMBOL(usb_device_controller_claim),
     DEFINE_MODULE_SYMBOL(usb_device_controller_release),
     DEFINE_MODULE_SYMBOL(usb_device_controller_get_active_class),
+    DEFINE_MODULE_SYMBOL(usb_device_controller_is_cdc_enabled),
     DEFINE_MODULE_SYMBOL(USB_DEVICE_CONTROLLER_TYPE),
     // drivers/usb_hid_device
     DEFINE_MODULE_SYMBOL(usb_hid_device_get),
