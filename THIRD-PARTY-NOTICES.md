@@ -35,6 +35,14 @@ Website: https://github.com/kosma/minmea
 
 License: [WTFPL](https://github.com/kosma/minmea/blob/master/LICENSE.grants), [LGPL 3.0](https://github.com/kosma/minmea/blob/master/LICENSE.LGPL-3.0), [MIT](https://github.com/kosma/minmea/blob/master/LICENSE.MIT)
 
+### Meshtastic Firmware
+
+Parts of the Meshtastic firmware are used in `gps-meshtastic-module`. This module is included by the `Tactility/` and `Firmware/` projects.
+
+Website: https://github.com/meshtastic/firmware
+
+License: [GPL v3.0](https://github.com/meshtastic/firmware/blob/master/LICENSE)
+
 ### BQ27220 Driver
 
 Website: https://github.com/Xinyuan-LilyGO/T-Echo/blob/main/LICENSE
