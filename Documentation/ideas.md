@@ -11,9 +11,10 @@
 
 ## Higher Priority
 
+- wifi: wifi_add_event_callback() and wifi_remove_event_callback() should be replaced by a subscribe/await pattern like system events.
+  When that's changed reduce LVGL callstack size in Tactility.cpp run()
 - Make it more clear to end-users that an SD card is required to run Tactility
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
-- Put task stacks in PSRAM when possible.
 - Wrap file operations like fopen/fclose with file_mutex
 - Add bold fonts for e-ink readability improvement
 - Move test projects to their relevant subproject
