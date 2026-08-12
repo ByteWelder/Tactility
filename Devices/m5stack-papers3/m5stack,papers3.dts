@@ -8,6 +8,7 @@
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_adc_oneshot.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/battery_sense.h>
 #include <bindings/bmi270.h>
 #include <bindings/bm8563.h>
@@ -113,5 +114,13 @@
 		// exactly 180deg from it (verified against epdiy's _rotate()) and is this panel's
 		// correct orientation.
 		rotation = <EPD_ROT_INVERTED_PORTRAIT>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

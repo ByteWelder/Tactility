@@ -11,6 +11,7 @@
 #include <tactility/bindings/esp32_i2s.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_uart.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <bindings/bmi270.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
@@ -147,5 +148,13 @@
 		pin-ws = <&gpio0 43 GPIO_FLAG_NONE>;
 		pin-data-out = <&gpio0 42 GPIO_FLAG_NONE>;
 		pin-data-in = <&gpio0 46 GPIO_FLAG_NONE>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

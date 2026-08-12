@@ -10,6 +10,7 @@
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_uart.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/gpio_hog.h>
 #include <bindings/aw88298.h>
 #include <bindings/aw9523b.h>
@@ -236,6 +237,14 @@
 			compatible = "espressif,esp32-sdspi";
 			status = "disabled"; // Must be started after display
 			frequency-khz = <20000>;
+		};
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
 };

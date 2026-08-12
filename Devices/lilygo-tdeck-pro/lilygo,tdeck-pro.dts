@@ -8,6 +8,7 @@
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <bindings/cst328.h>
 #include <bindings/gdeq031t10.h>
@@ -133,6 +134,14 @@
 			compatible = "espressif,esp32-sdspi";
 			status = "disabled";
 			frequency-khz = <20000>;
+		};
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
 };

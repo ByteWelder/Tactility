@@ -14,6 +14,7 @@
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/esp32_uart.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 
 #include <bindings/gt911.h>
 #include <bindings/st7789.h>
@@ -191,5 +192,13 @@
 		uartPort = <UART_NUM_1>;
 		i2cPort = <I2C_NUM_1>;
 		i2cClockFrequency = <400000>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

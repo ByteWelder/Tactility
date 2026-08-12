@@ -10,6 +10,7 @@
 #include <tactility/bindings/esp32_sdmmc.h>
 #include <tactility/bindings/esp32_i8080.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <tactility/bindings/gpio_hog.h>
 #include <bindings/button_control.h>
@@ -130,5 +131,13 @@
 		slot = <SDMMC_HOST_SLOT_1>;
 		bus-width = <1>;
 		pullups;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

@@ -7,6 +7,7 @@
 #include <tactility/bindings/esp32_i2c.h>
 #include <tactility/bindings/esp32_spi.h>
 #include <tactility/bindings/esp32_uart.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/pwm_backlight.h>
@@ -109,5 +110,13 @@
 		port = <UART_NUM_1>;
 		pin-tx = <&gpio0 17 GPIO_FLAG_NONE>;
 		pin-rx = <&gpio0 18 GPIO_FLAG_NONE>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

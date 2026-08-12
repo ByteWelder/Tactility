@@ -6,6 +6,7 @@
 #include <tactility/bindings/esp32_gpio.h>
 #include <tactility/bindings/esp32_i2c.h>
 #include <tactility/bindings/esp32_adc_oneshot.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/gpio_hog.h>
 #include <bindings/button_control.h>
@@ -112,5 +113,13 @@
 	buttons {
 		compatible = "tactility,button-control";
 		pin-primary = <&gpio0 0 GPIO_FLAG_NONE>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };
