@@ -109,7 +109,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
     ctx.targetAppId = (argc > 0) ? argv[0] : std::string();
-    ctx.targetManifest = *app_manager_find_manifest(ctx.targetAppId.c_str());
+    app_manager_find_manifest(ctx.targetAppId.c_str(), &ctx.targetManifest);
 
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;

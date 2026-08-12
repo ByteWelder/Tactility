@@ -225,7 +225,8 @@ esp_err_t DevelopmentService::handleAppUninstall(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    if (!app_manager_find_manifest(id_key_pos->second.c_str())) {
+    AppManifest manifest;
+    if (app_manager_find_manifest(id_key_pos->second.c_str(), &manifest) != ERROR_NONE) {
         LOG_I(TAG, "[200] /app/uninstall %s (app wasn't installed)", id_key_pos->second.c_str());
         httpd_resp_send(request, nullptr, 0);
         return ESP_OK;

@@ -99,7 +99,8 @@ void showApps(Context* ctx) {
         for (int i = 0; i < ctx->entries.size(); i++) {
             auto& entry = ctx->entries[i];
             LOG_I(TAG, "Adding %s", entry.appName.c_str());
-            const char* icon = app_manager_find_manifest(entry.appId.c_str()) != nullptr ? LV_SYMBOL_OK : nullptr;
+            AppManifest manifest;
+            const char* icon = app_manager_find_manifest(entry.appId.c_str(), &manifest) == ERROR_NONE ? LV_SYMBOL_OK : nullptr;
             auto* entry_button = lv_list_add_button(list, icon, entry.appName.c_str());
             auto int_as_voidptr = reinterpret_cast<void*>(i);
             lv_obj_set_user_data(entry_button, int_as_voidptr);

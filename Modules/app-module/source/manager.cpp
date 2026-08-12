@@ -48,13 +48,17 @@ error_t app_manager_remove(const char* id) {
     return ERROR_NONE;
 }
 
-const AppManifest* app_manager_find_manifest(const char* id) {
+error_t app_manager_find_manifest(const char* id, AppManifest* out_manifest) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);
     auto iterator = ledger.manifests.find(id);
-    const AppManifest* manifest = (iterator != ledger.manifests.end()) ? iterator->second : nullptr;
+    if (iterator == ledger.manifests.end()) {
+        mutex_unlock(&ledger.mutex);
+        return ERROR_NOT_FOUND;
+    }
+    *out_manifest = *iterator->second;
     mutex_unlock(&ledger.mutex);
-    return manifest;
+    return ERROR_NONE;
 }
 
 void app_manager_for_each_manifest(AppManifestVisitorFn visitor, void* context) {
@@ -88,15 +92,17 @@ char** copy_arguments(int argc, const char* const argv[]) {
 // app_scheduler_start() frees it on any failure path, and the spawned task frees it once its
 // run() returns.
 error_t start_internal(const char* id, AppInstanceId parent_instance_id, int argc, char* argv[], AppInstanceId* out_app_instance_id) {
-    const AppManifest* manifest = app_manager_find_manifest(id);
-    if (manifest == nullptr) {
-        app_ledger_free_arguments(argc, argv);
-        return ERROR_NOT_FOUND;
-    }
-
     auto& ledger = app_ledger();
 
     mutex_lock(&ledger.mutex);
+    auto manifest_iterator = ledger.manifests.find(id);
+    if (manifest_iterator == ledger.manifests.end()) {
+        mutex_unlock(&ledger.mutex);
+        app_ledger_free_arguments(argc, argv);
+        return ERROR_NOT_FOUND;
+    }
+    const AppManifest* manifest = manifest_iterator->second;
+
     AppInstanceId target_id = ledger.next_instance_id++;
     AppInstanceRecord record { target_id, manifest, APP_INSTANCE_STATE_STARTING, nullptr };
     record.parent_id = parent_instance_id;
