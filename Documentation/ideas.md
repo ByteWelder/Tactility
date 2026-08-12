@@ -2,7 +2,6 @@
 
 ## Before release
 
-- Remove incubating flag from various devices
 - Add `// SPDX-License-Identifier: GPL-3.0-only` and `// SPDX-License-Identifier: Apache-2.0` to individual files in the project
 - Elecrow Basic & Advance 3.5" memory issue: not enough memory for App Hub
 - App Hub crashes if you close it while an app is being installed
@@ -12,7 +11,7 @@
 
 ## Higher Priority
 
-- Devices with a keyboard attached should always highlight the first widget (~Cardputer navigation issue), same for LV_INDEV_TYPE_ENCODER being present
+- lvgl-window-manager: When a keyboard or LV_INDEV_TYPE_ENCODER is attached, always highlight the first widget (~Cardputer navigation issue) in a window when a window is created.
 - Make it more clear to end-users that an SD card is required to run Tactility
 - Move "# Fix error "PSRAM space not enough for the Flash instructions" on boot:" fix from T-Deck and others to device.py
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
@@ -54,6 +53,7 @@
 
 ## Medium Priority
 
+- `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
