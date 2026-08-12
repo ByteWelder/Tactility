@@ -48,6 +48,7 @@
 
 ## Medium Priority
 
+- `platform-esp32`'s module drivers are declared in start/stop of the module but they should be set via `Module::drivers`
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
