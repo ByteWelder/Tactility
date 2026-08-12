@@ -32,12 +32,12 @@ Device IDs are the folder names under `Devices/` (e.g. `lilygo-tdeck`, `m5stack-
 
 On native Windows, `idf.py` is not on PATH by default — it must be activated per-shell first.
 The install script places a PowerShell profile activator per IDF version at
-`%IDF_TOOL_PATH%\Microsoft.v<version>.PowerShell_profile.ps1` (path controlled by the
-`IDF_TOOL_PATH` environment variable, set to wherever ESP-IDF's tools were installed, e.g.
+`%IDF_TOOLS_PATH%\Microsoft.v<version>.PowerShell_profile.ps1` (path controlled by the
+`IDF_TOOLS_PATH` environment variable, set to wherever ESP-IDF's tools were installed, e.g.
 `C:\Espressif\tools`). Source it before running any `idf.py` command:
 
 ```powershell
-. "$env:IDF_TOOL_PATH\Microsoft.v5.5.2.PowerShell_profile.ps1"   # match the installed IDF version
+. "$env:IDF_TOOLS_PATH\Microsoft.v5.5.2.PowerShell_profile.ps1"   # match the installed IDF version
 Set-Location "<repo-root>"
 idf.py build 2>&1 | Select-Object -Last 250
 ```
