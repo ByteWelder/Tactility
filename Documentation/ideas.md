@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
 - wifi: wifi_add_event_callback() and wifi_remove_event_callback() should be replaced by a subscribe/await pattern like system events.
   When that's changed reduce LVGL callstack size in Tactility.cpp run()
 - Make it more clear to end-users that an SD card is required to run Tactility
@@ -24,7 +25,6 @@
 - display.h API: get_backlight does not change ref counting, but it should
 - bluetooth: various getters for child devices do not change ref counting, but they should
 - Improve kernel_init.cpp (and other modules): create driver_ensure_added() and driver_ensure_destructed()
-- Remove and migrate `Include/Tactility/kernel/Kernel.h` into `tactility/delay.h`
 - Drivers/audio-codec-module is not a module. Move it somewhere else. Or make it an actual module.
 - LilyGO T-Dongle S3: 1 button control, stop auto-launching web server
 - Core2: support power off via software
@@ -32,7 +32,6 @@
 - Get rid of TactilityC in favour of TactilityKernel and kernel modules
 - Improve SPI kernel driver (implement read, write, transactions)
 - Add font design tokens such as "regular", "title" and "smaller". Perhaps via the LVGL kernel module.
-- Kernel concepts for ELF loading (generic approach for GUI apps, console apps, libraries).
 - Fix glitches when installing app via App Hub with 4.3" Waveshare
 - TCA9534 keyboards should use interrupts
 - External app loading: Check the version of Tactility and check ESP target hardware to check for compatibility
@@ -58,8 +57,6 @@
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
-- Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
-  This will be useful for devices without a screen, a small screen or a non-touch screen.
 - Unify the way displays are dimmed. Some implementations turn off the display when it's fully dimmed. Make this a separate functionality.
 - Bug: Crash handling app cannot be exited with an EncoderDevice. (current work-around is to manually reset the device)
 
@@ -87,6 +84,8 @@
 - Calculator app should show regular text input field on non-touch devices that have a keyboard (Cardputer, T-Lora Pager)
 - Allow for WSAD keys to navigate LVGL (this is extra nice for cardputer, but just handy in general)
 - Create a "How to" app for a device. It could explain things like keyboard navigation on first start.
+- Make WiFi setup app that starts an access point and hosts a webpage to set up the device.
+  This will be useful for devices without a screen, a small screen or a non-touch screen.
 
 # Nice-to-haves
 
