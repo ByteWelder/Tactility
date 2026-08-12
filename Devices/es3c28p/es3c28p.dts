@@ -9,6 +9,7 @@
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/esp32_sdmmc.h>
 #include <tactility/bindings/esp32_spi.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/esp32_wifi_pinned.h>
 #include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/gpio_hog.h>
@@ -138,5 +139,13 @@
 		pin-d3 = <&gpio0 47 GPIO_FLAG_NONE>;
 		slot = <SDMMC_HOST_SLOT_1>;
 		bus-width = <4>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

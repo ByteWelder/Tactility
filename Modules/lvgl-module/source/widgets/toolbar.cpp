@@ -234,6 +234,29 @@ lv_obj_t* lvgl_toolbar_add_switch_action(lv_obj_t* obj) {
     return widget;
 }
 
+lv_obj_t* lvgl_toolbar_add_dropdown_action(lv_obj_t* obj, const char* options, lv_coord_t width, const char* text) {
+    auto* toolbar = reinterpret_cast<Toolbar*>(obj);
+    check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");
+    toolbar->action_count++;
+
+    auto ui_density = lvgl_get_ui_density();
+    auto* wrapper = create_action_wrapper(toolbar->action_container, ui_density);
+    lv_obj_set_style_pad_hor(wrapper, 4, LV_STATE_DEFAULT);
+
+    lv_obj_t* widget = lv_dropdown_create(wrapper);
+    lv_dropdown_set_options(widget, options);
+    lv_dropdown_set_selected_highlight(widget, false);
+    if (width > 0) {
+        lv_obj_set_width(widget, width);
+    }
+    if (text != nullptr) {
+        lv_dropdown_set_text(widget, text);
+    }
+    lv_obj_set_align(widget, LV_ALIGN_CENTER);
+
+    return widget;
+}
+
 lv_obj_t* lvgl_toolbar_add_spinner_action(lv_obj_t* obj) {
     auto* toolbar = reinterpret_cast<Toolbar*>(obj);
     check(toolbar->action_count < TOOLBAR_ACTION_LIMIT, "max actions reached");

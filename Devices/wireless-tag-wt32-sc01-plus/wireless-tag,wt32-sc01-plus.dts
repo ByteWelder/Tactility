@@ -9,6 +9,7 @@
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_i8080.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <bindings/ft6x36.h>
 #include <bindings/st7796_i8080.h>
@@ -103,6 +104,14 @@
 		sdcard@0 {
 			compatible = "espressif,esp32-sdspi";
 			frequency-khz = <20000>;
+		};
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
 		};
 	};
 };

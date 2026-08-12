@@ -43,6 +43,20 @@ struct KeyboardKeyData {
      * separately. Drivers whose hardware cannot report Alt leave this false.
      */
     bool alt;
+    /**
+     * @brief Standard USB HID keyboard usage code for this key (USB HID Usage Tables, page 0x07),
+     * or 0 if this driver doesn't compute one (most don't - `key` is the only field most consumers
+     * need). Populated by drivers whose hardware layout maps cleanly onto HID usage codes, so
+     * consumers that want to mirror physical key presses as real HID reports (e.g. USB HID output)
+     * don't have to reverse-engineer one out of `key`'s LVGL/ASCII encoding - which is lossy for
+     * keys with no ASCII/LVGL representation at all, e.g. F1-F12.
+     */
+    uint8_t hid_keycode;
+    /**
+     * @brief HID modifier bitmask (report byte 0: bit0=LeftCtrl, bit1=LeftShift, bit2=LeftAlt,
+     * bit3=LeftGui, bit4-7=Right variants) matching hid_keycode, or 0 if hid_keycode is 0.
+     */
+    uint8_t hid_modifier;
 };
 
 /**

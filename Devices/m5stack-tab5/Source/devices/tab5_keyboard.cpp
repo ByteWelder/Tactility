@@ -96,10 +96,10 @@ static constexpr HidMapping KEY_MATRIX_HID_BASE[70] = {
 };
 
 static constexpr HidMapping KEY_MATRIX_HID_SYM[70] = {
-    // Row 0: identical to base
-    {0x29, 0x00}, {0x1E, 0x00}, {0x1F, 0x00}, {0x20, 0x00}, {0x21, 0x00}, {0x22, 0x00},
-    {0x23, 0x00}, {0x24, 0x00}, {0x25, 0x00}, {0x26, 0x00}, {0x27, 0x00}, {0x2D, 0x00},
-    {0x2E, 0x02}, {0x4C, 0x00},
+    // Row 0: Esc F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 Del
+    {0x29, 0x00}, {0x3A, 0x00}, {0x3B, 0x00}, {0x3C, 0x00}, {0x3D, 0x00}, {0x3E, 0x00},
+    {0x3F, 0x00}, {0x40, 0x00}, {0x41, 0x00}, {0x42, 0x00}, {0x43, 0x00}, {0x44, 0x00},
+    {0x45, 0x00}, {0x4C, 0x00},
     // Row 1: Sym deltas: ` → ~, ! → ?, * → /, ( → <, ) → >, [ → {, ] → }, backslash → |
     {0x35, 0x02}, {0x38, 0x02}, {0x1F, 0x02}, {0x20, 0x02}, {0x21, 0x02}, {0x22, 0x02},
     {0x23, 0x02}, {0x24, 0x02}, {0x38, 0x00}, {0x36, 0x02}, {0x37, 0x02}, {0x2F, 0x02},
@@ -148,6 +148,10 @@ static uint32_t tab5_translate_key(uint8_t keycode, uint8_t modifier, bool ctrl)
         default: break;
     }
 
+    // F1-F12 (Sym layer over the number row) have no LVGL/ASCII representation - callers that
+    // want them read KeyboardKeyData::hid_keycode instead (see drain_events()), which is
+    // populated for every key regardless of whether `key` itself has a meaningful value.
+
     // Letters a–z / A–Z
     if (keycode >= 0x04U && keycode <= 0x1DU) {
         uint32_t c = static_cast<uint32_t>('a' + (keycode - 0x04U));
@@ -191,6 +195,8 @@ struct Tab5KeyEvent {
     uint32_t key;
     bool ctrl;
     bool alt;
+    uint8_t hid_keycode;
+    uint8_t hid_modifier;
 };
 
 struct Tab5KeyboardInternal {
@@ -368,36 +374,40 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                 ? KEY_MATRIX_HID_SYM[row * 14U + col]
                 : KEY_MATRIX_HID_BASE[row * 14U + col];
             if (m.keycode != 0U) {
-                const uint8_t modifier = static_cast<uint8_t>(m.modifier | (aa_active ? 0x02U : 0U));
+                uint8_t modifier = static_cast<uint8_t>(m.modifier | (aa_active ? 0x02U : 0U));
+                if (internal->ctrl_held) modifier |= 0x01U; // HID LeftCtrl
+                if (internal->alt_held) modifier |= 0x04U;  // HID LeftAlt
                 const uint32_t lv_key = tab5_translate_key(m.keycode, modifier, internal->ctrl_held);
-                if (lv_key != 0U) {
-                    if (pressed) {
-                        // A real key was pressed — this hold is a chord, not a tap
-                        internal->aa_tapped = false;
-                        // Note: ESC used to stop the foreground app directly (tt::app::stop()) in
-                        // the deprecated-HAL version - that's an app-layer concern the driver has
-                        // no business reaching into, so ESC is now just queued as a normal key
-                        // like everything else (LVGL/app code already handles ESC via focus/group
-                        // navigation the same way a dedicated ESC key on any other keyboard would).
-                        const Tab5KeyEvent event = { lv_key, internal->ctrl_held, internal->alt_held };
-                        xQueueSend(internal->queue, &event, 0);
-                        // Arm software repeat tracking by row/col to survive modifier changes
-                        const uint32_t now = now_ms();
-                        internal->repeat_event = event;
-                        internal->repeat_row = row;
-                        internal->repeat_col = col;
-                        internal->repeat_start_ms = now;
-                        internal->repeat_last_ms = 0;
-                        // Consume sticky Aa after one keypress
-                        if (internal->aa_sticky) {
-                            internal->aa_sticky = false;
-                            internal->aa_held = false;
-                            update_leds(device, internal);
-                        }
-                    } else if (row == internal->repeat_row && col == internal->repeat_col) {
-                        // Match release by position, not translated value — survives sticky Aa clear
-                        internal->repeat_event.key = 0;
+                // Queue whenever there's a HID keycode, even if this key has no LVGL/ASCII
+                // representation (e.g. F1-F12) - lv_key stays 0 for those, callers that only
+                // care about LVGL/ASCII text ignore a 0 key the same way they always have.
+                if (pressed) {
+                    // A real key was pressed — this hold is a chord, not a tap
+                    internal->aa_tapped = false;
+                    // Note: ESC used to stop the foreground app directly (tt::app::stop()) in
+                    // the deprecated-HAL version - that's an app-layer concern the driver has
+                    // no business reaching into, so ESC is now just queued as a normal key
+                    // like everything else (LVGL/app code already handles ESC via focus/group
+                    // navigation the same way a dedicated ESC key on any other keyboard would).
+                    const Tab5KeyEvent event = { lv_key, internal->ctrl_held, internal->alt_held,
+                                                 m.keycode, modifier };
+                    xQueueSend(internal->queue, &event, 0);
+                    // Arm software repeat tracking by row/col to survive modifier changes
+                    const uint32_t now = now_ms();
+                    internal->repeat_event = event;
+                    internal->repeat_row = row;
+                    internal->repeat_col = col;
+                    internal->repeat_start_ms = now;
+                    internal->repeat_last_ms = 0;
+                    // Consume sticky Aa after one keypress
+                    if (internal->aa_sticky) {
+                        internal->aa_sticky = false;
+                        internal->aa_held = false;
+                        update_leds(device, internal);
                     }
+                } else if (row == internal->repeat_row && col == internal->repeat_col) {
+                    // Match release by position, not translated value — survives sticky Aa clear
+                    internal->repeat_event.key = 0;
                 }
             }
         }
@@ -560,12 +570,16 @@ static error_t tab5_keyboard_read_key(Device* device, KeyboardKeyData* data) {
         data->continue_reading = uxQueueMessagesWaiting(internal->queue) > 0;
         data->ctrl = event.ctrl;
         data->alt = event.alt;
+        data->hid_keycode = event.hid_keycode;
+        data->hid_modifier = event.hid_modifier;
     } else {
         data->key = 0;
         data->pressed = false;
         data->continue_reading = false;
         data->ctrl = false;
         data->alt = false;
+        data->hid_keycode = 0;
+        data->hid_modifier = 0;
     }
 
     return ERROR_NONE;

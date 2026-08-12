@@ -8,6 +8,7 @@
 #include <tactility/bindings/battery_sense.h>
 #include <tactility/bindings/esp32_i8080.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <bindings/st7789_i8080.h>
 #include <bindings/button_control.h>
@@ -94,5 +95,13 @@
 		compatible = "tactility,button-control";
 		pin-primary = <&gpio0 0 GPIO_FLAG_NONE>;
 		pin-secondary = <&gpio0 14 GPIO_FLAG_NONE>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

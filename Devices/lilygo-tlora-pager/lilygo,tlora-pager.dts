@@ -10,6 +10,7 @@
 #include <tactility/bindings/esp32_uart.h>
 #include <tactility/bindings/esp32_sdspi.h>
 #include <tactility/bindings/esp32_pwm_ledc.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/pwm_backlight.h>
 #include <gps_generic/bindings.h>
 #include <bindings/st7796.h>
@@ -204,5 +205,13 @@
 		pin-a = <&gpio0 40 GPIO_FLAG_NONE>;
 		pin-b = <&gpio0 41 GPIO_FLAG_NONE>;
 		pin-enter = <&gpio0 7 GPIO_FLAG_NONE>;
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
 	};
 };

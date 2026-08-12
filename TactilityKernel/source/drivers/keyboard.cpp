@@ -10,10 +10,12 @@ extern "C" {
 error_t keyboard_read_key(Device* device, KeyboardKeyData* data) {
     const auto* driver = device_get_driver(device);
 
-    // Default the modifier fields here rather than in each driver: only drivers whose hardware can
-    // report modifiers set them, and the rest would otherwise leave whatever the caller's stack held.
+    // Default the modifier/HID fields here rather than in each driver: only drivers whose hardware
+    // can report them set them, and the rest would otherwise leave whatever the caller's stack held.
     data->ctrl = false;
     data->alt = false;
+    data->hid_keycode = 0;
+    data->hid_modifier = 0;
 
     return KEYBOARD_DRIVER_API(driver)->read_key(device, data);
 }

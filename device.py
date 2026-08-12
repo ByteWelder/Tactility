@@ -341,11 +341,34 @@ def write_touch_calibration_variables(output_file, device_properties: dict):
 
 
 def write_usb_variables(output_file, device_properties: dict):
-    has_tiny_usb = get_boolean_property_or_false(device_properties, "hardware.tinyUsb")
-    if has_tiny_usb:
+    has_tiny_usb_msc = get_boolean_property_or_false(device_properties, "hardware.tinyUsbMsc")
+    has_tiny_usb_hid = get_boolean_property_or_false(device_properties, "hardware.tinyUsbHid")
+    has_tiny_usb_midi = get_boolean_property_or_false(device_properties, "hardware.tinyUsbMidi")
+    has_tiny_usb_cdc = get_boolean_property_or_false(device_properties, "hardware.tinyUsbCdc")
+    if has_tiny_usb_msc or has_tiny_usb_hid or has_tiny_usb_midi or has_tiny_usb_cdc:
         output_file.write("# TinyUSB\n")
-        output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
-        output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
+        if has_tiny_usb_msc:
+            output_file.write("CONFIG_TINYUSB_MSC_ENABLED=y\n")
+            output_file.write("CONFIG_TINYUSB_MSC_MOUNT_PATH=\"/sdcard\"\n")
+        if has_tiny_usb_hid:
+            # TinyUSB HID is gated by an interface count, not a plain enable flag - 1 interface
+            # is enough for the boot-protocol keyboard the USB HID device driver installs.
+            output_file.write("CONFIG_TINYUSB_HID_COUNT=1\n")
+        if has_tiny_usb_midi:
+            # Same "count > 0 enables it" shape as HID. MIDI is its own claim()-able
+            # USB_DEVICE_CLASS_MIDI (mutually exclusive with HID/MSC at runtime, like MSC
+            # already is) - a board acting as a MIDI controller has no reason to also be a
+            # keyboard, and vice versa.
+            output_file.write("CONFIG_TINYUSB_MIDI_COUNT=1\n")
+        if has_tiny_usb_cdc:
+            # CDC is an independent devicetree-toggleable addon (usbdevicecdc0), not tied to any
+            # one primary class - the USB device controller composites it into whichever of
+            # HID/MIDI is active (or none) so a serial console stays reachable even while the
+            # port is also presenting as a HID/MIDI device. MSC is deliberately excluded (a MSC
+            # device should look like plain mass storage, no console). See
+            # esp32_usb_cdc_device.cpp / esp32_usb_device_controller.cpp. This flag only needs to
+            # be true if the board's .dts actually has an enabled usbdevicecdc0 node.
+            output_file.write("CONFIG_TINYUSB_CDC_ENABLED=y\n")
         idf_target = get_property_or_exit(device_properties, "hardware.target").lower()
         if idf_target == "esp32p4":
             # P4 has two USB-DWC controllers (HS/UTMI and FS/FSLS). esp_tinyusb defaults to

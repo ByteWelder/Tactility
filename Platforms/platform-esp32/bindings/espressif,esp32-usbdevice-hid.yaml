@@ -1,0 +1,9 @@
+description: ESP32 USB device-mode HID class driver (present the board as a USB HID peripheral, e.g. a keyboard, to a host). Requires CONFIG_TINYUSB_HID_COUNT > 0.
+
+compatible: "espressif,esp32-usbdevice-hid"
+
+properties:
+  _unused:
+    type: int
+    default: 0
+    description: Placeholder required by the binding schema; this driver has no device-tree configuration.

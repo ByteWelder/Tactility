@@ -9,6 +9,7 @@
 #include <tactility/bindings/esp32_pwm_ledc.h>
 #include <tactility/bindings/esp32_sdmmc.h>
 #include <tactility/bindings/esp32_uart.h>
+#include <tactility/bindings/esp32_usbdevice.h>
 #include <tactility/bindings/esp32_usbhost.h>
 #include <tactility/bindings/esp32_wifi.h>
 #include <tactility/bindings/gpio_hog.h>
@@ -208,6 +209,26 @@
 
 		usbhostmsc0 {
 			compatible = "espressif,esp32-usbhost-msc";
+		};
+	};
+
+	usbdevice0 {
+		compatible = "espressif,esp32-usbdevice";
+
+		usbdevicehid0 {
+			compatible = "espressif,esp32-usbdevice-hid";
+		};
+
+		usbdevicemsc0 {
+			compatible = "espressif,esp32-usbdevice-msc";
+		};
+
+		usbdevicemidi0 {
+			compatible = "espressif,esp32-usbdevice-midi";
+		};
+
+		usbdevicecdc0 {
+			compatible = "espressif,esp32-usbdevice-cdc";
 		};
 	};
 };
