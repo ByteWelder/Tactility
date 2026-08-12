@@ -86,19 +86,17 @@ static uint16_t product_id_for_mode(enum UsbHidDeviceMode mode) {
 // Mirrors bluetooth_set_device_name()'s pattern of being set once before starting the profile.
 static char custom_name[32] = {};
 
-// HID's own interface/endpoint numbers now come from allocate_interfaces() at claim time
-// (hid_device_start()) rather than compile-time constants - CDC, if the board's usbdevicecdc0
-// child is enabled, is composited in by the USB device controller itself after HID's own
-// contribution, so HID no longer needs to know or care whether CDC exists (see
-// esp32_usb_device_controller.cpp / esp32_usb_cdc_device.cpp).
+// HID's own interface/endpoint numbers come from allocate_interfaces() at claim time
+// (hid_device_start()) - CDC, if the board's usbdevicecdc0 child is enabled,
+// is composited in by the USB device controller itself after HID's own contribution,
+// so HID no longer needs to know or care whether CDC exists.
 
 // The report descriptor length varies by mode (KEYBOARD_MOUSE's combined map is the largest),
-// so the config descriptor's total length is computed at claim time in hid_device_start(),
-// not as a compile-time constant like the old single-report-descriptor version.
+// so the config descriptor's total length is computed at claim time in hid_device_start().
 
 // Built fresh in start() (see build_hid_device_descriptor()) so idProduct/iProduct can vary per
-// mode - see default_name_for_mode()/product_id_for_mode() above for why. Mutable (not const)
-// for the same reason, plus: the USB device controller patches bDeviceClass/SubClass/Protocol at
+// mode - see default_name_for_mode()/product_id_for_mode() above for why. 
+// Mutable for the same reason, plus: the USB device controller patches bDeviceClass/SubClass/Protocol at
 // claim() time depending on whether CDC is composited in.
 static tusb_desc_device_t hid_device_descriptor = {
     .bLength            = sizeof(tusb_desc_device_t),

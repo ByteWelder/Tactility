@@ -19,7 +19,7 @@
 
 // ---- MSC device descriptor set ----
 
-// Mutable (not const), matching the other primary classes' descriptors, even though MSC's own
+// Mutable, matching the other primary classes' descriptors, even though MSC's own
 // bDeviceClass/SubClass/Protocol below are never actually rewritten by the controller - MSC is
 // excluded from CDC compositing (see esp32_usb_device_controller.cpp's claim(), cdc_enabled
 // computation) and always keeps its own unconditional MISC/IAD triad regardless.

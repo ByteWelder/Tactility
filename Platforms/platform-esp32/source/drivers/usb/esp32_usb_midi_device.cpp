@@ -21,7 +21,7 @@
 // itfnum and itfnum+1 - see TUD_MIDI_DESC_HEAD in usbd.h), unlike HID/MSC/CDC which use 1
 // each - allocate_interfaces(2, 1, 1, ...) in midi_device_start() reflects that.
 
-// Mutable (not const): the USB device controller patches bDeviceClass/SubClass/Protocol at
+// Mutable: the USB device controller patches bDeviceClass/SubClass/Protocol at
 // claim() time depending on whether CDC is composited in (see esp32_usb_device_controller.cpp).
 static tusb_desc_device_t midi_device_descriptor = {
     .bLength            = sizeof(tusb_desc_device_t),

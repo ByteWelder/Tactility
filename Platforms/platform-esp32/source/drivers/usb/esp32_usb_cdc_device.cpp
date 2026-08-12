@@ -32,8 +32,6 @@ struct UsbCdcDeviceCtx {
 };
 
 // ---- CDC console (log mirroring over the CDC ACM interface) ----
-// Lifted verbatim from the old esp32_usb_hid_device.cpp (where CDC used to be hardcoded into
-// HID's own descriptor) - zero logic changes, just relocated here now that CDC is its own addon.
 
 static bool cdc_console_installed = false;
 static vprintf_like_t previous_vprintf = nullptr;
