@@ -14,6 +14,7 @@ TEST_CASE("a RecursiveMutex can block a thread") {
         1024,
         [&mutex] {
             mutex.lock(kernel::FREERTOS_MAX_TICKS);
+            mutex.unlock();
             return 0;
         }
     );
@@ -34,5 +35,6 @@ TEST_CASE("a RecursiveMutex can be locked more than once from the same context")
     RecursiveMutex mutex;
     CHECK_EQ(mutex.lock(0), true);
     CHECK_EQ(mutex.lock(0), true);
+    mutex.unlock();
     mutex.unlock();
 }

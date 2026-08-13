@@ -1,6 +1,8 @@
 #include "doctest.h"
 #include <Tactility/Thread.h>
 
+#include <atomic>
+
 using namespace tt;
 
 TEST_CASE("when a thread is started then its callback should be called") {
@@ -22,7 +24,7 @@ TEST_CASE("when a thread is started then its callback should be called") {
 }
 
 TEST_CASE("a thread can be started and stopped") {
-    bool interrupted = false;
+    std::atomic<bool> interrupted = false;
     auto* thread = new Thread(
         "interruptable thread",
         4096,
@@ -42,7 +44,7 @@ TEST_CASE("a thread can be started and stopped") {
 }
 
 TEST_CASE("thread id should only be set at when thread is started") {
-    bool interrupted = false;
+    std::atomic<bool> interrupted = false;
     auto* thread = new Thread(
         "interruptable thread",
         4096,
@@ -63,7 +65,7 @@ TEST_CASE("thread id should only be set at when thread is started") {
 }
 
 TEST_CASE("thread state should be correct") {
-    bool interrupted = false;
+    std::atomic<bool> interrupted = false;
     auto* thread = new Thread(
         "interruptable thread",
         4096,

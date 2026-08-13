@@ -33,6 +33,7 @@ bool is_directory(const char* path) {
 // a hand-crafted/corrupted payload that preferences_put_*() itself would never produce.
 void write_raw(const char* path, const char* content) {
     FILE* file = std::fopen(path, "w");
+    REQUIRE(file != nullptr);
     std::fputs(content, file);
     std::fclose(file);
 }
@@ -188,7 +189,7 @@ TEST_CASE("preferences_close persists changes, and only close persists them") {
     preferences_close(reopened);
 }
 
-TEST_CASE("put_* on an already-closed value is visible without reopening") {
+TEST_CASE("put_* on a reopened instance is visible without reopening again, and persists") {
     ScratchFile scratch;
 
     Preferences* preferences = preferences_open(TEST_PATH);

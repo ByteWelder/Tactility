@@ -67,6 +67,7 @@ TEST_CASE("recursive_mutex_lock in another task should block when a lock is acti
             RecursiveMutex* mutex_ptr = static_cast<RecursiveMutex*>(input);
             recursive_mutex_lock(mutex_ptr);
             task_lock_counter++;
+            recursive_mutex_unlock(mutex_ptr);
             vTaskDelete(nullptr);
         },
         "mutex_test",

@@ -46,7 +46,7 @@ TEST_CASE("parseUrlQuery should url-decode the key") {
     CHECK_EQ(map["Test!Test"], "value");
 }
 
-TEST_CASE("urlDecode") {
+TEST_CASE("urlEncode") {
     auto input = std::string("prefix!*'();:@&=+$,/?#[]<>%-.^_`{}|~ \\");
     auto expected = std::string("prefix%21%2A%27%28%29%3B%3A%40%26%3D%2B%24%2C%2F%3F%23%5B%5D%3C%3E%25-.%5E_%60%7B%7D%7C~+%5C");
     auto encoded = network::urlEncode(input);

@@ -97,7 +97,7 @@ TEST_CASE("thread state should be correct") {
     thread_free(thread);
 }
 
-TEST_CASE("thread id should only be set at when thread is started") {
+TEST_CASE("thread return code should be available after it is joined") {
     auto* thread = thread_alloc_full(
         "return code",
         4096,

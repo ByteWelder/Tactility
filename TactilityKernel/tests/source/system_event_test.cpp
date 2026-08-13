@@ -250,7 +250,7 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
     CHECK_EQ(received.ipv4_addr, connected.ipv4_addr);
     CHECK_EQ(received.gateway, connected.gateway);
 
-    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
@@ -326,7 +326,7 @@ TEST_CASE("system_event_get_data reports ERROR_BUFFER_OVERFLOW and leaves the bu
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
     CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
-    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
     uint8_t tiny[1] = { 0xAA };
@@ -357,7 +357,7 @@ TEST_CASE("system_event_get_data on a subscription with no payload copies nothin
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
     CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
-    CHECK_EQ(thread_join(thread, 2, 1), ERROR_NONE);
+    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
     uint8_t buffer[1] = { 0x42 };

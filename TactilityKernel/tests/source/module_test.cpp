@@ -138,9 +138,10 @@ TEST_CASE("Global symbol resolution") {
     REQUIRE_EQ(module_add(&module), ERROR_NONE);
     CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), false);
     REQUIRE_EQ(module_start(&module), ERROR_NONE);
-    // Still fails as symbols are null
+    // Resolvable now that the module is both added and started
     CHECK_EQ(module_resolve_symbol_global("symbol_test_function", &addr), true);
     // Cleanup
+    CHECK_EQ(module_stop(&module), ERROR_NONE);
     CHECK_EQ(module_remove(&module), ERROR_NONE);
 
     CHECK_EQ(module_destruct(&module), ERROR_NONE);

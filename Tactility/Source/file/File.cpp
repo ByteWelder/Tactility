@@ -287,6 +287,9 @@ bool deleteRecursively(const std::string& path) {
         }
 
         for (const auto& entry : entries) {
+            if (strcmp(entry.d_name, ".") == 0 || strcmp(entry.d_name, "..") == 0) {
+                continue;
+            }
             auto child_path = path + "/" + entry.d_name;
             if (!deleteRecursively(child_path)) {
                 return false;

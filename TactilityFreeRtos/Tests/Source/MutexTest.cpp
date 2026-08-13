@@ -14,6 +14,7 @@ TEST_CASE("a Mutex can block a thread") {
         1024,
         [&mutex] {
             mutex.lock(kernel::FREERTOS_MAX_TICKS);
+            mutex.unlock();
             return 0;
         }
     );

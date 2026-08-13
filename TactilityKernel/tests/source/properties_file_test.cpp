@@ -29,6 +29,7 @@ bool file_exists(const char* path) {
 
 void write_raw(const char* path, const char* content) {
     FILE* file = std::fopen(path, "w");
+    REQUIRE(file != nullptr);
     std::fputs(content, file);
     std::fclose(file);
 }

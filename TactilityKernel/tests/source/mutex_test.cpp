@@ -47,6 +47,7 @@ TEST_CASE("mutex_lock in another task should block when a lock is active") {
             Mutex* mutex_ptr = static_cast<Mutex*>(input);
             mutex_lock(mutex_ptr);
             task_lock_counter++;
+            mutex_unlock(mutex_ptr);
             vTaskDelete(nullptr);
         },
         "mutex_test",
