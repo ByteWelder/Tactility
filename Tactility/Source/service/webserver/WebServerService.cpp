@@ -1261,8 +1261,8 @@ esp_err_t WebServerService::handleApiAppsRun(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    auto* manifest = app_manager_find_manifest(appId.c_str());
-    if (manifest == nullptr) {
+    AppManifest manifest;
+    if (app_manager_find_manifest(appId.c_str(), &manifest) != ERROR_NONE) {
         httpd_resp_send_err(request, HTTPD_404_NOT_FOUND, "app not found");
         return ESP_FAIL;
     }
@@ -1287,15 +1287,15 @@ esp_err_t WebServerService::handleApiAppsUninstall(httpd_req_t* request) {
         return ESP_FAIL;
     }
 
-    auto* manifest = app_manager_find_manifest(appId.c_str());
-    if (manifest == nullptr) {
+    AppManifest manifest;
+    if (app_manager_find_manifest(appId.c_str(), &manifest) != ERROR_NONE) {
         LOG_I(TAG, "[200] /api/apps/uninstall %s (app wasn't installed)", appId.c_str());
         httpd_resp_sendstr(request, "ok");
         return ESP_OK;
     }
 
     // Only allow uninstalling external (side-loaded) apps
-    if (manifest->location.type != APP_LOCATION_PATH) {
+    if (manifest.location.type != APP_LOCATION_PATH) {
         httpd_resp_send_err(request, HTTPD_403_FORBIDDEN, "cannot uninstall system apps");
         return ESP_FAIL;
     }

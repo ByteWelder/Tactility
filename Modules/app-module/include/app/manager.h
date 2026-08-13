@@ -27,8 +27,12 @@ error_t app_manager_add(const struct AppManifest* manifest);
  */
 error_t app_manager_remove(const char* id);
 
-/** @return the manifest, or NULL if not found. */
-const struct AppManifest* app_manager_find_manifest(const char* id);
+/**
+ * @param[out] out_manifest set to a copy of the manifest on success
+ * @retval ERROR_NOT_FOUND no manifest with this id is registered
+ * @retval ERROR_NONE on success
+ */
+error_t app_manager_find_manifest(const char* id, struct AppManifest* out_manifest);
 
 /**
  * Calls `@a` visitor once for every registered manifest. Iteration order is unspecified.

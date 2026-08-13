@@ -8,15 +8,6 @@ Website: https://www.espressif.com/
 
 License: [Apache License v2.0](https://github.com/espressif/esp-idf/blob/master/LICENSE)
 
-### Flipper Zero Firmware
-
-Some of the code in inside the Tactility or TactilityCore project has originally been adapted
-from the Flipper Zero firmware it was changed to fit the Tactility project.
-
-Website: https://github.com/flipperdevices/flipperzero-firmware/
-
-License: [GPL v3.0](https://github.com/flipperdevices/flipperzero-firmware/blob/dev/LICENSE)
-
 ### Google Fonts & Material Design Icons
 
 Websites:
@@ -46,7 +37,7 @@ License: [WTFPL](https://github.com/kosma/minmea/blob/master/LICENSE.grants), [L
 
 ### Meshtastic Firmware
 
-Parts of the Meshtastic firmware were copied and modified for Tactility.
+Parts of the Meshtastic firmware are used in `gps-meshtastic-module`. This module is included by the `Tactility/` and `Firmware/` projects.
 
 Website: https://github.com/meshtastic/firmware
 
@@ -63,6 +54,12 @@ License: [MIT](https://github.com/Xinyuan-LilyGO/T-Echo/blob/main/LICENSE)
 Website: https://github.com/UsefulElectronics/esp32s3-gc9a01-lvgl
 
 License: [Explicitly granted by author](https://github.com/TactilityProject/Tactility/pull/295#discussion_r2226215423)
+
+### Andrej Karpathy Skills
+
+Website: https://github.com/multica-ai/andrej-karpathy-skills
+
+License: MIT according to [README.md](https://github.com/multica-ai/andrej-karpathy-skills/tree/main)
 
 ### Other Dependencies
 

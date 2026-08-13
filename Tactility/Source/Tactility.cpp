@@ -514,9 +514,7 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
         .on_start = onLvglStarted,
         .on_stop = onLvglStopped,
         .task_priority = THREAD_PRIORITY_HIGHER,
-        /** Minimum seems to be about 3500. In some scenarios, the WiFi app crashes at 8192,
-         * so we now have 9120 to run in a stable manner. We should figure out a way to avoid this.
-         * Perhaps we can give apps their own stack space and deal with lvgl callback handlers in a clever way. */
+        // TODO: Remove Wi-Fi driver callback mechanism and use subscribe/await from wifi app to be able to reduce callstack
         .task_stack_size = 9120,
 #ifdef ESP_PLATFORM
         .task_affinity = getCpuAffinityConfiguration().graphics

@@ -1,11 +1,12 @@
 #pragma once
 
+#include <lvgl.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void lvgl_keyboard_on_start_lvgl();
-void lvgl_keyboard_on_stop_lvgl();
+bool lvgl_has_indev_of_type(lv_indev_type_t type);
 
 #ifdef __cplusplus
 }

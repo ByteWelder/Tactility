@@ -120,6 +120,11 @@ void setLoading(Context* ctx, bool loading) {
 }
 
 void updateView(Context* ctx) {
+    if (ctx->connect_button == nullptr) {
+        // Buried (e.g. this window's own connecting state closed it, or a future dialog opens
+        // on top) - see destroyWidgets().
+        return;
+    }
     if (ctx->connectionError) {
         setLoading(ctx, false);
         resetErrors(ctx);
@@ -194,13 +199,23 @@ void createBottomButtons(Context* ctx, lv_obj_t* parent) {
     lv_obj_add_event_cb(ctx->connect_button, onConnectPressed, LV_EVENT_SHORT_CLICKED, ctx);
 }
 
+// Runs with the LVGL lock already held, possibly on another app's thread - see
+// WindowDestroyWidgetsFn's warnings. Must stay lock-free: only nulls pointers.
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->ssid_textarea = nullptr;
+    ctx->ssid_error = nullptr;
+    ctx->password_textarea = nullptr;
+    ctx->password_error = nullptr;
+    ctx->connect_button = nullptr;
+    ctx->remember_switch = nullptr;
+    ctx->connecting_spinner = nullptr;
+    ctx->connection_error = nullptr;
+}
+
 // TODO: Standardize dialogs
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
-
-    ctx->wifiSubscription = service::wifi::getPubsub()->subscribe([ctx](auto event) {
-        onWifiEvent(ctx, event);
-    });
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
@@ -302,7 +317,14 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    // Subscribed once here, not in createWidgets(): that callback re-runs on every
+    // burial/resurface rebuild, and re-subscribing there would leak the previous subscription
+    // (and its captured ctx pointer) every time, only the last of which shutdown ever cleans up.
+    ctx.wifiSubscription = service::wifi::getPubsub()->subscribe([&ctx](auto event) {
+        onWifiEvent(&ctx, event);
+    });
+
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {

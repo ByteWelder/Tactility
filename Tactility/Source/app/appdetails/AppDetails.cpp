@@ -109,7 +109,11 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
     ctx.targetAppId = (argc > 0) ? argv[0] : std::string();
-    ctx.targetManifest = *app_manager_find_manifest(ctx.targetAppId.c_str());
+    if (app_manager_find_manifest(ctx.targetAppId.c_str(), &ctx.targetManifest) != ERROR_NONE) {
+        LOG_W(TAG, "App %s not found", ctx.targetAppId.c_str());
+        app_manager_finish(appInstanceId);
+        return 0;
+    }
 
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;

@@ -149,7 +149,8 @@ std::string getLauncherAppId() {
     }
 
     // If the app in the boot.properties does not exist, return default
-    if (app_manager_find_manifest(boot_properties.launcherAppId.c_str()) == nullptr) {
+    AppManifest manifest;
+    if (app_manager_find_manifest(boot_properties.launcherAppId.c_str(), &manifest) != ERROR_NONE) {
         LOG_E(TAG, "Launcher app %s not found", boot_properties.launcherAppId.c_str());
         return CONFIG_TT_LAUNCHER_APP_ID;
     }

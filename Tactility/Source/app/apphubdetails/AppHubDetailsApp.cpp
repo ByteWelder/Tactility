@@ -159,7 +159,8 @@ void updateApp(Context* ctx) {
 void updateViews(Context* ctx) {
     lvgl_toolbar_clear_actions(ctx->toolbar);
     auto app_id = ctx->entry.appId.c_str();
-    const auto manifest = app_manager_find_manifest(app_id);
+    AppManifest manifest;
+    bool is_installed = app_manager_find_manifest(app_id, &manifest) == ERROR_NONE;
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
     lv_obj_add_flag(ctx->spinner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ctx->updateLabel, LV_OBJ_FLAG_HIDDEN);
@@ -177,7 +178,7 @@ void updateViews(Context* ctx) {
         return;
     }
 
-    if (manifest != nullptr) {
+    if (is_installed) {
         if (metadata.app_version_code < ctx->entry.appVersionCode) {
             ctx->updateButton = lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, ctx);
             lv_obj_remove_flag(ctx->updateLabel, LV_OBJ_FLAG_HIDDEN);

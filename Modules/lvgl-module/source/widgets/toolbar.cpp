@@ -2,9 +2,10 @@
 #define LV_USE_PRIVATE_API 1 // For actual lv_obj_t declaration
 
 #include <lvgl/widgets/toolbar.h>
-#include <lvgl/widgets/spinner.h>
+
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
+#include <lvgl/widgets/spinner.h>
 
 #include <tactility/check.h>
 #include <tactility/drivers/pointer.h>
@@ -160,7 +161,9 @@ lv_obj_t* lvgl_toolbar_create(lv_obj_t* parent, const char* title) {
     // In that scenario we want to automatically have the close button selected so the user doesn't have to press the widget selection
     // an extra time for every screen.
     if (!device_has_active_by_type(&POINTER_TYPE)) {
+        lv_obj_update_layout(obj); // Resolve flex layout first, so focus/state invalidate against final coords
         lv_group_focus_obj(toolbar->close_button);
+        lv_obj_add_state(toolbar->close_button, LV_STATE_FOCUS_KEY);
     }
 
     return obj;

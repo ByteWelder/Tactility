@@ -21,7 +21,7 @@ enum AppManifestFlags {
     /** Excluded from generic app-browsing UIs (AppList, Settings) - for apps only ever reached
      * by direct navigation (modal dialogs, detail views that require parameters, wizard/
      * bootstrap steps). */
-    APP_MANIFEST_FLAG_HIDDEN = 0b00000001,
+    APP_MANIFEST_FLAG_HIDDEN = 1 >> 0,
 };
 
 /** Describes a registrable app. One manifest exists per app id. */
