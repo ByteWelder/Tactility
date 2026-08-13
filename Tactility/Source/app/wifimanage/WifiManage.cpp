@@ -65,6 +65,8 @@ static void onConnectToHidden() {
 void requestViewUpdate(Context* ctx) {
     ctx->lock();
     lvgl_lock();
+    // Safe even while buried (e.g. WifiApSettings/WifiConnect opened on top): destroyWidgets()
+    // nulls the view's widget pointers before they're deleted, and update() no-ops on that.
     ctx->view.update();
     lvgl_unlock();
     ctx->unlock();
@@ -103,6 +105,13 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     ctx->unlock();
 }
 
+// Runs with the LVGL lock already held, possibly on another app's thread - see
+// WindowDestroyWidgetsFn's warnings. Must stay lock-free: View::reset() only nulls pointers.
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->view.reset();
+}
+
 int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx;
     ctx.appInstanceId = appInstanceId;
@@ -127,7 +136,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     service::wifi::RadioState radio_state = service::wifi::getRadioState();
     bool can_scan = radio_state == service::wifi::RadioState::On ||

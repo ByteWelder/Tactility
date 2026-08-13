@@ -323,10 +323,23 @@ void View::init(uint32_t newAppInstanceId, lv_obj_t* parent) {
 }
 
 void View::update() {
+    if (root == nullptr) {
+        // Buried (or not yet built) - see reset().
+        return;
+    }
     updateWifiToggle();
     updateScanning();
     updateNetworkList();
     updateConnectToHidden();
+}
+
+void View::reset() {
+    root = nullptr;
+    enable_switch = nullptr;
+    enable_on_boot_switch = nullptr;
+    scanning_spinner = nullptr;
+    networks_list = nullptr;
+    connect_to_hidden = nullptr;
 }
 
 } // namespace

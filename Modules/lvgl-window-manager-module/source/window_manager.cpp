@@ -38,6 +38,7 @@ struct WindowRecord {
     WindowId id;
     uint32_t app_instance_id;
     WindowCreateWidgetsFn create_widgets;
+    WindowDestroyWidgetsFn destroy_widgets;
     void* user_data;
 
     /** Set by window_manager_await_state_change() when a task is blocked waiting on this
@@ -108,11 +109,16 @@ lv_obj_t* build_window_widget(lv_obj_t* content, WindowCreateWidgetsFn create_wi
     return widget;
 }
 
-void delete_widget(lv_obj_t* widget) {
+// destroy_widgets, if set, is called inside the same LVGL-locked section as the deletion - see
+// WindowDestroyWidgetsFn's warnings about what it may safely do from in here.
+void delete_widget(lv_obj_t* widget, WindowDestroyWidgetsFn destroy_widgets = nullptr, void* user_data = nullptr) {
     if (widget == nullptr) {
         return;
     }
     lvgl_lock();
+    if (destroy_widgets != nullptr) {
+        destroy_widgets(user_data);
+    }
     lv_obj_delete(widget);
     lvgl_unlock();
 }
@@ -220,6 +226,7 @@ error_t window_manager_start(void) {
     // task stays blocked in its own event loop forever, with no window and no signal telling
     // it to rebuild one.
     WindowCreateWidgetsFn top_create_widgets = nullptr;
+    WindowDestroyWidgetsFn top_destroy_widgets = nullptr;
     void* top_user_data = nullptr;
     WindowId top_id = 0;
     bool has_top = false;
@@ -230,6 +237,7 @@ error_t window_manager_start(void) {
     s.started = true;
     if (!s.windows.empty()) {
         top_create_widgets = s.windows.back().create_widgets;
+        top_destroy_widgets = s.windows.back().destroy_widgets;
         top_user_data = s.windows.back().user_data;
         top_id = s.windows.back().id;
         has_top = true;
@@ -249,7 +257,7 @@ error_t window_manager_start(void) {
 
         // The window stack changed while we were building, e.g. a concurrent remove() -
         // discard what we just made.
-        delete_widget(new_widget);
+        delete_widget(new_widget, top_destroy_widgets, top_user_data);
     }
 
     mutex_unlock(&s.lifecycle_mutex);
@@ -278,6 +286,10 @@ error_t window_manager_stop(void) {
             waiters.push_back(signal);
         }
     }
+    // Only the topmost window has a live widget - it's the only one whose destroy_widgets needs
+    // to fire.
+    WindowDestroyWidgetsFn top_destroy_widgets = !s.windows.empty() ? s.windows.back().destroy_widgets : nullptr;
+    void* top_user_data = !s.windows.empty() ? s.windows.back().user_data : nullptr;
     s.real_root_widget = nullptr;
     s.content_root_widget = nullptr;
     s.top_widget = nullptr;
@@ -297,13 +309,17 @@ error_t window_manager_stop(void) {
     }
 
     // Deleting the real widget cascades to everything under it - chrome and top_widget alike.
-    delete_widget(widget);
+    delete_widget(widget, top_destroy_widgets, top_user_data);
 
     mutex_unlock(&s.lifecycle_mutex);
     return ERROR_NONE;
 }
 
 WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data) {
+    return window_manager_create_ext(app_instance_id, create_widgets, nullptr, user_data);
+}
+
+WindowId window_manager_create_ext(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, WindowDestroyWidgetsFn destroy_widgets, void* user_data) {
     if (app_instance_id == 0) {
         return 0;
     }
@@ -324,16 +340,24 @@ WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidget
     lv_obj_t* content = s.content_root_widget;
     lv_obj_t* old_top_widget = s.top_widget;
     // The current topmost window, if any, is about to be superseded - claim its waiter here
-    // so it gets notified below.
-    WindowWaitSignal* waiter = !s.windows.empty() ? claim_waiter_locked(s.windows.back()) : nullptr;
+    // so it gets notified below, and grab its destroy_widgets so it can be told its widget is
+    // about to go away.
+    WindowWaitSignal* waiter = nullptr;
+    WindowDestroyWidgetsFn old_destroy_widgets = nullptr;
+    void* old_user_data = nullptr;
+    if (!s.windows.empty()) {
+        waiter = claim_waiter_locked(s.windows.back());
+        old_destroy_widgets = s.windows.back().destroy_widgets;
+        old_user_data = s.windows.back().user_data;
+    }
     s.top_widget = nullptr;
     WindowId new_id = s.next_id++;
-    s.windows.push_back(WindowRecord { new_id, app_instance_id, create_widgets, user_data });
+    s.windows.push_back(WindowRecord { new_id, app_instance_id, create_widgets, destroy_widgets, user_data });
     mutex_unlock(&s.mutex);
 
     give_and_release(waiter);
 
-    delete_widget(old_top_widget);
+    delete_widget(old_top_widget, old_destroy_widgets, old_user_data);
     lv_obj_t* new_widget = build_window_widget(content, create_widgets, user_data);
 
     mutex_lock(&s.mutex);
@@ -346,7 +370,7 @@ WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidget
 
     // Another window became topmost while we were building, e.g. a concurrent create() from
     // another app thread - discard what we just made.
-    delete_widget(new_widget);
+    delete_widget(new_widget, destroy_widgets, user_data);
 
     mutex_unlock(&s.lifecycle_mutex);
     return new_id;
@@ -374,11 +398,14 @@ void window_manager_remove(WindowId id) {
     // since stopped being topmost without being removed, window_manager_create() would already
     // have claimed and cleared it. So a buried window's waiting_signal is always already null.
     WindowWaitSignal* waiter = claim_waiter_locked(*iterator);
+    WindowDestroyWidgetsFn removed_destroy_widgets = iterator->destroy_widgets;
+    void* removed_user_data = iterator->user_data;
     s.windows.erase(iterator);
 
     lv_obj_t* content = s.content_root_widget;
     lv_obj_t* old_widget = nullptr;
     WindowCreateWidgetsFn next_create_widgets = nullptr;
+    WindowDestroyWidgetsFn next_destroy_widgets = nullptr;
     void* next_user_data = nullptr;
     WindowId next_id = 0;
     bool has_next = false;
@@ -388,6 +415,7 @@ void window_manager_remove(WindowId id) {
         s.top_widget = nullptr;
         if (!s.windows.empty()) {
             next_create_widgets = s.windows.back().create_widgets;
+            next_destroy_widgets = s.windows.back().destroy_widgets;
             next_user_data = s.windows.back().user_data;
             next_id = s.windows.back().id;
             has_next = true;
@@ -403,7 +431,7 @@ void window_manager_remove(WindowId id) {
         return;
     }
 
-    delete_widget(old_widget);
+    delete_widget(old_widget, removed_destroy_widgets, removed_user_data);
     lv_obj_t* new_widget = has_next ? build_window_widget(content, next_create_widgets, next_user_data) : nullptr;
 
     mutex_lock(&s.mutex);
@@ -414,7 +442,7 @@ void window_manager_remove(WindowId id) {
     }
     mutex_unlock(&s.mutex);
 
-    delete_widget(new_widget);
+    delete_widget(new_widget, next_destroy_widgets, next_user_data);
 
     mutex_unlock(&s.lifecycle_mutex);
 }

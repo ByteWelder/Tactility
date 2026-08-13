@@ -86,6 +86,26 @@ error_t window_manager_stop(void);
 typedef void (*WindowCreateWidgetsFn)(lv_obj_t* root, void* user_data);
 
 /**
+ * Called whenever this window's live widgets are about to be deleted while the window record
+ * itself survives - i.e. its owning app is still running and may see this window resurface
+ * later.
+ * Always paired 1:1 with a prior @a create_widgets call that actually ran.
+ * Never called for a window whose widgets were never built.
+ * @param[in] user_data whatever was passed to window_manager_create_ext() for this window
+ * @warning Called on the LVGL task with the LVGL lock already held (same as
+ * WindowCreateWidgetsFn) - do NOT call window_manager_start()/stop()/create()/create_ext()/
+ * remove() from this callback, that would deadlock.
+ * @warning Do NOT acquire any other lock from this callback either. It runs while a thread
+ * elsewhere may already be holding that lock and blocked waiting for the LVGL lock this
+ * callback is running under - acquiring it here would deadlock against that thread. Only touch
+ * memory that needs no other synchronization, e.g. null out this window's own cached
+ * lv_obj_t* pointers (they're only ever otherwise touched under the LVGL lock anyway) so a
+ * stale update arriving after this call can detect the window is gone instead of using freed
+ * widgets.
+ */
+typedef void (*WindowDestroyWidgetsFn)(void* user_data);
+
+/**
  * Creates a new window on top of the stack (last created = topmost). Deletes the previously
  * topmost window's widgets (if any) and builds this window's widgets immediately via
  * @a create_widgets - only the topmost window ever has live widgets.
@@ -96,6 +116,12 @@ typedef void (*WindowCreateWidgetsFn)(lv_obj_t* root, void* user_data);
  * @return the new window's id, or 0 if window_manager_start() hasn't been called
  */
 WindowId window_manager_create(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, void* user_data);
+
+/**
+ * Same as window_manager_create(), but also registers @a destroy_widgets - see its docs.
+ * @param[in] destroy_widgets may be NULL to opt out (equivalent to window_manager_create())
+ */
+WindowId window_manager_create_ext(AppInstanceId app_instance_id, WindowCreateWidgetsFn create_widgets, WindowDestroyWidgetsFn destroy_widgets, void* user_data);
 
 /**
  * Removes a window, wherever it is in the stack - not necessarily the topmost one. If it was

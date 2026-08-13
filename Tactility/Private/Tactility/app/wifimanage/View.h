@@ -36,6 +36,9 @@ public:
 
     void init(uint32_t appInstanceId, lv_obj_t* parent);
     void update();
+    /** Called when this window's widgets have been (or are about to be) deleted out from under
+     * it - see WindowDestroyWidgetsFn. Only nulls out pointers; must stay lock-free. */
+    void reset();
 };
 
 
