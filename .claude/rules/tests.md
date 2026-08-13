@@ -1,0 +1,1 @@
+Tests for projects should be placed in the `Tests/` or `tests/` subfolder of that project.
