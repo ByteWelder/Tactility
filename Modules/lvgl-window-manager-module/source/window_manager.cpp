@@ -324,6 +324,10 @@ WindowId window_manager_create_ext(AppInstanceId app_instance_id, WindowCreateWi
         return 0;
     }
 
+    if (destroy_widgets != nullptr) {
+        check(create_widgets != nullptr);
+    }
+
     auto& s = state();
 
     // See lifecycle_mutex's comment: blocks a concurrent window_manager_stop() (or another

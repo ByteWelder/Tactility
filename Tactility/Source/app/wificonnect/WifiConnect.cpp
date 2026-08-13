@@ -120,6 +120,11 @@ void setLoading(Context* ctx, bool loading) {
 }
 
 void updateView(Context* ctx) {
+    if (ctx->connect_button == nullptr) {
+        // Buried (e.g. this window's own connecting state closed it, or a future dialog opens
+        // on top) - see destroyWidgets().
+        return;
+    }
     if (ctx->connectionError) {
         setLoading(ctx, false);
         resetErrors(ctx);
@@ -192,6 +197,20 @@ void createBottomButtons(Context* ctx, lv_obj_t* parent) {
     lv_label_set_text(connect_label, "Connect");
     lv_obj_align(ctx->connect_button, LV_ALIGN_RIGHT_MID, 0, 0);
     lv_obj_add_event_cb(ctx->connect_button, onConnectPressed, LV_EVENT_SHORT_CLICKED, ctx);
+}
+
+// Runs with the LVGL lock already held, possibly on another app's thread - see
+// WindowDestroyWidgetsFn's warnings. Must stay lock-free: only nulls pointers.
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->ssid_textarea = nullptr;
+    ctx->ssid_error = nullptr;
+    ctx->password_textarea = nullptr;
+    ctx->password_error = nullptr;
+    ctx->connect_button = nullptr;
+    ctx->remember_switch = nullptr;
+    ctx->connecting_spinner = nullptr;
+    ctx->connection_error = nullptr;
 }
 
 // TODO: Standardize dialogs
@@ -305,7 +324,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
         onWifiEvent(&ctx, event);
     });
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
