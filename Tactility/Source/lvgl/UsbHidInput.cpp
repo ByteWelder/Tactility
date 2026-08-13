@@ -388,19 +388,22 @@ void stopUsbHidInput() {
 
     if (xSemaphoreTake(ctx->task_done, pdMS_TO_TICKS(STOP_TIMEOUT_MS)) != pdTRUE) {
         LOG_W(TAG, "task stop timed out, force terminating");
-        // Task hasn't reached its own cleanup/vTaskSuspend() yet; do the LVGL cleanup here to
-        // prevent mouse_read_cb / keyboard_read_cb from running with a freed ctx. The task
-        // itself is deleted below, same as the non-timeout path.
-        if (lvgl_try_lock(pdMS_TO_TICKS(200))) {
-            if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
-            if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
-            if (ctx->kb_indev) {
-                lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
-                lv_indev_delete(ctx->kb_indev);
-                ctx->kb_indev = nullptr;
-            }
-            lvgl_unlock();
+        // Task hasn't reached its own cleanup/vTaskSuspend() yet - it may even be blocked inside
+        // its own lvgl_lock() (usbHidInputTask's post-loop cleanup), which leaves it eBlocked
+        // rather than eRunning. If we gave up here on a failed try-lock, the eTaskGetState()
+        // loop below would see that same eBlocked state, treat the task as done, and delete()
+        // ctx below while the indevs still hold it as user_data. Block for as long as it takes
+        // to get the lock instead - the task's own cleanup is idempotent (guarded by these same
+        // null checks) so it's harmless if it also runs this after us.
+        lvgl_lock();
+        if (ctx->mouse_indev)  { lv_indev_delete(ctx->mouse_indev);  ctx->mouse_indev  = nullptr; }
+        if (ctx->mouse_cursor) { lv_obj_delete(ctx->mouse_cursor);   ctx->mouse_cursor = nullptr; }
+        if (ctx->kb_indev) {
+            lvgl_hardware_keyboard_remove_custom(ctx->kb_indev);
+            lv_indev_delete(ctx->kb_indev);
+            ctx->kb_indev = nullptr;
         }
+        lvgl_unlock();
     }
 
     // usbHidInputTask() always ends by suspending itself (never self-deletes), so it's
