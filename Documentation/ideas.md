@@ -18,7 +18,6 @@
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
 - Wrap file operations like fopen/fclose with file_mutex
 - Add bold fonts for e-ink readability improvement
-- Move test projects to their relevant subproject
 - Httpd.cpp: warn if running on same CPU core (or task) as UI/LVGL/window manager.
 - Improve Setup: Show "Step done" screen
 - Improve Setup: Add keyboard/keypad navigation explanation
