@@ -1,14 +1,22 @@
 #include "doctest.h"
+#include <Tactility/Semaphore.h>
 #include <Tactility/Timer.h>
 
 #include <atomic>
 
 using namespace tt;
 
-// Timer::stop() can return while a just-triggered callback is still executing (documented on
-// Timer::stop() itself) - this grace delay gives that in-flight callback a chance to finish
-// before the test deletes the timer and its captured state goes out of scope.
-constexpr TickType_t STOP_GRACE_TICKS = 5;
+// stop() only enqueues a command; it doesn't wait for the timer service task to process it or
+// finish an in-flight callback. Queuing a pending callback on that same queue and waiting for it
+// does, since the service task processes its queue in order.
+void waitForTimerServiceIdle(Timer& timer) {
+    Semaphore done(1, 0);
+    auto markDone = [](void* context, uint32_t) {
+        static_cast<Semaphore*>(context)->release();
+    };
+    REQUIRE(timer.setPendingCallback(markDone, &done, 0, pdMS_TO_TICKS(2000)));
+    REQUIRE(done.acquire(pdMS_TO_TICKS(2000)));
+}
 
 TEST_CASE("TimerType::Periodic timers can be stopped and restarted") {
     std::atomic<int> counter{0};
@@ -16,13 +24,16 @@ TEST_CASE("TimerType::Periodic timers can be stopped and restarted") {
     CHECK_EQ(timer->start(), true);
     kernel::delayTicks(10);
     CHECK_EQ(timer->stop(), true);
+    waitForTimerServiceIdle(*timer);
+    const auto first_run_count = counter.load();
+
     CHECK_EQ(timer->start(), true);
     kernel::delayTicks(10);
     CHECK_EQ(timer->stop(), true);
-    kernel::delayTicks(STOP_GRACE_TICKS);
+    waitForTimerServiceIdle(*timer);
     delete timer;
 
-    CHECK_GE(counter.load(), 2);
+    CHECK_GT(counter.load(), first_run_count);
 }
 
 TEST_CASE("TimerType::Periodic calls the callback periodically") {
@@ -32,7 +43,7 @@ TEST_CASE("TimerType::Periodic calls the callback periodically") {
     CHECK_EQ(timer->start(), true);
     kernel::delayTicks(ticks_to_run);
     CHECK_EQ(timer->stop(), true);
-    kernel::delayTicks(STOP_GRACE_TICKS);
+    waitForTimerServiceIdle(*timer);
     delete timer;
 
     // Exact count isn't guaranteed (scheduling slop around start()/stop()), so this only checks
@@ -49,7 +60,7 @@ TEST_CASE("restarting TimerType::Once timers calls the callback again") {
     CHECK_EQ(timer->start(), true);
     kernel::delayTicks(10);
     CHECK_EQ(timer->stop(), true);
-    kernel::delayTicks(STOP_GRACE_TICKS);
+    waitForTimerServiceIdle(*timer);
     delete timer;
 
     CHECK_EQ(counter.load(), 2);

@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
 extern "C" {
 // Required for FreeRTOS
 void vAssertCalled(unsigned long line, const char* const file) {
-    fprintf(stderr, "assert failed at %s:%lu\n", file, line);
-    abort();
+    std::fprintf(stderr, "assert failed at %s:%lu\n", file, line);
+    std::abort();
 }
 }

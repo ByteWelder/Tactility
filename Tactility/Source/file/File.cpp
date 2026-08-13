@@ -278,6 +278,9 @@ bool deleteRecursively(const std::string& path) {
     if (path.empty()) {
         return true;
     }
+    if (path == "/" || path == "." || path == "..") {
+        return true;
+    }
 
     if (isDirectory(path)) {
         std::vector<dirent> entries;
@@ -300,9 +303,6 @@ bool deleteRecursively(const std::string& path) {
     } else if (isFile(path)) {
         LOG_I(TAG, "Deleting %s", path.c_str());
         return deleteFile(path);
-    } else if (path == "/" || path == "." || path == "..") {
-        // No-op
-        return true;
     } else {
         LOG_E(TAG, "Failed to delete \"%s\": unknown type", path.c_str());
         return false;
