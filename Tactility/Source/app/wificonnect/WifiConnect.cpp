@@ -198,10 +198,6 @@ void createBottomButtons(Context* ctx, lv_obj_t* parent) {
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
 
-    ctx->wifiSubscription = service::wifi::getPubsub()->subscribe([ctx](auto event) {
-        onWifiEvent(ctx, event);
-    });
-
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
 
@@ -301,6 +297,13 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
+
+    // Subscribed once here, not in createWidgets(): that callback re-runs on every
+    // burial/resurface rebuild, and re-subscribing there would leak the previous subscription
+    // (and its captured ctx pointer) every time, only the last of which shutdown ever cleans up.
+    ctx.wifiSubscription = service::wifi::getPubsub()->subscribe([&ctx](auto event) {
+        onWifiEvent(&ctx, event);
+    });
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 

@@ -105,6 +105,10 @@ void updateBusySpinner(Context* ctx) {
 }
 
 void updateViews(Context* ctx) {
+    if (ctx->connectButton == nullptr) {
+        // Buried (e.g. the forget confirmation dialog opened on top) - see destroyWidgets().
+        return;
+    }
     updateConnectButton(ctx);
     updateBusySpinner(ctx);
 }
@@ -115,12 +119,17 @@ void requestViewUpdate(Context* ctx) {
     lvgl_unlock();
 }
 
+// Runs with the LVGL lock already held, possibly on another app's thread - see
+// WindowDestroyWidgetsFn's warnings. Must stay lock-free: only nulls pointers.
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->busySpinner = nullptr;
+    ctx->connectButton = nullptr;
+    ctx->disconnectButton = nullptr;
+}
+
 void createWidgets(lv_obj_t* parent, void* userData) {
     auto* ctx = static_cast<Context*>(userData);
-
-    ctx->wifiSubscription = service::wifi::getPubsub()->subscribe([ctx](auto) {
-        requestViewUpdate(ctx);
-    });
 
     lv_obj_set_flex_flow(parent, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(parent, 0, LV_STATE_DEFAULT);
@@ -202,7 +211,14 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    // Subscribed once here, not in createWidgets(): that callback re-runs on every
+    // burial/resurface rebuild, and re-subscribing there would leak the previous subscription
+    // (and its captured ctx pointer) every time, only the last of which shutdown ever cleans up.
+    ctx.wifiSubscription = service::wifi::getPubsub()->subscribe([&ctx](auto) {
+        requestViewUpdate(&ctx);
+    });
+
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
