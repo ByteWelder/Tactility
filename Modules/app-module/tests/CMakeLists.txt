@@ -3,7 +3,7 @@ project(AppModuleTests)
 enable_language(C CXX ASM)
 
 
-file(GLOB_RECURSE TEST_SOURCES ${PROJECT_SOURCE_DIR}/Source/*.cpp)
+file(GLOB_RECURSE TEST_SOURCES ${PROJECT_SOURCE_DIR}/source/*.cpp)
 add_executable(AppModuleTests EXCLUDE_FROM_ALL ${TEST_SOURCES})
 
 target_include_directories(AppModuleTests PRIVATE ${DOCTESTINC})
