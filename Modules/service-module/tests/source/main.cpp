@@ -1,6 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
-#include <cassert>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -43,7 +42,10 @@ int main(int argc, char** argv) {
         1,
         nullptr
     );
-    assert(task_result == pdPASS);
+
+    if (task_result != pdPASS) {
+        return 1;
+    }
 
     vTaskStartScheduler();
 

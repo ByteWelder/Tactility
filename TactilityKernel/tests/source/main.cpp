@@ -1,6 +1,5 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
-#include <cassert>
 #include <tactility/check.h>
 
 #include <tactility/dts.h>
@@ -52,7 +51,10 @@ int main(int argc, char** argv) {
         1,
         nullptr
     );
-    assert(task_result == pdPASS);
+
+    if (task_result != pdPASS) {
+        return 1;
+    }
 
     vTaskStartScheduler();
 

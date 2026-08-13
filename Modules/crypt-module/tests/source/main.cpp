@@ -1,6 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "doctest.h"
-#include <cassert>
+#include <cstdio>
+#include <cstdlib>
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -43,7 +44,10 @@ int main(int argc, char** argv) {
         1,
         nullptr
     );
-    assert(task_result == pdPASS);
+
+    if (task_result != pdPASS) {
+        return 1;
+    }
 
     vTaskStartScheduler();
 
@@ -54,6 +58,7 @@ int main(int argc, char** argv) {
 extern "C" {
 // Required for FreeRTOS
 void vAssertCalled(unsigned long line, const char* const file) {
-    __assert_fail("assert failed", file, line, "");
+    fprintf(stderr, "assert failed at %s:%lu\n", file, line);
+    abort();
 }
 }
