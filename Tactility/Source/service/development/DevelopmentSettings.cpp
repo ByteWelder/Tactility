@@ -1,11 +1,11 @@
 #ifdef ESP_PLATFORM
-#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/service/development/DevelopmentSettings.h>
 #include <map>
 #include <string>
 
+#include <app/paths.h>
 #include <tactility/log.h>
 
 namespace tt::service::development {
@@ -13,7 +13,11 @@ namespace tt::service::development {
 constexpr auto* TAG = "DevSettings";
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/development.properties";
+    char path[256];
+    if (app_paths_get_user_data_path("Development", "development.properties", path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return path;
 }
 
 constexpr auto* SETTINGS_KEY_ENABLE_ON_BOOT = "enableOnBoot";

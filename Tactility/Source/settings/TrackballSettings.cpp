@@ -1,7 +1,8 @@
 #include <Tactility/settings/TrackballSettings.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/DeprecatedPaths.h>
+
+#include <app/paths.h>
 
 #include <map>
 #include <string>
@@ -10,7 +11,11 @@
 namespace tt::settings::trackball {
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/trackball.properties";
+    char path[256];
+    if (app_paths_get_user_data_path("TrackballSettings", "trackball.properties", path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return path;
 }
 
 constexpr auto* KEY_TRACKBALL_ENABLED = "trackballEnabled";

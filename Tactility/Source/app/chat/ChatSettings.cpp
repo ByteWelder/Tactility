@@ -7,10 +7,10 @@
 #include <Tactility/app/chat/ChatSettings.h>
 #include <Tactility/app/chat/ChatProtocol.h>
 
-#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
 
+#include <app/paths.h>
 #include <crypt/crypt.h>
 
 #include <esp_random.h>
@@ -28,7 +28,11 @@ namespace tt::app::chat {
 constexpr auto* TAG = "ChatSettings";
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/chat.properties";
+    char path[256];
+    if (app_paths_get_user_data_path("Chat", "chat.properties", path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return path;
 }
 
 constexpr auto* KEY_SENDER_ID = "senderId";

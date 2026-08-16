@@ -2,7 +2,8 @@
 
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
-#include <Tactility/DeprecatedPaths.h>
+
+#include <app/paths.h>
 
 #include <map>
 #include <string>
@@ -11,7 +12,11 @@
 namespace tt::settings::display {
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/display.properties";
+    char path[256];
+    if (app_paths_get_user_data_path("Display", "display.properties", path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return path;
 }
 
 constexpr auto* SETTINGS_KEY_ORIENTATION = "orientation";
