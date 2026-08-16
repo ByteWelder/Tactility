@@ -4,8 +4,11 @@
 #include <lvgl/lvgl.h>
 
 #include <tactility/drivers/keyboard.h>
+#include <tactility/log.h>
 
 #include <vector>
+
+constexpr auto* TAG = "lvgl_keyboard";
 
 static LvglSoftwareKeyboard last_software_keyboard = {
     .object = nullptr
@@ -106,16 +109,23 @@ void lvgl_keyboard_disable(lv_indev_t* indev) {
     lv_indev_set_group(indev, nullptr);
 }
 
-bool lvgl_hardware_keyboard_is_available() {
-    Device* keyboard_device;
-    if (device_get_first_active_by_type(&KEYBOARD_TYPE, &keyboard_device) != ERROR_NONE) {
-        return false;
+static bool lvgl_hardware_keyboard_check_present(Device* device, void* context) {
+    bool ready = device_is_ready(device);
+    bool present = ready && keyboard_is_present(device);
+    LOG_D(TAG, "keyboard device %s: ready=%d present=%d", device->name, (int)ready, (int)present);
+    if (!present) {
+        return true; // keep looking
     }
+    *static_cast<bool*>(context) = true;
+    return false; // found one, stop iterating
+}
 
+bool lvgl_hardware_keyboard_is_available() {
     // TODO: Refactor the driver subsystem to so it does proper probing/releasing of such devices
     // This work-around exists for the Tab5 keyboard driver.
-    bool present = keyboard_is_present(keyboard_device);
-    device_put(keyboard_device);
+    bool present = false;
+    device_for_each_of_type(&KEYBOARD_TYPE, &present, lvgl_hardware_keyboard_check_present);
+    LOG_D(TAG, "lvgl_hardware_keyboard_is_available() -> %d", (int)present);
     return present;
 }
 
@@ -138,6 +148,11 @@ void lvgl_hardware_keyboard_remove_custom(lv_indev_t* indev) {
 }
 
 static void textarea_show_keyboard(lv_event_t* event) {
+    // Re-checked here rather than gated once at lvgl_keyboard_add_textarea() time, so a hardware
+    // keyboard that connects/disconnects after the textarea was created is honored immediately.
+    if (!lvgl_software_keyboard_is_enabled()) {
+        return;
+    }
     lv_obj_t* target = lv_event_get_current_target_obj(event);
     if (last_software_keyboard.object != nullptr) {
         lvgl_software_keyboard_show(&last_software_keyboard, target);
@@ -192,18 +207,10 @@ LvglSoftwareKeyboard* lvgl_software_keyboard_get_last() {
 }
 
 void lvgl_keyboard_add_textarea(LvglSoftwareKeyboard* keyboard, lv_obj_t* textarea) {
-    // Only the on-screen keyboard's show/hide wiring is specific to "no hardware keyboard"
-    // mode. Group membership must NOT be gated on it: a hardware keypad indev (see
-    // lvgl_keyboard_enable()/lvgl_software_keyboard_activate()) is bound to keyboard_group
-    // regardless of whether a software keyboard is in use, so skipping lv_group_add_obj()
-    // here left every textarea unreachable from a hardware keyboard - it was never a member
-    // of the group its indev delivers key events through.
-    if (lvgl_software_keyboard_is_enabled()) {
-        lv_obj_add_event_cb(textarea, textarea_show_keyboard, LV_EVENT_FOCUSED, nullptr);
-        lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DEFOCUSED, nullptr);
-        lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_READY, nullptr);
-        lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DELETE, nullptr);
-    }
+    lv_obj_add_event_cb(textarea, textarea_show_keyboard, LV_EVENT_FOCUSED, nullptr);
+    lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DEFOCUSED, nullptr);
+    lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_READY, nullptr);
+    lv_obj_add_event_cb(textarea, textarea_hide_keyboard, LV_EVENT_DELETE, nullptr);
 
     // lv_obj_t auto-remove themselves from the group when they are destroyed (last checked in LVGL 8.3)
     lv_group_add_obj(keyboard_group, textarea);

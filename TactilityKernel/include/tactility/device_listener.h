@@ -8,6 +8,7 @@ struct Device;
 
 enum DeviceEvent {
     DEVICE_EVENT_STARTED,
+    DEVICE_EVENT_STOPPING,
     DEVICE_EVENT_STOPPED,
 };
 
