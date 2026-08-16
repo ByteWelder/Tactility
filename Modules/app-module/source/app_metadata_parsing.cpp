@@ -38,8 +38,8 @@ bool validate_string(const std::string& value, bool (*is_valid_char)(char)) {
 }
 
 /** Validates a comma-separated list: non-empty, no leading/trailing/double commas (which would
- * produce an empty item), and every item passing @a is_valid_item_char. */
-bool validate_csv_list(const std::string& value, bool (*is_valid_item_char)(char)) {
+ * produce an empty item), and every item passing @a is_valid_item. */
+bool validate_csv_list(const std::string& value, bool (*is_valid_item)(const std::string&)) {
     if (value.empty()) {
         return false;
     }
@@ -47,7 +47,7 @@ bool validate_csv_list(const std::string& value, bool (*is_valid_item_char)(char
     while (true) {
         auto comma = value.find(',', start);
         auto end = comma == std::string::npos ? value.size() : comma;
-        if (end == start || !validate_string(value.substr(start, end - start), is_valid_item_char)) {
+        if (end == start || !is_valid_item(value.substr(start, end - start))) {
             return false;
         }
         if (comma == std::string::npos) {
@@ -151,8 +151,16 @@ bool app_metadata_is_valid_version_code(const std::string& version) {
 }
 
 bool app_metadata_is_valid_device_id_list(const std::string& value) {
-    return validate_csv_list(value, [](char c) {
-        return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '-';
+    return validate_csv_list(value, [](const std::string& item) {
+        bool has_alnum = false;
+        for (char c: item) {
+            if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+                has_alnum = true;
+            } else if (c != '-') {
+                return false;
+            }
+        }
+        return has_alnum;
     });
 }
 
