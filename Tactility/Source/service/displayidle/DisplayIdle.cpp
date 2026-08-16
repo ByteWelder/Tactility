@@ -280,12 +280,12 @@ void DisplayIdleService::reloadSettings() {
 
 std::shared_ptr<DisplayIdleService> findService() {
     return std::static_pointer_cast<DisplayIdleService>(
-        findServiceById("DisplayIdle")
+        findServiceById("tactility.displayidle")
     );
 }
 
 extern const ServiceManifest manifest = {
-    .id = "DisplayIdle",
+    .id = "tactility.displayidle",
     .createService = create<DisplayIdleService>
 };
 

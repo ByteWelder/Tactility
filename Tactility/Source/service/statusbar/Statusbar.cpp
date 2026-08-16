@@ -359,7 +359,7 @@ public:
 };
 
 extern const ServiceManifest manifest = {
-    .id = "Statusbar",
+    .id = "tactility.statusbar",
     .createService = create<StatusbarService>
 };
 

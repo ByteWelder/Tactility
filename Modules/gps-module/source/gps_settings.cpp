@@ -17,7 +17,7 @@ constexpr auto* TAG = "gps_settings";
 
 // Storage key for the persisted configuration file (services would use their own service ID for
 // this; gps_settings has no service backing it, so it defines its own).
-constexpr auto* GPS_SETTINGS_STORAGE_ID = "gps";
+constexpr auto* GPS_SETTINGS_STORAGE_ID = "tactility.gps";
 
 // region Configuration persistence
 

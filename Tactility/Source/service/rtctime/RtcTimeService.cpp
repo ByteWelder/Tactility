@@ -140,7 +140,7 @@ void RtcTimeService::onStop(ServiceContext& serviceContext) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "RtcTime",
+    .id = "tactility.rtctime",
     .createService = create<RtcTimeService>
 };
 

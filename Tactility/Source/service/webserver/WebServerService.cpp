@@ -1797,7 +1797,7 @@ esp_err_t WebServerService::handleAssets(httpd_req_t* request) {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "WebServer",
+    .id = "tactility.webserver",
     .createService = create<WebServerService>
 };
 

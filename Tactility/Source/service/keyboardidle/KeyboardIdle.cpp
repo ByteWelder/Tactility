@@ -113,7 +113,7 @@ public:
 };
 
 extern const ServiceManifest manifest = {
-    .id = "KeyboardIdle",
+    .id = "tactility.keyboardidle",
     .createService = create<KeyboardIdleService>
 };
 

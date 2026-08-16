@@ -252,7 +252,7 @@ std::shared_ptr<DevelopmentService> findService() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "Development",
+    .id = "tactility.development",
     .createService = create<DevelopmentService>
 };
 

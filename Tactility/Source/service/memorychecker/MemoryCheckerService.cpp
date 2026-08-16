@@ -85,7 +85,7 @@ void MemoryCheckerService::onTimerUpdate() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "MemoryChecker",
+    .id = "tactility.memorychecker",
     .createService = create<MemoryCheckerService>
 };
 

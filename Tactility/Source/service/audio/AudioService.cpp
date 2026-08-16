@@ -329,7 +329,7 @@ std::shared_ptr<AudioService> findAudioService() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "Audio",
+    .id = "tactility.audio",
     .createService = create<AudioService>
 };
 
