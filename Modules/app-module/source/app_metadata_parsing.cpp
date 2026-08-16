@@ -150,12 +150,6 @@ bool app_metadata_is_valid_version_code(const std::string& version) {
     });
 }
 
-bool app_metadata_is_valid_device_arch_list(const std::string& value) {
-    return validate_csv_list(value, [](char c) {
-        return std::isalnum(static_cast<unsigned char>(c)) != 0;
-    });
-}
-
 bool app_metadata_is_valid_device_id_list(const std::string& value) {
     return validate_csv_list(value, [](char c) {
         return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '-';
@@ -173,8 +167,8 @@ bool app_metadata_copy_bounded(char* dest, size_t dest_size, const std::string& 
 error_t app_metadata_parse(const char* path, struct AppMetadata* out_metadata) {
     LOG_I(TAG, "Parsing manifest %s", path);
 
-    // Both requires.* fields are optional in V2 and unwritten by V1; zeroing here (rather than
-    // relying on the caller) guarantees they read back as empty ("unrestricted") either way.
+    // requires_device_id is optional in V2 and unwritten by V1; zeroing here (rather than relying
+    // on the caller) guarantees it reads back as empty ("unrestricted") either way.
     *out_metadata = {};
 
     std::map<std::string, std::string> properties;

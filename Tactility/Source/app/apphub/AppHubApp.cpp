@@ -36,7 +36,7 @@ struct Context {
     lv_obj_t* contentWrapper = nullptr;
     lv_obj_t* refreshButton = nullptr;
     std::string cachedAppsJsonFile = std::format("{}/app_hub.json", getTempPath());
-    std::vector<AppHubEntry> entries;
+    AppHubEntryList entries;
     Mutex mutex;
 };
 
@@ -89,6 +89,19 @@ void showApps(Context* ctx) {
     lv_obj_clean(ctx->contentWrapper);
     ctx->mutex.lock();
     if (parseJson(ctx->cachedAppsJsonFile, ctx->entries)) {
+        // An empty targetPlatforms list means the entry runs everywhere; otherwise it must name
+        // this build's own target to be installable here. The simulator isn't a real MCU target,
+        // so it has nothing to match against and skips this filter entirely.
+        std::erase_if(ctx->entries, [](const AppHubEntry& entry) {
+#ifdef ESP_PLATFORM
+            return !entry.targetPlatforms.empty() &&
+                std::ranges::find(entry.targetPlatforms, CONFIG_IDF_TARGET) == entry.targetPlatforms.end();
+#else
+            (void)entry;
+            return false;
+#endif
+        });
+
         std::ranges::sort(ctx->entries, [](auto left, auto right) {
             return left.appName < right.appName;
         });

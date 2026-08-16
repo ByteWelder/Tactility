@@ -99,20 +99,7 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
         return false;
     }
 
-    // requires (optional; if present, must be a non-empty comma-separated list)
-
-    auto device_arch_iterator = properties.find("requires.device.arch");
-    if (device_arch_iterator != properties.end()) {
-        const std::string& device_arch = device_arch_iterator->second;
-        if (!app_metadata_is_valid_device_arch_list(device_arch)) {
-            LOG_E(TAG, "Invalid requires.device.arch");
-            return false;
-        }
-        if (!app_metadata_copy_bounded(out_metadata.requires_device_arch, sizeof(out_metadata.requires_device_arch), device_arch)) {
-            LOG_E(TAG, "requires.device.arch too long");
-            return false;
-        }
-    }
+    // requires.device.id (optional; if present, must be a non-empty comma-separated list)
 
     auto device_id_iterator = properties.find("requires.device.id");
     if (device_id_iterator != properties.end()) {
