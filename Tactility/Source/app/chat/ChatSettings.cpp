@@ -29,7 +29,7 @@ constexpr auto* TAG = "ChatSettings";
 
 static std::string getSettingsFilePath() {
     char path[256];
-    if (app_paths_get_user_data_path("Chat", "chat.properties", path, sizeof(path)) != ERROR_NONE) {
+    if (app_paths_get_user_data_path("tactility.chat", "chat.properties", path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
     return path;

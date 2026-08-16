@@ -308,7 +308,7 @@ void start(const apphub::AppHubEntry& entry) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "AppHubDetails",
+    .id = "tactility.apphubdetails",
     .name = "App Details",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

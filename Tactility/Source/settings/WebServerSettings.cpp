@@ -23,7 +23,7 @@ constexpr auto* TAG = "WebServerSettings";
 
 static std::string getSettingsFilePath() {
     char path[256];
-    if (app_paths_get_user_data_path("WebServerSettings", "webserver.properties", path, sizeof(path)) != ERROR_NONE) {
+    if (app_paths_get_user_data_path("tactility.webserversettings", "webserver.properties", path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
     return path;

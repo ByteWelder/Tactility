@@ -14,7 +14,7 @@ constexpr auto* TAG = "DevSettings";
 
 static std::string getSettingsFilePath() {
     char path[256];
-    if (app_paths_get_user_data_path("Development", "development.properties", path, sizeof(path)) != ERROR_NONE) {
+    if (app_paths_get_user_data_path("tactility.development", "development.properties", path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
     return path;

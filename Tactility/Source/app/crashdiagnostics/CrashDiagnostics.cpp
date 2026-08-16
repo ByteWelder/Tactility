@@ -199,7 +199,7 @@ void start() {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "CrashDiagnostics",
+    .id = "tactility.crashdiagnostics",
     .name = "Crash Diagnostics",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

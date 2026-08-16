@@ -150,7 +150,7 @@ AppInstanceId start(AppInstanceId callerAppInstanceId, const std::string& title,
 }
 
 extern const AppManifest manifest = {
-    .id = "SelectionDialog",
+    .id = "tactility.selectiondialog",
     .name = "Selection Dialog",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

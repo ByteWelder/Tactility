@@ -360,7 +360,7 @@ void start(const std::string& ssid, const std::string& password) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "WifiConnect",
+    .id = "tactility.wificonnect",
     .name = "Wi-Fi Connect",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

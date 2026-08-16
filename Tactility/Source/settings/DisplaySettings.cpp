@@ -13,7 +13,7 @@ namespace tt::settings::display {
 
 static std::string getSettingsFilePath() {
     char path[256];
-    if (app_paths_get_user_data_path("Display", "display.properties", path, sizeof(path)) != ERROR_NONE) {
+    if (app_paths_get_user_data_path("tactility.display", "display.properties", path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
     return path;

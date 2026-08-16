@@ -23,7 +23,7 @@ menu "Tactility App"
             See https://docs.tactilityproject.org for formatting guidance.
     config TT_LAUNCHER_APP_ID
         string "Launcher App ID"
-        default "Launcher"
+        default "tactility.launcher"
         help
             The applications that gives access to other application.
             This is the first thing that starts after the boot screen.

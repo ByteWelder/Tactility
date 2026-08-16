@@ -12,7 +12,7 @@ namespace tt::settings::trackball {
 
 static std::string getSettingsFilePath() {
     char path[256];
-    if (app_paths_get_user_data_path("TrackballSettings", "trackball.properties", path, sizeof(path)) != ERROR_NONE) {
+    if (app_paths_get_user_data_path("tactility.trackballsettings", "trackball.properties", path, sizeof(path)) != ERROR_NONE) {
         return "";
     }
     return path;

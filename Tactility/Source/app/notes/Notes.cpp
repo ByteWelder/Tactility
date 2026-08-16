@@ -249,7 +249,7 @@ void start(const std::string& filePath) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "Notes",
+    .id = "tactility.notes",
     .name = "Notes",
     .category = APP_CATEGORY_USER,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }
