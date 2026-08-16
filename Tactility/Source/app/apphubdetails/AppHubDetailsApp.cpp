@@ -1,7 +1,3 @@
-#include "../../../../Modules/app-module/private/app/private/app_ledger.h"
-#include "app/metadata.h"
-
-
 #include <Tactility/DeprecatedPaths.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
@@ -12,6 +8,7 @@
 
 #include <app/event.h>
 #include <app/install.h>
+#include <app/metadata.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 
