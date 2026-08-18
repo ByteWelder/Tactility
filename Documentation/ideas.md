@@ -46,14 +46,11 @@
 
 ## Medium Priority
 
-- `platform-esp32`'s module drivers are declared in start/stop of the module but they should be set via `Module::drivers`
 - `struct Driver` has an `.owner`, but it's not always set. Either validate on Module construct that it matches, or otherwise set it during module start. The problem: NULL parent currently means that driver is not removable. This clashes with setting it dynamically. Consider some kind of flag to determine removability.
 - Consider moving certain drivers into separate modules: audio, bt, wifi, etc
 - Consider using https://github.com/Graphify-Labs/graphify
 - Consider implementing LVGL gridnav in apps https://lvgl.io/docs/open/9.3/details/auxiliary-modules/gridnav.html
 - Make USB host driver disabled by default, so it doesn't consume memory
-- Filtering for apps in App Hub:
-  - apps that only work on a specific device
 - Diceware app has large "+" and "-' buttons on Cardputer. It should be smaller.
 - TactilityTool: Make API compatibility table (and check for compatibility in the tool itself)
 - Improve EspLcdDisplay to contain all the standard configuration options, and implement a default init function. Add a configuration class.
