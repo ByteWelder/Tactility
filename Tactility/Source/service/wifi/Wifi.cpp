@@ -551,7 +551,7 @@ public:
 } // namespace
 
 extern const ServiceManifest manifest = {
-    .id = "wifi",
+    .id = "tactility.wifi",
     .createService = create<WifiService>
 };
 

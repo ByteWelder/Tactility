@@ -41,6 +41,7 @@ if (DEFINED ENV{ESP_IDF_VERSION})
         "Modules"
         "Platforms/platform-esp32"
         "TactilityKernel"
+        "TactilityKernelCpp"
         "Tactility"
         "TactilityC"
         "TactilityFreeRtos"
@@ -77,7 +78,7 @@ else ()
     add_compile_definitions(CONFIG_TT_DEVICE_NAME="Simulator")
     add_compile_definitions(CONFIG_TT_DEVICE_VENDOR="")
     add_compile_definitions(CONFIG_TT_DEVICE_NAME_SIMPLE="Simulator")
-    add_compile_definitions(CONFIG_TT_LAUNCHER_APP_ID="Launcher")
+    add_compile_definitions(CONFIG_TT_LAUNCHER_APP_ID="tactility.launcher")
     add_compile_definitions(CONFIG_TT_AUTO_START_APP_ID="")
     add_compile_definitions(CONFIG_TT_USER_DATA_LOCATION_INTERNAL)
 endif ()
@@ -89,6 +90,7 @@ if (NOT DEFINED ENV{ESP_IDF_VERSION})
     add_subdirectory(Tactility)
     add_subdirectory(TactilityFreeRtos)
     add_subdirectory(TactilityKernel)
+    add_subdirectory(TactilityKernelCpp)
     add_subdirectory(Platforms/platform-posix)
     add_subdirectory(Devices/simulator)
     add_subdirectory(Libraries/cJSON)

@@ -188,7 +188,7 @@ uint32_t start(uint32_t callerAppInstanceId) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "WifiManage",
+    .id = "tactility.wifimanage",
     .name = "Wi-Fi",
     .category = APP_CATEGORY_SETTINGS,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }

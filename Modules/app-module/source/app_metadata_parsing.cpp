@@ -37,6 +37,26 @@ bool validate_string(const std::string& value, bool (*is_valid_char)(char)) {
     return true;
 }
 
+/** Validates a comma-separated list: non-empty, no leading/trailing/double commas (which would
+ * produce an empty item), and every item passing @a is_valid_item. */
+bool validate_csv_list(const std::string& value, bool (*is_valid_item)(const std::string&)) {
+    if (value.empty()) {
+        return false;
+    }
+    size_t start = 0;
+    while (true) {
+        auto comma = value.find(',', start);
+        auto end = comma == std::string::npos ? value.size() : comma;
+        if (end == start || !is_valid_item(value.substr(start, end - start))) {
+            return false;
+        }
+        if (comma == std::string::npos) {
+            return true;
+        }
+        start = comma + 1;
+    }
+}
+
 /** manifest.properties format: "key=value" lines, "[section]" lines prefix every following key
  * until the next section, "#" lines are comments, blank lines are skipped. Deliberately a local,
  * minimal re-implementation rather than depending on Tactility's file::loadPropertiesFile() -
@@ -130,6 +150,20 @@ bool app_metadata_is_valid_version_code(const std::string& version) {
     });
 }
 
+bool app_metadata_is_valid_device_id_list(const std::string& value) {
+    return validate_csv_list(value, [](const std::string& item) {
+        bool has_alnum = false;
+        for (char c: item) {
+            if (std::isalnum(static_cast<unsigned char>(c)) != 0) {
+                has_alnum = true;
+            } else if (c != '-') {
+                return false;
+            }
+        }
+        return has_alnum;
+    });
+}
+
 bool app_metadata_copy_bounded(char* dest, size_t dest_size, const std::string& value) {
     if (value.size() >= dest_size) {
         return false;
@@ -140,6 +174,10 @@ bool app_metadata_copy_bounded(char* dest, size_t dest_size, const std::string& 
 
 error_t app_metadata_parse(const char* path, struct AppMetadata* out_metadata) {
     LOG_I(TAG, "Parsing manifest %s", path);
+
+    // requires_device_id is optional in V2 and unwritten by V1; zeroing here (rather than relying
+    // on the caller) guarantees it reads back as empty ("unrestricted") either way.
+    *out_metadata = {};
 
     std::map<std::string, std::string> properties;
     std::string first_line;

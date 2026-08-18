@@ -148,7 +148,7 @@ std::string getLastText() {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "InputDialog",
+    .id = "tactility.inputdialog",
     .name = "Input Dialog",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

@@ -36,8 +36,11 @@ struct Context {
     lv_obj_t* contentWrapper = nullptr;
     lv_obj_t* refreshButton = nullptr;
     std::string cachedAppsJsonFile = std::format("{}/app_hub.json", getTempPath());
-    std::vector<AppHubEntry> entries;
+    AppHubEntryList entries;
     Mutex mutex;
+
+    // Survives across a bury/resurface cycle (e.g. opening AppHubDetailsApp and returning),
+    int32_t scrollY = 0;
 };
 
 
@@ -46,10 +49,6 @@ void refresh(Context* ctx);
 
 void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
     AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
     app_event_emit(ctx->appInstanceId, &closeEvent);
 }
@@ -86,9 +85,25 @@ void showNoInternet(Context* ctx) {
 }
 
 void showApps(Context* ctx) {
+    // Refresh rebuilds the list from scratch (cached copy, then again once the network fetch
+    // lands), which would otherwise reset the user's scroll position each time.
+    auto scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
     lv_obj_clean(ctx->contentWrapper);
     ctx->mutex.lock();
     if (parseJson(ctx->cachedAppsJsonFile, ctx->entries)) {
+        // An empty targetPlatforms list means the entry runs everywhere; otherwise it must name
+        // this build's own target to be installable here. The simulator isn't a real MCU target,
+        // so it has nothing to match against and skips this filter entirely.
+        std::erase_if(ctx->entries, [](const AppHubEntry& entry) {
+#ifdef ESP_PLATFORM
+            return !entry.targetPlatforms.empty() &&
+                std::ranges::find(entry.targetPlatforms, CONFIG_IDF_TARGET) == entry.targetPlatforms.end();
+#else
+            (void)entry;
+            return false;
+#endif
+        });
+
         std::ranges::sort(ctx->entries, [](auto left, auto right) {
             return left.appName < right.appName;
         });
@@ -106,6 +121,8 @@ void showApps(Context* ctx) {
             lv_obj_set_user_data(entry_button, int_as_voidptr);
             lv_obj_add_event_cb(entry_button, onAppPressed, LV_EVENT_SHORT_CLICKED, ctx);
         }
+
+        lv_obj_scroll_to_y(ctx->contentWrapper, scrollY, LV_ANIM_OFF);
     } else {
         showRefreshFailedError(ctx, "Failed to load content");
     }
@@ -169,6 +186,15 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     lv_obj_set_style_pad_ver(ctx->contentWrapper, 0, LV_STATE_DEFAULT);
 
     refresh(ctx);
+
+    lv_obj_scroll_to_y(ctx->contentWrapper, ctx->scrollY, LV_ANIM_OFF);
+}
+
+void destroyWidgets(void* userData) {
+    auto* ctx = static_cast<Context*>(userData);
+    ctx->scrollY = lv_obj_get_scroll_y(ctx->contentWrapper);
+    ctx->contentWrapper = nullptr;
+    ctx->refreshButton = nullptr;
 }
 
 int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
@@ -179,7 +205,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
+    WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
@@ -206,7 +232,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
 } // namespace
 
 extern const ::AppManifest manifest = {
-    .id = "AppHub",
+    .id = "tactility.apphub",
     .name = "App Hub",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }

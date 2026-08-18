@@ -6,6 +6,7 @@ file(GLOB_RECURSE SOURCE_FILES Source/*.c*)
 
 list(APPEND REQUIRES_LIST
     TactilityKernel
+    TactilityKernelCpp
     TactilityFreeRtos
     lvgl-module
     lvgl-window-manager-module

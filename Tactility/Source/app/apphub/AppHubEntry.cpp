@@ -20,7 +20,7 @@ static bool parseEntry(const cJSON* object, AppHubEntry& entry) {
          reader.readStringArray("targetPlatforms", entry.targetPlatforms);
 }
 
-bool parseJson(const std::string& filePath, std::vector<AppHubEntry>& entries) {
+bool parseJson(const std::string& filePath, AppHubEntryList& entries) {
     file::FileMutexGuard guard(filePath);
 
     auto data = file::readString(filePath);

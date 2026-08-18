@@ -272,7 +272,7 @@ void start(const std::string& ssid) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "WifiApSettings",
+    .id = "tactility.wifiapsettings",
     .name = "Wi-Fi AP Settings",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

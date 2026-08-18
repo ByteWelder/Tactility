@@ -256,7 +256,7 @@ void start(const std::string& addrHex) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "BtPeerSettings",
+    .id = "tactility.btpeersettings",
     .name = "BT Device Settings",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

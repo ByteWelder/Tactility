@@ -288,7 +288,7 @@ uint32_t start(uint32_t callerAppInstanceId) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "TouchCalibration",
+    .id = "tactility.touchcalibration",
     .name = "Touch Calibration",
     .category = APP_CATEGORY_SETTINGS,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }

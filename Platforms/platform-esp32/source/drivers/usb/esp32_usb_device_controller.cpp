@@ -35,11 +35,10 @@ static constexpr size_t COMPOSITE_STRING_DESCRIPTOR_MAX = 6;
 
 // ---- Controller state ----
 // One TinyUSB device-mode slot, shared by every USB device class (each a separate child device
-// under usbdevice0 in the devicetree - see esp32_usb_hid_device.cpp / esp32_usb_device_msc.cpp /
-// esp32_usb_midi_device.cpp). Only one primary class may be installed at a time - see
-// UsbDeviceControllerApi::claim(). CDC (esp32_usb_cdc_device.cpp) is a separate, orthogonal
-// devicetree-presence addon composited into whichever primary is active (HID or MIDI; MSC is
-// deliberately excluded, see claim()'s cdc_enabled computation) - see claim() below.
+// under usbdevice0 in the devicetree; \see esp32_usb_hid_device.cpp, esp32_usb_device_msc.cpp,
+// esp32_usb_midi_device.cpp). Only one primary class may be installed at a time, enforced in
+// claim(). CDC (esp32_usb_cdc_device.cpp) is a separate, orthogonal devicetree-presence addon
+// composited into whichever primary is active; \see claim()'s cdc_enabled computation.
 
 struct UsbDeviceControllerCtx {
     enum UsbDeviceClass active_class = USB_DEVICE_CLASS_NONE;
@@ -53,10 +52,10 @@ struct UsbDeviceControllerCtx {
     uint8_t next_in_endpoint = 1;   // EP0 reserved
     uint8_t next_out_endpoint = 1;
 
-    // Composite descriptor scratch, rebuilt on every claim() - can't be `static const` per-class
+    // Composite descriptor scratch, rebuilt on every claim(); can't be `static const` per-class
     // anymore now that CDC's presence is a runtime devicetree fact, not compile-time. Two buffers
-    // since a primary (MSC) may need different bytes per speed (see UsbInterfaceContribution's
-    // hs_descriptor_bytes) - under !TUD_OPT_HIGH_SPEED only the fs buffer is ever used.
+    // since a primary (MSC) may need different bytes per speed (\see UsbInterfaceContribution's
+    // hs_descriptor_bytes). Under !TUD_OPT_HIGH_SPEED only the fs buffer is ever used.
     uint8_t composite_fs_config_descriptor[COMPOSITE_CONFIG_DESCRIPTOR_MAX];
 #if (TUD_OPT_HIGH_SPEED)
     uint8_t composite_hs_config_descriptor[COMPOSITE_CONFIG_DESCRIPTOR_MAX];
@@ -101,7 +100,7 @@ static bool find_cdc_child(struct Device* child, void* context) {
 }
 
 // Devicetree children are constructed/added/started strictly after their parent
-// (kernel_init.cpp's dts_devices[] loop starts each device in list order, parent first) - so the
+// (kernel_init.cpp's dts_devices[] loop starts each device in list order, parent first), so the
 // usbdevicecdc0 child does not exist yet when this controller's own start_device() runs.
 // Discovering it lazily here (called from is_cdc_enabled(), well after all devicetree devices
 // have finished starting) instead of once at start_device() time is the only way to actually see
@@ -168,14 +167,7 @@ static error_t claim(struct Device* device, enum UsbDeviceClass usb_class, const
         return ERROR_INVALID_STATE;
     }
 
-    // MSC is deliberately excluded from CDC compositing - a MSC-presenting device is meant to
-    // look/behave like plain mass storage to the host's storage stack, and there's no real use
-    // case for a console interface while acting as a flash drive, unlike HID/MIDI which
-    // plausibly want a console alongside. (A Windows safe-eject hang was seen during development
-    // of this compositing code but traced to a stale Windows-side driver/device-cache state,
-    // cleared by a host reboot - not caused by CDC compositing or this exclusion. Kept the
-    // exclusion anyway since it matches MSC's actual intended behavior.)
-    const bool cdc_enabled = usb_class != USB_DEVICE_CLASS_MSC && is_cdc_enabled(device);
+    const bool cdc_enabled = is_cdc_enabled(device);
 
     // ---- String table: primary's table, plus CDC's own interface string appended last.
     size_t string_count = config->string_descriptor_count;
@@ -207,7 +199,7 @@ static error_t claim(struct Device* device, enum UsbDeviceClass usb_class, const
 
     // ---- Descriptor byte assembly: primary's bytes, then CDC's (if enabled), behind one config
     // header. Built twice (fs/hs) under TUD_OPT_HIGH_SPEED if the primary supplied distinct
-    // high-speed bytes (see UsbInterfaceContribution::hs_descriptor_bytes) - CDC never varies by
+    // high-speed bytes (\see UsbInterfaceContribution::hs_descriptor_bytes). CDC never varies by
     // speed, so its bytes are reused verbatim in both buffers.
     auto assemble = [&](uint8_t* dest, size_t dest_capacity, const uint8_t* primary_bytes, size_t primary_len) -> error_t {
         const size_t total_len = TUD_CONFIG_DESC_LEN + primary_len + (cdc_enabled ? cdc_contribution.descriptor_bytes_len : 0);
@@ -250,13 +242,6 @@ static error_t claim(struct Device* device, enum UsbDeviceClass usb_class, const
 
     ctx->allocation_open = false;
 
-    // ---- Device descriptor: primary's metadata (idVendor/idProduct/strings), controller decides
-    // the class triad since CDC's presence (not the primary's identity) is what needs IAD in the
-    // general case - except MSC, which always got MISC/IAD unconditionally even standalone in
-    // the pre-refactor code (see esp32_usb_device_msc.cpp history). Kept that behavior verbatim
-    // for MSC (regardless of cdc_enabled, which is always false for MSC anyway - see the
-    // cdc_enabled computation above) simply to match what shipped before rather than introduce
-    // an unrelated behavior change while separating CDC out of HID's descriptor.
     ctx->composite_device_descriptor = *static_cast<const tusb_desc_device_t*>(config->device_descriptor);
     if (cdc_enabled || usb_class == USB_DEVICE_CLASS_MSC) {
         ctx->composite_device_descriptor.bDeviceClass = TUSB_CLASS_MISC;
@@ -277,7 +262,7 @@ static error_t claim(struct Device* device, enum UsbDeviceClass usb_class, const
     ctx->composite_tusb_cfg.fs_configuration_descriptor = ctx->composite_fs_config_descriptor;
     ctx->composite_tusb_cfg.hs_configuration_descriptor = ctx->composite_hs_config_descriptor;
     // The qualifier descriptor's class triad must mirror the device descriptor's (same IAD
-    // reasoning) - built here rather than supplied per-primary since its content is boilerplate
+    // reasoning). Built here rather than supplied per-primary since its content is boilerplate
     // (same bMaxPacketSize0/bNumConfigurations for every class) and the controller already knows
     // the class triad.
     ctx->composite_device_qualifier = {
@@ -366,7 +351,7 @@ extern const UsbDeviceControllerApi usb_device_controller_api = {
 };
 
 // ---- Driver lifecycle ----
-// This device is defined in each board's .dts (usbdevice0), same pattern as usbhost0 - its
+// This device is defined in each board's .dts (usbdevice0), same pattern as usbhost0. Its
 // child classes (usbdevicehid0, usbdevicemsc0, usbdevicemidi0, usbdevicecdc0) are separate .dts
 // nodes with their own drivers, wired to this device as their parent by the devicetree compiler.
 
@@ -377,19 +362,19 @@ static error_t start_device(struct Device* device) {
     auto* ctx = new UsbDeviceControllerCtx();
     device_set_driver_data(device, ctx);
     // cdc_child is NOT resolved here: usbdevicecdc0 (a child of this device in the devicetree)
-    // hasn't been constructed/started yet at this point - kernel_init.cpp starts devicetree
-    // devices in list order, parent before children. Resolved lazily instead, see
-    // find_cdc_child_lazy() / is_cdc_enabled().
+    // hasn't been constructed/started yet at this point; kernel_init.cpp starts devicetree
+    // devices in list order, parent before children.
+    // \see find_cdc_child_lazy(), is_cdc_enabled() for the lazy resolution.
     return ERROR_NONE;
 }
 
 static error_t stop_device(struct Device* device) {
     auto* ctx = static_cast<UsbDeviceControllerCtx*>(device_get_driver_data(device));
     // Safety cleanup: if a class still holds the slot (e.g. this device is stopped while HID/
-    // MSC/MIDI is still active), tear TinyUSB down and restore the PHY route before freeing ctx -
+    // MSC/MIDI is still active), tear TinyUSB down and restore the PHY route before freeing ctx;
     // otherwise the installed TinyUSB driver and mis-routed PHY would outlive the context that
-    // tracks them. Mirrors the same safety-release pattern each child driver's own stop_device
-    // uses (see esp32_usb_hid_device.cpp / esp32_usb_device_msc.cpp / esp32_usb_midi_device.cpp).
+    // tracks them. Mirrors the same safety-release pattern each child driver's own stop_device uses.
+    // \see esp32_usb_hid_device.cpp, esp32_usb_device_msc.cpp, esp32_usb_midi_device.cpp
     if (ctx->active_class != USB_DEVICE_CLASS_NONE) {
         release(device, ctx->active_class);
     }

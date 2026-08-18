@@ -256,6 +256,8 @@ error_t device_stop(Device* device) {
     internal->state.stopping = true;
     unlock_internal(internal);
 
+    device_listener_notify(device, DEVICE_EVENT_STOPPING);
+
     error_t unbind_error = driver_unbind(internal->driver, device);
 
     lock_internal(internal);

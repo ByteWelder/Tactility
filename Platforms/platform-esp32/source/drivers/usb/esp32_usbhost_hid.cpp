@@ -3,6 +3,7 @@
 
 #include <tactility/device.h>
 #include <tactility/driver.h>
+#include <tactility/drivers/keyboard.h>
 #include <tactility/drivers/usb_host_hid.h>
 #include <tactility/log.h>
 
@@ -26,6 +27,7 @@ constexpr auto HID_PROC_TASK_STACK    = 4096;
 constexpr auto HID_PROC_TASK_PRIORITY = 5;
 constexpr auto HID_STOP_TIMEOUT_MS    = 2000;
 constexpr auto MAX_SUBSCRIBERS        = 4;
+constexpr auto USB_HID_KB_QUEUE_SIZE  = 16;
 
 typedef struct {
     hid_host_device_handle_t handle;
@@ -53,7 +55,19 @@ struct UsbHidContext {
 
     QueueHandle_t    subscribers[MAX_SUBSCRIBERS] = {};
     SemaphoreHandle_t sub_mutex                   = nullptr;
+
+    // The controller Device itself (set in start_device()), used as the parent for kb_device.
+    Device* controller_device = nullptr;
+    // Dynamic KEYBOARD_TYPE child device, constructed while a physical USB keyboard is connected.
+    Device kb_device{};
+    bool kb_device_active = false;
 };
+
+extern "C" {
+static void usb_hid_keyboard_device_construct(UsbHidContext* ctx);
+static void usb_hid_keyboard_device_destruct(UsbHidContext* ctx);
+static void usb_hid_keyboard_publish_key(UsbHidContext* ctx, uint32_t lv_key, bool pressed, bool ctrl, bool alt, uint8_t hid_keycode, uint8_t hid_modifier);
+}
 
 static const uint8_t keycode2ascii[57][2] = {
     {0, 0}, {0, 0}, {0, 0}, {0, 0},
@@ -182,8 +196,7 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
                         uint32_t lv_key = ctx->pressed_lv_keys[prev_hid];
                         ctx->pressed_lv_keys[prev_hid] = 0;
                         if (lv_key) {
-                            UsbHidEvent evt = { .type = USB_HID_EVENT_KEY, .key = { lv_key, false, with_ctrl, with_alt } };
-                            publish_event(ctx, &evt);
+                            usb_hid_keyboard_publish_key(ctx, lv_key, false, with_ctrl, with_alt, prev_hid, kb->modifier.val);
                         }
                     }
                 }
@@ -221,11 +234,7 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
                         uint32_t lv_key = hid_keycode_to_key(kb->modifier.val, hid_code,
                                                                   ctx->caps_lock_active, ctx->num_lock_active);
                         if (lv_key) {
-                            UsbHidEvent evt = {
-                                .type = USB_HID_EVENT_KEY,
-                                .key = { lv_key, true, with_ctrl, with_alt }
-                            };
-                            publish_event(ctx, &evt);
+                            usb_hid_keyboard_publish_key(ctx, lv_key, true, with_ctrl, with_alt, hid_code, kb->modifier.val);
                             ctx->pressed_lv_keys[hid_code] = lv_key;
                         }
                     }
@@ -271,6 +280,7 @@ static void hid_interface_callback(hid_host_device_handle_t handle,
             memset(ctx->pressed_lv_keys, 0, sizeof(ctx->pressed_lv_keys));
             ctx->kb_handle.store(nullptr);
             ctx->kb_led_pending.store(false);
+            usb_hid_keyboard_device_destruct(ctx);
         } else if (params.proto == HID_PROTOCOL_MOUSE) {
             ctx->mouse_connected = false;
         }
@@ -349,6 +359,7 @@ static void hid_proc_task(void* arg) {
                              | (ctx->caps_lock_active   ? 0x02 : 0)
                              | (ctx->scroll_lock_active ? 0x04 : 0);
                 hid_class_request_set_report(dev_evt.handle, HID_REPORT_TYPE_OUTPUT, 0, &leds, 1);
+                usb_hid_keyboard_device_construct(ctx);
             } else if (params.proto == HID_PROTOCOL_MOUSE) {
                 ctx->mouse_connected = true;
             }
@@ -419,8 +430,122 @@ static const UsbHidApi hid_api = {
 
 extern "C" {
 
+// region Dynamic KEYBOARD_TYPE device
+//
+// While a physical USB keyboard is connected, a KEYBOARD_TYPE child device is constructed so the
+// rest of the system (lvgl_hardware_keyboard_is_available(), Tactility's KeyboardDeviceListener)
+// sees a real hardware keyboard through the same generic device model as any other keyboard, e.g.
+// Devices/m5stack-tab5/Source/devices/tab5_keyboard.cpp. Real key events are delivered exclusively
+// through this device (kb_handle's hid_interface_callback pushes into its queue below); the
+// generic UsbHidEvent publish/subscribe channel above is unaffected for mouse move/button/scroll
+// and the right-click-as-ESC synthesis it already does.
+
+static error_t usb_hid_kb_device_start(Device* device) {
+    auto* queue = xQueueCreate(USB_HID_KB_QUEUE_SIZE, sizeof(KeyboardKeyData));
+    if (queue == nullptr) {
+        return ERROR_RESOURCE;
+    }
+    device_set_driver_data(device, queue);
+    return ERROR_NONE;
+}
+
+static error_t usb_hid_kb_device_stop(Device* device) {
+    auto* queue = static_cast<QueueHandle_t>(device_get_driver_data(device));
+    vQueueDelete(queue);
+    device_set_driver_data(device, nullptr);
+    return ERROR_NONE;
+}
+
+static error_t usb_hid_kb_device_read_key(Device* device, KeyboardKeyData* data) {
+    auto* queue = static_cast<QueueHandle_t>(device_get_driver_data(device));
+    if (queue == nullptr) {
+        *data = {};
+        return ERROR_NONE;
+    }
+    if (xQueueReceive(queue, data, 0) != pdTRUE) {
+        *data = {};
+        return ERROR_NONE;
+    }
+    data->continue_reading = uxQueueMessagesWaiting(queue) > 0;
+    return ERROR_NONE;
+}
+
+static const KeyboardApi esp32_usbhost_hid_keyboard_api = {
+    .read_key = usb_hid_kb_device_read_key,
+    .get_backlight = nullptr,
+    .is_present = nullptr,
+};
+
+Driver esp32_usbhost_hid_keyboard_driver = {
+    .name = "esp32_usbhost_hid_keyboard",
+    .compatible = (const char*[]) { nullptr },
+    .start_device = usb_hid_kb_device_start,
+    .stop_device = usb_hid_kb_device_stop,
+    .api = &esp32_usbhost_hid_keyboard_api,
+    .device_type = &KEYBOARD_TYPE,
+    .owner = nullptr,
+    .internal = nullptr,
+};
+
+static void usb_hid_keyboard_device_construct(UsbHidContext* ctx) {
+    if (ctx->kb_device_active) {
+        return;
+    }
+
+    ctx->kb_device = Device {
+        .address = 0,
+        .name = "usb_keyboard0",
+        .config = nullptr,
+        .parent = nullptr,
+        .internal = nullptr,
+    };
+
+    if (device_construct(&ctx->kb_device) != ERROR_NONE) {
+        LOG_E(TAG, "failed to construct USB keyboard device");
+        return;
+    }
+    device_set_parent(&ctx->kb_device, ctx->controller_device);
+    device_set_driver(&ctx->kb_device, &esp32_usbhost_hid_keyboard_driver);
+    if (device_add(&ctx->kb_device) != ERROR_NONE) {
+        LOG_E(TAG, "failed to add USB keyboard device");
+        device_destruct(&ctx->kb_device);
+        return;
+    }
+    if (device_start(&ctx->kb_device) != ERROR_NONE) {
+        LOG_E(TAG, "failed to start USB keyboard device");
+        device_remove(&ctx->kb_device);
+        device_destruct(&ctx->kb_device);
+        return;
+    }
+
+    ctx->kb_device_active = true;
+}
+
+static void usb_hid_keyboard_device_destruct(UsbHidContext* ctx) {
+    if (!ctx->kb_device_active) {
+        return;
+    }
+    ctx->kb_device_active = false;
+
+    device_stop(&ctx->kb_device);
+    device_remove(&ctx->kb_device);
+    device_destruct(&ctx->kb_device);
+}
+
+static void usb_hid_keyboard_publish_key(UsbHidContext* ctx, uint32_t lv_key, bool pressed, bool ctrl, bool alt, uint8_t hid_keycode, uint8_t hid_modifier) {
+    if (!ctx->kb_device_active) {
+        return;
+    }
+    auto* queue = static_cast<QueueHandle_t>(device_get_driver_data(&ctx->kb_device));
+    KeyboardKeyData data = { lv_key, pressed, false, ctrl, alt, hid_keycode, hid_modifier };
+    xQueueSend(queue, &data, 0);
+}
+
+// endregion
+
 static error_t start_device(struct Device* device) {
     auto* ctx = new UsbHidContext();
+    ctx->controller_device = device;
 
     ctx->sub_mutex = xSemaphoreCreateMutex();
     if (!ctx->sub_mutex) {
@@ -485,6 +610,13 @@ static error_t start_device(struct Device* device) {
 static error_t stop_device(struct Device* device) {
     auto* ctx = static_cast<UsbHidContext*>(device_get_driver_data(device));
     if (!ctx) return ERROR_NONE;
+
+    // hid_host_device_close() halts and flushes the pending IN transfer before returning, so no
+    // hid_interface_callback() for this handle can race the queue delete below.
+    if (auto kb_handle = ctx->kb_handle.load()) {
+        hid_host_device_close(kb_handle);
+    }
+    usb_hid_keyboard_device_destruct(ctx);
 
     ctx->hid_proc_running = false;
 

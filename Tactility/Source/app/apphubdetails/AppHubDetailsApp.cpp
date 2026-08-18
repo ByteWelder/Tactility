@@ -1,7 +1,3 @@
-#include "../../../../Modules/app-module/private/app/private/app_ledger.h"
-#include "app/metadata.h"
-
-
 #include <Tactility/DeprecatedPaths.h>
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/alertdialog/AlertDialog.h>
@@ -12,6 +8,7 @@
 
 #include <app/event.h>
 #include <app/install.h>
+#include <app/metadata.h>
 #include <app/manager.h>
 #include <app/manifest.h>
 
@@ -64,10 +61,6 @@ uint32_t showConfirmDialog(Context* ctx, const char* action) {
 
 void onBackPressed(lv_event_t* e) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(e));
-    // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
-    // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
     AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
     app_event_emit(ctx->appInstanceId, &closeEvent);
 }
@@ -308,7 +301,7 @@ void start(const apphub::AppHubEntry& entry) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "AppHubDetails",
+    .id = "tactility.apphubdetails",
     .name = "App Details",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

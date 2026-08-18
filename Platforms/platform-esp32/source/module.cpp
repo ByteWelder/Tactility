@@ -40,6 +40,7 @@ extern Driver esp32_ble_hid_device_driver;
 #if SOC_USB_OTG_SUPPORTED
 extern Driver esp32_usbhost_driver;
 extern Driver esp32_usbhost_hid_driver;
+extern Driver esp32_usbhost_hid_keyboard_driver;
 extern Driver esp32_usbhost_midi_driver;
 extern Driver esp32_usbhost_msc_driver;
 #endif
@@ -91,6 +92,7 @@ static error_t start() {
 #if SOC_USB_OTG_SUPPORTED
     check(driver_construct_add(&esp32_usbhost_driver) == ERROR_NONE);
     check(driver_construct_add(&esp32_usbhost_hid_driver) == ERROR_NONE);
+    check(driver_construct_add(&esp32_usbhost_hid_keyboard_driver) == ERROR_NONE);
     check(driver_construct_add(&esp32_usbhost_midi_driver) == ERROR_NONE);
     check(driver_construct_add(&esp32_usbhost_msc_driver) == ERROR_NONE);
 #endif
@@ -141,6 +143,7 @@ static error_t stop() {
 #if SOC_USB_OTG_SUPPORTED
     check(driver_remove_destruct(&esp32_usbhost_msc_driver) == ERROR_NONE);
     check(driver_remove_destruct(&esp32_usbhost_midi_driver) == ERROR_NONE);
+    check(driver_remove_destruct(&esp32_usbhost_hid_keyboard_driver) == ERROR_NONE);
     check(driver_remove_destruct(&esp32_usbhost_hid_driver) == ERROR_NONE);
     check(driver_remove_destruct(&esp32_usbhost_driver) == ERROR_NONE);
 #endif

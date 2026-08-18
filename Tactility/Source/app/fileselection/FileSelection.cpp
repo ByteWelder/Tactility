@@ -106,7 +106,7 @@ uint32_t startForExistingOrNewFile(uint32_t callerAppInstanceId) {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "FileSelection",
+    .id = "tactility.fileselection",
     .name = "File Selection",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

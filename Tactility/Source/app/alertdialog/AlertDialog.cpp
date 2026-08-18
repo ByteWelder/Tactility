@@ -152,7 +152,7 @@ uint32_t start(uint32_t callerAppInstanceId, const std::string& title, const std
 }
 
 extern const ::AppManifest manifest = {
-    .id = "AlertDialog",
+    .id = "tactility.alertdialog",
     .name = "Alert Dialog",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

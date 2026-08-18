@@ -13,6 +13,7 @@ extern "C" {
 #define APP_METADATA_APP_ID_LENGTH 32
 #define APP_METADATA_APP_NAME_LENGTH 32
 #define APP_METADATA_APP_VERSION_NAME_LENGTH 16
+#define APP_METADATA_REQUIRES_DEVICE_ID_LENGTH 64
 
 struct AppMetadata {
 
@@ -42,6 +43,13 @@ struct AppMetadata {
 
     /** The technical version (must be incremented with new releases of the app) */
     uint64_t app_version_code;
+
+    /**
+     * Comma-separated list of device ids the app is restricted to (e.g. "m5stack-tab5"), matching
+     * the folder names under Devices/. Empty means unrestricted.
+     * Must be NULL-terminated.
+     */
+    char requires_device_id[APP_METADATA_REQUIRES_DEVICE_ID_LENGTH + 1];
 };
 
 /**

@@ -431,7 +431,7 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
 } // namespace
 
 extern const ::AppManifest manifest = {
-    .id = "WebServerSettings",
+    .id = "tactility.webserversettings",
     .name = "Web Server",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }

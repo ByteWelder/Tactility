@@ -18,6 +18,9 @@ bool app_metadata_is_valid_name(const std::string& name);
 bool app_metadata_is_valid_version_name(const std::string& version);
 bool app_metadata_is_valid_version_code(const std::string& version);
 
+/** Validates a comma-separated list of device ids (alphanumeric + '-' items, matching Devices/<id> folder names). */
+bool app_metadata_is_valid_device_id_list(const std::string& value);
+
 /** Copies @a value into @a dest (a fixed-size buffer of @a dest_size bytes, including the NULL
  * terminator) if it fits.
  * @retval false @a value doesn't fit in @a dest_size bytes - @a dest is left untouched */

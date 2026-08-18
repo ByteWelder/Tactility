@@ -1,8 +1,8 @@
-#include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
 #include <Tactility/settings/WebServerSettings.h>
 
+#include <app/paths.h>
 #include <tactility/log.h>
 
 #include <charconv>
@@ -22,7 +22,11 @@ namespace tt::settings::webserver {
 constexpr auto* TAG = "WebServerSettings";
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/webserver.properties";
+    char path[256];
+    if (app_paths_get_user_data_path("tactility.webserversettings", "webserver.properties", path, sizeof(path)) != ERROR_NONE) {
+        return "";
+    }
+    return path;
 }
 
 // Property keys

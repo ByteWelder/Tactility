@@ -97,7 +97,7 @@ bool ScreenshotService::isTaskStarted() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "Screenshot",
+    .id = "tactility.screenshot",
     .createService = create<ScreenshotService>
 };
 

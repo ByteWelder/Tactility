@@ -271,7 +271,7 @@ void start() {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "Setup",
+    .id = "tactility.setup",
     .name = "Setup",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },

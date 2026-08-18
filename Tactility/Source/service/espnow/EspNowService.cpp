@@ -193,7 +193,7 @@ std::shared_ptr<EspNowService> findService() {
 }
 
 extern const ServiceManifest manifest = {
-    .id = "EspNow",
+    .id = "tactility.espnow",
     .createService = create<EspNowService>
 };
 

@@ -18,6 +18,7 @@
 #include <lvgl/devices/keyboard.h>
 
 #include <atomic>
+#include <new>
 
 namespace tt::lvgl {
 
@@ -286,12 +287,19 @@ static void usbHidInputTask(void* arg) {
 void startUsbHidInput() {
     if (s_ctx != nullptr) return;
 
-    auto* ctx = new UsbHidInputCtx();
+    static constexpr MemoryPolicy CTX_POLICY = { 0, MEMORY_CAPABILITY_EXTERNAL, 0 };
+    auto* ctx_mem = memory_alloc_with_policy(sizeof(UsbHidInputCtx), &CTX_POLICY);
+    if (!ctx_mem) {
+        LOG_E(TAG, "failed to allocate context");
+        return;
+    }
+    auto* ctx = new (ctx_mem) UsbHidInputCtx();
 
     ctx->hid_queue = xQueueCreate(HID_EVENT_QUEUE_SIZE, sizeof(UsbHidEvent));
     if (!ctx->hid_queue) {
         LOG_E(TAG, "failed to create HID event queue");
-        delete ctx;
+        ctx->~UsbHidInputCtx();
+        memory_free(ctx);
         return;
     }
 
@@ -299,7 +307,8 @@ void startUsbHidInput() {
     if (!ctx->key_queue) {
         LOG_E(TAG, "failed to create key event queue");
         vQueueDelete(ctx->hid_queue);
-        delete ctx;
+        ctx->~UsbHidInputCtx();
+        memory_free(ctx);
         return;
     }
 
@@ -308,7 +317,8 @@ void startUsbHidInput() {
         LOG_E(TAG, "failed to create task done semaphore");
         vQueueDelete(ctx->hid_queue);
         vQueueDelete(ctx->key_queue);
-        delete ctx;
+        ctx->~UsbHidInputCtx();
+        memory_free(ctx);
         return;
     }
 
@@ -371,7 +381,8 @@ void startUsbHidInput() {
         vQueueDelete(ctx->hid_queue);
         vQueueDelete(ctx->key_queue);
         vSemaphoreDelete(ctx->task_done);
-        delete ctx;
+        ctx->~UsbHidInputCtx();
+        memory_free(ctx);
         return;
     }
 
@@ -429,7 +440,8 @@ void stopUsbHidInput() {
     vQueueDelete(ctx->hid_queue);
     vQueueDelete(ctx->key_queue);
     vSemaphoreDelete(ctx->task_done);
-    delete ctx;
+    ctx->~UsbHidInputCtx();
+    memory_free(ctx);
 
     LOG_I(TAG, "stopped");
 }

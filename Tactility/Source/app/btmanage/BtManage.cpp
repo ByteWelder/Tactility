@@ -283,7 +283,7 @@ uint32_t start() {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "BtManage",
+    .id = "tactility.btmanage",
     .name = "Bluetooth",
     .category = APP_CATEGORY_SETTINGS,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }

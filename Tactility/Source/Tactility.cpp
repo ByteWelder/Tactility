@@ -25,6 +25,7 @@
 #include <Tactility/bluetooth/Bluetooth.h>
 #include <Tactility/file/File.h>
 #include <Tactility/hal/SdCard.h>
+#include <Tactility/lvgl/KeyboardDeviceListener.h>
 #include <Tactility/lvgl/Statusbar.h>
 #include <Tactility/lvgl/TrackballInit.h>
 #include <Tactility/lvgl/UsbHidInput.h>
@@ -441,6 +442,7 @@ static void onLvglStarted() {
 #endif
 
     lvgl::startUsbHidInput();
+    lvgl::startKeyboardDeviceListener();
     lvgl::initTrackball();
 
 #ifdef CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
@@ -457,6 +459,7 @@ static void onLvglStopped() {
 
     module_stop(&lvgl_window_manager_module);
 
+    lvgl::stopKeyboardDeviceListener();
     lvgl::stopUsbHidInput();
 
 #if TT_FEATURE_SCREENSHOT_ENABLED

@@ -99,5 +99,20 @@ bool app_metadata_parse_v2(const std::map<std::string, std::string>& properties,
         return false;
     }
 
+    // requires.device.id (optional; if present, must be a non-empty comma-separated list)
+
+    auto device_id_iterator = properties.find("requires.device.id");
+    if (device_id_iterator != properties.end()) {
+        const std::string& device_id = device_id_iterator->second;
+        if (!app_metadata_is_valid_device_id_list(device_id)) {
+            LOG_E(TAG, "Invalid requires.device.id");
+            return false;
+        }
+        if (!app_metadata_copy_bounded(out_metadata.requires_device_id, sizeof(out_metadata.requires_device_id), device_id)) {
+            LOG_E(TAG, "requires.device.id too long");
+            return false;
+        }
+    }
+
     return true;
 }

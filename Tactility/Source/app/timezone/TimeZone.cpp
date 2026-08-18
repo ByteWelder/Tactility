@@ -283,7 +283,7 @@ std::string getLastCode() {
 }
 
 extern const ::AppManifest manifest = {
-    .id = "TimeZone",
+    .id = "tactility.timezone",
     .name = "Select Time zone",
     .category = APP_CATEGORY_SYSTEM,
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) },
