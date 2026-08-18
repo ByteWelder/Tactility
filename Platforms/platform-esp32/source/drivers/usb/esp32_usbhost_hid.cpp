@@ -611,6 +611,11 @@ static error_t stop_device(struct Device* device) {
     auto* ctx = static_cast<UsbHidContext*>(device_get_driver_data(device));
     if (!ctx) return ERROR_NONE;
 
+    // hid_host_device_close() halts and flushes the pending IN transfer before returning, so no
+    // hid_interface_callback() for this handle can race the queue delete below.
+    if (auto kb_handle = ctx->kb_handle.load()) {
+        hid_host_device_close(kb_handle);
+    }
     usb_hid_keyboard_device_destruct(ctx);
 
     ctx->hid_proc_running = false;
