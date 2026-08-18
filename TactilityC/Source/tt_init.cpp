@@ -3,7 +3,6 @@
 #include "tt_app_alertdialog.h"
 #include "tt_app_fileselection.h"
 #include "tt_app_selectiondialog.h"
-#include "tt_time.h"
 
 #include "symbols/cplusplus.h"
 #include "symbols/esp_event.h"
@@ -276,11 +275,6 @@ const esp_elfsym main_symbols[] {
     ESP_ELFSYM_EXPORT(tt_app_fileselection_get_result_path),
     ESP_ELFSYM_EXPORT(tt_app_selectiondialog_start),
     ESP_ELFSYM_EXPORT(tt_app_alertdialog_start),
-    ESP_ELFSYM_EXPORT(tt_timezone_set),
-    ESP_ELFSYM_EXPORT(tt_timezone_get_name),
-    ESP_ELFSYM_EXPORT(tt_timezone_get_code),
-    ESP_ELFSYM_EXPORT(tt_timezone_is_format_24_hour),
-    ESP_ELFSYM_EXPORT(tt_timezone_set_format_24_hour),
 
     // stdio.h
     ESP_ELFSYM_EXPORT(rename),
