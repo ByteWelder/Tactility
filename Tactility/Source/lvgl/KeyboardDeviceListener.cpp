@@ -32,7 +32,23 @@ std::vector<KeyboardBinding>& bindings() {
     return list;
 }
 
+// Guards, under bindingsMutex, against onKeyboardDeviceStarted() registering a binding after
+// stopKeyboardDeviceListener() has already drained bindings() and returned.
+bool& listenerActive() {
+    static bool active = false;
+    return active;
+}
+
 void onKeyboardDeviceStarted(Device* device) {
+    // Held for the whole add+register step so a same-device STOPPING can't observe the binding
+    // as neither-registered-nor-added: onKeyboardDeviceStopped() and shutdown's drain both take
+    // this same lock, so they see either the fully-registered binding or nothing at all.
+    auto lock = bindingsMutex().asScopedLock();
+    lock.lock();
+    if (!listenerActive()) {
+        return;
+    }
+
     lv_indev_t* indev = nullptr;
     lvgl_lock();
     error_t error = lvgl_keyboard_add(device, lv_display_get_default(), &indev);
@@ -41,24 +57,19 @@ void onKeyboardDeviceStarted(Device* device) {
         LOG_E(TAG, "failed to bind keyboard device %s to LVGL", device->name);
         return;
     }
-
-    auto lock = bindingsMutex().asScopedLock();
-    lock.lock();
     bindings().push_back({ device, indev });
 }
 
 void onKeyboardDeviceStopped(Device* device) {
+    auto lock = bindingsMutex().asScopedLock();
+    lock.lock();
     lv_indev_t* indev = nullptr;
-    {
-        auto lock = bindingsMutex().asScopedLock();
-        lock.lock();
-        auto& list = bindings();
-        for (auto it = list.begin(); it != list.end(); ++it) {
-            if (it->device == device) {
-                indev = it->indev;
-                list.erase(it);
-                break;
-            }
+    auto& list = bindings();
+    for (auto it = list.begin(); it != list.end(); ++it) {
+        if (it->device == device) {
+            indev = it->indev;
+            list.erase(it);
+            break;
         }
     }
     if (indev == nullptr) {
@@ -87,16 +98,23 @@ void onDeviceEvent(Device* device, DeviceEvent event, void* context) {
 } // namespace
 
 void startKeyboardDeviceListener() {
+    auto lock = bindingsMutex().asScopedLock();
+    lock.lock();
+    listenerActive() = true;
     device_listener_add(onDeviceEvent, nullptr);
 }
 
 void stopKeyboardDeviceListener() {
-    device_listener_remove(onDeviceEvent);
-
     std::vector<KeyboardBinding> remaining;
     {
+        // device_listener_remove() doesn't wait for an in-flight onDeviceEvent() to finish, so a
+        // STARTED callback already past this point can still land after we drain below; it takes
+        // this same lock and checks listenerActive() before registering, so it backs off instead
+        // of adding a binding nothing will ever remove.
         auto lock = bindingsMutex().asScopedLock();
         lock.lock();
+        listenerActive() = false;
+        device_listener_remove(onDeviceEvent);
         remaining = std::move(bindings());
         bindings().clear();
     }
