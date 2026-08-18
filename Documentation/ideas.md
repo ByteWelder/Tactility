@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- AppHubApp: Prevent download callbacks from accessing a destroyed view.
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
 - wifi: wifi_add_event_callback() and wifi_remove_event_callback() should be replaced by a subscribe/await pattern like system events.
   When that's changed reduce LVGL callstack size in Tactility.cpp run()
