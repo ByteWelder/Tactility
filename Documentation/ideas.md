@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- AppEventSubscription, SystemEventSubscription: should use TaskHandle_t notification. That way, there can be a single wait event for a task instead of X separate ones with each their timeout.
 - AppHubApp: Prevent download callbacks from accessing a destroyed view.
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
 - wifi: wifi_add_event_callback() and wifi_remove_event_callback() should be replaced by a subscribe/await pattern like system events.
