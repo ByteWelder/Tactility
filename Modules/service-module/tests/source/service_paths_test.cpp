@@ -7,20 +7,20 @@
 #include <cstring>
 #include <string>
 
-TEST_CASE("paths_get_user_data_path returns a non-empty path") {
+TEST_CASE("paths_get_data_path returns a non-empty path") {
     char buffer[192];
-    CHECK_EQ(paths_get_user_data_path(buffer, sizeof(buffer)), ERROR_NONE);
+    CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_NONE);
     CHECK_GT(std::strlen(buffer), 0);
 }
 
-TEST_CASE("paths_get_user_data_path reports overflow for a too-small buffer") {
+TEST_CASE("paths_get_data_path reports overflow for a too-small buffer") {
     char buffer[1];
-    CHECK_EQ(paths_get_user_data_path(buffer, sizeof(buffer)), ERROR_BUFFER_OVERFLOW);
+    CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_BUFFER_OVERFLOW);
 }
 
 TEST_CASE("service_paths_get_user_data_directory includes the service id") {
     char root[192];
-    REQUIRE_EQ(paths_get_user_data_path(root, sizeof(root)), ERROR_NONE);
+    REQUIRE_EQ(paths_get_data_path(root, sizeof(root)), ERROR_NONE);
 
     char buffer[224];
     CHECK_EQ(service_paths_get_user_data_directory("my-service", buffer, sizeof(buffer)), ERROR_NONE);
