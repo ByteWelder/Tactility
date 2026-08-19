@@ -1450,7 +1450,7 @@ esp_err_t WebServerService::handleApiScreenshot(httpd_req_t* request) {
 
 #if TT_FEATURE_SCREENSHOT_ENABLED
     // Determine save location: prefer SD card root if mounted, otherwise /data
-    std::string save_path = getUserDataPath();
+    std::string save_path = getDataPath();
 
     // Find next available filename with incrementing number
     std::string screenshot_path;

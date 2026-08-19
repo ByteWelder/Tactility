@@ -51,7 +51,7 @@ std::string getUserDataRootPath() {
 #endif
 }
 
-std::string getUserDataPath() {
+std::string getDataPath() {
 #ifdef ESP_PLATFORM
     return getUserDataRootPath() + "/tactility";
 #else
@@ -60,15 +60,15 @@ std::string getUserDataPath() {
 }
 
 std::string getTempPath() {
-    return getUserDataPath() + "/tmp";
+    return getDataPath() + "/tmp";
 }
 
 std::string getAppInstallPath() {
-    return getUserDataPath() + "/app";
+    return getDataPath() + "/app";
 }
 
 std::string getUserHomePath() {
-    return getUserDataPath() + "/user";
+    return getDataPath() + "/user";
 }
 
 std::string getAppInstallPath(const std::string& appId) {

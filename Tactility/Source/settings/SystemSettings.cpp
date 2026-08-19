@@ -21,12 +21,12 @@ static bool cached = false;
 static SystemSettings cachedSettings;
 
 static bool hasSystemSettingsFile() {
-    auto file_path = std::format(FILE_PATH_FORMAT, getUserDataPath());
+    auto file_path = std::format(FILE_PATH_FORMAT, getDataPath());
     return file::isFile(file_path);
 }
 
 static bool loadSystemSettingsFromFile(SystemSettings& properties) {
-    auto file_path = std::format(FILE_PATH_FORMAT, getUserDataPath());
+    auto file_path = std::format(FILE_PATH_FORMAT, getDataPath());
     LOG_I(TAG, "System settings loading from %s", file_path.c_str());
     std::map<std::string, std::string> map;
     if (!file::loadPropertiesFile(file_path, map)) {
@@ -75,7 +75,7 @@ bool loadSystemSettings(SystemSettings& properties) {
 }
 
 bool saveSystemSettings(const SystemSettings& properties) {
-    auto file_path = std::format(FILE_PATH_FORMAT, getUserDataPath());
+    auto file_path = std::format(FILE_PATH_FORMAT, getDataPath());
     std::map<std::string, std::string> map;
     map["language"] = toString(properties.language);
     map["timeFormat24h"] = properties.timeFormat24h ? "true" : "false";

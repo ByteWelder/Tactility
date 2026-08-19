@@ -1,5 +1,3 @@
-#include <service/paths.h>
-
 #include <Tactility/network/NtpPrivate.h>
 
 #include <tactility/log.h>
@@ -24,11 +22,10 @@ static bool processedSyncEvent = false;
 
 static bool getPreferencesPath(std::string& outPath) {
     char root[128];
-    // Not really a service, but this is the best way of organising it for now
-    if (service_paths_get_user_data_directory("tactility.ntp", root, sizeof(root)) != ERROR_NONE) {
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
-    outPath = std::string(root) + "/time.properties";
+    outPath = std::string(root) + "/settings/ntp.properties";
     return true;
 }
 

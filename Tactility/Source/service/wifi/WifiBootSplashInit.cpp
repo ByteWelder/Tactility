@@ -126,7 +126,7 @@ void bootSplashInit() {
     getMainDispatcher().dispatch([] {
         LOG_I(TAG, "bootSplashInit dispatch begin");
         // Import any provisioning files placed on the system data partition.
-        const std::string provisioning_path = file::getChildPath(getUserDataPath(), "provisioning");
+        const std::string provisioning_path = file::getChildPath(getDataPath(), "provisioning");
         if (file::isDirectory(provisioning_path)) {
             importWifiApSettingsFromDir(provisioning_path);
         } else {

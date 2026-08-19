@@ -13,8 +13,6 @@
 
 namespace tt::settings {
 
-constexpr auto* TIME_SETTINGS_NAMESPACE = "time";
-
 constexpr auto* TIMEZONE_PREFERENCES_KEY_NAME = "tz_name";
 constexpr auto* TIMEZONE_PREFERENCES_KEY_CODE = "tz_code";
 constexpr auto* TIMEZONE_PREFERENCES_KEY_TIME24 = "tz_time24";
@@ -26,10 +24,10 @@ namespace {
 bool getPreferencesPath(std::string& outPath) {
     char root[128];
     // Not really a service, but this is the best way of organising it for now
-    if (service_paths_get_user_data_directory("tactility.time", root, sizeof(root)) != ERROR_NONE) {
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
-    outPath = std::string(root) + "/" + TIME_SETTINGS_NAMESPACE + ".properties";
+    outPath = std::string(root) + "/settings/time.properties";
     return true;
 }
 

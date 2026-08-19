@@ -25,7 +25,7 @@ constexpr auto* KEY_AUTO_CONNECT = "autoConnect";
 constexpr auto* KEY_PROFILE_ID  = "profileId";
 
 static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/service/bluetooth";
+    return getDataPath() + "/service/bluetooth";
 }
 
 std::string addrToHex(const std::array<uint8_t, 6>& addr) {

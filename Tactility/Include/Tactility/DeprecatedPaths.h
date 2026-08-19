@@ -15,7 +15,7 @@ FileSystem* findSdcardFileSystem(bool mustBeMounted);
 
 std::string getUserDataRootPath();
 
-std::string getUserDataPath();
+std::string getDataPath();
 
 std::string getTempPath();
 
