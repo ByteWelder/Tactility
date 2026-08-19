@@ -65,7 +65,7 @@ static std::string toString(float value) {
 
 bool load(AudioSettings& settings) {
     std::string settings_path;
-    if (getSettingsFilePath(settings_path)) {
+    if (!getSettingsFilePath(settings_path)) {
         return false;
     }
 
