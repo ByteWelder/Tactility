@@ -152,27 +152,19 @@ void updateApp(Context* ctx) {
 void updateViews(Context* ctx) {
     lvgl_toolbar_clear_actions(ctx->toolbar);
     auto app_id = ctx->entry.appId.c_str();
-    AppManifest manifest;
-    bool is_installed = app_manager_find_manifest(app_id, &manifest) == ERROR_NONE;
     ctx->spinner = lvgl_toolbar_add_spinner_action(ctx->toolbar);
     lv_obj_add_flag(ctx->spinner, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(ctx->updateLabel, LV_OBJ_FLAG_HIDDEN);
 
     char install_path[128];
-    if (app_get_install_path(app_id, install_path, sizeof(install_path)) != ERROR_NONE) {
-        LOG_E(TAG, "Install path not found for %s", app_id);
-        return;
-    }
-
-    std::string metadata_path = std::string(install_path) + "/manifest.properties";
-    AppMetadata metadata;
-    if (app_metadata_parse(metadata_path.c_str(), &metadata) != ERROR_NONE) {
-        LOG_E(TAG, "Failed to parse metadata at %s", metadata_path.c_str());
-        return;
-    }
+    bool is_installed = app_get_install_path(app_id, install_path, sizeof(install_path)) == ERROR_NONE
+        && file::isFile(std::string(install_path) + "/manifest.properties");
 
     if (is_installed) {
-        if (metadata.app_version_code < ctx->entry.appVersionCode) {
+        std::string metadata_path = std::string(install_path) + "/manifest.properties";
+        AppMetadata metadata;
+        if (app_metadata_parse(metadata_path.c_str(), &metadata) == ERROR_NONE
+            && metadata.app_version_code < ctx->entry.appVersionCode) {
             ctx->updateButton = lvgl_toolbar_add_image_button_action(ctx->toolbar, LV_SYMBOL_DOWNLOAD, onUpdatePressed, ctx);
             lv_obj_remove_flag(ctx->updateLabel, LV_OBJ_FLAG_HIDDEN);
         }

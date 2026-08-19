@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+#include <app/location.h>
+#include <app/manager.h>
 #include <app/paths.h>
 #include <tactility/paths.h>
 
@@ -34,12 +36,17 @@ error_t app_paths_get_user_data_path(const char* app_id, const char* child_path,
 }
 
 error_t app_paths_get_assets_directory(const char* app_id, char* out_path, size_t out_path_size) {
-    char directory[224];
-    error_t error = app_paths_get_user_data_directory(app_id, directory, sizeof(directory));
+    AppManifest manifest;
+    error_t error = app_manager_find_manifest(app_id, &manifest);
     if (error != ERROR_NONE) {
         return error;
     }
-    int written = std::snprintf(out_path, out_path_size, "%s/assets", directory);
+
+    if (manifest.location.type != APP_LOCATION_PATH) {
+        return ERROR_NOT_FOUND;
+    }
+
+    int written = std::snprintf(out_path, out_path_size, "%s/assets", static_cast<const char*>(manifest.location.location));
     if (written < 0 || (size_t)written >= out_path_size) {
         return ERROR_BUFFER_OVERFLOW;
     }

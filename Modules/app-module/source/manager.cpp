@@ -340,4 +340,30 @@ void app_manager_install_path_scan(void) {
     mutex_unlock(&registry.mutex);
 }
 
+error_t app_manager_install_path_uninstall(const char* app_id) {
+    auto& registry = install_path_registry();
+
+    mutex_lock(&registry.mutex);
+    auto iterator = registry.scanned.find(app_id);
+    if (iterator == registry.scanned.end()) {
+        mutex_unlock(&registry.mutex);
+        return ERROR_NOT_FOUND;
+    }
+
+    auto path = iterator->second->path;
+    mutex_unlock(&registry.mutex);
+
+    // app_manager_remove takes ledger.mutex internally - call outside registry.mutex
+    // to match the lock ordering in app_manager_install_path_scan().
+    app_manager_remove(app_id);
+
+    mutex_lock(&registry.mutex);
+    registry.scanned.erase(app_id);
+    mutex_unlock(&registry.mutex);
+
+    app_fs_delete_recursively(path);
+
+    return ERROR_NONE;
+}
+
 } // extern "C"

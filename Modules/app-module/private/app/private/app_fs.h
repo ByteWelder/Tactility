@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include <string>
 #include <sys/stat.h>
+#include <sys/unistd.h>
 #include <vector>
 
 inline bool app_fs_is_directory(const std::string& path) {
@@ -36,6 +37,50 @@ inline bool app_fs_is_file(const std::string& path) {
 
 // Appends the full path of every direct subdirectory of @a path to @a out.
 // No-op (not an error) if @a path can't be opened.
+inline bool app_fs_delete_recursively(const std::string& path) {
+    if (path.empty() || path == "/" || path == "." || path == "..") {
+        return true;
+    }
+
+    if (app_fs_is_directory(path)) {
+        FileMutex file_mutex;
+        file_mutex_get(&file_mutex, path.c_str());
+        file_mutex_lock(&file_mutex);
+
+        DIR* dir = opendir(path.c_str());
+        if (dir == nullptr) {
+            file_mutex_unlock(&file_mutex);
+            return false;
+        }
+
+        bool success = true;
+        struct dirent* entry;
+        while (success && (entry = readdir(dir)) != nullptr) {
+            if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+            success = app_fs_delete_recursively(path + "/" + entry->d_name);
+        }
+        closedir(dir);
+
+        if (!success) {
+            file_mutex_unlock(&file_mutex);
+            return false;
+        }
+
+        bool result = rmdir(path.c_str()) == 0;
+        file_mutex_unlock(&file_mutex);
+        return result;
+    }
+
+    FileMutex file_mutex;
+    file_mutex_get(&file_mutex, path.c_str());
+    file_mutex_lock(&file_mutex);
+    bool result = unlink(path.c_str()) == 0;
+    file_mutex_unlock(&file_mutex);
+    return result;
+}
+
 inline void app_fs_list_direct_subdirectories(const std::string& path, std::vector<std::string>& out) {
     // Collect child names while the directory lock is held, then release it before classifying
     // each one with app_fs_is_directory() - that function looks up and locks a FileMutex too,

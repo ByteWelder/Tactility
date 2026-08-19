@@ -152,6 +152,14 @@ error_t app_manager_install_path_add(const char* path);
  */
 void app_manager_install_path_scan(void);
 
+/**
+ * Uninstalls an app that was registered via app_manager_install_path_scan() (i.e. discovered on
+ * disk, not installed via app_install()). Stops running instances, removes the manifest
+ * registration, and deletes the app directory. Returns ERROR_NOT_FOUND if the app id is not in
+ * the scan registry.
+ */
+error_t app_manager_install_path_uninstall(const char* app_id);
+
 #ifdef __cplusplus
 }
 #endif
