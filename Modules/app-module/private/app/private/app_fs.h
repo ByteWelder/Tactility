@@ -46,39 +46,76 @@ inline bool app_fs_delete_recursively(const std::string& path) {
         return true;
     }
 
-    if (app_fs_is_directory(path)) {
-        FileMutex file_mutex;
-        file_mutex_get(&file_mutex, path.c_str());
-        file_mutex_lock(&file_mutex);
+    // Use lstat() so symbolic links are not followed: a symlink that points at
+    // an external directory must be removed as a leaf entry (unlink), not
+    // recursed into.  app_fs_is_directory() uses stat() and would follow the
+    // link, potentially deleting files outside the target tree.
+    // ESP-IDF newlib has no lstat(); ESP32 filesystems (FAT/SPIFFS) don't
+    // support symlinks, so stat() is equivalent there.
+    struct stat st {};
+    FileMutex file_mutex;
+    file_mutex_get(&file_mutex, path.c_str());
+    file_mutex_lock(&file_mutex);
+#ifdef ESP_PLATFORM
+    int rc = stat(path.c_str(), &st);
+#else
+    int rc = lstat(path.c_str(), &st);
+#endif
+    file_mutex_unlock(&file_mutex);
 
+    if (rc != 0) {
+        return false;
+    }
+
+#ifndef ESP_PLATFORM
+    if (S_ISLNK(st.st_mode)) {
+        // Symlink — remove as a leaf regardless of its target.
+        file_mutex_lock(&file_mutex);
+        bool result = unlink(path.c_str()) == 0;
+        file_mutex_unlock(&file_mutex);
+        return result;
+    }
+#endif
+
+    if (S_ISDIR(st.st_mode)) {
+        // Collect child names while locked, then release before recursing —
+        // child paths can resolve to the same mount mutex (see
+        // app_fs_list_direct_subdirectories comment), so holding the parent
+        // lock across the recursive call would self-deadlock.
+        std::vector<std::string> children;
+
+        file_mutex_lock(&file_mutex);
         DIR* dir = opendir(path.c_str());
         if (dir == nullptr) {
             file_mutex_unlock(&file_mutex);
             return false;
         }
 
-        bool success = true;
         struct dirent* entry;
-        while (success && (entry = readdir(dir)) != nullptr) {
+        while ((entry = readdir(dir)) != nullptr) {
             if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
                 continue;
             }
-            success = app_fs_delete_recursively(path + "/" + entry->d_name);
+            children.push_back(path + "/" + entry->d_name);
         }
         closedir(dir);
+        file_mutex_unlock(&file_mutex);
 
-        if (!success) {
-            file_mutex_unlock(&file_mutex);
-            return false;
+        bool success = true;
+        for (const auto& child : children) {
+            success = app_fs_delete_recursively(child);
+            if (!success) {
+                return false;
+            }
         }
 
+        file_mutex_lock(&file_mutex);
         bool result = rmdir(path.c_str()) == 0;
         file_mutex_unlock(&file_mutex);
         return result;
     }
 
-    FileMutex file_mutex;
-    file_mutex_get(&file_mutex, path.c_str());
+    // Regular file or other — unlink.
     file_mutex_lock(&file_mutex);
     bool result = unlink(path.c_str()) == 0;
     file_mutex_unlock(&file_mutex);

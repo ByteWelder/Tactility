@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/manager.h>
-
 #include <app/metadata.h>
-
 #include <app/private/app_fs.h>
 #include <app/private/app_ledger.h>
 #include <app/private/app_scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
+#include <tactility/error.h>
 #include <tactility/log.h>
 
 #include <algorithm>
@@ -350,18 +349,43 @@ error_t app_manager_install_path_uninstall(const char* app_id) {
         return ERROR_NOT_FOUND;
     }
 
+    const AppManifest* manifest = &iterator->second->manifest;
     auto path = iterator->second->path;
     mutex_unlock(&registry.mutex);
 
-    // app_manager_remove takes ledger.mutex internally - call outside registry.mutex
-    // to match the lock ordering in app_manager_install_path_scan().
+    // Stop every running instance that retains this manifest pointer, mirroring
+    // stop_all_instances_of() in app_install.cpp.  Collect under ledger.mutex,
+    // then call app_manager_stop() outside it (that call bound-joins the
+    // instance's thread, which itself takes ledger.mutex in its thread_main).
+    std::vector<uint32_t> instance_ids;
+    auto& ledger = app_ledger();
+    mutex_lock(&ledger.mutex);
+    for (const auto& [id, record] : ledger.instances) {
+        if (record.manifest == manifest) {
+            instance_ids.push_back(id);
+        }
+    }
+    mutex_unlock(&ledger.mutex);
+
+    for (uint32_t id : instance_ids) {
+        app_manager_stop(id);
+    }
+
+    // app_manager_remove takes ledger.mutex internally - call outside both
+    // registry.mutex and ledger.mutex to match the lock ordering in
+    // app_manager_install_path_scan().
     app_manager_remove(app_id);
+
+    // Every instance has stopped and the manifest is unregistered — safe to
+    // delete the on-disk directory.  Delete before erasing the scan record so
+    // that a failed deletion leaves the entry discoverable for a retry.
+    if (!app_fs_delete_recursively(path)) {
+        return ERROR_RESOURCE;
+    }
 
     mutex_lock(&registry.mutex);
     registry.scanned.erase(app_id);
     mutex_unlock(&registry.mutex);
-
-    app_fs_delete_recursively(path);
 
     return ERROR_NONE;
 }

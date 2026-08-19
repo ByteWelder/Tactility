@@ -9,7 +9,7 @@
 
 TEST_CASE("paths_get_data_path returns a non-empty path") {
     char buffer[192];
-    CHECK_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_NONE);
+    REQUIRE_EQ(paths_get_data_path(buffer, sizeof(buffer)), ERROR_NONE);
     CHECK_GT(std::strlen(buffer), 0);
 }
 
