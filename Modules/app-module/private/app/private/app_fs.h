@@ -12,7 +12,11 @@
 #include <dirent.h>
 #include <string>
 #include <sys/stat.h>
+#ifdef ESP_PLATFORM
 #include <sys/unistd.h>
+#else
+#include <unistd.h>
+#endif
 #include <vector>
 
 inline bool app_fs_is_directory(const std::string& path) {
