@@ -9,11 +9,11 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/paths.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/log.h>
-#include <tactility/paths.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -40,7 +40,7 @@ namespace {
 
 bool getCompletedMarkerPath(std::string& outPath) {
     char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    if (app_paths_get_user_data_directory(manifest.id, root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     outPath = std::string(root) + "/.setup_complete";

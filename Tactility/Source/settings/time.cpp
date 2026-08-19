@@ -1,5 +1,6 @@
-#include <Tactility/settings/Time.h>
+#include <service/paths.h>
 
+#include <Tactility/settings/Time.h>
 #include <Tactility/settings/SystemSettings.h>
 
 #include <tactility/paths.h>
@@ -24,7 +25,8 @@ namespace {
 // "syncTime" - matches the shared NVS namespace this used to be.
 bool getPreferencesPath(std::string& outPath) {
     char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    // Not really a service, but this is the best way of organising it for now
+    if (service_paths_get_user_data_directory("tactility.time", root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     outPath = std::string(root) + "/" + TIME_SETTINGS_NAMESPACE + ".properties";

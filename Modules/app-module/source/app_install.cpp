@@ -72,7 +72,7 @@ bool delete_recursively(const std::string& path) {
 
 bool get_app_install_directory(std::string& out_path) {
     char root[192];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     out_path = std::string(root) + "/app";

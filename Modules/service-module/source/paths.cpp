@@ -9,7 +9,7 @@ extern "C" {
 
 error_t service_paths_get_user_data_directory(const char* service_id, char* out_path, size_t out_path_size) {
     char root[192];
-    error_t error = paths_get_user_data_path(root, sizeof(root));
+    error_t error = paths_get_data_path(root, sizeof(root));
     if (error != ERROR_NONE) {
         return error;
     }

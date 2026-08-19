@@ -1,14 +1,15 @@
+#include <service/paths.h>
+
 #include <Tactility/network/NtpPrivate.h>
 
 #include <tactility/log.h>
 #include <tactility/paths.h>
 #include <tactility/preferences.h>
+#include <tactility/system_event.h>
 
 #include <string>
 
 #ifdef ESP_PLATFORM
-#include <Tactility/TactilityCore.h>
-#include <tactility/system_event.h>
 #include <esp_netif_sntp.h>
 #include <esp_sntp.h>
 #endif
@@ -23,7 +24,8 @@ static bool processedSyncEvent = false;
 
 static bool getPreferencesPath(std::string& outPath) {
     char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    // Not really a service, but this is the best way of organising it for now
+    if (service_paths_get_user_data_directory("tactility.ntp", root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     outPath = std::string(root) + "/time.properties";
