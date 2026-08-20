@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #pragma once
 
+#include "instance.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -54,7 +56,7 @@ struct AppEvent {
  */
 struct AppEventSubscription {
     /** The app instance this subscription receives events for; set by the caller before app_event_subscribe(). */
-    uint32_t app_instance_id;
+    AppInstanceId app_instance_id;
 
     TaskHandle_t task;
 
@@ -89,7 +91,7 @@ error_t app_event_unsubscribe(struct AppEventSubscription* sub);
  * @retval ERROR_RESOURCE at least one matching subscription's queue was full; the event was
  * dropped for that subscription (still delivered to any other matching subscription)
  */
-error_t app_event_emit(uint32_t app_instance_id, const struct AppEvent* event);
+error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* event);
 
 /**
  * Pop the next event for @a sub, blocking up to @a timeout if the queue is currently empty.

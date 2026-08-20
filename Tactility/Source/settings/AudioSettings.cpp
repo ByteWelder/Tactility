@@ -1,5 +1,7 @@
 #include <Tactility/settings/AudioSettings.h>
 
+#include "tactility/paths.h"
+
 #include <Tactility/DeprecatedPaths.h>
 #include <Tactility/file/File.h>
 #include <Tactility/file/PropertiesFile.h>
@@ -12,8 +14,14 @@
 
 namespace tt::settings::audio {
 
-static std::string getSettingsFilePath() {
-    return getUserDataPath() + "/settings/audio.properties";
+static bool getSettingsFilePath(std::string& outPath) {
+    char root[128];
+    // Not really a service, but this is the best way of organising it for now
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
+        return false;
+    }
+    outPath = std::string(root) + "/settings/audio.properties";
+    return true;
 }
 
 constexpr auto* SETTINGS_KEY_INPUT_ENABLED = "inputEnabled";
@@ -56,7 +64,11 @@ static std::string toString(float value) {
 }
 
 bool load(AudioSettings& settings) {
-    auto settings_path = getSettingsFilePath();
+    std::string settings_path;
+    if (!getSettingsFilePath(settings_path)) {
+        return false;
+    }
+
     if (!file::isFile(settings_path)) {
         return false;
     }
@@ -103,10 +115,16 @@ bool save(const AudioSettings& settings) {
     map[SETTINGS_KEY_OUTPUT_MUTED] = toString(settings.outputMuted);
     map[SETTINGS_KEY_INPUT_VOLUME] = toString(settings.inputVolume);
     map[SETTINGS_KEY_OUTPUT_VOLUME] = toString(settings.outputVolume);
-    auto settings_path = getSettingsFilePath();
+
+    std::string settings_path;
+    if (getSettingsFilePath(settings_path)) {
+        return false;
+    }
+
     if (!file::findOrCreateParentDirectory(settings_path, 0755)) {
         return false;
     }
+
     return file::savePropertiesFile(settings_path, map);
 }
 

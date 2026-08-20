@@ -14,7 +14,7 @@ constexpr auto* PROPERTIES_KEY_LAUNCHER_APP_ID = "launcherAppId";
 constexpr auto* PROPERTIES_KEY_AUTO_START_APP_ID = "autoStartAppId";
 
 static std::string getPropertiesFilePath() {
-    return std::format(PROPERTIES_FILE_FORMAT, getUserDataPath());
+    return std::format(PROPERTIES_FILE_FORMAT, getDataPath());
 }
 
 bool loadBootSettings(BootSettings& properties) {

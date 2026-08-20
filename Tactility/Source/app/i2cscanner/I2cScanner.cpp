@@ -1,18 +1,19 @@
-#include <Tactility/app/i2cscanner/I2cHelpers.h>
-#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
+
 #include <Tactility/LogMessages.h>
 #include <Tactility/RecursiveMutex.h>
 #include <Tactility/Timer.h>
+#include <Tactility/app/i2cscanner/I2cHelpers.h>
+#include <Tactility/app/i2cscanner/I2cScannerPrivate.h>
 
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/paths.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/drivers/i2c_controller.h>
 #include <tactility/log.h>
-#include <tactility/paths.h>
 #include <tactility/preferences.h>
 
 #include <cassert>
@@ -55,7 +56,7 @@ struct Context {
 
 bool getPreferencesPath(std::string& outPath) {
     char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    if (app_paths_get_user_data_directory(manifest.id, root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     outPath = std::string(root) + "/i2c_scanner.properties";

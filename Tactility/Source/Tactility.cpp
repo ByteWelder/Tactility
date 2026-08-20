@@ -318,7 +318,7 @@ static void registerAndStartServices() {
 }
 
 void createTempDirectory() {
-    auto data_path = getUserDataPath();
+    auto data_path = getDataPath();
     auto temp_path = std::format("{}/tmp", data_path);
     if (!file::isDirectory(temp_path)) {
         FileMutex mutex;

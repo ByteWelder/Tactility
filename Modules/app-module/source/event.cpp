@@ -50,7 +50,7 @@ error_t app_event_unsubscribe(AppEventSubscription* sub) {
     return result;
 }
 
-error_t app_event_emit(uint32_t app_instance_id, const AppEvent* event) {
+error_t app_event_emit(AppInstanceId app_instance_id, const AppEvent* event) {
     AppEvent stamped_event = *event;
     stamped_event.timestamp = get_micros_since_boot();
 

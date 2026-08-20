@@ -40,6 +40,7 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_manager_get_topmost_app_id),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_add),
     DEFINE_MODULE_SYMBOL(app_manager_install_path_scan),
+    DEFINE_MODULE_SYMBOL(app_manager_install_path_uninstall),
     // app/metadata
     DEFINE_MODULE_SYMBOL(app_metadata_parse),
     // app/paths

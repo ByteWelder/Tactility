@@ -66,62 +66,13 @@ bool ensure_directory_recursive(const std::string& path) {
 }
 
 bool delete_recursively(const std::string& path) {
-    LOG_D(TAG, "Deleting %s...", path.c_str());
-    if (path.empty() || path == "/" || path == "." || path == "..") {
-        return true;
-    }
-
-    if (app_fs_is_directory(path)) {
-        LOG_D(TAG, "Deleting dir %s", path.c_str());
-
-        FileMutex file_mutex;
-        file_mutex_get(&file_mutex, path.c_str());
-        file_mutex_lock(&file_mutex);
-
-        DIR* dir = opendir(path.c_str());
-        if (dir == nullptr) {
-            LOG_E(TAG, "Failed to scan directory %s", path.c_str());
-            file_mutex_unlock(&file_mutex);
-            return false;
-        }
-
-        bool success = true;
-        dirent* entry;
-        while (success && (entry = readdir(dir)) != nullptr) {
-            if (std::strcmp(entry->d_name, ".") == 0 || std::strcmp(entry->d_name, "..") == 0) {
-                continue;
-            }
-            success = delete_recursively(path + "/" + entry->d_name);
-        }
-        closedir(dir);
-
-        if (!success) {
-            file_mutex_unlock(&file_mutex);
-            return false;
-        }
-
-        bool result = rmdir(path.c_str()) == 0;
-        file_mutex_unlock(&file_mutex);
-        return result;
-    }
-
-    if (app_fs_is_file(path)) {
-        LOG_D(TAG, "Deleting file %s", path.c_str());
-        FileMutex mutex {};
-        file_mutex_get(&mutex, path.c_str());
-        file_mutex_lock(&mutex);
-        bool result = remove(path.c_str()) == 0;
-        file_mutex_unlock(&mutex);
-        return result;
-    }
-
-    LOG_D(TAG, "Deleting done");
-    return true;
+    LOG_I(TAG, "Deleting %s...", path.c_str());
+    return app_fs_delete_recursively(path);
 }
 
 bool get_app_install_directory(std::string& out_path) {
     char root[192];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
     out_path = std::string(root) + "/app";
@@ -277,6 +228,11 @@ error_t uninstall_locked(const std::string& app_id) {
         return ERROR_NOT_FOUND;
     }
 
+    // Can't uninstall in-memory apps
+    if (iterator->second->manifest.location.type != APP_LOCATION_PATH) {
+        return ERROR_NOT_SUPPORTED;
+    }
+
     stop_all_instances_of(&iterator->second->manifest);
     app_manager_remove(app_id.c_str());
     delete_recursively(iterator->second->path);
@@ -404,10 +360,20 @@ error_t app_uninstall(const char* app_id) {
 
     auto& registry = install_registry();
     mutex_lock(&registry.mutex);
-    error_t result = uninstall_locked(app_id);
+    error_t error = uninstall_locked(app_id);
     mutex_unlock(&registry.mutex);
 
-    return result;
+    if (error == ERROR_NOT_FOUND) {
+        error = app_manager_install_path_uninstall(app_id);
+    }
+
+    if (error == ERROR_NONE) {
+        LOG_I(TAG, "Uninstalled %s", app_id);
+    } else {
+        LOG_I(TAG, "Uninstalling %s failed: %s", app_id, error_to_string(error));
+    }
+
+    return error;
 }
 
 } // extern "C"

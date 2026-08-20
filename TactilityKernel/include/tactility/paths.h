@@ -17,7 +17,7 @@ extern "C" {
  * @retval ERROR_BUFFER_OVERFLOW if out_path_size is too small
  * @retval ERROR_NONE on success
  */
-error_t paths_get_user_data_path(char* out_path, size_t out_path_size);
+error_t paths_get_data_path(char* out_path, size_t out_path_size);
 
 #ifdef __cplusplus
 }

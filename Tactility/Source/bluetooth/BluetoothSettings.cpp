@@ -11,7 +11,7 @@ namespace tt::bluetooth::settings {
 constexpr auto* TAG = "BluetoothSettings";
 
 static std::string getSettingsPath() {
-    return getUserDataPath() + "/settings/bluetooth.settings";
+    return getDataPath() + "/settings/bluetooth.properties";
 }
 
 constexpr auto* KEY_ENABLE_ON_BOOT    = "enableOnBoot";

@@ -1,5 +1,6 @@
-#include <Tactility/settings/Time.h>
+#include <service/paths.h>
 
+#include <Tactility/settings/Time.h>
 #include <Tactility/settings/SystemSettings.h>
 
 #include <tactility/paths.h>
@@ -12,8 +13,6 @@
 
 namespace tt::settings {
 
-constexpr auto* TIME_SETTINGS_NAMESPACE = "time";
-
 constexpr auto* TIMEZONE_PREFERENCES_KEY_NAME = "tz_name";
 constexpr auto* TIMEZONE_PREFERENCES_KEY_CODE = "tz_code";
 constexpr auto* TIMEZONE_PREFERENCES_KEY_TIME24 = "tz_time24";
@@ -24,10 +23,11 @@ namespace {
 // "syncTime" - matches the shared NVS namespace this used to be.
 bool getPreferencesPath(std::string& outPath) {
     char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    // Not really a service, but this is the best way of organising it for now
+    if (paths_get_data_path(root, sizeof(root)) != ERROR_NONE) {
         return false;
     }
-    outPath = std::string(root) + "/" + TIME_SETTINGS_NAMESPACE + ".properties";
+    outPath = std::string(root) + "/settings/time.properties";
     return true;
 }
 

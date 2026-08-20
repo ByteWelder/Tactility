@@ -1,5 +1,7 @@
 #include <Tactility/app/setup/Setup.h>
 
+#include <tactility/paths.h>
+
 #include <Tactility/StringUtils.h>
 #include <Tactility/app/timezone/TimeZone.h>
 #include <Tactility/app/wifimanage/WifiManage.h>
@@ -13,7 +15,6 @@
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/log.h>
-#include <tactility/paths.h>
 
 #include <lvgl/fonts.h>
 #include <lvgl/lvgl.h>
@@ -39,11 +40,11 @@ constexpr auto* TAG = "setup";
 namespace {
 
 bool getCompletedMarkerPath(std::string& outPath) {
-    char root[128];
-    if (paths_get_user_data_path(root, sizeof(root)) != ERROR_NONE) {
+    char path[128];
+    if (paths_get_data_path(path, sizeof(path)) != ERROR_NONE) {
         return false;
     }
-    outPath = std::string(root) + "/.setup_complete";
+    outPath = std::string(path) + "/.setup_complete";
     return true;
 }
 

@@ -249,7 +249,7 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(keyboard_read_key),
     DEFINE_MODULE_SYMBOL(KEYBOARD_TYPE),
     // drivers/paths
-    DEFINE_MODULE_SYMBOL(paths_get_user_data_path),
+    DEFINE_MODULE_SYMBOL(paths_get_data_path),
     // drivers/pointer
     DEFINE_MODULE_SYMBOL(pointer_enter_sleep),
     DEFINE_MODULE_SYMBOL(pointer_exit_sleep),
