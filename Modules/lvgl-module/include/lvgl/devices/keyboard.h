@@ -37,6 +37,14 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
 void lvgl_keyboard_remove(lv_indev_t* indev);
 
 /**
+ * @brief Finds the indev previously created with lvgl_keyboard_add() for the given device, if any.
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] device a device of type KEYBOARD_TYPE
+ * @return the bound indev, or NULL if none is bound to this device
+ */
+lv_indev_t* lvgl_keyboard_find_by_device(struct Device* device);
+
+/**
  * @brief Assigns the indev to the shared keyboard input group, so it can drive focus
  * navigation and input for focused widgets.
  * @warning Caller must hold the LVGL lock.

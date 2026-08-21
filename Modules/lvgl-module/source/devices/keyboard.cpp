@@ -100,6 +100,20 @@ void lvgl_keyboard_remove(lv_indev_t* indev) {
     delete wrapper;
 }
 
+lv_indev_t* lvgl_keyboard_find_by_device(Device* device) {
+    lv_indev_t* indev = lv_indev_get_next(nullptr);
+    while (indev != nullptr) {
+        if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
+            auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+            if (wrapper != nullptr && wrapper->device == device) {
+                return indev;
+            }
+        }
+        indev = lv_indev_get_next(indev);
+    }
+    return nullptr;
+}
+
 void lvgl_keyboard_enable(lv_indev_t* indev) {
     check(keyboard_group != nullptr);
     lv_indev_set_group(indev, keyboard_group);

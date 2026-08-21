@@ -63,21 +63,25 @@ void onKeyboardDeviceStarted(Device* device) {
 void onKeyboardDeviceStopped(Device* device) {
     auto lock = bindingsMutex().asScopedLock();
     lock.lock();
-    lv_indev_t* indev = nullptr;
     auto& list = bindings();
     for (auto it = list.begin(); it != list.end(); ++it) {
         if (it->device == device) {
-            indev = it->indev;
             list.erase(it);
             break;
         }
     }
-    if (indev == nullptr) {
-        return;
-    }
 
+    // Not every indev bound to a keyboard device goes through onKeyboardDeviceStarted() and
+    // bindings() above. lvgl_devices_attach() also binds whatever KEYBOARD_TYPE devices are
+    // already started at LVGL startup, before this listener is even registered (see
+    // startKeyboardDeviceListener()'s call site). Look the indev up directly so that path's
+    // devices still get detached before the kernel device is destructed, instead of leaving a
+    // dangling indev that reads a freed device on the next LVGL tick.
     lvgl_lock();
-    lvgl_keyboard_remove(indev);
+    lv_indev_t* indev = lvgl_keyboard_find_by_device(device);
+    if (indev != nullptr) {
+        lvgl_keyboard_remove(indev);
+    }
     lvgl_unlock();
 }
 
