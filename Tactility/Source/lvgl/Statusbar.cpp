@@ -126,11 +126,12 @@ static void statusbar_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj) 
     LV_TRACE_OBJ_CREATE("begin");
     lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
     LV_TRACE_OBJ_CREATE("finished");
-    auto* statusbar = (Statusbar*)obj;
-    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe([statusbar](auto) {
-        statusbar_pubsub_event(statusbar);
-    });
 
+    // Deliberately does NOT subscribe to statusbar_data.pubsub here - that happens at the end of
+    // statusbar_create(), once statusbar->icons[] is actually populated. Subscribing this early
+    // would let a concurrent statusbar_icon_add()/_remove()/_set_image()/_set_visibility() call
+    // from another task publish and run update_icon() on a still-null icons[] slot before this
+    // instance's own creation loop below has had a chance to fill it in.
     if (!statusbar_data.time_update_timer->isRunning()) {
         statusbar_data.time_update_timer->start();
         system_event_callback_add(KERNEL_EVENT_TIME_CHANGED, onTimeChanged, nullptr);
@@ -191,6 +192,13 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
         update_icon(image, &(statusbar_data.icons[i]));
     }
     statusbar_data.mutex.unlock();
+
+    // Only now is statusbar->icons[] fully populated - see statusbar_constructor()'s comment for
+    // why the subscription can't be registered any earlier.
+    statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe([statusbar](auto) {
+        statusbar_pubsub_event(statusbar);
+    });
+
     return obj;
 }
 
