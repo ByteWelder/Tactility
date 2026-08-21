@@ -9,13 +9,34 @@
 constexpr auto* TAG = "file_mutex_lvgl";
 
 struct Device;
-namespace tt {
 
-static const FileMutex lvgl_mutex = {
-    .lock = lvgl_lock,
-    .try_lock = lvgl_try_lock,
-    .unlock = lvgl_unlock,
+namespace {
+
+void wrapped_lvgl_lock() {
+    if (!lvgl_is_running()) return;
+    lvgl_lock();
+}
+
+bool wrapped_lvgl_try_lock(uint32_t timeout) {
+    // Return lock success, so the file operation can continue when LVGL is not running
+    // lvgl_try_lock() fails to lock if LVGL is not running
+    if (!lvgl_is_running()) return true;
+    return lvgl_try_lock(timeout);
+}
+void wrapped_lvgl_unlock() {
+    if (!lvgl_is_running()) return;
+    lvgl_unlock();
+}
+
+const FileMutex lvgl_mutex = {
+    .lock = wrapped_lvgl_lock,
+    .try_lock = wrapped_lvgl_try_lock,
+    .unlock = wrapped_lvgl_unlock,
 };
+
+}
+
+namespace tt {
 
 /**
  * Finds file systems with a device (e.g. sd card) that is owned by a SPI controller.

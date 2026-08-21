@@ -20,16 +20,19 @@ static bool initialized = false;
 
 void lvgl_lock(void) {
     if (!initialized) { return; }
+    if (!lvgl_is_running()) { return; }
     lvgl_port_lock(portMAX_DELAY);
 }
 
 bool lvgl_try_lock(uint32_t timeoutTicks) {
     if (!initialized) { return false; }
+    if (!lvgl_is_running()) { return false; }
     // lvgl_port_lock expects milliseconds
     return lvgl_port_lock(timeoutTicks * portTICK_PERIOD_MS);
 }
 
 void lvgl_unlock(void) {
+    if (!lvgl_is_running()) { return; }
     if (!initialized) { return; }
     lvgl_port_unlock();
 }
