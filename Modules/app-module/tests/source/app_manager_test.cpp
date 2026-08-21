@@ -76,7 +76,6 @@ int32_t fake_run(void*, uint32_t app_instance_id, int argc, char* argv[]) {
             break; // safety net so a bug here can't hang the test suite
         }
         if (event.type == APP_EVENT_CLOSE) {
-            app_manager_finish(app_instance_id);
             break;
         }
     }

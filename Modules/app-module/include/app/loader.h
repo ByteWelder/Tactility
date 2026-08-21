@@ -23,7 +23,8 @@ extern "C" {
  * firmware binary. Called on the dedicated task app-module's scheduler spawns for this instance,
  * blocking for the app's whole lifetime - same contract as an external app's main(), plus
  * @a app_instance_id identifying this running instance (use it with
- * app_event_subscribe()/window_manager_create()/app_manager_finish()/etc.).
+ * app_event_subscribe()/window_manager_create()/etc.). The instance closes when this function
+ * returns - no separate call is needed.
  * AppManifest::location.location holds this cast to void*.
  */
 typedef int32_t (*AppMainFn)(uint32_t app_instance_id, int argc, char* argv[]);

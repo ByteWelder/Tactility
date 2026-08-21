@@ -30,7 +30,6 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_manager_start_with_parameters),
     DEFINE_MODULE_SYMBOL(app_manager_start_for_result),
     DEFINE_MODULE_SYMBOL(app_manager_stop),
-    DEFINE_MODULE_SYMBOL(app_manager_finish),
     DEFINE_MODULE_SYMBOL(app_manager_get_state),
     DEFINE_MODULE_SYMBOL(app_manager_find_manifest),
     DEFINE_MODULE_SYMBOL(app_manager_for_each_manifest),

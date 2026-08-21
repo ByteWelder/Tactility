@@ -111,7 +111,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     ctx.targetAppId = (argc > 0) ? argv[0] : std::string();
     if (app_manager_find_manifest(ctx.targetAppId.c_str(), &ctx.targetManifest) != ERROR_NONE) {
         LOG_W(TAG, "App %s not found", ctx.targetAppId.c_str());
-        app_manager_finish(appInstanceId);
         return 0;
     }
 
@@ -129,14 +128,12 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
         }
         switch (event.type) {
             case APP_EVENT_CLOSE:
-                app_manager_finish(appInstanceId);
                 shouldClose = true;
                 break;
             case APP_EVENT_RESULT:
                 if (event.result.launch_id == ctx.pendingUninstallDialogId) {
                     if (event.result.result == 0) { // 0 = Yes
                         app_uninstall(ctx.targetManifest.id);
-                        app_manager_finish(appInstanceId);
                         shouldClose = true;
                     }
                     app_manager_stop(event.result.launch_id);

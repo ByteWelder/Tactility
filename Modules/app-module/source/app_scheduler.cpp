@@ -156,9 +156,9 @@ void app_task_main(void* context) {
 
     deliver_result_to_parent_if_any(ctx->app_instance_id, result);
 
-    // A safe default terminal marker for CLOSE (and any other exit): an app that calls
-    // app_manager_finish() already marked itself Stopped before returning, so this is a no-op
-    // for it - but it's still needed as the terminal marker for any other exit path.
+    // The terminal marker for every exit path: an app instance is Stopped exactly when its
+    // AppMainFn/AppLoaderApi::run() has returned, whether that return was self-initiated or in
+    // response to APP_EVENT_CLOSE.
     set_state(ctx->app_instance_id, APP_INSTANCE_STATE_STOPPED);
 
     app_ledger_free_arguments(ctx->argc, ctx->argv);
@@ -268,6 +268,11 @@ error_t app_scheduler_stop(AppInstanceId app_instance_id, TickType_t join_timeou
     if (completion != nullptr) {
         AppEvent event { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
         app_event_emit(app_instance_id, &event);
+
+        // Marked as soon as the app has been told to close, not once its task has actually
+        // unwound - so app_manager_get_state()/app_manager_get_topmost_instance_id() reflect the
+        // closure immediately, without waiting on whatever teardown the app still has left to do.
+        set_state(app_instance_id, APP_INSTANCE_STATE_STOPPING);
 
         // Blocks until app_task_main() gives this dedicated semaphore as the literal last thing it does before vTaskDelete().
         // Uses aa dedicated semaphore rather than this task's default FreeRTOS notification because app_event.cpp's AppEventSubscription also uses that shared slot.

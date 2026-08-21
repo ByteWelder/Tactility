@@ -90,22 +90,10 @@ error_t app_manager_start_for_result(const char* id, AppInstanceId parent_instan
  * Stop an app instance permanently. Emits APP_EVENT_CLOSE and bound-waits for its task to exit
  * if it was running.
  * @warning Must not be called from the instance's own task (it bound-waits via thread_join(),
- * which asserts against joining yourself) - an app closing itself must call app_manager_finish()
- * instead, right before returning from its own AppMainFn/AppLoaderApi::run().
+ * which asserts against joining yourself) - an app closes itself by returning from its own
+ * AppMainFn/AppLoaderApi::run(), not by calling this on itself.
  */
 error_t app_manager_stop(AppInstanceId app_instance_id);
-
-/**
- * Called by an app instance, from its own task, right before it returns in response to
- * APP_EVENT_CLOSE - whether that close was self-initiated (e.g. its own back button) or came
- * from someone else. Marks this instance Stopped immediately (rather than waiting for its task
- * to actually exit) so app_manager_get_state()/app_manager_get_topmost_instance_id() reflect the
- * closure as soon as the app has decided to close, not just once its task has fully unwound.
- * @warning Does not join or free this instance's own task/ledger entry (can't - this runs on
- * that very task); those are cleaned up on a later app_manager_stop() call, same as any
- * self-terminating instance.
- */
-error_t app_manager_finish(AppInstanceId app_instance_id);
 
 /** @return the instance's current state, or APP_INSTANCE_STATE_STOPPED if the id is unknown. */
 AppInstanceState app_manager_get_state(AppInstanceId app_instance_id);

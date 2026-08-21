@@ -33,7 +33,6 @@ int main(int argc, char* argv[]) {
             break;
         }
         if (event.type == APP_EVENT_CLOSE) {
-            app_manager_finish(app_instance_id);
             should_close = true;
         }
     }
