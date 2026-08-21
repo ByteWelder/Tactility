@@ -228,7 +228,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
         }
         switch (event.type) {
             case APP_EVENT_CLOSE:
-                app_manager_finish(appInstanceId);
                 shouldClose = true;
                 break;
             case APP_EVENT_RESULT:
@@ -243,7 +242,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
                         ) {
                             service::wifi::disconnect();
                         }
-                        app_manager_finish(appInstanceId);
                         shouldClose = true;
                     }
                 }

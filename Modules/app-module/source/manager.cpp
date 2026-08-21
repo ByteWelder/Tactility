@@ -138,17 +138,6 @@ error_t app_manager_stop(AppInstanceId app_instance_id) {
     return app_scheduler_stop(app_instance_id, pdMS_TO_TICKS(2000));
 }
 
-error_t app_manager_finish(AppInstanceId app_instance_id) {
-    auto& ledger = app_ledger();
-    mutex_lock(&ledger.mutex);
-    auto iterator = ledger.instances.find(app_instance_id);
-    if (iterator != ledger.instances.end()) {
-        iterator->second.state = APP_INSTANCE_STATE_STOPPED;
-    }
-    mutex_unlock(&ledger.mutex);
-    return ERROR_NONE;
-}
-
 AppInstanceState app_manager_get_state(AppInstanceId app_instance_id) {
     auto& ledger = app_ledger();
     mutex_lock(&ledger.mutex);

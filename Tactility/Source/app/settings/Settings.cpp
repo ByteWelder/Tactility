@@ -91,7 +91,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
             break;
         }
         if (event.type == APP_EVENT_CLOSE) {
-            app_manager_finish(appInstanceId);
             break;
         }
     }
