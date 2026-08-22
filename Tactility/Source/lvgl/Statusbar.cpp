@@ -191,13 +191,15 @@ lv_obj_t* statusbar_create(lv_obj_t* parent) {
 
         update_icon(image, &(statusbar_data.icons[i]));
     }
-    statusbar_data.mutex.unlock();
-
     // Only now is statusbar->icons[] fully populated - see statusbar_constructor()'s comment for
-    // why the subscription can't be registered any earlier.
+    // why the subscription can't be registered any earlier. Subscribing before unlocking (rather
+    // than after) closes a narrow window where a concurrent statusbar_icon_add()/_remove()/
+    // _set_image()/_set_visibility() call could publish - and be missed by this instance - after
+    // the icons are populated but before it's subscribed.
     statusbar->pubsub_subscription = statusbar_data.pubsub->subscribe([statusbar](auto) {
         statusbar_pubsub_event(statusbar);
     });
+    statusbar_data.mutex.unlock();
 
     return obj;
 }

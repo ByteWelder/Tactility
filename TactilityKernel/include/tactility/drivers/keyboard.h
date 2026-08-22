@@ -115,7 +115,7 @@ struct KeyboardApi {
 
     /**
      * @brief Optional: reports whether the keyboard is physically present right now. Only
-     * meaningful for hot-pluggable/detachable keyboarcardputer_keyboard.cppds (e.g. a removable accessory) whose
+     * meaningful for hot-pluggable/detachable keyboards (e.g. a removable accessory) whose
      * kernel device is constructed and started once at boot regardless of physical attachment -
      * leave NULL for a keyboard that's always physically present whenever its device is active
      * (the common case; callers must treat NULL the same as "always present").

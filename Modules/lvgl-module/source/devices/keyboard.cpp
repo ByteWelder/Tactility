@@ -84,6 +84,18 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
         return ERROR_INVALID_ARGUMENT;
     }
 
+    // A device can reach here twice: lvgl_devices_attach()'s boot scan binds every KEYBOARD_TYPE
+    // device unconditionally (started or not), and a device that wasn't started yet at that point
+    // fires DEVICE_EVENT_STARTED later, driving a second call through
+    // KeyboardDeviceListener::onKeyboardDeviceStarted(). Without this check that would create a
+    // second indev for the same device, and onKeyboardDeviceStopped() only ever removes one of
+    // them, leaving the other dangling - polling a destructed device on the next LVGL tick.
+    lv_indev_t* existing = lvgl_keyboard_find_by_device(device);
+    if (existing != NULL) {
+        *out_indev = existing;
+        return ERROR_NONE;
+    }
+
     auto* wrapper = new(std::nothrow) LvglDeviceContext(nullptr);
     if (wrapper == NULL) {
         return ERROR_OUT_OF_MEMORY;

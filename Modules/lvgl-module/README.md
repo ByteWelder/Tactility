@@ -43,7 +43,7 @@ LVGL's malloc/realloc/free can be routed through a custom backend instead of its
 plain `malloc`. Three things are required:
 
 **1. Select the backend.** On ESP32, via Kconfig (`sdkconfig`):
-```
+```sdkconfig
 CONFIG_LV_USE_CUSTOM_MALLOC=y
 ```
 On Simulator/POSIX, ESP-IDF's Kconfig doesn't apply - select it in `lv_conf.h` instead:
