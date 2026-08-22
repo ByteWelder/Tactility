@@ -45,21 +45,21 @@ static constexpr int CARDPUTER_ADV_COLS = 14;
 // emits nothing (used for the sym/shift cells themselves, and unwired cells on this board).
 static const uint32_t cardputer_adv_keymap_lc[CARDPUTER_ADV_ROWS][CARDPUTER_ADV_COLS] = {
     { '`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', CODEPOINT_BACKSPACE },
-    { CODEPOINT_TAB, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\' },
+    { '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\\' },
     { 0, 0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', CODEPOINT_ENTER },
     { 0, 0, 0, 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', ' ' },
 };
 
 static const uint32_t cardputer_adv_keymap_uc[CARDPUTER_ADV_ROWS][CARDPUTER_ADV_COLS] = {
     { '~', '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', CODEPOINT_DELETE },
-    { CODEPOINT_FOCUS_PREV, 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|' },
+    { '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '|' },
     { 0, 0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', CODEPOINT_ENTER },
     { 0, 0, 0, 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', ' ' },
 };
 
 static const uint32_t cardputer_adv_keymap_sym[CARDPUTER_ADV_ROWS][CARDPUTER_ADV_COLS] = {
     { CODEPOINT_ESCAPE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-    { CODEPOINT_TAB, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+    { '\t', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, CODEPOINT_ARROW_UP, 0, CODEPOINT_ENTER },
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, CODEPOINT_ARROW_LEFT, CODEPOINT_ARROW_DOWN, CODEPOINT_ARROW_RIGHT, 0 },
 };
