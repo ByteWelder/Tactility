@@ -14,8 +14,6 @@
 #include <tactility/error.h>
 #include <tactility/log.h>
 
-#include <lvgl.h>
-
 #include <cstdlib>
 
 static constexpr const char* TAG = "CardputerKeyboard";
@@ -74,8 +72,8 @@ struct CardputerKeyboardPendingEvent {
 struct CardputerKeyboardInternal {
     GpioDescriptor* output_descriptors[CARDPUTER_OUTPUT_COUNT];
     GpioDescriptor* input_descriptors[CARDPUTER_INPUT_COUNT];
-    // 0 when no actionable key is currently held; otherwise the LVGL key code last reported
-    // via read_key(). Only ever one actionable key at a time (matches original hardware driver:
+    // 0 when no actionable key is currently held; otherwise the key (Unicode codepoint) last
+    // reported via read_key(). Only ever one actionable key at a time (matches original hardware driver:
     // modifier keys are consumed internally, and only the first non-modifier key found in a
     // scan is reported).
     uint32_t active_key;
@@ -195,10 +193,12 @@ static uint8_t read_input(CardputerKeyboardInternal* internal) {
     return mask;
 }
 
-// Scans the full matrix and resolves it to a single LVGL key code (0 if none), applying the
-// same priority as the original driver: enter > space > backspace > first regular character
-// found in scan order, with fn changing the interpretation of backspace/enter/punctuation.
-// Modifier keys (fn/shift/ctrl/opt/alt/tab) are never reported themselves.
+// Scans the full matrix and resolves it to a single key (Unicode codepoint, 0 if none - never an
+// LV_KEY_* constant, see KeyboardKeyData::key's contract), applying priority: enter > space >
+// backspace > tab (U+21E5 tab-to-bar, or U+21E4 with shift - the closest standard Unicode symbol
+// for focus navigation) > first regular character found in scan order, with fn changing the
+// interpretation of backspace/enter/punctuation. Modifier keys (fn/shift/ctrl/opt/alt) are never
+// reported themselves.
 static uint32_t scan_key(CardputerKeyboardInternal* internal) {
     bool fn = false, shift = false, ctrl = false;
     bool del_flag = false, enter_flag = false, space_flag = false;
@@ -223,7 +223,6 @@ static uint32_t scan_key(CardputerKeyboardInternal* internal) {
             const auto& def = cardputer_key_map[row][col];
 
             switch (def.role) {
-                case CARDPUTER_KEY_TAB:
                 case CARDPUTER_KEY_OPT:
                 case CARDPUTER_KEY_ALT:
                     break; // consumed, never affects output
@@ -259,24 +258,25 @@ static uint32_t scan_key(CardputerKeyboardInternal* internal) {
     char resolved_char = has_regular ? ((ctrl || shift) ? regular_shifted : regular_normal) : 0;
 
     if (!fn) {
-        if (enter_flag) return LV_KEY_ENTER;
+        if (enter_flag) return CODEPOINT_ENTER;
         if (space_flag) return (uint32_t)' ';
-        if (del_flag) return LV_KEY_BACKSPACE;
-        if (has_regular) return (uint32_t)(uint8_t)resolved_char;
+        if (del_flag) return CODEPOINT_BACKSPACE;
+        if (has_regular) return (uint32_t)resolved_char;
         return 0;
     }
 
-    // fn combos: forward-delete, enter, and group navigation (using PREV/NEXT rather than
-    // UP/DOWN so widgets like lv_switch that toggle on arrow keys aren't affected).
-    if (del_flag) return LV_KEY_DEL;
-    if (enter_flag) return LV_KEY_ENTER;
+    // fn combos: forward-delete, enter, and group navigation (using the tab-to-bar codepoints
+    // rather than arrow codepoints so widgets like lv_switch that toggle on arrow keys aren't
+    // affected).
+    if (del_flag) return CODEPOINT_DELETE;
+    if (enter_flag) return CODEPOINT_ENTER;
     if (has_regular) {
         switch (resolved_char) {
-            case '`': return LV_KEY_ESC;
-            case ',': return LV_KEY_LEFT;
-            case '/': return LV_KEY_RIGHT;
-            case ';': return LV_KEY_PREV;
-            case '.': return LV_KEY_NEXT;
+            case '`': return CODEPOINT_ESCAPE;
+            case ',': return CODEPOINT_ARROW_LEFT;
+            case '/': return CODEPOINT_ARROW_RIGHT;
+            case ';': return CODEPOINT_ARROW_UP;
+            case '.': return CODEPOINT_ARROW_DOWN;
             default: return 0;
         }
     }

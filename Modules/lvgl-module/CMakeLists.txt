@@ -94,6 +94,10 @@ tactility_add_module(lvgl-module
     INCLUDE_DIRS include/
     PRIV_INCLUDE_DIRS private/
     REQUIRES ${REQUIRES_LIST}
+    # lv_mem_custom.c provides lv_mem_init/lv_malloc_core/etc, which lvgl__lvgl's own lv_init.c/
+    # lv_mem.c call back into (LV_STDLIB_CUSTOM) - a reverse reference into this module that a
+    # normal single-pass static link can't resolve. See module.cmake's WHOLE_ARCHIVE comment.
+    WHOLE_ARCHIVE
 )
 
 tactility_get_module_name("lvgl-module" MODULE_NAME)

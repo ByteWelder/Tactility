@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "sdl_input.h"
 
-#include <lvgl.h>
+#include <tactility/drivers/keyboard.h>
 
 #include <SDL2/SDL.h>
 
@@ -27,22 +27,27 @@ void push_key(uint32_t key) {
     key_queue_count++;
 }
 
-// Mirrors LVGL's own lv_sdl_keyboard.c keycode_to_ctrl_key(): maps navigation/control keys to
-// LV_KEY_* constants. Printable characters arrive separately via SDL_TEXTINPUT.
-uint32_t keycode_to_key(SDL_Keycode sdl_key) {
+// Mirrors LVGL's own lv_sdl_keyboard.c keycode_to_ctrl_key(): every key returns a real Unicode
+// codepoint per KeyboardKeyData::key's contract - never an LV_KEY_* constant, even for keys with
+// no ordinary character of their own (arrows, Tab/Shift+Tab as focus nav, Home/End), which use the
+// CodePoint enum's standard Unicode symbols for the concept. lvgl-module's keyboard.cpp translates
+// all of these back to LVGL's own sentinels (CODEPOINT_ESCAPE/BACKSPACE/DELETE already equal their
+// LV_KEY_* counterpart numerically, so no translation is needed for those). Printable characters
+// arrive separately via SDL_TEXTINPUT.
+uint32_t keycode_to_key(SDL_Keycode sdl_key, bool shift) {
     switch (sdl_key) {
-        case SDLK_RIGHT: return LV_KEY_RIGHT;
-        case SDLK_LEFT: return LV_KEY_LEFT;
-        case SDLK_UP: return LV_KEY_UP;
-        case SDLK_DOWN: return LV_KEY_DOWN;
-        case SDLK_ESCAPE: return LV_KEY_ESC;
-        case SDLK_BACKSPACE: return LV_KEY_BACKSPACE;
-        case SDLK_DELETE: return LV_KEY_DEL;
+        case SDLK_RIGHT: return CODEPOINT_ARROW_RIGHT;
+        case SDLK_LEFT: return CODEPOINT_ARROW_LEFT;
+        case SDLK_UP: return CODEPOINT_ARROW_UP;
+        case SDLK_DOWN: return CODEPOINT_ARROW_DOWN;
+        case SDLK_ESCAPE: return CODEPOINT_ESCAPE;
+        case SDLK_BACKSPACE: return CODEPOINT_BACKSPACE;
+        case SDLK_DELETE: return CODEPOINT_DELETE;
         case SDLK_RETURN:
-        case SDLK_KP_ENTER: return LV_KEY_ENTER;
-        case SDLK_TAB: return LV_KEY_NEXT;
-        case SDLK_HOME: return LV_KEY_HOME;
-        case SDLK_END: return LV_KEY_END;
+        case SDLK_KP_ENTER: return CODEPOINT_ENTER;
+        case SDLK_TAB: return CODEPOINT_TAB;
+        case SDLK_HOME: return CODEPOINT_HOME;
+        case SDLK_END: return CODEPOINT_END;
         default: return 0;
     }
 }
@@ -75,7 +80,7 @@ void sdl_input_pump() {
                 }
                 break;
             case SDL_KEYDOWN:
-                push_key(keycode_to_key(event.key.keysym.sym));
+                push_key(keycode_to_key(event.key.keysym.sym, (event.key.keysym.mod & KMOD_SHIFT) != 0));
                 break;
             case SDL_TEXTINPUT:
                 // ASCII only (first byte of event.text.text) - sufficient for a simulator keyboard.

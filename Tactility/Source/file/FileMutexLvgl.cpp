@@ -6,11 +6,15 @@
 #include <tactility/filesystem/file_system.h>
 #include <lvgl/lvgl.h>
 
+#include <vector>
+
 constexpr auto* TAG = "file_mutex_lvgl";
 
 struct Device;
 
 namespace {
+
+std::vector<FileMutexId> registered_ids;
 
 void wrapped_lvgl_lock() {
     if (!lvgl_is_running()) return;
@@ -43,7 +47,7 @@ namespace tt {
  * If the SPI controller has a display on the bus, we create an LVGL lock for the file system path.
  */
 void initFileMutexForLvgl() {
-    file_system_for_each(nullptr, [](FileSystem* fs, void* context) {
+    file_system_for_each(&registered_ids, [](FileSystem* fs, void* context) {
         char mount_path[64];
         if (file_system_get_path(fs, mount_path, sizeof(mount_path)) != ERROR_NONE) {
             return true;
@@ -77,17 +81,15 @@ void initFileMutexForLvgl() {
 
         struct Context {
             const char* mountPath;
+            std::vector<FileMutexId>* registeredIds;
         };
-        Context ctx = { .mountPath = mount_path };
+        Context ctx = { .mountPath = mount_path, .registeredIds = static_cast<std::vector<FileMutexId>*>(context) };
 
         device_for_each_child(parent, &ctx, [](Device* child, void* context) -> bool {
             Context* ctx = static_cast<Context*>(context);
             if (device_get_type(child) == &DISPLAY_TYPE) {
                 LOG_I(TAG, "Adding file mutex for %s as it shares a bus with a display", ctx->mountPath);
-                file_mutex_register(
-                    &lvgl_mutex,
-                    ctx->mountPath
-                );
+                ctx->registeredIds->push_back(file_mutex_add(&lvgl_mutex, ctx->mountPath));
                 return false;
             } else {
                 LOG_D(TAG, "child of parent, %s: not DISPLAY_TYPE", child->name);
@@ -105,7 +107,7 @@ void initFileMutexForLvgl() {
         return;
     }
 
-    file_system_for_each(nullptr, [](FileSystem* fs, void* context) {
+    file_system_for_each(&registered_ids, [](FileSystem* fs, void* context) {
         char mount_path[64];
         if (file_system_get_path(fs, mount_path, sizeof(mount_path)) != ERROR_NONE) {
             return true;
@@ -117,9 +119,17 @@ void initFileMutexForLvgl() {
         }
 
         LOG_I(TAG, "Adding file mutex for %s (SD card) - a display is present and may contend for bus/DMA resources", mount_path);
-        file_mutex_register(&lvgl_mutex, mount_path);
+        auto* ids = static_cast<std::vector<FileMutexId>*>(context);
+        ids->push_back(file_mutex_add(&lvgl_mutex, mount_path));
         return true;
     });
+}
+
+void deinitFileMutexForLvgl() {
+    for (FileMutexId id : registered_ids) {
+        file_mutex_remove(id);
+    }
+    registered_ids.clear();
 }
 
 }

@@ -37,6 +37,32 @@ Font sizes and symbols are configurable:
 
 If you change an icon font size, ensure that a corresponding C file exists in `source-fonts/` (e.g., `material_symbols_shared_24.c`). These files are generated from TTF/OTF fonts using the LVGL font converter.
 
+## Custom memory allocator
+
+LVGL's malloc/realloc/free can be routed through a custom backend instead of its built-in pool or
+plain `malloc`. Three things are required:
+
+**1. Select the backend.** On ESP32, via Kconfig (`sdkconfig`):
+```
+CONFIG_LV_USE_CUSTOM_MALLOC=y
+```
+On Simulator/POSIX, ESP-IDF's Kconfig doesn't apply - select it in `lv_conf.h` instead:
+```c
+#define LV_USE_STDLIB_MALLOC LV_STDLIB_CUSTOM
+```
+
+**2. Force the module into the link.** LVGL's own init code calls back into the functions above
+a reverse reference a normal single-pass static-archive link can't resolve on its own:
+```cmake
+tactility_add_module(lvgl-module
+    ...
+    WHOLE_ARCHIVE
+)
+```
+Without `WHOLE_ARCHIVE`, or without step 1 selecting the custom backend, ESP-IDF's LVGL component
+compiles its own allocator using these same symbol names - whichever one the linker happens to
+pull in first silently wins, with no error and no guarantee it's the intended one.
+
 ## License
 
 This module is licensed under the [Apache v2.0](LICENSE-Apache-2.0.md) license.

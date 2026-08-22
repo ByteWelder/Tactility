@@ -25,18 +25,22 @@ void* memory_alloc_with_policy(size_t size, const struct MemoryPolicy* policy) {
     uint32_t required_caps = toHeapCaps(policy->required);
     uint32_t desired_caps = toHeapCaps(policy->desired);
 
+    // heap_caps matches heaps via (heap->caps[prio] & caps) != 0 - a caps value of 0 (e.g.
+    // required_caps when policy->required wasn't set) can never match any heap, so the fallback
+    // must OR in MALLOC_CAP_DEFAULT to actually reach a general-purpose heap, same as ESP-IDF's
+    // own heap_caps_malloc_default() does.
     void* ptr;
     if (policy->alignment > 0) {
         ptr = heap_caps_aligned_alloc(policy->alignment, size, required_caps | desired_caps);
         if (ptr == nullptr && desired_caps != 0) {
             // Desired caps couldn't be satisfied alongside the required ones - retry with
             // required only, since desired is explicitly optional.
-            ptr = heap_caps_aligned_alloc(policy->alignment, size, required_caps);
+            ptr = heap_caps_aligned_alloc(policy->alignment, size, required_caps | MALLOC_CAP_DEFAULT);
         }
     } else {
         ptr = heap_caps_malloc(size, required_caps | desired_caps);
         if (ptr == nullptr && desired_caps != 0) {
-            ptr = heap_caps_malloc(size, required_caps);
+            ptr = heap_caps_malloc(size, required_caps | MALLOC_CAP_DEFAULT);
         }
     }
     return ptr;
@@ -50,7 +54,7 @@ void* memory_realloc_with_policy(void* ptr, size_t size, const struct MemoryPoli
     // on fresh allocations (memory_alloc_with_policy/memory_calloc_with_policy).
     void* result = heap_caps_realloc(ptr, size, required_caps | desired_caps);
     if (result == nullptr && desired_caps != 0) {
-        result = heap_caps_realloc(ptr, size, required_caps);
+        result = heap_caps_realloc(ptr, size, required_caps | MALLOC_CAP_DEFAULT);
     }
     return result;
 }
@@ -63,12 +67,12 @@ void* memory_calloc_with_policy(size_t count, size_t size, const struct MemoryPo
     if (policy->alignment > 0) {
         ptr = heap_caps_aligned_calloc(policy->alignment, count, size, required_caps | desired_caps);
         if (ptr == nullptr && desired_caps != 0) {
-            ptr = heap_caps_aligned_calloc(policy->alignment, count, size, required_caps);
+            ptr = heap_caps_aligned_calloc(policy->alignment, count, size, required_caps | MALLOC_CAP_DEFAULT);
         }
     } else {
         ptr = heap_caps_calloc(count, size, required_caps | desired_caps);
         if (ptr == nullptr && desired_caps != 0) {
-            ptr = heap_caps_calloc(count, size, required_caps);
+            ptr = heap_caps_calloc(count, size, required_caps | MALLOC_CAP_DEFAULT);
         }
     }
     return ptr;

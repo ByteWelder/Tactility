@@ -12,8 +12,6 @@
 #include <tactility/log.h>
 #include <tactility/time.h>
 
-#include <lvgl.h>
-
 #include <cstdlib>
 
 #define TAG "ButtonControl"
@@ -105,8 +103,8 @@ static error_t start(Device* device) {
 
     error_t error = acquire_button(
         config->pin_primary,
-        two_button_mode ? LV_KEY_ENTER : LV_KEY_NEXT,
-        two_button_mode ? LV_KEY_ESC : LV_KEY_ENTER,
+        two_button_mode ? (uint32_t)CODEPOINT_ENTER : (uint32_t)CODEPOINT_ARROW_DOWN,
+        two_button_mode ? (uint32_t)CODEPOINT_ESCAPE : (uint32_t)CODEPOINT_ENTER,
         &internal->primary
     );
     if (error != ERROR_NONE) {
@@ -114,7 +112,7 @@ static error_t start(Device* device) {
         return error;
     }
 
-    error = acquire_button(config->pin_secondary, LV_KEY_NEXT, LV_KEY_PREV, &internal->secondary);
+    error = acquire_button(config->pin_secondary, CODEPOINT_ARROW_DOWN, CODEPOINT_ARROW_UP, &internal->secondary);
     if (error != ERROR_NONE) {
         if (internal->primary.in_use) {
             gpio_descriptor_release(internal->primary.descriptor);
@@ -176,7 +174,7 @@ static void poll_button(const ButtonControlConfig* config, ButtonControlInternal
     }
 
     // Release: decide short vs. long press by elapsed hold duration, then queue a synthetic
-    // key tap (press followed by release) for the LVGL key this gesture maps to.
+    // key tap (press followed by release) for the key this gesture maps to.
     uint32_t held_ms = now - state->press_start_time;
     uint32_t key = held_ms < config->long_press_ms ? state->short_press_key : state->long_press_key;
     push_pending(internal, key, true);

@@ -48,10 +48,10 @@ TEST_CASE("file_mutex_get with zero registrations returns a no-op mutex") {
     file_mutex_unlock(&mutex);
 }
 
-TEST_CASE("file_mutex_register/get with a single registration") {
+TEST_CASE("file_mutex_add/get with a single registration") {
     reset_mocks();
     FileMutex registered = { .lock = mock_lock, .try_lock = mock_try_lock, .unlock = mock_unlock };
-    file_mutex_register(&registered, "/mock1");
+    file_mutex_add(&registered, "/mock1");
 
     FileMutex mutex;
 
@@ -87,19 +87,19 @@ TEST_CASE("file_mutex_register/get with a single registration") {
 
     // Re-registering the same path is a no-op: original callbacks remain in place.
     FileMutex replacement = { .lock = nullptr, .try_lock = nullptr, .unlock = nullptr };
-    file_mutex_register(&replacement, "/mock1");
+    file_mutex_add(&replacement, "/mock1");
     file_mutex_get(&mutex, "/mock1");
     CHECK_EQ(mutex.lock, mock_lock);
 }
 
-TEST_CASE("file_mutex_register/get with two registrations resolves to the matching path") {
+TEST_CASE("file_mutex_add/get with two registrations resolves to the matching path") {
     reset_mocks();
 
     FileMutex mutex_a = { .lock = mock_lock_a, .try_lock = nullptr, .unlock = nullptr };
     FileMutex mutex_b = { .lock = mock_lock_b, .try_lock = nullptr, .unlock = nullptr };
 
-    file_mutex_register(&mutex_a, "/mock2a");
-    file_mutex_register(&mutex_b, "/mock2b");
+    file_mutex_add(&mutex_a, "/mock2a");
+    file_mutex_add(&mutex_b, "/mock2b");
 
     FileMutex resolved;
 
@@ -116,7 +116,75 @@ TEST_CASE("file_mutex_register/get with two registrations resolves to the matchi
     // Registration order matters: the first matching entry wins, not the longest
     // prefix. A mount nested under an earlier one is shadowed by it.
     FileMutex mutex_nested = { .lock = nullptr, .try_lock = nullptr, .unlock = nullptr };
-    file_mutex_register(&mutex_nested, "/mock2a/nested");
+    file_mutex_add(&mutex_nested, "/mock2a/nested");
     file_mutex_get(&resolved, "/mock2a/nested/file.txt");
     CHECK_EQ(resolved.lock, mock_lock_a); // still /mock2a, registered first
+}
+
+TEST_CASE("file_mutex_add returns a valid id") {
+    reset_mocks();
+    FileMutex registered = { .lock = mock_lock, .try_lock = nullptr, .unlock = nullptr };
+    FileMutexId id = file_mutex_add(&registered, "/mockA");
+    CHECK_NE(id, FILE_MUTEX_ID_INVALID);
+}
+
+TEST_CASE("file_mutex_add with a duplicate path returns the existing id") {
+    reset_mocks();
+    FileMutex mutex_1 = { .lock = mock_lock, .try_lock = nullptr, .unlock = nullptr };
+    FileMutex mutex_2 = { .lock = mock_lock_a, .try_lock = nullptr, .unlock = nullptr };
+
+    FileMutexId id_1 = file_mutex_add(&mutex_1, "/mockB");
+    FileMutexId id_2 = file_mutex_add(&mutex_2, "/mockB");
+    CHECK_EQ(id_1, id_2);
+
+    FileMutex resolved;
+    file_mutex_get(&resolved, "/mockB");
+    CHECK_EQ(resolved.lock, mock_lock); // first registration's callbacks win, unchanged
+}
+
+TEST_CASE("file_mutex_remove removes a registration") {
+    reset_mocks();
+    FileMutex registered = { .lock = mock_lock, .try_lock = nullptr, .unlock = nullptr };
+    FileMutexId id = file_mutex_add(&registered, "/mockC");
+
+    FileMutex before;
+    file_mutex_get(&before, "/mockC");
+    CHECK_EQ(before.lock, mock_lock);
+
+    file_mutex_remove(id);
+
+    FileMutex after;
+    file_mutex_get(&after, "/mockC");
+    CHECK_EQ(after.lock, nullptr);
+}
+
+TEST_CASE("file_mutex_remove with an unknown id is a safe no-op") {
+    reset_mocks();
+    FileMutex registered = { .lock = mock_lock, .try_lock = nullptr, .unlock = nullptr };
+    file_mutex_add(&registered, "/mockD");
+
+    file_mutex_remove(999999); // never issued
+    file_mutex_remove(FILE_MUTEX_ID_INVALID);
+
+    FileMutex resolved;
+    file_mutex_get(&resolved, "/mockD");
+    CHECK_EQ(resolved.lock, mock_lock); // untouched
+}
+
+TEST_CASE("file_mutex_remove of one registration leaves others intact") {
+    reset_mocks();
+    FileMutex mutex_a = { .lock = mock_lock_a, .try_lock = nullptr, .unlock = nullptr };
+    FileMutex mutex_b = { .lock = mock_lock_b, .try_lock = nullptr, .unlock = nullptr };
+    FileMutexId id_a = file_mutex_add(&mutex_a, "/mockE1");
+    file_mutex_add(&mutex_b, "/mockE2");
+
+    file_mutex_remove(id_a);
+
+    FileMutex resolved_a;
+    file_mutex_get(&resolved_a, "/mockE1");
+    CHECK_EQ(resolved_a.lock, nullptr);
+
+    FileMutex resolved_b;
+    file_mutex_get(&resolved_b, "/mockE2");
+    CHECK_EQ(resolved_b.lock, mock_lock_b);
 }

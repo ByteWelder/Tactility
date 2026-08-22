@@ -34,8 +34,9 @@ properties:
       Base (lowercase) layer keymap, rows*columns bytes in row-major order (already in
       silkscreen/keymap column order - see reverse-columns). 0 = no key at this position (e.g.
       a blank matrix position, or a position handled as a modifier via shift-row/shift-col/
-      sym-row/sym-col instead). Non-zero bytes are sent as-is via KeyboardKeyData::key (ASCII
-      or an LVGL LV_KEY_* code).
+      sym-row/sym-col instead). Non-zero bytes are sent as-is via KeyboardKeyData::key (a Unicode
+      codepoint - byte range covers Latin-1 - or an LVGL LV_KEY_* code for keys with no character
+      representation).
   keymap-uc:
     type: array
     element-type: uint8_t

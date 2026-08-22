@@ -169,7 +169,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(display_get_backlight),
     DEFINE_MODULE_SYMBOL(DISPLAY_TYPE),
     // file_mutex
-    DEFINE_MODULE_SYMBOL(file_mutex_register),
+    DEFINE_MODULE_SYMBOL(file_mutex_add),
+    DEFINE_MODULE_SYMBOL(file_mutex_remove),
     DEFINE_MODULE_SYMBOL(file_mutex_get),
     DEFINE_MODULE_SYMBOL(file_mutex_lock),
     DEFINE_MODULE_SYMBOL(file_mutex_try_lock),

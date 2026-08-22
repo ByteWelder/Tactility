@@ -41,6 +41,26 @@ void lvgl_keyboard_on_stop_lvgl() {
     keyboard_group = nullptr;
 }
 
+// KeyboardKeyData::key is always a Unicode codepoint (see its doc comment / the CodePoint enum) -
+// drivers never emit LV_KEY_* directly, including for pure focus-navigation concepts that have no
+// ordinary character of their own. LVGL itself hardcodes specific sentinel values in its own
+// indev/group/textarea code that don't match the real Unicode codepoint chosen for the same key,
+// so those are translated here rather than each driver having to know about LVGL's internals.
+// CODEPOINT_BACKSPACE/TAB/ESCAPE/DELETE already equal their LV_KEY_* counterpart numerically, so
+// they need no case below - they fall through `default` unchanged.
+static uint32_t codepoint_to_lv_key(uint32_t key) {
+    switch (key) {
+        case CODEPOINT_ENTER: return LV_KEY_ENTER;
+        case CODEPOINT_ARROW_LEFT: return LV_KEY_LEFT;
+        case CODEPOINT_ARROW_UP: return LV_KEY_UP;
+        case CODEPOINT_ARROW_RIGHT: return LV_KEY_RIGHT;
+        case CODEPOINT_ARROW_DOWN: return LV_KEY_DOWN;
+        case CODEPOINT_HOME: return LV_KEY_HOME;
+        case CODEPOINT_END: return LV_KEY_END;
+        default: return key;
+    }
+}
+
 static void lvgl_keyboard_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
 
@@ -51,8 +71,7 @@ static void lvgl_keyboard_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
         return;
     }
 
-    // KeyboardKeyData deliberately mirrors lv_indev_data_t's key/continue_reading fields, so no translation is needed.
-    data->key = key_data.key;
+    data->key = codepoint_to_lv_key(key_data.key);
     data->state = key_data.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
     data->continue_reading = key_data.continue_reading;
 }

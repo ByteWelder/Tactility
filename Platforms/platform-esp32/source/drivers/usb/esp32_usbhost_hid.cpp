@@ -85,6 +85,12 @@ static const uint8_t keycode2ascii[57][2] = {
     {'`', '~'}, {',', '<'}, {'.', '>'}, {'/', '?'},
 };
 
+// Every key returns a real Unicode codepoint per KeyboardKeyData::key's contract - never an
+// LV_KEY_* (or USB_HID_KEY_*, which mirrors it) constant. Keys with no ordinary character of
+// their own use the CodePoint enum's standard Unicode symbol for the concept. lvgl-module's
+// keyboard.cpp translates all of these back to LVGL's own sentinels (CODEPOINT_ESCAPE/BACKSPACE/
+// DELETE already equal their LV_KEY_* counterpart numerically, so no translation is needed for
+// those).
 static uint32_t hid_keycode_to_key(uint8_t modifier, uint8_t key_code,
                                        bool caps_lock, bool num_lock) {
     bool shift = (modifier & HID_LEFT_SHIFT) || (modifier & HID_RIGHT_SHIFT);
@@ -92,33 +98,33 @@ static uint32_t hid_keycode_to_key(uint8_t modifier, uint8_t key_code,
     bool alt   = (modifier & HID_LEFT_ALT) || (modifier & HID_RIGHT_ALT);
 
     switch (key_code) {
-        case HID_KEY_ENTER:         return USB_HID_KEY_ENTER;
-        case HID_KEY_ESC:           return USB_HID_KEY_ESC;
-        case HID_KEY_DEL:           return USB_HID_KEY_BACKSPACE;
-        case HID_KEY_DELETE:        return USB_HID_KEY_DEL;
-        case HID_KEY_TAB:           return shift ? USB_HID_KEY_PREV : USB_HID_KEY_NEXT;
-        case HID_KEY_UP:            return USB_HID_KEY_UP;
-        case HID_KEY_DOWN:          return USB_HID_KEY_DOWN;
-        case HID_KEY_LEFT:          return USB_HID_KEY_LEFT;
-        case HID_KEY_RIGHT:         return USB_HID_KEY_RIGHT;
-        case HID_KEY_HOME:          return USB_HID_KEY_HOME;
-        case HID_KEY_END:           return USB_HID_KEY_END;
-        case HID_KEY_KEYPAD_ENTER:  return USB_HID_KEY_ENTER;
+        case HID_KEY_ENTER:         return CODEPOINT_ENTER;
+        case HID_KEY_ESC:           return CODEPOINT_ESCAPE;
+        case HID_KEY_DEL:           return CODEPOINT_BACKSPACE;
+        case HID_KEY_DELETE:        return CODEPOINT_DELETE;
+        case HID_KEY_TAB:           return '\t';
+        case HID_KEY_UP:            return CODEPOINT_ARROW_UP;
+        case HID_KEY_DOWN:          return CODEPOINT_ARROW_DOWN;
+        case HID_KEY_LEFT:          return CODEPOINT_ARROW_LEFT;
+        case HID_KEY_RIGHT:         return CODEPOINT_ARROW_RIGHT;
+        case HID_KEY_HOME:          return CODEPOINT_HOME;
+        case HID_KEY_END:           return CODEPOINT_END;
+        case HID_KEY_KEYPAD_ENTER:  return CODEPOINT_ENTER;
         case HID_KEY_KEYPAD_ADD:    return '+';
         case HID_KEY_KEYPAD_SUB:    return '-';
         case HID_KEY_KEYPAD_MUL:    return '*';
         case HID_KEY_KEYPAD_DIV:    return '/';
         case HID_KEY_KEYPAD_0:      return num_lock ? (uint32_t)'0' : 0u;
-        case HID_KEY_KEYPAD_1:      return num_lock ? (uint32_t)'1' : (uint32_t)USB_HID_KEY_END;
-        case HID_KEY_KEYPAD_2:      return num_lock ? (uint32_t)'2' : (uint32_t)USB_HID_KEY_DOWN;
+        case HID_KEY_KEYPAD_1:      return num_lock ? (uint32_t)'1' : (uint32_t)CODEPOINT_END;
+        case HID_KEY_KEYPAD_2:      return num_lock ? (uint32_t)'2' : (uint32_t)CODEPOINT_ARROW_DOWN;
         case HID_KEY_KEYPAD_3:      return num_lock ? (uint32_t)'3' : 0u;
-        case HID_KEY_KEYPAD_4:      return num_lock ? (uint32_t)'4' : (uint32_t)USB_HID_KEY_LEFT;
+        case HID_KEY_KEYPAD_4:      return num_lock ? (uint32_t)'4' : (uint32_t)CODEPOINT_ARROW_LEFT;
         case HID_KEY_KEYPAD_5:      return num_lock ? (uint32_t)'5' : 0u;
-        case HID_KEY_KEYPAD_6:      return num_lock ? (uint32_t)'6' : (uint32_t)USB_HID_KEY_RIGHT;
-        case HID_KEY_KEYPAD_7:      return num_lock ? (uint32_t)'7' : (uint32_t)USB_HID_KEY_HOME;
-        case HID_KEY_KEYPAD_8:      return num_lock ? (uint32_t)'8' : (uint32_t)USB_HID_KEY_UP;
+        case HID_KEY_KEYPAD_6:      return num_lock ? (uint32_t)'6' : (uint32_t)CODEPOINT_ARROW_RIGHT;
+        case HID_KEY_KEYPAD_7:      return num_lock ? (uint32_t)'7' : (uint32_t)CODEPOINT_HOME;
+        case HID_KEY_KEYPAD_8:      return num_lock ? (uint32_t)'8' : (uint32_t)CODEPOINT_ARROW_UP;
         case HID_KEY_KEYPAD_9:      return num_lock ? (uint32_t)'9' : 0u;
-        case HID_KEY_KEYPAD_DELETE: return num_lock ? (uint32_t)'.' : (uint32_t)USB_HID_KEY_DEL;
+        case HID_KEY_KEYPAD_DELETE: return num_lock ? (uint32_t)'.' : (uint32_t)CODEPOINT_DELETE;
         default: break;
     }
 

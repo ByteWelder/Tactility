@@ -74,6 +74,7 @@ constexpr auto* TAG = "Tactility";
 static DispatcherHandle_t mainDispatcherHandle = dispatcher_alloc();
 
 void initFileMutexForLvgl();
+void deinitFileMutexForLvgl();
 
 namespace {
 
@@ -423,6 +424,8 @@ static void applySavedTouchCalibration() {
 #endif // CONFIG_TT_TOUCH_CALIBRATION_SUPPORTED
 
 static void onLvglStarted() {
+    initFileMutexForLvgl();
+
     window_manager_configure(windowManagerScreenInit);
     check(module_ensure_started(&lvgl_window_manager_module) == ERROR_NONE);
 
@@ -453,6 +456,8 @@ static void onLvglStarted() {
 }
 
 static void onLvglStopped() {
+    deinitFileMutexForLvgl();
+
     if (softwareKeyboard.object != nullptr) {
         lvgl_software_keyboard_destruct(&softwareKeyboard);
     }
@@ -509,9 +514,6 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
     bluetooth::systemStart();
 
     registerAndStartServices();
-
-    // Must start right before LVGL
-    initFileMutexForLvgl();
 
     lvgl_module_configure((LvglModuleConfig) {
         .on_start = onLvglStarted,
