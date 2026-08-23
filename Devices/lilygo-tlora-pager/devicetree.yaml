@@ -6,5 +6,5 @@ dependencies:
   - Drivers/tca8418-module
   - Drivers/bq25896-module
   - Drivers/drv2605-module
-  - Drivers/lilygo-module
+  - Drivers/gpio-encoder-module
 dts: lilygo,tlora-pager.dts

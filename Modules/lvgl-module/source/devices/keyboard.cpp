@@ -41,6 +41,26 @@ void lvgl_keyboard_on_stop_lvgl() {
     keyboard_group = nullptr;
 }
 
+// KeyboardKeyData::key is always a Unicode codepoint (see its doc comment / the CodePoint enum) -
+// drivers never emit LV_KEY_* directly, including for pure focus-navigation concepts that have no
+// ordinary character of their own. LVGL itself hardcodes specific sentinel values in its own
+// indev/group/textarea code that don't match the real Unicode codepoint chosen for the same key,
+// so those are translated here rather than each driver having to know about LVGL's internals.
+// CODEPOINT_BACKSPACE/TAB/ESCAPE/DELETE already equal their LV_KEY_* counterpart numerically, so
+// they need no case below - they fall through `default` unchanged.
+static uint32_t codepoint_to_lv_key(uint32_t key) {
+    switch (key) {
+        case CODEPOINT_ENTER: return LV_KEY_ENTER;
+        case CODEPOINT_ARROW_LEFT: return LV_KEY_LEFT;
+        case CODEPOINT_ARROW_UP: return LV_KEY_PREV;
+        case CODEPOINT_ARROW_RIGHT: return LV_KEY_RIGHT;
+        case CODEPOINT_ARROW_DOWN: return LV_KEY_NEXT;
+        case CODEPOINT_HOME: return LV_KEY_HOME;
+        case CODEPOINT_END: return LV_KEY_END;
+        default: return key;
+    }
+}
+
 static void lvgl_keyboard_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
 
@@ -51,8 +71,7 @@ static void lvgl_keyboard_read_cb(lv_indev_t* indev, lv_indev_data_t* data) {
         return;
     }
 
-    // KeyboardKeyData deliberately mirrors lv_indev_data_t's key/continue_reading fields, so no translation is needed.
-    data->key = key_data.key;
+    data->key = codepoint_to_lv_key(key_data.key);
     data->state = key_data.pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
     data->continue_reading = key_data.continue_reading;
 }
@@ -63,6 +82,18 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
     }
     if (device_get_type(device) != &KEYBOARD_TYPE) {
         return ERROR_INVALID_ARGUMENT;
+    }
+
+    // A device can reach here twice: lvgl_devices_attach()'s boot scan binds every KEYBOARD_TYPE
+    // device unconditionally (started or not), and a device that wasn't started yet at that point
+    // fires DEVICE_EVENT_STARTED later, driving a second call through
+    // KeyboardDeviceListener::onKeyboardDeviceStarted(). Without this check that would create a
+    // second indev for the same device, and onKeyboardDeviceStopped() only ever removes one of
+    // them, leaving the other dangling - polling a destructed device on the next LVGL tick.
+    lv_indev_t* existing = lvgl_keyboard_find_by_device(device);
+    if (existing != NULL) {
+        *out_indev = existing;
+        return ERROR_NONE;
     }
 
     auto* wrapper = new(std::nothrow) LvglDeviceContext(nullptr);
@@ -98,6 +129,20 @@ void lvgl_keyboard_remove(lv_indev_t* indev) {
     auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
     lv_indev_delete(indev);
     delete wrapper;
+}
+
+lv_indev_t* lvgl_keyboard_find_by_device(Device* device) {
+    lv_indev_t* indev = lv_indev_get_next(nullptr);
+    while (indev != nullptr) {
+        if (lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) {
+            auto* wrapper = static_cast<LvglDeviceContext*>(lv_indev_get_driver_data(indev));
+            if (wrapper != nullptr && wrapper->device == device) {
+                return indev;
+            }
+        }
+        indev = lv_indev_get_next(indev);
+    }
+    return nullptr;
 }
 
 void lvgl_keyboard_enable(lv_indev_t* indev) {

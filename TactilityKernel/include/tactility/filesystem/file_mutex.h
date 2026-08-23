@@ -19,13 +19,25 @@ struct FileMutex {
     void (*unlock)();
 };
 
+typedef uint32_t FileMutexId;
+
+#define FILE_MUTEX_ID_INVALID ((FileMutexId)0)
+
 /**
  * @brief Registers a mutex for a mount path (e.g. "/sdcard") and its descendants.
  * @param[in] mutex callbacks to associate with the path; a copy is stored
  * @param[in] path mount path this mutex serializes access to
- * @note No-op if a mutex is already registered for this exact path.
+ * @return the id of the new entry, or the id of the existing entry if path is already registered
+ * @note If a mutex is already registered for this exact path, no new entry is created and the
+ *     existing entry's id is returned; the existing callbacks are left unchanged.
  */
-void file_mutex_register(const struct FileMutex* mutex, const char* path);
+FileMutexId file_mutex_add(const struct FileMutex* mutex, const char* path);
+
+/**
+ * @brief Removes a previously added mutex registration.
+ * @param[in] id id returned by file_mutex_add(); a stale or unknown id is a no-op
+ */
+void file_mutex_remove(FileMutexId id);
 
 /**
  * @brief Looks up the mutex registered for path or one of its ancestor mount paths.

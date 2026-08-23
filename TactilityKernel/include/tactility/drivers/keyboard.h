@@ -12,10 +12,42 @@ extern "C" {
 #include <tactility/error.h>
 
 /**
+ * @brief Named Unicode codepoints for KeyboardKeyData::key.
+ *
+ * Keys that produce an ordinary character use that character's own codepoint directly (e.g. 'a',
+ * ' ') and don't need a name here. These are the standard Unicode symbol codepoints used instead
+ * of LVGL's LV_KEY_* sentinels for keys with no character of their own (arrows, Home/End,
+ * Tab/Shift+Tab-as-focus-navigation), plus names for the handful of C0 control keys every driver
+ * needs (Enter/Escape/Backspace/Delete/Tab). Modules/lvgl-module/source/devices/keyboard.cpp
+ * translates these back into LV_KEY_* internally for LVGL.
+ */
+typedef enum {
+    CODEPOINT_ENTER       = '\r',
+    CODEPOINT_ESCAPE      = '\x1B',
+    CODEPOINT_BACKSPACE   = '\b',
+    CODEPOINT_DELETE      = '\x7F',
+    CODEPOINT_TAB         = '\t',
+    CODEPOINT_ARROW_LEFT  = 0x2190,
+    CODEPOINT_ARROW_UP    = 0x2191,
+    CODEPOINT_ARROW_RIGHT = 0x2192,
+    CODEPOINT_ARROW_DOWN  = 0x2193,
+    CODEPOINT_HOME        = 0x21F1,
+    CODEPOINT_END         = 0x21F2,
+} CodePoint;
+
+/**
  * @brief A single key event read from a keyboard device.
  */
 struct KeyboardKeyData {
-    /** @brief The key code. Driver-defined (e.g. ASCII/UTF-8 codepoint, scan code, or LVGL key code). */
+    /**
+     * @brief The key. Always a Unicode codepoint - never a raw scan code.
+     *
+     * For a key that produces a character, this is that character's codepoint (e.g. 'a', ' '). For
+     * a key with no character representation, or one of the handful of C0 control keys every
+     * driver needs, this is one of the CodePoint enum values above - never an LVGL LV_KEY_*
+     * constant directly. See ctrl's doc comment below for the CodePoint values that numerically
+     * collide with real C0 control codes.
+     */
     uint32_t key;
     /** @brief True if the key was pressed, false if released. */
     bool pressed;
@@ -29,9 +61,9 @@ struct KeyboardKeyData {
      *
      * Reported separately rather than folded into `key` because the two encodings collide: the C0
      * control codes a terminal expects for Ctrl chords (Ctrl+C is 0x03, Ctrl+K is 0x0B, ...) overlap
-     * the LVGL key constants drivers emit in the same field (LV_KEY_END is 3, LV_KEY_PREV is 11,
-     * LV_KEY_UP is 17, ...), so a single uint32_t cannot express both. Consumers that want control
-     * codes derive them here, e.g.
+     * the four CodePoint values that remain in true C0 range (CODEPOINT_ENTER is Ctrl+M/13,
+     * CODEPOINT_BACKSPACE is Ctrl+H/8, CODEPOINT_TAB is Ctrl+I/9, CODEPOINT_ESCAPE is Ctrl+[/27), so
+     * a single uint32_t cannot express both. Consumers that want control codes derive them here, e.g.
      * `((key >= 'a' && key <= 'z') || (key >= 'A' && key <= 'Z')) ? (key & 0x1F) : key`
      * when ctrl is set.
      *
@@ -48,8 +80,8 @@ struct KeyboardKeyData {
      * or 0 if this driver doesn't compute one (most don't - `key` is the only field most consumers
      * need). Populated by drivers whose hardware layout maps cleanly onto HID usage codes, so
      * consumers that want to mirror physical key presses as real HID reports (e.g. USB HID output)
-     * don't have to reverse-engineer one out of `key`'s LVGL/ASCII encoding - which is lossy for
-     * keys with no ASCII/LVGL representation at all, e.g. F1-F12.
+     * don't have to reverse-engineer one out of `key`'s codepoint encoding - which is lossy for
+     * keys with no Unicode/LVGL representation at all, e.g. F1-F12.
      */
     uint8_t hid_keycode;
     /**

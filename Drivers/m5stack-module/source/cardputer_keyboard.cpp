@@ -14,8 +14,6 @@
 #include <tactility/error.h>
 #include <tactility/log.h>
 
-#include <lvgl.h>
-
 #include <cstdlib>
 
 static constexpr const char* TAG = "CardputerKeyboard";
@@ -31,15 +29,12 @@ static constexpr int CARDPUTER_PENDING_CAPACITY = 2;
 
 enum CardputerKeyRole {
     CARDPUTER_KEY_CHAR,
-    CARDPUTER_KEY_TAB,
     CARDPUTER_KEY_FN,
     CARDPUTER_KEY_SHIFT,
     CARDPUTER_KEY_CTRL,
     CARDPUTER_KEY_OPT,
     CARDPUTER_KEY_ALT,
     CARDPUTER_KEY_DEL,
-    CARDPUTER_KEY_ENTER,
-    CARDPUTER_KEY_SPACE,
 };
 
 struct CardputerKeyDef {
@@ -56,12 +51,12 @@ struct CardputerKeyDef {
 static const CardputerKeyDef cardputer_key_map[CARDPUTER_ROWS][CARDPUTER_COLS] = {
     { K('`', '~'), K('1', '!'), K('2', '@'), K('3', '#'), K('4', '$'), K('5', '%'), K('6', '^'),
       K('7', '&'), K('8', '*'), K('9', '('), K('0', ')'), K('-', '_'), K('=', '+'), { CARDPUTER_KEY_DEL, 0, 0 } },
-    { { CARDPUTER_KEY_TAB, 0, 0 }, K('q', 'Q'), K('w', 'W'), K('e', 'E'), K('r', 'R'), K('t', 'T'), K('y', 'Y'),
+    { K('\t', '\t'), K('q', 'Q'), K('w', 'W'), K('e', 'E'), K('r', 'R'), K('t', 'T'), K('y', 'Y'),
       K('u', 'U'), K('i', 'I'), K('o', 'O'), K('p', 'P'), K('[', '{'), K(']', '}'), K('\\', '|') },
     { { CARDPUTER_KEY_FN, 0, 0 }, { CARDPUTER_KEY_SHIFT, 0, 0 }, K('a', 'A'), K('s', 'S'), K('d', 'D'), K('f', 'F'), K('g', 'G'),
-      K('h', 'H'), K('j', 'J'), K('k', 'K'), K('l', 'L'), K(';', ':'), K('\'', '"'), { CARDPUTER_KEY_ENTER, 0, 0 } },
+      K('h', 'H'), K('j', 'J'), K('k', 'K'), K('l', 'L'), K(';', ':'), K('\'', '"'), K('\r', '\r') },
     { { CARDPUTER_KEY_CTRL, 0, 0 }, { CARDPUTER_KEY_OPT, 0, 0 }, { CARDPUTER_KEY_ALT, 0, 0 }, K('z', 'Z'), K('x', 'X'), K('c', 'C'), K('v', 'V'),
-      K('b', 'B'), K('n', 'N'), K('m', 'M'), K(',', '<'), K('.', '>'), K('/', '?'), { CARDPUTER_KEY_SPACE, 0, 0 } },
+      K('b', 'B'), K('n', 'N'), K('m', 'M'), K(',', '<'), K('.', '>'), K('/', '?'), K(' ', ' ') },
 };
 
 #undef K
@@ -74,8 +69,8 @@ struct CardputerKeyboardPendingEvent {
 struct CardputerKeyboardInternal {
     GpioDescriptor* output_descriptors[CARDPUTER_OUTPUT_COUNT];
     GpioDescriptor* input_descriptors[CARDPUTER_INPUT_COUNT];
-    // 0 when no actionable key is currently held; otherwise the LVGL key code last reported
-    // via read_key(). Only ever one actionable key at a time (matches original hardware driver:
+    // 0 when no actionable key is currently held; otherwise the key (Unicode codepoint) last
+    // reported via read_key(). Only ever one actionable key at a time (matches original hardware driver:
     // modifier keys are consumed internally, and only the first non-modifier key found in a
     // scan is reported).
     uint32_t active_key;
@@ -195,13 +190,10 @@ static uint8_t read_input(CardputerKeyboardInternal* internal) {
     return mask;
 }
 
-// Scans the full matrix and resolves it to a single LVGL key code (0 if none), applying the
-// same priority as the original driver: enter > space > backspace > first regular character
-// found in scan order, with fn changing the interpretation of backspace/enter/punctuation.
-// Modifier keys (fn/shift/ctrl/opt/alt/tab) are never reported themselves.
+// Scans the full matrix and resolves it to a Unicode codepoint
 static uint32_t scan_key(CardputerKeyboardInternal* internal) {
     bool fn = false, shift = false, ctrl = false;
-    bool del_flag = false, enter_flag = false, space_flag = false;
+    bool del_flag = false;
     bool has_regular = false;
     char regular_normal = 0, regular_shifted = 0;
 
@@ -223,7 +215,6 @@ static uint32_t scan_key(CardputerKeyboardInternal* internal) {
             const auto& def = cardputer_key_map[row][col];
 
             switch (def.role) {
-                case CARDPUTER_KEY_TAB:
                 case CARDPUTER_KEY_OPT:
                 case CARDPUTER_KEY_ALT:
                     break; // consumed, never affects output
@@ -239,12 +230,6 @@ static uint32_t scan_key(CardputerKeyboardInternal* internal) {
                 case CARDPUTER_KEY_DEL:
                     del_flag = true;
                     break;
-                case CARDPUTER_KEY_ENTER:
-                    enter_flag = true;
-                    break;
-                case CARDPUTER_KEY_SPACE:
-                    space_flag = true;
-                    break;
                 case CARDPUTER_KEY_CHAR:
                     if (!has_regular) {
                         has_regular = true;
@@ -259,24 +244,22 @@ static uint32_t scan_key(CardputerKeyboardInternal* internal) {
     char resolved_char = has_regular ? ((ctrl || shift) ? regular_shifted : regular_normal) : 0;
 
     if (!fn) {
-        if (enter_flag) return LV_KEY_ENTER;
-        if (space_flag) return (uint32_t)' ';
-        if (del_flag) return LV_KEY_BACKSPACE;
-        if (has_regular) return (uint32_t)(uint8_t)resolved_char;
+        if (del_flag) return CODEPOINT_BACKSPACE;
+        if (has_regular) return (uint32_t)resolved_char;
         return 0;
     }
 
-    // fn combos: forward-delete, enter, and group navigation (using PREV/NEXT rather than
-    // UP/DOWN so widgets like lv_switch that toggle on arrow keys aren't affected).
-    if (del_flag) return LV_KEY_DEL;
-    if (enter_flag) return LV_KEY_ENTER;
+    // fn combos: forward-delete, enter, and group navigation (using the tab-to-bar codepoints
+    // rather than arrow codepoints so widgets like lv_switch that toggle on arrow keys aren't
+    // affected).
+    if (del_flag) return CODEPOINT_DELETE;
     if (has_regular) {
         switch (resolved_char) {
-            case '`': return LV_KEY_ESC;
-            case ',': return LV_KEY_LEFT;
-            case '/': return LV_KEY_RIGHT;
-            case ';': return LV_KEY_PREV;
-            case '.': return LV_KEY_NEXT;
+            case '`': return CODEPOINT_ESCAPE;
+            case ',': return CODEPOINT_ARROW_LEFT;
+            case '/': return CODEPOINT_ARROW_RIGHT;
+            case ';': return CODEPOINT_ARROW_UP;
+            case '.': return CODEPOINT_ARROW_DOWN;
             default: return 0;
         }
     }

@@ -17,8 +17,6 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
-#include <lvgl.h>
-
 #include <cstdlib>
 #include <cstring>
 
@@ -119,36 +117,38 @@ static constexpr HidMapping KEY_MATRIX_HID_SYM[70] = {
 };
 
 // ---------------------------------------------------------------------------
-// HID usage code + modifier → LVGL key
-// Covers all codes present in the Tab5 matrix tables above. LV_KEY_* are plain uint32_t
-// constants - matching KeyboardKeyData::key's driver-defined contract and the same convention
-// m5stack-module's cardputer_keyboard.cpp kernel driver already uses.
+// HID usage code + modifier → key (Unicode codepoint)
+// Covers all codes present in the Tab5 matrix tables above. Every key returns a real Unicode
+// codepoint per KeyboardKeyData::key's contract - never an LV_KEY_* constant. Keys with no
+// ordinary character of their own (arrows, Tab/Shift+Tab and Ctrl+arrow as focus nav) use the
+// CodePoint enum's standard Unicode symbols for the concept (CODEPOINT_FOCUS_PREV/NEXT reused for
+// Ctrl+arrow's focus-move aliases). lvgl-module's keyboard.cpp translates all of these back to
+// LVGL's own sentinels (CODEPOINT_ESCAPE/BACKSPACE/DELETE already equal their LV_KEY_* counterpart
+// numerically, so no translation is needed for those).
 //
-// `ctrl` only selects the LVGL focus-navigation aliases for the arrow keys. Ctrl chords on
-// ordinary keys are NOT folded into the returned value - the C0 control codes a terminal wants
-// (Ctrl+C = 0x03, Ctrl+K = 0x0B, ...) collide with the LVGL constants returned here (LV_KEY_END = 3,
-// LV_KEY_PREV = 11, ...), so Ctrl is reported out-of-band via KeyboardKeyData::ctrl instead and
-// consumers that want control codes derive them themselves.
+// Ctrl chords on ordinary keys are NOT folded into the returned value - the C0 control codes a
+// terminal wants (Ctrl+C = 0x03, Ctrl+K = 0x0B, ...) would collide with a codepoint-based scheme,
+// so Ctrl is reported out-of-band via KeyboardKeyData::ctrl instead and consumers that want
+// control codes derive them themselves.
 // ---------------------------------------------------------------------------
 static uint32_t tab5_translate_key(uint8_t keycode, uint8_t modifier, bool ctrl) {
     const bool shift = (modifier & 0x22U) != 0U;
 
-    // Navigation → LVGL key constants
+    // Navigation → key (Unicode codepoint)
     switch (keycode) {
-        case 0x29: return LV_KEY_ESC;
-        case 0x28: return LV_KEY_ENTER;
-        case 0x2A: return LV_KEY_BACKSPACE;
-        case 0x4C: return LV_KEY_DEL;
-        case 0x2B: return '\t';
-        // Arrows: Ctrl+arrow = focus navigation, plain arrow = raw cursor movement
-        case 0x52: return ctrl ? (uint32_t)LV_KEY_PREV : (uint32_t)LV_KEY_UP;
-        case 0x51: return ctrl ? (uint32_t)LV_KEY_NEXT : (uint32_t)LV_KEY_DOWN;
-        case 0x50: return ctrl ? (uint32_t)LV_KEY_PREV : (uint32_t)LV_KEY_LEFT;
-        case 0x4F: return ctrl ? (uint32_t)LV_KEY_NEXT : (uint32_t)LV_KEY_RIGHT;
+        case 0x29: return CODEPOINT_ESCAPE;
+        case 0x28: return CODEPOINT_ENTER;
+        case 0x2A: return CODEPOINT_BACKSPACE;
+        case 0x4C: return CODEPOINT_DELETE;
+        case 0x2B: return CODEPOINT_TAB;
+        case 0x52: return CODEPOINT_ARROW_UP;
+        case 0x51: return CODEPOINT_ARROW_DOWN;
+        case 0x50: return CODEPOINT_ARROW_LEFT;
+        case 0x4F: return CODEPOINT_ARROW_RIGHT;
         default: break;
     }
 
-    // F1-F12 (Sym layer over the number row) have no LVGL/ASCII representation - callers that
+    // F1-F12 (Sym layer over the number row) have no Unicode/LVGL representation - callers that
     // want them read KeyboardKeyData::hid_keycode instead (see drain_events()), which is
     // populated for every key regardless of whether `key` itself has a meaningful value.
 
@@ -378,9 +378,9 @@ static void drain_events(Device* device, Tab5KeyboardInternal* internal) {
                 if (internal->ctrl_held) modifier |= 0x01U; // HID LeftCtrl
                 if (internal->alt_held) modifier |= 0x04U;  // HID LeftAlt
                 const uint32_t lv_key = tab5_translate_key(m.keycode, modifier, internal->ctrl_held);
-                // Queue whenever there's a HID keycode, even if this key has no LVGL/ASCII
+                // Queue whenever there's a HID keycode, even if this key has no Unicode/LVGL
                 // representation (e.g. F1-F12) - lv_key stays 0 for those, callers that only
-                // care about LVGL/ASCII text ignore a 0 key the same way they always have.
+                // care about the codepoint ignore a 0 key the same way they always have.
                 if (pressed) {
                     // A real key was pressed — this hold is a chord, not a tap
                     internal->aa_tapped = false;

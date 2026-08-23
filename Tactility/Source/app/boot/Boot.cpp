@@ -273,7 +273,6 @@ void runBootSequence(TickType_t startTime) {
 #endif
 
     if (!setupUsbBootMode()) {
-        LOG_I(TAG, "initFromBootApp");
         registerApps();
         waitForMinimalSplashDuration(startTime);
         startNextApp();

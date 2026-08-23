@@ -21,9 +21,12 @@ struct LvglSoftwareKeyboard {
  * @warning Caller must hold the LVGL lock (see lvgl_lock() in lvgl_module.h) — call this from
  * LvglModuleConfig.on_start, or after calling lvgl_lock() explicitly.
  *
+ * @note Idempotent per device: if an indev is already bound to this device (see
+ * lvgl_keyboard_find_by_device()), that indev is returned instead of creating a second one.
+ *
  * @param[in] device a device of type KEYBOARD_TYPE
  * @param[in] display the display this indev should be associated with, or NULL to leave it unset
- * @param[out] out_indev the created indev, valid only when ERROR_NONE is returned
+ * @param[out] out_indev the created (or already-existing) indev, valid only when ERROR_NONE is returned
  * @retval ERROR_NONE on success
  * @retval ERROR_INVALID_ARGUMENT if device or out_indev is NULL, or device is not of type KEYBOARD_TYPE
  * @retval ERROR_OUT_OF_MEMORY if allocation failed
@@ -35,6 +38,14 @@ error_t lvgl_keyboard_add(struct Device* device, lv_display_t* display, lv_indev
  * @warning Caller must hold the LVGL lock.
  */
 void lvgl_keyboard_remove(lv_indev_t* indev);
+
+/**
+ * @brief Finds the indev previously created with lvgl_keyboard_add() for the given device, if any.
+ * @warning Caller must hold the LVGL lock.
+ * @param[in] device a device of type KEYBOARD_TYPE
+ * @return the bound indev, or NULL if none is bound to this device
+ */
+lv_indev_t* lvgl_keyboard_find_by_device(struct Device* device);
 
 /**
  * @brief Assigns the indev to the shared keyboard input group, so it can drive focus

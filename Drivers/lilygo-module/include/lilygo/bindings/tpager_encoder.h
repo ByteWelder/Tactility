@@ -1,7 +1,0 @@
-// SPDX-License-Identifier: Apache-2.0
-#pragma once
-
-#include <tactility/bindings/bindings.h>
-#include <lilygo/drivers/tpager_encoder.h>
-
-DEFINE_DEVICETREE(tpager_encoder, struct TpagerEncoderConfig)

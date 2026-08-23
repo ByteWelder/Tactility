@@ -167,7 +167,9 @@ static error_t claim(struct Device* device, enum UsbDeviceClass usb_class, const
         return ERROR_INVALID_STATE;
     }
 
-    const bool cdc_enabled = is_cdc_enabled(device);
+    // MSC is deliberately excluded from CDC compositing as it doesn't work on Tab5/P4 devices.
+    // It could be re-enabled for other architectures after more extensive future testing.
+    const bool cdc_enabled = usb_class != USB_DEVICE_CLASS_MSC && is_cdc_enabled(device);
 
     // ---- String table: primary's table, plus CDC's own interface string appended last.
     size_t string_count = config->string_descriptor_count;
