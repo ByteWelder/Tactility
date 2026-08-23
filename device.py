@@ -192,6 +192,10 @@ def write_spiram_variables(output_file, device_properties: dict):
     output_file.write("CONFIG_SPIRAM_MEMTEST=n\n")
     # Enable
     output_file.write("CONFIG_SPIRAM=y\n")
+    # Defaults to n on the classic ESP32 target (unlike S2/S3/etc), but Tactility relies on it
+    # to put some task stacks in SPIRAM (see UsbHidInput.cpp) - without it, xTaskCreateStatic()
+    # asserts at runtime when handed a SPIRAM-backed stack buffer.
+    output_file.write("CONFIG_FREERTOS_TASK_CREATE_ALLOW_EXT_MEM=y\n")
     output_file.write(f"CONFIG_{idf_target.upper()}_SPIRAM_SUPPORT=y\n")
     mode = get_property_or_exit(device_properties, "hardware.spiRamMode")
     if mode == "OPI":
