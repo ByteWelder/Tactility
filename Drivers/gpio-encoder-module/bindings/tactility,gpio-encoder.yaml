@@ -21,9 +21,13 @@ properties:
     description: Optional click/enter button GPIO pin (active low)
   pulses-per-detent:
     type: int
+    min: 1
+    max: 255
     default: 4
     description: Quadrature pulses per mechanical detent
   pending-capacity:
     type: int
+    min: 2
+    max: 255
     default: 16
-    description: Capacity of the queue buffering key events between read_key() polls
+    description: Capacity of the queue buffering key events between read_key() polls. Must be at least 2 to hold one wheel press/release pair.

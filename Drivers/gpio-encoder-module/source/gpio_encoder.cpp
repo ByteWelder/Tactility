@@ -24,6 +24,8 @@ struct GpioEncoderPendingEvent {
 
 struct GpioEncoderInternal {
     pcnt_unit_handle_t pcnt_unit = nullptr;
+    GpioDescriptor* pin_a = nullptr;
+    GpioDescriptor* pin_b = nullptr;
     GpioDescriptor* pin_enter = nullptr;
     int32_t pulse_remainder = 0;
     bool button_pressed = false;
@@ -34,14 +36,15 @@ struct GpioEncoderInternal {
     uint32_t pending_count = 0;
 };
 
-static void push_pending(GpioEncoderInternal* internal, uint32_t key, bool pressed) {
+static bool push_pending(GpioEncoderInternal* internal, uint32_t key, bool pressed) {
     if (internal->pending_count >= internal->pending_capacity) {
         LOG_W(TAG, "Pending event queue full, dropping event");
-        return;
+        return false;
     }
     uint32_t tail = (internal->pending_head + internal->pending_count) % internal->pending_capacity;
     internal->pending[tail] = { .key = key, .pressed = pressed };
     internal->pending_count++;
+    return true;
 }
 
 static bool pop_pending(GpioEncoderInternal* internal, GpioEncoderPendingEvent* out_event) {
@@ -64,7 +67,7 @@ extern "C" {
 static constexpr int PCNT_LOW_LIMIT = -127;
 static constexpr int PCNT_HIGH_LIMIT = 126;
 
-static error_t init_pcnt_unit(const GpioEncoderConfig* config, pcnt_unit_handle_t* out_unit) {
+static error_t init_pcnt_unit(int pin_a, int pin_b, pcnt_unit_handle_t* out_unit) {
     pcnt_unit_config_t unit_config = {
         .low_limit = PCNT_LOW_LIMIT,
         .high_limit = PCNT_HIGH_LIMIT,
@@ -86,13 +89,13 @@ static error_t init_pcnt_unit(const GpioEncoderConfig* config, pcnt_unit_handle_
     }
 
     pcnt_chan_config_t chan_a_config = {
-        .edge_gpio_num = static_cast<int>(config->pin_b.pin),
-        .level_gpio_num = static_cast<int>(config->pin_a.pin),
+        .edge_gpio_num = pin_b,
+        .level_gpio_num = pin_a,
         .flags = {},
     };
     pcnt_chan_config_t chan_b_config = {
-        .edge_gpio_num = static_cast<int>(config->pin_a.pin),
-        .level_gpio_num = static_cast<int>(config->pin_b.pin),
+        .edge_gpio_num = pin_a,
+        .level_gpio_num = pin_b,
         .flags = {},
     };
 
@@ -142,6 +145,17 @@ static error_t init_pcnt_unit(const GpioEncoderConfig* config, pcnt_unit_handle_
 static error_t start(Device* device) {
     const auto* config = GET_CONFIG(device);
 
+    // Backstop for values the devicetree compiler doesn't currently validate: 0 divides by
+    // zero in poll_wheel(), and a capacity below 2 can never hold one press/release pair.
+    if (config->pulses_per_detent == 0) {
+        LOG_E(TAG, "pulses_per_detent must be > 0");
+        return ERROR_INVALID_ARGUMENT;
+    }
+    if (config->pending_capacity < 2) {
+        LOG_E(TAG, "pending_capacity must be >= 2");
+        return ERROR_INVALID_ARGUMENT;
+    }
+
     auto* internal = new (std::nothrow) GpioEncoderInternal();
     if (internal == nullptr) {
         return ERROR_OUT_OF_MEMORY;
@@ -155,8 +169,39 @@ static error_t start(Device* device) {
         return ERROR_OUT_OF_MEMORY;
     }
 
-    error_t error = init_pcnt_unit(config, &internal->pcnt_unit);
+    internal->pin_a = gpio_descriptor_acquire(config->pin_a.gpio_controller, config->pin_a.pin, config->pin_a.flags | GPIO_FLAG_DIRECTION_INPUT, GPIO_OWNER_GPIO);
+    if (internal->pin_a == nullptr) {
+        LOG_E(TAG, "Failed to acquire pin_a");
+        delete[] internal->pending;
+        delete internal;
+        return ERROR_RESOURCE;
+    }
+
+    internal->pin_b = gpio_descriptor_acquire(config->pin_b.gpio_controller, config->pin_b.pin, config->pin_b.flags | GPIO_FLAG_DIRECTION_INPUT, GPIO_OWNER_GPIO);
+    if (internal->pin_b == nullptr) {
+        LOG_E(TAG, "Failed to acquire pin_b");
+        gpio_descriptor_release(internal->pin_a);
+        delete[] internal->pending;
+        delete internal;
+        return ERROR_RESOURCE;
+    }
+
+    int native_pin_a = 0;
+    int native_pin_b = 0;
+    if (gpio_descriptor_get_native_pin_number(internal->pin_a, &native_pin_a) != ERROR_NONE ||
+        gpio_descriptor_get_native_pin_number(internal->pin_b, &native_pin_b) != ERROR_NONE) {
+        LOG_E(TAG, "Failed to resolve native pin numbers");
+        gpio_descriptor_release(internal->pin_b);
+        gpio_descriptor_release(internal->pin_a);
+        delete[] internal->pending;
+        delete internal;
+        return ERROR_RESOURCE;
+    }
+
+    error_t error = init_pcnt_unit(native_pin_a, native_pin_b, &internal->pcnt_unit);
     if (error != ERROR_NONE) {
+        gpio_descriptor_release(internal->pin_b);
+        gpio_descriptor_release(internal->pin_a);
         delete[] internal->pending;
         delete internal;
         return error;
@@ -167,6 +212,8 @@ static error_t start(Device* device) {
         if (internal->pin_enter == nullptr) {
             pcnt_unit_stop(internal->pcnt_unit);
             pcnt_del_unit(internal->pcnt_unit);
+            gpio_descriptor_release(internal->pin_b);
+            gpio_descriptor_release(internal->pin_a);
             delete[] internal->pending;
             delete internal;
             return ERROR_RESOURCE;
@@ -191,6 +238,9 @@ static error_t stop(Device* device) {
         LOG_W(TAG, "Failed to delete encoder");
     }
 
+    gpio_descriptor_release(internal->pin_b);
+    gpio_descriptor_release(internal->pin_a);
+
     device_set_driver_data(device, nullptr);
     delete[] internal->pending;
     delete internal;
@@ -213,7 +263,14 @@ static void poll_wheel(GpioEncoderInternal* internal) {
     internal->pulse_remainder = total % internal->pulses_per_detent;
 
     uint32_t key = detents >= 0 ? CODEPOINT_ARROW_DOWN : CODEPOINT_ARROW_UP;
-    for (int32_t i = 0; i < (detents >= 0 ? detents : -detents); i++) {
+    int32_t count = detents >= 0 ? detents : -detents;
+    for (int32_t i = 0; i < count; i++) {
+        // A press without its matching release would leave the consumer thinking the key
+        // is stuck down, so only enqueue the pair when both fit.
+        if (internal->pending_count + 2 > internal->pending_capacity) {
+            LOG_W(TAG, "Pending event queue full, dropping remaining wheel events");
+            break;
+        }
         push_pending(internal, key, true);
         push_pending(internal, key, false);
     }
@@ -228,9 +285,13 @@ static void poll_button(GpioEncoderInternal* internal) {
     if (gpio_descriptor_get_level(internal->pin_enter, &pressed) != ERROR_NONE) {
         return;
     }
+    // Only commit the new state once its event is actually queued - a full FIFO here
+    // leaves button_pressed unchanged so the same transition is retried next poll instead
+    // of being lost.
     if (pressed != internal->button_pressed) {
-        internal->button_pressed = pressed;
-        push_pending(internal, CODEPOINT_ENTER, pressed);
+        if (push_pending(internal, CODEPOINT_ENTER, pressed)) {
+            internal->button_pressed = pressed;
+        }
     }
 }
 

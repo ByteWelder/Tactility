@@ -9,10 +9,16 @@ namespace {
 
 uint32_t toHeapCaps(uint16_t capabilityFlags) {
     uint32_t caps = 0;
-    // MALLOC_CAP_INTERNAL alone can be satisfied by IRAM (tagged INTERNAL on ESP32's heap
-    // layout), which is word-only and fails FreeRTOS's byte-accessibility checks for things
-    // like a static task's TCB. 8BIT keeps this capability meaning genuinely internal RAM.
-    if (capabilityFlags & MEMORY_CAPABILITY_INTERNAL) caps |= MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT;
+    if (capabilityFlags & MEMORY_CAPABILITY_INTERNAL) {
+        caps |= MALLOC_CAP_INTERNAL;
+        // MALLOC_CAP_INTERNAL alone can be satisfied by IRAM (tagged INTERNAL on ESP32's heap
+        // layout), which is word-only and fails FreeRTOS's byte-accessibility checks for things
+        // like a static task's TCB. 8BIT keeps this capability meaning genuinely byte-accessible
+        // internal RAM - but skip it when EXECUTABLE is also requested, since executable IRAM
+        // isn't 8-bit accessible on some ESP32 targets and combining both caps could make an
+        // otherwise-satisfiable request (plain executable internal memory) fail outright.
+        if (!(capabilityFlags & MEMORY_CAPABILITY_EXECUTABLE)) caps |= MALLOC_CAP_8BIT;
+    }
     if (capabilityFlags & MEMORY_CAPABILITY_EXTERNAL) caps |= MALLOC_CAP_SPIRAM;
     if (capabilityFlags & MEMORY_CAPABILITY_EXECUTABLE) caps |= MALLOC_CAP_EXEC;
     if (capabilityFlags & MEMORY_CAPABILITY_DMA) caps |= MALLOC_CAP_DMA;

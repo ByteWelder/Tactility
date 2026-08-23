@@ -8,4 +8,5 @@ tactility_add_module(gpio-encoder-module
     SRCS ${SOURCE_FILES}
     INCLUDE_DIRS include/
     REQUIRES TactilityKernel driver
+    PRIV_REQUIRES esp_driver_pcnt
 )
