@@ -66,21 +66,31 @@ int32_t fake_run(void*, uint32_t app_instance_id, int argc, char* argv[]) {
         return static_cast<int32_t>(strtol(argv[0], nullptr, 10));
     }
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
     sub.app_instance_id = app_instance_id;
-    app_event_subscribe(&sub);
+    app_event_subscribe(&sub, &event_group);
 
     while (true) {
-        AppEvent event {};
-        if (app_event_await(&sub, &event, pdMS_TO_TICKS(5000)) != ERROR_NONE) {
+        if (task_event_group_wait_any(&event_group, nullptr, pdMS_TO_TICKS(5000)) != ERROR_NONE) {
             break; // safety net so a bug here can't hang the test suite
         }
-        if (event.type == APP_EVENT_CLOSE) {
-            break;
+
+        bool done = false;
+        AppEvent event {};
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            if (event.type == APP_EVENT_CLOSE) {
+                done = true;
+                break;
+            }
         }
+        if (done) break;
     }
 
     app_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
     return 0;
 }
 
@@ -329,9 +339,12 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
     REQUIRE_EQ(app_manager_start("test.app.parent", &parent_id), ERROR_NONE);
     CHECK(wait_for_state(parent_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
+    TaskEventGroup parent_event_group {};
+    task_event_group_construct(&parent_event_group);
+
     AppEventSubscription parent_sub {};
     parent_sub.app_instance_id = parent_id;
-    REQUIRE_EQ(app_event_subscribe(&parent_sub), ERROR_NONE);
+    REQUIRE_EQ(app_event_subscribe(&parent_sub, &parent_event_group), ERROR_NONE);
 
     const char* argv[] = { "42" };
     uint32_t child_id = 0;
@@ -340,13 +353,15 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
     // Launching a modal child never touches the parent's own task/state.
     CHECK_EQ(app_manager_get_state(parent_id), APP_INSTANCE_STATE_ACTIVE);
 
+    REQUIRE_EQ(task_event_group_wait(&parent_event_group, parent_sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
     AppEvent event {};
-    REQUIRE_EQ(app_event_await(&parent_sub, &event, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    REQUIRE_EQ(app_event_poll(&parent_sub, &event), ERROR_NONE);
     CHECK_EQ(event.type, APP_EVENT_RESULT);
     CHECK_EQ(event.result.launch_id, child_id);
     CHECK_EQ(event.result.result, 42);
 
     app_event_unsubscribe(&parent_sub);
+    task_event_group_destruct(&parent_event_group);
     app_manager_stop(child_id);
     app_manager_stop(parent_id);
     app_manager_remove("test.app.parent");
@@ -365,9 +380,12 @@ TEST_CASE("app_manager_start_for_result delivers the child's own return value as
     REQUIRE_EQ(app_manager_start("test.app.parent2", &parent_id), ERROR_NONE);
     CHECK(wait_for_state(parent_id, APP_INSTANCE_STATE_ACTIVE, 1000));
 
+    TaskEventGroup parent_event_group {};
+    task_event_group_construct(&parent_event_group);
+
     AppEventSubscription parent_sub {};
     parent_sub.app_instance_id = parent_id;
-    REQUIRE_EQ(app_event_subscribe(&parent_sub), ERROR_NONE);
+    REQUIRE_EQ(app_event_subscribe(&parent_sub, &parent_event_group), ERROR_NONE);
 
     uint32_t child_id = 0;
     // No parameters - fake_run falls through to its normal CLOSE loop instead of acting as a
@@ -377,13 +395,15 @@ TEST_CASE("app_manager_start_for_result delivers the child's own return value as
 
     app_manager_stop(child_id); // force-close
 
+    REQUIRE_EQ(task_event_group_wait(&parent_event_group, parent_sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
     AppEvent event {};
-    REQUIRE_EQ(app_event_await(&parent_sub, &event, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    REQUIRE_EQ(app_event_poll(&parent_sub, &event), ERROR_NONE);
     CHECK_EQ(event.type, APP_EVENT_RESULT);
     CHECK_EQ(event.result.launch_id, child_id);
     CHECK_EQ(event.result.result, 0); // fake_run's CLOSE loop always returns 0
 
     app_event_unsubscribe(&parent_sub);
+    task_event_group_destruct(&parent_event_group);
     app_manager_stop(parent_id);
     app_manager_remove("test.app.parent2");
     app_manager_remove("test.app.child2");

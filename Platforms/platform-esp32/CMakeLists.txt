@@ -14,7 +14,7 @@ idf_component_register(
     SRCS ${SOURCES}
     INCLUDE_DIRS "include/"
     PRIV_INCLUDE_DIRS "private/"
-    REQUIRES TactilityKernel driver esp_adc esp_driver_i2c esp_lcd vfs fatfs esp_wifi esp_netif esp_event
+    REQUIRES TactilityKernel TactilityKernelCpp driver esp_adc esp_driver_i2c esp_lcd vfs fatfs esp_wifi esp_netif esp_event
     PRIV_REQUIRES ${PRIV_REQUIRES_LIST}
 )
 

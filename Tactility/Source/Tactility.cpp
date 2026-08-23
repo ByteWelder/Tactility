@@ -519,7 +519,6 @@ void run(Module* const dtsModules[], const DtsDevice dtsDevices[]) {
         .on_start = onLvglStarted,
         .on_stop = onLvglStopped,
         .task_priority = THREAD_PRIORITY_HIGHER,
-        // TODO: Remove Wi-Fi driver callback mechanism and use subscribe/await from wifi app to be able to reduce callstack
         .task_stack_size = 9120,
 #ifdef ESP_PLATFORM
         .task_affinity = getCpuAffinityConfiguration().graphics

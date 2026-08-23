@@ -41,6 +41,12 @@ struct Esp32WifiPinnedCtx {
 };
 
 #define GET_CTX(device) (static_cast<Esp32WifiPinnedCtx*>(device_get_driver_data(device)))
+// Only for event_subscribe()/event_unsubscribe(): unlike the rest of WifiApi, have
+// construct/destruct side effects on sub->ring_mutex at the wifi_event_subscribe()/
+// wifi_event_unsubscribe() kernel-wrapper layer (see wifi.cpp) - calling that wrapper AGAIN here
+// (instead of the child driver's raw vtable entry) double-runs those side effects, corrupting the
+// mutex. Every other WifiApi call below is a plain pass-through.
+#define CHILD_WIFI_API(child) ((const struct WifiApi*)device_get_driver(child)->api)
 
 struct MarshalledCall {
     const std::function<void()>* work;
@@ -176,19 +182,43 @@ error_t api_station_get_rssi(Device* device, int32_t* rssi) {
     return wifi_station_get_rssi(ctx->child, rssi);
 }
 
-error_t api_add_event_callback(Device* device, void* callback_context, WifiEventCallback callback) {
+error_t api_event_subscribe(Device* device, WifiEventSubscription* sub, TaskEventGroup* event_group) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
-    return wifi_add_event_callback(ctx->child, callback_context, callback);
+    return CHILD_WIFI_API(ctx->child)->event_subscribe(ctx->child, sub, event_group);
 }
 
-error_t api_remove_event_callback(Device* device, WifiEventCallback callback) {
+error_t api_event_unsubscribe(Device* device, WifiEventSubscription* sub) {
     auto* ctx = GET_CTX(device);
     if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
-    return wifi_remove_event_callback(ctx->child, callback);
+    return CHILD_WIFI_API(ctx->child)->event_unsubscribe(ctx->child, sub);
 }
 
 // ---- WifiApi: state-changing calls are marshalled onto the pinned WiFi task ----
+
+error_t api_set_radio_on(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
+
+    error_t result = ERROR_NONE;
+    Device* child = ctx->child;
+    error_t err = run_on_pinned_thread(ctx, [child, &result]() {
+        result = wifi_set_radio_on(child);
+    });
+    return err != ERROR_NONE ? err : result;
+}
+
+error_t api_set_radio_off(Device* device) {
+    auto* ctx = GET_CTX(device);
+    if (ctx == nullptr || ctx->child == nullptr) return ERROR_INVALID_STATE;
+
+    error_t result = ERROR_NONE;
+    Device* child = ctx->child;
+    error_t err = run_on_pinned_thread(ctx, [child, &result]() {
+        result = wifi_set_radio_off(child);
+    });
+    return err != ERROR_NONE ? err : result;
+}
 
 error_t api_scan(Device* device) {
     auto* ctx = GET_CTX(device);
@@ -227,6 +257,8 @@ error_t api_station_disconnect(Device* device) {
 }
 
 const WifiApi esp32_wifi_pinned_api = {
+    .set_radio_on = api_set_radio_on,
+    .set_radio_off = api_set_radio_off,
     .get_radio_state = api_get_radio_state,
     .get_station_state = api_get_station_state,
     .get_access_point_state = api_get_access_point_state,
@@ -238,15 +270,15 @@ const WifiApi esp32_wifi_pinned_api = {
     .station_connect = api_station_connect,
     .station_disconnect = api_station_disconnect,
     .station_get_rssi = api_station_get_rssi,
-    .add_event_callback = api_add_event_callback,
-    .remove_event_callback = api_remove_event_callback
+    .event_subscribe = api_event_subscribe,
+    .event_unsubscribe = api_event_unsubscribe
 };
 
 // ---- Driver lifecycle ----
-// Starting/stopping the child (which brings the ESP-IDF WiFi stack up/down)
-// also happens on the pinned thread, since esp_wifi_init/start/stop/deinit
-// are subject to the same core-affinity requirement as the state-changing
-// WifiApi calls above.
+// Starting/stopping the child (allocating/freeing its bookkeeping - see esp32_wifi.cpp's own
+// start_device()/stop_device() comment) happens on the pinned thread for the same core-affinity
+// reason as the state-changing WifiApi calls above; enable()/disable() (which actually bring the
+// ESP-IDF WiFi stack up/down) are marshalled the same way.
 
 error_t start_device(Device* device) {
     auto* ctx = new(std::nothrow) Esp32WifiPinnedCtx();

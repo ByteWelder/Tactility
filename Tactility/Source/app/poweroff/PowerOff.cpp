@@ -136,18 +136,21 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    app_event_subscribe(&sub, &event_group);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
         switch (event.type) {
             case APP_EVENT_CLOSE:
                 shouldClose = true;
@@ -155,10 +158,13 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
             default:
                 break;
         }
+        if (shouldClose) break;
+        }
     }
 
     window_manager_remove(window);
     app_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

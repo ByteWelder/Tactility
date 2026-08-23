@@ -157,44 +157,50 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    app_event_subscribe(&sub, &event_group);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
     bool shouldClose = false;
     while (!shouldClose) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                shouldClose = true;
-                break;
-            case APP_EVENT_RESULT:
-                if (event.result.launch_id == ctx.pendingTimeZoneDialogId) {
-                    ctx.pendingTimeZoneDialogId = 0;
-                    if (event.result.result == 0 /* Ok */) {
-                        const auto name = timezone::getLastName();
-                        LOG_I(TAG, "Result name=%s code=%s", name.c_str(), timezone::getLastCode().c_str());
-                        if (!name.empty()) {
-                            lvgl_lock();
-                            lv_label_set_text(ctx.timeZoneLabel, name.c_str());
-                            lvgl_unlock();
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    shouldClose = true;
+                    break;
+                case APP_EVENT_RESULT:
+                    if (event.result.launch_id == ctx.pendingTimeZoneDialogId) {
+                        ctx.pendingTimeZoneDialogId = 0;
+                        if (event.result.result == 0 /* Ok */) {
+                            const auto name = timezone::getLastName();
+                            LOG_I(TAG, "Result name=%s code=%s", name.c_str(), timezone::getLastCode().c_str());
+                            if (!name.empty()) {
+                                lvgl_lock();
+                                lv_label_set_text(ctx.timeZoneLabel, name.c_str());
+                                lvgl_unlock();
+                            }
                         }
                     }
-                }
-                app_manager_stop(event.result.launch_id);
-                break;
-            default:
-                break;
+                    app_manager_stop(event.result.launch_id);
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
         }
     }
 
     window_manager_remove(window);
     app_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

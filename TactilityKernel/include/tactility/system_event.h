@@ -5,10 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
-#include <tactility/freertos/freertos.h>
-#include <tactility/freertos/semphr.h>
-#include <tactility/freertos/task.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -141,17 +139,9 @@ error_t system_event_emit(
 
 /**
  * Poll subscription: caller-owned node, registered with system_event_subscribe()
- * and polled with system_event_await(). Unlike system_event_callback_t, `event` is a by-value
+ * and polled with system_event_poll(). Unlike system_event_callback_t, `event` is a by-value
  * copy that remains valid for the subscription's lifetime (until the next matching event
  * overwrites it), not just for the duration of a callback.
- * @warning Must be zero-initialized before the first system_event_subscribe() call (e.g.
- * `SystemEventSubscription sub = {};` in C++, `SystemEventSubscription sub = {0};` in C, or
- * static/global storage) - system_event_subscribe() reads `internal.unsubscribe_in_progress`
- * before it writes it, to detect reuse of a node still being torn down by a concurrent
- * system_event_unsubscribe() call; on indeterminate (non-zeroed) storage that read is undefined
- * behavior. Not required again for a later system_event_subscribe() reusing the same node after
- * system_event_unsubscribe() - the fields it depends on are fully owned/maintained by this API
- * from the first successful registration onward.
  */
 struct SystemEventSubscription {
     /** `event.type` is the event type to subscribe to; set by the caller before
@@ -159,36 +149,26 @@ struct SystemEventSubscription {
      * each matching system_event_emit() - see the @warning above. */
     struct SystemEvent event;
 
+    /** Set by system_event_subscribe(). Read-only for the caller: OR it into a
+     * task_event_group_wait() mask (alongside other subscriptions sharing the same
+     * `internal.event_group`) to block on this subscription and other event sources with one
+     * call. */
+    uint32_t bit;
+
     /** Implementation-only bookkeeping; do not read or write directly. */
     struct {
-        /** Own wakeup signal, not the subscribing task's shared default notification value - a
-         * task with more than one poll subscription would otherwise have events for one
-         * subscription wake (and consume the notification meant for) system_event_await()
-         * calls on another. */
-        SemaphoreHandle_t semaphore;
+        /** Caller-owned, borrowed; set by system_event_subscribe(). A task with more than one
+         * poll subscription shares one group across them - each subscription claims its own
+         * bit, so an event for one can't wake (and consume the signal meant for) another. */
+        struct TaskEventGroup* event_group;
 
         uint32_t sequence;
         uint32_t consumed_sequence;
 
-        /** Number of tasks currently blocked in system_event_await() on `semaphore` -
-         * system_event_unsubscribe() waits for this to reach 0 before deleting it, since
-         * FreeRTOS requires no task be blocked on a semaphore when it's deleted. */
-        int waiter_count;
-        /** Set by system_event_unsubscribe() before it gives `semaphore` and waits, so a task
-         * already blocked in system_event_await() bails out (ERROR_INVALID_STATE) instead of
-         * waiting out its full timeout. Reset once system_event_unsubscribe() finishes
-         * draining old awaiters (see unsubscribe_in_progress) - not simply "on the next
-         * system_event_subscribe()", so a fresh registration can never observe a stale `true`
-         * left over from an unsubscribe that hasn't returned yet. */
+        /** Set by system_event_unsubscribe(). Diagnostic only: lets a subsequent
+         * system_event_poll() call report ERROR_INVALID_STATE instead of ERROR_TIMEOUT. Not a
+         * safety mechanism - see system_event_unsubscribe()'s @warning. */
         bool cancelled;
-        /** True from the moment system_event_unsubscribe() unlinks `sub` until it has finished
-         * draining old awaiters and deleted the old semaphore. system_event_subscribe() spins
-         * until this clears before reusing `sub` - otherwise a new registration could reset
-         * waiter_count/cancelled (both shared with the old registration, there being only one
-         * `sub`) out from under the old system_event_unsubscribe() call still relying on them,
-         * or hand out a new semaphore for that same call to then promptly delete instead of the
-         * old one, while an old awaiter is still blocked on the real old semaphore. */
-        bool unsubscribe_in_progress;
 
         struct SystemEventSubscription* next;
     } internal;
@@ -197,52 +177,50 @@ struct SystemEventSubscription {
 /**
  * Register a poll subscription for events of @a sub->type.
  * @warning Does not work in ISR context.
- * @warning On its very first call for a given @a sub, @a sub must have been zero-initialized -
- * see SystemEventSubscription's @warning.
- * @warning If @a sub was just passed to system_event_unsubscribe() (e.g. reusing a node for a
- * new registration) and that call hasn't returned yet on another task, this call blocks
- * (briefly - not for the full duration of anyone's timeout) until it does, before registering -
- * see SystemEventSubscription::internal.unsubscribe_in_progress.
  * @param[in,out] sub subscription to register; caller sets @a sub->type beforehand, owns the
  * storage, and must keep it alive (and stationary) until unsubscribed
+ * @param[in] event_group caller-owned group to wait on; must outlive @a sub (i.e. be
+ * destructed only after system_event_unsubscribe()). To block for an event, call
+ * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the mask,
+ * or use _wait_any() to include every subscription sharing it), then poll with
+ * system_event_poll().
  * @retval ERROR_NONE on success
- * @retval ERROR_OUT_OF_MEMORY failed to allocate the subscription's wakeup semaphore; @a sub
- * was not registered
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
  * @retval ERROR_INVALID_STATE @a sub is already registered
  */
-error_t system_event_subscribe(struct SystemEventSubscription* sub);
+error_t system_event_subscribe(struct SystemEventSubscription* sub, struct TaskEventGroup* event_group);
 
 /**
  * Remove a previously registered poll subscription.
  * @warning Does not work in ISR context.
- * @warning Blocks (briefly - not for the full duration of anyone's timeout) until any task
- * currently blocked in system_event_await() on @a sub has woken up and left, so it's safe to
- * delete the subscription's semaphore before this call returns. A blocked awaiter is woken
- * (with ERROR_INVALID_STATE) as part of this call rather than left to time out on its own.
- * A concurrent system_event_subscribe() reusing the same @a sub waits out this same window
- * (see system_event_subscribe()'s @warning) rather than racing it.
+ * @warning Does not wait for a task concurrently blocked in task_event_group_wait()/
+ * task_event_group_wait_any() on @a sub's bit to leave before releasing that bit - the caller
+ * must ensure no other task is still waiting on @a sub before unsubscribing it. (A blocked task
+ * is still nudged awake as a best-effort courtesy - its subsequent system_event_poll() call will
+ * report ERROR_INVALID_STATE - but this is diagnostic, not a guarantee.)
  * @param[in] sub subscription to remove, as passed to system_event_subscribe()
  * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
  */
 error_t system_event_unsubscribe(struct SystemEventSubscription* sub);
 
 /**
- * Blocks the calling task until a new event arrives for @a sub, or timeout elapses.
+ * Non-blocking: check whether a new event has arrived for @a sub since the last call.
+ * @warning Never blocks. To wait, block in task_event_group_wait()/task_event_group_wait_any()
+ * on @a sub's bit first (see system_event_subscribe()), then call this.
  * @warning Poll subscriptions coalesce to the latest event, they are not a queue: if
  * system_event_emit() is called more than once for @a sub->event.type between two
- * system_event_await() calls, only the most recent event's data/timestamp is visible via
+ * system_event_poll() calls, only the most recent event's data/timestamp is visible via
  * system_event_get_data()/system_event_get_timestamp() afterward - intermediate events are
  * silently overwritten, never delivered. Use system_event_callback_add() instead if every
  * individual event matters.
- * @warning Cannot be called concurrently from different tasks. Each tasks must have its own subscription.
- * @param[in,out] sub subscription to wait on, as passed to system_event_subscribe()
- * @param[in] timeout max ticks to wait
- * @retval ERROR_NONE an event arrived
- * @retval ERROR_TIMEOUT @a timeout elapsed first
- * @retval ERROR_INVALID_STATE another task called system_event_unsubscribe() on @a sub while
- * this call was blocked
+ * @warning Cannot be called concurrently from different tasks. Each task must have its own subscription.
+ * @param[in,out] sub subscription to poll, as passed to system_event_subscribe()
+ * @retval ERROR_NONE a new event arrived - read it via @a sub->event or system_event_get_data()
+ * @retval ERROR_TIMEOUT no new event since the last call
+ * @retval ERROR_INVALID_STATE @a sub was unsubscribed (best-effort diagnostic, not guaranteed -
+ * see system_event_unsubscribe()'s @warning)
  */
-error_t system_event_await(struct SystemEventSubscription* sub, TickType_t timeout);
+error_t system_event_poll(struct SystemEventSubscription* sub);
 
 /**
  * Copies @a sub's current event payload (the data from the most recent system_event_emit()

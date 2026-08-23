@@ -26,12 +26,6 @@ enum class RadioState {
     Off,
 };
 
-/**
- * @brief Get wifi pubsub that broadcasts Event objects
- * @return PubSub
- */
-std::shared_ptr<PubSub<WifiEvent>> getPubsub();
-
 /** @return Get the current radio state */
 RadioState getRadioState();
 

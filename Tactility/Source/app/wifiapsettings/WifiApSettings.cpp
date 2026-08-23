@@ -12,6 +12,7 @@
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <tactility/device.h>
 #include <tactility/log.h>
 
 namespace tt::app::wifiapsettings {
@@ -29,9 +30,14 @@ struct Context {
     lv_obj_t* busySpinner = nullptr;
     lv_obj_t* connectButton = nullptr;
     lv_obj_t* disconnectButton = nullptr;
+    lv_obj_t* autoConnectSwitch = nullptr;
+    lv_obj_t* forgetButton = nullptr;
+    lv_obj_t* autoConnectWrapper = nullptr;
 
     uint32_t forgetDialogId = 0;
-    PubSub<service::wifi::WifiEvent>::SubscriptionHandle wifiSubscription = nullptr;
+    // Set once in appMain() before subscribing, left null if this device has no WiFi driver
+    Device* wifiDevice = nullptr;
+    WifiEventSubscription wifiEventSub {};
 };
 
 
@@ -41,8 +47,7 @@ void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     // Async, non-blocking - must NOT call app_manager_stop() directly here: that bound-waits
     // (thread_join) for this app's own thread to finish, which needs the LVGL lock
-    // (window_manager_remove()) - but this callback runs ON the LVGL task, which would
-    // deadlock against itself.
+    // but this callback runs ON the LVGL task, which would deadlock against itself.
     AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
     app_event_emit(ctx->appInstanceId, &closeEvent);
 }
@@ -104,13 +109,34 @@ void updateBusySpinner(Context* ctx) {
     }
 }
 
+// Touches the filesystem (service::wifi::settings::load()) - callers must not run this on the
+// LVGL task (see updateViews()'s callers).
+void updateAutoConnectSection(Context* ctx) {
+    service::wifi::settings::WifiApSettings settings;
+    if (service::wifi::settings::load(ctx->ssid.c_str(), settings)) {
+        if (settings.autoConnect) {
+            lv_obj_add_state(ctx->autoConnectSwitch, LV_STATE_CHECKED);
+        } else {
+            lv_obj_remove_state(ctx->autoConnectSwitch, LV_STATE_CHECKED);
+        }
+        lv_obj_remove_flag(ctx->forgetButton, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(ctx->autoConnectWrapper, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        LOG_W(TAG, "No settings found");
+        lv_obj_add_flag(ctx->forgetButton, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ctx->autoConnectWrapper, LV_OBJ_FLAG_HIDDEN);
+    }
+}
+
+// Runs on whichever thread calls it, not necessarily the LVGL task
 void updateViews(Context* ctx) {
     if (ctx->connectButton == nullptr) {
-        // Buried (e.g. the forget confirmation dialog opened on top) - see destroyWidgets().
+        // Buried (e.g. the forget confirmation dialog opened on top)
         return;
     }
     updateConnectButton(ctx);
     updateBusySpinner(ctx);
+    updateAutoConnectSection(ctx);
 }
 
 void requestViewUpdate(Context* ctx) {
@@ -119,13 +145,14 @@ void requestViewUpdate(Context* ctx) {
     lvgl_unlock();
 }
 
-// Runs with the LVGL lock already held, possibly on another app's thread - see
-// WindowDestroyWidgetsFn's warnings. Must stay lock-free: only nulls pointers.
 void destroyWidgets(void* userData) {
     auto* ctx = static_cast<Context*>(userData);
     ctx->busySpinner = nullptr;
     ctx->connectButton = nullptr;
     ctx->disconnectButton = nullptr;
+    ctx->autoConnectSwitch = nullptr;
+    ctx->forgetButton = nullptr;
+    ctx->autoConnectWrapper = nullptr;
 }
 
 void createWidgets(lv_obj_t* parent, void* userData) {
@@ -162,43 +189,30 @@ void createWidgets(lv_obj_t* parent, void* userData) {
 
     // Forget
 
-    auto* forget_button = lv_button_create(wrapper);
-    lv_obj_set_width(forget_button, LV_PCT(100));
-    lv_obj_add_event_cb(forget_button, onPressForget, LV_EVENT_SHORT_CLICKED, ctx);
-    auto* forget_button_label = lv_label_create(forget_button);
+    ctx->forgetButton = lv_button_create(wrapper);
+    lv_obj_set_width(ctx->forgetButton, LV_PCT(100));
+    lv_obj_add_event_cb(ctx->forgetButton, onPressForget, LV_EVENT_SHORT_CLICKED, ctx);
+    auto* forget_button_label = lv_label_create(ctx->forgetButton);
     lv_obj_align(forget_button_label, LV_ALIGN_CENTER, 0, 0);
     lv_label_set_text(forget_button_label, "Forget");
+    lv_obj_add_flag(ctx->forgetButton, LV_OBJ_FLAG_HIDDEN); // shown by updateAutoConnectSection()
 
     // Auto-connect
 
-    auto* auto_connect_wrapper = lv_obj_create(wrapper);
-    lv_obj_set_size(auto_connect_wrapper, LV_PCT(100), LV_SIZE_CONTENT);
-    lvgl::obj_set_style_bg_invisible(auto_connect_wrapper);
-    lv_obj_set_style_pad_all(auto_connect_wrapper, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(auto_connect_wrapper, 0, LV_STATE_DEFAULT);
+    ctx->autoConnectWrapper = lv_obj_create(wrapper);
+    lv_obj_set_size(ctx->autoConnectWrapper, LV_PCT(100), LV_SIZE_CONTENT);
+    lvgl::obj_set_style_bg_invisible(ctx->autoConnectWrapper);
+    lv_obj_set_style_pad_all(ctx->autoConnectWrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ctx->autoConnectWrapper, 0, LV_STATE_DEFAULT);
+    lv_obj_add_flag(ctx->autoConnectWrapper, LV_OBJ_FLAG_HIDDEN); // shown by updateAutoConnectSection()
 
-    auto* auto_connect_label = lv_label_create(auto_connect_wrapper);
+    auto* auto_connect_label = lv_label_create(ctx->autoConnectWrapper);
     lv_label_set_text(auto_connect_label, "Auto-connect");
     lv_obj_align(auto_connect_label, LV_ALIGN_LEFT_MID, 0, 0);
 
-    auto* auto_connect_switch = lv_switch_create(auto_connect_wrapper);
-    lv_obj_add_event_cb(auto_connect_switch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, ctx);
-    lv_obj_align(auto_connect_switch, LV_ALIGN_RIGHT_MID, 0, 0);
-
-    service::wifi::settings::WifiApSettings settings;
-    if (service::wifi::settings::load(ctx->ssid.c_str(), settings)) {
-        if (settings.autoConnect) {
-            lv_obj_add_state(auto_connect_switch, LV_STATE_CHECKED);
-        } else {
-            lv_obj_remove_state(auto_connect_switch, LV_STATE_CHECKED);
-        }
-    } else {
-        LOG_W(TAG, "No settings found");
-        lv_obj_add_flag(forget_button, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(auto_connect_wrapper, LV_OBJ_FLAG_HIDDEN);
-    }
-
-    updateViews(ctx);
+    ctx->autoConnectSwitch = lv_switch_create(ctx->autoConnectWrapper);
+    lv_obj_add_event_cb(ctx->autoConnectSwitch, onToggleAutoConnect, LV_EVENT_VALUE_CHANGED, ctx);
+    lv_obj_align(ctx->autoConnectSwitch, LV_ALIGN_RIGHT_MID, 0, 0);
 }
 
 int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
@@ -207,56 +221,95 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     ctx.appInstanceId = appInstanceId;
     ctx.ssid = (argc > 0) ? argv[0] : std::string();
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    app_event_subscribe(&sub, &event_group);
 
-    // Subscribed once here, not in createWidgets(): that callback re-runs on every
-    // burial/resurface rebuild, and re-subscribing there would leak the previous subscription
-    // (and its captured ctx pointer) every time, only the last of which shutdown ever cleans up.
-    ctx.wifiSubscription = service::wifi::getPubsub()->subscribe([&ctx](auto) {
-        requestViewUpdate(&ctx);
-    });
+    Device* wifi_device = nullptr;
+    if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
+        if (wifi_event_subscribe(wifi_device, &ctx.wifiEventSub, &event_group) == ERROR_NONE) {
+            ctx.wifiDevice = wifi_device;
+        } else {
+            LOG_W(TAG, "Failed to subscribe to WiFi events");
+            device_put(wifi_device);
+        }
+    } else {
+        LOG_W(TAG, "No WiFi device found");
+    }
 
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
+    // The file-I/O-touching part of the view (updateAutoConnectSection()'s settings::load())
+    // runs here, on this app's own task, not the LVGL task createWidgets()
+    requestViewUpdate(&ctx);
+
     bool shouldClose = false;
     while (!shouldClose) {
-        AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                shouldClose = true;
-                break;
-            case APP_EVENT_RESULT:
-                if (event.result.launch_id == ctx.forgetDialogId && event.result.result == 0) { // 0 = Yes
-                    if (!service::wifi::settings::remove(ctx.ssid.c_str())) {
-                        LOG_E(TAG, "Failed to remove SSID");
-                    } else {
-                        LOG_I(TAG, "Removed SSID");
-                        if (
-                            service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
-                            service::wifi::getConnectionTarget() == ctx.ssid
-                        ) {
-                            service::wifi::disconnect();
-                        }
-                        shouldClose = true;
-                    }
+        TickType_t wait_timeout = (ctx.wifiDevice == nullptr) ? pdMS_TO_TICKS(500) : portMAX_DELAY;
+        task_event_group_wait_any(&event_group, nullptr, wait_timeout);
+
+        if (ctx.wifiDevice == nullptr) {
+            Device* retry_device = nullptr;
+            if (device_get_first_by_type(&WIFI_TYPE, &retry_device) == ERROR_NONE) {
+                if (wifi_event_subscribe(retry_device, &ctx.wifiEventSub, &event_group) == ERROR_NONE) {
+                    ctx.wifiDevice = retry_device;
+                } else {
+                    device_put(retry_device);
                 }
-                app_manager_stop(event.result.launch_id);
-                break;
-            default:
-                break;
+            }
+        }
+
+        AppEvent event {};
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    shouldClose = true;
+                    break;
+                case APP_EVENT_RESULT:
+                    if (event.result.launch_id == ctx.forgetDialogId && event.result.result == 0) { // 0 = Yes
+                        if (!service::wifi::settings::remove(ctx.ssid.c_str())) {
+                            LOG_E(TAG, "Failed to remove SSID");
+                        } else {
+                            LOG_I(TAG, "Removed SSID");
+                            if (
+                                service::wifi::getRadioState() == service::wifi::RadioState::ConnectionActive &&
+                                service::wifi::getConnectionTarget() == ctx.ssid
+                            ) {
+                                service::wifi::disconnect();
+                            }
+                            shouldClose = true;
+                        }
+                    }
+                    app_manager_stop(event.result.launch_id);
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
+        }
+
+        if (ctx.wifiDevice != nullptr) {
+            WifiEvent wifi_event {};
+            bool wifi_event_received = false;
+            while (wifi_event_poll(&ctx.wifiEventSub, &wifi_event) == ERROR_NONE) {
+                wifi_event_received = true;
+            }
+            if (wifi_event_received) {
+                requestViewUpdate(&ctx);
+            }
         }
     }
 
-    if (ctx.wifiSubscription != nullptr) {
-        service::wifi::getPubsub()->unsubscribe(ctx.wifiSubscription);
+    if (ctx.wifiDevice != nullptr) {
+        wifi_event_unsubscribe(ctx.wifiDevice, &ctx.wifiEventSub);
+        device_put(ctx.wifiDevice);
     }
     window_manager_remove(window);
     app_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

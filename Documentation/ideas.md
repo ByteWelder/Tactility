@@ -11,11 +11,10 @@
 
 ## Higher Priority
 
-- AppEventSubscription, SystemEventSubscription: should use TaskHandle_t notification. That way, there can be a single wait event for a task instead of X separate ones with each their timeout.
+- Warn if file operations are done from prohibited tasks (e.g. lvgl task)
 - AppHubApp: Prevent download callbacks from accessing a destroyed view.
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp
-- wifi: wifi_add_event_callback() and wifi_remove_event_callback() should be replaced by a subscribe/await pattern like system events.
-  When that's changed reduce LVGL callstack size in Tactility.cpp run()
+- Get rid of WiFi service (Wifi.cpp/h) in Tactility.cpp
 - Make it more clear to end-users that an SD card is required to run Tactility
 - Make it possible to override stack size for an app via config file (loaded at boot), and make it possible to set preferred memory location (e.g. internal/external)
 - Wrap file operations like fopen/fclose with file_mutex

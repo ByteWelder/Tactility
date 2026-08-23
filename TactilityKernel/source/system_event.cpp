@@ -1,7 +1,6 @@
 #include <tactility/system_event.h>
 
 #include <tactility/concurrent/mutex.h>
-#include <tactility/delay.h>
 #include <tactility/error.h>
 #include <tactility/time.h>
 
@@ -30,9 +29,9 @@ struct KernelEventMutex {
 static KernelEventMutex subscriptions_mutex;
 
 // Intrusive singly-linked list of poll subscriptions (system_event_subscribe()/_unsubscribe()/
-// _await()), separate from the callback-based `subscriptions` vector above. Guarded by its own
-// mutex since notifying a poll subscriber never invokes caller code (just a memcpy and an
-// xTaskNotifyGive), so there is no reentrancy concern requiring a snapshot-then-unlock dance.
+// _poll()), separate from the callback-based `subscriptions` vector above. Guarded by its own
+// mutex since notifying a poll subscriber never invokes caller code (just a memcpy and a
+// task_event_group_signal), so there is no reentrancy concern requiring a snapshot-then-unlock dance.
 static SystemEventSubscription* poll_subscriptions = nullptr;
 static KernelEventMutex poll_subscriptions_mutex;
 
@@ -68,9 +67,9 @@ error_t system_event_callback_remove(
     return result;
 }
 
-// Copies `data` into every current poll subscriber of `type` and signals its wakeup semaphore.
+// Copies `data` into every current poll subscriber of `type` and signals its wakeup bit.
 // Held entirely under the lock: unlike the callback path, this never invokes caller code
-// (just a memcpy and a semaphore give), so there is nothing that could reenter and deadlock.
+// (just a memcpy and a signal), so there is nothing that could reenter and deadlock.
 static void notify_poll_subscribers(
     SystemEventType type,
     uint64_t timestamp,
@@ -88,7 +87,7 @@ static void notify_poll_subscribers(
             }
             sub->event.data_len = copied_len;
             sub->internal.sequence++;
-            xSemaphoreGive(sub->internal.semaphore);
+            task_event_group_signal(sub->internal.event_group, sub->bit);
         }
     }
 
@@ -165,27 +164,11 @@ error_t system_event_emit(
     return ERROR_NONE;
 }
 
-error_t system_event_subscribe(SystemEventSubscription* sub) {
-    // Wait out any system_event_unsubscribe() call still draining old awaiters for this same
-    // `sub` on another task (see internal.unsubscribe_in_progress). waiter_count/cancelled
-    // belong to `sub` itself, not to a given registration - reusing `sub` before that call
-    // finishes would reset them out from under it, and could hand out a fresh semaphore for it
-    // to then promptly delete instead of the old one, while an old awaiter is still blocked on
-    // the real old semaphore.
-    while (true) {
-        mutex_lock(&poll_subscriptions_mutex.handle);
-        bool busy = sub->internal.unsubscribe_in_progress;
-        mutex_unlock(&poll_subscriptions_mutex.handle);
-
-        if (!busy) {
-            break;
-        }
-        delay_ticks(pdMS_TO_TICKS(10));
-    }
-
-    SemaphoreHandle_t semaphore = xSemaphoreCreateBinary();
-    if (semaphore == nullptr) {
-        return ERROR_OUT_OF_MEMORY;
+error_t system_event_subscribe(SystemEventSubscription* sub, TaskEventGroup* event_group) {
+    uint32_t bit;
+    error_t claim_result = task_event_group_claim_bit(event_group, &bit);
+    if (claim_result != ERROR_NONE) {
+        return claim_result;
     }
 
     mutex_lock(&poll_subscriptions_mutex.handle);
@@ -196,15 +179,15 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
     for (SystemEventSubscription* existing = poll_subscriptions; existing != nullptr; existing = existing->internal.next) {
         if (existing == sub) {
             mutex_unlock(&poll_subscriptions_mutex.handle);
-            vSemaphoreDelete(semaphore);
+            task_event_group_release_bit(event_group, bit);
             return ERROR_INVALID_STATE;
         }
     }
 
-    sub->internal.semaphore = semaphore;
+    sub->internal.event_group = event_group;
+    sub->bit = bit;
     sub->internal.sequence = 0;
     sub->internal.consumed_sequence = 0;
-    sub->internal.waiter_count = 0;
     sub->internal.cancelled = false;
     sub->event.data_len = 0;
     sub->internal.next = poll_subscriptions;
@@ -217,7 +200,6 @@ error_t system_event_subscribe(SystemEventSubscription* sub) {
 
 error_t system_event_unsubscribe(SystemEventSubscription* sub) {
     error_t result = ERROR_NOT_FOUND;
-    SemaphoreHandle_t semaphore_to_delete = nullptr;
 
     mutex_lock(&poll_subscriptions_mutex.handle);
     for (SystemEventSubscription** link = &poll_subscriptions; *link != nullptr; link = &(*link)->internal.next) {
@@ -228,99 +210,34 @@ error_t system_event_unsubscribe(SystemEventSubscription* sub) {
         }
     }
     if (result == ERROR_NONE) {
-        // Unlinked first, so notify_poll_subscribers() can no longer reach this subscription.
-        // Mark it cancelled (checked by system_event_await()'s loop) and capture the semaphore
-        // handle into a local variable rather than deleting it via sub->internal.semaphore
-        // directly - a concurrent system_event_subscribe() re-registering this same `sub` after
-        // this point would overwrite that field with a freshly created semaphore, and we must
-        // not delete the wrong (newly active) one.
+        // Diagnostic only now (see @warning) - not relied on for safety. Best-effort nudge for a
+        // task that might still be blocked in task_event_group_wait() on this bit; unlike before,
+        // this does not wait for it to leave before the bit is released.
         sub->internal.cancelled = true;
-        // Blocks a concurrent system_event_subscribe() from reusing `sub` until this whole
-        // call returns - see internal.unsubscribe_in_progress and system_event_subscribe().
-        sub->internal.unsubscribe_in_progress = true;
-        semaphore_to_delete = sub->internal.semaphore;
-        sub->internal.semaphore = nullptr;
+        task_event_group_signal(sub->internal.event_group, sub->bit);
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
     }
-    mutex_unlock(&poll_subscriptions_mutex.handle);
-
-    if (result != ERROR_NONE) {
-        return result;
-    }
-
-    // Nudge any task already blocked in system_event_await() (it captured its own local copy
-    // of this same semaphore handle before this point, so it's unaffected by the field having
-    // just been cleared above) so it re-checks `cancelled` and bails out now instead of waiting
-    // out its full timeout, then wait for it to actually leave the semaphore before deleting it
-    // - FreeRTOS requires no task be blocked on a semaphore when it's deleted.
-    xSemaphoreGive(semaphore_to_delete);
-    while (true) {
-        mutex_lock(&poll_subscriptions_mutex.handle);
-        bool still_waiting = sub->internal.waiter_count > 0;
-        mutex_unlock(&poll_subscriptions_mutex.handle);
-
-        if (!still_waiting) {
-            break;
-        }
-        delay_ticks(pdMS_TO_TICKS(10));
-    }
-
-    vSemaphoreDelete(semaphore_to_delete);
-
-    // Reset under the lock, together, as the last step - only past this point is `sub` safe
-    // for system_event_subscribe() to reuse (see internal.unsubscribe_in_progress and the
-    // busy-wait at the top of system_event_subscribe()).
-    mutex_lock(&poll_subscriptions_mutex.handle);
-    sub->internal.cancelled = false;
-    sub->internal.unsubscribe_in_progress = false;
-    mutex_unlock(&poll_subscriptions_mutex.handle);
-
-    return ERROR_NONE;
-}
-
-error_t system_event_await(SystemEventSubscription* sub, TickType_t timeout) {
-    mutex_lock(&poll_subscriptions_mutex.handle);
-    SemaphoreHandle_t semaphore = sub->internal.semaphore;
-    sub->internal.waiter_count++;
-    mutex_unlock(&poll_subscriptions_mutex.handle);
-
-    error_t result = ERROR_NONE;
-
-    // sequence/consumed_sequence are written by notify_poll_subscribers() under
-    // poll_subscriptions_mutex - read (and, on a match, updated) under the same lock each
-    // iteration, rather than compared lock-free, so a concurrent emit can't land between an
-    // unlocked read and this loop acting on it.
-    //
-    // Compare against consumed_sequence, not a sequence snapshot taken now - an emit that
-    // landed between system_event_subscribe() and this call already incremented sequence and
-    // gave the semaphore, so that event is pending but unconsumed. Snapshotting "now" would
-    // make the loop wait for yet another event instead of returning this already-pending one.
-    while (true) {
-        mutex_lock(&poll_subscriptions_mutex.handle);
-        bool pending = sub->internal.sequence != sub->internal.consumed_sequence;
-        bool cancelled = sub->internal.cancelled;
-        if (pending) {
-            sub->internal.consumed_sequence = sub->internal.sequence;
-        }
-        mutex_unlock(&poll_subscriptions_mutex.handle);
-
-        if (pending) {
-            break;
-        }
-        if (cancelled) {
-            result = ERROR_INVALID_STATE;
-            break;
-        }
-        if (xSemaphoreTake(semaphore, timeout) == pdFALSE) {
-            result = ERROR_TIMEOUT;
-            break;
-        }
-    }
-
-    mutex_lock(&poll_subscriptions_mutex.handle);
-    sub->internal.waiter_count--;
     mutex_unlock(&poll_subscriptions_mutex.handle);
 
     return result;
+}
+
+error_t system_event_poll(SystemEventSubscription* sub) {
+    mutex_lock(&poll_subscriptions_mutex.handle);
+    bool pending = sub->internal.sequence != sub->internal.consumed_sequence;
+    bool cancelled = sub->internal.cancelled;
+    if (pending) {
+        sub->internal.consumed_sequence = sub->internal.sequence;
+    }
+    mutex_unlock(&poll_subscriptions_mutex.handle);
+
+    if (pending) {
+        return ERROR_NONE;
+    }
+    if (cancelled) {
+        return ERROR_INVALID_STATE;
+    }
+    return ERROR_TIMEOUT;
 }
 
 error_t system_event_get_data(SystemEventSubscription* sub, uint8_t* data, size_t data_len) {

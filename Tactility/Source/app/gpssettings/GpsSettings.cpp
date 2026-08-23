@@ -267,51 +267,57 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
         updateDeviceStates(&ctx);
     });
 
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     AppEventSubscription sub {};
     sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub);
+    app_event_subscribe(&sub, &event_group);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
     ctx.timer->start();
 
     bool shouldClose = false;
     while (!shouldClose) {
+        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
+
         AppEvent event {};
-        if (app_event_await(&sub, &event, portMAX_DELAY) != ERROR_NONE) {
-            break;
-        }
-        switch (event.type) {
-            case APP_EVENT_CLOSE:
-                shouldClose = true;
-                break;
-            case APP_EVENT_RESULT:
-                if (ctx.hasPendingDelete) {
-                    ctx.hasPendingDelete = false;
-                    if (event.result.result == 0) { // 0 = Yes
-                        lvgl_lock();
-                        std::erase_if(ctx.deviceRows, [&ctx](const DeviceRow& row) {
-                            return row.device == ctx.pendingDeleteDevice;
-                        });
-                        lvgl_unlock();
+        while (app_event_poll(&sub, &event) == ERROR_NONE) {
+            switch (event.type) {
+                case APP_EVENT_CLOSE:
+                    shouldClose = true;
+                    break;
+                case APP_EVENT_RESULT:
+                    if (ctx.hasPendingDelete) {
+                        ctx.hasPendingDelete = false;
+                        if (event.result.result == 0) { // 0 = Yes
+                            lvgl_lock();
+                            std::erase_if(ctx.deviceRows, [&ctx](const DeviceRow& row) {
+                                return row.device == ctx.pendingDeleteDevice;
+                            });
+                            lvgl_unlock();
 
-                        gps_settings_remove_configuration_at(ctx.pendingDeleteIndex);
-                        ctx.pendingDeleteDevice = nullptr;
+                            gps_settings_remove_configuration_at(ctx.pendingDeleteIndex);
+                            ctx.pendingDeleteDevice = nullptr;
 
-                        lvgl_lock();
-                        rebuildDeviceList(&ctx);
-                        lvgl_unlock();
+                            lvgl_lock();
+                            rebuildDeviceList(&ctx);
+                            lvgl_unlock();
+                        }
                     }
-                }
-                app_manager_stop(event.result.launch_id);
-                break;
-            default:
-                break;
+                    app_manager_stop(event.result.launch_id);
+                    break;
+                default:
+                    break;
+            }
+            if (shouldClose) break;
         }
     }
 
     ctx.timer->stop();
     window_manager_remove(window);
     app_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 
     return 0;
 }

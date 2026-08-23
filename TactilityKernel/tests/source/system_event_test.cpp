@@ -216,17 +216,20 @@ TEST_CASE("system_event_emit is safe when a callback subscribes, unsubscribes an
     system_event_callback_remove(KERNEL_EVENT_TIME_CHANGED, listener_b);
 }
 
-// gps.h-style poll subscription: system_event_subscribe()/_await()/_unsubscribe().
+// gps.h-style poll subscription: system_event_subscribe()/_poll()/_unsubscribe().
 //
-// system_event_await() only detects sequence increments that happen *after* it starts
-// waiting (same as gps_api_event_await()), so the emit must be started from another task
-// while this one is already blocked in await() - emitting first and awaiting after would
-// race the notification the same way it would with any FreeRTOS task-notify consumer.
+// system_event_poll() only detects sequence increments that happened before it's called (same
+// as gps_api_event_await()), so tests that need to observe an emit from another task block via
+// task_event_group_wait() first - emitting before that wait started would race the notification
+// the same way it would with any FreeRTOS task-notify consumer.
 
-TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
+TEST_CASE("system_event_subscribe/_poll deliver the event payload by value") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
 
     NetworkConnectedEvent connected { .device = nullptr, .ipv4_addr = 0x0A000001, .gateway = 0x0A0000FE };
     auto* thread = thread_alloc_full(
@@ -243,7 +246,8 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
 
-    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(system_event_poll(&sub), ERROR_NONE);
 
     NetworkConnectedEvent received {};
     CHECK_EQ(system_event_get_data(&sub, reinterpret_cast<uint8_t*>(&received), sizeof(received)), ERROR_NONE);
@@ -255,62 +259,78 @@ TEST_CASE("system_event_subscribe/_await deliver the event payload by value") {
 
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NOT_FOUND);
+
+    task_event_group_destruct(&event_group);
 }
 
-TEST_CASE("system_event_await returns a matching event that arrived before it started waiting") {
+TEST_CASE("system_event_poll returns a matching event that arrived before it was called") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_NETWORK_CONNECTED;
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
 
-    // Same-thread emit, no background thread needed: unlike the "detects a change after it
-    // starts waiting" tests above, this is exactly the case system_event_await() must handle -
-    // sequence already moved ahead of consumed_sequence before await() is even called.
+    // Same-thread emit, no background thread or wait needed: unlike the "detects a change after
+    // it starts waiting" tests above, this is exactly the case system_event_poll() must handle -
+    // sequence already moved ahead of consumed_sequence before poll() is even called.
     NetworkConnectedEvent connected { .device = nullptr, .ipv4_addr = 0x0A000001, .gateway = 0x0A0000FE };
     CHECK_EQ(system_event_emit(KERNEL_EVENT_NETWORK_CONNECTED, &connected, sizeof(connected)), ERROR_NONE);
 
-    CHECK_EQ(system_event_await(&sub, 0), ERROR_NONE);
+    CHECK_EQ(system_event_poll(&sub), ERROR_NONE);
 
     NetworkConnectedEvent received {};
     CHECK_EQ(system_event_get_data(&sub, reinterpret_cast<uint8_t*>(&received), sizeof(received)), ERROR_NONE);
     CHECK_EQ(received.ipv4_addr, connected.ipv4_addr);
     CHECK_EQ(received.gateway, connected.gateway);
 
-    // The pending event was consumed by the call above - a second await() with no further
-    // emit must time out rather than returning the same event again.
-    CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
+    // The pending event was consumed by the call above - a second poll() with no further emit
+    // must time out rather than returning the same event again.
+    CHECK_EQ(system_event_poll(&sub), ERROR_TIMEOUT);
 
     system_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 }
 
-TEST_CASE("system_event_await times out when no matching event has arrived") {
+TEST_CASE("system_event_poll times out when no matching event has arrived") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_TIME_CHANGED;
-    system_event_subscribe(&sub);
+    system_event_subscribe(&sub, &event_group);
 
-    CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
+    CHECK_EQ(system_event_poll(&sub), ERROR_TIMEOUT);
 
     system_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 }
 
 TEST_CASE("system_event_emit does not notify a poll subscriber of a different type") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_BOOT_COMPLETED;
-    system_event_subscribe(&sub);
+    system_event_subscribe(&sub, &event_group);
 
     system_event_emit(KERNEL_EVENT_TIME_CHANGED, nullptr, 0);
-    CHECK_EQ(system_event_await(&sub, 0), ERROR_TIMEOUT);
+    CHECK_EQ(system_event_poll(&sub), ERROR_TIMEOUT);
 
     system_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 }
 
 TEST_CASE("system_event_get_data reports ERROR_BUFFER_OVERFLOW and leaves the buffer untouched") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_NETWORK_DISCONNECTED;
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
 
-    // system_event_await() only detects sequence increments that happen *after* it starts
-    // waiting (see the comment above), so the emit must come from another task while this one
-    // is already blocked in await() - same pattern as the payload-delivery test above.
+    // Background emit + wait, same pattern as the payload-delivery test above - see the comment
+    // near the top of the file.
     NetworkDisconnectedEvent disconnected { .device = nullptr };
     auto* thread = thread_alloc_full(
         "system-event-emitter",
@@ -325,7 +345,8 @@ TEST_CASE("system_event_get_data reports ERROR_BUFFER_OVERFLOW and leaves the bu
         -1
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
-    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(system_event_poll(&sub), ERROR_NONE);
     CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
@@ -337,12 +358,16 @@ TEST_CASE("system_event_get_data reports ERROR_BUFFER_OVERFLOW and leaves the bu
     CHECK_EQ(system_event_get_data(&sub, exact, sizeof(exact)), ERROR_NONE);
 
     system_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 }
 
 TEST_CASE("system_event_get_data on a subscription with no payload copies nothing and succeeds") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_BOOT_COMPLETED;
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
 
     auto* thread = thread_alloc_full(
         "system-event-emitter",
@@ -356,7 +381,8 @@ TEST_CASE("system_event_get_data on a subscription with no payload copies nothin
         -1
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
-    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(system_event_poll(&sub), ERROR_NONE);
     CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
@@ -365,59 +391,44 @@ TEST_CASE("system_event_get_data on a subscription with no payload copies nothin
     CHECK_EQ(buffer[0], 0x42); // untouched - nothing to copy
 
     system_event_unsubscribe(&sub);
+    task_event_group_destruct(&event_group);
 }
 
-// Regression coverage for system_event_unsubscribe() racing a task blocked in
-// system_event_await() on the same subscription, and for reusing a subscription node after
-// unsubscribing it - see the @warning on system_event_unsubscribe() in system_event.h.
+// Regression coverage for system_event_unsubscribe()'s (now best-effort, not guaranteed - see
+// its @warning in system_event.h) diagnostic signal, and for reusing a subscription node after
+// unsubscribing it.
 
-TEST_CASE("system_event_unsubscribe wakes a task blocked in system_event_await with ERROR_INVALID_STATE") {
+TEST_CASE("system_event_poll returns ERROR_INVALID_STATE after unsubscribe (diagnostic, best-effort)") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_SERVICE_STARTED;
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
-
-    auto* thread = thread_alloc_full(
-        "system-event-awaiter",
-        4096,
-        [](void* context) {
-            auto* awaited_sub = static_cast<SystemEventSubscription*>(context);
-            // Long timeout - the point is that unsubscribe() wakes this early, not that it
-            // eventually times out on its own.
-            return static_cast<int32_t>(system_event_await(awaited_sub, pdMS_TO_TICKS(5000)));
-        },
-        &sub,
-        -1
-    );
-    CHECK_EQ(thread_start(thread), ERROR_NONE);
-
-    // Give the awaiter task a moment to actually reach xSemaphoreTake() before unsubscribing -
-    // otherwise this test wouldn't exercise the "already blocked" race at all.
-    delay_millis(20);
-
-    // Must return promptly (nudging the blocked awaiter awake), not by waiting out its timeout.
-    TickType_t before = get_ticks();
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
-    CHECK_LT(get_ticks() - before, pdMS_TO_TICKS(1000));
 
-    CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
-    CHECK_EQ(thread_get_return_code(thread), ERROR_INVALID_STATE);
-    thread_free(thread);
+    // `sub` is still caller-owned storage after unsubscribe - polling it directly (rather than
+    // still being blocked in task_event_group_wait() on it, which system_event_unsubscribe()'s
+    // @warning now says not to do) is the one remaining diagnostic case `cancelled` covers.
+    CHECK_EQ(system_event_poll(&sub), ERROR_INVALID_STATE);
 
-    // A second unsubscribe() has nothing left to do.
-    CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NOT_FOUND);
+    task_event_group_destruct(&event_group);
 }
 
 TEST_CASE("a subscription node can be re-subscribed after system_event_unsubscribe") {
+    TaskEventGroup event_group {};
+    task_event_group_construct(&event_group);
+
     SystemEventSubscription sub {};
     sub.event.type = KERNEL_EVENT_SERVICE_STOPPED;
 
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
 
     // Re-registering the same node (same storage, not a fresh SystemEventSubscription) must
-    // work as if it were new - a fresh semaphore, and no leftover `cancelled` state from the
+    // work as if it were new - a fresh bit, and no leftover `cancelled` state from the
     // unsubscribe() above causing an immediate spurious ERROR_INVALID_STATE below.
-    CHECK_EQ(system_event_subscribe(&sub), ERROR_NONE);
+    CHECK_EQ(system_event_subscribe(&sub, &event_group), ERROR_NONE);
 
     auto* thread = thread_alloc_full(
         "system-event-emitter",
@@ -431,9 +442,12 @@ TEST_CASE("a subscription node can be re-subscribed after system_event_unsubscri
         -1
     );
     CHECK_EQ(thread_start(thread), ERROR_NONE);
-    CHECK_EQ(system_event_await(&sub, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(task_event_group_wait(&event_group, sub.bit, false, nullptr, pdMS_TO_TICKS(2000)), ERROR_NONE);
+    CHECK_EQ(system_event_poll(&sub), ERROR_NONE);
     CHECK_EQ(thread_join(thread, pdMS_TO_TICKS(2000), pdMS_TO_TICKS(1)), ERROR_NONE);
     thread_free(thread);
 
     CHECK_EQ(system_event_unsubscribe(&sub), ERROR_NONE);
+
+    task_event_group_destruct(&event_group);
 }

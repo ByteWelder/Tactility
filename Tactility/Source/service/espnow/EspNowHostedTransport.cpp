@@ -6,6 +6,7 @@
 
 #include <Tactility/service/espnow/EspNowHostedTransport.h>
 
+#include <tactility/device.h>
 #include <tactility/drivers/wifi.h>
 
 namespace tt::service::espnow::backend {
@@ -16,16 +17,19 @@ namespace tt::service::espnow::backend {
 // truth shared with any other caller (e.g. an external OTA app), instead of being duplicated
 // here.
 bool waitForHostedTransport(uint32_t timeoutMs) {
-    Device* device = wifi_find_first_registered_device();
-    if (device == nullptr) {
+    Device* device = nullptr;
+    if (device_get_first_by_type(&WIFI_TYPE, &device) != ERROR_NONE) {
         return false;
     }
     const FirmwareOps* ops = nullptr;
     void* ctx = nullptr;
     if (wifi_get_firmware_ops(device, &ops, &ctx) != ERROR_NONE) {
+        device_put(device);
         return false;
     }
-    return ops->wait_ready(ctx, timeoutMs);
+    bool ready = ops->wait_ready(ctx, timeoutMs);
+    device_put(device);
+    return ready;
 }
 
 }
