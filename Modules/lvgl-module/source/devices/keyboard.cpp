@@ -52,9 +52,9 @@ static uint32_t codepoint_to_lv_key(uint32_t key) {
     switch (key) {
         case CODEPOINT_ENTER: return LV_KEY_ENTER;
         case CODEPOINT_ARROW_LEFT: return LV_KEY_LEFT;
-        case CODEPOINT_ARROW_UP: return LV_KEY_UP;
+        case CODEPOINT_ARROW_UP: return LV_KEY_PREV;
         case CODEPOINT_ARROW_RIGHT: return LV_KEY_RIGHT;
-        case CODEPOINT_ARROW_DOWN: return LV_KEY_DOWN;
+        case CODEPOINT_ARROW_DOWN: return LV_KEY_NEXT;
         case CODEPOINT_HOME: return LV_KEY_HOME;
         case CODEPOINT_END: return LV_KEY_END;
         default: return key;
