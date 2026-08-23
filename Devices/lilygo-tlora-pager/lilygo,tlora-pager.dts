@@ -18,7 +18,7 @@
 #include <bindings/tca8418.h>
 #include <bindings/bq25896.h>
 #include <bindings/drv2605.h>
-#include <lilygo/bindings/tpager_encoder.h>
+#include <bindings/gpio_encoder.h>
 
 // Reference: https://wiki.lilygo.cc/get_started/en/LoRa_GPS/T-LoraPager/T-LoraPager.html
 / {
@@ -201,7 +201,7 @@
 
 	// Encoder wheel next to the display.
 	encoder {
-		compatible = "lilygo,tpager-encoder";
+		compatible = "tactility,gpio-encoder";
 		pin-a = <&gpio0 40 GPIO_FLAG_NONE>;
 		pin-b = <&gpio0 41 GPIO_FLAG_NONE>;
 		pin-enter = <&gpio0 7 GPIO_FLAG_NONE>;

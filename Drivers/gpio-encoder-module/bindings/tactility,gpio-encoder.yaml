@@ -1,0 +1,29 @@
+description: >
+  GPIO-attached rotary encoder wheel - a 2-phase quadrature encoder (decoded via the ESP32
+  hardware PCNT peripheral) plus an optional separate click/enter button. Exposes a
+  KEYBOARD_TYPE device: each wheel detent is translated to an arrow up/down key, and the
+  button (if present) press/release is translated to the enter key.
+
+compatible: "tactility,gpio-encoder"
+
+properties:
+  pin-a:
+    type: phandles
+    required: true
+    description: Quadrature phase A GPIO pin
+  pin-b:
+    type: phandles
+    required: true
+    description: Quadrature phase B GPIO pin
+  pin-enter:
+    type: phandles
+    default: GPIO_PIN_SPEC_NONE
+    description: Optional click/enter button GPIO pin (active low)
+  pulses-per-detent:
+    type: int
+    default: 4
+    description: Quadrature pulses per mechanical detent
+  pending-capacity:
+    type: int
+    default: 16
+    description: Capacity of the queue buffering key events between read_key() polls
