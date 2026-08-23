@@ -190,12 +190,7 @@ static uint8_t read_input(CardputerKeyboardInternal* internal) {
     return mask;
 }
 
-// Scans the full matrix and resolves it to a single key (Unicode codepoint, 0 if none - never an
-// LV_KEY_* constant, see KeyboardKeyData::key's contract), applying priority: enter > space >
-// backspace > tab (U+21E5 tab-to-bar, or U+21E4 with shift - the closest standard Unicode symbol
-// for focus navigation) > first regular character found in scan order, with fn changing the
-// interpretation of backspace/enter/punctuation. Modifier keys (fn/shift/ctrl/opt/alt) are never
-// reported themselves.
+// Scans the full matrix and resolves it to a Unicode codepoint
 static uint32_t scan_key(CardputerKeyboardInternal* internal) {
     bool fn = false, shift = false, ctrl = false;
     bool del_flag = false;
