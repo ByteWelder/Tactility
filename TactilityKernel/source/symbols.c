@@ -1,4 +1,5 @@
 #include <tactility/bundle.h>
+#include <tactility/check.h>
 #include <tactility/concurrent/dispatcher.h>
 #include <tactility/concurrent/event_group.h>
 #include <tactility/concurrent/task_event_group.h>
@@ -512,6 +513,8 @@ const struct ModuleSymbol KERNEL_SYMBOLS[] = {
     DEFINE_MODULE_SYMBOL(timer_set_callback_priority),
     // error
     DEFINE_MODULE_SYMBOL(error_to_string),
+    // check
+    DEFINE_MODULE_SYMBOL(__crash),
     // log
 #ifndef ESP_PLATFORM
     DEFINE_MODULE_SYMBOL(log_generic),
