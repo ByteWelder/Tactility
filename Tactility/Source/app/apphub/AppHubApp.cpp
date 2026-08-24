@@ -14,6 +14,7 @@
 
 #include <lvgl_window_manager/window_manager.h>
 
+#include <tactility/check.h>
 #include <tactility/log.h>
 
 #include <lvgl/lvgl.h>
@@ -207,7 +208,7 @@ int32_t appMain(int argc, char* argv[]) {
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
-    app_event_subscribe(&sub, &event_group);
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     WindowId window = window_manager_create_ext(appInstanceId, createWidgets, destroyWidgets, &ctx);
 
@@ -229,7 +230,7 @@ int32_t appMain(int argc, char* argv[]) {
     }
 
     window_manager_remove(window);
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
     return 0;

@@ -13,6 +13,7 @@
 #include <lvgl/lvgl.h>
 #include <lvgl/widgets/toolbar.h>
 
+#include <tactility/check.h>
 #include <tactility/device.h>
 #include <tactility/log.h>
 
@@ -227,7 +228,7 @@ int32_t appMain(int argc, char* argv[]) {
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
-    app_event_subscribe(&sub, &event_group);
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     Device* wifi_device = nullptr;
     if (device_get_first_by_type(&WIFI_TYPE, &wifi_device) == ERROR_NONE) {
@@ -309,7 +310,7 @@ int32_t appMain(int argc, char* argv[]) {
         device_put(ctx.wifiDevice);
     }
     window_manager_remove(window);
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
     return 0;

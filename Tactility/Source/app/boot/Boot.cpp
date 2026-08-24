@@ -1,5 +1,6 @@
 #include "tactility/system_event.h"
 
+#include <tactility/check.h>
 #include <tactility/delay.h>
 #include <tactility/drivers/backlight.h>
 #include <tactility/drivers/display.h>
@@ -298,7 +299,7 @@ int32_t appMain(int argc, char* argv[]) {
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
-    app_event_subscribe(&sub, &event_group);
+    check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
     bootWindowId = window_manager_create(appInstanceId, createSplashWidgets, nullptr);
 
@@ -324,7 +325,7 @@ int32_t appMain(int argc, char* argv[]) {
     if (bootWindowId != 0) {
         window_manager_remove(bootWindowId);
     }
-    app_event_unsubscribe(&sub);
+    check(app_event_unsubscribe(&sub) == ERROR_NONE);
     task_event_group_destruct(&event_group);
 
     return 0;
