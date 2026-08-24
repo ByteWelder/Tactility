@@ -16,9 +16,9 @@ error_t api_load(AppLocation location, AppRuntime* out_runtime) {
     return ERROR_NONE;
 }
 
-int32_t api_run(AppRuntime runtime, uint32_t app_instance_id, int argc, char* argv[]) {
+int32_t api_run(AppRuntime runtime, uint32_t /*app_instance_id*/, int argc, char* argv[]) {
     auto entry = reinterpret_cast<AppMainFn>(runtime);
-    return entry(app_instance_id, argc, argv);
+    return entry(argc, argv);
 }
 
 void api_unload(AppRuntime /*unused*/) {

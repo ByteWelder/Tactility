@@ -11,6 +11,7 @@
 #include <app/metadata.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -211,7 +212,8 @@ void createWidgets(lv_obj_t* parent, void* userData) {
     updateViews(ctx);
 }
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
     // argv layout: [0]=appId, [1]=appVersionName, [2]=appVersionCode, [3]=appName,
     // [4]=appDescription, [5]=targetSdk, [6]=file, [7..argc)=targetPlatforms.
 
@@ -234,7 +236,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub, &event_group);
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);

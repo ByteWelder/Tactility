@@ -3,6 +3,7 @@
 #include <app/event.h>
 #include <app/loader.h>
 #include <app/manager.h>
+#include <app/scheduler.h>
 
 #include <service/manager.h>
 
@@ -55,7 +56,7 @@ void stash_received_arguments(int argc, char* argv[]) {
 // parameter (app_manager_start_for_result()), acts as a modal dialog instead: returns the
 // requested result (argv[0], parsed as an int) immediately (the app's own return value IS the
 // delivered APP_EVENT_RESULT.result - see app_scheduler.cpp's thread_main()).
-int32_t fake_run(void*, uint32_t app_instance_id, int argc, char* argv[]) {
+int32_t fake_run(void*, uint32_t /*app_instance_id*/, int argc, char* argv[]) {
     stash_received_arguments(argc, argv);
 
     if (argc == 1) {
@@ -70,7 +71,6 @@ int32_t fake_run(void*, uint32_t app_instance_id, int argc, char* argv[]) {
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
-    sub.app_instance_id = app_instance_id;
     app_event_subscribe(&sub, &event_group);
 
     while (true) {
@@ -139,8 +139,8 @@ void ensure_memory_loader_registered() {
 
 // Same subscribe-until-close contract as fake_run() above, but called directly as an AppMainFn -
 // this is what a real internal app's entry point looks like.
-int32_t fake_app_main(uint32_t app_instance_id, int argc, char* argv[]) {
-    return fake_run(nullptr, app_instance_id, argc, argv);
+int32_t fake_app_main(int argc, char* argv[]) {
+    return fake_run(nullptr, app_scheduler_current_app_id(), argc, argv);
 }
 
 // Wraps app_manager_get_topmost_instance_id() for terse assertions: 0 if no app is Active.
@@ -343,8 +343,7 @@ TEST_CASE("app_manager_start_for_result delivers APP_EVENT_RESULT to the parent,
     task_event_group_construct(&parent_event_group);
 
     AppEventSubscription parent_sub {};
-    parent_sub.app_instance_id = parent_id;
-    REQUIRE_EQ(app_event_subscribe(&parent_sub, &parent_event_group), ERROR_NONE);
+    REQUIRE_EQ(app_event_subscribe_with_app_id(&parent_sub, &parent_event_group, parent_id), ERROR_NONE);
 
     const char* argv[] = { "42" };
     uint32_t child_id = 0;
@@ -384,8 +383,7 @@ TEST_CASE("app_manager_start_for_result delivers the child's own return value as
     task_event_group_construct(&parent_event_group);
 
     AppEventSubscription parent_sub {};
-    parent_sub.app_instance_id = parent_id;
-    REQUIRE_EQ(app_event_subscribe(&parent_sub, &parent_event_group), ERROR_NONE);
+    REQUIRE_EQ(app_event_subscribe_with_app_id(&parent_sub, &parent_event_group, parent_id), ERROR_NONE);
 
     uint32_t child_id = 0;
     // No parameters - fake_run falls through to its normal CLOSE loop instead of acting as a

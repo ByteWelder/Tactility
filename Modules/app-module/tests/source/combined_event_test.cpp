@@ -14,8 +14,7 @@ TEST_CASE("a task can wait on app_event and system_event together via one TaskEv
     task_event_group_construct(&event_group);
 
     AppEventSubscription app_sub {};
-    app_sub.app_instance_id = 100;
-    CHECK_EQ(app_event_subscribe(&app_sub, &event_group), ERROR_NONE);
+    CHECK_EQ(app_event_subscribe_with_app_id(&app_sub, &event_group, 100), ERROR_NONE);
 
     SystemEventSubscription sys_sub {};
     sys_sub.event.type = KERNEL_EVENT_BOOT_COMPLETED;

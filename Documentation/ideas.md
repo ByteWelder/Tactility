@@ -11,6 +11,9 @@
 
 ## Higher Priority
 
+- Apps should be able to specify stack size in their manifest
+- Apps currently have a `Context` object with an `appInstanceId` in it, purely for being able to close the app.
+  Change it so that the app has its own termination signal that it waits for in the loop, it should subscribe to the event group.
 - stopAppFromToolbar() in Tactility.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.
 - Warn if file operations are done from prohibited tasks (e.g. lvgl task)
 - AppHubApp: Prevent download callbacks from accessing a destroyed view.

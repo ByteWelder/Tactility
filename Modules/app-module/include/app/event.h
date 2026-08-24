@@ -50,19 +50,21 @@ struct AppEvent {
  * Caller-owned subscription node. Unlike TactilityKernel's system_event poll subscription
  * (which coalesces to the latest value), this queues events by value (FIFO) since dropping an
  * APP_EVENT_RESULT would be unacceptable.
- * @warning Fields other than `app_instance_id` and `bit` are for internal use only; do not read
- * or write them directly.
+ * @warning Fields other than `bit` are for internal use only; do not read or write them
+ * directly.
  */
 struct AppEventSubscription {
-    /** The app instance this subscription receives events for; set by the caller before app_event_subscribe(). */
-    AppInstanceId app_instance_id;
-
-    /** Set by app_event_subscribe(). Read-only for the caller: OR it into a
-     * task_event_group_wait() mask (alongside other subscriptions sharing the same
-     * `event_group`) to block on this subscription and other event sources with one call. */
+    /** Set by app_event_subscribe()/app_event_subscribe_with_app_id(). Read-only for the
+     * caller: OR it into a task_event_group_wait() mask (alongside other subscriptions sharing
+     * the same `event_group`) to block on this subscription and other event sources with one
+     * call. */
     uint32_t bit;
 
     struct {
+        /** The app instance this subscription receives events for; set by
+         * app_event_subscribe()/app_event_subscribe_with_app_id(). */
+        AppInstanceId app_instance_id;
+
         /** Caller-owned, borrowed; set by app_event_subscribe(). */
         struct TaskEventGroup* event_group;
 
@@ -75,10 +77,11 @@ struct AppEventSubscription {
 };
 
 /**
- * Register a subscription for events addressed to @a sub->app_instance_id.
- * @warning Does not work in ISR context.
- * @param[in,out] sub subscription to register; caller sets @a sub->app_instance_id beforehand,
- * owns the storage, and must keep it alive (and stationary) until unsubscribed
+ * Register a subscription for events addressed to the calling app's own instance (identified via
+ * app_scheduler_current_app_id()).
+ * @warning Does not work in ISR context. Must be called from the app's own task.
+ * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+ * stationary) until unsubscribed
  * @param[in] event_group caller-owned group to wait on; must outlive @a sub (i.e. be
  * destructed only after app_event_unsubscribe()). To block for an event, call
  * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the mask,
@@ -88,6 +91,21 @@ struct AppEventSubscription {
  * @retval ERROR_INVALID_STATE @a sub is already registered
  */
 error_t app_event_subscribe(struct AppEventSubscription* sub, struct TaskEventGroup* event_group);
+
+/**
+ * Same as app_event_subscribe(), but for a caller that isn't running on @a app_instance_id's own
+ * task (e.g. test code simulating multiple distinct app instances from one thread). Production
+ * app code should use app_event_subscribe() instead.
+ * @warning Does not work in ISR context.
+ * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+ * stationary) until unsubscribed
+ * @param[in] event_group caller-owned group to wait on; same contract as app_event_subscribe()
+ * @param[in] app_instance_id the app instance this subscription receives events for
+ * @retval ERROR_NONE on success
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
+ */
+error_t app_event_subscribe_with_app_id(struct AppEventSubscription* sub, struct TaskEventGroup* event_group, AppInstanceId app_instance_id);
 
 /**
  * Remove a previously registered subscription.

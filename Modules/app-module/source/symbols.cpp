@@ -19,6 +19,7 @@ extern ServiceManifest app_internal_loader_service_manifest;
 const ModuleSymbol app_module_symbols[] = {
     // app/event
     DEFINE_MODULE_SYMBOL(app_event_subscribe),
+    DEFINE_MODULE_SYMBOL(app_event_subscribe_with_app_id),
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_emit),
     DEFINE_MODULE_SYMBOL(app_event_poll),

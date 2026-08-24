@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
+#include <app/scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/time.h>
@@ -21,7 +22,7 @@ static AppEventMutex subscriptions_mutex;
 
 extern "C" {
 
-error_t app_event_subscribe(AppEventSubscription* sub, TaskEventGroup* event_group) {
+error_t app_event_subscribe_with_app_id(AppEventSubscription* sub, TaskEventGroup* event_group, AppInstanceId app_instance_id) {
     uint32_t bit;
     error_t claim_result = task_event_group_claim_bit(event_group, &bit);
     if (claim_result != ERROR_NONE) {
@@ -38,6 +39,7 @@ error_t app_event_subscribe(AppEventSubscription* sub, TaskEventGroup* event_gro
     }
 
     sub->bit = bit;
+    sub->internal.app_instance_id = app_instance_id;
     sub->internal.event_group = event_group;
     sub->internal.head = 0;
     sub->internal.count = 0;
@@ -46,6 +48,10 @@ error_t app_event_subscribe(AppEventSubscription* sub, TaskEventGroup* event_gro
     mutex_unlock(&subscriptions_mutex.handle);
 
     return ERROR_NONE;
+}
+
+error_t app_event_subscribe(AppEventSubscription* sub, TaskEventGroup* event_group) {
+    return app_event_subscribe_with_app_id(sub, event_group, app_scheduler_current_app_id());
 }
 
 error_t app_event_unsubscribe(AppEventSubscription* sub) {
@@ -76,7 +82,7 @@ error_t app_event_emit(AppInstanceId app_instance_id, const AppEvent* event) {
 
     mutex_lock(&subscriptions_mutex.handle);
     for (AppEventSubscription* sub = subscriptions; sub != nullptr; sub = sub->internal.next) {
-        if (sub->app_instance_id != app_instance_id) {
+        if (sub->internal.app_instance_id != app_instance_id) {
             continue;
         }
 

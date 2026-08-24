@@ -7,6 +7,7 @@
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
+#include <app/scheduler.h>
 
 #include <lvgl_window_manager/window_manager.h>
 
@@ -121,7 +122,8 @@ void destroyWidgets(void* userData) {
     ctx->view.reset();
 }
 
-int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
+int32_t appMain(int argc, char* argv[]) {
+    uint32_t appInstanceId = app_scheduler_current_app_id();
     Context ctx;
     ctx.appInstanceId = appInstanceId;
     ctx.bindings = (Bindings) {
@@ -145,7 +147,6 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     }
 
     AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
     app_event_subscribe(&sub, &event_group);
 
     Device* wifi_device = nullptr;
