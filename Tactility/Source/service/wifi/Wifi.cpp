@@ -262,12 +262,14 @@ bool findAutoConnectAp(settings::WifiApSettings& out) {
 
 void dispatchAutoConnect() {
     LOG_I(TAG, "dispatchAutoConnect()");
-    if (state.pauseAutoConnect || state.externalScanPause.load()) {
+    if (state.pauseAutoConnect || state.externalScanPause.load() || !isRadioOn()) {
         // A manual disconnect() or an in-progress manual connect() has paused
         // auto-connect, or a caller (e.g. AutoScanPauseGuard) has externally paused it.
         // This is called on every SCAN_FINISHED, not just the auto-connect timer's own
         // scans (e.g. WifiManage re-scans on show), so it must honor the pause instead of
-        // reconnecting unconditionally.
+        // reconnecting unconditionally. The radio-off check matters because a scan that was
+        // already in flight can finish after the user turns the radio off. Without it,
+        // connect() would call dispatchSetEnabled(true) and turn the radio back on.
         return;
     }
     RadioState radio_state = getRadioState();
