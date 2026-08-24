@@ -11,6 +11,7 @@
 
 ## Higher Priority
 
+- stopAppFromToolbar() in Tactility.cpp stops the top-most app. Change it so the toolbar knows for which app id it is created, so it can rely on that.
 - Warn if file operations are done from prohibited tasks (e.g. lvgl task)
 - AppHubApp: Prevent download callbacks from accessing a destroyed view.
 - Move USB host task stacks to SPIRAM when available: esp32_usbhost*.cpp

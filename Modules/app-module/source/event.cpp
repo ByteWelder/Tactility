@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 #include <app/event.h>
-#include <app/scheduler.h>
 
 #include <tactility/concurrent/mutex.h>
 #include <tactility/time.h>
@@ -113,30 +112,6 @@ static bool try_pop(AppEventSubscription* sub, AppEvent* out_event) {
 
 error_t app_event_poll(AppEventSubscription* sub, AppEvent* out_event) {
     return try_pop(sub, out_event) ? ERROR_NONE : ERROR_TIMEOUT;
-}
-
-void app_event_loop_run(void) {
-    TaskEventGroup event_group {};
-    task_event_group_construct(&event_group);
-
-    AppEventSubscription sub {};
-    sub.app_instance_id = app_scheduler_current_app_id();
-    app_event_subscribe(&sub, &event_group);
-
-    bool should_close = false;
-    while (!should_close) {
-        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
-
-        AppEvent event {};
-        while (app_event_poll(&sub, &event) == ERROR_NONE) {
-            if (event.type == APP_EVENT_CLOSE) {
-                should_close = true;
-            }
-        }
-    }
-
-    app_event_unsubscribe(&sub);
-    task_event_group_destruct(&event_group);
 }
 
 } // extern "C"

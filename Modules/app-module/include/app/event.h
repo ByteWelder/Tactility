@@ -116,17 +116,6 @@ error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* eve
  */
 error_t app_event_poll(struct AppEventSubscription* sub, struct AppEvent* out_event);
 
-/**
- * Blocks the calling app's task until it receives APP_EVENT_CLOSE, then returns. For apps that
- * don't care about APP_EVENT_RESULT or any other app event - just "run until told to close".
- * Owns its own subscription/event group for the call's duration (construct/subscribe on entry,
- * unsubscribe/destruct before returning); does not interact with any subscription the caller
- * manages itself.
- * @warning Does not work in ISR context. Must be called from the app's own task (uses
- * app_scheduler_current_app_id()).
- */
-void app_event_loop_run(void);
-
 #ifdef __cplusplus
 }
 #endif

@@ -22,7 +22,6 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_emit),
     DEFINE_MODULE_SYMBOL(app_event_poll),
-    DEFINE_MODULE_SYMBOL(app_event_loop_run),
     // app/install
     DEFINE_MODULE_SYMBOL(app_get_install_path),
     DEFINE_MODULE_SYMBOL(app_install),
