@@ -229,18 +229,7 @@ void dispatchConnect() {
 
     LOG_I(TAG, "Connecting to %s", target.ssid.c_str());
 
-    error_t result = wifi_station_connect(state.device, target.ssid.c_str(), target.password.c_str(), target.channel);
-    if (result != ERROR_NONE) {
-        LOG_E(TAG, "Failed to connect to %s (%s)", target.ssid.c_str(), error_to_string(result));
-        WifiEvent event = {};
-        event.type = WIFI_EVENT_TYPE_STATION_CONNECTION_RESULT;
-        // The driver couldn't even initiate the connection attempt; there's no
-        // more specific WifiStationConnectionError for that.
-        event.connection_error = WIFI_STATION_CONNECTION_ERROR_TIMEOUT;
-        publish(event);
-    }
-    // On success, WIFI_EVENT_TYPE_STATION_STATE_CHANGED / _CONNECTION_RESULT arrive
-    // asynchronously via onWifiDeviceEvent().
+    wifi_station_connect(state.device, target.ssid.c_str(), target.password.c_str(), target.channel);
 }
 
 void dispatchDisconnect() {
@@ -373,10 +362,6 @@ void onWifiDeviceEvent(Device* device, ::WifiEvent event) {
         default:
             break;
     }
-
-    // Forward the event as-is: subscribers inspect event.type and the
-    // relevant union field directly, same as this function does.
-    publish(event);
 }
 
 void autoScanSetPaused(bool paused) {

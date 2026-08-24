@@ -141,7 +141,6 @@ namespace app {
     namespace boot { extern const ::AppManifest manifest; }
     namespace development { extern const ::AppManifest manifest; }
     namespace display { extern const ::AppManifest manifest; }
-    namespace kerneldisplay { extern const ::AppManifest manifest; }
     namespace files { extern const ::AppManifest manifest; }
     namespace fileselection { extern const ::AppManifest manifest; }
     namespace gpssettings { extern const ::AppManifest manifest; }
@@ -206,7 +205,7 @@ static void registerInternalApps() {
         app_manager_add(&app::audiosettings::manifest);
     }
     if (device_exists_of_type(&DISPLAY_TYPE)) {
-        app_manager_add(&app::kerneldisplay::manifest);
+        app_manager_add(&app::display::manifest);
     }
     app_manager_add(&app::files::manifest);
     app_manager_add(&app::fileselection::manifest);

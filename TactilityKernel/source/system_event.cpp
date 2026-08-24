@@ -173,15 +173,11 @@ error_t system_event_subscribe(SystemEventSubscription* sub, TaskEventGroup* eve
 
     mutex_lock(&poll_subscriptions_mutex.handle);
 
-    // Check-and-insert in one critical section: registering the same `sub` twice would link
-    // it into a list that already contains it, creating a cycle that notify_poll_subscribers()
-    // would then traverse forever while holding this same mutex.
-    for (SystemEventSubscription* existing = poll_subscriptions; existing != nullptr; existing = existing->internal.next) {
-        if (existing == sub) {
-            mutex_unlock(&poll_subscriptions_mutex.handle);
-            task_event_group_release_bit(event_group, bit);
-            return ERROR_INVALID_STATE;
-        }
+    // Avoid cyclic subscription list that would loop forever
+    if (poll_subscriptions == sub) {
+        mutex_unlock(&poll_subscriptions_mutex.handle);
+        task_event_group_release_bit(event_group, bit);
+        return ERROR_INVALID_STATE;
     }
 
     sub->internal.event_group = event_group;

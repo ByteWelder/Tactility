@@ -72,11 +72,14 @@ static void onConnectToHidden() {
 }
 
 void updateView(Context* ctx) {
-    ctx->lock();
+    // Same lock order as createWidgets() (called with the LVGL lock already held, per the
+    // window-manager's WindowCreateWidgetsFn contract, then acquiring ctx->mutex) - acquiring
+    // these in the opposite order here would deadlock against a concurrent createWidgets() call.
     lvgl_lock();
+    ctx->lock();
     ctx->view.update();
-    lvgl_unlock();
     ctx->unlock();
+    lvgl_unlock();
 }
 
 void onWifiEvent(Context* ctx, WifiEvent event) {

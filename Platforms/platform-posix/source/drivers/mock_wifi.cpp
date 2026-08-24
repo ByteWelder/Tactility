@@ -55,15 +55,15 @@ struct PosixWifiCtx {
 
 void fireEvent(PosixWifiCtx* ctx, WifiEvent event) {
     mutex_lock(&ctx->subscriptionsMutex);
-    for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr; sub = sub->next) {
-        mutex_lock(&sub->ring_mutex);
-        if (sub->count < WIFI_EVENT_QUEUE_CAPACITY) {
-            uint8_t tail = (sub->head + sub->count) % WIFI_EVENT_QUEUE_CAPACITY;
-            sub->queue[tail] = event;
-            sub->count++;
+    for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr; sub = sub->internal.next) {
+        mutex_lock(&sub->internal.ring_mutex);
+        if (sub->internal.count < WIFI_EVENT_QUEUE_CAPACITY) {
+            uint8_t tail = (sub->internal.head + sub->internal.count) % WIFI_EVENT_QUEUE_CAPACITY;
+            sub->internal.queue[tail] = event;
+            sub->internal.count++;
         }
-        mutex_unlock(&sub->ring_mutex);
-        task_event_group_signal(sub->event_group, sub->bit);
+        mutex_unlock(&sub->internal.ring_mutex);
+        task_event_group_signal(sub->internal.event_group, sub->bit);
     }
     mutex_unlock(&ctx->subscriptionsMutex);
 }
@@ -266,11 +266,19 @@ error_t apiSetRadioOff(Device* device) {
 
     mutex_lock(&ctx->mutex);
     bool already_off = ctx->radioState == WIFI_RADIO_STATE_OFF;
+    bool was_connected = ctx->stationState != WIFI_STATION_STATE_DISCONNECTED;
     ctx->radioState = WIFI_RADIO_STATE_OFF;
     ctx->stationState = WIFI_STATION_STATE_DISCONNECTED;
     ctx->scanning = false;
     mutex_unlock(&ctx->mutex);
     if (already_off) return ERROR_NONE;
+
+    if (was_connected) {
+        WifiEvent station_event = {};
+        station_event.type = WIFI_EVENT_TYPE_STATION_STATE_CHANGED;
+        station_event.station_state = WIFI_STATION_STATE_DISCONNECTED;
+        fireEvent(ctx, station_event);
+    }
 
     WifiEvent radio_event = {};
     radio_event.type = WIFI_EVENT_TYPE_RADIO_STATE_CHANGED;
@@ -290,11 +298,19 @@ error_t apiEventSubscribe(Device* device, WifiEventSubscription* sub, TaskEventG
     if (claim_result != ERROR_NONE) {
         return claim_result;
     }
-    sub->event_group = event_group;
-    sub->bit = bit;
 
     mutex_lock(&ctx->subscriptionsMutex);
-    sub->next = ctx->subscriptions;
+
+    // Avoid cyclic subscription list that would loop forever
+    if (ctx->subscriptions == sub) {
+        mutex_unlock(&ctx->subscriptionsMutex);
+        task_event_group_release_bit(event_group, bit);
+        return ERROR_INVALID_STATE;
+    }
+
+    sub->internal.event_group = event_group;
+    sub->bit = bit;
+    sub->internal.next = ctx->subscriptions;
     ctx->subscriptions = sub;
     mutex_unlock(&ctx->subscriptionsMutex);
     return ERROR_NONE;
@@ -306,9 +322,9 @@ error_t apiEventUnsubscribe(Device* device, WifiEventSubscription* sub) {
 
     error_t result = ERROR_NOT_FOUND;
     mutex_lock(&ctx->subscriptionsMutex);
-    for (WifiEventSubscription** link = &ctx->subscriptions; *link != nullptr; link = &(*link)->next) {
+    for (WifiEventSubscription** link = &ctx->subscriptions; *link != nullptr; link = &(*link)->internal.next) {
         if (*link == sub) {
-            *link = sub->next;
+            *link = sub->internal.next;
             result = ERROR_NONE;
             break;
         }
@@ -316,7 +332,7 @@ error_t apiEventUnsubscribe(Device* device, WifiEventSubscription* sub) {
     mutex_unlock(&ctx->subscriptionsMutex);
 
     if (result == ERROR_NONE) {
-        task_event_group_release_bit(sub->event_group, sub->bit);
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
     }
     return result;
 }
@@ -363,6 +379,19 @@ error_t stopDevice(Device* device) {
     if (ctx->radioState == WIFI_RADIO_STATE_ON) {
         apiSetRadioOff(device);
     }
+
+    // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
+    // using this device, so a later wifi_event_unsubscribe() would find no ctx and skip releasing
+    // the bit and destructing sub->internal.ring_mutex.
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (WifiEventSubscription* sub = ctx->subscriptions; sub != nullptr;) {
+        WifiEventSubscription* next = sub->internal.next;
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
+        mutex_destruct(&sub->internal.ring_mutex);
+        sub = next;
+    }
+    ctx->subscriptions = nullptr;
+    mutex_unlock(&ctx->subscriptionsMutex);
 
     device_set_driver_data(device, nullptr);
     mutex_destruct(&ctx->subscriptionsMutex);

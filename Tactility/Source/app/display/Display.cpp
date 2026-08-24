@@ -12,7 +12,6 @@
 #include <Tactility/settings/DisplaySettings.h>
 
 #include <app/event.h>
-#include <app/manager.h>
 #include <app/manifest.h>
 
 #include <lvgl_window_manager/window_manager.h>
@@ -25,11 +24,11 @@
 #include <sdkconfig.h>
 #endif
 
-namespace tt::app::kerneldisplay {
+namespace tt::app::display {
 
 extern const ::AppManifest manifest;
 
-constexpr auto* TAG = "KernelDisplay";
+constexpr auto* TAG = "Display";
 
 namespace {
 
@@ -308,36 +307,12 @@ int32_t appMain(uint32_t appInstanceId, int argc, char* argv[]) {
     Context ctx {};
     ctx.appInstanceId = appInstanceId;
 
-    TaskEventGroup event_group {};
-    task_event_group_construct(&event_group);
-
-    AppEventSubscription sub {};
-    sub.app_instance_id = appInstanceId;
-    app_event_subscribe(&sub, &event_group);
-
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
-    bool shouldClose = false;
-    while (!shouldClose) {
-        task_event_group_wait_any(&event_group, nullptr, portMAX_DELAY);
-
-        AppEvent event {};
-        while (app_event_poll(&sub, &event) == ERROR_NONE) {
-            switch (event.type) {
-                case APP_EVENT_CLOSE:
-                    persistIfUpdated(ctx);
-                    shouldClose = true;
-                    break;
-                default:
-                    break;
-            }
-            if (shouldClose) break;
-        }
-    }
+    app_event_loop_run();
+    persistIfUpdated(ctx);
 
     window_manager_remove(window);
-    app_event_unsubscribe(&sub);
-    task_event_group_destruct(&event_group);
 
     return 0;
 }
@@ -351,4 +326,4 @@ extern const ::AppManifest manifest = {
     .location = { APP_LOCATION_MEMORY, reinterpret_cast<void*>(appMain) }
 };
 
-} // namespace tt::app::kerneldisplay
+} // namespace tt::app::display

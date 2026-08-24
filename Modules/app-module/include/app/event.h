@@ -84,7 +84,8 @@ struct AppEventSubscription {
  * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the mask,
  * or use _wait_any() to include every subscription sharing it), then drain with app_event_poll().
  * @retval ERROR_NONE on success
- * @retval ERROR_RESOURCE @a event_group has no free bits left to claim
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
  */
 error_t app_event_subscribe(struct AppEventSubscription* sub, struct TaskEventGroup* event_group);
 
@@ -114,6 +115,17 @@ error_t app_event_emit(AppInstanceId app_instance_id, const struct AppEvent* eve
  * @retval ERROR_TIMEOUT nothing queued right now
  */
 error_t app_event_poll(struct AppEventSubscription* sub, struct AppEvent* out_event);
+
+/**
+ * Blocks the calling app's task until it receives APP_EVENT_CLOSE, then returns. For apps that
+ * don't care about APP_EVENT_RESULT or any other app event - just "run until told to close".
+ * Owns its own subscription/event group for the call's duration (construct/subscribe on entry,
+ * unsubscribe/destruct before returning); does not interact with any subscription the caller
+ * manages itself.
+ * @warning Does not work in ISR context. Must be called from the app's own task (uses
+ * app_scheduler_current_app_id()).
+ */
+void app_event_loop_run(void);
 
 #ifdef __cplusplus
 }

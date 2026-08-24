@@ -245,7 +245,8 @@ struct WifiApi {
      * mask, or use _wait_any() to include every subscription sharing it), then drain with
      * wifi_event_poll().
      * @retval ERROR_NONE on success
-     * @retval ERROR_RESOURCE @a event_group has no free bits left to claim
+     * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+     * @retval ERROR_INVALID_STATE @a sub is already registered
      */
     error_t (*event_subscribe)(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group);
 
@@ -298,7 +299,8 @@ error_t wifi_station_get_rssi(struct Device* device, int32_t* rssi);
  * into the mask, or use _wait_any() to include every subscription sharing it), then drain with
  * wifi_event_poll().
  * @retval ERROR_NONE on success
- * @retval ERROR_RESOURCE @a event_group has no free bits left to claim
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
  */
 error_t wifi_event_subscribe(struct Device* device, struct WifiEventSubscription* sub, struct TaskEventGroup* event_group);
 

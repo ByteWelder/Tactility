@@ -22,14 +22,7 @@ const ModuleSymbol app_module_symbols[] = {
     DEFINE_MODULE_SYMBOL(app_event_unsubscribe),
     DEFINE_MODULE_SYMBOL(app_event_emit),
     DEFINE_MODULE_SYMBOL(app_event_poll),
-    // tactility/concurrent/task_event_group - needed to construct the group app_event_subscribe() takes
-    DEFINE_MODULE_SYMBOL(task_event_group_construct),
-    DEFINE_MODULE_SYMBOL(task_event_group_destruct),
-    DEFINE_MODULE_SYMBOL(task_event_group_claim_bit),
-    DEFINE_MODULE_SYMBOL(task_event_group_release_bit),
-    DEFINE_MODULE_SYMBOL(task_event_group_signal),
-    DEFINE_MODULE_SYMBOL(task_event_group_wait),
-    DEFINE_MODULE_SYMBOL(task_event_group_wait_any),
+    DEFINE_MODULE_SYMBOL(app_event_loop_run),
     // app/install
     DEFINE_MODULE_SYMBOL(app_get_install_path),
     DEFINE_MODULE_SYMBOL(app_install),
