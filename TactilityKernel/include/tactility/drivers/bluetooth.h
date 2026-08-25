@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <tactility/concurrent/mutex.h>
+#include <tactility/concurrent/task_event_group.h>
 #include <tactility/error.h>
 
 #ifdef __cplusplus
@@ -134,7 +136,38 @@ struct BtEvent {
     };
 };
 
-typedef void (*BtEventCallback)(struct Device* device, void* context, struct BtEvent event);
+/** Number of events a BtEventSubscription can hold before bluetooth_fire_event() starts dropping
+ * the newest event for it (still delivered to any other matching subscription). Generous: a
+ * device fires these serially, one at a time, not in genuinely concurrent bursts. */
+#define BT_EVENT_QUEUE_CAPACITY 4
+
+/**
+ * Caller-owned subscription node, registered with bluetooth_event_subscribe() and polled with
+ * bluetooth_event_poll(). Like wifi_event, queues events by value (FIFO) rather than coalescing
+ * to the latest one.
+ * @warning Fields other than `bit` are for internal use only; do not read or write them
+ * directly.
+ */
+struct BtEventSubscription {
+    /** Set by bluetooth_event_subscribe(). Read-only for the caller: OR it into a
+     * task_event_group_wait() mask (alongside other subscriptions sharing the same
+     * `event_group`) to block on this subscription and other event sources with one call. */
+    uint32_t bit;
+
+    struct {
+        /** Caller-owned, borrowed; set by bluetooth_event_subscribe(). */
+        struct TaskEventGroup* event_group;
+        /** Guards `queue`/`head`/`count` between bluetooth_fire_event() (driver thread) and
+         * bluetooth_event_poll() (caller's thread) - the two live in different translation units
+         * with no other shared lock. */
+        struct Mutex ring_mutex;
+        struct BtEvent queue[BT_EVENT_QUEUE_CAPACITY];
+        uint8_t head;
+        uint8_t count;
+
+        struct BtEventSubscription* next;
+    } internal;
+};
 
 // ---- Top-level Bluetooth API ----
 
@@ -219,21 +252,30 @@ struct BluetoothApi {
     error_t (*disconnect)(struct Device* device, const BtAddr addr, enum BtProfileId profile);
 
     /**
-     * Add an event callback.
+     * Register a subscription for this device's BtEvents.
+     * @warning Does not work in ISR context.
      * @param[in] device the bluetooth device
-     * @param[in] context context pointer passed to the callback
-     * @param[in] callback the callback function
-     * @return ERROR_NONE on success
+     * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+     * stationary) until unsubscribed
+     * @param[in] event_group caller-owned group to wait on; must outlive @a sub (i.e. be
+     * destructed only after event_unsubscribe()). To block for an event, call
+     * task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit into the
+     * mask, or use _wait_any() to include every subscription sharing it), then drain with
+     * bluetooth_event_poll().
+     * @retval ERROR_NONE on success
+     * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+     * @retval ERROR_INVALID_STATE @a sub is already registered
      */
-    error_t (*add_event_callback)(struct Device* device, void* context, BtEventCallback callback);
+    error_t (*event_subscribe)(struct Device* device, struct BtEventSubscription* sub, struct TaskEventGroup* event_group);
 
     /**
-     * Remove a previously added event callback.
+     * Remove a previously registered subscription.
+     * @warning Does not work in ISR context.
      * @param[in] device the bluetooth device
-     * @param[in] callback the callback to remove
-     * @return ERROR_NONE on success
+     * @param[in] sub subscription to remove, as passed to event_subscribe()
+     * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
      */
-    error_t (*remove_event_callback)(struct Device* device, BtEventCallback callback);
+    error_t (*event_unsubscribe)(struct Device* device, struct BtEventSubscription* sub);
 
     /**
      * Set the BLE device name used in advertising and the GAP service.
@@ -264,7 +306,7 @@ struct BluetoothApi {
     void (*set_hid_host_active)(struct Device* device, bool active);
 
     /**
-     * Fire an event through all registered event callbacks.
+     * Fire an event to all registered subscriptions.
      * Used by the Tactility HID host module to inject profile-state events that
      * originate outside the platform driver (e.g. HID host connect/disconnect).
      */
@@ -295,12 +337,43 @@ error_t bluetooth_unpair(struct Device* device, const BtAddr addr);
 error_t bluetooth_get_paired_peers(struct Device* device, struct BtPeerRecord* out, size_t* count);
 error_t bluetooth_connect(struct Device* device, const BtAddr addr, enum BtProfileId profile);
 error_t bluetooth_disconnect(struct Device* device, const BtAddr addr, enum BtProfileId profile);
-error_t bluetooth_add_event_callback(struct Device* device, void* context, BtEventCallback callback);
-error_t bluetooth_remove_event_callback(struct Device* device, BtEventCallback callback);
 error_t bluetooth_set_device_name(struct Device* device, const char* name);
 error_t bluetooth_get_device_name(struct Device* device, char* buf, size_t buf_len);
 void    bluetooth_set_hid_host_active(struct Device* device, bool active);
 void    bluetooth_fire_event(struct Device* device, struct BtEvent event);
+
+/**
+ * Register a subscription for @a device's BtEvents.
+ * @warning Does not work in ISR context.
+ * @param[in] device the bluetooth device
+ * @param[in,out] sub subscription to register; owns the storage, must stay alive (and
+ * stationary) until unsubscribed
+ * @param[in] event_group caller-owned group to wait on; must outlive @a sub. To block for an
+ * event, call task_event_group_wait()/task_event_group_wait_any() on this group (OR sub->bit
+ * into the mask, or use _wait_any() to include every subscription sharing it), then drain with
+ * bluetooth_event_poll().
+ * @retval ERROR_NONE on success
+ * @retval ERROR_RESOURCE @a event_group has no free bits left to claim; @a sub was not registered
+ * @retval ERROR_INVALID_STATE @a sub is already registered
+ */
+error_t bluetooth_event_subscribe(struct Device* device, struct BtEventSubscription* sub, struct TaskEventGroup* event_group);
+
+/**
+ * Remove a previously registered subscription.
+ * @warning Does not work in ISR context.
+ * @return ERROR_NONE on success, ERROR_NOT_FOUND if no matching subscription exists
+ */
+error_t bluetooth_event_unsubscribe(struct Device* device, struct BtEventSubscription* sub);
+
+/**
+ * Non-blocking: pop the next event for @a sub if one is already queued.
+ * @warning Never blocks. To wait for an event, block in task_event_group_wait()/
+ * task_event_group_wait_any() on @a sub's event group first (see bluetooth_event_subscribe()),
+ * then drain with this in a loop.
+ * @retval ERROR_NONE @a out_event was filled
+ * @retval ERROR_TIMEOUT nothing queued right now
+ */
+error_t bluetooth_event_poll(struct BtEventSubscription* sub, struct BtEvent* out_event);
 
 #ifdef __cplusplus
 }

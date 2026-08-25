@@ -3,8 +3,6 @@
 #include <Tactility/app/btmanage/BtManagePrivate.h>
 #include <Tactility/app/btmanage/View.h>
 
-#include <Tactility/Tactility.h>
-
 #include <app/event.h>
 #include <app/manager.h>
 #include <app/manifest.h>
@@ -13,6 +11,7 @@
 #include <lvgl_window_manager/window_manager.h>
 
 #include <tactility/check.h>
+#include <tactility/device.h>
 #include <tactility/log.h>
 
 namespace tt::app::btmanage {
@@ -22,26 +21,17 @@ constexpr auto* TAG = "BtManage";
 extern const ::AppManifest manifest;
 
 
-static void onBtToggled(void* context, bool requestOn) {
+static void onBtToggled(void* /*context*/, bool requestOn) {
 #if defined(CONFIG_BT_NIMBLE_ENABLED)
-    auto* ctx = static_cast<Context*>(context);
     Device* dev;
     if (device_get_first_by_type(&BLUETOOTH_TYPE, &dev) == ERROR_NONE) {
         bool radio_on = bluetooth::isRadioOnOrPending(dev);
         if (requestOn && !radio_on) {
             LOG_I(TAG, "Turning on");
-            if (bluetooth::start(dev)) {
-                // The driver only allocates its callback list once the device is started,
-                // so the registration attempted at startup (while radio was off) was a
-                // no-op. Register again now that the device is actually up.
-                registerDeviceCallback(ctx, dev);
-            }
+            bluetooth::start(dev);
         } else if (!requestOn && radio_on) {
             LOG_I(TAG, "Turning off");
-            if (bluetooth::stop(dev)) {
-                // A completed stop frees the driver's callback list.
-                forgetCallbackRegistration(ctx);
-            }
+            bluetooth::stop(dev);
         }
         device_put(dev);
     } else {
@@ -84,8 +74,6 @@ static void onPairPeer(void* /*context*/, const std::array<uint8_t, 6>& addr) {
 static void onForgetPeer(const std::array<uint8_t, 6>& addr) {
     bluetooth::unpair(addr);
 }
-
-static void onKernelBtEvent(Device* /*device*/, void* context, BtEvent event);
 
 void requestViewUpdate(Context* ctx) {
     // Lock order must match appMain()'s setup/teardown: both run under the LVGL lock
@@ -143,50 +131,6 @@ void onBtEvent(Context* ctx, const BtEvent& event) {
     requestViewUpdate(ctx);
 }
 
-static void onKernelBtEvent(Device* /*device*/, void* context, BtEvent event) {
-    // BT event callbacks can fire from the NimBLE host task (e.g. DISCONNECT during
-    // nimble_port_stop shutdown). Calling onBtEvent() synchronously from the NimBLE
-    // task would block it on the LVGL mutex (held by the LVGL task waiting in
-    // nimble_port_stop), creating a permanent deadlock. Dispatch to the main task so
-    // the NimBLE host task is never blocked by BtManage's state updates or LVGL lock.
-    auto* ctx = static_cast<Context*>(context);
-    // Captured while `ctx` is still guaranteed valid (the callback is only invoked while
-    // registered, i.e. before appMain()'s cleanup removes it). Comparing this later -
-    // without dereferencing `ctx` - lets the dispatched lambda detect a stale event from an
-    // instance that has since closed (and had its Context destroyed) without a UAF: the
-    // generation bump in appMain()'s cleanup always happens before window_manager_remove()
-    // destroys ctx's widgets, and this dispatched lambda always re-reads the live generation
-    // at run time (not at dispatch time), so a bump landing anywhere before this lambda
-    // actually runs is enough to make it skip touching ctx.
-    auto generation = ctx->generation;
-    int expectedGeneration = generation->load();
-    getMainDispatcher().dispatch([ctx, generation, expectedGeneration, event] {
-        if (generation->load() != expectedGeneration) {
-            return;
-        }
-        onBtEvent(ctx, event);
-    });
-}
-
-void registerDeviceCallback(Context* ctx, Device* dev) {
-    ctx->lock();
-    if (ctx->btDevice == dev && !ctx->callbackRegistered) {
-        // Only latch the flag on success: while the radio is off the driver has no
-        // callback list yet, so this add is a silent no-op and must be retried once
-        // bluetooth::start() actually brings the device up.
-        if (bluetooth_add_event_callback(dev, ctx, onKernelBtEvent) == ERROR_NONE) {
-            ctx->callbackRegistered = true;
-        }
-    }
-    ctx->unlock();
-}
-
-void forgetCallbackRegistration(Context* ctx) {
-    ctx->lock();
-    ctx->callbackRegistered = false;
-    ctx->unlock();
-}
-
 void onBackPressed(lv_event_t* event) {
     auto* ctx = static_cast<Context*>(lv_event_get_user_data(event));
     AppEvent closeEvent { .type = APP_EVENT_CLOSE, .timestamp = 0, .result = {} };
@@ -229,12 +173,17 @@ int32_t appMain(int argc, char* argv[]) {
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
 
-    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
-
-    ctx.btDevice = dev;
-    if (ctx.btDevice) {
-        registerDeviceCallback(&ctx, ctx.btDevice);
+    // dev is started for the process lifetime once ble0 is enabled in the devicetree -
+    // subscribe once here rather than resubscribing on every bluetooth::start()/stop() toggle.
+    if (dev != nullptr) {
+        if (bluetooth_event_subscribe(dev, &ctx.btEventSub, &event_group) == ERROR_NONE) {
+            ctx.btDevice = dev;
+        } else {
+            LOG_W(TAG, "Failed to subscribe to BT events");
+        }
     }
+
+    WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
     auto radio_state = bluetooth::getRadioState();
     bool can_scan = radio_state == bluetooth::RadioState::On;
@@ -261,17 +210,17 @@ int32_t appMain(int argc, char* argv[]) {
             }
             if (shouldClose) break;
         }
+
+        if (ctx.btDevice != nullptr) {
+            BtEvent bt_event {};
+            while (bluetooth_event_poll(&ctx.btEventSub, &bt_event) == ERROR_NONE) {
+                onBtEvent(&ctx, bt_event);
+            }
+        }
     }
 
-    // Invalidate any BT event dispatched-but-not-yet-run for this instance before doing
-    // anything else, so it can't race the teardown below (see onKernelBtEvent()).
-    ctx.generation->fetch_add(1);
-
     if (ctx.btDevice) {
-        if (ctx.callbackRegistered) {
-            bluetooth_remove_event_callback(ctx.btDevice, onKernelBtEvent);
-            ctx.callbackRegistered = false;
-        }
+        bluetooth_event_unsubscribe(ctx.btDevice, &ctx.btEventSub);
         device_put(ctx.btDevice);
         ctx.btDevice = nullptr;
     }

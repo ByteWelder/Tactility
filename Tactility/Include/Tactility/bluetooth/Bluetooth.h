@@ -26,10 +26,10 @@ struct PeerRecord {
     int profileId = 0;
 };
 
-// Wrapper around device start & radio on
+// Turns the BT radio on (dev is already started - see ble0's devicetree status)
 bool start(Device* dev);
 
-// Wrapper around device stop & radio off
+// Turns the BT radio off (dev stays started)
 bool stop(Device* dev);
 
 bool isRadioOnOrPending(Device* dev);

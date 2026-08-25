@@ -58,8 +58,7 @@ void updateViews(const Context* ctx) {
     }
 }
 
-void onKernelBtEvent(struct Device* /*device*/, void* context, struct BtEvent /*event*/) {
-    auto* ctx = static_cast<Context*>(context);
+void onBtEvent(Context* ctx) {
     lvgl_lock();
     updateViews(ctx);
     lvgl_unlock();
@@ -196,17 +195,20 @@ int32_t appMain(int argc, char* argv[]) {
     }
 
 
-    Device* btDevice = nullptr;
-    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &btDevice) == ERROR_NONE) {
-        bluetooth_add_event_callback(btDevice, &ctx, onKernelBtEvent);
-        device_put(btDevice);
-    }
-
     TaskEventGroup event_group {};
     task_event_group_construct(&event_group);
 
     AppEventSubscription sub {};
     check(app_event_subscribe(&sub, &event_group) == ERROR_NONE);
+
+    Device* btDevice = nullptr;
+    BtEventSubscription btSub {};
+    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &btDevice) == ERROR_NONE) {
+        if (bluetooth_event_subscribe(btDevice, &btSub, &event_group) != ERROR_NONE) {
+            device_put(btDevice);
+            btDevice = nullptr;
+        }
+    }
 
     WindowId window = window_manager_create(appInstanceId, createWidgets, &ctx);
 
@@ -239,10 +241,17 @@ int32_t appMain(int argc, char* argv[]) {
             }
             if (shouldClose) break;
         }
+
+        if (btDevice != nullptr) {
+            BtEvent bt_event {};
+            while (bluetooth_event_poll(&btSub, &bt_event) == ERROR_NONE) {
+                onBtEvent(&ctx);
+            }
+        }
     }
 
-    if (device_get_first_active_by_type(&BLUETOOTH_TYPE, &btDevice) == ERROR_NONE) {
-        bluetooth_remove_event_callback(btDevice, onKernelBtEvent);
+    if (btDevice != nullptr) {
+        bluetooth_event_unsubscribe(btDevice, &btSub);
         device_put(btDevice);
     }
 

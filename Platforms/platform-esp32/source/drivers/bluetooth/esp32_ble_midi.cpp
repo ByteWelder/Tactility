@@ -167,13 +167,19 @@ static void midi_keepalive_cb(void* arg) {
 // All functions receive the midi child Device*.
 
 static error_t midi_start(struct Device* device) {
+    // Serializes this GAP sequence against on_sync()'s own advertising decision and hid/spp's
+    // start/stop - see on_sync()'s comment in esp32_ble.cpp for why this is required.
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->radio_mutex, portMAX_DELAY);
     ble_midi_set_active(device, true);
     // Create 2-second periodic Active Sensing timer to prevent Windows BLE MIDI
     // driver from declaring the connection idle and disconnecting (~8-10 s timeout).
     error_t rc = ble_midi_ensure_keepalive(device, midi_keepalive_cb, 2'000'000);
-    if (rc != ERROR_NONE) return rc;
-    ble_start_advertising(device, &MIDI_SVC_UUID);
-    return ERROR_NONE;
+    if (rc == ERROR_NONE) {
+        ble_start_advertising(device, &MIDI_SVC_UUID);
+    }
+    xSemaphoreGive(root_ctx->radio_mutex);
+    return rc;
 }
 
 error_t ble_midi_start_internal(struct Device* midi_child) {
@@ -181,6 +187,8 @@ error_t ble_midi_start_internal(struct Device* midi_child) {
 }
 
 static error_t midi_stop(struct Device* device) {
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->radio_mutex, portMAX_DELAY);
     ble_midi_set_active(device, false);
     ble_midi_stop_keepalive(device);
     uint16_t conn = ble_midi_get_conn_handle(device);
@@ -191,6 +199,7 @@ static error_t midi_stop(struct Device* device) {
     if (!ble_spp_get_active(device) && !ble_hid_get_active(device)) {
         ble_gap_adv_stop();
     }
+    xSemaphoreGive(root_ctx->radio_mutex);
     return ERROR_NONE;
 }
 

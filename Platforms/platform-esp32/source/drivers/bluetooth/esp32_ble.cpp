@@ -96,16 +96,18 @@ void ble_set_scan_active(struct Device* device, bool v) {
 void ble_publish_event(struct Device* device, struct BtEvent event) {
     BleCtx* ctx = ble_get_ctx(device);
     if (!ctx) return;
-    // Copy under mutex so callbacks can safely call add/remove_event_callback
-    BleCallbackEntry local[BLE_MAX_CALLBACKS];
-    size_t count;
-    xSemaphoreTake(ctx->cb_mutex, portMAX_DELAY);
-    count = ctx->callback_count;
-    memcpy(local, ctx->callbacks, count * sizeof(BleCallbackEntry));
-    xSemaphoreGive(ctx->cb_mutex);
-    for (size_t i = 0; i < count; i++) {
-        local[i].fn(ctx->device, local[i].ctx, event);
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (BtEventSubscription* sub = ctx->subscriptions; sub != nullptr; sub = sub->internal.next) {
+        mutex_lock(&sub->internal.ring_mutex);
+        if (sub->internal.count < BT_EVENT_QUEUE_CAPACITY) {
+            uint8_t tail = (sub->internal.head + sub->internal.count) % BT_EVENT_QUEUE_CAPACITY;
+            sub->internal.queue[tail] = event;
+            sub->internal.count++;
+        }
+        mutex_unlock(&sub->internal.ring_mutex);
+        task_event_group_signal(sub->internal.event_group, sub->bit);
     }
+    mutex_unlock(&ctx->subscriptionsMutex);
 }
 
 // ---- Advertising restart helper ----
@@ -441,17 +443,16 @@ static void on_sync() {
     e.radio_state = BT_RADIO_STATE_ON;
     ble_publish_event(ctx->device, e);
 
-    // The Tactility bridge handles auto-start (SPP/MIDI/HID) in response to
-    // BT_EVENT_RADIO_STATE_CHANGED(ON), dispatched to the main task above.
-    // On a multi-core ESP32 the main task can preempt the NimBLE host task
-    // between ble_publish_event() and here, call hid/spp/midi_device_start(),
-    // set hid/spp/midi_active, and already start profile-specific advertising.
+    // radio_mutex serializes this against hid/spp/midi_device_start()/_stop(), which touch the
+    // same GAP/GATT state from another task and race this check on a multi-core ESP32 otherwise.
+    xSemaphoreTake(ctx->radio_mutex, portMAX_DELAY);
     // Only start name-only advertising if no profile has been activated yet;
     // otherwise we would overwrite the correct profile advertising with name-only,
     // causing Windows to connect without seeing the HID/SPP/MIDI service UUID.
     if (!ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load()) {
         ble_start_advertising(ctx->device, nullptr);
     }
+    xSemaphoreGive(ctx->radio_mutex);
 }
 
 static void dispatch_disable_timer_cb(void* arg) {
@@ -995,38 +996,52 @@ static error_t api_disconnect(struct Device* device, const BtAddr addr, enum BtP
     return ERROR_NOT_SUPPORTED;
 }
 
-static error_t api_add_event_callback(struct Device* device, void* cb_ctx, BtEventCallback fn) {
+static error_t api_event_subscribe(struct Device* device, BtEventSubscription* sub, TaskEventGroup* event_group) {
     BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (!ctx || !fn) return ERROR_INVALID_ARGUMENT;
-    xSemaphoreTake(ctx->cb_mutex, portMAX_DELAY);
-    if (ctx->callback_count >= BLE_MAX_CALLBACKS) {
-        xSemaphoreGive(ctx->cb_mutex);
-        return ERROR_OUT_OF_MEMORY;
+    if (!ctx || !sub || !event_group) return ERROR_INVALID_ARGUMENT;
+
+    uint32_t bit;
+    error_t claim_result = task_event_group_claim_bit(event_group, &bit);
+    if (claim_result != ERROR_NONE) {
+        return claim_result;
     }
-    ctx->callbacks[ctx->callback_count].fn  = fn;
-    ctx->callbacks[ctx->callback_count].ctx = cb_ctx;
-    ctx->callback_count++;
-    xSemaphoreGive(ctx->cb_mutex);
+
+    mutex_lock(&ctx->subscriptionsMutex);
+
+    // Avoid cyclic subscription list that would loop forever
+    if (ctx->subscriptions == sub) {
+        mutex_unlock(&ctx->subscriptionsMutex);
+        task_event_group_release_bit(event_group, bit);
+        return ERROR_INVALID_STATE;
+    }
+
+    sub->internal.event_group = event_group;
+    sub->bit = bit;
+    sub->internal.next = ctx->subscriptions;
+    ctx->subscriptions = sub;
+    mutex_unlock(&ctx->subscriptionsMutex);
     return ERROR_NONE;
 }
 
-static error_t api_remove_event_callback(struct Device* device, BtEventCallback fn) {
+static error_t api_event_unsubscribe(struct Device* device, BtEventSubscription* sub) {
     BleCtx* ctx = (BleCtx*)device_get_driver_data(device);
-    if (!ctx || !fn) return ERROR_INVALID_ARGUMENT;
-    xSemaphoreTake(ctx->cb_mutex, portMAX_DELAY);
-    for (size_t i = 0; i < ctx->callback_count; i++) {
-        if (ctx->callbacks[i].fn == fn) {
-            // Shift remaining entries down
-            for (size_t j = i; j + 1 < ctx->callback_count; j++) {
-                ctx->callbacks[j] = ctx->callbacks[j + 1];
-            }
-            ctx->callback_count--;
-            xSemaphoreGive(ctx->cb_mutex);
-            return ERROR_NONE;
+    if (!ctx || !sub) return ERROR_INVALID_ARGUMENT;
+
+    error_t result = ERROR_NOT_FOUND;
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (BtEventSubscription** link = &ctx->subscriptions; *link != nullptr; link = &(*link)->internal.next) {
+        if (*link == sub) {
+            *link = sub->internal.next;
+            result = ERROR_NONE;
+            break;
         }
     }
-    xSemaphoreGive(ctx->cb_mutex);
-    return ERROR_NOT_FOUND;
+    mutex_unlock(&ctx->subscriptionsMutex);
+
+    if (result == ERROR_NONE) {
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
+    }
+    return result;
 }
 
 static error_t api_set_device_name(struct Device* device, const char* name) {
@@ -1079,8 +1094,8 @@ const BluetoothApi nimble_bluetooth_api = {
     .get_paired_peers       = api_get_paired_peers,
     .connect                = api_connect,
     .disconnect             = api_disconnect,
-    .add_event_callback     = api_add_event_callback,
-    .remove_event_callback  = api_remove_event_callback,
+    .event_subscribe        = api_event_subscribe,
+    .event_unsubscribe      = api_event_unsubscribe,
     .set_device_name        = api_set_device_name,
     .get_device_name        = api_get_device_name,
     .set_hid_host_active    = api_set_hid_host_active,
@@ -1116,11 +1131,11 @@ static void destroy_child_device(struct Device*& child) {
 static error_t esp32_ble_start_device(struct Device* device) {
     BleCtx* ctx = new BleCtx();
     ctx->radio_mutex = xSemaphoreCreateMutex();
-    ctx->cb_mutex    = xSemaphoreCreateMutex();
+    mutex_construct(&ctx->subscriptionsMutex);
+    ctx->subscriptions = nullptr;
     ctx->radio_state.store(BT_RADIO_STATE_OFF);
     ctx->scan_active.store(false);
     ctx->hid_host_active.store(false);
-    ctx->callback_count = 0;
     ctx->spp_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
     ctx->spp_active.store(false);
     ctx->midi_conn_handle.store(BLE_HS_CONN_HANDLE_NONE);
@@ -1205,6 +1220,20 @@ static error_t esp32_ble_stop_device(struct Device* device) {
         esp_timer_delete(ctx->disable_timer);
         ctx->disable_timer = nullptr;
     }
+
+    // Release any subscribers that never unsubscribed: device_stop() doesn't wait for apps still
+    // using this device, so a later bluetooth_event_unsubscribe() would find no ctx and skip
+    // releasing the bit and destructing sub->internal.ring_mutex.
+    mutex_lock(&ctx->subscriptionsMutex);
+    for (BtEventSubscription* sub = ctx->subscriptions; sub != nullptr;) {
+        BtEventSubscription* next = sub->internal.next;
+        task_event_group_release_bit(sub->internal.event_group, sub->bit);
+        mutex_destruct(&sub->internal.ring_mutex);
+        sub = next;
+    }
+    ctx->subscriptions = nullptr;
+    mutex_unlock(&ctx->subscriptionsMutex);
+    mutex_destruct(&ctx->subscriptionsMutex);
 
     s_ctx = nullptr;
     device_set_driver_data(device, nullptr);

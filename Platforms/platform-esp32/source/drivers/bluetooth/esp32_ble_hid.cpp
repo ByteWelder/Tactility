@@ -388,17 +388,28 @@ static error_t hid_device_start(struct Device* device, enum BtHidDeviceMode mode
     }
 
     hid_appearance = appearance;
-    if (!ble_hid_switch_profile(device, profile)) {
+    // Serializes this GAP/GATT sequence against on_sync()'s own advertising decision and
+    // spp/midi's start/stop (all touch shared NimBLE host state from possibly-concurrent
+    // tasks) - see on_sync()'s comment in esp32_ble.cpp for why this is required.
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->radio_mutex, portMAX_DELAY);
+    bool switched = ble_hid_switch_profile(device, profile);
+    if (switched) {
+        ble_hid_set_active(device, true);
+        ble_start_advertising_hid(device, hid_appearance);
+    }
+    xSemaphoreGive(root_ctx->radio_mutex);
+    if (!switched) {
         delete (BleHidDeviceCtx*)device_get_driver_data(device);
         device_set_driver_data(device, nullptr);
         return ERROR_INVALID_STATE;
     }
-    ble_hid_set_active(device, true);
-    ble_start_advertising_hid(device, hid_appearance);
     return ERROR_NONE;
 }
 
 static error_t hid_device_stop(struct Device* device) {
+    BleCtx* root_ctx = ble_get_ctx(device);
+    xSemaphoreTake(root_ctx->radio_mutex, portMAX_DELAY);
     ble_hid_set_active(device, false);
     ble_gap_adv_stop();
     BleHidDeviceCtx* hid_ctx = (BleHidDeviceCtx*)device_get_driver_data(device);
@@ -421,6 +432,7 @@ static error_t hid_device_stop(struct Device* device) {
         delete hid_ctx;
         device_set_driver_data(device, nullptr);
     }
+    xSemaphoreGive(root_ctx->radio_mutex);
     return ERROR_NONE;
 }
 
