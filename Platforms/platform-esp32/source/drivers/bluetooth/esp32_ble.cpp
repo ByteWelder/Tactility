@@ -112,20 +112,31 @@ void ble_publish_event(struct Device* device, struct BtEvent event) {
 
 // ---- Advertising restart helper ----
 //TODO: Fix Restart name-only advertising after a rename.
+
+// Delay before on_sync() falls back to name-only advertising - see its call site.
+constexpr uint64_t ADV_ON_SYNC_DELAY_US = 100'000;
+
 static void adv_restart_callback(void* arg) {
     struct Device* device = (struct Device*)arg;
     BleCtx* ctx = ble_get_ctx(device);
     if (ctx->radio_state.load() != BT_RADIO_STATE_ON) return;
 
+    // gap_mutex (not radio_mutex - this can run on the host task and must never wait on a mutex
+    // disable can hold across nimble_port_stop()) serializes this against hid/spp/midi_device_
+    // start()/_stop(), which touch the same GAP/GATT state from another task.
+    xSemaphoreTake(ctx->gap_mutex, portMAX_DELAY);
     uint16_t hid_conn = ble_hid_get_conn_handle(ctx->hid_device_child);
-
     if (ctx->midi_active.load() && ctx->midi_conn_handle.load() == BLE_HS_CONN_HANDLE_NONE) {
         ble_start_advertising(device, &MIDI_SVC_UUID);
     } else if (ctx->spp_active.load() && ctx->spp_conn_handle.load() == BLE_HS_CONN_HANDLE_NONE) {
         ble_start_advertising(device, &NUS_SVC_UUID);
     } else if (ctx->hid_active.load() && hid_conn == BLE_HS_CONN_HANDLE_NONE) {
         ble_start_advertising_hid(device, hid_appearance);
+    } else if (!ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load()) {
+        // Nothing profile-specific active - name-only keeps the radio discoverable/connectable.
+        ble_start_advertising(device, nullptr);
     }
+    xSemaphoreGive(ctx->gap_mutex);
 }
 
 void ble_schedule_adv_restart(struct Device* device, uint64_t delay_us) {
@@ -443,17 +454,13 @@ static void on_sync() {
     e.radio_state = BT_RADIO_STATE_ON;
     ble_publish_event(ctx->device, e);
 
-    // gap_mutex (not radio_mutex - this runs on the host task and must never wait on a mutex
-    // disable can hold across nimble_port_stop()) serializes this against hid/spp/midi_device_
-    // start()/_stop(), which touch the same GAP/GATT state from another task.
-    xSemaphoreTake(ctx->gap_mutex, portMAX_DELAY);
-    // Only start name-only advertising if no profile has been activated yet;
-    // otherwise we would overwrite the correct profile advertising with name-only,
-    // causing Windows to connect without seeing the HID/SPP/MIDI service UUID.
-    if (!ctx->hid_active.load() && !ctx->spp_active.load() && !ctx->midi_active.load()) {
-        ble_start_advertising(ctx->device, nullptr);
-    }
-    xSemaphoreGive(ctx->gap_mutex);
+    // Deferred, not synchronous: an app reacting to the event just published above (e.g.
+    // starting HID) races this to set hid/spp/midi_active, and immediately starting name-only
+    // advertising only to tear it down again a few ms later for a profile switch was observed to
+    // corrupt the NimBLE host's HCI event pool (crash in os_memblock_get, called from
+    // lld_adv_end_ind_handler_hack). The delay gives that app time to react first;
+    // adv_restart_callback() re-checks the active flags, so this is a no-op if one did.
+    ble_schedule_adv_restart(ctx->device, ADV_ON_SYNC_DELAY_US);
 }
 
 static void dispatch_disable_timer_cb(void* arg) {
